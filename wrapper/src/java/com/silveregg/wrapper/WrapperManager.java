@@ -26,6 +26,9 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.20  2002/09/10 16:03:35  mortenson
+// Add some more documentation to the log method.
+//
 // Revision 1.19  2002/09/09 17:19:47  mortenson
 // Add ability to log to specific log levels from within the Wrapper.
 //
@@ -673,6 +676,11 @@ public final class WrapperManager implements Runnable {
      *  messages logged via this method, it is expected that interspersed
      *  console and log messages will not be in the correct order in the
      *  resulting log file.
+     * <p>
+     * This method was added to allow simple logging to the wrapper.log
+     *  file.  This is not meant to be a full featured log file and should
+     *  not be used as such.  Please look into a logging package for most
+     *  application logging.
      *
      * @param logLevel The level to log the message at can be one of
      *                 WRAPPER_LOG_LEVEL_DEBUG, WRAPPER_LOG_LEVEL_INFO,
