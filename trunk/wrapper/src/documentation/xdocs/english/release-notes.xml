@@ -48,11 +48,10 @@ $Id$
             </listitem>
             <listitem>
                 <para>
-                    Fixed a potential problem for Windows users running as a service.  Eric Smith
-                    noticed that the putenv function was not being used correctly and submitted
-                    a patch to fix the problem.  The putenv docs say that the misuse would lead
-                    to undefined behavior.  I am not aware of any specific problems that were
-                    caused by this however.
+                    Fixed a problem where some environment variables where not being correctly
+                    loaded from the system registry when running as an NT service.  Big thanks
+                    to Eric Smith for tracking this down and submitting a patch.  It turns out
+                    that the putenv function was not being used correctly.
                 </para>
             </listitem>
         </itemizedlist>
