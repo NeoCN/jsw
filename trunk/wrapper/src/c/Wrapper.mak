@@ -30,18 +30,18 @@ NULL=nul
 OUTDIR=.\Release
 INTDIR=.\Release
 
-ALL : "..\..\bin\Wrapper.exe"
+ALL : "..\..\bin\wrapper.exe"
 
 
 CLEAN :
-	-@erase "$(INTDIR)\logger.obj"
-	-@erase "$(INTDIR)\messages.res"
-	-@erase "$(INTDIR)\property.obj"
-	-@erase "$(INTDIR)\vc60.idb"
-	-@erase "$(INTDIR)\wrapper.obj"
-	-@erase "$(INTDIR)\wrapper_unix.obj"
-	-@erase "$(INTDIR)\wrapper_win.obj"
-	-@erase "..\..\bin\Wrapper.exe"
+    -@erase "$(INTDIR)\logger.obj"
+    -@erase "$(INTDIR)\messages.res"
+    -@erase "$(INTDIR)\property.obj"
+    -@erase "$(INTDIR)\vc60.idb"
+    -@erase "$(INTDIR)\wrapper.obj"
+    -@erase "$(INTDIR)\wrapper_unix.obj"
+    -@erase "$(INTDIR)\wrapper_win.obj"
+    -@erase "..\..\bin\wrapper.exe"
 
 "$(OUTDIR)" :
     if not exist "$(OUTDIR)/$(NULL)" mkdir "$(OUTDIR)"
@@ -84,18 +84,18 @@ RSC_PROJ=/l 0x411 /fo"$(INTDIR)\messages.res" /d "NDEBUG"
 BSC32=bscmake.exe
 BSC32_FLAGS=/nologo /o"$(OUTDIR)\Wrapper.bsc" 
 BSC32_SBRS= \
-	
+    
 LINK32=link.exe
-LINK32_FLAGS=kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib shlwapi.lib /nologo /subsystem:console /incremental:no /pdb:"$(OUTDIR)\Wrapper.pdb" /machine:I386 /out:"../../bin/Wrapper.exe" 
+LINK32_FLAGS=kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib shlwapi.lib /nologo /subsystem:console /incremental:no /pdb:"$(OUTDIR)\Wrapper.pdb" /machine:I386 /out:"../../bin/wrapper.exe" 
 LINK32_OBJS= \
-	"$(INTDIR)\logger.obj" \
-	"$(INTDIR)\property.obj" \
-	"$(INTDIR)\wrapper.obj" \
-	"$(INTDIR)\wrapper_unix.obj" \
-	"$(INTDIR)\wrapper_win.obj" \
-	"$(INTDIR)\messages.res"
+    "$(INTDIR)\logger.obj" \
+    "$(INTDIR)\property.obj" \
+    "$(INTDIR)\wrapper.obj" \
+    "$(INTDIR)\wrapper_unix.obj" \
+    "$(INTDIR)\wrapper_win.obj" \
+    "$(INTDIR)\messages.res"
 
-"..\..\bin\Wrapper.exe" : "$(OUTDIR)" $(DEF_FILE) $(LINK32_OBJS)
+"..\..\bin\wrapper.exe" : "$(OUTDIR)" $(DEF_FILE) $(LINK32_OBJS)
     $(LINK32) @<<
   $(LINK32_FLAGS) $(LINK32_OBJS)
 <<
@@ -108,27 +108,27 @@ INTDIR=.\Debug
 OutDir=.\Debug
 # End Custom Macros
 
-ALL : "..\..\bin\Wrapper.exe" "$(OUTDIR)\Wrapper.bsc"
+ALL : "..\..\bin\wrapper.exe" "$(OUTDIR)\Wrapper.bsc"
 
 
 CLEAN :
-	-@erase "$(INTDIR)\logger.obj"
-	-@erase "$(INTDIR)\logger.sbr"
-	-@erase "$(INTDIR)\messages.res"
-	-@erase "$(INTDIR)\property.obj"
-	-@erase "$(INTDIR)\property.sbr"
-	-@erase "$(INTDIR)\vc60.idb"
-	-@erase "$(INTDIR)\vc60.pdb"
-	-@erase "$(INTDIR)\wrapper.obj"
-	-@erase "$(INTDIR)\wrapper.sbr"
-	-@erase "$(INTDIR)\wrapper_unix.obj"
-	-@erase "$(INTDIR)\wrapper_unix.sbr"
-	-@erase "$(INTDIR)\wrapper_win.obj"
-	-@erase "$(INTDIR)\wrapper_win.sbr"
-	-@erase "$(OUTDIR)\Wrapper.bsc"
-	-@erase "$(OUTDIR)\Wrapper.pdb"
-	-@erase "..\..\bin\Wrapper.exe"
-	-@erase "..\..\bin\Wrapper.ilk"
+    -@erase "$(INTDIR)\logger.obj"
+    -@erase "$(INTDIR)\logger.sbr"
+    -@erase "$(INTDIR)\messages.res"
+    -@erase "$(INTDIR)\property.obj"
+    -@erase "$(INTDIR)\property.sbr"
+    -@erase "$(INTDIR)\vc60.idb"
+    -@erase "$(INTDIR)\vc60.pdb"
+    -@erase "$(INTDIR)\wrapper.obj"
+    -@erase "$(INTDIR)\wrapper.sbr"
+    -@erase "$(INTDIR)\wrapper_unix.obj"
+    -@erase "$(INTDIR)\wrapper_unix.sbr"
+    -@erase "$(INTDIR)\wrapper_win.obj"
+    -@erase "$(INTDIR)\wrapper_win.sbr"
+    -@erase "$(OUTDIR)\Wrapper.bsc"
+    -@erase "$(OUTDIR)\Wrapper.pdb"
+    -@erase "..\..\bin\wrapper.exe"
+    -@erase "..\..\bin\Wrapper.ilk"
 
 "$(OUTDIR)" :
     if not exist "$(OUTDIR)/$(NULL)" mkdir "$(OUTDIR)"
@@ -171,11 +171,11 @@ RSC_PROJ=/l 0x411 /fo"$(INTDIR)\messages.res" /d "_DEBUG"
 BSC32=bscmake.exe
 BSC32_FLAGS=/nologo /o"$(OUTDIR)\Wrapper.bsc" 
 BSC32_SBRS= \
-	"$(INTDIR)\logger.sbr" \
-	"$(INTDIR)\property.sbr" \
-	"$(INTDIR)\wrapper.sbr" \
-	"$(INTDIR)\wrapper_unix.sbr" \
-	"$(INTDIR)\wrapper_win.sbr"
+    "$(INTDIR)\logger.sbr" \
+    "$(INTDIR)\property.sbr" \
+    "$(INTDIR)\wrapper.sbr" \
+    "$(INTDIR)\wrapper_unix.sbr" \
+    "$(INTDIR)\wrapper_win.sbr"
 
 "$(OUTDIR)\Wrapper.bsc" : "$(OUTDIR)" $(BSC32_SBRS)
     $(BSC32) @<<
@@ -183,16 +183,16 @@ BSC32_SBRS= \
 <<
 
 LINK32=link.exe
-LINK32_FLAGS=kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib shlwapi.lib /nologo /subsystem:console /incremental:yes /pdb:"$(OUTDIR)\Wrapper.pdb" /debug /machine:I386 /out:"../../bin/Wrapper.exe" /pdbtype:sept 
+LINK32_FLAGS=kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib shlwapi.lib /nologo /subsystem:console /incremental:yes /pdb:"$(OUTDIR)\Wrapper.pdb" /debug /machine:I386 /out:"../../bin/wrapper.exe" /pdbtype:sept 
 LINK32_OBJS= \
-	"$(INTDIR)\logger.obj" \
-	"$(INTDIR)\property.obj" \
-	"$(INTDIR)\wrapper.obj" \
-	"$(INTDIR)\wrapper_unix.obj" \
-	"$(INTDIR)\wrapper_win.obj" \
-	"$(INTDIR)\messages.res"
+    "$(INTDIR)\logger.obj" \
+    "$(INTDIR)\property.obj" \
+    "$(INTDIR)\wrapper.obj" \
+    "$(INTDIR)\wrapper_unix.obj" \
+    "$(INTDIR)\wrapper_win.obj" \
+    "$(INTDIR)\messages.res"
 
-"..\..\bin\Wrapper.exe" : "$(OUTDIR)" $(DEF_FILE) $(LINK32_OBJS)
+"..\..\bin\wrapper.exe" : "$(OUTDIR)" $(DEF_FILE) $(LINK32_OBJS)
     $(LINK32) @<<
   $(LINK32_FLAGS) $(LINK32_OBJS)
 <<
@@ -293,7 +293,7 @@ SOURCE=.\wrapper_win.c
 SOURCE=.\messages.rc
 
 "$(INTDIR)\messages.res" : $(SOURCE) "$(INTDIR)"
-	$(RSC) $(RSC_PROJ) $(SOURCE)
+    $(RSC) $(RSC_PROJ) $(SOURCE)
 
 
 

@@ -1,5 +1,9 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.1.0
+* Make it possible to load the native library using files named after the
+  platform and architecture.
+  
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the
   patch.
