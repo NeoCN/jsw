@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.30  2003/06/10 14:22:00  mortenson
+ * Fix bug #744801.  A Java GUI was not being displayed when the application was
+ * run in either console mode or as a service with wrapper.ntservice.interactive
+ * enabled on JVM versions prior to 1.4.0.
+ *
  * Revision 1.29  2003/04/14 14:11:53  mortenson
  * Add support for Mac OS X.
  * (Patch from Andy Barnett)
@@ -164,6 +169,7 @@ struct WrapperConfig {
     char    *ntServiceAccount;      /* Account name to use when running as a service.  NULL to use the LocalSystem account. */
     char    *ntServicePassword;     /* Password to use when running as a service.  NULL means no password. */
     int     ntServiceInteractive;   /* Should the service be allowed to interact with the desktop? */
+    int     ntHideJavaConsole;      /* Should the Java console window be hidden when run as a service.  True by default but does not work with 1.2.x JVMs. */
 #else /* UNIX */
     char    *pidFilename;           /* Name of file to store wrapper pid in */
     int     daemonize;              /* TRUE if the process  should be spawned as a daemon process on launch. */

@@ -63,6 +63,9 @@
             <listitem>
                 <ulink url="prop-ntservice-interactive.html">wrapper.ntservice.interactive</ulink>
             </listitem>
+            <listitem>
+                <ulink url="prop-ntservice-hide-console.html">wrapper.ntservice.hide_console</ulink>
+            </listitem>
         </itemizedlist>
     </section>
 </chapter>

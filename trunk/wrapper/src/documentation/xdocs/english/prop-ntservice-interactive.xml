@@ -33,6 +33,14 @@
             <simpara><emphasis>Example:</emphasis></simpara>
             <screen format="linespecific"><![CDATA[wrapper.ntservice.interactive=false]]></screen>
         </informalexample>
+        <para>
+            Due to the way versions of Java prior to 1.4.0 handle the displaying of
+            Windows, their GUI may not be visible when running as an NT service with
+            the interactive property set.  To enable the GUI on these JVMs, you will
+            also need to set the <ulink url="prop-ntservice-hide-console.html">wrapper.ntservice.hide_console</ulink>
+            property to true.  Please review the hide_console documentation before
+            setting it.
+        </para>
         <note>
             <para>
                 This property must be set to FALSE if the

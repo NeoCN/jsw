@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.44  2003/06/10 14:22:01  mortenson
+ * Fix bug #744801.  A Java GUI was not being displayed when the application was
+ * run in either console mode or as a service with wrapper.ntservice.interactive
+ * enabled on JVM versions prior to 1.4.0.
+ *
  * Revision 1.43  2003/05/30 09:11:16  mortenson
  * Added -t and -p command line options to the Windows version of the Wrapper
  * to sTart and stoP the Wrapper as an NT service.  This can be used in place
@@ -732,6 +737,10 @@ void wrapperExecute() {
     int temp_int = 0;
     char szPath[512];
     char *c;
+    char titleBuffer[80];
+    int i;
+    HWND consoleHandle;
+    WINDOWPLACEMENT consolePlacement;
 
     /* Increment the process ID for Log sourcing */
     wrapperData->jvmRestarts++;
@@ -753,11 +762,14 @@ void wrapperExecute() {
     process_attributes.lpSecurityDescriptor = NULL;
     process_attributes.bInheritHandle = TRUE;
 
+    /* Generate a unique time for the console so we can look for it below. */
+    sprintf(titleBuffer, "Wrapper Controlled JVM Console ID %d%d (Do not close)", rand(), rand());
+
     /* Initialize a STARTUPINFO structure to use for the new process. */
     startup_info.cb=sizeof(STARTUPINFO);
     startup_info.lpReserved=NULL;
     startup_info.lpDesktop=NULL;
-    startup_info.lpTitle="Wrapper Client (Do not close)";
+    startup_info.lpTitle=titleBuffer;
     startup_info.dwX=0;
     startup_info.dwY=0;
     startup_info.dwXSize=0;
@@ -765,8 +777,21 @@ void wrapperExecute() {
     startup_info.dwXCountChars=0;
     startup_info.dwYCountChars=0;
     startup_info.dwFillAttribute=0;
-    startup_info.dwFlags=STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
-    startup_info.wShowWindow=SW_HIDE;
+    if (wrapperData->isConsole || (!wrapperData->ntHideJavaConsole)) {
+        /* When run in console mode, the launched JVM will use the same console
+         *  as the wrapper, so the first additional window shown will be any
+         *  GUI displayed by the Java Application. */
+        startup_info.dwFlags=STARTF_USESTDHANDLES;
+        startup_info.wShowWindow=0;
+    } else {
+        /* When run as an NT service, a console will not exist so the JVM will
+         *  create one.  The following settings wil hide that console window
+         *  so it does not show up when the service is run in interactive mode.
+         * Java 1.4 will correctly force its GUI to display, but earlier versions
+         *  of Java will not. */
+        startup_info.dwFlags=STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
+        startup_info.wShowWindow=SW_HIDE;
+    }
     startup_info.cbReserved2=0;
     startup_info.lpReserved2=NULL;
     startup_info.hStdInput=NULL;
@@ -823,6 +848,40 @@ void wrapperExecute() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "can not execute \"%s\"", commandline);
         wrapperProcess = NULL;
         return;
+    }
+
+    /* Locate the Java Console Window.  Will only exist when being run as a
+     *  service with interactive mode enabled and hide console disabled.
+     *  This way the console, and this its child windows will be displayed,
+     *  but we hide it as quickly as possible with no harm done but a black
+     *  window popping up for a brief moment. */
+    if ((!wrapperData->isConsole) && (wrapperData->ntServiceInteractive)
+        && (!wrapperData->ntHideJavaConsole)) {
+        /* Allow up to 2 seconds for the window to show up, but don't hang
+         *  up if it doesn't */
+        consoleHandle = NULL;
+        while ((!consoleHandle) && (i < 200)) {
+            Sleep(10);
+            consoleHandle = FindWindow("ConsoleWindowClass", titleBuffer);
+            i++;
+        }
+        if (consoleHandle != NULL) {
+            if (GetWindowPlacement(consoleHandle, &consolePlacement)) {
+                /* Hide the Window. */
+                consolePlacement.showCmd = SW_HIDE;
+
+                /* If we hide the window too soon after it is shown, it sometimes sticks, so wait a moment. */
+                Sleep(10);
+
+                if (!SetWindowPlacement(consoleHandle, &consolePlacement)) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                        "Unable to set window placement information: %s", getLastErrorText(szErr, 256));
+                }
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                    "Unable to obtain window placement information: %s", getLastErrorText(szErr, 256));
+            }
+        }
     }
 
     if (wrapperData->isDebugging) {
