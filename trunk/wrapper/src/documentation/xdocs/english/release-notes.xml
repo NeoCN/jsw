@@ -152,6 +152,13 @@ $Id$
                     end of a line containing a property.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Modify the way exceptions thrown by an application's main method are
+                    presented to the user by the WrapperSimpleApp and WrapperStartStopApp so
+                    they no longer look like a problem with Wrapper configuration.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
