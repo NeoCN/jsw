@@ -206,10 +206,15 @@
                         <glossterm>wrapper.java.classpath.&lt;n&gt;</glossterm>
                         <glossdef>
                             <para>
-                                Java Classpath to use.  You should have a series of properties listing up the various class path elements to use when launching the application.  Each element has a property name which starts with wrapper.java.classpath. and ends with an integer number counting up from 1.  There can be no missing numbers.
+                                Java Classpath to use.  You should have a series of properties
+                                listing up the various class path elements to use when launching
+                                the application.  Each element has a property name which starts
+                                with wrapper.java.classpath. and ends with an integer number
+                                counting up from 1.  There can be no missing numbers.
                             </para>
                             <para>
-                                This list must contain the wrapper.jar file.  It can contain jar files as well as directories contains class files.
+                                This list must contain the wrapper.jar file.  It can contain jar
+                                files as well as directories contains class files.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
                                     <screen format="linespecific">wrapper.java.classpath.1=../lib/wrapper.jar
@@ -219,7 +224,8 @@ wrapper.java.classpath.4=../classes</screen>
                                 </informalexample>
                             </para>
                             <para>
-                                As of version 2.2.5, classpath entries which contain wild cards can be used.
+                                As of version 2.2.5, classpath entries which contain wild cards can
+                                be used.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
                                     <screen format="linespecific">wrapper.java.classpath.1=../lib/*.jar
@@ -229,13 +235,23 @@ wrapper.java.classpath.2=../classes</screen>
                         </glossdef>
                     </glossentry>
                     <glossentry>
-                        <glossterm>wrapper.java.library.path</glossterm>
+                        <glossterm>wrapper.java.library.path.&lt;n&gt;</glossterm>
                         <glossdef>
                             <para>
-                                Value of the Java library path.  This is a directory which contains any native (JNI) libraries used by the application.  You must place the Wrapper.DLL or libWrapper.so file in the directory specified.
+                                Java library path to use. You should have a series of properties
+                                listing up the various library path elements to use when launching
+                                the application.  Each element has a property name which starts
+                                with wrapper.java.library.path. and ends with an integer number
+                                counting up from 1.  There can be no missing numbers.
+                            </para>
+                            <para>
+                                The library path is used to specify a list of directories in which
+                                to look for any native (JNI) libraries used by the application.
+                                You must place the Wrapper.DLL or libWrapper.so file in one of the
+                                directories specified.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.java.library.path=../lib</screen>
+                                    <screen format="linespecific">wrapper.java.library.path.1=../lib</screen>
                                 </informalexample>
                             </para>
                         </glossdef>
