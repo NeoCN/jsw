@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.51  2003/08/15 17:16:18  mortenson
+ * Fix tabs.
+ *
  * Revision 1.50  2003/08/15 17:13:17  mortenson
  * Added the wrapper.java.pidfile property which will cause the pid of the
  * java process to be written to a specified file.
@@ -245,7 +248,7 @@ void appExit(int exitCode) {
     /* Remove pid file if it was registered and created by this process. */
     if ((ownPidFile) && (wrapperData->pidFilename)) {
         unlink(wrapperData->pidFilename);
-		ownPidFile = 0;
+        ownPidFile = 0;
     }
 
     /* Do this here to unregister the syslog resources on exit.*/
@@ -659,11 +662,11 @@ int wrapperGetProcessStatus() {
     case WAIT_OBJECT_0:
         res = WRAPPER_PROCESS_DOWN;
 
-		/* Remove java pid file if it was registered and created by this process. */
-		if ((ownJavaPidFile) && (wrapperData->javaPidFilename)) {
-			unlink(wrapperData->javaPidFilename);
-			ownJavaPidFile = 0;
-		}
+        /* Remove java pid file if it was registered and created by this process. */
+        if ((ownJavaPidFile) && (wrapperData->javaPidFilename)) {
+            unlink(wrapperData->javaPidFilename);
+            ownJavaPidFile = 0;
+        }
 
         break;
 
@@ -715,7 +718,7 @@ void wrapperKillProcess() {
     /* Remove java pid file if it was registered and created by this process. */
     if ((ownJavaPidFile) && (wrapperData->javaPidFilename)) {
         unlink(wrapperData->javaPidFilename);
-		ownJavaPidFile = 0;
+        ownJavaPidFile = 0;
     }
 
     /* Close any open socket to the JVM */
@@ -909,23 +912,23 @@ void wrapperExecute() {
     wrapperProcess = process_info.hProcess;
     wrapperProcessId = process_info.dwProcessId;
 
-	/* If a java pid filename is specified then write the pid of the java process. */
-	if (wrapperData->javaPidFilename) {
-		old_umask = _umask(022);
-		pid_fp = fopen(wrapperData->javaPidFilename, "w");
-		_umask(old_umask);
+    /* If a java pid filename is specified then write the pid of the java process. */
+    if (wrapperData->javaPidFilename) {
+        old_umask = _umask(022);
+        pid_fp = fopen(wrapperData->javaPidFilename, "w");
+        _umask(old_umask);
 
-		if (pid_fp != NULL) {
-			fprintf(pid_fp, "%d\n", wrapperProcessId);
-			fclose(pid_fp);
+        if (pid_fp != NULL) {
+            fprintf(pid_fp, "%d\n", wrapperProcessId);
+            fclose(pid_fp);
 
-			/* Remember that we created the pid file. */
-			ownJavaPidFile = 1;
-		} else {
-	        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-				"Unable to write the Java PID file: %s", wrapperData->javaPidFilename);
-		}
-	}
+            /* Remember that we created the pid file. */
+            ownJavaPidFile = 1;
+        } else {
+         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                "Unable to write the Java PID file: %s", wrapperData->javaPidFilename);
+        }
+    }
 }
 
 /******************************************************************************
@@ -1676,8 +1679,8 @@ int writePidFile() {
         fprintf(pid_fp, "%d\n", (int)getpid());
         fclose(pid_fp);
 
-		/* Remember that we created the pid file. */
-		ownPidFile = 1;
+        /* Remember that we created the pid file. */
+        ownPidFile = 1;
     } else {
         return 1;
     }
@@ -1928,52 +1931,52 @@ void _CRTAPI1 main(int argc, char **argv) {
                             } else if(!_stricmp(argv[1],"-c") || !_stricmp(argv[1],"/c")) {
                                 /* Run as a console application */
 
-								/* Write pid file. */
-								if (wrapperData->pidFilename) {
-									if (writePidFile()) {
-										log_printf
-											(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-											 "ERROR: Could not write pid file %s: %s",
-											 wrapperData->pidFilename, getLastErrorText());
-										exit(1);
-									}
-								}
+                                /* Write pid file. */
+                                if (wrapperData->pidFilename) {
+                                    if (writePidFile()) {
+                                        log_printf
+                                            (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                                             "ERROR: Could not write pid file %s: %s",
+                                             wrapperData->pidFilename, getLastErrorText());
+                                        exit(1);
+                                    }
+                                }
 
-								if (!result) {
-									result = wrapperRunConsole();
-								}
+                                if (!result) {
+                                    result = wrapperRunConsole();
+                                }
                             } else if(!_stricmp(argv[1],"-s") || !_stricmp(argv[1],"/s")) {
                                 /* Run as a service */
 
-								/* Write pid file. */
-								if (wrapperData->pidFilename) {
-									if (writePidFile()) {
-										log_printf
-											(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-											 "ERROR: Could not write pid file %s: %s",
-											 wrapperData->pidFilename, getLastErrorText());
-										exit(1);
-									}
-								}
+                                /* Write pid file. */
+                                if (wrapperData->pidFilename) {
+                                    if (writePidFile()) {
+                                        log_printf
+                                            (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                                             "ERROR: Could not write pid file %s: %s",
+                                             wrapperData->pidFilename, getLastErrorText());
+                                        exit(1);
+                                    }
+                                }
 
-								if (!result) {
-									/* Prepare the service table */
-									serviceTable[0].lpServiceName = wrapperData->ntServiceName;
-									serviceTable[0].lpServiceProc = (LPSERVICE_MAIN_FUNCTION)wrapperServiceMain;
-									serviceTable[1].lpServiceName = NULL;
-									serviceTable[1].lpServiceProc = NULL;
+                                if (!result) {
+                                    /* Prepare the service table */
+                                    serviceTable[0].lpServiceName = wrapperData->ntServiceName;
+                                    serviceTable[0].lpServiceProc = (LPSERVICE_MAIN_FUNCTION)wrapperServiceMain;
+                                    serviceTable[1].lpServiceName = NULL;
+                                    serviceTable[1].lpServiceProc = NULL;
                     
-									printf("Attempting to start %s as an NT service.\n", wrapperData->ntServiceDisplayName);
-									printf("\nCalling StartServiceCtrlDispatcher...please wait.\n");
+                                    printf("Attempting to start %s as an NT service.\n", wrapperData->ntServiceDisplayName);
+                                    printf("\nCalling StartServiceCtrlDispatcher...please wait.\n");
                     
-									/* Start the service control dispatcher.  This will not return */
-									/*  if the service is started without problems */
-									if (!StartServiceCtrlDispatcher(serviceTable)){
-										printf("\nStartServiceControlDispatcher failed!\n");
-										printf("\nFor help, type\n\n%s /?\n\n", argv[0]);
-										result = 1;
-									}
-								}
+                                    /* Start the service control dispatcher.  This will not return */
+                                    /*  if the service is started without problems */
+                                    if (!StartServiceCtrlDispatcher(serviceTable)){
+                                        printf("\nStartServiceControlDispatcher failed!\n");
+                                        printf("\nFor help, type\n\n%s /?\n\n", argv[0]);
+                                        result = 1;
+                                    }
+                                }
                             } else {
                                 printf("\nUnrecognized option: %s\n", argv[1]);
                                 wrapperUsage(argv[0]);
