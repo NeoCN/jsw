@@ -24,7 +24,18 @@
             Please send us a note if you wish to have any information on this page
             modified or removed.
         </para>
+        <!--
+            Item Number:
+            101: Anonymous
+            102: Named
+            -->
         <donorlist>
+            <donor>
+                <date>Apr 20, 2004</date>
+                <amount>100.00</amount>
+                <name>Gunnar Eketrapp</name>
+                <message>Excellent tool and documentation. The best things in life are free!</message>
+            </donor>
             <donor>
                 <date>Mar 30, 2004</date>
                 <amount>50.00</amount>
