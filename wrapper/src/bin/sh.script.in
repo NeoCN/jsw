@@ -64,7 +64,7 @@ REALPATH=`echo $REALPATH | sed -e 's;:; ;g'`
 cd "`dirname "$REALPATH"`"
 
 # Process ID
-PIDDIR="/var/run"
+PIDDIR="./"
 PIDFILE="$PIDDIR/$APP_NAME.pid"
 pid=""
 

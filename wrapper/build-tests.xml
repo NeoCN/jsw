@@ -608,12 +608,6 @@ set ENV_VAR_4=d]]></replacevalue>
         <delete file="${test.dir}/temp.script.in"/>
         <copy file="${src.dir}/bin/sh.script.in"
               tofile="${test.dir}/temp.script.in"/>
-        
-        <!-- Always put the pid file in the test directory as the current -->
-        <!--  user may not have access to /var/run -->
-        <replace file="${test.dir}/temp.script.in"
-                 token='PIDDIR="/var/run"'
-                 value='PIDDIR="${basedir}/test"' />
     </target>
     
     <!-- =================================================================== -->
