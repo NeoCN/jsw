@@ -6,13 +6,25 @@
      $Id$
      ******************************************************************** -->
 
-<chapter id="api-overview">
+<chapter id="launch-overview">
  
     <title>Launch Overview</title> 
 
     <section>
         <title>Launching Your Application Under Wrapper</title>
-        <section>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    <ulink url="launch-overview.html#windows">Windows NT/2000</ulink>
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <ulink url="launch-overview.html#unix">Linux / Solaris</ulink>
+                </para>
+            </listitem>
+        </itemizedlist>
+        <section id="windows">
             <title>Windows NT/2000</title>
             <para>
                 To run your application as a console app, execute the following command.
@@ -141,8 +153,8 @@ set _WRAPPER_CONF=]]></screen>
                 Starting in version 2.2.3, it is possible to specify paths in your wrapper.conf file which are relative to the Wrapper.exe file.  Older versions did not work correctly with relative paths when the application was run as an NT service.
             </para>
         </section>
-        <section>
-            <title>Linux/Solaris</title>
+        <section id="unix">
+            <title>Linux / Solaris</title>
             <para>
                 To run your application from the command line:
                 <informalexample>
