@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.5  2002/01/24 09:43:56  mortenson
+// Added new Logger code which allows log levels.
+//
 // Revision 1.4  2002/01/24 05:48:48  mortenson
 // Remove old commented code.
 //
@@ -95,9 +98,9 @@ struct WrapperConfig {
     u_short actualPort;             // Port number which the Wrapper is actually listening on
     int     sock;                   // Socket number. if open.
     char    *configFile;            // Name of the config file
-    char    *logFile;               // Name of the log file
-	char    *logFileFormat;         // Any combination of PTM
-	char    *consoleFormat;         // Any combination of PTM
+//  char    *logFile;               // Name of the log file
+//	char    *logFileFormat;         // Any combination of PTM
+//	char    *consoleFormat;         // Any combination of PTM
 #ifdef WIN32
     char    *jvmCommand;            // Command used to launch the JVM
 #else // UNIX
@@ -132,9 +135,6 @@ struct WrapperConfig {
 #endif
 };
 
-#define WRAPPER_SOURCE_WRAPPER -1
-#define WRAPPER_SOURCE_PROTOCOL -2
-
 #define WRAPPER_MSG_START         (char)100
 #define WRAPPER_MSG_STOP          (char)101
 #define WRAPPER_MSG_RESTART       (char)102
@@ -153,18 +153,6 @@ extern WrapperConfig *wrapperData;
 extern Properties    *properties;
 
 extern char wrapperClasspathSeparator;
-
-// Log Functions
-extern void wrapperLog(int sourceID, const char *message);
-extern void wrapperLogI(int sourceID, const char *message, int val1);
-extern void wrapperLogII(int sourceID, const char *message, int val1, int val2);
-extern void wrapperLogIL(int sourceID, const char *message, int val1, long int val2);
-extern void wrapperLogIS(int sourceID, const char *message, int val1, const char *val2);
-extern void wrapperLogL(int sourceID, const char *message, long int val1);
-extern void wrapperLogS(int sourceID, const char *message, const char *val1);
-extern void wrapperLogSI(int sourceID, const char *message, const char *val1, int val2);
-extern void wrapperLogSS(int sourceID, const char *message, const char *val1, const char *val2);
-extern void wrapperLogSSI(int sourceID, const char *message, const char *val1, const char *val2, int val3);
 
 // Protocol Functions
 extern void wrapperProtocolStartServer();
@@ -267,18 +255,6 @@ extern void wrapperStopProcess(int exitCode);
 extern void wrapperRestartProcess();
 
 /**
- * Ask the JVM process to shutdown and set the JVM State to 
- *  WRAPPER_JSTATE_STOPPING
- */
-//extern void wrapperStopProcess();
-
-/**
- * Ask the wrapper to start the stop procedure.
- *  Does not ask the JVM child process to shutdown.
- */
-//extern void wrapperStop(int exitCode);
-
-/**
  * The main event loop for the wrapper.  Handles all state changes and events.
  */
 extern void wrapperEventLoop();
@@ -298,10 +274,5 @@ extern void wrapperStopPendingSignalled(int waitHint);
 extern void wrapperStoppedSignalled();
 extern void wrapperStartPendingSignalled(int waitHint);
 extern void wrapperStartedSignalled();
-
-
-//#ifdef __cplusplus
-//}
-//#endif
 
 #endif
