@@ -46,6 +46,12 @@ $Id$
                     second to once every five seconds.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a minor problem where the hour in the date returned by
+                    WrapperInfo.getBuildTime() was not base 24.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
