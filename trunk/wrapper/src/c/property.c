@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.18  2003/04/14 14:11:51  mortenson
+ * Add support for Mac OS X.
+ * (Patch from Andy Barnett)
+ *
  * Revision 1.17  2003/04/09 03:56:53  mortenson
  * Fix a buffer overflow problem if configuration properties referenced
  * extremely large environment variables.
@@ -59,7 +63,10 @@
  *
  */
 
+#ifndef MACOSX
 #include <malloc.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

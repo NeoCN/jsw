@@ -55,11 +55,15 @@
         <property name="is.Unix" value="true"/>
         <property name="is.shell.sh" value="true"/>
     </target>
+    <target name="init-macosx" if="is.Mac OS X">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+    </target>
     
     <!-- =================================================================== -->
     <!-- Initialize build.                                                   -->
     <!-- =================================================================== -->
-    <target name="init" depends="init-windows-nt, init-windows-2000, init-windows-xp, init-linux, init-solaris">
+    <target name="init" depends="init-windows-nt, init-windows-2000, init-windows-xp, init-linux, init-solaris, init-macosx">
     </target>
     
     <!-- =================================================================== -->

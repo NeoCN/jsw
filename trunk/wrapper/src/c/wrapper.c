@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.52  2003/04/14 14:11:53  mortenson
+ * Add support for Mac OS X.
+ * (Patch from Andy Barnett)
+ *
  * Revision 1.51  2003/04/03 04:05:22  mortenson
  * Fix several typos in the docs.  Thanks to Mike Castle.
  *
@@ -123,11 +127,14 @@
 #ifdef AIX
 #else
 #ifdef HPUX
+#else
+#ifdef MACOSX
 #else /* LINUX */
 #include <asm/errno.h>
-#endif /* !HPUX */
-#endif /* !AIX */
-#endif /* !SOLARIS */
+#endif /* MACOSX */
+#endif /* HPUX */
+#endif /* AIX */
+#endif /* SOLARIS */
 
 #endif /* WIN32 */
 
@@ -341,8 +348,12 @@ void wrapperProtocolOpen() {
     addr_srv_len = sizeof(addr_srv);
 #ifdef WIN32
     sd = accept(ssd, (struct sockaddr FAR *)&addr_srv, &addr_srv_len);
+#else
+#ifdef MACOSX
+    sd = accept(ssd, (struct sockaddr *)&addr_srv, &addr_srv_len);
 #else /* UNIX */
     sd = accept(ssd, (struct sockaddr *)&addr_srv, (socklen_t *)&addr_srv_len);
+#endif
 #endif
     if (sd == INVALID_SOCKET) {
         rc = wrapperGetLastError();

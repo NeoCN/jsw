@@ -88,13 +88,16 @@
         <property name="is.Unix" value="true"/>
         <property name="is.shell.sh" value="true"/>
     </target>
-
+    <target name="init-macosx" if="is.Mac OS X">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+    </target>
     
     <!-- =================================================================== -->
     <!-- Initialize build.                                                   -->
     <!-- =================================================================== -->
     <target name="init"
-        depends="init-windows-nt, init-windows-2000, init-windows-xp, init-linux, init-solaris, init-aix, init-hpux">
+        depends="init-windows-nt, init-windows-2000, init-windows-xp, init-linux, init-solaris, init-aix, init-hpux, init-macosx">
         <echo message="OS='${os.name}'"/>
         <tstamp/>
         <filter token="version"           value="${version}"       />
@@ -210,6 +213,14 @@
             failonerror="true">
             <arg line="-f Makefile.hpux" />
         </exec>
+
+        <!-- run make on Mac OS X to build library -->
+        <exec executable="make" 
+            dir="${src.dir}/c" 
+            os="Mac OS X" 
+            failonerror="true">
+            <arg line="-f Makefile.macosx" />
+        </exec>
     </target>
     
     <!-- =================================================================== -->
@@ -286,7 +297,7 @@
     </target>
     
     <!-- =================================================================== -->
-    <!-- Bin target (sh scripts - Solaris, AIX, HP-UX)                        -->
+    <!-- Bin target (sh scripts - Solaris, AIX, HP-UX, Mac OS X)             -->
     <!-- =================================================================== -->
     <target name="bin-sh" depends="compile" if="is.shell.sh">
         <copy file="${src.dir}/bin/sh.script.in"
@@ -564,10 +575,17 @@
     </target>
 
     <!-- =================================================================== -->
+    <!-- Release (Mac OS X)                                                  -->
+    <!-- =================================================================== -->
+    <target name="release-macosx" depends="release-common" if="is.Mac OS X">
+        <property name="releasefile" value="wrapper_macosx_${version}"/>
+    </target>
+    
+    <!-- =================================================================== -->
     <!-- Release (Unix)                                                      -->
     <!-- =================================================================== -->
     <target name="release-unix"
-            depends="release-linux, release-solaris, release-aix, release-hpux"
+            depends="release-linux, release-solaris, release-aix, release-hpux, release-macosx"
             if="is.Unix">
         <property name="releasedir" value="${basedir}/${releasefile}"/>
         <delete dir="${releasedir}"/>
@@ -624,24 +642,6 @@
     </target>
     
     <!-- =================================================================== -->
-    <!-- Run test.                                                           -->
-    <!-- =================================================================== -->
-    <target name="test" depends="main" description="Launch the test application">
-        <exec executable="${bin.dir}/Wrapper.exe" dir="${bin.dir}" os="Windows NT">
-            <arg value="-c"/>
-            <arg value="${basedir}/conf/wrapper.conf"/>
-        </exec>
-        <exec executable="${bin.dir}/Wrapper.exe" dir="${bin.dir}" os="Windows 2000">
-            <arg value="-c"/>
-            <arg value="${basedir}/conf/wrapper.conf"/>
-        </exec>
-    
-        <exec executable="sh" dir="${bin.dir}" os="Linux">
-            <arg value="testwrapper"/>
-        </exec>
-    </target>
-
-    <!-- =================================================================== -->
     <!-- Cleans up generated stuff                                           -->
     <!-- =================================================================== -->
     <target name="clean" description="Clean up any files from the build">
@@ -677,6 +677,12 @@
               dir="${src.dir}/c" 
               os="HP-UX">
             <arg line="-f Makefile.hpux" />
+            <arg value="clean"/>
+        </exec>
+        <exec executable="make" 
+              dir="${src.dir}/c" 
+              os="Mac OS X">
+            <arg line="-f Makefile.macosx" />
             <arg value="clean"/>
         </exec>
     </target>
@@ -715,6 +721,12 @@
               dir="${src.dir}/c" 
               os="HP-UX">
             <arg line="-f Makefile.hpux" />
+            <arg value="cleanall"/>
+        </exec>
+        <exec executable="make" 
+              dir="${src.dir}/c" 
+              os="Mac OS X">
+            <arg line="-f Makefile.macosx" />
             <arg value="cleanall"/>
         </exec>
 

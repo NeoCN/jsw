@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.29  2003/04/14 14:11:53  mortenson
+ * Add support for Mac OS X.
+ * (Patch from Andy Barnett)
+ *
  * Revision 1.28  2003/04/03 04:05:22  mortenson
  * Fix several typos in the docs.  Thanks to Mike Castle.
  *
@@ -51,9 +55,13 @@
 
 #ifdef WIN32
 #include <winsock.h>
-#else
+
+#else /* UNIX */
 #include <time.h>
+#ifndef MACOSX
 #define u_short unsigned short
+#endif /* MACOSX */
+
 #endif
 
 #include "property.h"
