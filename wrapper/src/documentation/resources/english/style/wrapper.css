@@ -211,48 +211,7 @@ tt {
     margin: .1em;
 }
 
-/*
-
-
-body {
-    background: #ffffff;
-    color: #000000;
-}
-
-td.bannerpannel {
-    background: #7fc1e6;
-}
-
-body.composite {
-    margin: 0;
-    padding: 0;
-}
-
-body {
-    font-family: Verdana, Helvetica, Arial, sans-serif;
-}
-code, pre {
-    font-family: 'Andale Mono', Courier, monospace;
-}
-
-small {
-    font-size: x-small;
-}
-
-
-
-#navcolumn a {
+#copyright a {
     text-decoration: none;
 }
 
-
-#navcolumn div div {
-    margin-top: .1em;
-    margin-bottom: .1em;
-    padding-left: 1em;
-    background-image: url(../images/strich.gif);
-    background-repeat: no-repeat;
-    background-position: .7em .5em;
-}
-
-*/
