@@ -17,7 +17,7 @@
                 2004-01-16 - There has been an update to the
                 <ulink url="license.html">Java Service Wrapper's license</ulink>
                 so that it now includes all required copyright information.   The license
-                changes should not affect users in any way however the changes need to be
+                changes should not affect users in any way.  However, the changes need to be
                 applied retractively to all versions of the Java Service Wrapper between
                 3.0.0 and 3.0.5 as the license they were released under was incomplete.
                 If you have one of these versions please update your license.   A full
@@ -122,7 +122,8 @@
                 While these features will not make every problem go away, they will help
                 you to sleep easier knowing that if there is a problem, the Wrapper will
                 be there to keep things up and running until you can get into the office
-                to check the logs.  Say goodbye to that pager!!
+                to check the logs.  Say goodbye to that pager!! (Or as so as not to date
+                myself, that cel phone!)
             </para>
         </section>
         <section id="scripting">
