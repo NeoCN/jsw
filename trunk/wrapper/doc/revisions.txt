@@ -22,6 +22,10 @@ Java Service Wrapper Revision History.
   loaded from the system registry when running as an NT service.  Big thanks
   to Eric Smith for tracking this down and submitting a patch.  It turns out
   that the putenv function was not being used correctly.
+* Modified the way the wrapper.conf file is loaded so it will now read the
+  contents correctly even if the line feeds in the file are incorrect for
+  the current platform.  Windows line feeds had been causing problems when
+  used on UNIX platforms.  Feature Request #829896.
   
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the
