@@ -9,6 +9,18 @@ $Id$
 <article id="index">
     <title>Java Service Wrapper Release Notes</title>
     <section>
+        <title>Version 3.0.4: Changes and bug fixes</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Fix a problem on UNIX systems where requesting a second thread dump any time
+                    during the life of a single Wrapper process would cause the Wrapper and JVM
+                    to shutdown rather than perform the thread dump.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
+    <section>
         <title>Version 3.0.3: Changes and bug fixes</title>
         <itemizedlist>
             <listitem>
