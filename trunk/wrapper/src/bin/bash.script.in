@@ -26,13 +26,15 @@ PRIORITY=
 #-----------------------------------------------------------------------------
 
 # Get the fully qualified path to the script
-C=`expr substr $0 1 1`
-if [ "$C" = "/" ]; then
-    SCRIPT="$0"
-else
-    PWD=`pwd`
-    SCRIPT="$PWD/$0"
-fi
+case $0 in
+    /*)
+        SCRIPT="$0"
+        ;;
+    *)
+        PWD=`pwd`
+        SCRIPT="$PWD/$0"
+        ;;
+esac
 
 # Get the real path to this script, resolving any symbolic links
 TOKENS=`echo $SCRIPT | sed -e 's;/; ;g'`
