@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.13  2002/05/22 16:19:53  mortenson
+ * Fixed the % in JVM output bug on the unix version.
+ *
  * Revision 1.12  2002/05/16 04:51:18  mortenson
  * Add a debug message stating which thread lead to System.exit being called
  *   via a call to shutdown.
@@ -134,7 +137,7 @@ void handleInterrupt(int sig_num) {
  */
 void handleQuit(int sig_num) {
     signal(SIGQUIT, handleInterrupt); 
-	requestDumpJVMState();
+    requestDumpJVMState();
 }
 
 /**
@@ -357,7 +360,7 @@ void wrapperReadChildOutput() {
                 if (readBuf[r] == (char)0x0a) {
                     /* Line feed; write out buffer and reset it. */
                     writeBuf[w] = '\0';
-                    log_printf(wrapperData->jvmRestarts, LEVEL_INFO, writeBuf);
+                    log_printf(wrapperData->jvmRestarts, LEVEL_INFO, "%s", writeBuf);
                     w = 0;
                 } else {
                     /* Add character to write buffer. */
@@ -366,9 +369,9 @@ void wrapperReadChildOutput() {
             }
             
             /* Write out the rest of the buffer. */
-        if (w > 0) {
+            if (w > 0) {
                 writeBuf[w] = '\0';
-                log_printf(wrapperData->jvmRestarts, LEVEL_INFO, writeBuf);
+                log_printf(wrapperData->jvmRestarts, LEVEL_INFO, "%s", writeBuf);
                 w = 0;
             }
         }
@@ -382,12 +385,12 @@ void wrapperKillProcess() {
 
     /* Check to make sure that the JVM process is still running */
     if (waitpid(jvmPid, NULL, WNOHANG) == 0) {
-		/* JVM is still up when it should have already stopped itself. */
-		if (wrapperData->requestThreadDumpOnFailedJVMExit) {
-			requestDumpJVMState();
+        /* JVM is still up when it should have already stopped itself. */
+        if (wrapperData->requestThreadDumpOnFailedJVMExit) {
+            requestDumpJVMState();
 
-		    usleep(1000000); /* 1 second in microseconds */
-		}
+            usleep(1000000); /* 1 second in microseconds */
+        }
 
         /* Kill it immediately. */
         kill(jvmPid, SIGKILL);
