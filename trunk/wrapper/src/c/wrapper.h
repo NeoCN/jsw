@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.32  2003/08/15 16:30:51  mortenson
+ * Added support for the wrapper.pidfile property on the Windows platform.
+ *
  * Revision 1.31  2003/07/02 04:01:52  mortenson
  * Implement the ability to specify an NT service's load order group in response
  * to feature request #764143.
@@ -160,6 +163,8 @@ struct WrapperConfig {
     int     outputFilterCount;      /* Number of registered output filters. */
     char**  outputFilters;          /* Array of output filters. */
     int*    outputFilterActions;    /* Array of output filter actions. */
+    char    *pidFilename;           /* Name of file to store wrapper pid in */
+    char    *javaPidFilename;        /* Name of file to store jvm pid in */
 
 #ifdef WIN32
     char    *ntServiceName;         /* Name of the NT Service */
@@ -176,7 +181,6 @@ struct WrapperConfig {
     int     ntServiceInteractive;   /* Should the service be allowed to interact with the desktop? */
     int     ntHideJavaConsole;      /* Should the Java console window be hidden when run as a service.  True by default but does not work with 1.2.x JVMs. */
 #else /* UNIX */
-    char    *pidFilename;           /* Name of file to store wrapper pid in */
     int     daemonize;              /* TRUE if the process  should be spawned as a daemon process on launch. */
 #endif
 };

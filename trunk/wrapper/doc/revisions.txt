@@ -11,6 +11,7 @@ Java Service Wrapper Revision History.
   exist in the same directory as the sh script rather than in the /var/run.
   This can be changed by setting the PIDDIR variable in the sh script used to
   launch the Wrapper.
+* Added support for the wrapper.pidfile property on the Windows platform.
 
 3.0.4
 * Fix a problem on UNIX systems where requesting a second thread dump any time

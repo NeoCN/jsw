@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.67  2003/08/15 16:30:51  mortenson
+ * Added support for the wrapper.pidfile property on the Windows platform.
+ *
  * Revision 1.66  2003/08/11 16:40:10  mortenson
  * Apply a patch by Andreas Wendt to add support for SGI Irix
  *
@@ -2055,9 +2058,6 @@ void wrapperBuildNTServiceInfo() {
 
 #ifndef WIN32 /* UNIX */
 void wrapperBuildUnixDaemonInfo() {
-    /** Get the pid file if any.  May be NULL */
-    wrapperData->pidFilename = (char *)getStringProperty(properties, "wrapper.pidfile", NULL);
-    
     /** Get the daemonize flag. */
     wrapperData->daemonize = getBooleanProperty(properties, "wrapper.daemonize", FALSE);
 }
@@ -2224,6 +2224,9 @@ int wrapperLoadConfiguration() {
         wrapperData->outputFilterActions = NULL;
     }
 
+    /** Get the pid files if any.  May be NULL */
+    wrapperData->pidFilename = (char *)getStringProperty(properties, "wrapper.pidfile", NULL);
+    wrapperData->javaPidFilename = (char *)getStringProperty(properties, "wrapper.java.pidfile", NULL);
 
 #ifdef WIN32
     /* Configure the NT service information */
