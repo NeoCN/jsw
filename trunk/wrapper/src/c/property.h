@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.7  2003/08/02 06:49:13  mortenson
+ * Changed the way environment variables are loaded from the registry on Windows
+ * platforms so users will no longer get warning messages about not being able
+ * to handle very large environment variables.
+ *
  * Revision 1.6  2003/04/03 04:05:22  mortenson
  * Fix several typos in the docs.  Thanks to Mike Castle.
  *
@@ -45,6 +50,12 @@
 
 #ifndef _PROPERTY_H
 #define _PROPERTY_H
+
+/* This defines the largest environment variable that we are able
+ *  to work with.  It can be expanded if needed. */
+#define MAX_PROPERTY_NAME_LENGTH 512
+#define MAX_PROPERTY_VALUE_LENGTH 16384
+#define MAX_PROPERTY_NAME_VALUE_LENGTH MAX_PROPERTY_NAME_LENGTH + 1 + MAX_PROPERTY_VALUE_LENGTH
 
 typedef struct Property Property;
 struct Property {

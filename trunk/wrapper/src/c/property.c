@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.23  2003/08/02 06:49:13  mortenson
+ * Changed the way environment variables are loaded from the registry on Windows
+ * platforms so users will no longer get warning messages about not being able
+ * to handle very large environment variables.
+ *
  * Revision 1.22  2003/07/26 12:21:07  mortenson
  * Added support for FreeBSD.  Thanks to Alphonse Bendt for supplying the patch.
  *
@@ -195,7 +200,7 @@ void disposeInnerProperty(Property *property) {
 void evaluateEnvironmentVariables(const char *propertyValue, char *buffer, int bufferLength) {
     const char *in;
     char *out;
-    char envName[256];
+    char envName[MAX_PROPERTY_NAME_LENGTH];
     char *envValue;
     char *start;
     char *end;
@@ -318,7 +323,7 @@ void evaluateEnvironmentVariables(const char *propertyValue, char *buffer, int b
 
 void setInnerProperty(Property *property, const char *propertyValue) {
     int i, count;
-    char buffer[2048];
+    char buffer[MAX_PROPERTY_VALUE_LENGTH];
 
     /* Free any existing value */
     if (property->value != NULL) {
@@ -330,7 +335,7 @@ void setInnerProperty(Property *property, const char *propertyValue) {
     if (propertyValue == NULL) {
         property->value = NULL;
     } else {
-        evaluateEnvironmentVariables(propertyValue, buffer, 2048);
+        evaluateEnvironmentVariables(propertyValue, buffer, MAX_PROPERTY_VALUE_LENGTH);
 
         property->value = malloc(sizeof(char) * (strlen(buffer) + 1));
 
@@ -353,14 +358,14 @@ void setInnerProperty(Property *property, const char *propertyValue) {
  */
 int loadPropertiesInner(Properties* properties, const char* filename, int depth) {
     FILE *stream;
-    char buffer[1024];
-    char expBuffer[2048];
+    char buffer[MAX_PROPERTY_NAME_VALUE_LENGTH];
+    char expBuffer[MAX_PROPERTY_NAME_VALUE_LENGTH];
     char *trimmedBuffer;
     int trimmedBufferLen;
     char *c;
     char *d;
-	int i, j;
-	int len;
+    int i, j;
+    int len;
 
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "loadPropertiesInner(props, '%s', %d)", filename, depth);
@@ -377,7 +382,7 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
 
     /* Load in all of the properties */
     do {
-        c = fgets(buffer, 1024, stream);
+        c = fgets(buffer, MAX_PROPERTY_NAME_VALUE_LENGTH, stream);
         if (c != NULL) {
             /* Strip the LF off the end of the line. */
             if ((d = strchr(buffer, '\n')) != NULL) {
@@ -392,31 +397,31 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
 
             /* If the line does not start with a comment, make sure that
              *  any comment at the end of line are stripped.  If any any point, a
-			 *  double hash, '##', is encountered it should be interpreted as a
-			 *  hash in the actual property rather than the beginning of a comment. */
+             *  double hash, '##', is encountered it should be interpreted as a
+             *  hash in the actual property rather than the beginning of a comment. */
             if (trimmedBuffer[0] != '#') {
-				len = strlen(trimmedBuffer);
-				i = 0;
-				while (i < len) {
-					if (trimmedBuffer[i] == '#') {
-						/* Checking the next character will always be ok because it will be
-						 *  '\0 at the end of the string. */
-						if (trimmedBuffer[i + 1] == '#') {
-							/* We found an escaped #. Shift the rest of the string
-							 *  down by one character to remove the second '#'.
-							 *  Include the shifting of the '\0'. */
-							for (j = i + 1; j <= len; j++) {
-								trimmedBuffer[j - 1] = trimmedBuffer[j];
-							}
-							len--;
-						} else {
-							/* We found a comment. So this is the end. */
-							trimmedBuffer[i] = '\0';
-							len = i;
-						}
-					}
-					i++;
-				}
+                len = strlen(trimmedBuffer);
+                i = 0;
+                while (i < len) {
+                    if (trimmedBuffer[i] == '#') {
+                        /* Checking the next character will always be ok because it will be
+                         *  '\0 at the end of the string. */
+                        if (trimmedBuffer[i + 1] == '#') {
+                            /* We found an escaped #. Shift the rest of the string
+                             *  down by one character to remove the second '#'.
+                             *  Include the shifting of the '\0'. */
+                            for (j = i + 1; j <= len; j++) {
+                                trimmedBuffer[j - 1] = trimmedBuffer[j];
+                            }
+                            len--;
+                        } else {
+                            /* We found a comment. So this is the end. */
+                            trimmedBuffer[i] = '\0';
+                            len = i;
+                        }
+                    }
+                    i++;
+                }
             }
 
             /* Strip any whitespace from the end of the line. */
@@ -441,7 +446,7 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
 
                     if (depth < MAX_INCLUDE_DEPTH) {
                         /* The filename may contain environment variables, so expand them. */
-                        evaluateEnvironmentVariables(c, expBuffer, 2048);
+                        evaluateEnvironmentVariables(c, expBuffer, MAX_PROPERTY_NAME_VALUE_LENGTH);
 
                         loadPropertiesInner(properties, expBuffer, depth + 1);
                     }
@@ -600,7 +605,7 @@ void addProperty(Properties *properties, const char *propertyName, const char *p
  * Returns 0 if successful, otherwise 1
  */
 int addPropertyPair(Properties *properties, const char *propertyNameValue, int finalValue) {
-    char buffer[1024];
+    char buffer[MAX_PROPERTY_NAME_VALUE_LENGTH];
     char *d;
 
     /* Make a copy of the pair that we can edit */
