@@ -29,18 +29,31 @@
     <!-- =================================================================== -->
     <target name="init-windows-nt" if="is.Windows NT">
         <property name="is.Windows" value="true"/>
+        <property name="is.shell.bat" value="true"/>
     </target>
     <target name="init-windows-2000" if="is.Windows 2000">
         <property name="is.Windows" value="true"/>
+        <property name="is.shell.bat" value="true"/>
     </target>
     <target name="init-windows-xp" if="is.Windows XP">
         <property name="is.Windows" value="true"/>
+        <property name="is.shell.bat" value="true"/>
     </target>
     <target name="init-linux" if="is.Linux">
         <property name="is.Unix" value="true"/>
+        <property name="is.shell.bash" value="true"/>
     </target>
     <target name="init-solaris" if="is.SunOS">
         <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+    </target>
+    <target name="init-aix" if="is.AIX">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+    </target>
+    <target name="init-hpux" if="is.HPUX">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
     </target>
     
     <!-- =================================================================== -->
@@ -289,9 +302,9 @@
     </target>
     
     <!-- =================================================================== -->
-    <!-- Test Setup target (Windows)                                         -->
+    <!-- Test Setup target (Bat files - Windows)                             -->
     <!-- =================================================================== -->
-    <target name="test-setup-windows" depends="test-setup-common" if="is.Windows">
+    <target name="test-setup-bat" depends="test-setup-common" if="is.shell.bat">
         <!-- Create the test specific batch files -->
         
         <!-- Background Threads Test -->
@@ -482,9 +495,9 @@ set ENV_VAR_4=d]]></replacevalue>
     </target>
     
     <!-- =================================================================== -->
-    <!-- Test Setup target (Linux)                                           -->
+    <!-- Test Setup target (bash scripts - Linux)                            -->
     <!-- =================================================================== -->
-    <target name="test-setup-linux" depends="test-setup-common" if="is.Linux">
+    <target name="test-setup-bash" depends="test-setup-common" if="is.shell.bash">
         <!-- Create a template script to make this easier -->
         <delete file="${test.dir}/temp.script.in"/>
         <copy file="${src.dir}/bin/bash.script.in"
@@ -492,22 +505,25 @@ set ENV_VAR_4=d]]></replacevalue>
     </target>
     
     <!-- =================================================================== -->
-    <!-- Test Setup target (Solaris)                                         -->
+    <!-- Test Setup target (sh scripts - Solaris, AIX, HPUX)                 -->
     <!-- =================================================================== -->
-    <target name="test-setup-solaris" depends="test-setup-common" if="is.SunOS">
+    <target name="test-setup-sh" depends="test-setup-common" if="is.shell.sh">
         <!-- Create a template script to make this easier -->
         <delete file="${test.dir}/temp.script.in"/>
         <copy file="${src.dir}/bin/sh.script.in"
               tofile="${test.dir}/temp.script.in"/>
+        
+        <!-- Always put the pid file in the test directory as the current -->
+        <!--  user may not have access to /var/run -->
         <replace file="${test.dir}/temp.script.in"
                  token='PIDDIR="/var/run"'
-                 value='PIDDIR="${basedir}"' />
+                 value='PIDDIR="${basedir}/test"' />
     </target>
     
     <!-- =================================================================== -->
     <!-- Test Setup target (Unix)                                            -->
     <!-- =================================================================== -->
-    <target name="test-setup-unix" depends="test-setup-linux, test-setup-solaris" if="is.Unix">
+    <target name="test-setup-unix" depends="test-setup-bash, test-setup-sh" if="is.Unix">
         <!-- Create the test specific script files -->
         <replace file="${test.dir}/temp.script.in"
                  token='WRAPPER_CMD="./wrapper"'
@@ -680,7 +696,7 @@ export ENV_VAR_4=d]]></replacevalue>
     <!-- Test Setup target                                                   -->
     <!-- =================================================================== -->
     <target name="test-setup" 
-            depends="test-setup-windows, test-setup-unix">
+            depends="test-setup-bat, test-setup-unix">
     </target>
 
     <!-- =================================================================== -->
