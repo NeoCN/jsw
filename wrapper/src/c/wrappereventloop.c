@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.9  2004/08/31 16:36:10  mortenson
+ * Rework the new 64-bit code so that it is done with only 32 bit variables.  A little
+ * more complicated but it fixes compiler warnings on unix systems.
+ *
  * Revision 1.8  2004/08/31 15:58:33  mortenson
  * Add 64 bit UNIX code
  *
@@ -824,60 +828,44 @@ void jStateKilling(DWORD nowTicks, int nextSleep) {
  *******************************************************************/
 
 void logTimerStats() {
-	char buffer[30];
-	struct tm when;
-	time_t now, overflowTime;
+    char buffer[30];
+    struct tm when;
+    time_t now, overflowTime;
 
-	DWORD sysTicks;
-	DWORD ticks;
+    DWORD sysTicks;
+    DWORD ticks;
 
-	time(&now);
+    time(&now);
 
-	sysTicks = wrapperGetSystemTicks();
+    sysTicks = wrapperGetSystemTicks();
 
-#ifdef WIN32
-	overflowTime = (time_t)(now - ((0UI64 + sysTicks) * WRAPPER_TICK_MS) / 1000);
-#else
-	overflowTime = (time_t)(now - ((0ULL + sysTicks) * WRAPPER_TICK_MS) / 1000);
-#endif
-	when = *localtime(&overflowTime);
-	sprintf(buffer, "%s", asctime(&when));
-	buffer[strlen(buffer) - 1] = '\0'; /* Remove the line feed. */
-	log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Last system time tick overflow at: %s", buffer);
+    overflowTime = (time_t)(now - (sysTicks / (1000 / WRAPPER_TICK_MS)));
+    when = *localtime(&overflowTime);
+    sprintf(buffer, "%s", asctime(&when));
+    buffer[strlen(buffer) - 1] = '\0'; /* Remove the line feed. */
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Last system time tick overflow at: %s", buffer);
 
-#ifdef WIN32
-	overflowTime = (time_t)(now + ((0xffffffffUI64 - sysTicks) * WRAPPER_TICK_MS) / 1000);
-#else
-	overflowTime = (time_t)(now + ((0xffffffffULL - sysTicks) * WRAPPER_TICK_MS) / 1000);
-#endif
-	when = *localtime(&overflowTime);
-	sprintf(buffer, "%s", asctime(&when));
-	buffer[strlen(buffer) - 1] = '\0'; /* Remove the line feed. */
-	log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Next system time tick overflow at: %s", buffer);
+    overflowTime = (time_t)(now + ((0xffffffffUL - sysTicks) / (1000 / WRAPPER_TICK_MS)));
+    when = *localtime(&overflowTime);
+    sprintf(buffer, "%s", asctime(&when));
+    buffer[strlen(buffer) - 1] = '\0'; /* Remove the line feed. */
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Next system time tick overflow at: %s", buffer);
 
-	if (!wrapperData->useSystemTime) {
-		ticks = wrapperGetTicks(); 
+    if (!wrapperData->useSystemTime) {
+        ticks = wrapperGetTicks(); 
 
-#ifdef WIN32
-		overflowTime = (time_t)(now - ((0UI64 + ticks) * WRAPPER_TICK_MS) / 1000);
-#else
-		overflowTime = (time_t)(now - ((0ULL + ticks) * WRAPPER_TICK_MS) / 1000);
-#endif
-		when = *localtime(&overflowTime);
-		sprintf(buffer, "%s", asctime(&when));
-		buffer[strlen(buffer) - 1] = '\0'; /* Remove the line feed. */
-		log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Last tick overflow at: %s", buffer);
+        overflowTime = (time_t)(now - (ticks / (1000 / WRAPPER_TICK_MS)));
+        when = *localtime(&overflowTime);
+        sprintf(buffer, "%s", asctime(&when));
+        buffer[strlen(buffer) - 1] = '\0'; /* Remove the line feed. */
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Last tick overflow at: %s", buffer);
 
-#ifdef WIN32
-		overflowTime = (time_t)(now + ((0xffffffffUI64 - ticks) * WRAPPER_TICK_MS) / 1000);
-#else
-		overflowTime = (time_t)(now + ((0xffffffffULL - ticks) * WRAPPER_TICK_MS) / 1000);
-#endif
-		when = *localtime(&overflowTime);
-		sprintf(buffer, "%s", asctime(&when));
-		buffer[strlen(buffer) - 1] = '\0'; /* Remove the line feed. */
-		log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Next tick overflow at: %s", buffer);
-	}
+        overflowTime = (time_t)(now + ((0xffffffffUL - ticks) / (1000 / WRAPPER_TICK_MS)));
+        when = *localtime(&overflowTime);
+        sprintf(buffer, "%s", asctime(&when));
+        buffer[strlen(buffer) - 1] = '\0'; /* Remove the line feed. */
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Next tick overflow at: %s", buffer);
+    }
 }
 
 /**
@@ -891,7 +879,7 @@ void wrapperEventLoop() {
     wrapperData->anchorTimeoutTicks = lastCycleTicks;
 
     if (wrapperData->isTimerOutputEnabled) {
-		logTimerStats();
+        logTimerStats();
     }
 
     nextSleep = TRUE;
