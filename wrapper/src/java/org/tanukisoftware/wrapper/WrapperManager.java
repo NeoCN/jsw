@@ -44,6 +44,11 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.36  2004/05/24 09:24:34  mortenson
+// Fix a problem introduced in 3.1.0 where the JVM would not be restarted
+// correctly if it quit after a ping timeout to let the Wrapper resynch and
+// restart it.
+//
 // Revision 1.35  2004/03/29 02:42:10  mortenson
 // Modify the way calls to System.in.read() are handled so that they now block
 // rather than throwing an exception.
@@ -2428,6 +2433,21 @@ public final class WrapperManager
                                         // Don't do anything if we are already stopping
                                         if ( !m_stopping )
                                         {
+                                            // Always send the stop command
+                                            sendCommand( WRAPPER_MSG_RESTART, "restart" );
+                                            
+                                            // Give the Wrapper a chance to register the stop
+                                            //  command before stopping.
+                                            // This avoids any errors thrown by the Wrapper because
+                                            //  the JVM died before it was expected to.
+                                            try
+                                            {
+                                                Thread.sleep( 1000 );
+                                            }
+                                            catch ( InterruptedException e2 )
+                                            {
+                                            }
+                                            
                                             stopInner( 1 );
                                         }
                                     }
