@@ -37,8 +37,9 @@
                 the Wrapper shuts down the JVM, there is no direct call to an
                 application requesting that it shutdown cleanly.  Rather, the Wrapper
                 will exit the JVM by calling <literal moreinfo="none">System.exit()</literal>
-                from within the JVM.  If the application has registered its own shutdown
-                hook, it will be invoked, giving the application a chance to shutdown
+                from within the JVM.  If the application has registered its own
+                <ulink url="http://developer.java.sun.com/developer/TechTips/2000/tt0711.html">shutdown hook</ulink>,
+                it will be invoked, giving the application a chance to shutdown
                 cleanly.  If on the other hand, a shutdown hook is not registered, then
                 the application will suddenly exit.   Both cases, with and without a
                 shutdown hook, provide the exact same behavior as if the application
