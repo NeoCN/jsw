@@ -64,6 +64,9 @@ Java Service Wrapper Revision History.
   noticed it while looking over the code.
 * Display a descriptive error message on Windows if the the JVM process crashes
   due to an uncaught exception in native JVM code.
+* Add a test for invalid jvm arguments set using the wrapper.java.additional.<n>
+  properties.  Invalid arguments could cause the Wrapper startup to fail in
+  non obvious ways if they are mistaken by the JVM as the main class.
 
 3.1.1
 * Modified the way libwrapper.so is built on Solaris and Linux so that it

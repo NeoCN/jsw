@@ -163,6 +163,14 @@ $Id$
                     due to an uncaught exception in native JVM code.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add a test for invalid jvm arguments set using the
+                    <ulink url="prop-java-additional-n.html">wrapper.java.additional.&lt;n&gt;</ulink>
+                    properties.  Invalid arguments could cause the Wrapper startup to fail in
+                    non obvious ways if they are mistaken by the JVM as the main class.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.1">
