@@ -49,42 +49,42 @@
                 </simpara>
             </warning>
             <itemizedlist>
-                <listitem>
-                    <ulink url="prop-ntservice-name.html">wrapper.ntservice.name</ulink>
-                </listitem>
-                <listitem>
-                    <ulink url="prop-ntservice-displayname.html">wrapper.ntservice.displayname</ulink>
-                </listitem>
-                <listitem>
-                    <ulink url="prop-ntservice-description.html">wrapper.ntservice.description</ulink>
-                </listitem>
-                <listitem>
-                    <ulink url="prop-ntservice-load-order-group.html">wrapper.ntservice.load_order_group</ulink>
-                </listitem>
-                <listitem>
-                    <ulink url="prop-ntservice-dependency-n.html">wrapper.ntservice.dependency.&lt;n&gt;</ulink>
-                </listitem>
-                <listitem>
-                    <ulink url="prop-ntservice-starttype.html">wrapper.ntservice.starttype</ulink>
-                </listitem>
-                <listitem>
-                    <ulink url="prop-ntservice-process-priority.html">wrapper.ntservice.process_priority</ulink>
-                </listitem>
-                <listitem>
+                <listproperty version="3.0.0">
                     <ulink url="prop-ntservice-account.html">wrapper.ntservice.account</ulink>
-                </listitem>
-                <listitem>
-                    <ulink url="prop-ntservice-password.html">wrapper.ntservice.password</ulink>
-                </listitem>
-                <listitem>
-                    <ulink url="prop-ntservice-interactive.html">wrapper.ntservice.interactive</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.1.0">
                     <ulink url="prop-ntservice-console.html">wrapper.ntservice.console</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty>
+                    <ulink url="prop-ntservice-dependency-n.html">wrapper.ntservice.dependency.&lt;n&gt;</ulink>
+                </listproperty>
+                <listproperty version="2.2.5">
+                    <ulink url="prop-ntservice-description.html">wrapper.ntservice.description</ulink>
+                </listproperty>
+                <listproperty>
+                    <ulink url="prop-ntservice-displayname.html">wrapper.ntservice.displayname</ulink>
+                </listproperty>
+                <listproperty version="3.0.4">
                     <ulink url="prop-ntservice-hide-console.html">wrapper.ntservice.hide_console</ulink>
-                </listitem>
+                </listproperty>
+                <listproperty version="3.0.0">
+                    <ulink url="prop-ntservice-interactive.html">wrapper.ntservice.interactive</ulink>
+                </listproperty>
+                <listproperty version="3.0.4">
+                    <ulink url="prop-ntservice-load-order-group.html">wrapper.ntservice.load_order_group</ulink>
+                </listproperty>
+                <listproperty>
+                    <ulink url="prop-ntservice-name.html">wrapper.ntservice.name</ulink>
+                </listproperty>
+                <listproperty version="3.0.0">
+                    <ulink url="prop-ntservice-password.html">wrapper.ntservice.password</ulink>
+                </listproperty>
+                <listproperty version="2.2.7">
+                    <ulink url="prop-ntservice-process-priority.html">wrapper.ntservice.process_priority</ulink>
+                </listproperty>
+                <listproperty>
+                    <ulink url="prop-ntservice-starttype.html">wrapper.ntservice.starttype</ulink>
+                </listproperty>
             </itemizedlist>
         </section>
     </section>

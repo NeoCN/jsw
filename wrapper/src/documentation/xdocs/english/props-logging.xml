@@ -32,45 +32,45 @@
             control nor replace Logging tools within the Java application.
         </para>
         <itemizedlist>
-            <listitem>
+            <listproperty version="3.1.0">
                 <ulink url="prop-adviser.html">wrapper.adviser</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty>
                 <ulink url="prop-console-format.html">wrapper.console.format</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty>
                 <ulink url="prop-console-loglevel.html">wrapper.console.loglevel</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty>
                 <ulink url="prop-debug.html">wrapper.debug</ulink>
-            </listitem>
-            <listitem>
-                <ulink url="prop-java-command-loglevel.html">wrapper.java.command.loglevel</ulink>
-            </listitem>
-            <listitem>
-                <ulink url="prop-logfile.html">wrapper.logfile</ulink>
-            </listitem>
-            <listitem>
-                <ulink url="prop-logfile-format.html">wrapper.logfile.format</ulink>
-            </listitem>
-            <listitem>
-                <ulink url="prop-logfile-loglevel.html">wrapper.logfile.loglevel</ulink>
-            </listitem>
-            <listitem>
-                <ulink url="prop-logfile-maxsize.html">wrapper.logfile.maxsize</ulink>
-            </listitem>
-            <listitem>
-                <ulink url="prop-logfile-maxfiles.html">wrapper.logfile.maxfiles</ulink>
-            </listitem>
-            <listitem>
-                <ulink url="prop-syslog-loglevel.html">wrapper.syslog.loglevel</ulink>
-            </listitem>
-            <listitem>
-                <ulink url="prop-filter-x-n.html">wrapper.filter.trigger.&lt;n&gt;</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty version="3.0.0">
                 <ulink url="prop-filter-x-n.html">wrapper.filter.action.&lt;n&gt;</ulink>
-            </listitem>
+            </listproperty>
+            <listproperty version="3.0.0">
+                <ulink url="prop-filter-x-n.html">wrapper.filter.trigger.&lt;n&gt;</ulink>
+            </listproperty>
+            <listproperty version="3.1.2">
+                <ulink url="prop-java-command-loglevel.html">wrapper.java.command.loglevel</ulink>
+            </listproperty>
+            <listproperty>
+                <ulink url="prop-logfile.html">wrapper.logfile</ulink>
+            </listproperty>
+            <listproperty version="2.2.5">
+                <ulink url="prop-logfile-format.html">wrapper.logfile.format</ulink>
+            </listproperty>
+            <listproperty version="2.2.5">
+                <ulink url="prop-logfile-loglevel.html">wrapper.logfile.loglevel</ulink>
+            </listproperty>
+            <listproperty version="2.2.5">
+                <ulink url="prop-logfile-maxfiles.html">wrapper.logfile.maxfiles</ulink>
+            </listproperty>
+            <listproperty version="2.2.5">
+                <ulink url="prop-logfile-maxsize.html">wrapper.logfile.maxsize</ulink>
+            </listproperty>
+            <listproperty version="2.2.5">
+                <ulink url="prop-syslog-loglevel.html">wrapper.syslog.loglevel</ulink>
+            </listproperty>
         </itemizedlist>
     </section>
 </chapter>

@@ -33,33 +33,33 @@
             any of these properties
         </para>
         <itemizedlist>
-            <listitem>
+            <listproperty>
                 <ulink url="prop-java-command.html">wrapper.java.command</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty>
                 <ulink url="prop-java-classpath-n.html">wrapper.java.classpath.&lt;n&gt;</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty version="2.2.9">
                 <ulink url="prop-java-library-path-n.html">wrapper.java.library.path.&lt;n&gt;</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty version="3.1.0">
                 <ulink url="prop-java-library-path-append-system-path.html">wrapper.java.library.path.append_system_path</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty>
                 <ulink url="prop-java-additional-n.html">wrapper.java.additional.&lt;n&gt;</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty>
                 <ulink url="prop-java-mainclass.html">wrapper.java.mainclass</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty>
                 <ulink url="prop-app-parameter-n.html">wrapper.app.parameter.&lt;n&gt;</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty>
                 <ulink url="prop-java-initmemory.html">wrapper.java.initmemory</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty>
                 <ulink url="prop-java-maxmemory.html">wrapper.java.maxmemory</ulink>
-            </listitem>
+            </listproperty>
         </itemizedlist>
     </section>
 </chapter>

@@ -570,6 +570,15 @@
     
     <xsl:template match="classname|function|parameter"><code><xsl:apply-templates/><xsl:if test="name(.)='function'"><xsl:text>()</xsl:text></xsl:if></code></xsl:template>
     
+    <xsl:template match="listproperty">
+        <li>
+            <xsl:apply-templates/>
+            <xsl:if test="@version">
+                <font color="#808080"><i>(<xsl:value-of select="@version"/>)</i></font>
+            </xsl:if>
+        </li>
+    </xsl:template>
+    
     <xsl:template match="blockquote">
         <div align="center">
             <table border="1" cellpadding="2" cellspacing="2">
