@@ -124,14 +124,12 @@
             they were maintained as wrappers around the classes in the new packages
             to maintain forward compatibility for the user base.
         </para>
-        <!--
         <para>
             Over the last year, several users have offered to donate funds to help
             support the project.  Of course the members of the team greatly appreciate
             any such contributions.   So to make it easier, a PayPal account was
             opened to accept any and all donations.
         </para>
-        -->
         <para>
             Version 3.0.0 also adds AIX and HPUX to the list of supported platforms.
         </para>
