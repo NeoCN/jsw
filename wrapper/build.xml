@@ -410,7 +410,7 @@
             eol="crlf" />
         <fixcrlf srcdir="${releasesrcdir}"
             includes="src/documentation/**"
-            excludes="**/images/**, **/*.ttf"
+            excludes="**/images/**, **/*.ico, **/*.ttf"
             eol="crlf" />
         
         <!-- Source archives with documentation source -->
@@ -446,7 +446,7 @@
             eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}"
             includes="src/documentation/**"
-            excludes="**/images/**, **/*.ttf"
+            excludes="**/images/**, **/*.ico, **/*.ttf"
             eol="lf" />
         
         <!-- Source archives with documentation source -->
