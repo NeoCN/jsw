@@ -39,8 +39,10 @@ $Id$
             </listitem>
             <listitem>
                 <para>
-                    Removed the realpath binary from the *NIX distributions as it is no longer
-                    used by the bash or sh scripts.
+                    Deprecated the realpath binary in the *NIX distributions as it is no longer
+                    used by the bash or sh scripts.  It is being left in for now so as not to
+                    break the build scripts of other projects, but it will be removed after a
+                    couple more releases.
                 </para>
             </listitem>
             <listitem>
