@@ -4,9 +4,6 @@
 # Skeleton sh script suitable for starting and stopping 
 # wrapped Java apps on the Solaris platform. 
 #
-# This script expects to find the 'realpath' executable
-# in the same directory. 
-#
 # Make sure that PIDFILE points to the correct location,
 # if you have changed the default location set in the 
 # wrapper configuration file.
@@ -25,6 +22,9 @@ WRAPPER_CONF="../conf/wrapper.conf"
 
 # Priority (see the start() method if you want to use this) 
 PRIORITY=
+
+# Location of the pid file.
+PIDDIR="./"
 
 # Do not modify anything beyond this point
 #-----------------------------------------------------------------------------
@@ -64,10 +64,10 @@ REALPATH=`echo $REALPATH | sed -e 's;:; ;g'`
 cd "`dirname "$REALPATH"`"
 
 # Process ID
-PIDDIR="./"
 PIDFILE="$PIDDIR/$APP_NAME.pid"
 pid=""
 
+# Resolve the location of the 'ps' command
 PSEXE="/usr/bin/ps"
 if [ ! -x $PSEXE ]
 then
