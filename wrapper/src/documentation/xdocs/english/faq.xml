@@ -57,8 +57,8 @@ $Id$
             <para>
                 To do this, first uninstall your application if it is currently installed
                 as an NT service.  Then edit the wrapper.conf file, setting the
-                <ulink url="prop-ntservice-account">wrapper.ntservice.account</ulink> and
-                <ulink url="prop-ntservice-password">wrapper.ntservice.password</ulink>
+                <ulink url="prop-ntservice-account.html">wrapper.ntservice.account</ulink> and
+                <ulink url="prop-ntservice-password.html">wrapper.ntservice.password</ulink>
                 properties.  Next reinstall and start your service.
             </para>
             <para>
