@@ -1,8 +1,8 @@
-COMPILE = gcc -DFREEBSD
+CC = gcc -Wall -pedantic -DFREEBSD
 
 INCLUDE=$(JAVA_HOME)/include
 
-DEFS = -I$(INCLUDE) -I$(INCLUDE)/freebsd
+CFLAGS = -I$(INCLUDE) -I$(INCLUDE)/freebsd
 
 wrapper_SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c
 
@@ -24,10 +24,10 @@ init:
 	if test ! -d .deps; then mkdir .deps; fi
 
 wrapper: $(wrapper_SOURCE)
-	$(COMPILE) $(wrapper_SOURCE) -lm -lcompat -o $(BIN)/wrapper
+	$(CC) $(wrapper_SOURCE) -lm -lcompat -pthread -o $(BIN)/wrapper
 
 libwrapper.so: $(libwrapper_so_OBJECTS)
-	${COMPILE} -shared $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
+	$(CC) -shared $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
 
-%.o: %.c
-	${COMPILE} -c ${DEFS} $< 
+#%.o: %.c
+#	$(COMPILE) -c $(DEFS) $< 
