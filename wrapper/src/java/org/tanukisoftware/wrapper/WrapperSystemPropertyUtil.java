@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.2  2005/03/24 07:21:27  mortenson
+// Correct some javadoc typos.
+//
 // Revision 1.1  2005/03/24 06:27:40  mortenson
 // Add a new WrapperSystemPropertyUtil class to avoid code duplication.
 //
@@ -43,7 +46,7 @@ public final class WrapperSystemPropertyUtil
      * Static Methods
      *-------------------------------------------------------------*/
     /**
-     * Resolves an integer property.
+     * Resolves a boolean property.
      *
      * @param name The name of the property to lookup.
      * @param defaultValue The value to return if it is not set or is invalid.
@@ -92,7 +95,7 @@ public final class WrapperSystemPropertyUtil
     }
     
     /**
-     * Resolves an long property.
+     * Resolves a long property.
      *
      * @param name The name of the property to lookup.
      * @param defaultValue The value to return if it is not set or is invalid.
