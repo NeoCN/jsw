@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "../dtd/docbook/4.1.2/docbookx.dtd">
+
+<!-- ********************************************************************
+     $Id$
+     ******************************************************************** -->
+
+<chapter id="integrate">
+    <title>Integration Methods</title>
+    <section>
+        <title>Methods of Integrating with the Java Service Wrapper</title>
+        <para>
+            There are currently three ways which an application can integrate with
+            the Java Service Wrapper.  Two of which will work out of the box
+            without any additional coding.  The first step is to decide which of
+            these three methods is best for your application.  After a brief
+            overview of each of the three options, we will go into detail how
+            to integrate an application using each.
+        </para>
+        <section>
+            <title>Method 1</title>
+            <para>
+                The first method is to use the
+                <literal moreinfo="none">WrapperSimpleApp</literal> helper class to
+                launch the application.  This is by far the simplest way to integrate
+                with the Wrapper and where possible, it is highly recommended.  There
+                are some things to be aware of when using this method however.  When
+                the Wrapper attempts to shutdown the application, it will do so by
+                calling <literal moreinfo="none">System.exit()</literal> within the
+                JVM.  If the application has registered its own shutdown hook, it
+                will be invoked, giving the application a chance to shutdown normally.
+                If on the other hand, a shutdown hook is not registered, then the
+                application will suddenly exit.   This is the exact same behavior
+                as if the application was running in a console without the Wrapper
+                and a user pressed CTRL-C in the console.
+            </para>
+            <para>
+                Detailed overview and instructions (<ulink url="integrate-simple-win.html">Win32</ulink>
+                or <ulink url="integrate-simple-nix.html">Linux / UNIX</ulink>).
+            </para>
+        </section>
+        <section>
+            <title>Method 2</title>
+            <para>
+                The second method is to use the
+                <literal moreinfo="none">WrapperStartStopApp</literal> helper class.
+                This method provides a way to integrate with applications like Tomcat,
+                which are started using one class and then stopped using another
+                class.  Typically, this kind of application will open a server socket
+                on startup whose job is to wait for a connection which triggers a
+                shutdown.  The shutdown class when launched then triggers the shutdown
+                by connecting to application.   The Wrapper works with this kind of
+                application by starting up the application, as in the first method,
+                using the startup class and then calling the main method of the
+                shutdown class when it is time for the application to be shutdown.
+            </para>
+            <para>
+                Detailed overview and instructions (<ulink url="integrate-start-stop-win.html">Win32</ulink>
+                or <ulink url="integrate-start-stop-nix.html">Linux / UNIX</ulink>).
+            </para>
+        </section>
+        <section>
+            <title>Method 3</title>
+            <para>
+                The third and final method, while providing the most flexibility and
+                access to all of the Wrapper's features, is also the only one which
+                requires some coding to complete the integration.  This method
+                involves creating a class which implements the
+                <literal moreinfo="none">WrapperListener</literal> interface.  An
+                instance of the user class is then instantiated and registered with
+                the <literal moreinfo="none">WrapperManager</literal>.
+            </para>
+            <para>
+                While this method provides features that are not available with
+                either of the first two methods, it does add some complexity.
+                If the additional features are not required, implementing a
+                shutdown hook to enable the use of Method 1, or implementing
+                a shutdown class should be considered as options.  The main method
+                of a shutdown class can be as simple as just calling a shutdown
+                method in the application.
+            </para>
+            <para>
+                Detailed overview and instructions (<ulink url="integrate-listener-win.html">Win32</ulink>
+                or <ulink url="integrate-listener-nix.html">Linux / UNIX</ulink>).
+            </para>
+        </section>
+    </section>
+</chapter>
