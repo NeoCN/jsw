@@ -36,6 +36,9 @@ Java Service Wrapper Revision History.
 * Added a new method, setConsoleTitle, to the WrapperManager class which
   enables the application to dynamically set the console title.  Like the
   wrapper.console.title property, this only works on Windows platforms.
+* Improved the algorithm of the request thread dump on failed JVM exit feature
+  so that extremely large thread dumps will not be truncated when the JVM
+  is killed.
   
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the

@@ -92,6 +92,13 @@ $Id$
                     property, this only works on Windows platforms.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Improved the algorithm of the <ulink url="prop-request-thread-dump-on-failed-jvm-exit.html">request thread dump on failed JVM exit</ulink>
+                    feature so that extremely large thread dumps will not be truncated when
+                    the JVM is killed.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.53  2003/10/31 10:16:27  mortenson
+ * Improved the algorithm of the request thread dump on failed JVM exit feature
+ * so that extremely large thread dumps will not be truncated when the JVM
+ * is killed.
+ *
  * Revision 1.52  2003/10/30 19:29:45  mortenson
  * Fix some Java style comments.
  *
@@ -567,6 +572,8 @@ int wrapperReadChildOutput() {
  * Kill the JVM Process immediately and set the JVM State to WRAPPER_JSTATE_DOWN
  */
 void wrapperKillProcess() {
+    time_t start;
+    time_t now;
 
     /* Check to make sure that the JVM process is still running */
     if (waitpid(jvmPid, NULL, WNOHANG) == 0) {
@@ -574,10 +581,18 @@ void wrapperKillProcess() {
         if (wrapperData->requestThreadDumpOnFailedJVMExit) {
             requestDumpJVMState();
 
-            /* Wait 3 seconds to give the JVM time to dump its state before the JVM
-             *  process is killed.  This used to be 1 second but that was not long
-             *  enough if the system was under load. */
-            usleep(3000000); /* microseconds */
+            /* Loop for 3 seconds reading all available input before actually killing
+             *  the JVM process.  This is to make sure that the JVM is given enough
+             *  time to perform the full thread dump. */
+            now = start = time(NULL);
+            do {
+                if ( !wrapperReadChildOutput() )
+                {
+                    /* Sleep a moment so this loop does not eat too much CPU. */
+                    usleep(250000); /* microseconds */
+                }
+                now = time(NULL);
+            } while ( now - start < 3 );
         }
 
         /* Kill it immediately. */
