@@ -27,6 +27,15 @@ $Id$
                     30 seconds.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    In the last release, some work was done to avoid false timeouts caused by
+                    large quantities of output.  On some heavily loaded systems, timeouts were
+                    still being encountered.  Rather than reading up to 50 lines of input, the
+                    code will now read for a maximum of 250ms before returning to give the main
+                    event loop more cycles.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

@@ -23,6 +23,13 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.31  2003/04/03 07:37:00  mortenson
+ * In the last release, some work was done to avoid false timeouts caused by
+ * large quantities of output.  On some heavily loaded systems, timeouts were
+ * still being encountered.  Rather than reading up to 50 lines of input, the
+ * code will now read for a maximum of 250ms before returning to give the main
+ * event loop more cycles.
+ *
  * Revision 1.30  2003/04/03 04:05:22  mortenson
  * Fix several typos in the docs.  Thanks to Mike Castle.
  *
@@ -320,8 +327,8 @@ void wrapperReportStatus(int status, int errorCode, int waitHint) {
  * Read and process any output from the child JVM Process.
  * Most output should be logged to the wrapper log file.
  *
- * This function will only read up to 50 lines of data before returning this is to
- *  make sure that the main loop gets CPU.  If there is more data in the pipe then
+ * This function will only be allowed to run for 250ms before returning.  This is to
+ *  make sure that the main loop gets CPU.  If there is more data in the pipe, then
  *  the function returns -1, otherwise 0.  This is a hint to the mail loop not to
  *  sleep.
  */
@@ -333,19 +340,35 @@ int wrapperReadChildOutput() {
     char readBuf [1025];
     char *tempBuf;
     int readBufPos, childOutputBufferPos;
-    int count;
+    struct timeb timeBuffer;
+    long startTime;
+    int startTimeMillis;
+    long now;
+    int nowMillis;
+    long durr;
     
     if (jvmOut != -1) {
+		ftime( &timeBuffer );
+		startTime = now = timeBuffer.time;
+		startTimeMillis = nowMillis = timeBuffer.millitm;
+
+		/*
+		log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "now=%ld, nowMillis=%d", now, nowMillis);
+		*/
+
         /* Loop and read as much input as is available.  When a large amount of output is
          *  being piped from the JVM this can lead to the main event loop not getting any
          *  CPU for an extended period of time.  To avoid that problem, this loop is only
-         *  allowed to cycle 50 times before returning.  After 50 times, switch to a less
+         *  allowed to cycle for 250ms before returning.  After 250ms, switch to a less
          *  efficient method of reading data because we need to make sure that we have
          *  not read past a line break before returning. */
-        count = 0;
         childOutputBufferPos = 0;
         while(1) {
-            if ( count < 50 ) {
+			/*
+			log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "durr=%ld", durr);
+			*/
+
+            if ((durr = (now - startTime) * 1000 + (nowMillis - startTimeMillis)) < 250) {
                 readSize = 1024;
             } else {
                 readSize = 1;
@@ -382,8 +405,6 @@ int wrapperReadChildOutput() {
                         // This last line was read byte by byte, now exit.
                         return -1;
                     }
-
-                    count++;
                 } else {
                     /* Make sure that there is enough room for two more characters in the
                      *  childOutputBuffer.  One for the next character, and another for a
@@ -412,6 +433,11 @@ int wrapperReadChildOutput() {
                     childOutputBuffer[childOutputBufferPos++] = readBuf[readBufPos];
                 }
             }
+
+			/* Get the time again */
+			ftime( &timeBuffer );
+			now = timeBuffer.time;
+			nowMillis = timeBuffer.millitm;
         }
     }
     

@@ -23,6 +23,13 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.35  2003/04/03 07:37:00  mortenson
+ * In the last release, some work was done to avoid false timeouts caused by
+ * large quantities of output.  On some heavily loaded systems, timeouts were
+ * still being encountered.  Rather than reading up to 50 lines of input, the
+ * code will now read for a maximum of 250ms before returning to give the main
+ * event loop more cycles.
+ *
  * Revision 1.34  2003/04/03 04:05:22  mortenson
  * Fix several typos in the docs.  Thanks to Mike Castle.
  *
@@ -74,6 +81,7 @@ barf
 #include <tchar.h>
 #include <windows.h>
 #include <time.h>
+#include <sys/timeb.h>
 
 #include "wrapper.h"
 #include "property.h"
@@ -470,8 +478,8 @@ void wrapperReportStatus(int status, int errorCode, int waitHint) {
  * Read and process any output from the child JVM Process.
  * Most output should be logged to the wrapper log file.
  *
- * This function will only read up to 50 lines of data before returning this is to
- *  make sure that the main loop gets CPU.  If there is more data in the pipe then
+ * This function will only be allowed to run for 250ms before returning.  This is to
+ *  make sure that the main loop gets CPU.  If there is more data in the pipe, then
  *  the function returns -1, otherwise 0.  This is a hint to the mail loop not to
  *  sleep.
  */
@@ -481,19 +489,33 @@ int wrapperReadChildOutput() {
     char chBuf[1025];
     char *c;
     int thisLF;
-    int count;
-    int retCode;
+    struct timeb timeBuffer;
+    long startTime;
+    int startTimeMillis;
+    long now;
+    int nowMillis;
+    long durr;
+
+    ftime( &timeBuffer );
+    startTime = now = timeBuffer.time;
+    startTimeMillis = nowMillis = timeBuffer.millitm;
+
+    /*
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "now=%ld, nowMillis=%d", now, nowMillis);
+    */
 
     /* Loop and read as much input as is available.  When a large amount of output is
      *  being piped from the JVM this can lead to the main event loop not getting any
      *  CPU for an extended period of time.  To avoid that problem, this loop is only
-     *  allowed to cycle 50 times before returning. */
-    retCode = -1;
-    for (count = 0; count < 50; count++) {
+     *  allowed to cycle for 250ms before returning. */
+    while((durr = (now - startTime) * 1000 + (nowMillis - startTimeMillis)) < 250) {
+        /*
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "durr=%ld", durr);
+        */
+
         /* Find out how much data there is in the pipe before we try to read it. */
         if (!PeekNamedPipe(wrapperChildStdoutRd, chBuf, 1024, &dwRead, &dwAvail, NULL) || dwRead == 0 || dwAvail == 0) {
             /*printf("stdout avail %d.", dwAvail); */
-            retCode = 0;
             break;
         }
         /*printf("stdout avail %d.", dwAvail); */
@@ -542,7 +564,6 @@ int wrapperReadChildOutput() {
 
         if (!ReadFile(wrapperChildStdoutRd, chBuf, dwAvail, &dwRead, NULL) || dwRead == 0) {
             /*printf("stdout read %d.\n", dwRead); */
-            retCode = 0;
             break;
         }
         /* Write over the lf */
@@ -556,9 +577,20 @@ int wrapperReadChildOutput() {
         }
 
         wrapperChildStdoutRdLastLF = thisLF;
+
+        /* Get the time again */
+        ftime( &timeBuffer );
+        now = timeBuffer.time;
+        nowMillis = timeBuffer.millitm;
     }
-    
-    return retCode;
+    /*
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "done durr=%ld", durr);
+    */
+    if ((durr = (now - startTime) * 1000 + (nowMillis - startTimeMillis)) < 250) {
+        return 0;
+    } else {
+        return 1;
+    }
 }
 
 /**
