@@ -1,5 +1,0 @@
-Java Service Wrapper To Do List
--------------------------------
-
-* Wrapper log rotation
-
