@@ -52,11 +52,11 @@
                 which are started using one class and then stopped using another
                 class.  Typically, this kind of application will open a server socket
                 on startup whose job is to wait for a connection which triggers a
-                shutdown.  The shutdown class when launched then triggers the shutdown
-                by connecting to application.   The Wrapper works with this kind of
-                application by starting up the application, as in the first method,
-                using the startup class and then calling the main method of the
-                shutdown class when it is time for the application to be shutdown.
+                shutdown.  The shutdown, or "stop", class when launched then triggers
+                the shutdown by connecting to application.   The Wrapper works with
+                this kind of application by starting up the application, as in the
+                first method, using the "start" class and then calling the main method
+                of the "stop" class when it is time for the application to be shutdown.
             </para>
             <para>
                 Detailed overview and instructions, using
