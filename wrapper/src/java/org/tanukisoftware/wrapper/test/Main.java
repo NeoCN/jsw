@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.2  2003/03/02 08:39:56  mortenson
+// Improve the example code for the controlEvent method.
+//
 // Revision 1.1  2003/02/03 06:55:29  mortenson
 // License transfer to TanukiSoftware.org
 //
@@ -176,8 +179,17 @@ public class Main implements WrapperListener {
     
     public void controlEvent(int event) {
         System.out.println("controlEvent(" + event + ")");
-        if (event == WrapperManager.WRAPPER_CTRL_C_EVENT) {
-            WrapperManager.stop(0);
+        
+        if (WrapperManager.isControlledByNativeWrapper()) {
+            // The Wrapper will take care of this event
+        } else {
+            // We are not being controlled by the Wrapper, so
+            //  handle the event ourselves.
+            if ((event == WrapperManager.WRAPPER_CTRL_C_EVENT) ||
+                (event == WrapperManager.WRAPPER_CTRL_CLOSE_EVENT) ||
+                (event == WrapperManager.WRAPPER_CTRL_SHUTDOWN_EVENT)){
+                WrapperManager.stop(0);
+            }
         }
     }
     
