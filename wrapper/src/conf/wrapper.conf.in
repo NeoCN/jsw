@@ -65,7 +65,7 @@ wrapper.syslog.loglevel=NONE
 # Wrapper Unix daemon parameters
 #********************************************************************
 # File to write process ID to
-wrapper.pidfile=/var/run/aigent.pid
+wrapper.pidfile=/var/run/@app.name@.pid
 
 #********************************************************************
 # Wrapper NT Service parameters
