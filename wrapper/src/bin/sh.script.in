@@ -212,7 +212,7 @@ stopit() {
                 exit 1
             fi
         else
-            rm $ANCHORFILE
+            rm -f $ANCHORFILE
             if [ -f $ANCHORFILE ]
             then
                 # An explanation for the failure should have been given
