@@ -47,6 +47,9 @@ Java Service Wrapper Revision History.
   pointers.  The crash was possible on all platforms but would only happen
   if the Wrapper was started without any arguments.  It would not affect
   users running the Wrapper normally.  Bug #1018481.
+* Fix a problem with the run as user feature of the shell script on Solaris.
+  Needed to be using /usr/xpg4/bin/id rather than /usr/bin/in if available.
+  Bug #1024008.
 
 3.1.1
 * Modified the way libwrapper.so is built on Solaris and Linux so that it
