@@ -16,22 +16,22 @@ LIB = ../../lib
 all: init wrapper libwrapper.so
 
 clean:
-    rm -f *.o
+	rm -f *.o
 
 cleanall: clean
-    rm -rf *~ .deps
-    rm -f $(BIN)/wrapper $(LIB)/libwrapper.so
+	rm -rf *~ .deps
+	rm -f $(BIN)/wrapper $(LIB)/libwrapper.so
 
 init:
-    if test ! -d .deps; then mkdir .deps; fi
+	if test ! -d .deps; then mkdir .deps; fi
 
 wrapper: $(wrapper_OBJECTS)
-    $(COMPILE) $(wrapper_OBJECTS) -o $(BIN)/wrapper -lm
+	$(COMPILE) $(wrapper_OBJECTS) -o $(BIN)/wrapper -lm
 
 libwrapper.so: $(libwrapper_so_OBJECTS)
-    ${COMPILE} -shared -no_unresolved -n32 -all $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
+	${COMPILE} -shared -no_unresolved -n32 -all $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
 
 %.o: %.c
-    @echo '$(COMPILE) -c $<'; \
-    $(COMPILE) $(DEFS) -c $<
+	@echo '$(COMPILE) -c $<'; \
+	$(COMPILE) $(DEFS) -c $<
 
