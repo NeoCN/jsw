@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.5  2003/10/30 17:13:24  mortenson
+// Add an action to the WrapperActionServer which makes it possible to test
+// simmulate a JVM hang for testing.
+//
 // Revision 1.4  2003/09/03 08:55:48  mortenson
 // Add some more javadocs describing how to use the class.
 //
@@ -73,6 +77,7 @@ import org.tanukisoftware.wrapper.WrapperManager;
  *   <li><b>D</b> : Perform a Thread Dump</li>
  *   <li><b>U</b> : Unexpected shutdown. (Simmulate a crash for testing)</li>
  *   <li><b>V</b> : Cause an access violation. (For testing)</li>
+ *   <li><b>G</b> : Make the JVM appear to be hung. (For testing)</li>
  * </ul>
  * Additional user defined actions can be defined by calling the
  *  {@link #registerAction( byte command, Runnable action )} method.
@@ -96,6 +101,7 @@ import org.tanukisoftware.wrapper.WrapperManager;
  *  server.enableThreadDumpAction( true );
  *  server.enableHaltUnexpectedAction( true );
  *  server.enableAccessViolationAction( true );
+ *  server.enableAppearHungAction( true );
  *  server.start();
  * </pre>
  * Then remember to stop the server when your application shuts down:
@@ -119,8 +125,10 @@ public class WrapperActionServer
     public final static byte COMMAND_DUMP             = (byte)'D';
     /** Command to invoke an unexpected halt action. */
     public final static byte COMMAND_HALT_UNEXPECTED  = (byte)'U';
-    /** Command to invoke a thread dump action. */
+    /** Command to invoke an access violation. */
     public final static byte COMMAND_ACCESS_VIOLATION = (byte)'V';
+    /** Command to invoke an appear hung action. */
+    public final static byte COMMAND_APPEAR_HUNG      = (byte)'G';
 
     /** The address to bind the port server to.  Null for any address. */
     private InetAddress m_bindAddr;
@@ -537,6 +545,35 @@ public class WrapperActionServer
         else
         {
             unregisterAction( COMMAND_ACCESS_VIOLATION );
+        }
+    }
+    
+    /**
+     * Enable or disable the appear hung command.  Disabled by default.
+     *  This command is useful for testing how an application handles the
+     *  situation where the JVM stops responding to the Wrapper's ping
+     *  requests.   This can happen if the JVM hangs or some piece of code
+     *  deadlocks.  When this happens, the Wrapper will give up after the
+     *  ping timeout has expired and kill the JVM process.  The JVM will
+     *  not have a chance to clean up and shudown gracefully.
+     *
+     * @param enable True to enable to action, false to disable it.
+     */
+    public void enableAppearHungAction( boolean enable )
+    {
+        if ( enable )
+        {
+            registerAction( COMMAND_APPEAR_HUNG, new Runnable()
+                {
+                    public void run()
+                    {
+                        WrapperManager.appearHung();
+                    }
+                } );
+        }
+        else
+        {
+            unregisterAction( COMMAND_APPEAR_HUNG );
         }
     }
 }

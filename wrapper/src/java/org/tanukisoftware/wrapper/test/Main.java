@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.9  2003/10/30 17:13:24  mortenson
+// Add an action to the WrapperActionServer which makes it possible to test
+// simmulate a JVM hang for testing.
+//
 // Revision 1.8  2003/10/18 07:51:10  mortenson
 // The DeadlockPrintStream should not be set until after the WrapperManager class
 // has been initialized.
@@ -228,6 +232,7 @@ public class Main implements WrapperListener {
             server.enableThreadDumpAction( true );
             server.enableHaltUnexpectedAction( true );
             server.enableAccessViolationAction( true );
+            server.enableAppearHungAction( true );
             server.start();
             
             System.out.println( "ActionServer Enabled. " );
@@ -239,6 +244,7 @@ public class Main implements WrapperListener {
             System.out.println( "    D: Thread Dump" );
             System.out.println( "    U: Unexpected Halt (Simmulate crash)" );
             System.out.println( "    V: Access Violation (Actual crash)" );
+            System.out.println( "    G: Make the JVM appear to be hung." );
         }
         catch ( java.io.IOException e )
         {
