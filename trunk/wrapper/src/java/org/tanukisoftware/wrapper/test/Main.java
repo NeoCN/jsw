@@ -26,6 +26,11 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.6  2003/10/18 06:44:06  mortenson
+// Add some javadocs.
+// Make the application fail cleanly when a UNIX user attempts to run the demo
+// when an X display is not available.
+//
 // Revision 1.5  2003/06/19 05:45:00  mortenson
 // Modified the suggested behavior of the WrapperListener.controlEvent() method.
 //
@@ -59,7 +64,16 @@ import org.tanukisoftware.wrapper.WrapperManager;
 import org.tanukisoftware.wrapper.WrapperListener;
 
 /**
- *
+ * This is a Test / Example program which can be used to test the
+ *  main features of the Wrapper.
+ * <p>
+ * It is also an example of Integration Method #3, where you implement
+ *  the WrapperListener interface manually.
+ * <p>
+ * <b>NOTE</b> that in most cases you will want to use Method #1, using the
+ *  WrapperSimpleApp helper class to integrate your application.  Please
+ *  see the <a href="http://wrapper.tanukisoftware.org/doc/english/integrate.html">integration</a>
+ *  section of the documentation for more details.
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
  * @version $Revision$
@@ -169,8 +183,20 @@ public class Main implements WrapperListener {
     public Integer start(String[] args) {
         System.out.println("start()");
         
-        _frame = new MainFrame();
-        _frame.setVisible(true);
+        try
+        {
+            _frame = new MainFrame();
+            _frame.setVisible(true);
+        }
+        catch ( java.lang.InternalError e )
+        {
+            System.out.println();
+            System.out.println( "ERROR - Unable to display the Swing GUI:" );
+            System.out.println( "          " + e.toString() );
+            System.out.println( "Exiting" );
+            System.out.println();
+            return new Integer( 1 );
+        }
 
         try
         {
