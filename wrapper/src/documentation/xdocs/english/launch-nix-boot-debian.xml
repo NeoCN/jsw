@@ -122,9 +122,9 @@
                 If your application makes use of other services, MySQL for example,
                 then you will need to make sure that your application is started
                 after MySQL, and then shutdown before MySQL.  This is done by
-                controlling the run levels. By default, MySQL starts and stops
-                with a run level of 20, so we can get the desired behavior by
-                starting at a run level of 21 and stopping at 19.
+                controlling the startup/shutdown order. By default, MySQL starts
+                and stops with an order of 20, so we can get the desired behavior by
+                using a startup order of 21 and a shutdown order of 19.
             </para>
             <informalexample>
                 <screen format="linespecific"><![CDATA[update-rc.d myapp start 21 2 3 4 5 . stop 19 0 1 6 .]]></screen>
