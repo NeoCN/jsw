@@ -53,15 +53,6 @@
             will show our appreciation by listing your name and donation on our
             <ulink url="sponsors.html">sponsor's page</ulink>.
         </para>
-        <para>
-            Another <emphasis>small</emphasis> way that you can help support this project
-            is be signing up for your Pay Pal account using
-            <ulink url="https://www.paypal.com/affil/pal=Y59RFVXWHBSRN">&gt;&gt;this link&lt;&lt;</ulink>.
-            By doing so, the project will be credited $5 for personal accounts
-            (through Sept. 26, 2003), and a small percentage (up to a total of $100) of sales
-            for new merchant accounts opened using the above link.  We only get credited if the
-            accounts are actually used.
-        </para>
         <paypal-form/>
     </section>
 </chapter>
