@@ -152,6 +152,13 @@ $Id$
                     command can not be executed or does not exist.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where the Wrapper was leaving a pipe unclosed each time the JVM
+                    was restarted on all UNIX platforms.  This was causing the Wrapper to run out
+                    of file handles.   Bug #767267, discovered and patched by David Wong.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.41  2003/07/09 05:59:47  mortenson
+ * Fix a problem where the Wrapper was leaving a pipe unclosed each time the JVM
+ * was restarted on all UNIX platforms.
+ *
  * Revision 1.40  2003/05/18 04:08:45  mortenson
  * Fix a problem on UNIX systems where requesting a second thread dump any time
  * during the life of a single Wrapper process would cause the Wrapper and JVM
@@ -127,6 +131,11 @@
 
 static pid_t jvmPid = -1;
 int          jvmOut = -1;
+
+/* Define a global pipe descriptor so that we don't have to keep allocating
+ *  a new pipe each time a JVM is launched. */
+int pipedes[2];
+int pipeInitialized = 0;  
 
 char wrapperClasspathSeparator = ':';
 
@@ -254,14 +263,17 @@ void wrapperBuildJavaCommand() {
  * Launches a JVM process and stores it internally.
  */
 void wrapperExecute() {
-    int pipedes[2];
     pid_t proc;
 
-    /* Create the pipe. */
-    if (pipe (pipedes) < 0) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                   "Could not init pipe: %s", (char *)strerror(errno));
-        return;
+    /* Only allocate a pipe if we have not already done so. */
+    if (!pipeInitialized) {
+        /* Create the pipe. */
+        if (pipe (pipedes) < 0) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                       "Could not init pipe: %s", (char *)strerror(errno));
+            return;
+        }
+        pipeInitialized = 1;
     }
     
     /* Fork off the child. */
@@ -272,10 +284,8 @@ void wrapperExecute() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                    "Could not spawn JVM process: %s", (char *)strerror(errno));
         
-        /* Close the pipe descriptors. */
-        (void)close(pipedes[STDIN_FILENO]);
-        (void)close(pipedes[STDOUT_FILENO]);
-        
+        /* The pipedes array is global so do not close the pipes. */
+
     } else {
         /* Fork succeeded: increment the process ID for logging. */
         wrapperData->jvmRestarts++;
@@ -283,23 +293,21 @@ void wrapperExecute() {
         if (proc == 0) {
             /* We are the child side. */
             
-            /* Send output to the pipe. */
+            /* Send output to the pipe by dupicating the pipe fd and setting the copy as the stdout fd. */
             if (dup2(pipedes[STDOUT_FILENO], STDOUT_FILENO) < 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                            "Unable to set JVM's stdout: %s", (char *)strerror(errno));
                 return;
             }
         
-            /* Send errors to the pipe. */
+            /* Send errors to the pipe by dupicating the pipe fd and setting the copy as the stderr fd. */
             if (dup2(pipedes[STDOUT_FILENO], STDERR_FILENO) < 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                            "Unable to set JVM's stderr: %s", (char *)strerror(errno));
                 return;
             }
-        
-            /* Close the pipe descriptors. */
-            (void)close(pipedes[STDIN_FILENO]);
-            (void)close(pipedes[STDOUT_FILENO]);
+
+            /* The pipedes array is global so do not close the pipes. */
             
             /* Child process: execute the JVM. */
             execvp(wrapperData->jvmCommand[0], wrapperData->jvmCommand);
@@ -312,8 +320,7 @@ void wrapperExecute() {
             jvmPid = proc;
             jvmOut = pipedes[STDIN_FILENO];
 
-            /* Close the unused pipe descriptor. */
-            (void)close(pipedes[STDOUT_FILENO]);
+            /* The pipedes array is global so do not close the pipes. */
             
             /* Mark our side of the pipe so that it won't block
              * and will close on exec, so new children won't see it. */
