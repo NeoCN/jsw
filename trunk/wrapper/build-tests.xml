@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE project PUBLIC "-//ANT//DTD project//EN" "../project.dtd">
+<!DOCTYPE project PUBLIC "-//ANT//DTD project//EN" "project.dtd">
 
 <!-- ======================================================================= -->
 <!-- Wrapper build file                                                     -->
@@ -13,8 +13,8 @@
     <!-- platform -->
     <property name="is.${os.name}" value="true"/>
     
-    <property name="test.dir"      value="${basedir}"/>
-    <property name="src.dir"       value="../src"/>
+    <property name="test.dir"      value="${basedir}/test"/>
+    <property name="src.dir"       value="${basedir}/src"/>
     
     <!-- =================================================================== -->
     <!-- Help on usage                                                       -->
