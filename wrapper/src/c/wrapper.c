@@ -24,6 +24,11 @@
  *
  *
  * $Log$
+ * Revision 1.37  2002/12/06 18:48:38  mortenson
+ * Add a property, wrapper.ntservice.interactive, which makes it possible to
+ * control whether or not the Java process can gain access to the desktop while
+ * it is running as an NT service.
+ *
  * Revision 1.36  2002/12/04 06:28:38  mortenson
  * Add the ability to specify an account name and password when installing an
  * NT service.
@@ -1861,6 +1866,9 @@ void wrapperBuildNTServiceInfo() {
 		/* If there is not account name, then the password must not be set. */
 		wrapperData->ntServicePassword = NULL;
 	}
+
+	/* Interactive */
+	wrapperData->ntServiceInteractive = getBooleanProperty( properties, "wrapper.ntservice.interactive", FALSE );
 }
 #endif
 

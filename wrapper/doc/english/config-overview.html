@@ -377,6 +377,9 @@ wrapper.ntservice.starttype=AUTO_START
 #  REALTIME
 wrapper.ntservice.process_priority=NORMAL
 
+# Allow the service to interact with the desktop.
+wrapper.ntservice.interactive=false
+
 </pre>
 </td>
 </tr>
@@ -1984,6 +1987,39 @@ The service did not start due to a logon failure.</pre>
 </dd>
                     
 <br>
+                    
+                        
+<dt>
+<b>wrapper.ntservice.interactive</b>
+</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Setting the interactive property to true will make it possible for
+                                the service to display a GUI and have access to the desktop when run
+                                as a service.  The default is false, or a non-interactive service.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.ntservice.interactive=false</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
                 
 </dl>
 </div>
@@ -2038,7 +2074,7 @@ The service did not start due to a logon failure.</pre>
 </p>
                 
 <div class="glosslist">
-<a name="N400E80"></a>
+<a name="N400E97"></a>
 <dl>
                     
                         

@@ -10,6 +10,9 @@ Java Service Wrapper Revision History.
   unit was ommitted.
 * Add the ability to specify an account name and password when installing an
   NT service.
+* Add a property, wrapper.ntservice.interactive, which makes it possible to
+  control whether or not the Java process can gain access to the desktop while
+  it is running as an NT service.
 
 2.2.9
 * Added a new property, wrapper.restart.delay, which allows the user to control

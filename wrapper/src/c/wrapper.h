@@ -24,6 +24,11 @@
  *
  *
  * $Log$
+ * Revision 1.21  2002/12/06 18:48:39  mortenson
+ * Add a property, wrapper.ntservice.interactive, which makes it possible to
+ * control whether or not the Java process can gain access to the desktop while
+ * it is running as an NT service.
+ *
  * Revision 1.20  2002/12/04 06:28:38  mortenson
  * Add the ability to specify an account name and password when installing an
  * NT service.
@@ -198,6 +203,7 @@ struct WrapperConfig {
                                      * {HIGH_PRIORITY_CLASS | IDLE_PRIORITY_CLASS | NORMAL_PRIORITY_CLASS | REALTIME_PRIORITY_CLASS} */
 	char    *ntServiceAccount;      /* Account name to use when running as a service.  NULL to use the LocalSystem account. */
 	char    *ntServicePassword;     /* Password to use when running as a service.  NULL means no password. */
+	int     ntServiceInteractive;   /* Should the service be allowed to interact with the desktop? */
 #endif
 
 #ifdef SOLARIS

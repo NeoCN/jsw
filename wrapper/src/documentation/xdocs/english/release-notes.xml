@@ -36,6 +36,13 @@ $Id$
                     NT service.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add a property, wrapper.ntservice.interactive, which makes it possible to
+                    control whether or not the Java process can gain access to the desktop while
+                    it is running as an NT service.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
