@@ -91,7 +91,7 @@ fi
 
 # Resolve an OS architecturee
 osarch=`uname -m`
-osarch=`echo $osarch | tr 'A-Z' 'a-z'`
+osarch=`echo $osarch | tr -s '[:upper:]' '[:lower:]'`
 if [ "$osarch" = "i386" ] | [ "$osarch" = "i486" ] | [ "$osarch" = "i586" ] | [ "$osarch" = "i686" ]
 then
     osarch="i386"
@@ -104,7 +104,7 @@ fi
 
 # Resolve an OS name
 osname=`uname -s`
-osname=`echo $osname | tr 'A-Z' 'a-z'`
+osname=`echo $osname | tr -s '[:upper:]' '[:lower:]'`
 
 # Decide on the wrapper binary that will be used.
 if [ -f "$WRAPPER_CMD-$osname-$osarch" ]
