@@ -7,7 +7,7 @@
      ******************************************************************** -->
 
 <chapter id="prop-ping-interval">
-    <title>wrapper.ping.timeout Property</title>
+    <title>wrapper.ping.interval Property</title>
     <section>
         <title>Configuration Property Overview</title>
         <itemizedlist>
