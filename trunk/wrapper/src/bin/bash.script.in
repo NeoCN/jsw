@@ -107,12 +107,47 @@ stopit() {
     then
         echo "$APP_LONG_NAME was not running."
     else
+        # Running so try to stop it.
         kill $pid
-        sleep 6
+        if [ $? -ne 0 ]
+        then
+            # An explanation for the failure should have been given
+            echo "Unable to stop $APP_LONG_NAME."
+            exit 1
+        fi
+
+        # We can not predict how long it will take for the wrapper to
+        #  actually stop as it depends on settings in wrapper.conf.
+        #  Loop until it does.
+        CNT=0
+        TOTCNT=0
+        while [ ! -z $pid ]
+        do
+            # Loop for up to 5 minutes
+            if [ "$TOTCNT" -lt "300" ]
+            then
+                if [ "$CNT" -lt "5" ]
+                then
+                    CNT=`expr $CNT + 1`
+                else
+                    echo "Waiting for $APP_LONG_NAME to exit..."
+                    CNT=0
+                fi
+                TOTCNT=`expr $TOTCNT + 1`
+
+                sleep 1
+
+                pid=`$PIDOF $APP_NAME`
+            else
+                pid=
+            fi
+        done
 
         pid=`$PIDOF $APP_NAME`
         if [ ! -z $pid ]
         then
+            echo "Timed out waiting for $APP_LONG_NAME to exit."
+            echo "  Attempting a forced exit..."
             kill -9 $pid
         fi
 
