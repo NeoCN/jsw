@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.11  2003/08/14 09:31:34  mortenson
+// Fix a problem where the native library was missing from the release of OSX
+//
 // Revision 1.10  2003/07/01 14:49:45  mortenson
 // Fix a problem where the JVM would sometimes hang when trying to shutdown if
 // the wrapper.key parameter was passed to the JVM while not being controlled
@@ -433,6 +436,11 @@ public final class WrapperManager
                 if ( System.getProperty( "os.name" ).indexOf( "Windows" ) >= 0 )
                 {
                     libFile = "Wrapper.DLL";
+                }
+                else if ( System.getProperty( "os.name" ).indexOf( "Mac" ) >= 0 )
+                {
+                    // Mac OS X
+                    libFile = "libwrapper.jnilib";
                 }
                 else
                 {
