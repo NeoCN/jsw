@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.6  2002/09/09 17:19:44  mortenson
+ * Add ability to log to specific log levels from within the Wrapper.
+ *
  * Revision 1.5  2002/08/11 05:21:28  mortenson
  * Add a Warning level to the logger
  *
@@ -57,6 +60,8 @@
 
 #define WRAPPER_SOURCE_WRAPPER -1
 #define WRAPPER_SOURCE_PROTOCOL -2
+
+#define MAX_LOG_SIZE 4096
 
 /* * * Log level constants * * */
 
@@ -111,7 +116,7 @@ extern void setSyslogEventSourceName( char *event_source_name );
 extern int registerSyslogMessageFile( );
 extern int unregisterSyslogMessageFile( );
 
-extern int loggerNeedsDebug();
+extern int getLowLogLevel();
 
 /* * General log functions * */
 extern void log_printf( int source_id, int level, char *lpszFmt, ... );

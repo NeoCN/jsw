@@ -12,6 +12,8 @@ noreturn
 noreturn.conf
 percentoutput
 percentoutput.conf
+logoutput
+logoutput.conf
 quickcomplete
 quickcomplete.conf
 restarter
@@ -28,8 +30,9 @@ TestEnvironmentVariables.bat
 TestLongRunningBackgroundThreads.bat
 TestNoReturn.bat
 TestPercentOutput.bat
+TestLogOutput.bat
 TestQuickComplete.bat
 TestRestarter.bat
 TestShutdownHook.bat
 TestOutputLoader.bat
-
+OutputLoader.log
