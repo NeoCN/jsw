@@ -32,6 +32,9 @@ Java Service Wrapper Revision History.
   script has been modified to optionally make use of this feature.
 * Add a debug message at startup which makes it clear which timer is being
   used.
+* A Windows user reported that using forward slashes in the path the log
+  file was failing.  Avoid this problem by always converting '/' to '\'
+  in the wrapper.logfile property on Windows.
 
 3.1.0
 * The license was revised for this version to include a copyright omission.

@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.42  2004/06/22 03:12:44  mortenson
+ * A Windows user reported that using forward slashes in the path the log
+ * file was failing.  Avoid this problem by always converting '/' to '\'
+ * in the wrapper.logfile property on Windows.
+ *
  * Revision 1.41  2004/06/15 06:21:55  mortenson
  * Only check if the log file needs to be rolled if we are going to be writing to the file.
  *
@@ -294,7 +299,20 @@ int getLogLevelForName( char *logLevelName ) {
 /* Logfile functions */
 
 void setLogfilePath( char *log_file_path ) {
+#ifdef WIN32
+    char *c;
+#endif
+    
     strcpy( logFilePath, log_file_path );
+    
+#ifdef WIN32	
+    /* To avoid problems on some windows systems, the '/' characters must
+     *  be replaced by '\' characters in the specified path. */
+    c = (char *)logFilePath;
+    while((c = strchr(c, '/')) != NULL) {
+        c[0] = '\\';
+    }
+#endif
 }
 
 void setLogfileFormat( char *log_file_format ) {
