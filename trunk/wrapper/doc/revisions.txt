@@ -35,6 +35,9 @@ Java Service Wrapper Revision History.
 * A Windows user reported that using forward slashes in the path the log
   file was failing.  Avoid this problem by always converting '/' to '\'
   in the wrapper.logfile property on Windows.
+* Fix a problem where is was not possible disable the wrapper log file as
+  documented in the wrapper.logfile property.  Most likely broken way back
+  in version 2.2.5.
 
 3.1.0
 * The license was revised for this version to include a copyright omission.
