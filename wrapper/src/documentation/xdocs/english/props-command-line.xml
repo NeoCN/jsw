@@ -21,9 +21,9 @@
         <para>
             The Wrapper allows any configuration property to be set from
             the command line.  This can be useful in situations where
-            configuration values can only be set at runtime.  Examples
-            can be seen by looking at the bash and sh scripts shipped
-            with the Wrapper.
+            configuration values can only be set at runtime.  An example
+            can be seen by looking at the <literal moreinfo="none">sh</literal>
+            script shipped with the Wrapper.
         </para>
         <para>
             Configuration properties can be set on the command line by

@@ -40,20 +40,20 @@
                 from starting.
             </para>
             <para>
-                On Unix/Linux platforms, the sh and bash scripts which ship with
-                the Wrapper will prevent multiple copies of the Wrapper from running
-                for the same application.  It is possible to run multiple copies of
-                the Wrapper on the same machine if they are each being used to launch
-                a different application.
+                On Unix/Linux platforms, the <literal moreinfo="none">sh</literal>
+                script which ships with the Wrapper will prevent multiple copies of
+                the Wrapper from running for the same application.  It is possible
+                to run multiple copies of the Wrapper on the same machine if they
+                are each being used to launch a different application.
             </para>
         </note>
         <para>
             In most cases, users will not need to set this property themselves.  The
-            Unix sh script which ship with the Wrapper sets this property from the
-            command line and then makes use of the pid in future invocations of the
-            script.  See the <literal moreinfo="none">sh.script.in</literal> file
-            in the <literal moreinfo="none">src/bin</literal> directory for an
-            example.
+            Unix <literal moreinfo="none">sh</literal> script which ship with the
+            Wrapper sets this property from the command line and then makes use of
+            the pid in future invocations of the script.  See the
+            <literal moreinfo="none">sh.script.in</literal> file in the
+            <literal moreinfo="none">src/bin</literal> directory for an example.
         </para>
         <para>
             The property is also available in the Windows version as some users have
