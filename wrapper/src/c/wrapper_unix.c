@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.39  2003/04/16 04:13:11  mortenson
+ * Go through and clean up the computation of the number of bytes allocated in
+ * malloc statements to make sure that string sizes are always multiplied by
+ * sizeof(char), etc.
+ *
  * Revision 1.38  2003/04/16 03:58:34  mortenson
  * Fix a potential error if any element of a command string contains % characters.
  *
@@ -225,11 +230,11 @@ void wrapperBuildJavaCommand() {
     }
 
     /* Allocate memory to hold array of command strings */
-    wrapperData->jvmCommand = malloc(sizeof(char *) * length + 1); 
+    wrapperData->jvmCommand = malloc(sizeof(char *) * (length + 1)); 
     /*                        number of arguments + 1 for a NULL pointer at the end */
     for (i = 0; i <= length; i++) {
         if (i < length) {
-            wrapperData->jvmCommand[i] = malloc(sizeof(char *) * strlen(strings[i]) + 1);
+            wrapperData->jvmCommand[i] = malloc(sizeof(char) * (strlen(strings[i]) + 1));
             strcpy(wrapperData->jvmCommand[i], strings[i]);
         } else {
             wrapperData->jvmCommand[i] = NULL;

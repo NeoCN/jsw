@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.57  2003/04/16 04:13:10  mortenson
+ * Go through and clean up the computation of the number of bytes allocated in
+ * malloc statements to make sure that string sizes are always multiplied by
+ * sizeof(char), etc.
+ *
  * Revision 1.56  2003/04/16 03:42:04  mortenson
  * Fix a problem where a 0 length malloc was being called if there were no
  * configured filters.  This was fine on most platforms but caused a crash
@@ -902,7 +907,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         stripQuote = getBooleanProperty(properties, paramBuffer, FALSE);
                     }
                     if (stripQuote) {
-                        propStripped = malloc(sizeof(char) * strlen(prop) + 1);
+                        propStripped = malloc(sizeof(char) * (strlen(prop) + 1));
                         wrapperStripQuotes(prop, propStripped);
                     } else {
                         propStripped = (char *)prop;
@@ -1270,7 +1275,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         stripQuote = getBooleanProperty(properties, paramBuffer, FALSE);
                     }
                     if (stripQuote) {
-                        propStripped = malloc(sizeof(char) * strlen(prop) + 1);
+                        propStripped = malloc(sizeof(char) * (strlen(prop) + 1));
                         wrapperStripQuotes(prop, propStripped);
                     } else {
                         propStripped = (char *)prop;

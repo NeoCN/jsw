@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.25  2003/04/16 04:13:10  mortenson
+ * Go through and clean up the computation of the number of bytes allocated in
+ * malloc statements to make sure that string sizes are always multiplied by
+ * sizeof(char), etc.
+ *
  * Revision 1.24  2003/04/15 23:24:21  mortenson
  * Remove casts from all malloc statements.
  *
@@ -151,7 +156,7 @@ void setLogfileMaxFileSize( char *max_file_size ) {
 
     if( max_file_size != NULL ) {
         /* Allocate buffer */
-        if( (tmpFileSizeBuff = (char *) malloc( strlen( max_file_size ) + 1 )) == NULL )
+        if( (tmpFileSizeBuff = (char *) malloc(sizeof(char) * (strlen( max_file_size ) + 1))) == NULL )
             return;
 
         /* Generate multiple and remove unwanted chars */
@@ -637,12 +642,12 @@ void checkAndRollLogs() {
                 printf("Rolling log files...\n");
 #endif
             /* Allocate buffers (Allow for 10 digit file indices) */
-            if ((tmpLogFilePathOld = malloc(((int)strlen(logFilePath)) + 10 + 2)) == NULL) {
+            if ((tmpLogFilePathOld = malloc(sizeof(char) * (strlen(logFilePath) + 10 + 2))) == NULL) {
                 /* Don't log this as with other errors as that would cause recursion. */
                 fprintf(stderr, "Out of memory.\n");
                 goto cleanup;
             }
-            if ((tmpLogFilePathNew = malloc(((int)strlen(logFilePath)) + 10 + 2)) == NULL) {
+            if ((tmpLogFilePathNew = malloc(sizeof(char) * (strlen(logFilePath) + 10 + 2))) == NULL) {
                 /* Don't log this as with other errors as that would cause recursion. */
                 fprintf(stderr, "Out of memory.\n");
                 goto cleanup;
