@@ -127,6 +127,18 @@ $Id$
                     used.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Modify UNIX versions so that the wrapper binary will now force its working
+                    directory to the location of the wrapper binary.   This change was made to
+                    make the UNIX version work the same way as the Windows version and thus make
+                    configuration files that modify their working directory work correctly on
+                    a cross platform basis.  Users which have been using the scripts supplied
+                    with the Wrapper should not encounter any problems.  Other users may require
+                    slight changes to their configuration file to deal with the new way that the
+                    Wrapper deals with its initial working directory.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
