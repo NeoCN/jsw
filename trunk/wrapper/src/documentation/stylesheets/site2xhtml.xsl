@@ -38,23 +38,12 @@
                                     <tr>
                                         <td nowrap="true">
                                             <xsl:copy-of select="/site/menu/node()|@*"/>
-                                            <form action="http://www.google.com/search" method="get">
-                                                <p>
-                                                    <b>Search This Site:</b><br/>
-                                                    <input type="text" name="q" size="20" value="" style="width:175"/>
-                                                    <br/>
-                                                    <input type="submit" value="Search"/>
-                                                    <input type="hidden" name="sitesearch" value="wrapper.tanukisoftware.org"/>
-                                                </p>
-                                            </form>
+                                            <script language="JavaScript">//@@MENU_BOTTOM@@</script>
                                             <p>
                                                 <b>Hosted by:</b><br/>
                                                 <a href="http://sourceforge.net/projects/wrapper/">
                                                     <img src="http://sourceforge.net/sflogo.php?group_id=39428" width="88" height="31" border="0" alt="SourceForge"/>
                                                 </a>
-                                            </p>
-                                            <p>
-                                                <script language="JavaScript">//@@MENU_BOTTOM@@</script>
                                             </p>
                                         </td>
                                     </tr>
