@@ -17,6 +17,14 @@ $Id$
                     patch.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Due to a bug in the build, the native library was not included in the 3.0.3
+                    or 3.0.4 binary releases for OSX, building from source was working correctly.
+                    This has been fixed and the build greatly simplified to avoid such problems
+                    in the future.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
