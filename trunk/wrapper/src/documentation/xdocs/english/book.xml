@@ -18,7 +18,7 @@
         <menu-item label="Debugging Your Application" href="debugging.html"/>
         <menu-item label="FAQ"                        href="faq.html"/>
         <menu-item label="Troubleshooting"            href="troubleshooting.html"/>
-        <menu-item label="JavaDocs API"               href="../../jdoc/index.html"/>
+        <menu-item label="JavaDocs API"               href="javadocs.html"/>
     </menu>
     
     <menu label="Users">

@@ -115,7 +115,7 @@ wrapper.java.classpath.2=../lib/myapp.jar</programlisting>
                 The Java Service Wrapper allows your application access to the Wrapper via the WrapperManager class.
             </para>
             <para>
-                Please see the <ulink url="../jdoc/index.html">JavaDocs</ulink> for details.
+                Please see the <ulink url="javadocs.html">JavaDocs</ulink> for details.
             </para>
         </section>
     </section> 
