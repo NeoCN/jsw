@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.35  2004/03/29 02:42:10  mortenson
+// Modify the way calls to System.in.read() are handled so that they now block
+// rather than throwing an exception.
+//
 // Revision 1.34  2004/03/20 16:55:50  mortenson
 // Add an adviser feature to help cut down on support requests from new users.
 //
@@ -2653,8 +2657,24 @@ public final class WrapperManager
         public int read()
             throws IOException
         {
-            throw new IOException( "System.in can not be used when the JVM is being "
-                + "controlled by the Java Service Manager." );
+            m_out.println( "WARNING - System.in can not be used when the JVM is being "
+                + "controlled by the Java Service Wrapper.  Calls will block indefinitely." );
+            
+            // Go into a loop that will never return.
+            while ( true )
+            {
+                synchronized( this )
+                {
+                    try
+                    {
+                        this.wait();
+                    }
+                    catch ( InterruptedException e )
+                    {
+                        // Ignore.
+                    }
+                }
+            }
         }
     }
 }
