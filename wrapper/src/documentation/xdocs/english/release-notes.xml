@@ -80,6 +80,12 @@ $Id$
                     application to shutdown when the non-daemon thread count dropped to 1.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Added support for building the wrapper on AIX and HPUX systems.  Thanks for
+                    the patches involved go out to Ashish Gawarikar and William Lee.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

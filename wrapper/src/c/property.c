@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.8  2003/01/28 09:25:47  mortenson
+ * Added support for building the wrapper on AIX and HPUX systems.  Thanks for
+ * the patches involved go out to Ashish Gawarikar and William Lee.
+ *
  * Revision 1.7  2002/10/24 04:48:43  mortenson
  * Fixed a problem where the wrapper.conf was being open with both read and
  * write locks when a read lock is all that is needed.
@@ -54,6 +58,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include "property.h"
+
+#ifdef WIN32
+#else
+#include <strings.h>
+#endif
 
 /**
  * Private function to find a Property structure.
@@ -147,76 +156,76 @@ void disposeInnerProperty(Property *property) {
  * Parses a property value and populates any environment variables.
  */
 void evaluateEnvironmentVariables(const char *propertyValue, char *buffer) {
-	const char *in;
-	char *out;
-	char envName[256];
-	char *envValue;
-	char *start;
-	char *end;
-	int len;
+    const char *in;
+    char *out;
+    char envName[256];
+    char *envValue;
+    char *start;
+    char *end;
+    int len;
 
 #ifdef _DEBUG
-	printf("evaluateEnvironmentVariables('%s', buffer)\n", propertyValue);
+    printf("evaluateEnvironmentVariables('%s', buffer)\n", propertyValue);
 #endif
 
-	buffer[0] = '\0';
-	in = propertyValue;
-	out = buffer;
+    buffer[0] = '\0';
+    in = propertyValue;
+    out = buffer;
 
-	/* Loop until we hit the end of string. */
-	while (in[0] != '\0') {
+    /* Loop until we hit the end of string. */
+    while (in[0] != '\0') {
 #ifdef _DEBUG
-		printf("  in='%s', out='%s'\n", in, out);
+        printf("  in='%s', out='%s'\n", in, out);
 #endif
 
-		start = strchr(in, '%');
-		if (start != NULL) {
-			end = strchr(start + 1, '%');
-			if (end != NULL) {
-				/* A pair of '%' characters was found.  An environment */
-				/*  variable name should be between the two. */
-				len = end - start - 1;
-				memcpy(envName, start + 1, len);
-				envName[len] = '\0';
+        start = strchr(in, '%');
+        if (start != NULL) {
+            end = strchr(start + 1, '%');
+            if (end != NULL) {
+                /* A pair of '%' characters was found.  An environment */
+                /*  variable name should be between the two. */
+                len = end - start - 1;
+                memcpy(envName, start + 1, len);
+                envName[len] = '\0';
 
-				/* Look up the environment variable */
-				envValue = getenv(envName);
-				if (envValue != NULL) {
-					/* An envvar value was found. */
-					/* Copy over any text before the envvar */
-					len = start - in;
-					memcpy(out, in, len);
-					out += len;
-					/* Copy over the env value */
-					strcpy(out, envValue);
-					out += strlen(out);
-					/* Set the new in pointer */
-					in = end + 1;
-				} else {
-					/* Not found.  So copy over the input up until the */
-					/*  second '%'.  Leave it in case it is actually the */
-					/*  start of an environment variable name */
-					len = end - in;
-					memcpy(out, in, len);
-					out += len;
-					out[0] = '\0';
-					in += len;
-				}
-			} else {
-				/* Only a single '%' char was found. Leave it as is. */
-				strcpy(out, in);
-				in += strlen(in);
-				out += strlen(out);
-			}
-		} else {
-			/* No more '%' chars in the string. Copy over the rest. */
-			strcpy(out, in);
-			in += strlen(in);
-			out += strlen(out);
-		}
-	}
+                /* Look up the environment variable */
+                envValue = getenv(envName);
+                if (envValue != NULL) {
+                    /* An envvar value was found. */
+                    /* Copy over any text before the envvar */
+                    len = start - in;
+                    memcpy(out, in, len);
+                    out += len;
+                    /* Copy over the env value */
+                    strcpy(out, envValue);
+                    out += strlen(out);
+                    /* Set the new in pointer */
+                    in = end + 1;
+                } else {
+                    /* Not found.  So copy over the input up until the */
+                    /*  second '%'.  Leave it in case it is actually the */
+                    /*  start of an environment variable name */
+                    len = end - in;
+                    memcpy(out, in, len);
+                    out += len;
+                    out[0] = '\0';
+                    in += len;
+                }
+            } else {
+                /* Only a single '%' char was found. Leave it as is. */
+                strcpy(out, in);
+                in += strlen(in);
+                out += strlen(out);
+            }
+        } else {
+            /* No more '%' chars in the string. Copy over the rest. */
+            strcpy(out, in);
+            in += strlen(in);
+            out += strlen(out);
+        }
+    }
 #ifdef _DEBUG
-	printf("  final buffer='%s'\n", buffer);
+    printf("  final buffer='%s'\n", buffer);
 #endif
 }
 
@@ -233,7 +242,7 @@ void setInnerProperty(Property *property, const char *propertyValue) {
     if (propertyValue == NULL) {
         property->value = NULL;
     } else {
-		evaluateEnvironmentVariables(propertyValue, buffer);
+        evaluateEnvironmentVariables(propertyValue, buffer);
 
         property->value = (char *)malloc(sizeof(char) * (strlen(buffer) + 1));
 

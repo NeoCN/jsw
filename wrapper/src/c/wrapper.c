@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.40  2003/01/28 09:25:48  mortenson
+ * Added support for building the wrapper on AIX and HPUX systems.  Thanks for
+ * the patches involved go out to Ashish Gawarikar and William Lee.
+ *
  * Revision 1.39  2003/01/20 09:35:50  mortenson
  * Added a new wrapper.daemonize property which, when set, will form the wrapper
  * process to be a detached non-session group leader.
@@ -217,11 +221,15 @@
 #ifdef SOLARIS
 #include <sys/errno.h>
 #include <sys/fcntl.h>
-
+#else
+#ifdef AIX
+#else
+#ifdef HPUX
 #else /* LINUX */
 #include <asm/errno.h>
-
-#endif /* UNIX */
+#endif /* !HPUX */
+#endif /* !AIX */
+#endif /* !SOLARIS */
 
 #endif /* WIN32 */
 
@@ -304,7 +312,7 @@ void wrapperProtocolStartServer() {
 #endif
 
     /* Create the server socket. */
-    ssd = socket(PF_INET, SOCK_STREAM, 0);
+    ssd = socket(AF_INET, SOCK_STREAM, 0);
     if (ssd == INVALID_SOCKET) {
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, "server socket creation failed. (%d)", wrapperGetLastError());
         return;
@@ -329,13 +337,17 @@ void wrapperProtocolStartServer() {
 
   tryagain:
     /* Try binding to the port. */
-    addr_srv.sin_family = PF_INET;
+    
+    /* Cleanup the addr_srv first */
+    memset(&addr_srv, 0, sizeof(addr_srv));
+    
+    addr_srv.sin_family = AF_INET;
     addr_srv.sin_addr.s_addr = inet_addr("127.0.0.1");
     addr_srv.sin_port = htons(port);
 #ifdef WIN32
     rc = bind(ssd, (struct sockaddr FAR *)&addr_srv, sizeof(addr_srv));
 #else /* UNIX */
-    rc = bind(ssd, (struct sockaddr *)&addr_srv, (socklen_t)sizeof(addr_srv));
+    rc = bind(ssd, (struct sockaddr *)&addr_srv, sizeof(addr_srv));
 #endif
     
     if (rc == SOCKET_ERROR) {
