@@ -215,6 +215,11 @@ Stopped Test Wrapper Sample Application.]]></screen>
                         <ulink url="launch-nix-boot-debian.html">Debian Linux</ulink>
                     </para>
                 </listitem>
+                <listitem>
+                    <para>
+                        <ulink url="launch-nix-boot-solaris.html">Solaris</ulink>
+                    </para>
+                </listitem>
             </itemizedlist>
         </section>
     </section>
