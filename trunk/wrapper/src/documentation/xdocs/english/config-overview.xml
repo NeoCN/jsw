@@ -170,7 +170,11 @@ wrapper.ntservice.starttype=AUTO_START]]></programlisting>
             </para>
             <warning>
                 <simpara>
-                    NOTE - Properties specified on the command line can not contain unquoted spaces.
+                    NOTE - Properties specified on the command line can not contain unquoted spaces.  If you need to include spaces in the value of the property, simply include the entire name-value pair in quotes:
+                    <informalexample>
+                        <simpara><emphasis>Example:</emphasis></simpara>
+                        <screen format="linespecific">Wrapper.exe -c ..\conf\wrapper.conf "wrapper.java.command=C:\Program Files\MyApp\jre\bin\java.exe"</screen>
+                    </informalexample>
                 </simpara>
             </warning>
             <para>
