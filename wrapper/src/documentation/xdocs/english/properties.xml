@@ -151,6 +151,9 @@
                     <ulink url="prop-ntservice-interactive.html">wrapper.ntservice.interactive</ulink>
                 </listitem>
                 <listitem>
+                    <ulink url="prop-ntservice-load-order-group.html">wrapper.ntservice.load_order_group</ulink>
+                </listitem>
+                <listitem>
                     <ulink url="prop-ntservice-name.html">wrapper.ntservice.name</ulink>
                 </listitem>
                 <listitem>

@@ -6,8 +6,8 @@
      $Id$
      ******************************************************************** -->
 
-<chapter id="prop-ntservice-dependency-n">
-    <title>wrapper.ntservice.dependency.&lt;n&gt; Property</title>
+<chapter id="prop-ntservice-load-order-group">
+    <title>wrapper.ntservice.load_order_group Property</title>
     <section>
         <title>Configuration Property Overview</title>
         <itemizedlist>
@@ -23,23 +23,25 @@
         </itemizedlist>
     </section>
     <section>
-        <title>wrapper.ntservice.dependency.&lt;n&gt;</title>
+        <title>wrapper.ntservice.load_order_group</title>
         <para>
-            Names of any other Services or groups which must be running before
-            this service can be started.  Stopping any of the listed services,
-            or all members of a specified group, will also stop this service.
-            Because both services and groups share the same name space, group
-            names must be prefixed with the '+' character.  Add dependencies as
-            needed starting from 1.
+            Specifies the name of the load ordering group of which the service
+            will be a member.  If not name is specified then the service will
+            not belong to a group.  Defaults to no value.
         </para>
         <informalexample>
             <simpara><emphasis>Example:</emphasis></simpara>
-            <screen format="linespecific"><![CDATA[wrapper.ntservice.dependency.1=MySQL]]></screen>
+            <screen format="linespecific"><![CDATA[wrapper.ntservice.load_order_group=WebServices]]></screen>
         </informalexample>
+        <para>
+            When the service is installed, the Service Manager will assign a
+            load order group tag.  This tag can be used to control the order
+            that services within a load ordering group are started.
+        </para>
         <note>
             <para>
-                Changes to this property will not take effect until the service
-                is reinstalled.
+                Changes to this property will not take effect until the
+                service is reinstalled.
             </para>
         </note>
     </section>

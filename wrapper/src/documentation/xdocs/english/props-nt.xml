@@ -46,6 +46,9 @@
                 <ulink url="prop-ntservice-description.html">wrapper.ntservice.description</ulink>
             </listitem>
             <listitem>
+                <ulink url="prop-ntservice-load-order-group.html">wrapper.ntservice.load_order_group</ulink>
+            </listitem>
+            <listitem>
                 <ulink url="prop-ntservice-dependency-n.html">wrapper.ntservice.dependency.&lt;n&gt;</ulink>
             </listitem>
             <listitem>
