@@ -71,9 +71,6 @@
         <replace file="${test.dir}/backgroundthreads.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
-        <replace file="${test.dir}/backgroundthreads.conf"
-                 token="wrapper.pidfile=/var/run/aigent.pid"
-                 value="wrapper.pidfile=${basedir}/backgroundthreads.pid" />
         
         <!-- Long Running Background Threads Test -->
         <delete file="${test.dir}/longrunningbackgroundthreads.conf"/>
@@ -91,9 +88,6 @@
         <replace file="${test.dir}/longrunningbackgroundthreads.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
-        <replace file="${test.dir}/longrunningbackgroundthreads.conf"
-                 token="wrapper.pidfile=/var/run/aigent.pid"
-                 value="wrapper.pidfile=${basedir}/longrunningbackgroundthreads.pid" />
         
         <!-- Daemon Threads Test -->
         <delete file="${test.dir}/daemonthreads.conf"/>
@@ -111,9 +105,6 @@
         <replace file="${test.dir}/daemonthreads.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
-        <replace file="${test.dir}/daemonthreads.conf"
-                 token="wrapper.pidfile=/var/run/aigent.pid"
-                 value="wrapper.pidfile=${basedir}/daemonthreads.pid" />
         
         <!-- No Return Test -->
         <delete file="${test.dir}/noreturn.conf"/>
@@ -131,9 +122,6 @@
         <replace file="${test.dir}/noreturn.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
-        <replace file="${test.dir}/noreturn.conf"
-                 token="wrapper.pidfile=/var/run/aigent.pid"
-                 value="wrapper.pidfile=${basedir}/noreturn.pid" />
 
         <!-- Quick Complete Test -->
         <delete file="${test.dir}/quickcomplete.conf"/>
@@ -151,9 +139,6 @@
         <replace file="${test.dir}/quickcomplete.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
-        <replace file="${test.dir}/quickcomplete.conf"
-                 token="wrapper.pidfile=/var/run/aigent.pid"
-                 value="wrapper.pidfile=${basedir}/quickcomplete.pid" />
 
         <!-- Environment Variables Test -->
         <delete file="${test.dir}/envvars.conf"/>
@@ -171,9 +156,6 @@
         <replace file="${test.dir}/envvars.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
-        <replace file="${test.dir}/envvars.conf"
-                 token="wrapper.pidfile=/var/run/aigent.pid"
-                 value="wrapper.pidfile=${basedir}/envvars.pid" />
         
         <!-- Percent Output Crash Test -->
         <delete file="${test.dir}/percentoutput.conf"/>
@@ -191,9 +173,6 @@
         <replace file="${test.dir}/percentoutput.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
-        <replace file="${test.dir}/percentoutput.conf"
-                 token="wrapper.pidfile=/var/run/aigent.pid"
-                 value="wrapper.pidfile=${basedir}/percentoutput.pid" />
         
         <!-- Log Output Test -->
         <delete file="${test.dir}/logoutput.conf"/>
@@ -211,9 +190,6 @@
         <replace file="${test.dir}/logoutput.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
-        <replace file="${test.dir}/logoutput.conf"
-                 token="wrapper.pidfile=/var/run/aigent.pid"
-                 value="wrapper.pidfile=${basedir}/logoutput.pid" />
         
         <!-- Restarter Test -->
         <delete file="${test.dir}/restarter.conf"/>
@@ -228,9 +204,6 @@
         <replace file="${test.dir}/restarter.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
-        <replace file="${test.dir}/restarter.conf"
-                 token="wrapper.pidfile=/var/run/aigent.pid"
-                 value="wrapper.pidfile=${basedir}/restarter.pid" />
         
         <!-- Action Test -->
         <delete file="${test.dir}/action.conf"/>
@@ -245,9 +218,6 @@
         <replace file="${test.dir}/action.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
-        <replace file="${test.dir}/action.conf"
-                 token="wrapper.pidfile=/var/run/aigent.pid"
-                 value="wrapper.pidfile=${basedir}/action.pid" />
         
         <!-- Shutdown Hook Test -->
         <delete file="${test.dir}/shutdownhook.conf"/>
@@ -265,9 +235,6 @@
         <replace file="${test.dir}/shutdownhook.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
-        <replace file="${test.dir}/shutdownhook.conf"
-                 token="wrapper.pidfile=/var/run/aigent.pid"
-                 value="wrapper.pidfile=${basedir}/shutdownhook.pid" />
         
         <!-- OutputLoader Test -->
         <delete file="${test.dir}/outputloader.conf"/>
@@ -285,9 +252,23 @@
         <replace file="${test.dir}/outputloader.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
-        <replace file="${test.dir}/outputloader.conf"
-                 token="wrapper.pidfile=/var/run/aigent.pid"
-                 value="wrapper.pidfile=${basedir}/outputloader.pid" />
+        
+        <!-- Memory Test -->
+        <delete file="${test.dir}/memory.conf"/>
+        <filter token="app.name"          value="memory"/>
+        <filter token="app.long.name"     value="Memory Case" />
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${test.dir}/memory.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/memory.conf"
+                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
+                 value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+        <replace file="${test.dir}/memory.conf"
+                 token="#wrapper.app.parameter.1="
+                 value="wrapper.app.parameter.1=com.silveregg.wrapper.test.Memory" />
+        <replace file="${test.dir}/memory.conf"
+                 token="wrapper.logfile=../logs/wrapper.log"
+                 value="wrapper.logfile=../test/testwrapper.log" />
     </target>
     
     <!-- =================================================================== -->
@@ -457,6 +438,18 @@ set ENV_VAR_4=d]]></replacevalue>
         <replace file="${test.dir}/TestOutputLoader.bat"
                  token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
                  value='set _WRAPPER_CONF="%_APP_HOME%\test\outputloader.conf"' />
+        
+        <!-- Memory Test -->
+        <delete file="${test.dir}/TestMemory.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestMemory.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestMemory.bat"
+                 token='set _APP_HOME=%_APP_HOME:\bin\=%'
+                 value='set _APP_HOME=%_APP_HOME:\test\=%' />
+        <replace file="${test.dir}/TestMemory.bat"
+                 token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
+                 value='set _WRAPPER_CONF="%_APP_HOME%\test\memory.conf"' />
     </target>
     
     <!-- =================================================================== -->
@@ -633,6 +626,14 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/outputloader"
               filtering="on"/>
         <chmod file="${test.dir}/outputloader" perm="+x"/> 
+        
+        <!-- Memory Test -->
+        <filter token="app.name"          value="memory"/>
+        <filter token="app.long.name"     value="Memory Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/memory"
+              filtering="on"/>
+        <chmod file="${test.dir}/memory" perm="+x"/> 
         
         <!-- Get rid of the temp script file -->
         <delete file="${test.dir}/temp.script.in"/>

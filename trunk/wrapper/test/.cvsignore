@@ -22,7 +22,10 @@ shutdownhook
 shutdownhook.conf
 outputloader
 outputloader.conf
+memory
+memory.conf
 testwrapper.log
+memory.log
 TestAction.bat
 TestBackgroundThreads.bat
 TestDaemonThreads.bat
@@ -35,4 +38,6 @@ TestQuickComplete.bat
 TestRestarter.bat
 TestShutdownHook.bat
 TestOutputLoader.bat
+TestMemory.bat
 OutputLoader.log
+
