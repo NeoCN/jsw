@@ -56,7 +56,6 @@
             <simpara><emphasis>Example:</emphasis></simpara>
             <screen format="linespecific"><![CDATA[wrapper.port=1777]]></screen>
         </informalexample>
-        </section>
         <section>
             <title>Controlling the port range.</title>
             <para>
