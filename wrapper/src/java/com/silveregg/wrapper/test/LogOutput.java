@@ -26,6 +26,10 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
+// Revision 1.2  2002/09/10 16:03:03  mortenson
+// Improve the performance of the log from JVM feature by allowing for more than
+// one log message each time through the main loop.
+//
 // Revision 1.1  2002/09/09 17:19:47  mortenson
 // Add ability to log to specific log levels from within the Wrapper.
 //
@@ -69,7 +73,7 @@ public class LogOutput {
         for (int i = 0; i < 100; i++) {
             sb.append(sa);
         }
-        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO,   sb.toString());
+        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, sb.toString());
         sleep();
 
         sb = new StringBuffer();
@@ -77,8 +81,12 @@ public class LogOutput {
             sb.append(sa);
             sb.append("\n");
         }
-        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO,   sb.toString());
+        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, sb.toString());
         sleep();
+        
+        for (int i = 0; i < 100; i++) {
+            WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, sa);
+        }
     }
 }
 
