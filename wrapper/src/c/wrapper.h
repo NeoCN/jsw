@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.18  2002/09/17 13:16:22  mortenson
+ * Added a property to control the delay between JVM invocations.
+ *
  * Revision 1.17  2002/09/10 16:17:26  mortenson
  * Get rid of tabs in files.  No other changes.
  *
@@ -166,6 +169,7 @@ struct WrapperConfig {
     int     exitAcknowledged;       /* Non-zero if the main thread has acknowledged the exit request */
     int     restartRequested;       /* Non-zero if another thread has requested that the JVM be restarted */
     int     jvmRestarts;            /* Number of times that a JVM has been launched since the wrapper was started. */
+	int     restartDelay;           /* Delay in seconds before restarting a new JVM. */
     int     requestThreadDumpOnFailedJVMExit; /* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
     time_t  jvmLaunchTime;          /* The time that the previous or current JVM was launched. */
     int     failedInvocationCount;  /* The number of times that the JVM exited in less than successfulInvocationTime in a row. */
