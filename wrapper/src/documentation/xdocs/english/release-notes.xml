@@ -36,6 +36,11 @@
                     Added a new property to cause the wrapper to attempt to request a thread dump when the JVM does not exit on request.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Improved the documentation of the WrapperSimpleApp class.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

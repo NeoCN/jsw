@@ -21,7 +21,23 @@
                 The first is to use the WrapperSimpleApp class to launch your Java application with out any modifications.  This class handles all communication with the native wrapper and simply launches your application by calling its main method as would be done from the command line.
             </para>
             <para>
-                The drawback to this method is that when your service is stopped, it is killed as if the user had hit CTRL-C in the console.  Your application will not have a chance to call any shutdown code.
+                The drawback to this method is that when your service is stopped, it is killed as if the user had hit CTRL-C in the console.  This means that your application may not be able to shut itself down cleanly.  One option that you have is to register a shutdown hook.  A shutdown hook is a thread that is run when a JVM shuts down normally.  See the java.lang.Runtime.addShutdownHook javadocs for more information.
+            </para>
+            <para>
+                The benefit is that almost any Java application will work as is using this class.  All you need to do is set the following properties in your wrapper.conf file.  They are described in detail in the <ulink url="config-overview.html">Configuration Overview</ulink>.
+                <programlisting format="linespecific"># Set the main class to be the WrapperSimpleApp
+wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp
+
+# Set the first application parameter to the name of the class whose main method
+# is to be launched.  Additional parameters come after this one.
+wrapper.app.parameter.1=com.widgetsrus.MyAppMain
+wrapper.app.parameter.2=parameter1
+wrapper.app.parameter.3=parameter2
+
+# Be sure to set your classpath.
+wrapper.java.classpath.1=../lib/wrapper.jar
+wrapper.java.classpath.2=../lib/myapp.jar</programlisting>
+                In most cases, that should be it.  Your application can now be launched using the scripts found in the <ulink url="launch-overview.html">Launch Overview</ulink>.
             </para>
         </section>
         <section>
