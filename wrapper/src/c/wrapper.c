@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.104  2004/07/01 12:51:32  mortenson
+ * Fix some code that was only being executed when debugging was enabled.
+ *
  * Revision 1.103  2004/07/01 04:09:51  mortenson
  * Fix a problem where HP-UX was not working correctly because the EAGAIN
  * and EWOULDBLOCK constants are not equal on the platform.
@@ -797,13 +800,13 @@ int wrapperProtocolRead() {
         len = recv(sd, &c, 1, 0);
         if (len == SOCKET_ERROR) {
             err = wrapperGetLastError();
-            if (wrapperData->isDebugging) {
-                if ((err != EWOULDBLOCK) && (err != EAGAIN)
-                    && (err != ENOTSOCK) && (err != ECONNRESET)) {
+            if ((err != EWOULDBLOCK) && (err != EAGAIN)
+                && (err != ENOTSOCK) && (err != ECONNRESET)) {
+                if (wrapperData->isDebugging) {
                     log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
                         "socket read failed. (%s)", getLastErrorText());
-                    wrapperProtocolClose();
                 }
+                wrapperProtocolClose();
             }
             /*
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "no data");
