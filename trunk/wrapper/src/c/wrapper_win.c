@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.39  2003/04/16 04:13:11  mortenson
+ * Go through and clean up the computation of the number of bytes allocated in
+ * malloc statements to make sure that string sizes are always multiplied by
+ * sizeof(char), etc.
+ *
  * Revision 1.38  2003/04/15 23:24:22  mortenson
  * Remove casts from all malloc statements.
  *
@@ -136,7 +141,7 @@ void buildSystemPath() {
     }
 
     /* Allocate the memory to hold the PATH */
-    envBuffer = malloc(len * sizeof(char));
+    envBuffer = malloc(sizeof(char) * len);
     GetEnvironmentVariable("PATH", envBuffer, len);
 
 #ifdef _DEBUG
@@ -151,7 +156,7 @@ void buildSystemPath() {
     while ((c = strchr(lc, ';')) != NULL)
     {
         len = c - lc;
-        systemPath[i] = malloc((len + 1) * sizeof(char));
+        systemPath[i] = malloc(sizeof(char) * (len + 1));
         memcpy(systemPath[i], lc, len);
         systemPath[i][len] = '\0';
 #ifdef _DEBUG
@@ -162,7 +167,7 @@ void buildSystemPath() {
     }
     /* There should be one more value after the last ';' */
     len = strlen(lc);
-    systemPath[i] = malloc((len + 1) * sizeof(char));
+    systemPath[i] = malloc(sizeof(char) * (len + 1));
     strcpy(systemPath[i], lc);
 #ifdef _DEBUG
     printf("PATH[%d]=%s\n", i, systemPath[i]);
