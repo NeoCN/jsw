@@ -299,6 +299,32 @@
         <replace file="${test.dir}/systemin.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
+
+        <!-- Loaded WrapperListener Test -->
+        <delete file="${test.dir}/loadedwrapperlistener.conf"/>
+        <filter token="app.name"          value="loadedwrapperlistener"/>
+        <filter token="app.long.name"     value="Loaded WrapperListener Case" />
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${test.dir}/loadedwrapperlistener.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/loadedwrapperlistener.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.LoadedWrapperListener" />
+        <replace file="${test.dir}/loadedwrapperlistener.conf"
+                 token="#wrapper.app.parameter.1="
+                 value="wrapper.debug=TRUE" />
+        <replace file="${test.dir}/loadedwrapperlistener.conf"
+                 token="wrapper.java.initmemory=3"
+                 value="wrapper.java.initmemory=256" />
+        <replace file="${test.dir}/loadedwrapperlistener.conf"
+                 token="wrapper.java.maxmemory=64"
+                 value="wrapper.java.maxmemory=256" />
+        <replace file="${test.dir}/loadedwrapperlistener.conf"
+                 token="wrapper.logfile=../logs/wrapper.log"
+                 value="wrapper.logfile=../test/testwrapper.log" />
+        <replace file="${test.dir}/loadedwrapperlistener.conf"
+                 token="wrapper.ntservice.process_priority=NORMAL"
+                 value="wrapper.ntservice.process_priority=HIGH" />
     </target>
     
     <!-- =================================================================== -->
@@ -492,6 +518,18 @@ set ENV_VAR_4=d]]></replacevalue>
         <replace file="${test.dir}/TestSystemIn.bat"
                  token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
                  value='set _WRAPPER_CONF="%_APP_HOME%\test\systemin.conf"' />
+        
+        <!-- Loaded WrapperListener Test -->
+        <delete file="${test.dir}/TestLoadedWrapperListener.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestLoadedWrapperListener.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestLoadedWrapperListener.bat"
+                 token='set _APP_HOME=%_APP_HOME:\bin\=%'
+                 value='set _APP_HOME=%_APP_HOME:\test\=%' />
+        <replace file="${test.dir}/TestLoadedWrapperListener.bat"
+                 token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
+                 value='set _WRAPPER_CONF="%_APP_HOME%\test\loadedwrapperlistener.conf"' />
     </target>
     
     <!-- =================================================================== -->
@@ -699,6 +737,14 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/systemin"
               filtering="on"/>
         <chmod file="${test.dir}/systemin" perm="+x"/> 
+        
+        <!-- Loaded WrapperListener Test -->
+        <filter token="app.name"          value="loadedwrapperlistener"/>
+        <filter token="app.long.name"     value="Loaded WrapperListener Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/loadedwrapperlistener"
+              filtering="on"/>
+        <chmod file="${test.dir}/loadedwrapperlistener" perm="+x"/> 
         
         <!-- Get rid of the temp script file -->
         <delete file="${test.dir}/temp.script.in"/>
