@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.14  2002/05/23 12:42:41  rybesh
+ * fixed logger initialization on unix
+ *
  * Revision 1.13  2002/05/22 16:19:53  mortenson
  * Fixed the % in JVM output bug on the unix version.
  *
@@ -460,6 +463,8 @@ int main(int argc, char **argv) {
     wrapperData->restartRequested = FALSE;
     wrapperData->jvmRestarts = 0;
         
+    wrapperInitializeLogging();
+    
     if (argc < 2) {
         wrapperUsage(argv[0]);
         exit(1);

@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.18  2002/05/23 12:42:41  rybesh
+ * fixed logger initialization on unix
+ *
  * Revision 1.17  2002/05/16 04:51:18  mortenson
  * Add a debug message stating which thread lead to System.exit being called
  *   via a call to shutdown.
@@ -1264,13 +1267,7 @@ void _CRTAPI1 main(int argc, char **argv) {
         wrapperData->restartRequested = FALSE;
         wrapperData->jvmRestarts = 0;
 
-        /* Initialize the logger */
-        setLogfilePath("wrapper.log");
-        setLogfileFormat("LPTM");
-        setLogfileLevelInt(LEVEL_DEBUG);
-        setConsoleLogFormat("LPM");
-        setConsoleLogLevelInt(LEVEL_DEBUG);
-        setSyslogLevelInt(LEVEL_NONE);
+	wrapperInitializeLogging();
 
         if (setWorkingDir()) {
             appExit(1);

@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.13  2002/05/23 12:42:41  rybesh
+ * fixed logger initialization on unix
+ *
  * Revision 1.12  2002/05/17 09:10:16  mortenson
  * Add a wrapper.shutdown.timeout property.
  *
@@ -204,6 +207,8 @@ extern int wrapperCheckRestartTimeOK();
  */
 extern void wrapperBuildJavaCommandArray(char ***strings, int *length, int addQuotes);
 extern void wrapperFreeJavaCommandArray(char **strings, int length);
+
+extern void wrapperInitializeLogging();
 
 /******************************************************************************
  * Platform specific methods
