@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.5  2004/06/30 09:02:33  mortenson
+// Remove unused imports.
+//
 // Revision 1.4  2004/01/16 04:42:00  mortenson
 // The license was revised for this version to include a copyright omission.
 // This change is to be retroactively applied to all versions of the Java
@@ -61,7 +64,6 @@ package org.tanukisoftware.wrapper;
 //
 
 import java.util.Calendar;
-import java.util.Date;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.text.ParseException;

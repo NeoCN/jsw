@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.39  2004/06/30 09:02:33  mortenson
+// Remove unused imports.
+//
 // Revision 1.38  2004/06/15 07:09:44  mortenson
 // Fix a problem where the tick age was not being calculated correctly when the
 // age was negative.
@@ -201,7 +204,6 @@ package org.tanukisoftware.wrapper;
 
 import java.io.DataInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.IOException;
@@ -216,8 +218,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Properties;
 import java.util.StringTokenizer;
 
 import org.tanukisoftware.wrapper.resources.ResourceManager;

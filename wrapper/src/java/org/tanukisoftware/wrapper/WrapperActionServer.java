@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.7  2004/06/30 09:02:33  mortenson
+// Remove unused imports.
+//
 // Revision 1.6  2004/01/16 04:42:00  mortenson
 // The license was revised for this version to include a copyright omission.
 // This change is to be retroactively applied to all versions of the Java
@@ -58,7 +61,6 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.ServerSocket;
-import java.net.UnknownHostException;
 import java.util.Hashtable;
 
 import org.tanukisoftware.wrapper.WrapperManager;

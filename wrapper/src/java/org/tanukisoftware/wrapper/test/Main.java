@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.17  2004/06/30 09:02:33  mortenson
+// Remove unused imports.
+//
 // Revision 1.16  2004/04/15 06:42:11  mortenson
 // Fix a typo in the access_violation_native action.
 //
@@ -99,8 +102,6 @@ package org.tanukisoftware.wrapper.test;
 //
 
 import java.awt.Button;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
