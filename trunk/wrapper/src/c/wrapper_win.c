@@ -42,6 +42,12 @@
  * 
  *
  * $Log$
+ * Revision 1.100  2005/02/12 11:29:51  mortenson
+ * Fix a security problem where the value of the wrapper.ntservice.account
+ * and wrapper.ntservice.password properties were being stored in plain text
+ * within the registry if they were specified on the command line when
+ * installing the Wrapper as a Windows service.  Bug #1110183.
+ *
  * Revision 1.99  2005/02/01 16:21:40  mortenson
  * Fix bug #1108517.  PID and anchor files were being deleted when the -t, -s, -i,
  * or -r commands were run when the Wrapper was already running.
@@ -2135,9 +2141,6 @@ int wrapperInstall(int argc, char **argv) {
     /* Build a new command line with all of the parameters. */
     binaryPath[0] = '\0';
     for (i = 0; i < argc; i++) {
-        if (i > 0) {
-            strcat(binaryPath, " ");
-        }
         switch (i) {
         case 0:
             /* argv[0] is the binary name */
@@ -2152,17 +2155,27 @@ int wrapperInstall(int argc, char **argv) {
             break;
         case 1:
             /* argv[1] is '-i' option -> change to '-s' */
-            strcat(binaryPath, "-s");
+            strcat(binaryPath, " -s");
             break;
         default:
-            /* All other argv[n] should be preserved as is. */
-            /* If the argument contains spaces, it needs to be quoted */
-            if (strchr(argv[i], ' ') == NULL) {
-                strcat(binaryPath, argv[i]);
+            /* For security reasons, skip the wrapper.ntservice.password property if
+             *  it is declared on the command line.   It is not needed once the service
+             *  is installed. */
+            if ((strstr(argv[i], "wrapper.ntservice.account") != NULL) ||
+                (strstr(argv[i], "wrapper.ntservice.password") != NULL)) {
+                /* Skip */
             } else {
-                strcat(binaryPath, "\"");
-                strcat(binaryPath, argv[i]);
-                strcat(binaryPath, "\"");
+                /* All other argv[n] should be preserved as is. */
+                strcat(binaryPath, " ");
+                
+                /* If the argument contains spaces, it needs to be quoted */
+                if (strchr(argv[i], ' ') == NULL) {
+                    strcat(binaryPath, argv[i]);
+                } else {
+                    strcat(binaryPath, "\"");
+                    strcat(binaryPath, argv[i]);
+                    strcat(binaryPath, "\"");
+                }
             }
             break;
         }

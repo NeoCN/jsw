@@ -81,6 +81,10 @@ Java Service Wrapper Revision History.
   were used while another Wrapper instance was running.  In the case of the
   anchor file, this would result in the Wrapper being shutdown unintentionally.
   This was not an issue on non-Windows versions.  Bug #1108517.
+* Fix a security problem where the value of the wrapper.ntservice.account
+  and wrapper.ntservice.password properties were being stored in plain text
+  within the registry if they were specified on the command line when
+  installing the Wrapper as a Windows service.  Bug #1110183.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
