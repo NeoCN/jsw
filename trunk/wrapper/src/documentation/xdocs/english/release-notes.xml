@@ -150,6 +150,13 @@ $Id$
                     documentation using Java 1.4.2.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Display a warning if the exit status of a JVM process ever returns the
+                    STILL_ACTIVE status on Windows.  There was no known problem here, just
+                    noticed it while looking over the code.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.1">
