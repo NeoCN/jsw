@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.84  2004/02/17 03:12:34  mortenson
+ * To make debugging classpath problems easier, the Wrapper now verifies all
+ * classpath entries before launching a JVM and logs debug level warnings for
+ * any entries that do not exist.
+ *
  * Revision 1.83  2004/01/16 04:41:59  mortenson
  * The license was revised for this version to include a copyright omission.
  * This change is to be retroactively applied to all versions of the Java
@@ -227,6 +232,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <sys/timeb.h>
+#include <sys/stat.h>
 #include "wrapperinfo.h"
 #include "property.h"
 #include "wrapper.h"
@@ -1053,6 +1059,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     int i, j, len2;
     int cpLen, cpLenAlloc;
     char *tmpString;
+    struct stat statBuffer;
 #ifdef WIN32
     char cpPath[512];
     char *c;
@@ -1288,7 +1295,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                     if ((strchr(prop, '*') != NULL) || (strchr(prop, '?') != NULL)) {
                         /* Need to do a wildcard search */
 #ifdef WIN32
-                        /* Extract any path information of the beginning of the file */
+                        /* Extract any path information from the beginning of the file */
                         strcpy(cpPath, prop);
                         c = max(strrchr(cpPath, '\\'), strrchr(cpPath, '/'));
                         if (c == NULL) {
@@ -1300,10 +1307,12 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 
                         if ((handle = _findfirst(prop, &fblock)) <= 0) {
                             if (errno == ENOENT) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Warning no matching files for classpath element: %s", prop);
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                                    "Classpath element, %s, does not match any files: %s", paramBuffer, prop);
                             } else {
                                 /* Encountered an error of some kind. */
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Error in findfirst for classpath element: %s", prop);
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                                    "Error in findfirst for classpath element: %s", prop);
                             }
                         } else {
                             len2 = strlen(fblock.name);
@@ -1385,6 +1394,37 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         globfree(&g);
 #endif
                     } else {
+                        /* This classpath entry does not contain any wildcards. */
+
+                        /* If the path element is a directory then we want to strip the trailing slash if it exists. */
+                        propStripped = (char *)prop;
+                        if ((prop[strlen(prop) - 1] == '/') || (prop[strlen(prop) - 1] == '\\')) {
+                            propStripped = malloc(sizeof(char) * strlen(prop));
+                            memcpy(propStripped, prop, strlen(prop) - 1);
+                            propStripped[strlen(prop) - 1] = '\0';
+                        }
+
+                        /* See if it exists so we can display a debug warning if it does not. */
+                        if (stat(propStripped, &statBuffer)) {
+                            /* Encountered an error of some kind. */
+                            if ((errno == ENOENT) || (errno == 3)) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                                    "Classpath element, %s, does not exist: %s", paramBuffer, prop);
+                            } else {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                                    "Unable to get information of classpath element: %s (%s)",
+                                    prop, getLastErrorText());
+                            }
+                        } else {
+                            /* Got the stat info. */
+                        }
+
+                        /* If we allocated the propStripped buffer then free it up. */
+                        if (propStripped != prop) {
+                            free(propStripped);
+                        }
+                        propStripped = NULL;
+
                         /* Is there room for the entry? */
                         while (cpLen + len2 + 3 > cpLenAlloc) {
                             /* Resize the buffer */

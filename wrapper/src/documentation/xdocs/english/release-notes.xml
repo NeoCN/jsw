@@ -195,6 +195,13 @@ $Id$
                     class specified.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    To make debugging classpath problems easier, the Wrapper now verifies all
+                    classpath entries before launching a JVM and logs debug level warnings for
+                    any entries that do not exist.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
