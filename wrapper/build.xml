@@ -48,8 +48,8 @@
         depends="init-windows-nt, init-windows-2000, init-windows-xp"
         if="is.Windows">
         <property name="is.shell.bat" value="true"/>
-        <property name="wrapper.bin.name" value="Wrapper.exe"/>
-        <property name="wrapper.lib.name" value="Wrapper.dll"/>
+        <property name="wrapper.bin.name" value="wrapper.exe"/>
+        <property name="wrapper.lib.name" value="wrapper.dll"/>
     </target>
     <target name="init-linux" if="is.Linux">
         <property name="is.Unix" value="true"/>
@@ -210,8 +210,8 @@
         <echo message="**********************************************************************"/>
         <echo message="Microsoft Visual Studio was not found at the following location:"/>
         <echo message="  ${msvc.home}"/>
-        <echo message="Wrapper.exe and Wrapper.DLL will be rebuilt.  If you do not have MSVC "/>
-        <echo message="installed then you can obtain Wrapper.exe and Wrapper.DLL from a "/>
+        <echo message="wrapper.exe and wrapper.dll will be rebuilt.  If you do not have MSVC "/>
+        <echo message="installed then you can obtain wrapper.exe and wrapper.dll from a "/>
         <echo message="binary release of the project."/>
         <echo message=" "/>
         <echo message="If it is installed at a different location, create a file called "/>
@@ -707,8 +707,8 @@
         <delete dir="${jdoc.dir}"/>
         <delete dir="${doc.dir}/english"/>
 
-        <delete file="${bin.dir}/Wrapper.exe"/>
-        <delete file="${lib.dir}/Wrapper.dll"/>
+        <delete file="${bin.dir}/wrapper.exe"/>
+        <delete file="${lib.dir}/wrapper.dll"/>
         <delete file="${lib.dir}/wrapper.jar"/>
         <delete file="${lib.dir}/wrappertest.jar"/>
 

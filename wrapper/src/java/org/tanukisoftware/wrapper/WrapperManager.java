@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.17  2003/09/12 04:03:52  mortenson
+// Make it possible to load the native library using files named after the platform
+// and architecture.
+//
 // Revision 1.16  2003/09/04 05:40:08  mortenson
 // Added a new wrapper.ping.interval property which lets users control the
 // frequency that the Wrapper pings the JVM.
@@ -421,113 +425,9 @@ public final class WrapperManager
                 }
             }
         }
+        
         // Initialize the native code to trap system signals
-        try
-        {
-            System.loadLibrary( "wrapper" );
-            m_libraryOK = true;
-        }
-        catch ( UnsatisfiedLinkError e )
-        {
-            String libPath = System.getProperty( "java.library.path" );
-            System.out.println();
-            if ( libPath.equals( "" ) )
-            {
-                // No library path
-                System.out.println(
-                    "WARNING - Unable to load native library 'wrapper' because the" );
-                System.out.println(
-                    "          java.library.path was set to ''.  Please see the" );
-                System.out.println(
-                    "          documentation for the wrapper.java.library.path " );
-                System.out.println(
-                    "          configuration property.");
-            }
-            else
-            {
-                // A library path exists but the library was not found on it.
-                String pathSep = System.getProperty( "path.separator" );
-                String libFile;
-                if ( System.getProperty( "os.name" ).indexOf( "Windows" ) >= 0 )
-                {
-                    libFile = "Wrapper.DLL";
-                }
-                else if ( System.getProperty( "os.name" ).indexOf( "Mac" ) >= 0 )
-                {
-                    // Mac OS X
-                    libFile = "libwrapper.jnilib";
-                }
-                else
-                {
-                    libFile = "libwrapper.so";
-                }
-                
-                // Search for the file on the library path to verify that it does not
-                //  exist, it could be some other problem
-                boolean libFileFound = false;
-                File pathElement = null;
-                StringTokenizer st = new StringTokenizer( libPath, pathSep );
-                while( st.hasMoreTokens() )
-                {
-                    pathElement = new File( new File( st.nextToken() ), libFile );
-                    if ( pathElement.exists() )
-                    {
-                        libFileFound = true;
-                        break;
-                    }
-                }
-                
-                if ( libFileFound )
-                {
-                    // The library file was found but it could not be loaded.
-                    System.out.println(
-                        "WARNING - Unable to load native library '" + libFile + "'.  The file" );
-                    System.out.println(
-                        "          is located on the path at the following location but could" );
-                    System.out.println(
-                        "          not be loaded:" );
-                    System.out.println(
-                        "            " + pathElement.getAbsolutePath() );
-                    System.out.println(
-                        "          Please verify that the file is readable by the current user" );
-                    System.out.println(
-                        "          and that the file has not been corrupted in any way." );
-                }
-                else
-                {
-                    // The library file does not appear to exist.
-                    System.out.println(
-                        "WARNING - Unable to load native library 'wrapper' because the" );
-                    System.out.println(
-                        "          file '" + libFile + "' could not be located in the following" );
-                    System.out.println(
-                        "          java.library.path:" );
-                    st = new StringTokenizer( libPath, pathSep );
-                    while ( st.hasMoreTokens() )
-                    {
-                        pathElement = new File( st.nextToken() );
-                        System.out.println( "            " + pathElement.getAbsolutePath() );
-                    }
-                    System.out.println(
-                        "          Please see the documentation for the "
-                        +          "wrapper.java.library.path" );
-                    System.out.println(
-                        "          configuration property." );
-                }
-            }
-            System.out.println( "          System signals will not be handled correctly." );
-            System.out.println();
-            m_libraryOK = false;
-        }
-
-        if ( m_libraryOK )
-        {
-            if ( m_debug )
-            {
-                System.out.println( "Calling native initialization method." );
-            }
-            nativeInit( m_debug );
-        }
+        initializeNativeLibrary();
         
         // Start a thread which looks for control events sent to the
         //  process.  The thread is also used to keep track of whether
@@ -621,6 +521,207 @@ public final class WrapperManager
     /*---------------------------------------------------------------
      * Methods
      *-------------------------------------------------------------*/
+    /**
+     * Attempts to load the a native library file.
+     *
+     * @param name Name of the library to load.
+     * @param file Name of the actual library file.
+     *
+     * @return True if the library was successfully loaded.
+     */
+    private static boolean loadNativeLibrary( String name, String file )
+    {
+        try
+        {
+            System.loadLibrary( name );
+            
+            if ( m_debug )
+            {
+                System.out.println( "Loaded native library: " + file );
+            }
+            
+            return true;
+        }
+        catch ( UnsatisfiedLinkError e )
+        {
+            return false;
+        }
+    }
+    
+    /**
+     * Searches for a file on a path.
+     *
+     * @param file File to look for.
+     * @param path Path to be searched.
+     *
+     * @return Reference to thr file object if found, otherwise null.
+     */
+    private static File locateFileOnPath( String file, String path )
+    {
+        // A library path exists but the library was not found on it.
+        String pathSep = System.getProperty( "path.separator" );
+        
+        // Search for the file on the library path to verify that it does not
+        //  exist, it could be some other problem
+        StringTokenizer st = new StringTokenizer( path, pathSep );
+        while( st.hasMoreTokens() )
+        {
+            File libFile = new File( new File( st.nextToken() ), file );
+            if ( libFile.exists() )
+            {
+                return libFile;
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Searches for and then loads the native library.  This method will attempt
+     *  locate the wrapper library using one of the following 3 naming 
+     */
+    private static void initializeNativeLibrary()
+    {
+        String libraryHead;
+        String libraryTail;
+        
+        // Resolve the osname and osarch for the currect system.
+        String osName = System.getProperty( "os.name" ).toLowerCase();
+        if ( osName.startsWith( "windows" ) )
+        {
+            // There are several windows names so combine them all into something familiar.
+            osName = "windows";
+            libraryHead = "";
+            libraryTail = ".dll";
+        }
+        else if ( osName.startsWith( "mac" ) )
+        {
+            // There are several windows names so combine them all into something familiar.
+            osName = "mac";
+            libraryHead = "lib";
+            libraryTail = ".jnilib";
+        }
+        else
+        {
+            libraryHead = "lib";
+            libraryTail = ".so";
+        }
+        
+        String osArch = System.getProperty( "os.arch" ).toLowerCase();
+        
+        String name1 = "wrapper-" + osName + "-" + osArch;
+        String file1 = libraryHead + name1 + libraryTail;
+        String name2 = "wrapper-" + osName;
+        String file2 = libraryHead + name2 + libraryTail;
+        String name3 = "wrapper";
+        String file3 = libraryHead + name3 + libraryTail;
+        
+        // Attempt to load the native library using various names.
+        if ( loadNativeLibrary( name1, file1 ) )
+        {
+            m_libraryOK = true;
+        }
+        else if ( loadNativeLibrary( name2, file2 ) )
+        {
+            m_libraryOK = true;
+        }
+        else if ( loadNativeLibrary( name3, file3 ) )
+        {
+            m_libraryOK = true;
+        }
+        else
+        {
+            // Failed to load the native library using all 3 names.
+            m_libraryOK = false;
+        }
+        
+        if ( m_libraryOK )
+        {
+            // The library was loaded correctly, so initialize it.
+            if ( m_debug )
+            {
+                System.out.println( "Calling native initialization method." );
+            }
+            nativeInit( m_debug );
+        }
+        else
+        {
+            // The library could not be loaded, so we want to give the user a useful
+            //  clue as to why not.
+            String libPath = System.getProperty( "java.library.path" );
+            System.out.println();
+            if ( libPath.equals( "" ) )
+            {
+                // No library path
+                System.out.println(
+                    "WARNING - Unable to load the Wrapper's native library because the" );
+                System.out.println(
+                    "          java.library.path was set to ''.  Please see the" );
+                System.out.println(
+                    "          documentation for the wrapper.java.library.path " );
+                System.out.println(
+                    "          configuration property.");
+            }
+            else
+            {
+                File libFile;
+                if ( ( libFile = locateFileOnPath( file1, libPath ) ) == null )
+                {
+                    if ( ( libFile = locateFileOnPath( file1, libPath ) ) == null )
+                    {
+                        libFile = locateFileOnPath( file1, libPath );
+                    }
+                }
+                
+                if ( libFile == null )
+                {
+                    // The library could not be located on the library path.
+                    System.out.println(
+                        "WARNING - Unable to load the Wrapper's native library because it does" );
+                    System.out.println(
+                        "          not appear to exist on the following java.library.path:" );
+                    String pathSep = System.getProperty( "path.separator" );
+                    StringTokenizer st = new StringTokenizer( libPath, pathSep );
+                    while ( st.hasMoreTokens() )
+                    {
+                        File pathElement = new File( st.nextToken() );
+                        System.out.println( "            " + pathElement.getAbsolutePath() );
+                    }
+                    System.out.println(
+                        "          The native library is searched for using the following names " );
+                    System.out.println(
+                        "          in this order:" );
+                    System.out.println( "            " + file1 );
+                    System.out.println( "            " + file2 );
+                    System.out.println( "            " + file3 );
+                    System.out.println(
+                        "          Please see the documentation for the "
+                        +          "wrapper.java.library.path" );
+                    System.out.println(
+                        "          configuration property." );
+                }
+                else
+                {
+                    // The library file was found but could not be loaded for some reason.
+                    System.out.println(
+                        "WARNING - Unable to load Wrapper's native library.  The file is located" );
+                    System.out.println(
+                        "          on the library path at the following location but could not" );
+                    System.out.println(
+                        "          be loaded:" );
+                    System.out.println(
+                        "            " + libFile.getAbsolutePath() );
+                    System.out.println(
+                        "          Please verify that the file is readable by the current user" );
+                    System.out.println(
+                        "          and that the file has not been corrupted in any way." );
+                }
+            }
+            System.out.println( "          System signals will not be handled correctly." );
+            System.out.println();
+        }
+    }
+    
     /**
      * Returns true if the specified system property is set.
      *
