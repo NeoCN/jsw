@@ -23,7 +23,7 @@
     
     <!-- product version -->
     <property name="major.version" value="3" />
-    <property name="version"       value="${major.version}.0.1a" />
+    <property name="version"       value="${major.version}.0.1" />
     
     <property name="bin.dir"       value="bin"/>
     <property name="conf.dir"      value="conf"/>
