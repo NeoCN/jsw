@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.85  2004/07/15 14:30:49  mortenson
+ * Remove an unused variable.
+ *
  * Revision 1.84  2004/07/15 10:09:55  mortenson
  * Correct the FREEBSD ifdef statement.
  *
@@ -1059,7 +1062,6 @@ int wrapperReadChildOutput() {
     long now;
     int nowMillis;
     long durr;
-    int flags;
     
     if (jvmOut != -1) {
         ftime( &timeBuffer );
