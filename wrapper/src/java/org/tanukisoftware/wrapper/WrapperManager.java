@@ -26,6 +26,11 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.10  2003/07/01 14:49:45  mortenson
+// Fix a problem where the JVM would sometimes hang when trying to shutdown if
+// the wrapper.key parameter was passed to the JVM while not being controlled
+// by the Wrapper.
+//
 // Revision 1.9  2003/06/07 05:18:32  mortenson
 // Add a new method WrapperManager.stopImmediate which will cause the JVM to
 // exit immediately without calling any stop methods or shutdown hooks.
@@ -1360,7 +1365,7 @@ public final class WrapperManager
             System.out.println( e );
             // This is fatal because the port was bad.
             System.out.println( "Exiting JVM..." );
-            System.exit( 1 );
+            stopImmediate( 1 );
         }
         catch ( ConnectException e )
         {
@@ -1368,7 +1373,7 @@ public final class WrapperManager
             System.out.println( e );
             // This is fatal because there is nobody listening.
             System.out.println( "Exiting JVM..." );
-            System.exit( 1 );
+            stopImmediate( 1 );
         }
         catch ( IOException e )
         {

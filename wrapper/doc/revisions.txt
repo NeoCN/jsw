@@ -49,6 +49,11 @@ Java Service Wrapper Revision History.
   supplying the patch.
 * Fix a problem where the sh and bash scripts were failing if the path to the
   script contained spaces.
+* Fix a problem where the JVM would sometimes hang when trying to shutdown if
+  the wrapper.key parameter was passed to the JVM while not being controlled
+  by the Wrapper.  This would happen if a user copied the command from the
+  Wrapper's debug output and attempted to run it as is without first removing
+  the wrapper.key parameter.
 
 3.0.3
 * Added support for Mac OS X.  Big thanks to Andy Barnett for supplying the
