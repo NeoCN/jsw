@@ -40,7 +40,9 @@
                 <td width="150" valign="top" nowrap="1">
                     <br/>
                     <font face="arial,helvetica,sanserif">
-                        <br/>
+                        <center>
+                            <img src="images/DukeTowel.png" border="0"/>
+                        </center>
                         <xsl:copy-of select="/site/menu/node()|@*"/>
                         <br/>
                         Hosted by:<br/>
