@@ -19,7 +19,7 @@ wrapper.java.library.path.1=../lib
 #wrapper.java.additional.1=
 
 # Initial Java Heap Size (in MB)
-wrapper.java.initmemory=2
+wrapper.java.initmemory=3
 
 # Maximum Java Heap Size (in MB)
 wrapper.java.maxmemory=64
