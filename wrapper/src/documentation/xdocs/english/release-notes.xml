@@ -228,6 +228,13 @@ $Id$
                     <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=917902&amp;group_id=39428&amp;atid=425190">Feature Request #917902</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where spaces around the '=' character of a property definition
+                    were rendering the property invisible to the Wrapper.
+                    <ulink url="https://sourceforge.net/tracker/index.php?func=detail&amp;aid=916001&amp;group_id=39428&amp;atid=425187">Bug #916001</ulink>.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
