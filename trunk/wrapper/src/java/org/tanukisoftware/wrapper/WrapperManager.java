@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.7  2003/04/15 15:32:06  mortenson
+// Fix a typo in a warning message.
+//
 // Revision 1.6  2003/04/09 06:26:14  mortenson
 // Add some extra checks in the event where the native library can not be loaded
 // so that the WrapperManager can differentiate between the library missing and
@@ -446,7 +449,7 @@ public final class WrapperManager
                     System.out.println(
                         "          is located on the path at the following location but could" );
                     System.out.println(
-                        "          be loaded:" );
+                        "          not be loaded:" );
                     System.out.println(
                         "            " + pathElement.getAbsolutePath() );
                     System.out.println(
