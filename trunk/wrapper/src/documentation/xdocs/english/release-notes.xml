@@ -51,6 +51,11 @@
                     Rework the way the shutdown process works so that System.exit will never be called before the stop method in WrapperListener has had a chance to complete.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add a Restart button to the TestWrapper application.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

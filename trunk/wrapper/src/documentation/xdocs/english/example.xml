@@ -71,7 +71,7 @@
                 When the application starts, you should see the following dialog:
             </para>
             <screenshot>
-                <screeninfo>512x200x256</screeninfo>
+                <screeninfo>512x250x256</screeninfo>
                 <graphic fileref="images/TestWrapper"/>
             </screenshot>
             <para>
@@ -309,6 +309,37 @@ jvm 2    | start()]]></screen>
                             </para>
                             <para>
                                 You will notice that the Wrapper thinks that the JVM crashed and restarts it.
+                            </para>
+                        </glossdef>
+                    </glossentry>
+                    <glossentry>
+                        <glossterm>Request Restart</glossterm>
+                        <glossdef>
+                            <para>
+                                Restarts the JVM cleanly by calling WrapperManager.restart()
+                                <informalexample>
+                                    <simpara><emphasis>Console Output:</emphasis></simpara>
+                                    <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
+wrapper  | Launching a JVM...
+jvm 1    | Initializing...
+jvm 1    | Wrapper (Version 2.x.x)
+jvm 1    | Copyright 2000, 2001 Silver Egg Technology, Inc.
+jvm 1    | All rights reserved.
+jvm 1    |
+jvm 1    | start()
+wrapper  | JVM requested a restart.
+jvm 1    | stop(0)
+wrapper  | Launching a JVM...
+jvm 2    | Initializing...
+jvm 2    | Wrapper (Version 2.x.x)
+jvm 2    | Copyright 2000, 2001 Silver Egg Technology, Inc.
+jvm 2    | All rights reserved.
+jvm 2    |
+jvm 2    | start()]]></screen>
+                                </informalexample>
+                            </para>
+                            <para>
+                                 As you can see, the application had its stop() method called and was restarted cleanly. 
                             </para>
                         </glossdef>
                     </glossentry>

@@ -26,6 +26,9 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
+// Revision 1.5  2002/05/17 09:52:42  mortenson
+// Add a Restart button to the TestWrapper application.
+//
 // Revision 1.4  2002/05/17 09:08:45  mortenson
 // Make the test shutdown correctly when shutdown from a shutdown hook.
 //
@@ -89,13 +92,18 @@ public class Main implements WrapperListener {
             add(rhButton);
             rhButton.addActionListener(this);
             
+            Button rsButton = new Button("Request Restart");
+            add(rsButton);
+            rsButton.addActionListener(this);
+            
             add(new Label("The Access Violation button only works with Sun JVMs."));
             add(new Label("Also try killing the JVM process or pressing CTRL-C in the console window."));
             add(new Label("Simmulate JVM Hang only has an effect when controlled by native Wrapper."));
             add(new Label("System.exit(0) should cause the Wrapper to exit."));
             add(new Label("Runtime.getRuntime().halt(0) should result in the JVM restarting."));
+            add(new Label("Request Restart should cause the JVM to stop and be restarted cleanly."));
             
-            setSize(new Dimension(512, 240));
+            setSize(new Dimension(512, 250));
         }
         
         public void actionPerformed(ActionEvent event) {
@@ -112,6 +120,8 @@ public class Main implements WrapperListener {
                 System.exit(0);
             } else if (command.equals("Runtime.getRuntime().halt(0)")) {
                 Runtime.getRuntime().halt(0);
+            } else if (command.equals("Request Restart")) {
+                WrapperManager.restart();
             }
         }
     }
