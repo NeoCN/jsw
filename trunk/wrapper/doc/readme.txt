@@ -345,7 +345,7 @@ Launching your application under Wrapper.
 
 Windows NT/2000:
 
-To Run your application as a console, execute the following command.
+To run your application as a console app, execute the following command.
     C:/MyApp/bin> Wrapper.exe -c C:\MyApp\conf\wrapper.conf
 
 To install the application as an NT service, execute.
@@ -366,7 +366,7 @@ bin directory to make them easier to use.
 Linux/Solaris:
 
 To run your application from the command line:
-    $ wrapper -c [your application's wrapper config file]
+    $ wrapper [your application's wrapper config file]
 
 In the src/bin subdirectory you will find some shell (bash and sh)script 
 templates for starting and stopping wrapped applications cleanly in. To
