@@ -146,6 +146,20 @@ $Id$
                     file.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where TERM signals were not being correctly ignored by the
+                    JVM process on UNIX platforms even if the
+                    <ulink url="prop-ignore-signals.html">wrapper.ignore_signals</ulink> property
+                    was set to true.   Earlier versions of the Wrapper would generate a
+                    WRAPPER_CTRL_SHUTDOWN_EVENT when a TERM signal was received.   On Windows
+                    that signal should never be ignored.  To resolve this a new
+                    WRAPPER_CTRL_TERM_EVENT was added making it possible to selectively ignore
+                    the TERM signals.  This change may affect user implementations of the
+                    <ulink url="javadocs.html">WrapperListener.controlEvent()</ulink> method.
+                    <ulink url="http://sourceforge.net/tracker/?func=detail&amp;aid=1086344&amp;group_id=39428&amp;atid=425187">Bug #1086344</ulink>.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">

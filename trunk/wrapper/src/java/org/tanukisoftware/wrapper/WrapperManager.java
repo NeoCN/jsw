@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.51  2004/12/16 14:13:47  mortenson
+// Fix a problem where TERM signals were not being correctly ignored by the JVM
+// process on UNIX platforms even if wrapper.ignore_signals was set.
+//
 // Revision 1.50  2004/12/08 04:54:33  mortenson
 // Make it possible to access the contents of the Wrapper configuration file from
 // within the JVM.
@@ -325,10 +329,20 @@ public final class WrapperManager
     /** Log commands are actually 116 + the LOG LEVEL. */
     private static final byte WRAPPER_MSG_LOG            = (byte)116;
     
+    /** Received when the user presses CTRL-C in the console on Windows or UNIX platforms. */
     public static final int WRAPPER_CTRL_C_EVENT         = 200;
+    
+    /** Received when the user clicks on the close button of a Console on Windows. */
     public static final int WRAPPER_CTRL_CLOSE_EVENT     = 201;
+    
+    /** Received when the user logs off of a Windows system. */
     public static final int WRAPPER_CTRL_LOGOFF_EVENT    = 202;
+    
+    /** Received when a Windows system is shutting down. */
     public static final int WRAPPER_CTRL_SHUTDOWN_EVENT  = 203;
+    
+    /** Received when a SIG TERM is received on a UNIX system. */
+    public static final int WRAPPER_CTRL_TERM_EVENT      = 204;
     
     /** Log message at debug log level. */
     public static final int WRAPPER_LOG_LEVEL_DEBUG      = 1;
@@ -2345,8 +2359,8 @@ public final class WrapperManager
     /**
      * Called by the native code when a control event is trapped by native code.
      * Can have the values: WRAPPER_CTRL_C_EVENT, WRAPPER_CTRL_CLOSE_EVENT, 
-     *    WRAPPER_CTRL_LOGOFF_EVENT, or WRAPPER_CTRL_SHUTDOWN_EVENT
-     * Calls 
+     *    WRAPPER_CTRL_LOGOFF_EVENT, WRAPPER_CTRL_SHUTDOWN_EVENT, or
+     *    WRAPPER_CTRL_TERM_EVENT.
      */
     private static void controlEvent( int event )
     {
@@ -2369,6 +2383,10 @@ public final class WrapperManager
         case WRAPPER_CTRL_SHUTDOWN_EVENT:
             eventName = "WRAPPER_CTRL_SHUTDOWN_EVENT";
             ignore = false;
+            break;
+        case WRAPPER_CTRL_TERM_EVENT:
+            eventName = "WRAPPER_CTRL_TERM_EVENT";
+            ignore = m_ignoreSignals;
             break;
         default:
             eventName = "Unexpected event: " + event;

@@ -45,6 +45,8 @@ extern "C" {
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_PING_TIMEOUT 113L
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_SERVICE_CONTROL_CODE
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_SERVICE_CONTROL_CODE 114L
+#undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_PROPERTIES
+#define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_PROPERTIES 115L
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_LOG
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_LOG 116L
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_C_EVENT
@@ -55,6 +57,8 @@ extern "C" {
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_LOGOFF_EVENT 202L
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_SHUTDOWN_EVENT
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_SHUTDOWN_EVENT 203L
+#undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_TERM_EVENT
+#define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_TERM_EVENT 204L
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_DEBUG
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_DEBUG 1L
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_INFO
@@ -79,6 +83,8 @@ extern "C" {
 #define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_CONTINUE 3L
 #undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_INTERROGATE
 #define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_INTERROGATE 4L
+#undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_SHUTDOWN
+#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_SHUTDOWN 5L
 /* Inaccessible static: m_out */
 /* Inaccessible static: m_err */
 /* Inaccessible static: m_disposed */
@@ -119,6 +125,7 @@ extern "C" {
 /* Inaccessible static: m_stoppingThread */
 /* Inaccessible static: m_libraryOK */
 /* Inaccessible static: m_commandBuffer */
+/* Inaccessible static: m_properties */
 /* Inaccessible static: m_wrapperEventListenerMaskList */
 /* Inaccessible static: m_wrapperEventListenerMasks */
 /* Inaccessible static: m_produceCoreEvents */
@@ -126,6 +133,8 @@ extern "C" {
 /* Inaccessible static: m_error */
 /* Inaccessible static: m_warning */
 /* Inaccessible static: m_info */
+/* Inaccessible static: PROPERTY_SEPARATOR */
+/* Inaccessible static: m_socketReadBuffer */
 /* Inaccessible static: class_00024org_00024tanukisoftware_00024wrapper_00024WrapperManager */
 /* Inaccessible static: class_00024java_00024lang_00024Thread */
 /* Inaccessible static: class_00024java_00024lang_00024Runtime */
