@@ -42,6 +42,12 @@
  * 
  *
  * $Log$
+ * Revision 1.73  2004/06/06 15:28:18  mortenson
+ * Fix a synchronization problem in the logging code which would
+ * occassionally cause the Wrapper to crash with an Access Violation.
+ * The problem was only encountered when the tick timer was enabled,
+ * and was only seen on multi-CPU systems.  Bug #949877.
+ *
  * Revision 1.72  2004/05/31 08:08:22  mortenson
  * Clean up some data types.  Should have no effect on actual functionality.
  *
@@ -2307,7 +2313,9 @@ void _CRTAPI1 main(int argc, char **argv) {
     wrapperData->jvmLaunchTicks = wrapperGetTicks();
     wrapperData->failedInvocationCount = 0;
 
-    wrapperInitializeLogging();
+    if (wrapperInitializeLogging()) {
+        appExit(1);
+	}
 
     /* Immediately register this thread with the logger. */
     logRegisterThread(WRAPPER_THREAD_MAIN);

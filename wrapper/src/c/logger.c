@@ -42,6 +42,12 @@
  * 
  *
  * $Log$
+ * Revision 1.39  2004/06/06 15:28:05  mortenson
+ * Fix a synchronization problem in the logging code which would
+ * occassionally cause the Wrapper to crash with an Access Violation.
+ * The problem was only encountered when the tick timer was enabled,
+ * and was only seen on multi-CPU systems.  Bug #949877.
+ *
  * Revision 1.38  2004/04/16 04:13:35  mortenson
  * Fix a typo in error code that could have caused a crash if it was ever encountered.
  *
@@ -174,6 +180,13 @@ int threadMessageBufferSizes[WRAPPER_THREAD_COUNT];
 char *threadPrintBuffers[WRAPPER_THREAD_COUNT];
 int threadPrintBufferSizes[WRAPPER_THREAD_COUNT];
 
+/* Mutex for syncronization of the log_printf function. */
+#ifdef WIN32
+HANDLE log_printfMutexHandle = NULL;
+#else
+pthread_mutex_t log_printfMutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
+
 #ifdef WIN32
 HANDLE consoleStdoutHandle = NULL;
 void setConsoleStdoutHandle( HANDLE stdoutHandle ) {
@@ -181,8 +194,19 @@ void setConsoleStdoutHandle( HANDLE stdoutHandle ) {
 }
 #endif
 
-void initLogBuffers() {
+/**
+ * Initializes the logger.  Returns 0 if the operation was successful.
+ */
+int initLogging() {
     int i;
+
+#ifdef WIN32
+	if (!(log_printfMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
+		printf( "Failed to create logging mutex. %s\n", getLastErrorText());
+		fflush(NULL);
+		return 1;
+	}
+#endif
 
     for ( i = 0; i < WRAPPER_THREAD_COUNT; i++ ) {
         threadIds[i] = 0;
@@ -191,6 +215,8 @@ void initLogBuffers() {
         threadPrintBuffers[i] = NULL;
         threadPrintBufferSizes[i] = 0;
     }
+
+	return 0;
 }
 
 /** Registers the calling thread so it can be recognized when it calls
@@ -531,6 +557,31 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
     int         thread_id;
     int         count;
     char        *printBuffer;
+
+	/* We need to be very careful that only one thread is allowed in here
+	 *  at a time.  On Windows this is done using a Mutex object that is
+	 *  initialized in the */
+#ifdef WIN32
+	switch (WaitForSingleObject(log_printfMutexHandle, INFINITE)) {
+	case WAIT_ABANDONED:
+		printf("Logging Mutex was abandoned.\n");
+		fflush(NULL);
+		return;
+	case WAIT_FAILED:
+		printf("Logging Mutex wait failed.\n");
+		fflush(NULL);
+		return;
+	case WAIT_TIMEOUT:
+		printf("Logging Mutex wait timed out.\n");
+		fflush(NULL);
+		return;
+	default:
+		/* Ok */
+		break;
+	}
+#else
+	pthread_mutex_lock(&log_printfMutex);
+#endif
     
     /* The contents of this function are not thread safe but it is called by multiple
      *  threads.  To make this safe we need to either refrain from using static
@@ -641,6 +692,17 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
             sendLoginfoMessage( source_id, level, threadMessageBuffers[thread_id] );
         }
     }
+
+	/* Release the lock we have on this function so that other threads can get in. */
+#ifdef WIN32
+	if (!ReleaseMutex(log_printfMutexHandle)) {
+		printf( "Failed to release logging mutex. %s\n", getLastErrorText());
+		fflush(NULL);
+		return;
+	}
+#else
+	pthread_mutex_unlock(&log_printfMutex);
+#endif
 }
 
 /* Internal functions */

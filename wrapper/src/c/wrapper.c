@@ -42,6 +42,12 @@
  * 
  *
  * $Log$
+ * Revision 1.97  2004/06/06 15:28:05  mortenson
+ * Fix a synchronization problem in the logging code which would
+ * occassionally cause the Wrapper to crash with an Access Violation.
+ * The problem was only encountered when the tick timer was enabled,
+ * and was only seen on multi-CPU systems.  Bug #949877.
+ *
  * Revision 1.96  2004/04/08 14:58:58  mortenson
  * Add a wrapper.working.dir property.
  *
@@ -881,14 +887,19 @@ int wrapperProtocolRead() {
 /**
  * Initialize logging.
  */
-void wrapperInitializeLogging() {
-    initLogBuffers();
+int wrapperInitializeLogging() {
+    if (initLogging()) {
+		return 1;
+	}
+
     setLogfilePath("wrapper.log");
     setLogfileFormat("LPTM");
     setLogfileLevelInt(LEVEL_DEBUG);
     setConsoleLogFormat("LPM");
     setConsoleLogLevelInt(LEVEL_DEBUG);
     setSyslogLevelInt(LEVEL_NONE);
+
+	return 0;
 }
 
 /**
