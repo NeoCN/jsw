@@ -26,6 +26,11 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.14  2003/09/03 09:26:26  mortenson
+// Modify the WrapperManager.isLaunchedAsService() method on UNIX systems so it
+// now returns true if the Wrapper was launched with the wrapper.daemonize flag
+// set.
+//
 // Revision 1.13  2003/09/03 02:33:38  mortenson
 // Requested restarts no longer reset the restart count.
 // Add new wrapper.ignore_signals property.
@@ -620,6 +625,8 @@ public final class WrapperManager
     
     /**
      * Obtain the current version of Wrapper.
+     *
+     * @return The version of the Wrapper.
      */
     public static String getVersion()
     {
@@ -628,6 +635,8 @@ public final class WrapperManager
     
     /**
      * Obtain the build time of Wrapper.
+     *
+     * @return The time that the Wrapper was built.
      */
     public static String getBuildTime()
     {
@@ -635,8 +644,10 @@ public final class WrapperManager
     }
     
     /**
-     * Returns the Id of the current JVM.  JVM Ids increment from 1 each time the wrapper
-     *  restarts a new one.
+     * Returns the Id of the current JVM.  JVM Ids increment from 1 each time
+     *  the wrapper restarts a new one.
+     *
+     * @return The Id of the current JVM.
      */
     public static int getJVMId()
     {
@@ -674,9 +685,10 @@ public final class WrapperManager
     }
     
     /**
-     * (Testing Method) Cause an access violation within the Java code.  Useful for testing the
-     *  Wrapper functions.  This currently only crashes Sun JVMs and takes advantage of 
-     *  Bug #4369043
+     * (Testing Method) Cause an access violation within the Java code.  Useful
+     *  for testing the Wrapper functions.  This currently only crashes Sun
+     *  JVMs and takes advantage of Bug #4369043 which does not exist in newer
+     *  JVMs.  Use of the accessViolationNative() method is preferred.
      */
     public static void accessViolation()
     {
@@ -731,8 +743,10 @@ public final class WrapperManager
     }
         
     /**
-     * Returns true if the JVM was launched by the Wrapper application.  False if the JVM
-     *  was launched manually without the Wrapper controlling it.
+     * Returns true if the JVM was launched by the Wrapper application.  False
+     *  if the JVM was launched manually without the Wrapper controlling it.
+     *
+     * @return True if the current JVM was launched by the Wrapper.
      */
     public static boolean isControlledByNativeWrapper()
     {
@@ -740,10 +754,14 @@ public final class WrapperManager
     }
     
     /**
-     * Returns true if the Wrapper was launched as a service (Windows only).  False if
-     *  launched as a console.  This can be useful if you wish to display a user
-     *  interface when in Console mode.  On unix systems, the Wrapper is always launched
-     *  as a console application, so this method will always return false.
+     * Returns true if the Wrapper was launched as an NT service on Windows or
+     *  as a daemon process on UNIX platforms.  False if launched as a console.
+     *  This can be useful if you wish to display a user interface when in
+     *  Console mode.  On UNIX platforms, this is not as useful because an
+     *  X display may not be visible even if launched in a console.
+     *
+     * @return True if the Wrapper is running as an NT service or daemon
+     *         process.
      */
     public static boolean isLaunchedAsService()
     {
