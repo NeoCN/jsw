@@ -57,6 +57,8 @@ Java Service Wrapper Revision History.
   sent a SIGTERM prior to a SIGKILL.  The SIGTERM made no difference and
   slowed down the forced shutdown.  A modification to the event loop made
   the functionality more difficult to implement.
+* Add the ability to set the user that the Wrapper and its JVM will run as
+  from within the sh script on UNIX platforms.
 
 3.1.0
 * The license was revised for this version to include a copyright omission.

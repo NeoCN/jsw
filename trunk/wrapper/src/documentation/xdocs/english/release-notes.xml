@@ -150,6 +150,12 @@ $Id$
                     the functionality more difficult to implement.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add the ability to set the user that the Wrapper and its JVM will run as
+                    from within the sh script on UNIX platforms.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.0">
