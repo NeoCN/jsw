@@ -90,7 +90,7 @@
                     <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
-jvm 1    | Wrapper (Version 2.x.x)
+jvm 1    | Wrapper (Version 3.x.x)
 jvm 1    |
 jvm 1    | start()]]></screen>
                 </informalexample>
@@ -112,7 +112,7 @@ jvm 1    | start()]]></screen>
                     <screen format="linespecific"><![CDATA[wrapper  | 2001/12/06 16:18:27 | --> Wrapper Started as Console
 wrapper  | 2001/12/06 16:18:28 | Launching a JVM...
 jvm 1    | 2001/12/06 16:18:29 | Initializing...
-jvm 1    | 2001/12/06 16:18:30 | Wrapper (Version 2.x.x)
+jvm 1    | 2001/12/06 16:18:30 | Wrapper (Version 3.x.x)
 jvm 1    | 2001/12/06 16:18:30 | 
 jvm 1    | 2001/12/06 16:18:30 | start()]]></screen>
                 </informalexample>
@@ -132,7 +132,7 @@ jvm 1    | 2001/12/06 16:18:30 | start()]]></screen>
                                     <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
-jvm 1    | Wrapper (Version 2.x.x)
+jvm 1    | Wrapper (Version 3.x.x)
 jvm 1    |
 jvm 1    | start()
 jvm 1    | stop(0)
@@ -157,7 +157,7 @@ wrapper  | <-- Wrapper Stopped]]></screen>
                                     <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
-jvm 1    | Wrapper (Version 2.x.x)
+jvm 1    | Wrapper (Version 3.x.x)
 jvm 1    |
 jvm 1    | start()
 jvm 1    | WARNING: Attempting to cause an access violation...
@@ -173,7 +173,7 @@ jvm 1    | abnormal program termination
 wrapper  | JVM exited unexpectedly.
 wrapper  | Launching a JVM...
 jvm 2    | Initializing...
-jvm 2    | Wrapper (Version 2.x.x)
+jvm 2    | Wrapper (Version 3.x.x)
 jvm 2    |
 jvm 2    | start()]]></screen>
                                 </informalexample>
@@ -204,7 +204,7 @@ jvm 2    | start()]]></screen>
                                     <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
-jvm 1    | Wrapper (Version 2.x.x)
+jvm 1    | Wrapper (Version 3.x.x)
 jvm 1    |
 jvm 1    | start()
 jvm 1    | WARNING: Attempting to cause an access violation...
@@ -216,7 +216,7 @@ wrapper  | JVM is hung: Timed out waiting for signal from JVM.
 wrapper  | Java Virtual Machine did not exit on request, terminated
 wrapper  | Launching a JVM...
 jvm 2    | Initializing...
-jvm 2    | Wrapper (Version 2.x.x)
+jvm 2    | Wrapper (Version 3.x.x)
 jvm 2    |
 jvm 2    | start()]]></screen>
                                 </informalexample>
@@ -242,7 +242,7 @@ jvm 2    | start()]]></screen>
                                     <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
-jvm 1    | Wrapper (Version 2.x.x)
+jvm 1    | Wrapper (Version 3.x.x)
 jvm 1    |
 jvm 1    | start()
 jvm 1    | WARNING: Attempting to cause an access violation...
@@ -250,7 +250,7 @@ wrapper  | JVM is hung: Timed out waiting for signal from JVM.
 wrapper  | Java Virtual Machine did not exit on request, terminated
 wrapper  | Launching a JVM...
 jvm 2    | Initializing...
-jvm 2    | Wrapper (Version 2.x.x)
+jvm 2    | Wrapper (Version 3.x.x)
 jvm 2    |
 jvm 2    | start()]]></screen>
                                 </informalexample>
@@ -268,7 +268,7 @@ jvm 2    | start()]]></screen>
                                     <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
-jvm 1    | Wrapper (Version 2.x.x)
+jvm 1    | Wrapper (Version 3.x.x)
 jvm 1    |
 jvm 1    | start()
 jvm 1    | stop(0)
@@ -287,13 +287,13 @@ wrapper  | <-- Wrapper Stopped]]></screen>
                                     <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
-jvm 1    | Wrapper (Version 2.x.x)
+jvm 1    | Wrapper (Version 3.x.x)
 jvm 1    |
 jvm 1    | start()
 wrapper  | JVM exited unexpectedly.
 wrapper  | Launching a JVM...
 jvm 2    | Initializing...
-jvm 2    | Wrapper (Version 2.x.x)
+jvm 2    | Wrapper (Version 3.x.x)
 jvm 2    |
 jvm 2    | start()]]></screen>
                                 </informalexample>
@@ -317,13 +317,13 @@ jvm 2    | start()]]></screen>
                                     <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
-jvm 1    | Wrapper (Version 2.x.x)
+jvm 1    | Wrapper (Version 3.x.x)
 jvm 1    |
 jvm 1    | start()
 wrapper  | JVM exited unexpectedly.
 wrapper  | Launching a JVM...
 jvm 2    | Initializing...
-jvm 2    | Wrapper (Version 2.x.x)
+jvm 2    | Wrapper (Version 3.x.x)
 jvm 2    |
 jvm 2    | start()]]></screen>
                                 </informalexample>
@@ -344,14 +344,14 @@ jvm 2    | start()]]></screen>
                                     <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
-jvm 1    | Wrapper (Version 2.x.x)
+jvm 1    | Wrapper (Version 3.x.x)
 jvm 1    |
 jvm 1    | start()
 wrapper  | JVM requested a restart.
 jvm 1    | stop(0)
 wrapper  | Launching a JVM...
 jvm 2    | Initializing...
-jvm 2    | Wrapper (Version 2.x.x)
+jvm 2    | Wrapper (Version 3.x.x)
 jvm 2    |
 jvm 2    | start()]]></screen>
                                 </informalexample>
@@ -386,7 +386,7 @@ jvm 2    | start()]]></screen>
                                     <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
-jvm 1    | Wrapper (Version 2.x.x)
+jvm 1    | Wrapper (Version 3.x.x)
 jvm 1    |
 jvm 1    | start()
 wrapper  | CTRL-C trapped.  Shutting down.
@@ -402,7 +402,7 @@ wrapper  | <-- Wrapper Stopped]]></screen>
                                     <simpara><emphasis>Console Output:</emphasis></simpara>
                                     <screen format="linespecific"><![CDATA[wrapper  | Launching a JVM...
 jvm 1    | Initializing...
-jvm 1    | Wrapper (Version 2.x.x)
+jvm 1    | Wrapper (Version 3.x.x)
 jvm 1    | 
 jvm 1    | start()
 wrapper  | User logged out.  Shutting down.
@@ -419,7 +419,7 @@ wrapper  | <-- Wrapper Stopped]]></screen>
                                     <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
-jvm 1    | Wrapper (Version 2.x.x)
+jvm 1    | Wrapper (Version 3.x.x)
 jvm 1    |
 jvm 1    | start()
 wrapper  | Shutting down.
@@ -445,13 +445,13 @@ wrapper  | <-- Wrapper Stopped]]></screen>
                                     <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
-jvm 1    | Wrapper (Version 2.x.x)
+jvm 1    | Wrapper (Version 3.x.x)
 jvm 1    |
 jvm 1    | start()
 wrapper  | JVM exited unexpectedly.
 wrapper  | Launching a JVM...
 jvm 2    | Initializing...
-jvm 2    | Wrapper (Version 2.x.x)
+jvm 2    | Wrapper (Version 3.x.x)
 jvm 2    |
 jvm 2    | start()]]></screen>
                                 </informalexample>
@@ -480,7 +480,7 @@ jvm 2    | start()]]></screen>
                                     <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
-jvm 1    | Wrapper (Version 2.x.x)
+jvm 1    | Wrapper (Version 3.x.x)
 jvm 1    |
 jvm 1    | start()
 jvm 1    | JVM Process has not received any CPU time for 255 seconds.  Extending timeouts.
@@ -544,7 +544,7 @@ wrapper  | Test Wrapper Application removed.]]></screen>
                     <screen format="linespecific"><![CDATA[wrapper  | 2001/12/06 17:34:21 | --> Wrapper Started as Service
 wrapper  | 2001/12/06 17:34:21 | Launching a JVM...
 jvm 1    | 2001/12/06 17:34:22 | Initializing...
-jvm 1    | 2001/12/06 17:34:22 | Wrapper (Version 2.x.x)
+jvm 1    | 2001/12/06 17:34:22 | Wrapper (Version 3.x.x)
 jvm 1    | 2001/12/06 17:34:22 |
 jvm 1    | 2001/12/06 17:34:22 | start()]]></screen>
                 </informalexample>
@@ -563,7 +563,7 @@ jvm 1    | 2001/12/06 17:34:22 | start()]]></screen>
                                     <screen format="linespecific"><![CDATA[wrapper  | 2001/12/06 17:39:39 | --> Wrapper Started as Service
 wrapper  | 2001/12/06 17:39:40 | Launching a JVM...
 jvm 1    | 2001/12/06 17:39:40 | Initializing...
-jvm 1    | 2001/12/06 17:39:40 | Wrapper (Version 2.x.x)
+jvm 1    | 2001/12/06 17:39:40 | Wrapper (Version 3.x.x)
 jvm 1    | 2001/12/06 17:39:40 |
 jvm 1    | 2001/12/06 17:39:41 | start()
 wrapper  | 2001/12/06 17:40:07 | User logged out.  Ignored.
@@ -585,7 +585,7 @@ jvm 1    | 2001/12/06 17:40:07 | controlEvent(202)]]></screen>
                                     <screen format="linespecific"><![CDATA[wrapper  | 2001/12/06 17:41:04 | --> Wrapper Started as Service
 wrapper  | 2001/12/06 17:41:05 | Launching a JVM...
 jvm 1    | 2001/12/06 17:41:05 | Initializing...
-jvm 1    | 2001/12/06 17:41:05 | Wrapper (Version 2.x.x)
+jvm 1    | 2001/12/06 17:41:05 | Wrapper (Version 3.x.x)
 jvm 1    | 2001/12/06 17:41:05 |
 jvm 1    | 2001/12/06 17:41:05 | start()
 wrapper  | 2001/12/06 17:41:25 | User logged out.  Ignored.
@@ -597,7 +597,7 @@ wrapper  | 2001/12/06 17:41:29 | <-- Wrapper Stopped
 wrapper  | 2001/12/06 17:44:12 | --> Wrapper Started as Service
 wrapper  | 2001/12/06 17:44:12 | Launching a JVM...
 jvm 1    | 2001/12/06 17:44:17 | Initializing...
-jvm 1    | 2001/12/06 17:44:21 | Wrapper (Version 2.x.x)
+jvm 1    | 2001/12/06 17:44:21 | Wrapper (Version 3.x.x)
 jvm 1    | 2001/12/06 17:44:21 |
 jvm 1    | 2001/12/06 17:44:23 | start()]]></screen>
                                 </informalexample>
