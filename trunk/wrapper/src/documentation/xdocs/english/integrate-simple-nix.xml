@@ -78,7 +78,7 @@
                     This tutorial will start with a clean install of
                     <ulink url="http://www.jboss.org">JBoss</ulink>.  We used version
                     3.0.4 so the exact steps may be slightly different depending
-                    on the exact version installed.  JBoss was installed in
+                    on the exact version installed.  JBoss was installed in the
                     <literal moreinfo="none">/usr/lib</literal> directory, resulting
                     in a JBoss Home directory of
                     <literal moreinfo="none">/usr/lib/jboss-3.0.4</literal>.
@@ -355,7 +355,7 @@ APP_LONG_NAME="JBoss Application Server"]]></screen>
                         file as well:
                     </para>
                     <informalexample>
-                        <screen format="linespecific"><![CDATA[wrapper.java.classpath.1=/usr/lib/jboss-3.0.4/libwrapper.jar
+                        <screen format="linespecific"><![CDATA[wrapper.java.classpath.1=/usr/lib/jboss-3.0.4/wrapper.jar
 wrapper.java.classpath.2=/usr/lib/jboss-3.0.4/bin/run.jar
 wrapper.java.classpath.3=/opt/IBMJava2-131/lib/tools.jar]]></screen>
                     </informalexample>
@@ -425,7 +425,7 @@ wrapper.java.classpath.3=/opt/IBMJava2-131/lib/tools.jar]]></screen>
 
 wrapper.java.additional.1=-Dprogram.name=run.sh
 
-wrapper.java.classpath.1=/usr/lib/jboss-3.0.4/libwrapper.jar
+wrapper.java.classpath.1=/usr/lib/jboss-3.0.4/wrapper.jar
 wrapper.java.classpath.2=/usr/lib/jboss-3.0.4/bin/run.jar
 wrapper.java.classpath.3=/opt/IBMJava2-131/lib/tools.jar
 
