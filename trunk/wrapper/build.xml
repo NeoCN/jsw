@@ -28,14 +28,15 @@
         <pathelement location="${java.home}/lib/tools.jar"/>
         <pathelement location="${java.home}/../lib/tools.jar"/>
         
-        <fileset dir="${tools.dir}/lib">
-            <include name="*.jar" />
+        <!-- Cocoon docs.  The directory is set as it is so the build will work when
+             the cocoon files are not available. -->
+        <fileset dir="${basedir}/tools/">
+            <include name="cocoon-2.0.4/lib/*.jar" />
         </fileset>
     </path>
     
     <path id="test.class.path">
         <pathelement location="${build.testclasses}"/>
-        <!--pathelement location="${junit.jar}"/-->
         <path refid="project.class.path"/>
     </path>
     
@@ -162,16 +163,6 @@
         <filter token="app.name"          value="${app.name}"      />
         <filter token="app.long.name"     value="${app.long.name}" />
         <filter token="app.description"   value="${app.desc}"      />
-        
-        <!-- Docs can only be generated up through version 1.4.1 of the SDK due to jar
-             problems.  I will need to upgrade Cocoon to resolve this. -->
-        <condition property="is.docDisabled">
-            <or>
-                <contains string="${java.version}" substring="1.4.2"/>
-                <contains string="${java.version}" substring="1.4.3"/>
-                <contains string="${java.version}" substring="1.5"/>
-            </or>
-        </condition>
     </target>
     
     <!-- =================================================================== -->
@@ -491,19 +482,8 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
     <!-- =================================================================== -->
     <!-- Documentation target                                                -->
     <!-- =================================================================== -->
-    <target name="doc-test" depends="init" if="is.docDisabled">
-        <echo message="************************************************************"/>
-        <echo message="* Documentation can not currently be generated with this    "/>
-        <echo message="* JVM due to a jar incompatibility.  To build the docs      "/>
-        <echo message="* please use a version earlier than 1.4.2.  You are         "/>
-        <echo message="* currently using ${java.version}                           "/>
-        <echo message="*                                                           "/>
-        <echo message="* If you are building from a src distribution then you the  "/>
-        <echo message="* docs previously built for that distribution will be used. "/>
-        <echo message="************************************************************"/>
-    </target>
-    <target name="doc-src-test" depends="doc-test" unless="is.docDisabled">
-       <available file="${src.dir}/documentation/english.uris" property="doc-src.present"/>
+    <target name="doc-src-test" depends="init">
+       <available file="${src.dir}/documentation/english.uris" property="doc-src.presentx"/>
     </target>
     <target name="doc" depends="doc-src-test" if="doc-src.present"
        description="generates the Wrapper documentation">
@@ -568,6 +548,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                 <include name="src/c/*.dsw" />
                 <include name="src/c/*.plg" />
                 <include name="src/c/*.rc" />
+                <include name="src/c/*.ico" />
                 <include name="src/c/*.bin" />
                 <include name="src/documentation/**" />
                 <include name="tools/**" />
@@ -609,15 +590,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
             compress="true">
             <include name="${releasesrcfile}/**/*" />
             <exclude name="${releasesrcfile}/src/documentation/**/*" />
-            <exclude name="${releasesrcfile}/tools/lib/avalon-excalibur.jar" />
-            <exclude name="${releasesrcfile}/tools/lib/avalon-framework.jar" />
-            <exclude name="${releasesrcfile}/tools/lib/batik-libs.jar" />
-            <exclude name="${releasesrcfile}/tools/lib/cocoon.jar" />
-            <exclude name="${releasesrcfile}/tools/lib/fop-0_20_1-dev.jar" />
-            <exclude name="${releasesrcfile}/tools/lib/logkit.jar" />
-            <exclude name="${releasesrcfile}/tools/lib/NetComponents.jar" />
-            <exclude name="${releasesrcfile}/tools/lib/resolver.jar" />
-            <exclude name="${releasesrcfile}/tools/lib/xalan-2.2.0-D8.jar" />
+            <exclude name="${releasesrcfile}/tools/cocoon-*/**" />
         </zip>
         
         
@@ -658,15 +631,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
             <tarfileset dir="${basedir}">
                 <include name="${releasesrcfile}/**/*" />
                 <exclude name="${releasesrcfile}/src/documentation/**/*" />
-                <exclude name="${releasesrcfile}/tools/lib/avalon-excalibur.jar" />
-                <exclude name="${releasesrcfile}/tools/lib/avalon-framework.jar" />
-                <exclude name="${releasesrcfile}/tools/lib/batik-libs.jar" />
-                <exclude name="${releasesrcfile}/tools/lib/cocoon.jar" />
-                <exclude name="${releasesrcfile}/tools/lib/fop-0_20_1-dev.jar" />
-                <exclude name="${releasesrcfile}/tools/lib/logkit.jar" />
-                <exclude name="${releasesrcfile}/tools/lib/NetComponents.jar" />
-                <exclude name="${releasesrcfile}/tools/lib/resolver.jar" />
-                <exclude name="${releasesrcfile}/tools/lib/xalan-2.2.0-D8.jar" />
+                <exclude name="${releasesrcfile}/tools/cocoon-*/**" />
                 <exclude name="${releasesrcfile}/build.sh"/>
                 <exclude name="${releasesrcfile}/tools/bin/ant"/>
                 <exclude name="${releasesrcfile}/tools/bin/antRun"/>

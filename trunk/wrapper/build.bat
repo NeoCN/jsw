@@ -1,4 +1,5 @@
 @echo off
+setlocal
 
 echo --------------------
 echo Wrapper Build System
@@ -8,13 +9,7 @@ set OLD_ANT_HOME=%ANT_HOME%
 
 if not "%WRAPPER_TOOLS%"=="" goto runAnt
 
-if exist "tools\bin\ant.bat" set WRAPPER_TOOLS=tools
-
-if not "%WRAPPER_TOOLS%"=="" goto runAnt
-
-echo "Unable to locate tools directory at tools/."
-echo "Aborting."
-goto end
+set WRAPPER_TOOLS=tools/apache-ant-1.6.2
 
 :runAnt
 set ANT_HOME=%WRAPPER_TOOLS%

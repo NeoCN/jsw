@@ -136,6 +136,20 @@ $Id$
                     whether or not this change solved the problem.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Upgrade the version of <ulink url="http://ant.apache.org/">Ant</ulink>
+                    included with source releases to 1.6.2 to fix some problems generating
+                    jni headers when building with Java 1.4.2.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Upgrade the version of <ulink url="http://cocoon.apache.org/">Cocoon</ulink>
+                    included with source releases to 2.0.4 to fix some problems generating
+                    documentation using Java 1.4.2.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.1">
