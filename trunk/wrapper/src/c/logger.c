@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.40  2004/06/07 03:09:31  mortenson
+ * The previous commit protected log_printf with a mutex.  This removes the need to
+ * have thread specific buffers for logging.  A single set of buffers is now used.  This
+ * was broken out into its own commit to make it easier to back out later.
+ *
  * Revision 1.39  2004/06/06 15:28:05  mortenson
  * Fix a synchronization problem in the logging code which would
  * occassionally cause the Wrapper to crash with an Access Violation.
@@ -175,10 +180,10 @@ DWORD threadIds[WRAPPER_THREAD_COUNT];
 #else
 pthread_t threadIds[WRAPPER_THREAD_COUNT];
 #endif
-char *threadMessageBuffers[WRAPPER_THREAD_COUNT];
-int threadMessageBufferSizes[WRAPPER_THREAD_COUNT];
-char *threadPrintBuffers[WRAPPER_THREAD_COUNT];
-int threadPrintBufferSizes[WRAPPER_THREAD_COUNT];
+char *threadMessageBuffer = NULL;
+int threadMessageBufferSize = 0;
+char *threadPrintBuffer = NULL;
+int threadPrintBufferSize = 0;
 
 /* Mutex for syncronization of the log_printf function. */
 #ifdef WIN32
@@ -201,22 +206,18 @@ int initLogging() {
     int i;
 
 #ifdef WIN32
-	if (!(log_printfMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
-		printf( "Failed to create logging mutex. %s\n", getLastErrorText());
-		fflush(NULL);
-		return 1;
-	}
+    if (!(log_printfMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
+        printf( "Failed to create logging mutex. %s\n", getLastErrorText());
+        fflush(NULL);
+        return 1;
+    }
 #endif
 
     for ( i = 0; i < WRAPPER_THREAD_COUNT; i++ ) {
         threadIds[i] = 0;
-        threadMessageBuffers[i] = NULL;
-        threadMessageBufferSizes[i] = 0;
-        threadPrintBuffers[i] = NULL;
-        threadPrintBufferSizes[i] = 0;
     }
 
-	return 0;
+    return 0;
 }
 
 /** Registers the calling thread so it can be recognized when it calls
@@ -410,7 +411,7 @@ int getLowLogLevel() {
 
 /* Writes to and then returns a buffer that is reused by the current thread.
  *  It should not be released. */
-char* buildPrintBuffer( int thread_id, int source_id, int level, char *format, char *message ) {
+char* buildPrintBuffer( int source_id, int level, char *format, char *message ) {
     time_t    now;
     struct tm *nowTM;
     int       i;
@@ -458,18 +459,18 @@ char* buildPrintBuffer( int thread_id, int source_id, int level, char *format, c
         reqSize += 1;
     }
 
-    if ( threadPrintBuffers[thread_id] == NULL ) {
-        threadPrintBuffers[thread_id] = (char *)malloc( reqSize * sizeof( char ) );
-        threadPrintBufferSizes[thread_id] = reqSize;
-    } else if ( threadPrintBufferSizes[thread_id] < reqSize ) {
-        free( threadPrintBuffers[thread_id] );
-        threadPrintBuffers[thread_id] = (char *)malloc( reqSize * sizeof( char ) );
-        threadPrintBufferSizes[thread_id] = reqSize;
+    if ( threadPrintBuffer == NULL ) {
+        threadPrintBuffer = (char *)malloc( reqSize * sizeof( char ) );
+        threadPrintBufferSize = reqSize;
+    } else if ( threadPrintBufferSize < reqSize ) {
+        free( threadPrintBuffer );
+        threadPrintBuffer = (char *)malloc( reqSize * sizeof( char ) );
+        threadPrintBufferSize = reqSize;
     }
 
     /* Create a pointer to the beginning of the print buffer, it will be advanced
      *  as the formatted message is build up. */
-    pos = threadPrintBuffers[thread_id];
+    pos = threadPrintBuffer;
 
     /* We now have a buffer large enough to store the entire formatted message. */
     for( i = 0, currentColumn = 0; i < (int)strlen( format ); i++ ) {
@@ -499,7 +500,7 @@ char* buildPrintBuffer( int thread_id, int source_id, int level, char *format, c
             break;
 
         case 'D':
-            switch ( thread_id )
+            switch ( getThreadId() )
             {
             case WRAPPER_THREAD_SIGNAL:
                 pos += sprintf( pos, "signal " );
@@ -547,74 +548,65 @@ char* buildPrintBuffer( int thread_id, int source_id, int level, char *format, c
     }
 
     /* Return the print buffer to the caller. */
-    return threadPrintBuffers[thread_id];
+    return threadPrintBuffer;
 }
 
 /* General log functions */
 void log_printf( int source_id, int level, char *lpszFmt, ... ) {
     va_list     vargs;
     FILE        *logfileFP = NULL;
-    int         thread_id;
     int         count;
     char        *printBuffer;
 
-	/* We need to be very careful that only one thread is allowed in here
-	 *  at a time.  On Windows this is done using a Mutex object that is
-	 *  initialized in the */
+    /* We need to be very careful that only one thread is allowed in here
+     *  at a time.  On Windows this is done using a Mutex object that is
+     *  initialized in the */
 #ifdef WIN32
-	switch (WaitForSingleObject(log_printfMutexHandle, INFINITE)) {
-	case WAIT_ABANDONED:
-		printf("Logging Mutex was abandoned.\n");
-		fflush(NULL);
-		return;
-	case WAIT_FAILED:
-		printf("Logging Mutex wait failed.\n");
-		fflush(NULL);
-		return;
-	case WAIT_TIMEOUT:
-		printf("Logging Mutex wait timed out.\n");
-		fflush(NULL);
-		return;
-	default:
-		/* Ok */
-		break;
-	}
+    switch (WaitForSingleObject(log_printfMutexHandle, INFINITE)) {
+    case WAIT_ABANDONED:
+        printf("Logging Mutex was abandoned.\n");
+        fflush(NULL);
+        return;
+    case WAIT_FAILED:
+        printf("Logging Mutex wait failed.\n");
+        fflush(NULL);
+        return;
+    case WAIT_TIMEOUT:
+        printf("Logging Mutex wait timed out.\n");
+        fflush(NULL);
+        return;
+    default:
+        /* Ok */
+        break;
+    }
 #else
-	pthread_mutex_lock(&log_printfMutex);
+    pthread_mutex_lock(&log_printfMutex);
 #endif
-    
-    /* The contents of this function are not thread safe but it is called by multiple
-     *  threads.  To make this safe we need to either refrain from using static
-     *  buffers, which would be slow.  Or make sure that a buffer is reserved for each
-     *  thread.  We choose the later.
-     *
-     * Obtain a thread_id that will be used as an index to to the static buffer array. */
-    thread_id = getThreadId();
 
     /* Loop until the buffer is large enough that we are able to successfully
      *  print into it. Once the buffer has grown to the largest message size,
      *  smaller messages will pass through this code without looping. */
     do {
-        if ( threadMessageBufferSizes[thread_id] == 0 )
+        if ( threadMessageBufferSize == 0 )
         {
             /* No buffer yet. Allocate one to get started. */
-            threadMessageBufferSizes[thread_id] = 100;
-            threadMessageBuffers[thread_id] = (char*)malloc( threadMessageBufferSizes[thread_id] * sizeof(char) );
+            threadMessageBufferSize = 100;
+            threadMessageBuffer = (char*)malloc( threadMessageBufferSize * sizeof(char) );
         }
 
         /* Try writing to the buffer. */
         va_start( vargs, lpszFmt );
 #ifdef WIN32
-        count = _vsnprintf( threadMessageBuffers[thread_id], threadMessageBufferSizes[thread_id], lpszFmt, vargs );
+        count = _vsnprintf( threadMessageBuffer, threadMessageBufferSize, lpszFmt, vargs );
 #else
-        count = vsnprintf( threadMessageBuffers[thread_id], threadMessageBufferSizes[thread_id], lpszFmt, vargs );
+        count = vsnprintf( threadMessageBuffer, threadMessageBufferSize, lpszFmt, vargs );
 #endif
         va_end( vargs );
         /*
-        printf( " vsnprintf->%d, size=%d\n", count, threadMessageBufferSizes[thread_id] );
+        printf( " vsnprintf->%d, size=%d\n", count, threadMessageBufferSize );
         fflush(NULL);
         */
-        if ( ( count < 0 ) || ( count >= threadMessageBufferSizes[thread_id] ) ) {
+        if ( ( count < 0 ) || ( count >= threadMessageBufferSize ) ) {
             /* If the count is exactly equal to the buffer size then a null char was not written.
              *  It must be larger.
              * Windows will return -1 if the buffer is too small. If the number is
@@ -622,18 +614,18 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
              * UNIX will return the required size. */
 
             /* Free the old buffer for starters. */
-            free( threadMessageBuffers[thread_id] );
+            free( threadMessageBuffer );
 
             /* Decide on a new buffer size. */
-            if ( count <= threadMessageBufferSizes[thread_id] ) {
-                threadMessageBufferSizes[thread_id] += 100;
-            } else if ( count + 1 <= threadMessageBufferSizes[thread_id] + 100 ) {
-                threadMessageBufferSizes[thread_id] += 100;
+            if ( count <= threadMessageBufferSize ) {
+                threadMessageBufferSize += 100;
+            } else if ( count + 1 <= threadMessageBufferSize + 100 ) {
+                threadMessageBufferSize += 100;
             } else {
-                threadMessageBufferSizes[thread_id] = count + 1;
+                threadMessageBufferSize = count + 1;
             }
 
-            threadMessageBuffers[thread_id] = (char*)malloc( threadMessageBufferSizes[thread_id] * sizeof(char) );
+            threadMessageBuffer = (char*)malloc( threadMessageBufferSize * sizeof(char) );
 
             /* Always set the count to -1 so we will loop again. */
             count = -1;
@@ -643,7 +635,7 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
     /* Console output by format */
     if( level >= currentConsoleLevel ) {
         /* Build up the printBuffer. */
-        printBuffer = buildPrintBuffer( thread_id, source_id, level, consoleFormat, threadMessageBuffers[thread_id] );
+        printBuffer = buildPrintBuffer( source_id, level, consoleFormat, threadMessageBuffer );
 
         /* Write the print buffer to the console. */
 #ifdef WIN32
@@ -671,7 +663,7 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
         
         if (logfileFP != NULL) {
             /* Build up the printBuffer. */
-            printBuffer = buildPrintBuffer( thread_id, source_id, level, logfileFormat, threadMessageBuffers[thread_id] );
+            printBuffer = buildPrintBuffer( source_id, level, logfileFormat, threadMessageBuffer );
     
             fprintf( logfileFP, "%s\n", printBuffer );
     
@@ -688,20 +680,20 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
 
     default:
         if( level >= currentLoginfoLevel ) {
-            sendEventlogMessage( source_id, level, threadMessageBuffers[thread_id] );
-            sendLoginfoMessage( source_id, level, threadMessageBuffers[thread_id] );
+            sendEventlogMessage( source_id, level, threadMessageBuffer );
+            sendLoginfoMessage( source_id, level, threadMessageBuffer );
         }
     }
 
-	/* Release the lock we have on this function so that other threads can get in. */
+    /* Release the lock we have on this function so that other threads can get in. */
 #ifdef WIN32
-	if (!ReleaseMutex(log_printfMutexHandle)) {
-		printf( "Failed to release logging mutex. %s\n", getLastErrorText());
-		fflush(NULL);
-		return;
-	}
+    if (!ReleaseMutex(log_printfMutexHandle)) {
+        printf( "Failed to release logging mutex. %s\n", getLastErrorText());
+        fflush(NULL);
+        return;
+    }
 #else
-	pthread_mutex_unlock(&log_printfMutex);
+    pthread_mutex_unlock(&log_printfMutex);
 #endif
 }
 
