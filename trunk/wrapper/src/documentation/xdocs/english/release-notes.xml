@@ -180,6 +180,13 @@ $Id$
                     <ulink url="http://www.freebsd.org/cgi/query-pr.cgi?pr=kern/64313">FreeBSD bug #kern/64313</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Make the signal handling variables in the wrapper native library volatile.
+                    Directly this was to fix a compiler warning on HP-UX64 systems but it
+                    should also make the calls more efficient.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.0">

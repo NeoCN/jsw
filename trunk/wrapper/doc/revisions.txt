@@ -67,6 +67,9 @@ Java Service Wrapper Revision History.
   all users were experiencing it, but those who did were able to reliably
   reproduce the problem.  The problem appears to have been caused by
   FreeBSD bug #kern/64313.
+* Make the signal handling variables in the wrapper native library volatile.
+  Directly this was to fix a compiler warning on HP-UX64 systems but it
+  should also make the calls more efficient.
 
 3.1.0
 * The license was revised for this version to include a copyright omission.
