@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.9  2003/06/19 05:23:40  mortenson
+ * Fix a problem where the JVM was not receiving CTRL-C and CTRL-CLOSE events
+ * when running under the Wrapper on Windows.
+ *
  * Revision 1.8  2003/04/03 04:05:22  mortenson
  * Fix several typos in the docs.  Thanks to Mike Castle.
  *
@@ -113,6 +117,9 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass cl
             flushall();
         }
     }
+
+    /* Make sure that the handling of CTRL-C signals is enabled for this process. */
+    SetConsoleCtrlHandler(NULL, FALSE);
 
     /* Initialize the CTRL-C handler */
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)wrapperConsoleHandler, TRUE);

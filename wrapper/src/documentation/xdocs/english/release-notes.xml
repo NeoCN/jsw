@@ -86,6 +86,14 @@ $Id$
                     <ulink url="prop-ntservice-interactive.html">wrapper.ntservice.interactive</ulink> property.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where the JVM was not receiving CTRL-C and CTRL-CLOSE events
+                    when running under the Wrapper on Windows.  This was not a problem in most
+                    cases as the Wrapper was taking care of the processing of the events.  But
+                    the WrapperListener.controlEvent() method was not being called as documented.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
