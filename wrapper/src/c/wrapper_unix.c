@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.94  2004/10/20 07:55:35  mortenson
+ * Make sure that the logfile is flushed in a timely manner rather than leaving
+ * it entirely up to the OS.
+ *
  * Revision 1.93  2004/10/19 11:48:20  mortenson
  * Rework logging so that the logfile is kept open.  Results in a 4 fold speed increase.
  *
@@ -347,6 +351,9 @@
 #include "wrapper.h"
 #include "property.h"
 #include "logger.h"
+
+#include <sys/resource.h>
+#include <sys/time.h>
 
 #ifdef USE_NANOSLEEP
 #include <time.h>
@@ -1083,7 +1090,26 @@ void wrapperDumpMemory() {
  *  interval for the Wrapper and its JVM.
  */
 void wrapperDumpCPUUsage() {
-    /* Not yet implemented on UNIX platforms. */
+    struct rusage wUsage;
+    struct rusage jUsage;
+
+    if (getrusage(RUSAGE_SELF, &wUsage)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            "Call to getrusage failed for Wrapper process: %s", getLastErrorText());
+        return;
+    }
+    if (getrusage(RUSAGE_CHILDREN, &jUsage)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            "Call to getrusage failed for Java process: %s", getLastErrorText());
+        return;
+    }
+
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+        "Wrapper CPU: system %ld %ld, user %ld %ld  Java CPU: system %ld %ld, user %ld %ld",
+        wUsage.ru_stime.tv_sec, wUsage.ru_stime.tv_usec,
+        wUsage.ru_utime.tv_sec, wUsage.ru_utime.tv_usec,
+        jUsage.ru_stime.tv_sec, jUsage.ru_stime.tv_usec,
+        jUsage.ru_utime.tv_sec, jUsage.ru_utime.tv_usec);
 }
 
 /**

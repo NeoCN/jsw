@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.22  2004/10/20 07:55:35  mortenson
+ * Make sure that the logfile is flushed in a timely manner rather than leaving
+ * it entirely up to the OS.
+ *
  * Revision 1.21  2004/10/19 11:48:20  mortenson
  * Rework logging so that the logfile is kept open.  Results in a 4 fold speed increase.
  *
@@ -185,6 +189,7 @@ extern void setLogfileMaxLogFilesInt( int max_log_files );
 extern DWORD getLogfileActivity();
 extern void closeLogfile();
 extern void setLogfileAutoClose(int autoClose);
+extern void flushLogfile();
 
 /* * Console functions * */
 extern void setConsoleLogFormat( char *console_log_format );

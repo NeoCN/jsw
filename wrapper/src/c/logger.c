@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.51  2004/10/20 07:55:35  mortenson
+ * Make sure that the logfile is flushed in a timely manner rather than leaving
+ * it entirely up to the OS.
+ *
  * Revision 1.50  2004/10/19 11:48:20  mortenson
  * Rework logging so that the logfile is kept open.  Results in a 4 fold speed increase.
  *
@@ -542,6 +546,30 @@ void closeLogfile() {
 /** Sets the auto close log file flag. */
 void setLogfileAutoClose(int autoClose) {
     autoCloseLogfile = autoClose;
+}
+
+/** Flushes any buffered logfile output to the disk. */
+void flushLogfile() {
+    /* We need to be very careful that only one thread is allowed in here
+     *  at a time.  On Windows this is done using a Mutex object that is
+     *  initialized in the initLogging function. */
+    if (lockLoggingMutex()) {
+        return;
+    }
+
+    if (logfileFP != NULL) {
+#ifdef _DEBUG
+        printf("Flushing logfile by request...\n");
+        fflush(NULL);
+#endif
+
+        fflush(logfileFP);
+    }
+
+    /* Release the lock we have on this function so that other threads can get in. */
+    if (releaseLoggingMutex()) {
+        return;
+    }
 }
 
 /* Console functions */
