@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.80  2004/08/06 07:27:07  mortenson
+ * Make it possible to display timer output without having to enable all debug output.
+ *
  * Revision 1.79  2004/07/05 09:41:29  mortenson
  * Fix a problem where we were getting an extra line feed in the output just after a
  * thread dump.  Caused by a LF+CR+LF in the output from the JVM.
@@ -712,8 +715,8 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
         /* Immediately register this thread with the logger. */
         logRegisterThread(WRAPPER_THREAD_TIMER);
 
-        if (wrapperData->isTimerOutputEnabled && wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Timer thread started.");
+        if (wrapperData->isTimerOutputEnabled) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Timer thread started.");
         }
 
         while(TRUE) {
@@ -740,8 +743,8 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The system clock fell behind the timer by %dms.", (int)(-1 * offsetDiff * WRAPPER_TICK_MS));
                 }
 
-                if (wrapperData->isTimerOutputEnabled && wrapperData->isDebugging) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                if (wrapperData->isTimerOutputEnabled) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         "    Timer: ticks=%lu, system ticks=%lu, offset=%lu, offsetDiff=%ld",
                         timerTicks, sysTicks, tickOffset, offsetDiff);
                 }
@@ -763,8 +766,8 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
  *  to using the system clock.
  */
 int initializeTimer() {
-    if (wrapperData->isTimerOutputEnabled && wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Launching Timer thread.");
+    if (wrapperData->isTimerOutputEnabled) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Launching Timer thread.");
     }
 
     timerThreadHandle = CreateThread(
