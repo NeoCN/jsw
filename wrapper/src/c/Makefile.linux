@@ -27,7 +27,7 @@ wrapper: $(wrapper_SOURCE)
 	$(COMPILE) $(wrapper_SOURCE) -o $(BIN)/wrapper
 
 libwrapper.so: $(libwrapper_so_OBJECTS)
-	ld -shared -fPIC $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
+	${COMPILE} -shared -fPIC $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
 
 %.o: %.c
 	@echo '$(COMPILE) -c $<'; \
