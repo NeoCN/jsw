@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.107  2004/08/06 16:17:04  mortenson
+ * Added a new wrapper.java.command.loglevel property which makes it possible
+ * to control the log level of the generated java command.
+ *
  * Revision 1.106  2004/08/06 15:47:18  mortenson
  * Fix a problem on Windows where a library path or class path which ended in
  * a backslash was preventing the Wrapper from launching the JVM.
@@ -2095,6 +2099,10 @@ int wrapperLoadConfiguration() {
             wrapperData->isDebugging = TRUE;
         }
     }
+
+    /* Get the wrapper command log level. */
+    wrapperData->commandLogLevel = getLogLevelForName(
+        getStringProperty(properties, "wrapper.java.command.loglevel", "DEBUG"));
 
     /* Get the adviser status */
     wrapperData->isAdviserEnabled = getBooleanProperty(properties, "wrapper.adviser", TRUE);

@@ -41,6 +41,13 @@ $Id$
                     fix was to add a second backslash where needed.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Added a new <ulink url="prop-java-command-loglevel.html">wrapper.java.command.loglevel</ulink>
+                    property which makes it possible to control the log level of the generated
+                    java command.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.1">

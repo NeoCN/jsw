@@ -115,6 +115,9 @@
                     <ulink url="prop-java-command.html">wrapper.java.command</ulink>
                 </listitem>
                 <listitem>
+                    <ulink url="prop-java-command-loglevel.html">wrapper.java.command.loglevel</ulink>
+                </listitem>
+                <listitem>
                     <ulink url="prop-java-initmemory.html">wrapper.java.initmemory</ulink>
                 </listitem>
                 <listitem>

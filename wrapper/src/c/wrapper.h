@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.52  2004/08/06 16:17:04  mortenson
+ * Added a new wrapper.java.command.loglevel property which makes it possible
+ * to control the log level of the generated java command.
+ *
  * Revision 1.51  2004/07/05 07:43:54  mortenson
  * Fix a deadlock on solaris by being very careful that we never perform any direct
  * logging from within a signal handler.
@@ -247,6 +251,7 @@ struct WrapperConfig {
     u_short actualPort;             /* Port number which the Wrapper is actually listening on */
     int     sock;                   /* Socket number. if open. */
     char    *configFile;            /* Name of the configuration file */
+    int     commandLogLevel;        /* The log level to use when logging the java command. */
 #ifdef WIN32
     char    *jvmCommand;            /* Command used to launch the JVM */
 #else /* UNIX */

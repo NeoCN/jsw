@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.46  2004/08/06 16:17:04  mortenson
+ * Added a new wrapper.java.command.loglevel property which makes it possible
+ * to control the log level of the generated java command.
+ *
  * Revision 1.45  2004/07/09 17:04:57  mortenson
  * Set an icon for the Wrapper binary on Windows versions.
  *
@@ -304,7 +308,7 @@ int strcmpIgnoreCase( const char *str1, const char *str2 ) {
 #endif
 }
 
-int getLogLevelForName( char *logLevelName ) {
+int getLogLevelForName( const char *logLevelName ) {
     if (strcmpIgnoreCase(logLevelName, "NONE") == 0) {
         return LEVEL_NONE;
     } else if (strcmpIgnoreCase(logLevelName, "ADVICE") == 0) {
@@ -891,7 +895,7 @@ void sendEventlogMessage( int source_id, int level, char *szBuff ) {
 
     /* Build event type by level */
     switch( level ) {
-	case LEVEL_ADVICE: /* Will not get in here. */
+    case LEVEL_ADVICE: /* Will not get in here. */
     case LEVEL_FATAL:
         eventType = EVENTLOG_ERROR_TYPE;
     break;
@@ -909,54 +913,54 @@ void sendEventlogMessage( int source_id, int level, char *szBuff ) {
     }
 
     /* Set the category id to the appropriate resource id. */
-	if ( source_id == WRAPPER_SOURCE_WRAPPER ) {
-		categoryID = MSG_EVENT_LOG_CATEGORY_WRAPPER;
-	} else if ( source_id == WRAPPER_SOURCE_PROTOCOL ) {
-		categoryID = MSG_EVENT_LOG_CATEGORY_PROTOCOL;
-	} else {
-		/* Source is a JVM. */
-		switch ( source_id ) {
-		case 1:
-			categoryID = MSG_EVENT_LOG_CATEGORY_JVM1;
-			break;
+    if ( source_id == WRAPPER_SOURCE_WRAPPER ) {
+        categoryID = MSG_EVENT_LOG_CATEGORY_WRAPPER;
+    } else if ( source_id == WRAPPER_SOURCE_PROTOCOL ) {
+        categoryID = MSG_EVENT_LOG_CATEGORY_PROTOCOL;
+    } else {
+        /* Source is a JVM. */
+        switch ( source_id ) {
+        case 1:
+            categoryID = MSG_EVENT_LOG_CATEGORY_JVM1;
+            break;
 
-		case 2:
-			categoryID = MSG_EVENT_LOG_CATEGORY_JVM2;
-			break;
+        case 2:
+            categoryID = MSG_EVENT_LOG_CATEGORY_JVM2;
+            break;
 
-		case 3:
-			categoryID = MSG_EVENT_LOG_CATEGORY_JVM3;
-			break;
+        case 3:
+            categoryID = MSG_EVENT_LOG_CATEGORY_JVM3;
+            break;
 
-		case 4:
-			categoryID = MSG_EVENT_LOG_CATEGORY_JVM4;
-			break;
+        case 4:
+            categoryID = MSG_EVENT_LOG_CATEGORY_JVM4;
+            break;
 
-		case 5:
-			categoryID = MSG_EVENT_LOG_CATEGORY_JVM5;
-			break;
+        case 5:
+            categoryID = MSG_EVENT_LOG_CATEGORY_JVM5;
+            break;
 
-		case 6:
-			categoryID = MSG_EVENT_LOG_CATEGORY_JVM6;
-			break;
+        case 6:
+            categoryID = MSG_EVENT_LOG_CATEGORY_JVM6;
+            break;
 
-		case 7:
-			categoryID = MSG_EVENT_LOG_CATEGORY_JVM7;
-			break;
+        case 7:
+            categoryID = MSG_EVENT_LOG_CATEGORY_JVM7;
+            break;
 
-		case 8:
-			categoryID = MSG_EVENT_LOG_CATEGORY_JVM8;
-			break;
+        case 8:
+            categoryID = MSG_EVENT_LOG_CATEGORY_JVM8;
+            break;
 
-		case 9:
-			categoryID = MSG_EVENT_LOG_CATEGORY_JVM9;
-			break;
+        case 9:
+            categoryID = MSG_EVENT_LOG_CATEGORY_JVM9;
+            break;
 
-		default:
-			categoryID = MSG_EVENT_LOG_CATEGORY_JVMXX;
-			break;
-		}
-	}
+        default:
+            categoryID = MSG_EVENT_LOG_CATEGORY_JVMXX;
+            break;
+        }
+    }
 
     /* Place event in eventlog */
     strings[0] = header;

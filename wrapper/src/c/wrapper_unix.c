@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.87  2004/08/06 16:17:05  mortenson
+ * Added a new wrapper.java.command.loglevel property which makes it possible
+ * to control the log level of the generated java command.
+ *
  * Revision 1.86  2004/08/06 07:27:06  mortenson
  * Make it possible to display timer output without having to enable all debug output.
  *
@@ -825,9 +829,10 @@ void wrapperBuildJavaCommand() {
     length = 0;
     wrapperBuildJavaCommandArray(&strings, &length, FALSE);
     
-    if (wrapperData->isDebugging) {
+	if (wrapperData->commandLogLevel != LEVEL_NONE) {
         for (i = 0; i < length; i++) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Command[%d] : %s", i, strings[i]);
+            log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel,
+				"Command[%d] : %s", i, strings[i]);
         }
     }
 
