@@ -26,6 +26,11 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.4  2003/06/07 05:19:10  mortenson
+// Add a new class, WrapperActionServer, which makes it easy to remotely control
+// the Wrapper remotely by opening a socket and sending commands.  See the
+// javadocs of the class for more details.
+//
 // Revision 1.3  2003/04/03 04:05:22  mortenson
 // Fix several typos in the docs.  Thanks to Mike Castle.
 //
@@ -46,6 +51,7 @@ import java.awt.event.ActionListener;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+import org.tanukisoftware.wrapper.WrapperActionServer;
 import org.tanukisoftware.wrapper.WrapperManager;
 import org.tanukisoftware.wrapper.WrapperListener;
 
@@ -162,6 +168,33 @@ public class Main implements WrapperListener {
         
         _frame = new MainFrame();
         _frame.setVisible(true);
+
+        try
+        {
+            int port = 9999;
+            WrapperActionServer server = new WrapperActionServer( port );
+            server.enableShutdownAction( true );
+            server.enableHaltExpectedAction( true );
+            server.enableRestartAction( true );
+            server.enableThreadDumpAction( true );
+            server.enableHaltUnexpectedAction( true );
+            server.enableAccessViolationAction( true );
+            server.start();
+            
+            System.out.println( "ActionServer Enabled. " );
+            System.out.println( "  Telnet localhost 9999" );
+            System.out.println( "  Commands: " );
+            System.out.println( "    S: Shutdown" );
+            System.out.println( "    H: Expected Halt" );
+            System.out.println( "    R: Restart" );
+            System.out.println( "    D: Thread Dump" );
+            System.out.println( "    U: Unexpected Halt (Simmulate crash)" );
+            System.out.println( "    V: Access Violation (Actual crash)" );
+        }
+        catch ( java.io.IOException e )
+        {
+            System.out.println( "Unable to open the action server socket: " + e.getMessage() );
+        }
         
         return null;
     }

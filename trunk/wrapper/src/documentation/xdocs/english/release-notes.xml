@@ -62,6 +62,20 @@ $Id$
                     for more details.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add a new method WrapperManager.stopImmediate which will cause the JVM to
+                    exit immediately without calling any stop methods or shutdown hooks.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Add a new class, WrapperActionServer, which makes it easy to remotely control
+                    the Wrapper remotely by opening a socket and sending commands.  See the
+                    <ulink url="javadocs.html">javadocs</ulink> of the class for more
+                    details.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
