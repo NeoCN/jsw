@@ -6,6 +6,40 @@ Java Service Wrapper Revision History.
   how much time without receiving any CPU the Wrapper will tolerate before
   displaying a warning message.  The CPU timeout feature was added in 2.2.7
   but the default timeout of 10 seconds was not configurable.
+* The Wrapper was only allowing 5 seconds between the JVM informing the
+  Wrapper that it was going to exit and the JVM process actually exiting.
+  This would cause the Wrapper to terminate the process prematurely in
+  cases where an application shutdown thread took longer than 5 seconds to
+  complete.  The Wrapper not allows wrapper.jvm_exit.timeout seconds for
+  the JVM process to exit on its own before being forcibly terminated.
+* When there is a configuration problem or a resource is unavailable, a JVM
+  will sometimes exit abnormally very shortly after being launched.  This
+  can lead the the JVM being infinitely restarted due to a simple class
+  path misconfiguration.  To work around this, the Wrapper has always had
+  a hard limit of 5 restarts within a short period of time.  If the JVM
+  has been running for more than a few minutes, then the count was reset.
+  In this version, a new property. wrapper.max_failed_invocations was added
+  to allow the max value to be set.   The time period which the JVM must
+  now be running for the JVM launch to have been considered a success for
+  restart purposes is set using the new wrapper.successful_invocation_time
+  property.
+* The number of advanced properties which most users do not need has been
+  increasing as the Wrapper has been made more and more flexible.  This
+  has been causing confusion in their usage by people who play with them
+  without first reading the documentation.  To solve this, the advanced
+  properties were removed from the default configuration file.  They still
+  function.  But users must now read to the advanced configuration
+  documentation to learn about their existence.  Added quite about to the
+  descriptions of these properties to hopefully clear up any confusion
+  about thier usage.
+* When the JVM exits abnormally, the Wrapper will pause for a few seconds
+  before starting another JVM.  If the user pressed CTRL-C during this
+  pause, a new JVM would still be launched.  The new JVM was exiting
+  immediately but it was a waste of time.  The Wrapper now recognizes the
+  event and aborts launching the new JVM.
+* Added a page to the documentation which shows inline javadocs.  This
+  will hopefully make it easier to navigate them as part of the full
+  documentation set.
 
 2.2.7
 * Fix a problem where the JVM was trying to reconnect the Wrapper as it was
