@@ -78,7 +78,7 @@
     </target>
     <target name="init-linux" if="is.Linux">
         <property name="is.Unix" value="true"/>
-        <property name="is.shell.bash" value="true"/>
+        <property name="is.shell.sh" value="true"/>
         <property name="wrapper.bin.name" value="wrapper"/>
         <property name="wrapper.lib.name" value="libwrapper.so"/>
         <property name="make.name" value="make"/>
@@ -315,18 +315,7 @@
     </target>
     
     <!-- =================================================================== -->
-    <!-- Bin target (bash scripts - Linux)                                   -->
-    <!-- =================================================================== -->
-    <target name="bin-bash" depends="compile" if="is.shell.bash">
-        <!-- Create script files for the TestWrapper Sample Application -->
-        <copy file="${src.dir}/bin/bash.script.in"
-            tofile="${bin.dir}/${app.name}"
-            filtering="on"/>
-        <chmod file="${bin.dir}/${app.name}" perm="+x"/> 
-    </target>
-    
-    <!-- =================================================================== -->
-    <!-- Bin target (sh scripts - Solaris, AIX, HPUX, Mac OS X, OSF1, FreeBSD, IRIX) -->
+    <!-- Bin target (sh scripts - Unix. Linux)                               -->
     <!-- =================================================================== -->
     <target name="bin-sh" depends="compile" if="is.shell.sh">
         <copy file="${src.dir}/bin/sh.script.in"
@@ -338,7 +327,7 @@
     <!-- =================================================================== -->
     <!-- Bin target                                                          -->
     <!-- =================================================================== -->
-    <target name="bin" depends="bin-bat, bin-bash, bin-sh">
+    <target name="bin" depends="bin-bat, bin-sh">
     </target>
     
     <!-- =================================================================== -->
