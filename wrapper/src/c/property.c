@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.11  2003/02/09 08:25:14  mortenson
+ * Add the ability to use environment variable reference for the names of include
+ * files.
+ *
  * Revision 1.10  2003/02/08 15:49:59  mortenson
  * Implemented cascading configuration files.
  *
@@ -246,6 +250,7 @@ void setInnerProperty(Property *property, const char *propertyValue) {
 int loadPropertiesInner(const char* filename, Properties* properties, int depth) {
     FILE *stream;
     char buffer[1024];
+    char expBuffer[2048];
     char *c;
     char *d;
 
@@ -283,7 +288,10 @@ int loadPropertiesInner(const char* filename, Properties* properties, int depth)
                     }
 
                     if (depth < MAX_INCLUDE_DEPTH) {
-                        loadPropertiesInner(c, properties, depth + 1);
+                        /* The filename may contain environment variables, so expand them. */
+                        evaluateEnvironmentVariables(c, expBuffer);
+
+                        loadPropertiesInner(expBuffer, properties, depth + 1);
                     }
                 } else if (buffer[0] != '#') {
                     /* printf("%s\n", buffer); */
