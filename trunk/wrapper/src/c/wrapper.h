@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.17  2002/09/10 16:17:26  mortenson
+ * Get rid of tabs in files.  No other changes.
+ *
  * Revision 1.16  2002/09/09 17:19:46  mortenson
  * Add ability to log to specific log levels from within the Wrapper.
  *
@@ -147,7 +150,7 @@ struct WrapperConfig {
 #endif
     char    key[17];                /* Key which the JVM uses to authorize connections. (16 digits + \0) */
     int     isConsole;              /* TRUE if the wrapper was launched as a console. */
-	int     cpuTimeout;             /* Number of seconds without CPU before the JVM will issue a warning and extend timeouts */
+    int     cpuTimeout;             /* Number of seconds without CPU before the JVM will issue a warning and extend timeouts */
     int     startupTimeout;         /* Number of seconds the wrapper will wait for a JVM to startup */
     int     pingTimeout;            /* Number of seconds the wrapper will wait for a JVM to reply to a ping */
     int     shutdownTimeout;        /* Number of seconds the wrapper will wait for a JVM to shutdown */
@@ -163,11 +166,11 @@ struct WrapperConfig {
     int     exitAcknowledged;       /* Non-zero if the main thread has acknowledged the exit request */
     int     restartRequested;       /* Non-zero if another thread has requested that the JVM be restarted */
     int     jvmRestarts;            /* Number of times that a JVM has been launched since the wrapper was started. */
-	int     requestThreadDumpOnFailedJVMExit; /* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
-	time_t  jvmLaunchTime;          /* The time that the previous or current JVM was launched. */
-	int     failedInvocationCount;  /* The number of times that the JVM exited in less than successfulInvocationTime in a row. */
-	int     successfulInvocationTime;/* Amount of time that a new JVM must be running so that the invocation will be considered to have been a success, leading to a reset of the restart count. */
-	int     maxFailedInvocations;   /* Maximum number of failed invocations in a row before the Wrapper will give up and exit. */
+    int     requestThreadDumpOnFailedJVMExit; /* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
+    time_t  jvmLaunchTime;          /* The time that the previous or current JVM was launched. */
+    int     failedInvocationCount;  /* The number of times that the JVM exited in less than successfulInvocationTime in a row. */
+    int     successfulInvocationTime;/* Amount of time that a new JVM must be running so that the invocation will be considered to have been a success, leading to a reset of the restart count. */
+    int     maxFailedInvocations;   /* Maximum number of failed invocations in a row before the Wrapper will give up and exit. */
 
 #ifdef WIN32
     char    *ntServiceName;         /* Name of the NT Service */
@@ -176,8 +179,8 @@ struct WrapperConfig {
     char    *ntServiceDependencies; /* List of Dependencies */
     int     ntServiceStartType;     /* Mode in which the Service is installed. 
                                      * {SERVICE_AUTO_START | SERVICE_DEMAND_START} */
-	DWORD   ntServicePriorityClass; /* Priority at which the Wrapper and its JVMS will run.
-									 * {HIGH_PRIORITY_CLASS | IDLE_PRIORITY_CLASS | NORMAL_PRIORITY_CLASS | REALTIME_PRIORITY_CLASS} */
+    DWORD   ntServicePriorityClass; /* Priority at which the Wrapper and its JVMS will run.
+                                     * {HIGH_PRIORITY_CLASS | IDLE_PRIORITY_CLASS | NORMAL_PRIORITY_CLASS | REALTIME_PRIORITY_CLASS} */
 #endif
 
 #ifdef SOLARIS
