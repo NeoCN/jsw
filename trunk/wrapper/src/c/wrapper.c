@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.108  2004/08/06 16:55:37  mortenson
+ * Add support for escaped quotes when stripping quotes on UNIX for the
+ * wrapper.java.additional.<n> and wrapper.app.parameter.<n> properties.
+ *
  * Revision 1.107  2004/08/06 16:17:04  mortenson
  * Added a new wrapper.java.command.loglevel property which makes it possible
  * to control the log level of the generated java command.
@@ -1117,13 +1121,38 @@ void wrapperRestartProcess() {
     }
 }
 
+/**
+ * Loops over and strips all double quotes from prop and places the
+ *  stripped version into propStripped.
+ *
+ * The exception is double quotes that are preceeded by a backslash
+ *  in this case the backslash is stripped.
+ */
 void wrapperStripQuotes(const char *prop, char *propStripped) {
     int len, i, j;
-
+    
     len = strlen(prop);
     j = 0;
     for (i = 0; i < len; i++) {
-        if (prop[i] != '\"') {
+        if ((prop[i] == '\\') && (i < len - 1)) {
+            if (prop[i + 1] == '\\') {
+                /* Double backslash.  Keep the first, and skip the second. */
+                propStripped[j] = prop[i];
+                j++;
+                i++;
+            } else if (prop[i + 1] == '\"') {
+                /* Escaped quote.  Keep the quote. */
+                propStripped[j] = prop[i + 1];
+                j++;
+                i++;
+            } else {
+                /* Include the backslash as normal. */
+                propStripped[j] = prop[i];
+                j++;
+            }
+        } else if (prop[i] == '\"') {
+            /* Quote.  Skip it. */
+        } else {
             propStripped[j] = prop[i];
             j++;
         }

@@ -43,11 +43,15 @@
         </para>
         <para>
             For each entry, you can also have a corresponding strip quotes flag
-            which will remove the quotes from the element when run on Linux or
-            UNIX machines.  This was necessary to allow for file references
-            which contain spaces.  For parameters like the one below it would
-            not otherwise be possible to decide when to remove quotes and when
-            to leave them alone.
+            which will remove unescaped quotes from the element when run on Linux
+            or UNIX machines.  This was necessary to allow for file
+            references which contain spaces.  For parameters like the one
+            below it would not otherwise be possible to decide when to
+            remove quotes and when to leave them alone.
+            <literal moreinfo="none">'\\'</literal> will become <literal moreinfo="none">'\'</literal>,
+            <literal moreinfo="none">'\"'</literal> will become <literal moreinfo="none">'"'</literal> and
+            <literal moreinfo="none">'"'</literal> will become <literal moreinfo="none">''</literal>.
+            All other characters will remain unchanged.
         </para>
         <informalexample>
             <simpara><emphasis>Example:</emphasis></simpara>

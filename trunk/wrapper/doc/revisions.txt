@@ -17,6 +17,8 @@ Java Service Wrapper Revision History.
   fix was to add a second backslash where needed.
 * Added a new wrapper.java.command.loglevel property which makes it possible
   to control the log level of the generated java command.
+* Add support for escaped quotes when stripping quotes on UNIX for the
+  wrapper.java.additional.<n> and wrapper.app.parameter.<n> properties.
 
 3.1.1
 * Modified the way libwrapper.so is built on Solaris and Linux so that it
