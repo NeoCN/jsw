@@ -6,9 +6,9 @@ DEFS = -I$(INCLUDE) -I$(INCLUDE)/alpha
 
 realpath_SOURCE = realpath.c
 
-wrapper_SOURCE = wrapper.c wrapper_unix.c property.c logger.c
+wrapper_SOURCE = wrapper.c wrapperinfo.c wrapper_unix.c property.c logger.c
 
-libwrapper_so_OBJECTS = wrapperjni_unix.o wrapperjni.o
+libwrapper_so_OBJECTS = wrapperjni_unix.o wrapperinfo.o wrapperjni.o
 
 BIN = ../../bin
 LIB = ../../lib
