@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.29  2004/03/27 16:48:57  mortenson
+ * The new checkPropertyEqual function had a typo that was breaking it on UNIX
+ * platforms.
+ *
  * Revision 1.28  2004/03/27 16:09:45  mortenson
  * Add wrapper.on_exit.<n> properties to control what happens when a exits based
  * on the exit code.  This led to a major rework of the state engine to make it possible.
@@ -757,7 +761,7 @@ int checkPropertyEqual(Properties *properties, const char *propertyName, const c
 #ifdef WIN32
     equal = (strcmp(strlwr(dupValue), value) == 0);
 #else /* UNIX */
-    equal = (strcasecmp(dupValue, "true") == 0);
+    equal = (strcasecmp(dupValue, value) == 0);
 #endif
 
     free(dupValue);
