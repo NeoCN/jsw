@@ -1,6 +1,7 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 2.2.5
+* Added wildcard support for classpath entries in wrapper.conf.
 * Added the ability to specify configuration properties from the command line.
 * Changed the way NT services are installed so that a patched version of the
   Wrapper.exe file no longer needs to be created to reference the

@@ -182,6 +182,9 @@ wrapper.ntservice.starttype=AUTO_START]]></programlisting>
             <section id="path-note">
                 <title>Note about paths</title>
                 <para>
+                    Java handles forward slashes, '/', and backslashes, '\', correctly on both Windows platforms.  To make your wrapper.conf cross platform compatible, you should always use forward slashes in all paths in wrapper.conf.
+                </para>
+                <para>
                     Versions of the wrapper prior to 2.2.3 required that all paths in the wrapper.conf file be absolute.  This is mainly to accomodate running the Wrapper as an NT service, but it also makes the application's startup much more reliable when launching the application from different locations.
                 </para>
                 <para>
@@ -236,6 +239,14 @@ wrapper.ntservice.starttype=AUTO_START]]></programlisting>
 wrapper.java.classpath.2=../lib/myapp.jar
 wrapper.java.classpath.3=../lib/mysql.jar
 wrapper.java.classpath.4=../classes</screen>
+                                </informalexample>
+                            </para>
+                            <para>
+                                As of version 2.2.5, classpath entries which contain wildcards can be used.
+                                <informalexample>
+                                    <simpara><emphasis>Example:</emphasis></simpara>
+                                    <screen format="linespecific">wrapper.java.classpath.1=../lib/*.jar
+wrapper.java.classpath.2=../classes</screen>
                                 </informalexample>
                             </para>
                         </glossdef>
