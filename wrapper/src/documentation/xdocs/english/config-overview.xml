@@ -223,6 +223,10 @@
                     applies to the contents of include files as well.
                 </para>
                 <para>
+                    If relative paths to the include files are specified, be aware that all paths
+                    must be relative to the location of the Wrapper executable.
+                </para>
+                <para>
                     Include files can be nested up to 10 levels deep.
                 </para>
             </section>
