@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.70  2004/06/14 07:20:40  mortenson
+ * Add some additional output and a wrapper.timer_output property to help with
+ * debugging timer issues.
+ *
  * Revision 1.69  2004/06/06 15:28:18  mortenson
  * Fix a synchronization problem in the logging code which would
  * occassionally cause the Wrapper to crash with an Access Violation.
@@ -392,6 +396,10 @@ void *timerRunner(void *arg) {
     /* Immediately register this thread with the logger. */
     logRegisterThread(WRAPPER_THREAD_TIMER);
 
+    if (wrapperData->isTimerOutputEnabled && wrapperData->isDebugging) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Timer thread started.");
+    }
+
     while (TRUE) {
         usleep(WRAPPER_TICK_MS * 1000);
 
@@ -416,9 +424,11 @@ void *timerRunner(void *arg) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The system clock fell behind the timer by %ldms.", -1 * offsetDiff * WRAPPER_TICK_MS);
             }
 
-            /*
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Timer running: %lu, %lu, %lu, %ld", timerTicks, sysTicks, tickOffset, offsetDiff);
-            */
+            if (wrapperData->isTimerOutputEnabled && wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                    "    Timer: ticks=%lu, system ticks=%lu, offset=%lu, offsetDiff=%ld",
+                    timerTicks, sysTicks, tickOffset, offsetDiff);
+            }
         }
 
         /* Store this tick offset for the next time through the loop. */
@@ -435,6 +445,10 @@ void *timerRunner(void *arg) {
  */
 int initializeTimer() {
     int res;
+
+    if (wrapperData->isTimerOutputEnabled && wrapperData->isDebugging) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Launching Timer thread.");
+    }
 
     res = pthread_create(
         &timerThreadId,
@@ -541,6 +555,10 @@ void wrapperExecute() {
         pipeInitialized = 1;
     }
     
+    if (wrapperData->isDebugging) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Forking process for JVM.");
+    }
+
     /* Fork off the child. */
     proc = fork();
     
@@ -560,6 +578,9 @@ void wrapperExecute() {
 
         if (proc == 0) {
             /* We are the child side. */
+            if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Forked. (child)");
+            }
             
             /* Send output to the pipe by dupicating the pipe fd and setting the copy as the stdout fd. */
             if (dup2(pipedes[STDOUT_FILENO], STDOUT_FILENO) < 0) {
@@ -578,6 +599,9 @@ void wrapperExecute() {
             /* The pipedes array is global so do not close the pipes. */
             
             /* Child process: execute the JVM. */
+            if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Launching %s", wrapperData->jvmCommand[0]);
+            }
             execvp(wrapperData->jvmCommand[0], wrapperData->jvmCommand);
             
             /* We reached this point...meaning we were unable to start. */
@@ -585,6 +609,10 @@ void wrapperExecute() {
         
         } else {
             /* We are the parent side. */
+            if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Forked. (parent)");
+            }
+
             jvmPid = proc;
             jvmOut = pipedes[STDIN_FILENO];
 
@@ -1020,8 +1048,8 @@ int main(int argc, char **argv) {
     wrapperData->failedInvocationCount = 0;
         
     if (wrapperInitializeLogging()) {
-		exit(1);
-	}
+        exit(1);
+    }
 
     /* Immediately register this thread with the logger. */
     logRegisterThread(WRAPPER_THREAD_MAIN);
