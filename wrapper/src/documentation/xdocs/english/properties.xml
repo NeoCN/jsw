@@ -97,6 +97,9 @@
                 <listproperty>
                     <ulink url="prop-debug.html">wrapper.debug</ulink>
                 </listproperty>
+                <listproperty version="3.1.2">
+                    <ulink url="prop-disable-restarts.html">wrapper.disable_restarts</ulink>
+                </listproperty>
                 <listproperty>
                     <ulink url="prop-disable-shutdown-hook.html">wrapper.disable_shutdown_hook</ulink>
                 </listproperty>

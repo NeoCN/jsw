@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.16  2004/10/20 05:23:17  mortenson
+ * Add a new property, wrapper.disable_restarts, which will completely disable
+ * the Wrapper's ability to restart JVMs.
+ *
  * Revision 1.15  2004/10/19 11:48:20  mortenson
  * Rework logging so that the logfile is kept open.  Results in a 4 fold speed increase.
  *
@@ -408,11 +412,15 @@ void jStateDown(DWORD nowTicks, int nextSleep) {
         if (wrapperData->restartRequested) {
             /* A JVM needs to be launched. */
             wrapperData->restartRequested = FALSE;
-
+            
             /* Depending on the number of restarts to date, decide how to handle the (re)start. */
             if (wrapperData->jvmRestarts > 0) {
                 /* This is not the first JVM, so make sure that we still want to launch. */
-                if (wrapperGetTickAge(wrapperData->jvmLaunchTicks, nowTicks) >= wrapperData->successfulInvocationTime) {
+                if (wrapperData->isRestartDisabled) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "JVM Restarts disabled.  Shutting down.");
+                    wrapperData->wState = WRAPPER_WSTATE_STOPPING;
+                    
+                } else if (wrapperGetTickAge(wrapperData->jvmLaunchTicks, nowTicks) >= wrapperData->successfulInvocationTime) {
                     /* The previous JVM invocation was running long enough that its invocation */
                     /*   should be considered a success.  Reset the failedInvocationStart to   */
                     /*   start the count fresh.                                                */

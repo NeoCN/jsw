@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.123  2004/10/20 05:23:17  mortenson
+ * Add a new property, wrapper.disable_restarts, which will completely disable
+ * the Wrapper's ability to restart JVMs.
+ *
  * Revision 1.122  2004/10/19 12:13:25  mortenson
  * Fix some compiler warnings on Linux.
  *
@@ -2261,6 +2265,9 @@ int wrapperLoadConfiguration() {
     if (wrapperData->restartDelay < 0) {
         wrapperData->restartDelay = 0;
     }
+    
+    /* Get the disable restart flag */
+    wrapperData->isRestartDisabled = getBooleanProperty(properties, "wrapper.disable_restarts", FALSE);
 
     /* Get the timeout settings */
     wrapperData->cpuTimeout = getIntProperty(properties, "wrapper.cpu.timeout", 10);
