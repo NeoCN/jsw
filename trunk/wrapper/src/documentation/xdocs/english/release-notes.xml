@@ -91,6 +91,12 @@ $Id$
                     control or service handlers.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Centralize shutdown code on UNIX version in an appExit method as was already
+                    being done for Windows versions.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.1">
