@@ -14,7 +14,9 @@
     
     <xsl:template match="book">
         <menu>
-            <xsl:apply-templates/>
+            <div id="menu">
+                <xsl:apply-templates/>
+            </div>
         </menu>
     </xsl:template>
     
@@ -23,17 +25,17 @@
     </xsl:template>
     
     <xsl:template match="menu">
-        <br/><font color="#000000" size="+1"><xsl:value-of select="@label"/></font><br/>
-        <font size="-1">
-            <ul>
-                <xsl:apply-templates/>
-            </ul>
-        </font><br/>
+        <div>
+            <b><xsl:value-of select="@label"/></b>
+            <xsl:apply-templates/>
+        </div>
     </xsl:template>
     
     <xsl:template match="menu-item">
         <xsl:if test="not(@type) or @type!='hidden'">
-            <li><a href="{@href}"><font size="-1"><xsl:value-of select="@label"/></font></a></li>
+            <div>
+                <a href="{@href}"><xsl:value-of select="@label"/></a>
+            </div>
         </xsl:if>
     </xsl:template>
     
