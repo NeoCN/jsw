@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.5  2004/01/10 15:44:15  mortenson
+// Rework the test wrapper app so there is less code duplication.
+//
 // Revision 1.4  2003/10/18 07:51:10  mortenson
 // The DeadlockPrintStream should not be set until after the WrapperManager class
 // has been initialized.
@@ -41,9 +44,6 @@ package org.tanukisoftware.wrapper.test;
 // License transfer to TanukiSoftware.org
 //
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
 import org.tanukisoftware.wrapper.WrapperManager;
 import org.tanukisoftware.wrapper.WrapperListener;
 
@@ -53,10 +53,10 @@ import org.tanukisoftware.wrapper.WrapperListener;
  * @author Leif Mortenson <leif@tanukisoftware.com>
  * @version $Revision$
  */
-public class TestAction implements WrapperListener {
-    private DeadlockPrintStream m_out;
-    private DeadlockPrintStream m_err;
-
+public class TestAction
+    extends AbstractActionApp
+    implements WrapperListener
+{
     private ActionRunner m_actionRunner;
     
     /**************************************************************************
@@ -72,15 +72,12 @@ public class TestAction implements WrapperListener {
         Thread actionThread;
 
         System.out.println("start()");
-
-        m_out = new DeadlockPrintStream( System.out );
-        System.setOut( m_out );
-        m_err = new DeadlockPrintStream( System.err );
-        System.setErr( m_err );
         
         if (args.length <= 0)
             printHelp("Missing action parameter.");
 
+        prepareSystemOutErr();
+        
         // * * Start the action thread
         m_actionRunner = new ActionRunner(args[0]);
         actionThread = new Thread(m_actionRunner);
@@ -115,59 +112,17 @@ public class TestAction implements WrapperListener {
             m_alive = true;
         }
     
-        public void performAction( ) {
-            if (m_action.equals("stop")) {
-                WrapperManager.stop(0);
-            } else if (m_action.equals("access_violation")) {
-                WrapperManager.accessViolation();
-            } else if (m_action.equals("access_violation_native")) {
-                WrapperManager.accessViolationNative();
-            } else if (m_action.equals("appear_hung")) {
-                WrapperManager.appearHung();
-            } else if (m_action.equals("exit")) {
-                System.exit(0);
-            } else if (m_action.equals("halt")) {
-                // Execute runtime.halt(0) using reflection so this class will
-                //  compile on 1.2.x versions of Java.
-                Method haltMethod;
-                try {
-                    haltMethod = Runtime.class.getMethod("halt", new Class[] {Integer.TYPE});
-                } catch (NoSuchMethodException e) {
-                    System.out.println("halt not supported by current JVM.");
-                    haltMethod = null;
-                }
-                
-                if (haltMethod != null) {
-                    Runtime runtime = Runtime.getRuntime();
-                    try {
-                        haltMethod.invoke(runtime, new Object[] {new Integer(0)});
-                    } catch (IllegalAccessException e) {
-                        System.out.println("Unable to call runitme.halt: " + e.getMessage());
-                    } catch (InvocationTargetException e) {
-                        System.out.println("Unable to call runitme.halt: " + e.getMessage());
-                    }
-                }
-            } else if (m_action.equals("restart")) {
-                WrapperManager.restart();
-            } else if (m_action.equals("dump")) {
-                WrapperManager.requestThreadDump();
-            } else if (m_action.equals("deadlock_out")) {
-                System.out.println("Deadlocking System.out and System.err ...");
-                m_out.setDeadlock(true);
-                m_err.setDeadlock(true);
-            } else {
-                printHelp("\"" + m_action + "\" is an unknown action.");
-                WrapperManager.stop(0);
-            }
-        }
-    
         public void run() {
             // Wait for 5 seconds so that the startup will complete.
             try {
                 Thread.sleep(5000);
             } catch (InterruptedException e) {}
             
-            performAction();
+            if (!TestAction.this.doAction(m_action)) {
+                printHelp("\"" + m_action + "\" is an unknown action.");
+                WrapperManager.stop(0);
+                return;
+            }
     
             while (m_alive) {
                 // Idle some
@@ -204,8 +159,11 @@ public class TestAction implements WrapperListener {
         System.err.println( "   appear_hung              : Calls WrapperManager.appearHung()" );
         System.err.println( "   halt                     : Calls Runtime.getRuntime().halt(0)" );
         System.err.println( "   restart                  : Calls WrapperManager.restart()" );
+        System.err.println( "  Additional Tests:" );
         System.err.println( "   dump                     : Calls WrapperManager.requestThreadDump()" );
         System.err.println( "   deadlock_out             : Deadlocks the JVM's System.out and err streams." );
+        System.err.println( "   users                    : Start polling the current and interactive users." );
+        System.err.println( "   groups                   : Start polling the current and interactive users with groups." );
         System.err.println( "" );
         System.err.println( "[EXAMPLE]" );
         System.err.println( "   TestAction access_violation_native " );
