@@ -24,6 +24,13 @@
  *
  *
  * $Log$
+ * Revision 1.23  2002/08/11 05:32:44  mortenson
+ * Make it possible for the user to configure the restart count and time via
+ * the wrapper.max_failed_invocations and wrapper.successful_invocation_time
+ * properties.  It was always 5 restarts within 30 seconds.
+ * Added the ability to configure the JVM exit timeout via the
+ * wrapper.jvm_exit.timeout property.  It was always 5.
+ *
  * Revision 1.22  2002/07/19 02:06:11  mortenson
  * Added a new property: wrapper.cpu.timeout to control the cpu timeout added in
  * v2.2.7
@@ -167,9 +174,6 @@ Properties              *properties;
 SOCKET ssd = INVALID_SOCKET;
 /* Client Socket. */
 SOCKET sd = INVALID_SOCKET;
-
-int wrapperRestartCount = 0;
-time_t wrapperRestartLastTime;
 
 const char *wrapperGetWState(int wState) {
     const char *name;
@@ -676,8 +680,9 @@ void wrapperRestartProcess() {
 
         wrapperData->restartRequested = TRUE;
 
-		// Reset the wrapperRestartCount as the restart was intentional
-		wrapperRestartCount = 0;
+		// This restart was intentional, so make the JVM appear to have been running for
+		//  a long time so the JVM will not be considered a failed launch.
+		wrapperData->jvmLaunchTime = 0;
     } else {
         if (wrapperData->isDebugging) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "wrapperRestartProcess() called.  (IGNORED)");
@@ -686,31 +691,38 @@ void wrapperRestartProcess() {
 }
 
 /**
- * Keep track of the number of times that the JVM has been restarted within a
- *  short perioud of time.
+ * Track the number of restarts.  If there are more than the set number of JVM
+ *  restarts, each lasting less than the set time.  Then we want to stop trying
+ *  to restart.
  */
 int wrapperCheckRestartTimeOK() {
-    time_t newtime = time(NULL);
-    if (newtime - wrapperRestartLastTime < 60) {
-        /* Last restart was less than 60 seconds ago */
-        ++wrapperRestartCount;
-    } else {
-        wrapperRestartCount = 0;
-    }
-    wrapperRestartLastTime = newtime;
+    time_t newTime = time(NULL);
 
-    if (wrapperRestartCount >= 5) {
-        /* Only 5 restarts are allowed in a short perioud of time before giving up */
-        if (wrapperData->isDebugging) {
-            log_printf
-                (WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
-                 "VM died too many times w/in 60 second intervals (%d); no more tries", 
-                 wrapperRestartCount);
-        }
-        return FALSE;
-    } else {
-        return TRUE;
-    }
+	if (newTime - wrapperData->jvmLaunchTime >= wrapperData->successfulInvocationTime) {
+		// The previous JVM invocation was running long enough that its invocation
+		//   should be considered a success.  Reset the failedInvocationStart to
+		//   start the count fresh.
+		wrapperData->failedInvocationCount = 0;
+	} else {
+		// The last JVM invocation died quickly and was considered to have
+		//  been a faulty launch.  Increase the failed count.
+		wrapperData->failedInvocationCount++;
+
+		if (wrapperData->isDebugging) {
+			log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
+				"JVM was only running for %d seconds leading to a failed restart count of %d.",
+				(newTime - wrapperData->jvmLaunchTime), wrapperData->failedInvocationCount);
+		}
+	}
+
+	// See if we are allowed to try restarting the JVM again.
+	if (wrapperData->failedInvocationCount < wrapperData->maxFailedInvocations) {
+		// Try reslaunching the JVM
+		return TRUE;
+	} else {
+		// Tried enough times.  Time to give up and exit the Wrapper.  A message will be diplayed later.
+		return FALSE;
+	}
 }
 
 void wrapperStripQuotes(const char *prop, char *propStripped) {
@@ -1325,33 +1337,46 @@ void wrapperEventLoop() {
                 /* See if we can launch it */
                 if (wrapperCheckRestartTimeOK()) {
                     wrapperPauseBeforeExecute();
+
+					// Since we were paused for a while, it is possible that the user
+					//  hit CTRL-C or some other event occurred to signal that the
+					//  Wrapper should exit.  This check makes the Wrapper more well
+					//  behaved if the user hits CTRL-C right after the JVM exits
+					//  abnormally.
+					if (wrapperData->exitRequested) {
+						// Exit was requested while we were paused.  Fall through.
+					} else {
+						// Set the launch time to the curent time
+						wrapperData->jvmLaunchTime = time(NULL);
+
+						/* Generate a unique key to use when communicating with the JVM */
+						wrapperBuildKey();
                     
-                    /* Generate a unique key to use when communicating with the JVM */
-                    wrapperBuildKey();
+						/* Generate the command used to launch the Java process */
+						wrapperBuildJavaCommand();
                     
-                    /* Generate the command used to launch the Java process */
-                    wrapperBuildJavaCommand();
+						log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Launching a JVM...");
+						wrapperExecute();
                     
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Launching a JVM...");
-                    wrapperExecute();
-                    
-                    /* Check if the start was successful. */
-                    if (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN) {
-                        /* Failed to start the JVM.  Tell the wrapper to shutdown. */
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to start a JVM");
-                        wrapperData->wState = WRAPPER_WSTATE_STOPPING;
-                    } else {
-                        /* The JVM was launched.  We still do not know whether the
-                         *  launch will be successful.  Allow <startupTimeout> seconds before giving up.
-                         *  This can take quite a while if the system is heavily loaded.
-                         *  (At startup for example) */
-                        wrapperData->jState = WRAPPER_JSTATE_LAUNCHING;
-                        wrapperData->jStateTimeout = now + wrapperData->startupTimeout;
-                    }
+						/* Check if the start was successful. */
+						if (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN) {
+							/* Failed to start the JVM.  Tell the wrapper to shutdown. */
+							log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to start a JVM");
+							wrapperData->wState = WRAPPER_WSTATE_STOPPING;
+						} else {
+							/* The JVM was launched.  We still do not know whether the
+							 *  launch will be successful.  Allow <startupTimeout> seconds before giving up.
+							 *  This can take quite a while if the system is heavily loaded.
+							 *  (At startup for example) */
+							wrapperData->jState = WRAPPER_JSTATE_LAUNCHING;
+							wrapperData->jStateTimeout = now + wrapperData->startupTimeout;
+						}
+					}
                 } else {
                     /* Unable to launch another JVM. */
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                               "Too many restarts within a short period of time.  No more retries.");
+                               "There were %d failed launches in a row, each lasting less than %d seconds.  Giving up.",
+							   wrapperData->failedInvocationCount, wrapperData->successfulInvocationTime);
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                                "  There may be a configuration problem: please check the logs.");
                     wrapperData->wState = WRAPPER_WSTATE_STOPPING;
@@ -1705,6 +1730,7 @@ int wrapperLoadConfiguration() {
     wrapperData->startupTimeout = getIntProperty(properties, "wrapper.startup.timeout", 30);
     wrapperData->pingTimeout = getIntProperty(properties, "wrapper.ping.timeout", 30);
     wrapperData->shutdownTimeout = getIntProperty(properties, "wrapper.shutdown.timeout", 30);
+    wrapperData->jvmExitTimeout = getIntProperty(properties, "wrapper.jvm_exit.timeout", 5);
     if (wrapperData->startupTimeout <= 0) {
         wrapperData->startupTimeout = 31557600;  /* One Year.  Effectively never */
     }
@@ -1714,28 +1740,35 @@ int wrapperLoadConfiguration() {
     if (wrapperData->shutdownTimeout <= 0) {
         wrapperData->shutdownTimeout = 31557600;  /* One Year.  Effectively never */
     }
+    if (wrapperData->jvmExitTimeout <= 0) {
+        wrapperData->jvmExitTimeout = 31557600;  /* One Year.  Effectively never */
+    }
 	if (wrapperData->cpuTimeout <= 0) {
         wrapperData->cpuTimeout = 31557600;  /* One Year.  Effectively never */
 	} else {
 		// Make sure that the timeouts are all longer than the cpu timeout.
 		if ( wrapperData->startupTimeout < wrapperData->cpuTimeout ) {
-			log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-				"The value of wrapper.startup.timeout must not be smaller than wrapper.cpu.timeout.  Changing to %d",
-				wrapperData->cpuTimeout);
-			wrapperData->startupTimeout = wrapperData->cpuTimeout;
+			log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+				"CPU timeout detection may not operate correctly during startup because wrapper.cpu.timeout is not smaller than wrapper.startup.timeout.");
 		}
 		if ( wrapperData->pingTimeout < wrapperData->cpuTimeout ) {
-			log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-				"The value of wrapper.ping.timeout must not be smaller than wrapper.cpu.timeout.  Changing to %d",
-				wrapperData->cpuTimeout);
-			wrapperData->pingTimeout = wrapperData->cpuTimeout;
+			log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+				"CPU timeout detection may not operate correctly because wrapper.cpu.timeout is not smaller than wrapper.ping.timeout.");
 		}
 		if ( wrapperData->shutdownTimeout < wrapperData->cpuTimeout ) {
-			log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-				"The value of wrapper.shutdown.timeout must not be smaller than wrapper.cpu.timeout.  Changing to %d",
-				wrapperData->cpuTimeout);
-			wrapperData->shutdownTimeout = wrapperData->cpuTimeout;
+			log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+				"CPU timeout detection may not operate correctly during shutdown because wrapper.cpu.timeout is not smaller than wrapper.shutdown.timeout.");
 		}
+		// jvmExit timeout can be shorter than the cpu timeout.
+	}
+
+	/* Load properties controlling the number times the JVM can be restarted. */
+    wrapperData->maxFailedInvocations = getIntProperty(properties, "wrapper.max_failed_invocations", 5);
+    wrapperData->successfulInvocationTime = getIntProperty(properties, "wrapper.successful_invocation_time", 300);
+	if ( wrapperData->maxFailedInvocations < 1 ) {
+		log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+			"The value of wrapper.max_failed_invocations must not be smaller than 1.  Changing to 1.");
+		wrapperData->maxFailedInvocations = 1;
 	}
 
 	/* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
@@ -1863,8 +1896,8 @@ void wrapperStoppedSignalled() {
         wrapperData->jState = WRAPPER_JSTATE_STOPPED;
 
         /* The Java side of the wrapper signalled that it stopped
-         *	allow 5 seconds for the JVM to exit. */
-        wrapperData->jStateTimeout = time(NULL) + 5;
+         *	allow 5 + jvmExitTimeout seconds for the JVM to exit. */
+        wrapperData->jStateTimeout = time(NULL) + 5 + wrapperData->jvmExitTimeout;
     }
 }
 

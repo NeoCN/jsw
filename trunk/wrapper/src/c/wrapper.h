@@ -24,6 +24,13 @@
  *
  *
  * $Log$
+ * Revision 1.15  2002/08/11 05:32:44  mortenson
+ * Make it possible for the user to configure the restart count and time via
+ * the wrapper.max_failed_invocations and wrapper.successful_invocation_time
+ * properties.  It was always 5 restarts within 30 seconds.
+ * Added the ability to configure the JVM exit timeout via the
+ * wrapper.jvm_exit.timeout property.  It was always 5.
+ *
  * Revision 1.14  2002/07/19 02:06:12  mortenson
  * Added a new property: wrapper.cpu.timeout to control the cpu timeout added in
  * v2.2.7
@@ -141,6 +148,7 @@ struct WrapperConfig {
     int     startupTimeout;         /* Number of seconds the wrapper will wait for a JVM to startup */
     int     pingTimeout;            /* Number of seconds the wrapper will wait for a JVM to reply to a ping */
     int     shutdownTimeout;        /* Number of seconds the wrapper will wait for a JVM to shutdown */
+    int     jvmExitTimeout;         /* Number of seconds the wrapper will wait for a JVM to process to terminate */
     int     wState;                 /* The current state of the wrapper */
     int     jState;                 /* The current state of the jvm */
     time_t  jStateTimeout;          /* Time until which the current jState is valid */
@@ -153,6 +161,10 @@ struct WrapperConfig {
     int     restartRequested;       /* Non-zero if another thread has requested that the JVM be restarted */
     int     jvmRestarts;            /* Number of times that a JVM has been launched since the wrapper was started. */
 	int     requestThreadDumpOnFailedJVMExit; /* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
+	time_t  jvmLaunchTime;          /* The time that the previous or current JVM was launched. */
+	int     failedInvocationCount;  /* The number of times that the JVM exited in less than successfulInvocationTime in a row. */
+	int     successfulInvocationTime;/* Amount of time that a new JVM must be running so that the invocation will be considered to have been a success, leading to a reset of the restart count. */
+	int     maxFailedInvocations;   /* Maximum number of failed invocations in a row before the Wrapper will give up and exit. */
 
 #ifdef WIN32
     char    *ntServiceName;         /* Name of the NT Service */
