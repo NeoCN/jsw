@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.109  2004/08/18 08:31:54  mortenson
+ * Change the default value of wrapper.jvm_exit.timeout from 5 to 15 seconds.
+ *
  * Revision 1.108  2004/08/06 16:55:37  mortenson
  * Add support for escaped quotes when stripping quotes on UNIX for the
  * wrapper.java.additional.<n> and wrapper.app.parameter.<n> properties.
@@ -2184,7 +2187,7 @@ int wrapperLoadConfiguration() {
     wrapperData->pingTimeout = getIntProperty(properties, "wrapper.ping.timeout", 30);
     wrapperData->pingInterval = getIntProperty(properties, "wrapper.ping.interval", 5);
     wrapperData->shutdownTimeout = getIntProperty(properties, "wrapper.shutdown.timeout", 30);
-    wrapperData->jvmExitTimeout = getIntProperty(properties, "wrapper.jvm_exit.timeout", 5);
+    wrapperData->jvmExitTimeout = getIntProperty(properties, "wrapper.jvm_exit.timeout", 15);
     if (wrapperData->startupTimeout <= 0) {
         wrapperData->startupTimeout = WRAPPER_TIMEOUT_MAX;
     }
