@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.13  2002/08/11 05:21:28  mortenson
+ * Add a Warning level to the logger
+ *
  * Revision 1.12  2002/05/08 03:59:43  mortenson
  * Fix a problem where the log output was not being directed to a file called
  *  wrapper.log in the same directory as the Wrapper binary in the event that the
@@ -102,7 +105,7 @@ int currentLogfileLevel = LEVEL_UNKNOWN;
 int currentLoginfoLevel = LEVEL_UNKNOWN;
 
 char logFilePath[ 1024 ];
-char *logLevelNames[] = { "NONE  ", "DEBUG ", "INFO  ", "STATUS", "ERROR ", "FATAL " };
+char *logLevelNames[] = { "NONE  ", "DEBUG ", "INFO  ", "STATUS", "WARN", "ERROR ", "FATAL " };
 char loginfoSourceName[ 1024 ];
 int  logFileMaxSize = -1;
 int  logFileMaxLogFiles = -1;
@@ -137,6 +140,8 @@ int getLogLevelForName( char *logLevelName ) {
         return LEVEL_FATAL;
     } else if (strcmpIgnoreCase(logLevelName, "ERROR") == 0) {
         return LEVEL_ERROR;
+    } else if (strcmpIgnoreCase(logLevelName, "WARN") == 0) {
+        return LEVEL_WARN;
     } else if (strcmpIgnoreCase(logLevelName, "STATUS") == 0) {
         return LEVEL_STATUS;
     } else if (strcmpIgnoreCase(logLevelName, "INFO") == 0) {
@@ -515,6 +520,7 @@ void sendEventlogMessage( int source_id, int level, char *szBuff ) {
         break;
 
         case LEVEL_ERROR:
+        case LEVEL_WARN:
             eventType = EVENTLOG_WARNING_TYPE;
         break;
 
@@ -579,6 +585,7 @@ void sendLoginfoMessage( int source_id, int level, char *szBuff ) {
             eventType = LOG_ERR;
         break;
 
+        case LEVEL_WARN:
         case LEVEL_STATUS:
             eventType = LOG_NOTICE;
         break;
