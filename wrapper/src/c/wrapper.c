@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.89  2004/03/18 07:43:20  mortenson
+ * Fix a problem where unwanted read timeout messages were being displayed when
+ * the ping interval was set to a large value.
+ *
  * Revision 1.88  2004/03/18 06:28:36  mortenson
  * Fix a problem where the first ping timeout after the JVM was started was
  * still hard coded at 30 seconds.
@@ -689,6 +693,10 @@ int wrapperProtocolFunction(char function, const char *message) {
 
     if (sd == INVALID_SOCKET) {
         /* A socket was not opened */
+        if (wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket not open, so packet not sent %s : %s",
+                wrapperProtocolGetCodeName(function), (message == NULL ? "NULL" : message));
+        }
         return -1;
     }
 
@@ -2673,6 +2681,21 @@ void wrapperKeyRegistered(char *key) {
              *  out and recover. */
             wrapperProtocolClose();
         }
+        break;
+
+    case WRAPPER_JSTATE_STOPPING:
+        /* We got a key registration.  This means that the JVM thinks it was
+         *  being launched but the Wrapper is trying to stop.  Now that the
+         *  connection to the JVM has been opened, tell it to stop cleanly. */
+        
+        wrapperProtocolFunction(WRAPPER_MSG_STOP, NULL);
+        
+        /* Allow up to 5 + <shutdownTimeout> seconds for the application to stop itself. */
+        wrapperData->jState = WRAPPER_JSTATE_STOPPING; /* Already in this state. */
+        wrapperData->jStateTimeoutTicks = wrapperAddToTicks(wrapperGetTicks(), 5 + wrapperData->shutdownTimeout);
+        wrapperData->jStateTimeoutTicksSet = 1;
+        break;
+
     default:
         /* We got a key registration that we were not expecting.  Ignore it. */
         break;
@@ -2810,5 +2833,14 @@ void wrapperStartedSignalled() {
                 wrapperReportStatus(WRAPPER_WSTATE_STARTED, 0, 0);
             }
         }
+    } else if (wrapperData->jState == WRAPPER_JSTATE_STOPPING) {
+        /* This will happen if the Wrapper was asked to stop as the JVM is being launched. */
+        
+        wrapperProtocolFunction(WRAPPER_MSG_STOP, NULL);
+        
+        /* Allow up to 5 + <shutdownTimeout> seconds for the application to stop itself. */
+        wrapperData->jState = WRAPPER_JSTATE_STOPPING; /* Already in this state. */
+        wrapperData->jStateTimeoutTicks = wrapperAddToTicks(wrapperGetTicks(), 5 + wrapperData->shutdownTimeout);
+        wrapperData->jStateTimeoutTicksSet = 1;
     }
 }

@@ -243,6 +243,13 @@ $Id$
                     and <ulink url="prop-ping-timeout.html">wrapper.ping.timeout</ulink> to fail.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where the JVM would fail to shutdown cleanly if the Wrapper
+                    was asked to stop too soon after launching a JVM.  This was leading to the
+                    JVM being killed after the shutdown timeout expired.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

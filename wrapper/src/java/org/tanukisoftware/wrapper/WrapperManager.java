@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.33  2004/03/18 07:40:43  mortenson
+// Fix a problem where unwanted read timeout messages were being displayed when
+// the ping interval was set to a large value.
+//
 // Revision 1.32  2004/03/10 14:06:52  mortenson
 // Add some additional debug output to make it easier to debug startup,
 // shutdown and restart problems.
@@ -2344,7 +2348,11 @@ public final class WrapperManager
                             }
                             
                             // Make sure that the so timeout is longer than the ping timeout
-                            if ( m_soTimeout < m_pingTimeout )
+                            if ( m_pingTimeout <= 0 )
+                            {
+                                m_socket.setSoTimeout( 0 );
+                            }
+                            else if ( m_soTimeout < m_pingTimeout )
                             {
                                 m_socket.setSoTimeout( m_pingTimeout );
                             }
