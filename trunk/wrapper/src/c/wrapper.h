@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.40  2004/01/09 19:45:03  mortenson
+ * Implement the tick timer on Linux.
+ *
  * Revision 1.39  2004/01/09 18:31:36  mortenson
  * define the DWORD symbol so it can used.
  *
@@ -112,8 +115,8 @@
 
 #define WRAPPER_TICK_MS 100 /* The number of ms that are represented by a single
                              *  tick.  Ticks are used as an alternative time
-							 *  keeping method. See the wrapperGetTicks() and
-							 *  wrapperGetTickAge() functions for more information. */
+                             *  keeping method. See the wrapperGetTicks() and
+                             *  wrapperGetTickAge() functions for more information. */
 
 #define WRAPPER_TIMER_FAST_THRESHOLD 2 * 24 * 3600 * 1000 / WRAPPER_TICK_MS /* Default to 2 days. */
 #define WRAPPER_TIMER_SLOW_THRESHOLD 2 * 24 * 3600 * 1000 / WRAPPER_TICK_MS /* Default to 2 days. */

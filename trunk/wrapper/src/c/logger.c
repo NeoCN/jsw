@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.32  2004/01/09 19:45:03  mortenson
+ * Implement the tick timer on Linux.
+ *
  * Revision 1.31  2004/01/09 17:49:00  mortenson
  * Rework the logging so it is now threadsafe.
  *
@@ -91,6 +94,7 @@
 #else
 #include <syslog.h>
 #include <strings.h>
+#include <pthread.h>
 #endif
 
 #include "logger.h"
@@ -122,7 +126,11 @@ void writeToConsole( char *lpszFmt, ... );
 void checkAndRollLogs( );
 
 /* Thread specific work buffers. */
+#ifdef WIN32
 DWORD threadIds[WRAPPER_THREAD_COUNT];
+#else
+pthread_t threadIds[WRAPPER_THREAD_COUNT];
+#endif
 char *threadMessageBuffers[WRAPPER_THREAD_COUNT];
 int threadMessageBufferSizes[WRAPPER_THREAD_COUNT];
 char *threadPrintBuffers[WRAPPER_THREAD_COUNT];
@@ -150,8 +158,13 @@ void initLogBuffers() {
 /** Registers the calling thread so it can be recognized when it calls
  *  again later. */
 void logRegisterThread( int thread_id ) {
+#ifdef WIN32
     DWORD threadId;
     threadId = GetCurrentThreadId();
+#else
+    pthread_t threadId;
+    threadId = pthread_self();
+#endif
 
     if ( thread_id >= 0 && thread_id < WRAPPER_THREAD_COUNT )
     {
@@ -160,12 +173,15 @@ void logRegisterThread( int thread_id ) {
 }
 
 int getThreadId() {
+    int i;
 #ifdef WIN32
     DWORD threadId;
-    int i;
-
     threadId = GetCurrentThreadId();
-    /*printf( "threadId=%lu\n", threadId );*/
+#else
+    pthread_t threadId;
+    threadId = pthread_self();
+#endif
+    /* printf( "threadId=%lu\n", threadId ); */
 
     for ( i = 0; i < WRAPPER_THREAD_COUNT; i++ ) {
         if ( threadIds[i] == threadId ) {
@@ -175,9 +191,6 @@ int getThreadId() {
     
     printf( "WARNING - Encountered an unknown thread %ld in getThreadId().\n", threadId );
     return threadIds[0]; /* WRAPPER_THREAD_SIGNAL */
-#else
-    return WRAPPER_THREAD_MAIN;
-#endif
 }
 
 int strcmpIgnoreCase( const char *str1, const char *str2 ) {

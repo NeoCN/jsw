@@ -1,4 +1,4 @@
-COMPILE = gcc -O3 -Wall --pedantic
+COMPILE = gcc -O3 -Wall --pedantic -pthread
 
 INCLUDE=$(JAVA_HOME)/include
 
