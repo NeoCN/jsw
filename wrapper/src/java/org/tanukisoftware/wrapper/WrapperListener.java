@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.5  2004/02/13 02:53:26  mortenson
+// Add some javadocs describing what happens if an uncaught exception is thrown
+// within the start method.
+//
 // Revision 1.4  2004/01/16 04:42:00  mortenson
 // The license was revised for this version to include a copyright omission.
 // This change is to be retroactively applied to all versions of the Java
@@ -75,6 +79,12 @@ public interface WrapperListener
      *	native wrapper code that it can start its application.  This
      *	method call is expected to return, so a new thread should be launched
      *	if necessary.
+     * <p>
+     * If this method throws an exception the Wrapper will shutdown the current
+     *  JVM in an error state and then relaunch a new JVM.  It is the
+     *  responsibility of the user code to catch any exceptions and return an
+     *  appropriate exit code if the exception should result in the Wrapper
+     *  stopping.
      *
      * @param args List of arguments used to initialize the application.
      *
