@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.32  2004/12/08 04:54:29  mortenson
+ * Make it possible to access the contents of the Wrapper configuration file from
+ * within the JVM.
+ *
  * Revision 1.31  2004/11/12 09:51:32  mortenson
  * Fix a problem where certain characters like umlauts were being stripped from
  * property values.
@@ -820,3 +824,87 @@ void dumpProperties(Properties *properties) {
     }
 }
 
+/** Creates a linearized representation of all of the properties.
+ *  The returned buffer must be freed by the calling code. */
+char *linearizeProperties(Properties *properties, char separator) {
+    Property *property;
+    int size;
+    char *c;
+    char *fullBuffer;
+    char *buffer;
+    char *work;
+    
+    /* First we need to figure out how large a buffer will be needed to linearize the properties. */
+    size = 0;
+    property = properties->first;
+    while (property != NULL) {
+        /* Add the length of the basic property. */
+        size += strlen(property->name);
+        size++; /* '=' */
+        size += strlen(property->value);
+        
+        /* Handle any characters that will need to be escaped. */
+        c = property->name;
+        while (c = strchr(c, separator)) {
+            size++;
+            c++;
+        }
+        c = property->value;
+        while (c = strchr(c, separator)) {
+            size++;
+            c++;
+        }
+        
+        size++; /* separator */
+        
+        property = property->next;
+    }
+    size++; /* null terminated. */
+    
+    /* Now that we know how much space this will all take up, allocate a buffer. */
+    fullBuffer = buffer = malloc(size);
+    
+    /* Now actually build up the output.  Any separator characters need to be escaped with themselves. */
+    property = properties->first;
+    while (property != NULL) {
+        /* name */
+        work = property->name;
+        while (c = strchr(work, separator)) {
+            memcpy(buffer, work, c - work + 1);
+            buffer += c - work + 1;
+            buffer[0] = separator;
+            buffer++;
+            work = c + 1;
+        }
+        strcpy(buffer, work);
+        buffer += strlen(work);
+        
+        /* equals */
+        buffer[0] = '=';
+        buffer++;
+        
+        /* value */
+        work = property->value;
+        while (c = strchr(work, separator)) {
+            memcpy(buffer, work, c - work + 1);
+            buffer += c - work + 1;
+            buffer[0] = separator;
+            buffer++;
+            work = c + 1;
+        }
+        strcpy(buffer, work);
+        buffer += strlen(work);
+        
+        /* separator */
+        buffer[0] = separator;
+        buffer++;
+        
+        property = property->next;
+    }
+    
+    /* null terminate. */
+    buffer[0] = 0;
+    buffer++;
+    
+    return fullBuffer;
+}

@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.12  2004/12/08 04:54:27  mortenson
+// Make it possible to access the contents of the Wrapper configuration file from
+// within the JVM.
+//
 // Revision 1.11  2004/11/26 08:41:22  mortenson
 // Implement reading from System.in
 //
@@ -390,7 +394,18 @@ public abstract class AbstractActionApp
             for ( Enumeration enum = props.propertyNames(); enum.hasMoreElements(); )
             {
                 String name = (String)enum.nextElement();
-                System.out.println( "  " + name + "=" + System.getProperty( name ) );
+                System.out.println( "  " + name + "=" + props.getProperty( name ) );
+            }
+            System.out.println();
+        }
+        else if ( action.equals( "configuration" ) )
+        {
+            System.out.println( "Dump Wrapper Properties:" );
+            Properties props = WrapperManager.getProperties();
+            for ( Enumeration enum = props.propertyNames(); enum.hasMoreElements(); )
+            {
+                String name = (String)enum.nextElement();
+                System.out.println( "  " + name + "=" + props.getProperty( name ) );
             }
             System.out.println();
         }

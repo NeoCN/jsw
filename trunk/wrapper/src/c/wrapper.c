@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.130  2004/12/08 04:54:29  mortenson
+ * Make it possible to access the contents of the Wrapper configuration file from
+ * within the JVM.
+ *
  * Revision 1.129  2004/12/08 03:11:35  mortenson
  * Fix some problems when configuration reloading is combined with the use of the
  * wrapper.working.dir property.
@@ -862,6 +866,10 @@ char *wrapperProtocolGetCodeName(char code) {
         name ="SERVICE_CONTROL_CODE";
         break;
 
+    case WRAPPER_MSG_PROPERTIES:
+        name ="PROPERTIES";
+        break;
+
     case WRAPPER_MSG_LOG + LEVEL_DEBUG:
         name ="LOG(DEBUG)";
         break;
@@ -894,10 +902,24 @@ char *wrapperProtocolGetCodeName(char code) {
     return name;
 }
 
+int protocolSendBufferSize = 0;
+char *protocolSendBuffer = NULL;
 int wrapperProtocolFunction(char function, const char *message) {
     int rc;
-    char buffer[1024];
     int len;
+    
+    /* Make sure the buffer is big enough for this message. */
+    if (message == NULL) {
+        len = 2;
+    } else {
+        len = 1 + strlen(message) + 1;
+    }
+    if (protocolSendBufferSize < len) {
+        if (protocolSendBuffer) {
+            free(protocolSendBuffer);
+        }
+        protocolSendBuffer = malloc(len);
+    }
 
     /* Open the socket if necessary */
     wrapperProtocolOpen();
@@ -917,18 +939,15 @@ int wrapperProtocolFunction(char function, const char *message) {
     }
 
     /* Build the packet */
-    buffer[0] = function;
+    protocolSendBuffer[0] = function;
     if (message == NULL) {
-        buffer[1] = '\0';
-        len = 2;
+        protocolSendBuffer[1] = '\0';
     } else {
-        len = strlen(message);
-        strcpy((char*)(buffer + 1), message);
-        len += 2;
+        strcpy((char*)(protocolSendBuffer + 1), message);
     }
 
     /* Send the packet */
-    rc = send(sd, buffer, len, 0);
+    rc = send(sd, protocolSendBuffer, len, 0);
     if (rc == SOCKET_ERROR) {
         if (wrapperData->isDebugging) {
             log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket send failed. (%d)", wrapperGetLastError());
@@ -1106,7 +1125,6 @@ int wrapperProtocolRead() {
 }
 
 
-
 /******************************************************************************
  * Wrapper inner methods.
  *****************************************************************************/
@@ -1163,6 +1181,21 @@ void wrapperLogChildOutput(const char* log) {
             break;
         }
     }
+}
+
+
+/**
+ * Immediately after a JVM is launched, the wrapper configuration is sent to the
+ *  JVM where it can be used as a properties object.
+ */
+void sendProperties()
+{
+    char *buffer;
+    
+    buffer = linearizeProperties(properties, '\t');
+    wrapperProtocolFunction(WRAPPER_MSG_PROPERTIES, buffer);
+    
+    free(buffer);
 }
 
 /**
@@ -2744,6 +2777,9 @@ void wrapperKeyRegistered(char *key) {
                 sprintf(buffer, "%d", wrapperData->pingTimeout);
             }
             wrapperProtocolFunction(WRAPPER_MSG_PING_TIMEOUT, buffer);
+            
+            /* Send the properties. */
+            sendProperties();
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Received a connection request with an incorrect key.  Waiting for another connection.");
 

@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.66  2004/12/08 04:54:32  mortenson
+ * Make it possible to access the contents of the Wrapper configuration file from
+ * within the JVM.
+ *
  * Revision 1.65  2004/12/06 08:18:06  mortenson
  * Make it possible to reload the Wrapper configuration just before a JVM restart.
  *
@@ -407,6 +411,7 @@ struct WrapperConfig {
 #define WRAPPER_MSG_LOW_LOG_LEVEL (char)112
 #define WRAPPER_MSG_PING_TIMEOUT  (char)113
 #define WRAPPER_MSG_SERVICE_CONTROL_CODE (char)114
+#define WRAPPER_MSG_PROPERTIES    (char)115
 
 /** Log commands are actually 116 + the LOG LEVEL. */
 #define WRAPPER_MSG_LOG           (char)116

@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.50  2004/12/08 04:54:33  mortenson
+// Make it possible to access the contents of the Wrapper configuration file from
+// within the JVM.
+//
 // Revision 1.49  2004/11/29 14:26:52  mortenson
 // Add javadocs.
 //
@@ -2411,7 +2415,7 @@ public final class WrapperManager
      * Parses a long tab separated string of properties into an internal
      *  properties object.  Actual tabs are escaped by real tabs.
      */
-    private static char PROPERTY_SEPARATOR = (char)0x08;
+    private static char PROPERTY_SEPARATOR = '\t';
     private static void readProperties( String rawProps )
     {
         WrapperProperties properties = new WrapperProperties();
@@ -2424,7 +2428,7 @@ public final class WrapperManager
             boolean foundEnd = false;
             do
             {
-                int pos = rawProps.indexOf( PROPERTY_SEPARATOR );
+                int pos = rawProps.indexOf( PROPERTY_SEPARATOR, first );
                 if ( pos >= 0 )
                 {
                     if ( pos > 0 )
@@ -2469,7 +2473,7 @@ public final class WrapperManager
             {
                 String key = property.substring( 0, pos );
                 String value;
-                if ( pos < property.length() - 2 )
+                if ( pos < property.length() - 1 )
                 {
                     value = property.substring( pos + 1 );
                 }
@@ -2751,10 +2755,11 @@ public final class WrapperManager
      *  yet been received, then it must not be read until the complete packet
      *  has arived.
      */
+    private static byte[] m_socketReadBuffer = new byte[256];
     private static void handleSocket()
     {
         WrapperPingEvent pingEvent = new WrapperPingEvent();
-        byte[] buffer = new byte[256];
+        //byte[] buffer = new byte[256];
         try
         {
             if ( m_debug )
@@ -2769,22 +2774,27 @@ public final class WrapperManager
                     // A Packet code must exist.
                     byte code = is.readByte();
                     
-                    // Always read from the buffer until a null '\0' is encountered.  But only
-                    //  place the first 256 characters into the buffer.
+                    // Always read from the buffer until a null '\0' is encountered.
                     byte b;
                     int i = 0;
                     do
                     {
                         b = is.readByte();
-                        if ( ( b != 0 ) && ( i < 256 ) )
+                        if ( b != 0 )
                         {
-                            buffer[i] = b;
+                            if ( i >= m_socketReadBuffer.length )
+                            {
+                                byte[] tmp = m_socketReadBuffer;
+                                m_socketReadBuffer = new byte[tmp.length + 256];
+                                System.arraycopy( tmp, 0, m_socketReadBuffer, 0, tmp.length );
+                            }
+                            m_socketReadBuffer[i] = b;
                             i++;
                         }
                     }
                     while ( b != 0 );
                     
-                    String msg = new String( buffer, 0, i );
+                    String msg = new String( m_socketReadBuffer, 0, i );
                     
                     if ( m_appearHung )
                     {
