@@ -3,69 +3,104 @@
 <!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "../dtd/docbook/4.1.2/docbookx.dtd">
 
 <!-- ********************************************************************
-     $Id$
-     ******************************************************************** -->
+$Id$
+******************************************************************** -->
 
 <article id="index">
     <title>Troubleshooting</title>
     <section>
-        <title>I am getting a warning that the Wrapper can not load its native library.  What do I do?</title>
+        <title>
+            I am getting a warning that the Wrapper can not load its native library.  What do I do?
+        </title>
         <para>
             A few users have asked about the following message showing up in their wrapper.log file:
             <informalexample>
-                <screen format="linespecific"><![CDATA[WARNING - Unable to load native library 'wrapper' for class WrapperManager.
-System signals will not be handled correctly.]]></screen>
+                <screen format="linespecific">
+                    <![CDATA[WARNING - Unable to load native library 'wrapper' for class WrapperManager.
+                    System signals will not be handled correctly.]]></screen>
             </informalexample>
-            This message is being shown because the Java component of the Wrapper was unable to load its native libraries during initialization.  If you look in your wrapper.conf file, you will see a property, <literal moreinfo="none">wrapper.java.library.path</literal>.  This is used to specify the directory that the Wrapper will look in to find its native library. (Wrapper.DLL on Windows, or libwrapper.so on Unix systems)  You should place the library file in the specified directory or change the property to point to the directory where it is located.
+            This message is being shown because the Java component of the Wrapper was unable to
+            load its native libraries during initialization.  If you look in your wrapper.conf
+            file, you will see a property, <literal moreinfo="none">wrapper.java.library.path</literal>.
+            This is used to specify the directory that the Wrapper will look in to find its native
+            library. (Wrapper.DLL on Windows, or libwrapper.so on Unix systems)  You should place
+            the library file in the specified directory or change the property to point to the
+            directory where it is located.
         </para>
     </section>
     <section>
         <title>I am unable to install my application as a service under Windows 2000 or NT.</title>
         <para>
-            On Windows 2000 or NT, you will see the following error message if you attempt to install a service when logged in as a user without Administrator privileges.
+            On Windows 2000 or NT, you will see the following error message if you attempt to
+            install a service when logged in as a user without Administrator privileges.
             <informalexample>
                 <screen format="linespecific"><![CDATA[OpenSCManager failed - access denied.]]></screen>
             </informalexample>
         </para>
         <para>
-            Solution.  Contact your system administrator and beg them to install the service for you.  Easy if that is you.
+            Solution.  Contact your system administrator and beg them to install the service for
+            you.  Easy if that is you.
         </para>
     </section>
     <section>
         <title>My Application will not start.  What can I do to narrow down the problem?</title>
         <para>
-            Output describing the problem should be displayed in the console as well as the configured log file.  To get more detailed output, edit your wrapper.conf file and enable debugging by uncommenting the wrapper.debug property.  This will display very detailed output at every step in the process of launching and monitoring your application.
+            Output describing the problem should be displayed in the console as well as the
+            configured log file.  To get more detailed output, edit your wrapper.conf file and
+            enable debugging by uncommenting the wrapper.debug property.  This will display very
+            detailed output at every step in the process of launching and monitoring your
+            application.
         </para>
         <para>
-            If your application works when not using the Wrapper, but fails with the Wrapper, then it is very likely that there is a problem in the way you set up your wrapper.conf file.  Please look closely at the command used to launch java, in the debug output.  It is possible that there is a mistake in the classpath or something.
+            If your application works when not using the Wrapper, but fails with the Wrapper,
+            then it is very likely that there is a problem in the way you set up your wrapper.conf
+            file.  Please look closely at the command used to launch java, in the debug output.
+            It is possible that there is a mistake in the classpath or something.
         </para>
     </section>
     <section>
         <title>I am not getting any output in my configured log file.</title>
         <para>
-            It is possible that the Wrapper is not able to locate the specified wrapper configuration file, or it is not able to open the configured log file for some reason.  In either case, the Wrapper will log output to a file called wrapper.log in the current working directory.  The current working directory will most likely be the directory containing the binary.  However, in some cases, when running as an NT service, the wrapper.log file may be placed in your WinNT\System32 directory.
+            It is possible that the Wrapper is not able to locate the specified wrapper
+            configuration file, or it is not able to open the configured log file for some reason.
+            In either case, the Wrapper will log output to a file called wrapper.log in the current
+            working directory.  The current working directory will most likely be the directory
+            containing the binary.  However, in some cases, when running as an NT service, the
+            wrapper.log file may be placed in your WinNT\System32 directory.
         </para>
     </section>
     <section>
         <title>My application is hanging while it is shutting down.</title>
         <para>
-            If you call System.exit() in your application then Wrapper will catch this and attempt to shutdown the applicaiton cleanly.  If during the shutdown process, your application once again calls System.exit() then the call will block indeffinately causing your application to hang.  There are also problems with calling the destroy() method on an AWT frame or window from within a shutdown hoot thread.  Please take a look at the wrapper.disable_shutdown_hook property in the Configuration File Overview for details on how to avoid this problem.
+            If you call System.exit() in your application then Wrapper will catch this and attempt
+            to shutdown the applicaiton cleanly.  If during the shutdown process, your application
+            once again calls System.exit() then the call will block indeffinately causing your
+            application to hang.  There are also problems with calling the destroy() method on an
+            AWT frame or window from within a shutdown hoot thread.  Please take a look at the
+            wrapper.disable_shutdown_hook property in the Configuration File Overview for details
+            on how to avoid this problem.
         </para>
     </section>
     <section>
         <title>My JVM is sometimes restarted when the system is heavily loaded.</title>
         <para>
-            Because the Wrapper is using a pinging mechanism to check on the health of the JVM, it is possible that the Wrapper will think that the JVM is hung when it isn't if another process is taking 100% of the CPU for longer than 30 seconds.  This will result in an entry like the following in your log file, and the JVM being restarted:
+            Because the Wrapper is using a pinging mechanism to check on the health of the JVM, it
+            is possible that the Wrapper will think that the JVM is hung when it isn't if another
+            process is taking 100% of the CPU for longer than 30 seconds.  This will result in an
+            entry like the following in your log file, and the JVM being restarted:
             <informalexample>
                 <screen format="linespecific"><![CDATA[jvm 1    | 2001/12/01 12:23:23 | start()
-wrapper  | 2001/12/01 12:23:44 | Startup failed: Timed out waiting for signal from JVM.
-wrapper  | 2001/12/01 12:23:44 | Java Virtual Machine did not exit on request, terminated
-wrapper  | 2001/12/01 12:23:49 | Launching a JVM...
-jvm 2    | 2001/12/01 12:23:50 | Initializing...]]></screen>
+                wrapper  | 2001/12/01 12:23:44 | Startup failed: Timed out waiting for signal from JVM.
+                wrapper  | 2001/12/01 12:23:44 | Java Virtual Machine did not exit on request, terminated
+                wrapper  | 2001/12/01 12:23:49 | Launching a JVM...
+                jvm 2    | 2001/12/01 12:23:50 | Initializing...]]></screen>
             </informalexample>
         </para>
         <para>
-            The property <literal moreinfo="none">wrapper.ping.timeout=30</literal> in <literal moreinfo="none">conf/wrapper.log</literal> can be used to extend this timeout.  But be aware that this will also lengthen the amount of time that your application will remain hung in the event of a real problem.
+            The property <literal moreinfo="none">wrapper.ping.timeout=30</literal> in
+            <literal moreinfo="none">conf/wrapper.log</literal> can be used to extend this timeout.
+            But be aware that this will also lengthen the amount of time that your application will
+            remain hung in the event of a real problem.
         </para>
     </section>
 </article>
