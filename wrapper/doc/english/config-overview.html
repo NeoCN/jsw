@@ -142,7 +142,7 @@
         </p>
         
 <p align="justify">
-            The Wrapper config file contains the following information:
+            The Wrapper config file contains the following information.  This example assumes that the '@app.name@' and '@app.long.name@' tokens will be replaced with the name of your applicaiton on installation.  Good values are 'testwrapper' for '@app.name@' and 'Test Wrapper Application' for '@app.long.name@'.  A template wrapper.conf file can be found in the src/conf directory, named wrapper.conf.in.
             <div align="left">
 <p>
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
@@ -152,22 +152,20 @@
 # Wrapper parameters
 #********************************************************************
 # Java Application
-wrapper.java.command=@java.home@/bin/java
+wrapper.java.command=java
 
 # Java Main class
 wrapper.java.mainclass=com.silveregg.wrapper.test.Main
 
 # Java Classpath (include wrapper.jar)  Add class path elements as needed starting from 1
-wrapper.java.classpath.1=@wrapper.home@/lib/wrapper.jar
-wrapper.java.classpath.2=@wrapper.home@/lib/wrappertest.jar
+wrapper.java.classpath.1=../lib/wrapper.jar
+wrapper.java.classpath.2=../lib/wrappertest.jar
 
 # Java Library Path (location of wrapper.lib)
-wrapper.java.library.path=@java.library.path@
+wrapper.java.library.path=../lib
 
 # Java Additional Parameters
-#wrapper.java.additional.1=-Xrs
-#wrapper.java.additional.2=-Xcheck:jni
-#wrapper.java.additional.3=-verbose:jni
+#wrapper.java.additional.1=
 
 # Initial Java Heap Size (in MB)
 wrapper.java.initmemory=16
@@ -176,13 +174,13 @@ wrapper.java.initmemory=16
 wrapper.java.maxmemory=64
 
 # Application parameters.  Add parameters as needed starting from 1
-wrapper.app.parameter.1=
+#wrapper.app.parameter.1=
 
 # Port which the native wrapper code will attempt to connect to
 wrapper.port=1777
 
 # Log file to use for wrapper output logging.
-wrapper.logfile=testwrapper.log
+wrapper.logfile=../logs/wrapper.log
 
 # Number of seconds to allow for the JVM to be launched and contact the wrapper before the
 #  wrapper should assume that the JVM is hung and terminate the JVM process.  0 means never
@@ -193,7 +191,8 @@ wrapper.startup.timeout=30
 #  never time out.  Defaults to 30 seconds.
 wrapper.ping.timeout=30
 
-# Disable detection of calls to System.exit().
+# The Wrapper detects when an application calls System.exit() and treats this as a request
+#  to stop the server by default.
 #wrapper.disable_shutdown_hook=TRUE
 
 # Show debug messages
@@ -214,10 +213,10 @@ wrapper.pidfile=/var/run/aigent.pid
 #  service can then be reinstalled.
 
 # Name of the service
-wrapper.ntservice.name=WrapperTest
+wrapper.ntservice.name=@app.name@
 
 # Display name of the service
-wrapper.ntservice.displayname=Wrapper Test
+wrapper.ntservice.displayname=@app.long.name@
 
 # Service dependencies.  Add dependencies as needed starting from 1
 wrapper.ntservice.dependency.1=
@@ -308,7 +307,7 @@ wrapper.ntservice.starttype=AUTO_START</pre>
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
 <td>
-<pre>wrapper.java.command=C:/jdk1.3/jre/bin/java</pre>
+<pre>wrapper.java.command=java</pre>
 </td>
 </tr>
 </table>
@@ -386,10 +385,10 @@ wrapper.ntservice.starttype=AUTO_START</pre>
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
 <td>
-<pre>wrapper.java.classpath.1=C:/MyApp/lib/wrapper.jar
-wrapper.java.classpath.2=C:/MyApp/lib/myapp.jar
-wrapper.java.classpath.3=C:/MyApp/lib/mysql.jar
-wrapper.java.classpath.4=C:/MyApp/classes</pre>
+<pre>wrapper.java.classpath.1=../lib/wrapper.jar
+wrapper.java.classpath.2=../lib/myapp.jar
+wrapper.java.classpath.3=../lib/mysql.jar
+wrapper.java.classpath.4=../classes</pre>
 </td>
 </tr>
 </table>
@@ -418,7 +417,7 @@ wrapper.java.classpath.4=C:/MyApp/classes</pre>
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
 <td>
-<pre>wrapper.java.library.path=C:/MyApp/lib</pre>
+<pre>wrapper.java.library.path=../lib</pre>
 </td>
 </tr>
 </table>
@@ -453,7 +452,7 @@ wrapper.java.classpath.4=C:/MyApp/classes</pre>
 <td>
 <pre>wrapper.java.additional.1=-Xrs
 wrapper.java.additional.2=-Dprop=TRUE
-wrapper.java.additional.3=-Dmyapp.data="C:/Program Files/MyAppData"
+wrapper.java.additional.3=-Dmyapp.data="../data"
 wrapper.java.additional.3.stripquotes=TRUE</pre>
 </td>
 </tr>
@@ -552,7 +551,7 @@ wrapper.java.additional.3.stripquotes=TRUE</pre>
 <pre>wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp
 wrapper.app.parameter.1=com.widgetsrus.MyAppMain
 wrapper.app.parameter.2=-d
-wrapper.app.parameter.3=-c"C:/MyApp/conf/myapp.conf"
+wrapper.app.parameter.3=-c"../conf/myapp.conf"
 wrapper.app.parameter.3.stripquotes=TRUE
 wrapper.app.parameter.4=-p4</pre>
 </td>
@@ -612,7 +611,7 @@ wrapper.app.parameter.4=-p4</pre>
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
 <td>
-<pre>wrapper.logfile=testwrapper.log</pre>
+<pre>wrapper.logfile=../logs/wrapper.log</pre>
 </td>
 </tr>
 </table>

@@ -200,7 +200,47 @@
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
 <td>
-<pre>./testwrapper</pre>
+<pre>./testwrapper start</pre>
+</td>
+</tr>
+</table>
+</div>
+                
+</p>
+            
+</p>
+            
+<p align="justify">
+                The Windows console can be stopped cleanly by hitting CTRL-C, but the Linux and Solaris version require you to run the script with the stop parameter:
+                <p align="justify">
+                    
+<i>Linux / Solaris:</i>
+                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>./testwrapper stop</pre>
+</td>
+</tr>
+</table>
+</div>
+                
+</p>
+            
+</p>
+            
+<p align="justify">
+                The Linux and Solaris versions also provide the ability to restart the application:
+                <p align="justify">
+                    
+<i>Linux / Solaris:</i>
+                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>./testwrapper restart</pre>
 </td>
 </tr>
 </table>
@@ -279,7 +319,7 @@ jvm 1    | 2001/12/06 16:18:30 | start()</pre>
 <p align="justify">
                 The TestWrapper presents you with a number of buttons.  These are each used to test various functionality of thw Wrapper.  Each button is described below with the output you will see in the console if the button is activated.
                 <div class="glosslist">
-<a name="NA9F"></a>
+<a name="NABB"></a>
 <dl>
                     
                         
@@ -616,7 +656,7 @@ jvm 2    | start()</pre>
 <p align="justify">
                 This covers all of the ways that your application can exit or die of its own will.  There are two other external factors that the Wrapper can also protect against.
                 <div class="glosslist">
-<a name="NB58"></a>
+<a name="NB74"></a>
 <dl>
                     
                         
@@ -676,6 +716,36 @@ jvm 1    | All rights reserved.
 jvm 1    | 
 jvm 1    | start()
 wrapper  | User logged out.  Shutting down.
+jvm 1    | stop(0)
+wrapper  | &lt;-- Wrapper Stopped</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                            
+<p align="justify">
+                                On Linux or Solaris platforms, you can not hit CTRL-C because the Wrapper is launched as a spawned process.  Running the script with the stop parameter will produce the following results:
+                                <p align="justify">
+                                    
+<i>Console Output:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper  | --&gt; Wrapper Started as Console
+wrapper  | Launching a JVM...
+jvm 1    | Initializing...
+jvm 1    | Wrapper (Version 2.2.3)
+jvm 1    | Copyright 2000, 2001 Silver Egg Technology, Inc.
+jvm 1    | All rights reserved.
+jvm 1    |
+jvm 1    | start()
+wrapper  | Shutting down.
 jvm 1    | stop(0)
 wrapper  | &lt;-- Wrapper Stopped</pre>
 </td>
@@ -964,7 +1034,7 @@ jvm 1    | 2001/12/06 17:34:22 | start()</pre>
 <p align="justify">
                 Here are the results of several more actions that can take place on an NT service:
                 <div class="glosslist">
-<a name="NC1E"></a>
+<a name="NC48"></a>
 <dl>
                     
                         
