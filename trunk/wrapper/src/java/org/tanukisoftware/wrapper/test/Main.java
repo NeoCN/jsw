@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.18  2004/08/06 07:56:20  mortenson
+// Add test case which runs idle.  Useful to test some operations.
+//
 // Revision 1.17  2004/06/30 09:02:33  mortenson
 // Remove unused imports.
 //
@@ -208,6 +211,8 @@ public class Main
             
             buildCommand( gridBag, c, "Poll Users with Groups", "groups",
                 "Same as above, but includes information about the user's groups." );
+            
+            buildCommand( gridBag, c, "Idle", "idle", "Run idly." );
         }
         
         private void buildCommand( GridBagLayout gridBag,

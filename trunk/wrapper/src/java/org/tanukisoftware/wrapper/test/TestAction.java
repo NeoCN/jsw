@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.10  2004/08/06 07:56:20  mortenson
+// Add test case which runs idle.  Useful to test some operations.
+//
 // Revision 1.9  2004/06/30 09:01:57  mortenson
 // Style fix.  Referencing a static method using an instance.
 //
@@ -201,6 +204,7 @@ public class TestAction
         System.err.println( "   deadlock_out             : Deadlocks the JVM's System.out and err streams." );
         System.err.println( "   users                    : Start polling the current and interactive users." );
         System.err.println( "   groups                   : Start polling the current and interactive users with groups." );
+        System.err.println( "   idle                     : Do nothing just run in idle mode." );
         System.err.println( "" );
         System.err.println( "[EXAMPLE]" );
         System.err.println( "   TestAction access_violation_native " );
