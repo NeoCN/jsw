@@ -24,6 +24,11 @@
  *
  *
  * $Log$
+ * Revision 1.35  2002/11/04 10:16:50  mortenson
+ * On Windows systems change any forward slashes in the wrapper.java.command
+ * property to back slashes.  Some users had reported having problems on
+ * Windows XP.
+ *
  * Revision 1.34  2002/11/02 03:27:13  mortenson
  * Fix Bug #632215.  The WrapperManager.isLaunchedAsService() method was
  * always returning false.
@@ -829,6 +834,13 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 
 #ifdef WIN32
         found = 0;
+
+		/* To avoid problems on Windows XP systems, the '/' characters must
+		 *  be replaced by '\' characters in the specified path. */
+		c = (char *)prop;
+		while((c = strchr(c, '/')) != NULL) {
+			c[0] = '\\';
+		}
 
         /* If the full path to the java command was not specified, then we
          *  need to try and resolve it here to avoid problems later when

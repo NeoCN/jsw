@@ -1,5 +1,10 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+2.3.0
+* On Windows systems change any forward slashes in the wrapper.java.command
+  property to back slashes.  Some users had reported having problems on
+  Windows XP.
+
 2.2.9
 * Added a new property, wrapper.restart.delay, which allows the user to control
   the amount of time to pause between a JVM exiting and a new JVM being
