@@ -215,13 +215,101 @@
     <!-- =================================================================== -->
     <!-- Release targets                                                     -->
     <!-- =================================================================== -->
-    <target name="release-win" depends="main, jdoc">
-        <zip zipfile="${basedir}/wrapper_win32_${version}.zip"
+    <target name="release-common" depends="main, jdoc">
+        <property name="releasesrcfile" value="wrapper_${version}_src"/>
+        <property name="releasesrcdir" value="${basedir}/${releasesrcfile}"/>
+        <delete dir="${releasesrcdir}"/>
+        <mkdir dir="${releasesrcdir}"/>
+        <copy todir="${releasesrcdir}" >
+            <fileset dir="${basedir}" >
+                <include name="build.*" />
+                <include name="doc/**" />
+                <include name="src/bin/**" />
+                <include name="src/java/**" />
+                <include name="src/c/*.c" />
+                <include name="src/c/*.h" />
+                <include name="src/c/Makefile.*" />
+                <include name="src/c/*.dsp" />
+                <include name="src/c/*.dsw" />
+                <include name="src/c/*.plg" />
+                <include name="test/*" />
+                <exclude name="test/*.log" />
+                <exclude name="test/*.conf" />
+                <include name="tools/**" />
+                <exclude name="**/CVS/*" />
+            </fileset>
+        </copy>
+        <zip zipfile="${releasesrcdir}.zip"
             basedir="${basedir}"
-            compress="true"
-            includes="bin/windows/Wrapper.exe,lib/wrapper.jar,lib/windows/Wrapper.dll,jdoc/**,doc/**"
-            excludes="**/CVS/*"
-            />
+            compress="true">
+            <include name="${releasesrcfile}/**/*" />
+        </zip>
+    </target>
+    
+    <target name="release-win" depends="release-common">
+        <property name="releasefile" value="wrapper_win32_${version}"/>
+        <property name="releasedir" value="${basedir}/${releasefile}"/>
+        <delete dir="${releasedir}"/>
+        <mkdir dir="${releasedir}"/>
+        <copy todir="${releasedir}" >
+            <fileset dir="${basedir}" >
+                <include name="bin/windows/Wrapper.exe" />
+                <include name="lib/wrapper.jar" />
+                <include name="lib/windows/Wrapper.dll" />
+                <include name="jdoc/**" />
+                <include name="doc/**" />
+                <exclude name="**/CVS/*" />
+            </fileset>
+        </copy>
+        <zip zipfile="${releasedir}.zip"
+            basedir="${basedir}"
+            compress="true">
+            <include name="${releasefile}/**/*" />
+        </zip>
+    </target>
+    
+    <target name="release-linux" depends="release-common">
+        <property name="releasefile" value="wrapper_linux_${version}"/>
+        <property name="releasedir" value="${basedir}/${releasefile}"/>
+        <delete dir="${releasedir}"/>
+        <mkdir dir="${releasedir}"/>
+        <copy todir="${releasedir}" >
+            <fileset dir="${basedir}" >
+                <include name="bin/linux/wrapper" />
+                <include name="lib/wrapper.jar" />
+                <include name="lib/linux/libwrapper.so" />
+                <include name="jdoc/**" />
+                <include name="doc/**" />
+                <exclude name="**/CVS/*" />
+            </fileset>
+        </copy>
+        <zip zipfile="${releasedir}.zip"
+            basedir="${basedir}"
+            compress="true">
+            <include name="${releasefile}/**/*" />
+        </zip>
+    </target>
+    
+    <target name="release-solaris" depends="release-common">
+        <property name="releasefile" value="wrapper_solaris_${version}"/>
+        <property name="releasedir" value="${basedir}/${releasefile}"/>
+        <delete dir="${releasedir}"/>
+        <mkdir dir="${releasedir}"/>
+        <copy todir="${releasedir}" >
+            <fileset dir="${basedir}" >
+                <include name="bin/solaris/wrapper" />
+                <include name="lib/wrapper.jar" />
+                <include name="lib/solaris/libwrapper.so" />
+                <include name="jdoc/**" />
+                <include name="doc/**" />
+                <exclude name="**/CVS/*" />
+            </fileset>
+        </copy>
+        <zip zipfile="${releasedir}.zip"
+            basedir="${basedir}"
+            compress="true">
+            <include name="${releasefile}/**/*" />
+        </zip>
     </target>
     
     <!-- =================================================================== -->
