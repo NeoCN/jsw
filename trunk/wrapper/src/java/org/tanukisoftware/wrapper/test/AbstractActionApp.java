@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.2  2004/01/15 09:50:30  mortenson
+// Fix some problems where the Wrapper was not handling exit codes correctly.
+//
 // Revision 1.1  2004/01/10 15:44:15  mortenson
 // Rework the test wrapper app so there is less code duplication.
 //
@@ -64,14 +67,24 @@ public abstract class AbstractActionApp {
     }
     protected boolean doAction( String action )
     {
-        if ( action.equals( "stop" ) )
+        if ( action.equals( "stop0" ) )
         {
             WrapperManager.stop( 0 );
             
         }
-        else if ( action.equals( "exit" ) )
+        else if ( action.equals( "stop1" ) )
+        {
+            WrapperManager.stop( 1 );
+            
+        }
+        else if ( action.equals( "exit0" ) )
         {
             System.exit( 0 );
+            
+        }
+        else if ( action.equals( "exit1" ) )
+        {
+            System.exit( 1 );
             
         }
         else if ( action.equals( "halt" ) )

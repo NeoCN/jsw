@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.13  2004/01/15 09:50:30  mortenson
+// Fix some problems where the Wrapper was not handling exit codes correctly.
+//
 // Revision 1.12  2004/01/10 15:44:15  mortenson
 // Rework the test wrapper app so there is less code duplication.
 //
@@ -131,11 +134,17 @@ public class Main
             GridBagConstraints c = new GridBagConstraints();
             setLayout( gridBag );
             
-            buildCommand( gridBag, c, "Stop", "stop",
-                "Calls WrapperManager.stop() to shutdown the JVM and Wrapper." );
+            buildCommand( gridBag, c, "Stop(0)", "stop0",
+                "Calls WrapperManager.stop( 0 ) to shutdown the JVM and Wrapper with a success exit code." );
             
-            buildCommand( gridBag, c, "Exit", "exit",
-                "Calls System.exit(0) to shutdown the JVM and Wrapper." );
+            buildCommand( gridBag, c, "Stop(1)", "stop1",
+                "Calls WrapperManager.stop( 1 ) to shutdown the JVM and Wrapper with a failure exir code." );
+            
+            buildCommand( gridBag, c, "Exit(0)", "exit0",
+                "Calls System.exit( 0 ) to shutdown the JVM and Wrapper with a success exit code." );
+            
+            buildCommand( gridBag, c, "Exit(1)", "exit1",
+                "Calls System.exit( 1 ) to shutdown the JVM and Wrapper with a failure exit code." );
             
             buildCommand( gridBag, c, "Halt", "halt",
                 "Calls Runtime.getRuntime().halt(0) to kill the JVM, the Wrapper will restart it." );

@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.6  2004/01/15 09:50:30  mortenson
+// Fix some problems where the Wrapper was not handling exit codes correctly.
+//
 // Revision 1.5  2004/01/10 15:44:15  mortenson
 // Rework the test wrapper app so there is less code duplication.
 //
@@ -151,8 +154,11 @@ public class TestAction
         System.err.println( "" );
         System.err.println( "[ACTIONS]" );
         System.err.println( "  Actions which should cause the Wrapper to exit cleanly:" );
-        System.err.println( "   stop                     : Calls WrapperManager.stop(0)" );
-        System.err.println( "   exit                     : Calls System.exit(0)" );
+        System.err.println( "   stop0                    : Calls WrapperManager.stop(0)" );
+        System.err.println( "   exit0                    : Calls System.exit(0)" );
+        System.err.println( "  Actions which should cause the Wrapper to exit in an error state:" );
+        System.err.println( "   stop1                    : Calls WrapperManager.stop(1)" );
+        System.err.println( "   exit1                    : Calls System.exit(1)" );
         System.err.println( "  Actions which should cause the Wrapper to restart the JVM:" );
         System.err.println( "   access_violation         : Calls WrapperManager.accessViolation" );
         System.err.println( "   access_violation_native  : Calls WrapperManager.accessViolationNative()" );
