@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.19  2004/08/06 16:17:04  mortenson
+ * Added a new wrapper.java.command.loglevel property which makes it possible
+ * to control the log level of the generated java command.
+ *
  * Revision 1.18  2004/07/05 07:43:53  mortenson
  * Fix a deadlock on solaris by being very careful that we never perform any direct
  * logging from within a signal handler.
@@ -191,6 +195,7 @@ extern int getLowLogLevel();
 
 /* * General log functions * */
 extern int initLogging();
+extern int getLogLevelForName( const char *logLevelName );
 extern void logRegisterThread( int thread_id );
 extern void log_printf( int source_id, int level, char *lpszFmt, ... );
 extern void log_printf_queue( int useQueue, int source_id, int level, char *lpszFmt, ... );

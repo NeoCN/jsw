@@ -45,6 +45,9 @@
                 <ulink url="prop-debug.html">wrapper.debug</ulink>
             </listitem>
             <listitem>
+                <ulink url="prop-java-command-loglevel.html">wrapper.java.command.loglevel</ulink>
+            </listitem>
+            <listitem>
                 <ulink url="prop-logfile.html">wrapper.logfile</ulink>
             </listitem>
             <listitem>
