@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.3  2003/04/15 23:52:46  mortenson
+// Add a test for an initial line feed.
+//
 // Revision 1.2  2003/04/03 04:05:22  mortenson
 // Fix several typos in the docs.  Thanks to Mike Castle.
 //
@@ -52,6 +55,9 @@ public class LogOutput {
      * Main Method
      *-------------------------------------------------------------*/
     public static void main(String[] args) {
+        // Test an initial line feed.
+        System.out.println();
+        
         System.out.println("Test the various log levels...");
         WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_DEBUG,  "Debug output");
         WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO,   "Info output");
