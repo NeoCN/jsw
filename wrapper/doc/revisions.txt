@@ -76,6 +76,11 @@ Java Service Wrapper Revision History.
   before the Wrapper could respond to the signal.  In this case the Wrapper
   was interpreting this as a second CTRL-C signal even though the user only
   pressed it once.
+* If the wrapper.anchorfile or wrapper.pidfile properties are used on Windows
+  they were being unintentionally deleted if the -t, -p, -i, or -r commands
+  were used while another Wrapper instance was running.  In the case of the
+  anchor file, this would result in the Wrapper being shutdown unintentionally.
+  This was not an issue on non-Windows versions.  Bug #1108517.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager

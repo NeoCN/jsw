@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.99  2005/02/01 16:21:40  mortenson
+ * Fix bug #1108517.  PID and anchor files were being deleted when the -t, -s, -i,
+ * or -r commands were run when the Wrapper was already running.
+ *
  * Revision 1.98  2004/12/20 06:32:18  mortenson
  * Fix a problem where the Wrapper would sometimes interpret a single CTRL-C as
  * a double if the JVM got the signal first.
@@ -406,6 +410,9 @@ DWORD timerTicks = 0xffffff00;
 /** Flag which keeps track of whether or not the CTRL-C key has been pressed. */
 int ctrlCTrapped = FALSE;
 
+/** Flag which keeps track of whether or not PID files should be deleted on shutdown. */
+int cleanUpPIDFilesOnExit = FALSE;
+
 char* getExceptionName(DWORD exCode);
 int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers);
 
@@ -552,14 +559,19 @@ int initInvocationMutex() {
  * exits the application after running shutdown code.
  */
 void appExit(int exitCode) {
-    /* Remove pid file.  It may no longer exist. */
-    if (wrapperData->pidFilename) {
-        unlink(wrapperData->pidFilename);
-    }
-
-    /* Remove anchor file.  It may no longer exist. */
-    if (wrapperData->anchorFilename) {
-        unlink(wrapperData->anchorFilename);
+    /* We only want to delete the pid files if we created them. Some Wrapper
+     *  invocations are meant to run in parallel with Wrapper instances
+     *  controlling a JVM. */
+    if (cleanUpPIDFilesOnExit) {
+        /* Remove pid file.  It may no longer exist. */
+        if (wrapperData->pidFilename) {
+            unlink(wrapperData->pidFilename);
+        }
+    
+        /* Remove anchor file.  It may no longer exist. */
+        if (wrapperData->anchorFilename) {
+            unlink(wrapperData->anchorFilename);
+        }
     }
     
     /* Close the invocation mutex if we created or looked it up. */
@@ -3018,6 +3030,7 @@ void _CRTAPI1 main(int argc, char **argv) {
                             
                             /* Write pid and anchor files as requested.  If they are the same file the file is
                              *  simply overwritten. */
+                            cleanUpPIDFilesOnExit = TRUE;
                             if (wrapperData->anchorFilename) {
                                 if (writePidFile(wrapperData->anchorFilename, wrapperProcessId)) {
                                     log_printf
@@ -3057,6 +3070,7 @@ void _CRTAPI1 main(int argc, char **argv) {
                             
                             /* Write pid and anchor files as requested.  If they are the same file the file is
                              *  simply overwritten. */
+                            cleanUpPIDFilesOnExit = TRUE;
                             if (wrapperData->anchorFilename) {
                                 if (writePidFile(wrapperData->anchorFilename, wrapperProcessId)) {
                                     log_printf
