@@ -1,6 +1,7 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 2.2.5
+* Added support for service descriptions for Win2k and XP.
 * Fixed bug issue when reading config files from Windows on Unix.
 * Deprecated the wrapper.debug property in favor of loglevels.
 * Added new logger functionality includes the following features:
