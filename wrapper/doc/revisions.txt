@@ -11,6 +11,10 @@ Java Service Wrapper Revision History.
   thrown while executing the main method of the configured stop class.  This
   did not change the functionality of the application, but it did cause some
   confusion.
+* Fix a problem on Windows where a library path or class path which ended in
+  a backslash was preventing the Wrapper from launching the JVM.  The Windows
+  OS was using the backslash to escape the quote used to close the path.  The
+  fix was to add a second backslash where needed.
 
 3.1.1
 * Modified the way libwrapper.so is built on Solaris and Linux so that it

@@ -33,6 +33,14 @@ $Id$
                     confusion.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem on Windows where a library path or class path which ended in
+                    a backslash was preventing the Wrapper from launching the JVM.  The Windows
+                    OS was using the backslash to escape the quote used to close the path.  The
+                    fix was to add a second backslash where needed.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.1">
