@@ -48,6 +48,14 @@ $Id$
                     java command.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add support for escaped quotes when stripping quotes on UNIX for the
+                    <ulink url="prop-java-additional-n.html">wrapper.java.additional.&lt;n&gt;</ulink> and
+                    <ulink url="prop-app-parameter-n.html">wrapper.app.parameter.&lt;n&gt;</ulink>
+                    properties.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.1">
