@@ -155,6 +155,7 @@ stopit() {
         if [ ! -z $pid ]
         then
             echo "Failed to stop $APP_LONG_NAME."
+            exit 1
         else
             echo "Stopped $APP_LONG_NAME."
         fi
