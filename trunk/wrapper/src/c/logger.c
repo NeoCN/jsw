@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.14  2002/09/09 15:52:41  mortenson
+ * Fix an allignment problem with WARN level output.
+ *
  * Revision 1.13  2002/08/11 05:21:28  mortenson
  * Add a Warning level to the logger
  *
@@ -105,7 +108,7 @@ int currentLogfileLevel = LEVEL_UNKNOWN;
 int currentLoginfoLevel = LEVEL_UNKNOWN;
 
 char logFilePath[ 1024 ];
-char *logLevelNames[] = { "NONE  ", "DEBUG ", "INFO  ", "STATUS", "WARN", "ERROR ", "FATAL " };
+char *logLevelNames[] = { "NONE  ", "DEBUG ", "INFO  ", "STATUS", "WARN  ", "ERROR ", "FATAL " };
 char loginfoSourceName[ 1024 ];
 int  logFileMaxSize = -1;
 int  logFileMaxLogFiles = -1;
