@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.19  2002/10/10 03:20:09  mortenson
+ * Fix a problem where the Wrapper would not respond to exit requests while
+ * pausing between JVM invocations.
+ *
  * Revision 1.18  2002/09/17 13:16:22  mortenson
  * Added a property to control the delay between JVM invocations.
  *
@@ -122,21 +126,23 @@
 #define WRAPPER_JSTATE_DOWN      71 /* JVM is confirmed to be down.  This is the 
                                      *  initial state and the state after the JVM
                                      *  process has gone away. */
-#define WRAPPER_JSTATE_LAUNCHING 72 /* JVM was launched, but has not yet responded.
+#define WRAPPER_JSTATE_LAUNCH    72 /* Set from the DOWN state to launch a JVM.  The
+                                     *  timeout will be the time to actually launch
+                                     *  the JVM after any required delay. */
+#define WRAPPER_JSTATE_LAUNCHING 73 /* JVM was launched, but has not yet responded.
                                      *  Must enter the LAUNCHED state before <t>
                                      *  or the JVM will be killed. */
-#define WRAPPER_JSTATE_LAUNCHED  73 /* JVM was launched, and responed to a ping. */
-#define WRAPPER_JSTATE_STARTING  74 /* JVM has been asked to start.  Must enter the
+#define WRAPPER_JSTATE_LAUNCHED  74 /* JVM was launched, and responed to a ping. */
+#define WRAPPER_JSTATE_STARTING  75 /* JVM has been asked to start.  Must enter the
                                      *  STARTED state before <t> or the JVM will be
                                      *  killed. */
-#define WRAPPER_JSTATE_STARTED   75 /* JVM has responded that it is running.  Must
+#define WRAPPER_JSTATE_STARTED   76 /* JVM has responded that it is running.  Must
                                      *  respond to a ping by <t> or the JVM will
                                      *  be killed. */
-#define WRAPPER_JSTATE_STOPPING  76 /* JVM was sent a stop command, but has not yet
+#define WRAPPER_JSTATE_STOPPING  77 /* JVM was sent a stop command, but has not yet
                                      *  responded.  Must enter the STOPPED state
                                      *  and exit before <t> or the JVM will be killed. */
-#define WRAPPER_JSTATE_STOPPED   77 /* JVM has responed that it is stopped. */
-
+#define WRAPPER_JSTATE_STOPPED   78 /* JVM has responed that it is stopped. */
 
 
 /* Type definitions */
@@ -163,13 +169,14 @@ struct WrapperConfig {
     time_t  jStateTimeout;          /* Time until which the current jState is valid */
     time_t  lastPingTime;           /* Time that the last ping was sent */
     int     isDebugging;            /* TRUE if set in the config file */
+    int     isStateOutputEnabled;   /* TRUE if set in the config file.  Shows output on the state of the state engine. */
     int     isShutdownHookDisabled; /* TRUE if set in the config file */
     int     exitCode;               /* Code which the wrapper will exit with */
     int     exitRequested;          /* Non-zero if another thread has requested that the wrapper and JVM be shutdown */
     int     exitAcknowledged;       /* Non-zero if the main thread has acknowledged the exit request */
     int     restartRequested;       /* Non-zero if another thread has requested that the JVM be restarted */
     int     jvmRestarts;            /* Number of times that a JVM has been launched since the wrapper was started. */
-	int     restartDelay;           /* Delay in seconds before restarting a new JVM. */
+    int     restartDelay;           /* Delay in seconds before restarting a new JVM. */
     int     requestThreadDumpOnFailedJVMExit; /* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
     time_t  jvmLaunchTime;          /* The time that the previous or current JVM was launched. */
     int     failedInvocationCount;  /* The number of times that the JVM exited in less than successfulInvocationTime in a row. */

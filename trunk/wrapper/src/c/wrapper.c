@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.30  2002/10/10 03:20:09  mortenson
+ * Fix a problem where the Wrapper would not respond to exit requests while
+ * pausing between JVM invocations.
+ *
  * Revision 1.29  2002/09/18 10:37:15  mortenson
  * Fix Bug #611024. The Wrapper would sometimes fail to start if
  * wrapper.max_failed_invocations is set to 1.
@@ -223,6 +227,9 @@ const char *wrapperGetJState(int jState) {
     switch(jState) {
     case WRAPPER_JSTATE_DOWN:
         name = "DOWN";
+        break;
+    case WRAPPER_JSTATE_LAUNCH:
+        name = "LAUNCH(DELAY)";
         break;
     case WRAPPER_JSTATE_LAUNCHING:
         name = "LAUNCHING";
@@ -760,47 +767,6 @@ void wrapperRestartProcess() {
     }
 }
 
-/**
- * Track the number of restarts.  If there are more than the set number of JVM
- *  restarts, each lasting less than the set time.  Then we want to stop trying
- *  to restart.
- */
-int wrapperCheckRestartTimeOK() {
-    time_t newTime = time(NULL);
-
-    if (wrapperData->jvmRestarts > 0) {
-        /* This is not the first JVM, so make sure that we want to launch. */
-        if (newTime - wrapperData->jvmLaunchTime >= wrapperData->successfulInvocationTime) {
-            /* The previous JVM invocation was running long enough that its invocation */
-            /*   should be considered a success.  Reset the failedInvocationStart to   */
-            /*   start the count fresh.                                                */
-            wrapperData->failedInvocationCount = 0;
-        } else {
-            /* The last JVM invocation died quickly and was considered to have */
-            /*  been a faulty launch.  Increase the failed count.              */
-            wrapperData->failedInvocationCount++;
-
-            if (wrapperData->isDebugging) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
-                    "JVM was only running for %d seconds leading to a failed restart count of %d.",
-                    (newTime - wrapperData->jvmLaunchTime), wrapperData->failedInvocationCount);
-            }
-        }
-    } else {
-        /* This is the first JVM, so always proceed. */
-        wrapperData->failedInvocationCount = 0;
-    }
-
-    /* See if we are allowed to try restarting the JVM again. */
-    if (wrapperData->failedInvocationCount < wrapperData->maxFailedInvocations) {
-        /* Try reslaunching the JVM */
-        return TRUE;
-    } else {
-        /* Tried enough times.  Time to give up and exit the Wrapper.  A message will be diplayed later. */
-        return FALSE;
-    }
-}
-
 void wrapperStripQuotes(const char *prop, char *propStripped) {
     int len, i, j;
 
@@ -1264,26 +1230,6 @@ void wrapperFreeJavaCommandArray(char **strings, int length) {
 }
 
 /**
- * Pauses before launching a new JVM if necessary.
- */
-void wrapperPauseBeforeExecute() {
-    /* If this is not the first time that we are launching a JVM, */
-    /*  then pause for {restartDelay} seconds to give the previously */
-    /*  crashed? instance of the JVM a chance to be cleaned up */
-    /*  correctly by the system. */
-    if (wrapperData->jvmRestarts > 0) {
-        if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Pausing for %d seconds...", wrapperData->restartDelay);
-        }
-#ifdef WIN32
-        Sleep(wrapperData->restartDelay * 1000);     /* milliseconds */
-#else /* UNIX */
-        usleep(wrapperData->restartDelay * 1000000); /* microseconds */
-#endif
-    }
-}
-
-/**
  * The main event loop for the wrapper.  Handles all state changes and events.
  */
 void wrapperEventLoop() {
@@ -1321,14 +1267,14 @@ void wrapperEventLoop() {
         lastCycleTime = now;
 
         /* Useful for development debugging, but not runtime debugging */
-        /*
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                   "    WState=%s, JState=%s timeout=%d",
-                   wrapperGetWState(wrapperData->wState),
-                   wrapperGetJState(wrapperData->jState),
-                   (wrapperData->jStateTimeout == 0 ? 
-                    0 : wrapperData->jStateTimeout - now));
-        */
+        if (wrapperData->isStateOutputEnabled) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                       "    WrapperState=%s, JVMState=%s JVMStateTimeout=%d",
+                       wrapperGetWState(wrapperData->wState),
+                       wrapperGetJState(wrapperData->jState),
+                       (wrapperData->jStateTimeout == 0 ? 
+                        0 : wrapperData->jStateTimeout - now));
+        }
         
         if ((wrapperData->exitRequested && (! wrapperData->exitAcknowledged))
             || wrapperData->restartRequested) {
@@ -1347,24 +1293,28 @@ void wrapperEventLoop() {
                 }
             }
             
-            /* Check whether the JVM is running or not */
-            if (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN) {
-                /* JVM Process is gone */
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM shut down unexpectedly.");
-                wrapperData->jState = WRAPPER_JSTATE_DOWN;
-                wrapperData->jStateTimeout = 0;
-                wrapperProtocolClose();
+            if ((wrapperData->jState == WRAPPER_JSTATE_DOWN) || (wrapperData->jState == WRAPPER_JSTATE_LAUNCH)) {
+                /** A JVM is not currently running. Nothing to do.*/
             } else {
-                /* JVM is still up.  Try asking it to shutdown nicely. */
-                if (wrapperData->isDebugging) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Sending stop signal to JVM");
+                /* The JVM should be running, so it needs to be stopped. */
+                if (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN) {
+                    /* JVM Process is gone */
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM shut down unexpectedly.");
+                    wrapperData->jState = WRAPPER_JSTATE_DOWN;
+                    wrapperData->jStateTimeout = 0;
+                    wrapperProtocolClose();
+                } else {
+                    /* JVM is still up.  Try asking it to shutdown nicely. */
+                    if (wrapperData->isDebugging) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Sending stop signal to JVM");
+                    }
+                
+                    wrapperProtocolFunction(WRAPPER_MSG_STOP, NULL);
+                
+                    /* Allow up to 5 + <shutdownTimeout> seconds for the application to stop itself. */
+                    wrapperData->jState = WRAPPER_JSTATE_STOPPING;
+                    wrapperData->jStateTimeout = now + 5 + wrapperData->shutdownTimeout;
                 }
-                
-                wrapperProtocolFunction(WRAPPER_MSG_STOP, NULL);
-                
-                /* Allow up to 5 + <shutdownTimeout> seconds for the application to stop itself. */
-                wrapperData->jState = WRAPPER_JSTATE_STOPPING;
-                wrapperData->jStateTimeout = now + 5 + wrapperData->shutdownTimeout;
             }
             wrapperData->restartRequested = FALSE;
         }
@@ -1429,53 +1379,53 @@ void wrapperEventLoop() {
              *  trying to shut down. */
             if ((wrapperData->wState == WRAPPER_WSTATE_STARTING) ||
                 (wrapperData->wState == WRAPPER_WSTATE_STARTED)) {
-                /* The JVM needs to be launched. */
-                /* See if we can launch it */
-                if (wrapperCheckRestartTimeOK()) {
-                    wrapperPauseBeforeExecute();
+                /* A JVM needs to be launched. Decide on a time to wait before launching the JVM. */
+                if (wrapperData->jvmRestarts > 0) {
+                    /* This is not the first JVM, so make sure that we still want to launch. */
+                    if (now - wrapperData->jvmLaunchTime >= wrapperData->successfulInvocationTime) {
+                        /* The previous JVM invocation was running long enough that its invocation */
+                        /*   should be considered a success.  Reset the failedInvocationStart to   */
+                        /*   start the count fresh.                                                */
+                        wrapperData->failedInvocationCount = 0;
 
-                    /* Since we were paused for a while, it is possible that the user */
-                    /*  hit CTRL-C or some other event occurred to signal that the    */
-                    /*  Wrapper should exit.  This check makes the Wrapper more well  */
-                    /*  behaved if the user hits CTRL-C right after the JVM exits     */
-                    /*  abnormally.                                                   */
-                    if (wrapperData->exitRequested) {
-                        /* Exit was requested while we were paused.  Fall through. */
+                        /* Set the state to launch after the restart delay. */
+                        wrapperData->jState = WRAPPER_JSTATE_LAUNCH;
+                        wrapperData->jStateTimeout = now + wrapperData->restartDelay;
                     } else {
-                        /* Set the launch time to the curent time */
-                        wrapperData->jvmLaunchTime = time(NULL);
+                        /* The last JVM invocation died quickly and was considered to have */
+                        /*  been a faulty launch.  Increase the failed count.              */
+                        wrapperData->failedInvocationCount++;
 
-                        /* Generate a unique key to use when communicating with the JVM */
-                        wrapperBuildKey();
-                    
-                        /* Generate the command used to launch the Java process */
-                        wrapperBuildJavaCommand();
-                    
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Launching a JVM...");
-                        wrapperExecute();
-                    
-                        /* Check if the start was successful. */
-                        if (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN) {
-                            /* Failed to start the JVM.  Tell the wrapper to shutdown. */
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to start a JVM");
-                            wrapperData->wState = WRAPPER_WSTATE_STOPPING;
+                        if (wrapperData->isDebugging) {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
+                                "JVM was only running for %d seconds leading to a failed restart count of %d.",
+                                (now - wrapperData->jvmLaunchTime), wrapperData->failedInvocationCount);
+                        }
+
+                        /* See if we are allowed to try restarting the JVM again. */
+                        if (wrapperData->failedInvocationCount < wrapperData->maxFailedInvocations) {
+                            /* Try reslaunching the JVM */
+
+                            /* Set the state to launch after the restart delay. */
+                            wrapperData->jState = WRAPPER_JSTATE_LAUNCH;
+                            wrapperData->jStateTimeout = now + wrapperData->restartDelay;
                         } else {
-                            /* The JVM was launched.  We still do not know whether the
-                             *  launch will be successful.  Allow <startupTimeout> seconds before giving up.
-                             *  This can take quite a while if the system is heavily loaded.
-                             *  (At startup for example) */
-                            wrapperData->jState = WRAPPER_JSTATE_LAUNCHING;
-                            wrapperData->jStateTimeout = now + wrapperData->startupTimeout;
+                            /* Unable to launch another JVM. */
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                                       "There were %d failed launches in a row, each lasting less than %d seconds.  Giving up.",
+                                       wrapperData->failedInvocationCount, wrapperData->successfulInvocationTime);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                                       "  There may be a configuration problem: please check the logs.");
+                            wrapperData->wState = WRAPPER_WSTATE_STOPPING;
                         }
                     }
                 } else {
-                    /* Unable to launch another JVM. */
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                               "There were %d failed launches in a row, each lasting less than %d seconds.  Giving up.",
-                               wrapperData->failedInvocationCount, wrapperData->successfulInvocationTime);
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                               "  There may be a configuration problem: please check the logs.");
-                    wrapperData->wState = WRAPPER_WSTATE_STOPPING;
+                    /* This will me the first invocation. */
+                    wrapperData->failedInvocationCount = 0;
+
+                    /* Set the state to launch immediately. */
+                    wrapperData->jState = WRAPPER_JSTATE_LAUNCH;
+                    wrapperData->jStateTimeout = now;
                 }
             } else {
                 /* The wrapper is shutting down.  Do nothing. */
@@ -1485,6 +1435,51 @@ void wrapperEventLoop() {
             wrapperData->lastPingTime = now;
             break;
             
+        case WRAPPER_JSTATE_LAUNCH:
+            /* The Waiting state is set from the DOWN state if a JVM had
+             *  previously been launched the Wrapper will wait in this state
+             *  until the restart delay has expired.  If this was the first
+             *  invocation, then the state timeout will be set to the current
+             *  time causing the new JVM to be launced immediately. */
+            if ((wrapperData->wState == WRAPPER_WSTATE_STARTING) ||
+                (wrapperData->wState == WRAPPER_WSTATE_STARTED)) {
+
+                /* Is it time to proceed? */
+                if (now > wrapperData->jStateTimeout) {
+                    /* Launch the new JVM
+
+                    /* Set the launch time to the curent time */
+                    wrapperData->jvmLaunchTime = time(NULL);
+
+                    /* Generate a unique key to use when communicating with the JVM */
+                    wrapperBuildKey();
+                
+                    /* Generate the command used to launch the Java process */
+                    wrapperBuildJavaCommand();
+                
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Launching a JVM...");
+                    wrapperExecute();
+                
+                    /* Check if the start was successful. */
+                    if (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN) {
+                        /* Failed to start the JVM.  Tell the wrapper to shutdown. */
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to start a JVM");
+                        wrapperData->wState = WRAPPER_WSTATE_STOPPING;
+                    } else {
+                        /* The JVM was launched.  We still do not know whether the
+                         *  launch will be successful.  Allow <startupTimeout> seconds before giving up.
+                         *  This can take quite a while if the system is heavily loaded.
+                         *  (At startup for example) */
+                        wrapperData->jState = WRAPPER_JSTATE_LAUNCHING;
+                        wrapperData->jStateTimeout = now + wrapperData->startupTimeout;
+                    }
+                }
+            } else {
+                /* The wrapper is shutting down.  Switch to the down state. */
+                wrapperData->jState = WRAPPER_JSTATE_DOWN;
+            }
+            break;
+
         case WRAPPER_JSTATE_LAUNCHING:
             /* The JVM process was launched, but we have not yet received a */
             /*  response to a ping. */
@@ -1818,6 +1813,9 @@ int wrapperLoadConfiguration() {
         }
     }
     
+    /* Get the state output status. */
+    wrapperData->isStateOutputEnabled = getBooleanProperty(properties, "wrapper.state_output", FALSE);
+
     /* Get the shutdown hook status */
     wrapperData->isShutdownHookDisabled = getBooleanProperty(properties, "wrapper.disable_shutdown_hook", FALSE);
     
