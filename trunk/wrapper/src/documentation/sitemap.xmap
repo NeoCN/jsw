@@ -93,7 +93,7 @@
             </map:match>
             
             <map:match pattern="*/*.ico">
-                <map:read src="resources/{1}/{2}.ico" mime-type="image/png"/>
+                <map:read src="resources/{1}/{2}.ico" mime-type="image/ico"/>
             </map:match>
             
             <map:match pattern="*/images/*.png">
