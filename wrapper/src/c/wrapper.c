@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.105  2004/07/05 07:43:53  mortenson
+ * Fix a deadlock on solaris by being very careful that we never perform any direct
+ * logging from within a signal handler.
+ *
  * Revision 1.104  2004/07/01 12:51:32  mortenson
  * Fix some code that was only being executed when debugging was enabled.
  *
@@ -466,7 +470,7 @@ void wrapperProtocolStartServer() {
         /* Log an error.  This is fatal, so die. */
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_FATAL, "unable to bind listener port %d. (%s)", wrapperData->port, getLastErrorText());
 
-        wrapperStopProcess(rc);
+        wrapperStopProcess(FALSE, rc);
 
         wrapperProtocolStopServer();
         return;
@@ -955,7 +959,7 @@ void wrapperLogChildOutput(const char* log) {
 
             case FILTER_ACTION_SHUTDOWN:
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Filter trigger matched.  Shutting down.");
-                wrapperStopProcess(1); /* Exit with an error code. */
+                wrapperStopProcess(FALSE, 1); /* Exit with an error code. */
                 break;
 
             default: /* FILTER_ACTION_NONE*/
@@ -1058,19 +1062,22 @@ int wrapperRunService() {
 /**
  * Used to ask the state engine to shut down the JVM and Wrapper
  */
-void wrapperStopProcess(int exitCode) {
+void wrapperStopProcess(int useLoggerQueue, int exitCode) {
     /* If it has not already been set, set the exit request flag in the wrapper data. */
     if (wrapperData->exitRequested || wrapperData->restartRequested ||
         (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
         (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
+        (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
         (wrapperData->jState == WRAPPER_JSTATE_DOWN)) {
 
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "wrapperStopProcess(%d) called.  (IGNORED)", exitCode);
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                "wrapperStopProcess(%d) called.  (IGNORED)", exitCode);
         }
     } else {
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "wrapperStopProcess(%d) called.", exitCode);
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                "wrapperStopProcess(%d) called.", exitCode);
         }
 
         wrapperData->exitCode = exitCode;
@@ -1086,6 +1093,7 @@ void wrapperRestartProcess() {
     if (wrapperData->exitRequested || wrapperData->restartRequested ||
         (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
         (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
+        (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
         (wrapperData->jState == WRAPPER_JSTATE_DOWN)) {
 
         if (wrapperData->isDebugging) {
@@ -2418,7 +2426,7 @@ void wrapperStopRequested(int exitCode) {
 
     /* Get things stopping on this end.  Ask the JVM to stop again in case the
      *	user code on the Java side is not written correctly. */
-    wrapperStopProcess(exitCode);
+    wrapperStopProcess(FALSE, exitCode);
 }
 
 void wrapperRestartRequested() {
@@ -2520,7 +2528,7 @@ void wrapperStartedSignalled() {
 
             if (!wrapperData->isConsole) {
                 /* Tell the service manager that we started */
-                wrapperReportStatus(WRAPPER_WSTATE_STARTED, 0, 0);
+                wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTED, 0, 0);
             }
         }
     } else if (wrapperData->jState == WRAPPER_JSTATE_STOPPING) {

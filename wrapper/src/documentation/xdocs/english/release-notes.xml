@@ -129,6 +129,27 @@ $Id$
                     sending large quantities of output to the console.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Increase debug output on UNIX platforms when a signal is caught.  When
+                    possible, information about where the signal came from is now logged.
+                    (Not currently supported on FreeBSD)
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Modified the way log output from within signal handlers is handled so it
+                    is now queued and then logged by the main event loop.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Back out a 3.1.0 change where a JVM that had failed to exit cleanly was
+                    sent a SIGTERM prior to a SIGKILL.  The SIGTERM made no difference and
+                    slowed down the forced shutdown.  A modification to the event loop made
+                    the functionality more difficult to implement.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.0">

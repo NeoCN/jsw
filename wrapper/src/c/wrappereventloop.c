@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.5  2004/07/05 07:43:54  mortenson
+ * Fix a deadlock on solaris by being very careful that we never perform any direct
+ * logging from within a signal handler.
+ *
  * Revision 1.4  2004/06/22 02:25:22  mortenson
  * Modify the timing of a low level debug message related to the anchor file.
  *
@@ -129,6 +133,9 @@ const char *wrapperGetJState(int jState) {
         break;
     case WRAPPER_JSTATE_STOPPED:
         name = "STOPPED";
+        break;
+    case WRAPPER_JSTATE_KILLING:
+        name = "KILLING";
         break;
     default:
         name = "UNKNOWN";
@@ -226,13 +233,14 @@ void anchorPoll(DWORD nowTicks) {
                 if (wrapperData->exitRequested || wrapperData->restartRequested ||
                     (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
                     (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
+                    (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
                     (wrapperData->jState == WRAPPER_JSTATE_DOWN)) {
                     /* Already shutting down, so nothing more to do. */
                 } else {
                     /* Start the shutdown process. */
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Anchor file deleted.  Shutting down.");
 
-                  wrapperStopProcess(0);
+                  wrapperStopProcess(FALSE, 0);
 
                     /* To make sure that the JVM will not be restarted for any reason,
                      *  start the Wrapper shutdown process as well. */
@@ -265,7 +273,7 @@ void wStateStarting(DWORD nowTicks) {
     /*  manager to reasure it that we are still alive. */
 
     /* Tell the service manager that we are starting */
-    wrapperReportStatus(WRAPPER_WSTATE_STARTING, 0, 1000);
+    wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTING, 0, 1000);
     
     /* If the JVM state is now STARTED, then change the wrapper state */
     /*  to be STARTED as well. */
@@ -273,7 +281,7 @@ void wStateStarting(DWORD nowTicks) {
         wrapperData->wState = WRAPPER_WSTATE_STARTED;
         
         /* Tell the service manager that we started */
-        wrapperReportStatus(WRAPPER_WSTATE_STARTED, 0, 0);
+        wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTED, 0, 0);
     }
 }
 
@@ -302,7 +310,7 @@ void wStateStopping(DWORD nowTicks) {
     /*  to reasure it that we are still alive. */
     
     /* Tell the service manager that we are stopping */
-    wrapperReportStatus(WRAPPER_WSTATE_STOPPING, wrapperData->exitCode, 1000);
+    wrapperReportStatus(FALSE, WRAPPER_WSTATE_STOPPING, wrapperData->exitCode, 1000);
     
     /* If the JVM state is now DOWN, then change the wrapper state */
     /*  to be STOPPED as well. */
@@ -550,7 +558,7 @@ void jStateLaunching(DWORD nowTicks, int nextSleep) {
             displayLaunchingTimeoutMessage();
 
             /* Give up on the JVM and start trying to kill it. */
-            wrapperKillProcess();
+            wrapperKillProcess(FALSE);
 
             /* Restart the JVM. */
             wrapperData->restartRequested = TRUE;
@@ -582,7 +590,7 @@ void jStateLaunched(DWORD nowTicks, int nextSleep) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to send the start command to the JVM.");
 
         /* Give up on the JVM and start trying to kill it. */
-        wrapperKillProcess();
+        wrapperKillProcess(FALSE);
 
         /* Restart the JVM. */
         wrapperData->restartRequested = TRUE;
@@ -627,7 +635,7 @@ void jStateStarting(DWORD nowTicks, int nextSleep) {
                        "Startup failed: Timed out waiting for signal from JVM.");
 
             /* Give up on the JVM and start trying to kill it. */
-            wrapperKillProcess();
+            wrapperKillProcess(FALSE);
 
             /* Restart the JVM. */
             wrapperData->restartRequested = TRUE;
@@ -672,7 +680,7 @@ void jStateStarted(DWORD nowTicks, int nextSleep) {
                        "JVM appears hung: Timed out waiting for signal from JVM.");
 
             /* Give up on the JVM and start trying to kill it. */
-            wrapperKillProcess();
+            wrapperKillProcess(FALSE);
 
             /* Restart the JVM. */
             wrapperData->restartRequested = TRUE;
@@ -720,7 +728,7 @@ void jStateStopping(DWORD nowTicks, int nextSleep) {
                        "Shutdown failed: Timed out waiting for signal from JVM.");
 
             /* Give up on the JVM and start trying to kill it. */
-            wrapperKillProcess();
+            wrapperKillProcess(FALSE);
         } else {
             /* Keep waiting. */
         }
@@ -758,7 +766,41 @@ void jStateStopped(DWORD nowTicks, int nextSleep) {
                        "Shutdown failed: Timed out waiting for the JVM to terminate.");
 
             /* Give up on the JVM and start trying to kill it. */
-            wrapperKillProcess();
+            wrapperKillProcess(FALSE);
+        } else {
+            /* Keep waiting. */
+        }
+    }
+}
+
+/**
+ * WRAPPER_JSTATE_KILLING
+ * The Wrapper is about to kill the JVM.  If thread dumps on exit is enabled
+ *  then the Wrapper must wait a few moments between telling the JVM to do
+ *  a thread dump and actually killing it.  The Wrapper will sit in this state
+ *  while it is waiting.
+ *
+ * nowTicks: The tick counter value this time through the event loop.
+ * nextSleep: Flag which is used to determine whether or not the state engine
+ *            will be sleeping before then next time through the loop.  It
+ *            may make sense to avoid certain actions if it is known that the
+ *            function will be called again immediately.
+ */
+void jStateKilling(DWORD nowTicks, int nextSleep) {
+    /* Make sure that the JVM process is still up and running */
+    if (nextSleep && (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN)) {
+        /* The process is gone. */
+        wrapperData->jState = WRAPPER_JSTATE_DOWN;
+        wrapperData->jStateTimeoutTicks = 0;
+        wrapperData->jStateTimeoutTicksSet = 0;
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
+                   "JVM exited on its own while waiting to kill the application.");
+        wrapperProtocolClose();
+    } else {
+        /* Have we waited long enough */
+        if (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0) {
+            /* It is time to actually kill the JVM. */
+            wrapperKillProcessNow();
         } else {
             /* Keep waiting. */
         }
@@ -790,6 +832,10 @@ void wrapperEventLoop() {
 #endif
         }
         nextSleep = TRUE;
+
+        /* Before doing anything else, always maintain the logger to make sure
+         *  that any queued messages are logged. */
+        maintainLogger();
 
         /* Check the stout pipe of the child process. */
         if ( wrapperReadChildOutput() )
@@ -858,7 +904,8 @@ void wrapperEventLoop() {
                 wrapperData->jStateTimeoutTicks = 0;
                 wrapperData->jStateTimeoutTicksSet = 0;
             } else if ((wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
-                (wrapperData->jState == WRAPPER_JSTATE_STOPPED)) {
+                (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
+                (wrapperData->jState == WRAPPER_JSTATE_KILLING)) {
                 /** The JVM is already being stopped, so nothing else needs to be done. */
             } else {
                 /* The JVM should be running, so it needs to be stopped. */
@@ -943,6 +990,10 @@ void wrapperEventLoop() {
 
         case WRAPPER_JSTATE_STOPPED:
             jStateStopped(nowTicks, nextSleep);
+            break;
+
+        case WRAPPER_JSTATE_KILLING:
+            jStateKilling(nowTicks, nextSleep);
             break;
 
         default:
