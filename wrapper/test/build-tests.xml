@@ -184,6 +184,22 @@
         <replace file="${test.dir}/percentoutput.conf"
                  token="wrapper.pidfile=/var/run/aigent.pid"
                  value="wrapper.pidfile=${basedir}/percentoutput.pid" />
+        
+        <!-- Restarter Test -->
+        <filter token="app.name"          value="restarter"/>
+        <filter token="app.long.name"     value="Restarter Case" />
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${test.dir}/restarter.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/restarter.conf"
+                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
+                 value="wrapper.java.mainclass=com.silveregg.wrapper.test.Restarter" />
+        <replace file="${test.dir}/restarter.conf"
+                 token="wrapper.logfile=../logs/wrapper.log"
+                 value="wrapper.logfile=../test/testwrapper.log" />
+        <replace file="${test.dir}/restarter.conf"
+                 token="wrapper.pidfile=/var/run/aigent.pid"
+                 value="wrapper.pidfile=${basedir}/restarter.pid" />
     </target>
     
     <!-- =================================================================== -->
@@ -280,6 +296,17 @@ set ENV_VAR_4=d]]></replacevalue>
         <replace file="${test.dir}/TestPercentOutput.bat"
                  token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
                  value='set _WRAPPER_CONF="%_APP_HOME%\test\percentoutput.conf"' />
+        
+        <!-- Restarter Test -->
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestRestarter.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestRestarter.bat"
+                 token='set _APP_HOME=%_APP_HOME:\bin\=%'
+                 value='set _APP_HOME=%_APP_HOME:\test\=%' />
+        <replace file="${test.dir}/TestRestarter.bat"
+                 token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
+                 value='set _WRAPPER_CONF="%_APP_HOME%\test\restarter.conf"' />
     </target>
     
     <!-- =================================================================== -->
@@ -384,6 +411,14 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/percentoutput"
               filtering="on"/>
         <chmod file="${test.dir}/percentoutput" perm="+x"/> 
+        
+        <!-- Restarter Test -->
+        <filter token="app.name"          value="restarter"/>
+        <filter token="app.long.name"     value="Restarter Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/restarter"
+              filtering="on"/>
+        <chmod file="${test.dir}/restarter" perm="+x"/> 
         
         <!-- Get rid of the temp script file -->
         <delete file="${test.dir}/temp.script.in"/>
