@@ -106,6 +106,12 @@ $Id$
                     is being used correctly but never the less a user did come across it.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add some additional debug output to help identify the cause of problems
+                    loading the native library.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

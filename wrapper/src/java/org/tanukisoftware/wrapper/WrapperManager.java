@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.23  2003/10/31 17:30:52  mortenson
+// Add some additional debug output to help identify the cause of problems
+// loading the native library.
+//
 // Revision 1.22  2003/10/31 10:57:53  mortenson
 // Fix a problem where CTRL-C was being ignored by the WrapperManager if a
 // WrapperListener is never registered.
@@ -583,6 +587,10 @@ public final class WrapperManager
         }
         catch ( UnsatisfiedLinkError e )
         {
+            if ( m_debug )
+            {
+                m_out.println( "Loading native library failed: " + file + "  Cause: " + e );
+            }
             return false;
         }
     }
