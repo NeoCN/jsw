@@ -28,6 +28,12 @@ Java Service Wrapper Revision History.
 * Add a new class, WrapperActionServer, which makes it easy to remotely control
   the Wrapper remotely by opening a socket and sending commands.  See the
   javadocs of the class for more details.
+* Fix bug #744801.  A Java GUI was not being displayed when the application was
+  run in either console mode or as a service with wrapper.ntservice.interactive
+  enabled.  This problem was introduced in Version 3.0.0 when using 1.2.x or
+  1.3.x versions of Java.  To use interactive services with 1.2.x or 1.3.x
+  versions of java, please review the documentation for the
+  wrapper.ntservice.interactive property.
 
 3.0.3
 * Added support for Mac OS X.  Big thanks to Andy Barnett for supplying the

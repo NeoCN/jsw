@@ -76,6 +76,16 @@ $Id$
                     details.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix bug #744801.  A Java GUI was not being displayed when the application was
+                    run in either console mode or as a service with <ulink url="prop-ntservice-interactive.html">wrapper.ntservice.interactive</ulink>
+                    enabled.  This problem was introduced in Version 3.0.0 when using 1.2.x or
+                    1.3.x versions of Java.  To use interactive services with 1.2.x or 1.3.x
+                    versions of java, please review the documentation for the
+                    <ulink url="prop-ntservice-interactive.html">wrapper.ntservice.interactive</ulink> property.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

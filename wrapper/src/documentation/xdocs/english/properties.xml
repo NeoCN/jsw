@@ -145,6 +145,9 @@
                     <ulink url="prop-ntservice-displayname.html">wrapper.ntservice.displayname</ulink>
                 </listitem>
                 <listitem>
+                    <ulink url="prop-ntservice-hide-console.html">wrapper.ntservice.hide_console</ulink>
+                </listitem>
+                <listitem>
                     <ulink url="prop-ntservice-interactive.html">wrapper.ntservice.interactive</ulink>
                 </listitem>
                 <listitem>

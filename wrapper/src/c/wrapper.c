@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.61  2003/06/10 14:21:59  mortenson
+ * Fix bug #744801.  A Java GUI was not being displayed when the application was
+ * run in either console mode or as a service with wrapper.ntservice.interactive
+ * enabled on JVM versions prior to 1.4.0.
+ *
  * Revision 1.60  2003/05/29 09:27:13  mortenson
  * Improve the debug output so that packet codes are now shown using a name
  * rather than a raw number.
@@ -1997,6 +2002,9 @@ void wrapperBuildNTServiceInfo() {
             "Ignoring the wrapper.ntservice.interactive property because it can not be set when wrapper.ntservice.account is also set.");
         wrapperData->ntServiceInteractive = FALSE;
     }
+
+    /* Hide the Java Console Window. */
+    wrapperData->ntHideJavaConsole = getBooleanProperty( properties, "wrapper.ntservice.hide_console", TRUE );
 }
 #endif
 
