@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.35  2004/01/12 17:40:03  mortenson
+ * Fix some compiler warnings on Solaris
+ *
  * Revision 1.34  2004/01/12 17:30:32  mortenson
  * Remove a c-style comment.
  *
@@ -194,7 +197,7 @@ int getThreadId() {
         }
     }
     
-    printf( "WARNING - Encountered an unknown thread %ld in getThreadId().\n", threadId );
+    printf( "WARNING - Encountered an unknown thread %ld in getThreadId().\n", (long int)threadId );
     return threadIds[0]; /* WRAPPER_THREAD_SIGNAL */
 }
 
