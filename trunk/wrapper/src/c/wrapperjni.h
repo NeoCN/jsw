@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.5  2003/10/31 11:10:46  mortenson
+ * Add a getLastErrorText function so we can display more user friendly messages
+ * within the native library.
+ *
  * Revision 1.4  2003/04/03 04:05:22  mortenson
  * Fix several typos in the docs.  Thanks to Mike Castle.
  *
@@ -36,6 +40,7 @@
 
 #include "org_tanukisoftware_wrapper_WrapperManager.h"
 
+extern char* getLastErrorText();
 extern int wrapperJNIDebugging;
 extern void wrapperJNIHandleSignal(int signal);
 
