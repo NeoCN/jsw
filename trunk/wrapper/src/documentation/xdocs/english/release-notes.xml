@@ -125,6 +125,17 @@ $Id$
                 <para>
                     Added a new <ulink url="prop-ping-interval.html">wrapper.ping.interval</ulink>
                     property which lets users control the frequency that the Wrapper pings the JVM.
+                    <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=607768&amp;group_id=39428&amp;atid=425190">Feature Request #607768</ulink>.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    When a JVM refuses to shutdown, the Wrapper can be configured to request a
+                    thread dump using the <ulink url="prop-request-thread-dump-on-failed-jvm-exit.html">wrapper.request_thread_dump_on_failed_jvm_exit</ulink>
+                    property.  The Wrapper was then waiting 1 second before the process was
+                    killed.  This was not always long enough, resulting in a truncated thread
+                    dump.  Increased the pause to 3 seconds.  
+                    <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=633761&amp;group_id=39428&amp;atid=425190">Feature Request #633761</ulink>.
                 </para>
             </listitem>
         </itemizedlist>

@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.53  2003/09/04 06:08:17  mortenson
+ * Extend the pause between requesting a thread dump on exit and killing the JVM.
+ *
  * Revision 1.52  2003/09/03 02:33:38  mortenson
  * Requested restarts no longer reset the restart count.
  * Add new wrapper.ignore_signals property.
@@ -703,7 +706,10 @@ void wrapperKillProcess() {
         if (wrapperData->requestThreadDumpOnFailedJVMExit) {
             requestDumpJVMState();
 
-            Sleep(1000);     /* 1 second in milliseconds */
+			/* Wait 3 seconds to give the JVM time to dump its state before the JVM
+			 *  process is killed.  This used to be 1 second but that was not long
+			 *  enough if the system was under load. */
+            Sleep(3000);     /* milliseconds */
         }
 
         /* Kill it immediately. */
