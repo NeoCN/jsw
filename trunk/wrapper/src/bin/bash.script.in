@@ -28,7 +28,7 @@ PRIORITY=
 # Get the actual location of this script.  Need realpath if symlinked
 if [ ! -z "`find $0 -type l`" ]; then
     REALPATH="`realpath $0`"
-    if [ "$REALPATH" == "" ]; then
+    if [ "$REALPATH" = "" ]; then
         echo "The realpath command is required when $0 is a symbolic link!"
         echo "Please copy the realpath executable from the target directory"
         echo "to /usr/bin"
