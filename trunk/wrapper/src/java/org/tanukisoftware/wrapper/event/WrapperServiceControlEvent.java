@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.event;
  */
 
 // $Log$
+// Revision 1.3  2004/11/29 14:26:52  mortenson
+// Add javadocs.
+//
 // Revision 1.2  2004/11/29 13:15:38  mortenson
 // Fix some javadocs problems.
 //
@@ -41,11 +44,11 @@ package org.tanukisoftware.wrapper.event;
  *  service.
  *
  * <dl>
- *   <dt>SERVICE_CONTROL_STOP (1)</dt>
+ *   <dt>WrapperManager.SERVICE_CONTROL_CODE_STOP (1)</dt>
  *   <dd>The service was requested to stop.</dd>
- *   <dt>SERVICE_CONTROL_INTERROGATE (4)</dt>
+ *   <dt>WrapperManager.SERVICE_CONTROL_CODE_INTERROGATE (4)</dt>
  *   <dd>The service manager queried the service to make sure it is still alive.</dd>
- *   <dt>SERVICE_CONTROL_SHUTDOWN (5)</dt>
+ *   <dt>WrapperManager.SERVICE_CONTROL_CODE_SHUTDOWN (5)</dt>
  *   <dd>The system is shutting down.</dd>
  *   <dt>User code (128-255)</dt>
  *   <dd>User defined code.</dd>
