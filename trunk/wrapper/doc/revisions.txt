@@ -16,6 +16,11 @@ Java Service Wrapper Revision History.
   occassionally cause the Wrapper to crash with an Access Violation.
   The problem was only encountered when the tick timer was enabled,
   and was only seen on multi-CPU systems.  Bug #949877.
+* Increase debug output on UNIX platforms when a signal is caught.  When
+  possible, information about where the signal came from is now logged.
+* Fix a problem when using the tick timer where the Wrapper would sometimes
+  exit on startup due to an uncaught SIGALRM.  Only reported on multi-CPU
+  Solaris systems.
 
 3.1.0
 * The license was revised for this version to include a copyright omission.

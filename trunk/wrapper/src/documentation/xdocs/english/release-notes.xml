@@ -51,6 +51,19 @@ $Id$
                     <ulink url="http://sourceforge.net/tracker/?func=detail&amp;aid=949877&amp;group_id=39428&amp;atid=425187">Bug #949877</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Increase debug output on UNIX platforms when a signal is caught.  When
+                    possible, information about where the signal came from is now logged.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Fix a problem when using the tick timer where the Wrapper would sometimes
+                    exit on startup due to an uncaught SIGALRM.  Only reported on multi-CPU
+                    Solaris systems.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.0">
