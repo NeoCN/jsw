@@ -43,5 +43,13 @@
             <simpara><emphasis>Example:</emphasis></simpara>
             <screen format="linespecific"><![CDATA[wrapper.java.library.path.1=../lib]]></screen>
         </informalexample>
+        <note>
+            <para>
+                On Windows, the Wrapper will correctly handle path elements
+                which contain spaces by enclosing the final combined library
+                path in quotes.  Individual library path elements should not
+                be quoted even if they contain spaces.
+            </para>
+        </note>
     </section>
 </chapter>

@@ -59,5 +59,13 @@ wrapper.java.classpath.4=../classes]]></screen>
             <screen format="linespecific"><![CDATA[wrapper.java.classpath.1=../lib/*.jar
 wrapper.java.classpath.2=../classes]]></screen>
         </informalexample>
+        <note>
+            <para>
+                On Windows, the Wrapper will correctly handle class path
+                elements which contain spaces by enclosing the final combined
+                class path in quotes.  Individual class path elements should
+                not be quoted even if they contain spaces.
+            </para>
+        </note>
     </section>
 </chapter>
