@@ -225,5 +225,12 @@ wrapper.logfile=logs/wrapper.log]]></screen>
                 or daemon process.
             </para>
         </section>
+        <note>
+            <para>
+                <ulink url="prop-restart-reload-configuration.html">Reloading</ulink>
+                the Wrapper configuration will have no effect on the value of this property.
+                Changes will not take effect until the Wrapper has been restarted.
+            </para>
+        </note>
     </section>
 </chapter>
