@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.93  2004/10/19 11:48:20  mortenson
+ * Rework logging so that the logfile is kept open.  Results in a 4 fold speed increase.
+ *
  * Revision 1.92  2004/10/18 09:37:22  mortenson
  * Add the wrapper.cpu_output and wrapper.cpu_output.interval properties to
  * make it possible to track CPU usage of the Wrapper and JVM over time.
@@ -948,11 +951,23 @@ void wrapperExecute() {
         pipeInitialized = 1;
     }
     
+    /* Make sure the log file is closed before the Java process is created.  Failure to do
+     *  so will give the Java process a copy of the open file.  This means that this process
+     *  will not be able to rename the file even after closing it because it will still be
+     *  open in the Java process.  Also set the auto close flag to make sure that other
+     *  threads do not reopen the log file as the new process is being created. */
+    setLogfileAutoClose(TRUE);
+    closeLogfile();
+    
     /* Fork off the child. */
     proc = fork();
     
     if (proc == -1) {
         /* Fork failed. */
+        
+        /* Restore the auto close flag. */
+        setLogfileAutoClose(wrapperData->logfileInactivityTimeout <= 0);
+
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                    "Could not spawn JVM process: %s", getLastErrorText());
         
@@ -1000,6 +1015,9 @@ void wrapperExecute() {
             /* We are the parent side. */
             jvmPid = proc;
             jvmOut = pipedes[STDIN_FILENO];
+            
+            /* Restore the auto close flag. */
+            setLogfileAutoClose(wrapperData->logfileInactivityTimeout <= 0);
 
             /* The pipedes array is global so do not close the pipes. */
             
@@ -1380,6 +1398,11 @@ void daemonize() {
     pid_t pid;
     int fd;
     
+    /* Set the auto close flag and close the logfile before doing any forking to avoid
+     *  duplicate open files. */
+    setLogfileAutoClose(TRUE);
+    closeLogfile();
+    
     /* first fork */
     if (wrapperData->isDebugging) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Spawning intermediate process...");
@@ -1443,6 +1466,9 @@ void daemonize() {
         /* Call exit rather than appExit as we are only exiting this process. */
         exit(0);
     }
+    
+    /* Restore the auto close flag in the daemonized process. */
+    setLogfileAutoClose(wrapperData->logfileInactivityTimeout <= 0);
 } 
 
 

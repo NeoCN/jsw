@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.121  2004/10/19 11:48:20  mortenson
+ * Rework logging so that the logfile is kept open.  Results in a 4 fold speed increase.
+ *
  * Revision 1.120  2004/10/18 09:37:22  mortenson
  * Add the wrapper.cpu_output and wrapper.cpu_output.interval properties to
  * make it possible to track CPU usage of the Wrapper and JVM over time.
@@ -989,6 +992,7 @@ int wrapperInitializeLogging() {
     setLogfilePath("wrapper.log");
     setLogfileFormat("LPTM");
     setLogfileLevelInt(LEVEL_DEBUG);
+    setLogfileAutoClose(FALSE);
     setConsoleLogFormat("LPM");
     setConsoleLogLevelInt(LEVEL_DEBUG);
     setSyslogLevelInt(LEVEL_NONE);
@@ -2152,6 +2156,10 @@ int wrapperLoadConfiguration() {
 
     /* Load log files level */
     setLogfileMaxLogFiles((char *)getStringProperty(properties, "wrapper.logfile.maxfiles", "0"));
+    
+    /* Get the memory output status. */
+    wrapperData->logfileInactivityTimeout = max(getIntProperty(properties, "wrapper.logfile.inactivity.timeout", 1), 0);
+    setLogfileAutoClose(wrapperData->logfileInactivityTimeout <= 0);
 
     /* Load console format */
     setConsoleLogFormat((char *)getStringProperty(properties, "wrapper.console.format", "PM"));

@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.93  2004/10/19 11:48:20  mortenson
+ * Rework logging so that the logfile is kept open.  Results in a 4 fold speed increase.
+ *
  * Revision 1.92  2004/10/18 09:37:23  mortenson
  * Add the wrapper.cpu_output and wrapper.cpu_output.interval properties to
  * make it possible to track CPU usage of the Wrapper and JVM over time.
@@ -1609,6 +1612,14 @@ void wrapperExecute() {
     } else {
         c[1] = '\0'; /* terminate after the slash */
     }
+    
+    /* Make sure the log file is closed before the Java process is created.  Failure to do
+     *  so will give the Java process a copy of the open file.  This means that this process
+     *  will not be able to rename the file even after closing it because it will still be
+     *  open in the Java process.  Also set the auto close flag to make sure that other
+     *  threads do not reopen the log file as the new process is being created. */
+    setLogfileAutoClose(TRUE);
+    closeLogfile();
 
     /* Create the new process */
     ret=CreateProcess(NULL, 
@@ -1621,6 +1632,9 @@ void wrapperExecute() {
                       NULL,           /* use the Wrapper's current working directory */
                       &startup_info,  /* STARTUPINFO pointer */
                       &process_info); /* PROCESS_INFORMATION pointer */
+    
+    /* As soon as the new process is created, restore the auto close flag. */
+    setLogfileAutoClose(wrapperData->logfileInactivityTimeout <= 0);
 
     /* Check if virtual machine started */
     if (ret==FALSE) {
