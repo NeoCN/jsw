@@ -217,10 +217,10 @@
                 <listproperty>
                     <ulink url="prop-port.html">wrapper.port</ulink>
                 </listproperty>
-                <listproperty version="3.1.3">
+                <listproperty version="3.2.0">
                     <ulink url="prop-port.html">wrapper.port.max</ulink>
                 </listproperty>
-                <listproperty version="3.1.3">
+                <listproperty version="3.2.0">
                     <ulink url="prop-port.html">wrapper.port.min</ulink>
                 </listproperty>
                 <listproperty version="2.2.7">
@@ -228,6 +228,9 @@
                 </listproperty>
                 <listproperty version="2.2.9">
                     <ulink url="prop-restart-delay.html">wrapper.restart.delay</ulink>
+                </listproperty>
+                <listproperty version="3.2.0">
+                    <ulink url="prop-restart-reload-configuration.html">wrapper.restart.reload_configuration</ulink>
                 </listproperty>
                 <listproperty version="2.2.7">
                     <ulink url="prop-shutdown-timeout.html">wrapper.shutdown.timeout</ulink>

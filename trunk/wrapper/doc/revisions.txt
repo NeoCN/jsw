@@ -1,6 +1,6 @@
 Java Service Wrapper Revision History.
 --------------------------------------
-3.1.3
+3.2.0
 * Add additional output when the JVM can not be launched due to security
   restrictions on Windows.
 * Greatly improved the performance of file logging.  On a windows test machine
@@ -42,7 +42,11 @@ Java Service Wrapper Revision History.
   wrapper.use_system_time property to false.  Most users should see an
   improvement in reliability under heavy loads with this new setting.  If you
   have extended any timeouts in the past, you may wish to try going back to
-  defaults as they may no longer need to be extended.  
+  defaults as they may no longer need to be extended.
+* Add a new wrapper.restart.reload_configuration property which causes the
+  Wrapper to reload its configuration file immediately before a JVM restart.
+  Properties which can not be reloaded have comments stating that fact in
+  their documentation.  Feature Request #981060.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager

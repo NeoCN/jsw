@@ -63,5 +63,12 @@
             <simpara><emphasis>Example:</emphasis></simpara>
             <screen format="linespecific"><![CDATA[wrapper.pidfile=./myapp.pid]]></screen>
         </informalexample>
+        <note>
+            <para>
+                <ulink url="prop-restart-reload-configuration.html">Reloading</ulink>
+                the Wrapper configuration will have no effect on the value of this property.
+                Changes will not take effect until the Wrapper has been restarted.
+            </para>
+        </note>
     </section>
 </chapter>

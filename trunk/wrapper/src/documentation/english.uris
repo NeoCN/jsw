@@ -91,6 +91,7 @@ english/prop-ping-timeout.html
 english/prop-port.html
 english/prop-request-thread-dump-on-failed-jvm-exit.html
 english/prop-restart-delay.html
+english/prop-restart-reload-configuration.html
 english/prop-shutdown-timeout.html
 english/prop-single-invocation.html
 english/prop-startup-delay.html

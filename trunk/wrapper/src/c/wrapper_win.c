@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.97  2004/12/06 08:18:07  mortenson
+ * Make it possible to reload the Wrapper configuration just before a JVM restart.
+ *
  * Revision 1.96  2004/11/26 08:41:24  mortenson
  * Implement reading from System.in
  *
@@ -2881,7 +2884,6 @@ void wrapperUsage(char *appName) {
 }
 void _CRTAPI1 main(int argc, char **argv) {
     int result = 0;
-    int i;
 
     /* The StartServiceCtrlDispatcher requires this table to specify
      * the ServiceMain function to run in the calling process. The first
@@ -2892,6 +2894,9 @@ void _CRTAPI1 main(int argc, char **argv) {
     SERVICE_TABLE_ENTRY serviceTable[2];
 
     buildSystemPath();
+
+    /* Initialize the properties variable. */
+    properties = NULL;
 
     /* Make sure all values are reliably set to 0. All required values should also be
      *  set below, but this extra step will protect against future changes.  Some
@@ -2963,162 +2968,132 @@ void _CRTAPI1 main(int argc, char **argv) {
                 }
 
                 if (!result) {
-                    /* Create a Properties structure. */
-                    properties = createProperties();
-                    wrapperAddDefaultProperties();
-
-                    /* All 4 valid commands accept a configuration file, followed by 0 or more
-                     *  command line properties.  The command line properties need to be
-                     *  loaded first, followed by the configuration file. */
-                    for (i = 3; i < argc; i++) {
-                        if (addPropertyPair(properties, argv[i], TRUE, TRUE)) {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, 
-                                "The argument '%s' is not a valid property name-value pair.", argv[i]);
-                            result = 1;
-                        }
-                    }
-
-                    /* Now load the configuration file. */
-                    if (loadProperties(properties, argv[2])) {
-                        /* File not found. */
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "unable to open configuration file. %s", argv[2]);
+                    /* Store information about the arguments. */
+                    wrapperData->argBase = 3;
+                    wrapperData->argCount = argc;
+                    wrapperData->argValues = argv;
+                    
+                    /* Load the properties. */
+                    if (wrapperLoadConfigurationProperties()) {
+                        /* Unable to load the configuration.  Any errors will have already
+                         *  been reported. */
                         result = 1;
                     } else {
-                        /* Store the configuration file name */
-                        wrapperData->configFile = argv[2];
-
-                        if (result) {
-                            /* There was a problem with the arguments */
-                        } else {
-                            /* Display the active properties */
-#ifdef _DEBUG
-                            printf("Debug Configuration Properties:\n");
-                            dumpProperties(properties);
-#endif
-
-                            /* Apply properties to the WrapperConfig structure */
-                            if (wrapperLoadConfiguration()) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                                    "Problem loading wrapper configuration file: %s", argv[2]);
-                                exit(1);
-                            }
-
-                            /* Change the working directory if configured to do so. */
-                            if (wrapperSetWorkingDirProp()) {
+                        /* Change the working directory if configured to do so. */
+                        if (wrapperSetWorkingDirProp()) {
+                            appExit(1);
+                        }
+                        
+                        /* Perform the specified command */
+                        if(!_stricmp(argv[1],"-i") || !_stricmp(argv[1],"/i")) {
+                            /* Install an NT service */
+                            result = wrapperInstall(argc, argv);
+                        } else if(!_stricmp(argv[1],"-r") || !_stricmp(argv[1],"/r")) {
+                            /* Remove an NT service */
+                            result = wrapperRemove();
+                        } else if(!_stricmp(argv[1],"-t") || !_stricmp(argv[1],"/t")) {
+                            /* Start an NT service */
+                            result = wrapperStartService();
+                        } else if(!_stricmp(argv[1],"-p") || !_stricmp(argv[1],"/p")) {
+                            /* Stop an NT service */
+                            result = wrapperStopService(TRUE);
+                        } else if(!_stricmp(argv[1],"-c") || !_stricmp(argv[1],"/c")) {
+                            /* Run as a console application */
+                            
+                            /* Load any dynamic functions. */
+                            loadDLLProcs();
+                            
+                            /* Initialize the invocation mutex as necessary, exit if it already exists. */
+                            if (initInvocationMutex()) {
                                 appExit(1);
                             }
                             
-                            /* Perform the specified command */
-                            if(!_stricmp(argv[1],"-i") || !_stricmp(argv[1],"/i")) {
-                                /* Install an NT service */
-                                result = wrapperInstall(argc, argv);
-                            } else if(!_stricmp(argv[1],"-r") || !_stricmp(argv[1],"/r")) {
-                                /* Remove an NT service */
-                                result = wrapperRemove();
-                            } else if(!_stricmp(argv[1],"-t") || !_stricmp(argv[1],"/t")) {
-                                /* Start an NT service */
-                                result = wrapperStartService();
-                            } else if(!_stricmp(argv[1],"-p") || !_stricmp(argv[1],"/p")) {
-                                /* Stop an NT service */
-                                result = wrapperStopService(TRUE);
-                            } else if(!_stricmp(argv[1],"-c") || !_stricmp(argv[1],"/c")) {
-                                /* Run as a console application */
-                                
-                                /* Load any dynamic functions. */
-                                loadDLLProcs();
-                                
-                                /* Initialize the invocation mutex as necessary, exit if it already exists. */
-                                if (initInvocationMutex()) {
+                            /* Get the current process. */
+                            wrapperProcess = GetCurrentProcess();
+                            wrapperProcessId = GetCurrentProcessId();
+                            
+                            /* Write pid and anchor files as requested.  If they are the same file the file is
+                             *  simply overwritten. */
+                            if (wrapperData->anchorFilename) {
+                                if (writePidFile(wrapperData->anchorFilename, wrapperProcessId)) {
+                                    log_printf
+                                        (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                                         "ERROR: Could not write anchor file %s: %s",
+                                         wrapperData->anchorFilename, getLastErrorText());
                                     appExit(1);
                                 }
-                                
-                                /* Get the current process. */
-                                wrapperProcess = GetCurrentProcess();
-                                wrapperProcessId = GetCurrentProcessId();
-                                
-                                /* Write pid and anchor files as requested.  If they are the same file the file is
-                                 *  simply overwritten. */
-                                if (wrapperData->anchorFilename) {
-                                    if (writePidFile(wrapperData->anchorFilename, wrapperProcessId)) {
-                                        log_printf
-                                            (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                                             "ERROR: Could not write anchor file %s: %s",
-                                             wrapperData->anchorFilename, getLastErrorText());
-                                        appExit(1);
-                                    }
-                                }
-                                if (wrapperData->pidFilename) {
-                                    if (writePidFile(wrapperData->pidFilename, wrapperProcessId)) {
-                                        log_printf
-                                            (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                                             "ERROR: Could not write pid file %s: %s",
-                                             wrapperData->pidFilename, getLastErrorText());
-                                        appExit(1);
-                                    }
-                                }
-
-                                if (!result) {
-                                    result = wrapperRunConsole();
-                                }
-                            } else if(!_stricmp(argv[1],"-s") || !_stricmp(argv[1],"/s")) {
-                                /* Run as a service */
-                                
-                                /* Load any dynamic functions. */
-                                loadDLLProcs();
-                                
-                                /* Initialize the invocation mutex as necessary, exit if it already exists. */
-                                if (initInvocationMutex()) {
-                                    appExit(1);
-                                }
-                                
-                                /* Get the current process. */
-                                wrapperProcess = GetCurrentProcess();
-                                wrapperProcessId = GetCurrentProcessId();
-                                
-                                /* Write pid and anchor files as requested.  If they are the same file the file is
-                                 *  simply overwritten. */
-                                if (wrapperData->anchorFilename) {
-                                    if (writePidFile(wrapperData->anchorFilename, wrapperProcessId)) {
-                                        log_printf
-                                            (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                                             "ERROR: Could not write anchor file %s: %s",
-                                             wrapperData->anchorFilename, getLastErrorText());
-                                        appExit(1);
-                                    }
-                                }
-                                if (wrapperData->pidFilename) {
-                                    if (writePidFile(wrapperData->pidFilename, wrapperProcessId)) {
-                                        log_printf
-                                            (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                                             "ERROR: Could not write pid file %s: %s",
-                                             wrapperData->pidFilename, getLastErrorText());
-                                        appExit(1);
-                                    }
-                                }
-
-                                if (!result) {
-                                    /* Prepare the service table */
-                                    serviceTable[0].lpServiceName = wrapperData->ntServiceName;
-                                    serviceTable[0].lpServiceProc = (LPSERVICE_MAIN_FUNCTION)wrapperServiceMain;
-                                    serviceTable[1].lpServiceName = NULL;
-                                    serviceTable[1].lpServiceProc = NULL;
-                    
-                                    printf("Attempting to start %s as an NT service.\n", wrapperData->ntServiceDisplayName);
-                                    printf("\nCalling StartServiceCtrlDispatcher...please wait.\n");
-                    
-                                    /* Start the service control dispatcher.  This will not return */
-                                    /*  if the service is started without problems */
-                                    if (!StartServiceCtrlDispatcher(serviceTable)){
-                                        printf("\nStartServiceControlDispatcher failed!\n");
-                                        printf("\nFor help, type\n\n%s /?\n\n", argv[0]);
-                                        result = 1;
-                                    }
-                                }
-                            } else {
-                                printf("\nUnrecognized option: %s\n", argv[1]);
-                                wrapperUsage(argv[0]);
-                                result = 1;
                             }
+                            if (wrapperData->pidFilename) {
+                                if (writePidFile(wrapperData->pidFilename, wrapperProcessId)) {
+                                    log_printf
+                                        (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                                         "ERROR: Could not write pid file %s: %s",
+                                         wrapperData->pidFilename, getLastErrorText());
+                                    appExit(1);
+                                }
+                            }
+
+                            if (!result) {
+                                result = wrapperRunConsole();
+                            }
+                        } else if(!_stricmp(argv[1],"-s") || !_stricmp(argv[1],"/s")) {
+                            /* Run as a service */
+                            
+                            /* Load any dynamic functions. */
+                            loadDLLProcs();
+                            
+                            /* Initialize the invocation mutex as necessary, exit if it already exists. */
+                            if (initInvocationMutex()) {
+                                appExit(1);
+                            }
+                            
+                            /* Get the current process. */
+                            wrapperProcess = GetCurrentProcess();
+                            wrapperProcessId = GetCurrentProcessId();
+                            
+                            /* Write pid and anchor files as requested.  If they are the same file the file is
+                             *  simply overwritten. */
+                            if (wrapperData->anchorFilename) {
+                                if (writePidFile(wrapperData->anchorFilename, wrapperProcessId)) {
+                                    log_printf
+                                        (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                                         "ERROR: Could not write anchor file %s: %s",
+                                         wrapperData->anchorFilename, getLastErrorText());
+                                    appExit(1);
+                                }
+                            }
+                            if (wrapperData->pidFilename) {
+                                if (writePidFile(wrapperData->pidFilename, wrapperProcessId)) {
+                                    log_printf
+                                        (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                                         "ERROR: Could not write pid file %s: %s",
+                                         wrapperData->pidFilename, getLastErrorText());
+                                    appExit(1);
+                                }
+                            }
+
+                            if (!result) {
+                                /* Prepare the service table */
+                                serviceTable[0].lpServiceName = wrapperData->ntServiceName;
+                                serviceTable[0].lpServiceProc = (LPSERVICE_MAIN_FUNCTION)wrapperServiceMain;
+                                serviceTable[1].lpServiceName = NULL;
+                                serviceTable[1].lpServiceProc = NULL;
+                
+                                printf("Attempting to start %s as an NT service.\n", wrapperData->ntServiceDisplayName);
+                                printf("\nCalling StartServiceCtrlDispatcher...please wait.\n");
+                
+                                /* Start the service control dispatcher.  This will not return */
+                                /*  if the service is started without problems */
+                                if (!StartServiceCtrlDispatcher(serviceTable)){
+                                    printf("\nStartServiceControlDispatcher failed!\n");
+                                    printf("\nFor help, type\n\n%s /?\n\n", argv[0]);
+                                    result = 1;
+                                }
+                            }
+                        } else {
+                            printf("\nUnrecognized option: %s\n", argv[1]);
+                            wrapperUsage(argv[0]);
+                            result = 1;
                         }
                     }
                 }

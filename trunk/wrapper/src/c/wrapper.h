@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.65  2004/12/06 08:18:06  mortenson
+ * Make it possible to reload the Wrapper configuration just before a JVM restart.
+ *
  * Revision 1.64  2004/11/22 04:06:43  mortenson
  * Add an event model to make it possible to communicate with user applications in
  * a more flexible way.
@@ -290,6 +293,10 @@
 /* Type definitions */
 typedef struct WrapperConfig WrapperConfig;
 struct WrapperConfig {
+    int     argBase;                /* The first argument which should be treated as a property. */
+    int     argCount;               /* The total argument count. */
+    char**  argValues;              /* Argument values. */
+    
     int     configured;             /* TRUE if loadConfiguration has been called. */
     int     useSystemTime;          /* TRUE if the wrapper should use the system clock for timing, FALSE if a tick counter should be used. */
     int     timerFastThreshold;     /* If the difference between the system time based tick count and the timer tick count ever falls by more than this value then a warning will be displayed. */
@@ -346,6 +353,7 @@ struct WrapperConfig {
     int     restartRequested;       /* TRUE if the another JVM should be launched after the current JVM is shutdown. Only set if exitRequested is set. */
     int     jvmRestarts;            /* Number of times that a JVM has been launched since the wrapper was started. */
     int     restartDelay;           /* Delay in seconds before restarting a new JVM. */
+    int     restartReloadConf;      /* TRUE if the configuration should be reloaded before a JVM restart. */
     int     isRestartDisabled;      /* TRUE if restarts should be disabled. */
     int     requestThreadDumpOnFailedJVMExit; /* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
     DWORD   jvmLaunchTicks;         /* The tick count at which the previous or current JVM was launched. */
@@ -422,7 +430,9 @@ extern int wrapperProtocolRead();
 /******************************************************************************
  * Utility Functions
  *****************************************************************************/
-void wrapperAddDefaultProperties();
+extern void wrapperAddDefaultProperties();
+
+extern int wrapperLoadConfigurationProperties();
 
 #ifdef WIN32
 extern char** wrapperGetSystemPath();
@@ -570,7 +580,6 @@ extern void wrapperEventLoop();
 
 extern void wrapperBuildKey();
 extern void wrapperBuildJavaCommand();
-extern int  wrapperLoadConfiguration();
 
 /**
  * Calculates a tick count using the system time.

@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.96  2004/12/06 08:18:07  mortenson
+ * Make it possible to reload the Wrapper configuration just before a JVM restart.
+ *
  * Revision 1.95  2004/11/15 08:15:48  mortenson
  * Make it possible for users to access the Wrapper and JVM PIDs from within the JVM.
  *
@@ -1514,7 +1517,9 @@ void daemonize() {
 
 int main(int argc, char **argv) {
     int exitStatus;
-    int i;
+
+    /* Initialize the properties variable. */
+    properties = NULL;
 
     /* Make sure all values are reliably set to 0. All required values should also be
      *  set below, but this extra step will protect against future changes.  Some
@@ -1553,45 +1558,17 @@ int main(int argc, char **argv) {
         appExit(0);
         
     } else {
-        /* Create a Properties structure. */
-        properties = createProperties();
-        wrapperAddDefaultProperties();
-
-        /* The first argument is the configuration file, followed by 0 or more
-         *  command line properties.  The command line properties need to be
-         *  loaded first, followed by the configuration file. */
-        for (i = 2; i < argc; i++) {
-            if (addPropertyPair(properties, argv[i], TRUE, TRUE)) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, 
-                    "The argument '%s' is not a valid property name-value pair.", argv[i]);
-                appExit(1);
-            }
-        }
-
-        /* Now load the configuration file. */
-        if (loadProperties(properties, argv[1])) {
-            /* File not found. */
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                "Unable to open wrapper configuration file: %s", argv[1]);
-            appExit(1);
+        /* Store information about the arguments. */
+        wrapperData->argBase = 2;
+        wrapperData->argCount = argc;
+        wrapperData->argValues = argv;
         
+        /* Load the properties. */
+        if (wrapperLoadConfigurationProperties()) {
+            /* Unable to load the configuration.  Any errors will have already
+             *  been reported. */
+            appExit(1);
         } else {
-            /* Store the configuration file name. */
-            wrapperData->configFile = argv[1];
-            
-            /* Display the active properties */
-#ifdef _DEBUG
-            printf("Debug Configuration Properties:\n");
-            dumpProperties(properties);
-#endif
-
-            /* Apply properties to the WrapperConfig structure. */
-            if (wrapperLoadConfiguration()) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                    "Problem loading wrapper configuration file: %s", argv[1]);
-                appExit(1);
-            }
-
             /* Change the working directory if configured to do so. */
             if (wrapperSetWorkingDirProp()) {
                 appExit(1);
