@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.8  2004/08/31 15:58:33  mortenson
+ * Add 64 bit UNIX code
+ *
  * Revision 1.7  2004/08/31 15:13:48  mortenson
  * Add additional log output when timer output is enabled to show when tick
  * overflows will take place.
@@ -831,13 +834,22 @@ void logTimerStats() {
 	time(&now);
 
 	sysTicks = wrapperGetSystemTicks();
+
+#ifdef WIN32
 	overflowTime = (time_t)(now - ((0UI64 + sysTicks) * WRAPPER_TICK_MS) / 1000);
+#else
+	overflowTime = (time_t)(now - ((0ULL + sysTicks) * WRAPPER_TICK_MS) / 1000);
+#endif
 	when = *localtime(&overflowTime);
 	sprintf(buffer, "%s", asctime(&when));
 	buffer[strlen(buffer) - 1] = '\0'; /* Remove the line feed. */
 	log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Last system time tick overflow at: %s", buffer);
 
+#ifdef WIN32
 	overflowTime = (time_t)(now + ((0xffffffffUI64 - sysTicks) * WRAPPER_TICK_MS) / 1000);
+#else
+	overflowTime = (time_t)(now + ((0xffffffffULL - sysTicks) * WRAPPER_TICK_MS) / 1000);
+#endif
 	when = *localtime(&overflowTime);
 	sprintf(buffer, "%s", asctime(&when));
 	buffer[strlen(buffer) - 1] = '\0'; /* Remove the line feed. */
@@ -846,13 +858,21 @@ void logTimerStats() {
 	if (!wrapperData->useSystemTime) {
 		ticks = wrapperGetTicks(); 
 
+#ifdef WIN32
 		overflowTime = (time_t)(now - ((0UI64 + ticks) * WRAPPER_TICK_MS) / 1000);
+#else
+		overflowTime = (time_t)(now - ((0ULL + ticks) * WRAPPER_TICK_MS) / 1000);
+#endif
 		when = *localtime(&overflowTime);
 		sprintf(buffer, "%s", asctime(&when));
 		buffer[strlen(buffer) - 1] = '\0'; /* Remove the line feed. */
 		log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Last tick overflow at: %s", buffer);
 
+#ifdef WIN32
 		overflowTime = (time_t)(now + ((0xffffffffUI64 - ticks) * WRAPPER_TICK_MS) / 1000);
+#else
+		overflowTime = (time_t)(now + ((0xffffffffULL - ticks) * WRAPPER_TICK_MS) / 1000);
+#endif
 		when = *localtime(&overflowTime);
 		sprintf(buffer, "%s", asctime(&when));
 		buffer[strlen(buffer) - 1] = '\0'; /* Remove the line feed. */
