@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.4  2002/03/07 08:24:20  mortenson
+// Remove a forgotten debug message.
+//
 // Revision 1.3  2002/03/07 08:10:13  mortenson
 // Add support for Thread Dumping
 // Fix a problem locating java on the path.
@@ -59,9 +62,6 @@ barf
  */
 int wrapperConsoleHandler(int key) {
     int event;
-
-    printf("Handled signal %d\n", key);
-    flushall();
 
     // Call the control callback in the java code
     switch(key) {
