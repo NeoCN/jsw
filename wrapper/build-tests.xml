@@ -91,8 +91,8 @@
               tofile="${test.dir}/template.conf"/>
         <replace file="${test.dir}/template.conf">
             <replacetoken>wrapper.java.classpath.1=../lib/wrapper.jar</replacetoken>
-            <replacevalue><![CDATA[wrapper.java.classpath.1=../lib/wrapper.jar
-wrapper.java.classpath.2=../lib/wrappertest.jar]]></replacevalue>
+            <replacevalue><![CDATA[wrapper.java.classpath.1=../lib/wrappertest.jar
+wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         </replace>
         <replace file="${test.dir}/template.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
