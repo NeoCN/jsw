@@ -24,12 +24,22 @@
         <section>
             <title>Large</title>
             <screenshot>
-                <screeninfo>144x50x256</screeninfo>
-                <graphic fileref="images/UnderWrapper144x50"/>
+                <screeninfo>147x50x256</screeninfo>
+                <graphic fileref="images/UnderWrapper147x50"/>
             </screenshot>
             <informalexample>
                 <screen format="linespecific"><![CDATA[<a href="http://wrapper.tanukisoftware.org">
-    <img src="http://wrapper.tanukisoftware.org/buttons/UnderWrapper144x50.png"
+    <img src="http://wrapper.tanukisoftware.org/buttons/UnderWrapper147x50.png"
+         width="147" height="50" border="0" alt="Java Service Wrapper">
+</a>]]></screen>
+            </informalexample>
+            <screenshot>
+                <screeninfo>144x50x256</screeninfo>
+                <graphic fileref="images/UnderWrapperDuke144x50"/>
+            </screenshot>
+            <informalexample>
+                <screen format="linespecific"><![CDATA[<a href="http://wrapper.tanukisoftware.org">
+    <img src="http://wrapper.tanukisoftware.org/buttons/UnderWrapperDuke144x50.png"
          width="144" height="50" border="0" alt="Java Service Wrapper">
 </a>]]></screen>
             </informalexample>
@@ -43,6 +53,16 @@
             <informalexample>
                 <screen format="linespecific"><![CDATA[<a href="http://wrapper.tanukisoftware.org">
     <img src="http://wrapper.tanukisoftware.org/buttons/UnderWrapper85x30.png"
+         width="85" height="30" border="0" alt="Java Service Wrapper">
+</a>]]></screen>
+            </informalexample>
+            <screenshot>
+                <screeninfo>85x30x256</screeninfo>
+                <graphic fileref="images/UnderWrapperDuke85x30"/>
+            </screenshot>
+            <informalexample>
+                <screen format="linespecific"><![CDATA[<a href="http://wrapper.tanukisoftware.org">
+    <img src="http://wrapper.tanukisoftware.org/buttons/UnderWrapperDuke85x30.png"
          width="85" height="30" border="0" alt="Java Service Wrapper">
 </a>]]></screen>
             </informalexample>
