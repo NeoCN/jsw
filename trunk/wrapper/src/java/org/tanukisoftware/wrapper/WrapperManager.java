@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.3  2003/03/07 02:11:18  mortenson
+// Fix a problem with the wrapper.disable_shutdown_hook.  Due to a typo in the
+// source, the property was being ignored.  This was broken in the 3.0.0 release.
+//
 // Revision 1.2  2003/03/02 04:23:31  mortenson
 // Add a little more javadocs.
 //
@@ -218,7 +222,7 @@ public final class WrapperManager
         
         // Check to see if we should register a shutdown hook
         boolean disableShutdownHook =
-            ( System.getProperty( "wrapper.disable_shutdownm_hook" ) != null );
+            ( System.getProperty( "wrapper.disable_shutdown_hook" ) != null );
         
         // Locate the add and remove shutdown hook methods using reflection so
         //  that this class can be compiled on 1.2.x versions of java.
