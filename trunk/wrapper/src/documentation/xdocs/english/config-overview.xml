@@ -241,6 +241,22 @@ wrapper.app.parameter.3.stripquotes=TRUE
 wrapper.app.parameter.4=-p4</screen>
                             </informalexample>
                         </para>
+                        <warning>
+                            <simpara>
+                                Application parameters are designed to be individual parameters.  If you specify a parameter like '-c conf/myconffile.conf', it will work correctly on windows because the '-c' and 'conf/myconffile.conf' parameters will be correctly parsed when Java is launched.  But on Unix systems, the parameters will incorrectly be interpreted as a single parameter '-c conf/myconffile.conf'.
+                            </simpara>
+                            <simpara>
+                                <informalexample>
+                                    <simpara><emphasis>Incorrect:</emphasis></simpara>
+                                    <screen format="linespecific">wrapper.app.parameter.1=-c conf/myconffile.conf</screen>
+                                </informalexample>
+                                <informalexample>
+                                    <simpara><emphasis>Correct:</emphasis></simpara>
+                                    <screen format="linespecific">wrapper.app.parameter.1=-c
+wrapper.app.parameter.2=conf/myconffile.conf</screen>
+                                </informalexample>
+                            </simpara>
+                        </warning>
                     </glossdef>
                 </glossentry>
                 <glossentry>
