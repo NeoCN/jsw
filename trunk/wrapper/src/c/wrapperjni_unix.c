@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.9  2003/11/02 20:55:54  mortenson
+ * Implement stubs for the user methods.
+ *
  * Revision 1.8  2003/10/31 11:10:46  mortenson
  * Add a getLastErrorText function so we can display more user friendly messages
  * within the native library.
@@ -118,6 +121,38 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle(JNIEnv *env
         printf("Setting the console title not supported on UNIX platforms.\n");
         flushall();
     }
+}
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeGetUser
+ * Signature: ()Lorg/tanukisoftware/wrapper/WrapperUser;
+ */
+/*#define UVERBOSE*/
+JNIEXPORT jobject JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass clazz) {
+    if (wrapperJNIDebugging) {
+        printf("getUser not yet supported on UNIX platforms.\n");
+        flushall();
+    }
+
+	return NULL;
+}
+
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeGetInteractiveUser
+ * Signature: ()Lorg/tanukisoftware/wrapper/WrapperUser;
+ */
+JNIEXPORT jobject JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *env, jclass clazz) {
+    if (wrapperJNIDebugging) {
+        printf("getInteractiveUser not yet supported on UNIX platforms.\n");
+        flushall();
+    }
+
+	return NULL;
 }
 
 #endif
