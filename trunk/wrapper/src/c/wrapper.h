@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.6  2002/01/27 19:33:55  spocke
+// Added support for the service description property.
+//
 // Revision 1.5  2002/01/24 09:43:56  mortenson
 // Added new Logger code which allows log levels.
 //
@@ -125,6 +128,7 @@ struct WrapperConfig {
 #ifdef WIN32
     char    *ntServiceName;         // Name of the NT Service
     char    *ntServiceDisplayName;  // Display name of the NT Service
+	char    *ntServiceDescription;  // Description for service in Win2k and XP
     char    *ntServiceDependencies; // List of Dependencies
     int     ntServiceStartType;     // Mode in which the Service is installed. 
                                     // {SERVICE_AUTO_START | SERVICE_DEMAND_START}
