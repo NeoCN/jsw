@@ -31,6 +31,12 @@
             -->
         <donorlist>
             <donor>
+                <date>Oct 6, 2004</date>
+                <amount>25.00</amount>
+                <name>Sergei Rodionov</name>
+                <message>Thanks for the WRAPPER, a terrific contribution to the Java community.</message>
+            </donor>
+            <donor>
                 <date>Sep 11, 2004</date>
                 <amount>25.00</amount>
                 <name>Cliff Wright</name>
