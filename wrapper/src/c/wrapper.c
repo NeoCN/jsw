@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.116  2004/09/30 10:24:14  mortenson
+ * Change the message displayed in an invalid java argument is specified.
+ *
  * Revision 1.115  2004/09/30 10:15:48  mortenson
  * Add a test for invalid jvm arguments set using the wrapper.java.additional.<n>
  * properties.  Invalid arguments could cause the Wrapper startup to fail in
@@ -1295,7 +1298,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                     //  as the being the main class name by Java.
                     if (!((strstr(prop, "-") == prop) || (strstr(prop, "\"-") == prop))) {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                            "The value of property '%s', '%s' is not valid.  Skipping.",
+                            "The value of property '%s', '%s' is not a valid argument to the jvm.  Skipping.",
                             paramBuffer, prop );
                         strings[index] = malloc(sizeof(char) * 1);
                         sprintf(strings[index], "", propStripped);
