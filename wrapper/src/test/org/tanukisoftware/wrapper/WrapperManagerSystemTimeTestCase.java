@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.2  2004/08/31 14:21:22  mortenson
+// Mark long values.
+//
 // Revision 1.1  2004/08/30 03:24:54  mortenson
 // Add test to make sure the system time to tick conversion is working correctly.
 //
@@ -73,10 +76,10 @@ public class WrapperManagerSystemTimeTestCase
         assertEquals( "getSystemTicks( " + time + " ) failed", expectedTicks, ticks );
         
         long posAge = getTickAge( posTicks, expectedTicks );
-        assertEquals( "getTickAge( " + posTicks + ", " + expectedTicks + " )", 1000, posAge );
+        assertEquals( "getTickAge( " + posTicks + ", " + expectedTicks + " )", 1000L, posAge );
         
         long negAge = getTickAge( negTicks, expectedTicks );
-        assertEquals( "getTickAge( " + negTicks + ", " + expectedTicks + " )", -1000, negAge );
+        assertEquals( "getTickAge( " + negTicks + ", " + expectedTicks + " )", -1000L, negAge );
     }
     
     /*---------------------------------------------------------------
