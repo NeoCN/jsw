@@ -1,7 +1,7 @@
-InstallTestWrapper.bat
+InstallTestWrapper-NT.bat
 TestWrapper.bat
 TestWrapperNoWrapper.bat
-UninstallTestWrapper.bat
+UninstallTestWrapper-NT.bat
 Wrapper.exe
 wrapper
 wrapper.log
