@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.19  2002/05/23 12:42:41  rybesh
+ * fixed logger initialization on unix
+ *
  * Revision 1.18  2002/05/17 09:09:56  mortenson
  * Add a wrapper.shutdown.timeout property.
  *
@@ -551,6 +554,19 @@ int wrapperProtocolRead() {
 /******************************************************************************
  * Wrapper inner methods.
  *****************************************************************************/
+
+/**
+ * Initialize logging.
+ */
+void wrapperInitializeLogging() {
+
+  setLogfilePath("wrapper.log");
+  setLogfileFormat("LPTM");
+  setLogfileLevelInt(LEVEL_DEBUG);
+  setConsoleLogFormat("LPM");
+  setConsoleLogLevelInt(LEVEL_DEBUG);
+  setSyslogLevelInt(LEVEL_NONE);
+}
 
 /**
  * Launch the wrapper as a console application.
