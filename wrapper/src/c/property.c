@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.25  2003/10/25 15:31:49  mortenson
+ * Implement Feature Request #829896, which adds support for the wrapper.conf file
+ * having windows line feeds on UNIX platforms and vis a versa.
+ *
  * Revision 1.24  2003/09/09 14:18:10  mortenson
  * Fix a problem where not all properties specified on the command line worked
  * correctly when they included spaces.
@@ -388,8 +392,13 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
     do {
         c = fgets(buffer, MAX_PROPERTY_NAME_VALUE_LENGTH, stream);
         if (c != NULL) {
-            /* Strip the LF off the end of the line. */
-            if ((d = strchr(buffer, '\n')) != NULL) {
+            /* Always strip both ^M and ^J off the end of the line, this is done rather
+             *  than simply checking for \n so that files will work on all platforms
+             *  even if their line feeds are incorrect. */
+            if ((d = strchr(buffer, 13 /* ^M */)) != NULL) { 
+                d[0] = '\0';
+            }
+            if ((d = strchr(buffer, 10 /* ^J */)) != NULL) { 
                 d[0] = '\0';
             }
 
@@ -682,7 +691,7 @@ int isQuotableProperty(Properties *properties, const char *propertyName) {
     if (property == NULL) {
         return FALSE;
     } else {
-		return property->quotable;
+        return property->quotable;
     }
 }
 

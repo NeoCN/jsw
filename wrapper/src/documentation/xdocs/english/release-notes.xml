@@ -54,6 +54,15 @@ $Id$
                     that the putenv function was not being used correctly.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Modified the way the wrapper.conf file is loaded so it will now read the
+                    contents correctly even if the line feeds in the file are incorrect for
+                    the current platform.  Windows line feeds had been causing problems when
+                    used on UNIX platforms.  
+                    <ulink url="http://sourceforge.net/tracker/index.php?func=detail&aid=829896&group_id=39428&atid=425190">Feature Request #829896</ulink>.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
