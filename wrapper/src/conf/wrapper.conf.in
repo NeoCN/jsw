@@ -61,7 +61,13 @@ wrapper.logfile.maxfiles=0
 wrapper.syslog.loglevel=NONE
 
 #********************************************************************
-# Wrapper NT Service Properties
+# Wrapper Windows Properties
+#********************************************************************
+# Title to use when running as a console
+wrapper.console.title=@app.long.name@
+
+#********************************************************************
+# Wrapper Windows NT/2000/XP Service Properties
 #********************************************************************
 # WARNING - Do not modify any of these properties when an application
 #  using this configuration file has been installed as a service.
