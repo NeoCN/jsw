@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.72  2003/10/12 18:59:06  mortenson
+ * Add a new property, wrapper.native_library, which can be used to specify
+ * the base name of the native library.
+ *
  * Revision 1.71  2003/09/09 14:18:10  mortenson
  * Fix a problem where not all properties specified on the command line worked
  * correctly when they included spaces.
@@ -1385,6 +1389,17 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         index++;
     }
 
+    /* Store the base name of the native library. */
+    if (strings) {
+        strings[index] = malloc(sizeof(char) * (27 + strlen(wrapperData->nativeLibrary) + 1));
+        if (addQuotes) {
+            sprintf(strings[index], "-Dwrapper.native_library=\"%s\"", wrapperData->nativeLibrary);
+        } else {
+            sprintf(strings[index], "-Dwrapper.native_library=%s", wrapperData->nativeLibrary);
+        }
+    }
+    index++;
+
     /* Store the ignore signals flag if configured to do so */
     if (wrapperData->ignoreSignals) {
         if (strings) {
@@ -2179,6 +2194,9 @@ int wrapperLoadConfiguration() {
             wrapperData->isDebugging = TRUE;
         }
     }
+
+    /* Load the name of the native library to be loaded. */
+    wrapperData->nativeLibrary = getStringProperty(properties, "wrapper.native_library", "wrapper");
     
     /* Get the state output status. */
     wrapperData->isStateOutputEnabled = getBooleanProperty(properties, "wrapper.state_output", FALSE);

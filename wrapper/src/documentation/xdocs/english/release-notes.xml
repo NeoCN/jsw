@@ -29,6 +29,13 @@ $Id$
                     Thanks to Jason Tishler for noticing this and sending in a patch.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add a new property, <ulink url="prop-native-library.html">wrapper.native_library</ulink>,
+                    which can be used to specify the base name of the native library which is
+                    loaded by the WrapperManager class.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

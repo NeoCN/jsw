@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.19  2003/10/12 18:59:06  mortenson
+// Add a new property, wrapper.native_library, which can be used to specify
+// the base name of the native library.
+//
 // Revision 1.18  2003/10/12 18:01:52  mortenson
 // Back out some changes which made the WrapperManager look for the native
 // library by using the OS/arch as keys.  I want to solve that problem a different
@@ -590,6 +594,16 @@ public final class WrapperManager
         String libraryHead;
         String libraryTail;
         
+        // Look for the base name of the library.
+        String baseName = System.getProperty( "wrapper.native_library" );
+        if ( baseName == null )
+        {
+            // This should only happen if an old version of the Wrapper binary is being used.
+            System.out.println( "WARNING - The wrapper.native_library system property was not" );
+            System.out.println( "          set. Using the default value, 'wrapper'." );
+            baseName = "wrapper";
+        }
+        
         // Resolve the osname and osarch for the currect system.
         String osName = System.getProperty( "os.name" );
         if ( osName.indexOf( "Windows" ) >= 0 )
@@ -608,11 +622,10 @@ public final class WrapperManager
             libraryTail = ".so";
         }
         
-        String name = "wrapper";
-        String file = libraryHead + name + libraryTail;
+        String file = libraryHead + baseName + libraryTail;
         
         // Attempt to load the native library using various names.
-        if ( loadNativeLibrary( name, file ) )
+        if ( loadNativeLibrary( baseName, file ) )
         {
             m_libraryOK = true;
             
@@ -650,9 +663,9 @@ public final class WrapperManager
                 {
                     // The library could not be located on the library path.
                     System.out.println(
-                        "WARNING - Unable to load native library 'wrapper' because the" );
+                        "WARNING - Unable to load the Wrapper's native library because the file" );
                     System.out.println(
-                        "          file '" + file + "' could not be located in the following" );
+                        "          '" + file + "' could not be located in the following" );
                     System.out.println(
                         "          java.library.path:" );
                     String pathSep = System.getProperty( "path.separator" );
@@ -672,11 +685,11 @@ public final class WrapperManager
                 {
                     // The library file was found but could not be loaded for some reason.
                     System.out.println(
-                        "WARNING - Unable to load native library '" + file + "'.  The file" );
+                        "WARNING - Unable to load the Wrapper's native library '" + file + "'." );
                     System.out.println(
-                        "          is located on the path at the following location but could" );
+                        "          The file is located on the path at the following location but" );
                     System.out.println(
-                        "          not be loaded:" );
+                        "          could not be loaded:" );
                     System.out.println(
                         "            " + libFile.getAbsolutePath() );
                     System.out.println(

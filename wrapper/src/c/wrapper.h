@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.35  2003/10/12 18:59:06  mortenson
+ * Add a new property, wrapper.native_library, which can be used to specify
+ * the base name of the native library.
+ *
  * Revision 1.34  2003/09/04 05:40:08  mortenson
  * Added a new wrapper.ping.interval property which lets users control the
  * frequency that the Wrapper pings the JVM.
@@ -156,6 +160,7 @@ struct WrapperConfig {
     time_t  jStateTimeout;          /* Time until which the current jState is valid */
     time_t  lastPingTime;           /* Time that the last ping was sent */
     int     isDebugging;            /* TRUE if set in the configuration file */
+    char    *nativeLibrary;         /* The base name of the native library loaded by the WrapperManager. */
     int     isStateOutputEnabled;   /* TRUE if set in the configuration file.  Shows output on the state of the state engine. */
     int     isShutdownHookDisabled; /* TRUE if set in the configuration file */
     int     exitCode;               /* Code which the wrapper will exit with */
