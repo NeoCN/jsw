@@ -24,6 +24,11 @@
  *
  *
  * $Log$
+ * Revision 1.39  2003/01/20 09:35:50  mortenson
+ * Added a new wrapper.daemonize property which, when set, will form the wrapper
+ * process to be a detached non-session group leader.
+ * Patch by Rajiv Subrahmanyam
+ *
  * Revision 1.38  2003/01/20 06:26:33  mortenson
  * Make it possible to create a pid file on all unix platforms.
  * By default they are only used by sh files however.
@@ -848,12 +853,12 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 #ifdef WIN32
         found = 0;
 
-		/* To avoid problems on Windows XP systems, the '/' characters must
-		 *  be replaced by '\' characters in the specified path. */
-		c = (char *)prop;
-		while((c = strchr(c, '/')) != NULL) {
-			c[0] = '\\';
-		}
+        /* To avoid problems on Windows XP systems, the '/' characters must
+         *  be replaced by '\' characters in the specified path. */
+        c = (char *)prop;
+        while((c = strchr(c, '/')) != NULL) {
+            c[0] = '\\';
+        }
 
         /* If the full path to the java command was not specified, then we
          *  need to try and resolve it here to avoid problems later when
@@ -1852,34 +1857,37 @@ void wrapperBuildNTServiceInfo() {
         wrapperData->ntServicePriorityClass = NORMAL_PRIORITY_CLASS;
     }
 
-	/* Account name */
+    /* Account name */
     wrapperData->ntServiceAccount = (char *)getStringProperty(properties, "wrapper.ntservice.account", NULL);
-	if ( wrapperData->ntServiceAccount && ( strlen( wrapperData->ntServiceAccount ) <= 0 ) )
-	{
-		wrapperData->ntServiceAccount = NULL;
-	}
+    if ( wrapperData->ntServiceAccount && ( strlen( wrapperData->ntServiceAccount ) <= 0 ) )
+    {
+        wrapperData->ntServiceAccount = NULL;
+    }
 
-	/* Acount password */
+    /* Acount password */
     wrapperData->ntServicePassword = (char *)getStringProperty(properties, "wrapper.ntservice.password", NULL);
-	if ( wrapperData->ntServicePassword && ( strlen( wrapperData->ntServicePassword ) <= 0 ) )
-	{
-		wrapperData->ntServicePassword = NULL;
-	}
-	if ( !wrapperData->ntServiceAccount )
-	{
-		/* If there is not account name, then the password must not be set. */
-		wrapperData->ntServicePassword = NULL;
-	}
+    if ( wrapperData->ntServicePassword && ( strlen( wrapperData->ntServicePassword ) <= 0 ) )
+    {
+        wrapperData->ntServicePassword = NULL;
+    }
+    if ( !wrapperData->ntServiceAccount )
+    {
+        /* If there is not account name, then the password must not be set. */
+        wrapperData->ntServicePassword = NULL;
+    }
 
-	/* Interactive */
-	wrapperData->ntServiceInteractive = getBooleanProperty( properties, "wrapper.ntservice.interactive", FALSE );
+    /* Interactive */
+    wrapperData->ntServiceInteractive = getBooleanProperty( properties, "wrapper.ntservice.interactive", FALSE );
 }
 #endif
 
 #ifndef WIN32 /* UNIX */
-int wrapperBuildUnixDaemonInfo() {
+void wrapperBuildUnixDaemonInfo() {
+    /** Get the pid file if any.  May be NULL */
     wrapperData->pidFilename = (char *)getStringProperty(properties, "wrapper.pidfile", NULL);
-    return 0;
+    
+    /** Get the daemonize flag. */
+    wrapperData->daemonize = getBooleanProperty(properties, "wrapper.daemonize", FALSE);
 }
 #endif
 
@@ -1998,11 +2006,12 @@ int wrapperLoadConfiguration() {
 #ifdef WIN32
     /* Configure the NT service information */
     wrapperBuildNTServiceInfo();
-    return 0;
 #else /* UNIX */
     /* Configure the Unix daemon information */
-    return (wrapperBuildUnixDaemonInfo());
+    wrapperBuildUnixDaemonInfo();
 #endif
+    
+    return 0;
 }
 
 /******************************************************************************

@@ -24,6 +24,11 @@
  *
  *
  * $Log$
+ * Revision 1.23  2003/01/20 09:35:50  mortenson
+ * Added a new wrapper.daemonize property which, when set, will form the wrapper
+ * process to be a detached non-session group leader.
+ * Patch by Rajiv Subrahmanyam
+ *
  * Revision 1.22  2003/01/20 06:26:33  mortenson
  * Make it possible to create a pid file on all unix platforms.
  * By default they are only used by sh files however.
@@ -210,6 +215,7 @@ struct WrapperConfig {
     int     ntServiceInteractive;   /* Should the service be allowed to interact with the desktop? */
 #else /* UNIX */
     char    *pidFilename;           /* Name of file to store wrapper pid in */
+    int     daemonize;              /* TRUE if the process  should be spawned as a daemon process on launch. */
 #endif
 };
 

@@ -51,6 +51,28 @@ $Id$
                     currently be displayed when using Java 1.2.x.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Made it possible to use the wrapper.pidfile property on all *nix platforms.
+                    Please notice that the property has been removed from the default
+                    wrapper.conf file.  The property is not needed when the wrapper is launched
+                    with the bash shell script.  The sh shell script will set the wrapper.pidfile
+                    when the wrapper is launched.  If either of the scripts provided with the
+                    Wrapper distribution are used then the wrapper.pidfile should always be
+                    removed from your wrapper.conf file.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Added a new wrapper.daemonize property which, when set, will form the wrapper
+                    process to be a detached non-session group leader.  This makes it possible to
+                    launch the wrapper in such a way that it will not be terminated when the user
+                    launching the process logs out.  This had been a problem on Solaris systems
+                    when using the sh shell.  The default sh and bash scripts both make use of
+                    this in the default.  Please update your scripts for use with this version.
+                    Thanks to Rajiv Subrahmanyam for the patch.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

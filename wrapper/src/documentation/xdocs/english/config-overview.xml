@@ -596,20 +596,49 @@ wrapper.logfile.format=
                         <glossterm>wrapper.pidfile</glossterm>
                         <glossdef>
                             <para>
-                                File to write process ID to.  This file is used by sh scripts to
-                                make it possible to tell whether or not the wrapper process is
-                                already running.  If you modify this parameter and you are using a
-                                sh script to control the wrapper then please make sure that you make
-                                sure you also update the script to reflect this change.
+                                File to write process ID to.  If set, a pid file will be written
+                                to the specified location when the Wrapper process is started.  The
+                                file will be deleted when the Wrapper process has terminated.
+                            </para>
+                            <para>
+                                In most cases, this property will not be set from within the
+                                wrapper.conf file.  It can be passed to the wrapper process by
+                                shell scripts which require a specific pid file to control the
+                                shutdown of the Wrapper and its Java process.  An example can be
+                                found in the sh.script.in file in the src/bin directory.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
                                     <screen format="linespecific"><![CDATA[wrapper.pidfile=/var/run/myapp.pid]]></screen>
                                 </informalexample>
+                            </para>
+                        </glossdef>
+                    </glossentry>
+                    <glossentry>
+                        <glossterm>wrapper.daemonize</glossterm>
+                        <glossdef>
+                            <para>
+                                Spawns a fork of the Wrapper process as a detached non-session
+                                group leader.  This means that the process will continue to run
+                                even after the console from which the Wrapper process was launched
+                                has been closed.
+                            </para>
+                            <para>
+                                Using the bash shell, it is also possible to spawn the process
+                                from the shell using the &amp; operator.  However this does not work
+                                correctly for other shells on some platforms.
+                            </para>
+                            <para>
+                                Be aware that the daemon process will still send output to stdout
+                                unless the wrapper.console.loglevel property has been set to NONE.
+                            </para>
+                            <para>
+                                In most cases, this property will not be set from within the
+                                wrapper.conf file.  It can be passed to the wrapper process by
+                                the shell script which launches the Wrapper.  An example can be
+                                found in the sh.script.in file in the src/bin directory.
                                 <informalexample>
-                                    <simpara><emphasis>Text in sh.script which needs to updated:</emphasis></simpara>
-                                    <screen format="linespecific"><![CDATA[# Process ID
-PIDDIR="/var/run"
-PIDFILE="$PIDDIR/$APP_NAME.pid"]]></screen>
+                                    <simpara><emphasis>Example:</emphasis></simpara>
+                                    <screen format="linespecific"><![CDATA[wrapper.daemonize=TRUE]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
