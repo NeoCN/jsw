@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.74  2004/06/15 03:16:36  mortenson
+ * Debug output from the forked child process just before the JVM was launched
+ * was causing corruption of debug output on Solaris.
+ *
  * Revision 1.73  2004/06/15 02:14:19  mortenson
  * Get the new sigaction code compiling on Solaris.
  *
@@ -690,10 +694,6 @@ void wrapperExecute() {
         pipeInitialized = 1;
     }
     
-    if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Forking process for JVM.");
-    }
-
     /* Fork off the child. */
     proc = fork();
     
@@ -713,9 +713,11 @@ void wrapperExecute() {
 
         if (proc == 0) {
             /* We are the child side. */
-            if (wrapperData->isDebugging) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Forked. (child)");
-            }
+            
+            /* The logging code causes some log corruption if logging is called from the
+             *  child of a fork.  Not sure exactly why but most likely because the forked
+             *  child receives a copy of the mutex and thus synchronization is not working.
+             * It is ok to log errors in here, but avoid output otherwise. */
             
             /* Send output to the pipe by dupicating the pipe fd and setting the copy as the stdout fd. */
             if (dup2(pipedes[STDOUT_FILENO], STDOUT_FILENO) < 0) {
@@ -734,9 +736,6 @@ void wrapperExecute() {
             /* The pipedes array is global so do not close the pipes. */
             
             /* Child process: execute the JVM. */
-            if (wrapperData->isDebugging) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Launching %s", wrapperData->jvmCommand[0]);
-            }
             execvp(wrapperData->jvmCommand[0], wrapperData->jvmCommand);
             
             /* We reached this point...meaning we were unable to start. */
@@ -744,10 +743,6 @@ void wrapperExecute() {
         
         } else {
             /* We are the parent side. */
-            if (wrapperData->isDebugging) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Forked. (parent)");
-            }
-
             jvmPid = proc;
             jvmOut = pipedes[STDIN_FILENO];
 
