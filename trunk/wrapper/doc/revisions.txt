@@ -21,6 +21,9 @@ Java Service Wrapper Revision History.
 * Fix a problem when using the tick timer where the Wrapper would sometimes
   exit on startup due to an uncaught SIGALRM.  Only reported on multi-CPU
   Solaris systems.
+* Fix a problem where the Wrapper would sometimes hang on shutdown if
+  another thread called System.exit while the Wrapper was shutting down.
+  Bug #955248.
 
 3.1.0
 * The license was revised for this version to include a copyright omission.
