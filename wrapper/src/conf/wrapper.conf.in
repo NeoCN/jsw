@@ -92,6 +92,9 @@ wrapper.ntservice.name=@app.name@
 # Display name of the service
 wrapper.ntservice.displayname=@app.long.name@
 
+# Description of the service
+wrapper.ntservice.description=@app.description@
+
 # Service dependencies.  Add dependencies as needed starting from 1
 wrapper.ntservice.dependency.1=
 

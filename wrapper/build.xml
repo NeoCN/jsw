@@ -18,6 +18,7 @@
     <property name="app.name"      value="testwrapper"/>
     <property name="app.caps.name" value="TestWrapper"/>
     <property name="app.long.name" value="Test Wrapper Sample Application"/>
+    <property name="app.desc"      value="Test Wrapper Sample Application Description"/>
     
     <!-- product version -->
     <property name="major.version" value="2" />
@@ -80,6 +81,7 @@
         
         <filter token="app.name"          value="${app.name}"      />
         <filter token="app.long.name"     value="${app.long.name}" />
+        <filter token="app.description"   value="${app.desc}"      />
     </target>
     
     <!-- =================================================================== -->

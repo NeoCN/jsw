@@ -157,6 +157,9 @@ wrapper.ntservice.name=@app.name@
 # Display name of the service
 wrapper.ntservice.displayname=@app.long.name@
 
+# Description of the service
+wrapper.ntservice.description=@app.description@
+
 # Service dependencies.  Add dependencies as needed starting from 1
 wrapper.ntservice.dependency.1=
 
@@ -608,6 +611,18 @@ wrapper.logfile.format=
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
                                     <screen format="linespecific">wrapper.ntservice.displayname=My Application</screen>
+                                </informalexample>
+                            </para>
+                        </glossdef>
+                    </glossentry>
+                    <glossentry>
+                        <glossterm>wrapper.ntservice.description</glossterm>
+                        <glossdef>
+                            <para>
+                                Description of the NT service when installed.  (Only used in Windows 2000 and XP, not in NT.)
+                                <informalexample>
+                                    <simpara><emphasis>Example:</emphasis></simpara>
+                                    <screen format="linespecific">wrapper.ntservice.description=Description of My Application</screen>
                                 </informalexample>
                             </para>
                         </glossdef>
