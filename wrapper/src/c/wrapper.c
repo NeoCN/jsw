@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.101  2004/06/30 14:58:03  mortenson
+ * Fix several error messages that were displaying errno values directly
+ * rather than displaying their human readable meanings.
+ *
  * Revision 1.100  2004/06/22 02:24:37  mortenson
  * no message
  *
@@ -389,7 +393,8 @@ void wrapperProtocolStartServer() {
     /* Create the server socket. */
     ssd = socket(AF_INET, SOCK_STREAM, 0);
     if (ssd == INVALID_SOCKET) {
-        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, "server socket creation failed. (%s)", getLastErrorText());
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR,
+            "server socket creation failed. (%s)", getLastErrorText());
         return;
     }
 
@@ -401,7 +406,8 @@ void wrapperProtocolStartServer() {
 #endif
 
     if (rc == SOCKET_ERROR) {
-        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, "server socket ioctlsocket failed. (%s)", getLastErrorText());
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR,
+            "server socket ioctlsocket failed. (%s)", getLastErrorText());
         wrapperProtocolStopServer();
         return;
     }
@@ -547,7 +553,8 @@ void wrapperProtocolOpen() {
             return;
         } else {
             if (wrapperData->isDebugging) {
-                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket creation failed. (%d)", rc);
+                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
+                    "socket creation failed. (%s)", getLastErrorText());
             }
             return;
         }
@@ -566,7 +573,8 @@ void wrapperProtocolOpen() {
 #endif
     if (rc == SOCKET_ERROR) {
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket ioctlsocket failed. (%d)", wrapperGetLastError());
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
+                "socket ioctlsocket failed. (%s)", getLastErrorText());
         }
         wrapperProtocolClose();
         return;
@@ -783,7 +791,8 @@ int wrapperProtocolRead() {
             err = wrapperGetLastError();
             if (wrapperData->isDebugging) {
                 if ((err != EWOULDBLOCK) && (err != ENOTSOCK) && (err != ECONNRESET)) {
-                    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket read failed. (%d)", err);
+                    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
+                        "socket read failed. (%s)", getLastErrorText());
                     wrapperProtocolClose();
                 }
             }
