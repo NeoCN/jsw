@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.120  2004/10/18 09:37:22  mortenson
+ * Add the wrapper.cpu_output and wrapper.cpu_output.interval properties to
+ * make it possible to track CPU usage of the Wrapper and JVM over time.
+ *
  * Revision 1.119  2004/10/18 05:43:45  mortenson
  * Add the wrapper.memory_output and wrapper.memory_output.interval properties to
  * make it possible to track memory usage of the Wrapper and JVM over time.
@@ -2219,9 +2223,13 @@ int wrapperLoadConfiguration() {
     /* Get the sleep debug output status. */
     wrapperData->isSleepOutputEnabled = getBooleanProperty(properties, "wrapper.sleep_output", FALSE);
 
-    /* Get the memory debug output status. */
+    /* Get the memory output status. */
     wrapperData->isMemoryOutputEnabled = getBooleanProperty(properties, "wrapper.memory_output", FALSE);
     wrapperData->memoryOutputInterval = getIntProperty(properties, "wrapper.memory_output.interval", 1);
+
+    /* Get the cpu output status. */
+    wrapperData->isCPUOutputEnabled = getBooleanProperty(properties, "wrapper.cpu_output", FALSE);
+    wrapperData->cpuOutputInterval = getIntProperty(properties, "wrapper.cpu_output.interval", 1);
     
     /* Get the shutdown hook status */
     wrapperData->isShutdownHookDisabled = getBooleanProperty(properties, "wrapper.disable_shutdown_hook", FALSE);

@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.92  2004/10/18 09:37:23  mortenson
+ * Add the wrapper.cpu_output and wrapper.cpu_output.interval properties to
+ * make it possible to track CPU usage of the Wrapper and JVM over time.
+ *
  * Revision 1.91  2004/10/18 05:43:45  mortenson
  * Add the wrapper.memory_output and wrapper.memory_output.interval properties to
  * make it possible to track memory usage of the Wrapper and JVM over time.
@@ -383,13 +387,26 @@ char* getExceptionName(DWORD exCode);
 int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers);
 
 /* Dynamically loaded functions. */
+FARPROC OptionalGetProcessTimes = NULL;
 FARPROC OptionalGetProcessMemoryInfo = NULL;
 
 /******************************************************************************
  * Windows specific code
  ******************************************************************************/
 void loadDLLProcs() {
+    HMODULE kernel32Mod;
     HMODULE psapiMod;
+
+    /* The PSAPI module was added in NT 3.5. */
+    if ((kernel32Mod = GetModuleHandle("KERNEL32.DLL")) == NULL) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+            "The KERNEL32.DLL was not found.  Some functions will be disabled.");
+    } else {
+        if ((OptionalGetProcessTimes = GetProcAddress(kernel32Mod, "GetProcessTimes")) == NULL) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                "The GetProcessTimes is not available in this KERNEL32.DLL version.  Some functions will be disabled.");
+        }
+    }
 
     /* The PSAPI module was added in NT 4.0. */
     if ((psapiMod = LoadLibrary("PSAPI.DLL")) == NULL) {
@@ -541,6 +558,23 @@ void appExit(int exitCode) {
  */
 int wrapperGetLastError() {
     return WSAGetLastError();
+}
+
+int writePidFile(const char *filename, DWORD pid) {
+    FILE *pid_fp = NULL;
+    int old_umask;
+
+    old_umask = _umask(022);
+    pid_fp = fopen(filename, "w");
+    _umask(old_umask);
+    
+    if (pid_fp != NULL) {
+        fprintf(pid_fp, "%d\n", pid);
+        fclose(pid_fp);
+    } else {
+        return 1;
+    }
+    return 0;
 }
 
 /**
@@ -1471,7 +1505,6 @@ void wrapperExecute() {
     int hideConsole;
 
     FILE *pid_fp = NULL;
-    int old_umask;
 
     /* Reset the exit code when we launch a new JVM. */
     wrapperData->exitCode = 0;
@@ -1722,6 +1755,134 @@ void wrapperDumpMemory() {
             jCounters.QuotaPagedPoolUsage, jCounters.QuotaPeakPagedPoolUsage,
             jCounters.QuotaNonPagedPoolUsage, jCounters.QuotaPeakNonPagedPoolUsage,
             jCounters.PagefileUsage, jCounters.PeakPagefileUsage);
+    }
+}
+
+DWORD filetimeToMS(FILETIME* filetime) {
+    LARGE_INTEGER li;
+    
+    memcpy(&li, filetime, sizeof(li));
+    li.QuadPart /= 10000;
+    
+    return li.LowPart;
+}
+
+/**
+ * Outputs a log entry at regular intervals to track the CPU usage over each
+ *  interval for the Wrapper and its JVM.
+ *
+ * In order to make sense of the timing values, it is also necessary to see how
+ *  far the system performance counter has progressed.  By carefully comparing
+ *  these values, it is possible to very accurately calculate the CPU usage over
+ *  any period of time.
+ */
+LONGLONG lastPerformanceCount = 0;
+LONGLONG lastWrapperKernelTime = 0;
+LONGLONG lastWrapperUserTime = 0;
+LONGLONG lastJavaKernelTime = 0;
+LONGLONG lastJavaUserTime = 0;
+LONGLONG lastIdleKernelTime = 0;
+LONGLONG lastIdleUserTime = 0;
+void wrapperDumpCPUUsage() {
+    LARGE_INTEGER count;
+    LARGE_INTEGER frequency;
+    LARGE_INTEGER li;
+    LONGLONG performanceCount;
+    
+    FILETIME creationTime;
+    FILETIME exitTime;
+    FILETIME wKernelTime;
+    FILETIME wUserTime;
+    FILETIME jKernelTime;
+    FILETIME jUserTime;
+    
+    DWORD wKernelTimeMs; /* Will overflow in 49 days of usage. */
+    DWORD wUserTimeMs;
+    DWORD wTimeMs;
+    DWORD jKernelTimeMs;
+    DWORD jUserTimeMs;
+    DWORD jTimeMs;
+    
+    double age;
+    double wKernelPercent;
+    double wUserPercent;
+    double wPercent;
+    double jKernelPercent;
+    double jUserPercent;
+    double jPercent;
+    
+    if (OptionalGetProcessTimes) {
+        if (!QueryPerformanceCounter(&count)) {
+            /* no high-resolution performance counter support. */
+            return;
+        }
+        if (!QueryPerformanceFrequency(&frequency)) {
+        }
+        
+        performanceCount = count.QuadPart;
+        
+        /* Start with the Wrapper process. */
+        if (!OptionalGetProcessTimes(wrapperProcess, &creationTime, &exitTime, &wKernelTime, &wUserTime)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                "Call to GetProcessTimes failed for Wrapper process %08x: %s",
+                wrapperProcessId, getLastErrorText());
+            return;
+        }
+        
+        if (javaProcess != NULL) {
+            /* Next the Java process. */
+            if (!OptionalGetProcessTimes(javaProcess, &creationTime, &exitTime, &jKernelTime, &jUserTime)) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                    "Call to GetProcessTimes failed for Java process %08x: %s",
+                    javaProcessId, getLastErrorText());
+                return;
+            }
+        } else {
+            memset(&jKernelTime, 0, sizeof(jKernelTime));
+            memset(&jUserTime, 0, sizeof(jUserTime));
+            lastJavaKernelTime = 0;
+            lastJavaUserTime = 0;
+        }
+        
+        
+        // Convert the times to ms.
+        wKernelTimeMs = filetimeToMS(&wKernelTime);
+        wUserTimeMs = filetimeToMS(&wUserTime);
+        wTimeMs = wKernelTimeMs + wUserTimeMs;
+        jKernelTimeMs = filetimeToMS(&jKernelTime);
+        jUserTimeMs = filetimeToMS(&jUserTime);
+        jTimeMs = jKernelTimeMs + jUserTimeMs;
+        
+        /* Calculate the number of seconds since the last call. */
+        age = (double)(performanceCount - lastPerformanceCount) / frequency.QuadPart;
+        
+        /* Calculate usage percentages. */
+        memcpy(&li, &wKernelTime, sizeof(li));
+        wKernelPercent = 100.0 * ((li.QuadPart - lastWrapperKernelTime) / 10000000.0) / age;
+        lastWrapperKernelTime = li.QuadPart;
+        
+        memcpy(&li, &wUserTime, sizeof(li));
+        wUserPercent = 100.0 * ((li.QuadPart - lastWrapperUserTime) / 10000000.0) / age;
+        lastWrapperUserTime = li.QuadPart;
+        
+        wPercent = wKernelPercent + wUserPercent;
+        
+        memcpy(&li, &jKernelTime, sizeof(li));
+        jKernelPercent = 100.0 * ((li.QuadPart - lastJavaKernelTime) / 10000000.0) / age;
+        lastJavaKernelTime = li.QuadPart;
+        
+        memcpy(&li, &jUserTime, sizeof(li));
+        jUserPercent = 100.0 * ((li.QuadPart - lastJavaUserTime) / 10000000.0) / age;
+        lastJavaUserTime = li.QuadPart;
+        
+        jPercent = jKernelPercent + jUserPercent;
+        
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            "Wrapper CPU: kernel %ldms (%5.2f%%), user %ldms (%5.2f%%), total %ldms (%5.2f%%)  Java CPU: kernel %ldms (%5.2f%%), user %ldms (%5.2f%%), total %ldms (%5.2f%%)",
+            wKernelTimeMs, wKernelPercent, wUserTimeMs, wUserPercent, wTimeMs, wPercent,
+            jKernelTimeMs, jKernelPercent, jUserTimeMs, jUserPercent, jTimeMs, jPercent);
+        
+        lastPerformanceCount = performanceCount;
     }
 }
 
@@ -2542,23 +2703,6 @@ int setWorkingDir() {
     }
 
     return wrapperSetWorkingDir(szPath);
-}
-
-int writePidFile(const char *filename, DWORD pid) {
-    FILE *pid_fp = NULL;
-    int old_umask;
-
-    old_umask = _umask(022);
-    pid_fp = fopen(filename, "w");
-    _umask(old_umask);
-    
-    if (pid_fp != NULL) {
-        fprintf(pid_fp, "%d\n", pid);
-        fclose(pid_fp);
-    } else {
-        return 1;
-    }
-    return 0;
 }
 
 /******************************************************************************

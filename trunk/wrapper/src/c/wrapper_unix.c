@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.92  2004/10/18 09:37:22  mortenson
+ * Add the wrapper.cpu_output and wrapper.cpu_output.interval properties to
+ * make it possible to track CPU usage of the Wrapper and JVM over time.
+ *
  * Revision 1.91  2004/10/18 05:43:45  mortenson
  * Add the wrapper.memory_output and wrapper.memory_output.interval properties to
  * make it possible to track memory usage of the Wrapper and JVM over time.
@@ -1053,6 +1057,14 @@ DWORD wrapperGetTicks() {
  *  Wrapper and its JVM.
  */
 void wrapperDumpMemory() {
+    /* Not yet implemented on UNIX platforms. */
+}
+
+/**
+ * Outputs a log entry at regular intervals to track the CPU usage over each
+ *  interval for the Wrapper and its JVM.
+ */
+void wrapperDumpCPUUsage() {
     /* Not yet implemented on UNIX platforms. */
 }
 

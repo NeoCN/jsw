@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.14  2004/10/18 09:37:23  mortenson
+ * Add the wrapper.cpu_output and wrapper.cpu_output.interval properties to
+ * make it possible to track CPU usage of the Wrapper and JVM over time.
+ *
  * Revision 1.13  2004/10/18 05:43:45  mortenson
  * Add the wrapper.memory_output and wrapper.memory_output.interval properties to
  * make it possible to track memory usage of the Wrapper and JVM over time.
@@ -904,6 +908,7 @@ void wrapperEventLoop() {
 
     wrapperData->anchorTimeoutTicks = lastCycleTicks;
     wrapperData->memoryOutputTimeoutTicks = lastCycleTicks;
+    wrapperData->cpuOutputTimeoutTicks = lastCycleTicks;
 
     if (wrapperData->isTimerOutputEnabled) {
         logTimerStats();
@@ -975,6 +980,14 @@ void wrapperEventLoop() {
             if (wrapperTickExpired(nowTicks, wrapperData->memoryOutputTimeoutTicks)) {
                 wrapperDumpMemory();
                 wrapperData->memoryOutputTimeoutTicks = wrapperAddToTicks(nowTicks, wrapperData->memoryOutputInterval);
+            }
+        }
+        
+        /* Log CPU usage. */
+        if (wrapperData->isCPUOutputEnabled) {
+            if (wrapperTickExpired(nowTicks, wrapperData->cpuOutputTimeoutTicks)) {
+                wrapperDumpCPUUsage();
+                wrapperData->cpuOutputTimeoutTicks = wrapperAddToTicks(nowTicks, wrapperData->cpuOutputInterval);
             }
         }
 

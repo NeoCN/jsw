@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.58  2004/10/18 09:37:22  mortenson
+ * Add the wrapper.cpu_output and wrapper.cpu_output.interval properties to
+ * make it possible to track CPU usage of the Wrapper and JVM over time.
+ *
  * Revision 1.57  2004/10/18 05:43:45  mortenson
  * Add the wrapper.memory_output and wrapper.memory_output.interval properties to
  * make it possible to track memory usage of the Wrapper and JVM over time.
@@ -303,9 +307,12 @@ struct WrapperConfig {
     int     isTimerOutputEnabled;   /* TRUE if detailed timer output should be included in debug output. */
     int     isLoopOutputEnabled;    /* TRUE if very detailed output from the main loop should be output. */
     int     isSleepOutputEnabled;   /* TRUE if detailed sleep output should be included in debug output. */
-    int     isMemoryOutputEnabled;  /* TRUE if detailed memory output should be included in debug output. */
+    int     isMemoryOutputEnabled;  /* TRUE if detailed memory output should be included in status output. */
     int     memoryOutputInterval;   /* Interval in seconds at which memory usage is logged. */
     DWORD   memoryOutputTimeoutTicks; /* Tick count at which memory will next be logged. */
+    int     isCPUOutputEnabled;     /* TRUE if detailed CPU output should be included in status output. */
+    int     cpuOutputInterval;      /* Interval in seconds at which CPU usage is logged. */
+    DWORD   cpuOutputTimeoutTicks;  /* Tick count at which CPU will next be logged. */
     int     isShutdownHookDisabled; /* TRUE if set in the configuration file */
     int     startupDelayConsole;    /* Delay in seconds before starting the first JVM in console mode. */
     int     startupDelayService;    /* Delay in seconds before starting the first JVM in service mode. */
@@ -494,6 +501,12 @@ extern DWORD wrapperGetTicks();
  *  Wrapper and its JVM.
  */
 extern void wrapperDumpMemory();
+
+/**
+ * Outputs a log entry at regular intervals to track the CPU usage over each
+ *  interval for the Wrapper and its JVM.
+ */
+extern void wrapperDumpCPUUsage();
 
 /******************************************************************************
  * Wrapper inner methods.
