@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.69  2003/09/03 09:26:25  mortenson
+ * Modify the WrapperManager.isLaunchedAsService() method on UNIX systems so it
+ * now returns true if the Wrapper was launched with the wrapper.daemonize flag
+ * set.
+ *
  * Revision 1.68  2003/09/03 02:33:38  mortenson
  * Requested restarts no longer reset the restart count.
  * Add new wrapper.ignore_signals property.
@@ -1379,7 +1384,11 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     }
 
     /* If this is being run as a service, add a service flag. */
+#ifdef WIN32
     if (!wrapperData->isConsole) {
+#else
+	if (wrapperData->daemonize) {
+#endif
         if (strings) {
             strings[index] = malloc(sizeof(char) * (24 + 1));
             if (addQuotes) {

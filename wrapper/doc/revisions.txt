@@ -37,6 +37,9 @@ Java Service Wrapper Revision History.
   reset back to 0.
 * Added a new wrapper.ignore_signals property which makes it possible to
   configure the Wrapper so it will ignore CTRL-C, HALT and INT signals.
+* Modify the WrapperManager.isLaunchedAsService() method on UNIX systems so it
+  now returns true if the Wrapper was launched with the wrapper.daemonize flag
+  set.
 
 3.0.4
 * Fix a problem on UNIX systems where requesting a second thread dump any time
