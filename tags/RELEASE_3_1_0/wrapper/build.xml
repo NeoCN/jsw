@@ -1,0 +1,734 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE project PUBLIC "-//ANT//DTD project//EN" "project.dtd">
+
+<!-- ======================================================================= -->
+<!-- Wrapper build file                                                      -->
+<!-- ======================================================================= -->
+
+<project name="wrapper" default="main" basedir=".">
+    
+    <!-- Local build properties -->
+    <property file="${user.home}/.ant.properties" />
+    <property file="${basedir}/ant.properties"/>
+    <property file="${basedir}/default.properties"/>
+    
+    <!-- platform -->
+    <property name="is.${os.name}" value="true"/>
+    
+    <property name="classpath"     value=""/>
+    
+    <path id="tools.class.path">
+        <!-- Different platforms do things slightly different, so include both
+             possible locations of the tools.jar file. -->
+        <pathelement location="${java.home}/lib/tools.jar"/>
+        <pathelement location="${java.home}/../lib/tools.jar"/>
+        
+        <fileset dir="${tools.dir}/lib">
+            <include name="*.jar" />
+        </fileset>
+    </path>
+    
+    <!-- =================================================================== -->
+    <!-- Help on usage                                                       -->
+    <!-- =================================================================== -->
+    <target name="usage">
+        <echo message="Use the -projecthelp option instead"/>
+    </target>
+    <target name="help" depends="usage"/>
+    
+    <!-- =================================================================== -->
+    <!-- Resolve Platform properties                                         -->
+    <!-- =================================================================== -->
+    <target name="init-windows-nt" if="is.Windows NT">
+        <property name="is.Windows" value="true"/>
+    </target>
+    <target name="init-windows-2000" if="is.Windows 2000">
+        <property name="is.Windows" value="true"/>
+    </target>
+    <target name="init-windows-xp" if="is.Windows XP">
+        <property name="is.Windows" value="true"/>
+    </target>
+    <target name="init-windows"
+        depends="init-windows-nt, init-windows-2000, init-windows-xp"
+        if="is.Windows">
+        <property name="is.shell.bat" value="true"/>
+        <property name="wrapper.bin.name" value="wrapper.exe"/>
+        <property name="wrapper.lib.name" value="wrapper.dll"/>
+    </target>
+    <target name="init-linux" if="is.Linux">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+        <property name="wrapper.bin.name" value="wrapper"/>
+        <property name="wrapper.lib.name" value="libwrapper.so"/>
+        <property name="make.name" value="make"/>
+        <property name="makefile.name" value="Makefile.linux"/>
+        <property name="releasefile" value="wrapper_linux_${version}"/>
+    </target>
+    <target name="init-solaris" if="is.SunOS">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+        <property name="wrapper.bin.name" value="wrapper"/>
+        <property name="wrapper.lib.name" value="libwrapper.so"/>
+        <property name="make.name" value="make"/>
+        <property name="makefile.name" value="Makefile.solaris"/>
+        <property name="releasefile" value="wrapper_solaris_${version}"/>
+    </target>
+    <target name="init-aix" if="is.AIX">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+        <property name="wrapper.bin.name" value="wrapper"/>
+        <property name="wrapper.lib.name" value="libwrapper.so"/>
+        <property name="make.name" value="gmake"/>
+        <property name="makefile.name" value="Makefile.aix"/>
+        <property name="releasefile" value="wrapper_aix_${version}"/>
+    </target>
+    <target name="init-hpux" if="is.HP-UX">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+        <property name="wrapper.bin.name" value="wrapper"/>
+        <property name="wrapper.lib.name" value="libwrapper.so"/>
+        <property name="make.name" value="gmake"/>
+        <property name="makefile.name" value="Makefile.hpux"/>
+        <property name="releasefile" value="wrapper_hpux_${version}"/>
+    </target>
+    <target name="init-macosx" if="is.Mac OS X">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+        <property name="wrapper.bin.name" value="wrapper"/>
+        <property name="wrapper.lib.name" value="libwrapper.jnilib"/>
+        <property name="make.name" value="make"/>
+        <property name="makefile.name" value="Makefile.macosx"/>
+        <property name="releasefile" value="wrapper_macosx_${version}"/>
+    </target>
+    <target name="init-osf1" if="is.OSF1">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+        <property name="wrapper.bin.name" value="wrapper"/>
+        <property name="wrapper.lib.name" value="libwrapper.so"/>
+        <property name="make.name" value="gmake"/>
+        <property name="makefile.name" value="Makefile.osf1"/>
+        <property name="releasefile" value="wrapper_osf1_${version}"/>
+    </target>
+    <target name="init-freebsd" if="is.FreeBSD">
+        <property name="is.Unix" value="true" />
+        <property name="is.shell.sh" value="true"/>
+        <property name="wrapper.bin.name" value="wrapper"/>
+        <property name="wrapper.lib.name" value="libwrapper.so"/>
+        <property name="make.name" value="gmake"/>
+        <property name="makefile.name" value="Makefile.freebsd"/>
+        <property name="releasefile" value="wrapper_freebsd_${version}"/>
+    </target>
+    <target name="init-irix" if="is.Irix">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+        <property name="wrapper.bin.name" value="wrapper"/>
+        <property name="wrapper.lib.name" value="libwrapper.so"/>
+        <property name="make.name" value="gmake"/>
+        <property name="makefile.name" value="Makefile.irix"/>
+        <property name="releasefile" value="wrapper_irix_${version}"/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Initialize build.                                                   -->
+    <!-- =================================================================== -->
+    <target name="init"
+        depends="init-windows, init-linux, init-solaris, init-aix, init-hpux, init-macosx, init-osf1, init-freebsd, init-irix">
+        <echo message="OS='${os.name}'"/>
+        <tstamp/>
+        <filter token="version"           value="${version}"       />
+        <filter token="build.date"        value="${DSTAMP}"        />
+        <filter token="build.time"        value="${TSTAMP}"        />
+        
+        <filter token="app.name"          value="${app.name}"      />
+        <filter token="app.long.name"     value="${app.long.name}" />
+        <filter token="app.description"   value="${app.desc}"      />
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Converts natively encoded src files to ascii                        -->
+    <!-- =================================================================== -->
+    <target name="convert" depends="init">
+        <native2ascii src="${src.dir}/java"
+                      dest="${src.dir}/java"
+                      encoding="JISAutoDetect"
+                      ext="native"
+                      includes="**/*.native" />
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Updates version info and build time in source code                  -->
+    <!-- =================================================================== -->
+    <target name="update-info" depends="init">
+        <!-- copy server info source, using filtering to update version and build time -->
+        <copy file="${src.dir}/java/org/tanukisoftware/wrapper/WrapperInfo.java.in"
+              tofile="${src.dir}/java/org/tanukisoftware/wrapper/WrapperInfo.java" 
+              filtering="on" overwrite="true"/>
+        <copy file="${src.dir}/c/wrapperinfo.c.in"
+              tofile="${src.dir}/c/wrapperinfo.c" 
+              filtering="on" overwrite="true"/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Compiles the source code                                            -->
+    <!-- =================================================================== -->
+    <target name="compile-java" depends="convert,update-info">
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${build.classes}"/>
+        <mkdir dir="${lib.dir}"/>
+        
+        <!-- compile everything under com -->
+        <javac srcdir="${src.dir}/java" destdir="${build.classes}"
+               deprecation="on"
+               debug="on"
+               optimize="on"
+               target="1.2"> <!-- The 1.2 target is done so we work with older JVMs -->
+            <classpath id="compile.classpath"/>
+        </javac>
+
+        <!-- copy resource files to build directory -->
+        <copy todir="${build.classes}" > 
+            <fileset dir="${src.dir}/java" > 
+                <include name="**/*.properties" /> 
+                <include name="**/*.jpg" />
+            </fileset> 
+        </copy>
+
+        <!-- copy Manifests to build directory -->
+        <copy todir="${build.classes}" > 
+            <fileset dir="${src.dir}/java" > 
+                <include name="**/Manifest"/>
+            </fileset> 
+        </copy>
+    </target>
+    <target name="msvc-test" depends="convert,update-info" if="is.Windows">
+        <condition property="msvc.present">
+            <available file="${msvc.home}/VC98/BIN/VCVARS32.BAT"/>
+        </condition>
+        <condition property="msvc.missing">
+            <not>
+                <available file="${msvc.home}/VC98/BIN/VCVARS32.BAT"/>
+            </not>
+        </condition>
+    </target>
+    <target name="msvc-missing" depends="msvc-test" if="msvc.missing">
+        <echo message="**********************************************************************"/>
+        <echo message="Microsoft Visual Studio was not found at the following location:"/>
+        <echo message="  ${msvc.home}"/>
+        <echo message="wrapper.exe and wrapper.dll will be rebuilt.  If you do not have MSVC "/>
+        <echo message="installed then you can obtain wrapper.exe and wrapper.dll from a "/>
+        <echo message="binary release of the project."/>
+        <echo message=" "/>
+        <echo message="If it is installed at a different location, create a file called "/>
+        <echo message="  ${user.home}/.ant.properties"/>
+        <echo message="Then define a mvs.home property pointing to the MSVC root:"/>
+        <echo message="  mvs.home = ${msvc.home}"/>
+        <echo message="**********************************************************************"/>
+    </target>
+    <target name="compile-jni" depends="compile-java">
+        <javah
+            destdir="${src.dir}/c"
+            classpath="${build.classes}">
+            <class name="org.tanukisoftware.wrapper.WrapperManager"/>
+        </javah>
+    </target>
+    <target name="compile-c-windows" depends="compile-jni, msvc-missing" if="msvc.present">
+        <mkdir dir="${bin.dir}"/>        
+        <mkdir dir="${lib.dir}"/>
+        
+        <echo message="Java.vendor=${java.vendor}"/>
+        
+        <!-- IBM had to make their include directory structure slightly different than Sun's so
+             we have to play some games to locate the required JNI files -->
+        <property name="jni.h" value="${java.home}\..\include\jni.h"/>
+        <available property="jni_md.h" value="${java.home}\..\include\jni_md.h" file="${java.home}\..\include\jni_md.h"/>
+        <property name="jni_md.h" value="${java.home}\..\include\win32\jni_md.h"/>
+        
+        <!-- Prepare the WrapperJNI.mak and WrapperJNI.dep files for the current environment. -->
+        <copy file ="${src.dir}/c/WrapperJNI.mak.in" tofile="${src.dir}/c/WrapperJNI.mak" overwrite="true" encoding="Shift_JIS">
+            <filterset>
+                <filter token="java.home" value="${java.home}\.."/>
+            </filterset>
+        </copy>
+        <copy file ="${src.dir}/c/Wrapper.dep.in" tofile="${src.dir}/c/Wrapper.dep" overwrite="true">
+            <filterset>
+                <filter token="msvc.home" value="${msvc.home}"/>
+            </filterset>
+        </copy>
+        <copy file ="${src.dir}/c/WrapperJNI.dep.in" tofile="${src.dir}/c/WrapperJNI.dep" overwrite="true">
+            <filterset>
+                <filter token="jni.h" value="${jni.h}"/>
+                <filter token="jni_md.h" value="${jni_md.h}"/>
+            </filterset>
+        </copy>
+        
+        <!-- Build windows C targets -->
+        <exec executable="${src.dir}/c/makewin32.bat"
+            dir="${src.dir}/c" 
+            failonerror="true">
+            <arg value="${msvc.home}" />
+        </exec>
+    </target>
+    <target name="compile-c-windows-check" depends="compile-c-windows" if="is.Windows">
+        <!-- Make sure that the native Windows tergets exist. -->
+        <condition property="isWindowsNativeMissing">
+            <not>
+                <and>
+                    <available file="${bin.dir}/${wrapper.bin.name}"/>
+                    <available file="${lib.dir}/${wrapper.lib.name}"/>
+                </and>
+            </not>
+        </condition>
+    </target>
+    <target name="compile-c-windows-check2" depends="compile-c-windows-check" if="isWindowsNativeMissing">
+        <echo message="**********************************************************************"/>
+        <echo message="bin/${wrapper.bin.name} or lib/${wrapper.lib.name} are missing."/>
+        <echo message="Please optain the files from a binary release or install MSVC."/>
+        <echo message="The targets can be build in the task above, or using the MSVC project"/>
+        <echo message="workspace src/c/Wrapper.dsw"/>
+        <echo message="**********************************************************************"/>
+        <fail message="bin/${wrapper.bin.name} or lib/${wrapper.lib.name} are missing."/>
+    </target>
+    <target name="compile-c-unix" depends="convert,update-info,compile-jni" if="is.Unix">
+        <mkdir dir="${bin.dir}"/>        
+        <mkdir dir="${lib.dir}"/>
+        
+        <exec executable="${make.name}"
+            dir="${src.dir}/c" 
+            failonerror="true">
+            <arg line="-f ${makefile.name}" />
+        </exec>
+    </target>
+    <target name="compile-c" depends="compile-c-windows-check2,compile-c-unix">
+    </target>
+    <target name="compile" depends="compile-c,compile-java"
+        description="Compiles all java and c source">
+        
+        <mkdir dir="${logs.dir}"/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Creates the jar archive                                             -->
+    <!-- =================================================================== -->
+    <target name="jar" depends="compile">
+        <jar jarfile="${lib.dir}/wrapper.jar"
+             basedir="${build.classes}"
+             includes="**/*.class,**/*.properties"
+             excludes="**/test/*"
+             />
+        <jar jarfile="${lib.dir}/wrappertest.jar"
+             basedir="${build.classes}"
+             includes="**/test/*"
+             />
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Creates the javadocs archive                                        -->
+    <!-- =================================================================== -->
+    <target name="jdoc" description="generates the Wrapper javadocs">
+        <mkdir dir="${jdoc.dir}"/>
+        
+        <!-- Locale must be before any doclet parameters -->
+        <javadoc packagenames="org.tanukisoftware.wrapper"
+            Locale="en_US"
+            sourcepath="${src.dir}/java"
+            destdir="${jdoc.dir}"
+            author="true"
+            version="true"
+            private="false"
+            use="true"
+            windowtitle="Java Service Wrapper API"
+            doctitle="Java Service Wrapper"
+            bottom="Copyright 1999, 2003 TanukiSoftware.org.  All Rights Reserved."
+        />
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Bin target (Bat Files - Windows)                                    -->
+    <!-- =================================================================== -->
+    <target name="bin-bat" depends="compile" if="is.shell.bat">
+        <!-- Create batch files for the TestWrapper Sample Application -->
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${bin.dir}/${app.caps.name}.bat"
+              filtering="on"/>
+        <copy file="${src.dir}/bin/AppNoWrapper.bat.in"
+              tofile="${bin.dir}/${app.caps.name}NoWrapper.bat"
+              filtering="on"/>
+        <copy file="${src.dir}/bin/InstallApp-NT.bat.in"
+              tofile="${bin.dir}/Install${app.caps.name}-NT.bat"
+              filtering="on"/>
+        <copy file="${src.dir}/bin/UninstallApp-NT.bat.in"
+              tofile="${bin.dir}/Uninstall${app.caps.name}-NT.bat"
+              filtering="on"/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Bin target (sh scripts - Unix. Linux)                               -->
+    <!-- =================================================================== -->
+    <target name="bin-sh" depends="compile" if="is.shell.sh">
+        <copy file="${src.dir}/bin/sh.script.in"
+            tofile="${bin.dir}/${app.name}"
+            filtering="on"/>
+        <chmod file="${bin.dir}/${app.name}" perm="+x"/> 
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Bin target                                                          -->
+    <!-- =================================================================== -->
+    <target name="bin" depends="bin-bat, bin-sh">
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Conf target                                                         -->
+    <!-- =================================================================== -->
+    <target name="conf">
+        <mkdir dir="${conf.dir}"/>
+        
+        <!-- Create wrapper.conf for the TestWrapper Sample Application -->
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${conf.dir}/wrapper.conf"
+              filtering="on"/>
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Test Setup target                                                   -->
+    <!-- =================================================================== -->
+    <target name="test-setup">
+        <ant antfile="build-tests.xml" target="test-setup" inheritall="false"/>  
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Main target                                                         -->
+    <!-- =================================================================== -->
+    <target name="main"
+        depends="jar, bin, conf, test-setup"
+        description="default development build task">
+        
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Documentation target                                                -->
+    <!-- =================================================================== -->
+    <target name="doc-src-test">
+    <available file="${src.dir}/documentation/english.uris" property="doc-src.present"/>
+    </target>
+    <target name="doc" depends="doc-src-test" if="doc-src.present"
+    description="generates the Wrapper documentation">
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${build.dir}/work"/>
+        <mkdir dir="${doc.dir}"/>
+        
+        <fixcrlf eol="lf" destdir="${context.dir}/xdocs/english" srcdir="${src.dir}/conf">
+            <include name="wrapper.conf.in"/>
+        </fixcrlf>
+
+        <java classname="org.apache.cocoon.Main" fork="true">
+            <jvmarg value="-Xmx256M"/>
+            <arg value="-c${context.dir}/"/>
+            <arg value="-d${doc.dir}"/>
+            <arg value="-w${build.dir}/work"/>
+            <arg value="-uINFO"/>
+            <arg value="-f${context.dir}/english.uris"/>
+            <classpath>
+                <path refid="tools.class.path"/>
+            </classpath>
+        </java>
+
+        <copy tofile="${doc.dir}/english/index.html" 
+              file="${doc.dir}/english/introduction.html"/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Release (Common)                                                    -->
+    <!-- =================================================================== -->
+    <target name="release-common" depends="main, jdoc, doc">
+        <property name="releasesrcfile" value="wrapper_${version}_src"/>
+        <property name="releasesrcdir" value="${basedir}/${releasesrcfile}"/>
+        <delete dir="${releasesrcdir}"/>
+        <mkdir dir="${releasesrcdir}"/>
+        <copy todir="${releasesrcdir}" >
+            <fileset dir="${basedir}" >
+                <include name="index.html" />
+                <include name="build*" />
+                <include name="default.properties" />
+                <include name="project.dtd" />
+                <include name="doc/**" />
+                <include name="src/bin/**" />
+                <include name="src/conf/**" />
+                <include name="src/java/**" />
+                <include name="src/c/*.bat" />
+                <include name="src/c/*.c" />
+                <include name="src/c/*.c.in" />
+                <exclude name="src/c/wrapperinfo.c" />
+                <include name="src/c/*.h" />
+                <include name="src/c/Makefile.*" />
+                <include name="src/c/*.mak" />
+                <exclude name="src/c/WrapperJNI.mak" />
+                <include name="src/c/*.mak.in" />
+                <include name="src/c/*.dep" />
+                <exclude name="src/c/Wrapper.dep" />
+                <exclude name="src/c/WrapperJNI.dep" />
+                <include name="src/c/*.dep.in" />
+                <include name="src/c/*.dsp" />
+                <include name="src/c/*.dsw" />
+                <include name="src/c/*.plg" />
+                <include name="src/c/*.rc" />
+                <include name="src/c/*.bin" />
+                <include name="src/documentation/**" />
+                <include name="tools/**" />
+                <exclude name="**/CVS/*" />
+            </fileset>
+        </copy>
+        
+        <!-- Make sure that files are formatted correctly for their platforms -->
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat" eol="crlf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat.in" eol="crlf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.script.in" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="build.sh" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="tools/bin/ant" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="tools/bin/antRun" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/Makefile.*" eol="lf" />
+        
+        
+        <!-- Make src builds for Windows -->
+        
+        <!-- Set files to windows line feends for .zip files -->
+        <fixcrlf srcdir="${releasesrcdir}"
+            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.conf*, **/*.c, **/*.h, **/*.log"
+            eol="crlf" />
+        <fixcrlf srcdir="${releasesrcdir}"
+            includes="src/documentation/**"
+            excludes="**/images/**, **/*.ico, **/*.ttf"
+            eol="crlf" />
+        
+        <!-- Source archives with documentation source -->
+        <zip zipfile="${releasesrcdir}_with_doc_src.zip"
+            basedir="${basedir}"
+            compress="true">
+            <include name="${releasesrcfile}/**/*" />
+        </zip>
+        
+        <!-- Source archives without documentation source -->
+        <zip zipfile="${releasesrcdir}.zip"
+            basedir="${basedir}"
+            compress="true">
+            <include name="${releasesrcfile}/**/*" />
+            <exclude name="${releasesrcfile}/src/documentation/**/*" />
+            <exclude name="${releasesrcfile}/tools/lib/avalon-excalibur.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/avalon-framework.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/batik-libs.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/cocoon.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/fop-0_20_1-dev.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/logkit.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/NetComponents.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/resolver.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/xalan-2.2.0-D8.jar" />
+        </zip>
+        
+        
+        <!-- Make src builds for Unix -->
+        
+        <!-- Set files to unix line feends for .tar files -->
+        <fixcrlf srcdir="${releasesrcdir}" 
+            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.conf*, **/*.c, **/*.h, **/*.log" 
+            eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}"
+            includes="src/documentation/**"
+            excludes="**/images/**, **/*.ico, **/*.ttf"
+            eol="lf" />
+        
+        <!-- Source archives with documentation source -->
+        <tar tarfile="${releasesrcdir}_with_doc_src.tar">
+            <tarfileset dir="${basedir}" mode="755">
+                <include name="${releasesrcfile}/build.sh"/>
+                <include name="${releasesrcfile}/tools/bin/ant"/>
+                <include name="${releasesrcfile}/tools/bin/antRun"/>
+            </tarfileset>
+            <tarfileset dir="${basedir}">
+                <include name="${releasesrcfile}/**/*" />
+                <exclude name="${releasesrcfile}/build.sh"/>
+                <exclude name="${releasesrcfile}/tools/bin/ant"/>
+                <exclude name="${releasesrcfile}/tools/bin/antRun"/>
+            </tarfileset>
+        </tar>
+        <gzip zipfile="${releasesrcdir}_with_doc_src.tar.gz" src="${releasesrcdir}_with_doc_src.tar" />
+        
+        <!-- Source archives without documentation source -->
+        <tar tarfile="${releasesrcdir}.tar">
+            <tarfileset dir="${basedir}" mode="755">
+                <include name="${releasesrcfile}/build.sh"/>
+                <include name="${releasesrcfile}/tools/bin/ant"/>
+                <include name="${releasesrcfile}/tools/bin/antRun"/>
+            </tarfileset>
+            <tarfileset dir="${basedir}">
+                <include name="${releasesrcfile}/**/*" />
+                <exclude name="${releasesrcfile}/src/documentation/**/*" />
+                <exclude name="${releasesrcfile}/tools/lib/avalon-excalibur.jar" />
+                <exclude name="${releasesrcfile}/tools/lib/avalon-framework.jar" />
+                <exclude name="${releasesrcfile}/tools/lib/batik-libs.jar" />
+                <exclude name="${releasesrcfile}/tools/lib/cocoon.jar" />
+                <exclude name="${releasesrcfile}/tools/lib/fop-0_20_1-dev.jar" />
+                <exclude name="${releasesrcfile}/tools/lib/logkit.jar" />
+                <exclude name="${releasesrcfile}/tools/lib/NetComponents.jar" />
+                <exclude name="${releasesrcfile}/tools/lib/resolver.jar" />
+                <exclude name="${releasesrcfile}/tools/lib/xalan-2.2.0-D8.jar" />
+                <exclude name="${releasesrcfile}/build.sh"/>
+                <exclude name="${releasesrcfile}/tools/bin/ant"/>
+                <exclude name="${releasesrcfile}/tools/bin/antRun"/>
+            </tarfileset>
+        </tar>
+        <gzip zipfile="${releasesrcdir}.tar.gz" src="${releasesrcdir}.tar" />
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Release (Windows)                                                   -->
+    <!-- =================================================================== -->
+    <target name="release-windows" depends="release-common" if="is.Windows">
+        <property name="releasefile" value="wrapper_win32_${version}"/>
+        <property name="releasedir" value="${basedir}/${releasefile}"/>
+        <delete dir="${releasedir}"/>
+        <mkdir dir="${releasedir}"/>
+        <copy todir="${releasedir}" >
+            <fileset dir="${basedir}" >
+                <include name="index.html" />
+                <include name="bin/${wrapper.bin.name}" />
+                <include name="bin/*.bat" />
+                <include name="lib/${wrapper.lib.name}" />
+                <include name="lib/wrapper.jar" />
+                <include name="lib/wrappertest.jar" />
+                <include name="logs" />
+                <include name="src/bin/*.bat.in" />
+                <include name="src/conf/**" />
+                <include name="jdoc/**" />
+                <include name="doc/**" />
+                <exclude name="**/CVS/*" />
+            </fileset>
+        </copy>
+        <!-- Copy a fresh wrapper.conf rather than the development file -->
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${releasedir}/conf/wrapper.conf"
+              filtering="on"/>
+        <!-- Need an empty log file so that the logs directory will be included -->
+        <touch file="${releasedir}/logs/wrapper.log"/>
+        
+        <!-- Make sure that files are formatted correctly for their platforms -->
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat" eol="crlf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat.in" eol="crlf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="bin/${app.name}" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.script.in" eol="lf" />
+        
+        <zip zipfile="${releasedir}.zip"
+            basedir="${basedir}"
+            compress="true">
+            <include name="${releasefile}/**/*" />
+        </zip>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Release (Unix)                                                      -->
+    <!-- =================================================================== -->
+    <target name="release-unix" depends="release-common" if="is.Unix">
+        <property name="releasedir" value="${basedir}/${releasefile}"/>
+        <delete dir="${releasedir}"/>
+        <mkdir dir="${releasedir}"/>
+        <copy todir="${releasedir}" >
+            <fileset dir="${basedir}" >
+                <include name="index.html" />
+                <include name="bin/${wrapper.bin.name}" />
+                <include name="bin/${app.name}" />
+                <include name="lib/wrapper.jar" />
+                <include name="lib/wrappertest.jar" />
+                <include name="lib/${wrapper.lib.name}" />
+                <include name="logs" />
+                <include name="src/conf/**" />
+                <include name="jdoc/**" />
+                <include name="doc/**" />
+                <include name="src/bin/*.script.in" />
+                <exclude name="**/CVS/*" />
+            </fileset>
+        </copy>
+        <!-- Copy a fresh wrapper.conf rather than the development file -->
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${releasedir}/conf/wrapper.conf"
+              filtering="on"/>
+        <!-- Need an empty log file so that the logs directory will be included -->
+        <touch file="${releasedir}/logs/wrapper.log"/>
+        
+        <!-- Make sure that files are formatted correctly for their platforms -->
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat" eol="crlf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat.in" eol="crlf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="bin/${app.name}" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.script.in" eol="lf" />
+
+        <tar tarfile="${releasedir}.tar">
+            <tarfileset dir="${basedir}" mode="755">
+                <include name="${releasefile}/bin/${wrapper.bin.name}"/>
+                <include name="${releasefile}/bin/${app.name}"/>
+            </tarfileset>
+            <tarfileset dir="${basedir}">
+                <include name="${releasefile}/**"/>
+                <exclude name="${releasefile}/bin/${wrapper.bin.name}"/>
+                <exclude name="${releasefile}/bin/${app.name}"/>
+            </tarfileset>
+        </tar>
+        <gzip zipfile="${releasedir}.tar.gz" src="${releasedir}.tar" />
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Release                                                             -->
+    <!-- =================================================================== -->
+    <target name="release" 
+        depends="release-windows, release-unix"
+        description="Builds all release files for the current platform">
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Cleans up generated stuff                                           -->
+    <!-- =================================================================== -->
+    <target name="clean-unix" if="is.Unix">
+        <exec executable="${make.name}"
+              dir="${src.dir}/c">
+            <arg line="-f ${makefile.name}" />
+            <arg value="clean"/>
+        </exec>
+    </target>
+    <target name="clean" depends="clean-unix" description="Clean up any files from the build">
+        <delete dir="${build.dir}"/>
+        <delete dir="${src.dir}/c/Debug"/>
+        <delete dir="${src.dir}/c/Release"/>
+        <delete dir="${src.dir}/c/WrapperJNI___Win32_Debug"/>
+        <delete dir="${src.dir}/c/WrapperJNI___Win32_Release"/>
+        <delete includeEmptyDirs="true">
+            <fileset dir="${basedir}">
+                <include name="wrapper_*/**/*"/>
+            </fileset>
+            <fileset dir="${basedir}">
+                <include name="wrapper_*"/>
+            </fileset>
+        </delete>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Total cleanup                                                       -->
+    <!-- =================================================================== -->
+    <target name="total-clean-unix" if="is.Unix">
+        <exec executable="${make.name}"
+              dir="${src.dir}/c">
+            <arg line="-f ${makefile.name}" />
+            <arg value="cleanall"/>
+        </exec>
+    </target>
+    <target name="total-clean" depends="clean, total-clean-unix"
+        description="Clean up all build and target files">
+        
+        <delete dir="${jdoc.dir}"/>
+        <delete dir="${doc.dir}/english"/>
+
+        <delete file="${bin.dir}/wrapper.exe"/>
+        <delete file="${lib.dir}/wrapper.dll"/>
+        <delete file="${lib.dir}/wrapper.jar"/>
+        <delete file="${lib.dir}/wrappertest.jar"/>
+
+        <ant antfile="build-tests.xml" target="total-clean" inheritall="false"/>  
+    </target>
+</project>
+
