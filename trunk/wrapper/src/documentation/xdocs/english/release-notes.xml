@@ -42,7 +42,7 @@ $Id$
             <listitem>
                 <para>
                     Fix a problem where very heavy output from the JVM can cause the Wrapper to
-                    give a false timeout.  The Wrapper now only ready 50 lines of input at a time
+                    give a false timeout.  The Wrapper now only reads 50 lines of input at a time
                     to guarantee that the Wrapper's event loop always gets cycles.
                 </para>
             </listitem>
