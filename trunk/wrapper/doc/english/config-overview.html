@@ -285,6 +285,11 @@ wrapper.java.maxmemory=64
 # Port which the native wrapper code will attempt to connect to
 wrapper.port=1777
 
+# Number of seconds without CPU before the JVM will issue a warning and extend
+#  timeouts.  This value must be less than the values set for the other
+#  timeouts.  0 means never extend time outs.  Defaults to 10 seconds.
+wrapper.cpu.timeout=10
+
 # Number of seconds to allow for the JVM to be launched and contact the wrapper before the
 #  wrapper should assume that the JVM is hung and terminate the JVM process.  0 means never
 #  time out.  Defaults to 30 seconds.
@@ -924,6 +929,35 @@ wrapper.app.parameter.2=conf/myconffile.conf</pre>
 <br>
                     
                         
+<dt>wrapper.cpu.timeout</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Number of seconds without CPU before the JVM will issue a warning and extend timeouts.  This value must be less than the values set for the other timeouts (wrapper.startup.timeout, wrapper.ping.timeout, and wrapper.shutdown.timeout).  0 means never extend time outs.  Defaults to 10 seconds.  In most cases, this property should be left as its default value.  However if the system running the Wrapper is also running other applications which are taking up 100% of the CPU for long periods of time, it may be necessary to extend this timeout to avoid warning messages being logged.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.cpu.timeout=10</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
 <dt>wrapper.startup.timeout</dt>
                         
 <dd>
@@ -1090,7 +1124,7 @@ wrapper.app.parameter.2=conf/myconffile.conf</pre>
                 
                 
 <div class="glosslist">
-<a name="N400C83"></a>
+<a name="N400C9A"></a>
 <dl>
                     
                         
@@ -1378,7 +1412,7 @@ wrapper.logfile.format=
                 
                 
 <div class="glosslist">
-<a name="N400D45"></a>
+<a name="N400D5C"></a>
 <dl>
                     
                         
@@ -1449,7 +1483,7 @@ wrapper.logfile.format=
 </div>
                 
 <div class="glosslist">
-<a name="N400D6F"></a>
+<a name="N400D86"></a>
 <dl>
                     
                         
@@ -1630,7 +1664,7 @@ wrapper.logfile.format=
 <p align="justify">
                                     From the Windows API, each priority level is described as follows:
                                     <div class="glosslist">
-<a name="N400DFD"></a>
+<a name="N400E14"></a>
 <dl>
                                         
                                             

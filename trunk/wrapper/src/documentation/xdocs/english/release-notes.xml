@@ -9,6 +9,21 @@
 <article id="index">
     <title>Java Service Wrapper Release Notes</title>
     <section>
+        <title>Version 2.2.8: Changes and bugfixes</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Fixed a compiler problem on Solaris some systems.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Added a new property, wrapper.cpu.timeout, which allows the user to control how much time without receiving any CPU the Wrapper will tolerate before displaying a warning message.  The CPU timeout feature was added in 2.2.7 but the default timeout of 10 seconds was not configurable.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
+    <section>
         <title>Version 2.2.7: Changes and bugfixes</title>
         <itemizedlist>
             <listitem>
