@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.85  2004/02/17 03:29:27  mortenson
+ * Modify the UNIX side warning displayed when a wildcard classpath element does
+ * not match any files.
+ *
  * Revision 1.84  2004/02/17 03:12:34  mortenson
  * To make debugging classpath problems easier, the Wrapper now verifies all
  * classpath entries before launching a JVM and logs debug level warnings for
@@ -1388,7 +1392,8 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                                 j++;
                             }
                         } else {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Warning no matching files for classpath element: %s", prop);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                                "Classpath element, %s, does not match any files: %s", paramBuffer, prop);
                         }
 
                         globfree(&g);
