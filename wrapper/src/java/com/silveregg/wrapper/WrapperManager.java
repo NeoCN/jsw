@@ -26,6 +26,10 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.26  2002/10/29 02:59:36  mortenson
+// Make the warning displayed when the native library can not be found much more
+// descriptive.  Attempt to reduce support requests on that.
+//
 // Revision 1.25  2002/10/01 09:04:26  mortenson
 // Add the rest of the patch to correctly count threads.
 //
@@ -132,6 +136,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Properties;
+import java.util.StringTokenizer;
 import com.silveregg.wrapper.resources.ResourceManager;
 
 /**
@@ -358,10 +363,39 @@ public final class WrapperManager implements Runnable {
             System.loadLibrary("wrapper");
             _libraryOK = true;
         } catch (UnsatisfiedLinkError e) {
-            System.out.println
-                ("WARNING - Unable to load native library 'wrapper' for class WrapperManager.");
-            System.out.println
-                ("  System signals will not be handled correctly.");
+            String libPath = System.getProperty( "java.library.path" );
+            System.out.println();
+            if ( libPath.equals( "" ) )
+            {
+                // No library path
+                System.out.println("WARNING - Unable to load native library 'wrapper' because the");
+                System.out.println("          java.library.path was set to ''.  Please see the");
+                System.out.println("          documentation for the wrapper.java.library.path ");
+                System.out.println("          configuration property.");
+            }
+            else
+            {
+                // A library path exists but the library was not found on it.
+                String pathSep = System.getProperty( "path.separator" );
+                StringTokenizer st = new StringTokenizer( libPath, pathSep );
+                String libFile;
+                if (System.getProperty( "os.name" ).indexOf("Windows") >= 0) {
+                    libFile = "Wrapper.DLL";
+                } else {
+                    libFile = "libwrapper.so";
+                }
+                System.out.println("WARNING - Unable to load native library 'wrapper' because the");
+                System.out.println("          file '" + libFile + "' could not be located in the following");
+                System.out.println("          java.library.path:" );
+                while (st.hasMoreTokens()) {
+                    File pathElement = new File( st.nextToken() );
+                    System.out.println("            " + pathElement.getAbsolutePath() );
+                }
+                System.out.println("          Please see the documentation for the wrapper.java.library.path");
+                System.out.println("          configuration property.");
+            }
+            System.out.println("          System signals will not be handled correctly.");
+            System.out.println();
             _libraryOK = false;
         }
 

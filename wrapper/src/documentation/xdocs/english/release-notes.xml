@@ -45,6 +45,13 @@ $Id$
                     on startup if another application held a read lock on the conf file.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Modified the message displayed when the native library could not be found,
+                    so that it is much more descriptive.  Hopefully it will cut down on questions
+                    caused by configuration problems.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
