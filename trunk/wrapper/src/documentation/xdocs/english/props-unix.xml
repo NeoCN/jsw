@@ -28,9 +28,9 @@
             Properties which are only used on Linux and Unix platforms.
         </para>
         <itemizedlist>
-            <listitem>
+            <listproperty version="3.0.0">
                 <ulink url="prop-daemonize.html">wrapper.daemonize</ulink>
-            </listitem>
+            </listproperty>
         </itemizedlist>
     </section>
 </chapter>

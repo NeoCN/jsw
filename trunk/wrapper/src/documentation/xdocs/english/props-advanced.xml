@@ -46,75 +46,75 @@
             </simpara>
         </warning>
         <itemizedlist>
-            <listitem>
+            <listproperty version="3.1.1">
                 <ulink url="prop-anchorfile.html">wrapper.anchorfile</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty version="2.2.8">
                 <ulink url="prop-cpu-timeout.html">wrapper.cpu.timeout</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty>
                 <ulink url="prop-disable-shutdown-hook.html">wrapper.disable_shutdown_hook</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty version="3.0.5">
                 <ulink url="prop-ignore-signals.html">wrapper.ignore_signals</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty version="3.0.5">
                 <ulink url="prop-java-pidfile.html">wrapper.java.pidfile</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty version="2.2.8">
                 <ulink url="prop-jvm-exit-timeout.html">wrapper.jvm_exit.timeout</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty version="2.2.8">
                 <ulink url="prop-max-failed-invocations.html">wrapper.max_failed_invocations</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty version="3.1.0">
                 <ulink url="prop-native-library.html">wrapper.native_library</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty version="3.1.0">
                 <ulink url="prop-on-exit-n.html">wrapper.on_exit.&lt;n&gt;</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty version="Usage changed in 3.0.5">
                 <ulink url="prop-pidfile.html">wrapper.pidfile</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty version="3.0.5">
                 <ulink url="prop-ping-interval.html">wrapper.ping.interval</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty>
                 <ulink url="prop-ping-timeout.html">wrapper.ping.timeout</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty>
                 <ulink url="prop-port.html">wrapper.port</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty version="2.2.7">
                 <ulink url="prop-request-thread-dump-on-failed-jvm-exit.html">wrapper.request_thread_dump_on_failed_jvm_exit</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty version="2.2.9">
                 <ulink url="prop-restart-delay.html">wrapper.restart.delay</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty version="2.2.7">
                 <ulink url="prop-shutdown-timeout.html">wrapper.shutdown.timeout</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty version="3.1.0">
                 <ulink url="prop-startup-delay.html">wrapper.startup.delay</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty>
                 <ulink url="prop-startup-timeout.html">wrapper.startup.timeout</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty version="2.2.8">
                 <ulink url="prop-successful-invocation-time.html">wrapper.successful_invocation_time</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty version="3.1.0">
                 <ulink url="prop-use-system-time.html#prop-timer-fast-threshold">wrapper.timer_fast_threshold</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty version="3.1.0">
                 <ulink url="prop-use-system-time.html#prop-timer-slow-threshold">wrapper.timer_slow_threshold</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty version="3.1.0">
                 <ulink url="prop-use-system-time.html">wrapper.use_system_time</ulink>
-            </listitem>
-            <listitem>
+            </listproperty>
+            <listproperty version="3.1.0">
                 <ulink url="prop-working-dir.html">wrapper.working.dir</ulink>
-            </listitem>
+            </listproperty>
         </itemizedlist>
     </section>
 </chapter>

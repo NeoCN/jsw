@@ -65,187 +65,191 @@
         </section>
         <section id="name">
             <title>Properties by Name</title>
+            <para>
+                Properties added after the initial release are followed by the version in which
+                they were implemented.
+            </para>
             <itemizedlist>
-                <listitem>
+                <listproperty version="3.1.0">
                     <ulink url="prop-adviser.html">wrapper.adviser</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.1.1">
                     <ulink url="prop-anchorfile.html">wrapper.anchorfile</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty>
                     <ulink url="prop-app-parameter-n.html">wrapper.app.parameter.&lt;n&gt;</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty>
                     <ulink url="prop-console-format.html">wrapper.console.format</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty>
                     <ulink url="prop-console-loglevel.html">wrapper.console.loglevel</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.1.0">
                     <ulink url="prop-console-title.html">wrapper.console.title</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="2.2.8">
                     <ulink url="prop-cpu-timeout.html">wrapper.cpu.timeout</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.0.0">
                     <ulink url="prop-daemonize.html">wrapper.daemonize</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty>
                     <ulink url="prop-debug.html">wrapper.debug</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty>
                     <ulink url="prop-disable-shutdown-hook.html">wrapper.disable_shutdown_hook</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.0.0">
                     <ulink url="prop-filter-x-n.html">wrapper.filter.action.&lt;n&gt;</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.0.0">
                     <ulink url="prop-filter-x-n.html">wrapper.filter.trigger.&lt;n&gt;</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.0.5">
                     <ulink url="prop-ignore-signals.html">wrapper.ignore_signals</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty>
                     <ulink url="prop-java-additional-n.html">wrapper.java.additional.&lt;n&gt;</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty>
                     <ulink url="prop-java-classpath-n.html">wrapper.java.classpath.&lt;n&gt;</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty>
                     <ulink url="prop-java-command.html">wrapper.java.command</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.1.2">
                     <ulink url="prop-java-command-loglevel.html">wrapper.java.command.loglevel</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty>
                     <ulink url="prop-java-initmemory.html">wrapper.java.initmemory</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="2.2.9">
                     <ulink url="prop-java-library-path-n.html">wrapper.java.library.path.&lt;n&gt;</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.1.0">
                     <ulink url="prop-java-library-path-append-system-path.html">wrapper.java.library.path.append_system_path</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty>
                     <ulink url="prop-java-mainclass.html">wrapper.java.mainclass</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty>
                     <ulink url="prop-java-maxmemory.html">wrapper.java.maxmemory</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.0.5">
                     <ulink url="prop-java-pidfile.html">wrapper.java.pidfile</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="2.2.8">
                     <ulink url="prop-jvm-exit-timeout.html">wrapper.jvm_exit.timeout</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty>
                     <ulink url="prop-logfile.html">wrapper.logfile</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="2.2.5">
                     <ulink url="prop-logfile-format.html">wrapper.logfile.format</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="2.2.5">
                     <ulink url="prop-logfile-loglevel.html">wrapper.logfile.loglevel</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="2.2.5">
                     <ulink url="prop-logfile-maxfiles.html">wrapper.logfile.maxfiles</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="2.2.5">
                     <ulink url="prop-logfile-maxsize.html">wrapper.logfile.maxsize</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="2.2.8">
                     <ulink url="prop-max-failed-invocations.html">wrapper.max_failed_invocations</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.1.0">
                     <ulink url="prop-native-library.html">wrapper.native_library</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.0.0">
                     <ulink url="prop-ntservice-account.html">wrapper.ntservice.account</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.1.0">
                     <ulink url="prop-ntservice-console.html">wrapper.ntservice.console</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty>
                     <ulink url="prop-ntservice-dependency-n.html">wrapper.ntservice.dependency.&lt;n&gt;</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="2.2.5">
                     <ulink url="prop-ntservice-description.html">wrapper.ntservice.description</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty>
                     <ulink url="prop-ntservice-displayname.html">wrapper.ntservice.displayname</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.0.4">
                     <ulink url="prop-ntservice-hide-console.html">wrapper.ntservice.hide_console</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.0.0">
                     <ulink url="prop-ntservice-interactive.html">wrapper.ntservice.interactive</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.0.4">
                     <ulink url="prop-ntservice-load-order-group.html">wrapper.ntservice.load_order_group</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty>
                     <ulink url="prop-ntservice-name.html">wrapper.ntservice.name</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.0.0">
                     <ulink url="prop-ntservice-password.html">wrapper.ntservice.password</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="2.2.7">
                     <ulink url="prop-ntservice-process-priority.html">wrapper.ntservice.process_priority</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty>
                     <ulink url="prop-ntservice-starttype.html">wrapper.ntservice.starttype</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.1.0">
                     <ulink url="prop-on-exit-n.html">wrapper.on_exit.&lt;n&gt;</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="Usage changed in 3.0.5">
                     <ulink url="prop-pidfile.html">wrapper.pidfile</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.0.5">
                     <ulink url="prop-ping-interval.html">wrapper.ping.interval</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty>
                     <ulink url="prop-ping-timeout.html">wrapper.ping.timeout</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty>
                     <ulink url="prop-port.html">wrapper.port</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="2.2.7">
                     <ulink url="prop-request-thread-dump-on-failed-jvm-exit.html">wrapper.request_thread_dump_on_failed_jvm_exit</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="2.2.9">
                     <ulink url="prop-restart-delay.html">wrapper.restart.delay</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="2.2.7">
                     <ulink url="prop-shutdown-timeout.html">wrapper.shutdown.timeout</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.1.2">
                     <ulink url="prop-single-invocation.html">wrapper.single_invocation</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.1.0">
                     <ulink url="prop-startup-delay.html">wrapper.startup.delay</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty>
                     <ulink url="prop-startup-timeout.html">wrapper.startup.timeout</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="2.2.8">
                     <ulink url="prop-successful-invocation-time.html">wrapper.successful_invocation_time</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="2.2.5">
                     <ulink url="prop-syslog-loglevel.html">wrapper.syslog.loglevel</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.1.0">
                     <ulink url="prop-use-system-time.html#prop-timer-fast-threshold">wrapper.timer_fast_threshold</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.1.0">
                     <ulink url="prop-use-system-time.html#prop-timer-slow-threshold">wrapper.timer_slow_threshold</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.1.0">
                     <ulink url="prop-use-system-time.html">wrapper.use_system_time</ulink>
-                </listitem>
-                <listitem>
+                </listproperty>
+                <listproperty version="3.1.0">
                     <ulink url="prop-working-dir.html">wrapper.working.dir</ulink>
-                </listitem>
+                </listproperty>
             </itemizedlist>
         </section>
     </section>
