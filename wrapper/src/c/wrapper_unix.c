@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.51  2003/09/11 07:37:27  mortenson
+ * Fix a compiler warning on Solaris.
+ *
  * Revision 1.50  2003/09/09 14:18:10  mortenson
  * Fix a problem where not all properties specified on the command line worked
  * correctly when they included spaces.
@@ -382,7 +385,7 @@ void wrapperExecute() {
                 umask(old_umask);
 
                 if (pid_fp != NULL) {
-                    fprintf(pid_fp, "%d\n", jvmPid);
+                    fprintf(pid_fp, "%d\n", (int)jvmPid);
                     fclose(pid_fp);
 
                     /* Remember that we created the pid file. */
