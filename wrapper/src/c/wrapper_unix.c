@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.68  2004/06/04 06:16:40  mortenson
+ * Fix a problem where signals fired at UNIX versions of the wrapper were
+ * not being handled correctly when the tick timer was being used.
+ *
  * Revision 1.67  2004/06/02 09:15:55  mortenson
  * Fix some indentation and a few comment typos.
  *
@@ -287,34 +291,44 @@ void requestDumpJVMState() {
 }
 
 void handleCommon(const char* signal) {
-    if (wrapperData->ignoreSignals) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s trapped, but ignored.", signal);
-    } else {
-        if (wrapperData->exitRequested || wrapperData->restartRequested ||
-            (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
-            (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
-            (wrapperData->jState == WRAPPER_JSTATE_DOWN)) {
+    pthread_t threadId;
+    threadId = pthread_self();
 
-            /* Signalled while we were already shutting down. */
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s trapped.  Forcing immediate shutdown.", signal);
-
-            /* Disable the thread dump on exit feature if it is set because it
-             *  should not be displayed when the user requested the immediate exit. */
-            wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
-            wrapperKillProcess();
-        } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s trapped.  Shutting down.", signal);
-            wrapperStopProcess(0);
+    /* All threads will receive a signal.  We want to ignore any signal sent to the timer thread. */
+    if (threadId == timerThreadId) {
+        if (wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "%s trapped, but signals for timer thread are ignored.", signal);
         }
-        /* Don't actually kill the process here.  Let the application shut itself down */
-
-        /* To make sure that the JVM will not be restarted for any reason,
-         *  start the Wrapper shutdown process as well. */
-        if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
-            (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
-            /* Already stopping. */
+    } else {
+        if (wrapperData->ignoreSignals) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s trapped, but ignored.", signal);
         } else {
-            wrapperData->wState = WRAPPER_WSTATE_STOPPING;
+            if (wrapperData->exitRequested || wrapperData->restartRequested ||
+                (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
+                (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
+                (wrapperData->jState == WRAPPER_JSTATE_DOWN)) {
+
+                /* Signalled while we were already shutting down. */
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s trapped.  Forcing immediate shutdown.", signal);
+
+                /* Disable the thread dump on exit feature if it is set because it
+                 *  should not be displayed when the user requested the immediate exit. */
+                wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
+                wrapperKillProcess();
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s trapped.  Shutting down.", signal);
+                wrapperStopProcess(0);
+            }
+            /* Don't actually kill the process here.  Let the application shut itself down */
+
+            /* To make sure that the JVM will not be restarted for any reason,
+             *  start the Wrapper shutdown process as well. */
+            if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
+                (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
+                /* Already stopping. */
+            } else {
+                wrapperData->wState = WRAPPER_WSTATE_STOPPING;
+            }
         }
     }
 }
@@ -323,8 +337,8 @@ void handleCommon(const char* signal) {
  * Handle interrupt signals (i.e. Crtl-C).
  */
 void handleInterrupt(int sig_num) {
-    /* Immediately register this thread with the logger. */
-    logRegisterThread(WRAPPER_THREAD_SIGNAL);
+    /* On UNIX the calling thread is the actual thread being interrupted
+     *  so it has already been registered with logRegisterThread. */
 
     signal(SIGINT, handleInterrupt);
 
@@ -335,8 +349,8 @@ void handleInterrupt(int sig_num) {
  * Handle quit signals (i.e. Crtl-\).
  */
 void handleQuit(int sig_num) {
-    /* Immediately register this thread with the logger. */
-    logRegisterThread(WRAPPER_THREAD_SIGNAL);
+    /* On UNIX the calling thread is the actual thread being interrupted
+     *  so it has already been registered with logRegisterThread. */
 
     signal(SIGQUIT, handleQuit); 
     requestDumpJVMState();
@@ -346,8 +360,8 @@ void handleQuit(int sig_num) {
  * Handle termination signals (i.e. machine is shutting down).
  */
 void handleTermination(int sig_num) {
-    /* Immediately register this thread with the logger. */
-    logRegisterThread(WRAPPER_THREAD_SIGNAL);
+    /* On UNIX the calling thread is the actual thread being interrupted
+     *  so it has already been registered with logRegisterThread. */
 
     signal(SIGTERM, handleTermination); 
 

@@ -10,6 +10,8 @@ Java Service Wrapper Revision History.
   restart it.
 * Fix a problem where CTRL-C was not being handled correctly if the console
   was configured to be shown when running as an NT service.
+* Fix a problem where signals fired at UNIX versions of the wrapper were
+  not being handled correctly when the tick timer was being used.
 
 3.1.0
 * The license was revised for this version to include a copyright omission.
