@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.4  2004/06/22 02:25:22  mortenson
+ * Modify the timing of a low level debug message related to the anchor file.
+ *
  * Revision 1.3  2004/06/16 15:56:29  mortenson
  * Added a new property, wrapper.anchorfile, which makes it possible to
  * cause the Wrapper to shutdown by deleting an anchor file.
@@ -198,8 +201,10 @@ void anchorPoll(DWORD nowTicks) {
     struct stat fileStat;
     int result;
 
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, 
         "Anchor timeout=%d, now=%d", wrapperData->anchorTimeoutTicks, nowTicks);
+#endif
 
     if (wrapperData->anchorFilename) {
         if (wrapperGetTickAge(wrapperData->anchorTimeoutTicks, nowTicks) >= 0) {
