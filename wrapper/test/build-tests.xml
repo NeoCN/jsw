@@ -479,9 +479,35 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/action"
               filtering="on"/>
+	<replace file="${test.dir}/action">
+	    <replacetoken><![CDATA['start')
+        start
+        ;;]]></replacetoken>
+	    <replacevalue><![CDATA['start')
+        start $2
+        ;;]]></replacevalue>
+        </replace>
+	<replace file="${test.dir}/action">
+	    <replacetoken><![CDATA['restart')
+        stop
+        start
+        ;;]]></replacetoken>
+	    <replacevalue><![CDATA['restart')
+        stop
+        start $2
+        ;;]]></replacevalue>
+        </replace>
         <replace file="${test.dir}/action">
             <replacetoken><![CDATA[exec -a $APP_NAME $WRAPPER_CMD $WRAPPER_CONF &]]></replacetoken>
             <replacevalue><![CDATA[exec -a $APP_NAME $WRAPPER_CMD $WRAPPER_CONF wrapper.app.parameter.1=$1 &]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/action">
+            <replacetoken><![CDATA[Starting $APP_LONG_NAME]]></replacetoken>
+            <replacevalue><![CDATA[Starting $APP_LONG_NAME with test action: $1]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/action">
+            <replacetoken><![CDATA[Usage: $0 { start | stop | restart | dump }]]></replacetoken>
+            <replacevalue><![CDATA[Usage: $0 { start <action> | stop | restart | dump }]]></replacevalue>
         </replace>
         <chmod file="${test.dir}/action" perm="+x"/> 
         
