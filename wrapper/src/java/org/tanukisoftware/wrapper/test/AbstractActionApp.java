@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.6  2004/08/06 07:56:20  mortenson
+// Add test case which runs idle.  Useful to test some operations.
+//
 // Revision 1.5  2004/04/15 06:42:11  mortenson
 // Fix a typo in the access_violation_native action.
 //
@@ -75,13 +78,44 @@ public abstract class AbstractActionApp {
     private DeadlockPrintStream m_out;
     private DeadlockPrintStream m_err;
     
-    private Thread m_userRunner;
+    private Thread m_runner;
+    
+    private boolean m_users;
     private boolean m_groups;
     
     /**************************************************************************
      * Constructors
      *************************************************************************/
     protected AbstractActionApp() {
+        m_runner = new Thread( "WrapperActionTest_Runner" )
+        {
+            public void run()
+            {
+                while ( true )
+                {
+                    if ( m_users )
+                    {
+                        System.out.println( "The current user is: "
+                            + WrapperManager.getUser( m_groups ) );
+                        System.out.println( "The current interactive user is: "
+                            + WrapperManager.getInteractiveUser( m_groups ) );
+                    }
+                    synchronized( AbstractActionApp.class )
+                    {
+                        try
+                        {
+                            AbstractActionApp.class.wait( 5000 );
+                        }
+                        catch ( InterruptedException e )
+                        {
+                        }
+                    }
+                    System.gc();
+                }
+            }
+        };
+        m_runner.setDaemon( true );
+        m_runner.start();
     }
     
     /**************************************************************************
@@ -188,35 +222,52 @@ public abstract class AbstractActionApp {
             m_err.setDeadlock( true );
             
         }
-        else if ( action.equals( "users" ) || action.equals( "groups" ) )
+        else if ( action.equals( "users" ) )
         {
-            System.out.println( "Begin polling the current and interactive users." );
-            m_groups = action.equals( "groups" );
-            if ( m_userRunner == null )
+            if ( !m_users )
             {
-                m_userRunner = new Thread()
-                {
-                    public void run()
-                    {
-                        while ( true )
-                        {
-                            System.out.println( "The current user is: "
-                                + WrapperManager.getUser( m_groups ) );
-                            System.out.println( "The current interactive user is: "
-                                + WrapperManager.getInteractiveUser( m_groups ) );
-                            try
-                            {
-                                Thread.sleep( 10000 );
-                            }
-                            catch ( InterruptedException e )
-                            {
-                            }
-                            System.gc();
-                        }
-                    }
-                };
-                m_userRunner.setDaemon( true );
-                m_userRunner.start();
+                System.out.println( "Begin polling the current and interactive users." );
+                m_users = true;
+            }
+            else
+            {
+                System.out.println( "Stop polling the current and interactive users." );
+                m_users = false;
+            }
+            
+            synchronized( AbstractActionApp.class )
+            {
+                AbstractActionApp.class.notifyAll();
+            }
+        }
+        else if ( action.equals( "groups" ) )
+        {
+            if ( ( !m_users ) || ( !m_groups ) )
+            {
+                System.out.println( "Begin polling the current and interactive users with group info." );
+                m_users = true;
+                m_groups = true;
+            }
+            else
+            {
+                System.out.println( "Stop polling for group info." );
+                m_groups = false;
+            }
+            
+            synchronized( AbstractActionApp.class )
+            {
+                AbstractActionApp.class.notifyAll();
+            }
+        }
+        else if ( action.equals( "idle" ) )
+        {
+            System.out.println( "Run idle." );
+            m_users = false;
+            m_groups = false;
+            
+            synchronized( AbstractActionApp.class )
+            {
+                AbstractActionApp.class.notifyAll();
             }
         }
         else
