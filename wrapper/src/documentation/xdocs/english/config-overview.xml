@@ -42,6 +42,11 @@
                     </listitem>
                     <listitem>
                         <para>
+                            <ulink url="config-overview.html#cascading-confuration">Cascading configuration files</ulink>
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
                             <ulink url="config-overview.html#independant-properties">Platform independent properties</ulink>
                         </para>
                     </listitem>
@@ -110,6 +115,10 @@
                     <simpara><emphasis>Linux / Solaris:</emphasis></simpara>
                     <screen format="linespecific"><![CDATA[./wrapper ../conf/wrapper.conf wrapper.java.command=java wrapper.debug=true]]></screen>
                 </informalexample>
+            </para>
+            <para>
+                Properties set on the command line will override any property value set in the
+                configuration file or any cascaded include files.
             </para>
             <warning>
                 <para>
@@ -188,6 +197,33 @@
                     </informalexample>
                     If a referenced environment variable is not defined, then it will be left
                     unchanged in the property value.
+                </para>
+            </section>
+            <section id="cascading-confuration">
+                <title>Cascading configuration files</title>
+                <para>
+                    Starting with version 3.0.0, it is possible to specify include files within
+                    a config file.  This is useful where there is a need to override default values
+                    without modifying the main configuration file.
+                </para>
+                <para>
+                    Include files are specified by placing a line in the config file with the
+                    following syntax:
+                    <informalexample>
+                        <screen format="linespecific"><![CDATA[#include ../conf/wrapper2.conf]]></screen>
+                    </informalexample>
+                    If the specified file can not be located for any reason then it is ignored.
+                    This makes it easy to specify a series of optional include files which users
+                    may or may not create.
+                </para>
+                <para>
+                    The location of the include definition in a file is important.  Any properties
+                    defined before the include can be overridden where as properties set after the
+                    include file will override any settings in the include files.  This rule
+                    applies to the contents of include files as well.
+                </para>
+                <para>
+                    Include files can be nested up to 10 levels deep.
                 </para>
             </section>
             <section id="independant-properties">

@@ -130,6 +130,13 @@ $Id$
                     machine.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Implemented cascading configuration files. See the
+                    <ulink url="config-overview.html#cascading-confuration">Cascading configuration files</ulink>
+                    section for details.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

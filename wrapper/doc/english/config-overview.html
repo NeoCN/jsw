@@ -195,6 +195,16 @@
                         
 <p align="justify">
                             
+<a href="config-overview.html#cascading-confuration">Cascading configuration files</a>
+                        
+</p>
+                    
+</li>
+                    
+<li>
+                        
+<p align="justify">
+                            
 <a href="config-overview.html#independant-properties">Platform independent properties</a>
                         
 </p>
@@ -445,6 +455,11 @@ wrapper.ntservice.interactive=false
             
 </p>
             
+<p align="justify">
+                Properties set on the command line will override any property value set in the
+                configuration file or any cascaded include files.
+            </p>
+            
 <div align="center">
 <table cellspacing="2" cellpadding="2" border="1">
 <tr>
@@ -629,6 +644,61 @@ wrapper.ntservice.interactive=false
 <br>
             
 <div>
+<a name="cascading-confuration"></a>
+<table cellspacing="0" cellpadding="2" border="0" width="98%">
+<tr>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="-1"><b>Cascading configuration files</b></font></td>
+</tr>
+<tr>
+<td><font face="arial,helvetica,sanserif" color="#000000">
+<br>
+                
+                
+<p align="justify">
+                    Starting with version 3.0.0, it is possible to specify include files within
+                    a config file.  This is useful where there is a need to override default values
+                    without modifying the main configuration file.
+                </p>
+                
+<p align="justify">
+                    Include files are specified by placing a line in the config file with the
+                    following syntax:
+                    <p align="justify">
+                        
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>#include ../conf/wrapper2.conf</pre>
+</td>
+</tr>
+</table>
+</div>
+                    
+</p>
+                    If the specified file can not be located for any reason then it is ignored.
+                    This makes it easy to specify a series of optional include files which users
+                    may or may not create.
+                </p>
+                
+<p align="justify">
+                    The location of the include definition in a file is important.  Any properties
+                    defined before the include can be overridden where as properties set after the
+                    include file will override any settings in the include files.  This rule
+                    applies to the contents of include files as well.
+                </p>
+                
+<p align="justify">
+                    Include files can be nested up to 10 levels deep.
+                </p>
+            
+</font></td>
+</tr>
+</table>
+</div>
+<br>
+            
+<div>
 <a name="independant-properties"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="98%">
 <tr>
@@ -640,7 +710,7 @@ wrapper.ntservice.interactive=false
                 
                 
 <div class="glosslist">
-<a name="N400B38"></a>
+<a name="N400B5F"></a>
 <dl>
                     
                         
@@ -1126,7 +1196,7 @@ wrapper.app.parameter.2=conf/myconffile.conf</pre>
                 
                 
 <div class="glosslist">
-<a name="N400C5E"></a>
+<a name="N400C85"></a>
 <dl>
                     
                         
@@ -1478,7 +1548,7 @@ wrapper.logfile.format=
                 
                 
 <div class="glosslist">
-<a name="N400D20"></a>
+<a name="N400D47"></a>
 <dl>
                     
                         
@@ -1616,7 +1686,7 @@ wrapper.logfile.format=
 </div>
                 
 <div class="glosslist">
-<a name="N400D6D"></a>
+<a name="N400D94"></a>
 <dl>
                     
                         
@@ -1817,7 +1887,7 @@ wrapper.logfile.format=
                                     From the Windows API, each priority level is described as
                                     follows:
                                     <div class="glosslist">
-<a name="N400DFB"></a>
+<a name="N400E22"></a>
 <dl>
                                         
                                             
@@ -2134,7 +2204,7 @@ The service did not start due to a logon failure.</pre>
 </p>
                 
 <div class="glosslist">
-<a name="N400EBD"></a>
+<a name="N400EE4"></a>
 <dl>
                     
                         
