@@ -24,6 +24,10 @@
  */
 
 // $Log$
+// Revision 1.3  2002/03/07 08:10:13  mortenson
+// Add support for Thread Dumping
+// Fix a problem locating java on the path.
+//
 // Revision 1.2  2001/11/08 04:22:28  mortenson
 // Had been having a problem with the windows build where the WIN32
 // symbol was not defined sometimes.  Figured out that that was the
@@ -56,12 +60,17 @@ barf
 int wrapperConsoleHandler(int key) {
     int event;
 
+    printf("Handled signal %d\n", key);
+    flushall();
+
     // Call the control callback in the java code
     switch(key) {
     case CTRL_C_EVENT:
-    case CTRL_BREAK_EVENT:
         event = com_silveregg_wrapper_WrapperManager_WRAPPER_CTRL_C_EVENT;
         break;
+    case CTRL_BREAK_EVENT:
+		// This is a request to do a thread dump. Let the JVM handle this.
+		return FALSE;
     case CTRL_CLOSE_EVENT:
         event = com_silveregg_wrapper_WrapperManager_WRAPPER_CTRL_CLOSE_EVENT;
         break;
@@ -96,12 +105,22 @@ int wrapperConsoleHandler(int key) {
  */
 JNIEXPORT void JNICALL
 Java_com_silveregg_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass clazz, jboolean debugging) {
+    char szPath[512];
+
     wrapperJNIDebugging = debugging;
 
     if (wrapperJNIDebugging) {
         // This is useful for making sure that the JNI call is working.
-        printf("Inside native WrapperManager initialization method\n");
+        printf("Initializing WrapperManager native library.\n");
         flushall();
+
+		if (GetModuleFileName(NULL, szPath, 512) == 0){
+			printf("Unable to retrieve the Java process file name.\n");
+			flushall();
+		} else {
+			printf("Java Executable: %s\n", szPath);
+			flushall();
+		}
     }
 
     // Initialize the CTRL-C handler

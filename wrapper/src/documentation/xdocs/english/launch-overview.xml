@@ -100,6 +100,9 @@
                 You may need to tweak some of the other values (like PIDDIR in the sh script) to get them to fit your environment.
             </para>
             <para>
+                These scripts are used by passing them a command.  Valid commands are <literal>start</literal>, <literal>stop</literal>, <literal>restart</literal>, and <literal>dump</literal>. <literal>start</literal> is used to launch the application and <literal>stop</literal> is used to stop it.  <literal>restart</literal> will start and then stop the application in a single command.  The <literal>dump</literal> command is used to invoke a thread dump in the JVM.  See the <ulink url="debugging.html">Debugging</ulink> section for more information on <literal>dump</literal>.
+            </para>
+            <para>
                 <informalexample>
                     <simpara><emphasis>bash script</emphasis></simpara>
                     <screen format="linespecific">

@@ -24,6 +24,10 @@
  */
 
 // $Log$
+// Revision 1.13  2002/03/07 08:10:12  mortenson
+// Add support for Thread Dumping
+// Fix a problem locating java on the path.
+//
 // Revision 1.12  2002/02/08 05:55:55  mortenson
 // Make the syslog never unregister to avoid EventLog errors.
 //
@@ -84,6 +88,8 @@
 #ifdef WIN32
 #include <io.h>
 #include <winsock.h>
+#include <shlwapi.h>
+
 #define EADDRINUSE  WSAEADDRINUSE
 #define EWOULDBLOCK WSAEWOULDBLOCK
 #define ENOTSOCK    WSAENOTSOCK
@@ -680,7 +686,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     int stripQuote;
     int initMemory = 0, maxMemory;
     char paramBuffer[128];
-    int i, j, len2;
+    int i, j, len2, found;
     int cpLen, cpLenAlloc;
     char *tmpString;
 #ifdef WIN32
@@ -699,12 +705,46 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     // Java commnd
     if (strings) {
         prop = getStringProperty(properties, "wrapper.java.command", "java");
-        strings[index] = (char *)malloc(sizeof(char) * (strlen(prop) + 2 + 1));
-        if (addQuotes) {
-            sprintf(strings[index], "\"%s\"", prop);
-        } else {
-            sprintf(strings[index], "%s", prop);
-        }
+
+		found = 0;
+#ifdef WIN32
+		// If the full path to the java command was not specified, then we
+		//  need to try and resolve it here to avoid problems later when
+		//  calling CreateProcess.  CreateProcess will look in the windows
+		//  system directory before searching the PATH.  This can lead to
+		//  the wrong JVM being run.
+		sprintf(cpPath, "%s", prop);
+		if ((PathFindOnPath((LPSTR)cpPath, (LPCSTR *)wrapperGetSystemPath())) && (!PathIsDirectory(cpPath))) {
+			//printf("Found %s on path.\n", cpPath);
+			found = 1;
+		} else {
+			//printf("Could not find %s on path.\n", cpPath);
+
+			// Try adding .exe to the end
+			sprintf(cpPath, "%s.exe", prop);
+			if ((PathFindOnPath(cpPath, wrapperGetSystemPath())) && (!PathIsDirectory(cpPath))) {
+				//printf("Found %s on path.\n", cpPath);
+				found = 1;
+			} else {
+				//printf("Could not find %s on path.\n", cpPath);
+			}
+		}
+#endif
+		if (found) {
+			strings[index] = (char *)malloc(sizeof(char) * (strlen(cpPath) + 2 + 1));
+			if (addQuotes) {
+				sprintf(strings[index], "\"%s\"", cpPath);
+			} else {
+				sprintf(strings[index], "%s", cpPath);
+			}
+		} else {
+			strings[index] = (char *)malloc(sizeof(char) * (strlen(prop) + 2 + 1));
+			if (addQuotes) {
+				sprintf(strings[index], "\"%s\"", prop);
+			} else {
+				sprintf(strings[index], "%s", prop);
+			}
+		}
     }
     index++;
 

@@ -42,6 +42,9 @@
 <a href="release-notes.html"><font size="-1">Release Notes</font></a>
 </li>
 <li>
+<a href="debugging.html"><font size="-1">Debugging Your Application</font></a>
+</li>
+<li>
 <a href="faq.html"><font size="-1">FAQ</font></a>
 </li>
 <li>
@@ -251,109 +254,109 @@
 <tr>
 <td>
 <pre>
-#********************************************************************
-# Wrapper parameters
-#********************************************************************
-# Java Application
-wrapper.java.command=java
-
-# Java Main class
-wrapper.java.mainclass=com.silveregg.wrapper.test.Main
-
-# Java Classpath (include wrapper.jar)  Add class path elements as needed starting from 1
-wrapper.java.classpath.1=../lib/wrapper.jar
-wrapper.java.classpath.2=../lib/wrappertest.jar
-
-# Java Library Path (location of wrapper.lib)
-wrapper.java.library.path=../lib
-
-# Java Additional Parameters
-#wrapper.java.additional.1=
-
-# Initial Java Heap Size (in MB)
-wrapper.java.initmemory=16
-
-# Maximum Java Heap Size (in MB)
-wrapper.java.maxmemory=64
-
-# Application parameters.  Add parameters as needed starting from 1
-#wrapper.app.parameter.1=
-
-# Port which the native wrapper code will attempt to connect to
-wrapper.port=1777
-
-# Number of seconds to allow for the JVM to be launched and contact the wrapper before the
-#  wrapper should assume that the JVM is hung and terminate the JVM process.  0 means never
-#  time out.  Defaults to 30 seconds.
-wrapper.startup.timeout=30
-
-# Number of seconds to allow between the wrapper pinging the JVM and the response.  0 means
-#  never time out.  Defaults to 30 seconds.
-wrapper.ping.timeout=30
-
-# The Wrapper detects when an application calls System.exit() and treats this as a request
-#  to stop the server by default.
-#wrapper.disable_shutdown_hook=TRUE
-
-#********************************************************************
-# Wrapper Logging parameters
-#********************************************************************
-# Format of output for the console.  (See docs for formats)
-wrapper.console.format=PM
-
-# Log Level for console output.  (See docs for log levels)
-wrapper.console.loglevel=INFO
-
-# Log file to use for wrapper output logging.
-wrapper.logfile=../logs/wrapper.log
-
-# Format of output for the log file.  (See docs for formats)
-wrapper.logfile.format=LPTM
-
-# Log Level for console output.  (See docs for log levels)
-wrapper.logfile.loglevel=INFO
-
-# Maximum size that the log file will be allowed to grow to before the log is rolled.
-#  Size is specified in bytes.  The default value of 0, disables log rolling.  May
-#  abreviate with the 'k' (kb) or 'm' (mb) suffix.  For example: 10m = 10 megabytes.
-wrapper.logfile.maxsize=0
-
-# Maximum number of rolled log files which will be allowed before old files are deleted.
-#  The default value of 0 implies no limit.
-wrapper.logfile.maxfiles=0
-
-# Log Level for sys/event log output.  (See docs for log levels)
-wrapper.syslog.loglevel=NONE
-
-#********************************************************************
-# Wrapper Unix daemon parameters
-#********************************************************************
-# File to write process ID to
-wrapper.pidfile=/var/run/aigent.pid
-
-#********************************************************************
-# Wrapper NT Service parameters
-#********************************************************************
-# WARNING - Do not modify any of these parameters when an application
-#  using this configuration file has been installed as a service.
-#  Please uninstall the service before modifying this section.  The
-#  service can then be reinstalled.
-
-# Name of the service
-wrapper.ntservice.name=@app.name@
-
-# Display name of the service
-wrapper.ntservice.displayname=@app.long.name@
-
-# Description of the service
-wrapper.ntservice.description=@app.description@
-
-# Service dependencies.  Add dependencies as needed starting from 1
-wrapper.ntservice.dependency.1=
-
-# Mode in which the service is installed.  AUTO_START or DEMAND_START
-wrapper.ntservice.starttype=AUTO_START
-
+#********************************************************************&#13;
+# Wrapper parameters&#13;
+#********************************************************************&#13;
+# Java Application&#13;
+wrapper.java.command=java&#13;
+&#13;
+# Java Main class&#13;
+wrapper.java.mainclass=com.silveregg.wrapper.test.Main&#13;
+&#13;
+# Java Classpath (include wrapper.jar)  Add class path elements as needed starting from 1&#13;
+wrapper.java.classpath.1=../lib/wrapper.jar&#13;
+wrapper.java.classpath.2=../lib/wrappertest.jar&#13;
+&#13;
+# Java Library Path (location of wrapper.lib)&#13;
+wrapper.java.library.path=../lib&#13;
+&#13;
+# Java Additional Parameters&#13;
+#wrapper.java.additional.1=&#13;
+&#13;
+# Initial Java Heap Size (in MB)&#13;
+wrapper.java.initmemory=16&#13;
+&#13;
+# Maximum Java Heap Size (in MB)&#13;
+wrapper.java.maxmemory=64&#13;
+&#13;
+# Application parameters.  Add parameters as needed starting from 1&#13;
+#wrapper.app.parameter.1=&#13;
+&#13;
+# Port which the native wrapper code will attempt to connect to&#13;
+wrapper.port=1777&#13;
+&#13;
+# Number of seconds to allow for the JVM to be launched and contact the wrapper before the&#13;
+#  wrapper should assume that the JVM is hung and terminate the JVM process.  0 means never&#13;
+#  time out.  Defaults to 30 seconds.&#13;
+wrapper.startup.timeout=30&#13;
+&#13;
+# Number of seconds to allow between the wrapper pinging the JVM and the response.  0 means&#13;
+#  never time out.  Defaults to 30 seconds.&#13;
+wrapper.ping.timeout=30&#13;
+&#13;
+# The Wrapper detects when an application calls System.exit() and treats this as a request&#13;
+#  to stop the server by default.&#13;
+#wrapper.disable_shutdown_hook=TRUE&#13;
+&#13;
+#********************************************************************&#13;
+# Wrapper Logging parameters&#13;
+#********************************************************************&#13;
+# Format of output for the console.  (See docs for formats)&#13;
+wrapper.console.format=PM&#13;
+&#13;
+# Log Level for console output.  (See docs for log levels)&#13;
+wrapper.console.loglevel=INFO&#13;
+&#13;
+# Log file to use for wrapper output logging.&#13;
+wrapper.logfile=../logs/wrapper.log&#13;
+&#13;
+# Format of output for the log file.  (See docs for formats)&#13;
+wrapper.logfile.format=LPTM&#13;
+&#13;
+# Log Level for console output.  (See docs for log levels)&#13;
+wrapper.logfile.loglevel=INFO&#13;
+&#13;
+# Maximum size that the log file will be allowed to grow to before the log is rolled.&#13;
+#  Size is specified in bytes.  The default value of 0, disables log rolling.  May&#13;
+#  abreviate with the 'k' (kb) or 'm' (mb) suffix.  For example: 10m = 10 megabytes.&#13;
+wrapper.logfile.maxsize=0&#13;
+&#13;
+# Maximum number of rolled log files which will be allowed before old files are deleted.&#13;
+#  The default value of 0 implies no limit.&#13;
+wrapper.logfile.maxfiles=0&#13;
+&#13;
+# Log Level for sys/event log output.  (See docs for log levels)&#13;
+wrapper.syslog.loglevel=NONE&#13;
+&#13;
+#********************************************************************&#13;
+# Wrapper Unix daemon parameters&#13;
+#********************************************************************&#13;
+# File to write process ID to&#13;
+wrapper.pidfile=/var/run/aigent.pid&#13;
+&#13;
+#********************************************************************&#13;
+# Wrapper NT Service parameters&#13;
+#********************************************************************&#13;
+# WARNING - Do not modify any of these parameters when an application&#13;
+#  using this configuration file has been installed as a service.&#13;
+#  Please uninstall the service before modifying this section.  The&#13;
+#  service can then be reinstalled.&#13;
+&#13;
+# Name of the service&#13;
+wrapper.ntservice.name=@app.name@&#13;
+&#13;
+# Display name of the service&#13;
+wrapper.ntservice.displayname=@app.long.name@&#13;
+&#13;
+# Description of the service&#13;
+wrapper.ntservice.description=@app.description@&#13;
+&#13;
+# Service dependencies.  Add dependencies as needed starting from 1&#13;
+wrapper.ntservice.dependency.1=&#13;
+&#13;
+# Mode in which the service is installed.  AUTO_START or DEMAND_START&#13;
+wrapper.ntservice.starttype=AUTO_START&#13;
+&#13;
 </pre>
 </td>
 </tr>
@@ -529,7 +532,7 @@ wrapper.ntservice.starttype=AUTO_START
 <dd>
                             
 <p align="justify">
-                                Location of the Java executable
+                                Location of the Java executable.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -883,6 +886,10 @@ wrapper.app.parameter.2=conf/myconffile.conf</pre>
                             
 <p align="justify">
                                 A port used to communicate between the Wrapper executable and the Java application.  Used to monitor the health of the Java application.  This can be any value. If at runtime, the specified value is in use, then a warning will be printed to the console and the next available port will be used in its place.
+                            </p>
+                            
+<p align="justify">
+                                When the Wrapper launches a JVM instance, it will open a server socket listening on this port bound to the localhost address.  The lauched JVM will be supplied with a key which it must use to be able to connect back to the Wrapper process.  Once the JVM has connected, the Wrapper will no longer accept additional connections.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -1043,7 +1050,7 @@ wrapper.app.parameter.2=conf/myconffile.conf</pre>
                 
                 
 <div class="glosslist">
-<a name="NC69"></a>
+<a name="NC6C"></a>
 <dl>
                     
                         
@@ -1331,7 +1338,7 @@ wrapper.logfile.format=
                 
                 
 <div class="glosslist">
-<a name="ND2B"></a>
+<a name="ND2E"></a>
 <dl>
                     
                         
@@ -1402,7 +1409,7 @@ wrapper.logfile.format=
 </div>
                 
 <div class="glosslist">
-<a name="ND55"></a>
+<a name="ND58"></a>
 <dl>
                     
                         
