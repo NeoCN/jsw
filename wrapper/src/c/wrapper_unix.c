@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.58  2004/01/09 19:45:03  mortenson
+ * Implement the tick timer on Linux.
+ *
  * Revision 1.57  2004/01/09 18:32:48  mortenson
  * Fix some code that had not yet been converted to using ticks.
  *
@@ -175,6 +178,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <limits.h>
+#include <pthread.h>
 #include <sys/timeb.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -198,6 +202,13 @@ char wrapperClasspathSeparator = ':';
 
 /* Flag which is set if this process creates a pid file. */
 int ownJavaPidFile = 0;
+
+pthread_t timerThreadId;
+/* Initialize the timerTicks to a very high value.  This means that we will
+ *  always encounter the first rollover (256 * WRAPPER_MS / 1000) seconds
+ *  after the Wrapper the starts, which means the rollover will be well
+ *  tested. */
+DWORD timerTicks = 0xffffff00;
 
 /******************************************************************************
  * Platform specific methods
@@ -277,16 +288,102 @@ void handleTermination(int sig_num) {
 }
 
 /**
+ * The main entry point for the timer thread which is started by
+ *  initializeTimer().  Once started, this thread will run for the
+ *  life of the process.
+ *
+ * This thread will only be started if we are configured NOT to
+ *  use the system time as a base for the tick counter.
+ */
+void *timerRunner(void *arg) {
+    DWORD sysTicks;
+    DWORD lastTickOffset = 0;
+    DWORD tickOffset;
+    long int offsetDiff;
+    int first = 1;
+
+    /* Immediately register this thread with the logger. */
+   logRegisterThread(WRAPPER_THREAD_TIMER);
+
+   while (TRUE) {
+       usleep(WRAPPER_TICK_MS * 1000);
+
+       /* Get the tick count based on the system time. */
+       sysTicks = wrapperGetSystemTicks();
+
+       /* Advance the timer tick count. */
+       timerTicks++;
+
+       /* Calculate the offset between the two tick counts. This will always work due to overflow. */
+       tickOffset = sysTicks - timerTicks;
+
+       /* The number we really want is the difference between this tickOffset and the previous one. */
+       offsetDiff = tickOffset - lastTickOffset;
+
+       if (first) {
+           first = 0;
+       } else {
+           if (offsetDiff > wrapperData->timerSlowThreshold) {
+               log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The timer fell behind the system clock by %ldms.", offsetDiff * WRAPPER_TICK_MS);
+           } else if (offsetDiff < -1 * wrapperData->timerFastThreshold) {
+               log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The system clock fell behind the timer by %ldms.", -1 * offsetDiff * WRAPPER_TICK_MS);
+	   }
+           /*
+           log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Timer running: %lu, %lu, %lu, %ld", timerTicks, sysTicks, tickOffset, offsetDiff);
+           */
+       }
+
+       /* Store this tick offset for the next time through the loop. */
+       lastTickOffset = tickOffset;
+   }
+
+   return NULL;
+}
+
+/**
+ * Creates a process whose job is to loop and simply increment a ticks
+ *  counter.  The tick counter can then be used as a clock as an alternative
+ *  to using the system clock.
+ */
+int initializeTimer() {
+    int res;
+
+    res = pthread_create(
+        &timerThreadId,
+        NULL, /* No attributes. */
+        timerRunner,
+        NULL); /* No parameters need to passed to the thread. */
+    if (res) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+            "Unable to create a timer thread: %d, %s", res, getLastErrorText());
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+/**
  * Execute initialization code to get the wrapper set up.
  */
 int wrapperInitialize() {
     int retval = 0;
+    int res;
 
     /* Set handlers for signals */
     if (signal(SIGINT,  handleInterrupt)   == SIG_ERR ||
         signal(SIGQUIT, handleQuit)        == SIG_ERR ||
         signal(SIGTERM, handleTermination) == SIG_ERR) {
         retval = -1;
+    }
+
+    if (wrapperData->useSystemTime) {
+        /* We are going to be using system time so there is no reason to start up a timer thread. */
+        timerThreadId = 0;
+    } else {
+        /* Create an initialize a timer thread. */
+        if ((res = initializeTimer()) != 0 ) {
+            return res;
+        } 
     }
 
     return retval;
@@ -433,8 +530,14 @@ void wrapperExecute() {
  *  wrapperGetTickAge() function to perform time keeping.
  */
 DWORD wrapperGetTicks() {
-    /* Not yet implemented on UNIX, return the system ticks. */
-    return wrapperGetSystemTicks();
+    if (wrapperData->useSystemTime) {
+        /* We want to return a tick count that is based on the current system time. */
+        return wrapperGetSystemTicks();
+
+    } else {
+        /* Return a snapshot of the current tick count. */
+        return timerTicks;
+    }
 }
 
 /**
