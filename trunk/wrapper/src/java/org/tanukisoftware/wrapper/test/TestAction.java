@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.8  2004/03/27 14:39:20  mortenson
+// Add actions for the stopImmediate method.
+//
 // Revision 1.7  2004/01/16 04:41:55  mortenson
 // The license was revised for this version to include a copyright omission.
 // This change is to be retroactively applied to all versions of the Java
@@ -179,9 +182,11 @@ public class TestAction
         System.err.println( "  Actions which should cause the Wrapper to exit cleanly:" );
         System.err.println( "   stop0                    : Calls WrapperManager.stop(0)" );
         System.err.println( "   exit0                    : Calls System.exit(0)" );
+        System.err.println( "   stopimmediate0           : Calls WrapperManager.stopImmediate(0)" );
         System.err.println( "  Actions which should cause the Wrapper to exit in an error state:" );
         System.err.println( "   stop1                    : Calls WrapperManager.stop(1)" );
         System.err.println( "   exit1                    : Calls System.exit(1)" );
+        System.err.println( "   stopimmediate1           : Calls WrapperManager.stopImmediate(1)" );
         System.err.println( "  Actions which should cause the Wrapper to restart the JVM:" );
         System.err.println( "   access_violation         : Calls WrapperManager.accessViolation" );
         System.err.println( "   access_violation_native  : Calls WrapperManager.accessViolationNative()" );
