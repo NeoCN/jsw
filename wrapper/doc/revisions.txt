@@ -8,6 +8,10 @@ Java Service Wrapper Revision History.
   wrapper.max_failed_invocations is set to 1.
 * Fix a problem where the number of non-daemon threads was not being calculated
   in some cases.
+* Implemented feature request #491443.  Environment variables referenced in the
+  wrapper.conf file will now be evaluated as the file is loaded.  The windows
+  syntax for environment variables is used on all platforms to make them
+  platform independent.
 
 2.2.8
 * Fixed a compiler problem on Solaris some systems.

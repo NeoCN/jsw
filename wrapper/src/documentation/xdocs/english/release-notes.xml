@@ -30,6 +30,14 @@
                     in some cases.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Implemented feature request #491443.  Environment variables referenced in the
+                    wrapper.conf file will now be evaluated as the file is loaded.  The windows
+                    syntax for environment variables is used on all platforms to make them
+                    platform independent.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
