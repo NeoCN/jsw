@@ -15,7 +15,7 @@
                 <ulink url="properties.html">Configuration Property Overview</ulink>
             </listitem>
             <listitem>
-                <ulink url="props-unix.html">Linux/Unix Configuration Properties</ulink>
+                <ulink url="props-advanced.html">Advanced Properties</ulink>
             </listitem>
             <listitem>
                 <ulink url="properties.html#name">Property List by Name</ulink>
@@ -25,11 +25,11 @@
     <section>
         <title>wrapper.pidfile</title>
         <para>
-            File to write process ID to.  If set, a pid file will be written
-            to the specified location when the Wrapper process is started.  The
-            file will be deleted when the Wrapper process has terminated.  This
-            property is not set by default.  Common values are
-            <literal moreinfo="none">./myapp.pid</literal> or
+            File to write the Wrapper process ID to.  If set, a file containing the
+            pid of the Wrapper process will be written to the specified location
+            when the process is launched.  The file will be deleted when the
+            Wrapper process has terminated.  This property is not set by default.
+            Common values are <literal moreinfo="none">./myapp.pid</literal> or
             <literal moreinfo="none">/var/run/myapp.pid</literal>.
         </para>
         <note>

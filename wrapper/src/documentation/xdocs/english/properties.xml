@@ -112,6 +112,9 @@
                     <ulink url="prop-java-maxmemory.html">wrapper.java.maxmemory</ulink>
                 </listitem>
                 <listitem>
+                    <ulink url="prop-java-pidfile.html">wrapper.java.pidfile</ulink>
+                </listitem>
+                <listitem>
                     <ulink url="prop-jvm-exit-timeout.html">wrapper.jvm_exit.timeout</ulink>
                 </listitem>
                 <listitem>

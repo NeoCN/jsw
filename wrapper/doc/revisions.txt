@@ -12,6 +12,8 @@ Java Service Wrapper Revision History.
   This can be changed by setting the PIDDIR variable in the sh script used to
   launch the Wrapper.
 * Added support for the wrapper.pidfile property on the Windows platform.
+* Added the wrapper.java.pidfile property which will cause the pid of the
+  java process to be written to a specified file.
 
 3.0.4
 * Fix a problem on UNIX systems where requesting a second thread dump any time

@@ -39,6 +39,13 @@ $Id$
                     property on the Windows platform.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Added the <ulink url="prop-java-pidfile.html">wrapper.java.pidfile</ulink>
+                    property which will cause the pid of the java process to be written to a
+                    specified file.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

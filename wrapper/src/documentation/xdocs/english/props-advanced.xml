@@ -53,6 +53,9 @@
                 <ulink url="prop-disable-shutdown-hook.html">wrapper.disable_shutdown_hook</ulink>
             </listitem>
             <listitem>
+                <ulink url="prop-java-pidfile.html">wrapper.java.pidfile</ulink>
+            </listitem>
+            <listitem>
                 <ulink url="prop-jvm-exit-timeout.html">wrapper.jvm_exit.timeout</ulink>
             </listitem>
             <listitem>
