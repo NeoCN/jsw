@@ -166,10 +166,6 @@
         </form>
     </xsl:template>
     
-    <xsl:template match="donation-duke">
-        <img src="images/DonationDuke.png" width="250" height="223" align="right" hspace="5" vspace="5"/>
-    </xsl:template>
-    
     <xsl:template match="donorlist">
         <table border="0" cellpadding="4" cellspacing="0">
             <tr class="donorheader">
