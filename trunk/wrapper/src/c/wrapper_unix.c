@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.35  2003/04/15 23:56:27  mortenson
+ * Be more careful about writing to the childOutputBuffer to make sure there is
+ * always enough space.
+ *
  * Revision 1.34  2003/04/15 23:24:22  mortenson
  * Remove casts from all malloc statements.
  *
@@ -334,6 +338,28 @@ void wrapperReportStatus(int status, int errorCode, int waitHint) {
     return;
 }
 
+char *childOutputBuffer = NULL;
+int childOutputBufferSize = 0;
+/**
+ * Make sure there is enough space in the outputBuffer.
+ */
+void ensureSpaceInChildOutputBuffer(int childOutputBufferPos, int requiredSpace) {
+    char *tempBuf;
+    
+    if ( childOutputBufferPos >= childOutputBufferSize - requiredSpace ) {
+        tempBuf = malloc(sizeof(char) * (childOutputBufferSize + 1024));
+        if (childOutputBuffer != NULL) {
+            /* Copy over the old data */
+            memcpy(tempBuf, childOutputBuffer, childOutputBufferSize);
+            tempBuf[childOutputBufferSize - 1] = '\0';
+            free(childOutputBuffer);
+            childOutputBuffer = NULL;
+        } 
+        childOutputBuffer = tempBuf;
+        childOutputBufferSize += 1024;
+    }
+}
+
 /**
  * Read and process any output from the child JVM Process.
  * Most output should be logged to the wrapper log file.
@@ -343,8 +369,6 @@ void wrapperReportStatus(int status, int errorCode, int waitHint) {
  *  the function returns -1, otherwise 0.  This is a hint to the mail loop not to
  *  sleep.
  */
-char *childOutputBuffer = NULL;
-int childOutputBufferSize = 0;
 int wrapperReadChildOutput() {
     int readSize;
     ssize_t bytesRead;
@@ -393,6 +417,7 @@ int wrapperReadChildOutput() {
 
                 if (childOutputBufferPos > 0) {
                     /* We have a partial line, write it out so it is not lost. */
+                    ensureSpaceInChildOutputBuffer( childOutputBufferPos, 1 );
                     childOutputBuffer[childOutputBufferPos] = '\0';
                     wrapperLogChildOutput(childOutputBuffer);
                     childOutputBufferPos = 0;
@@ -408,6 +433,7 @@ int wrapperReadChildOutput() {
             for (readBufPos = 0; readBufPos < bytesRead; readBufPos++) {
                 if (readBuf[readBufPos] == (char)0x0a) {
                     /* Line feed; write out buffer and reset it. */
+                    ensureSpaceInChildOutputBuffer( childOutputBufferPos, 1 );
                     childOutputBuffer[childOutputBufferPos] = '\0';
                     wrapperLogChildOutput(childOutputBuffer);
                     childOutputBufferPos = 0;
@@ -417,28 +443,7 @@ int wrapperReadChildOutput() {
                         return -1;
                     }
                 } else {
-                    /* Make sure that there is enough room for two more characters in the
-                     *  childOutputBuffer.  One for the next character, and another for a
-                     *  null to terminate the string. */
-                    if (childOutputBufferPos >= childOutputBufferSize - 2) {
-                        /* Expand the output buffer. */
-                        /*
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                            "Expand child output buffer from %d to %d bytes.",
-                            childOutputBufferSize, childOutputBufferSize + 1024);
-                        */
-
-                        tempBuf = malloc(sizeof(char) * (childOutputBufferSize + 1024));
-                        if (childOutputBuffer != NULL) {
-                            /* Copy over the old data */
-                            memcpy(tempBuf, childOutputBuffer, childOutputBufferSize);
-                            tempBuf[childOutputBufferSize - 1] = '\0';
-                            free(childOutputBuffer);
-                            childOutputBuffer = NULL;
-                        } 
-                        childOutputBuffer = tempBuf;
-                        childOutputBufferSize += 1024;
-                    }
+                    ensureSpaceInChildOutputBuffer( childOutputBufferPos, 2 );
 
                     /* Add character to write buffer. */
                     childOutputBuffer[childOutputBufferPos++] = readBuf[readBufPos];
