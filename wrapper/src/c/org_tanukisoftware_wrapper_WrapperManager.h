@@ -132,6 +132,14 @@ JNIEXPORT void JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit
 JNIEXPORT void JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump
   (JNIEnv *, jclass);
 
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeSetConsoleTitle
+ * Signature: ([B)V
+ */
+JNIEXPORT void JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle
+  (JNIEnv *, jclass, jbyteArray);
+
 #ifdef __cplusplus
 }
 #endif

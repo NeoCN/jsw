@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.10  2003/10/31 05:59:33  mortenson
+// Added a new method, setConsoleTitle, to the WrapperManager class which
+// enables the application to dynamically set the console title.
+//
 // Revision 1.9  2003/10/30 17:13:24  mortenson
 // Add an action to the WrapperActionServer which makes it possible to test
 // simmulate a JVM hang for testing.
@@ -101,6 +105,8 @@ public class Main implements WrapperListener {
         MainFrame() {
             super("Wrapper Test Application");
             
+            WrapperManager.setConsoleTitle( getTitle() );
+        
             setLayout(new FlowLayout());
             
             Button exitButton = new Button("Exit");
