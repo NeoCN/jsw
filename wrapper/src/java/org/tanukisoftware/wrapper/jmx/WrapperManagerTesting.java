@@ -1,17 +1,17 @@
 package org.tanukisoftware.wrapper.jmx;
 
 /*
- * Copyright (c) 1999, 2003 TanukiSoftware.org
- *
+ * Copyright (c) 1999, 2004 Tanuki Software
+ * 
  * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without 
- * restriction, including without limitation the rights to use, 
- * copy, modify, merge, publish, distribute, sub-license , and/or 
- * sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following 
- * conditions:
- *
+ * obtaining a copy of the Java Service Wrapper and associated
+ * documentation files (the "Software"), to deal in the Software
+ * without  restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sub-license,
+ * and/or sell copies of the Software, and to permit persons to
+ * whom the Software is furnished to do so, subject to the
+ * following conditions:
+ * 
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
  *
@@ -26,6 +26,11 @@ package org.tanukisoftware.wrapper.jmx;
  */
 
 // $Log$
+// Revision 1.2  2004/01/16 04:42:01  mortenson
+// The license was revised for this version to include a copyright omission.
+// This change is to be retroactively applied to all versions of the Java
+// Service Wrapper starting with version 3.0.0.
+//
 // Revision 1.1  2003/09/03 14:39:58  mortenson
 // Added a pair of MBean interfaces which allow the Wrapper to be controlled
 // using JMX.  See the new JMX section in the documentation for details.

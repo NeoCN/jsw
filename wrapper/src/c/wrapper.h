@@ -1,18 +1,18 @@
 /*
- * Copyright (c) 1999, 2003 TanukiSoftware.org
- *
+ * Copyright (c) 1999, 2004 Tanuki Software
+ * 
  * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without 
- * restriction, including without limitation the rights to use, 
- * copy, modify, merge, publish, distribute, sub-license , and/or 
- * sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following 
- * conditions:
- *
+ * obtaining a copy of the Java Service Wrapper and associated
+ * documentation files (the "Software"), to deal in the Software
+ * without  restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sub-license,
+ * and/or sell copies of the Software, and to permit persons to
+ * whom the Software is furnished to do so, subject to the
+ * following conditions:
+ * 
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
@@ -21,8 +21,32 @@
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
+ * 
+ * 
+ * Portions of the Software have been derived from source code
+ * developed by Silver Egg Technology under the following license:
+ * 
+ * Copyright (c) 2001 Silver Egg Technology
+ * 
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without 
+ * restriction, including without limitation the rights to use, 
+ * copy, modify, merge, publish, distribute, sub-license, and/or 
+ * sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following 
+ * conditions:
+ * 
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * 
  *
  * $Log$
+ * Revision 1.41  2004/01/16 04:41:59  mortenson
+ * The license was revised for this version to include a copyright omission.
+ * This change is to be retroactively applied to all versions of the Java
+ * Service Wrapper starting with version 3.0.0.
+ *
  * Revision 1.40  2004/01/09 19:45:03  mortenson
  * Implement the tick timer on Linux.
  *
@@ -169,9 +193,9 @@
 /* Type definitions */
 typedef struct WrapperConfig WrapperConfig;
 struct WrapperConfig {
-	int     useSystemTime;          /* TRUE if the wrapper should use the system clock for timing, FALSE if a tick counter should be used. */
-	int     timerFastThreshold;     /* If the difference between the system time based tick count and the timer tick count ever falls by more than this value then a warning will be displayed. */
-	int     timerSlowThreshold;     /* If the difference between the system time based tick count and the timer tick count ever grows by more than this value then a warning will be displayed. */
+    int     useSystemTime;          /* TRUE if the wrapper should use the system clock for timing, FALSE if a tick counter should be used. */
+    int     timerFastThreshold;     /* If the difference between the system time based tick count and the timer tick count ever falls by more than this value then a warning will be displayed. */
+    int     timerSlowThreshold;     /* If the difference between the system time based tick count and the timer tick count ever grows by more than this value then a warning will be displayed. */
 
     u_short port;                   /* Port number which the Wrapper is configured to be listening on */
     u_short actualPort;             /* Port number which the Wrapper is actually listening on */
@@ -194,7 +218,7 @@ struct WrapperConfig {
     int     wState;                 /* The current state of the wrapper */
     int     jState;                 /* The current state of the jvm */
     DWORD   jStateTimeoutTicks;     /* Tick count until which the current jState is valid */
-	int     jStateTimeoutTicksSet;  /* 1 if the current jStateTimeoutTicks is set. */
+    int     jStateTimeoutTicksSet;  /* 1 if the current jStateTimeoutTicks is set. */
     DWORD   lastPingTicks;          /* Time that the last ping was sent */
 
     int     isDebugging;            /* TRUE if set in the configuration file */
