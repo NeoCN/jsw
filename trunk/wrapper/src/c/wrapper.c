@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.55  2003/04/15 23:15:13  mortenson
+ * Remove casts from all malloc statements.
+ *
  * Revision 1.54  2003/04/15 23:06:49  mortenson
  * Fix a compile bug I introduced last night.
  *
@@ -852,14 +855,14 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         }
 
         if (found) {
-            strings[index] = (char *)malloc(sizeof(char) * (strlen(cpPath) + 2 + 1));
+            strings[index] = malloc(sizeof(char) * (strlen(cpPath) + 2 + 1));
             if (addQuotes) {
                 sprintf(strings[index], "\"%s\"", cpPath);
             } else {
                 sprintf(strings[index], "%s", cpPath);
             }
         } else {
-            strings[index] = (char *)malloc(sizeof(char) * (strlen(prop) + 2 + 1));
+            strings[index] = malloc(sizeof(char) * (strlen(prop) + 2 + 1));
             if (addQuotes) {
                 sprintf(strings[index], "\"%s\"", prop);
             } else {
@@ -869,7 +872,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 
 #else /* UNIX */
 
-        strings[index] = (char *)malloc(sizeof(char) * (strlen(prop) + 2 + 1));
+        strings[index] = malloc(sizeof(char) * (strlen(prop) + 2 + 1));
         if (addQuotes) {
             sprintf(strings[index], "\"%s\"", prop);
         } else {
@@ -894,13 +897,13 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         stripQuote = getBooleanProperty(properties, paramBuffer, FALSE);
                     }
                     if (stripQuote) {
-                        propStripped = (char *)malloc(sizeof(char) * strlen(prop) + 1);
+                        propStripped = malloc(sizeof(char) * strlen(prop) + 1);
                         wrapperStripQuotes(prop, propStripped);
                     } else {
                         propStripped = (char *)prop;
                     }
 
-                    strings[index] = (char *)malloc(sizeof(char) * (strlen(propStripped) + 1));
+                    strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1));
                     sprintf(strings[index], "%s", propStripped);
 
                     if (stripQuote) {
@@ -917,7 +920,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     /* Initial JVM memory */
     if (strings) {
         initMemory = __min(__max(getIntProperty(properties, "wrapper.java.initmemory", 3), 1), 4096); /* 1 <= n <= 4096 */
-        strings[index] = (char *)malloc(sizeof(char) * (5 + 4 + 1));  /* Allow up to 4 digits. */
+        strings[index] = malloc(sizeof(char) * (5 + 4 + 1));  /* Allow up to 4 digits. */
         sprintf(strings[index], "-Xms%dm", initMemory);
     }
     index++;
@@ -925,7 +928,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     /* Maximum JVM memory */
     if (strings) {
         maxMemory = __min(__max(getIntProperty(properties, "wrapper.java.maxmemory", 128), initMemory), 4096);  /* initMemory <= n <= 4096 */
-        strings[index] = (char *)malloc(sizeof(char) * (5 + 4 + 1));  /* Allow up to 4 digits. */
+        strings[index] = malloc(sizeof(char) * (5 + 4 + 1));  /* Allow up to 4 digits. */
         sprintf(strings[index], "-Xmx%dm", maxMemory);
     }
     index++;
@@ -935,7 +938,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         prop = getStringProperty(properties, "wrapper.java.library.path", NULL);
         if (prop) {
             /* An old style library path was specified. */
-            strings[index] = (char *)malloc(sizeof(char) * (22 + strlen(prop) + 1));
+            strings[index] = malloc(sizeof(char) * (22 + strlen(prop) + 1));
             if (addQuotes) {
                 sprintf(strings[index], "-Djava.library.path=\"%s\"", prop);
             } else {
@@ -945,7 +948,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             /* Look for a multiline library path. */
             cpLen = 0;
             cpLenAlloc = 1024;
-            strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
+            strings[index] = malloc(sizeof(char) * cpLenAlloc);
             
             /* Start with the property value. */
             sprintf(&(strings[index][cpLen]), "-Djava.library.path=");
@@ -971,7 +974,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                             /* Resize the buffer */
                             tmpString = strings[index];
                             cpLenAlloc += 1024;
-                            strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
+                            strings[index] = malloc(sizeof(char) * cpLenAlloc);
                             sprintf(strings[index], "%s", tmpString);
                             free(tmpString);
                             tmpString = NULL;
@@ -1002,7 +1005,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 
     /* Store the classpath */
     if (strings) {
-        strings[index] = (char *)malloc(sizeof(char) * (10 + 1));
+        strings[index] = malloc(sizeof(char) * (10 + 1));
         sprintf(strings[index], "-classpath");
     }
     index++;
@@ -1010,7 +1013,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         /* Build a classpath */
         cpLen = 0;
         cpLenAlloc = 1024;
-        strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
+        strings[index] = malloc(sizeof(char) * cpLenAlloc);
         
         /* Add an open quote the classpath */
         if (addQuotes) {
@@ -1056,7 +1059,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                                 /* Resize the buffer */
                                 tmpString = strings[index];
                                 cpLenAlloc += 1024;
-                                strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
+                                strings[index] = malloc(sizeof(char) * cpLenAlloc);
                                 sprintf(strings[index], "%s", tmpString);
                                 free(tmpString);
                                 tmpString = NULL;
@@ -1078,7 +1081,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                                     /* Resize the buffer */
                                     tmpString = strings[index];
                                     cpLenAlloc += 1024;
-                                    strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
+                                    strings[index] = malloc(sizeof(char) * cpLenAlloc);
                                     sprintf(strings[index], "%s", tmpString);
                                     free(tmpString);
                                     tmpString = NULL;
@@ -1108,7 +1111,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                                     /* Resize the buffer */
                                     tmpString = strings[index];
                                     cpLenAlloc += 1024;
-                                    strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
+                                    strings[index] = malloc(sizeof(char) * cpLenAlloc);
                                     sprintf(strings[index], "%s", tmpString);
                                     free(tmpString);
                                     tmpString = NULL;
@@ -1133,7 +1136,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                             /* Resize the buffer */
                             tmpString = strings[index];
                             cpLenAlloc += 1024;
-                            strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
+                            strings[index] = malloc(sizeof(char) * cpLenAlloc);
                             sprintf(strings[index], "%s", tmpString);
                             free(tmpString);
                             tmpString = NULL;
@@ -1165,7 +1168,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     /* Store the Wrapper key */
     if (strings) {
         wrapperBuildKey();
-        strings[index] = (char *)malloc(sizeof(char) * (16 + strlen(wrapperData->key) + 1));
+        strings[index] = malloc(sizeof(char) * (16 + strlen(wrapperData->key) + 1));
         if (addQuotes) {
             sprintf(strings[index], "-Dwrapper.key=\"%s\"", wrapperData->key);
         } else {
@@ -1176,7 +1179,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 
     /* Store the Wrapper server port */
     if (strings) {
-        strings[index] = (char *)malloc(sizeof(char) * (15 + 5 + 1));  /* Port up to 5 characters */
+        strings[index] = malloc(sizeof(char) * (15 + 5 + 1));  /* Port up to 5 characters */
         sprintf(strings[index], "-Dwrapper.port=%d", (int)wrapperData->actualPort);
     }
     index++;
@@ -1184,7 +1187,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     /* Store the Wrapper debug flag */
     if (wrapperData->isDebugging) {
         if (strings) {
-            strings[index] = (char *)malloc(sizeof(char) * (22 + 1));
+            strings[index] = malloc(sizeof(char) * (22 + 1));
             if (addQuotes) {
                 sprintf(strings[index], "-Dwrapper.debug=\"TRUE\"");
             } else {
@@ -1197,7 +1200,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     /* If this is being run as a service, add a service flag. */
     if (!wrapperData->isConsole) {
         if (strings) {
-            strings[index] = (char *)malloc(sizeof(char) * (24 + 1));
+            strings[index] = malloc(sizeof(char) * (24 + 1));
             if (addQuotes) {
                 sprintf(strings[index], "-Dwrapper.service=\"TRUE\"");
             } else {
@@ -1210,7 +1213,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     /* Store the Disable Shutdown Hook flag */
     if (wrapperData->isShutdownHookDisabled) {
         if (strings) {
-            strings[index] = (char *)malloc(sizeof(char) * (38 + 1));
+            strings[index] = malloc(sizeof(char) * (38 + 1));
             if (addQuotes) {
                 sprintf(strings[index], "-Dwrapper.disable_shutdown_hook=\"TRUE\"");
             } else {
@@ -1223,7 +1226,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     /* Store the CPU Timeout value */
     if (strings) {
         /* Just to be safe, allow 20 characters for the timeout value */
-        strings[index] = (char *)malloc(sizeof(char) * (24 + 20 + 1));
+        strings[index] = malloc(sizeof(char) * (24 + 20 + 1));
         if (addQuotes) {
             sprintf(strings[index], "-Dwrapper.cpu.timeout=\"%d\"", wrapperData->cpuTimeout);
         } else {
@@ -1234,7 +1237,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 
     /* Store the Wrapper JVM ID.  (Get here before incremented) */
     if (strings) {
-        strings[index] = (char *)malloc(sizeof(char) * (16 + 5 + 1));  /* jvmid up to 5 characters */
+        strings[index] = malloc(sizeof(char) * (16 + 5 + 1));  /* jvmid up to 5 characters */
         sprintf(strings[index], "-Dwrapper.jvmid=%d", (wrapperData->jvmRestarts + 1));
     }
     index++;
@@ -1242,7 +1245,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     /* Store the main class */
     if (strings) {
         prop = getStringProperty(properties, "wrapper.java.mainclass", "Main");
-        strings[index] = (char *)malloc(sizeof(char) * (strlen(prop) + 1));
+        strings[index] = malloc(sizeof(char) * (strlen(prop) + 1));
         sprintf(strings[index], "%s", prop);
     }
     index++;
@@ -1262,13 +1265,13 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         stripQuote = getBooleanProperty(properties, paramBuffer, FALSE);
                     }
                     if (stripQuote) {
-                        propStripped = (char *)malloc(sizeof(char) * strlen(prop) + 1);
+                        propStripped = malloc(sizeof(char) * strlen(prop) + 1);
                         wrapperStripQuotes(prop, propStripped);
                     } else {
                         propStripped = (char *)prop;
                     }
 
-                    strings[index] = (char *)malloc(sizeof(char) * (strlen(propStripped) + 1));
+                    strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1));
                     sprintf(strings[index], "%s", propStripped);
 
                     if (stripQuote) {
@@ -1294,7 +1297,7 @@ void wrapperBuildJavaCommandArray(char ***stringsPtr, int *length, int addQuotes
     *length = wrapperBuildJavaCommandArrayInner(NULL, addQuotes);
 
     /* Allocate the correct amount of memory */
-    *stringsPtr = (char **)malloc(sizeof(char *) * (*length));
+    *stringsPtr = malloc(sizeof(char *) * (*length));
 
     /* Now actually fill in the strings */
     wrapperBuildJavaCommandArrayInner(*stringsPtr, addQuotes);
@@ -1822,7 +1825,7 @@ void wrapperBuildNTServiceInfo() {
     len += 2;
 
     /* Actually build the buffer */
-    work = wrapperData->ntServiceDependencies = (char *)malloc(sizeof(char) * len);
+    work = wrapperData->ntServiceDependencies = malloc(sizeof(char) * len);
     for (i = 0; i < 10; i++) {
         if (dependencies[i] != NULL) {
             strcpy(work, dependencies[i]);
@@ -2027,13 +2030,13 @@ int wrapperLoadConfiguration() {
         }
     } while (val);
     /* Now that a count is known, allocate memory to hold the filters and actions and load them in. */
-    wrapperData->outputFilters = (char**)malloc(sizeof(char *) * wrapperData->outputFilterCount);
-    wrapperData->outputFilterActions = (int*)malloc(sizeof(int) * wrapperData->outputFilterCount);
+    wrapperData->outputFilters = malloc(sizeof(char *) * wrapperData->outputFilterCount);
+    wrapperData->outputFilterActions = malloc(sizeof(int) * wrapperData->outputFilterCount);
     for (i = 0; i < wrapperData->outputFilterCount; i++) {
         /* Get the filter */
         sprintf(key, "wrapper.filter.trigger.%d", i + 1);
         val = getStringProperty(properties, key, NULL);
-        wrapperData->outputFilters[i] = (char*)malloc(sizeof(char) * (strlen(val) + 1));
+        wrapperData->outputFilters[i] = malloc(sizeof(char) * (strlen(val) + 1));
         strcpy(wrapperData->outputFilters[i], val);
 
         /* Get the action */
