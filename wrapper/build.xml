@@ -2,7 +2,7 @@
 <!DOCTYPE project PUBLIC "-//ANT//DTD project//EN" "project.dtd">
 
 <!-- ======================================================================= -->
-<!-- Wrapper build file                                                     -->
+<!-- Wrapper build file                                                      -->
 <!-- ======================================================================= -->
 
 <project name="wrapper" default="main" basedir=".">
@@ -457,6 +457,8 @@
                 <include name="src/java/**" />
                 <include name="src/c/*.bat" />
                 <include name="src/c/*.c" />
+                <include name="src/c/*.c.in" />
+                <exclude name="src/c/wrapperinfo.c" />
                 <include name="src/c/*.h" />
                 <include name="src/c/Makefile.*" />
                 <include name="src/c/*.mak" />
