@@ -627,6 +627,17 @@ wrapper.app.parameter.5=true
 wrapper.app.parameter.6=1
 wrapper.app.parameter.7=stop]]></screen>
                     </informalexample>
+                    <note>
+                        <para>
+                            It has been reported that Tomcat 5.0.28 will not work correctly if the
+                            bin directory is included in the java.endorsed.dirs system property.
+                            This is caused by a change in Tomcat, rather than any issue with the
+                            Wrapper.  Please modify the above configuration as follows:
+                        </para>
+                        <informalexample>
+                            <screen format="linespecific"><![CDATA[wrapper.java.additional.1=-Djava.endorsed.dirs=../common/endorsed]]></screen>
+                        </informalexample>
+                    </note>
                 </section>
             </section>
             <section>
