@@ -105,6 +105,21 @@
                         is perfect then the Wrapper may stop pinging the JVM and the JVM
                         will respond to a lack of pings by initiating a JVM restart.
                     </para>
+                    <note>
+                        <para>Day light savings time</para>
+                        <para>
+                            The Wrapper will not work correctly during day light savings
+                            time.  If you live in a country which likes to change the time
+                            every spring and fall then it is recommended that you use the
+                            tick timer to avoid timeouts.
+                        </para>
+                        <para>
+                            As described above, you may get a single JVM restart either in
+                            the spring or fall as the system time is adjusted.  Once the
+                            JVM has been restarted however your application should continue
+                            to function correctly.
+                        </para>
+                    </note>
                 </listitem>
                 <listitem>
                     <para>
@@ -134,7 +149,9 @@
                 <listitem>
                     <para>
                         The Wrapper is no longer affected by changes to the system
-                        time, either forward or backwards.
+                        time, either forward or backwards.  This guarantees that the
+                        Wrapper will behave correctly when the time is adjusted for
+                        day light savings time or other adjustments.
                     </para>
                 </listitem>
                 <listitem>
@@ -238,6 +255,23 @@
                     interpreted as a period of high CPU load that lasted the
                     duration that the clock was advanced.
                 </para>
+                <para>
+                    If for example you have set this property to a low value and the
+                    system clock is either set ahead by one minute, or is under extremely
+                    heavy load for a minute, you will see output in your logs like the
+                    following:
+                </para>
+                <informalexample>
+                    <simpara><emphasis>Example:</emphasis></simpara>
+                    <screen format="linespecific"><![CDATA[INFO   | wrapper  | 2004/07/21 08:52:01 | The timer fell behind the system clock by 60000ms.
+INFO   | jvm 1    | 2004/07/21 08:52:15 | The timer fell behind the system clock by 60000ms.]]></screen>
+                </informalexample>
+                <para>
+                    The pair of messages indicates that both the wrapper and JVM
+                    processes noticed the change in system time.  It is quite common
+                    for the numbers reported by the two processes to differ slightly
+                    when the just is caused by heavy load.
+                </para>
             </section>
             <section id="prop-timer-fast-threshold">
                 <title>wrapper.timer_fast_threshold</title>
@@ -261,6 +295,20 @@
                     system clock has been set back.  Setting the property to
                     0 will detect any such backward adjustments of the system
                     clock.
+                </para>
+                <para>
+                    If for example you have set this property to a low value and the
+                    system clock is set back by one minute, you will see output in
+                    your logs like the following:
+                </para>
+                <informalexample>
+                    <simpara><emphasis>Example:</emphasis></simpara>
+                    <screen format="linespecific"><![CDATA[INFO   | wrapper  | 2004/07/21 08:52:01 | The system clock fell behind the timer by 60000ms.
+INFO   | jvm 1    | 2004/07/21 08:52:15 | The system clock fell behind the timer by 60000ms.]]></screen>
+                </informalexample>
+                <para>
+                    The pair of messages indicates that both the wrapper and JVM
+                    processes noticed the change in system time.
                 </para>
             </section>
         </section>
