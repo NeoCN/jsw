@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.2  2002/01/26 23:31:03  spocke
+// Added rolling file support to logger.
+//
 // Revision 1.1  2002/01/24 09:38:56  mortenson
 // Added new Logger code contributed by Johan Sorlin
 //
@@ -37,6 +40,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdarg.h>
 #include <time.h>
 
@@ -59,6 +63,8 @@ int currentLoginfoLevel = LEVEL_UNKNOWN;
 char logFilePath[ 1024 ];
 char *logLevelNames[] = { "NONE  ", "DEBUG ", "INFO  ", "STATUS", "ERROR ", "FATAL " };
 char loginfoSourceName[ 1024 ];
+int  logFileMaxSize = -1;
+int  logFileMaxLogFiles = -1;
 
 // * * Defualt formats (Must be 4 chars)
 char consoleFormat[32];
@@ -73,7 +79,7 @@ void writeTimeToStream( FILE *fp );
 void writeHeaderToStream( FILE *fp, int source_id );
 void writeLevelToStream( FILE *fp, int level );
 void writeMessageToStream( FILE *fp, char *lpszFmt, va_list vargs );
-
+void checkAndRollLogs( );
 
 int strcmpIgnoreCase( char *str1, char *str2 ) {
 #ifdef WIN32
@@ -118,6 +124,61 @@ void setLogfileLevelInt( int log_file_level ) {
 
 void setLogfileLevel( char *log_file_level ) {
 	setLogfileLevelInt(getLogLevelForName(log_file_level));
+}
+
+void setLogfileMaxFileSize( char *max_file_size ) {
+	int multiple, i, newLength;
+	char *tmpFileSizeBuff;
+	char chr;
+
+	if( max_file_size != NULL ) {
+		/* * Allocate buffer * */
+		if( (tmpFileSizeBuff = (char *) malloc( strlen( max_file_size ) + 1 )) == NULL )
+			return;
+
+		/* * Generate multiple and remove unwanted chars * */
+		multiple = 0;
+		newLength = 0;
+		for( i=0; i<(int) strlen(max_file_size); i++ ) {
+			chr = max_file_size[i];
+
+			switch( chr ) {
+				case 'k': /* Kilobytes */
+				case 'K':
+					multiple = 1000;
+				break;
+
+				case 'M': /* Megabytes */
+				case 'm':
+					multiple = 1000000;
+				break;
+			}
+
+			if( (chr >= '0' && chr <= '9') || (chr == '-') )
+				tmpFileSizeBuff[newLength++] = max_file_size[i];
+		}
+		tmpFileSizeBuff[newLength] = '\0';/* Crop string */
+
+		logFileMaxSize = atoi( tmpFileSizeBuff );
+		if( logFileMaxSize != -1 )
+			logFileMaxSize *= multiple;
+
+		/* * Free memory * */
+		free( tmpFileSizeBuff );
+	}
+}
+
+void setLogfileMaxFileSizeInt( int max_file_size ) {
+	logFileMaxSize = max_file_size;
+}
+
+void setLogfileMaxLogFiles( char *max_log_files ) {
+	if( max_log_files != NULL )
+		logFileMaxLogFiles = atoi( max_log_files );
+}
+
+void setLogfileMaxLogFilesInt( int max_log_files ) {
+	logFileMaxLogFiles = max_log_files;
 }
 
 /* * Console functions * */
@@ -219,6 +280,7 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
 	}
 
 	// * * Logfile output by format
+	checkAndRollLogs( );
 	logfileFP = fopen( logFilePath, "a" );
 	if( (level >= currentLogfileLevel) && (logfileFP != NULL) ) {
 		// * * Count number of columns inorder to skip last '|' char
@@ -512,4 +574,57 @@ void writeLevelToStream( FILE *fp, int level ) {
 
 void writeMessageToStream( FILE *fp, char *lpszFmt, va_list vargs ) {
 	vfprintf( fp, lpszFmt, vargs );
+}
+
+void checkAndRollLogs( ) {
+	FILE *fp;
+	int fileSize;
+	char *tmpLogFilePath1;
+	char *tmpLogFilePath2;
+	int i;
+
+	if( (logFileMaxSize <= -1) || (logFileMaxLogFiles <= -1) )
+		return;
+
+	/* * Allocate buffers * */
+	tmpLogFilePath1 = (char *) malloc( ((int) strlen( logFilePath )) + 10 );
+	tmpLogFilePath2 = (char *) malloc( ((int) strlen( logFilePath )) + 10 );
+
+	/* * Check if the allocation was successful * */
+	if( (tmpLogFilePath1 == NULL) || (tmpLogFilePath2 == NULL) ) {
+		free( (void *) tmpLogFilePath1 );
+		free( (void *) tmpLogFilePath2 );
+		return;
+	}
+
+	if( (fp = fopen( logFilePath, "rb" )) != NULL ) {
+		/* * Get file size and close file * */
+		fseek( fp, 0, SEEK_END );
+		fileSize = ftell( fp );
+		fclose( fp );
+
+		/* * Is it time to roll them * */
+		if( fileSize > logFileMaxSize ) {
+			/* * Loop and rename them * */
+			for( i=logFileMaxLogFiles; i>=0; i-- ) {
+				sprintf( tmpLogFilePath1, "%s.%d", logFilePath, i );
+				sprintf( tmpLogFilePath2, "%s.%d", logFilePath, i + 1 );
+
+				rename( tmpLogFilePath1, tmpLogFilePath2 );
+			}
+
+			/* * Rename base file to first index * */
+			sprintf( tmpLogFilePath1, "%s", logFilePath );
+			sprintf( tmpLogFilePath2, "%s.1", logFilePath );
+			rename( tmpLogFilePath1, tmpLogFilePath2 );
+
+			/* * Remove the last file * */
+			sprintf( tmpLogFilePath1, "%s.%d", logFilePath, logFileMaxLogFiles + 1 );
+			remove( tmpLogFilePath1 );
+		}
+	}
+
+	/* * Free memory * */
+	free( (void *) tmpLogFilePath1 );
+	free( (void *) tmpLogFilePath2 );
 }
