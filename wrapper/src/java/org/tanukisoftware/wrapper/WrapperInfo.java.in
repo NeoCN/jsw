@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.6  2004/11/19 03:38:24  mortenson
+// Add a private constructor so that the WrapperInfo class can not be instantiated.
+//
 // Revision 1.5  2004/06/30 09:02:33  mortenson
 // Remove unused imports.
 //
@@ -126,6 +129,16 @@ final class WrapperInfo
     {
         DateFormat df = new SimpleDateFormat( "HH:mm zz MMM d, yyyy" ); 
         return df.format( m_build.getTime() );
+    }
+    
+    /*---------------------------------------------------------------
+     * Constructors
+     *-------------------------------------------------------------*/
+    /**
+     * Can not be instantiated.
+     */
+    private WrapperInfo()
+    {
     }
 }
 
