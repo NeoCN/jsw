@@ -24,6 +24,17 @@ Java Service Wrapper Revision History.
   a new pair os system properties; wrapper.pid and wrapper.java.pid, as well
   as a new pair of methods; WrapperManager.getWrapperPID() and
   WrapperManager.getJavaPID().
+* Add a new WrapperEventListener class which can be implemented to receive
+  a wide variety of events from the Wrapper.
+* Add a WrapperServiceControlEvent class which will report any service control
+  codes received by the Wrapper as it is running as an NT service.   This was
+  added to make it possible for other applications to sent custom codes to the
+  Wrapper using the Window Service Manager.
+* Add a WrapperManager.listServices() method which can be used to obtain the
+  status of all services on a Windows system.
+* Add a WrapperManager.sendServiceControlCode() method which makes it possible
+  to start, stop, pause, continue, any service on Windows systems.  It is also
+  possible to send custom user codes via the service manager.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager

@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.46  2004/11/22 09:35:47  mortenson
+// Add methods for controlling other services.
+//
 // Revision 1.45  2004/11/22 04:06:44  mortenson
 // Add an event model to make it possible to communicate with user applications in
 // a more flexible way.
@@ -326,6 +329,12 @@ public final class WrapperManager
     public static final int WRAPPER_LOG_LEVEL_FATAL      = 6;
     /** Log message at advice log level. */
     public static final int WRAPPER_LOG_LEVEL_ADVICE     = 7;
+    
+    public static final int SERVICE_CONTROL_CODE_START       = 0x10000;
+    public static final int SERVICE_CONTROL_CODE_STOP        = 1;
+    public static final int SERVICE_CONTROL_CODE_PAUSE       = 2;
+    public static final int SERVICE_CONTROL_CODE_CONTINUE    = 3;
+    public static final int SERVICE_CONTROL_CODE_INTERROGATE = 4;
     
     /** Reference to the original value of System.out. */
     private static PrintStream m_out;
@@ -818,6 +827,8 @@ public final class WrapperManager
     private static native void nativeSetConsoleTitle( byte[] titleBytes );
     private static native WrapperUser nativeGetUser( boolean groups );
     private static native WrapperUser nativeGetInteractiveUser( boolean groups );
+    private static native WrapperWin32Service[] nativeListServices();
+    private static native WrapperWin32Service nativeSendServiceControlCode( byte[] serviceName, int controlCode );
     
     /*---------------------------------------------------------------
      * Methods
@@ -1763,6 +1774,54 @@ public final class WrapperManager
         {
             sendCommand( (byte)( WRAPPER_MSG_LOG + logLevel ), message );
         }
+    }
+    
+    /**
+     * Returns an array of all registered services.  This method is only
+     *  supported on Windows platforms which support services.  Calling this
+     *  method on other platforms will result in null being returned.
+     *
+     * @return An array of services.
+     */
+    public static WrapperWin32Service[] listServices()
+    {
+        if ( m_libraryOK )
+        {
+            return nativeListServices();
+        }
+        else
+        {
+            return null;
+        }
+    }
+    
+    /**
+     * Sends a service control code to the specified service.  The state of the
+     *  service should be tested on return.  If the service was not currently
+     *  running then the control code will not be sent.
+     *
+     * @param serviceName Name of the Windows service which will receive the
+     *                    control code.
+     * @param controlCode The actual control code to be sent.  User defined
+     *                    conrol codes should be in the range 128-255.
+     *
+     * @return A WrapperWin32Service containing the last known status of the
+     *         service after sending the control code.  This will be null if
+     *         the currently platform is not a version of Windows which
+     *         supports services.
+     *
+     * @throws WrapperServiceException If there are any problems accessing the
+     *                                 specified service.
+     */
+    public static WrapperWin32Service sendServiceControlCode( String serviceName, int controlCode )
+        throws WrapperServiceException
+    {
+        WrapperWin32Service service = null;
+        if ( m_libraryOK )
+        {
+            service = nativeSendServiceControlCode( serviceName.getBytes(), controlCode );
+        }
+        return service;
     }
     
     /**

@@ -69,6 +69,16 @@ extern "C" {
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_FATAL 6L
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_ADVICE
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_ADVICE 7L
+#undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_START
+#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_START 65536L
+#undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_STOP
+#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_STOP 1L
+#undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_PAUSE
+#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_PAUSE 2L
+#undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_CONTINUE
+#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_CONTINUE 3L
+#undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_INTERROGATE
+#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_INTERROGATE 4L
 /* Inaccessible static: m_out */
 /* Inaccessible static: m_err */
 /* Inaccessible static: m_disposed */
@@ -190,6 +200,22 @@ JNIEXPORT jobject JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeG
  */
 JNIEXPORT jobject JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser
   (JNIEnv *, jclass, jboolean);
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeListServices
+ * Signature: ()[Lorg/tanukisoftware/wrapper/WrapperWin32Service;
+ */
+JNIEXPORT jobjectArray JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeSendServiceControlCode
+ * Signature: ([BI)Lorg/tanukisoftware/wrapper/WrapperWin32Service;
+ */
+JNIEXPORT jobject JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode
+  (JNIEnv *, jclass, jbyteArray, jint);
 
 #ifdef __cplusplus
 }
