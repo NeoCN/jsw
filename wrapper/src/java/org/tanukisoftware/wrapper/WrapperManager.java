@@ -44,6 +44,11 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.40  2004/08/06 07:26:09  mortenson
+// Modify the way boolean system properties are resolved by the WrapperManager
+// so it is now possible to set them to true or false rather than assuming they
+// are true if set.
+//
 // Revision 1.39  2004/06/30 09:02:33  mortenson
 // Remove unused imports.
 //
@@ -405,7 +410,7 @@ public final class WrapperManager
         m_err = System.err;
         
         // Check for the debug flag
-        m_debug = getBooleanProperty( "wrapper.debug" );
+        m_debug = getBooleanProperty( "wrapper.debug", false );
         
         if ( m_debug )
         {
@@ -556,10 +561,10 @@ public final class WrapperManager
             }
             
             // Check for the ignore signals flag
-            m_ignoreSignals = getBooleanProperty( "wrapper.ignore_signals" );
+            m_ignoreSignals = getBooleanProperty( "wrapper.ignore_signals", false );
             
             // If this is being run as a headless server, then a flag would have been set
-            m_service = getBooleanProperty( "wrapper.service" );
+            m_service = getBooleanProperty( "wrapper.service", false );
             
             // Get the cpuTimeout
             String sCPUTimeout = System.getProperty( "wrapper.cpu.timeout" );
@@ -741,6 +746,27 @@ public final class WrapperManager
     /*---------------------------------------------------------------
      * Methods
      *-------------------------------------------------------------*/
+    /**
+     * Resolves an integer property.
+     *
+     * @param name The name of the property to lookup.
+     * @param defaultValue The value to return if it is not set or is invalid.
+     *
+     * @return The requested property value.
+     */
+    private static boolean getBooleanProperty( String name, boolean defaultValue )
+    {
+        String val = System.getProperty( name );
+        if ( val != null )
+        {
+            if ( val.equalsIgnoreCase( "TRUE" ) )
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    
     /**
      * Resolves an integer property.
      *
@@ -1087,16 +1113,6 @@ public final class WrapperManager
                 "          and is not supported." );
             m_out.println();
         }
-    }
-    
-    /**
-     * Returns true if the specified system property is set.
-     *
-     * @return True if the specified system property is set.
-     */
-    private static boolean getBooleanProperty( String name )
-    {
-        return ( System.getProperty( name ) != null );
     }
     
     /**
