@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.3  2004/06/16 15:56:29  mortenson
+ * Added a new property, wrapper.anchorfile, which makes it possible to
+ * cause the Wrapper to shutdown by deleting an anchor file.
+ *
  * Revision 1.2  2004/03/27 16:50:15  mortenson
  * Get the latest changes to compile on UNIX platforms.
  *
@@ -63,6 +67,7 @@
  */
 
 #include <stdio.h>
+#include <sys/stat.h>
 #include <string.h>
 
 #ifdef WIN32
@@ -179,6 +184,63 @@ void displayLaunchingTimeoutMessage() {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
                 "------------------------------------------------------------------------" );
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "" );
+        }
+    }
+}
+
+/**
+ * Tests for the existence of the anchor file.  If it does not exist then
+ *  the Wrapper will begin its shutdown process.
+ *
+ * nowTicks: The tick counter value this time through the event loop.
+ */
+void anchorPoll(DWORD nowTicks) {
+    struct stat fileStat;
+    int result;
+
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
+        "Anchor timeout=%d, now=%d", wrapperData->anchorTimeoutTicks, nowTicks);
+
+    if (wrapperData->anchorFilename) {
+        if (wrapperGetTickAge(wrapperData->anchorTimeoutTicks, nowTicks) >= 0) {
+            result = stat(wrapperData->anchorFilename, &fileStat);
+            if (result == 0) {
+                /* Anchor file exists.  Do nothing. */
+#ifdef _DEBUG
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
+                    "The anchor file %s exists.", wrapperData->anchorFilename);
+#endif
+            } else {
+                /* Anchor file is gone. */
+#ifdef _DEBUG
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
+                    "The anchor file %s was deleted.", wrapperData->anchorFilename);
+#endif
+
+                /* Unless we are already doing so, start the shudown process. */
+                if (wrapperData->exitRequested || wrapperData->restartRequested ||
+                    (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
+                    (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
+                    (wrapperData->jState == WRAPPER_JSTATE_DOWN)) {
+                    /* Already shutting down, so nothing more to do. */
+                } else {
+                    /* Start the shutdown process. */
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Anchor file deleted.  Shutting down.");
+
+                  wrapperStopProcess(0);
+
+                    /* To make sure that the JVM will not be restarted for any reason,
+                     *  start the Wrapper shutdown process as well. */
+                    if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
+                        (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
+                        /* Already stopping. */
+                    } else {
+                        wrapperData->wState = WRAPPER_WSTATE_STOPPING;
+                    }
+                }
+            }
+
+         wrapperData->anchorTimeoutTicks = wrapperAddToTicks(nowTicks, wrapperData->anchorPollInterval);
         }
     }
 }
@@ -710,6 +772,8 @@ void wrapperEventLoop() {
     DWORD lastCycleTicks = wrapperGetTicks();
     int nextSleep;
 
+    wrapperData->anchorTimeoutTicks = lastCycleTicks;
+
     nextSleep = TRUE;
     do {
         if (nextSleep) {
@@ -771,6 +835,9 @@ void wrapperEventLoop() {
                        (wrapperData->exitRequested ? "true" : "false"),
                        (wrapperData->restartRequested ? "true" : "false"));
         }
+
+        /* If we are configured to do so, confirm that the anchor file still exists. */
+        anchorPoll(nowTicks);
         
         if (wrapperData->exitRequested) {
             /* A new request for the JVM to be stopped has been made. */

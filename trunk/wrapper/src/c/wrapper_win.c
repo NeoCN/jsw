@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.75  2004/06/16 15:56:29  mortenson
+ * Added a new property, wrapper.anchorfile, which makes it possible to
+ * cause the Wrapper to shutdown by deleting an anchor file.
+ *
  * Revision 1.74  2004/06/14 07:20:40  mortenson
  * Add some additional output and a wrapper.timer_output property to help with
  * debugging timer issues.
@@ -287,10 +291,6 @@ static int    wrapperChildStdoutRdLastLF = 0;
 
 char wrapperClasspathSeparator = ';';
 
-/* Flag which is set if this process creates a pid file. */
-int ownPidFile = 0;
-int ownJavaPidFile = 0;
-
 HANDLE timerThreadHandle;
 DWORD timerThreadId;
 /* Initialize the timerTicks to a very high value.  This means that we will
@@ -372,10 +372,14 @@ char** wrapperGetSystemPath() {
  * exits the application after running shutdown code.
  */
 void appExit(int exitCode) {
-    /* Remove pid file if it was registered and created by this process. */
-    if ((ownPidFile) && (wrapperData->pidFilename)) {
+    /* Remove pid file.  It may no longer exist. */
+    if (wrapperData->pidFilename) {
         unlink(wrapperData->pidFilename);
-        ownPidFile = 0;
+    }
+
+    /* Remove anchor file.  It may no longer exist. */
+    if (wrapperData->anchorFilename) {
+        unlink(wrapperData->anchorFilename);
     }
 
     /* Do this here to unregister the syslog resources on exit.*/
@@ -1046,9 +1050,8 @@ int wrapperGetProcessStatus() {
         wrapperJVMProcessExited(exitCode);
 
         /* Remove java pid file if it was registered and created by this process. */
-        if ((ownJavaPidFile) && (wrapperData->javaPidFilename)) {
+        if (wrapperData->javaPidFilename) {
             unlink(wrapperData->javaPidFilename);
-            ownJavaPidFile = 0;
         }
 
         break;
@@ -1120,9 +1123,8 @@ void wrapperKillProcess() {
     wrapperProcess = NULL;
 
     /* Remove java pid file if it was registered and created by this process. */
-    if ((ownJavaPidFile) && (wrapperData->javaPidFilename)) {
+    if (wrapperData->javaPidFilename) {
         unlink(wrapperData->javaPidFilename);
-        ownJavaPidFile = 0;
     }
 
     /* Close any open socket to the JVM */
@@ -1327,9 +1329,6 @@ void wrapperExecute() {
         if (pid_fp != NULL) {
             fprintf(pid_fp, "%d\n", wrapperProcessId);
             fclose(pid_fp);
-
-            /* Remember that we created the pid file. */
-            ownJavaPidFile = 1;
         } else {
          log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 "Unable to write the Java PID file: %s", wrapperData->javaPidFilename);
@@ -2153,20 +2152,17 @@ int setWorkingDir() {
     return wrapperSetWorkingDir(szPath);
 }
 
-int writePidFile() {
+int writePidFile(const char *filename) {
     FILE *pid_fp = NULL;
     int old_umask;
 
     old_umask = _umask(022);
-    pid_fp = fopen(wrapperData->pidFilename, "w");
+    pid_fp = fopen(filename, "w");
     _umask(old_umask);
     
     if (pid_fp != NULL) {
         fprintf(pid_fp, "%d\n", (int)getpid());
         fclose(pid_fp);
-
-        /* Remember that we created the pid file. */
-        ownPidFile = 1;
     } else {
         return 1;
     }
@@ -2438,14 +2434,24 @@ void _CRTAPI1 main(int argc, char **argv) {
                             } else if(!_stricmp(argv[1],"-c") || !_stricmp(argv[1],"/c")) {
                                 /* Run as a console application */
 
-                                /* Write pid file. */
+                                /* Write pid and anchor files as requested.  If they are the same file the file is
+                                 *  simply overwritten. */
+                                if (wrapperData->anchorFilename) {
+                                    if (writePidFile(wrapperData->anchorFilename)) {
+                                        log_printf
+                                            (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                                             "ERROR: Could not write anchor file %s: %s",
+                                             wrapperData->anchorFilename, getLastErrorText());
+                                        appExit(1);
+                                    }
+                                }
                                 if (wrapperData->pidFilename) {
-                                    if (writePidFile()) {
+                                    if (writePidFile(wrapperData->pidFilename)) {
                                         log_printf
                                             (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                                              "ERROR: Could not write pid file %s: %s",
                                              wrapperData->pidFilename, getLastErrorText());
-                                        exit(1);
+                                        appExit(1);
                                     }
                                 }
 
@@ -2455,14 +2461,24 @@ void _CRTAPI1 main(int argc, char **argv) {
                             } else if(!_stricmp(argv[1],"-s") || !_stricmp(argv[1],"/s")) {
                                 /* Run as a service */
 
-                                /* Write pid file. */
+                                /* Write pid and anchor files as requested.  If they are the same file the file is
+                                 *  simply overwritten. */
+                                if (wrapperData->anchorFilename) {
+                                    if (writePidFile(wrapperData->anchorFilename)) {
+                                        log_printf
+                                            (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                                             "ERROR: Could not write anchor file %s: %s",
+                                             wrapperData->anchorFilename, getLastErrorText());
+                                        appExit(1);
+                                    }
+                                }
                                 if (wrapperData->pidFilename) {
-                                    if (writePidFile()) {
+                                    if (writePidFile(wrapperData->pidFilename)) {
                                         log_printf
                                             (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                                              "ERROR: Could not write pid file %s: %s",
                                              wrapperData->pidFilename, getLastErrorText());
-                                        exit(1);
+                                        appExit(1);
                                     }
                                 }
 

@@ -27,6 +27,9 @@ Java Service Wrapper Revision History.
 * Fix a problem introduced in 3.1.0 where a very very large CPU timeout
   warning message was being displayed if the system time was set back
   while using the default system timer.
+* Added a new property, wrapper.anchorfile, which makes it possible to
+  cause the Wrapper to shutdown by deleting an anchor file.  The UNIX sh
+  script has been modified to optionally make use of this feature.
 
 3.1.0
 * The license was revised for this version to include a copyright omission.

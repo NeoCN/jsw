@@ -78,6 +78,14 @@ $Id$
                     while using the default system timer.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Added a new property, <ulink url="prop-anchorfile.html">wrapper.anchorfile</ulink>,
+                    which makes it possible to cause the Wrapper to shutdown by deleting
+                    an anchor file.  The UNIX sh script has been modified to optionally make
+                    use of this feature.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.0">

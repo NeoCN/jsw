@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.75  2004/06/16 15:56:29  mortenson
+ * Added a new property, wrapper.anchorfile, which makes it possible to
+ * cause the Wrapper to shutdown by deleting an anchor file.
+ *
  * Revision 1.74  2004/06/15 03:16:36  mortenson
  * Debug output from the forked child process just before the JVM was launched
  * was causing corruption of debug output on Solaris.
@@ -1054,13 +1058,13 @@ void wrapperUsage(char *appName) {
     printf("Options:  --help\n");
 }
 
-int writePidFile() {
+int writePidFile(const char* filename) {
     FILE *pid_fp = NULL;
     mode_t old_umask;
 
     /*enter_suid(); */
     old_umask = umask(022);
-    pid_fp = fopen(wrapperData->pidFilename, "w");
+    pid_fp = fopen(filename, "w");
     umask(old_umask);
     /*leave_suid(); */
     
@@ -1242,9 +1246,19 @@ int main(int argc, char **argv) {
                 daemonize();
             }
 
-            /* Write pid file. */
+            /* Write pid and anchor files as requested.  If they are the same file the file is
+             *  simply overwritten. */
+            if (wrapperData->anchorFilename) {
+                if (writePidFile(wrapperData->anchorFilename)) {
+                    log_printf
+                        (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                         "ERROR: Could not write anchor file %s: %s",
+                         wrapperData->anchorFilename, getLastErrorText());
+                    exit(1);
+                }
+            }
             if (wrapperData->pidFilename) {
-                if (writePidFile()) {
+                if (writePidFile(wrapperData->pidFilename)) {
                     log_printf
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                          "ERROR: Could not write pid file %s: %s",
@@ -1254,10 +1268,15 @@ int main(int argc, char **argv) {
             }
 
             exitStatus = wrapperRunConsole();
-            
-            /* Remove pid file. */
+
+            /* Remove pid file.  It may no longer exist. */
             if (wrapperData->pidFilename) {
                 unlink(wrapperData->pidFilename);
+            }
+            
+            /* Remove anchor file.  It may no longer exist. */
+            if (wrapperData->anchorFilename) {
+                unlink(wrapperData->anchorFilename);
             }
 
             exit(exitStatus);
