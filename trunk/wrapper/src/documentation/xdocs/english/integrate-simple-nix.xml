@@ -195,9 +195,8 @@ APP_LONG_NAME="JBoss Application Server"]]></screen>
                     <para>
                         Be sure to remove the <literal moreinfo="none">.in</literal>
                         extension so that the file is named
-                        <literal moreinfo="none">wrapper.conf</literal>.  Depending
-                        on how your file explorer is configured, you may not be able
-                        to see the extension.  You should now have:
+                        <literal moreinfo="none">wrapper.conf</literal>.  You should
+                        now have:
                     </para>
                     <informalexample>
                         <screen format="linespecific"><![CDATA[{JBOSS_HOME}/conf/wrapper.conf]]></screen>
