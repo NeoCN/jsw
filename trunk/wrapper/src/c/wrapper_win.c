@@ -23,6 +23,12 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.36  2003/04/09 04:03:19  mortenson
+ * Fix a problem where the inability to expand very large environment variables
+ * was causing an access violation when run as an NT service.
+ * Added a bunch of output to the DEBUG build of the Wrapper to help with tracking
+ * down problems like this.
+ *
  * Revision 1.35  2003/04/03 07:37:00  mortenson
  * In the last release, some work was done to avoid false timeouts caused by
  * large quantities of output.  On some heavily loaded systems, timeouts were
@@ -850,6 +856,10 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
  *	It is called by the service manager.
  */
 void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
+#ifdef DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "wrapperServiceMain()");
+#endif
+
     /* Call RegisterServiceCtrlHandler immediately to register a service control */
     /* handler function. The returned SERVICE_STATUS_HANDLE is saved with global */
     /* scope, and used as a service id in calls to SetServiceStatus. */
@@ -1021,17 +1031,25 @@ int wrapperInstall(int argc, char **argv) {
  */
 int wrapperLoadEnvFromRegistry() {
     int result = 0;
+    int ret;
     HKEY hKey;
     char regPath[1024];
     DWORD dwIndex;
     LONG err;
+    int nameLen = 1024;
     CHAR name[1024];
     DWORD cbName;
     DWORD type;
+    int dataLen = 2048;
     byte data[2048];
     DWORD cbData;
-    CHAR env[3072];
+    CHAR env[1024 - 1 + 2048 - 1 + 2];
     char *envVal;
+    BOOL expanded;
+
+#ifdef DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Loading environment variables from Registry:");
+#endif
 
     /* Open the registry entry where the current environment variables are stored. */
     sprintf(regPath, "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment\\");
@@ -1044,10 +1062,13 @@ int wrapperLoadEnvFromRegistry() {
          *  through all the ones we set and Expand them if necessary. */
         dwIndex = 0;
         do {
-            cbName = 1024;
-            cbData = 2048;
+            cbName = nameLen;
+            cbData = dataLen;
             err = RegEnumValue(hKey, dwIndex, name, &cbName, NULL, &type, data, &cbData);
             if (err != ERROR_NO_MORE_ITEMS) {
+#ifdef DEBUG
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Loaded var name=\"%s\", value=\"%s\"", name, data);
+#endif
                 /* Found an environment variable in the registry.  Set it to the current environment. */
                 sprintf(env, "%s=%s", name, data);
                 if (putenv(env)) {
@@ -1055,6 +1076,9 @@ int wrapperLoadEnvFromRegistry() {
                     err = ERROR_NO_MORE_ITEMS;
                     result = 1;
                 }
+#ifdef DEBUG
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Set to local environment.");
+#endif
             } else if (err == ERROR_NO_MORE_ITEMS) {
                 /* No more environment variables. */
             } else {
@@ -1066,41 +1090,76 @@ int wrapperLoadEnvFromRegistry() {
         } while (err != ERROR_NO_MORE_ITEMS);
 
         if (!result) {
+#ifdef DEBUG
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "All environment variables loaded.  Loop back over them to evaluate any nested variables.");
+#endif
             /* Go back and loop over the environment variables we just set and expand any
-             *  variables which contain % characters. */
-            dwIndex = 0;
+             *  variables which contain % characters. Loop until we make a pass which does
+             *  not perform any replacements. */
             do {
-                cbName = 1024;
-                cbData = 2048;
-                err = RegEnumValue(hKey, dwIndex, name, &cbName, NULL, NULL, NULL, NULL);
-                if (err != ERROR_NO_MORE_ITEMS) {
-                    /* Found an environment variable in the registry.  Get the current value. */
-                    envVal = getenv(name);
-                    if (strchr(envVal, '%')) {
-                        /* This variable contains tokens which need to be expanded. */
-                        if (!ExpandEnvironmentStrings(envVal, data, 2048)) {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to expand environment variable, %s - %s", name, getLastErrorText(szErr,256));
-                            err = ERROR_NO_MORE_ITEMS;
-                            result = 1;
-                        } else {
-                            /* Set the expanded environment variable */
-                            sprintf(env, "%s=%s", name, data);
-                            if (putenv(env)) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to set environment variable from the registry - %s", getLastErrorText(szErr,256));
+                expanded = FALSE;
+
+                dwIndex = 0;
+                do {
+                    cbName = nameLen;
+                    cbData = dataLen;
+                    err = RegEnumValue(hKey, dwIndex, name, &cbName, NULL, NULL, NULL, NULL);
+                    if (err != ERROR_NO_MORE_ITEMS) {
+                        /* Found an environment variable in the registry.  Get the current value. */
+#ifdef DEBUG
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Get the current local value of variable \"%s\"", name);
+#endif
+                        envVal = getenv(name);
+#ifdef DEBUG
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "     \"%s\"=\"%s\"", name, envVal);
+#endif
+                        if (strchr(envVal, '%')) {
+                            /* This variable contains tokens which need to be expanded. */
+                            ret = ExpandEnvironmentStrings(envVal, data, dataLen);
+                            if (ret == 0) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to expand environment variable, %s - %s", name, getLastErrorText(szErr,256));
                                 err = ERROR_NO_MORE_ITEMS;
                                 result = 1;
+                            } else if (ret >= dataLen) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Unable to expand environment variable, %s as it would be longer than the %d byte buffer size.", name, dataLen);
+                            } else if (strcmp(envVal, data) == 0) {
+#ifdef DEBUG
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "       Value unchanged.  Referenced environment variable not set.");
+#endif
+                            } else {
+                                /* Set the expanded environment variable */
+                                expanded = TRUE;
+#ifdef DEBUG
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Update local environment variable.  \"%s\"=\"%s\"", name, data);
+#endif
+                                sprintf(env, "%s=%s", name, data);
+                                if (putenv(env)) {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to set environment variable from the registry - %s", getLastErrorText(szErr,256));
+                                    err = ERROR_NO_MORE_ITEMS;
+                                    result = 1;
+                                }
                             }
                         }
+                    } else if (err == ERROR_NO_MORE_ITEMS) {
+                        /* No more environment variables. */
+                    } else {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to read registry - %s", getLastErrorText(szErr,256));
+                        err = ERROR_NO_MORE_ITEMS;
+                        result = 1;
                     }
-                } else if (err == ERROR_NO_MORE_ITEMS) {
-                    /* No more environment variables. */
-                } else {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to read registry - %s", getLastErrorText(szErr,256));
-                    err = ERROR_NO_MORE_ITEMS;
-                    result = 1;
+                    dwIndex++;
+                } while (err != ERROR_NO_MORE_ITEMS);
+
+#ifdef DEBUG
+                if (expanded && (result == 0)) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Rescan environment variables to varify that there are no more expansions necessary.");
                 }
-                dwIndex++;
-            } while (err != ERROR_NO_MORE_ITEMS);
+#endif
+            } while (expanded && (result == 0));
+
+#ifdef DEBUG
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Done loading environment variables.");
+#endif
         }
 
         /* Close the registry entry */
@@ -1391,10 +1450,22 @@ void _CRTAPI1 main(int argc, char **argv) {
         wrapperData->failedInvocationCount = 0;
 
         wrapperInitializeLogging();
+#ifdef DEBUG
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Wrapper DEBUG build!");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Logging initialized.");
+#endif
 
         if (setWorkingDir()) {
             appExit(1);
         }
+#ifdef DEBUG
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Working directory set.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Arguments:");
+        for ( i = 0; i < argc; i++ ) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  argv[%d]=%s", i, argv[i]);
+        }
+#endif
+        
         
         if (argc >= 3) {
             /* argv[1] should be the command */
