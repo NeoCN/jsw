@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.34  2004/01/12 17:30:32  mortenson
+ * Remove a c-style comment.
+ *
  * Revision 1.33  2004/01/10 18:22:00  mortenson
  * Fix a problem where the message buffer was not being expanded correctly.
  *
@@ -109,7 +112,6 @@ int currentConsoleLevel = LEVEL_UNKNOWN;
 int currentLogfileLevel = LEVEL_UNKNOWN;
 int currentLoginfoLevel = LEVEL_UNKNOWN;
 
-//char szBuff[ MAX_LOG_SIZE + 1 ];
 char logFilePath[ 1024 ];
 char *logLevelNames[] = { "NONE  ", "DEBUG ", "INFO  ", "STATUS", "WARN  ", "ERROR ", "FATAL " };
 char loginfoSourceName[ 1024 ];
