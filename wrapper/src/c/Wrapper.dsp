@@ -87,6 +87,10 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\logger.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\property.c
 # End Source File
 # Begin Source File
@@ -107,6 +111,10 @@ SOURCE=.\wrapper_win.c
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
+SOURCE=.\logger.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\property.h
 # End Source File
 # Begin Source File
@@ -117,6 +125,14 @@ SOURCE=.\wrapper.h
 # Begin Group "Resource Files"
 
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
+# Begin Source File
+
+SOURCE=.\messages.rc
+# End Source File
 # End Group
+# Begin Source File
+
+SOURCE=.\messages.mc
+# End Source File
 # End Target
 # End Project

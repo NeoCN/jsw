@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.5  2002/01/24 09:43:56  mortenson
+// Added new Logger code which allows log levels.
+//
 // Revision 1.4  2002/01/13 04:49:53  mortenson
 // Added Wildcard support for Classpath entries.
 //
@@ -39,6 +42,14 @@
 // no message
 //
 
+/**
+ * Author:
+ *   Leif Mortenson <leif@silveregg.co.jp>
+ *   Ryan Shaw      <ryan@silveregg.co.jp>
+ *
+ * Version CVS $Revision$ $Date$
+ */
+
 #include <errno.h>
 #include <io.h>
 #include <math.h>
@@ -47,6 +58,7 @@
 #include <time.h>
 #include "property.h"
 #include "wrapper.h"
+#include "logger.h"
 
 #ifdef WIN32
 #include <winsock.h>
@@ -92,144 +104,6 @@ Properties              *properties;
 SOCKET ssd = INVALID_SOCKET;
 // Client Socket.
 SOCKET sd = INVALID_SOCKET;
-
-int wrapperBuildInnerLog(char *format, char *buffer, int sourceID, struct tm *nowTM, const char *message) {
-    char work[32];
-    int useOutput;
-    
-    useOutput = 0;
-    
-    // Start with a null terminated string
-    buffer[0] = '\0';
-    
-    // Add the prefix if necessary
-    if ((strchr(format, 'P') != NULL) || (strchr(format, 'p') != NULL)) {
-		// Build the source prefix
-		switch (sourceID) {
-		case WRAPPER_SOURCE_WRAPPER:
-			sprintf(work, "wrapper ");
-			break;
-
-		case WRAPPER_SOURCE_PROTOCOL:
-			sprintf(work, "wrapperp");
-			break;
-
-		default:
-			sprintf(work, "jvm %-4d", sourceID);
-			break;
-		}
-		strcat(buffer, work);
-		useOutput = 1;
-	}
-
-	// Add the time if necessary
-    if ((strchr(format, 'T') != NULL) || (strchr(format, 't') != NULL)) {
-		if (useOutput) {
-			strcat(buffer, " | ");
-		}
-		
-		// Write to a buffer to be written to the log file
-		sprintf(work, "%04d/%02d/%02d %02d:%02d:%02d",
-				nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday, 
-				nowTM->tm_hour, nowTM->tm_min, nowTM->tm_sec);
-
-		strcat(buffer, work);
-		useOutput = 1;
-	}
-
-	// Add the message if necessary
-    if ((strchr(format, 'M') != NULL) || (strchr(format, 'm') != NULL)) {
-		if (useOutput) {
-			strcat(buffer, " | ");
-		}
-
-		strcat(buffer, message);
-		useOutput = 1;
-	}
-
-	// Add a line feed to the end of the entry
-	if (useOutput) {
-		strcat(buffer, "\n");
-	}
-
-	return useOutput;
-}
-
-void wrapperInnerLog(int sourceID, const char *message) {
-    time_t now;
-    struct tm *nowTM;
-    FILE *log;
-
-    // Build a timestamp
-    now = time(NULL);
-    nowTM = localtime(&now);
-    
-    //
-    // Write the console entry
-    //
-	if (wrapperBuildInnerLog(wrapperData->consoleFormat, iLogBuffer, sourceID, nowTM, message)) {
-		printf(iLogBuffer);
-	}
-
-    //
-    // Write the logFile entry
-    //
-	if (wrapperBuildInnerLog(wrapperData->logFileFormat, iLogBuffer, sourceID, nowTM, message)) {
-		if (wrapperData->logFile == NULL) {
-			// Use a default log file so that problems can be caught when run as a service.
-			wrapperData->logFile = "wrapper.log";
-		}
-		if (strlen(wrapperData->logFile) > 0) {
-			if ((log = fopen(wrapperData->logFile, "a")) == NULL) {
-				printf("Unable to open log file %s\n", wrapperData->logFile);
-			} else {
-				fputs(iLogBuffer, log);
-
-				fclose(log);
-			}
-		}
-	}
-}
-
-void wrapperLog(int sourceID, const char *message) {
-    wrapperInnerLog(sourceID, message);
-}
-void wrapperLogI(int sourceID, const char *message, int val1) {
-    sprintf(logBuffer, message, val1);
-    wrapperInnerLog(sourceID, logBuffer);
-}
-void wrapperLogII(int sourceID, const char *message, int val1, int val2) {
-    sprintf(logBuffer, message, val1, val2);
-    wrapperInnerLog(sourceID, logBuffer);
-}
-void wrapperLogIL(int sourceID, const char *message, int val1, long int val2) {
-    sprintf(logBuffer, message, val1, val2);
-    wrapperInnerLog(sourceID, logBuffer);
-}
-void wrapperLogIS(int sourceID, const char *message, int val1, const char *val2) {
-    sprintf(logBuffer, message, val1, val2);
-    wrapperInnerLog(sourceID, logBuffer);
-}
-void wrapperLogL(int sourceID, const char *message, long int val1) {
-    sprintf(logBuffer, message, val1);
-    wrapperInnerLog(sourceID, logBuffer);
-}
-void wrapperLogS(int sourceID, const char *message, const char *val1) {
-    sprintf(logBuffer, message, val1);
-    wrapperInnerLog(sourceID, logBuffer);
-}
-void wrapperLogSI(int sourceID, const char *message, const char *val1, int val2) {
-    sprintf(logBuffer, message, val1, val2);
-    wrapperInnerLog(sourceID, logBuffer);
-}
-void wrapperLogSS(int sourceID, const char *message, const char *val1, const char *val2) {
-    sprintf(logBuffer, message, val1, val2);
-    wrapperInnerLog(sourceID, logBuffer);
-}
-void wrapperLogSSI(int sourceID, const char *message, const char *val1, const char *val2, int val3) {
-    sprintf(logBuffer, message, val1, val2, val3);
-    wrapperInnerLog(sourceID, logBuffer);
-}
 
 const char *wrapperGetWState(int wState) {
     const char *name;
@@ -297,7 +171,7 @@ void wrapperProtocolStartServer() {
     // Create the server socket.
     ssd = socket(PF_INET, SOCK_STREAM, 0);
     if (ssd == INVALID_SOCKET) {
-        wrapperLogI(WRAPPER_SOURCE_PROTOCOL, "server socket creation failed. (%d)", wrapperGetLastError());
+		log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, "server socket creation failed. (%d)", wrapperGetLastError());
         return;
     }
 
@@ -309,7 +183,7 @@ void wrapperProtocolStartServer() {
 #endif
 
     if (rc == SOCKET_ERROR) {
-        wrapperLogI(WRAPPER_SOURCE_PROTOCOL, "server socket ioctlsocket failed. (%d)", wrapperGetLastError());
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, "server socket ioctlsocket failed. (%d)", wrapperGetLastError());
         wrapperProtocolStopServer();
         return;
     }
@@ -345,7 +219,7 @@ void wrapperProtocolStartServer() {
         }
 
         // Log an error.  This is fatal, so die.
-        wrapperLogII(WRAPPER_SOURCE_PROTOCOL, "unable to bind listener port %d. (%d)", wrapperData->port, wrapperGetLastError());
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_FATAL, "unable to bind listener port %d. (%d)", wrapperData->port, wrapperGetLastError());
 
         wrapperStopProcess(rc);
 
@@ -355,18 +229,18 @@ void wrapperProtocolStartServer() {
 
     // If we got here, then we are bound to the port
     if (port != wrapperData->port) {
-        wrapperLogII(WRAPPER_SOURCE_PROTOCOL, "port %d already in use, using port %d instead.", wrapperData->port, port);
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_INFO, "port %d already in use, using port %d instead.", wrapperData->port, port);
     }
     wrapperData->actualPort = port;
 
     if (wrapperData->isDebugging) {
-        wrapperLogI(WRAPPER_SOURCE_PROTOCOL, "server listening on port %d.", wrapperData->actualPort);
-    }
+	    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "server listening on port %d.", wrapperData->actualPort);
+	}
 
     // Tell the socket to start listening.
     rc = listen(ssd, 1);
     if (rc == SOCKET_ERROR) {
-        wrapperLogI(WRAPPER_SOURCE_PROTOCOL, "server socket listen failed. (%d)", wrapperGetLastError());
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, "server socket listen failed. (%d)", wrapperGetLastError());
         wrapperProtocolStopServer();
         return;
     }
@@ -382,9 +256,9 @@ void wrapperProtocolStopServer() {
         rc = close(ssd);
 #endif
         if (rc == SOCKET_ERROR) {
-            if (wrapperData->isDebugging) {
-                wrapperLogI(WRAPPER_SOURCE_PROTOCOL, "server socket close failed. (%d)", wrapperGetLastError());
-            }
+	        if (wrapperData->isDebugging) {
+	            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "server socket close failed. (%d)", wrapperGetLastError());
+			}
         }
         ssd = INVALID_SOCKET;
     }
@@ -431,17 +305,17 @@ void wrapperProtocolOpen() {
             // There are no incomming sockets right now.
             return;
         } else {
-            if (wrapperData->isDebugging) {
-                wrapperLogI(WRAPPER_SOURCE_PROTOCOL, "socket creation failed. (%d)", rc);
-            }
+	        if (wrapperData->isDebugging) {
+		        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket creation failed. (%d)", rc);
+			}
             return;
         }
     }
 
     if (wrapperData->isDebugging) {
-        wrapperLogSI(WRAPPER_SOURCE_PROTOCOL, "accepted a socket from %s on port %d",
-                     (char *)inet_ntoa(addr_srv.sin_addr), ntohs(addr_srv.sin_port));
-    }
+	    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "accepted a socket from %s on port %d",
+		           (char *)inet_ntoa(addr_srv.sin_addr), ntohs(addr_srv.sin_port));
+	}
 
     // Make the socket non-blocking
 #ifdef WIN32
@@ -451,8 +325,8 @@ void wrapperProtocolOpen() {
 #endif
     if (rc == SOCKET_ERROR) {
         if (wrapperData->isDebugging) {
-            wrapperLogI(WRAPPER_SOURCE_PROTOCOL, "socket ioctlsocket failed. (%d)", wrapperGetLastError());
-        }
+	        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket ioctlsocket failed. (%d)", wrapperGetLastError());
+		}
         wrapperProtocolClose();
         return;
     }
@@ -469,9 +343,9 @@ void wrapperProtocolClose() {
         rc = close(sd);
 #endif
         if (rc == SOCKET_ERROR) {
-            if (wrapperData->isDebugging) {
-                wrapperLogI(WRAPPER_SOURCE_PROTOCOL, "socket close failed. (%d)", wrapperGetLastError());
-            }
+	        if (wrapperData->isDebugging) {
+				log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket close failed. (%d)", wrapperGetLastError());
+			}
         }
         sd = INVALID_SOCKET;
     }
@@ -505,13 +379,13 @@ int wrapperProtocolFunction(char function, const char *message) {
     rc = send(sd, buffer, len, 0);
     if (rc == SOCKET_ERROR) {
         if (wrapperData->isDebugging) {
-            wrapperLogI(WRAPPER_SOURCE_PROTOCOL, "socket send failed. (%d)", wrapperGetLastError());
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket send failed. (%d)", wrapperGetLastError());
         }
         wrapperProtocolClose();
         return -1;
     }
     if (wrapperData->isDebugging) {
-        wrapperLogI(WRAPPER_SOURCE_PROTOCOL, "sent %d bytes", rc);
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "sent %d bytes", rc);
     }
 
     return 1;
@@ -551,13 +425,13 @@ int wrapperProtocolRead() {
         err = wrapperGetLastError();
         if (wrapperData->isDebugging) {
             if ((err != EWOULDBLOCK) && (err != ENOTSOCK) && (err != ECONNRESET)) {
-                wrapperLogI(WRAPPER_SOURCE_PROTOCOL, "socket read failed. (%d)", err);
+                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket read failed. (%d)", err);
             }
         }
         return FALSE;	
     } else if (len != 1) {
         if (wrapperData->isDebugging) {
-            wrapperLog(WRAPPER_SOURCE_PROTOCOL, "socket read no code (closed?).");
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket read no code (closed?).");
         }
         return FALSE;	
     }
@@ -584,7 +458,7 @@ int wrapperProtocolRead() {
     buffer[pos] = '\0';
 
     if (wrapperData->isDebugging) {
-        wrapperLogIS(WRAPPER_SOURCE_PROTOCOL, "read a packet %d : %s", code, buffer);
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "read a packet %d : %s", code, buffer);
     }
 
     switch (code) {
@@ -614,7 +488,7 @@ int wrapperProtocolRead() {
         break;
     default:
         if (wrapperData->isDebugging) {
-            wrapperLogIS(WRAPPER_SOURCE_PROTOCOL, "received unknown packet (%d:%s)", code, buffer);
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "received unknown packet (%d:%s)", code, buffer);
         }
         break;
     }
@@ -645,7 +519,7 @@ int wrapperRunConsole() {
         return res;
     }
 
-    wrapperLog(WRAPPER_SOURCE_WRAPPER, "--> Wrapper Started as Console");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "--> Wrapper Started as Console");
 
     // Enter main event loop
     wrapperEventLoop();
@@ -654,7 +528,7 @@ int wrapperRunConsole() {
     wrapperProtocolStopServer();
     wrapperProtocolClose();
 
-    wrapperLog(WRAPPER_SOURCE_WRAPPER, "<-- Wrapper Stopped");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "<-- Wrapper Stopped");
 
     return wrapperData->exitCode;
 }
@@ -676,7 +550,7 @@ int wrapperRunService() {
         return res;
     }
 
-    wrapperLog(WRAPPER_SOURCE_WRAPPER, "--> Wrapper Started as Service");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "--> Wrapper Started as Service");
 
     // Enter main event loop
     wrapperEventLoop();
@@ -685,7 +559,7 @@ int wrapperRunService() {
     wrapperProtocolStopServer();
     wrapperProtocolClose();
 
-    wrapperLog(WRAPPER_SOURCE_WRAPPER, "<-- Wrapper Stopped");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "<-- Wrapper Stopped");
 
     return wrapperData->exitCode;
 }
@@ -697,14 +571,14 @@ void wrapperStopProcess(int exitCode) {
     // If it has not already been set, set the exit request flag in the wrapper data.
     if (!wrapperData->exitRequested) {
         if (wrapperData->isDebugging) {
-            wrapperLogI(WRAPPER_SOURCE_WRAPPER, "wrapperStopProcess(%d) called.", exitCode);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "wrapperStopProcess(%d) called.", exitCode);
         }
 
         wrapperData->exitCode = exitCode;
         wrapperData->exitRequested = TRUE;
     } else {
         if (wrapperData->isDebugging) {
-            wrapperLogI(WRAPPER_SOURCE_WRAPPER, "wrapperStopProcess(%d) called.  (IGNORED)", exitCode);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "wrapperStopProcess(%d) called.  (IGNORED)", exitCode);
         }
     }
 }
@@ -716,13 +590,13 @@ void wrapperRestartProcess() {
     // If it has not already been set, set the restart request flag in the wrapper data.
     if (!wrapperData->restartRequested) {
         if (wrapperData->isDebugging) {
-            wrapperLog(WRAPPER_SOURCE_WRAPPER, "wrapperRestartProcess() called.");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "wrapperRestartProcess() called.");
         }
 
         wrapperData->restartRequested = TRUE;
     } else {
         if (wrapperData->isDebugging) {
-            wrapperLog(WRAPPER_SOURCE_WRAPPER, "wrapperRestartProcess() called.  (IGNORED)");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "wrapperRestartProcess() called.  (IGNORED)");
         }
     }
 }
@@ -746,8 +620,8 @@ int wrapperCheckRestartTimeOK() {
     if (wrapperRestartCount >= 5) {
         // Only 5 restarts are allowed in a short perioud of time before giving up
         if (wrapperData->isDebugging) {
-            wrapperLogI
-                (WRAPPER_SOURCE_WRAPPER, 
+            log_printf
+                (WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
                  "VM died too many times w/in 60 second intervals (%d); no more tries", 
                  wrapperRestartCount);
         }
@@ -911,10 +785,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 						//if (_findfirst(prop, &fblock, _A_NORMAL) != 0) {
 						if ((handle = _findfirst(prop, &fblock)) <= 0) {
 							if (errno == ENOENT) {
-								wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Warning no matching files for classpath element: %s", prop);
+								log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Warning no matching files for classpath element: %s", prop);
 							} else {
 								// Encountered an error of some kind.
-								wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Error in findfirst for classpath element: %s", prop);
+								log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Error in findfirst for classpath element: %s", prop);
 							}
 						} else {
 							len2 = strlen(fblock.name);
@@ -994,75 +868,6 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 			sprintf(&(strings[index][cpLen]), "\"");
 			cpLen++;
 		}
-
-		/*	
-        // Figure out how long the classpath will be
-        len = 0;
-        i = 0;
-        do {
-            sprintf(paramBuffer, "wrapper.java.classpath.%d", i + 1);
-            prop = getStringProperty(properties, paramBuffer, NULL);
-            if (prop) {
-                len2 = strlen(prop);
-                if (len2 > 0) {
-					// Does this contain wildcards?
-				    if ((strchr(prop, '*') != NULL) || (strchr(prop, '?') != NULL)) {
-						// Need to do a wildcard search
-					} else {
-	                    if (i > 0) {
-							len++; // will insert a separator
-						}
-						len += len2;
-					}
-                }
-                i++;
-            }
-        } while (prop);
-
-        if (len == 0) {
-            // There were no classpaths set, so use the default
-            strings[index] = (char *)malloc(sizeof(char) * (4 + 1));
-            if (addQuotes) {
-                sprintf(strings[index], "\"./\"");
-            } else {
-                sprintf(strings[index], "./");
-            }
-        } else {
-            len += 3; // starting and ending quotes + null
-
-            // Allocate the buffer
-            strings[index] = (char *)malloc(sizeof(char) * len);
-
-            // Now actually fill in the buffer with the classpath
-            len = 0;
-            if (addQuotes) {
-                strings[index][len++] = '\"'; // opening quote
-            }
-
-            // Loop over the classpath entries
-            i = 0;
-            do {
-                sprintf(paramBuffer, "wrapper.java.classpath.%d", i + 1);
-                prop = getStringProperty(properties, paramBuffer, NULL);
-                if (prop) {
-                    len2 = strlen(prop);
-                    if (len2 > 0) {
-                        if (i > 0) {
-                            strings[index][len++] = wrapperClasspathSeparator; // separator
-                        }
-                        sprintf(&(strings[index][len]), prop);
-                        len += len2;
-                    }
-                    i++;
-                }
-            } while (prop);
-
-            if (addQuotes) {
-                strings[index][len++] = '\"'; // closing quote
-            }
-            strings[index][len++] = '\0'; // Null terminate
-        }
-		*/
     }
     index++;
 
@@ -1216,12 +1021,12 @@ void wrapperEventLoop() {
         wrapperProtocolRead();
         
         // Useful for development debugging, but not runtime debugging
-        //wrapperLogSSI(WRAPPER_SOURCE_WRAPPER, 
-        //              "    WState=%s, JState=%s timeout=%d",
-        //              wrapperGetWState(wrapperData->wState),
-        //              wrapperGetJState(wrapperData->jState),
-        //              (wrapperData->jStateTimeout == 0 ? 
-        //               0 : wrapperData->jStateTimeout - time(NULL)));
+        //log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+        //           "    WState=%s, JState=%s timeout=%d",
+        //           wrapperGetWState(wrapperData->wState),
+        //           wrapperGetJState(wrapperData->jState),
+        //           (wrapperData->jStateTimeout == 0 ? 
+        //            0 : wrapperData->jStateTimeout - time(NULL)));
         
         if ((wrapperData->exitRequested && (! wrapperData->exitAcknowledged))
             || wrapperData->restartRequested) {
@@ -1243,14 +1048,14 @@ void wrapperEventLoop() {
             // Check whether the JVM is running or not
             if (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN) {
                 // JVM Process is gone
-                wrapperLog(WRAPPER_SOURCE_WRAPPER, "JVM shut down unexpectedly.");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM shut down unexpectedly.");
                 wrapperData->jState = WRAPPER_JSTATE_DOWN;
                 wrapperData->jStateTimeout = 0;
                 wrapperProtocolClose();
             } else {
                 // JVM is still up.  Try asking it to shutdown nicely.
                 if (wrapperData->isDebugging) {
-                    wrapperLog(WRAPPER_SOURCE_WRAPPER, "Sending stop signal to JVM");
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Sending stop signal to JVM");
                 }
                 
                 wrapperProtocolFunction(WRAPPER_MSG_STOP, NULL);
@@ -1309,7 +1114,7 @@ void wrapperEventLoop() {
             break;
             
         default:
-            wrapperLogI(WRAPPER_SOURCE_WRAPPER, "Unknown wState=%d", wrapperData->wState);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unknown wState=%d", wrapperData->wState);
             break;
         }
         
@@ -1333,13 +1138,13 @@ void wrapperEventLoop() {
                     // Generate the command used to launch the Java process
                     wrapperBuildJavaCommand();
                     
-                    wrapperLog(WRAPPER_SOURCE_WRAPPER, "Launching a JVM...");
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Launching a JVM...");
                     wrapperExecute();
                     
                     // Check if the start was successful.
                     if (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN) {
                         // Failed to start the JVM.  Tell the wrapper to shutdown.
-                        wrapperLog(WRAPPER_SOURCE_WRAPPER, "Unable to start a JVM");
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to start a JVM");
                         wrapperData->wState = WRAPPER_WSTATE_STOPPING;
                     } else {
                         // The JVM was launched.  We still do not know whether the
@@ -1351,9 +1156,9 @@ void wrapperEventLoop() {
                     }
                 } else {
                     // Unable to launch another JVM.
-                    wrapperLog(WRAPPER_SOURCE_WRAPPER, 
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                                "Too many restarts within a short period of time.  No more retries.");
-                    wrapperLog(WRAPPER_SOURCE_WRAPPER, 
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                                "  There may be a configuration problem: please check the logs.");
                     wrapperData->wState = WRAPPER_WSTATE_STOPPING;
                 }
@@ -1374,7 +1179,7 @@ void wrapperEventLoop() {
                 // The process is gone.
                 wrapperData->jState = WRAPPER_JSTATE_DOWN;
                 wrapperData->jStateTimeout = 0;
-                wrapperLog(WRAPPER_SOURCE_WRAPPER, 
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                            "JVM exited while loading the application.");
                 wrapperProtocolClose();
             } else {
@@ -1383,7 +1188,7 @@ void wrapperEventLoop() {
                 //  from the JVM attempting to register.
                 // Have we waited too long already
                 if (time(NULL) > wrapperData->jStateTimeout) {
-                    wrapperLog(WRAPPER_SOURCE_WRAPPER, 
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                                "Startup failed: Timed out waiting for signal from JVM.");
 
                     // Give up on the JVM and start trying to kill it.
@@ -1396,11 +1201,11 @@ void wrapperEventLoop() {
             // The Java side of the wrapper code has responded to a ping.
             //  Tell the Java wrapper to start the Java application.
             if (wrapperData->isDebugging) {
-                wrapperLog(WRAPPER_SOURCE_WRAPPER, "Start Application.");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Start Application.");
             }
             ret = wrapperProtocolFunction(WRAPPER_MSG_START, "start");
             if (ret < 0) {
-                wrapperLog(WRAPPER_SOURCE_WRAPPER, "Unable to send the start command to the JVM.");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to send the start command to the JVM.");
 
                 // Give up on the JVM and start trying to kill it.
                 wrapperKillProcess();
@@ -1423,13 +1228,13 @@ void wrapperEventLoop() {
                 // The process is gone.
                 wrapperData->jState = WRAPPER_JSTATE_DOWN;
                 wrapperData->jStateTimeout = 0;
-                wrapperLog(WRAPPER_SOURCE_WRAPPER, 
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                            "JVM exited while starting the application.");
                 wrapperProtocolClose();
             } else {
                 // Have we waited too long already
                 if (time(NULL) > wrapperData->jStateTimeout) {
-                    wrapperLog(WRAPPER_SOURCE_WRAPPER, 
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                                "Startup failed: Timed out waiting for signal from JVM.");
 
                     // Give up on the JVM and start trying to kill it.
@@ -1452,14 +1257,14 @@ void wrapperEventLoop() {
                 // The process is gone.
                 wrapperData->jState = WRAPPER_JSTATE_DOWN;
                 wrapperData->jStateTimeout = 0;
-                wrapperLog(WRAPPER_SOURCE_WRAPPER, 
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                            "JVM exited unexpectedly.");
                 wrapperProtocolClose();
             } else {
                 // Have we waited too long already
                 if (time(NULL) > wrapperData->jStateTimeout) {
-                    wrapperLog(WRAPPER_SOURCE_WRAPPER, 
-                               "JVM is hung: Timed out waiting for signal from JVM.");
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                               "JVM appears hung: Timed out waiting for signal from JVM.");
 
                     // Give up on the JVM and start trying to kill it.
                     wrapperKillProcess();
@@ -1469,7 +1274,7 @@ void wrapperEventLoop() {
                     if (ret < 0) {
                         // Failed to send the ping.
                         if (wrapperData->isDebugging) {
-                            wrapperLog(WRAPPER_SOURCE_WRAPPER, "JVM Ping Failed.");
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM Ping Failed.");
                         }
                     }
                     wrapperData->lastPingTime = time(NULL);
@@ -1488,13 +1293,13 @@ void wrapperEventLoop() {
                 // The process is gone.
                 wrapperData->jState = WRAPPER_JSTATE_DOWN;
                 wrapperData->jStateTimeout = 0;
-                wrapperLog(WRAPPER_SOURCE_WRAPPER, 
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                            "JVM exited unexpectedly while stopping the application.");
                 wrapperProtocolClose();
             } else {
                 // Have we waited too long already
                 if (time(NULL) > wrapperData->jStateTimeout) {
-                    wrapperLog(WRAPPER_SOURCE_WRAPPER, 
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                                "Shutdown failed: Timed out waiting for signal from JVM.");
 
                     // Give up on the JVM and start trying to kill it.
@@ -1514,13 +1319,13 @@ void wrapperEventLoop() {
                 wrapperData->jState = WRAPPER_JSTATE_DOWN;
                 wrapperData->jStateTimeout = 0;
                 if (wrapperData->isDebugging) {
-                    wrapperLog(WRAPPER_SOURCE_WRAPPER, "JVM exited normally.");
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM exited normally.");
                 }
                 wrapperProtocolClose();
             } else {
                 // Have we waited too long already
                 if (time(NULL) > wrapperData->jStateTimeout) {
-                    wrapperLog(WRAPPER_SOURCE_WRAPPER, 
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                                "Shutdown failed: Timed out waiting for the JVM to terminate.");
 
                     // Give up on the JVM and start trying to kill it.
@@ -1532,8 +1337,7 @@ void wrapperEventLoop() {
             break;
 
         default:
-            wrapperLog(WRAPPER_SOURCE_WRAPPER, "P ");
-            wrapperLogI(WRAPPER_SOURCE_WRAPPER, "Unknown jState=%d", wrapperData->jState);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unknown jState=%d", wrapperData->jState);
             break;
         }
     } while (wrapperData->wState != WRAPPER_WSTATE_STOPPED);
@@ -1631,13 +1435,28 @@ int wrapperBuildUnixDaemonInfo() {
 
 int wrapperLoadConfiguration() {
     // Load log file
-    wrapperData->logFile = (char *)getStringProperty(properties, "wrapper.logfile", "wrapper.log");
+    setLogfilePath((char *)getStringProperty(properties, "wrapper.logfile", "wrapper.log"));
     
     // Load log file format
-    wrapperData->logFileFormat = (char *)getStringProperty(properties, "wrapper.logfile.format", "PTM");
+    setLogfileFormat((char *)getStringProperty(properties, "wrapper.logfile.format", "LPTM"));
+
+    // Load log file log level
+	setLogfileLevel((char *)getStringProperty(properties, "wrapper.logfile.loglevel", "INFO"));
     
     // Load console format
-    wrapperData->consoleFormat = (char *)getStringProperty(properties, "wrapper.console.format", "PM");
+	setConsoleLogFormat((char *)getStringProperty(properties, "wrapper.console.format", "PM"));
+
+    // Load console log level
+	setConsoleLogLevel((char *)getStringProperty(properties, "wrapper.console.loglevel", "INFO"));
+
+    // Load syslog log level
+	setSyslogLevel((char *)getStringProperty(properties, "wrapper.syslog.loglevel", "NONE"));
+
+	// Load syslog event source name
+	setSyslogEventSourceName((char *)getStringProperty(properties, "wrapper.ntservice.name", "Wrapper"));
+
+	// Register the syslog message file
+	registerSyslogMessageFile( );
 
     // Initialize some values not loaded
     wrapperData->exitCode = 0;
@@ -1645,8 +1464,17 @@ int wrapperLoadConfiguration() {
     // Get the port
     wrapperData->port = getIntProperty(properties, "wrapper.port", 15003);
 
-    // Get the debug status
+    // Get the debug status (Property is deprecated but flag is still used)
     wrapperData->isDebugging = getBooleanProperty(properties, "wrapper.debug", FALSE);
+	if (wrapperData->isDebugging) {
+		// For backwards compatability
+		setConsoleLogLevelInt(LEVEL_DEBUG);
+		setLogfileLevelInt(LEVEL_DEBUG);
+	} else {
+		if (loggerNeedsDebug()) {
+			wrapperData->isDebugging = TRUE;
+		}
+	}
     
     // Get the shutdown hook status
     wrapperData->isShutdownHookDisabled = getBooleanProperty(properties, "wrapper.disable_shutdown_hook", FALSE);
@@ -1679,7 +1507,7 @@ int wrapperLoadConfiguration() {
  *****************************************************************************/
 void wrapperKeyRegistered(char *key) {
     if (wrapperData->isDebugging) {
-        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Got key from JVM: %s", key);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Got key from JVM: %s", key);
     }
 
     switch (wrapperData->jState) {
@@ -1693,7 +1521,7 @@ void wrapperKeyRegistered(char *key) {
             wrapperData->jState = WRAPPER_JSTATE_LAUNCHED;
             wrapperData->jStateTimeout = 0;
         } else {
-            wrapperLog(WRAPPER_SOURCE_WRAPPER, "Received a connection request with an incorrect key.  Waiting for another connection.");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Received a connection request with an incorrect key.  Waiting for another connection.");
 
             // This was the wrong key.  Send a response.
             wrapperProtocolFunction(WRAPPER_MSG_BADKEY, "Incorrect key.  Connection rejected.");
@@ -1713,7 +1541,7 @@ void wrapperKeyRegistered(char *key) {
 
 void wrapperPingResponded() {
     if (wrapperData->isDebugging) {
-        wrapperLog(WRAPPER_SOURCE_WRAPPER, "Got ping response from JVM");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Got ping response from JVM");
     }
 
     // Depending on the current JVM state, do something.
@@ -1731,7 +1559,7 @@ void wrapperPingResponded() {
 
 void wrapperStopRequested(int exitCode) {
     if (wrapperData->isDebugging) {
-        wrapperLogI(WRAPPER_SOURCE_WRAPPER, "JVM requested a shutdown. (%d)", exitCode);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM requested a shutdown. (%d)", exitCode);
     }
 
     // Get things stopping on this end.  Ask the JVM to stop again in case the
@@ -1740,7 +1568,7 @@ void wrapperStopRequested(int exitCode) {
 }
 
 void wrapperRestartRequested() {
-    wrapperLog(WRAPPER_SOURCE_WRAPPER, "JVM requested a restart.");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "JVM requested a restart.");
     wrapperRestartProcess();
 }
 
@@ -1751,7 +1579,7 @@ void wrapperRestartRequested() {
  */
 void wrapperStopPendingSignalled(int waitHint) {
     if (wrapperData->isDebugging) {
-        wrapperLogI(WRAPPER_SOURCE_WRAPPER, "JVM signalled a stop pending with waitHint of %d millis.", waitHint);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM signalled a stop pending with waitHint of %d millis.", waitHint);
     }
 
     if (wrapperData->jState == WRAPPER_JSTATE_STARTED) {
@@ -1776,7 +1604,7 @@ void wrapperStopPendingSignalled(int waitHint) {
  */
 void wrapperStoppedSignalled() {
     if (wrapperData->isDebugging) {
-        wrapperLog(WRAPPER_SOURCE_WRAPPER, "JVM signalled that it was stopped.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM signalled that it was stopped.");
     }
 
     if (wrapperData->jState == WRAPPER_JSTATE_STOPPING) {
@@ -1795,7 +1623,7 @@ void wrapperStoppedSignalled() {
  */
 void wrapperStartPendingSignalled(int waitHint) {
     if (wrapperData->isDebugging) {
-        wrapperLogI(WRAPPER_SOURCE_WRAPPER, "JVM signalled a start pending with waitHint of %d millis.", waitHint);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM signalled a start pending with waitHint of %d millis.", waitHint);
     }
 
     // Only process the start pending signal if the JVM state is starting or
@@ -1820,7 +1648,7 @@ void wrapperStartPendingSignalled(int waitHint) {
  */
 void wrapperStartedSignalled() {
     if (wrapperData->isDebugging) {
-        wrapperLog(WRAPPER_SOURCE_WRAPPER, "JVM signalled that it was started.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM signalled that it was started.");
     }
 
     if (wrapperData->jState == WRAPPER_JSTATE_STARTING) {

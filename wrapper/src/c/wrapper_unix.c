@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.7  2002/01/24 09:43:56  mortenson
+// Added new Logger code which allows log levels.
+//
 // Revision 1.6  2002/01/10 08:19:37  mortenson
 // Added the ability to override properties from the command line.
 //
@@ -43,6 +46,14 @@
 // Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
 // no message
 //
+
+/**
+ * Author:
+ *   Leif Mortenson <leif@silveregg.co.jp>
+ *   Ryan Shaw      <ryan@silveregg.co.jp>
+ *
+ * Version CVS $Revision$ $Date$
+ */
 
 #ifndef WIN32
 
@@ -84,7 +95,7 @@ int wrapperGetLastError() {
  */
 void handleInterrupt(int sig_num) {
     signal(SIGINT, handleInterrupt); 
-    wrapperLog(WRAPPER_SOURCE_WRAPPER, "Shutting down.");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Shutting down.");
     wrapperStopProcess(0);
 }
 
@@ -93,7 +104,7 @@ void handleInterrupt(int sig_num) {
  */
 void handleTermination(int sig_num) {
     signal(SIGTERM, handleTermination); 
-    wrapperLog(WRAPPER_SOURCE_WRAPPER, "Shutting down.");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Shutting down.");
     wrapperStopProcess(0);
 }
 
@@ -136,7 +147,7 @@ void wrapperBuildJavaCommand() {
     
     if (wrapperData->isDebugging) {
         for (i = 0; i < length; i++) {
-            wrapperLogIS(WRAPPER_SOURCE_WRAPPER, "Command[%d] : %s", i, strings[i]);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Command[%d] : %s", i, strings[i]);
         }
     }
 
@@ -166,7 +177,7 @@ void wrapperPauseBeforeExecute() {
     //  by the system.
     if (wrapperData->jvmRestarts > 0) {
         if (wrapperData->isDebugging) {
-            wrapperLog(WRAPPER_SOURCE_WRAPPER, "Pausing for 5 seconds...");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Pausing for 5 seconds...");
         }
         usleep(5000000); // microseconds
     }
@@ -181,8 +192,8 @@ void wrapperExecute() {
 
     // Create the pipe.
     if (pipe (pipedes) < 0) {
-        wrapperLogS(WRAPPER_SOURCE_WRAPPER, 
-                    "Could not init pipe: %s", (char *)strerror(errno));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                   "Could not init pipe: %s", (char *)strerror(errno));
         return;
     }
     
@@ -191,8 +202,8 @@ void wrapperExecute() {
     
     if (proc == -1) {
         // Fork failed.
-        wrapperLogS(WRAPPER_SOURCE_WRAPPER, 
-                    "Could not spawn JVM process: %s", (char *)strerror(errno));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                   "Could not spawn JVM process: %s", (char *)strerror(errno));
         
         // Close the pipe descriptors.
         (void)close(pipedes[STDIN_FILENO]);
@@ -207,15 +218,15 @@ void wrapperExecute() {
             
             // Send output to the pipe.
             if (dup2(pipedes[STDOUT_FILENO], STDOUT_FILENO) < 0) {
-                wrapperLogS(WRAPPER_SOURCE_WRAPPER, 
-                            "Unable to set JVM's stdout: %s", (char *)strerror(errno));
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                           "Unable to set JVM's stdout: %s", (char *)strerror(errno));
                 return;
             }
         
             // Send errors to the pipe.
             if (dup2(pipedes[STDOUT_FILENO], STDERR_FILENO) < 0) {
-                wrapperLogS(WRAPPER_SOURCE_WRAPPER, 
-                            "Unable to set JVM's stderr: %s", (char *)strerror(errno));
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                           "Unable to set JVM's stderr: %s", (char *)strerror(errno));
                 return;
             }
         
@@ -227,7 +238,7 @@ void wrapperExecute() {
             execvp(wrapperData->jvmCommand[0], wrapperData->jvmCommand);
             
             // We reached this point...meaning we were unable to start.
-            wrapperLogSI(WRAPPER_SOURCE_WRAPPER, "Unable to start JVM: %s (%d)", (char *)strerror(errno), errno);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to start JVM: %s (%d)", (char *)strerror(errno), errno);
         
         } else {
             // We are the parent side.
@@ -257,8 +268,8 @@ int wrapperGetProcessStatus() {
 
     if (retval < 0) {
         // Wait failed.
-        wrapperLogS(WRAPPER_SOURCE_WRAPPER, 
-                    "Critical error: wait for JVM process failed (%s)", (char *)strerror(errno));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                   "Critical error: wait for JVM process failed (%s)", (char *)strerror(errno));
         exit(1);
 
     } else if (retval > 0) {
@@ -307,7 +318,7 @@ void wrapperReadChildOutput() {
                 if (readBuf[r] == (char)0x0a) {
                     // Line feed; write out buffer and reset it.
                     writeBuf[w] = '\0';
-                    wrapperLog(wrapperData->jvmRestarts, writeBuf);
+                    log_printf(wrapperData->jvmRestarts, LEVEL_INFO, writeBuf);
                     w = 0;
                 } else {
                     // Add character to write buffer.
@@ -318,7 +329,7 @@ void wrapperReadChildOutput() {
             // Write out the rest of the buffer.
         if (w > 0) {
                 writeBuf[w] = '\0';
-                wrapperLog(wrapperData->jvmRestarts, writeBuf);
+                log_printf(wrapperData->jvmRestarts, LEVEL_INFO, writeBuf);
                 w = 0;
             }
         }
@@ -334,7 +345,7 @@ void wrapperKillProcess() {
     if (waitpid(jvmPid, NULL, WNOHANG) == 0) {
         // JVM is still up.  Kill it immediately.
         kill(jvmPid, SIGKILL);
-        wrapperLog(WRAPPER_SOURCE_WRAPPER, "JVM did not exit on request, terminated");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM did not exit on request, terminated");
     }
 
     wrapperData->jState = WRAPPER_JSTATE_DOWN;
@@ -415,7 +426,7 @@ int main(int argc, char **argv) {
         properties = loadProperties(argv[1]);
         if (properties == NULL) {
             // File not found.
-            wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to open wrapper config file: %s", argv[1]);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to open wrapper config file: %s", argv[1]);
             exit(1);
         
         } else {
@@ -425,7 +436,7 @@ int main(int argc, char **argv) {
 			// Loop over the additional arguments and try to parse them as properties
 			for (i = 3; i < argc; i++) {
 				if (addPropertyPair(properties, argv[i])) {
-					wrapperLogS(WRAPPER_SOURCE_WRAPPER, 
+					log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, 
 						"The argument '%s' is not a valid property name-value pair.", argv[i]);
 					exit(1);
 				}
@@ -437,15 +448,15 @@ int main(int argc, char **argv) {
 
             // Apply properties to the WrapperConfig structure.
             if (wrapperLoadConfiguration()) {
-                wrapperLogS
-                    (WRAPPER_SOURCE_WRAPPER, "Problem loading wrapper config file: %s", argv[1]);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+					"Problem loading wrapper config file: %s", argv[1]);
                 exit(1);
             }
 #ifdef SOLARIS
             // Write pid file.
             if (writePidFile()) {
-				wrapperLogSS
-					(WRAPPER_SOURCE_WRAPPER,
+				log_printf
+					(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
 					 "ERROR: Could not write pid file %s: %s",
 					 wrapperData->pidFilename, (char *)strerror(errno));
 				exit(1);

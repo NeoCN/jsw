@@ -45,17 +45,23 @@ wrapper.ping.timeout=30
 #********************************************************************
 # Wrapper Logging parameters
 #********************************************************************
+# Format of output for the console.  (See docs for formats)
+wrapper.console.format=PM
+
+# Log Level for console output.  (See docs for log levels)
+wrapper.console.loglevel=INFO
+
 # Log file to use for wrapper output logging.
 wrapper.logfile=../logs/wrapper.log
 
 # Format of output for the log file.  (See docs for formats)
-wrapper.logfile.format=PTM
+wrapper.logfile.format=LPTM
 
-# Format of output for the console.  (See docs for formats)
-wrapper.console.format=PM
+# Log Level for console output.  (See docs for log levels)
+wrapper.logfile.loglevel=INFO
 
-# Show debug messages
-#wrapper.debug=TRUE
+# Log Level for sys/event log output.  (See docs for log levels)
+wrapper.syslog.loglevel=NONE
 
 #********************************************************************
 # Wrapper Unix daemon parameters

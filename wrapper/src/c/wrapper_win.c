@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.6  2002/01/24 09:43:56  mortenson
+// Added new Logger code which allows log levels.
+//
 // Revision 1.5  2002/01/10 08:19:37  mortenson
 // Added the ability to override properties from the command line.
 //
@@ -44,6 +47,13 @@
 // no message
 //
 
+/**
+ * Author:
+ *   Leif Mortenson <leif@silveregg.co.jp>
+ *
+ * Version CVS $Revision$ $Date$
+ */
+
 #ifndef WIN32
 // For some reason this is not defines sometimes when I build $%$%$@@!!
 barf
@@ -61,8 +71,8 @@ barf
 #include <time.h>
 
 #include "wrapper.h"
-//#include "registry.h"
 #include "property.h"
+#include "logger.h"
 
 /*****************************************************************************
  * Win32 specific variables and procedures                                   *
@@ -81,6 +91,14 @@ char wrapperClasspathSeparator = ';';
 //*****************************************************************************
 // Windows specific code
 //*****************************************************************************
+
+/**
+ * exits the application after running shutdown code.
+ */
+void appExit(int exitCode) {
+	unregisterSyslogMessageFile();
+	exit(exitCode);
+}
 
 /**
  * Gets the error code for the last operation that failed.
@@ -136,13 +154,13 @@ int wrapperInitChildPipe() {
 
     // Create a pipe for the child process's STDOUT.
     if (!CreatePipe(&childStdoutRd, &wrapperChildStdoutWr, &saAttr, 0)) {
-        wrapperLog(WRAPPER_SOURCE_WRAPPER, "Stdout pipe creation failed");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Stdout pipe creation failed");
         return -1;
     }
 
     // Create a noninheritable read handle and close the inheritable read handle.
     if (!DuplicateHandle(GetCurrentProcess(), childStdoutRd, GetCurrentProcess(), &wrapperChildStdoutRd, 0, FALSE, DUPLICATE_SAME_ACCESS)) {
-        wrapperLog(WRAPPER_SOURCE_WRAPPER, "DuplicateHandle failed");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "DuplicateHandle failed");
         return -1;
     }
     CloseHandle(childStdoutRd);
@@ -163,7 +181,7 @@ int wrapperConsoleHandler(int key) {
     case CTRL_CLOSE_EVENT:
         // The user hit CTRL-C.  Can only happen when run as a console.
         //  Always quit.
-        wrapperLog(WRAPPER_SOURCE_WRAPPER, "CTRL-C trapped.  Shutting down.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "CTRL-C trapped.  Shutting down.");
         quit = TRUE;
         break;
 
@@ -171,21 +189,21 @@ int wrapperConsoleHandler(int key) {
         // Happens when the user logs off.  We should quit when run as a
         //  console, but stay up when run as a service.
         if (wrapperData->isConsole) {
-            wrapperLog(WRAPPER_SOURCE_WRAPPER, "User logged out.  Shutting down.");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "User logged out.  Shutting down.");
             quit = TRUE;
         } else {
-            wrapperLog(WRAPPER_SOURCE_WRAPPER, "User logged out.  Ignored.");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "User logged out.  Ignored.");
             quit = FALSE;
         }
         break;
     case CTRL_SHUTDOWN_EVENT:
         // Happens when the machine is shutdown or rebooted.  Always quit.
-        wrapperLog(WRAPPER_SOURCE_WRAPPER, "Machine is shutting down.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Machine is shutting down.");
         quit = TRUE;
         break;
     default:
         // Unknown.  Don't quit here.
-        wrapperLogI(WRAPPER_SOURCE_WRAPPER, "Trapped unexpected console signal (%d).  Ignored.", key);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Trapped unexpected console signal (%d).  Ignored.", key);
         quit = FALSE;
     }
 
@@ -265,7 +283,7 @@ int wrapperInitialize() {
 
     // Initialize Winsock
     if ((res = WSAStartup(ws_version, &ws_data)) != 0) {
-        wrapperLog(WRAPPER_SOURCE_WRAPPER, "Cannot initialize Windows socket DLLs.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Cannot initialize Windows socket DLLs.");
         return res;
     }
 
@@ -310,7 +328,7 @@ void wrapperReportStatus(int status, int errorCode, int waitHint) {
         natState = SERVICE_STOPPED;
         break;
     default:
-        wrapperLogI(WRAPPER_SOURCE_WRAPPER, "Unknown status: %d", status);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unknown status: %d", status);
         return;
     }
 
@@ -332,7 +350,7 @@ void wrapperReportStatus(int status, int errorCode, int waitHint) {
         }
 
         if (!(bResult = SetServiceStatus(sshStatusHandle, &ssStatus))) {
-            wrapperLog(WRAPPER_SOURCE_WRAPPER, "SetServiceStatus failed");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "SetServiceStatus failed");
         }
     }
 }
@@ -409,7 +427,7 @@ void wrapperReadChildOutput() {
 
         // Make sure that this is just another LF if the last line was missing it's LF
         if ((lfPos > 0) || (wrapperChildStdoutRdLastLF)) {
-            wrapperLog(wrapperData->jvmRestarts, chBuf);
+            log_printf(wrapperData->jvmRestarts, LEVEL_INFO, chBuf);
         }
 
         wrapperChildStdoutRdLastLF = thisLF;
@@ -434,8 +452,8 @@ int wrapperGetProcessStatus() {
         break;
 
     default:
-        wrapperLog(WRAPPER_SOURCE_WRAPPER, "Critical error: wait for JVM process failed");
-        exit(1);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Critical error: wait for JVM process failed");
+        appExit(1);
     }
 
     return res;
@@ -453,10 +471,10 @@ void wrapperKillProcess() {
     if (ret == WAIT_TIMEOUT) {
         // JVM is still up.  Kill it immediately.
         if (TerminateProcess(wrapperProcess, 0)) {
-            wrapperLog(WRAPPER_SOURCE_WRAPPER, "Java Virtual Machine did not exit on request, terminated");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Java Virtual Machine did not exit on request, terminated");
         } else {
-            wrapperLog(WRAPPER_SOURCE_WRAPPER, "Java Virtual Machine did not exit on request.");
-            wrapperLogI(WRAPPER_SOURCE_WRAPPER, "  Attempt to terminate process failed.  Error=%d", GetLastError());
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Java Virtual Machine did not exit on request.");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "  Attempt to terminate process failed.  Error=%d", GetLastError());
         }
     }
 
@@ -478,7 +496,7 @@ void wrapperPauseBeforeExecute() {
     //  by the system.
     if (wrapperData->jvmRestarts > 0) {
         if (wrapperData->isDebugging) {
-            wrapperLog(WRAPPER_SOURCE_WRAPPER, "Pausing for 5 seconds...");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Pausing for 5 seconds...");
         }
         Sleep(5000);
     }
@@ -517,7 +535,7 @@ void wrapperExecute() {
     //commandline = "java -Djava.class.path=\"c:/SilverEgg/wrapper/lib/wrappertest.jar\" com.silveregg.wrapper.test.Main";
     commandline = wrapperData->jvmCommand;
     if (wrapperData->isDebugging) {
-        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "command: %s", commandline);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "command: %s", commandline);
     }
                            
     // Setup environment. Use parent's for now
@@ -558,7 +576,7 @@ void wrapperExecute() {
     //	Note, the current directory when run as an NT service is the windows system directory.
     // Get the full path and filename of this program
     if (GetModuleFileName(NULL, szPath, 512) == 0){
-        wrapperLogSS(WRAPPER_SOURCE_WRAPPER, "Unable to launch %s -%s",
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to launch %s -%s",
                      wrapperData->ntServiceDisplayName, getLastErrorText(szErr, 256));
         wrapperProcess = NULL;
         return;
@@ -587,7 +605,7 @@ void wrapperExecute() {
         int err=GetLastError();
         /* This was placed to handle the Swedish WinNT bug */
         if (err!=NO_ERROR) {
-            wrapperLogSI(WRAPPER_SOURCE_WRAPPER, "can not execute \"%s\" (ERR=%d)", commandline, err);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "can not execute \"%s\" (ERR=%d)", commandline, err);
             wrapperProcess = NULL;
             return;
         }
@@ -595,13 +613,13 @@ void wrapperExecute() {
 
     /* Now check if we have a process handle again for the Swedish WinNT bug */
     if (process_info.hProcess==NULL) {
-        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "can not execute \"%s\"", commandline);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "can not execute \"%s\"", commandline);
         wrapperProcess = NULL;
         return;
     }
 
     if (wrapperData->isDebugging) {
-        wrapperLogI(WRAPPER_SOURCE_WRAPPER, "Java Virtual Machine started (PID=%d)", process_info.dwProcessId);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Java Virtual Machine started (PID=%d)", process_info.dwProcessId);
     }
 
     wrapperProcess = process_info.hProcess;
@@ -618,13 +636,13 @@ void wrapperExecute() {
  */
 VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
     if (wrapperData->isDebugging) {
-        wrapperLogI(WRAPPER_SOURCE_WRAPPER, "ServiceControlHandler(%d)", dwCtrlCode);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "ServiceControlHandler(%d)", dwCtrlCode);
     }
 
     switch(dwCtrlCode) {
     case SERVICE_CONTROL_STOP:
         if (wrapperData->isDebugging) {
-            wrapperLog(WRAPPER_SOURCE_WRAPPER, "  SERVICE_CONTROL_STOP");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_STOP");
         }
 
         // Request to stop the service. Report SERVICE_STOP_PENDING
@@ -638,7 +656,7 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
         
     case SERVICE_CONTROL_INTERROGATE:
         if (wrapperData->isDebugging) {
-            wrapperLog(WRAPPER_SOURCE_WRAPPER, "  SERVICE_CONTROL_INTERROGATE");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_INTERROGATE");
         }
 
         // This case MUST be processed, even though we are not
@@ -647,7 +665,7 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
 
     case SERVICE_CONTROL_SHUTDOWN:
         if (wrapperData->isDebugging) {
-            wrapperLog(WRAPPER_SOURCE_WRAPPER, "  SERVICE_CONTROL_SHUTDOWN");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_SHUTDOWN");
         }
 
         wrapperReportStatus(WRAPPER_WSTATE_STOPPING, 0, 0);
@@ -705,7 +723,7 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
     }
 
     // Kill the process if necessary
-    exit(0);
+    appExit(0);
 }
 
 /**
@@ -726,7 +744,7 @@ int wrapperInstall(int argc, char **argv) {
 
     // Get the full path and filename of this program
     if (GetModuleFileName(NULL, szPath, 512) == 0){
-        wrapperLogSS(WRAPPER_SOURCE_WRAPPER, "Unable to install %s -%s",
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to install %s -%s",
                      wrapperData->ntServiceDisplayName, getLastErrorText(szErr, 256));
         return 1;
     }
@@ -753,7 +771,7 @@ int wrapperInstall(int argc, char **argv) {
         }
     }
     if (wrapperData->isDebugging) {
-        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Service command: %s", binaryPath);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Service command: %s", binaryPath);
     }
 
     // Next, get a handle to the service control manager
@@ -780,19 +798,19 @@ int wrapperInstall(int argc, char **argv) {
                                    NULL);                              // no password
 
         if (schService){
-            wrapperLogS(WRAPPER_SOURCE_WRAPPER, "%s installed.", wrapperData->ntServiceDisplayName);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s installed.", wrapperData->ntServiceDisplayName);
 
             // Close the handle to this service object
             CloseServiceHandle(schService);
         } else {
-            wrapperLogS(WRAPPER_SOURCE_WRAPPER, "CreateService failed - %s", getLastErrorText(szErr, 256));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "CreateService failed - %s", getLastErrorText(szErr, 256));
             result = 1;
         }
 
         // Close the handle to the service control manager database
         CloseServiceHandle(schSCManager);
     } else {
-        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "OpenSCManager failed - %s", getLastErrorText(szErr,256));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenSCManager failed - %s", getLastErrorText(szErr,256));
         result = 1;
     }
 
@@ -823,7 +841,7 @@ int wrapperRemove(char *appName, char *configFile) {
 
             // Now, try to stop the service by passing a STOP code thru the control manager
             if (ControlService( schService, SERVICE_CONTROL_STOP, &ssStatus)){
-                wrapperLog(WRAPPER_SOURCE_WRAPPER, "Service is running.  Stopping it...");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Service is running.  Stopping it...");
 
                 // Wait a second...
                 Sleep( 1000 );
@@ -833,7 +851,7 @@ int wrapperRemove(char *appName, char *configFile) {
 
                     // If the service has not stopped, wait another second
                     if ( ssStatus.dwCurrentState == SERVICE_STOP_PENDING ){
-                        wrapperLog(WRAPPER_SOURCE_WRAPPER, "Waiting to stop...");
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Waiting to stop...");
                         Sleep(1000);
                     }
                     else
@@ -841,32 +859,32 @@ int wrapperRemove(char *appName, char *configFile) {
                 }
 
                 if ( ssStatus.dwCurrentState == SERVICE_STOPPED ) {
-                    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "%s stopped.", wrapperData->ntServiceDisplayName);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s stopped.", wrapperData->ntServiceDisplayName);
                 } else {
-                    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "%s failed to stop.", wrapperData->ntServiceDisplayName);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "%s failed to stop.", wrapperData->ntServiceDisplayName);
                     result = 1;
                 }
             }
 
             // Now try to remove the service...
             if (DeleteService(schService)) {
-                wrapperLogS(WRAPPER_SOURCE_WRAPPER, "%s removed.", wrapperData->ntServiceDisplayName);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s removed.", wrapperData->ntServiceDisplayName);
             } else {
-                wrapperLogS(WRAPPER_SOURCE_WRAPPER, "DeleteService failed - %s", getLastErrorText(szErr,256));
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "DeleteService failed - %s", getLastErrorText(szErr,256));
                 result = 1;
             }
             
             //Close this service object's handle to the service control manager
             CloseServiceHandle(schService);
         } else {
-            wrapperLogS(WRAPPER_SOURCE_WRAPPER, "OpenService failed - %s", getLastErrorText(szErr,256));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText(szErr,256));
             result = 1;
         }
         
         // Finally, close the handle to the service control manager's database
         CloseServiceHandle(schSCManager);
     } else {
-        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "OpenSCManager failed - %s", getLastErrorText(szErr,256));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenSCManager failed - %s", getLastErrorText(szErr,256));
         result = 1;
     }
 
@@ -882,19 +900,19 @@ int setWorkingDir() {
     
     // Get the full path and filename of this program
     if (GetModuleFileName(NULL, szPath, 512) == 0){
-        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to get the path-%s", getLastErrorText(szErr, 256));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to get the path-%s", getLastErrorText(szErr, 256));
         return 1;
     }
 
     // The wrapperData->isDebugging flag will never be set here, so we can't really use it.
 #ifdef _DEBUG
-    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Executable Name: %s", szPath);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Executable Name: %s", szPath);
 #endif
 
     // To get the path, strip everything off after the last '\'
     pos = strrchr(szPath, '\\');
     if (pos == NULL) {
-        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to extract path from: %s", szPath);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to extract path from: %s", szPath);
         return 1;
     } else {
         // Clip the path at the position of the last backslash
@@ -902,13 +920,13 @@ int setWorkingDir() {
     }
 
     if (chdir(szPath)) {
-        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to set working directory to: %s", szPath);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to set working directory to: %s", szPath);
         return 1;
     }
 
     // The wrapperData->isDebugging flag will never be set here, so we can't really use it.
 #ifdef _DEBUG
-    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Working directory set to: %s", szPath);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Working directory set to: %s", szPath);
 #endif
 
     return 0;
@@ -926,7 +944,7 @@ int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
     char *exName;
     int i;
 
-    wrapperLog(WRAPPER_SOURCE_WRAPPER, "encountered a fatal error in Wrapper");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "encountered a fatal error in Wrapper");
     exCode = exceptionPointers->ExceptionRecord->ExceptionCode;
     switch (exCode) {
     case EXCEPTION_ACCESS_VIOLATION:
@@ -995,21 +1013,21 @@ int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
         break;
     }
 
-    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "  exceptionCode    = %s", exName);
-    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "  exceptionFlag    = %s", 
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "  exceptionCode    = %s", exName);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "  exceptionFlag    = %s", 
         (exceptionPointers->ExceptionRecord->ExceptionFlags == EXCEPTION_NONCONTINUABLE ? "EXCEPTION_NONCONTINUABLE" : "EXCEPTION_NONCONTINUABLE_EXCEPTION"));
-    wrapperLogI(WRAPPER_SOURCE_WRAPPER, "  exceptionAddress = %p", (int)exceptionPointers->ExceptionRecord->ExceptionAddress);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "  exceptionAddress = %p", (int)exceptionPointers->ExceptionRecord->ExceptionAddress);
     if (exCode == EXCEPTION_ACCESS_VIOLATION) {
         if (exceptionPointers->ExceptionRecord->ExceptionInformation[0] == 0) {
-            wrapperLogI(WRAPPER_SOURCE_WRAPPER, "  Read access exception from %p", 
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "  Read access exception from %p", 
                 (int)exceptionPointers->ExceptionRecord->ExceptionInformation[1]);
         } else {
-            wrapperLogI(WRAPPER_SOURCE_WRAPPER, "  Write access exception to %p", 
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "  Write access exception to %p", 
                 (int)exceptionPointers->ExceptionRecord->ExceptionInformation[1]);
         }
     } else {
         for (i = 0; i < (int)exceptionPointers->ExceptionRecord->NumberParameters; i++) {
-            wrapperLogIL(WRAPPER_SOURCE_WRAPPER, "  exceptionInformation[%d] = %ld", i,
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "  exceptionInformation[%d] = %ld", i,
                 exceptionPointers->ExceptionRecord->ExceptionInformation[i]);
         }
     }
@@ -1063,15 +1081,20 @@ void _CRTAPI1 main(int argc, char **argv) {
         wrapperData->isConsole = TRUE;
         wrapperData->wState = WRAPPER_WSTATE_STARTING;
         wrapperData->jState = WRAPPER_JSTATE_DOWN;
-        wrapperData->logFile = NULL;
-        wrapperData->logFileFormat = "PTM";
-        wrapperData->consoleFormat = "PM";
         wrapperData->jvmCommand = NULL;
         wrapperData->exitRequested = FALSE;
         wrapperData->exitAcknowledged = FALSE;
         wrapperData->exitCode = 0;
         wrapperData->restartRequested = FALSE;
         wrapperData->jvmRestarts = 0;
+
+		// Initialize the logger
+		setLogfilePath("wrapper.log");
+		setLogfileFormat("LPTM");
+		setLogfileLevelInt(LEVEL_DEBUG);
+		setConsoleLogFormat("LPM");
+		setConsoleLogLevelInt(LEVEL_DEBUG);
+		setSyslogLevelInt(LEVEL_NONE);
 
         setWorkingDir();
         
@@ -1087,7 +1110,7 @@ void _CRTAPI1 main(int argc, char **argv) {
 				properties = loadProperties(argv[2]);
 				if (properties == NULL) {
 					// File not found.
-					wrapperLogS(WRAPPER_SOURCE_WRAPPER, "unable to open config file. %s", argv[2]);
+					log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "unable to open config file. %s", argv[2]);
 					result = 1;
 				} else {
 					// Store the config file name
@@ -1096,7 +1119,7 @@ void _CRTAPI1 main(int argc, char **argv) {
 					// Loop over the additional arguments and try to parse them as properties
 					for (i = 3; i < argc; i++) {
 						if (addPropertyPair(properties, argv[i])) {
-							wrapperLogS(WRAPPER_SOURCE_WRAPPER, 
+							log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, 
 								"The argument '%s' is not a valid property name-value pair.", argv[i]);
 							result = 1;
 						}
@@ -1156,11 +1179,11 @@ void _CRTAPI1 main(int argc, char **argv) {
             result = 1;
 		}
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
-        wrapperLog(WRAPPER_SOURCE_WRAPPER, "<-- Wrapper Stopping due to error");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "<-- Wrapper Stopping due to error");
         result = 1;
     }
 
-    exit(result);
+    appExit(result);
 }
 
 #endif // ifdef WIN32
