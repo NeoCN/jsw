@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.89  2004/09/24 05:03:58  mortenson
+ * Display a descriptive error message on Windows if the the JVM process crashes
+ * due to an uncaught exception in native JVM code.
+ *
  * Revision 1.88  2004/09/24 04:34:44  mortenson
  * Add a test of the exit status returned by GetExitCodeProcess
  *
@@ -363,6 +367,7 @@ DWORD timerThreadId;
  *  tested. */
 DWORD timerTicks = 0xffffff00;
 
+char* getExceptionName(DWORD exCode);
 int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers);
 
 /******************************************************************************
@@ -1269,6 +1274,7 @@ int wrapperReadChildOutput() {
 int wrapperGetProcessStatus() {
     int res;
     DWORD exitCode;
+    char *exName;
 
     switch (WaitForSingleObject(wrapperProcess, 0)) {
     case WAIT_ABANDONED:
@@ -1286,6 +1292,16 @@ int wrapperGetProcessStatus() {
             /* Should never happen, but check for it. */
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 "The JVM returned JVM exit code was STILL_ACTIVE." );
+        }
+        
+        /* If the JVM crashed then GetExitCodeProcess could have returned an uncaught exception. */
+        exName = getExceptionName(exitCode);
+        if (exName != NULL) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                "The JVM process terminated due to an uncaught exception: %s (0x%08x)", exName, exitCode);
+            
+            /* Reset the exit code as the exeption value will confuse users. */
+            exitCode = 1;
         }
         
         wrapperJVMProcessExited(exitCode);
@@ -2442,13 +2458,10 @@ int writePidFile(const char *filename) {
  * Main function
  *****************************************************************************/
 
-int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
-    DWORD exCode;
+/** Attempts to resolve the name of an exception.  Returns null if it is unknown. */
+char* getExceptionName(DWORD exCode) {
     char *exName;
-    int i;
-
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "encountered a fatal error in Wrapper");
-    exCode = exceptionPointers->ExceptionRecord->ExceptionCode;
+    
     switch (exCode) {
     case EXCEPTION_ACCESS_VIOLATION:
         exName = "EXCEPTION_ACCESS_VIOLATION";
@@ -2511,9 +2524,24 @@ int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
         exName = "EXCEPTION_STACK_OVERFLOW";
         break;
     default:
+        exName = NULL;
+        break;
+    }
+    
+    return exName;
+}
+
+int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
+    DWORD exCode;
+    char *exName;
+    int i;
+
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "encountered a fatal error in Wrapper");
+    exCode = exceptionPointers->ExceptionRecord->ExceptionCode;
+    exName = getExceptionName(exCode);
+    if (exName == NULL) {
         exName = malloc(sizeof(char) * 64);  /* Let this leak.  It only happens once before shutdown. */
         sprintf(exName, "Unknown Exception (%ld)", exCode);
-        break;
     }
 
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "  exceptionCode    = %s", exName);

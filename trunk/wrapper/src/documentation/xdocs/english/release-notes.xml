@@ -157,6 +157,12 @@ $Id$
                     noticed it while looking over the code.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Display a descriptive error message on Windows if the the JVM process crashes
+                    due to an uncaught exception in native JVM code.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.1">
