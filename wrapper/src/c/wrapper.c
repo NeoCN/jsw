@@ -23,6 +23,12 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.50  2003/04/02 10:05:52  mortenson
+ * Modified the wrapper.ping.timeout property so it also controls the ping
+ * timeout within the JVM.  Before the timeout on responses to the Wrapper
+ * could be controlled, but the ping timeout within the JVM was hardcoded to
+ * 30 seconds.
+ *
  * Revision 1.49  2003/03/26 07:10:17  mortenson
  * More work getting the Wrapper to deal with lots of socket activity just before the
  * JVM process exits.
@@ -1944,19 +1950,19 @@ int wrapperLoadConfiguration() {
     wrapperData->shutdownTimeout = getIntProperty(properties, "wrapper.shutdown.timeout", 30);
     wrapperData->jvmExitTimeout = getIntProperty(properties, "wrapper.jvm_exit.timeout", 5);
     if (wrapperData->startupTimeout <= 0) {
-        wrapperData->startupTimeout = 31557600;  /* One Year.  Effectively never */
+        wrapperData->startupTimeout = WRAPPER_TIMEOUT_MAX;
     }
     if (wrapperData->pingTimeout <= 0) {
-        wrapperData->pingTimeout = 31557600;  /* One Year.  Effectively never */
+        wrapperData->pingTimeout = WRAPPER_TIMEOUT_MAX;
     }
     if (wrapperData->shutdownTimeout <= 0) {
-        wrapperData->shutdownTimeout = 31557600;  /* One Year.  Effectively never */
+        wrapperData->shutdownTimeout = WRAPPER_TIMEOUT_MAX;
     }
     if (wrapperData->jvmExitTimeout <= 0) {
-        wrapperData->jvmExitTimeout = 31557600;  /* One Year.  Effectively never */
+        wrapperData->jvmExitTimeout = WRAPPER_TIMEOUT_MAX;
     }
     if (wrapperData->cpuTimeout <= 0) {
-        wrapperData->cpuTimeout = 31557600;  /* One Year.  Effectively never */
+        wrapperData->cpuTimeout = WRAPPER_TIMEOUT_MAX;
     } else {
         /* Make sure that the timeouts are all longer than the cpu timeout. */
         if ( wrapperData->startupTimeout < wrapperData->cpuTimeout ) {
@@ -2041,7 +2047,8 @@ void wrapperLogSignalled(int logLevel, char *msg) {
 }
 
 void wrapperKeyRegistered(char *key) {
-    char buffer[7];
+    // Allow for a large integer + \0
+    char buffer[11];
 
     if (wrapperData->isDebugging) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Got key from JVM: %s", key);
@@ -2061,6 +2068,15 @@ void wrapperKeyRegistered(char *key) {
             /* Send the low log level to the JVM so that it can control output via the log method. */
             sprintf(buffer, "%d", getLowLogLevel());
             wrapperProtocolFunction(WRAPPER_MSG_LOW_LOG_LEVEL, buffer);
+
+            /* Send the ping timeout to the JVM. */
+            if ( wrapperData->pingTimeout >= WRAPPER_TIMEOUT_MAX ) {
+                /* Timeout disabled */
+             sprintf(buffer, "%d", 0);
+            } else {
+                sprintf(buffer, "%d", wrapperData->pingTimeout);
+            }
+            wrapperProtocolFunction(WRAPPER_MSG_PING_TIMEOUT, buffer);
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Received a connection request with an incorrect key.  Waiting for another connection.");
 

@@ -26,6 +26,12 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.4  2003/04/02 10:05:53  mortenson
+// Modified the wrapper.ping.timeout property so it also controls the ping
+// timeout within the JVM.  Before the timeout on responses to the Wrapper
+// could be controlled, but the ping timeout within the JVM was hardcoded to
+// 30 seconds.
+//
 // Revision 1.3  2003/03/07 02:11:18  mortenson
 // Fix a problem with the wrapper.disable_shutdown_hook.  Due to a typo in the
 // source, the property was being ignored.  This was broken in the 3.0.0 release.
@@ -100,6 +106,7 @@ public final class WrapperManager
     private static final byte WRAPPER_MSG_KEY            = (byte)110;
     private static final byte WRAPPER_MSG_BADKEY         = (byte)111;
     private static final byte WRAPPER_MSG_LOW_LOG_LEVEL  = (byte)112;
+    private static final byte WRAPPER_MSG_PING_TIMEOUT   = (byte)113;
     
     /** Log commands are actually 116 + the LOG LEVEL. */
     private static final byte WRAPPER_MSG_LOG            = (byte)116;
@@ -142,6 +149,10 @@ public final class WrapperManager
      *   is set to a high value by default to disable all logging if the
      *   Wrapper does not register its low level or is not present. */
     private static int m_lowLogLevel = WRAPPER_LOG_LEVEL_FATAL + 1;
+    
+    /** The maximum amount of time in ms to allow to pass without the JVM
+     *   pinging the server before the JVM is terminated to allow a resynch. */
+    private static int m_pingTimeout = 30000;
     
     /** Thread which processes all communications with the native code. */
     private static Thread m_commRunner;
@@ -1449,6 +1460,23 @@ public final class WrapperManager
                             }
                             break;
                             
+                        case WRAPPER_MSG_PING_TIMEOUT:
+                            try
+                            {
+                                m_pingTimeout = Integer.parseInt( msg ) * 1000;
+                                if ( m_debug )
+                                {
+                                    System.out.println( "Wrapper Manager: PingTimeout from Wrapper "
+                                        + "is " + m_pingTimeout );
+                                }
+                            }
+                            catch ( NumberFormatException e )
+                            {
+                                System.out.println( "Encountered an Illegal PingTimeout from the "
+                                    + "Wrapper: " + msg );
+                            }
+                            break;
+                            
                         default:
                             // Ignore unknown messages
                             System.out.println( "Wrapper code received an unknown packet type: "
@@ -1480,26 +1508,33 @@ public final class WrapperManager
                             //  event thread has been running.
                             if ( eventRunnerAge < 10000 )
                             {
-                                // How long has it been since we received the last ping from the
-                                //  Wrapper?
-                                if ( lastPingAge > 120000 )
+                                // Only perform ping timeout checks if ping timeouts are enabled.
+                                if ( m_pingTimeout > 0 )
                                 {
-                                    // It has been more than 2 minutes, so just give up and kill
-                                    //  the JVM
-                                    System.out.println( "JVM did not exit.  Give up." );
-                                    System.exit(1);
-                                }
-                                else if ( lastPingAge > 30000 )
-                                {
-                                    // It has been more than 30 seconds, so give a warning.
-                                    System.out.println( "The Wrapper code did not ping the JVM for "
-                                        + (lastPingAge / 1000) + " seconds.  Quit and let the "
-                                        + "wrapper resynch.");
-                                    
-                                    // Don't do anything if we are already stopping
-                                    if ( !m_stopping )
+                                    // How long has it been since we received the last ping
+                                    //  from the Wrapper?
+                                    if ( lastPingAge > m_pingTimeout + 90000 )
                                     {
-                                        stopInner( 1 );
+                                        // It has been more than the ping timeout + 90 seconds,
+                                        //  so just give up and kill the JVM
+                                        System.out.println(
+                                            "Wrapper Manager: JVM did not exit.  Give up." );
+                                        System.exit(1);
+                                    }
+                                    else if ( lastPingAge > m_pingTimeout )
+                                    {
+                                        // It has been more than the ping timeout since the
+                                        //  JVM was last pinged.  Ask to be stopped (and restarted).
+                                        System.out.println(
+                                            "Wrapper Manager: The Wrapper code did not ping the "
+                                            + "JVM for " + (lastPingAge / 1000) + " seconds.  "
+                                            + "Quit and let the Wrapper resynch.");
+                                        
+                                        // Don't do anything if we are already stopping
+                                        if ( !m_stopping )
+                                        {
+                                            stopInner( 1 );
+                                        }
                                     }
                                 }
                             }
