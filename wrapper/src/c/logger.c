@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.3  2002/01/27 15:02:45  spocke
+// Fixed some Unix issues, so it compiles better.
+//
 // Revision 1.2  2002/01/26 23:31:03  spocke
 // Added rolling file support to logger.
 //
@@ -43,6 +46,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <time.h>
+#include <string.h>
 
 #ifdef WIN32
 #include <windows.h>
@@ -397,6 +401,8 @@ int registerSyslogMessageFile( ) {
 	}
 
 	return -1; // Failure
+#else
+	return 0;
 #endif
 }
 
@@ -415,6 +421,8 @@ int unregisterSyslogMessageFile( ) {
 
 	return -1; // Failure
 	*/
+	return 0;
+#else
 	return 0;
 #endif
 }
@@ -525,6 +533,9 @@ void sendLoginfoMessage( int source_id, int level, char *szBuff ) {
 		case LEVEL_DEBUG:
 			eventType = LOG_DEBUG;
 		break;
+
+		default:
+			eventType = LOG_DEBUG;
 	}
 
     openlog( loginfoSourceName, LOG_PID | LOG_NDELAY, LOG_USER );
