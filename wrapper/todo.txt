@@ -12,3 +12,10 @@ UNIX.
 
 Add a section giving examples of how to integrate the Wrapper with a project
 at build time.  Show how to make platform specific builds etc using Ant.
+
+Add tests to make sure that wrapper.java.additional.n and wrapper.app.parameter.n
+properties do not contain unquoted spaces.
+
+Add tests to make sure that wrapper.java.library.path.n and
+wrapper.java.classpath.n properties do not contain quotes.
+
