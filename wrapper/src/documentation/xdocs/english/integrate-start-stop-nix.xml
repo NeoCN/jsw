@@ -101,16 +101,12 @@
                 <title>Installing Wrapper Files</title>
                 <para>
                     There are four files which are required to be able to use the
-                    Wrapper.  We will also copy over script used to launch the
-                    Wrapper as well as a utility,
-                    <literal moreinfo="none">realpath</literal>, which is used by the
-                    scripts to guarantee that relative paths always work
-                    correctly when symbolic links are involved.
+                    Wrapper.  We will also copy over a script which makes it easy to
+                    launch and control the Wrapper.
                 </para>
                 <note>
                     <para>
                         Please make sure that you are using the
-                        <literal moreinfo="none">realpath</literal>,
                         <literal moreinfo="none">wrapper</literal>, and
                         <literal moreinfo="none">libwrapper.so</literal> files which
                         were built for the platform being run.   It sounds obvious,
@@ -599,9 +595,8 @@ wrapper.app.parameter.7=stop]]></screen>
                         Notice what while this will function correctly on this
                         particular machine, it is highly dependent on the directory
                         structure and platform.  By taking advantage of the fact that
-                        the Wrapper's scripts always set the current directory, using
-                        <literal moreinfo="none">realpath</literal>, to the location
-                        of the script and by making use of a single environment
+                        the Wrapper's scripts always set the current directory to the
+                        location of the script, and by making use of a single environment
                         variable, we are able to modify the above properties so that
                         they are completely platform and machine independent.  One
                         exception in the case of Tomcat, being the
