@@ -18,6 +18,8 @@ Java Service Wrapper Revision History.
 * Add a pair of new properties, wrapper.port.min and wrapper.port.max, which
   make it possible to define the port range used when a specific wrapper.port
   is not specified.
+* Fix a problem where certain characters like umlauts were being stripped from
+  property values.  Bug #1049528.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager

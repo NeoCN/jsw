@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.31  2004/11/12 09:51:32  mortenson
+ * Fix a problem where certain characters like umlauts were being stripped from
+ * property values.
+ *
  * Revision 1.30  2004/04/08 03:20:23  mortenson
  * Add a comment about the malloced buffer passed to putenv
  *
@@ -386,10 +390,13 @@ void setInnerProperty(Property *property, const char *propertyValue) {
 
         property->value = malloc(sizeof(char) * (strlen(buffer) + 1));
 
-        /* Strip any non valid characters like control characters */
+        /* Strip any non valid characters like control characters. Some valid characters are
+         *  less than 0 when the char is unsigned. */
         for (i = 0, count = 0; i < (int)strlen(buffer); i++) {
-            if (buffer[i] > 31) /* Only add valid chars, skip control chars */
+            /* Only add valid chars, skip control chars */
+            if ((buffer[i] > 31) || (buffer[i] < 0)) {
                 property->value[count++] = buffer[i];
+            }
         }
 
         /* Crop string to new size */
