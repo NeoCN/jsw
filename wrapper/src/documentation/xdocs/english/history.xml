@@ -134,6 +134,14 @@
         </para>
         <para>
             Version 3.0.0 also adds AIX and HP-UX to the list of supported platforms.
+            Thanks to Ashish Gawarikar and William Lee for the patches.
+        </para>
+    </section>
+    <section>
+        <title>Version 3.0.3</title>
+        <para>
+            Version 3.0.3 welcomed Mac OSX to the list of supported platforms.  Thanks
+            goes out to Andy Barnett for the necessary patches and testing.
         </para>
     </section>
 </chapter>
