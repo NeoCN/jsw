@@ -16,6 +16,8 @@ Java Service Wrapper Revision History.
 * Reduce the frequency of "Waiting to stop..." messages displayed when removing
   an NT service that is currently running.  Decreased frequency from once per
   second to once every five seconds.
+* Fix a minor problem where the hour in the date returned by
+  WrapperInfo.getBuildTime() was not base 24.
 
 3.0.3
 * Added support for Mac OS X.  Big thanks to Andy Barnett for supplying the
