@@ -147,6 +147,14 @@ $Id$
                     to display the thread which is doing the logging.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where a thread dump would be invoked if the
+                    <ulink url="prop-request-thread-dump-on-failed-jvm-exit.html">request thread dump on failed JVM exit</ulink>
+                    was enabled and the user forced an immediate shutdown by pressing CTRL-C
+                    more than once.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
