@@ -128,6 +128,14 @@ system cannot find the path specified. (0x3)]]></screen>
             classes.
         </para>
         <para>
+            Here is an example of the errors that I have seen:
+        </para>
+        <informalexample>
+            <screen format="linespecific"><![CDATA[A nonfatal internal JIT (3.10.107(x)) error 'chgTarg: Conditional' has occurred in :
+  'org/tanukisoftware/wrapper/WrapperManager.stopCommon (II)V': Interpreting method.
+  Please report this error in detail to http://java.sun.com/cgi-bin/bugreport.cgi]]></screen>
+        </informalexample>
+        <para>
             I get help from several people to be able to produce the releases for all
             of the various supported platforms and it is not really possible to force
             everyone to use old JDKs to build the Wrapper distributions.
