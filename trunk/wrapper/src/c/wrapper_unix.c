@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.64  2004/04/08 03:21:57  mortenson
+ * Added an environment variable, WRAPPER_PATH_SEPARATOR, whose value is set
+ * to either ':' or ';' on startup.
+ *
  * Revision 1.63  2004/03/27 16:09:45  mortenson
  * Add wrapper.on_exit.<n> properties to control what happens when a exits based
  * on the exit code.  This led to a major rework of the state engine to make it possible.
@@ -1000,6 +1004,7 @@ int main(int argc, char **argv) {
     } else {
         /* Create a Properties structure. */
         properties = createProperties();
+        wrapperAddDefaultProperties();
 
         /* The first argument is the configuration file, followed by 0 or more
          *  command line properties.  The command line properties need to be

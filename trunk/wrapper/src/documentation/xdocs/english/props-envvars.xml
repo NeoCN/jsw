@@ -130,6 +130,16 @@ wrapper.java.classpath.5=%EXTERN_APP%/lib/ext/jar4.jar]]></screen>
                     value pair in quotes.
                 </para>
             </note>
+            <para>
+                On startup, the Wrapper sets a path separator environment variable to its
+                own environment.  The WRAPPER_PATH_SEPARATOR variable can be used to help
+                define other properties in a platform independent way.  The variable is set
+                to ';' on Windows and ':' on all other platforms.
+            </para>
+            <informalexample>
+                <simpara><emphasis>Example:</emphasis></simpara>
+                <screen format="linespecific"><![CDATA[set.PATH=../lib%WRAPPER_PATH_SEPARATOR%%PATH%]]></screen>
+            </informalexample>
         </section>
     </section>
 </chapter>

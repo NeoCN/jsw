@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.46  2004/04/08 03:21:57  mortenson
+ * Added an environment variable, WRAPPER_PATH_SEPARATOR, whose value is set
+ * to either ':' or ';' on startup.
+ *
  * Revision 1.45  2004/03/27 16:09:45  mortenson
  * Add wrapper.on_exit.<n> properties to control what happens when a exits based
  * on the exit code.  This led to a major rework of the state engine to make it possible.
@@ -320,6 +324,8 @@ extern int wrapperProtocolRead();
 /******************************************************************************
  * Utility Functions
  *****************************************************************************/
+void wrapperAddDefaultProperties();
+
 #ifdef WIN32
 extern char** wrapperGetSystemPath();
 #endif
