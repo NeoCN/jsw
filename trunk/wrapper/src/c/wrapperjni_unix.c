@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.12  2004/01/10 18:40:16  mortenson
+ * Add additional user info to the UNIX user object.
+ *
  * Revision 1.11  2004/01/10 17:17:26  mortenson
  * Add the ability to request user information.
  *
@@ -143,20 +146,22 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
     jmethodID constructor;
     uid_t uid;
     struct passwd *pw;
+    gid_t gid;
     jbyteArray jUser;
+    jbyteArray jRealName;
+    jbyteArray jHome;
+    jbyteArray jShell;
     jobject wrapperUser = NULL;
-
-    printf("nativeGetUser\n");
-    fflush(NULL);
 
     /* Look for the WrapperUser class. Ignore failures as JNI throws an exception. */
     if ((wrapperUserClass = (*env)->FindClass(env, "org/tanukisoftware/wrapper/WrapperUNIXUser")) != NULL) {
 
         /* Look for the constructor. Ignore failures. */
-        if ((constructor = (*env)->GetMethodID(env, wrapperUserClass, "<init>", "(I[B)V")) != NULL) {
+        if ((constructor = (*env)->GetMethodID(env, wrapperUserClass, "<init>", "(II[B[B[B[B)V")) != NULL) {
 
             uid = geteuid();
             pw = getpwuid(uid);
+            gid = pw->pw_gid;
 
             /* Create the arguments to the constructor as java objects */
 
@@ -164,8 +169,20 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
             jUser = (*env)->NewByteArray(env, strlen(pw->pw_name));
             (*env)->SetByteArrayRegion(env, jUser, 0, strlen(pw->pw_name), (jbyte*)pw->pw_name);
 
+            /* Real Name byte array */
+            jRealName = (*env)->NewByteArray(env, strlen(pw->pw_gecos));
+            (*env)->SetByteArrayRegion(env, jRealName, 0, strlen(pw->pw_gecos), (jbyte*)pw->pw_gecos);
+
+            /* Home byte array */
+            jHome = (*env)->NewByteArray(env, strlen(pw->pw_dir));
+            (*env)->SetByteArrayRegion(env, jHome, 0, strlen(pw->pw_dir), (jbyte*)pw->pw_dir);
+
+            /* Shell byte array */
+            jShell = (*env)->NewByteArray(env, strlen(pw->pw_shell));
+            (*env)->SetByteArrayRegion(env, jShell, 0, strlen(pw->pw_shell), (jbyte*)pw->pw_shell);
+
             /* Now create the new wrapperUser using the constructor arguments collected above. */
-            wrapperUser = (*env)->NewObject(env, wrapperUserClass, constructor, uid, jUser);
+            wrapperUser = (*env)->NewObject(env, wrapperUserClass, constructor, uid, gid, jUser, jRealName, jHome, jShell);
 
             /* If the caller requested the user's groups then look them up. */
             if (groups) {
