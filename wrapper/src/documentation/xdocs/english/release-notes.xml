@@ -133,7 +133,7 @@ $Id$
             <listitem>
                 <para>
                     Implemented cascading configuration files. See the
-                    <ulink url="config-overview.html#cascading-confuration">Cascading configuration files</ulink>
+                    <ulink url="props-cascading.html">Cascading Configuration Files</ulink>
                     section for details.
                 </para>
             </listitem>

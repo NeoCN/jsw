@@ -36,7 +36,12 @@
         <section>
             <title>Enabling Debug Logging</title>
             <para>
-                Many configuration problems can be quickly resolved by setting the log level of the console output to DEBUG.  The full command used to launch Java as well as version information on the JVM being run will then be displayed in the console.  See the <ulink url="config-overview.html#logging-properties">Logging properties</ulink> section for more information.
+                Many configuration problems can be quickly resolved by setting the log level
+                of the console output to DEBUG.  The full command used to launch Java as well
+                as version information on the JVM being run will then be displayed in the
+                console.  See the
+                <ulink url="props-logging.html">Logging Configuration Properties</ulink>
+                section for more information.
             </para>
         </section>
     </section> 

@@ -46,7 +46,7 @@ jvm 1    | Wrapper (Version 2.x.x)]]></screen>
             If you do not see the Wrapper version displayed, then the
             <literal moreinfo="none">WrapperManager</literal> is not being
             launched.  Please make sure that you have read over the
-            <ulink url="api-overview.html">API Overview</ulink>
+            <ulink url="integrate.html">Integration</ulink>
             section.  If the configuration looks correct, then try enabling
             DEBUG level log output to try and narrow in on the problem.
         </para>
