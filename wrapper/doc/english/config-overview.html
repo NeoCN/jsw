@@ -42,6 +42,9 @@
 <a href="authors.html"><font size="-1">Authors</font></a>
 </li>
 <li>
+<a href="troubleshooting.html"><font size="-1">Troubleshooting</font></a>
+</li>
+<li>
 <a href="../../jdoc/index.html"><font size="-1">JavaDocs API</font></a>
 </li>
 </ul>
@@ -224,6 +227,35 @@ wrapper.ntservice.starttype=AUTO_START</pre>
 <a name="NA40"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="99%">
 <tr>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+0"><b>Note about paths</b></font></td>
+</tr>
+<tr>
+<td><font face="arial,helvetica,sanserif" color="#000000">
+<br>
+            
+            
+<p align="justify">
+                Versions of the wrapper prior to 2.2.3 required that all paths in the wrapper.conf file be absolute.  This is mainly to accomodate running the Wrapper as an NT service, but it also makes the application's startup much more reliable when launching the application from different locations.
+            </p>
+            
+<p align="justify">
+                In the Windows versions starting with 2.2.3, the Wrapper now sets its current working directory to the location of the wrapper executable.  When the Wrapper launches Java, its working directory will remain the same making relative path references possible.
+            </p>
+            
+<p align="justify">
+                Linux and Solaris versions work correctly with relative paths if the current directory is always the same when the application is started.  (ie. You always start the application like ./myapp, as opposed to other locations like, bin/myapp)
+            </p>
+        
+</font></td>
+</tr>
+</table>
+</div>
+<br>
+        
+<div>
+<a name="NA4F"></a>
+<table cellspacing="0" cellpadding="2" border="0" width="99%">
+<tr>
 <td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+0"><b>Platform independant properties</b></font></td>
 </tr>
 <tr>
@@ -232,7 +264,7 @@ wrapper.ntservice.starttype=AUTO_START</pre>
             
             
 <div class="glosslist">
-<a name="NA45"></a>
+<a name="NA54"></a>
 <dl>
                 
                     
@@ -666,7 +698,7 @@ wrapper.app.parameter.4=-p4</pre>
 <br>
         
 <div>
-<a name="NB8B"></a>
+<a name="NB9A"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="99%">
 <tr>
 <td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+0"><b>Unix specific properties</b></font></td>
@@ -677,7 +709,7 @@ wrapper.app.parameter.4=-p4</pre>
             
             
 <div class="glosslist">
-<a name="NB90"></a>
+<a name="NB9F"></a>
 <dl>
                 
                     
@@ -719,7 +751,7 @@ wrapper.app.parameter.4=-p4</pre>
 <br>
         
 <div>
-<a name="NBAB"></a>
+<a name="NBBA"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="99%">
 <tr>
 <td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+0"><b>Windows NT/2000 specific properties</b></font></td>
@@ -748,7 +780,7 @@ wrapper.app.parameter.4=-p4</pre>
 </div>
             
 <div class="glosslist">
-<a name="NBB9"></a>
+<a name="NBC8"></a>
 <dl>
                 
                     

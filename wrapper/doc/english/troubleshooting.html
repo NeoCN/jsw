@@ -1,7 +1,7 @@
 <html>
 <head>
 <META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-<title>Wrapper Authors</title>
+<title>Troubleshooting</title>
 </head>
 <body bgcolor="#ffffff" marginheight="4" marginwidth="4" leftmargin="4" topmargin="4" alink="#023264" vlink="#023264" link="#525D76" text="#000000">
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
@@ -84,14 +84,14 @@
 <br>
 </font></td><td valign="top" width="2"><img height="1" width="2" src="images/spacer.png"></td><td bgcolor="gray" valign="top" width="1"><img height="1" width="1" src="images/spacer.png"></td><td valign="top" width="10"><img height="1" width="10" src="images/spacer.png"></td><td align="left" valign="top" width="*">
 <br>
-<title>Wrapper Authors</title>
+<title>Troubleshooting</title>
 <center>
 <table width="80%">
 <tr>
 <td bgcolor="#F3DD61">
 <br>
 <center>
-<b><font face="arial,helvetica,sanserif" color="#000000">Wrapper Authors</font></b>
+<b><font face="arial,helvetica,sanserif" color="#000000">Troubleshooting</font></b>
 </center>
 <br>
 </td>
@@ -99,23 +99,59 @@
 </table>
 </center>
 <br>
- 
-     
-
+    
     
 <div>
 <a name="NA2B"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="100%">
 <tr>
-<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+1"><b></b></font></td>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+1"><b>My Application will not start.</b></font></td>
 </tr>
 <tr>
 <td><font face="arial,helvetica,sanserif" color="#000000">
 <br>
         
+        
+<ul>
+            
+<li>
+                
 <p align="justify">
-            The Java Service Wrapper was written by <a href="http://sourceforge.net/sendmessage.php?touser=228081">Leif Mortenson</a> and <a href="http://sourceforge.net/sendmessage.php?touser=9117">Ryan Shaw</a> for use in server-side development projects at <a href="http://www.silveregg.co.jp">Silver Egg Technology</a>.
-        </p>
+                    Output describing the problem should be displayed in the console as well as the configured log file.  To get more detailed output, edit your wrapper.conf file and enable debugging by uncommenting the wrapper.debug property.  This will display very detailed output at every step in the process of launching and monitoring your application.
+                </p>
+            
+</li>
+        
+</ul>
+    
+</font></td>
+</tr>
+</table>
+</div>
+<br>
+    
+<div>
+<a name="NA3A"></a>
+<table cellspacing="0" cellpadding="2" border="0" width="100%">
+<tr>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+1"><b>I am not getting any output in my configured log file.</b></font></td>
+</tr>
+<tr>
+<td><font face="arial,helvetica,sanserif" color="#000000">
+<br>
+        
+        
+<ul>
+            
+<li>
+                
+<p align="justify">
+                    It is possible that the Wrapper is not able to locate the specified wrapper configuration file, or it is not able to open the configured log file for some reason.  In either case, the Wrapper will log output to a file called wrapper.log in the current working directory.  The current working directory will most likely be the directory containing the binary.  However, in some cases, when running as an NT service, the wrapper.log file may be placed in your WinNT\System32 directory.
+                </p>
+            
+</li>
+        
+</ul>
     
 </font></td>
 </tr>
