@@ -84,6 +84,7 @@ english/prop-port.html
 english/prop-request-thread-dump-on-failed-jvm-exit.html
 english/prop-restart-delay.html
 english/prop-shutdown-timeout.html
+english/prop-startup-delay.html
 english/prop-startup-timeout.html
 english/prop-successful-invocation-time.html
 english/prop-syslog-loglevel.html
