@@ -18,6 +18,11 @@ $Id$
                     release.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem with the HP-UX release build reported by Ashish Gawarikar.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

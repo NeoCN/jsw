@@ -4,6 +4,7 @@ Java Service Wrapper Revision History.
 * Fix a problem with the wrapper.disable_shutdown_hook.  Due to a typo in the
   source, the property was being ignored.  This was broken in the 3.0.0
   release.
+* Fix a problem with the HP-UX release build reported by Ashish Gawarikar.
 
 3.0.0
 * Deprecated the com.silveregg.wrapper package in favor of
