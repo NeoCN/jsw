@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.7  2003/10/31 11:18:48  mortenson
+ * Fix a compiler error on linux caused by missing headers.
+ *
  * Revision 1.6  2003/10/31 11:10:46  mortenson
  * Add a getLastErrorText function so we can display more user friendly messages
  * within the native library.
@@ -36,6 +39,8 @@
  */
 
 #include <stdio.h>
+#include <string.h>
+#include <errno.h>
 #ifdef WIN32
 #include <windows.h>
 #include <tchar.h>
