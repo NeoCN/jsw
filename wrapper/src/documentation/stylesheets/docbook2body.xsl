@@ -422,7 +422,7 @@
           </p>
       </div>
   </xsl:template>
-  
+    
   <xsl:template match="example|informalexample">
       <p align="justify">
           <xsl:apply-templates mode="example"/>
@@ -436,7 +436,7 @@
   </xsl:template>
   
   <xsl:template match="simpara" mode="example">
-      <hr width="0"/>
+      <!--hr width="0"/-->
       <xsl:apply-templates/>
   </xsl:template>
   
@@ -603,6 +603,7 @@
 
   <xsl:template match="glossentry">
       <xsl:apply-templates/>
+      <br/>
   </xsl:template>
   
   <xsl:template match="glossentry/glossterm">

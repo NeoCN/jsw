@@ -8,7 +8,7 @@
 
 <chapter id="api-overview">
  
-    <title>API Overview</title> 
+    <title>Launch Overview</title> 
 
     <section>
         <title>Launching Your Application Under Wrapper</title>
@@ -96,26 +96,51 @@ set _WRAPPER_CONF=]]></screen>
                 </informalexample>
             </para>
             <para>
-                It is also possible to make batch scripts which use only relative paths.  This has the benefit of allowing you to unzip an application and run it in any location, but it has the drawback that the script will not work correctly if the current working directory is not the same as the that of the batch file.
+                It is also possible to make batch scripts which use only relative paths.  This has the benefit of allowing you to unzip an application and run it in any location, but it has the drawback that the script will not work correctly on older version of windows.
                 <informalexample>
                     <simpara><emphasis>MyApp.bat</emphasis></simpara>
                     <screen format="linespecific"><![CDATA[@echo off
+rem
+rem Find the application home.
+rem
+if "%OS%"=="Windows_NT" goto nt
 
+echo This is not NT, so please edit this script and set _WRAPPER_HOME manually
+set _WRAPPER_HOME=..
+
+goto conf
+
+:nt
+rem %~dp0 is name of current script under NT
+set _WRAPPER_HOME=%~dp0
+rem : operator works similar to make : operator
+set _WRAPPER_HOME=%_WRAPPER_HOME:\bin\=%
+
+
+rem
+rem Find the wrapper.conf
+rem
+:conf
 set _WRAPPER_CONF="%~f1"
 if not %_WRAPPER_CONF%=="" goto startup
-set _WRAPPER_CONF=..\conf\wrapper.conf
+set _WRAPPER_CONF="%_WRAPPER_HOME%\conf\wrapper.conf"
 
+
+rem
+rem Run the application.
+rem At runtime, the current directory will be that of Wrapper.exe
+rem
 :startup
-Wrapper.exe -c %_WRAPPER_CONF%
+"%_WRAPPER_HOME%\bin\Wrapper.exe" -c %_WRAPPER_CONF%
 if not errorlevel 1 goto end
 pause
 
 :end
-set _WRAPPER_CONF=]]></screen>
+set _WRAPPER_HOME=]]></screen>
                 </informalexample>
             </para>
             <para>
-                Starting in version 2.2.3, it is possible to specify paths in your wrapper.conf file which are relative to the Wrapper.exe file.  Older versions require that all paths be absolute.
+                Starting in version 2.2.3, it is possible to specify paths in your wrapper.conf file which are relative to the Wrapper.exe file.  Older versions did not work correctly with relative paths when the application was run as an NT service.
             </para>
         </section>
         <section>
@@ -127,7 +152,7 @@ set _WRAPPER_CONF=]]></screen>
                 </informalexample>
             </para>
             <para>
-                In the src/bin subdirectory you will find some shell (bash and sh)script templates for starting and stopping wrapped applications cleanly in. To use these scripts with your application, just set the APP_HOME (base dir of your application), APP_NAME, APP_LONG_NAME, and WRAPPER_CONF (path to your application's wrapper config file) variables in the scripts to the appropriate values.
+                In the src/bin subdirectory you will find some shell (bash and sh)script templates for starting and stopping wrapped applications cleanly in. To use these scripts with your application, just set the WRAPPER_HOME (base dir of your application), WRAPPER_NAME, WRAPPER_LONG_NAME, and WRAPPER_CONF (path to your application's wrapper config file) variables in the scripts to the appropriate values.
             </para>
             <para>
                 You may need to tweak some of the other values (like PIDDIR in the sh script) to get them to fit your environment.
@@ -142,14 +167,24 @@ set _WRAPPER_CONF=]]></screen>
 # wrapped Java apps on the Linux platform.
 #
 
+#-----------------------------------------------------------------------------
+# These settings can be modified to fit the needs of your application
+
 # Application
-APP_HOME="@app.home@"
-APP_NAME="@app.name@"
-APP_LONG_NAME="@app.long.name@"
+WRAPPER_HOME=".."
+WRAPPER_NAME="testwrapper"
+WRAPPER_LONG_NAME="Wrapper Test Application"
 
 # Wrapper
-WRAPPER_CMD="$APP_HOME/bin/wrapper"
-WRAPPER_CONF="@app.wrapper.conf@"
+WRAPPER_BIN="$WRAPPER_HOME/bin"
+WRAPPER_CMD="$WRAPPER_BIN/wrapper"
+WRAPPER_CONF="$WRAPPER_HOME/conf/wrapper.conf"
+
+# Do not modify anything beyond this point
+#-----------------------------------------------------------------------------
+
+# Set the current directory so that relative paths in $WRAPPER_CONF will work
+cd $WRAPPER_BIN
 
 # Find pidof.
 PIDOF="/bin/pidof"
@@ -165,39 +200,39 @@ then
 fi
 
 start() {
-    echo "Starting $APP_LONG_NAME..."
-    pid=`$PIDOF $APP_NAME`
+    echo "Starting $WRAPPER_LONG_NAME..."
+    pid=`$PIDOF $WRAPPER_NAME`
     if [ -z $pid ]
     then
-        exec -a $APP_NAME $WRAPPER_CMD $WRAPPER_CONF &
+        exec -a $WRAPPER_NAME $WRAPPER_CMD $WRAPPER_CONF &
     else
-        echo "$APP_LONG_NAME is already running."
+        echo "$WRAPPER_LONG_NAME is already running."
         exit 1
     fi
 }
 
 stop() {
-    echo "Stopping $APP_LONG_NAME..."
-    pid=`$PIDOF $APP_NAME`
+    echo "Stopping $WRAPPER_LONG_NAME..."
+    pid=`$PIDOF $WRAPPER_NAME`
     if [ -z $pid ]
     then
-        echo "$APP_LONG_NAME was not running."
+        echo "$WRAPPER_LONG_NAME was not running."
     else
         kill $pid
         sleep 6
 
-        pid=`$PIDOF $APP_NAME`
+        pid=`$PIDOF $WRAPPER_NAME`
         if [ ! -z $pid ]
         then
             kill -9 $pid
         fi
 
-        pid=`$PIDOF $APP_NAME`
+        pid=`$PIDOF $WRAPPER_NAME`
         if [ ! -z $pid ]
         then
-            echo "Failed to stop $APP_LONG_NAME."
+            echo "Failed to stop $WRAPPER_LONG_NAME."
         else
-            echo "Stopped $APP_LONG_NAME."
+            echo "Stopped $WRAPPER_LONG_NAME."
         fi
     fi
 }
@@ -238,18 +273,28 @@ exit 0]]></screen>
 # wrapper configuration file.
 #
 
+#-----------------------------------------------------------------------------
+# These settings can be modified to fit the needs of your application
+
 # Application
-APP_HOME="@app.home@";
-APP_NAME="@app.name@";
-APP_LONG_NAME="@app.long.name@";
+WRAPPER_HOME=".."
+WRAPPER_NAME="testwrapper"
+WRAPPER_LONG_NAME="Wrapper Test Application"
 
 # Wrapper
-WRAPPER_CMD="$APP_HOME/bin/wrapper";
-WRAPPER_CONF="@app.wrapper.conf@";
+WRAPPER_BIN="$WRAPPER_HOME/bin"
+WRAPPER_CMD="$WRAPPER_BIN/wrapper"
+WRAPPER_CONF="$WRAPPER_HOME/conf/wrapper.conf"
+
+# Do not modify anything beyond this point
+#-----------------------------------------------------------------------------
+
+# Set the current directory so that relative paths in $WRAPPER_CONF will work
+cd $WRAPPER_BIN
 
 # Process ID
 PIDDIR="/var/run"
-PIDFILE="$PIDDIR/$APP_NAME.pid"
+PIDFILE="$PIDDIR/$WRAPPER_NAME.pid"
 pid=""
 
 getpid() {
@@ -278,23 +323,23 @@ getpid() {
 }
  
 start() {
-    echo "Starting $APP_LONG_NAME..."
+    echo "Starting $WRAPPER_LONG_NAME..."
     getpid
     if [ "X$pid" = "X" ]
     then
         exec $WRAPPER_CMD $WRAPPER_CONF &
     else
-        echo "$APP_LONG_NAME is already running."
+        echo "$WRAPPER_LONG_NAME is already running."
         exit 1
     fi
 }
  
 stop() {
-    echo "Stopping $APP_LONG_NAME..."
+    echo "Stopping $WRAPPER_LONG_NAME..."
     getpid
     if [ "X$pid" = "X" ]
     then
-        echo "$APP_LONG_NAME was not running."
+        echo "$WRAPPER_LONG_NAME was not running."
 
     else
         kill $pid
@@ -313,10 +358,10 @@ stop() {
 
         if [ "X$pid" != "X" ]
         then
-            echo "Failed to stop $APP_LONG_NAME."
+            echo "Failed to stop $WRAPPER_LONG_NAME."
             exit 1
         else
-            echo "Stopped $APP_LONG_NAME."
+            echo "Stopped $WRAPPER_LONG_NAME."
         fi
     fi
 }

@@ -13,6 +13,16 @@
         <itemizedlist>
             <listitem>
                 <para>
+                    Add sample scripts and wrapper.conf files in the bin and lib directories.  These scripts are used to start a sample application which runs out of the box.  See the new <ulink url="example.html">example.html</ulink> page in the documentation for more details.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Get rid of the platform specific directories in the bin and lib directories.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
                     Enable relative paths for Windows version.  In previous versions of Wrapper, it was necessary to always use absolute paths because the working directory of the wrapper would be then NT System32 directory when run as a service.
                 </para>
             </listitem>

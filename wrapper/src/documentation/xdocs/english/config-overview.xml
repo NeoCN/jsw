@@ -62,8 +62,11 @@ wrapper.startup.timeout=30
 #  never time out.  Defaults to 30 seconds.
 wrapper.ping.timeout=30
 
+# Disable detection of calls to System.exit().
+#wrapper.disable_shutdown_hook=TRUE
+
 # Show debug messages
-wrapper.debug=TRUE
+#wrapper.debug=TRUE
 
 #********************************************************************
 # Wrapper Unix daemon parameters
@@ -278,6 +281,32 @@ wrapper.app.parameter.4=-p4</screen>
                                 <screen format="linespecific">wrapper.ping.timeout=30</screen>
                             </informalexample>
                         </para>
+                    </glossdef>
+                </glossentry>
+                <glossentry>
+                    <glossterm>wrapper.disable_shutdown_hook</glossterm>
+                    <glossdef>
+                        <para>
+                            Disable detection of calls to System.exit().  If disabled, calls to System.exit() will be treated as if the JVM had crashed and the Service will be restarted.
+                        </para>
+                        <para>
+                            The Wrapper registers a shutdown hook by default.  If an application ever calls System.exit() rather than calling WrapperManager.stop() to stop the service, then the Wrapper will correctly shutdown the server.
+                        </para>
+                        <para>
+                            You may wish to disable the shutdown hook for a number of reasons, including security.
+                            <informalexample>
+                                <simpara><emphasis>Example:</emphasis></simpara>
+                                <screen format="linespecific">wrapper.disable_shutdown_hook=TRUE</screen>
+                            </informalexample>
+                        </para>
+                        <warning>
+                            <simpara>
+                                WARNING - When the Wrapper detects that System.exit() has been called, it will call the stop() method on your application if it implements the WrapperListener method.  You must be careful that your application does not call System.exit() again or call the dispose() method on an AWT frame or window.  Either one of these actions will result in a deadlock when called from within a ShutdownHook thread due to the way Java has implemented these methods.  If either of these cases can not be avoided, then the shutdown hook should be disabled.
+                            </simpara>
+                            <simpara>
+                                If you have control over whether the System.exit() or dispose() methods are called, you may be able to make use of the WrapperManager.hasShutdownHookBeenTriggered() method to avoid the deadlock issue.
+                            </simpara>
+                        </warning>
                     </glossdef>
                 </glossentry>
                 <glossentry>
