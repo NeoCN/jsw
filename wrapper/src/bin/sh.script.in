@@ -148,6 +148,7 @@ stopit() {
         # We can not predict how long it will take for the wrapper to
         #  actually stop as it depends on settings in wrapper.conf.
         #  Loop until it does.
+        savepid=$pid
         CNT=0
         TOTCNT=0
         while [ "X$pid" != "X" ]
@@ -172,6 +173,7 @@ stopit() {
             fi
         done
 
+        pid=$savepid
         testpid
         if [ "X$pid" != "X" ]
         then
@@ -180,6 +182,7 @@ stopit() {
             kill -9 $pid
         fi
 
+        pid=$savepid
         testpid
         if [ "X$pid" != "X" ]
         then
