@@ -44,6 +44,11 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.52  2005/03/24 06:26:52  mortenson
+// Avoid displaying the packets used to transmit the wrapper properties in the log
+// file as it is very large and distracting.
+// Add a new WrapperSystemPropertyUtil class to avoid code duplication.
+//
 // Revision 1.51  2004/12/16 14:13:47  mortenson
 // Fix a problem where TERM signals were not being correctly ignored by the JVM
 // process on UNIX platforms even if wrapper.ignore_signals was set.
@@ -507,7 +512,7 @@ public final class WrapperManager
         m_properties.lock();
         
         // Check for the debug flag
-        m_debug = getBooleanProperty( "wrapper.debug", false );
+        m_debug = WrapperSystemPropertyUtil.getBooleanProperty( "wrapper.debug", false );
         
         if ( m_debug )
         {
@@ -517,7 +522,7 @@ public final class WrapperManager
         }
         
         // Check for the jvmID
-        m_jvmId = getIntProperty( "wrapper.jvmid", 1 );
+        m_jvmId = WrapperSystemPropertyUtil.getIntProperty( "wrapper.jvmid", 1 );
         if ( m_debug )
         {
             m_out.println( "Wrapper Manager: JVM #" + m_jvmId );
@@ -529,15 +534,16 @@ public final class WrapperManager
         // tested.
         m_ticks = Integer.MAX_VALUE - 200;
         
-        m_useSystemTime = ( System.getProperty( "wrapper.use_system_time" ) != null );
-        m_timerFastThreshold =
-            getIntProperty( "wrapper.timer_fast_threshold", TIMER_FAST_THRESHOLD ) * 1000 / TICK_MS;
-        m_timerSlowThreshold =
-            getIntProperty( "wrapper.timer_slow_threshold", TIMER_SLOW_THRESHOLD ) * 1000 / TICK_MS;
+        m_useSystemTime = WrapperSystemPropertyUtil.getBooleanProperty(
+            "wrapper.use_system_time", false );
+        m_timerFastThreshold = WrapperSystemPropertyUtil.getIntProperty(
+            "wrapper.timer_fast_threshold", TIMER_FAST_THRESHOLD ) * 1000 / TICK_MS;
+        m_timerSlowThreshold = WrapperSystemPropertyUtil.getIntProperty(
+            "wrapper.timer_slow_threshold", TIMER_SLOW_THRESHOLD ) * 1000 / TICK_MS;
         
         // Check to see if we should register a shutdown hook
-        boolean disableShutdownHook =
-            ( System.getProperty( "wrapper.disable_shutdown_hook" ) != null );
+        boolean disableShutdownHook = WrapperSystemPropertyUtil.getBooleanProperty(
+            "wrapper.disable_shutdown_hook", false );
         
         // Locate the add and remove shutdown hook methods using reflection so
         //  that this class can be compiled on 1.2.x versions of java.
@@ -655,10 +661,11 @@ public final class WrapperManager
             }
             
             // Check for the ignore signals flag
-            m_ignoreSignals = getBooleanProperty( "wrapper.ignore_signals", false );
+            m_ignoreSignals = WrapperSystemPropertyUtil.getBooleanProperty(
+                "wrapper.ignore_signals", false );
             
             // If this is being run as a headless server, then a flag would have been set
-            m_service = getBooleanProperty( "wrapper.service", false );
+            m_service = WrapperSystemPropertyUtil.getBooleanProperty( "wrapper.service", false );
             
             // Get the cpuTimeout
             String sCPUTimeout = System.getProperty( "wrapper.cpu.timeout" );
@@ -879,55 +886,6 @@ public final class WrapperManager
     /*---------------------------------------------------------------
      * Methods
      *-------------------------------------------------------------*/
-    /**
-     * Resolves an integer property.
-     *
-     * @param name The name of the property to lookup.
-     * @param defaultValue The value to return if it is not set or is invalid.
-     *
-     * @return The requested property value.
-     */
-    private static boolean getBooleanProperty( String name, boolean defaultValue )
-    {
-        String val = System.getProperty( name );
-        if ( val != null )
-        {
-            if ( val.equalsIgnoreCase( "TRUE" ) )
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-    
-    /**
-     * Resolves an integer property.
-     *
-     * @param name The name of the property to lookup.
-     * @param defaultValue The value to return if it is not set or is invalid.
-     *
-     * @return The requested property value.
-     */
-    private static int getIntProperty( String name, int defaultValue )
-    {
-        String val = System.getProperty( name );
-        if ( val != null )
-        {
-            try
-            {
-                return Integer.parseInt( val );
-            }
-            catch ( NumberFormatException e )
-            {
-                return defaultValue;
-            }
-        }
-        else
-        {
-            return defaultValue;
-        }
-    }
-    
     /**
      * Returns a tick count calculated from the system clock.
      */
@@ -1393,7 +1351,7 @@ public final class WrapperManager
      */
     public static int getWrapperPID()
     {
-        return getIntProperty( "wrapper.pid", 0 );
+        return WrapperSystemPropertyUtil.getIntProperty( "wrapper.pid", 0 );
     }
     
     /**
@@ -1407,7 +1365,7 @@ public final class WrapperManager
      */
     public static int getJavaPID()
     {
-        return getIntProperty( "wrapper.java.pid", 0 );
+        return WrapperSystemPropertyUtil.getIntProperty( "wrapper.java.pid", 0 );
     }
     
     /**
@@ -2823,8 +2781,20 @@ public final class WrapperManager
                     {
                         if ( m_debug )
                         {
+                            String logMsg;
+                            if ( code == WRAPPER_MSG_PROPERTIES )
+                            {
+                                // The property values are very large and distracting in the log.
+                                //  Plus if any triggers are defined, then logging them will fire
+                                //  the trigger.
+                                logMsg = "(Property Values)";
+                            }
+                            else
+                            {
+                                logMsg = msg;
+                            }
                             m_out.println( "Received a packet " + getPacketCodeName( code )
-                                + " : " + msg );
+                                + " : " + logMsg );
                         }
                         
                         // Ok, we got a packet.  Do something with it.
