@@ -119,7 +119,7 @@ jvm 1    | 2001/12/06 16:18:30 | start()]]></screen>
             </para>
             <para>
                 The TestWrapper presents you with a number of buttons.  These are each used to test
-                various functionality of thw Wrapper.  Each button is described below with the
+                various functionality of the Wrapper.  Each button is described below with the
                 output you will see in the console if the button is activated.
                 <glosslist>
                     <glossentry>
