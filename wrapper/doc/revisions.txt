@@ -22,6 +22,7 @@ Java Service Wrapper Revision History.
   the length of time that an application is allowed to take shutting down.
 * Rework the way the shutdown process works so that System.exit will never be
   called before the stop method in WrapperListener has had a chance to complete.
+* Add a Restart button to the TestWrapper application.
 
 2.2.6
 * Fix a problem where '%' characters in Java output would sometimes cause the
