@@ -11,7 +11,7 @@ wrapper.java.mainclass=com.silveregg.wrapper.test.Main
 wrapper.java.classpath.1=../lib/wrapper.jar
 wrapper.java.classpath.2=../lib/wrappertest.jar
 
-# Java Library Path (location of wrapper.lib)
+# Java Library Path (location of Wrapper.DLL or libwrapper.so)
 wrapper.java.library.path=../lib
 
 # Java Additional Parameters
