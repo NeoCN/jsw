@@ -9,7 +9,7 @@
 <chapter id="donate">
     <title>Make a Donation</title> 
     <section>
-        <title>Supporting Java Service Wrapper Development</title>
+        <title>Supporting Java Service Wrapper Development (Please Read)</title>
         <donation-duke/>
         <para>
             The Wrapper team has been working very hard to provide a well documented
@@ -19,15 +19,24 @@
             All of this requires a surprising amount of time.
         </para>
         <para>
-            In many cases the Java Service Wrapper is being used to support and improve
-            the reliability of mission critical applications or being shipped with
-            commercial products.
-        </para>
-        <para>
             The Wrapper, being an open source application, is free and will always
             remain free.  However, if you enjoy using the Wrapper or find that it is
             improving the value of a product or service that your organization
             provides, we urge you to consider donating to the Wrapper project.
+        </para>
+        <para>
+            In many cases the Java Service Wrapper is being used to support and
+            improve the reliability of mission critical applications or being
+            shipped with commercial products.  If your usage of the Wrapper falls
+            into this category we urge you to remember that your customers will most
+            likely never even know that the Wrapper is a part of the product or
+            service that they are purchacing from you, and can therefor not
+            realisticly be expected to provide any support back to this project.
+            It would be appreciated if you could include a slight charge for the
+            use of the Wrapper when billing your customers and then donate the
+            money back to this project.  Please contact us if there is anything
+            you need to help make this possible either with your customers or
+            within your own organization.
         </para>
         <para>
             The preferred way to donate the Java Service Wrapper project is by using
