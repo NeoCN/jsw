@@ -1,0 +1,70 @@
+package org.tanukisoftware.wrapper.test;
+
+/*
+ * Copyright (c) 1999, 2003 TanukiSoftware.org
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without 
+ * restriction, including without limitation the rights to use, 
+ * copy, modify, merge, publish, distribute, sub-license , and/or 
+ * sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following 
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
+ * NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+// $Log$
+// Revision 1.1  2003/04/16 04:37:49  mortenson
+// Add a test case to make it easier to test the output filter feature.
+//
+
+import org.tanukisoftware.wrapper.WrapperManager;
+
+/**
+ *
+ *
+ * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @version $Revision$
+ */
+public class Filter {
+    /*---------------------------------------------------------------
+     * Main Method
+     *-------------------------------------------------------------*/
+    public static void main(String[] args) {
+        System.out.println("Test the handling of filters.");
+        System.out.println("The Wrapper should restart the JVM when it detects the string:");
+        System.out.println("  \"ERR OR\", without the space.  It should ignore the string:");
+        System.out.println("  \"NONERROR\".  Then it should exit when it detects the string:");
+        System.out.println("  \"ALL DONE\", once again without the space.");
+        System.out.println();
+        
+        System.out.println("The next line should be ignored:");
+        System.out.println("  NONERROR");
+        System.out.println();
+        
+        if (WrapperManager.getJVMId() >= 3) {
+            // Time to shutdown
+            System.out.println("The next line should cause the Wrapper to exit:");
+            System.out.println("  ALLDONE");
+        } else {
+            System.out.println("The next line should cause the Wrapper to restart the JVM:");
+            System.out.println("  ERROR");
+        }
+        System.out.println();
+        System.out.println("The above message should be caught before this line, but this line");
+        System.out.println("  will still be visible.");
+    }
+}
+

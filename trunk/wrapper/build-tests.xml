@@ -304,6 +304,34 @@
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
 
+        <!-- Filter Test -->
+        <delete file="${test.dir}/filter.conf"/>
+        <filter token="app.name"          value="filter"/>
+        <filter token="app.long.name"     value="Filter Case" />
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${test.dir}/filter.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/filter.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
+        <replace file="${test.dir}/filter.conf"
+                 token="#wrapper.app.parameter.1="
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.Filter" />
+        <replace file="${test.dir}/filter.conf"
+                 token="wrapper.logfile=../logs/wrapper.log"
+                 value="wrapper.logfile=../test/testwrapper.log" />
+        <replace file="${test.dir}/filter.conf">
+            <replacetoken>wrapper.syslog.loglevel=NONE</replacetoken>
+            <replacevalue><![CDATA[wrapper.syslog.loglevel=NONE
+
+wrapper.filter.trigger.1=NONERROR
+wrapper.filter.action.1=NONE
+wrapper.filter.trigger.2=ERROR
+wrapper.filter.action.2=RESTART
+wrapper.filter.trigger.3=ALLDONE
+wrapper.filter.action.3=SHUTDOWN]]></replacevalue>
+        </replace>
+
         <!-- Loaded WrapperListener Test -->
         <delete file="${test.dir}/loadedwrapperlistener.conf"/>
         <filter token="app.name"          value="loadedwrapperlistener"/>
@@ -523,6 +551,18 @@ set ENV_VAR_4=d]]></replacevalue>
                  token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
                  value='set _WRAPPER_CONF="%_APP_HOME%\test\systemin.conf"' />
         
+        <!-- Filter Test -->
+        <delete file="${test.dir}/TestFilter.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestFilter.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestFilter.bat"
+                 token='set _APP_HOME=%_APP_HOME:\bin\=%'
+                 value='set _APP_HOME=%_APP_HOME:\test\=%' />
+        <replace file="${test.dir}/TestFilter.bat"
+                 token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
+                 value='set _WRAPPER_CONF="%_APP_HOME%\test\filter.conf"' />
+        
         <!-- Loaded WrapperListener Test -->
         <delete file="${test.dir}/TestLoadedWrapperListener.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
@@ -741,6 +781,14 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/systemin"
               filtering="on"/>
         <chmod file="${test.dir}/systemin" perm="+x"/> 
+        
+        <!-- Filter Test -->
+        <filter token="app.name"          value="filter"/>
+        <filter token="app.long.name"     value="Filter Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/filter"
+              filtering="on"/>
+        <chmod file="${test.dir}/filter" perm="+x"/> 
         
         <!-- Loaded WrapperListener Test -->
         <filter token="app.name"          value="loadedwrapperlistener"/>
