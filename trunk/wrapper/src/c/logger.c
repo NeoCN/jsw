@@ -24,6 +24,13 @@
  *
  *
  * $Log$
+ * Revision 1.12  2002/05/08 03:59:43  mortenson
+ * Fix a problem where the log output was not being directed to a file called
+ *  wrapper.log in the same directory as the Wrapper binary in the event that the
+ *  configured wrapper log file could not be accessed.
+ * I think there was also a file handle leak there that I noticed when I was looking at
+ *  the code.
+ *
  * Revision 1.11  2002/03/29 05:23:21  mortenson
  * Fix Bug #531880 involving percent characters in JVM output.
  *
@@ -330,58 +337,65 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
     checkAndRollLogs( );
 
     /* Log the message to the log file */
-    logfileFP = fopen( logFilePath, "a" );
-    if( (level >= currentLogfileLevel) && (logfileFP != NULL) ) {
-        /* Count number of columns inorder to skip last '|' char */
-        for( i = 0, numColumns = 0; i < (int)strlen( logfileFormat ); i++ ) {
-            switch( logfileFormat[i] ) {
-                case 'P':
-                case 'L':
-                case 'M':
-                case 'T':
-                    numColumns++;
-                break;
-            }
+    if (level >= currentLogfileLevel) {
+        logfileFP = fopen( logFilePath, "a" );
+        if (logfileFP == NULL) {
+            // The log file could not be opened.  Try the default file location.
+            logfileFP = fopen( "wrapper.log", "a" );
         }
-
-        for( i = 0, currentColumn = 0; i < (int)strlen( logfileFormat ); i++ ) {
-            handledFormat = 1;
-
-            switch( logfileFormat[i] ) {
-                case 'P': /* Prefix */
-                    writeHeaderToStream( logfileFP, source_id );
-                    currentColumn++;
-                break;
-
-                case 'L': /* Loglevel */
-                    writeLevelToStream( logfileFP, level );
-                    currentColumn++;
-                break;
-
-                case 'M': /* Message */
-                    va_start( vargs, lpszFmt );
-                    writeMessageToStream( logfileFP, lpszFmt, vargs );
-                    va_end( vargs );
-                    currentColumn++;
-                break;
-
-                case 'T': /* Timestamp */
-                    writeTimeToStream( logfileFP );
-                    currentColumn++;
-                break;
-
-                default:
-                    handledFormat = 0;
+        
+        if (logfileFP != NULL) {
+            /* Count number of columns inorder to skip last '|' char */
+            for( i = 0, numColumns = 0; i < (int)strlen( logfileFormat ); i++ ) {
+                switch( logfileFormat[i] ) {
+                    case 'P':
+                    case 'L':
+                    case 'M':
+                    case 'T':
+                        numColumns++;
+                    break;
+                }
             }
-
-            /* Add separator chars */
-            if( handledFormat && (currentColumn != numColumns) )
-                fprintf( logfileFP, " | " );
+    
+            for( i = 0, currentColumn = 0; i < (int)strlen( logfileFormat ); i++ ) {
+                handledFormat = 1;
+    
+                switch( logfileFormat[i] ) {
+                    case 'P': /* Prefix */
+                        writeHeaderToStream( logfileFP, source_id );
+                        currentColumn++;
+                    break;
+    
+                    case 'L': /* Loglevel */
+                        writeLevelToStream( logfileFP, level );
+                        currentColumn++;
+                    break;
+    
+                    case 'M': /* Message */
+                        va_start( vargs, lpszFmt );
+                        writeMessageToStream( logfileFP, lpszFmt, vargs );
+                        va_end( vargs );
+                        currentColumn++;
+                    break;
+    
+                    case 'T': /* Timestamp */
+                        writeTimeToStream( logfileFP );
+                        currentColumn++;
+                    break;
+    
+                    default:
+                        handledFormat = 0;
+                }
+    
+                /* Add separator chars */
+                if( handledFormat && (currentColumn != numColumns) )
+                    fprintf( logfileFP, " | " );
+            }
+    
+            fprintf( logfileFP, "\n" );
+    
+            fclose( logfileFP );
         }
-
-        fprintf( logfileFP, "\n" );
-
-        fclose( logfileFP );
     }
 
     /* Loginfo/Eventlog if levels match (not by format timecodes/status allready exists in evenlog) */
