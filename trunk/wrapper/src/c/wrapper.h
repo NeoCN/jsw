@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.39  2004/01/09 18:31:36  mortenson
+ * define the DWORD symbol so it can used.
+ *
  * Revision 1.38  2004/01/09 05:15:11  mortenson
  * Implement a tick timer and convert the system time over to be compatible.
  *
@@ -99,6 +102,10 @@
 #define u_short unsigned short
 #endif /* MACOSX */
 
+#endif
+
+#ifndef DWORD
+#define DWORD unsigned long
 #endif
 
 #include "property.h"
