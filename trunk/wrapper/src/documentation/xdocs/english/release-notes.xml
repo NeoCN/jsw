@@ -109,6 +109,12 @@ $Id$
                     required and applications will continue to function as they did before.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Added support for DEC OSF1 (Alpha).  Big thanks to Andreas Wendt for
+                    supplying the patch.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

@@ -144,4 +144,11 @@
             goes out to Andy Barnett for the necessary patches and testing.
         </para>
     </section>
+    <section>
+        <title>Version 3.0.4</title>
+        <para>
+            Version 3.0.4 welcomed DEC OSF1 to the list of supported platforms.  Thanks
+            goes out to Andreas Wendt for the necessary patches and testing.
+        </para>
+    </section>
 </chapter>
