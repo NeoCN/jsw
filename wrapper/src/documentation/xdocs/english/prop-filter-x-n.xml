@@ -57,8 +57,8 @@
         </para>
         <informalexample>
             <simpara><emphasis>Example:</emphasis></simpara>
-            <screen format="linespecific"><![CDATA[wrapper.trigger.filter.1=java.lang.OutOfMemoryError
-wrapper.trigger.action.1=RESTART]]></screen>
+            <screen format="linespecific"><![CDATA[wrapper.filter.trigger.1=java.lang.OutOfMemoryError
+wrapper.filter.action.1=RESTART]]></screen>
         </informalexample>
         <para>
             The next example demonstrates how to trigger a JVM restart whenever
@@ -68,10 +68,10 @@ wrapper.trigger.action.1=RESTART]]></screen>
         </para>
         <informalexample>
             <simpara><emphasis>Example:</emphasis></simpara>
-            <screen format="linespecific"><![CDATA[wrapper.trigger.filter.1=IgnoreError
-wrapper.trigger.action.1=NONE
-wrapper.trigger.filter.2=Error
-wrapper.trigger.action.2=RESTART]]></screen>
+            <screen format="linespecific"><![CDATA[wrapper.filter.trigger.1=IgnoreError
+wrapper.filter.action.1=NONE
+wrapper.filter.trigger.2=Error
+wrapper.filter.action.2=RESTART]]></screen>
         </informalexample>
     </section>
 </chapter>
