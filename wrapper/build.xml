@@ -60,24 +60,44 @@
     <!-- =================================================================== -->
     <target name="init-windows-nt" if="is.Windows NT">
         <property name="is.Windows" value="true"/>
+        <property name="is.shell.bat" value="true"/>
     </target>
     <target name="init-windows-2000" if="is.Windows 2000">
         <property name="is.Windows" value="true"/>
+        <property name="is.shell.bat" value="true"/>
     </target>
     <target name="init-windows-xp" if="is.Windows XP">
         <property name="is.Windows" value="true"/>
+        <property name="is.shell.bat" value="true"/>
     </target>
     <target name="init-linux" if="is.Linux">
         <property name="is.Unix" value="true"/>
+        <property name="is.shell.bash" value="true"/>
+        <property name="unix.script.in" value="src/bin/bash.script.in"/>
     </target>
     <target name="init-solaris" if="is.SunOS">
         <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+        <property name="unix.script.in" value="src/bin/sh.script.in"/>
     </target>
+    <target name="init-aix" if="is.AIX">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+        <property name="unix.script.in" value="src/bin/sh.script.in"/>
+    </target>
+    <target name="init-hpux" if="is.HPUX">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+        <property name="unix.script.in" value="src/bin/sh.script.in"/>
+    </target>
+
     
     <!-- =================================================================== -->
     <!-- Initialize build.                                                   -->
     <!-- =================================================================== -->
-    <target name="init" depends="init-windows-nt, init-windows-2000, init-windows-xp, init-linux, init-solaris">
+    <target name="init"
+	    depends="init-windows-nt, init-windows-2000, init-windows-xp, init-linux, init-solaris, init-aix, init-hpux">
+        <echo message="OS='${os.name}'"/>
         <tstamp/>
         <filter token="version"           value="${version}"       />
         <filter token="build.date"        value="${DSTAMP}"        />
@@ -170,13 +190,29 @@
             failonerror="true">
             <arg line="-f Makefile.linux" />
         </exec>
-        
+
         <!-- run make on Solaris to build library -->
-        <exec executable="gmake" 
+        <exec executable="make" 
             dir="${src.dir}/c" 
             os="SunOS" 
             failonerror="true">
             <arg line="-f Makefile.solaris" />
+        </exec>
+
+        <!-- run make on AIX to build library -->
+        <exec executable="gmake"
+            dir="${src.dir}/c" 
+            os="AIX" 
+            failonerror="true">
+            <arg line="-f Makefile.aix" />
+        </exec>
+
+        <!-- run make on HPUX to build library -->
+        <exec executable="gmake"
+            dir="${src.dir}/c" 
+            os="HP-UX" 
+            failonerror="true">
+            <arg line="-f Makefile.hpux" />
         </exec>
     </target>
     
@@ -223,9 +259,9 @@
     </target>
     
     <!-- =================================================================== -->
-    <!-- Bin target (Windows)                                                -->
+    <!-- Bin target (Bat Files - Windows)                                    -->
     <!-- =================================================================== -->
-    <target name="bin-windows" depends="compile" if="is.Windows">
+    <target name="bin-bat" depends="compile" if="is.shell.bat">
         <!-- Create batch files for the TestWrapper Sample Application -->
         <copy file="${src.dir}/bin/App.bat.in"
               tofile="${bin.dir}/${app.caps.name}.bat"
@@ -242,9 +278,9 @@
     </target>
     
     <!-- =================================================================== -->
-    <!-- Bin target (Linux)                                                  -->
+    <!-- Bin target (bash scripts - Linux)                                   -->
     <!-- =================================================================== -->
-    <target name="bin-linux" depends="compile" if="is.Linux">
+    <target name="bin-bash" depends="compile" if="is.shell.bash">
         <!-- Create script files for the TestWrapper Sample Application -->
         <copy file="${src.dir}/bin/bash.script.in"
             tofile="${bin.dir}/${app.name}"
@@ -253,9 +289,9 @@
     </target>
     
     <!-- =================================================================== -->
-    <!-- Bin target (Solaris)                                                -->
+    <!-- Bin target (sh scripts - Solaris, AIX, HPUX)                        -->
     <!-- =================================================================== -->
-    <target name="bin-solaris" depends="compile" if="is.SunOS">
+    <target name="bin-sh" depends="compile" if="is.shell.sh">
         <copy file="${src.dir}/bin/sh.script.in"
             tofile="${bin.dir}/${app.name}"
             filtering="on"/>
@@ -265,7 +301,7 @@
     <!-- =================================================================== -->
     <!-- Bin target                                                          -->
     <!-- =================================================================== -->
-    <target name="bin" depends="bin-windows, bin-linux, bin-solaris">
+    <target name="bin" depends="bin-bat, bin-bash, bin-sh">
     </target>
     
     <!-- =================================================================== -->
@@ -507,6 +543,35 @@
     <!-- =================================================================== -->
     <target name="release-linux" depends="release-common" if="is.Linux">
         <property name="releasefile" value="wrapper_linux_${version}"/>
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Release (Solaris)                                                   -->
+    <!-- =================================================================== -->
+    <target name="release-solaris" depends="release-common" if="is.SunOS">
+        <property name="releasefile" value="wrapper_solaris_${version}"/>
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Release (AIX)                                                       -->
+    <!-- =================================================================== -->
+    <target name="release-aix" depends="release-common" if="is.AIX">
+        <property name="releasefile" value="wrapper_aix_${version}"/>
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Release (HPUX)                                                      -->
+    <!-- =================================================================== -->
+    <target name="release-hpux" depends="release-common" if="is.HPUX">
+        <property name="releasefile" value="wrapper_hpux_${version}"/>
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Release (Unix)                                                      -->
+    <!-- =================================================================== -->
+    <target name="release-unix"
+            depends="release-linux, release-solaris, release-aix, release-hpux"
+            if="is.Unix">
         <property name="releasedir" value="${basedir}/${releasefile}"/>
         <delete dir="${releasedir}"/>
         <mkdir dir="${releasedir}"/>
@@ -521,7 +586,6 @@
                 <include name="lib/wrappertest.jar" />
                 <include name="lib/libwrapper.so" />
                 <include name="logs" />
-                <include name="src/bin/bash.script.in" />
                 <include name="src/conf/**" />
                 <include name="jdoc/**" />
                 <include name="doc/**" />
@@ -555,62 +619,10 @@
     </target>
     
     <!-- =================================================================== -->
-    <!-- Release (Solaris)                                                   -->
-    <!-- =================================================================== -->
-    <target name="release-solaris" depends="release-common" if="is.SunOS">
-        <property name="releasefile" value="wrapper_solaris_${version}"/>
-        <property name="releasedir" value="${basedir}/${releasefile}"/>
-        <delete dir="${releasedir}"/>
-        <mkdir dir="${releasedir}"/>
-        <copy todir="${releasedir}" >
-            <fileset dir="${basedir}" >
-                <include name="index.html" />
-                <include name="bin/wrapper" />
-                <include name="bin/realpath" />
-                <include name="bin/${app.name}" />
-                <include name="conf/*.conf" />
-                <include name="lib/wrapper.jar" />
-                <include name="lib/wrappertest.jar" />
-                <include name="lib/libwrapper.so" />
-                <include name="logs" />
-                <include name="src/bin/sh.script.in" />
-                <include name="src/conf/**" />
-                <include name="jdoc/**" />
-                <include name="doc/**" />
-                <include name="src/bin/*.script.in" />
-                <exclude name="**/CVS/*" />
-            </fileset>
-        </copy>
-        <!-- Need an empty log file so that the logs directory will be included -->
-        <touch file="${releasedir}/logs/wrapper.log"/>
-        
-        <!-- Make sure that files are formatted correctly for their platforms -->
-        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat" eol="crlf" />
-        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat.in" eol="crlf" />
-        <fixcrlf srcdir="${releasesrcdir}" includes="bin/${app.name}" eol="lf" />
-        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.script.in" eol="lf" />
-        
-        <tar tarfile="${releasedir}.tar">
-            <tarfileset dir="${basedir}" mode="755">
-                <include name="${releasefile}/bin/wrapper"/>
-                <include name="${releasefile}/bin/realpath"/>
-                <include name="${releasefile}/bin/${app.name}"/>
-            </tarfileset>
-            <tarfileset dir="${basedir}">
-                <include name="${releasefile}/**"/>
-                <exclude name="${releasefile}/bin/wrapper"/>
-                <exclude name="${releasefile}/bin/realpath"/>
-                <exclude name="${releasefile}/bin/${app.name}"/>
-            </tarfileset>
-        </tar>
-        <gzip zipfile="${releasedir}.tar.gz" src="${releasedir}.tar" />
-    </target>
-    
-    <!-- =================================================================== -->
     <!-- Release                                                             -->
     <!-- =================================================================== -->
     <target name="release" 
-        depends="release-windows, release-linux, release-solaris"
+        depends="release-windows, release-unix"
         description="Builds all release files for the current platform">
     </target>
     
@@ -654,6 +666,18 @@
             <arg line="-f Makefile.solaris" />
             <arg value="clean"/>
         </exec>
+        <exec executable="gmake" 
+              dir="${src.dir}/c" 
+              os="AIX">
+            <arg line="-f Makefile.aix" />
+            <arg value="clean"/>
+        </exec>
+        <exec executable="gmake" 
+              dir="${src.dir}/c" 
+              os="HP-UX">
+            <arg line="-f Makefile.hpux" />
+            <arg value="clean"/>
+        </exec>
     </target>
     
     <!-- =================================================================== -->
@@ -674,6 +698,18 @@
               dir="${src.dir}/c"
               os="SunOS">
             <arg line="-f Makefile.solaris" />
+            <arg value="cleanall"/>
+        </exec>
+        <exec executable="gmake" 
+              dir="${src.dir}/c" 
+              os="AIX">
+            <arg line="-f Makefile.aix" />
+            <arg value="cleanall"/>
+        </exec>
+        <exec executable="gmake" 
+              dir="${src.dir}/c" 
+              os="HP-UX">
+            <arg line="-f Makefile.hpux" />
             <arg value="cleanall"/>
         </exec>
         <delete file="${lib.dir}/libwrapper.so"/>
