@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.27  2003/03/21 21:32:00  mortenson
+ * Remove tabs.
+ *
  * Revision 1.26  2003/03/21 21:25:32  mortenson
  * Fix a problem where very heavy output from the JVM can cause the Wrapper to
  * give a false timeout.  The Wrapper now only ready 50 lines of input at a time
@@ -311,7 +314,7 @@ void wrapperReportStatus(int status, int errorCode, int waitHint) {
  *  sleep.
  */
 int wrapperReadChildOutput() {
-	int readSize;
+    int readSize;
     ssize_t bytesRead;
     char readBuf [1025];
     char writeBuf[1025];
@@ -319,66 +322,66 @@ int wrapperReadChildOutput() {
     int count;
     int retCode;
     
-	retCode = -1;
+    retCode = -1;
     if (jvmOut != -1) {
-		/* Loop and read as much input as is available.  When a large amount of output is
-		 *  being piped from the JVM this can lead to the main event loop not getting any
-		 *  CPU for an extended period of time.  To avoid that problem, this loop is only
-		 *  allowed to cycle 50 times before returning.  After 50 times, switch to a less
-		 *  efficient method of reading data because we need to make sure that we have
-		 *  not read past a line break before returning. */
-		count = 0;
-		while(1) {
-			if ( count < 50 ) {
-				readSize = 1024;
-			} else {
-				readSize = 1;
-			}
+        /* Loop and read as much input as is available.  When a large amount of output is
+         *  being piped from the JVM this can lead to the main event loop not getting any
+         *  CPU for an extended period of time.  To avoid that problem, this loop is only
+         *  allowed to cycle 50 times before returning.  After 50 times, switch to a less
+         *  efficient method of reading data because we need to make sure that we have
+         *  not read past a line break before returning. */
+        count = 0;
+        while(1) {
+            if ( count < 50 ) {
+                readSize = 1024;
+            } else {
+                readSize = 1;
+            }
 
-			/* Fill read buffer. */
-			bytesRead = read(jvmOut, readBuf, readSize);
+            /* Fill read buffer. */
+            bytesRead = read(jvmOut, readBuf, readSize);
         
-			if (bytesRead <= 0) {
-				retCode = 0;
-				break;
-			}
-			/* Terminate the read buffer. */
-			readBuf[bytesRead] = '\0';
+            if (bytesRead <= 0) {
+                retCode = 0;
+                break;
+            }
+            /* Terminate the read buffer. */
+            readBuf[bytesRead] = '\0';
         
-			/* Step through chars in read buffer. */
-			w = 0;
-			for (r = 0; r < bytesRead; r++) {
-				if (readBuf[r] == (char)0x0a) {
-					/* Line feed; write out buffer and reset it. */
-					writeBuf[w] = '\0';
-					wrapperLogChildOutput(writeBuf);
-					w = 0;
+            /* Step through chars in read buffer. */
+            w = 0;
+            for (r = 0; r < bytesRead; r++) {
+                if (readBuf[r] == (char)0x0a) {
+                    /* Line feed; write out buffer and reset it. */
+                    writeBuf[w] = '\0';
+                    wrapperLogChildOutput(writeBuf);
+                    w = 0;
 
-					if ( count >= 50 ) {
-						// This last line was read byte by byte, now exit.
-						break;
-					}
+                    if ( count >= 50 ) {
+                        // This last line was read byte by byte, now exit.
+                        break;
+                    }
 
-					count++;
-				} else {
-					/* Add character to write buffer. */
-					writeBuf[w++] = readBuf[r];
-				}
-			}
+                    count++;
+                } else {
+                    /* Add character to write buffer. */
+                    writeBuf[w++] = readBuf[r];
+                }
+            }
         
-			/* Write out the rest of the buffer. */
-			if (w > 0) {
-				writeBuf[w] = '\0';
-				wrapperLogChildOutput(writeBuf);
-				w = 0;
+            /* Write out the rest of the buffer. */
+            if (w > 0) {
+                writeBuf[w] = '\0';
+                wrapperLogChildOutput(writeBuf);
+                w = 0;
 
-				if ( count >= 50 ) {
-					// This last line was read byte by byte, now exit.
-					break;
-				}
+                if ( count >= 50 ) {
+                    // This last line was read byte by byte, now exit.
+                    break;
+                }
 
-				count++;
-			}
+                count++;
+            }
         }
     }
     
