@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.30  2004/04/08 03:20:23  mortenson
+ * Add a comment about the malloced buffer passed to putenv
+ *
  * Revision 1.29  2004/03/27 16:48:57  mortenson
  * The new checkPropertyEqual function had a typo that was breaking it on UNIX
  * platforms.
@@ -590,6 +593,9 @@ void setEnv( const char *name, const char *value )
 {
     char *envBuf;
 
+    /* Allocate a block of memory for the environment variable.  The system uses
+     *  this memory so it is not freed after we set it. We only call this on
+     *  startup, so the leak is minor. */
     envBuf = malloc(sizeof(char) * (strlen(name) + strlen(value) + 2));
     sprintf(envBuf, "%s=%s", name, value);
     if (putenv(envBuf)) {
