@@ -200,6 +200,16 @@ $Id$
                     password when it is being installed as an NT service.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Added system properties to make it possible to configure whether or not
+                    the <ulink url="javadocs.html">WrapperSimpleApp</ulink> and
+                    <ulink url="javadocs.html">WrapperStartStopApp</ulink> helper classes will wait
+                    for the configured main methods to complete before reporting that the
+                    application has started.  See the <ulink url="javadocs.html">javadocs</ulink>
+                    for these classes for more details.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">

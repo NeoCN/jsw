@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.8  2005/03/24 07:23:51  mortenson
+// Make it possible to control whether or not the helper classes wait for the main
+// methods to complete before reporting that the application has been started.
+//
 // Revision 1.7  2004/08/06 14:57:40  mortenson
 // Fix a problem when using the WrapperStartStopApp helper class.  The usage
 // text was incorrectly being displayed in the console if an exception was
@@ -79,7 +83,33 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
 /**
- *
+ * By default the WrapperStartStopApp will only wait for 2 seconds for the main
+ *  method of the start class to complete.  This was done because the main
+ *  methods of many applications never return.  It is possible to force the
+ *  class to wait for the startup main method to complete by defining the
+ *  following system property when launching the JVM (defaults to FALSE):
+ *  -Dorg.tanukisoftware.wrapper.WrapperStartStopApp.waitForStartMain=TRUE
+ * <p>
+ * Using the waitForStartMain property will cause the startup to wait
+ *  indefinitely.  This is fine if the main method will always return
+ *  within a predefined period of time.  But if there is any chance that
+ *  it could hang, then the maxStartMainWait property may be a better
+ *  option.  It allows the 2 second wait time to be overridden. To wait
+ *  for up to 5 minutes for the startup main method to complete, set
+ *  the property to 300 as follows (defaults to 2 seconds):
+ *  -Dorg.tanukisoftware.wrapper.WrapperStartStopApp.maxStartMainWait=300
+ * <p>
+ * NOTE - The main methods of many applications are designed not to
+ *  return.  In these cases, you must either stick with the default 2 second
+ *  startup timeout or specify a slightly longer timeout, using the
+ *  maxStartMainWait property, to simulate the amount of time your application
+ *  takes to start up.
+ * <p>
+ * WARNING - If the waitForStartMain is specified for an application
+ *  whose start method never returns, the Wrapper will appear at first to be
+ *  functioning correctly.  However the Wrapper will never enter a running
+ *  state, this means that the Windows Service Manager and several of the
+ *  Wrapper's error recovery mechanisms will not function correctly.
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
  * @version $Revision$
@@ -123,9 +153,9 @@ public class WrapperStartStopApp
     private Integer m_mainExitCode;
     
     /**
-     * Flag used to signify that the start method is done waiting for the application to start.
+     * Flag used to signify that the start method has completed.
      */
-    private boolean m_waitTimedOut;
+    private boolean m_startComplete;
     
     /*---------------------------------------------------------------
      * Constructors
@@ -201,7 +231,7 @@ public class WrapperStartStopApp
 
         synchronized(this)
         {
-            if ( m_waitTimedOut )
+            if ( m_startComplete )
             {
                 // Shut down here.
                 WrapperManager.stop( 1 );
@@ -232,9 +262,32 @@ public class WrapperStartStopApp
      */
     public Integer start( String[] args )
     {
-        if ( WrapperManager.isDebugEnabled() )
+        // Decide whether or not to wait for the start main method to complete before returning.
+        boolean waitForStartMain = WrapperSystemPropertyUtil.getBooleanProperty(
+            WrapperStartStopApp.class.getName() + ".waitForStartMain", false );
+        int maxStartMainWait = WrapperSystemPropertyUtil.getIntProperty(
+            WrapperStartStopApp.class.getName() + ".maxStartMainWait", 2 );
+        maxStartMainWait = Math.max( 1, maxStartMainWait ); 
+        
+        // Decide the maximum number of times to loop waiting for the main start method.
+        int maxLoops;
+        if ( waitForStartMain )
         {
-            System.out.println( "WrapperStartStopApp: start(args)" );
+            maxLoops = Integer.MAX_VALUE;
+            if ( WrapperManager.isDebugEnabled() )
+            {
+                System.out.println( "WrapperStartStopApp: start(args) Will wait indefinitely "
+                    + "for the main method to complete." );
+            }
+        }
+        else
+        {
+            maxLoops = maxStartMainWait; // 1s loops.
+            if ( WrapperManager.isDebugEnabled() )
+            {
+                System.out.println( "WrapperStartStopApp: start(args) Will wait up to " + maxLoops
+                    + " seconds for the main method to complete." );
+            }
         }
         
         Thread mainThread = new Thread( this, "WrapperStartStopAppMain" );
@@ -242,16 +295,38 @@ public class WrapperStartStopApp
         {
             m_startMainArgs = args;
             mainThread.start();
-            // Wait for two seconds to give the application a chance to have failed.
-            try
-            {
-                this.wait( 2000 );
-            }
-            catch ( InterruptedException e )
-            {
-            }
-            m_waitTimedOut = true;
             
+            // Wait for startup main method to complete.
+            int loops = 0;
+            while ( ( loops < maxLoops ) && ( !m_mainComplete ) )
+            {
+                try
+                {
+                    this.wait( 1000 );
+                }
+                catch ( InterruptedException e )
+                {
+                    // Continue.
+                }
+                
+                if ( !m_mainComplete )
+                {
+                    // If maxLoops is large then this could take a while.  Notify the
+                    //  WrapperManager that we are still starting so it doesn't give up.
+                    WrapperManager.signalStarting( 5000 );
+                }
+                
+                loops++;
+            }
+            
+            // Always set the flag stating that the start method completed.  This is needed
+            //  so the run method can decide whether or not it needs to be responsible for
+            //  shutting down the JVM in the event of an exception thrown by the start main
+            //  method.
+            m_startComplete = true;
+            
+            // The main exit code will be null unless an error was thrown by the start
+            //  main method.
             if ( WrapperManager.isDebugEnabled() )
             {
                 System.out.println( "WrapperStartStopApp: start(args) end.  Main Completed="
