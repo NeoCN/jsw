@@ -93,6 +93,8 @@ Java Service Wrapper Revision History.
   any entries that do not exist.
 * Fix a problem where it was possible to define a zero length filter that would
   trigger on any output.
+* Add some additional debug output to make it easier to debug startup,
+  shutdown and restart problems.
 
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the

@@ -208,6 +208,12 @@ $Id$
                     trigger on any output.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add some additional debug output to make it easier to debug startup,
+                    shutdown and restart problems.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
