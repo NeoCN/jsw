@@ -44,6 +44,11 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.41  2004/08/18 08:36:04  mortenson
+// Change the DEFAULT_CPU_TIMEOUT constant to an int so the declaration in the
+// jni header file is the same on all platforms.  It was causing headaches with cvs
+// merges.  No functional change.
+//
 // Revision 1.40  2004/08/06 07:26:09  mortenson
 // Modify the way boolean system properties are resolved by the WrapperManager
 // so it is now possible to set them to true or false rather than assuming they
@@ -255,7 +260,7 @@ public final class WrapperManager
     
     private static final int DEFAULT_PORT                = 15003;
     private static final int DEFAULT_SO_TIMEOUT          = 10000;
-    private static final long DEFAULT_CPU_TIMEOUT        = 10000L;
+    private static final int DEFAULT_CPU_TIMEOUT         = 10000;
     
     /** The number of milliseconds in one tick.  Used for internal system
      *   time independent time keeping. */
