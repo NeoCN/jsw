@@ -21,8 +21,8 @@ Java Service Wrapper Revision History.
 * Added -t and -p command line options to the Windows version of the Wrapper
   to sTart and stoP the Wrapper as an NT service.  This can be used in place
   of "net start" and "net stop", which do not always work correctly when a
-  service takes a long time to start up or shutdown.  See the Launch Overview
-  for more details.
+  service takes a long time to start up or shutdown.  See the Launching Your
+  Application (Win32) section for more details.
 * Add a new method WrapperManager.stopImmediate which will cause the JVM to
   exit immediately without calling any stop methods or shutdown hooks.
 * Add a new class, WrapperActionServer, which makes it easy to remotely control
