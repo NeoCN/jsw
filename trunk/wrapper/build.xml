@@ -256,6 +256,7 @@
         <mkdir dir="${releasesrcdir}"/>
         <copy todir="${releasesrcdir}" >
             <fileset dir="${basedir}" >
+                <include name="index.html" />
                 <include name="build.*" />
                 <include name="doc/**" />
                 <include name="src/bin/**" />
@@ -327,6 +328,7 @@
         <mkdir dir="${releasedir}"/>
         <copy todir="${releasedir}" >
             <fileset dir="${basedir}" >
+                <include name="index.html" />
                 <include name="bin/windows/Wrapper.exe" />
                 <include name="lib/wrapper.jar" />
                 <include name="lib/windows/Wrapper.dll" />
@@ -349,6 +351,7 @@
         <mkdir dir="${releasedir}"/>
         <copy todir="${releasedir}" >
             <fileset dir="${basedir}" >
+                <include name="index.html" />
                 <include name="bin/linux/wrapper" />
                 <include name="lib/wrapper.jar" />
                 <include name="lib/linux/libwrapper.so" />
@@ -372,6 +375,7 @@
         <mkdir dir="${releasedir}"/>
         <copy todir="${releasedir}" >
             <fileset dir="${basedir}" >
+                <include name="index.html" />
                 <include name="bin/solaris/wrapper" />
                 <include name="lib/wrapper.jar" />
                 <include name="lib/solaris/libwrapper.so" />
