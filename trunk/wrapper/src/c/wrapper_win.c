@@ -24,6 +24,10 @@
  */
 
 // $Log$
+// Revision 1.8  2002/01/28 19:08:08  spocke
+// Modified the NT Service Description support so that it doesn't insert
+// registry value when the string is empty (default value).
+//
 // Revision 1.7  2002/01/27 19:35:45  spocke
 // Added support for service description property.
 //
@@ -804,7 +808,7 @@ int wrapperInstall(int argc, char **argv) {
 
         // Add service description to registry
         sprintf(regPath, "SYSTEM\\CurrentControlSet\\Services\\%s", wrapperData->ntServiceName);
-        if( schService && (RegOpenKeyEx(HKEY_LOCAL_MACHINE, regPath, 0, KEY_WRITE, (PHKEY) &hKey) == ERROR_SUCCESS) ) {
+        if( schService && (wrapperData->ntServiceDescription != NULL && strlen(wrapperData->ntServiceDescription) > 0) && (RegOpenKeyEx(HKEY_LOCAL_MACHINE, regPath, 0, KEY_WRITE, (PHKEY) &hKey) == ERROR_SUCCESS) ) {
             // * * Set Description key in registry
             RegSetValueEx(hKey, "Description", (DWORD) 0, (DWORD) REG_SZ, (const unsigned char *) wrapperData->ntServiceDescription, (strlen(wrapperData->ntServiceDescription) + 1));
             RegCloseKey(hKey);
