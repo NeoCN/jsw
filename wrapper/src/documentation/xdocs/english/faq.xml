@@ -3,55 +3,94 @@
 <!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "../dtd/docbook/4.1.2/docbookx.dtd">
 
 <!-- ********************************************************************
-     $Id$
-     ******************************************************************** -->
+$Id$
+******************************************************************** -->
 
 <article id="index">
     <title>FAQ</title>
     <section>
-        <title>Does the Wrapper handle the problem of JVMs exiting when a user logs out under Windows?</title>
+        <title>
+            Does the Wrapper handle the problem of JVMs exiting when a user logs out under Windows?
+        </title>
         <para>
-            Some Java Service application have a problem with the Java process exiting whenever a user logs out under Windows.  Several people have asked about whether or not the Wrapper handles this.  The answer is that the Wrapper has handled this correctly since its first release.
+            Some Java Service application have a problem with the Java process exiting whenever a
+            user logs out under Windows.  Several people have asked about whether or not the
+            Wrapper handles this.  The answer is that the Wrapper has handled this correctly since
+            its first release.
         </para>
         <para>
-            The Java side of the Wrapper requires a native library to make this work.  (Wrapper.DLL on Windows and libwrapper.so on Unix systems.)  The native library is responsible for trapping all system signals sent to the JVM process and handling them correctly.  A Java Application may handle these signals by implementing the <literal moreinfo="none">controlEvent</literal> method in the <literal moreinfo="none">WrapperListener</literal> interface.
+            The Java side of the Wrapper requires a native library to make this work.  (Wrapper.DLL
+            on Windows and libwrapper.so on Unix systems.)  The native library is responsible for
+            trapping all system signals sent to the JVM process and handling them correctly.
+            A Java Application may handle these signals by implementing the
+            <literal moreinfo="none">controlEvent</literal> method in the
+            <literal moreinfo="none">WrapperListener</literal> interface.
         </para>
         <para>
-            If you are experiencing any problems with your JVM being restarted by the Wrapper when a user logs out, please verify that the library is being loaded.  If it is not, then a warning message will be displayed in the JVM output during the WrapperManager initialization.
+            If you are experiencing any problems with your JVM being restarted by the Wrapper when
+            a user logs out, please verify that the library is being loaded.  If it is not, then a
+            warning message will be displayed in the JVM output during the WrapperManager
+            initialization.
         </para>
         <para>
-            You can find examples of what happens the user logs out while Wrapper is being run as a console application and as a service in the <ulink url="example.html">Examples</ulink> section of the documentation.
+            You can find examples of what happens the user logs out while Wrapper is being run as
+            a console application and as a service in the <ulink url="example.html">Examples</ulink>
+            section of the documentation.
         </para>
     </section>
     <section>
         <title>How can I change the priority at which my application runs on the system?</title>
         <para>
-            On Windows systems, the priority can be set by setting the wrapper.ntservice.process_priority property in the wrapper.conf file.  Please the configuration overview for more details.
+            On Windows systems, the priority can be set by setting the
+            wrapper.ntservice.process_priority property in the wrapper.conf file.  Please the
+            configuration overview for more details.
         </para>
         <para>
-            On Unix systems, the suggested method for setting the priority is to use the <literal moreinfo="none">nice</literal> command in your shell scripts when launching the Wrapper. The example scripts provided with the Wrapper distribution show how to do this. See <literal moreinfo="none">man nice</literal> or <literal moreinfo="none">info nice</literal> for details about how to use <literal moreinfo="none">nice</literal>.
+            On Unix systems, the suggested method for setting the priority is to use the
+            <literal moreinfo="none">nice</literal> command in your shell scripts when launching
+            the Wrapper. The example scripts provided with the Wrapper distribution show how to do
+            this. See <literal moreinfo="none">man nice</literal> or
+            <literal moreinfo="none">info nice</literal> for details about how to use
+            <literal moreinfo="none">nice</literal>.
         </para>
     </section>
     <section>
         <title>Why does installing as a service on NT generate a new .exe?</title>
         <para>
-            NOTE - Wrapper was changed in version 2.2.5 so that it no longer creates a copy of the Wrapper.exe.  If you are using a newer version, this no longer is applicable.
+            NOTE - Wrapper was changed in version 2.2.5 so that it no longer creates a copy of the
+            Wrapper.exe.  If you are using a newer version, this no longer is applicable.
         </para>
         <para>
-            When an NT service is launched, it is not possible to provide it with any parameters.  Most NT services get around this my storing information in the NT registry.  The problem that we had with Wrapper was that we needed to be able to run multiple applications on the same machine at the same time.  If the Wrapper stored its application specific information in the registry, then each copy of the Wrapper would be trying to look in the same location in the registry for their parameters.
+            When an NT service is launched, it is not possible to provide it with any parameters.
+            Most NT services get around this my storing information in the NT registry.  The
+            problem that we had with Wrapper was that we needed to be able to run multiple
+            applications on the same machine at the same time.  If the Wrapper stored its
+            application specific information in the registry, then each copy of the Wrapper would
+            be trying to look in the same location in the registry for their parameters.
         </para>
         <para>
-            We could have gotten around this by requiring the integrator to edit a c header file and then recompile custom versions of the Wrapper.exe.  But we decided to make the process more elegant by having the Wrapper take care of this step for you.
+            We could have gotten around this by requiring the integrator to edit a c header file
+            and then recompile custom versions of the Wrapper.exe.  But we decided to make the
+            process more elegant by having the Wrapper take care of this step for you.
         </para>
         <para>
-            When you run Wrapper.exe -i &lt;conf&gt;, the Wrapper makes a copy of itself with the full path to the specified configuration file embedded in its .exe.  This new .exe is then registered with the NT Service Manager.  Whenever the service is started, the new Wrapper is able to locate its configuration file because its location is now hard coded in its .exe.
+            When you run Wrapper.exe -i &lt;conf&gt;, the Wrapper makes a copy of itself with the
+            full path to the specified configuration file embedded in its .exe.  This new .exe is
+            then registered with the NT Service Manager.  Whenever the service is started, the new
+            Wrapper is able to locate its configuration file because its location is now hard coded
+            in its .exe.
         </para>
         <para>
-            This means that you can modify your wrapper.conf file without having to uninstall and then reinstall your service.  You will still have to restart it for changes to take place.
+            This means that you can modify your wrapper.conf file without having to uninstall and
+            then reinstall your service.  You will still have to restart it for changes to take
+            place.
         </para>
         <warning>
             <simpara>
-                WARNING - Do not modify any of the NT service specific parameters in the wrapper.conf when an application using that configuration file has been installed as a service.  Changing the name of the service for example will make it impossible to uninstall.
+                WARNING - Do not modify any of the NT service specific parameters in the
+                wrapper.conf when an application using that configuration file has been installed
+                as a service.  Changing the name of the service for example will make it impossible
+                to uninstall.
             </simpara>
         </warning>
     </section>
