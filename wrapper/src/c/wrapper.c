@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.110  2004/08/31 14:34:28  mortenson
+ * Fix a problem where the JVM would restart at certain times when using the
+ * system time based timer due to an overflow error.
+ *
  * Revision 1.109  2004/08/18 08:31:54  mortenson
  * Change the default value of wrapper.jvm_exit.timeout from 5 to 15 seconds.
  *
@@ -2319,18 +2323,26 @@ int wrapperLoadConfiguration() {
 
 /**
  * Calculates a tick count using the system time.
+ *
+ * We need 64 bits to do this calculation.
  */
 DWORD wrapperGetSystemTicks() {
     struct timeb timeBuffer;
 
     ftime( &timeBuffer );
-    return (timeBuffer.time * 1000 + timeBuffer.millitm) / WRAPPER_TICK_MS;
+#ifdef WIN32
+	return (DWORD)((timeBuffer.time * 1000UI64 + timeBuffer.millitm) / WRAPPER_TICK_MS);
+#else
+	return (DWORD)((timeBuffer.time * 1000ULL + timeBuffer.millitm) / WRAPPER_TICK_MS);
+#endif
 }
 
 /**
  * Returns difference in seconds between the start and end ticks.  This function
  *  handles cases where the tick counter has wrapped between when the start
  *  and end tick counts were taken.  See the wrapperGetTicks() function.
+ *
+ * This can be done safely in 32 bits
  */
 int wrapperGetTickAge(DWORD start, DWORD end) {
     /* Simply subtracting the values will always work even if end has wrapped
@@ -2344,9 +2356,15 @@ int wrapperGetTickAge(DWORD start, DWORD end) {
 /**
  * Returns a tick count that is the specified number of seconds later than
  *  the base tick count.
+ *
+ * We need 64 bits to do this calculation.
  */
 DWORD wrapperAddToTicks(DWORD start, int seconds) {
-    return start + seconds * 1000 / WRAPPER_TICK_MS;
+#ifdef WIN32
+    return (DWORD)(start + seconds * 1000UI64 / WRAPPER_TICK_MS);
+#else
+    return (DWORD)(start + seconds * 1000ULL / WRAPPER_TICK_MS);
+#endif
 }
 
 /**

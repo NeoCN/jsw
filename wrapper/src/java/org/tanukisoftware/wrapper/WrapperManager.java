@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.42  2004/08/31 14:34:28  mortenson
+// Fix a problem where the JVM would restart at certain times when using the
+// system time based timer due to an overflow error.
+//
 // Revision 1.41  2004/08/18 08:36:04  mortenson
 // Change the DEFAULT_CPU_TIMEOUT constant to an int so the declaration in the
 // jni header file is the same on all platforms.  It was causing headaches with cvs
@@ -662,6 +666,10 @@ public final class WrapperManager
                         lastTickOffset = tickOffset;
                     }
                     
+                    //m_out.println( "  UNIX Time: " + Long.toHexString( System.currentTimeMillis() )
+                    //  + ", ticks=" + Integer.toHexString( getTicks() ) + ", sysTicks="
+                    //  + Integer.toHexString( getSystemTicks() ) );
+                        
                     // Attempt to detect whether or not we are being starved of CPU.
                     //  This will only have any effect if the m_useSystemTime flag is
                     //  set.
