@@ -634,7 +634,6 @@
             <fileset dir="${basedir}" >
                 <include name="index.html" />
                 <include name="bin/${wrapper.bin.name}" />
-                <include name="bin/realpath" />
                 <include name="bin/${app.name}" />
                 <include name="lib/wrapper.jar" />
                 <include name="lib/wrappertest.jar" />
@@ -663,13 +662,11 @@
         <tar tarfile="${releasedir}.tar">
             <tarfileset dir="${basedir}" mode="755">
                 <include name="${releasefile}/bin/${wrapper.bin.name}"/>
-                <include name="${releasefile}/bin/realpath"/>
                 <include name="${releasefile}/bin/${app.name}"/>
             </tarfileset>
             <tarfileset dir="${basedir}">
                 <include name="${releasefile}/**"/>
                 <exclude name="${releasefile}/bin/${wrapper.bin.name}"/>
-                <exclude name="${releasefile}/bin/realpath"/>
                 <exclude name="${releasefile}/bin/${app.name}"/>
             </tarfileset>
         </tar>
