@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.11  2004/01/10 13:59:14  mortenson
+// Add a command button to test the user functions.
+//
 // Revision 1.10  2003/10/31 05:59:33  mortenson
 // Added a new method, setConsoleTitle, to the WrapperManager class which
 // enables the application to dynamically set the console title.
@@ -95,6 +98,8 @@ public class Main implements WrapperListener {
     private DeadlockPrintStream m_out;
     private DeadlockPrintStream m_err;
     
+    private Thread m_userRunner;
+    
     /**************************************************************************
      * Constructors
      *************************************************************************/
@@ -145,6 +150,10 @@ public class Main implements WrapperListener {
             add(odButton);
             odButton.addActionListener(this);
             
+            Button puButton = new Button("Poll Users");
+            add(puButton);
+            puButton.addActionListener(this);
+            
             add(new Label("The Access Violation button only works with Sun JVMs."));
             add(new Label("Also try killing the JVM process or pressing CTRL-C in the console window."));
             add(new Label("Simulate JVM Hang only has an effect when controlled by native Wrapper."));
@@ -153,6 +162,7 @@ public class Main implements WrapperListener {
             add(new Label("Request Restart should cause the JVM to stop and be restarted cleanly."));
             add(new Label("Request Thread Dump should cause the JVM dump its thread states."));
             add(new Label("System.out Deadlock will cause calls to System.out and System.err to deadlock."));
+            add(new Label("Poll Users will begin polling the current and interactive user, displaying them to the console."));
             
             setSize(new Dimension(600, 315));
         }
@@ -198,6 +208,33 @@ public class Main implements WrapperListener {
                 System.out.println("Deadlocking System.out and System.err ...");
                 m_out.setDeadlock(true);
                 m_err.setDeadlock(true);
+            } else if (command.equals("Poll Users")) {
+                System.out.println("Begin polling the current and interactive users.");
+                if (m_userRunner == null) {
+                    Thread m_userRunner = new Thread()
+                    {
+                        public void run()
+                        {
+                            while (true)
+                            {
+                                System.out.println( "The current user is: " + WrapperManager.getUser( false ) );
+                                System.out.println( "The current interactive user is: " + WrapperManager.getInteractiveUser( false ) );
+                                System.out.println( "The current user with groups is: " + WrapperManager.getUser( true ) );
+                                System.out.println( "The current interactive user with groups is: " + WrapperManager.getInteractiveUser( true ) );
+                                try
+                                {
+                                    Thread.sleep( 10000 );
+                                }
+                                catch ( InterruptedException e )
+                                {
+                                }
+                                System.gc();
+                            }
+                        }
+                    };
+                    m_userRunner.setDaemon( true );
+                    m_userRunner.start();
+                }
             }
         }
     }
