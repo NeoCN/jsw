@@ -11,7 +11,7 @@ Java Service Wrapper Revision History.
 * Implemented feature request #633178.  Added WrapperManager.requestThreadDump()
   to force the current JVM to immediately perform a thread dump.
 * Fixed bug where wrapper.logfile.maxsize was being set to 0 if the 'k' or 'm'
-  unit was ommitted.
+  unit was omitted.
 * Add the ability to specify an account name and password when installing an
   NT service.
 * Add a property, wrapper.ntservice.interactive, which makes it possible to
