@@ -184,7 +184,7 @@
                     <ulink url="prop-successful-invocation-time.html">wrapper.successful_invocation_time</ulink>
                 </listitem>
                 <listitem>
-                    <ulink url="prop-sysfile-loglevel.html">wrapper.sysfile.loglevel</ulink>
+                    <ulink url="prop-syslog-loglevel.html">wrapper.syslog.loglevel</ulink>
                 </listitem>
             </itemizedlist>
         </section>
