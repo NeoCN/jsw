@@ -12,6 +12,12 @@ Java Service Wrapper Revision History.
 * Add a new property, wrapper.native_library, which can be used to specify
   the base name of the native library which is loaded by the WrapperManager
   class.
+* Modify the WrapperManager class so it now stores references to System.out
+  and System.err on initialization and always writes to those stored streams.
+  This makes sure that all Wrapper console output always goes to the
+  wrapper.log file even if user code overrides those streams with calls to
+  System.setOut and System.setErr.  This was necessary to prevent deadlocks
+  in such user code from affecting the functionality of the Wrapper.
   
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the
