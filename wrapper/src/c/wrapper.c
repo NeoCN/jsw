@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.87  2004/03/18 04:54:46  mortenson
+ * Add a new wrapper.java.library.path.append_system_path property which will
+ * cause the Wrapper to append the system path to the generated library path.
+ *
  * Revision 1.86  2004/03/02 16:05:25  mortenson
  * Fix a problem where it was possible to define a zero length filter that would
  * trigger on any output.
@@ -1068,6 +1072,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     int cpLen, cpLenAlloc;
     char *tmpString;
     struct stat statBuffer;
+	char *systemPath;
 #ifdef WIN32
     char cpPath[512];
     char *c;
@@ -1204,15 +1209,32 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 
     /* Library Path */
     if (strings) {
+		if (wrapperData->libraryPathAppendPath) {
+			/* We are going to want to append the full system path to
+			 *  whatever library path is generated. */
+			systemPath = getenv("PATH");
+		} else {
+			systemPath = NULL;
+		}
+
         prop = getStringProperty(properties, "wrapper.java.library.path", NULL);
         if (prop) {
             /* An old style library path was specified. */
-            strings[index] = malloc(sizeof(char) * (22 + strlen(prop) + 1));
-            if (addQuotes) {
-                sprintf(strings[index], "-Djava.library.path=\"%s\"", prop);
-            } else {
-                sprintf(strings[index], "-Djava.library.path=%s", prop);
-            }
+			if (systemPath) {
+				strings[index] = malloc(sizeof(char) * (22 + strlen(prop) + 1 + strlen(systemPath) + 1));
+				if (addQuotes) {
+					sprintf(strings[index], "-Djava.library.path=\"%s%c%s\"", prop, wrapperClasspathSeparator, systemPath);
+				} else {
+					sprintf(strings[index], "-Djava.library.path=%s%c%s", prop, wrapperClasspathSeparator, systemPath);
+				}
+			} else {
+				strings[index] = malloc(sizeof(char) * (22 + strlen(prop) + 1));
+				if (addQuotes) {
+					sprintf(strings[index], "-Djava.library.path=\"%s\"", prop);
+				} else {
+					sprintf(strings[index], "-Djava.library.path=%s", prop);
+				}
+			}
         } else {
             /* Look for a multiline library path. */
             cpLen = 0;
@@ -1259,6 +1281,31 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                     i++;
                 }
             } while (prop);
+
+			if (systemPath) {
+				/* We need to append the system path. */
+                len2 = strlen(systemPath);
+                if (len2 > 0) {
+                    /* Is there room for the entry? */
+                    while (cpLen + len2 + 3 > cpLenAlloc) {
+                        /* Resize the buffer */
+                        tmpString = strings[index];
+                        cpLenAlloc += 1024;
+                        strings[index] = malloc(sizeof(char) * cpLenAlloc);
+                        sprintf(strings[index], "%s", tmpString);
+                        free(tmpString);
+                        tmpString = NULL;
+                    }
+                    
+                    if (j > 0) {
+                        strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
+                    }
+                    sprintf(&(strings[index][cpLen]), "%s", systemPath);
+                    cpLen += len2;
+                    j++;
+                }
+			}
+
             if (j == 0) {
                 /* No library path, use default. always room */
                 sprintf(&(strings[index][cpLen++]), "./");
@@ -2387,6 +2434,9 @@ int wrapperLoadConfiguration() {
 
     /* Load the name of the native library to be loaded. */
     wrapperData->nativeLibrary = (char *)getStringProperty(properties, "wrapper.native_library", "wrapper");
+
+	/* Get the append PATH to library path flag. */
+    wrapperData->libraryPathAppendPath = getBooleanProperty(properties, "wrapper.java.library.path.append_system_path", FALSE);
     
     /* Get the state output status. */
     wrapperData->isStateOutputEnabled = getBooleanProperty(properties, "wrapper.state_output", FALSE);

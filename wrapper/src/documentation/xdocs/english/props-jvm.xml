@@ -43,6 +43,9 @@
                 <ulink url="prop-java-library-path-n.html">wrapper.java.library.path.&lt;n&gt;</ulink>
             </listitem>
             <listitem>
+                <ulink url="prop-java-library-path-append-system-path.html">wrapper.java.library.path.append_system_path</ulink>
+            </listitem>
+            <listitem>
                 <ulink url="prop-java-additional-n.html">wrapper.java.additional.&lt;n&gt;</ulink>
             </listitem>
             <listitem>
