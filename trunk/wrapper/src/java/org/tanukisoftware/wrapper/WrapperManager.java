@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.44  2004/11/19 03:39:43  mortenson
+// Be more consistent with synchronization in the WrapperManager class.
+//
 // Revision 1.43  2004/11/15 08:15:50  mortenson
 // Make it possible for users to access the Wrapper and JVM PIDs from within the JVM.
 //
@@ -1496,7 +1499,7 @@ public final class WrapperManager
         }
         
         boolean stopping;
-        synchronized(m_instance)
+        synchronized( WrapperManager.class )
         {
             stopping = m_stopping;
             if ( !stopping )
@@ -1742,7 +1745,7 @@ public final class WrapperManager
     private static void stopCommon( int exitCode, int delay )
     {
         boolean stopping;
-        synchronized( m_instance )
+        synchronized( WrapperManager.class )
         {
             stopping = m_stopping;
             if ( !stopping )
@@ -1788,7 +1791,7 @@ public final class WrapperManager
      */
     private static void dispose()
     {
-        synchronized( m_instance.getClass() )
+        synchronized( WrapperManager.class )
         {
             m_disposed = true;
             
@@ -1924,7 +1927,7 @@ public final class WrapperManager
     private static void stopInner( int exitCode )
     {
         boolean block;
-        synchronized( m_instance )
+        synchronized( WrapperManager.class )
         {
             // Always set the stopping flag.
             m_stopping = true;
@@ -2800,7 +2803,7 @@ public final class WrapperManager
             // Go into a loop that will never return.
             while ( true )
             {
-                synchronized( this )
+                synchronized( WrapperInputStream.this )
                 {
                     try
                     {
