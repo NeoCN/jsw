@@ -88,6 +88,9 @@ Java Service Wrapper Revision History.
 * Modify the WrapperSimpleApp and WrapperStartStopApp so that the main method
   of a class is located even if it exists in a parent class rather than the
   class specified.
+* To make debugging classpath problems easier, the Wrapper now verifies all
+  classpath entries before launching a JVM and logs debug level warnings for
+  any entries that do not exist.
 
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the
