@@ -90,19 +90,19 @@
             <para>
                 On windows, the command used to launch Tomcat is as follows (The command
                 is actually all on one line):
-                <programlisting format="linespecific">"D:\Sun\j2sdk1.4.0\bin\java"
+                <programlisting format="linespecific"><![CDATA["D:\Sun\j2sdk1.4.0\bin\java"
   -Djava.endorsed.dirs="..\bin;..\common\lib"
   -classpath "D:\Sun\j2sdk1.4.0\lib\tools.jar;..\bin\bootstrap.jar"
   -Dcatalina.base=".." -Dcatalina.home=".." -Djava.io.tmpdir="..\temp"
-  org.apache.catalina.startup.Bootstrap  start</programlisting>
+  org.apache.catalina.startup.Bootstrap  start]]></programlisting>
                 It turns out that the shutdown script is exactly the same command.  The
                 only difference is that the application parameter "start" is replaced
                 with "stop".
-                <programlisting format="linespecific">"D:\Sun\j2sdk1.4.0\bin\java"
+                <programlisting format="linespecific"><![CDATA["D:\Sun\j2sdk1.4.0\bin\java"
   -Djava.endorsed.dirs="..\bin;..\common\lib"
   -classpath "D:\Sun\j2sdk1.4.0\lib\tools.jar;..\bin\bootstrap.jar"
   -Dcatalina.base=".." -Dcatalina.home=".." -Djava.io.tmpdir="..\temp"
-  org.apache.catalina.startup.Bootstrap  stop</programlisting>
+  org.apache.catalina.startup.Bootstrap  stop]]></programlisting>
                 The script resolves all absolute paths.  To make this example more
                 portable, we will modify the absolute paths to be relative to the bin
                 directory, where the Wrapper binary is located.  We will also assume
@@ -114,7 +114,7 @@
                 this is "D:\Sun\j2sdk1.4.0\bin\java".  Assume that the java command is
                 available on the path, the following property needs to be set in the
                 wrapper.conf file:
-                <programlisting format="linespecific">wrapper.java.command=java</programlisting>
+                <programlisting format="linespecific"><![CDATA[wrapper.java.command=java]]></programlisting>
             </para>
             <para>
                 The next step is to setup the classpath.  To make the configuration
@@ -126,40 +126,40 @@
                 in the JDK, or copy it into tomcat's tools directory.  Here we assume
                 the later.  The classpath should be set as follows in the wrapper.conf
                 file:
-                <programlisting format="linespecific">wrapper.java.classpath.1=../lib/wrapper.jar
+                <programlisting format="linespecific"><![CDATA[wrapper.java.classpath.1=../lib/wrapper.jar
 wrapper.java.classpath.2=../lib/tools.jar
-wrapper.java.classpath.3=../bin/bootstrap.jar</programlisting>
+wrapper.java.classpath.3=../bin/bootstrap.jar]]></programlisting>
             </para>
             <para>
                 The Wrapper will need to be able to locate its native library.  This
                 should already be set in the default wrapper.conf file, but make sure
                 that the following property is set:
-                <programlisting format="linespecific">wrapper.java.library.path=../lib</programlisting>
+                <programlisting format="linespecific"><![CDATA[wrapper.java.library.path=../lib]]></programlisting>
             </para>
             <para>
                 Tomcat requires a number of properties be set when the JVM is launched.
                 These are set as follows:
-                <programlisting format="linespecific">wrapper.java.additional.1=-Djava.endorsed.dirs="../bin;../common/endorsed"
+                <programlisting format="linespecific"><![CDATA[wrapper.java.additional.1=-Djava.endorsed.dirs="../bin;../common/endorsed"
 wrapper.java.additional.2=-Dcatalina.base=".."
 wrapper.java.additional.3=-Dcatalina.home=".."
-wrapper.java.additional.4=-Djava.io.tmpdir="../temp"</programlisting>
+wrapper.java.additional.4=-Djava.io.tmpdir="../temp"]]></programlisting>
             </para>
             <para>
                 Next the class used to launch Tomcat must be specified.  In the commands
                 above, this is org.apache.catalina.startup.Bootstrap.  However we will
                 be relying on a helper class to control the life cycle of Tomcat.  Set
                 the main class as follows:
-                <programlisting format="linespecific">wrapper.java.mainclass=com.silveregg.wrapper.WrapperStartStopApp</programlisting>
+                <programlisting format="linespecific"><![CDATA[wrapper.java.mainclass=com.silveregg.wrapper.WrapperStartStopApp]]></programlisting>
                 The WrapperStartStopApp still needs to be told how to start and stop
                 Tomcat.  This is done by passing parameters to the class when it is
                 started.  Set the application parameters as follows:
-                <programlisting format="linespecific">wrapper.app.parameter.1=org.apache.catalina.startup.Bootstrap
+                <programlisting format="linespecific"><![CDATA[wrapper.app.parameter.1=org.apache.catalina.startup.Bootstrap
 wrapper.app.parameter.2=1
 wrapper.app.parameter.3=start
 wrapper.app.parameter.4=org.apache.catalina.startup.Bootstrap
 wrapper.app.parameter.5=true
 wrapper.app.parameter.6=1
-wrapper.app.parameter.7=stop</programlisting>
+wrapper.app.parameter.7=stop]]></programlisting>
                 The Bootstrap class is used to both start and stop Tomcat.  In each case,
                 a single parameter is passed in. "start" to start Tomcat, and "stop" to
                 stop it.  When stopping Tomcat, the "true" flag specifies that the JVM
@@ -169,14 +169,14 @@ wrapper.app.parameter.7=stop</programlisting>
                 The last step is to set the name of the pid file to use, for unix
                 systems, and the name and description of the NT Service, for Windows
                 systems:
-                <programlisting format="linespecific">wrapper.pidfile=/var/run/tomcat.pid
+                <programlisting format="linespecific"><![CDATA[wrapper.pidfile=/var/run/tomcat.pid
 wrapper.ntservice.name=tomcat
 wrapper.ntservice.displayname=Tomcat 4 Server
-wrapper.ntservice.description=Tomcat 4 Server</programlisting>
+wrapper.ntservice.description=Tomcat 4 Server]]></programlisting>
                 If you applications make use of a database, then on Windows systems, you
                 should also make sure that the database is always started before Tomcat
                 when running as a service:
-                <programlisting format="linespecific">wrapper.ntservice.dependency.1=MySQL</programlisting>
+                <programlisting format="linespecific"><![CDATA[wrapper.ntservice.dependency.1=MySQL]]></programlisting>
             </para>
         </section>
         <section>

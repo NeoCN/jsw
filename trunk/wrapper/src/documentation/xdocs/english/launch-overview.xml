@@ -31,32 +31,39 @@
             <para>
                 To run your application as a console app, execute the following command.
                 <informalexample>
-                    <screen format="linespecific">C:\MyApp\bin> Wrapper.exe -c C:\MyApp\conf\wrapper.conf</screen>
+                    <screen format="linespecific"><![CDATA[C:\MyApp\bin> Wrapper.exe -c C:\MyApp\conf\wrapper.conf]]></screen>
                 </informalexample>
             </para>
             <para>
                 To install the application as an NT service, execute.
                 <informalexample>
-                    <screen format="linespecific">C:\MyApp\bin> Wrapper.exe -i C:\MyApp\conf\wrapper.conf</screen>
+                    <screen format="linespecific"><![CDATA[C:\MyApp\bin> Wrapper.exe -i C:\MyApp\conf\wrapper.conf]]></screen>
                 </informalexample>
             </para>
             <para>
                 Then to start it, either reboot, go to the services control panel, or execute:
                 <informalexample>
-                    <screen format="linespecific">C:\MyApp\bin> net start MyApp</screen>
+                    <screen format="linespecific"><![CDATA[C:\MyApp\bin> net start MyApp]]></screen>
                 </informalexample>
             </para>
             <para>
                 To uninstall the application as an NT service, execute:
                 <informalexample>
-                    <screen format="linespecific">C:\MyApp\bin> Wrapper.exe -r C:\MyApp\conf\wrapper.conf</screen>
+                    <screen format="linespecific"><![CDATA[C:\MyApp\bin> Wrapper.exe -r C:\MyApp\conf\wrapper.conf]]></screen>
                 </informalexample>
             </para>
             <para>
-                These commands should normally be placed in batch files in the application's bin directory to make them easier to use.
+                These commands should normally be placed in batch files in the application's bin
+                directory to make them easier to use.
             </para>
             <para>
-                A typical application would have the following three batch files in the bin directory with the Wrapper.exe file.  The scripts will look for a wrapper.conf file passed in as an argument and then use a default if one is not specified.  These examples assume that the '@app.home@' token will be replaced with your application's home directory on installation.  Something like 'C:\MyApp'.  The quotes around the paths in the scripts make it possible for the path to contain spaces.
+                A typical application would have the following three batch files in the bin
+                directory with the Wrapper.exe file.  The scripts will look for a wrapper.conf
+                file passed in as an argument and then use a default if one is not specified.
+                These examples assume that the '@app.home@' token will be replaced with your
+                application's home directory on installation.  Something like 'C:\MyApp'.  The
+                quotes around the paths in the scripts make it possible for the path to contain
+                spaces.
                 <informalexample>
                     <simpara><emphasis>MyApp.bat</emphasis></simpara>
                     <screen format="linespecific">
@@ -74,7 +81,12 @@
                 </informalexample>
             </para>
             <para>
-                It is also possible to make batch scripts which use only relative paths.  This has the benefit of allowing you to unzip an application and run it in any location, but it has the drawback that the script will not work correctly on older version of windows.  Template batch files can be found in the src/bin directory, named App.bat.in, InstallApp-NT.bat.in and UninstallApp-NT.bat.in.  They should be renamed to match the name of your application.
+                It is also possible to make batch scripts which use only relative paths.  This has
+                the benefit of allowing you to unzip an application and run it in any location, but
+                it has the drawback that the script will not work correctly on older version of
+                windows.  Template batch files can be found in the src/bin directory, named
+                App.bat.in, InstallApp-NT.bat.in and UninstallApp-NT.bat.in.  They should be
+                renamed to match the name of your application.
                 <informalexample>
                     <simpara><emphasis>MyApp.bat</emphasis></simpara>
                     <screen format="linespecific">
@@ -82,7 +94,9 @@
                 </informalexample>
             </para>
             <para>
-                Starting in version 2.2.3, it is possible to specify paths in your wrapper.conf file which are relative to the Wrapper.exe file.  Older versions did not work correctly with relative paths when the application was run as an NT service.
+                Starting in version 2.2.3, it is possible to specify paths in your wrapper.conf
+                file which are relative to the Wrapper.exe file.  Older versions did not work
+                correctly with relative paths when the application was run as an NT service.
             </para>
         </section>
         <section id="unix">
@@ -90,17 +104,31 @@
             <para>
                 To run your application from the command line:
                 <informalexample>
-                    <screen format="linespecific">$ wrapper [your application's wrapper config file]</screen>
+                    <screen format="linespecific"><![CDATA[$ wrapper [your application's wrapper config file]]]></screen>
                 </informalexample>
             </para>
             <para>
-                In the src/bin subdirectory you will find some shell (bash and sh)script templates for starting and stopping wrapped applications cleanly in. These examples assume that the '@app.name@' and '@app.long.name@' tokens will be replaced with the name of your application on installation.  Good values are 'testwrapper' for '@app.name@' and 'Test Wrapper Application' for '@app.long.name@'.  These scripts also make some assumtions about your project's directory structure.  Template scripts can be found in the src/bin directory, named bash.script.in and sh.script.in respectively.
+                In the src/bin subdirectory you will find some shell (bash and sh)script templates
+                for starting and stopping wrapped applications cleanly in. These examples assume
+                that the '@app.name@' and '@app.long.name@' tokens will be replaced with the name
+                of your application on installation.  Good values are 'testwrapper' for '@app.name@'
+                and 'Test Wrapper Application' for '@app.long.name@'.  These scripts also make some
+                assumtions about your project's directory structure.  Template scripts can be found
+                in the src/bin directory, named bash.script.in and sh.script.in respectively.
             </para>
             <para>
-                You may need to tweak some of the other values (like PIDDIR in the sh script) to get them to fit your environment.
+                You may need to tweak some of the other values (like PIDDIR in the sh script) to
+                get them to fit your environment.
             </para>
             <para>
-                These scripts are used by passing them a command.  Valid commands are <literal>start</literal>, <literal>stop</literal>, <literal>restart</literal>, and <literal>dump</literal>. <literal>start</literal> is used to launch the application and <literal>stop</literal> is used to stop it.  <literal>restart</literal> will start and then stop the application in a single command.  The <literal>dump</literal> command is used to invoke a thread dump in the JVM.  See the <ulink url="debugging.html">Debugging</ulink> section for more information on <literal>dump</literal>.
+                These scripts are used by passing them a command.  Valid commands are
+                <literal>start</literal>, <literal>stop</literal>, <literal>restart</literal>, and
+                <literal>dump</literal>. <literal>start</literal> is used to launch the application
+                and <literal>stop</literal> is used to stop it.  <literal>restart</literal> will
+                start and then stop the application in a single command.  The
+                <literal>dump</literal> command is used to invoke a thread dump in the JVM.  See
+                the <ulink url="debugging.html">Debugging</ulink> section for more information on
+                <literal>dump</literal>.
             </para>
             <para>
                 <informalexample>
