@@ -631,8 +631,8 @@ export ENV_VAR_4=d]]></replacevalue>
             <replacevalue><![CDATA[exec -a $APP_NAME $WRAPPER_CMD $WRAPPER_CONF wrapper.app.parameter.1=$1 &]]></replacevalue>
         </replace>
         <replace file="${test.dir}/action"> <!-- sh script -->
-            <replacetoken><![CDATA[exec -a $APP_NAME $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$APP_NAME.pid &]]></replacetoken>
-            <replacevalue><![CDATA[exec -a $APP_NAME $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$APP_NAME.pid wrapper.app.parameter.1=$1 &]]></replacevalue>
+            <replacetoken><![CDATA[exec $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$PIDFILE &]]></replacetoken>
+            <replacevalue><![CDATA[exec $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$PIDFILE wrapper.app.parameter.1=$1 &]]></replacevalue>
         </replace>
         <replace file="${test.dir}/action">
             <replacetoken><![CDATA[Starting $APP_LONG_NAME]]></replacetoken>
