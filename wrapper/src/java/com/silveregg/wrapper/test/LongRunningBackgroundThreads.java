@@ -26,6 +26,10 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
+// Revision 1.3  2002/11/02 03:27:13  mortenson
+// Fix Bug #632215.  The WrapperManager.isLaunchedAsService() method was
+// always returning false.
+//
 // Revision 1.2  2002/05/08 16:22:31  mortenson
 // Fix a typo.  transient instance variable should have been volatile.
 //
@@ -33,6 +37,8 @@ package com.silveregg.wrapper.test;
 // Fix a problem where the JVM was not exiting correctly when all non-daemon
 // threads completed.
 //
+
+import com.silveregg.wrapper.WrapperManager;
 
 public class LongRunningBackgroundThreads implements Runnable {
     private volatile int _threadCount;
@@ -69,6 +75,9 @@ public class LongRunningBackgroundThreads implements Runnable {
             Thread thread = new Thread(app, "App-Thread-" + i);
             thread.start();
         }
+        
+        System.out.println("Running as a service: " + WrapperManager.isLaunchedAsService());
+        System.out.println("Controlled by wrapper: " + WrapperManager.isControlledByNativeWrapper());
         
         System.out.println("Long-running Background Threads Main Done...");
     }

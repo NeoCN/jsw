@@ -22,6 +22,10 @@ Java Service Wrapper Revision History.
   to function like the wrapper.java.classpath.n properties so that multiple
   directories can be specified in the library path in a platform independent
   way.  The old property is still supported, but deprecated.
+* Fix Bug #632215.  The WrapperManager.isLaunchedAsService() method was always
+  returning false, even when run as a service under Windows.  On linux, the
+  Wrapper is always run as a console app, so this method will always return
+  false.
 
 2.2.8
 * Fixed a compiler problem on Solaris some systems.
