@@ -100,6 +100,8 @@ Java Service Wrapper Revision History.
 * Add a new wrapper.java.library.path.append_system_path property which will
   cause the Wrapper to append the system path to the generated library path.
   Feature Request #917902.
+* Fix a problem where spaces around the '=' character of a property definition
+  were rendering the property invisible to the Wrapper.  Bug #916001.
 
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the

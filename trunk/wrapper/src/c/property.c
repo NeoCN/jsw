@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.27  2004/03/18 05:26:13  mortenson
+ * Fix a problem where spaces around the '=' character of a property definition
+ * were rendering the property invisible to the Wrapper.  Bug #916001.
+ *
  * Revision 1.26  2004/01/16 04:41:58  mortenson
  * The license was revised for this version to include a copyright omission.
  * This change is to be retroactively applied to all versions of the Java
@@ -585,25 +589,68 @@ void setEnv( const char *name, const char *value )
     }
 }
 
+/* Trims any whitespace from the beginning and end of the in string
+ *  and places the results in the out buffer.  Assumes that the out
+ *  buffer is at least as large as the in buffer. */
+void trim(const char *in, char *out)
+{
+	int len;
+	int first;
+	int last;
+
+	len = strlen(in);
+	first = 0;
+	last = len - 1;
+
+	/* Right Trim */
+	while (((in[first] == ' ') || (in[first] == '\t')) && (first < last)) {
+		first++;
+	}
+	/* Left Trim */
+	while (((in[last] == ' ') || (in[last] == '\t')) && (last > first)) {
+		last--;
+	}
+
+	/* Copy over what is left. */
+	len = last - first + 1;
+	if (len > 0) {
+		memcpy(out, in + first, len);
+	}
+	out[len] = '\0';
+}
+
 void addProperty(Properties *properties, const char *propertyName, const char *propertyValue, int finalValue, int quotable) {
     int setValue;
     Property *property;
+	char *propertyNameTrim;
+	char *propertyValueTrim;
 
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "addProperty(%p, '%s', '%s', %d, %d)",
         properties, propertyName, propertyValue, finalValue, quotable);
 #endif
 
+	/* It is possible that the propertyName and or properyValue contains extra spaces. */
+	propertyNameTrim = malloc(sizeof(char) * (strlen(propertyName) + 1));
+	trim(propertyName, propertyNameTrim);
+	propertyValueTrim = malloc(sizeof(char) * (strlen(propertyValue) + 1));
+	trim(propertyValue, propertyValueTrim);
+
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  trimmed name='%s', value='%s'",
+		propertyNameTrim, propertyValueTrim);
+#endif
+
     /* See if the property already exists */
     setValue = TRUE;
-    property = getInnerProperty(properties, propertyName);
+    property = getInnerProperty(properties, propertyNameTrim);
     if (property == NULL) {
         /* This is a new property */
         property = createInnerProperty();
 
         /* Store a copy of the name */
-        property->name = malloc(sizeof(char) * (strlen(propertyName) + 1));
-        strcpy(property->name, propertyName);
+        property->name = malloc(sizeof(char) * (strlen(propertyNameTrim) + 1));
+        strcpy(property->name, propertyNameTrim);
 
         /* Insert this property at the correct location. */
         insertInnerProperty(properties, property);
@@ -616,7 +663,7 @@ void addProperty(Properties *properties, const char *propertyName, const char *p
 
     if (setValue) {
         /* Set the property value. */
-        setInnerProperty(property, propertyValue);
+        setInnerProperty(property, propertyValueTrim);
 
         /* Store the final flag */
         property->finalValue = finalValue;
@@ -625,17 +672,21 @@ void addProperty(Properties *properties, const char *propertyName, const char *p
         property->quotable = quotable;
 
         /* See if this is a special property */
-        if ((strlen(propertyName) > 4) && (strstr(propertyName, "set.") == propertyName)) {
+        if ((strlen(propertyNameTrim) > 4) && (strstr(propertyNameTrim, "set.") == propertyNameTrim)) {
             /* This property is an environment variable definition.  Get the
              *  value back out of the property as it may have had environment
              *  replacements. */
 #ifdef _DEBUG
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "setEnv('%s', '%s')",
-                propertyName + 4, property->value);
+                propertyNameTrim + 4, property->value);
 #endif
-            setEnv(propertyName + 4, property->value);
+            setEnv(propertyNameTrim + 4, property->value);
         }
     }
+
+	/* Free up the trimmed buffers */
+	free(propertyNameTrim);
+	free(propertyValueTrim);
 }
 
 /**
