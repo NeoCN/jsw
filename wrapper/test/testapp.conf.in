@@ -1,0 +1,70 @@
+#********************************************************************
+# Wrapper parameters
+#********************************************************************
+# Java Application
+wrapper.java.command=@java.home@/bin/java
+
+# Java Main class
+wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp
+
+# Java Classpath (include wrapper.jar)  Add class path elements as needed starting from 1
+wrapper.java.classpath.1=@wrapper.home@/lib/wrapper.jar
+wrapper.java.classpath.2=@wrapper.home@/lib/wrappertest.jar
+
+# Java Library Path (location of wrapper.lib)
+wrapper.java.library.path=@java.library.path@
+
+# Java Additional Parameters
+#wrapper.java.additional.1=-Xrs
+#wrapper.java.additional.2=-Xcheck:jni
+#wrapper.java.additional.3=-verbose:jni
+
+# Initial Java Heap Size (in MB)
+wrapper.java.initmemory=16
+
+# Maximum Java Heap Size (in MB)
+wrapper.java.maxmemory=64
+
+# Application parameters.  Add parameters as needed starting from 1
+wrapper.app.parameter.1=com.silveregg.wrapper.test.QuickComplete
+#wrapper.app.parameter.1=com.silveregg.wrapper.test.BackgroundThreads
+#wrapper.app.parameter.1=com.silveregg.wrapper.test.DaemonThreads
+
+# Port which the native wrapper code will attempt to connect to
+wrapper.port=1777
+
+# Log file to use for wrapper output logging.
+wrapper.logfile=testwrapper.log
+
+# Number of seconds to allow for the JVM to be launched and contact the wrapper before the
+#  wrapper should assume that the JVM is hung and terminate the JVM process.  0 means never
+#  time out.  Defaults to 30 seconds.
+wrapper.startup.timeout=30
+
+# Number of seconds to allow between the wrapper pinging the JVM and the response.  0 means
+#  never time out.  Defaults to 30 seconds.
+wrapper.ping.timeout=30
+
+# Show debug messages
+wrapper.debug=TRUE
+
+#********************************************************************
+# Wrapper NT Service parameters
+#********************************************************************
+# WARNING - Do not modify any of these parameters when an application
+#  using this configuration file has been installed as a service.
+#  Please uninstall the service before modifing this section.  The
+#  service can then be reinstalled.
+
+# Name of the service
+wrapper.ntservice.name=WrapperSimpleAppTest
+
+# Display name of the service
+wrapper.ntservice.displayname=Wrapper Simple Application Test
+
+# Service dependencies.  Add dependencies as needed starting from 1
+wrapper.ntservice.dependency.1=
+
+# Mode in which the service is installed.  AUTO_START or DEMAND_START
+wrapper.ntservice.starttype=AUTO_START
+
