@@ -10,6 +10,7 @@
     
     <menu label="Documentation">
         <menu-item label="Introduction"               href="introduction.html"/>
+        <menu-item label="Example"                    href="example.html"/>
         <menu-item label="API Overview"               href="api-overview.html"/>
         <menu-item label="Configuration Overview"     href="config-overview.html"/>
         <menu-item label="Launching Your Application" href="launch-overview.html"/>

@@ -24,8 +24,12 @@
  */
 
 // $Log$
-// Revision 1.1  2001/11/07 08:54:20  mortenson
-// Initial revision
+// Revision 1.2  2001/12/06 09:36:24  mortenson
+// Docs changes, Added sample apps, Fixed some problems with
+// relative paths  (See revisions.txt)
+//
+// Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
+// no message
 //
 
 #include <math.h>
@@ -903,6 +907,19 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         index++;
     }
 
+    // Store the Disable Shutdown Hook flag
+    if (wrapperData->isShutdownHookDisabled) {
+        if (strings) {
+            strings[index] = (char *)malloc(sizeof(char) * (38 + 1));
+            if (addQuotes) {
+                sprintf(strings[index], "-Dwrapper.disable_shutdown_hook=\"TRUE\"");
+            } else {
+                sprintf(strings[index], "-Dwrapper.disable_shutdown_hook=TRUE");
+            }
+        }
+        index++;
+    }
+
     // Store the Wrapper JVM ID.  (Get here before incremented)
     if (strings) {
         strings[index] = (char *)malloc(sizeof(char) * (16 + 5 + 1));  // jvmid up to 5 characters
@@ -1433,6 +1450,9 @@ int wrapperLoadConfiguration() {
 
     // Get the debug status
     wrapperData->isDebugging = getBooleanProperty(properties, "wrapper.debug", FALSE);
+    
+    // Get the shutdown hook status
+    wrapperData->isShutdownHookDisabled = getBooleanProperty(properties, "wrapper.disable_shutdown_hook", FALSE);
     
     // Get the timeout settings
     wrapperData->startupTimeout = getIntProperty(properties, "wrapper.startup.timeout", 30);

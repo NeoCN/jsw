@@ -26,8 +26,12 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
-// Revision 1.1  2001/11/07 08:54:20  mortenson
-// Initial revision
+// Revision 1.2  2001/12/06 09:36:24  mortenson
+// Docs changes, Added sample apps, Fixed some problems with
+// relative paths  (See revisions.txt)
+//
+// Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
+// no message
 //
 
 import com.silveregg.wrapper.WrapperManager;
@@ -71,6 +75,14 @@ public class Main implements WrapperListener {
             add(ahButton);
             ahButton.addActionListener(this);
             
+            Button seButton = new Button("System.exit(0)");
+            add(seButton);
+            seButton.addActionListener(this);
+            
+            Button rhButton = new Button("Runtime.getRuntime().halt(0)");
+            add(rhButton);
+            rhButton.addActionListener(this);
+            
             add(new Label("The Access Violation button only works with Sun JVMs."));
             add(new Label("Also try killing the JVM process or pressing CTRL-C in the console window."));
             add(new Label("Simmulate JVM Hang only has an effect when controlled by native Wrapper."));
@@ -88,6 +100,10 @@ public class Main implements WrapperListener {
                 WrapperManager.accessViolationNative();
             } else if (command.equals("Simmulate JVM Hang")) {
                 WrapperManager.appearHung();
+            } else if (command.equals("System.exit(0)")) {
+                System.exit(0);
+            } else if (command.equals("Runtime.getRuntime().halt(0)")) {
+                Runtime.getRuntime().halt(0);
             }
         }
     }
@@ -111,7 +127,9 @@ public class Main implements WrapperListener {
         
         if (_frame != null) {
             _frame.setVisible(false);
-            _frame.dispose();
+            if (!WrapperManager.hasShutdownHookBeenTriggered()) {
+                _frame.dispose();
+            }
             _frame = null;
         }
         

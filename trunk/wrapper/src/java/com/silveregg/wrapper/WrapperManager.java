@@ -26,6 +26,10 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.3  2001/12/06 09:36:24  mortenson
+// Docs changes, Added sample apps, Fixed some problems with
+// relative paths  (See revisions.txt)
+//
 // Revision 1.2  2001/11/08 09:06:58  mortenson
 // Improve JavaDoc text.
 //
@@ -94,6 +98,8 @@ public final class WrapperManager implements Runnable {
     private static boolean _disposed = false;
     private static boolean _started = false;
     private static WrapperManager _instance = null;
+    private static Thread _hook = null;
+    private static boolean _hookTriggered = false;
     
     private static String[] _args;
     private static int _port    = DEFAULT_PORT;
@@ -159,6 +165,32 @@ public final class WrapperManager implements Runnable {
         }
         if (_debug) {
             System.out.println("Wrapper Manager: JVM #" + _jvmId);
+        }
+        
+        // Check to see if we should register a shutdown hook.
+        if (System.getProperty("wrapper.disable_shutdown_hook") == null) {
+            if (_debug) {
+                System.out.println("Wrapper Manager: Registering shutdown hook");
+            }
+            _hook = new Thread() {
+                /**
+                 * Run the shutdown hook. (Triggered by the JVM when it is about to shutdown)
+                 */
+                public void run() {
+                    if (_debug) {
+                        System.out.println("Wrapper Manager: ShutdownHook started");
+                    }
+                    
+                    // Stop the Wrapper cleanly.
+                    _hookTriggered = true;
+                    WrapperManager.stop(0);
+                    
+                    if (_debug) {
+                        System.out.println("Wrapper Manager: ShutdownHook complete");
+                    }
+                }
+            };
+            Runtime.getRuntime().addShutdownHook(_hook);
         }
         
         // A key is required for the wrapper to work correctly.  If it is not
@@ -487,6 +519,13 @@ public final class WrapperManager implements Runnable {
         closeSocket();
     }
     
+    /**
+     * Returns true if the ShutdownHook for the JVM has already been triggered.
+     */
+    public static boolean hasShutdownHookBeenTriggered() {
+        return _hookTriggered;
+    }
+    
     
     /*---------------------------------------------------------------
      * Constructors
@@ -574,7 +613,18 @@ public final class WrapperManager implements Runnable {
         } catch (InterruptedException e) {
         }
         
-        System.exit(exitCode);
+        // Do not call System.exit if this is the ShutdownHook
+        if (Thread.currentThread() == _hook) {
+            // This is the shutdown hook, so fall through
+            System.out.println("here");
+        } else {
+            //  We do not want the ShutdownHook to execute, so unregister it before calling exit
+            if ((_hook != null) && (!_hookTriggered)) {
+                Runtime.getRuntime().removeShutdownHook(_hook);
+                _hook = null;
+            }
+            System.exit(exitCode);
+        }
     }
     
     /**

@@ -24,8 +24,12 @@
  */
 
 // $Log$
-// Revision 1.1  2001/11/07 08:54:20  mortenson
-// Initial revision
+// Revision 1.2  2001/12/06 09:36:24  mortenson
+// Docs changes, Added sample apps, Fixed some problems with
+// relative paths  (See revisions.txt)
+//
+// Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
+// no message
 //
 
 #ifndef _WRAPPER_H
@@ -128,7 +132,8 @@ struct WrapperConfig {
     int     jState;                 // The current state of the jvm
     time_t  jStateTimeout;          // Time until which the current jState is valid
     time_t  lastPingTime;           // Time that the last ping was sent
-    int     isDebugging;            // TRUE if set in the config file 
+    int     isDebugging;            // TRUE if set in the config file
+	int     isShutdownHookDisabled; // TRUE if set in the config file
     int     exitCode;               // Code which the wrapper will exit with
     int     exitRequested;          // Non-zero if another thread has requested that the wrapper and JVM be shutdown
     int     exitAcknowledged;       // Non-zero if the main thread has acknowledged the exit request

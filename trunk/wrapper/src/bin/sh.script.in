@@ -9,63 +9,73 @@
 # wrapper configuration file.
 #
 
+#-----------------------------------------------------------------------------
+# These settings can be modified to fit the needs of your application
+
 # Application
-APP_HOME="@app.home@";
-APP_NAME="@app.name@";
-APP_LONG_NAME="@app.long.name@";
+WRAPPER_HOME=".."
+WRAPPER_NAME="testwrapper"
+WRAPPER_LONG_NAME="Wrapper Test Application"
 
 # Wrapper
-WRAPPER_CMD="$APP_HOME/bin/wrapper";
-WRAPPER_CONF="@app.wrapper.conf@";
+WRAPPER_BIN="$WRAPPER_HOME/bin"
+WRAPPER_CMD="$WRAPPER_BIN/wrapper"
+WRAPPER_CONF="$WRAPPER_HOME/conf/wrapper.conf"
+
+# Do not modify anything beyond this point
+#-----------------------------------------------------------------------------
+
+# Set the current directory so that relative paths in $WRAPPER_CONF will work
+cd $WRAPPER_BIN
 
 # Process ID
 PIDDIR="/var/run"
-PIDFILE="$PIDDIR/$APP_NAME.pid"
+PIDFILE="$PIDDIR/$WRAPPER_NAME.pid"
 pid=""
 
 getpid() {
     if [ -f $PIDFILE ]
     then
-	if [ -r $PIDFILE ]
-	then
-	    pid=`cat $PIDFILE`
-	    if [ "X$pid" != "X" ]
-	    then
-		# Verify that a process with this pid is still running.
-		pid=`/usr/bin/ps -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
-		if [ "X$pid" = "X" ]
-		then
-		    # This is a stale pid file.
-		    rm -f $PIDFILE
-		    echo "Removed stale pid file: $PIDFILE"
-		fi
-	    fi
-	else
-	    echo "Cannot read $PIDFILE."
-	    rm -f $PIDFILE
-	    exit 1
-	fi
+    if [ -r $PIDFILE ]
+    then
+        pid=`cat $PIDFILE`
+        if [ "X$pid" != "X" ]
+        then
+        # Verify that a process with this pid is still running.
+        pid=`/usr/bin/ps -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
+        if [ "X$pid" = "X" ]
+        then
+            # This is a stale pid file.
+            rm -f $PIDFILE
+            echo "Removed stale pid file: $PIDFILE"
+        fi
+        fi
+    else
+        echo "Cannot read $PIDFILE."
+        rm -f $PIDFILE
+        exit 1
+    fi
     fi
 }
  
 start() {
-    echo "Starting $APP_LONG_NAME..."
+    echo "Starting $WRAPPER_LONG_NAME..."
     getpid
     if [ "X$pid" = "X" ]
     then
         exec $WRAPPER_CMD $WRAPPER_CONF &
     else
-        echo "$APP_LONG_NAME is already running."
+        echo "$WRAPPER_LONG_NAME is already running."
         exit 1
     fi
 }
  
 stop() {
-    echo "Stopping $APP_LONG_NAME..."
+    echo "Stopping $WRAPPER_LONG_NAME..."
     getpid
     if [ "X$pid" = "X" ]
     then
-        echo "$APP_LONG_NAME was not running."
+        echo "$WRAPPER_LONG_NAME was not running."
 
     else
         kill $pid
@@ -75,19 +85,19 @@ stop() {
 
         if [ "X$pid" != "X" ]
         then
-	    # SIGTERM didn't work, send SIGKILL.
+        # SIGTERM didn't work, send SIGKILL.
             kill -9 $pid
-	    rm -f $PIDFILE
+        rm -f $PIDFILE
 
             pid=`/usr/bin/ps -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
         fi
 
         if [ "X$pid" != "X" ]
         then
-            echo "Failed to stop $APP_LONG_NAME."
+            echo "Failed to stop $WRAPPER_LONG_NAME."
             exit 1
         else
-            echo "Stopped $APP_LONG_NAME."
+            echo "Stopped $WRAPPER_LONG_NAME."
         fi
     fi
 }

@@ -12,24 +12,25 @@
     <!-- platform -->
     <property name="is.${os.name}" value="true"/>
     
-    <property name="Name" value="Wrapper"/>
-    <property name="name" value="wrapper"/>
+    <property name="Name"          value="Wrapper"/>
+    <property name="name"          value="wrapper"/>
     
     <!-- product version -->
-    <property name="major.version"  value="2" />
-    <property name="version"        value="${major.version}.2.3" />
+    <property name="major.version" value="2" />
+    <property name="version"       value="${major.version}.2.3" />
     
-    <property name="bin.dir" value="bin"/>
-    <property name="src.dir" value="src"/>
-    <property name="lib.dir" value="lib"/>
-    <property name="doc.dir" value="doc"/>
-    <property name="jdoc.dir" value="jdoc"/>
-    <property name="context.dir" value="${src.dir}/documentation"/>
+    <property name="bin.dir"       value="bin"/>
+    <property name="src.dir"       value="src"/>
+    <property name="lib.dir"       value="lib"/>
+    <property name="logs.dir"      value="logs"/>
+    <property name="doc.dir"       value="doc"/>
+    <property name="jdoc.dir"      value="jdoc"/>
+    <property name="context.dir"   value="${src.dir}/documentation"/>
     
-    <property name="build.dir" value="build"/>
+    <property name="build.dir"     value="build"/>
     <property name="build.classes" value="build/classes"/>
     
-    <property name="classpath" value=""/>
+    <property name="classpath"     value=""/>
     
     <path id="tools.class.path">
         <pathelement location="${java.home}/../lib/tools.jar"/>
@@ -47,49 +48,33 @@
     <target name="help" depends="usage"/>
     
     <!-- =================================================================== -->
-    <!-- Initialize Windows NT build properties.                             -->
+    <!-- Init (Linux)                                                        -->
     <!-- =================================================================== -->
-    <target name="init-windows-nt" if="is.Windows NT" >
-        <property name="platform"        value="windows"/>
+    <target name="init-linux" if="is.Linux">
+        <copy file="${src.dir}/bin/bash.script.in" tofile="${bin.dir}/testwrapper"/>
+        <chmod file="${bin.dir}/testwrapper" perm="+x"/> 
     </target>
     
     <!-- =================================================================== -->
-    <!-- Initialize Windows 2000 build properties.                           -->
+    <!-- Init (Solaris)                                                      -->
     <!-- =================================================================== -->
-    <target name="init-windows-2000" if="is.Windows 2000" >
-        <property name="platform"        value="windows"/>
+    <target name="init-solaris" if="is.SunOS">
+        <copy file="${src.dir}/bin/sh.script.in" tofile="${bin.dir}/testwrapper"/>
+        <chmod file="${bin.dir}/testwrapper" perm="+x"/> 
     </target>
     
-    <!-- =================================================================== -->
-    <!-- Initialize Linux build properties.                                  -->
-    <!-- =================================================================== -->
-    <target name="init-linux" if="is.Linux" >
-        <property name="platform"        value="linux"/>
-    </target>
-
-    <!-- =================================================================== -->
-    <!-- Initialize Solaris build properties.                                -->
-    <!-- =================================================================== -->
-    <target name="init-solaris" if="is.SunOS" >
-        <property name="platform"        value="solaris"/>
-    </target>
-
     <!-- =================================================================== -->
     <!-- Initialize build.                                                   -->
     <!-- =================================================================== -->
-    <target name="init" depends="init-windows-nt, init-windows-2000, init-linux, init-solaris">
-        <filter token="java.home"         value="${java.home}" />
-        <filter token="wrapper.home"      value="${basedir}" />
-        <filter token="java.library.path" value="${basedir}/lib/${platform}" />
-        <filter token="platform"          value="${platform}" />
+    <target name="init" depends="init-linux, init-solaris">
+        <!--filter token="java.home"         value="${java.home}" /-->
+        <!--filter token="wrapper.home"      value="${basedir}" /-->
+        <!--filter token="java.library.path" value="${basedir}/lib" /-->
         
         <tstamp/>
         <filter token="version"           value="${version}"       />
         <filter token="build.date"        value="${DSTAMP}"        />
         <filter token="build.time"        value="${TSTAMP}"        />
-        
-        <copy file="test/test.conf.in"    tofile="test/test.conf" filtering="on"/>
-        <copy file="test/testapp.conf.in" tofile="test/testapp.conf" filtering="on"/>
     </target>
     
     <!-- =================================================================== -->
@@ -120,17 +105,14 @@
     <!-- =================================================================== -->
     <!-- Compiles the source code                                            -->
     <!-- =================================================================== -->
-    <target name="compile" depends="convert,update-info">
+    <target name="compile" depends="convert,update-info" 
+        description="Compiles all java and c source">
+        
+        <mkdir dir="${bin.dir}"/>        
         <mkdir dir="${build.dir}"/>
         <mkdir dir="${build.classes}"/>
         <mkdir dir="${lib.dir}"/>
-        <mkdir dir="${lib.dir}/linux"/>
-        <mkdir dir="${lib.dir}/solaris"/>
-        <mkdir dir="${lib.dir}/windows"/>
-        <mkdir dir="${bin.dir}"/>        
-        <mkdir dir="${bin.dir}/linux"/>
-        <mkdir dir="${bin.dir}/solaris"/>
-        <mkdir dir="${bin.dir}/windows"/>
+        <mkdir dir="${logs.dir}"/>
         
         <!-- compile everything under com -->
         <javac srcdir="${src.dir}/java" destdir="${build.classes}"
@@ -165,18 +147,12 @@
               os="Linux">
             <arg line="-f Makefile.linux" />
         </exec>
-        <exec executable="ln" dir="${bin.dir}" os="Linux" output="/dev/null">
-            <arg line="-s linux/wrapper wrapper" />
-        </exec>
         
         <!-- run make on Solaris to build library -->
         <exec executable="gmake" 
               dir="${src.dir}/c" 
               os="SunOS">
             <arg line="-f Makefile.solaris" />
-        </exec>
-        <exec executable="ln" dir="${bin.dir}" os="SunOS" output="/dev/null">
-            <arg line="-s solaris/wrapper wrapper" />
         </exec>
         
     </target>
@@ -247,9 +223,9 @@
     </target>
     
     <!-- =================================================================== -->
-    <!-- Release targets                                                     -->
+    <!-- Release (Common)                                                    -->
     <!-- =================================================================== -->
-    <target name="release-common" depends="main, jdoc, doc" description="common release build">
+    <target name="release-common" depends="main, jdoc, doc">
         <property name="releasesrcfile" value="wrapper_${version}_src"/>
         <property name="releasesrcdir" value="${basedir}/${releasesrcfile}"/>
         <delete dir="${releasesrcdir}"/>
@@ -259,6 +235,8 @@
                 <include name="index.html" />
                 <include name="build.*" />
                 <include name="doc/**" />
+                <include name="bin/*.bat" />
+                <include name="conf/*.conf" />
                 <include name="src/bin/**" />
                 <include name="src/java/**" />
                 <include name="src/c/*.c" />
@@ -270,7 +248,6 @@
                 <include name="src/documentation/**" />
                 <include name="test/*" />
                 <exclude name="test/*.log" />
-                <exclude name="test/*.conf" />
                 <include name="tools/**" />
                 <exclude name="**/CVS/*" />
             </fileset>
@@ -321,7 +298,10 @@
         <gzip zipfile="${releasesrcdir}.tar.gz" src="${releasesrcdir}.tar" />
     </target>
     
-    <target name="release-win" depends="release-common" description="Win32 release build">
+    <!-- =================================================================== -->
+    <!-- Release (Windows)                                                   -->
+    <!-- =================================================================== -->
+    <target name="release-windows" depends="release-common">
         <property name="releasefile" value="wrapper_win32_${version}"/>
         <property name="releasedir" value="${basedir}/${releasefile}"/>
         <delete dir="${releasedir}"/>
@@ -329,9 +309,12 @@
         <copy todir="${releasedir}" >
             <fileset dir="${basedir}" >
                 <include name="index.html" />
-                <include name="bin/windows/Wrapper.exe" />
+                <include name="bin/Wrapper.exe" />
+                <include name="bin/*.bat" />
+                <include name="conf/*.conf" />
+                <include name="lib/Wrapper.dll" />
                 <include name="lib/wrapper.jar" />
-                <include name="lib/windows/Wrapper.dll" />
+                <include name="lib/wrappertest.jar" />
                 <include name="jdoc/**" />
                 <include name="doc/**" />
                 <exclude name="**/CVS/*" />
@@ -343,8 +326,15 @@
             <include name="${releasefile}/**/*" />
         </zip>
     </target>
+    <target name="release-windows-nt" depends="release-windows" if="is.Windows NT">
+    </target>
+    <target name="release-windows-2000" depends="release-windows" if="is.Windows 2000">
+    </target>
     
-    <target name="release-linux" depends="release-common" description="Linux release build">
+    <!-- =================================================================== -->
+    <!-- Release (Linux)                                                     -->
+    <!-- =================================================================== -->
+    <target name="release-linux" depends="release-common" if="is.Linux">
         <property name="releasefile" value="wrapper_linux_${version}"/>
         <property name="releasedir" value="${basedir}/${releasefile}"/>
         <delete dir="${releasedir}"/>
@@ -352,9 +342,12 @@
         <copy todir="${releasedir}" >
             <fileset dir="${basedir}" >
                 <include name="index.html" />
-                <include name="bin/linux/wrapper" />
+                <include name="bin/wrapper" />
+                <include name="bin/testwrapper" />
+                <include name="conf/*.conf" />
                 <include name="lib/wrapper.jar" />
-                <include name="lib/linux/libwrapper.so" />
+                <include name="lib/wrappertest.jar" />
+                <include name="lib/libwrapper.so" />
                 <include name="jdoc/**" />
                 <include name="doc/**" />
                 <include name="src/bin/*.script.in" />
@@ -368,7 +361,10 @@
         <gzip zipfile="${releasedir}.tar.gz" src="${releasedir}.tar" />
     </target>
     
-    <target name="release-solaris" depends="release-common" description="Solaris release build">
+    <!-- =================================================================== -->
+    <!-- Release (Solaris)                                                   -->
+    <!-- =================================================================== -->
+    <target name="release-solaris" depends="release-common" if="is.SunOS">
         <property name="releasefile" value="wrapper_solaris_${version}"/>
         <property name="releasedir" value="${basedir}/${releasefile}"/>
         <delete dir="${releasedir}"/>
@@ -376,9 +372,12 @@
         <copy todir="${releasedir}" >
             <fileset dir="${basedir}" >
                 <include name="index.html" />
-                <include name="bin/solaris/wrapper" />
+                <include name="bin/wrapper" />
+                <include name="bin/testwrapper" />
+                <include name="conf/*.conf" />
                 <include name="lib/wrapper.jar" />
-                <include name="lib/solaris/libwrapper.so" />
+                <include name="lib/wrappertest.jar" />
+                <include name="lib/libwrapper.so" />
                 <include name="jdoc/**" />
                 <include name="doc/**" />
                 <include name="src/bin/*.script.in" />
@@ -393,16 +392,28 @@
     </target>
     
     <!-- =================================================================== -->
+    <!-- Release                                                             -->
+    <!-- =================================================================== -->
+    <target name="release" 
+        depends="release-windows-nt, release-windows-2000, release-linux, release-solaris"
+        description="Builds all release files for the current platform">
+    </target>
+    
+    <!-- =================================================================== -->
     <!-- Run test.                                                           -->
     <!-- =================================================================== -->
     <target name="test" depends="main" description="Launch the test application">
-        <exec executable="${bin.dir}/windows/Wrapper.exe" dir="${basedir}/test" os="Windows NT">
+        <exec executable="${bin.dir}/Wrapper.exe" dir="${bin.dir}" os="Windows NT">
             <arg value="-c"/>
-            <arg value="${basedir}/test/test.conf"/>
+            <arg value="${basedir}/conf/wrapper.conf"/>
+        </exec>
+        <exec executable="${bin.dir}/Wrapper.exe" dir="${bin.dir}" os="Windows 2000">
+            <arg value="-c"/>
+            <arg value="${basedir}/conf/wrapper.conf"/>
         </exec>
     
-        <exec executable="sh" dir="test" os="Linux">
-            <arg value="TestWrapper"/>
+        <exec executable="sh" dir="${bin.dir}" os="Linux">
+            <arg value="testwrapper"/>
         </exec>
     </target>
 
@@ -430,7 +441,6 @@
     <!-- Total cleanup                                                       -->
     <!-- =================================================================== -->
     <target name="total-clean" depends="clean" description="Clean up all build and target files">
-        <delete file="test/test.conf" />
         <delete file="${lib.dir}/wrapper.jar"/>
         <delete file="${lib.dir}/wrappertest.jar"/>
         <exec executable="make" 
@@ -445,10 +455,8 @@
             <arg line="-f Makefile.solaris" />
             <arg value="cleanall"/>
         </exec>
-        <delete dir="${lib.dir}/linux"/>
-        <delete dir="${lib.dir}/solaris"/>
-        <delete dir="${bin.dir}/linux"/>
-        <delete dir="${bin.dir}/solaris"/>
+        <delete file="${lib.dir}/libwrapper.so"/>
+        <delete file="${bin.dir}/wrapper"/>
     </target>
 </project>
 

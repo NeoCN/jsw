@@ -28,4 +28,34 @@
             </listitem>
         </itemizedlist>
     </section>
+    <section>
+        <title>My application is hanging while it is shutting down.</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    If you call System.exit() in your application then Wrapper will catch this and attempt to shutdown the applicaiton cleanly.  If during the shutdown process, your application once again calls System.exit() then the call will block indeffinately causing your application to hang.  There are also problems with calling the destroy() method on an AWT frame or window from within a shutdown hoot thread.  Please take a look at the wrapper.disable_shutdown_hook property in the Configuration File Overview for details on how to avoid this problem.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
+    <section>
+        <title>My JVM is sometimes restarted when the system is heavily loaded.</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Because the Wrapper is using a pinging mechanism to check on the health of the JVM, it is possible that the Wrapper will think that the JVM is hung when it isn't if another process is taking 100% of the CPU for longer than 30 seconds.  This will result in an entry like the following in your log file, and the JVM being restarted:
+                    <informalexample>
+                        <screen format="linespecific"><![CDATA[jvm 1    | 2001/12/01 12:23:23 | start()
+wrapper  | 2001/12/01 12:23:44 | Startup failed: Timed out waiting for signal from JVM.
+wrapper  | 2001/12/01 12:23:44 | Java Virtual Machine did not exit on request, terminated
+wrapper  | 2001/12/01 12:23:49 | Launching a JVM...
+jvm 2    | 2001/12/01 12:23:50 | Initializing...]]></screen>
+                    </informalexample>
+                </para>
+                <para>
+                    The property <literal moreinfo="none">wrapper.ping.timeout=30</literal> in <literal moreinfo="none">conf/wrapper.log</literal> can be used to extend this timeout.  But be aware that this will also lengthen the amount of time that your application will remain hung in the event of a real problem.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
 </article>
