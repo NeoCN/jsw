@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.65  2003/07/30 11:34:18  mortenson
+ * Make the wrapper.port property optional.
+ *
  * Revision 1.64  2003/07/26 12:21:48  mortenson
  * Added support for FreeBSD.  Thanks to Alphonse Bendt for supplying the patch.
  *
@@ -272,7 +275,7 @@ void wrapperProtocolStartServer() {
     /* Create the server socket. */
     ssd = socket(AF_INET, SOCK_STREAM, 0);
     if (ssd == INVALID_SOCKET) {
-        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, "server socket creation failed. (%d)", wrapperGetLastError());
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, "server socket creation failed. (%s)", getLastErrorText());
         return;
     }
 
@@ -284,13 +287,19 @@ void wrapperProtocolStartServer() {
 #endif
 
     if (rc == SOCKET_ERROR) {
-        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, "server socket ioctlsocket failed. (%d)", wrapperGetLastError());
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, "server socket ioctlsocket failed. (%s)", getLastErrorText());
         wrapperProtocolStopServer();
         return;
     }
 
-    /* Start looking for at open server port at the given value.  Loop until a bind is successful */
+    /* If a port was specified in the configuration file then we want to
+     *  try to use that port or find the next available port.  If 0 was
+     *  specified, then we will silently start looking for an available
+     *  port starting at 32000. */
     port = wrapperData->port;
+    if (port <= 0) {
+        port = 32000;
+    }
     trys = 0;
 
   tryagain:
@@ -309,22 +318,23 @@ void wrapperProtocolStartServer() {
 #endif
     
     if (rc == SOCKET_ERROR) {
-
         rc = wrapperGetLastError();
+
+        /* The specified port could bot be bound. */
         if (rc == EADDRINUSE) {
             /* Address in use, try looking at the next one. */
             port++;
             if (port > 65000) {
                 port = 10000;
             }
-            if (trys < 100) {
+            if (trys < 1000) {
                 trys++;
                 goto tryagain;
             }
         }
 
         /* Log an error.  This is fatal, so die. */
-        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_FATAL, "unable to bind listener port %d. (%d)", wrapperData->port, wrapperGetLastError());
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_FATAL, "unable to bind listener port %d. (%s)", wrapperData->port, getLastErrorText());
 
         wrapperStopProcess(rc);
 
@@ -333,7 +343,7 @@ void wrapperProtocolStartServer() {
     }
 
     /* If we got here, then we are bound to the port */
-    if (port != wrapperData->port) {
+    if ((wrapperData->port > 0) && (port != wrapperData->port)) {
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_INFO, "port %d already in use, using port %d instead.", wrapperData->port, port);
     }
     wrapperData->actualPort = port;
@@ -2093,8 +2103,8 @@ int wrapperLoadConfiguration() {
     /* Initialize some values not loaded */
     wrapperData->exitCode = 0;
 
-    /* Get the port */
-    wrapperData->port = getIntProperty(properties, "wrapper.port", 15003);
+    /* Get the port. The int will wrap within the 0-65535 valid range, so no need to test the value. */
+    wrapperData->port = getIntProperty(properties, "wrapper.port", 0);
 
     /* Get the debug status (Property is deprecated but flag is still used) */
     wrapperData->isDebugging = getBooleanProperty(properties, "wrapper.debug", FALSE);

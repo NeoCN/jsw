@@ -172,6 +172,11 @@ $Id$
                     patch.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Make the wrapper.port property optional.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

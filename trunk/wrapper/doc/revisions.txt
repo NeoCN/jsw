@@ -71,6 +71,7 @@ Java Service Wrapper Revision History.
   '#' within the property value.  Bug #777303.
 * Added support for FreeBSD.  Big thanks to Alphonse Bendt for supplying the
   patch.
+* Make the wrapper.port property optional.
 
 3.0.3
 * Added support for Mac OS X.  Big thanks to Andy Barnett for supplying the

@@ -27,9 +27,6 @@ wrapper.java.maxmemory=64
 # Application parameters.  Add parameters as needed starting from 1
 #wrapper.app.parameter.1=
 
-# Port which the native wrapper code will attempt to connect to
-wrapper.port=1777
-
 #********************************************************************
 # Wrapper Logging Properties
 #********************************************************************
