@@ -114,6 +114,12 @@ $Id$
                     related error messages.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem on some HP-UX systems were not working correctly because
+                    the EAGAIN and EWOULDBLOCK constants are not equal with some compilers.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.0">
