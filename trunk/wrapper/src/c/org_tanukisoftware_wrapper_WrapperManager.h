@@ -12,7 +12,7 @@ extern "C" {
 #undef org_tanukisoftware_wrapper_WrapperManager_DEFAULT_SO_TIMEOUT
 #define org_tanukisoftware_wrapper_WrapperManager_DEFAULT_SO_TIMEOUT 10000L
 #undef org_tanukisoftware_wrapper_WrapperManager_DEFAULT_CPU_TIMEOUT
-#define org_tanukisoftware_wrapper_WrapperManager_DEFAULT_CPU_TIMEOUT 10000LL
+#define org_tanukisoftware_wrapper_WrapperManager_DEFAULT_CPU_TIMEOUT 10000i64
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_START
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_START 100L
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_STOP
@@ -151,18 +151,18 @@ JNIEXPORT void JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetC
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeGetUser
- * Signature: ()Lorg/tanukisoftware/wrapper/WrapperUser;
+ * Signature: (Z)Lorg/tanukisoftware/wrapper/WrapperUser;
  */
 JNIEXPORT jobject JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser
-  (JNIEnv *, jclass);
+  (JNIEnv *, jclass, jboolean);
 
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeGetInteractiveUser
- * Signature: ()Lorg/tanukisoftware/wrapper/WrapperUser;
+ * Signature: (Z)Lorg/tanukisoftware/wrapper/WrapperUser;
  */
 JNIEXPORT jobject JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser
-  (JNIEnv *, jclass);
+  (JNIEnv *, jclass, jboolean);
 
 #ifdef __cplusplus
 }

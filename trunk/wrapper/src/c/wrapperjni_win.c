@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.16  2004/01/01 12:51:54  mortenson
+ * Requesting the groups of a user is a fairly heavy operation on Windows, so make
+ * the requesting of a users groups optional.
+ *
  * Revision 1.15  2003/11/05 16:56:25  mortenson
  * Get the version checking code working on Linux.
  *
@@ -367,7 +371,7 @@ setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HANDLE 
  *  the specified process Id.
  */
 jobject
-createWrapperUserForProcess(JNIEnv *env, DWORD processId) {
+createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean groups) {
     HANDLE hProcess;
     HANDLE hProcessToken;
     TOKEN_USER *tokenUser;
@@ -434,8 +438,11 @@ createWrapperUserForProcess(JNIEnv *env, DWORD processId) {
 
                             /* Now create the new wrapperUser using the constructor arguments collected above. */
                             wrapperUser = (*env)->NewObject(env, wrapperUserClass, constructor, jSID, jUserName, jDomainName, loginTime);
-
-                            setUserGroups(env, wrapperUserClass, wrapperUser, hProcessToken);
+                            
+                            /* If the caller requested the user's groups then look them up. */
+                            if (groups) {
+                                setUserGroups(env, wrapperUserClass, wrapperUser, hProcessToken);
+                            }
                         }
                     }
                 } else {
@@ -544,11 +551,11 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle(JNIEnv *env
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeGetUser
- * Signature: ()Lorg/tanukisoftware/wrapper/WrapperUser;
+ * Signature: (Z)Lorg/tanukisoftware/wrapper/WrapperUser;
  */
 /*#define UVERBOSE*/
 JNIEXPORT jobject JNICALL
-Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass clazz) {
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass clazz, jboolean groups) {
     DWORD processId;
 
 #ifdef UVERBOSE
@@ -559,18 +566,18 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
     /* Get the current processId. */
     processId = GetCurrentProcessId();
 
-    return createWrapperUserForProcess(env, processId);
+    return createWrapperUserForProcess(env, processId, groups);
 }
 
 
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeGetInteractiveUser
- * Signature: ()Lorg/tanukisoftware/wrapper/WrapperUser;
+ * Signature: (Z)Lorg/tanukisoftware/wrapper/WrapperUser;
  */
 /*#define IUVERBOSE*/
 JNIEXPORT jobject JNICALL
-Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *env, jclass clazz) {
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *env, jclass clazz, jboolean groups) {
     HANDLE snapshot;
     PROCESSENTRY32 processEntry;
     THREADENTRY32 threadEntry;
@@ -623,7 +630,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
                                      *  desktop.  I tried using GetUserObjectInformation, but the Sid
                                      *  returned does not seem to map to a valid account. */
 
-                                    wrapperUser = createWrapperUserForProcess(env, processEntry.th32ProcessID);
+                                    wrapperUser = createWrapperUserForProcess(env, processEntry.th32ProcessID, groups);
                                 } else {
 #ifdef IUVERBOSE
                                     printf("GetThreadDesktop failed: %s\n", getLastErrorText());
