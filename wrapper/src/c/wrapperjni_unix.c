@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.18  2004/12/08 05:08:49  mortenson
+ * Correct the return types of the unsupported Windows service related methods.
+ *
  * Revision 1.17  2004/11/22 09:35:47  mortenson
  * Add methods for controlling other services.
  *
@@ -317,7 +320,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
 JNIEXPORT jobjectArray JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, jclass clazz) {
     /** Not supported on UNIX platforms. */
-    return null;
+    return NULL;
 }
 
 /*
@@ -328,7 +331,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, j
 JNIEXPORT jobject JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIEnv *env, jclass clazz, jbyteArray serviceName, jint controlCode) {
     /** Not supported on UNIX platforms. */
-    return 1;
+    return NULL;
 }
 
 #endif
