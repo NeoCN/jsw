@@ -14,35 +14,29 @@
         <title>Note from the Wrapper team.</title>
         <note>
             <para>
-                2004-01-16 - There has been an update to the
-                <ulink url="license.html">Java Service Wrapper's license</ulink>
-                so that it now includes all required copyright information.   The license
-                changes should not affect users in any way.  However, the changes need to be
-                applied retractively to all versions of the Java Service Wrapper between
-                3.0.0 and 3.0.5 as the license they were released under was incomplete.
-                If you have one of these versions please update your license.   A full
-                explanation has been included on the license page.
-            </para>
-        </note>
-        <note>
-            <para>
-                Over the past year, the Java Service Wrapper has seen a huge jump in
-                its install base.  From our logs, we see that an increasing number
-                of both large and small companies are showing interest in the Wrapper.
+                The Java Service Wrapper continues to be actively developed.  Each new
+                version is the culmination of a great deal of time and energy in development,
+                testing, documentation and user support.
             </para>
             <para>
-                We would like to thank all of our users for the great feedback which
+                While the Wrapper is being used within a number of open sourced projects,
+                by far the majority of our user base is directly or indirectly making use of
+                the Wrapper to support commercial applications and or commercial
+                infrastructure.
+            </para>
+            <para>
+                We urge all of our users to please review the value that the Wrapper is
+                providing to your organization.  The Wrapper team develops and maintains
+                the Wrapper on a volunteer basis, but the time and effort involved is real.
+            </para>
+            <para>
+                Please help us to keep the Wrapper project alive, free, and growing, by
+                showing your appreciation and support for the project with a
+                <ulink url="donate.html">donation</ulink> to the team.
+            </para>
+            <para>
+                We would also like to thank all of our users for the ongoing feedback which
                 has helped us to continuously improve the Wrapper over time.
-            </para>
-            <para>
-                A large percentage of our user base is using the Wrapper to support
-                commercial applications and or commercial infrastructure.  We urge
-                all of our users to please look at the value that the Wrapper is
-                providing to your organization.  The Wrapper team develops and
-                maintains the Wrapper on a volunteer basis.  But the time and effort
-                involved is real.  Please help us to keep the Wrapper project alive,
-                free, and growing, by showing your appreciation and support for the
-                project with a <ulink url="donate.html">donation</ulink> to the team.
             </para>
             <para>
                 Sincerely,
@@ -51,6 +45,33 @@
                 The Java Service Wrapper team.
             </para>
         </note>
+    </section>
+    <section>
+        <title>Quick Start</title>
+        <para>
+            As with any application, reading through all the documentation the best
+            way to get started.  But realizing the desire to get your feet wet
+            quickly...   At a minimum, you should glance over this page to see
+            what the Wrapper is.
+        </para>
+        <para>
+            In order to get up and running with the Wrapper, at a minimum you will
+            need to read over the <ulink url="integrate.html">Integration Page</ulink>.
+            There you will be presented with one of 3 integration methods.  From the
+            overviews, choose the one that best meets your needs and then proceed
+            to read over the page dedicated to that integration method.
+        </para>
+        <para>
+            Finally, the Wrapper provides a very large feature set.  At some point
+            it is suggested that you look over the
+            <ulink url="properties.html">full properties list</ulink> to get a
+            feel for the full power of the Java Service Wrapper.
+        </para>
+        <para>
+            If you run into problems or have any questions, the preferred method
+            for getting help is posting a message to the
+            <ulink url="http://sourceforge.net/mail/?group_id=39428">wrapper-user mailing list</ulink>.
+        </para>
     </section>
     <section>
         <title>Introduction</title>
@@ -158,9 +179,19 @@
                 to avoid problems with a memory or resource leak of some kind.
             </para>
             <para>
-                JVM restarts are triggered by calling
+                JVM restarts can be triggered from within the JVM by making a call to
                 <literal moreinfo="none">WrapperManager.restart()</literal>.  See the
                 <ulink url="javadocs.html">Javadocs</ulink> for more details.
+            </para>
+            <para>
+                There are also more passive ways to trigger restarts.  The Wrapper has
+                the ability to <ulink url="prop-filter-x-n.html">monitor console output</ulink>
+                and trigger shutdowns or restarts whenever certain text is detected.
+            </para>
+            <para>
+                The Wrapper can also be configured to either restart another JVM
+                instance or shudown normally depending on the
+                <ulink url="prop-on-exit-n.html">exit code</ulink> returned by a JVM.
             </para>
         </section>
         <section id="flexible">
@@ -191,7 +222,7 @@
         <section id="logging">
             <title>Logging</title>
             <para>
-                While the Wrapper does not attempt to, not should it, replace any
+                While the Wrapper does not attempt to, nor should it, replace any
                 of the great logging tools available, it does provide a number of
                 properties to configure how stdout and stderr output to the JVM console
                 is handled.  This output can be logged to any combination of the console,
@@ -199,11 +230,18 @@
             </para>
             <para>
                 Logging the output to the JVM console can be critical to tracking down
-                problems with an application.  When a JVM is being run as a service
-                under Windows, or as a daemon under UNIX, the console output is lost.
-                Most Logging tools will only log output specifically directed to the
-                logger.  This does not include OutOfMemory errors or fatal JVM heap
-                dumps.
+                problems with an application.  Without the Wrapper, when a JVM is being
+                run as a service under Windows, or as a daemon under UNIX, the console
+                output would normally be lost.   The Wrapper makes sure that all console
+                output is logged.
+            </para>
+            <para>
+                Java-based logging tools are only capable of logging output generated from
+                within the JVM.  If the JVM crashes or prints out low level messages such
+                as thread dumps, there is normally no way to log it.  The Wrapper logs all
+                console output from the JVM process regardless of its source meaning that
+                a record of any crash will survive even after the Wrapper has restarted
+                the JVM.
             </para>
             <para>
                 See the <ulink url="props-logging.html">Logging Configuration</ulink>
