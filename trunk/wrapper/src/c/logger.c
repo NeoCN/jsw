@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.45  2004/07/09 17:04:57  mortenson
+ * Set an icon for the Wrapper binary on Windows versions.
+ *
  * Revision 1.44  2004/07/05 07:43:53  mortenson
  * Fix a deadlock on solaris by being very careful that we never perform any direct
  * logging from within a signal handler.
@@ -158,6 +161,7 @@
 #include <windows.h>
 #include <tchar.h>
 #include <conio.h>
+#include "messages.h"
 #else
 #include <syslog.h>
 #include <strings.h>
@@ -872,45 +876,87 @@ void sendEventlogMessage( int source_id, int level, char *szBuff ) {
 
     /* Build the source header */
     switch( source_id ) {
-        case WRAPPER_SOURCE_WRAPPER:
-            sprintf( header, "wrapper" );
-        break;
+    case WRAPPER_SOURCE_WRAPPER:
+        sprintf( header, "wrapper" );
+    break;
 
-        case WRAPPER_SOURCE_PROTOCOL:
-            sprintf( header, "wrapperp" );
-        break;
+    case WRAPPER_SOURCE_PROTOCOL:
+        sprintf( header, "wrapperp" );
+    break;
 
-        default:
-            sprintf( header, "jvm %d", source_id );
-        break;
+    default:
+        sprintf( header, "jvm %d", source_id );
+    break;
     }
 
     /* Build event type by level */
     switch( level ) {
-        case LEVEL_FATAL:
-            eventType = EVENTLOG_ERROR_TYPE;
-        break;
+	case LEVEL_ADVICE: /* Will not get in here. */
+    case LEVEL_FATAL:
+        eventType = EVENTLOG_ERROR_TYPE;
+    break;
 
-        case LEVEL_ERROR:
-        case LEVEL_WARN:
-            eventType = EVENTLOG_WARNING_TYPE;
-        break;
+    case LEVEL_ERROR:
+    case LEVEL_WARN:
+        eventType = EVENTLOG_WARNING_TYPE;
+    break;
 
-        case LEVEL_STATUS:
-        case LEVEL_INFO:
-        case LEVEL_DEBUG:
-            eventType = EVENTLOG_INFORMATION_TYPE;
-        break;
+    case LEVEL_STATUS:
+    case LEVEL_INFO:
+    case LEVEL_DEBUG:
+        eventType = EVENTLOG_INFORMATION_TYPE;
+    break;
     }
 
-    /* Handle categories */
-    categoryID = 10; /* jvmxx */
-    if( source_id == WRAPPER_SOURCE_WRAPPER )
-        categoryID = 11; /* wrapper */
-    else if( source_id == WRAPPER_SOURCE_PROTOCOL )
-        categoryID = 12; /* wrapperp */
-    else if( (source_id >= 1) && (source_id <= 9) )
-        categoryID = source_id; /* jvm1-9 */
+    /* Set the category id to the appropriate resource id. */
+	if ( source_id == WRAPPER_SOURCE_WRAPPER ) {
+		categoryID = MSG_EVENT_LOG_CATEGORY_WRAPPER;
+	} else if ( source_id == WRAPPER_SOURCE_PROTOCOL ) {
+		categoryID = MSG_EVENT_LOG_CATEGORY_PROTOCOL;
+	} else {
+		/* Source is a JVM. */
+		switch ( source_id ) {
+		case 1:
+			categoryID = MSG_EVENT_LOG_CATEGORY_JVM1;
+			break;
+
+		case 2:
+			categoryID = MSG_EVENT_LOG_CATEGORY_JVM2;
+			break;
+
+		case 3:
+			categoryID = MSG_EVENT_LOG_CATEGORY_JVM3;
+			break;
+
+		case 4:
+			categoryID = MSG_EVENT_LOG_CATEGORY_JVM4;
+			break;
+
+		case 5:
+			categoryID = MSG_EVENT_LOG_CATEGORY_JVM5;
+			break;
+
+		case 6:
+			categoryID = MSG_EVENT_LOG_CATEGORY_JVM6;
+			break;
+
+		case 7:
+			categoryID = MSG_EVENT_LOG_CATEGORY_JVM7;
+			break;
+
+		case 8:
+			categoryID = MSG_EVENT_LOG_CATEGORY_JVM8;
+			break;
+
+		case 9:
+			categoryID = MSG_EVENT_LOG_CATEGORY_JVM9;
+			break;
+
+		default:
+			categoryID = MSG_EVENT_LOG_CATEGORY_JVMXX;
+			break;
+		}
+	}
 
     /* Place event in eventlog */
     strings[0] = header;
@@ -918,7 +964,7 @@ void sendEventlogMessage( int source_id, int level, char *szBuff ) {
     strings[2] = 0;
     eventID = level;
 
-    handle = RegisterEventSource( 0, loginfoSourceName );
+    handle = RegisterEventSource( NULL, loginfoSourceName );
     if( !handle )
         return;
 
@@ -926,12 +972,12 @@ void sendEventlogMessage( int source_id, int level, char *szBuff ) {
         handle,                   /* handle to event log */
         eventType,                /* event type */
         categoryID,				  /* event category */
-        100,                      /* event identifier */
-        0,                        /* user security identifier */
+        MSG_EVENT_LOG_MESSAGE,    /* event identifier */
+        NULL,                     /* user security identifier */
         2,                        /* number of strings to merge */
         0,                        /* size of binary data */
         (const char **) strings,  /* array of strings to merge */
-        0                         /* binary data buffer */
+        NULL                      /* binary data buffer */
     );
     if (result == 0) {
         /* If there are any errors accessing the event log, like it is full, then disable its output. */

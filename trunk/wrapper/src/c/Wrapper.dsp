@@ -127,6 +127,10 @@ SOURCE=.\property.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\resource.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\wrapper.h
 # End Source File
 # Begin Source File
@@ -139,7 +143,15 @@ SOURCE=.\wrapperinfo.h
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 # Begin Source File
 
-SOURCE=.\messages.rc
+SOURCE=.\MSG00001.bin
+# End Source File
+# Begin Source File
+
+SOURCE=.\wrapper.ico
+# End Source File
+# Begin Source File
+
+SOURCE=.\Wrapper.rc
 # End Source File
 # End Group
 # Begin Source File
