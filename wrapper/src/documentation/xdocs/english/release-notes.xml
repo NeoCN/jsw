@@ -137,6 +137,14 @@ $Id$
                     section for details.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Changed the default value for the wrapper.java.initmemory property to be 2MB.
+                    This is in line with the default for the JVM.  The minimum value was also
+                    changed from 8MB to 1MB to make it possible to reduce the footprint of
+                    applications to what is possible without using the wrapper.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

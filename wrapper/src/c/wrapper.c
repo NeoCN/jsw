@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.44  2003/02/08 16:39:55  mortenson
+ * Changed the default value for the wrapper.java.initmemory property to be 2MB.
+ * This is in line with the default for the JVM.
+ *
  * Revision 1.43  2003/02/07 16:05:27  mortenson
  * Implemented feature request #676599 to enable the filtering of JVM output to
  * trigger JVM restarts or Wrapper shutdowns.
@@ -855,7 +859,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 
     /* Initial JVM memory */
     if (strings) {
-        initMemory = __min(__max(getIntProperty(properties, "wrapper.java.initmemory", 8), 8), 4096); /* 8 <= n <= 4096 */
+        initMemory = __min(__max(getIntProperty(properties, "wrapper.java.initmemory", 2), 1), 4096); /* 1 <= n <= 4096 */
         strings[index] = (char *)malloc(sizeof(char) * (5 + 4 + 1));  /* Allow up to 4 digits. */
         sprintf(strings[index], "-Xms%dm", initMemory);
     }
