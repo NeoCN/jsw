@@ -24,6 +24,10 @@
  */
 
 // $Log$
+// Revision 1.10  2002/01/28 01:14:36  mortenson
+// Changed default nt description.
+// Looks like some tabs to spaces conversions also.
+//
 // Revision 1.9  2002/01/28 01:01:53  rybesh
 // few minor fixes to get solaris version to compile
 //
@@ -184,7 +188,7 @@ void wrapperProtocolStartServer() {
     // Create the server socket.
     ssd = socket(PF_INET, SOCK_STREAM, 0);
     if (ssd == INVALID_SOCKET) {
-		log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, "server socket creation failed. (%d)", wrapperGetLastError());
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, "server socket creation failed. (%d)", wrapperGetLastError());
         return;
     }
 
@@ -247,8 +251,8 @@ void wrapperProtocolStartServer() {
     wrapperData->actualPort = port;
 
     if (wrapperData->isDebugging) {
-	    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "server listening on port %d.", wrapperData->actualPort);
-	}
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "server listening on port %d.", wrapperData->actualPort);
+    }
 
     // Tell the socket to start listening.
     rc = listen(ssd, 1);
@@ -269,9 +273,9 @@ void wrapperProtocolStopServer() {
         rc = close(ssd);
 #endif
         if (rc == SOCKET_ERROR) {
-	        if (wrapperData->isDebugging) {
-	            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "server socket close failed. (%d)", wrapperGetLastError());
-			}
+         if (wrapperData->isDebugging) {
+             log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "server socket close failed. (%d)", wrapperGetLastError());
+            }
         }
         ssd = INVALID_SOCKET;
     }
@@ -318,17 +322,17 @@ void wrapperProtocolOpen() {
             // There are no incomming sockets right now.
             return;
         } else {
-	        if (wrapperData->isDebugging) {
-		        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket creation failed. (%d)", rc);
-			}
+         if (wrapperData->isDebugging) {
+              log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket creation failed. (%d)", rc);
+            }
             return;
         }
     }
 
     if (wrapperData->isDebugging) {
-	    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "accepted a socket from %s on port %d",
-		           (char *)inet_ntoa(addr_srv.sin_addr), ntohs(addr_srv.sin_port));
-	}
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "accepted a socket from %s on port %d",
+                 (char *)inet_ntoa(addr_srv.sin_addr), ntohs(addr_srv.sin_port));
+    }
 
     // Make the socket non-blocking
 #ifdef WIN32
@@ -338,8 +342,8 @@ void wrapperProtocolOpen() {
 #endif
     if (rc == SOCKET_ERROR) {
         if (wrapperData->isDebugging) {
-	        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket ioctlsocket failed. (%d)", wrapperGetLastError());
-		}
+         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket ioctlsocket failed. (%d)", wrapperGetLastError());
+        }
         wrapperProtocolClose();
         return;
     }
@@ -356,9 +360,9 @@ void wrapperProtocolClose() {
         rc = close(sd);
 #endif
         if (rc == SOCKET_ERROR) {
-	        if (wrapperData->isDebugging) {
-				log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket close failed. (%d)", wrapperGetLastError());
-			}
+         if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket close failed. (%d)", wrapperGetLastError());
+            }
         }
         sd = INVALID_SOCKET;
     }
@@ -671,17 +675,17 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     int initMemory = 0, maxMemory;
     char paramBuffer[128];
     int i, j, len2;
-	int cpLen, cpLenAlloc;
-	char *tmpString;
+    int cpLen, cpLenAlloc;
+    char *tmpString;
 #ifdef WIN32
-	char cpPath[512];
-	char *c;
-	long handle;
-	int len;
-	struct _finddata_t fblock;
+    char cpPath[512];
+    char *c;
+    long handle;
+    int len;
+    struct _finddata_t fblock;
 #else
-	glob_t g;
-	int findex;
+    glob_t g;
+    int findex;
 #endif
 
     index = 0;
@@ -768,156 +772,156 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     }
     index++;
     if (strings) {
-		// Build a classpath
-		cpLen = 0;
-		cpLenAlloc = 1024;
+        // Build a classpath
+        cpLen = 0;
+        cpLenAlloc = 1024;
         strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
-		
-		// Add an open quote the classpath
-		if (addQuotes) {
-			sprintf(&(strings[index][cpLen]), "\"");
-			cpLen++;
-		}
+        
+        // Add an open quote the classpath
+        if (addQuotes) {
+            sprintf(&(strings[index][cpLen]), "\"");
+            cpLen++;
+        }
 
-		// Loop over the classpath entries adding each one
-		i = 0;
-		j = 0;
-		do {
+        // Loop over the classpath entries adding each one
+        i = 0;
+        j = 0;
+        do {
             sprintf(paramBuffer, "wrapper.java.classpath.%d", i + 1);
             prop = getStringProperty(properties, paramBuffer, NULL);
             if (prop) {
                 len2 = strlen(prop);
                 if (len2 > 0) {
-					// Does this contain wildcards?
-				    if ((strchr(prop, '*') != NULL) || (strchr(prop, '?') != NULL)) {
-						// Need to do a wildcard search
+                    // Does this contain wildcards?
+                    if ((strchr(prop, '*') != NULL) || (strchr(prop, '?') != NULL)) {
+                        // Need to do a wildcard search
 #ifdef WIN32
-						// Extract any path information of the beginning of the file
-						strcpy(cpPath, prop);
-						c = max(strrchr(cpPath, '\\'), strrchr(cpPath, '/'));
-						if (c == NULL) {
-							cpPath[0] = '\0';
-						} else {
-							c[1] = '\0'; // terminate after the slash
-						}
-						len = strlen(cpPath);
+                        // Extract any path information of the beginning of the file
+                        strcpy(cpPath, prop);
+                        c = max(strrchr(cpPath, '\\'), strrchr(cpPath, '/'));
+                        if (c == NULL) {
+                            cpPath[0] = '\0';
+                        } else {
+                            c[1] = '\0'; // terminate after the slash
+                        }
+                        len = strlen(cpPath);
 
-						//if (_findfirst(prop, &fblock, _A_NORMAL) != 0) {
-						if ((handle = _findfirst(prop, &fblock)) <= 0) {
-							if (errno == ENOENT) {
-								log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Warning no matching files for classpath element: %s", prop);
-							} else {
-								// Encountered an error of some kind.
-								log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Error in findfirst for classpath element: %s", prop);
-							}
-						} else {
-							len2 = strlen(fblock.name);
+                        //if (_findfirst(prop, &fblock, _A_NORMAL) != 0) {
+                        if ((handle = _findfirst(prop, &fblock)) <= 0) {
+                            if (errno == ENOENT) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Warning no matching files for classpath element: %s", prop);
+                            } else {
+                                // Encountered an error of some kind.
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Error in findfirst for classpath element: %s", prop);
+                            }
+                        } else {
+                            len2 = strlen(fblock.name);
 
-							// Is there room for the entry?
-							if (cpLen + len + len2 + 3 > cpLenAlloc) {
-								// Resize the buffer
-								tmpString = strings[index];
-								cpLenAlloc += 1024;
-								strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
-								sprintf(strings[index], tmpString);
-								free(tmpString);
-							}
+                            // Is there room for the entry?
+                            if (cpLen + len + len2 + 3 > cpLenAlloc) {
+                                // Resize the buffer
+                                tmpString = strings[index];
+                                cpLenAlloc += 1024;
+                                strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
+                                sprintf(strings[index], tmpString);
+                                free(tmpString);
+                            }
 
-							if (j > 0) {
-								strings[index][cpLen++] = wrapperClasspathSeparator; // separator
-							}
-							sprintf(&(strings[index][cpLen]), "%s%s", cpPath, fblock.name);
-							cpLen += (len + len2);
-							j++;
+                            if (j > 0) {
+                                strings[index][cpLen++] = wrapperClasspathSeparator; // separator
+                            }
+                            sprintf(&(strings[index][cpLen]), "%s%s", cpPath, fblock.name);
+                            cpLen += (len + len2);
+                            j++;
 
-							// Look for additional entries
-							while (_findnext(handle, &fblock) == 0) {
-								len2 = strlen(fblock.name);
+                            // Look for additional entries
+                            while (_findnext(handle, &fblock) == 0) {
+                                len2 = strlen(fblock.name);
 
-								// Is there room for the entry?
-								if (cpLen + len + len2 + 3 > cpLenAlloc) {
-									// Resize the buffer
-									tmpString = strings[index];
-									cpLenAlloc += 1024;
-									strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
-									sprintf(strings[index], tmpString);
-									free(tmpString);
-								}
+                                // Is there room for the entry?
+                                if (cpLen + len + len2 + 3 > cpLenAlloc) {
+                                    // Resize the buffer
+                                    tmpString = strings[index];
+                                    cpLenAlloc += 1024;
+                                    strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
+                                    sprintf(strings[index], tmpString);
+                                    free(tmpString);
+                                }
 
-								if (j > 0) {
-									strings[index][cpLen++] = wrapperClasspathSeparator; // separator
-								}
-								sprintf(&(strings[index][cpLen]), "%s%s", cpPath, fblock.name);
-								cpLen += (len + len2);
-								j++;
-							}
+                                if (j > 0) {
+                                    strings[index][cpLen++] = wrapperClasspathSeparator; // separator
+                                }
+                                sprintf(&(strings[index][cpLen]), "%s%s", cpPath, fblock.name);
+                                cpLen += (len + len2);
+                                j++;
+                            }
 
-							// Close the file search
-							_findclose(handle);
-						}
+                            // Close the file search
+                            _findclose(handle);
+                        }
 #else
-						// * * Wildcard support for unix
-						glob(prop, GLOB_MARK | GLOB_NOSORT, NULL, &g);
+                        // * * Wildcard support for unix
+                        glob(prop, GLOB_MARK | GLOB_NOSORT, NULL, &g);
 
-						if( g.gl_pathc > 0 ) {
-							for( findex=0; findex<g.gl_pathc; findex++ ) {
-								// Is there room for the entry?
-								len2 = strlen(g.gl_pathv[findex]);
-								if (cpLen + len2 + 3 > cpLenAlloc) {
-									// Resize the buffer
-									tmpString = strings[index];
-									cpLenAlloc += 1024;
-									strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
-									sprintf(strings[index], tmpString);
-									free(tmpString);
-								}
+                        if( g.gl_pathc > 0 ) {
+                            for( findex=0; findex<g.gl_pathc; findex++ ) {
+                                // Is there room for the entry?
+                                len2 = strlen(g.gl_pathv[findex]);
+                                if (cpLen + len2 + 3 > cpLenAlloc) {
+                                    // Resize the buffer
+                                    tmpString = strings[index];
+                                    cpLenAlloc += 1024;
+                                    strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
+                                    sprintf(strings[index], tmpString);
+                                    free(tmpString);
+                                }
 
-								if (j > 0) {
-									strings[index][cpLen++] = wrapperClasspathSeparator; // separator
-								}
-								sprintf(&(strings[index][cpLen]), "%s", g.gl_pathv[findex]);
-								cpLen += len2;
-								j++;
-							}
-						} else {
-							log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Warning no matching files for classpath element: %s", prop);
-						}
+                                if (j > 0) {
+                                    strings[index][cpLen++] = wrapperClasspathSeparator; // separator
+                                }
+                                sprintf(&(strings[index][cpLen]), "%s", g.gl_pathv[findex]);
+                                cpLen += len2;
+                                j++;
+                            }
+                        } else {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Warning no matching files for classpath element: %s", prop);
+                        }
 
-						globfree(&g);
+                        globfree(&g);
 #endif
-					} else {
-						// Is there room for the entry?
-						if (cpLen + len2 + 3 > cpLenAlloc) {
-							// Resize the buffer
-							tmpString = strings[index];
-							cpLenAlloc += 1024;
-							strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
-							sprintf(strings[index], tmpString);
-							free(tmpString);
-						}
+                    } else {
+                        // Is there room for the entry?
+                        if (cpLen + len2 + 3 > cpLenAlloc) {
+                            // Resize the buffer
+                            tmpString = strings[index];
+                            cpLenAlloc += 1024;
+                            strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
+                            sprintf(strings[index], tmpString);
+                            free(tmpString);
+                        }
 
-	                    if (j > 0) {
-							strings[index][cpLen++] = wrapperClasspathSeparator; // separator
-						}
-						sprintf(&(strings[index][cpLen]), prop);
+                     if (j > 0) {
+                            strings[index][cpLen++] = wrapperClasspathSeparator; // separator
+                        }
+                        sprintf(&(strings[index][cpLen]), prop);
                         cpLen += len2;
-						j++;
-					}
+                        j++;
+                    }
                 }
                 i++;
             }
         } while (prop);
-		if (j == 0) {
-			// No classpath, use default. always room
+        if (j == 0) {
+            // No classpath, use default. always room
             if (addQuotes) {
-				sprintf(&(strings[index][cpLen++]), "./");
+                sprintf(&(strings[index][cpLen++]), "./");
             }
-		}
-		// Add ending quote
-		if (addQuotes) {
-			sprintf(&(strings[index][cpLen]), "\"");
-			cpLen++;
-		}
+        }
+        // Add ending quote
+        if (addQuotes) {
+            sprintf(&(strings[index][cpLen]), "\"");
+            cpLen++;
+        }
     }
     index++;
 
@@ -1430,7 +1434,7 @@ void wrapperBuildNTServiceInfo() {
     wrapperData->ntServiceDisplayName = (char *)getStringProperty(properties, "wrapper.ntservice.displayname", "Wrapper");
 
     // Load the service description
-    wrapperData->ntServiceDescription = (char *)getStringProperty(properties, "wrapper.ntservice.description", "Java Wrapper Service");
+    wrapperData->ntServiceDescription = (char *)getStringProperty(properties, "wrapper.ntservice.description", wrapperData->ntServiceDisplayName);
 
     // *** Build the dependency list ***
     len = 0;
@@ -1494,28 +1498,28 @@ int wrapperLoadConfiguration() {
     setLogfileFormat((char *)getStringProperty(properties, "wrapper.logfile.format", "LPTM"));
 
     // Load log file log level
-	setLogfileLevel((char *)getStringProperty(properties, "wrapper.logfile.loglevel", "INFO"));
+    setLogfileLevel((char *)getStringProperty(properties, "wrapper.logfile.loglevel", "INFO"));
 
     // Load max log filesize log level
-	setLogfileMaxFileSize((char *)getStringProperty(properties, "wrapper.logfile.maxsize", "0"));
+    setLogfileMaxFileSize((char *)getStringProperty(properties, "wrapper.logfile.maxsize", "0"));
 
     // Load log files level
-	setLogfileMaxLogFiles((char *)getStringProperty(properties, "wrapper.logfile.maxfiles", "0"));
+    setLogfileMaxLogFiles((char *)getStringProperty(properties, "wrapper.logfile.maxfiles", "0"));
 
     // Load console format
-	setConsoleLogFormat((char *)getStringProperty(properties, "wrapper.console.format", "PM"));
+    setConsoleLogFormat((char *)getStringProperty(properties, "wrapper.console.format", "PM"));
 
     // Load console log level
-	setConsoleLogLevel((char *)getStringProperty(properties, "wrapper.console.loglevel", "INFO"));
+    setConsoleLogLevel((char *)getStringProperty(properties, "wrapper.console.loglevel", "INFO"));
 
     // Load syslog log level
-	setSyslogLevel((char *)getStringProperty(properties, "wrapper.syslog.loglevel", "NONE"));
+    setSyslogLevel((char *)getStringProperty(properties, "wrapper.syslog.loglevel", "NONE"));
 
-	// Load syslog event source name
-	setSyslogEventSourceName((char *)getStringProperty(properties, "wrapper.ntservice.name", "Wrapper"));
+    // Load syslog event source name
+    setSyslogEventSourceName((char *)getStringProperty(properties, "wrapper.ntservice.name", "Wrapper"));
 
-	// Register the syslog message file
-	registerSyslogMessageFile( );
+    // Register the syslog message file
+    registerSyslogMessageFile( );
 
     // Initialize some values not loaded
     wrapperData->exitCode = 0;
@@ -1525,15 +1529,15 @@ int wrapperLoadConfiguration() {
 
     // Get the debug status (Property is deprecated but flag is still used)
     wrapperData->isDebugging = getBooleanProperty(properties, "wrapper.debug", FALSE);
-	if (wrapperData->isDebugging) {
-		// For backwards compatability
-		setConsoleLogLevelInt(LEVEL_DEBUG);
-		setLogfileLevelInt(LEVEL_DEBUG);
-	} else {
-		if (loggerNeedsDebug()) {
-			wrapperData->isDebugging = TRUE;
-		}
-	}
+    if (wrapperData->isDebugging) {
+        // For backwards compatability
+        setConsoleLogLevelInt(LEVEL_DEBUG);
+        setLogfileLevelInt(LEVEL_DEBUG);
+    } else {
+        if (loggerNeedsDebug()) {
+            wrapperData->isDebugging = TRUE;
+        }
+    }
     
     // Get the shutdown hook status
     wrapperData->isShutdownHookDisabled = getBooleanProperty(properties, "wrapper.disable_shutdown_hook", FALSE);
