@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.47  2003/07/04 03:36:05  mortenson
+ * Improve the error message displayed on Windows when the configured Java
+ * command can not be executed or does not exist.
+ *
  * Revision 1.46  2003/07/04 03:18:36  mortenson
  * Improve the error message displayed when the NT EventLog is full in response
  * to feature request #643617.
@@ -811,7 +815,8 @@ void wrapperExecute() {
         int err=GetLastError();
         /* This was placed to handle the Swedish WinNT bug */
         if (err!=NO_ERROR) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "can not execute \"%s\" (ERR=%d)", commandline, err);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to execute Java command.  %s", getLastErrorText());
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "    %s", commandline);
             wrapperProcess = NULL;
             return;
         }
