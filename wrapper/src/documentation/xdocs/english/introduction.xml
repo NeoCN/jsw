@@ -187,8 +187,9 @@
         <title>Supported Platforms</title>
         <para>
             The Wrapper can be build from source without modification on Windows, Linux,
-            Solaris, AIX, and HP-UX systems.  It you have tested the Wrapper build on any
-            other platforms, please let us know and we will add them to the list.
+            Solaris, AIX, HP-UX, and Macintosh OS X systems.  It you have tested the
+            Wrapper build on any other platforms, please let us know and we will add
+            them to the list.
         </para>
     </section>
 </chapter>
