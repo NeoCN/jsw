@@ -181,7 +181,8 @@
         <javac srcdir="${src.dir}/java" destdir="${build.classes}"
                deprecation="on"
                debug="on"
-               optimize="on">
+               optimize="on"
+               target="1.2"> <!-- The 1.2 target is done so we work with older JVMs -->
             <classpath id="compile.classpath"/>
         </javac>
 
