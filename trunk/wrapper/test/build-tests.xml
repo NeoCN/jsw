@@ -228,6 +228,26 @@
         <replace file="${test.dir}/action.conf"
                  token="wrapper.pidfile=/var/run/aigent.pid"
                  value="wrapper.pidfile=${basedir}/action.pid" />
+        
+        <!-- Shutdown Hook Test -->
+        <delete file="${test.dir}/shutdownhook.conf"/>
+        <filter token="app.name"          value="shutdownhook"/>
+        <filter token="app.long.name"     value="Shutdown Hook Case" />
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${test.dir}/shutdownhook.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/shutdownhook.conf"
+                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
+                 value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+        <replace file="${test.dir}/shutdownhook.conf"
+                 token="#wrapper.app.parameter.1="
+                 value="wrapper.app.parameter.1=com.silveregg.wrapper.test.ShutdownHook" />
+        <replace file="${test.dir}/shutdownhook.conf"
+                 token="wrapper.logfile=../logs/wrapper.log"
+                 value="wrapper.logfile=../test/testwrapper.log" />
+        <replace file="${test.dir}/shutdownhook.conf"
+                 token="wrapper.pidfile=/var/run/aigent.pid"
+                 value="wrapper.pidfile=${basedir}/shutdownhook.pid" />
     </target>
     
     <!-- =================================================================== -->
@@ -361,6 +381,18 @@ set ENV_VAR_4=d]]></replacevalue>
         <replace file="${test.dir}/TestAction.bat"
                  token='"%_APP_HOME%\bin\Wrapper.exe" -c %_WRAPPER_CONF%'
                  value='"%_APP_HOME%\bin\Wrapper.exe" -c %_WRAPPER_CONF% wrapper.app.parameter.1=%1' />
+        
+        <!-- Shutdown Hook Test -->
+        <delete file="${test.dir}/TestShutdownHook.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestShutdownHook.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestShutdownHook.bat"
+                 token='set _APP_HOME=%_APP_HOME:\bin\=%'
+                 value='set _APP_HOME=%_APP_HOME:\test\=%' />
+        <replace file="${test.dir}/TestShutdownHook.bat"
+                 token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
+                 value='set _WRAPPER_CONF="%_APP_HOME%\test\shutdownhook.conf"' />
     </target>
     
     <!-- =================================================================== -->
@@ -482,23 +514,23 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/action"
               filtering="on"/>
-    <replace file="${test.dir}/action">
-        <replacetoken><![CDATA['start')
-        start
-        ;;]]></replacetoken>
-        <replacevalue><![CDATA['start')
-        start $2
-        ;;]]></replacevalue>
+        <replace file="${test.dir}/action">
+            <replacetoken><![CDATA['start')
+            start
+            ;;]]></replacetoken>
+            <replacevalue><![CDATA['start')
+            start $2
+            ;;]]></replacevalue>
         </replace>
-    <replace file="${test.dir}/action">
-        <replacetoken><![CDATA['restart')
-        stop
-        start
-        ;;]]></replacetoken>
-        <replacevalue><![CDATA['restart')
-        stop
-        start $2
-        ;;]]></replacevalue>
+        <replace file="${test.dir}/action">
+            <replacetoken><![CDATA['restart')
+            stop
+            start
+            ;;]]></replacetoken>
+            <replacevalue><![CDATA['restart')
+            stop
+            start $2
+            ;;]]></replacevalue>
         </replace>
         <replace file="${test.dir}/action">
             <replacetoken><![CDATA[exec -a $APP_NAME $WRAPPER_CMD $WRAPPER_CONF &]]></replacetoken>
@@ -513,6 +545,15 @@ export ENV_VAR_4=d]]></replacevalue>
             <replacevalue><![CDATA[Usage: $0 { start <action> | stop | restart | dump }]]></replacevalue>
         </replace>
         <chmod file="${test.dir}/action" perm="+x"/> 
+        
+        
+        <!-- Shutdown Hook Test -->
+        <filter token="app.name"          value="shutdownhook"/>
+        <filter token="app.long.name"     value="Shutdown Hook Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/shutdownhook"
+              filtering="on"/>
+        <chmod file="${test.dir}/shutdownhook" perm="+x"/> 
         
         <!-- Get rid of the temp script file -->
         <delete file="${test.dir}/temp.script.in"/>

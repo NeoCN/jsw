@@ -16,6 +16,8 @@ quickcomplete
 quickcomplete.conf
 restarter
 restarter.conf
+shutdownhook
+shutdownhook.conf
 testwrapper.log
 TestAction.bat
 TestBackgroundThreads.bat
@@ -26,4 +28,5 @@ TestNoReturn.bat
 TestPercentOutput.bat
 TestQuickComplete.bat
 TestRestarter.bat
+TestShutdownHook.bat
 
