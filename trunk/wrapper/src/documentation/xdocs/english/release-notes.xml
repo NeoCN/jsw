@@ -36,6 +36,13 @@ $Id$
                     event loop more cycles.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where the values of environment variables set in the
+                    configuration file were not correct when those values included references
+                    to other environment variables.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
