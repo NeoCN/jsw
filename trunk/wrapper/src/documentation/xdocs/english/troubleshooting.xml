@@ -9,6 +9,18 @@
 <article id="index">
     <title>Troubleshooting</title>
     <section>
+        <title>I am unable to install my application as a service under Windows 2000 or NT.</title>
+        <para>
+            On Windows 2000 or NT, you will see the following error message if you attempt to install a service when logged in as a user without Administrator privileges.
+            <informalexample>
+                <screen format="linespecific"><![CDATA[OpenSCManager failed - access denied.]]></screen>
+            </informalexample>
+        </para>
+        <para>
+            Solution.  Contact your system administrator and beg them to install the service for you.  Easy if that is you.
+        </para>
+    </section>
+    <section>
         <title>My Application will not start.  What can I do to narrow down the problem?</title>
         <para>
             Output describing the problem should be displayed in the console as well as the configured log file.  To get more detailed output, edit your wrapper.conf file and enable debugging by uncommenting the wrapper.debug property.  This will display very detailed output at every step in the process of launching and monitoring your application.
