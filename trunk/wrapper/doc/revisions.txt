@@ -7,6 +7,10 @@ Java Service Wrapper Revision History.
   The new file is offered as an alternative to the default batch files, and
   can be found at src/bin/AppCommand.bat.in.  Thanks to Mike Castle for
   donating the new script.
+* The Windows version of the Wrapper was not correctly registering that it
+  would accept SHUTDOWN messages when running as a service.  The Wrapper
+  was getting the message anyway so this should not change functionality.
+  Thanks to Jason Tishler for noticing this and sending in a patch.
   
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the
