@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.95  2004/04/08 03:51:38  mortenson
+ * Add a default WRAPPER_FILE_SEPARATOR environment variable.
+ *
  * Revision 1.94  2004/04/08 03:21:57  mortenson
  * Added an environment variable, WRAPPER_PATH_SEPARATOR, whose value is set
  * to either ':' or ';' on startup.
@@ -344,8 +347,10 @@ SOCKET sd = INVALID_SOCKET;
 
 void wrapperAddDefaultProperties() {
 #ifdef WIN32
+    addPropertyPair(properties, "set.WRAPPER_FILE_SEPARATOR=\\", FALSE, FALSE);
     addPropertyPair(properties, "set.WRAPPER_PATH_SEPARATOR=;", FALSE, FALSE);
 #else
+    addPropertyPair(properties, "set.WRAPPER_FILE_SEPARATOR=/", FALSE, FALSE);
     addPropertyPair(properties, "set.WRAPPER_PATH_SEPARATOR=:", FALSE, FALSE);
 #endif
 }

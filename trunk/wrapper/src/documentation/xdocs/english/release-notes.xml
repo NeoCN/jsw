@@ -327,9 +327,10 @@ $Id$
             </listitem>
             <listitem>
                 <para>
-                    Added an environment variable, WRAPPER_PATH_SEPARATOR, whose value is set
-                    to either ':' or ';' on startup.  It can be used in the wrapper.conf file
-                    to construct platform independent property values.
+                    Added a pair of <ulink url="props-envvars.html#default-definitions">environment variables</ulink>,
+                    WRAPPER_FILE_SEPARATOR and WRAPPER_PATH_SEPARATOR, whose values are set to
+                    either '/' and ':' or '\' and ';' on startup.  They can be used in the
+                    wrapper.conf file to construct platform independent property values.
                 </para>
             </listitem>
         </itemizedlist>
