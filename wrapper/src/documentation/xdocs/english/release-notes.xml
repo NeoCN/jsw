@@ -94,6 +94,21 @@ $Id$
                     the WrapperListener.controlEvent() method was not being called as documented.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Changed the way the WrapperSimpleApp and WrapperStartStopApp respond to
+                    control events so that the JVM will respond and call WrapperManager.stop()
+                    even when being controlled by the Wrapper.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Modified the suggested behavior of the WrapperListener.controlEvent() method.
+                    Users who have implemented the WrapperListener interface themselves should
+                    review the <ulink url="javadocs.html">javadocs</ulink>.  The changes are not
+                    required and applications will continue to function as they did before.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

@@ -38,6 +38,13 @@ Java Service Wrapper Revision History.
   when running under the Wrapper on Windows.  This was not a problem in most
   cases as the Wrapper was taking care of the processing of the events.  But
   the WrapperListener.controlEvent() method was not being called as documented.
+* Changed the way the WrapperSimpleApp and WrapperStartStopApp respond to
+  control events so that the JVM will respond and call WrapperManager.stop()
+  even when being controlled by the Wrapper.
+* Modified the suggested behavior of the WrapperListener.controlEvent() method.
+  Users who have implemented the WrapperListener interface themselves should
+  review the Javadocs.  The changes are not required and applications will
+  continue to function as they did before.
 
 3.0.3
 * Added support for Mac OS X.  Big thanks to Andy Barnett for supplying the
