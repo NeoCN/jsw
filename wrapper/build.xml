@@ -550,6 +550,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                 <include name="src/bin/**" />
                 <include name="src/conf/**" />
                 <include name="src/java/**" />
+                <include name="src/test/**" />
                 <include name="src/c/*.bat" />
                 <include name="src/c/*.c" />
                 <include name="src/c/*.c.in" />
