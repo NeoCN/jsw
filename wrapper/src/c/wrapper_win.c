@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.67  2004/03/10 14:09:23  mortenson
+ * Fix a potential access violation with very large system paths.
+ * Fix a potential problem with the catch block executing before the logger was
+ * initialized.
+ *
  * Revision 1.66  2004/01/24 17:13:40  mortenson
  * Make sure that we only attempt to set the console title when it is actually going
  * to be visible.
@@ -244,7 +249,8 @@ barf
 SERVICE_STATUS          ssStatus;       
 SERVICE_STATUS_HANDLE   sshStatusHandle;
 
-static char *systemPath[256];
+#define SYSTEM_PATH_MAX_LEN 256
+static char *systemPath[SYSTEM_PATH_MAX_LEN];
 static HANDLE wrapperProcess = NULL;
 static DWORD  wrapperProcessId = 0;
 static HANDLE wrapperChildStdoutWr = NULL;
@@ -294,12 +300,13 @@ void buildSystemPath() {
     printf("Getting the system path: %s\n", envBuffer);
 #endif
 
-    /* Build an array of the path elements.  To make it easy, just */
-    /*  assume there won't be more than 255 path elements. */
+    /* Build an array of the path elements.  To make it easy, just
+     *  assume there won't be more than 255 path elements. Verified
+	 *  in the loop. */
     i = 0;
     lc = envBuffer;
     /* Get the elements ending in a ';' */
-    while ((c = strchr(lc, ';')) != NULL)
+    while (((c = strchr(lc, ';')) != NULL) && (i < SYSTEM_PATH_MAX_LEN - 2))
     {
         len = c - lc;
         systemPath[i] = malloc(sizeof(char) * (len + 1));
@@ -2256,30 +2263,35 @@ void _CRTAPI1 main(int argc, char **argv) {
      * the table; */
     SERVICE_TABLE_ENTRY serviceTable[2];
 
-    __try {
-        buildSystemPath();
+    buildSystemPath();
 
-        /* Initialize the WrapperConfig structure */
-        wrapperData = malloc(sizeof(WrapperConfig));
-        wrapperData->isConsole = TRUE;
-        wrapperData->wState = WRAPPER_WSTATE_STARTING;
-        wrapperData->jState = WRAPPER_JSTATE_DOWN;
-        wrapperData->jStateTimeoutTicks = 0;
-        wrapperData->jStateTimeoutTicksSet = 0;
-        wrapperData->lastPingTicks = wrapperGetTicks();
-        wrapperData->jvmCommand = NULL;
-        wrapperData->exitRequested = FALSE;
-        wrapperData->exitAcknowledged = FALSE;
-        wrapperData->exitCode = 0;
-        wrapperData->restartRequested = FALSE;
-        wrapperData->jvmRestarts = 0;
-        wrapperData->jvmLaunchTicks = wrapperGetTicks();
-        wrapperData->failedInvocationCount = 0;
+    /* Initialize the WrapperConfig structure */
+    wrapperData = malloc(sizeof(WrapperConfig));
+    wrapperData->isConsole = TRUE;
+    wrapperData->wState = WRAPPER_WSTATE_STARTING;
+    wrapperData->jState = WRAPPER_JSTATE_DOWN;
+    wrapperData->jStateTimeoutTicks = 0;
+    wrapperData->jStateTimeoutTicksSet = 0;
+    wrapperData->lastPingTicks = wrapperGetTicks();
+    wrapperData->jvmCommand = NULL;
+    wrapperData->exitRequested = FALSE;
+    wrapperData->exitAcknowledged = FALSE;
+    wrapperData->exitCode = 0;
+    wrapperData->restartRequested = FALSE;
+    wrapperData->jvmRestarts = 0;
+    wrapperData->jvmLaunchTicks = wrapperGetTicks();
+    wrapperData->failedInvocationCount = 0;
 
-        wrapperInitializeLogging();
+    wrapperInitializeLogging();
 
-        /* Immediately register this thread with the logger. */
-        logRegisterThread(WRAPPER_THREAD_MAIN);
+    /* Immediately register this thread with the logger. */
+    logRegisterThread(WRAPPER_THREAD_MAIN);
+
+    /* Enclose the rest of the program in a try catch block so we can
+	 *  display and log useful information should the need arise.  This
+	 *  must be done after logging has been initialized as the catch
+	 *  block makes use of the logger. */
+	__try {
 #ifdef _DEBUG
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Wrapper DEBUG build!");
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Logging initialized.");
