@@ -7,7 +7,8 @@ wrapper.java.command=java
 # Java Main class
 wrapper.java.mainclass=com.silveregg.wrapper.test.Main
 
-# Java Classpath (include wrapper.jar)  Add class path elements as needed starting from 1
+# Java Classpath (include wrapper.jar)  Add class path elements as
+#  needed starting from 1
 wrapper.java.classpath.1=../lib/wrapper.jar
 wrapper.java.classpath.2=../lib/wrappertest.jar
 
@@ -29,32 +30,6 @@ wrapper.java.maxmemory=64
 # Port which the native wrapper code will attempt to connect to
 wrapper.port=1777
 
-# Number of seconds without CPU before the JVM will issue a warning and extend
-#  timeouts.  This value must be less than the values set for the other
-#  timeouts.  0 means never extend time outs.  Defaults to 10 seconds.
-wrapper.cpu.timeout=10
-
-# Number of seconds to allow for the JVM to be launched and contact the wrapper before the
-#  wrapper should assume that the JVM is hung and terminate the JVM process.  0 means never
-#  time out.  Defaults to 30 seconds.
-wrapper.startup.timeout=30
-
-# Number of seconds to allow between the wrapper pinging the JVM and the response.  0 means
-#  never time out.  Defaults to 30 seconds.
-wrapper.ping.timeout=30
-
-# Number of seconds to allow for the JVM to shutdown before the wrapper should assume that
-#  the JVM is hung and terminate the JVM process.  0 means never time out.  Defaults to 30
-#  seconds.
-wrapper.shutdown.timeout=30
-
-# The Wrapper detects when an application calls System.exit() and treats this as a request
-#  to stop the server by default.
-#wrapper.disable_shutdown_hook=TRUE
-
-# Tell the Wrapper to request a JVM thread dump if the JVM fails to exit when requested.
-#wrapper.request_thread_dump_on_failed_jvm_exit=TRUE
-
 #********************************************************************
 # Wrapper Logging parameters
 #********************************************************************
@@ -73,13 +48,14 @@ wrapper.logfile.format=LPTM
 # Log Level for log file output.  (See docs for log levels)
 wrapper.logfile.loglevel=INFO
 
-# Maximum size that the log file will be allowed to grow to before the log is rolled.
-#  Size is specified in bytes.  The default value of 0, disables log rolling.  May
-#  abreviate with the 'k' (kb) or 'm' (mb) suffix.  For example: 10m = 10 megabytes.
+# Maximum size that the log file will be allowed to grow to before
+#  the log is rolled. Size is specified in bytes.  The default value
+#  of 0, disables log rolling.  May abbreviate with the 'k' (kb) or
+#  'm' (mb) suffix.  For example: 10m = 10 megabytes.
 wrapper.logfile.maxsize=0
 
-# Maximum number of rolled log files which will be allowed before old files are deleted.
-#  The default value of 0 implies no limit.
+# Maximum number of rolled log files which will be allowed before old
+#  files are deleted.  The default value of 0 implies no limit.
 wrapper.logfile.maxfiles=0
 
 # Log Level for sys/event log output.  (See docs for log levels)
@@ -114,6 +90,7 @@ wrapper.ntservice.dependency.1=
 # Mode in which the service is installed.  AUTO_START or DEMAND_START
 wrapper.ntservice.starttype=AUTO_START
 
-# Priority at which the service is run.  NORMAL, LOW, HIGH, or REALTIME
+# Priority at which the service is run.  NORMAL, LOW, HIGH, or
+#  REALTIME
 wrapper.ntservice.process_priority=NORMAL
 
