@@ -13,9 +13,6 @@ libwrapper_so_OBJECTS = wrapperjni_unix.o wrapperjni.o
 BIN = ../../bin
 LIB = ../../lib
 
-#Flags tried while solving "-fPIC" shared library problem
-#-DBSD_COMP -L/usr/java1.3/jre/lib/sparc -ljava -ljvm -lpthread -lc 
-
 all: init realpath wrapper libwrapper.so
 
 clean:
