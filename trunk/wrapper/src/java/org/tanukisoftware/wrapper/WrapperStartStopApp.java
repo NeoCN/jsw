@@ -44,6 +44,11 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.7  2004/08/06 14:57:40  mortenson
+// Fix a problem when using the WrapperStartStopApp helper class.  The usage
+// text was incorrectly being displayed in the console if an exception was
+// thrown while executing the main method of the configured stop class.
+//
 // Revision 1.6  2004/02/16 04:37:20  mortenson
 // Modify the WrapperSimpleApp and WrapperStartStopApp so that the main method
 // of a class is located even if it exists in a parent class rather than the
@@ -323,8 +328,6 @@ public class WrapperStartStopApp
         // InvocationTargetException, the user needs to know what exception
         // their app threw.
         t.printStackTrace();
-
-        showUsage();
         
         // Return a failure exit code
         return 1;
