@@ -26,6 +26,9 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.24  2002/09/30 03:29:48  mortenson
+// Forgot to comment out some low level debug output again after testing.
+//
 // Revision 1.23  2002/09/30 03:22:27  mortenson
 // Fix a problem where the non-daemon thread count was not being calculated
 // correctly.
@@ -1240,22 +1243,22 @@ public final class WrapperManager implements Runnable {
         //  still alive other than this thread.
         int liveCount = 0;
         for (int i = 0; i < threads.length; i++) {
-            ///*
+            /*
             if (threads[i] != null) {
             System.out.println("Check " + threads[i].getName() + " daemon=" + 
             threads[i].isDaemon() + " alive=" + threads[i].isAlive());
             }
-            // */
+            */
             if ((threads[i] != null) && (threads[i].isAlive() && (!threads[i].isDaemon()))) {
                 // Do not count this thread or the wrapper connection thread
                 if ((Thread.currentThread() != threads[i]) && (threads[i] != _commRunner)) {
                     // Non-Daemon living thread
                     liveCount++;
-                    System.out.println("  -> Non-Daemon");
+                    //System.out.println("  -> Non-Daemon");
                 }
             }
         }
-        System.out.println("  => liveCount = " + liveCount);
+        //System.out.println("  => liveCount = " + liveCount);
         
         return liveCount;
     }
