@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.10  2004/09/06 07:49:16  mortenson
+ * Add a new wrapper.loop_output property which makes it possible to enable high
+ * resolution debug output on the progress of the main event loop.
+ *
  * Revision 1.9  2004/08/31 16:36:10  mortenson
  * Rework the new 64-bit code so that it is done with only 32 bit variables.  A little
  * more complicated but it fixes compiler warnings on unix systems.
@@ -230,6 +234,10 @@ void anchorPoll(DWORD nowTicks) {
 #endif
 
     if (wrapperData->anchorFilename) {
+        if (wrapperData->isLoopOutputEnabled) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Loop: check anchor file");
+        }
+        
         if (wrapperGetTickAge(wrapperData->anchorTimeoutTicks, nowTicks) >= 0) {
             result = stat(wrapperData->anchorFilename, &fileStat);
             if (result == 0) {
@@ -882,6 +890,10 @@ void wrapperEventLoop() {
         logTimerStats();
     }
 
+    if (wrapperData->isLoopOutputEnabled) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Event loop started.");
+    }
+
     nextSleep = TRUE;
     do {
         if (nextSleep) {
@@ -900,9 +912,15 @@ void wrapperEventLoop() {
          *  that all messages appropriate for the state changes have been
          *  logged.  Failure to do so can result in a confusing sequence of
          *  output. */
+        if (wrapperData->isLoopOutputEnabled) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Loop: maintain logger");
+        }
         maintainLogger();
 
         /* Check the stout pipe of the child process. */
+        if (wrapperData->isLoopOutputEnabled) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Loop: process jvm output");
+        }
         if ( wrapperReadChildOutput() )
         {
             if (wrapperData->isDebugging) {
@@ -913,6 +931,9 @@ void wrapperEventLoop() {
         }
         
         /* Check for incoming data packets. */
+        if (wrapperData->isLoopOutputEnabled) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Loop: process socket");
+        }
         if ( wrapperProtocolRead() )
         {
             if (wrapperData->isDebugging) {
@@ -923,6 +944,9 @@ void wrapperEventLoop() {
         }
         
         /* See comment for first call above. */
+        if (wrapperData->isLoopOutputEnabled) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Loop: maintain logger(2)");
+        }
         maintainLogger();
 
         /* Get the current time for use in this cycle. */
@@ -961,6 +985,9 @@ void wrapperEventLoop() {
         if (wrapperData->exitRequested) {
             /* A new request for the JVM to be stopped has been made. */
 
+            if (wrapperData->isLoopOutputEnabled) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Loop: exit requested");
+            }
             /* Acknowledge that we have seen the exit request so we don't get here again. */
             wrapperData->exitRequested = FALSE;
             
@@ -1001,6 +1028,11 @@ void wrapperEventLoop() {
                     wrapperData->jStateTimeoutTicksSet = 1;
                 }
             }
+        }
+        
+        if (wrapperData->isLoopOutputEnabled) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Loop: handle state.  wrapper: %s, jvm: %s",
+                wrapperGetWState(wrapperData->wState), wrapperGetJState(wrapperData->jState));
         }
         
         /* Do something depending on the wrapper state */
@@ -1069,4 +1101,8 @@ void wrapperEventLoop() {
             break;
         }
     } while (wrapperData->wState != WRAPPER_WSTATE_STOPPED);
+    
+    if (wrapperData->isLoopOutputEnabled) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Event loop stopped.");
+    }
 }

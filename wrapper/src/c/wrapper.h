@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.54  2004/09/06 07:49:16  mortenson
+ * Add a new wrapper.loop_output property which makes it possible to enable high
+ * resolution debug output on the progress of the main event loop.
+ *
  * Revision 1.53  2004/08/31 16:36:10  mortenson
  * Rework the new 64-bit code so that it is done with only 32 bit variables.  A little
  * more complicated but it fixes compiler warnings on unix systems.
@@ -284,6 +288,7 @@ struct WrapperConfig {
     int     libraryPathAppendPath;  /* TRUE if the PATH environment variable should be appended to the java library path. */
     int     isStateOutputEnabled;   /* TRUE if set in the configuration file.  Shows output on the state of the state engine. */
     int     isTimerOutputEnabled;   /* TRUE if detailed timer output should be included in debug output. */
+    int     isLoopOutputEnabled;    /* TRUE if very detailed output from the main loop should be output. */
     int     isShutdownHookDisabled; /* TRUE if set in the configuration file */
     int     startupDelayConsole;    /* Delay in seconds before starting the first JVM in console mode. */
     int     startupDelayService;    /* Delay in seconds before starting the first JVM in service mode. */
