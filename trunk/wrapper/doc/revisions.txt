@@ -1,9 +1,12 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+2.2.2
+* Added HTML based documentation.
+
 2.2.1
-* Added Linux and Solaris build files
-* Added Linux and Solaris documentation
+* Added Linux and Solaris build files.
+* Added Linux and Solaris documentation.
 
 2.2.0
-* Initial Public Release
+* Initial Public Release.
 

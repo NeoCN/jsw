@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "../dtd/docbook/4.1.2/docbookx.dtd">
+
+<!-- ********************************************************************
+     $Id$
+     ******************************************************************** -->
+
+<chapter id="api-overview">
+ 
+    <title>API Overview</title> 
+
+    <section>
+        <title>Overview of the Wrapper's Java API</title>
+        <para>
+            The Java-side API for Wrapper is quite simple and can be run in one of two modes.
+        </para>
+        <orderedlist>
+            <listitem>
+                <para>
+                    WrapperSimpleApp class:
+                </para>
+                <para>
+                    The first is to use the WrapperSimpleApp class to launch your Java application with out any modifications.  This class handles all communication with the native wrapper and simply launches your application by calling its main method as would be done from the command line.
+                </para>
+                <para>
+                    The drawback to this method is that when your service is stopped, it is killed as if the user had hit CTRL-C in the console.  Your application will not have a chance to call any shutdown code.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Implement WrapperListener:
+                </para>
+                <para>
+                    The second and recommended method is to have your application implement the WrapperListener interface.  This interface provides three methods used to inform your application when it should start and stop as well as when a system control event takes place (for example, the user hitting CTRL-C, or logging out under windows)
+                </para>
+                <para>
+                    The WrapperListener class has the following methods.
+                    <programlisting format="linespecific">public interface WrapperListener {
+    /**
+     * The start method is called when the WrapperManager is signaled by the 
+     *	native wrapper code that it can start its application.  This
+     *	method call is expected to return, so a new thread should be launched
+     *	it necessary.
+     * If there are any problems, then an Integer should be returned, set to
+     *	the desired exit code.  If the application should continue,
+     *	return null.
+     */
+    Integer start(String[] args);
+    
+    /**
+     * Called when the application is shutting down.
+     */
+    int stop(int exitCode);
+    
+    /**
+     * Called whenever the native wrapper code traps a system control signal
+     *  against the Java process.  It is up to the callback to take any actions
+     *  necessary.  Possible values are: WrapperManager.WRAPPER_CTRL_C_EVENT, 
+     *    WRAPPER_CTRL_CLOSE_EVENT, WRAPPER_CTRL_LOGOFF_EVENT, or 
+     *    WRAPPER_CTRL_SHUTDOWN_EVENT
+     */
+    void controlEvent(int event);
+}</programlisting>
+                </para>
+                <para>
+An application implementing the WrapperListener should not directly start the
+application in the main method.  Everything that would normally be in the main
+method should be moved into the start method.
+                </para>
+                <para>
+                    The main method should simply contain the following code:
+                    <programlisting format="linespecific">public class MyApp implements WrapperListener {
+    ... Application methods ...
+    ... WrapperListener methods...
+
+    public static void main(String[] args) {
+        // Start the application.  If the JVM was launched from the native
+        //  Wrapper then the application will wait for the native Wrapper to
+        //  call the application's start method.  Otherwise the start method
+        //  will be called immediately.
+        WrapperManager.start(new MyApp(), args);
+    }
+}</programlisting>
+                </para>
+            </listitem>
+        </orderedlist>
+    </section> 
+</chapter>

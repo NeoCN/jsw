@@ -17,18 +17,34 @@
     
     <!-- product version -->
     <property name="major.version"  value="2" />
-    <property name="version"        value="${major.version}.2.1" />
+    <property name="version"        value="${major.version}.2.2" />
     
     <property name="bin.dir" value="bin"/>
     <property name="src.dir" value="src"/>
     <property name="lib.dir" value="lib"/>
     <property name="doc.dir" value="doc"/>
     <property name="jdoc.dir" value="jdoc"/>
+    <property name="context.dir" value="${src.dir}/documentation"/>
     
     <property name="build.dir" value="build"/>
     <property name="build.classes" value="build/classes"/>
     
     <property name="classpath" value=""/>
+    
+    <path id="tools.class.path">
+        <pathelement location="${java.home}/../lib/tools.jar"/>
+        <fileset dir="${tools.dir}/lib">
+            <include name="*.jar" />
+        </fileset>
+    </path>
+    
+    <!-- =================================================================== -->
+    <!-- Help on usage                                                       -->
+    <!-- =================================================================== -->
+    <target name="usage">
+        <echo message="Use the -projecthelp option instead"/>
+    </target>
+    <target name="help" depends="usage"/>
     
     <!-- =================================================================== -->
     <!-- Initialize Windows NT build properties.                             -->
@@ -77,23 +93,6 @@
     </target>
     
     <!-- =================================================================== -->
-    <!-- Prepares the build directory                                        -->
-    <!-- =================================================================== -->
-    <target name="prepare">
-        <mkdir dir="${build.dir}"/>
-        <mkdir dir="${lib.dir}"/>
-        <mkdir dir="${lib.dir}/linux"/>
-        <mkdir dir="${lib.dir}/solaris"/>
-        <mkdir dir="${lib.dir}/windows"/>
-        <mkdir dir="${bin.dir}"/>        
-        <mkdir dir="${bin.dir}/linux"/>
-        <mkdir dir="${bin.dir}/solaris"/>
-        <mkdir dir="${bin.dir}/windows"/>
-        <mkdir dir="${doc.dir}"/>
-        <mkdir dir="${jdoc.dir}"/>
-    </target>
-    
-    <!-- =================================================================== -->
     <!-- Converts natively encoded src files to ascii                        -->
     <!-- =================================================================== -->
     <target name="convert" depends="init">
@@ -121,8 +120,17 @@
     <!-- =================================================================== -->
     <!-- Compiles the source code                                            -->
     <!-- =================================================================== -->
-    <target name="compile" depends="prepare,convert,update-info">
+    <target name="compile" depends="convert,update-info">
+        <mkdir dir="${build.dir}"/>
         <mkdir dir="${build.classes}"/>
+        <mkdir dir="${lib.dir}"/>
+        <mkdir dir="${lib.dir}/linux"/>
+        <mkdir dir="${lib.dir}/solaris"/>
+        <mkdir dir="${lib.dir}/windows"/>
+        <mkdir dir="${bin.dir}"/>        
+        <mkdir dir="${bin.dir}/linux"/>
+        <mkdir dir="${bin.dir}/solaris"/>
+        <mkdir dir="${bin.dir}/windows"/>
         
         <!-- compile everything under com -->
         <javac srcdir="${src.dir}/java" destdir="${build.classes}"
@@ -190,7 +198,9 @@
     <!-- =================================================================== -->
     <!-- Creates the javadocs archive                                        -->
     <!-- =================================================================== -->
-    <target name="jdoc" depends="prepare">
+    <target name="jdoc" description="generates the Wrapper javadocs">
+        <mkdir dir="${jdoc.dir}"/>
+        
         <!-- Locale must be before any doclet parameters -->
         <javadoc packagenames="com.silveregg.wrapper"
             Locale="en_US"
@@ -209,13 +219,37 @@
     <!-- =================================================================== -->
     <!-- Main target                                                         -->
     <!-- =================================================================== -->
-    <target name="main" depends="jar">
+    <target name="main" depends="jar" description="default development build task">
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Documentation target                                                -->
+    <!-- =================================================================== -->
+    <target name="doc" description="generates the Wrapper documentation">
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${build.dir}/work"/>
+        <mkdir dir="${doc.dir}"/>
+        
+        <java classname="org.apache.cocoon.Main" fork="true">
+            <jvmarg value="-Xmx256M"/>
+            <arg value="-c${context.dir}/"/>
+            <arg value="-d${doc.dir}"/>
+            <arg value="-w${build.dir}/work"/>
+            <arg value="-uINFO"/>
+            <arg value="-f${context.dir}/english.uris"/>
+            <classpath>
+                <path refid="tools.class.path"/>
+            </classpath>
+        </java>
+
+        <copy tofile="${doc.dir}/english/index.html" 
+              file="${doc.dir}/english/introduction.html"/>
     </target>
     
     <!-- =================================================================== -->
     <!-- Release targets                                                     -->
     <!-- =================================================================== -->
-    <target name="release-common" depends="main, jdoc">
+    <target name="release-common" depends="main, jdoc, doc" description="common release build">
         <property name="releasesrcfile" value="wrapper_${version}_src"/>
         <property name="releasesrcdir" value="${basedir}/${releasesrcfile}"/>
         <delete dir="${releasesrcdir}"/>
@@ -232,6 +266,7 @@
                 <include name="src/c/*.dsp" />
                 <include name="src/c/*.dsw" />
                 <include name="src/c/*.plg" />
+                <include name="src/documentation/**" />
                 <include name="test/*" />
                 <exclude name="test/*.log" />
                 <exclude name="test/*.conf" />
@@ -239,19 +274,53 @@
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
-        <zip zipfile="${releasesrcdir}.zip"
+        
+        <!-- Source archives with documentation source -->
+        <zip zipfile="${releasesrcdir}_with_doc_src.zip"
             basedir="${basedir}"
             compress="true">
             <include name="${releasesrcfile}/**/*" />
         </zip>
+        <tar tarfile="${releasesrcdir}_with_doc_src.tar"
+             basedir="${basedir}">
+            <include name="${releasesrcfile}/**/*" />
+        </tar>
+        <gzip zipfile="${releasesrcdir}_with_doc_src.tar.gz" src="${releasesrcdir}_with_doc_src.tar" />
+        
+        <!-- Source archives without documentation source -->
+        <zip zipfile="${releasesrcdir}.zip"
+            basedir="${basedir}"
+            compress="true">
+            <include name="${releasesrcfile}/**/*" />
+            <exclude name="${releasesrcfile}/src/documentation/**/*" />
+            <exclude name="${releasesrcfile}/tools/lib/avalon-excalibur.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/avalon-framework.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/batik-libs.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/cocoon.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/fop-0_20_1-dev.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/logkit.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/NetComponents.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/resolver.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/xalan-2.2.0-D8.jar" />
+        </zip>
         <tar tarfile="${releasesrcdir}.tar"
              basedir="${basedir}">
             <include name="${releasesrcfile}/**/*" />
+            <exclude name="${releasesrcfile}/src/documentation/**/*" />
+            <exclude name="${releasesrcfile}/tools/lib/avalon-excalibur.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/avalon-framework.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/batik-libs.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/cocoon.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/fop-0_20_1-dev.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/logkit.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/NetComponents.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/resolver.jar" />
+            <exclude name="${releasesrcfile}/tools/lib/xalan-2.2.0-D8.jar" />
         </tar>
         <gzip zipfile="${releasesrcdir}.tar.gz" src="${releasesrcdir}.tar" />
     </target>
     
-    <target name="release-win" depends="release-common">
+    <target name="release-win" depends="release-common" description="Win32 release build">
         <property name="releasefile" value="wrapper_win32_${version}"/>
         <property name="releasedir" value="${basedir}/${releasefile}"/>
         <delete dir="${releasedir}"/>
@@ -273,7 +342,7 @@
         </zip>
     </target>
     
-    <target name="release-linux" depends="release-common">
+    <target name="release-linux" depends="release-common" description="Linux release build">
         <property name="releasefile" value="wrapper_linux_${version}"/>
         <property name="releasedir" value="${basedir}/${releasefile}"/>
         <delete dir="${releasedir}"/>
@@ -296,7 +365,7 @@
         <gzip zipfile="${releasedir}.tar.gz" src="${releasedir}.tar" />
     </target>
     
-    <target name="release-solaris" depends="release-common">
+    <target name="release-solaris" depends="release-common" description="Solaris release build">
         <property name="releasefile" value="wrapper_solaris_${version}"/>
         <property name="releasedir" value="${basedir}/${releasefile}"/>
         <delete dir="${releasedir}"/>
@@ -322,7 +391,12 @@
     <!-- =================================================================== -->
     <!-- Run test.                                                           -->
     <!-- =================================================================== -->
-    <target name="test" depends="main">
+    <target name="test" depends="main" description="Launch the test application">
+        <exec executable="${bin.dir}/windows/Wrapper.exe" dir="${basedir}/test" os="Windows NT">
+            <arg value="-c"/>
+            <arg value="${basedir}/test/test.conf"/>
+        </exec>
+    
         <exec executable="sh" dir="test" os="Linux">
             <arg value="TestWrapper"/>
         </exec>
@@ -331,7 +405,7 @@
     <!-- =================================================================== -->
     <!-- Cleans up generated stuff                                           -->
     <!-- =================================================================== -->
-    <target name="clean">
+    <target name="clean" description="Clean up any files from the build">
         <delete dir="${build.dir}"/>
         <delete dir="${jdoc.dir}"/>
         <exec executable="make"
@@ -351,7 +425,7 @@
     <!-- =================================================================== -->
     <!-- Total cleanup                                                       -->
     <!-- =================================================================== -->
-    <target name="total-clean" depends="clean">
+    <target name="total-clean" depends="clean" description="Clean up all build and target files">
         <delete file="test/test.conf" />
         <delete file="${lib.dir}/wrapper.jar"/>
         <delete file="${lib.dir}/wrappertest.jar"/>

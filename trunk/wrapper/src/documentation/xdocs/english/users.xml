@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "../dtd/docbook/4.1.2/docbookx.dtd">
+
+<!-- ********************************************************************
+     $Id$
+     ******************************************************************** -->
+
+<chapter id="users">
+    
+    <title>Users</title>
+    <section>
+        <title>Users of the Java Servlet Wrapper</title>
+        <para>
+            We are interrested in hearing about who and how the Java Servlet Wrapper is being used.  Please email <ulink url="http://sourceforge.net/sendmessage.php?touser=228081">Leif Mortenson</ulink> or <ulink url="http://sourceforge.net/sendmessage.php?touser=9117">Ryan Shaw</ulink> with any comments you have about this project.
+        </para>
+        <para>
+            If you decide to start using the wrapper in your project (commercial or opensource), please send us the name, description and url of your project and we will add it to the list below:
+        </para>
+    </section>
+    <section>
+        <title>Projects</title>
+        <glosslist>
+            <glossentry>
+                <glossterm>Aigent Recommendation Server</glossterm>
+                <glossdef>
+                    <para>
+                        Silver Egg Aigent Server is one-to-one marketing for the Internet.  Aigent helps web sites sell.  It observes the behavior of site visitors and uses artificial intelligence to learn their preferences.  Aigent uses this customer preference knowledge to dynamically adapt and target content that will optimize the visitor's response, increase their click-rate, and net more sales. 
+                    </para>
+                    <para>
+                        Company: <ulink url="http://www.silveregg.co.jp">Silver Egg Technology</ulink>
+                    </para>
+                    <para>
+                        URL: <ulink url="http://www.silveregg.co.jp/silveregg/dev_and_services/products/products_en.html">http://www.silveregg.co.jp/silveregg/dev_and_services/products/products_en.html</ulink>
+                    </para>
+                </glossdef>
+            </glossentry>
+        </glosslist>
+    </section>
+</chapter>

@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "../dtd/docbook/4.1.2/docbookx.dtd">
+
+<!-- ********************************************************************
+     $Id$
+     ******************************************************************** -->
+
+<chapter id="api-overview">
+ 
+    <title>API Overview</title> 
+
+    <section>
+        <title>Launching Your Application Under Wrapper</title>
+        <section>
+            <title>Windows NT/2000</title>
+            <para>
+                To run your application as a console app, execute the following command.
+                <informalexample>
+                    <screen format="linespecific">C:/MyApp/bin> Wrapper.exe -c C:\MyApp\conf\wrapper.conf</screen>
+                </informalexample>
+            </para>
+            <para>
+                To install the application as an NT service, execute.
+                <informalexample>
+                    <screen format="linespecific">C:/MyApp/bin> Wrapper.exe -i C:\MyApp\conf\wrapper.conf</screen>
+                </informalexample>
+            </para>
+            <para>
+                This will create a file in the bin directory called ~serviceMyApp.exe This file contains all information needed to execute your application as an NT service and should not be run manually.
+            </para>
+            <para>
+                Then to start it, either reboot, go to the services control panel, or execute:
+                <informalexample>
+                    <screen format="linespecific">C:/MyApp/bin> net start MyApp</screen>
+                </informalexample>
+            </para>
+            <para>
+                To uninstall the application as an NT service, execute:
+                <informalexample>
+                    <screen format="linespecific">C:/MyApp/bin> Wrapper.exe -r C:\MyApp\conf\wrapper.conf</screen>
+                </informalexample>
+            </para>
+            <para>
+                These commands should normally be placed in batch files in the application's bin directory to make them easier to use.
+            </para>
+        </section>
+        <section>
+            <title>Linux/Solaris</title>
+            <para>
+                To run your application from the command line:
+                <informalexample>
+                    <screen format="linespecific">$ wrapper [your application's wrapper config file]</screen>
+                </informalexample>
+            </para>
+            <para>
+                In the src/bin subdirectory you will find some shell (bash and sh)script templates for starting and stopping wrapped applications cleanly in. To use these scripts with your application, just set the APP_HOME (base dir of your application), APP_NAME, APP_LONG_NAME, and WRAPPER_CONF (path to your application's wrapper config file) variables in the scripts to the appropriate values.
+            </para>
+            <para>
+                You may need to tweak some of the other values (like PIDDIR in the sh script) to get them to fit your environment.
+            </para>
+        </section>
+    </section>
+</chapter>
