@@ -4,10 +4,13 @@ daemonthreads
 daemonthreads.conf
 noreturn
 noreturn.conf
+percentoutput
+percentoutput.conf
 quickcomplete
 quickcomplete.conf
 testwrapper.log
 TestBackgroundThreads.bat
 TestDaemonThreads.bat
 TestNoReturn.bat
+TestPercentOutput.bat
 TestQuickComplete.bat
