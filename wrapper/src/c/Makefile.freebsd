@@ -1,4 +1,4 @@
-CC = gcc -Wall -pedantic -DFREEBSD -DUSE_NANOSLEEP
+CC = gcc -Wall -pedantic -DFREEBSD
 
 INCLUDE=$(JAVA_HOME)/include
 

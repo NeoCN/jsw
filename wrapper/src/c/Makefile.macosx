@@ -1,4 +1,4 @@
-COMPILE = gcc -O3 -Wall -pedantic -DUSE_NANOSLEEP
+COMPILE = gcc -O3 -Wall -pedantic
 
 INCLUDE=$(JAVA_HOME)/include
 
