@@ -284,7 +284,7 @@
     <!-- Test Setup target                                                   -->
     <!-- =================================================================== -->
     <target name="test-setup">
-        <ant antfile="build-tests.xml" dir="${test.dir}" target="test-setup" inheritall="false"/>  
+        <ant antfile="build-tests.xml" target="test-setup" inheritall="false"/>  
     </target>
     
     <!-- =================================================================== -->
