@@ -100,6 +100,16 @@ $Id$
                     <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=1024693&amp;group_id=39428&amp;atid=425190">Feature Request #1024693</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Made the tick based timer the default by changing the default value of the
+                    <ulink url="prop-use-system-time.html">wrapper.use_system_time</ulink>
+                    property to false.  Most users should see an
+                    improvement in reliability under heavy loads with this new setting.  If you
+                    have extended any timeouts in the past, you may wish to try going back to
+                    defaults as they may no longer need to be extended.  
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">

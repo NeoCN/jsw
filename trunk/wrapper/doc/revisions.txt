@@ -36,6 +36,13 @@ Java Service Wrapper Revision History.
   to start, stop, pause, continue, any service on Windows systems.  It is also
   possible to send custom user codes via the service manager.
 * Add comments in the sh script to support the chkconfig command.
+* Implement the ability to read from standard input via System.in.  Feature
+  Request #1024693.
+* Made the tick based timer the default by changing the default value of the
+  wrapper.use_system_time property to false.  Most users should see an
+  improvement in reliability under heavy loads with this new setting.  If you
+  have extended any timeouts in the past, you may wish to try going back to
+  defaults as they may no longer need to be extended.  
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager

@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.127  2004/11/26 09:02:18  mortenson
+ * Enable the tick timer by default.
+ *
  * Revision 1.126  2004/11/22 04:06:43  mortenson
  * Add an event model to make it possible to communicate with user applications in
  * a more flexible way.
@@ -2268,7 +2271,7 @@ int wrapperLoadConfiguration() {
     }
 
     /* Get the use system time flag. */
-    wrapperData->useSystemTime = getBooleanProperty(properties, "wrapper.use_system_time", TRUE);
+    wrapperData->useSystemTime = getBooleanProperty(properties, "wrapper.use_system_time", FALSE);
     /* Get the timer thresholds. Properties are in seconds, but internally we use ticks. */
     wrapperData->timerFastThreshold = getIntProperty(properties, "wrapper.timer_fast_threshold", WRAPPER_TIMER_FAST_THRESHOLD * WRAPPER_TICK_MS / 1000) * 1000 / WRAPPER_TICK_MS;
     wrapperData->timerSlowThreshold = getIntProperty(properties, "wrapper.timer_slow_threshold", WRAPPER_TIMER_SLOW_THRESHOLD * WRAPPER_TICK_MS / 1000) * 1000 / WRAPPER_TICK_MS;

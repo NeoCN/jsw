@@ -30,30 +30,11 @@
             then the Wrapper will make use of the system time for all internal
             timekeeping functions.  Setting it to <ulink url="#use-false">false</ulink>
             will cause the Wrapper to make use of a background timer thread
-            which keeps time by incrementing a "tick" counter.  Defaults to true.
+            which keeps time by incrementing a "tick" counter.  Defaults to false.
         </para>
-        <note>
-            <para>
-                Timekeeping is a critical feature of the Wrapper.  As of this
-                release setting this property to a value of false appears to
-                give the best performance.  However until this feature has had
-                a chance to be "time" tested on the various platforms we have
-                decided to keep the old system time keeping method enabled as
-                the default.
-            </para>
-            <para>
-                At this point the "tick" timer should be thought of as an
-                experimental feature.  We would appreciate as mush real-world
-                testing as possible, and encourage its use.
-            </para>
-            <para>
-                If the "tick" timer proves to be stable and reliable then the
-                plan is to make it the default in a future release.
-            </para>
-        </note>
         <informalexample>
             <simpara><emphasis>Example:</emphasis></simpara>
-            <screen format="linespecific"><![CDATA[wrapper.use_system_time=TRUE]]></screen>
+            <screen format="linespecific"><![CDATA[wrapper.use_system_time=FALSE]]></screen>
         </informalexample>
         <para>
             Each value of this property has advantages in certain situations.
@@ -135,6 +116,7 @@
             <title>wrapper.use_system_time=false (Timer thread)</title>
             <para>
                 As of version 3.1.0, a new timer mechanism was added to the Wrapper.
+                This new timer was made the default in version 3.2.0.
                 Rather than keeping time by querying the system clock, the Wrapper
                 creates a background thread which enters a light weight loop and
                 increments an internal "tick" counter.  Internally all timekeeping
