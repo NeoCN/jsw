@@ -65,6 +65,8 @@ extern "C" {
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_ERROR 5L
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_FATAL
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_FATAL 6L
+#undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_ADVICE
+#define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_ADVICE 7L
 /* Inaccessible static: m_out */
 /* Inaccessible static: m_err */
 /* Inaccessible static: m_disposed */
@@ -108,6 +110,7 @@ extern "C" {
 /* Inaccessible static: m_error */
 /* Inaccessible static: m_warning */
 /* Inaccessible static: m_info */
+/* Inaccessible static: class_00024org_00024tanukisoftware_00024wrapper_00024WrapperManager */
 /* Inaccessible static: class_00024java_00024lang_00024Thread */
 /* Inaccessible static: class_00024java_00024lang_00024Runtime */
 /*

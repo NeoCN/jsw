@@ -67,6 +67,9 @@
             <title>Properties by Name</title>
             <itemizedlist>
                 <listitem>
+                    <ulink url="prop-adviser.html">wrapper.adviser</ulink>
+                </listitem>
+                <listitem>
                     <ulink url="prop-app-parameter-n.html">wrapper.app.parameter.&lt;n&gt;</ulink>
                 </listitem>
                 <listitem>

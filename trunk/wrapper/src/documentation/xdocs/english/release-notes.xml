@@ -251,6 +251,15 @@ $Id$
                     <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=917281&amp;group_id=39428&amp;atid=425187">Bug #916001</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Added an adviser which will print out explanatory messages to the console
+                    and wrapper log file when the Wrapper encounters a commonly made
+                    configuration mistake.  This is designed to cut down on support requests
+                    by new users.  Can be disabled using the
+                    <ulink url="prop-adviser.html">wrapper.adviser</ulink> property.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
