@@ -14,7 +14,7 @@
             On Windows systems, the priority can be set by setting the wrapper.ntservice.process_priority property in the wrapper.conf file.  Please the configuration overview for more details.
         </para>
         <para>
-            On Unix systems, the suggested method for setting the priority is to use the nice command in your shell scripts when launching the Wrapper.
+            On Unix systems, the suggested method for setting the priority is to use the <literal moreinfo="none">nice</literal> command in your shell scripts when launching the Wrapper. The example scripts provided with the Wrapper distribution show how to do this. See <literal moreinfo="none">man nice</literal> or <literal moreinfo="none">info nice</literal> for details about how to use <literal moreinfo="none">nice</literal>.
         </para>
     </section>
     <section>

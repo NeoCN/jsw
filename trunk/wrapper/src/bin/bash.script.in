@@ -19,6 +19,9 @@ APP_LONG_NAME="@app.long.name@"
 WRAPPER_CMD="./wrapper"
 WRAPPER_CONF="../conf/wrapper.conf"
 
+# Priority (see the start() method if you want to use this)
+PRIORITY=
+
 # Do not modify anything beyond this point
 #-----------------------------------------------------------------------------
 
@@ -45,6 +48,10 @@ start() {
     pid=`$PIDOF $APP_NAME`
     if [ -z $pid ]
     then
+        # If you wanted to specify the priority with which
+        # your app runs, you could use nice here:
+        # exec -a $APP_NAME nice -$PRIORITY $WRAPPER_CMD $WRAPPER_CONF &
+        # See "man nice" for more details.
         exec -a $APP_NAME $WRAPPER_CMD $WRAPPER_CONF &
     else
         echo "$APP_LONG_NAME is already running."
