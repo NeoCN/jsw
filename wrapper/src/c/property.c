@@ -24,6 +24,10 @@
  */
 
 // $Log$
+// Revision 1.3  2002/01/27 14:58:27  spocke
+// Fixed bug issue when reading Windows config files in Unix.
+// Control characters like CR was not handled.
+//
 // Revision 1.2  2002/01/10 08:19:37  mortenson
 // Added the ability to override properties from the command line.
 //
@@ -126,6 +130,8 @@ void disposeInnerProperty(Property *property) {
 }
 
 void setInnerProperty(Property *property, const char *propertyValue) {
+	int i, count;
+
     // Free any existing value
     if (property->value != NULL) {
         free(property->value);
@@ -136,7 +142,15 @@ void setInnerProperty(Property *property, const char *propertyValue) {
         property->value = NULL;
     } else {
         property->value = (char *)malloc(sizeof(char) * (strlen(propertyValue) + 1));
-        strcpy(property->value, propertyValue);
+
+		/* Strip any non valid characters like control characters */
+		for( i=0, count=0; i<strlen( propertyValue ); i++ ) {
+			if( propertyValue[i] > 31 ) /* Only add valid chars, skip control chars */
+				property->value[count++] = propertyValue[i];
+		}
+
+		/* Crop string to new size */
+		property->value[count] = '\0';
     }
 }
 
