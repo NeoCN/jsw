@@ -28,11 +28,12 @@
             The wrapper.filter pair of properties make it possible to filter
             the output of a JVM and then perform some action whenever a
             specific trigger string is found.   The filtering process works by
-            scanning through the triggers until a match is found.  At that point
-            the associated action is executed.  Only the first matching trigger
-            will be handled for any line of output.  Each trigger/action pair
-            ends with an integer number counting up from 1. There can be no
-            missing numbers.  If an action is omitted, it will default to
+            comparing JVM console output against registered triggers until a
+            match is found.  At that point the associated action is executed.
+            Only the first matching trigger will be handled for any line of
+            output.  Each trigger/action pair ends with an integer number
+            counting up from 1. There can be no missing numbers.  If an action
+            is omitted, it will default to
             <literal moreinfo="none">RESTART</literal>.
         </para>
         <para>
@@ -54,6 +55,11 @@
             thrown to the console.  Depending on where in an application the
             error is thrown, it is not always possible to trap and handle the
             error in a useful way from within the JVM.
+        </para>
+        <para>
+            Filters work by monitoring the console output of the JVM.  In order
+            for a trigger to be fired by an exception, the Java application
+            must print the message being filtered to the console.
         </para>
         <informalexample>
             <simpara><emphasis>Example:</emphasis></simpara>
