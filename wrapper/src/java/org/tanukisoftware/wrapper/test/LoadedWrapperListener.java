@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.2  2003/04/16 00:05:28  mortenson
+// Fix a segmentation fault on UNIX systems when the first console output
+// from the JVM was an empty line.  Thanks to Mike Castle for finding this.
+//
 // Revision 1.1  2003/04/09 10:19:21  mortenson
 // Add a new load test to help track down timeouts under extreme circumstances.
 //
@@ -354,6 +358,10 @@ public class LoadedWrapperListener
      * Main Method
      *-------------------------------------------------------------*/
     public static void main(String[] args) {
+        // Test an initial line feed as a regression test.  Must be
+        //  the first output from the JVM
+        System.out.println();
+
         System.out.println( "LoadedWrapperListener.main" );
         
         WrapperManager.start( new LoadedWrapperListener(), args );

@@ -3,6 +3,8 @@ Java Service Wrapper Revision History.
 3.0.3
 * Added support for Mac OS X.  Big thanks to Andy Barnett for supplying the
   patch.
+* Fix a segmentation fault on UNIX systems when the first console output
+  from the JVM was an empty line.  Thanks to Mike Castle for finding this.
 
 3.0.2
 * Modified the sh and bash scripts so that console log output is disabled by
