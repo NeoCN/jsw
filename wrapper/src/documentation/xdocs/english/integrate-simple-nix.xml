@@ -112,8 +112,9 @@
                         <literal moreinfo="none">sh</literal> scripts.  Typically
                         <literal moreinfo="none">bash</literal> scripts are used on
                         Linux and <literal moreinfo="none">sh</literal> scripts on
-                        Solaris.  This tutorial will assume that the
-                        <literal moreinfo="none">bash</literal> shell is being used.
+                        Solaris, HP-UX, AIX and Mac OSX.  This tutorial will assume
+                        that the <literal moreinfo="none">bash</literal> shell is
+                        being used.
                     </para>
                     <para>
                         First we will copy the following files into the JBoss
