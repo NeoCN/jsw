@@ -862,70 +862,7 @@ jvm 2    | start()</pre>
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
 <td>
-<pre>wrapper  | Generating new binary for service: C:\SilverEgg\wrapper\bin\~serviceTestWrapper.exe
-wrapper  | Test Wrapper Application installed.</pre>
-</td>
-</tr>
-</table>
-</div>
-                
-</p>
-            
-</p>
-            
-<p align="justify">
-                When a wrapper is installed as a service, it creates a new modified version of the Wrapper.exe file named after the service.  This new exe contains all information necessary to run as a service.  The benifits of doing it this way are that, as you can see, there is no recompilation necessary.  It is also possible to have multiple Wrapper based services running on the same machine, at the same time, as long as their NT service names are configured uniquely.  Attempting to run this generated exe manually will result in the following:
-                <p align="justify">
-                    
-<div align="left">
-<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
-<tr>
-<td>
-<pre>Attempting to start Test Wrapper Application as an NT service.
-
-Calling StartServiceCtrlDispatcher...please wait.
-
-StartServiceControlDispatcher failed!
-
-For help, type
-
-C:\SilverEgg\wrapper\bin\~serviceTestWrapper.exe /?</pre>
-</td>
-</tr>
-</table>
-</div>
-                
-</p>
-            
-</p>
-            
-<p align="justify">
-                Running this binary with the /? command line option will tell you the wrapper.conf file that the service will use to start.
-                <p align="justify">
-                    
-<div align="left">
-<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
-<tr>
-<td>
-<pre>~serviceTestWrapper.exe /?</pre>
-</td>
-</tr>
-</table>
-</div>
-                
-</p>
-                
-<p align="justify">
-                    
-<i>You will see the output:</i>
-                    
-<div align="left">
-<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
-<tr>
-<td>
-<pre>The exe C:\SilverEgg\wrapper\bin\~serviceTestWrapper.exe was built for the
-Service defined in the config file C:\SilverEgg\wrapper\conf\wrapper.conf.
-This file should not be run manually.</pre>
+<pre>wrapper  | Test Wrapper Application installed.</pre>
 </td>
 </tr>
 </table>
@@ -1037,7 +974,7 @@ jvm 1    | 2001/12/06 17:34:22 | start()</pre>
 <p align="justify">
                 Here are the results of several more actions that can take place on an NT service:
                 <div class="glosslist">
-<a name="NC48"></a>
+<a name="NC29"></a>
 <dl>
                     
                         

@@ -1,5 +1,10 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+2.2.5
+* Changed the way NT services are installed so that a patched version of the
+  Wrapper.exe file no longer needs to be created to reference the
+  wrapper.conf file.
+
 2.2.4
 * The value of APP_NAME in the bash or sh scripts no longer needs to be the
   same as the script.

@@ -27,9 +27,6 @@
                 </informalexample>
             </para>
             <para>
-                This will create a file in the bin directory called ~serviceMyApp.exe This file contains all information needed to execute your application as an NT service and should not be run manually.
-            </para>
-            <para>
                 Then to start it, either reboot, go to the services control panel, or execute:
                 <informalexample>
                     <screen format="linespecific">C:\MyApp\bin> net start MyApp</screen>
