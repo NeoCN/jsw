@@ -38,7 +38,17 @@
             </listitem>
             <listitem>
                 <para>
-                    Improved the documentation of the WrapperSimpleApp class.
+                    Improved the documentation of the WrapperSimpleApp and WrapperListener classes.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Adding a new property wrapper.shutdown.timeout to allow the user to extend the length of time that an application is allowed to take shutting down.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Rework the way the shutdown process works so that System.exit will never be called before the stop method in WrapperListener has had a chance to complete.
                 </para>
             </listitem>
         </itemizedlist>
