@@ -5,6 +5,10 @@ Java Service Wrapper Revision History.
   default when the scripts are launched with the 'start' action.  Running with
   the 'console' action will still send output to the console.  Logging to the
   file is still enabled.
+* Modified the wrapper.ping.timeout property so it also controls the ping
+  timeout within the JVM.  Before the timeout on responses to the Wrapper
+  could be controlled, but the ping timeout within the JVM was hardcoded to
+  30 seconds.
 
 3.0.1
 * Fix a problem with the wrapper.disable_shutdown_hook.  Due to a typo in the

@@ -35,6 +35,15 @@
             the Wrapper assumes that it is hung and restarts it.
         </para>
         <para>
+            This same property also controls the amount of time that the JVM will
+            allow to pass without being pinged by the Wrapper.  If the Wrapper
+            does not ping the JVM for longer than the specified timeout, it will
+            exit allowing the Wrapper to resynch by launching a new JVM.   This
+            also makes sure that the JVM will exit if the Wrapper process is
+            terminated abnormally.  (By killing the Wrapper process in the Windows
+            Task Manager, or using kill -9 on Unix systems.)
+        </para>
+        <para>
             With the addition of the
             <ulink url="prop-cpu-timeout.html">wrapper.cpu.timeout</ulink>
             property, there is now almost no reason why you should ever need
@@ -53,6 +62,14 @@
                 setting this property to 0 or some large value will mean
                 that the Wrapper's ability to detect a JVM hang as it is
                 running will be disabled.
+            </simpara>
+            <simpara>
+                Also note that if the Wrapper process is killed abnormally or
+                God forbid crashes, then the JVM will never attempt to resynch
+                with the Wrapper.  If the Wrapper was running as an NT service
+                at the time, it may be necessary to then reboot the machine to
+                stop Java process.  With normal ping timeouts, the JVM would
+                exit on its own after a few seconds.
             </simpara>
         </warning>
     </section>

@@ -23,6 +23,12 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.27  2003/04/02 10:05:53  mortenson
+ * Modified the wrapper.ping.timeout property so it also controls the ping
+ * timeout within the JVM.  Before the timeout on responses to the Wrapper
+ * could be controlled, but the ping timeout within the JVM was hardcoded to
+ * 30 seconds.
+ *
  * Revision 1.26  2003/03/21 21:25:31  mortenson
  * Fix a problem where very heavy output from the JVM can cause the Wrapper to
  * give a false timeout.  The Wrapper now only ready 50 lines of input at a time
@@ -91,6 +97,8 @@
 #define FILTER_ACTION_NONE       90
 #define FILTER_ACTION_RESTART    91
 #define FILTER_ACTION_SHUTDOWN   92
+
+#define WRAPPER_TIMEOUT_MAX      31557600 /* One Year.  Effectively never. */
 
 /* Type definitions */
 typedef struct WrapperConfig WrapperConfig;
@@ -162,6 +170,7 @@ struct WrapperConfig {
 #define WRAPPER_MSG_KEY           (char)110
 #define WRAPPER_MSG_BADKEY        (char)111
 #define WRAPPER_MSG_LOW_LOG_LEVEL (char)112
+#define WRAPPER_MSG_PING_TIMEOUT  (char)113
 
 /** Log commands are actually 116 + the LOG LEVEL. */
 #define WRAPPER_MSG_LOG           (char)116

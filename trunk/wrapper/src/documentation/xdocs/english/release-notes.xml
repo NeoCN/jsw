@@ -19,6 +19,14 @@ $Id$
                     file is still enabled.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Modified the wrapper.ping.timeout property so it also controls the ping
+                    timeout within the JVM.  Before the timeout on responses to the Wrapper
+                    could be controlled, but the ping timeout within the JVM was hardcoded to
+                    30 seconds.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
