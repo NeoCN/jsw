@@ -130,7 +130,7 @@
 
     
 <div>
-<a name="NA2B"></a>
+<a name="NA2D"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="100%">
 <tr>
 <td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+1"><b>Launching Your Application Under Wrapper</b></font></td>
@@ -261,7 +261,8 @@
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
 <td>
-<pre>@echo off
+<pre>
+@echo off
 
 set _WRAPPER_CONF="%~f1"
 if not %_WRAPPER_CONF%=="" goto startup
@@ -289,7 +290,8 @@ set _WRAPPER_CONF=</pre>
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
 <td>
-<pre>@echo off
+<pre>
+@echo off
 
 set _WRAPPER_CONF="%~f1"
 if not %_WRAPPER_CONF%=="" goto startup
@@ -317,7 +319,8 @@ set _WRAPPER_CONF=</pre>
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
 <td>
-<pre>@echo off
+<pre>
+@echo off
 
 set _WRAPPER_CONF="%~f1"
 if not %_WRAPPER_CONF%=="" goto startup
@@ -349,7 +352,8 @@ set _WRAPPER_CONF=</pre>
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
 <td>
-<pre>@echo off
+<pre>
+@echo off
 rem
 rem Find the application home.
 rem
@@ -387,7 +391,9 @@ pause
 
 :end
 set _APP_HOME=
-set _WRAPPER_CONF=</pre>
+set _WRAPPER_CONF=
+
+</pre>
 </td>
 </tr>
 </table>
@@ -454,7 +460,8 @@ set _WRAPPER_CONF=</pre>
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
 <td>
-<pre>#! /bin/bash
+<pre>
+#! /bin/bash
 
 #
 # Skeleton bash script suitable for starting and stopping 
@@ -534,6 +541,24 @@ stop() {
     fi
 }
 
+dump() {
+    echo "Dumping $APP_LONG_NAME..."
+    pid=`$PIDOF $APP_NAME`
+    if [ -z $pid ]
+    then
+        echo "$APP_LONG_NAME was not running."
+    else
+        kill -3 $pid
+
+        if [ $? -ne 0 ]
+        then
+            echo "Failed to dump $APP_LONG_NAME."
+        else
+            echo "Dumped $APP_LONG_NAME."
+        fi
+    fi
+}
+
 case "$1" in
 
     'start')
@@ -547,15 +572,20 @@ case "$1" in
     'restart')
         stop
         start
-    ;;
+        ;;
+
+    'dump')
+        dump
+        ;;
 
     *)
-        echo "Usage: $0 { start | stop | restart }"
+        echo "Usage: $0 { start | stop | restart | dump }"
         exit 1
         ;;
 esac
 
-exit 0</pre>
+exit 0
+</pre>
 </td>
 </tr>
 </table>
@@ -571,7 +601,8 @@ exit 0</pre>
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
 <td>
-<pre>#! /bin/sh
+<pre>
+#! /bin/sh
 
 #
 # Skeleton sh script suitable for starting and stopping 
@@ -589,7 +620,7 @@ exit 0</pre>
 # These settings can be modified to fit the needs of your application
 
 # Application
-WRAPPER_NAME="@app.name@"
+APP_NAME="@app.name@"
 APP_LONG_NAME="@app.long.name@"
 
 # Wrapper
@@ -678,6 +709,26 @@ stop() {
     fi
 }
 
+dump() {
+    echo "Dumping $APP_LONG_NAME..."
+    getpid
+    if [ "X$pid" = "X" ]
+    then
+        echo "$APP_LONG_NAME was not running."
+
+    else
+        kill -3 $pid
+
+        if [ $? -ne 0 ]
+        then
+            echo "Failed to dump $APP_LONG_NAME."
+            exit 1
+        else
+            echo "Dumped $APP_LONG_NAME."
+        fi
+    fi
+}
+
 case "$1" in
 
     'start')
@@ -691,15 +742,20 @@ case "$1" in
     'restart')
         stop
         start
-    ;;
+        ;;
+
+    'dump')
+        dump
+        ;;
 
     *)
-        echo "Usage: $0 { start | stop | restart }"
+        echo "Usage: $0 { start | stop | restart | dump }"
         exit 1
         ;;
 esac
 
-exit 0</pre>
+exit 0
+</pre>
 </td>
 </tr>
 </table>
