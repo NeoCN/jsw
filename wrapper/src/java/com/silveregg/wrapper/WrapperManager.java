@@ -26,6 +26,10 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.11  2002/05/22 16:05:35  mortenson
+// Comment out a debug error stack trace that would show up when the socket to
+// the native Wrapper was closed.  It was being shown on Linux systems.
+//
 // Revision 1.10  2002/05/20 10:03:43  mortenson
 // Make the startup banner less intrusive.
 //
@@ -1022,8 +1026,9 @@ public final class WrapperManager implements Runnable {
             }
             return;
         } catch (IOException e) {
-            System.out.println(e);
-            e.printStackTrace();
+            // This means that the connection was closed.  Allow this to return.
+            //System.out.println(e);
+            //e.printStackTrace();
             return;
         }
     }
