@@ -704,8 +704,10 @@ export ENV_VAR_4=d]]></replacevalue>
     <!-- =================================================================== -->
     <target name="total-clean">
         <delete>
-            <fileset dir="${basedir}">
-                <exclude name="build-tests.xml"/>
+            <fileset dir="${basedir}/test">
+                <exclude name=".cvsignore"/>
+                <exclude name="systeminnowrapper"/>
+                <exclude name="TestSystemInNoWrapper.bat"/>
             </fileset>
         </delete>
     </target>

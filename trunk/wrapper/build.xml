@@ -680,10 +680,13 @@
     <!-- Total cleanup                                                       -->
     <!-- =================================================================== -->
     <target name="total-clean" depends="clean" description="Clean up all build and target files">
-        <delete dir="${doc.dir}"/>
         <delete dir="${jdoc.dir}"/>
+
+        <!-- Do not delete Wrapper.exe or Wrapper.DLL as they are not currently built by ant. -->
+
         <delete file="${lib.dir}/wrapper.jar"/>
         <delete file="${lib.dir}/wrappertest.jar"/>
+
         <exec executable="make" 
               dir="${src.dir}/c" 
               os="Linux">
@@ -708,9 +711,8 @@
             <arg line="-f Makefile.hpux" />
             <arg value="cleanall"/>
         </exec>
-        <delete file="${lib.dir}/libwrapper.so"/>
-        <delete file="${bin.dir}/wrapper"/>
-        <ant antfile="build-tests.xml" dir="${test.dir}" target="total-clean" inheritall="false"/>  
+
+        <ant antfile="build-tests.xml" target="total-clean" inheritall="false"/>  
     </target>
 </project>
 
