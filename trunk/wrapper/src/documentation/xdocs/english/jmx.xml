@@ -35,7 +35,12 @@
                 surprising simple.  This assumes that you have already gotten JBoss
                 integrated with the Java Service Wrapper.  See the
                 <ulink url="integrate.html">Integration</ulink> section, in particular
-                the example using JBoss.
+                the example using JBoss.  This explanation assumes that you have
+                installed all of the Wrapper files in the locations described in the
+                JBoss integration example.  Particularly the
+                <literal moreinfo="none">wrapper.jar</literal> file is assumed to be
+                located in the <literal moreinfo="none">${jboss.home}/lib</literal>
+                directory.
             </para>
             <para>
                 JBoss allows you to register as an MBean, any Object which implements
@@ -71,6 +76,10 @@
 </server>]]></screen>
             </informalexample>
             <para>
+                Notice that the location of the <literal moreinfo="none">wrapper.jar</literal>
+                jar file is relative to the location of the XML file.
+            </para>
+            <para>
                 Upon saving the file, JBoss should detect it and register your new
                 MBeans almost immediately.  No need to restart JBoss.  Pretty Cool.
             </para>
@@ -86,7 +95,7 @@
             </para>
         </section>
         <section id="mx4j">
-            <title>Sun JMX Reference Implementation</title>
+            <title>MX4J</title>
             <para>
                 To do.  (This section is incomplete and just a jumble of my notes at this point.
                 Feel free to send in any suggestions for this section)
