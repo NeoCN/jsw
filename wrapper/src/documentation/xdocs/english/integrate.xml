@@ -86,8 +86,8 @@
                 method in the application.
             </para>
             <para>
-                Detailed overview and instructions (<ulink url="integrate-listener-win.html">Win32</ulink>
-                or <ulink url="integrate-listener-nix.html">Linux / UNIX</ulink>).
+                Detailed overview and instructions
+                (<ulink url="integrate-listener.html">Platform Independent</ulink>).
             </para>
         </section>
     </section>
