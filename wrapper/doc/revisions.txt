@@ -89,6 +89,11 @@ Java Service Wrapper Revision History.
   wrapper.ntservice.password.prompt.mask which which will cause the Wrapper
   to prompt the user for an account password when it is being installed as
   an NT service.
+* Added system properties to make it possible to configure whether or not
+  the WrapperSimpleApp and WrapperStartStopApp helper classes will wait
+  for the configured main methods to complete before reporting that the
+  application has started.  See the javadocs for these classes for more
+  details.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
