@@ -26,6 +26,9 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.4  2001/12/07 06:50:28  mortenson
+// Remove an unwanted debug message
+//
 // Revision 1.3  2001/12/06 09:36:24  mortenson
 // Docs changes, Added sample apps, Fixed some problems with
 // relative paths  (See revisions.txt)
@@ -616,7 +619,6 @@ public final class WrapperManager implements Runnable {
         // Do not call System.exit if this is the ShutdownHook
         if (Thread.currentThread() == _hook) {
             // This is the shutdown hook, so fall through
-            System.out.println("here");
         } else {
             //  We do not want the ShutdownHook to execute, so unregister it before calling exit
             if ((_hook != null) && (!_hookTriggered)) {
