@@ -62,9 +62,9 @@
             </informalexample>
         </note>
         <para>
-            This feature also works with the <literal moreinfo="none">-i</literal>
-            command on Windows systems when installing the application as a
-            service.
+            Properties can be specified from the command line when using any of the
+            Wrapper commands, including the <literal moreinfo="none">-i</literal>
+            command, used to install the application as a service on Windows systems.
         </para>		
     </section>
 </chapter>

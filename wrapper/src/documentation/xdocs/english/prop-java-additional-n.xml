@@ -36,7 +36,7 @@
         <para>
             For each entry, you can also have a corresponding strip quotes flag
             which will remove the quotes from the element when run on Linux
-            or Solaris machines.  This was necessary to allow for file
+            or UNIX machines.  This was necessary to allow for file
             references which contain spaces.  For parameters like the one
             below it would not otherwise be possible to decide when to
             remove quotes and when to leave them alone.

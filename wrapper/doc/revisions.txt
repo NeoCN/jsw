@@ -56,6 +56,9 @@ Java Service Wrapper Revision History.
   property.  The Wrapper was then waiting 1 second before the process was
   killed.  This was not always long enough, resulting in a truncated thread
   dump.  Increased the pause to 3 seconds.  Feature Request #633761.
+* Fix a bug where wrapper.app.parameter.<n> and wrapper.java.additional.<n>
+  properties declared from the Windows command line were not correctly
+  handling spaces in their values.  Support Request #802139.
 
 3.0.4
 * Fix a problem on UNIX systems where requesting a second thread dump any time

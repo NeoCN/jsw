@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.71  2003/09/09 14:18:10  mortenson
+ * Fix a problem where not all properties specified on the command line worked
+ * correctly when they included spaces.
+ *
  * Revision 1.70  2003/09/04 05:40:08  mortenson
  * Added a new wrapper.ping.interval property which lets users control the
  * frequency that the Wrapper pings the JVM.
@@ -979,6 +983,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     int stripQuote;
     int initMemory = 0, maxMemory;
     char paramBuffer[128];
+    int quotable;
     int i, j, len2;
     int cpLen, cpLenAlloc;
     char *tmpString;
@@ -1067,6 +1072,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         if (prop) {
             if (strlen(prop) > 0) {
                 if (strings) {
+                    quotable = isQuotableProperty(properties, paramBuffer);
                     sprintf(paramBuffer, "wrapper.java.additional.%d.stripquotes", i + 1);
                     if (addQuotes) {
                         stripQuote = FALSE;
@@ -1080,8 +1086,13 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         propStripped = (char *)prop;
                     }
 
-                    strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1));
-                    sprintf(strings[index], "%s", propStripped);
+                    strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1 + 2));
+                    if (addQuotes && quotable && strchr(propStripped, ' ')) {
+                        /* We want to add quotes to the value. */
+                     sprintf(strings[index], "\"%s\"", propStripped);
+                    } else {
+                     sprintf(strings[index], "%s", propStripped);
+                    }
 
                     if (stripQuote) {
                         free(propStripped);
@@ -1391,7 +1402,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 #ifdef WIN32
     if (!wrapperData->isConsole) {
 #else
-	if (wrapperData->daemonize) {
+    if (wrapperData->daemonize) {
 #endif
         if (strings) {
             strings[index] = malloc(sizeof(char) * (24 + 1));
@@ -1452,6 +1463,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         if (prop) {
             if (strlen(prop) > 0) {
                 if (strings) {
+                    quotable = isQuotableProperty(properties, paramBuffer);
                     sprintf(paramBuffer, "wrapper.app.parameter.%d.stripquotes", i + 1);
                     if (addQuotes) {
                         stripQuote = FALSE;
@@ -1465,8 +1477,13 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         propStripped = (char *)prop;
                     }
 
-                    strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1));
-                    sprintf(strings[index], "%s", propStripped);
+                    strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1 + 2));
+                    if (addQuotes && quotable && strchr(propStripped, ' ')) {
+                        /* We want to add quotes to the value. */
+                     sprintf(strings[index], "\"%s\"", propStripped);
+                    } else {
+                     sprintf(strings[index], "%s", propStripped);
+                    }
 
                     if (stripQuote) {
                         free(propStripped);
@@ -1867,9 +1884,9 @@ void wrapperEventLoop() {
         case WRAPPER_JSTATE_STARTED:
             /* The Java application is up and running, but we need to make sure
              *  that the JVM does not die or hang.  Pings are send at a defined
-			 *  interval.  The JVM should respond to each ping with a ping response.
-			 *  If no ping responses are received before the state timeout then the
-			 *  JVM will be concidered dead and killed. */
+             *  interval.  The JVM should respond to each ping with a ping response.
+             *  If no ping responses are received before the state timeout then the
+             *  JVM will be concidered dead and killed. */
 
             /* Make sure that the JVM process is still up and running */
             if (nextSleep && (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN)) {
@@ -1881,7 +1898,7 @@ void wrapperEventLoop() {
                 wrapperProtocolClose();
             } else {
                 /* Have we waited too long already.  The jStateTimeout is reset each time a ping
-				 *  response is received from the JVM. */
+                 *  response is received from the JVM. */
                 if (now > wrapperData->jStateTimeout) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                                "JVM appears hung: Timed out waiting for signal from JVM.");
@@ -2188,20 +2205,20 @@ int wrapperLoadConfiguration() {
     if (wrapperData->pingTimeout <= 0) {
         wrapperData->pingTimeout = WRAPPER_TIMEOUT_MAX;
     }
-	if (wrapperData->pingInterval < 1) {
-		wrapperData->pingInterval = 1;
+    if (wrapperData->pingInterval < 1) {
+        wrapperData->pingInterval = 1;
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
             "wrapper.ping.interval must be at least 1 second.  Changing to 1.");
-	} else if (wrapperData->pingInterval > 3600) {
-		wrapperData->pingInterval = 3600;
+    } else if (wrapperData->pingInterval > 3600) {
+        wrapperData->pingInterval = 3600;
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
             "wrapper.ping.interval must be at less than or equal to 1 hour (3600 seconds).  Changing to 3600.");
-	}
-	if (wrapperData->pingTimeout < wrapperData->pingInterval + 5 ) {
-		wrapperData->pingTimeout = wrapperData->pingInterval + 5;
+    }
+    if (wrapperData->pingTimeout < wrapperData->pingInterval + 5 ) {
+        wrapperData->pingTimeout = wrapperData->pingInterval + 5;
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
             "wrapper.ping.timeout must be at least 5 seconds longer than wrapper.ping.interval.  Changing to %d.", wrapperData->pingTimeout);
-	}
+    }
     if (wrapperData->shutdownTimeout <= 0) {
         wrapperData->shutdownTimeout = WRAPPER_TIMEOUT_MAX;
     }

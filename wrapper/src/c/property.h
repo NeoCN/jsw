@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.8  2003/09/09 14:18:10  mortenson
+ * Fix a problem where not all properties specified on the command line worked
+ * correctly when they included spaces.
+ *
  * Revision 1.7  2003/08/02 06:49:13  mortenson
  * Changed the way environment variables are loaded from the registry on Windows
  * platforms so users will no longer get warning messages about not being able
@@ -62,6 +66,7 @@ struct Property {
     char *name;              /* The name of the property. */
     char *value;             /* The value of the property. */
     int finalValue;          /* TRUE if the Property can not be changed. */
+	int quotable;            /* TRUE if quotes can be optionally added around the value. */
     Property *next;          /* Pointer to the next Property in a linked list */
     Property *previous;      /* Pointer to the next Property in a linked list */
 };
@@ -99,7 +104,7 @@ extern void removeProperty(Properties *properties, const char *propertyName);
 /**
  *
  */
-extern void addProperty(Properties *properties, const char *propertyName, const char *propertyValue, int finalValue);
+extern void addProperty(Properties *properties, const char *propertyName, const char *propertyValue, int finalValue, int quotable);
 
 /**
  * Takes a name/value pair in the form <name>=<value> and attempts to add
@@ -107,13 +112,15 @@ extern void addProperty(Properties *properties, const char *propertyName, const 
  *
  * Returns 0 if successful, otherwise 1
  */
-extern int addPropertyPair(Properties *properties, const char *propertyNameValue, int finalValue);
+extern int addPropertyPair(Properties *properties, const char *propertyNameValue, int finalValue, int quotable);
 
 extern const char* getStringProperty(Properties *properties, const char *propertyName, const char *defaultValue);
 
 extern int getIntProperty(Properties *properties, const char *propertyName, int defaultValue);
 
 extern int getBooleanProperty(Properties *properties, const char *propertyName, int defaultValue);
+
+extern int isQuotableProperty(Properties *properties, const char *propertyName);
 
 extern void dumpProperties(Properties *properties);
 
