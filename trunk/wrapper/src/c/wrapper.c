@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.6  2002/01/26 23:30:35  spocke
+// Added rolling file support to logger.
+//
 // Revision 1.5  2002/01/24 09:43:56  mortenson
 // Added new Logger code which allows log levels.
 //
@@ -1442,7 +1445,13 @@ int wrapperLoadConfiguration() {
 
     // Load log file log level
 	setLogfileLevel((char *)getStringProperty(properties, "wrapper.logfile.loglevel", "INFO"));
-    
+
+    // Load max log filesize log level
+	setLogfileMaxFileSize((char *)getStringProperty(properties, "wrapper.logfile.maxsize", "-1"));
+
+    // Load log files level
+	setLogfileMaxLogFiles((char *)getStringProperty(properties, "wrapper.logfile.maxfiles", "-1"));
+
     // Load console format
 	setConsoleLogFormat((char *)getStringProperty(properties, "wrapper.console.format", "PM"));
 

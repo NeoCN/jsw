@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.2  2002/01/26 23:31:03  spocke
+// Added rolling file support to logger.
+//
 // Revision 1.1  2002/01/24 09:38:56  mortenson
 // Added new Logger code contributed by Johan Sorlin
 //
@@ -74,6 +77,10 @@ extern void setLogfilePath( char *log_file_path );
 extern void setLogfileFormat( char *log_file_format );
 extern void setLogfileLevelInt( int log_file_level );
 extern void setLogfileLevel( char *log_file_level );
+extern void setLogfileMaxFileSize( char *max_file_size );
+extern void setLogfileMaxFileSizeInt( int max_file_size );
+extern void setLogfileMaxLogFiles( char *max_log_files );
+extern void setLogfileMaxLogFilesInt( int max_log_files );
 
 /* * Console functions * */
 extern void setConsoleLogFormat( char *console_log_format );
