@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.19  2002/09/18 10:37:15  mortenson
+ * Fix Bug #611024. The Wrapper would sometimes fail to start if
+ * wrapper.max_failed_invocations is set to 1.
+ *
  * Revision 1.18  2002/09/17 13:16:22  mortenson
  * Added a property to control the delay between JVM invocations.
  *
@@ -459,12 +463,15 @@ int main(int argc, char **argv) {
     wrapperData->isConsole = TRUE;
     wrapperData->wState = WRAPPER_WSTATE_STARTING;
     wrapperData->jState = WRAPPER_JSTATE_DOWN;
+    wrapperData->jStateTimeout = 0;
+    wrapperData->lastPingTime = 0;
     wrapperData->jvmCommand = NULL;
     wrapperData->exitRequested = FALSE;
     wrapperData->exitAcknowledged = FALSE;
     wrapperData->exitCode = 0;
     wrapperData->restartRequested = FALSE;
     wrapperData->jvmRestarts = 0;
+    wrapperData->jvmLaunchTime = time(NULL);
     wrapperData->failedInvocationCount = 0;
         
     wrapperInitializeLogging();

@@ -18,6 +18,12 @@
                     launched.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fixed bug #611024. The Wrapper would sometimes fail to start if
+                    wrapper.max_failed_invocations is set to 1.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

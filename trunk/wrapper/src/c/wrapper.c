@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.29  2002/09/18 10:37:15  mortenson
+ * Fix Bug #611024. The Wrapper would sometimes fail to start if
+ * wrapper.max_failed_invocations is set to 1.
+ *
  * Revision 1.28  2002/09/17 13:16:22  mortenson
  * Added a property to control the delay between JVM invocations.
  *
@@ -764,21 +768,27 @@ void wrapperRestartProcess() {
 int wrapperCheckRestartTimeOK() {
     time_t newTime = time(NULL);
 
-    if (newTime - wrapperData->jvmLaunchTime >= wrapperData->successfulInvocationTime) {
-        /* The previous JVM invocation was running long enough that its invocation */
-        /*   should be considered a success.  Reset the failedInvocationStart to   */
-        /*   start the count fresh.                                                */
-        wrapperData->failedInvocationCount = 0;
-    } else {
-        /* The last JVM invocation died quickly and was considered to have */
-        /*  been a faulty launch.  Increase the failed count.              */
-        wrapperData->failedInvocationCount++;
+    if (wrapperData->jvmRestarts > 0) {
+        /* This is not the first JVM, so make sure that we want to launch. */
+        if (newTime - wrapperData->jvmLaunchTime >= wrapperData->successfulInvocationTime) {
+            /* The previous JVM invocation was running long enough that its invocation */
+            /*   should be considered a success.  Reset the failedInvocationStart to   */
+            /*   start the count fresh.                                                */
+            wrapperData->failedInvocationCount = 0;
+        } else {
+            /* The last JVM invocation died quickly and was considered to have */
+            /*  been a faulty launch.  Increase the failed count.              */
+            wrapperData->failedInvocationCount++;
 
-        if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
-                "JVM was only running for %d seconds leading to a failed restart count of %d.",
-                (newTime - wrapperData->jvmLaunchTime), wrapperData->failedInvocationCount);
+            if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
+                    "JVM was only running for %d seconds leading to a failed restart count of %d.",
+                    (newTime - wrapperData->jvmLaunchTime), wrapperData->failedInvocationCount);
+            }
         }
+    } else {
+        /* This is the first JVM, so always proceed. */
+        wrapperData->failedInvocationCount = 0;
     }
 
     /* See if we are allowed to try restarting the JVM again. */
@@ -1259,8 +1269,8 @@ void wrapperFreeJavaCommandArray(char **strings, int length) {
 void wrapperPauseBeforeExecute() {
     /* If this is not the first time that we are launching a JVM, */
     /*  then pause for {restartDelay} seconds to give the previously */
-	/*  crashed? instance of the JVM a chance to be cleaned up */
-	/*  correctly by the system. */
+    /*  crashed? instance of the JVM a chance to be cleaned up */
+    /*  correctly by the system. */
     if (wrapperData->jvmRestarts > 0) {
         if (wrapperData->isDebugging) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Pausing for %d seconds...", wrapperData->restartDelay);
@@ -1811,11 +1821,11 @@ int wrapperLoadConfiguration() {
     /* Get the shutdown hook status */
     wrapperData->isShutdownHookDisabled = getBooleanProperty(properties, "wrapper.disable_shutdown_hook", FALSE);
     
-	/* Get the restart delay. */
-	wrapperData->restartDelay = getIntProperty(properties, "wrapper.restart.delay", 5);
-	if (wrapperData->restartDelay < 0) {
-		wrapperData->restartDelay = 0;
-	}
+    /* Get the restart delay. */
+    wrapperData->restartDelay = getIntProperty(properties, "wrapper.restart.delay", 5);
+    if (wrapperData->restartDelay < 0) {
+        wrapperData->restartDelay = 0;
+    }
 
     /* Get the timeout settings */
     wrapperData->cpuTimeout = getIntProperty(properties, "wrapper.cpu.timeout", 10);
