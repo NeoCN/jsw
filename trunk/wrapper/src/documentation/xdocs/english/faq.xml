@@ -36,6 +36,15 @@ $Id$
             Depending on your security requirements, you may wish to create and
             configure a new user especially for the service.
         </para>
+        <para>
+            I have found that on some systems, drives mapped to a drive letter are not
+            always accessable on system restart until a real user actually logs on and
+            connects to the drive.  The workaround is to use the UNC syntax to reference
+            the drive directly rather than using the mapped drive letter.
+        </para>
+        <informalexample>
+            <screen format="linespecific"><![CDATA[//host/share/path]]></screen>
+        </informalexample>
     </section>
     <section>
         <title>
