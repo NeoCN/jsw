@@ -117,6 +117,34 @@ system cannot find the path specified. (0x3)]]></screen>
         </para>
     </section>
     <section>
+        <title>My 1.2.x JVM crashes when I run my application with the Wrapper.</title>
+        <para>
+            Most of the features of the Wrapper will work with 1.2.x JVMs so the JVM is
+            included on the list of supported JVMs.  However, the released version of
+            the wrapper is built using a 1.4.x version of Java.  1.2.x versions of the
+            JVM have problems with the generated jar and will crash with very low level
+            JNI errors.  This appears to be a bug in the 1.4.x versions of the compiler
+            as it happens even if the "1.1" JVM target is specified when compiling the
+            classes.
+        </para>
+        <para>
+            I get help from several people to be able to produce the releases for all
+            of the various supported platforms and it is not really possible to force
+            everyone to use old JDKs to build the Wrapper distributions.
+        </para>
+        <para>
+            If you are experiencing crash problems with 1.2.x JVMs and the Wrapper
+            please try downloading a source distribution and building the wrapper.jar
+            file using your 1.2.x JDK.  This will fix the problem.
+        </para>
+        <para>
+            If you are running into this, please post a note to the wrapper-user mailing
+            list.  I am not sure how many people are still using 1.2.x JVMs.  But if
+            it is still fairly common, I may reconsider the above policy and look into
+            what it will take to get the releases built using an older JVM.
+        </para>
+    </section>
+    <section>
         <title>My JVM is sometimes restarted when the system is heavily loaded.</title>
         <para>
             Because the Wrapper is using a pinging mechanism to check on the health of the JVM, it
