@@ -13,6 +13,21 @@
         <itemizedlist>
             <listitem>
                 <para>
+                    Make the build fail if Wrapper.exe or Wrapper.dll do not exist for Windows builds.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Added an empty wrapper.log to the releases so that the TestWrapper example program runs out of the box.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
+    <section>
+        <title>Version 2.2.3: Changes and bugfixes</title>
+        <itemizedlist>
+            <listitem>
+                <para>
                     Added template scripts and conf files for ease of integration with other applications.
                 </para>
             </listitem>
