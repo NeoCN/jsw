@@ -24,6 +24,11 @@
  *
  *
  * $Log$
+ * Revision 1.21  2003/01/20 09:35:51  mortenson
+ * Added a new wrapper.daemonize property which, when set, will form the wrapper
+ * process to be a detached non-session group leader.
+ * Patch by Rajiv Subrahmanyam
+ *
  * Revision 1.20  2003/01/20 06:26:33  mortenson
  * Make it possible to create a pid file on all unix platforms.
  * By default they are only used by sh files however.
@@ -452,6 +457,60 @@ int writePidFile() {
     return 0;
 }
 
+/**
+ * Transform a program into a daemon.
+ * Inspired by code from GNU monit, which in turn, was
+ * inspired by code from Stephen A. Rago's book,
+ * Unix System V Network Programming.
+ *
+ * The idea is to first fork, then make the child a session leader,
+ * and then fork again, so that it, (the session group leader), can
+ * exit. This means that we, the grandchild, as a non-session group
+ * leader, can never regain a controlling terminal.
+ */
+void daemonize() {
+    pid_t pid;
+    
+    umask(0); /* clear file creation mask */
+    
+    /* first fork */
+    if (wrapperData->isDebugging) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Spawning intermediate process...");
+    }	
+    if ((pid = fork()) < 0) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Could not spawn daemon process: %s",
+                   (char *)strerror(errno));
+        exit(1);
+    } else if (pid != 0) {
+        /* Intermediate process is now running.  This is the original process, so exit. */
+        
+        /* If the main process was not launched in the background, then we want to make
+         * the console output look nice by making sure that all output from the
+         * intermediate and daemon threads are complete before this thread exits.
+         * Sleep for 0.5 seconds. */
+        usleep(500000);
+        
+        exit(0);
+    }
+    
+    setsid(); /* become session leader */
+    signal(SIGHUP, SIG_IGN); /* don't let future opens allocate controlling terminals */
+    
+    /* second fork */
+    if (wrapperData->isDebugging) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Spawning daemon process...");
+    }	
+    if ((pid = fork()) < 0) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Could not spawn daemon process: %s",
+                   (char *)strerror(errno));
+        exit(1);
+    } else if (pid != 0) {
+        /* Daemon process is now running.  This is the intermediate process, so exit. */
+        exit(0);
+    }
+} 
+
+
 /*******************************************************************************
  * Main function                                                               *
  *******************************************************************************/
@@ -517,6 +576,11 @@ int main(int argc, char **argv) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                     "Problem loading wrapper config file: %s", argv[1]);
                 exit(1);
+            }
+            
+            /* fork to a Daemonized process if configured to do so. */
+            if (wrapperData->daemonize) {
+                daemonize();
             }
 
             /* Write pid file. */

@@ -345,14 +345,6 @@ wrapper.logfile.maxfiles=0
 wrapper.syslog.loglevel=NONE
 
 #********************************************************************
-# Wrapper Unix daemon parameters
-#********************************************************************
-# File to write process ID to.  If you change this value and you are
-#  using an sh script to launch the wrapper then you must also update
-#  that script.  bash scripts do not require any modification.
-wrapper.pidfile=/var/run/@app.name@.pid
-
-#********************************************************************
 # Wrapper NT Service parameters
 #********************************************************************
 # WARNING - Do not modify any of these parameters when an application
@@ -1493,11 +1485,17 @@ wrapper.logfile.format=
 <dd>
                             
 <p align="justify">
-                                File to write process ID to.  This file is used by sh scripts to
-                                make it possible to tell whether or not the wrapper process is
-                                already running.  If you modify this parameter and you are using a
-                                sh script to control the wrapper then please make sure that you make
-                                sure you also update the script to reflect this change.
+                                File to write process ID to.  If set, a pid file will be written
+                                to the specified location when the Wrapper process is started.  The
+                                file will be deleted when the Wrapper process has terminated.
+                            </p>
+                            
+<p align="justify">
+                                In most cases, this property will not be set from within the
+                                wrapper.conf file.  It can be passed to the wrapper process by
+                                shell scripts which require a specific pid file to control the
+                                shutdown of the Wrapper and its Java process.  An example can be
+                                found in the sh.script.in file in the src/bin directory.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -1513,18 +1511,52 @@ wrapper.logfile.format=
 </div>
                                 
 </p>
-                                
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>
+<b>wrapper.daemonize</b>
+</dt>
+                        
+<dd>
+                            
 <p align="justify">
+                                Spawns a fork of the Wrapper process as a detached non-session
+                                group leader.  This means that the process will continue to run
+                                even after the console from which the Wrapper process was launched
+                                has been closed.
+                            </p>
+                            
+<p align="justify">
+                                Using the bash shell, it is also possible to spawn the process
+                                from the shell using the &amp; operator.  However this does not work
+                                correctly for other shells on some platforms.
+                            </p>
+                            
+<p align="justify">
+                                Be aware that the daemon process will still send output to stdout
+                                unless the wrapper.console.loglevel property has been set to NONE.
+                            </p>
+                            
+<p align="justify">
+                                In most cases, this property will not be set from within the
+                                wrapper.conf file.  It can be passed to the wrapper process by
+                                the shell script which launches the Wrapper.  An example can be
+                                found in the sh.script.in file in the src/bin directory.
+                                <p align="justify">
                                     
-<i>Text in sh.script which needs to updated:</i>
+<i>Example:</i>
                                     
 <div align="left">
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
 <td>
-<pre># Process ID
-PIDDIR="/var/run"
-PIDFILE="$PIDDIR/$APP_NAME.pid"</pre>
+<pre>wrapper.daemonize=TRUE</pre>
 </td>
 </tr>
 </table>
@@ -1580,7 +1612,7 @@ PIDFILE="$PIDDIR/$APP_NAME.pid"</pre>
 </div>
                 
 <div class="glosslist">
-<a name="N400D52"></a>
+<a name="N400D6A"></a>
 <dl>
                     
                         
@@ -1781,7 +1813,7 @@ PIDFILE="$PIDDIR/$APP_NAME.pid"</pre>
                                     From the Windows API, each priority level is described as
                                     follows:
                                     <div class="glosslist">
-<a name="N400DE0"></a>
+<a name="N400DF8"></a>
 <dl>
                                         
                                             
@@ -2098,7 +2130,7 @@ The service did not start due to a logon failure.</pre>
 </p>
                 
 <div class="glosslist">
-<a name="N400EA2"></a>
+<a name="N400EBA"></a>
 <dl>
                     
                         
