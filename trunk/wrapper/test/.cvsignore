@@ -6,6 +6,8 @@ daemonthreads
 daemonthreads.conf
 envvars
 envvars.conf
+loadedwrapperlistener
+loadedwrapperlistener.conf
 longrunningbackgroundthreads
 longrunningbackgroundthreads.conf
 noreturn
@@ -32,6 +34,7 @@ TestAction.bat
 TestBackgroundThreads.bat
 TestDaemonThreads.bat
 TestEnvironmentVariables.bat
+TestLoadedWrapperListener.bat
 TestLongRunningBackgroundThreads.bat
 TestNoReturn.bat
 TestPercentOutput.bat
