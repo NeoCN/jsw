@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.41  2004/06/15 06:21:55  mortenson
+ * Only check if the log file needs to be rolled if we are going to be writing to the file.
+ *
  * Revision 1.40  2004/06/07 03:09:31  mortenson
  * The previous commit protected log_printf with a mutex.  This removes the need to
  * have thread specific buffers for logging.  A single set of buffers is now used.  This
@@ -650,11 +653,12 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
     }
 
     /* Logfile output by format */
-    /* Make sure that the log file does not need to be rolled. */
-    checkAndRollLogs( );
-
+    
     /* Log the message to the log file */
     if (level >= currentLogfileLevel) {
+        /* Make sure that the log file does not need to be rolled. */
+        checkAndRollLogs( );
+    
         logfileFP = fopen( logFilePath, "a" );
         if (logfileFP == NULL) {
             /* The log file could not be opened.  Try the default file location. */
