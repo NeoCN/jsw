@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.12  2002/05/17 09:10:16  mortenson
+ * Add a wrapper.shutdown.timeout property.
+ *
  * Revision 1.11  2002/05/16 04:51:18  mortenson
  * Add a debug message stating which thread lead to System.exit being called
  *   via a call to shutdown.
@@ -129,6 +132,7 @@ struct WrapperConfig {
     int     isConsole;              /* TRUE if the wrapper was launched as a console. */
     int     startupTimeout;         /* Number of seconds the wrapper will wait for a JVM to startup */
     int     pingTimeout;            /* Number of seconds the wrapper will wait for a JVM to reply to a ping */
+    int     shutdownTimeout;        /* Number of seconds the wrapper will wait for a JVM to shutdown */
     int     wState;                 /* The current state of the wrapper */
     int     jState;                 /* The current state of the jvm */
     time_t  jStateTimeout;          /* Time until which the current jState is valid */

@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.18  2002/05/17 09:09:56  mortenson
+ * Add a wrapper.shutdown.timeout property.
+ *
  * Revision 1.17  2002/05/16 04:51:18  mortenson
  * Add a debug message stating which thread lead to System.exit being called
  *   via a call to shutdown.
@@ -148,6 +151,9 @@ Properties              *properties;
 SOCKET ssd = INVALID_SOCKET;
 /* Client Socket. */
 SOCKET sd = INVALID_SOCKET;
+
+int wrapperRestartCount = 0;
+time_t wrapperRestartLastTime;
 
 const char *wrapperGetWState(int wState) {
     const char *name;
@@ -638,6 +644,9 @@ void wrapperRestartProcess() {
         }
 
         wrapperData->restartRequested = TRUE;
+
+		// Reset the wrapperRestartCount as the restart was intentional
+		wrapperRestartCount = 0;
     } else {
         if (wrapperData->isDebugging) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "wrapperRestartProcess() called.  (IGNORED)");
@@ -649,8 +658,6 @@ void wrapperRestartProcess() {
  * Keep track of the number of times that the JVM has been restarted within a
  *  short perioud of time.
  */
-int wrapperRestartCount = 0;
-time_t wrapperRestartLastTime;
 int wrapperCheckRestartTimeOK() {
     time_t newtime = time(NULL);
     if (newtime - wrapperRestartLastTime < 60) {
@@ -1187,9 +1194,9 @@ void wrapperEventLoop() {
                 
                 wrapperProtocolFunction(WRAPPER_MSG_STOP, NULL);
                 
-                /* Allow up to 5 seconds for the application to stop itself. */
+                /* Allow up to 5 + <shutdownTimeout> seconds for the application to stop itself. */
                 wrapperData->jState = WRAPPER_JSTATE_STOPPING;
-                wrapperData->jStateTimeout = time(NULL) + 5;
+                wrapperData->jStateTimeout = time(NULL) + 5 + wrapperData->shutdownTimeout;
             }
             wrapperData->restartRequested = FALSE;
         }
@@ -1636,11 +1643,15 @@ int wrapperLoadConfiguration() {
     /* Get the timeout settings */
     wrapperData->startupTimeout = getIntProperty(properties, "wrapper.startup.timeout", 30);
     wrapperData->pingTimeout = getIntProperty(properties, "wrapper.ping.timeout", 30);
+    wrapperData->shutdownTimeout = getIntProperty(properties, "wrapper.shutdown.timeout", 30);
     if (wrapperData->startupTimeout <= 0) {
         wrapperData->startupTimeout = 31557600;  /* One Year.  Effectively never */
     }
     if (wrapperData->pingTimeout <= 0) {
         wrapperData->pingTimeout = 31557600;  /* One Year.  Effectively never */
+    }
+    if (wrapperData->shutdownTimeout <= 0) {
+        wrapperData->shutdownTimeout = 31557600;  /* One Year.  Effectively never */
     }
 
 	/* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
