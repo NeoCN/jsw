@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.19  2004/05/13 16:57:57  mortenson
+ * Fix a file handle leak when calling WrapperManager.getUser or
+ * WrapperManager.getInteractiveUser on Windows platforms.
+ *
  * Revision 1.18  2004/01/24 17:45:19  mortenson
  * The addition of the getInteractiveUser placed a dependency on Windows NT
  * version 5.0.  Work around this so the Wrapper can still be used on NT 4.0.
@@ -494,6 +498,8 @@ createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean groups) {
                 flushall();
             }
             free(tokenUser);
+
+         CloseHandle(hProcessToken);
         } else {
             printf("Unable to open process token: %s\n", getLastErrorText());
             flushall();

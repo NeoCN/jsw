@@ -3,6 +3,8 @@ Java Service Wrapper Revision History.
 3.1.1
 * Modified the way libwrapper.so is built on Solaris and Linux so that it
   no longer statically links its required libraries.
+* Fix a file handle leak when calling WrapperManager.getUser or
+  WrapperManager.getInteractiveUser on Windows platforms.
 
 3.1.0
 * The license was revised for this version to include a copyright omission.
