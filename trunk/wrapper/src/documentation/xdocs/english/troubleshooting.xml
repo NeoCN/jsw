@@ -9,6 +9,17 @@
 <article id="index">
     <title>Troubleshooting</title>
     <section>
+        <title>I am getting a warning that the Wrapper can not load its native library.  What do I do?</title>
+        <para>
+            A few users have asked about the following message showing up in their wrapper.log file:
+            <informalexample>
+                <screen format="linespecific"><![CDATA[WARNING - Unable to load native library 'wrapper' for class WrapperManager.
+System signals will not be handled correctly.]]></screen>
+            </informalexample>
+            This message is being shown because the Java component of the Wrapper was unable to load its native libraries during initialization.  If you look in your wrapper.conf file, you will see a property, <literal moreinfo="none">wrapper.java.library.path</literal>.  This is used to specify the directory that the Wrapper will look in to find its native library. (Wrapper.DLL on Windows, or libwrapper.so on Unix systems)  You should place the library file in the specified directory or change the property to point to the directory where it is located.
+        </para>
+    </section>
+    <section>
         <title>I am unable to install my application as a service under Windows 2000 or NT.</title>
         <para>
             On Windows 2000 or NT, you will see the following error message if you attempt to install a service when logged in as a user without Administrator privileges.
