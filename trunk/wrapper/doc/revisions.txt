@@ -112,6 +112,10 @@ Java Service Wrapper Revision History.
   and wrapper log file when the Wrapper encounters a commonly made
   configuration mistake.  This is designed to cut down on support requests
   by new users.  Can be disabled using the wrapper.adviser property.
+* The bash script and the realpath utility have been deprecated since version
+  3.0.3.  They have been removed in this release.  The sh script is recommended
+  on all UNIX platforms, and the realpath utility which was used by pre-3.0.3
+  bash and sh scripts has not been used since.
 
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the

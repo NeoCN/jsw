@@ -260,6 +260,14 @@ $Id$
                     <ulink url="prop-adviser.html">wrapper.adviser</ulink> property.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    The bash script and the realpath utility have been deprecated since version
+                    3.0.3.  They have been removed in this release.  The sh script is recommended
+                    on all UNIX platforms, and the realpath utility which was used by pre-3.0.3
+                    bash and sh scripts has not been used since.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
