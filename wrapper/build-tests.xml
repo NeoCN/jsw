@@ -296,6 +296,27 @@ wrapper.filter.action.3=SHUTDOWN]]></replacevalue>
         <replace file="${test.dir}/loadedwrapperlistener.conf"
                  token="wrapper.ntservice.process_priority=NORMAL"
                  value="wrapper.ntservice.process_priority=HIGH" />
+
+        <!-- System Property Test -->
+        <delete file="${test.dir}/systemproperty.conf"/>
+        <filter token="app.name"          value="systemproperty"/>
+        <filter token="app.long.name"     value="System Property Case" />
+        <copy file="${test.dir}/template.conf"c
+              tofile="${test.dir}/systemproperty.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/systemproperty.conf">
+            <replacetoken>#wrapper.java.additional.1=</replacetoken>
+            <replacevalue><![CDATA[wrapper.java.additional.1=-DVAR1="abc"
+wrapper.java.additional.2=-DVAR2="\\"
+wrapper.java.additional.3=-DVAR3="\""
+wrapper.java.additional.4=-DVAR4=abc
+wrapper.java.additional.5=-DVAR5=\
+wrapper.java.additional.6=-DVAR6=\\
+wrapper.java.additional.7=-DVAR7=\"]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/systemproperty.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.SystemProperty" />
     </target>
     
     <!-- =================================================================== -->
@@ -513,6 +534,18 @@ set ENV_VAR_4=d]]></replacevalue>
         <replace file="${test.dir}/TestLoadedWrapperListener.bat"
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\loadedwrapperlistener.conf' />
+        
+        <!-- System Property Test -->
+        <delete file="${test.dir}/TestSystemProperty.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestSystemProperty.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestSystemProperty.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%Wrapper.exe'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\Wrapper.exe' />
+        <replace file="${test.dir}/TestSystemProperty.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\systemproperty.conf' />
     </target>
     
     <!-- =================================================================== -->
@@ -720,6 +753,14 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/loadedwrapperlistener"
               filtering="on"/>
         <chmod file="${test.dir}/loadedwrapperlistener" perm="+x"/> 
+        
+        <!-- System Property Test -->
+        <filter token="app.name"          value="systemproperty"/>
+        <filter token="app.long.name"     value="System Property Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/systemproperty"
+              filtering="on"/>
+        <chmod file="${test.dir}/systemproperty" perm="+x"/> 
         
         <!-- Get rid of the temp script file -->
         <delete file="${test.dir}/temp.script.in"/>
