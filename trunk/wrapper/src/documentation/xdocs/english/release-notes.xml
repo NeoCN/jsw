@@ -91,6 +91,12 @@
                     the application.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Added a samples section to the documentation.  Just includes Tomcat 4
+                    for now.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

@@ -45,6 +45,9 @@
 <a href="debugging.html"><font size="-1">Debugging Your Application</font></a>
 </li>
 <li>
+<a href="samples.html"><font size="-1">Integration Samples</font></a>
+</li>
+<li>
 <a href="faq.html"><font size="-1">FAQ</font></a>
 </li>
 <li>
@@ -144,7 +147,8 @@
         
         
 <p align="justify">
-            The Java-side API for Wrapper is quite simple and can be run in one of two modes.
+            The Java-side API for Wrapper is quite simple and can be run in one of three
+            modes.
         </p>
         
 <div>
@@ -159,15 +163,27 @@
             
             
 <p align="justify">
-                The first is to use the WrapperSimpleApp class to launch your Java application with out any modifications.  This class handles all communication with the native wrapper and simply launches your application by calling its main method as would be done from the command line.
+                The first is to use the WrapperSimpleApp class to launch your Java
+                application with out any modifications.  This class handles all
+                communication with the native wrapper and simply launches your
+                application by calling its main method as would be done from the
+                command line.
             </p>
             
 <p align="justify">
-                The drawback to this method is that when your service is stopped, it is killed as if the user had hit CTRL-C in the console.  This means that your application may not be able to shut itself down cleanly.  One option that you have is to register a shutdown hook.  A shutdown hook is a thread that is run when a JVM shuts down normally.  See the java.lang.Runtime.addShutdownHook javadocs for more information.
+                The drawback to this method is that when your service is stopped, it
+                is killed as if the user had hit CTRL-C in the console.  This means
+                that your application may not be able to shut itself down cleanly.
+                One option that you have is to register a shutdown hook.  A shutdown
+                hook is a thread that is run when a JVM shuts down normally.  See the
+                java.lang.Runtime.addShutdownHook javadocs for more information.
             </p>
             
 <p align="justify">
-                The benefit is that almost any Java application will work as is using this class.  All you need to do is set the following properties in your wrapper.conf file.  They are described in detail in the <a href="config-overview.html">Configuration Overview</a>.
+                The benefit is that almost any Java application will work as is using
+                this class.  All you need to do is set the following properties in your
+                wrapper.conf file.  They are described in detail in the
+                <a href="config-overview.html">Configuration Overview</a>.
                 <div align="left">
 <p>
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
@@ -190,7 +206,9 @@ wrapper.java.classpath.2=../lib/myapp.jar</pre>
 </table>
 </p>
 </div>
-                In most cases, that should be it.  Your application can now be launched using the scripts found in the <a href="launch-overview.html">Launch Overview</a>.
+                In most cases, that should be it.  Your application can now be launched
+                using the scripts found in the
+                <a href="launch-overview.html">Launch Overview</a>.
             </p>
         
 </font></td>
@@ -203,6 +221,98 @@ wrapper.java.classpath.2=../lib/myapp.jar</pre>
 <a name="N400A4E"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="99%">
 <tr>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+0"><b>Using the WrapperStartStopApp class</b></font></td>
+</tr>
+<tr>
+<td><font face="arial,helvetica,sanserif" color="#000000">
+<br>
+            
+            
+<p align="justify">
+                The second is to use the WrapperStartStopApp class to launch your
+                Java application, once again, without any modifications.  This class
+                is useful for applications which are designed to be shutdown externally.
+                An example is Tomcat4, shown in the
+                <a href="samples.html">Samples</a> section of this
+                documentation.
+            </p>
+            
+<p align="justify">
+                The WrapperStartStopApp actually requires that two seperate Main classes
+                be configured.  The first is to start the application, just like is done
+                with the WrapperSimpleApp above.  The second class is used to stop the
+                application.
+            </p>
+            
+<p align="justify">
+                The most common case is for applications which are modeled after unix
+                services.  An application is launched and then it is killed using a
+                command sent via a socket connection from another application instance.
+            </p>
+            
+<p align="justify">
+                This helper class was implemented is a way that does not require any
+                special feature from the Wrapper or its configuration file.  Both
+                the start and stop class, along with all of their parameters are
+                specified in the parameters to the WrapperStartStopApp main method.
+                In conjunction with the Wrapper, it will then make sure that the main
+                method of the start class is called at startup, and that the main
+                method of the stop class is called at shutdown.
+            </p>
+            
+<p align="justify">
+                To configure the Wrapper to use the WrapperStartStopApp to control your
+                application, you must set the following properties in your wrapper.conf
+                file.  They are described in detail in the
+                <a href="config-overview.html">Configuration Overview</a>.
+                <div align="left">
+<p>
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre># Set the main class to be the WrapperStartStopApp
+wrapper.java.mainclass=com.silveregg.wrapper.WrapperStartStopApp
+
+# Set the first application parameter to the name of the class whose main method
+# is to be launched. The class is followed by the number of parameters to be passed
+# to the main method.  Then the actual parameters.
+wrapper.app.parameter.1=com.widgetsrus.MyAppStart
+wrapper.app.parameter.2=2
+wrapper.app.parameter.3=startparameter1
+wrapper.app.parameter.4=startparameter2
+
+# The start parameters are followed by the name of the class whose main method
+# is to be called to stop the application.  The class is followed by a flag which
+# controls whether or not the Wrapper should wait for all non daemon threads to
+# complete before exiting the JVM.  The flag is followed by the number of
+# parameters to be passed to the main method.  Then the actual parameters.
+wrapper.app.parameter.5=com.widgetsrus.MyAppStop
+wrapper.app.parameter.6=true
+wrapper.app.parameter.7=1
+wrapper.app.parameter.8=stopparameter1
+
+# Be sure to set your classpath.
+wrapper.java.classpath.1=../lib/wrapper.jar
+wrapper.java.classpath.2=../lib/myapp.jar</pre>
+</td>
+</tr>
+</table>
+</p>
+</div>
+                That should be all that you have to do.  com.widgetsrus.MyAppStart.main will be
+                called at startup and com.widgetsrus.MyAppStop.main will be called at shutdown.
+            </p>
+        
+</font></td>
+</tr>
+</table>
+</div>
+<br>
+        
+<div>
+<a name="N400A6F"></a>
+<table cellspacing="0" cellpadding="2" border="0" width="99%">
+<tr>
 <td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+0"><b>Implement the WrapperListener interface</b></font></td>
 </tr>
 <tr>
@@ -211,7 +321,11 @@ wrapper.java.classpath.2=../lib/myapp.jar</pre>
             
             
 <p align="justify">
-                The second and recommended method is to have your application implement the WrapperListener interface.  This interface provides three methods used to inform your application when it should start and stop as well as when a system control event takes place (for example, the user hitting CTRL-C, or logging out under windows)
+                The third method is to have your application implement the
+                WrapperListener interface.  This interface provides three methods
+                used to inform your application when it should start and stop as well
+                as when a system control event takes place (for example, the user
+                hitting CTRL-C, or logging out under windows)
             </p>
             
 <p align="justify">
@@ -269,7 +383,9 @@ wrapper.java.classpath.2=../lib/myapp.jar</pre>
 </p>
             
 <p align="justify">
-                An application implementing the WrapperListener should not directly start the application in the main method.  Everything that would normally be in the main method should be moved into the start method.
+                An application implementing the WrapperListener should not directly
+                start the application in the main method.  Everything that would
+                normally be in the main method should be moved into the start method.
             </p>
             
 <p align="justify">
@@ -306,7 +422,7 @@ wrapper.java.classpath.2=../lib/myapp.jar</pre>
 <br>
         
 <div>
-<a name="N400A68"></a>
+<a name="N400A89"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="99%">
 <tr>
 <td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+0"><b>API Available to Your Application</b></font></td>
@@ -317,11 +433,14 @@ wrapper.java.classpath.2=../lib/myapp.jar</pre>
             
             
 <p align="justify">
-                It is often necessary for your application to control its own lifecycle as a service.  This includes requesting that your application be stopped or restarted.
+                It is often necessary for your application to control its own lifecycle
+                as a service.  This includes requesting that your application be stopped
+                or restarted.
             </p>
             
 <p align="justify">
-                The Java Service Wrapper allows your application access to the Wrapper via the WrapperManager class.
+                The Java Service Wrapper allows your application access to the Wrapper
+                via the WrapperManager class.
             </p>
             
 <p align="justify">
