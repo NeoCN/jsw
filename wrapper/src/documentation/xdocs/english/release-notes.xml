@@ -159,6 +159,13 @@ $Id$
                     of file handles.   Bug #767267, discovered and patched by David Wong.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where the '#' character, which signifies a comment, could not
+                    be included in property values.  A double hash, '##' will now resolve into a
+                    '#' within the property value.  Bug #777303.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
