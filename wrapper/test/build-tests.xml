@@ -53,6 +53,7 @@
         <!-- Create the test specific wrapper.conf files -->
         
         <!-- Background Threads Test -->
+        <delete file="${test.dir}/backgroundthreads.conf"/>
         <filter token="app.name"          value="backgroundthreads"/>
         <filter token="app.long.name"     value="Background Threads Case" />
         <copy file="${src.dir}/conf/wrapper.conf.in"
@@ -72,6 +73,7 @@
                  value="wrapper.pidfile=${basedir}/backgroundthreads.pid" />
         
         <!-- Long Running Background Threads Test -->
+        <delete file="${test.dir}/longrunningbackgroundthreads.conf"/>
         <filter token="app.name"          value="longrunningbackgroundthreads"/>
         <filter token="app.long.name"     value="Long Running Background Threads Case" />
         <copy file="${src.dir}/conf/wrapper.conf.in"
@@ -91,6 +93,7 @@
                  value="wrapper.pidfile=${basedir}/longrunningbackgroundthreads.pid" />
         
         <!-- Daemon Threads Test -->
+        <delete file="${test.dir}/longrunningbackgroundthreads.conf"/>
         <filter token="app.name"          value="daemonthreads"/>
         <filter token="app.long.name"     value="Daemon Threads Case" />
         <copy file="${src.dir}/conf/wrapper.conf.in"
@@ -110,6 +113,7 @@
                  value="wrapper.pidfile=${basedir}/daemonthreads.pid" />
         
         <!-- No Return Test -->
+        <delete file="${test.dir}/longrunningbackgroundthreads.conf"/>
         <filter token="app.name"          value="noreturn"/>
         <filter token="app.long.name"     value="No Return Case" />
         <copy file="${src.dir}/conf/wrapper.conf.in"
@@ -129,6 +133,7 @@
                  value="wrapper.pidfile=${basedir}/noreturn.pid" />
 
         <!-- Quick Complete Test -->
+        <delete file="${test.dir}/quickcomplete.conf"/>
         <filter token="app.name"          value="quickcomplete"/>
         <filter token="app.long.name"     value="Quick Complete Case" />
         <copy file="${src.dir}/conf/wrapper.conf.in"
@@ -148,6 +153,7 @@
                  value="wrapper.pidfile=${basedir}/quickcomplete.pid" />
 
         <!-- Environment Variables Test -->
+        <delete file="${test.dir}/envvars.conf"/>
         <filter token="app.name"          value="envvars"/>
         <filter token="app.long.name"     value="Environment Variables Case" />
         <copy file="${src.dir}/conf/wrapper.conf.in"
@@ -167,6 +173,7 @@
                  value="wrapper.pidfile=${basedir}/envvars.pid" />
         
         <!-- Percent Output Crash Test -->
+        <delete file="${test.dir}/percentoutput.conf"/>
         <filter token="app.name"          value="percentoutput"/>
         <filter token="app.long.name"     value="Percent Output Case" />
         <copy file="${src.dir}/conf/wrapper.conf.in"
@@ -186,6 +193,7 @@
                  value="wrapper.pidfile=${basedir}/percentoutput.pid" />
         
         <!-- Restarter Test -->
+        <delete file="${test.dir}/restarter.conf"/>
         <filter token="app.name"          value="restarter"/>
         <filter token="app.long.name"     value="Restarter Case" />
         <copy file="${src.dir}/conf/wrapper.conf.in"
@@ -200,6 +208,23 @@
         <replace file="${test.dir}/restarter.conf"
                  token="wrapper.pidfile=/var/run/aigent.pid"
                  value="wrapper.pidfile=${basedir}/restarter.pid" />
+        
+        <!-- Action Test -->
+        <delete file="${test.dir}/action.conf"/>
+        <filter token="app.name"          value="action"/>
+        <filter token="app.long.name"     value="Action Test Case" />
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${test.dir}/action.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/action.conf"
+                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
+                 value="wrapper.java.mainclass=com.silveregg.wrapper.test.TestAction" />
+        <replace file="${test.dir}/action.conf"
+                 token="wrapper.logfile=../logs/wrapper.log"
+                 value="wrapper.logfile=../test/testwrapper.log" />
+        <replace file="${test.dir}/action.conf"
+                 token="wrapper.pidfile=/var/run/aigent.pid"
+                 value="wrapper.pidfile=${basedir}/action.pid" />
     </target>
     
     <!-- =================================================================== -->
@@ -209,6 +234,7 @@
         <!-- Create the test specific batch files -->
         
         <!-- Background Threads Test -->
+        <delete file="${test.dir}/TestBackgroundThreads.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
               tofile="${test.dir}/TestBackgroundThreads.bat"
               filtering="on"/>
@@ -220,6 +246,7 @@
                  value='set _WRAPPER_CONF="%_APP_HOME%\test\backgroundthreads.conf"' />
         
         <!-- Long Running Background Threads Test -->
+        <delete file="${test.dir}/TestLongRunningBackgroundThreads.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
               tofile="${test.dir}/TestLongRunningBackgroundThreads.bat"
               filtering="on"/>
@@ -231,6 +258,7 @@
                  value='set _WRAPPER_CONF="%_APP_HOME%\test\longrunningbackgroundthreads.conf"' />
         
         <!-- Daemon Threads Test -->
+        <delete file="${test.dir}/TestDaemonThreads.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
               tofile="${test.dir}/TestDaemonThreads.bat"
               filtering="on"/>
@@ -242,6 +270,7 @@
                  value='set _WRAPPER_CONF="%_APP_HOME%\test\daemonthreads.conf"' />
         
         <!-- No Return Test -->
+        <delete file="${test.dir}/TestNoReturn.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
               tofile="${test.dir}/TestNoReturn.bat"
               filtering="on"/>
@@ -253,6 +282,7 @@
                  value='set _WRAPPER_CONF="%_APP_HOME%\test\noreturn.conf"' />
         
         <!-- Quick Complete Test -->
+        <delete file="${test.dir}/TestQuickComplete.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
               tofile="${test.dir}/TestQuickComplete.bat"
               filtering="on"/>
@@ -264,6 +294,7 @@
                  value='set _WRAPPER_CONF="%_APP_HOME%\test\quickcomplete.conf"' />
 
         <!-- Environment Variables Test -->
+        <delete file="${test.dir}/TestEnvironmentVariables.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
               tofile="${test.dir}/TestEnvironmentVariables.bat"
               filtering="on"/>
@@ -287,6 +318,7 @@ set ENV_VAR_4=d]]></replacevalue>
         </replace>
         
         <!-- Percent Output Test -->
+        <delete file="${test.dir}/TestPercentOutput.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
               tofile="${test.dir}/TestPercentOutput.bat"
               filtering="on"/>
@@ -298,6 +330,7 @@ set ENV_VAR_4=d]]></replacevalue>
                  value='set _WRAPPER_CONF="%_APP_HOME%\test\percentoutput.conf"' />
         
         <!-- Restarter Test -->
+        <delete file="${test.dir}/TestRestarter.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
               tofile="${test.dir}/TestRestarter.bat"
               filtering="on"/>
@@ -307,6 +340,24 @@ set ENV_VAR_4=d]]></replacevalue>
         <replace file="${test.dir}/TestRestarter.bat"
                  token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
                  value='set _WRAPPER_CONF="%_APP_HOME%\test\restarter.conf"' />
+        
+        <!-- Action Test -->
+        <delete file="${test.dir}/TestAction.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestAction.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestAction.bat"
+                 token='set _APP_HOME=%_APP_HOME:\bin\=%'
+                 value='set _APP_HOME=%_APP_HOME:\test\=%' />
+        <replace file="${test.dir}/TestAction.bat"
+                 token='set _WRAPPER_CONF="%~f1"'
+                 value='set _WRAPPER_CONF=""' />
+        <replace file="${test.dir}/TestAction.bat"
+                 token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
+                 value='set _WRAPPER_CONF="%_APP_HOME%\test\action.conf"' />
+        <replace file="${test.dir}/TestAction.bat"
+                 token='"%_APP_HOME%\bin\Wrapper.exe" -c %_WRAPPER_CONF%'
+                 value='"%_APP_HOME%\bin\Wrapper.exe" -c %_WRAPPER_CONF% wrapper.app.parameter.1=%1' />
     </target>
     
     <!-- =================================================================== -->
@@ -314,6 +365,7 @@ set ENV_VAR_4=d]]></replacevalue>
     <!-- =================================================================== -->
     <target name="test-setup-linux" depends="test-setup-common" if="is.Linux">
         <!-- Create a template script to make this easier -->
+        <delete file="${test.dir}/temp.script.in"/>
         <copy file="${src.dir}/bin/bash.script.in"
               tofile="${test.dir}/temp.script.in"/>
     </target>
@@ -323,6 +375,7 @@ set ENV_VAR_4=d]]></replacevalue>
     <!-- =================================================================== -->
     <target name="test-setup-solaris" depends="test-setup-common" if="is.SunOS">
         <!-- Create a template script to make this easier -->
+        <delete file="${test.dir}/temp.script.in"/>
         <copy file="${src.dir}/bin/sh.script.in"
               tofile="${test.dir}/temp.script.in"/>
         <replace file="${test.dir}/temp.script.in"
@@ -419,6 +472,18 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/restarter"
               filtering="on"/>
         <chmod file="${test.dir}/restarter" perm="+x"/> 
+        
+        <!-- Action Test -->
+        <filter token="app.name"          value="action"/>
+        <filter token="app.long.name"     value="Action Test Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/action"
+              filtering="on"/>
+        <replace file="${test.dir}/action">
+            <replacetoken><![CDATA[exec -a $APP_NAME $WRAPPER_CMD $WRAPPER_CONF &]]></replacetoken>
+            <replacevalue><![CDATA[exec -a $APP_NAME $WRAPPER_CMD $WRAPPER_CONF wrapper.app.parameter.1=$1 &]]></replacevalue>
+        </replace>
+        <chmod file="${test.dir}/action" perm="+x"/> 
         
         <!-- Get rid of the temp script file -->
         <delete file="${test.dir}/temp.script.in"/>
