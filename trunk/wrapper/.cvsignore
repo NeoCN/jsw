@@ -1,6 +1,5 @@
 lib
 build
-conf
 jdoc
 logs
 wrapper_*_*.tar.gz
