@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.28  2003/03/21 22:09:26  mortenson
+ * Fix a problem on UNIX versions where extra line breaks would sometimes be
+ * added to the logged output when there was large amounts of output being
+ * sent from the JVM.
+ *
  * Revision 1.27  2003/03/21 21:32:00  mortenson
  * Remove tabs.
  *
@@ -318,11 +323,9 @@ int wrapperReadChildOutput() {
     ssize_t bytesRead;
     char readBuf [1025];
     char writeBuf[1025];
-    int r, w; /* readBufPos, writeBufPos */
+    int readBufPos, writeBufPos;
     int count;
-    int retCode;
     
-    retCode = -1;
     if (jvmOut != -1) {
         /* Loop and read as much input as is available.  When a large amount of output is
          *  being piped from the JVM this can lead to the main event loop not getting any
@@ -331,6 +334,7 @@ int wrapperReadChildOutput() {
          *  efficient method of reading data because we need to make sure that we have
          *  not read past a line break before returning. */
         count = 0;
+        writeBufPos = 0;
         while(1) {
             if ( count < 50 ) {
                 readSize = 1024;
@@ -342,50 +346,44 @@ int wrapperReadChildOutput() {
             bytesRead = read(jvmOut, readBuf, readSize);
         
             if (bytesRead <= 0) {
-                retCode = 0;
+                /* No more bytes available, return for now. */
+
+                if (writeBufPos > 0) {
+                    /* We have a partial line, write it out so it is not lost. */
+                    writeBuf[writeBufPos] = '\0';
+                    wrapperLogChildOutput(writeBuf);
+                    writeBufPos = 0;
+                } 
+
                 break;
             }
+
             /* Terminate the read buffer. */
             readBuf[bytesRead] = '\0';
         
             /* Step through chars in read buffer. */
-            w = 0;
-            for (r = 0; r < bytesRead; r++) {
-                if (readBuf[r] == (char)0x0a) {
+            for (readBufPos = 0; readBufPos < bytesRead; readBufPos++) {
+                if (readBuf[readBufPos] == (char)0x0a) {
                     /* Line feed; write out buffer and reset it. */
-                    writeBuf[w] = '\0';
+                    writeBuf[writeBufPos] = '\0';
                     wrapperLogChildOutput(writeBuf);
-                    w = 0;
+                    writeBufPos = 0;
 
-                    if ( count >= 50 ) {
+                    if ( readSize == 1 ) {
                         // This last line was read byte by byte, now exit.
-                        break;
+                        return -1;
                     }
 
                     count++;
                 } else {
                     /* Add character to write buffer. */
-                    writeBuf[w++] = readBuf[r];
+                    writeBuf[writeBufPos++] = readBuf[readBufPos];
                 }
-            }
-        
-            /* Write out the rest of the buffer. */
-            if (w > 0) {
-                writeBuf[w] = '\0';
-                wrapperLogChildOutput(writeBuf);
-                w = 0;
-
-                if ( count >= 50 ) {
-                    // This last line was read byte by byte, now exit.
-                    break;
-                }
-
-                count++;
             }
         }
     }
     
-    return retCode;
+    return 0;
 }
 
 /**

@@ -14,6 +14,9 @@ Java Service Wrapper Revision History.
 * Fix a problem where very heavy output from the JVM can cause the Wrapper to
   give a false timeout.  The Wrapper now only ready 50 lines of input at a time
   to guarantee that the Wrapper's event loop always gets cycles.
+* Fix a problem on UNIX versions where extra line breaks would sometimes be
+  added to the logged output when there was large amounts of output being
+  sent from the JVM.
 
 3.0.0
 * Deprecated the com.silveregg.wrapper package in favor of
