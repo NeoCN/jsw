@@ -46,7 +46,10 @@
         <para>
             If relative paths to the include files are specified, be aware
             that all paths must be relative to the location of the Wrapper
-            executable.
+            working directory.  By default, this is the location of the Wrapper.exe
+            on Windows, or the script used to launch the Wrapper on UNIX.  The
+            working directory can be changed using the
+            <ulink url="prop-working-dir.html">wrapper.working.dir</ulink> property.
         </para>
         <para>
             Include files can be nested up to 10 levels deep.
