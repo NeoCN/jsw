@@ -114,9 +114,9 @@
             <para>
                 When the system comes back up it will hopefully be running.  If
                 there were any problems, then the log file should contain some
-                clues as to the problem.   If the test in the test in the previos
-                section worked but this failed, then the problem is most likely
-                a problem with missing enviroment variables.
+                clues as to the problem.   If the test in the previous section
+                worked but this failed, then the problem is most likely a
+                problem with missing enviroment variables.
             </para>
             <para>
                 If your application makes use of other services, MySQL for example,
