@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "../dtd/docbook/4.1.2/docbookx.dtd">
+
+<!-- ********************************************************************
+     $Id$
+     ******************************************************************** -->
+
+<chapter id="prop-port">
+    <title>wrapper.port Property</title>
+    <section>
+        <title>Configuration Property Overview</title>
+        <itemizedlist>
+            <listitem>
+                <ulink url="properties.html">Configuration Property Overview</ulink>
+            </listitem>
+            <listitem>
+                <ulink url="props-advanced.html">Advanced Properties</ulink>
+            </listitem>
+            <listitem>
+                <ulink url="properties.html#name">Property List by Name</ulink>
+            </listitem>
+        </itemizedlist>
+    </section>
+    <section>
+        <title>wrapper.port</title>
+        <para>
+            A port used to communicate between the Wrapper executable and the
+            Java application.  Used to monitor the health of the Java
+            application.  This can be any value. If at runtime, the specified
+            value is in use, then a warning will be printed to the console and
+            the next available port will be used in its place.
+        </para>
+        <para>
+            When the Wrapper launches a JVM instance, it will open a server
+            socket listening on this port bound to the localhost address.  The
+            launched JVM will be supplied with a key which it must use to be
+            able to connect back to the Wrapper process.  Once the JVM has
+            connected, the Wrapper will no longer accept additional connections.
+        </para>
+        <informalexample>
+            <simpara><emphasis>Example:</emphasis></simpara>
+            <screen format="linespecific"><![CDATA[wrapper.port=1777]]></screen>
+        </informalexample>
+    </section>
+</chapter>
