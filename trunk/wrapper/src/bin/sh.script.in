@@ -67,28 +67,36 @@ pid=""
 getpid() {
     if [ -f $PIDFILE ]
     then
-    if [ -r $PIDFILE ]
-    then
-        pid=`cat $PIDFILE`
-        if [ "X$pid" != "X" ]
+        if [ -r $PIDFILE ]
         then
-        # Verify that a process with this pid is still running.
-        pid=`/usr/bin/ps -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
-        if [ "X$pid" = "X" ]
-        then
-            # This is a stale pid file.
-            rm -f $PIDFILE
-            echo "Removed stale pid file: $PIDFILE"
+            pid=`cat $PIDFILE`
+            if [ "X$pid" != "X" ]
+            then
+                # Verify that a process with this pid is still running.
+                pid=`/usr/bin/ps -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
+                if [ "X$pid" = "X" ]
+                then
+                    # This is a stale pid file.
+                    rm -f $PIDFILE
+                    echo "Removed stale pid file: $PIDFILE"
+                fi
+            fi
+        else
+            echo "Cannot read $PIDFILE."
+            exit 1
         fi
-        fi
-    else
-        echo "Cannot read $PIDFILE."
-        rm -f $PIDFILE
-        exit 1
-    fi
     fi
 }
- 
+
+testpid() {
+    pid=`/usr/bin/ps -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
+    if [ "X$pid" = "X" ]
+    then
+        # Process is gone so remove the pid file.
+        rm -f $PIDFILE
+    fi
+}
+
 console() {
     echo "Running $APP_LONG_NAME..."
     getpid
@@ -128,20 +136,51 @@ stopit() {
     then
         echo "$APP_LONG_NAME was not running."
     else
+         # Running so try to stop it.
         kill $pid
-        sleep 6
-
-        pid=`/usr/bin/ps -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
-
-        if [ "X$pid" != "X" ]
+        if [ $? -ne 0 ]
         then
-        # SIGTERM didn't work, send SIGKILL.
-            kill -9 $pid
-        rm -f $PIDFILE
-
-            pid=`/usr/bin/ps -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
+            # An explanation for the failure should have been given
+            echo "Unable to stop $APP_LONG_NAME."
+            exit 1
         fi
 
+        # We can not predict how long it will take for the wrapper to
+        #  actually stop as it depends on settings in wrapper.conf.
+        #  Loop until it does.
+        CNT=0
+        TOTCNT=0
+        while [ "X$pid" != "X" ]
+        do
+            # Loop for up to 5 minutes
+            if [ "$TOTCNT" -lt "300" ]
+            then
+                if [ "$CNT" -lt "5" ]
+                then
+                    CNT=`expr $CNT + 1`
+                else
+                    echo "Waiting for $APP_LONG_NAME to exit..."
+                    CNT=0
+                fi
+                TOTCNT=`expr $TOTCNT + 1`
+
+                sleep 1
+
+                testpid
+            else
+                pid=
+            fi
+        done
+
+        testpid
+        if [ "X$pid" != "X" ]
+        then
+            echo "Timed out waiting for $APP_LONG_NAME to exit."
+            echo "  Attempting a forced exit..."
+            kill -9 $pid
+        fi
+
+        testpid
         if [ "X$pid" != "X" ]
         then
             echo "Failed to stop $APP_LONG_NAME."
