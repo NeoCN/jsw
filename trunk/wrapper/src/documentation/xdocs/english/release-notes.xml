@@ -15,8 +15,15 @@
                 <para>
                     Enable relative paths for Windows version.  In previous versions of Wrapper, it was necessary to always use absolute paths because the working directory of the wrapper would be then NT System32 directory when run as a service.
                 </para>
+            </listitem>
+            <listitem>
                 <para>
                     On the windows version, the wrapper always sets the current working directory to the location of the wrapper executable immediately after startup.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Improvements to the documentation / web page.
                 </para>
             </listitem>
         </itemizedlist>
