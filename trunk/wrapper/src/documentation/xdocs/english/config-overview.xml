@@ -66,7 +66,7 @@
             <para>
                 The Wrapper config file contains the following information.  This example assumes that the '@app.name@' and '@app.long.name@' tokens will be replaced with the name of your applicaiton on installation.  Good values are 'testwrapper' for '@app.name@' and 'Test Wrapper Application' for '@app.long.name@'.  A template wrapper.conf file can be found in the src/conf directory, named wrapper.conf.in.
                 <programlisting format="linespecific">
-<xi:include href="../../../conf/wrapper.conf.in" parse="text"/></programlisting>
+<xi:include href="wrapper.conf.in" parse="text"/></programlisting>
             </para>
         </section>
         <section id="command-line">

@@ -265,19 +265,20 @@
 <tr>
 <td>
 <pre>
-@echo off&#13;
-&#13;
-set _WRAPPER_CONF="%~f1"&#13;
-if not %_WRAPPER_CONF%=="" goto startup&#13;
-set _WRAPPER_CONF="@app.home@\conf\wrapper.conf"&#13;
-&#13;
-:startup&#13;
-"@app.home@\bin\Wrapper.exe" -c %_WRAPPER_CONF%&#13;
-if not errorlevel 1 goto end&#13;
-pause&#13;
-&#13;
-:end&#13;
-set _WRAPPER_CONF=</pre>
+@echo off
+
+set _WRAPPER_CONF="%~f1"
+if not %_WRAPPER_CONF%=="" goto startup
+set _WRAPPER_CONF="@app.home@\conf\wrapper.conf"
+
+:startup
+"@app.home@\bin\Wrapper.exe" -c %_WRAPPER_CONF%
+if not errorlevel 1 goto end
+pause
+
+:end
+set _WRAPPER_CONF=
+</pre>
 </td>
 </tr>
 </table>
@@ -294,19 +295,20 @@ set _WRAPPER_CONF=</pre>
 <tr>
 <td>
 <pre>
-@echo off&#13;
-&#13;
-set _WRAPPER_CONF="%~f1"&#13;
-if not %_WRAPPER_CONF%=="" goto startup&#13;
-set _WRAPPER_CONF="@app.home@\conf\wrapper.conf"&#13;
-&#13;
-:startup&#13;
-"@app.home@\bin\Wrapper.exe" -i %_WRAPPER_CONF%&#13;
-if not errorlevel 1 goto end&#13;
-pause&#13;
-&#13;
-:end&#13;
-set _WRAPPER_CONF=</pre>
+@echo off
+
+set _WRAPPER_CONF="%~f1"
+if not %_WRAPPER_CONF%=="" goto startup
+set _WRAPPER_CONF="@app.home@\conf\wrapper.conf"
+
+:startup
+"@app.home@\bin\Wrapper.exe" -i %_WRAPPER_CONF%
+if not errorlevel 1 goto end
+pause
+
+:end
+set _WRAPPER_CONF=
+</pre>
 </td>
 </tr>
 </table>
@@ -323,19 +325,20 @@ set _WRAPPER_CONF=</pre>
 <tr>
 <td>
 <pre>
-@echo off&#13;
-&#13;
-set _WRAPPER_CONF="%~f1"&#13;
-if not %_WRAPPER_CONF%=="" goto startup&#13;
-set _WRAPPER_CONF="@app.home@\conf\wrapper.conf"&#13;
-&#13;
-:startup&#13;
-"@app.home@\bin\Wrapper.exe" -r %_WRAPPER_CONF%&#13;
-if not errorlevel 1 goto end&#13;
-pause&#13;
-&#13;
-:end&#13;
-set _WRAPPER_CONF=</pre>
+@echo off
+
+set _WRAPPER_CONF="%~f1"
+if not %_WRAPPER_CONF%=="" goto startup
+set _WRAPPER_CONF="@app.home@\conf\wrapper.conf"
+
+:startup
+"@app.home@\bin\Wrapper.exe" -r %_WRAPPER_CONF%
+if not errorlevel 1 goto end
+pause
+
+:end
+set _WRAPPER_CONF=
+</pre>
 </td>
 </tr>
 </table>
@@ -356,46 +359,46 @@ set _WRAPPER_CONF=</pre>
 <tr>
 <td>
 <pre>
-@echo off&#13;
-rem&#13;
-rem Find the application home.&#13;
-rem&#13;
-if "%OS%"=="Windows_NT" goto nt&#13;
-&#13;
-echo This is not NT, so please edit this script and set _APP_HOME manually&#13;
-set _APP_HOME=..&#13;
-&#13;
-goto conf&#13;
-&#13;
-:nt&#13;
-rem %~dp0 is name of current script under NT&#13;
-set _APP_HOME=%~dp0&#13;
-rem : operator works similar to make : operator&#13;
-set _APP_HOME=%_APP_HOME:\bin\=%&#13;
-&#13;
-&#13;
-rem&#13;
-rem Find the wrapper.conf&#13;
-rem&#13;
-:conf&#13;
-set _WRAPPER_CONF="%~f1"&#13;
-if not %_WRAPPER_CONF%=="" goto startup&#13;
-set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"&#13;
-&#13;
-&#13;
-rem&#13;
-rem Run the application.&#13;
-rem At runtime, the current directory will be that of Wrapper.exe&#13;
-rem&#13;
-:startup&#13;
-"%_APP_HOME%\bin\Wrapper.exe" -c %_WRAPPER_CONF%&#13;
-if not errorlevel 1 goto end&#13;
-pause&#13;
-&#13;
-:end&#13;
-set _APP_HOME=&#13;
-set _WRAPPER_CONF=&#13;
-&#13;
+@echo off
+rem
+rem Find the application home.
+rem
+if "%OS%"=="Windows_NT" goto nt
+
+echo This is not NT, so please edit this script and set _APP_HOME manually
+set _APP_HOME=..
+
+goto conf
+
+:nt
+rem %~dp0 is name of current script under NT
+set _APP_HOME=%~dp0
+rem : operator works similar to make : operator
+set _APP_HOME=%_APP_HOME:\bin\=%
+
+
+rem
+rem Find the wrapper.conf
+rem
+:conf
+set _WRAPPER_CONF="%~f1"
+if not %_WRAPPER_CONF%=="" goto startup
+set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"
+
+
+rem
+rem Run the application.
+rem At runtime, the current directory will be that of Wrapper.exe
+rem
+:startup
+"%_APP_HOME%\bin\Wrapper.exe" -c %_WRAPPER_CONF%
+if not errorlevel 1 goto end
+pause
+
+:end
+set _APP_HOME=
+set _WRAPPER_CONF=
+
 </pre>
 </td>
 </tr>
@@ -468,130 +471,130 @@ set _WRAPPER_CONF=&#13;
 <tr>
 <td>
 <pre>
-#! /bin/bash&#13;
-&#13;
-#&#13;
-# Skeleton bash script suitable for starting and stopping &#13;
-# wrapped Java apps on the Linux platform.&#13;
-#&#13;
-# This script expects to find the 'realpath' executable&#13;
-# in the same directory. &#13;
-#&#13;
-&#13;
-#-----------------------------------------------------------------------------&#13;
-# These settings can be modified to fit the needs of your application&#13;
-&#13;
-# Application&#13;
-APP_NAME="@app.name@"&#13;
-APP_LONG_NAME="@app.long.name@"&#13;
-&#13;
-# Wrapper&#13;
-WRAPPER_CMD="./wrapper"&#13;
-WRAPPER_CONF="../conf/wrapper.conf"&#13;
-&#13;
-# Do not modify anything beyond this point&#13;
-#-----------------------------------------------------------------------------&#13;
-&#13;
-# Get to the actual location of this script&#13;
-SCRIPT_DIR=`dirname $0`&#13;
-SCRIPT=`$SCRIPT_DIR/realpath $0`&#13;
-cd `dirname $SCRIPT`&#13;
-&#13;
-# Find pidof.&#13;
-PIDOF="/bin/pidof"&#13;
-if [ ! -x $PIDOF ]&#13;
-then&#13;
-    PIDOF="/sbin/pidof"&#13;
-    if [ ! -x $PIDOF ]&#13;
-    then&#13;
-        echo "Cannot find 'pidof' in /bin or /sbin."&#13;
-        echo "This script requires 'pidof' to run."&#13;
-        exit 1&#13;
-    fi&#13;
-fi&#13;
-&#13;
-start() {&#13;
-    echo "Starting $APP_LONG_NAME..."&#13;
-    pid=`$PIDOF $APP_NAME`&#13;
-    if [ -z $pid ]&#13;
-    then&#13;
-        exec -a $APP_NAME $WRAPPER_CMD $WRAPPER_CONF &amp;&#13;
-    else&#13;
-        echo "$APP_LONG_NAME is already running."&#13;
-        exit 1&#13;
-    fi&#13;
-}&#13;
-&#13;
-stop() {&#13;
-    echo "Stopping $APP_LONG_NAME..."&#13;
-    pid=`$PIDOF $APP_NAME`&#13;
-    if [ -z $pid ]&#13;
-    then&#13;
-        echo "$APP_LONG_NAME was not running."&#13;
-    else&#13;
-        kill $pid&#13;
-        sleep 6&#13;
-&#13;
-        pid=`$PIDOF $APP_NAME`&#13;
-        if [ ! -z $pid ]&#13;
-        then&#13;
-            kill -9 $pid&#13;
-        fi&#13;
-&#13;
-        pid=`$PIDOF $APP_NAME`&#13;
-        if [ ! -z $pid ]&#13;
-        then&#13;
-            echo "Failed to stop $APP_LONG_NAME."&#13;
-        else&#13;
-            echo "Stopped $APP_LONG_NAME."&#13;
-        fi&#13;
-    fi&#13;
-}&#13;
-&#13;
-dump() {&#13;
-    echo "Dumping $APP_LONG_NAME..."&#13;
-    pid=`$PIDOF $APP_NAME`&#13;
-    if [ -z $pid ]&#13;
-    then&#13;
-        echo "$APP_LONG_NAME was not running."&#13;
-    else&#13;
-        kill -3 $pid&#13;
-&#13;
-        if [ $? -ne 0 ]&#13;
-        then&#13;
-            echo "Failed to dump $APP_LONG_NAME."&#13;
-        else&#13;
-            echo "Dumped $APP_LONG_NAME."&#13;
-        fi&#13;
-    fi&#13;
-}&#13;
-&#13;
-case "$1" in&#13;
-&#13;
-    'start')&#13;
-        start&#13;
-        ;;&#13;
-&#13;
-    'stop')&#13;
-        stop&#13;
-        ;;&#13;
-&#13;
-    'restart')&#13;
-        stop&#13;
-        start&#13;
-        ;;&#13;
-&#13;
-    'dump')&#13;
-        dump&#13;
-        ;;&#13;
-&#13;
-    *)&#13;
-        echo "Usage: $0 { start | stop | restart | dump }"&#13;
-        exit 1&#13;
-        ;;&#13;
-esac&#13;
-&#13;
-exit 0&#13;
+#! /bin/bash
+
+#
+# Skeleton bash script suitable for starting and stopping 
+# wrapped Java apps on the Linux platform.
+#
+# This script expects to find the 'realpath' executable
+# in the same directory. 
+#
+
+#-----------------------------------------------------------------------------
+# These settings can be modified to fit the needs of your application
+
+# Application
+APP_NAME="@app.name@"
+APP_LONG_NAME="@app.long.name@"
+
+# Wrapper
+WRAPPER_CMD="./wrapper"
+WRAPPER_CONF="../conf/wrapper.conf"
+
+# Do not modify anything beyond this point
+#-----------------------------------------------------------------------------
+
+# Get to the actual location of this script
+SCRIPT_DIR=`dirname $0`
+SCRIPT=`$SCRIPT_DIR/realpath $0`
+cd `dirname $SCRIPT`
+
+# Find pidof.
+PIDOF="/bin/pidof"
+if [ ! -x $PIDOF ]
+then
+    PIDOF="/sbin/pidof"
+    if [ ! -x $PIDOF ]
+    then
+        echo "Cannot find 'pidof' in /bin or /sbin."
+        echo "This script requires 'pidof' to run."
+        exit 1
+    fi
+fi
+
+start() {
+    echo "Starting $APP_LONG_NAME..."
+    pid=`$PIDOF $APP_NAME`
+    if [ -z $pid ]
+    then
+        exec -a $APP_NAME $WRAPPER_CMD $WRAPPER_CONF &amp;
+    else
+        echo "$APP_LONG_NAME is already running."
+        exit 1
+    fi
+}
+
+stop() {
+    echo "Stopping $APP_LONG_NAME..."
+    pid=`$PIDOF $APP_NAME`
+    if [ -z $pid ]
+    then
+        echo "$APP_LONG_NAME was not running."
+    else
+        kill $pid
+        sleep 6
+
+        pid=`$PIDOF $APP_NAME`
+        if [ ! -z $pid ]
+        then
+            kill -9 $pid
+        fi
+
+        pid=`$PIDOF $APP_NAME`
+        if [ ! -z $pid ]
+        then
+            echo "Failed to stop $APP_LONG_NAME."
+        else
+            echo "Stopped $APP_LONG_NAME."
+        fi
+    fi
+}
+
+dump() {
+    echo "Dumping $APP_LONG_NAME..."
+    pid=`$PIDOF $APP_NAME`
+    if [ -z $pid ]
+    then
+        echo "$APP_LONG_NAME was not running."
+    else
+        kill -3 $pid
+
+        if [ $? -ne 0 ]
+        then
+            echo "Failed to dump $APP_LONG_NAME."
+        else
+            echo "Dumped $APP_LONG_NAME."
+        fi
+    fi
+}
+
+case "$1" in
+
+    'start')
+        start
+        ;;
+
+    'stop')
+        stop
+        ;;
+
+    'restart')
+        stop
+        start
+        ;;
+
+    'dump')
+        dump
+        ;;
+
+    *)
+        echo "Usage: $0 { start | stop | restart | dump }"
+        exit 1
+        ;;
+esac
+
+exit 0
 </pre>
 </td>
 </tr>
@@ -609,159 +612,159 @@ exit 0&#13;
 <tr>
 <td>
 <pre>
-#! /bin/sh&#13;
-&#13;
-#&#13;
-# Skeleton sh script suitable for starting and stopping &#13;
-# wrapped Java apps on the Solaris platform. &#13;
-#&#13;
-# This script expects to find the 'realpath' executable&#13;
-# in the same directory. &#13;
-#&#13;
-# Make sure that PIDFILE points to the correct location,&#13;
-# if you have changed the default location set in the &#13;
-# wrapper configuration file.&#13;
-#&#13;
-&#13;
-#-----------------------------------------------------------------------------&#13;
-# These settings can be modified to fit the needs of your application&#13;
-&#13;
-# Application&#13;
-APP_NAME="@app.name@"&#13;
-APP_LONG_NAME="@app.long.name@"&#13;
-&#13;
-# Wrapper&#13;
-WRAPPER_CMD="./wrapper"&#13;
-WRAPPER_CONF="../conf/wrapper.conf"&#13;
-&#13;
-# Do not modify anything beyond this point&#13;
-#-----------------------------------------------------------------------------&#13;
-&#13;
-# Get to the actual location of this script&#13;
-SCRIPT_DIR=`dirname $0`&#13;
-SCRIPT=`$SCRIPT_DIR/realpath $0`&#13;
-cd `dirname $SCRIPT`&#13;
-&#13;
-# Process ID&#13;
-PIDDIR="/var/run"&#13;
-PIDFILE="$PIDDIR/$APP_NAME.pid"&#13;
-pid=""&#13;
-&#13;
-getpid() {&#13;
-    if [ -f $PIDFILE ]&#13;
-    then&#13;
-    if [ -r $PIDFILE ]&#13;
-    then&#13;
-        pid=`cat $PIDFILE`&#13;
-        if [ "X$pid" != "X" ]&#13;
-        then&#13;
-        # Verify that a process with this pid is still running.&#13;
-        pid=`/usr/bin/ps -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`&#13;
-        if [ "X$pid" = "X" ]&#13;
-        then&#13;
-            # This is a stale pid file.&#13;
-            rm -f $PIDFILE&#13;
-            echo "Removed stale pid file: $PIDFILE"&#13;
-        fi&#13;
-        fi&#13;
-    else&#13;
-        echo "Cannot read $PIDFILE."&#13;
-        rm -f $PIDFILE&#13;
-        exit 1&#13;
-    fi&#13;
-    fi&#13;
-}&#13;
- &#13;
-start() {&#13;
-    echo "Starting $APP_LONG_NAME..."&#13;
-    getpid&#13;
-    if [ "X$pid" = "X" ]&#13;
-    then&#13;
-        exec $WRAPPER_CMD $WRAPPER_CONF &amp;&#13;
-    else&#13;
-        echo "$APP_LONG_NAME is already running."&#13;
-        exit 1&#13;
-    fi&#13;
-}&#13;
- &#13;
-stop() {&#13;
-    echo "Stopping $APP_LONG_NAME..."&#13;
-    getpid&#13;
-    if [ "X$pid" = "X" ]&#13;
-    then&#13;
-        echo "$APP_LONG_NAME was not running."&#13;
-&#13;
-    else&#13;
-        kill $pid&#13;
-        sleep 6&#13;
-&#13;
-        pid=`/usr/bin/ps -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`&#13;
-&#13;
-        if [ "X$pid" != "X" ]&#13;
-        then&#13;
-        # SIGTERM didn't work, send SIGKILL.&#13;
-            kill -9 $pid&#13;
-        rm -f $PIDFILE&#13;
-&#13;
-            pid=`/usr/bin/ps -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`&#13;
-        fi&#13;
-&#13;
-        if [ "X$pid" != "X" ]&#13;
-        then&#13;
-            echo "Failed to stop $APP_LONG_NAME."&#13;
-            exit 1&#13;
-        else&#13;
-            echo "Stopped $APP_LONG_NAME."&#13;
-        fi&#13;
-    fi&#13;
-}&#13;
-&#13;
-dump() {&#13;
-    echo "Dumping $APP_LONG_NAME..."&#13;
-    getpid&#13;
-    if [ "X$pid" = "X" ]&#13;
-    then&#13;
-        echo "$APP_LONG_NAME was not running."&#13;
-&#13;
-    else&#13;
-        kill -3 $pid&#13;
-&#13;
-        if [ $? -ne 0 ]&#13;
-        then&#13;
-            echo "Failed to dump $APP_LONG_NAME."&#13;
-            exit 1&#13;
-        else&#13;
-            echo "Dumped $APP_LONG_NAME."&#13;
-        fi&#13;
-    fi&#13;
-}&#13;
-&#13;
-case "$1" in&#13;
-&#13;
-    'start')&#13;
-        start&#13;
-        ;;&#13;
-&#13;
-    'stop')&#13;
-        stop&#13;
-        ;;&#13;
-&#13;
-    'restart')&#13;
-        stop&#13;
-        start&#13;
-        ;;&#13;
-&#13;
-    'dump')&#13;
-        dump&#13;
-        ;;&#13;
-&#13;
-    *)&#13;
-        echo "Usage: $0 { start | stop | restart | dump }"&#13;
-        exit 1&#13;
-        ;;&#13;
-esac&#13;
-&#13;
-exit 0&#13;
+#! /bin/sh
+
+#
+# Skeleton sh script suitable for starting and stopping 
+# wrapped Java apps on the Solaris platform. 
+#
+# This script expects to find the 'realpath' executable
+# in the same directory. 
+#
+# Make sure that PIDFILE points to the correct location,
+# if you have changed the default location set in the 
+# wrapper configuration file.
+#
+
+#-----------------------------------------------------------------------------
+# These settings can be modified to fit the needs of your application
+
+# Application
+APP_NAME="@app.name@"
+APP_LONG_NAME="@app.long.name@"
+
+# Wrapper
+WRAPPER_CMD="./wrapper"
+WRAPPER_CONF="../conf/wrapper.conf"
+
+# Do not modify anything beyond this point
+#-----------------------------------------------------------------------------
+
+# Get to the actual location of this script
+SCRIPT_DIR=`dirname $0`
+SCRIPT=`$SCRIPT_DIR/realpath $0`
+cd `dirname $SCRIPT`
+
+# Process ID
+PIDDIR="/var/run"
+PIDFILE="$PIDDIR/$APP_NAME.pid"
+pid=""
+
+getpid() {
+    if [ -f $PIDFILE ]
+    then
+    if [ -r $PIDFILE ]
+    then
+        pid=`cat $PIDFILE`
+        if [ "X$pid" != "X" ]
+        then
+        # Verify that a process with this pid is still running.
+        pid=`/usr/bin/ps -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
+        if [ "X$pid" = "X" ]
+        then
+            # This is a stale pid file.
+            rm -f $PIDFILE
+            echo "Removed stale pid file: $PIDFILE"
+        fi
+        fi
+    else
+        echo "Cannot read $PIDFILE."
+        rm -f $PIDFILE
+        exit 1
+    fi
+    fi
+}
+ 
+start() {
+    echo "Starting $APP_LONG_NAME..."
+    getpid
+    if [ "X$pid" = "X" ]
+    then
+        exec $WRAPPER_CMD $WRAPPER_CONF &amp;
+    else
+        echo "$APP_LONG_NAME is already running."
+        exit 1
+    fi
+}
+ 
+stop() {
+    echo "Stopping $APP_LONG_NAME..."
+    getpid
+    if [ "X$pid" = "X" ]
+    then
+        echo "$APP_LONG_NAME was not running."
+
+    else
+        kill $pid
+        sleep 6
+
+        pid=`/usr/bin/ps -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
+
+        if [ "X$pid" != "X" ]
+        then
+        # SIGTERM didn't work, send SIGKILL.
+            kill -9 $pid
+        rm -f $PIDFILE
+
+            pid=`/usr/bin/ps -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
+        fi
+
+        if [ "X$pid" != "X" ]
+        then
+            echo "Failed to stop $APP_LONG_NAME."
+            exit 1
+        else
+            echo "Stopped $APP_LONG_NAME."
+        fi
+    fi
+}
+
+dump() {
+    echo "Dumping $APP_LONG_NAME..."
+    getpid
+    if [ "X$pid" = "X" ]
+    then
+        echo "$APP_LONG_NAME was not running."
+
+    else
+        kill -3 $pid
+
+        if [ $? -ne 0 ]
+        then
+            echo "Failed to dump $APP_LONG_NAME."
+            exit 1
+        else
+            echo "Dumped $APP_LONG_NAME."
+        fi
+    fi
+}
+
+case "$1" in
+
+    'start')
+        start
+        ;;
+
+    'stop')
+        stop
+        ;;
+
+    'restart')
+        stop
+        start
+        ;;
+
+    'dump')
+        dump
+        ;;
+
+    *)
+        echo "Usage: $0 { start | stop | restart | dump }"
+        exit 1
+        ;;
+esac
+
+exit 0
 </pre>
 </td>
 </tr>
