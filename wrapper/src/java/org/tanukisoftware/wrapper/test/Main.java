@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.19  2004/08/06 08:05:26  mortenson
+// Add test case which dumps the system properties.  Useful for testing.
+//
 // Revision 1.18  2004/08/06 07:56:20  mortenson
 // Add test case which runs idle.  Useful to test some operations.
 //
@@ -213,6 +216,9 @@ public class Main
                 "Same as above, but includes information about the user's groups." );
             
             buildCommand( gridBag, c, "Idle", "idle", "Run idly." );
+            
+            buildCommand( gridBag, c, "Dump Properties", "properties",
+                "Dumps all System Properties to the console." );
         }
         
         private void buildCommand( GridBagLayout gridBag,

@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.11  2004/08/06 08:05:26  mortenson
+// Add test case which dumps the system properties.  Useful for testing.
+//
 // Revision 1.10  2004/08/06 07:56:20  mortenson
 // Add test case which runs idle.  Useful to test some operations.
 //
@@ -205,6 +208,7 @@ public class TestAction
         System.err.println( "   users                    : Start polling the current and interactive users." );
         System.err.println( "   groups                   : Start polling the current and interactive users with groups." );
         System.err.println( "   idle                     : Do nothing just run in idle mode." );
+        System.err.println( "   properties               : Dump all System Properties to the console." );
         System.err.println( "" );
         System.err.println( "[EXAMPLE]" );
         System.err.println( "   TestAction access_violation_native " );
