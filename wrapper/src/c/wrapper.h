@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.60  2004/10/19 12:13:26  mortenson
+ * Fix some compiler warnings on Linux.
+ *
  * Revision 1.59  2004/10/19 11:48:20  mortenson
  * Rework logging so that the logfile is kept open.  Results in a 4 fold speed increase.
  *
@@ -561,7 +564,7 @@ extern int wrapperGetTickAge(DWORD start, DWORD end);
  * Returns TRUE if the specified tick timeout has expired relative to the
  *  specified tick count.
  */
-extern wrapperTickExpired(DWORD nowTicks, DWORD timeoutTicks);
+extern int wrapperTickExpired(DWORD nowTicks, DWORD timeoutTicks);
 
 /**
  * Returns a tick count that is the specified number of seconds later than

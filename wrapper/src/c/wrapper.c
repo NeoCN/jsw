@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.122  2004/10/19 12:13:25  mortenson
+ * Fix some compiler warnings on Linux.
+ *
  * Revision 1.121  2004/10/19 11:48:20  mortenson
  * Rework logging so that the logfile is kept open.  Results in a 4 fold speed increase.
  *
@@ -2158,7 +2161,7 @@ int wrapperLoadConfiguration() {
     setLogfileMaxLogFiles((char *)getStringProperty(properties, "wrapper.logfile.maxfiles", "0"));
     
     /* Get the memory output status. */
-    wrapperData->logfileInactivityTimeout = max(getIntProperty(properties, "wrapper.logfile.inactivity.timeout", 1), 0);
+    wrapperData->logfileInactivityTimeout = __max(getIntProperty(properties, "wrapper.logfile.inactivity.timeout", 1), 0);
     setLogfileAutoClose(wrapperData->logfileInactivityTimeout <= 0);
 
     /* Load console format */
