@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.14  2004/01/09 18:31:36  mortenson
+ * define the DWORD symbol so it can used.
+ *
  * Revision 1.13  2004/01/09 17:49:00  mortenson
  * Rework the logging so it is now threadsafe.
  *
@@ -64,6 +67,10 @@
 
 #ifdef WIN32
 #include <windows.h>
+#endif
+
+#ifndef DWORD
+#define DWORD unsigned long
 #endif
 
 /* * * Log source constants * * */
