@@ -192,3 +192,17 @@ with the following commands:
     C:\FullPath\MyApp\bin\windows\Wrapper.exe -i C:\FullPath\MyApp\conf\wrapper.conf
     C:\FullPath\MyApp\bin\windows\Wrapper.exe -r C:\FullPath\MyApp\conf\wrapper.conf
 
+
+Making your application work more nicely as a service.
+Up until this point, you have not had to modify your application in any way.
+However, your application may not be ready to run as a service.  If you have
+any places in your code where you are calling System.exit() then you should
+replace them with calls to WrapperManager.exit(exitCode).
+Calls to System.exit will be interpreted by the Wrapper as the JVM having
+crashed and it will be immediately restarted.
+
+You may also have some code which monitors the health of your application.
+There are cases where problems with resources can not be solved without
+restarting the JVM.  The Wrapper makes this easy.  Simply place a call to
+WrapperManager.restart().
+
