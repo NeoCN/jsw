@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.22  2003/10/31 10:57:53  mortenson
+// Fix a problem where CTRL-C was being ignored by the WrapperManager if a
+// WrapperListener is never registered.
+//
 // Revision 1.21  2003/10/31 05:59:34  mortenson
 // Added a new method, setConsoleTitle, to the WrapperManager class which
 // enables the application to dynamically set the console title.
@@ -1537,6 +1541,11 @@ public final class WrapperManager
                     m_out.println( "Error in WrapperListener.controlEvent callback.  " + t );
                     t.printStackTrace();
                 }
+            }
+            else
+            {
+                // A listener was never registered.  Always respond by exiting.
+                stop( 0 );
             }
         }
     }
