@@ -131,6 +131,13 @@ $Id$
             </listitem>
             <listitem>
                 <para>
+                    Increase debug output on UNIX platforms when a signal is caught.  When
+                    possible, information about where the signal came from is now logged.
+                    (Not currently supported on FreeBSD)
+                </para>
+            </listitem>
+            <listitem>
+                <para>
                     Modified the way log output from within signal handlers is handled so it
                     is now queued and then logged by the main event loop.
                 </para>

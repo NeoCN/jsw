@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.81  2004/07/05 09:56:59  mortenson
+ * Long day!  On further testing, I realized that the duplicate thread dump problem
+ * also exists when using the signal function.  So the only problem with sigaction is
+ * on FreeBSD.  Go back to only disabling it on that platform.
+ *
  * Revision 1.80  2004/07/05 09:05:37  mortenson
  * Go back to using signal on all UNIX platforms by default.  Encountered another
  * problem where it is not immediately possible to prevent duplicate thread dumps
@@ -297,22 +302,21 @@
 #include "property.h"
 #include "logger.h"
 
-/* An attempt was made to replace signal calls with sigaction.  This makes
- *  it possible to obtain lots of useul information about where the signal
- *  came from.
- * There are a couple of problems.
- * 1) On all platforms, the Wrapper will get duplicate signals for the timer
- *    thread, JVM, and main process.  Many things can be filtered out, but
- *    reliably filtering out the extra SIGQUITs for thread dumps proved
- *    difficult.
- * 2) On FreeBSD, it was causing the pipe between the JVM and Wrapper to be
- *    stuck in blocking mode despite attempts to set it into non-blocking
- *    mode.  This results in the event loop deadlocking until output is
- *    received from the JVM.
- * For now it is disabled, but rather than deleting it, there is still hope
- *  to get it working sometime in the future.  In the mean time, it can be
- *  enabled using the WRAPPER_USE_SIGACTION compiler definition. */
-/* #define WRAPPER_USE_SIGACTION */
+/* signal function calls were replaced with sigaction function calls to
+ *  make it possible to increase the quantity and quality of debug output
+ *  logged when a signal is encountered.
+ * Unfortunately this does not work on FreeBSD.   For some reason when it is
+ *  used, the pipe between the JVM and Wrapper remains in blocking mode
+ *  despite it being set to non-blocking mode.  This results in the main
+ *  event loop hanging until output from the JVM is received.
+ * Rather than throwing the sigaction code away, its use is controlled with
+ *  the WRAPPER_USE_SIGACTION define below.
+ * Hopefully these problems can be resolved in the future.
+ */
+#ifdef FREEBSD
+#else
+#define WRAPPER_USE_SIGACTION
+#endif
 
 #ifdef WRAPPER_USE_SIGACTION
 #ifndef getsid
