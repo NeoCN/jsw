@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.5  2004/06/30 09:02:33  mortenson
+// Remove unused imports.
+//
 // Revision 1.4  2004/01/16 04:42:00  mortenson
 // The license was revised for this version to include a copyright omission.
 // This change is to be retroactively applied to all versions of the Java
@@ -40,8 +43,6 @@ package org.tanukisoftware.wrapper;
 // Revision 1.1  2004/01/10 17:17:26  mortenson
 // Add the ability to request user information.
 //
-
-import java.util.Date;
 
 /**
  * A WrapperUser contains information about a user account on the platform

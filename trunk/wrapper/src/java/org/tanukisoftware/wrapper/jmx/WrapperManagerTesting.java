@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.jmx;
  */
 
 // $Log$
+// Revision 1.3  2004/06/30 09:02:34  mortenson
+// Remove unused imports.
+//
 // Revision 1.2  2004/01/16 04:42:01  mortenson
 // The license was revised for this version to include a copyright omission.
 // This change is to be retroactively applied to all versions of the Java
@@ -35,8 +38,6 @@ package org.tanukisoftware.wrapper.jmx;
 // Added a pair of MBean interfaces which allow the Wrapper to be controlled
 // using JMX.  See the new JMX section in the documentation for details.
 //
-
-import org.tanukisoftware.wrapper.WrapperManager;
 
 public class WrapperManagerTesting
     implements WrapperManagerTestingMBean
