@@ -8,6 +8,17 @@ $Id$
 
 <article id="index">
     <title>Java Service Wrapper Release Notes</title>
+    <section id="3.1.3">
+        <title>Version 3.1.3: Changes and bug fixes</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Add additional output when the JVM can not be launched due to security
+                    restrictions on Windows.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
     <section id="3.1.2">
         <title>Version 3.1.2: Changes and bug fixes</title>
         <itemizedlist>

@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.90  2004/10/17 01:32:13  mortenson
+ * Add additional output when the JVM can not be launched due to security
+ * restrictions on Windows.
+ *
  * Revision 1.89  2004/09/24 05:03:58  mortenson
  * Display a descriptive error message on Windows if the the JVM process crashes
  * due to an uncaught exception in native JVM code.
@@ -1551,11 +1555,40 @@ void wrapperExecute() {
     /* Check if virtual machine started */
     if (ret==FALSE) {
         int err=GetLastError();
-        /* This was placed to handle the Swedish WinNT bug */
+        /* Make sure the process was launched correctly. */
         if (err!=NO_ERROR) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to execute Java command.  %s", getLastErrorText());
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                "Unable to execute Java command.  %s", getLastErrorText());
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "    %s", commandline);
             wrapperProcess = NULL;
+            
+            if (err == ERROR_ACCESS_DENIED) {
+                if (wrapperData->isAdviserEnabled) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "" );
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                        "------------------------------------------------------------------------" );
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                        "Advice:" );
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                        "Access denied errors when attempting to launch the Java process are" );
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                        "usually caused by strict access permissions assigned to the directory" );
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                        "in which Java is installed." );
+                    if (!wrapperData->isConsole) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                            "Unless you have configured the Wrapper to run as a different user with" );
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                            "wrapper.ntservice.account property, the Wrapper and its JVM will be" );
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                            "as the SYSTEM user by default when run as a service." );
+                    }
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                        "------------------------------------------------------------------------" );
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "" );
+                }
+            }
+            
             return;
         }
     }
