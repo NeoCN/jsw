@@ -17,6 +17,9 @@ Java Service Wrapper Revision History.
 * Fix a problem on UNIX versions where extra line breaks would sometimes be
   added to the logged output when there was large amounts of output being
   sent from the JVM.
+* Fix a problem where a large number of calls to WrapperManager.log()
+  immediately before the JVM exits could lead to the Wrapper incorrectly
+  reporting that the JVM exited unexpectedly.
 
 3.0.0
 * Deprecated the com.silveregg.wrapper package in favor of
