@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.10  2003/11/03 10:27:46  mortenson
+ * Fix some link errors.
+ *
  * Revision 1.9  2003/11/02 20:55:54  mortenson
  * Implement stubs for the user methods.
  *
@@ -119,7 +122,7 @@ JNIEXPORT void JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle(JNIEnv *env, jclass clazz, jbyteArray jTitleBytes) {
     if (wrapperJNIDebugging) {
         printf("Setting the console title not supported on UNIX platforms.\n");
-        flushall();
+        fflush(NULL);
     }
 }
 
@@ -133,10 +136,10 @@ JNIEXPORT jobject JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass clazz) {
     if (wrapperJNIDebugging) {
         printf("getUser not yet supported on UNIX platforms.\n");
-        flushall();
+        fflush(NULL);
     }
 
-	return NULL;
+    return NULL;
 }
 
 
@@ -149,10 +152,10 @@ JNIEXPORT jobject JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *env, jclass clazz) {
     if (wrapperJNIDebugging) {
         printf("getInteractiveUser not yet supported on UNIX platforms.\n");
-        flushall();
+        fflush(NULL);
     }
 
-	return NULL;
+    return NULL;
 }
 
 #endif
