@@ -60,6 +60,8 @@ Java Service Wrapper Revision History.
 * Add the ability to set the user that the Wrapper and its JVM will run as
   from within the sh script on UNIX platforms.
 * Add an icon resource to the Wrapper binary on Windows versions.
+* Fix a typo in the UNIX sh script which caused an extra slash to be included
+  in the path of the pid file.  Was not causing any known problems.
 
 3.1.0
 * The license was revised for this version to include a copyright omission.
