@@ -16,27 +16,25 @@
             Wrapper uses a configuration file to control how Java is launched.
         </para>
         <para>
-            The Wrapper config file contains the following information:
-            <programlisting format="linespecific">#********************************************************************
+            The Wrapper config file contains the following information.  This example assumes that the '@app.name@' and '@app.long.name@' tokens will be replaced with the name of your applicaiton on installation.  Good values are 'testwrapper' for '@app.name@' and 'Test Wrapper Application' for '@app.long.name@'.  A template wrapper.conf file can be found in the src/conf directory, named wrapper.conf.in.
+            <programlisting format="linespecific"><![CDATA[#********************************************************************
 # Wrapper parameters
 #********************************************************************
 # Java Application
-wrapper.java.command=@java.home@/bin/java
+wrapper.java.command=java
 
 # Java Main class
 wrapper.java.mainclass=com.silveregg.wrapper.test.Main
 
 # Java Classpath (include wrapper.jar)  Add class path elements as needed starting from 1
-wrapper.java.classpath.1=@wrapper.home@/lib/wrapper.jar
-wrapper.java.classpath.2=@wrapper.home@/lib/wrappertest.jar
+wrapper.java.classpath.1=../lib/wrapper.jar
+wrapper.java.classpath.2=../lib/wrappertest.jar
 
 # Java Library Path (location of wrapper.lib)
-wrapper.java.library.path=@java.library.path@
+wrapper.java.library.path=../lib
 
 # Java Additional Parameters
-#wrapper.java.additional.1=-Xrs
-#wrapper.java.additional.2=-Xcheck:jni
-#wrapper.java.additional.3=-verbose:jni
+#wrapper.java.additional.1=
 
 # Initial Java Heap Size (in MB)
 wrapper.java.initmemory=16
@@ -45,13 +43,13 @@ wrapper.java.initmemory=16
 wrapper.java.maxmemory=64
 
 # Application parameters.  Add parameters as needed starting from 1
-wrapper.app.parameter.1=
+#wrapper.app.parameter.1=
 
 # Port which the native wrapper code will attempt to connect to
 wrapper.port=1777
 
 # Log file to use for wrapper output logging.
-wrapper.logfile=testwrapper.log
+wrapper.logfile=../logs/wrapper.log
 
 # Number of seconds to allow for the JVM to be launched and contact the wrapper before the
 #  wrapper should assume that the JVM is hung and terminate the JVM process.  0 means never
@@ -62,7 +60,8 @@ wrapper.startup.timeout=30
 #  never time out.  Defaults to 30 seconds.
 wrapper.ping.timeout=30
 
-# Disable detection of calls to System.exit().
+# The Wrapper detects when an application calls System.exit() and treats this as a request
+#  to stop the server by default.
 #wrapper.disable_shutdown_hook=TRUE
 
 # Show debug messages
@@ -83,16 +82,16 @@ wrapper.pidfile=/var/run/aigent.pid
 #  service can then be reinstalled.
 
 # Name of the service
-wrapper.ntservice.name=WrapperTest
+wrapper.ntservice.name=@app.name@
 
 # Display name of the service
-wrapper.ntservice.displayname=Wrapper Test
+wrapper.ntservice.displayname=@app.long.name@
 
 # Service dependencies.  Add dependencies as needed starting from 1
 wrapper.ntservice.dependency.1=
 
 # Mode in which the service is installed.  AUTO_START or DEMAND_START
-wrapper.ntservice.starttype=AUTO_START</programlisting>
+wrapper.ntservice.starttype=AUTO_START]]></programlisting>
         </para>
     </section>
     <section>
@@ -119,7 +118,7 @@ wrapper.ntservice.starttype=AUTO_START</programlisting>
                             Location of the Java executable
                             <informalexample>
                                 <simpara><emphasis>Example:</emphasis></simpara>
-                                <screen format="linespecific">wrapper.java.command=C:/jdk1.3/jre/bin/java</screen>
+                                <screen format="linespecific">wrapper.java.command=java</screen>
                             </informalexample>
                         </para>
                     </glossdef>
@@ -150,10 +149,10 @@ wrapper.ntservice.starttype=AUTO_START</programlisting>
                             This list must contain the wrapper.jar file.  It can contain jar files as well as directories contains class files.
                             <informalexample>
                                 <simpara><emphasis>Example:</emphasis></simpara>
-                                <screen format="linespecific">wrapper.java.classpath.1=C:/MyApp/lib/wrapper.jar
-wrapper.java.classpath.2=C:/MyApp/lib/myapp.jar
-wrapper.java.classpath.3=C:/MyApp/lib/mysql.jar
-wrapper.java.classpath.4=C:/MyApp/classes</screen>
+                                <screen format="linespecific">wrapper.java.classpath.1=../lib/wrapper.jar
+wrapper.java.classpath.2=../lib/myapp.jar
+wrapper.java.classpath.3=../lib/mysql.jar
+wrapper.java.classpath.4=../classes</screen>
                             </informalexample>
                         </para>
                     </glossdef>
@@ -165,7 +164,7 @@ wrapper.java.classpath.4=C:/MyApp/classes</screen>
                             Value of the Java library path.  This is a directory which contains any native (JNI) libraries used by the application.  You must place the Wrapper.DLL or libWrapper.so file in the directory specified.
                             <informalexample>
                                 <simpara><emphasis>Example:</emphasis></simpara>
-                                <screen format="linespecific">wrapper.java.library.path=C:/MyApp/lib</screen>
+                                <screen format="linespecific">wrapper.java.library.path=../lib</screen>
                             </informalexample>
                         </para>
                     </glossdef>
@@ -182,7 +181,7 @@ wrapper.java.classpath.4=C:/MyApp/classes</screen>
                                 <simpara><emphasis>Example:</emphasis></simpara>
                                 <screen format="linespecific">wrapper.java.additional.1=-Xrs
 wrapper.java.additional.2=-Dprop=TRUE
-wrapper.java.additional.3=-Dmyapp.data="C:/Program Files/MyAppData"
+wrapper.java.additional.3=-Dmyapp.data="../data"
 wrapper.java.additional.3.stripquotes=TRUE</screen>
                             </informalexample>
                         </para>
@@ -228,7 +227,7 @@ wrapper.java.additional.3.stripquotes=TRUE</screen>
                                 <screen format="linespecific">wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp
 wrapper.app.parameter.1=com.widgetsrus.MyAppMain
 wrapper.app.parameter.2=-d
-wrapper.app.parameter.3=-c"C:/MyApp/conf/myapp.conf"
+wrapper.app.parameter.3=-c"../conf/myapp.conf"
 wrapper.app.parameter.3.stripquotes=TRUE
 wrapper.app.parameter.4=-p4</screen>
                             </informalexample>
@@ -254,7 +253,7 @@ wrapper.app.parameter.4=-p4</screen>
                             Log file to which all output to the console will be logged.  The logfile also contains timestamps.
                             <informalexample>
                                 <simpara><emphasis>Example:</emphasis></simpara>
-                                <screen format="linespecific">wrapper.logfile=testwrapper.log</screen>
+                                <screen format="linespecific">wrapper.logfile=../logs/wrapper.log</screen>
                             </informalexample>
                         </para>
                     </glossdef>

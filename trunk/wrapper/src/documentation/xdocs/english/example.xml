@@ -37,7 +37,21 @@
                 </informalexample>
                 <informalexample>
                     <simpara><emphasis>Linux / Solaris:</emphasis></simpara>
-                    <screen format="linespecific">./testwrapper</screen>
+                    <screen format="linespecific">./testwrapper start</screen>
+                </informalexample>
+            </para>
+            <para>
+                The Windows console can be stopped cleanly by hitting CTRL-C, but the Linux and Solaris version require you to run the script with the stop parameter:
+                <informalexample>
+                    <simpara><emphasis>Linux / Solaris:</emphasis></simpara>
+                    <screen format="linespecific">./testwrapper stop</screen>
+                </informalexample>
+            </para>
+            <para>
+                The Linux and Solaris versions also provide the ability to restart the application:
+                <informalexample>
+                    <simpara><emphasis>Linux / Solaris:</emphasis></simpara>
+                    <screen format="linespecific">./testwrapper restart</screen>
                 </informalexample>
             </para>
             <para>
@@ -325,6 +339,23 @@ jvm 1    | All rights reserved.
 jvm 1    | 
 jvm 1    | start()
 wrapper  | User logged out.  Shutting down.
+jvm 1    | stop(0)
+wrapper  | <-- Wrapper Stopped]]></screen>
+                                </informalexample>
+                            </para>
+                            <para>
+                                On Linux or Solaris platforms, you can not hit CTRL-C because the Wrapper is launched as a spawned process.  Running the script with the stop parameter will produce the following results:
+                                <informalexample>
+                                    <simpara><emphasis>Console Output:</emphasis></simpara>
+                                    <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
+wrapper  | Launching a JVM...
+jvm 1    | Initializing...
+jvm 1    | Wrapper (Version 2.2.3)
+jvm 1    | Copyright 2000, 2001 Silver Egg Technology, Inc.
+jvm 1    | All rights reserved.
+jvm 1    |
+jvm 1    | start()
+wrapper  | Shutting down.
 jvm 1    | stop(0)
 wrapper  | <-- Wrapper Stopped]]></screen>
                                 </informalexample>
