@@ -10,6 +10,35 @@ $Id$
     <title>FAQ</title>
     <section>
         <title>
+            My application can not access network drives when run as an NT service.
+        </title>
+        <para>
+            By default, NT Services run as the SYSTEM user.  The problem is that the
+            SYSTEM user does not have access to network resources.   If your
+            application is working fine when run as a service.  Then the first thing
+            to try is running your service as the user you were logged in as when
+            running it as a console application.
+        </para>
+        <para>
+            To do this, first uninstall your application if it is currently installed
+            as an NT service.  Then edit the wrapper.conf file, setting the
+            <ulink url="prop-ntservice-account">wrapper.ntservice.account</ulink> and
+            <ulink url="prop-ntservice-password">wrapper.ntservice.password</ulink>
+            properties.  Next reinstall and start your service.
+        </para>
+        <para>
+            The service will now be running under the same environment as it was being
+            run as a console application, so everything should now be working correctly.
+            This issue is explained a bit in the following document,
+            <ulink url="http://support.microsoft.com/default.aspx?scid=kb;EN-US;149984">Accessing Network Drives Created in Services Under Windows NT</ulink>
+        </para>
+        <para>
+            Depending on your security requirements, you may wish to create and
+            configure a new user especially for the service.
+        </para>
+    </section>
+    <section>
+        <title>
             My application is an executable jar. What do I do.
         </title>
         <para>
