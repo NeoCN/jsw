@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.93  2004/04/01 10:08:40  mortenson
+ * Make the initial and max memory properties optional so they do not always set
+ * memory values when launching the JVM.
+ *
  * Revision 1.92  2004/03/27 16:09:45  mortenson
  * Add wrapper.on_exit.<n> properties to control what happens when a exits based
  * on the exit code.  This led to a major rework of the state engine to make it possible.
@@ -1168,20 +1172,29 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     } while (prop);
 
     /* Initial JVM memory */
-    if (strings) {
-        initMemory = __min(__max(getIntProperty(properties, "wrapper.java.initmemory", 3), 1), 4096); /* 1 <= n <= 4096 */
-        strings[index] = malloc(sizeof(char) * (5 + 4 + 1));  /* Allow up to 4 digits. */
-        sprintf(strings[index], "-Xms%dm", initMemory);
-    }
-    index++;
+	initMemory = getIntProperty(properties, "wrapper.java.initmemory", 0);
+	if (initMemory > 0 ) {
+		initMemory = __min(__max(initMemory, 1), 4096); /* 1 <= n <= 4096 */
+	    if (strings) {
+			strings[index] = malloc(sizeof(char) * (5 + 4 + 1));  /* Allow up to 4 digits. */
+			sprintf(strings[index], "-Xms%dm", initMemory);
+		}
+		index++;
+	} else {
+		/* Set the initMemory so the checks in the maxMemory section below will work correctly. */
+		initMemory = 3;
+	}
 
     /* Maximum JVM memory */
-    if (strings) {
-        maxMemory = __min(__max(getIntProperty(properties, "wrapper.java.maxmemory", 128), initMemory), 4096);  /* initMemory <= n <= 4096 */
-        strings[index] = malloc(sizeof(char) * (5 + 4 + 1));  /* Allow up to 4 digits. */
-        sprintf(strings[index], "-Xmx%dm", maxMemory);
-    }
-    index++;
+	maxMemory = getIntProperty(properties, "wrapper.java.maxmemory", 0);
+	if (maxMemory > 0) {
+		maxMemory = __min(__max(maxMemory, initMemory), 4096);  /* initMemory <= n <= 4096 */
+	    if (strings) {
+			strings[index] = malloc(sizeof(char) * (5 + 4 + 1));  /* Allow up to 4 digits. */
+			sprintf(strings[index], "-Xmx%dm", maxMemory);
+		}
+		index++;
+	}
 
     /* Library Path */
     if (strings) {
