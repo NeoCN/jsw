@@ -47,6 +47,12 @@ wrapper.ping.timeout=30
 wrapper.debug=TRUE
 
 #********************************************************************
+# Wrapper Unix daemon parameters
+#********************************************************************
+# File to write process ID to
+wrapper.pidfile=/var/run/aigent.pid
+
+#********************************************************************
 # Wrapper NT Service parameters
 #********************************************************************
 # WARNING - Do not modify any of these parameters when an application
