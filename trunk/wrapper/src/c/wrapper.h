@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.38  2004/01/09 05:15:11  mortenson
+ * Implement a tick timer and convert the system time over to be compatible.
+ *
  * Revision 1.37  2003/10/31 03:57:17  mortenson
  * Add a new property, wrapper.console.title, which makes it possible to set
  * the title of the console in which the Wrapper is currently running.
@@ -100,6 +103,14 @@
 
 #include "property.h"
 
+#define WRAPPER_TICK_MS 100 /* The number of ms that are represented by a single
+                             *  tick.  Ticks are used as an alternative time
+							 *  keeping method. See the wrapperGetTicks() and
+							 *  wrapperGetTickAge() functions for more information. */
+
+#define WRAPPER_TIMER_FAST_THRESHOLD 2 * 24 * 3600 * 1000 / WRAPPER_TICK_MS /* Default to 2 days. */
+#define WRAPPER_TIMER_SLOW_THRESHOLD 2 * 24 * 3600 * 1000 / WRAPPER_TICK_MS /* Default to 2 days. */
+
 #define WRAPPER_WSTATE_STARTING  51 /* Wrapper is starting.  Remains in this state
                                      *  until the JVM enters the STARTED state or
                                      *  the wrapper jumps into the STOPPING state
@@ -148,6 +159,10 @@
 /* Type definitions */
 typedef struct WrapperConfig WrapperConfig;
 struct WrapperConfig {
+	int     useSystemTime;          /* TRUE if the wrapper should use the system clock for timing, FALSE if a tick counter should be used. */
+	int     timerFastThreshold;     /* If the difference between the system time based tick count and the timer tick count ever falls by more than this value then a warning will be displayed. */
+	int     timerSlowThreshold;     /* If the difference between the system time based tick count and the timer tick count ever grows by more than this value then a warning will be displayed. */
+
     u_short port;                   /* Port number which the Wrapper is configured to be listening on */
     u_short actualPort;             /* Port number which the Wrapper is actually listening on */
     int     sock;                   /* Socket number. if open. */
@@ -165,10 +180,13 @@ struct WrapperConfig {
     int     pingInterval;           /* Number of seconds between pinging the JVM */
     int     shutdownTimeout;        /* Number of seconds the wrapper will wait for a JVM to shutdown */
     int     jvmExitTimeout;         /* Number of seconds the wrapper will wait for a JVM to process to terminate */
+
     int     wState;                 /* The current state of the wrapper */
     int     jState;                 /* The current state of the jvm */
-    time_t  jStateTimeout;          /* Time until which the current jState is valid */
-    time_t  lastPingTime;           /* Time that the last ping was sent */
+    DWORD   jStateTimeoutTicks;     /* Tick count until which the current jState is valid */
+	int     jStateTimeoutTicksSet;  /* 1 if the current jStateTimeoutTicks is set. */
+    DWORD   lastPingTicks;          /* Time that the last ping was sent */
+
     int     isDebugging;            /* TRUE if set in the configuration file */
     char    *nativeLibrary;         /* The base name of the native library loaded by the WrapperManager. */
     int     isStateOutputEnabled;   /* TRUE if set in the configuration file.  Shows output on the state of the state engine. */
@@ -180,7 +198,7 @@ struct WrapperConfig {
     int     jvmRestarts;            /* Number of times that a JVM has been launched since the wrapper was started. */
     int     restartDelay;           /* Delay in seconds before restarting a new JVM. */
     int     requestThreadDumpOnFailedJVMExit; /* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
-    time_t  jvmLaunchTime;          /* The time that the previous or current JVM was launched. */
+    DWORD   jvmLaunchTicks;         /* The tick count at which the previous or current JVM was launched. */
     int     failedInvocationCount;  /* The number of times that the JVM exited in less than successfulInvocationTime in a row. */
     int     successfulInvocationTime;/* Amount of time that a new JVM must be running so that the invocation will be considered to have been a success, leading to a reset of the restart count. */
     int     maxFailedInvocations;   /* Maximum number of failed invocations in a row before the Wrapper will give up and exit. */
@@ -327,6 +345,12 @@ extern void wrapperPauseBeforeExecute();
  */
 extern void wrapperExecute();
 
+/**
+ * Returns a tick count that can be used in combination with the
+ *  wrapperGetTickAge() function to perform time keeping.
+ */
+extern DWORD wrapperGetTicks();
+
 /******************************************************************************
  * Wrapper inner methods.
  *****************************************************************************/
@@ -358,6 +382,24 @@ extern void wrapperEventLoop();
 extern void wrapperBuildKey();
 extern void wrapperBuildJavaCommand();
 extern int  wrapperLoadConfiguration();
+
+/**
+ * Calculates a tick count using the system time.
+ */
+extern DWORD wrapperGetSystemTicks();
+
+/**
+ * Returns difference in seconds between the start and end ticks.  This function
+ *  handles cases where the tick counter has wrapped between when the start
+ *  and end tick counts were taken.  See the wrapperGetTicks() function.
+ */
+extern int wrapperGetTickAge(DWORD start, DWORD end);
+
+/**
+ * Returns a tick count that is the specified number of seconds later than
+ *  the base tick count.
+ */
+extern DWORD wrapperAddToTicks(DWORD start, int seconds);
 
 /******************************************************************************
  * Protocol callback functions

@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.54  2004/01/09 05:15:11  mortenson
+ * Implement a tick timer and convert the system time over to be compatible.
+ *
  * Revision 1.53  2003/10/31 10:16:27  mortenson
  * Improved the algorithm of the request thread dump on failed JVM exit feature
  * so that extremely large thread dumps will not be truncated when the JVM
@@ -405,6 +408,15 @@ void wrapperExecute() {
             }
         }
     }
+}
+
+/**
+ * Returns a tick count that can be used in combination with the
+ *  wrapperGetTickAge() function to perform time keeping.
+ */
+DWORD wrapperGetTicks() {
+	/* Not yet implemented on UNIX, return the system ticks. */
+	return wrapperGetSystemTicks();
 }
 
 /**

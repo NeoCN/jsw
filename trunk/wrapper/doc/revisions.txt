@@ -49,6 +49,18 @@ Java Service Wrapper Revision History.
   discrepancies found then appropriate warnings will be displayed, but the
   Application will still be allowed to start.  This was added to make obvious
   the cause of problems resulting from mismatched versions.
+* Added a new property wrapper.use_system_time system time.  By setting this
+  property to false, the Wrapper will start using a new experimental timer
+  which uses a background thread to manage time rather than the system time.
+  This has a number of advantages over using the system time and should give
+  most users even more reliable behavior when the system is under high load
+  or there are changes being made to the system time.  The timer is very
+  critical to the operation of the Wrapper so the old behavior is left as
+  the default for the time being until this feature has had the chance to be
+  "time" tested.  If all goes well then this will be enabled as the default
+  in a future version of the Wrapper.
+  A pair of related properties, wrapper.timer_fast_threshold and
+  wrapper.timer_slow_threshold were also added to aid in debugging.
 
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the

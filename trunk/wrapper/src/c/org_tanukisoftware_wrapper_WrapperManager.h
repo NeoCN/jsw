@@ -13,6 +13,12 @@ extern "C" {
 #define org_tanukisoftware_wrapper_WrapperManager_DEFAULT_SO_TIMEOUT 10000L
 #undef org_tanukisoftware_wrapper_WrapperManager_DEFAULT_CPU_TIMEOUT
 #define org_tanukisoftware_wrapper_WrapperManager_DEFAULT_CPU_TIMEOUT 10000i64
+#undef org_tanukisoftware_wrapper_WrapperManager_TICK_MS
+#define org_tanukisoftware_wrapper_WrapperManager_TICK_MS 100L
+#undef org_tanukisoftware_wrapper_WrapperManager_TIMER_FAST_THRESHOLD
+#define org_tanukisoftware_wrapper_WrapperManager_TIMER_FAST_THRESHOLD 1728000L
+#undef org_tanukisoftware_wrapper_WrapperManager_TIMER_SLOW_THRESHOLD
+#define org_tanukisoftware_wrapper_WrapperManager_TIMER_SLOW_THRESHOLD 1728000L
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_START
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_START 100L
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_STOP
@@ -78,9 +84,13 @@ extern "C" {
 /* Inaccessible static: m_commRunner */
 /* Inaccessible static: m_commRunnerStarted */
 /* Inaccessible static: m_eventRunner */
-/* Inaccessible static: m_eventRunnerTime */
+/* Inaccessible static: m_eventRunnerTicks */
+/* Inaccessible static: m_useSystemTime */
+/* Inaccessible static: m_timerFastThreshold */
+/* Inaccessible static: m_timerSlowThreshold */
+/* Inaccessible static: m_ticks */
 /* Inaccessible static: m_listener */
-/* Inaccessible static: m_lastPing */
+/* Inaccessible static: m_lastPingTicks */
 /* Inaccessible static: m_serverSocket */
 /* Inaccessible static: m_socket */
 /* Inaccessible static: m_shuttingDown */

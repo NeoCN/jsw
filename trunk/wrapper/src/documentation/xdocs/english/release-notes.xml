@@ -121,6 +121,23 @@ $Id$
                     the cause of problems resulting from mismatched versions.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Added a new property <ulink url="prop-use-system-time.html">wrapper.use_system_time</ulink> system time.  By setting this
+                    property to false, the Wrapper will start using a new experimental timer
+                    which uses a background thread to manage time rather than the system time.
+                    This has a number of advantages over using the system time and should give
+                    most users even more reliable behavior when the system is under high load
+                    or there are changes being made to the system time.  The timer is very
+                    critical to the operation of the Wrapper so the old behavior is left as
+                    the default for the time being until this feature has had the chance to be
+                    "time" tested.  If all goes well then this will be enabled as the default
+                    in a future version of the Wrapper.
+                    A pair of related properties, <ulink url="prop-use-system-time.html#prop-timer-fast-threshold">wrapper.timer_fast_threshold</ulink> and
+                    <ulink url="prop-use-system-time.html#prop-timer-slow-threshold">wrapper.timer_slow_threshold</ulink>
+                    were also added to aid in debugging.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
