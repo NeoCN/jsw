@@ -24,6 +24,11 @@
  */
 
 // $Log$
+// Revision 1.10  2002/02/08 05:55:11  mortenson
+// Services installed on a path which included spaces were not working.
+// Make the syslog never unregister to avoid EventLog errors.
+// Fixed the log level of "waiting tostop..." messages
+//
 // Revision 1.9  2002/02/02 16:02:26  spocke
 // re-enabled the unregisterSyslogMessageFile it's now executed when
 // a service is removed.
@@ -107,6 +112,8 @@ char wrapperClasspathSeparator = ';';
  * exits the application after running shutdown code.
  */
 void appExit(int exitCode) {
+	// Do this here to unregister the syslog resources on exit.
+	//unregisterSyslogMessageFile();
 	exit(exitCode);
 }
 
@@ -770,7 +777,14 @@ int wrapperInstall(int argc, char **argv) {
         switch (i) {
         case 0:
             // argv[0] is the binary name
-            strcat(binaryPath, szPath);
+			// If the szPath contains spaces, it needs to be quoted
+			if (strchr(szPath, ' ') == NULL) {
+				strcat(binaryPath, szPath);
+			} else {
+				strcat(binaryPath, "\"");
+				strcat(binaryPath, szPath);
+				strcat(binaryPath, "\"");
+			}
             break;
         case 1:
             // argv[1] is '-i' option -> change to '-s'
@@ -778,7 +792,14 @@ int wrapperInstall(int argc, char **argv) {
             break;
         default:
             // All other argv[n] should be preserved as is.
-            strcat(binaryPath, argv[i]);
+			// If the argument contains spaces, it needs to be quoted
+			if (strchr(argv[i], ' ') == NULL) {
+				strcat(binaryPath, argv[i]);
+			} else {
+				strcat(binaryPath, "\"");
+				strcat(binaryPath, argv[i]);
+				strcat(binaryPath, "\"");
+			}
             break;
         }
     }
@@ -871,7 +892,7 @@ int wrapperRemove(char *appName, char *configFile) {
 
                     // If the service has not stopped, wait another second
                     if ( ssStatus.dwCurrentState == SERVICE_STOP_PENDING ){
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Waiting to stop...");
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Waiting to stop...");
                         Sleep(1000);
                     }
                     else
@@ -909,8 +930,10 @@ int wrapperRemove(char *appName, char *configFile) {
     }
 
 	// Remove message file registration on service remove
-	if( result == 0 )
-		unregisterSyslogMessageFile( );
+	if( result == 0 ) {
+		// Do this here to unregister the syslog on uninstall of a resource.
+		//unregisterSyslogMessageFile( );
+	}
 
     return result;
 }
