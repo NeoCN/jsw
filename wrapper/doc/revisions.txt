@@ -69,6 +69,8 @@ Java Service Wrapper Revision History.
 * Fix a problem where the '#' character, which signifies a comment, could not
   be included in property values.  A double hash, '##' will now resolve into a
   '#' within the property value.  Bug #777303.
+* Added support for FreeBSD.  Big thanks to Alphonse Bendt for supplying the
+  patch.
 
 3.0.3
 * Added support for Mac OS X.  Big thanks to Andy Barnett for supplying the

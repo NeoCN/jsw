@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.64  2003/07/26 12:21:48  mortenson
+ * Added support for FreeBSD.  Thanks to Alphonse Bendt for supplying the patch.
+ *
  * Revision 1.63  2003/07/02 04:01:52  mortenson
  * Implement the ability to specify an NT service's load order group in response
  * to feature request #764143.
@@ -174,8 +177,12 @@
 #ifdef MACOSX
 #else
 #ifdef OSF1
+#else
+#ifdef FREEBSD
+#include <errno.h>
 #else /* LINUX */
 #include <asm/errno.h>
+#endif /* FREEBSD */
 #endif /* OSF1 */
 #endif /* MACOSX */
 #endif /* HPUX */

@@ -96,12 +96,16 @@
         <property name="is.Unix" value="true"/>
         <property name="is.shell.sh" value="true"/>
     </target>
+    <target name="init-freebsd" if="is.FreeBSD">
+        <property name="is.Unix" value="true" />
+        <property name="is.shell.sh" value="true"/>
+    </target>
     
     <!-- =================================================================== -->
     <!-- Initialize build.                                                   -->
     <!-- =================================================================== -->
     <target name="init"
-        depends="init-windows-nt, init-windows-2000, init-windows-xp, init-linux, init-solaris, init-aix, init-hpux, init-macosx, init-osf1">
+        depends="init-windows-nt, init-windows-2000, init-windows-xp, init-linux, init-solaris, init-aix, init-hpux, init-macosx, init-osf1, init-freebsd">
         <echo message="OS='${os.name}'"/>
         <tstamp/>
         <filter token="version"           value="${version}"       />
@@ -233,6 +237,14 @@
             failonerror="true">
             <arg line="-f Makefile.osf1" />
         </exec>
+
+        <!-- run make on FreeBSD to build library -->
+        <exec executable="gmake" 
+            dir="${src.dir}/c" 
+            os="FreeBSD" 
+            failonerror="true">
+            <arg line="-f Makefile.freebsd" />
+        </exec>
     </target>
     
     <!-- =================================================================== -->
@@ -309,7 +321,7 @@
     </target>
     
     <!-- =================================================================== -->
-    <!-- Bin target (sh scripts - Solaris, AIX, HP-UX, Mac OS X)             -->
+    <!-- Bin target (sh scripts - Solaris, AIX, HPUX, Mac OS X, OSF1, FreeBSD) -->
     <!-- =================================================================== -->
     <target name="bin-sh" depends="compile" if="is.shell.sh">
         <copy file="${src.dir}/bin/sh.script.in"
@@ -592,19 +604,26 @@
     <target name="release-macosx" depends="release-common" if="is.Mac OS X">
         <property name="releasefile" value="wrapper_macosx_${version}"/>
     </target>
-    
+
     <!-- =================================================================== -->
     <!-- Release (DEC OSF1)                                                  -->
     <!-- =================================================================== -->
     <target name="release-osf1" depends="release-common" if="is.OSF1">
         <property name="releasefile" value="wrapper_osf1_${version}"/>
     </target>
+
+    <!-- =================================================================== -->
+    <!-- Release (FreeBSD)                                                  -->
+    <!-- =================================================================== -->
+    <target name="release-freebsd" depends="release-common" if="is.FreeBSD">
+        <property name="releasefile" value="wrapper_freebsd_${version}"/>
+    </target>
     
     <!-- =================================================================== -->
     <!-- Release (Unix)                                                      -->
     <!-- =================================================================== -->
     <target name="release-unix"
-            depends="release-linux, release-solaris, release-aix, release-hpux, release-macosx, release-osf1"
+            depends="release-linux, release-solaris, release-aix, release-hpux, release-macosx, release-osf1, release-freebsd"
             if="is.Unix">
         <property name="releasedir" value="${basedir}/${releasefile}"/>
         <delete dir="${releasedir}"/>
@@ -710,6 +729,12 @@
             <arg line="-f Makefile.osf1" />
             <arg value="clean"/>
         </exec>
+        <exec executable="gmake" 
+              dir="${src.dir}/c" 
+              os="FreeBSD">
+            <arg line="-f Makefile.freebsd" />
+            <arg value="clean"/>
+        </exec>
     </target>
     
     <!-- =================================================================== -->
@@ -758,6 +783,12 @@
               dir="${src.dir}/c" 
               os="OSF1">
             <arg line="-f Makefile.osf1" />
+            <arg value="cleanall"/>
+        </exec>
+        <exec executable="gmake" 
+              dir="${src.dir}/c" 
+              os="FreeBSD">
+            <arg line="-f Makefile.freebsd" />
             <arg value="cleanall"/>
         </exec>
 

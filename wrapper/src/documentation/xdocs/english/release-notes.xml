@@ -166,6 +166,12 @@ $Id$
                     '#' within the property value.  Bug #777303.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Added support for FreeBSD.  Big thanks to Alphonse Bendt for supplying the
+                    patch.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

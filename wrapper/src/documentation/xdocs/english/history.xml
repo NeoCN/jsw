@@ -141,14 +141,15 @@
         <title>Version 3.0.3</title>
         <para>
             Version 3.0.3 welcomed Mac OSX to the list of supported platforms.  Thanks
-            goes out to Andy Barnett for the necessary patches and testing.
+            go out to Andy Barnett for the necessary patches and testing.
         </para>
     </section>
     <section>
         <title>Version 3.0.4</title>
         <para>
-            Version 3.0.4 welcomed DEC OSF1 to the list of supported platforms.  Thanks
-            goes out to Andreas Wendt for the necessary patches and testing.
+            Version 3.0.4 welcomed DEC OSF1 and FreeBSD to the list of supported platforms.
+            Thanks to Andreas Wendt and Alphonse Bendt for the necessary patches and
+            testing.
         </para>
     </section>
 </chapter>
