@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.60  2003/05/29 09:27:13  mortenson
+ * Improve the debug output so that packet codes are now shown using a name
+ * rather than a raw number.
+ *
  * Revision 1.59  2003/05/01 04:24:41  mortenson
  * Forgot tabs to spaces.
  *
@@ -433,6 +437,94 @@ void wrapperProtocolClose() {
     }
 }
 
+/**
+ * Returns the name of a given function code for debug purposes.
+ */
+char *wrapperProtocolGetCodeName(char code) {
+    static char unknownBuffer[14];
+    char *name;
+
+    switch(code) {
+    case WRAPPER_MSG_START:
+        name ="START";
+        break;
+
+    case WRAPPER_MSG_STOP:
+        name ="STOP";
+        break;
+
+    case WRAPPER_MSG_RESTART:
+        name ="RESTART";
+        break;
+
+    case WRAPPER_MSG_PING:
+        name ="PING";
+        break;
+
+    case WRAPPER_MSG_STOP_PENDING:
+        name ="STOP_PENDING";
+        break;
+
+    case WRAPPER_MSG_START_PENDING:
+        name ="START_PENDING";
+        break;
+
+    case WRAPPER_MSG_STARTED:
+        name ="STARTED";
+        break;
+
+    case WRAPPER_MSG_STOPPED:
+        name ="STOPPED";
+        break;
+
+    case WRAPPER_MSG_KEY:
+        name ="KEY";
+        break;
+
+    case WRAPPER_MSG_BADKEY:
+        name ="BADKEY";
+        break;
+
+    case WRAPPER_MSG_LOW_LOG_LEVEL:
+        name ="LOW_LOG_LEVEL";
+        break;
+
+    case WRAPPER_MSG_PING_TIMEOUT:
+        name ="PING_TIMEOUT";
+        break;
+
+    case WRAPPER_MSG_LOG + LEVEL_DEBUG:
+        name ="LOG(DEBUG)";
+        break;
+
+    case WRAPPER_MSG_LOG + LEVEL_INFO:
+        name ="LOG(INFO)";
+        break;
+
+    case WRAPPER_MSG_LOG + LEVEL_STATUS:
+        name ="LOG(STATUS)";
+        break;
+
+    case WRAPPER_MSG_LOG + LEVEL_WARN:
+        name ="LOG(WARN)";
+        break;
+
+    case WRAPPER_MSG_LOG + LEVEL_ERROR:
+        name ="LOG(ERROR)";
+        break;
+
+    case WRAPPER_MSG_LOG + LEVEL_FATAL:
+        name ="LOG(FATAL)";
+        break;
+
+    default:
+        sprintf(unknownBuffer, "UNKNOWN(%d)", code);
+        name = unknownBuffer;
+        break;
+    }
+    return name;
+}
+
 int wrapperProtocolFunction(char function, const char *message) {
     int rc;
     char buffer[1024];
@@ -447,8 +539,8 @@ int wrapperProtocolFunction(char function, const char *message) {
     }
 
     if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "send a packet %d : %s",
-            function, (message == NULL ? "NULL" : message));
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "send a packet %s : %s",
+            wrapperProtocolGetCodeName(function), (message == NULL ? "NULL" : message));
     }
 
     /* Build the packet */
@@ -570,7 +662,8 @@ int wrapperProtocolRead() {
         packetBuffer[pos] = '\0';
 
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "read a packet %d : %s", code, packetBuffer);
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "read a packet %s : %s",
+                wrapperProtocolGetCodeName(code), packetBuffer);
         }
 
         switch (code) {

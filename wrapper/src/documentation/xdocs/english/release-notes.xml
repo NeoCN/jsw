@@ -33,6 +33,12 @@ $Id$
                     an application always has enough time to shutdown cleanly.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Improve the debug output so that packet codes are now shown using a name
+                    rather than a raw number.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

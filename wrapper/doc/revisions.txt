@@ -11,6 +11,8 @@ Java Service Wrapper Revision History.
 * Fix a problem where an application was being killed prematurely if it took
   longer than 6 seconds to exit on its own.  The scripts now make sure that
   an application always has enough time to shutdown cleanly.
+* Improve the debug output so that packet codes are now shown using a name
+  rather than a raw number.
 
 3.0.3
 * Added support for Mac OS X.  Big thanks to Andy Barnett for supplying the
