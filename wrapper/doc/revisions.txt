@@ -95,6 +95,8 @@ Java Service Wrapper Revision History.
   trigger on any output.
 * Add some additional debug output to make it easier to debug startup,
   shutdown and restart problems.
+* Modify the way the Wrapper forcibly kills a frozen JVM on UNIX platforms so
+  that it now sends a SIGTERM, waits up to 5 seconds, then sends a SIGKILL.
 
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the
