@@ -4,6 +4,13 @@ Java Service Wrapper Revision History.
 * Fix a problem on UNIX systems where requesting a second thread dump any time
   during the life of a single Wrapper process would cause the Wrapper and JVM
   to shutdown rather than perform the thread dump.
+* Fix a problem where a, user without permission, attempting to stop an
+  application was able to delete the pid file even though they were unable
+  to stop the application itself.  This would make the scripts think that
+  the application was stopped when was actually still running.
+* Fix a problem where an application was being killed prematurely if it took
+  longer than 6 seconds to exit on its own.  The scripts now make sure that
+  an application always has enough time to shutdown cleanly.
 
 3.0.3
 * Added support for Mac OS X.  Big thanks to Andy Barnett for supplying the
