@@ -26,6 +26,9 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
+// Revision 1.4  2002/05/17 09:08:45  mortenson
+// Make the test shutdown correctly when shutdown from a shutdown hook.
+//
 // Revision 1.3  2002/05/16 03:34:32  mortenson
 // Added comments to the buttons that had no comments to make their use clear.
 //
@@ -119,8 +122,6 @@ public class Main implements WrapperListener {
     public Integer start(String[] args) {
         System.out.println("start()");
         
-        WrapperManager.signalStarting(20000);
-        
         _frame = new MainFrame();
         _frame.setVisible(true);
         
@@ -131,8 +132,8 @@ public class Main implements WrapperListener {
         System.out.println("stop(" + exitCode + ")");
         
         if (_frame != null) {
-            _frame.setVisible(false);
             if (!WrapperManager.hasShutdownHookBeenTriggered()) {
+                _frame.setVisible(false);
                 _frame.dispose();
             }
             _frame = null;
