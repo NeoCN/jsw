@@ -418,10 +418,12 @@
                 <include name="src/bin/**" />
                 <include name="src/conf/**" />
                 <include name="src/java/**" />
+                <include name="src/c/*.bat" />
                 <include name="src/c/*.c" />
                 <include name="src/c/*.h" />
                 <include name="src/c/Makefile.*" />
                 <include name="src/c/*.mak" />
+                <include name="src/c/*.dep" />
                 <include name="src/c/*.dsp" />
                 <include name="src/c/*.dsw" />
                 <include name="src/c/*.plg" />
@@ -670,8 +672,8 @@
         <delete dir="${jdoc.dir}"/>
         <delete dir="${doc.dir}/english"/>
 
-        <!-- Do not delete Wrapper.exe or Wrapper.DLL as they are not currently built by ant. -->
-
+        <delete file="${bin.dir}/Wrapper.exe"/>
+        <delete file="${lib.dir}/Wrapper.dll"/>
         <delete file="${lib.dir}/wrapper.jar"/>
         <delete file="${lib.dir}/wrappertest.jar"/>
 
