@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.12  2002/03/07 08:23:35  mortenson
+// Fix a problem where the JVM was getting two thread dump signals.
+//
 // Revision 1.11  2002/03/07 08:10:13  mortenson
 // Add support for Thread Dumping
 // Fix a problem locating java on the path.
@@ -273,12 +276,16 @@ int wrapperConsoleHandler(int key) {
 		// The user hit CTRL-BREAK
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "CTRL-BREAK/PAUSE trapped.  Asking the JVM to dump its state.");
 
+		/* If the java process was launched using the same console, ie where processflags=CREATE_NEW_PROCESS_GROUP; */
+		/* then the java process will also get this message, so it can be ignored here.                             */
+		/*
 		if (wrapperProcess != NULL) {
 	        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Sending BREAK event to process group %ld.", wrapperProcessId);
 			if ( GenerateConsoleCtrlEvent( CTRL_BREAK_EVENT, wrapperProcessId ) != 0 ) {
 		        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to send BREAK event to JVM process.  Err(%ld)", GetLastError());
 			}
 		}
+		*/
 
         quit = FALSE;
         break;
