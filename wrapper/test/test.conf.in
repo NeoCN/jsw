@@ -57,7 +57,7 @@ wrapper.pidfile=/var/run/aigent.pid
 #********************************************************************
 # WARNING - Do not modify any of these parameters when an application
 #  using this configuration file has been installed as a service.
-#  Please uninstall the service before modifing this section.  The
+#  Please uninstall the service before modifying this section.  The
 #  service can then be reinstalled.
 
 # Name of the service
