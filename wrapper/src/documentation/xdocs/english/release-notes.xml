@@ -13,6 +13,11 @@
         <itemizedlist>
             <listitem>
                 <para>
+                    Fix a problem where the log output was not being directed to a file called wrapper.log in the same directory as the Wrapper binary in the event that the configured wrapper log file could not be accessed.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
                     Fix a problem where the Wrapper was not shutting down the JVM correctly when all non-daemon threads completed.   Normally a JVM will exit when all of its non-daemon threads have completed so this was causing some problems.  (Thanks to Jung Tamas)
                 </para>
             </listitem>
