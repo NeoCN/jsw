@@ -26,6 +26,11 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.4  2003/04/16 00:11:07  mortenson
+// Back out my last commit.  I was being silly.  The test was not valid as it was not
+// the first output from the JVM.  Moved the test to LoadedWrapperListener.java where
+// I could actually write an initial line feed.
+//
 // Revision 1.3  2003/04/15 23:52:46  mortenson
 // Add a test for an initial line feed.
 //
@@ -55,9 +60,6 @@ public class LogOutput {
      * Main Method
      *-------------------------------------------------------------*/
     public static void main(String[] args) {
-        // Test an initial line feed.
-        System.out.println();
-        
         System.out.println("Test the various log levels...");
         WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_DEBUG,  "Debug output");
         WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO,   "Info output");
