@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.82  2004/07/11 14:01:34  mortenson
+ * Work around a problem where the non-blocking bit on the JVM pipe is reset
+ * on some FreeBSD systems.
+ * Reenable sigaction for FreeBSD platforms.
+ *
  * Revision 1.81  2004/07/05 09:56:59  mortenson
  * Long day!  On further testing, I realized that the duplicate thread dump problem
  * also exists when using the signal function.  So the only problem with sigaction is
@@ -302,21 +307,10 @@
 #include "property.h"
 #include "logger.h"
 
-/* signal function calls were replaced with sigaction function calls to
- *  make it possible to increase the quantity and quality of debug output
- *  logged when a signal is encountered.
- * Unfortunately this does not work on FreeBSD.   For some reason when it is
- *  used, the pipe between the JVM and Wrapper remains in blocking mode
- *  despite it being set to non-blocking mode.  This results in the main
- *  event loop hanging until output from the JVM is received.
- * Rather than throwing the sigaction code away, its use is controlled with
- *  the WRAPPER_USE_SIGACTION define below.
- * Hopefully these problems can be resolved in the future.
- */
-#ifdef FREEBSD
-#else
+/* Moved from using the signal call to using sigaction.  Until this has
+ *  been well tested on all platforms, make it easy to go back by commenting
+ *  out the WRAPPER_USE_SIGACTION definition. */
 #define WRAPPER_USE_SIGACTION
-#endif
 
 #ifdef WRAPPER_USE_SIGACTION
 #ifndef getsid
@@ -1058,6 +1052,7 @@ int wrapperReadChildOutput() {
     long now;
     int nowMillis;
     long durr;
+    int flags;
     
     if (jvmOut != -1) {
         ftime( &timeBuffer );
@@ -1084,6 +1079,29 @@ int wrapperReadChildOutput() {
                 readSize = 1024;
             } else {
                 readSize = 1;
+            }
+
+            /* On some versions of FreeBSD, there is a bug related to pthreads which causes
+             *  the non-blocking flag on the pipe to the JVM to be reset back to blocking
+             *  mode.  This is of course bad as it will cause this thread to hang when there
+             *  is no JVM output.  We need to check it and reset it as needed. */
+            flags = fcntl(jvmOut, F_GETFL);
+            if (flags < 0) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                    "Failed to get jvm output handle flags: %s (%d)",
+                    getLastErrorText(), errno);
+            } else if (!(flags & O_NONBLOCK)) {
+                /* The no blocking flag has been reset and needs to be set again. */
+                if (wrapperData->isDebugging) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                        "The non-blocking flag on the jvm output handle has been reset. Setting it back.");
+                }
+
+                if (fcntl(jvmOut, F_SETFL, O_NONBLOCK) < 0) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                        "Failed to set jvm output handle to non blocking mode: %s (%d)",
+                        getLastErrorText(), errno);
+                }
             }
 
             /* Fill read buffer. */
