@@ -24,6 +24,11 @@
  *
  *
  * $Log$
+ * Revision 1.19  2002/06/06 00:52:21  mortenson
+ * If a JVM tries to reconnect to the Wrapper after it has started shutting down, the
+ * Wrapper was getting confused in some cases.  I think that this was just a problem
+ * with the "Appear Hung" test, but the Wrapper should be more stable now.
+ *
  * Revision 1.18  2002/05/23 12:42:41  rybesh
  * fixed logger initialization on unix
  *
@@ -622,6 +627,9 @@ void wrapperKillProcess() {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Java Virtual Machine did not exit on request.");
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "  Attempt to terminate process failed.  Error=%d", GetLastError());
         }
+
+        /* Give the JVM a chance to be killed so that the state will be correct. */
+		Sleep(500); /* 0.5 seconds in milliseconds */
     }
 
     wrapperData->jState = WRAPPER_JSTATE_DOWN;

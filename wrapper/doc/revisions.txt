@@ -1,6 +1,8 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 2.2.7
+* Fix a problem where the JVM was trying to reconnect the Wrapper as it was
+  being shutdown.  This was causing problems if the JVM was being restarted.
 * Added support for the system being suspended to RAM or disk.  Also improved
   wrapper performance when a system is under 100% load.  See the new example
   output in the example section. 

@@ -13,6 +13,11 @@
         <itemizedlist>
             <listitem>
                 <para>
+                    Fix a problem where the JVM was trying to reconnect the Wrapper as it was being shutdown.  This was causing problems if the JVM was being restarted.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
                     Added support for the system being suspended to RAM or disk.  Also improved wrapper performance when a system is under 100% load.  See the new example output in the <ulink url="example.html">example</ulink> section. 
                 </para>
             </listitem>
