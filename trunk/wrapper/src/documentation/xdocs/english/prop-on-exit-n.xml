@@ -68,9 +68,8 @@ wrapper.on_exit.0=SHUTDOWN]]></screen>
         <para>
             on_exit properties will be triggered by calls to
             <literal moreinfo="none">WrapperManager.stop(n)</literal>,
-            <literal moreinfo="none">WrapperManager.stopImmediate(n)</literal>,
-            <literal moreinfo="none">System.exit(n)</literal>, and
-            <literal moreinfo="none">Runtime.getRuntime().halt(n)</literal>.
+            <literal moreinfo="none">WrapperManager.stopImmediate(n)</literal>, and
+            <literal moreinfo="none">System.exit(n)</literal>.
         </para>
         <para>
             External signals or actions which trigger the shutdown of the Wrapper
