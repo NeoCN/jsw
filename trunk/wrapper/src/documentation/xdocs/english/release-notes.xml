@@ -53,6 +53,13 @@ $Id$
                     sent from the JVM.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where a large number of calls to WrapperManager.log()
+                    immediately before the JVM exits could lead to the Wrapper incorrectly
+                    reporting that the JVM exited unexpectedly.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
