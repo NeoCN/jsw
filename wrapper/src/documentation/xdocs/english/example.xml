@@ -193,7 +193,7 @@ jvm 2    | start()]]></screen>
                         </glossdef>
                     </glossentry>
                     <glossentry>
-                        <glossterm>Simmulate JVM Hang</glossterm>
+                        <glossterm>Simulate JVM Hang</glossterm>
                         <glossdef>
                             <para>
                                 This test causes the Wrapper to think that the JVM has become hung.  After 30 seconds, the Wrapper times out and decides that the JVM will not come back and restarts it.
@@ -372,7 +372,7 @@ wrapper  | <-- Wrapper Stopped]]></screen>
                         <glossterm>Process Termination</glossterm>
                         <glossdef>
                             <para>
-                                It is also possible, though unlikely, that the application process could be killed by another application.  This test also simmulates cases where the JVM dies very suddenly of its own accord.  On Unix systems, you can kill the java process with a <literal moreinfo="none">kill -9</literal>.  On Windows systems, open up the Task Manager.  Select the Process tab.  Locate the java.exe process to kill and then kill it.
+                                It is also possible, though unlikely, that the application process could be killed by another application.  This test also simulates cases where the JVM dies very suddenly of its own accord.  On Unix systems, you can kill the java process with a <literal moreinfo="none">kill -9</literal>.  On Windows systems, open up the Task Manager.  Select the Process tab.  Locate the java.exe process to kill and then kill it.
                                 <informalexample>
                                     <simpara><emphasis>Console Output:</emphasis></simpara>
                                     <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console

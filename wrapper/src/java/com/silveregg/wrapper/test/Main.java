@@ -26,6 +26,9 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
+// Revision 1.6  2002/05/22 11:43:10  rybesh
+// fixed some spelling errors
+//
 // Revision 1.5  2002/05/17 09:52:42  mortenson
 // Add a Restart button to the TestWrapper application.
 //
@@ -80,7 +83,7 @@ public class Main implements WrapperListener {
             add(navButton);
             navButton.addActionListener(this);
             
-            Button ahButton = new Button("Simmulate JVM Hang");
+            Button ahButton = new Button("Simulate JVM Hang");
             add(ahButton);
             ahButton.addActionListener(this);
             
@@ -98,7 +101,7 @@ public class Main implements WrapperListener {
             
             add(new Label("The Access Violation button only works with Sun JVMs."));
             add(new Label("Also try killing the JVM process or pressing CTRL-C in the console window."));
-            add(new Label("Simmulate JVM Hang only has an effect when controlled by native Wrapper."));
+            add(new Label("Simulate JVM Hang only has an effect when controlled by native Wrapper."));
             add(new Label("System.exit(0) should cause the Wrapper to exit."));
             add(new Label("Runtime.getRuntime().halt(0) should result in the JVM restarting."));
             add(new Label("Request Restart should cause the JVM to stop and be restarted cleanly."));
@@ -114,7 +117,7 @@ public class Main implements WrapperListener {
                 WrapperManager.accessViolation();
             } else if (command.equals("Native Access Violation")) {
                 WrapperManager.accessViolationNative();
-            } else if (command.equals("Simmulate JVM Hang")) {
+            } else if (command.equals("Simulate JVM Hang")) {
                 WrapperManager.appearHung();
             } else if (command.equals("System.exit(0)")) {
                 System.exit(0);
