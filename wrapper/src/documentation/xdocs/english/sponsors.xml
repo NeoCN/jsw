@@ -26,6 +26,12 @@
         </para>
         <donorlist>
             <donor>
+                <date>Mar 30, 2004</date>
+                <amount>50.00</amount>
+                <name>Anonymous</name>
+                <message>Great tool.  Saved me from VB programming!</message>
+            </donor>
+            <donor>
                 <date>Mar 25, 2004</date>
                 <amount>25.00</amount>
                 <name>Anonymous</name>
