@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.2  2003/06/08 04:15:34  mortenson
+// Synchronize access to the actions map.
+// Cast chars to byte so that the class will compile under Java 1.2.x
+//
 // Revision 1.1  2003/06/07 05:19:11  mortenson
 // Add a new class, WrapperActionServer, which makes it easy to remotely control
 // the Wrapper remotely by opening a socket and sending commands.  See the
@@ -93,17 +97,17 @@ public class WrapperActionServer
     implements Runnable
 {
     /** Command to invoke a shutdown action. */
-    public final static byte COMMAND_SHUTDOWN         = 'S';
+    public final static byte COMMAND_SHUTDOWN         = (byte)'S';
     /** Command to invoke an expected halt action. */
-    public final static byte COMMAND_HALT_EXPECTED    = 'H';
+    public final static byte COMMAND_HALT_EXPECTED    = (byte)'H';
     /** Command to invoke a restart action. */
-    public final static byte COMMAND_RESTART          = 'R';
+    public final static byte COMMAND_RESTART          = (byte)'R';
     /** Command to invoke a thread dump action. */
-    public final static byte COMMAND_DUMP             = 'D';
+    public final static byte COMMAND_DUMP             = (byte)'D';
     /** Command to invoke an unexpected halt action. */
-    public final static byte COMMAND_HALT_UNEXPECTED  = 'U';
+    public final static byte COMMAND_HALT_UNEXPECTED  = (byte)'U';
     /** Command to invoke a thread dump action. */
-    public final static byte COMMAND_ACCESS_VIOLATION = 'V';
+    public final static byte COMMAND_ACCESS_VIOLATION = (byte)'V';
 
     /** The address to bind the port server to.  Null for any address. */
     private InetAddress m_bindAddr;
@@ -188,7 +192,12 @@ public class WrapperActionServer
                     
                     if ( command >= 0 )
                     {
-                        Runnable action = (Runnable)m_actions.get( new Integer( command ) );
+                        Runnable action;
+                        synchronized( m_actions )
+                        {
+                            action = (Runnable)m_actions.get( new Integer( command ) );
+                        }
+                        
                         if ( action != null )
                         {
                             try
@@ -323,7 +332,10 @@ public class WrapperActionServer
      */
     public void registerAction( byte command, Runnable action )
     {
-        m_actions.put( new Integer( command ), action );
+        synchronized( m_actions )
+        {
+            m_actions.put( new Integer( command ), action );
+        }
     }
     
     /**
@@ -332,7 +344,10 @@ public class WrapperActionServer
      */
     public void unregisterAction( byte command )
     {
-        m_actions.remove( new Integer( command ) );
+        synchronized( m_actions )
+        {
+            m_actions.remove( new Integer( command ) );
+        }
     }
     
     /**
