@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.37  2003/04/16 03:39:01  mortenson
+ * Make the Wrapper dump the configured properties if _DEBUG is set.
+ *
  * Revision 1.36  2003/04/16 03:12:44  mortenson
  * Remove a variable definition that is no longer being used.
  *
@@ -640,10 +643,10 @@ int main(int argc, char **argv) {
             wrapperData->configFile = argv[1];
             
             /* Display the active properties */
-            /*
+#ifdef _DEBUG
             printf("Debug Configuration Properties:\n");
             dumpProperties(properties);
-            */
+#endif
 
             /* Apply properties to the WrapperConfig structure. */
             if (wrapperLoadConfiguration()) {
