@@ -38,24 +38,33 @@
         </para>
         <informalexample>
             <simpara><emphasis>Example:</emphasis></simpara>
-            <screen format="linespecific"><![CDATA[wrapper.restart.delay=30]]></screen>
+            <screen format="linespecific"><![CDATA[wrapper.startup.delay=30]]></screen>
         </informalexample>
         <para>
-            Especially on Windows, it may be necessary to have a startup delay
-            when running as an NT service, but when running as a console
-            application.   The Wrapper makes this possible with the following
-            two variants of this property.  They both default to the value of
-            <literal moreinfo="none">wrapper.startup.delay</literal>
+            It may be necessary to have a startup delay when running as a service
+            under windows.  However having such a delay at all times would be
+            inconvenient when the application is being run from a console.  The
+            Wrapper provides two variants of this property which make it
+            possible to specify different startup delays depending on whether
+            the Wrapper is being run as a service or a console application.
+        </para>
+        <para>
+            The service delay is specified using the
+            <literal moreinfo="none">wrapper.startup.delay.service</literal>
+            property, and the console mode delay using the
+            <literal moreinfo="none">wrapper.startup.delay.console</literal>
+            property.   If either property is not specified, it defaults to
+            the value of <literal moreinfo="none">wrapper.startup.delay</literal>.
         </para>
         <informalexample>
             <simpara><emphasis>Example:</emphasis></simpara>
-            <screen format="linespecific"><![CDATA[wrapper.restart.delay.console=0
-wrapper.restart.delay.service=30]]></screen>
+            <screen format="linespecific"><![CDATA[wrapper.startup.delay.console=0
+wrapper.startup.delay.service=30]]></screen>
         </informalexample>
         <para>
             On UNIX platforms, the Wrapper is running as a service if its
             <ulink url="prop-daemonize.html">wrapper.daemonize</ulink> property
-            is set.   If the sh script, provided with the Wrapper, will set this
+            is set.  The sh script, provided with the Wrapper, will set this
             property if the <literal moreinfo="none">start</literal> command
             is used when.
         </para>
