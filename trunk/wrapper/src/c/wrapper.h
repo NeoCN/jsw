@@ -24,6 +24,10 @@
  */
 
 // $Log$
+// Revision 1.7  2002/03/07 08:10:13  mortenson
+// Add support for Thread Dumping
+// Fix a problem locating java on the path.
+//
 // Revision 1.6  2002/01/27 19:33:55  spocke
 // Added support for the service description property.
 //
@@ -169,6 +173,10 @@ extern int wrapperProtocolRead();
 /******************************************************************************
  * Utility Functions
  *****************************************************************************/
+#ifdef WIN32
+extern char** wrapperGetSystemPath();
+#endif
+
 extern int wrapperCheckRestartTimeOK();
 
 /**

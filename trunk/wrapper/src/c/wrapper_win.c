@@ -24,6 +24,10 @@
  */
 
 // $Log$
+// Revision 1.11  2002/03/07 08:10:13  mortenson
+// Add support for Thread Dumping
+// Fix a problem locating java on the path.
+//
 // Revision 1.10  2002/02/08 05:55:11  mortenson
 // Services installed on a path which included spaces were not working.
 // Make the syslog never unregister to avoid EventLog errors.
@@ -97,7 +101,9 @@ SERVICE_STATUS          ssStatus;
 SERVICE_STATUS_HANDLE   sshStatusHandle;
 TCHAR                   szErr[1024];
 
+static char *systemPath[256];
 static HANDLE wrapperProcess = NULL;
+static DWORD  wrapperProcessId = 0;
 static HANDLE wrapperChildStdoutWr = NULL;
 static HANDLE wrapperChildStdoutRd = NULL;
 static int    wrapperChildStdoutRdLastLF = 0;
@@ -107,6 +113,68 @@ char wrapperClasspathSeparator = ';';
 //*****************************************************************************
 // Windows specific code
 //*****************************************************************************
+/**
+ * Builds an array in memory of the system path.
+ */
+void buildSystemPath() {
+	char *envBuffer;
+	int len, i;
+	char *c, *lc;
+
+	// Get the length of the PATH environment variable.
+	len = GetEnvironmentVariable("PATH", NULL, 0);
+	if (len == 0) {
+		// PATH not set on this system
+		systemPath[0] = NULL;
+		return;
+	}
+
+	// Allocate the memory to hold the PATH
+	envBuffer = (char *)malloc(len * sizeof(char));
+	GetEnvironmentVariable("PATH", envBuffer, len);
+
+#ifdef _DEBUG
+	printf("Getting the system path: %s\n", envBuffer);
+#endif
+
+	// Build an array of the path elements.  To make it easy, just
+	//  assume there won't be more than 255 path elements.
+	i = 0;
+	lc = envBuffer;
+	// Get the elements ending in a ';'
+	while ((c = strchr(lc, ';')) != NULL)
+	{
+		len = c - lc;
+		systemPath[i] = (char *)malloc((len + 1) * sizeof(char));
+		memcpy(systemPath[i], lc, len);
+		systemPath[i][len] = '\0';
+#ifdef _DEBUG
+		printf("PATH[%d]=%s\n", i, systemPath[i]);
+#endif
+		lc = c + 1;
+		i++;
+	}
+	// There should be one more value after the last ';'
+	len = strlen(lc);
+	systemPath[i] = (char *)malloc((len + 1) * sizeof(char));
+	strcpy(systemPath[i], lc);
+#ifdef _DEBUG
+	printf("PATH[%d]=%s\n", i, systemPath[i]);
+#endif
+	i++;
+	// NULL terminate the array.
+	systemPath[i] = NULL;
+#ifdef _DEBUG
+		printf("PATH[%d]=<null>\n");
+#endif
+	i++;
+
+	// Release the environment variable memory.
+	free(envBuffer);
+}
+char** wrapperGetSystemPath() {
+	return systemPath;
+}
 
 /**
  * exits the application after running shutdown code.
@@ -194,12 +262,25 @@ int wrapperConsoleHandler(int key) {
 
     switch (key) {
     case CTRL_C_EVENT:
-    case CTRL_BREAK_EVENT:
     case CTRL_CLOSE_EVENT:
         // The user hit CTRL-C.  Can only happen when run as a console.
         //  Always quit.
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "CTRL-C trapped.  Shutting down.");
         quit = TRUE;
+        break;
+
+    case CTRL_BREAK_EVENT:
+		// The user hit CTRL-BREAK
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "CTRL-BREAK/PAUSE trapped.  Asking the JVM to dump its state.");
+
+		if (wrapperProcess != NULL) {
+	        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Sending BREAK event to process group %ld.", wrapperProcessId);
+			if ( GenerateConsoleCtrlEvent( CTRL_BREAK_EVENT, wrapperProcessId ) != 0 ) {
+		        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to send BREAK event to JVM process.  Err(%ld)", GetLastError());
+			}
+		}
+
+        quit = FALSE;
         break;
 
     case CTRL_LOGOFF_EVENT:
@@ -528,14 +609,18 @@ void wrapperExecute() {
     PROCESS_INFORMATION process_info;
     int ret;
     // Do not show another console for the new process
-    int processflags=CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS;
-    //int processflags=0; //DETACHED_PROCESS;  // Use the same process group so that
-    //  the new process will be protected
-    //  as a service.
+    //int processflags=CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS;
+
+	// Create a new process group as part of this console so that signals can
+	//  be sent to the JVM.
+    int processflags=CREATE_NEW_PROCESS_GROUP;
+
     // Do not show another console for the new process, but show its output in the current console.
     //int processflags=CREATE_NEW_PROCESS_GROUP;
+
     // Show a console for the new process
     //int processflags=CREATE_NEW_PROCESS_GROUP | CREATE_NEW_CONSOLE;
+
     char *commandline=NULL;
     char *environment=NULL;
     char *binparam=NULL;
@@ -589,7 +674,7 @@ void wrapperExecute() {
     process_info.dwProcessId=0;
     process_info.dwThreadId=0;
 
-    // Need to directory that this program exists in.  Not the current directory.
+    // Need the directory that this program exists in.  Not the current directory.
     //	Note, the current directory when run as an NT service is the windows system directory.
     // Get the full path and filename of this program
     if (GetModuleFileName(NULL, szPath, 512) == 0){
@@ -640,6 +725,7 @@ void wrapperExecute() {
     }
 
     wrapperProcess = process_info.hProcess;
+	wrapperProcessId = process_info.dwProcessId;
 }
 
 /******************************************************************************
@@ -1123,6 +1209,8 @@ void _CRTAPI1 main(int argc, char **argv) {
     */
 
     __try {
+		buildSystemPath();
+
         // Initialize the WrapperConfig structure
         wrapperData = (WrapperConfig *)malloc(sizeof(WrapperConfig));
         wrapperData->isConsole = TRUE;

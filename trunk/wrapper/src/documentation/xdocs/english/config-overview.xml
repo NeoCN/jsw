@@ -125,7 +125,7 @@
                         <glossterm>wrapper.java.command</glossterm>
                         <glossdef>
                             <para>
-                                Location of the Java executable
+                                Location of the Java executable.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
                                     <screen format="linespecific">wrapper.java.command=java</screen>
@@ -277,6 +277,9 @@ wrapper.app.parameter.2=conf/myconffile.conf</screen>
                         <glossdef>
                             <para>
                                 A port used to communicate between the Wrapper executable and the Java application.  Used to monitor the health of the Java application.  This can be any value. If at runtime, the specified value is in use, then a warning will be printed to the console and the next available port will be used in its place.
+                            </para>
+                            <para>
+                                When the Wrapper launches a JVM instance, it will open a server socket listening on this port bound to the localhost address.  The lauched JVM will be supplied with a key which it must use to be able to connect back to the Wrapper process.  Once the JVM has connected, the Wrapper will no longer accept additional connections.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
                                     <screen format="linespecific">wrapper.port=1777</screen>

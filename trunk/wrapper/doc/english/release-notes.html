@@ -42,6 +42,9 @@
 <a href="release-notes.html"><font size="-1">Release Notes</font></a>
 </li>
 <li>
+<a href="debugging.html"><font size="-1">Debugging Your Application</font></a>
+</li>
+<li>
 <a href="faq.html"><font size="-1">FAQ</font></a>
 </li>
 <li>
@@ -131,6 +134,51 @@
 <a name="NA2B"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="100%">
 <tr>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+1"><b>Version 2.2.6: Changes and bugfixes</b></font></td>
+</tr>
+<tr>
+<td><font face="arial,helvetica,sanserif" color="#000000">
+<br>
+        
+        
+<ul>
+            
+<li>
+                
+<p align="justify">
+                    Added support for requesting a Java thread dump without shutting down the Java process.
+                </p>
+            
+</li>
+            
+<li>
+                
+<p align="justify">
+                    Fixed a problem on windows where the java command was looking in the windows system and system32 directories for the java executable before checking the path when the full path to the java executable was not specified in the configuration file.  This could lead to different JVM being run from the Wrapper than was run if java -version was run from the command line.  The Wrapper will now attempt to resolve the full java path using the PATH environment variable.
+                </p>
+            
+</li>
+            
+<li>
+                
+<p align="justify">
+                    Added debug output showing Java version information when the JVM first starts.
+                </p>
+            
+</li>
+        
+</ul>
+    
+</font></td>
+</tr>
+</table>
+</div>
+<br>
+    
+<div>
+<a name="NA46"></a>
+<table cellspacing="0" cellpadding="2" border="0" width="100%">
+<tr>
 <td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+1"><b>Version 2.2.5: Changes and bugfixes</b></font></td>
 </tr>
 <tr>
@@ -205,7 +253,7 @@
 <br>
     
 <div>
-<a name="NA5E"></a>
+<a name="NA79"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="100%">
 <tr>
 <td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+1"><b>Version 2.2.4: Changes and bugfixes</b></font></td>
@@ -274,7 +322,7 @@
 <br>
     
 <div>
-<a name="NA8B"></a>
+<a name="NAA6"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="100%">
 <tr>
 <td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+1"><b>Version 2.2.3: Changes and bugfixes</b></font></td>
@@ -359,7 +407,7 @@
 <br>
     
 <div>
-<a name="NAC8"></a>
+<a name="NAE3"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="100%">
 <tr>
 <td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+1"><b>Version 2.2.2: Changes and bugfixes</b></font></td>
@@ -388,7 +436,7 @@
 <br>
     
 <div>
-<a name="NAD7"></a>
+<a name="NAF2"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="100%">
 <tr>
 <td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+1"><b>Version 2.2.1: Changes and bugfixes</b></font></td>
@@ -425,7 +473,7 @@
 <br>
     
 <div>
-<a name="NAEC"></a>
+<a name="NB07"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="100%">
 <tr>
 <td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+1"><b>Version 2.2.0: Changes and bugfixes</b></font></td>

@@ -26,6 +26,10 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.5  2002/03/07 08:10:14  mortenson
+// Add support for Thread Dumping
+// Fix a problem locating java on the path.
+//
 // Revision 1.4  2001/12/07 06:50:28  mortenson
 // Remove an unwanted debug message
 //
@@ -271,6 +275,18 @@ public final class WrapperManager implements Runnable {
             };
             _eventRunner.setDaemon(true);
             _eventRunner.start();
+            
+            if (_debug) {
+                // Display more JVM infor right after the call initialization of the library.
+                String fullVersion = System.getProperty("java.fullversion");
+                if (fullVersion == null) {
+                    fullVersion = System.getProperty("java.runtime.version") + " " + 
+                        System.getProperty("java.vm.name");
+                }
+                System.out.println("Java Version   : " + fullVersion);
+                System.out.println("Java VM Vendor : " + System.getProperty("java.vm.vendor"));
+                System.out.println();
+            }
         }
         
         // Create the singleton

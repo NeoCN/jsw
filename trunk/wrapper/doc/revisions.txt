@@ -1,5 +1,18 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+2.2.6
+* Added support for requesting a Java thread dump without shutting down the
+  Java process.
+* Fixed a problem on windows where the java command was looking in the windows
+  system and system32 directories for the java executable before checking the
+  path when the full path to the java executable was not specified in the
+  configuration file.  This could lead to different JVM being run from the
+  Wrapper than was run if java -version was run from the command line.  The
+  Wrapper will now attempt to resolve the full java path using the PATH
+  environment variable.
+* Added debug output showing Java version information when the JVM first
+  starts.
+
 2.2.5
 * Added support for service descriptions for Win2k and XP.
 * Fixed bug issue when reading config files from Windows on Unix.
