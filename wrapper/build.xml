@@ -325,9 +325,6 @@
                 <include name="index.html" />
                 <include name="build.*" />
                 <include name="doc/**" />
-                <include name="bin/*.bat" />
-                <include name="conf/*.conf" />
-                <include name="logs" />
                 <include name="src/bin/**" />
                 <include name="src/conf/**" />
                 <include name="src/java/**" />
@@ -338,14 +335,31 @@
                 <include name="src/c/*.dsw" />
                 <include name="src/c/*.plg" />
                 <include name="src/documentation/**" />
-                <include name="test/*" />
-                <exclude name="test/*.log" />
+                <include name="test/build-tests.xml" />
                 <include name="tools/**" />
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
-        <!-- Need an empty log file so that the logs directory will be included -->
-        <touch file="${releasesrcdir}/logs/wrapper.log"/>
+        
+        <!-- Make sure that files are formatted correctly for their platforms -->
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat" eol="crlf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat.in" eol="crlf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.script.in" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="tools/ant" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="tools/antRun" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/Makefile.*" eol="lf" />
+        
+        
+        <!-- Make src builds for Windows -->
+        
+        <!-- Set files to windows line feends for .zip files -->
+        <fixcrlf srcdir="${releasesrcdir}"
+            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.conf*, **/*.c, **/*.h, **/*.log"
+            eol="crlf" />
+        <fixcrlf srcdir="${releasesrcdir}"
+            includes="src/documentation/**"
+            excludes="**/images/**, **/*.ttf"
+            eol="crlf" />
         
         <!-- Source archives with documentation source -->
         <zip file="${releasesrcdir}_with_doc_src.zip"
@@ -353,14 +367,9 @@
             compress="true">
             <include name="${releasesrcfile}/**/*" />
         </zip>
-        <tar tarfile="${releasesrcdir}_with_doc_src.tar"
-             basedir="${basedir}">
-            <include name="${releasesrcfile}/**/*" />
-        </tar>
-        <gzip zipfile="${releasesrcdir}_with_doc_src.tar.gz" src="${releasesrcdir}_with_doc_src.tar" />
         
         <!-- Source archives without documentation source -->
-        <zip zipfile="${releasesrcdir}.zip"
+        <zip file="${releasesrcdir}.zip"
             basedir="${basedir}"
             compress="true">
             <include name="${releasesrcfile}/**/*" />
@@ -375,6 +384,27 @@
             <exclude name="${releasesrcfile}/tools/lib/resolver.jar" />
             <exclude name="${releasesrcfile}/tools/lib/xalan-2.2.0-D8.jar" />
         </zip>
+        
+        
+        <!-- Make src builds for Unix -->
+        
+        <!-- Set files to unix line feends for .tar files -->
+        <fixcrlf srcdir="${releasesrcdir}" 
+            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.conf*, **/*.c, **/*.h, **/*.log" 
+            eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}"
+            includes="src/documentation/**"
+            excludes="**/images/**, **/*.ttf"
+            eol="lf" />
+        
+        <!-- Source archives with documentation source -->
+        <tar tarfile="${releasesrcdir}_with_doc_src.tar"
+             basedir="${basedir}">
+            <include name="${releasesrcfile}/**/*" />
+        </tar>
+        <gzip zipfile="${releasesrcdir}_with_doc_src.tar.gz" src="${releasesrcdir}_with_doc_src.tar" />
+        
+        <!-- Source archives without documentation source -->
         <tar tarfile="${releasesrcdir}.tar"
              basedir="${basedir}">
             <include name="${releasesrcfile}/**/*" />
@@ -420,6 +450,12 @@
         <!-- Need an empty log file so that the logs directory will be included -->
         <touch file="${releasedir}/logs/wrapper.log"/>
         
+        <!-- Make sure that files are formatted correctly for their platforms -->
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat" eol="crlf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat.in" eol="crlf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="bin/${app.name}" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.script.in" eol="lf" />
+        
         <zip file="${releasedir}.zip"
             basedir="${basedir}"
             compress="true">
@@ -439,7 +475,7 @@
             <fileset dir="${basedir}" >
                 <include name="index.html" />
                 <include name="bin/wrapper" />
-                <include name="bin/testwrapper" />
+                <include name="bin/${app.name}" />
                 <include name="conf/*.conf" />
                 <include name="lib/wrapper.jar" />
                 <include name="lib/wrappertest.jar" />
@@ -456,9 +492,22 @@
         <!-- Need an empty log file so that the logs directory will be included -->
         <touch file="${releasedir}/logs/wrapper.log"/>
         
+        <!-- Make sure that files are formatted correctly for their platforms -->
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat" eol="crlf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat.in" eol="crlf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="bin/${app.name}" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.script.in" eol="lf" />
+        
         <tar tarfile="${releasedir}.tar"
              basedir="${basedir}">
-            <include name="${releasefile}/**/*" />
+            <tarfileset dir="${basedir}" mode="755">
+                <include name="${releasefile}/bin/wrapper"/>
+                <include name="${releasefile}/bin/${app.name}"/>
+            </tarfileset>
+            <tarfileset dir="${basedir}">
+                <exclude name="${releasefile}/bin/wrapper"/>
+                <exclude name="${releasefile}/bin/${app.name}"/>
+            </tarfileset>
         </tar>
         <gzip zipfile="${releasedir}.tar.gz" src="${releasedir}.tar" />
     </target>
@@ -475,7 +524,7 @@
             <fileset dir="${basedir}" >
                 <include name="index.html" />
                 <include name="bin/wrapper" />
-                <include name="bin/testwrapper" />
+                <include name="bin/${app.name}" />
                 <include name="conf/*.conf" />
                 <include name="lib/wrapper.jar" />
                 <include name="lib/wrappertest.jar" />
@@ -492,9 +541,22 @@
         <!-- Need an empty log file so that the logs directory will be included -->
         <touch file="${releasedir}/logs/wrapper.log"/>
         
+        <!-- Make sure that files are formatted correctly for their platforms -->
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat" eol="crlf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat.in" eol="crlf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="bin/${app.name}" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/*.script.in" eol="lf" />
+        
         <tar tarfile="${releasedir}.tar"
-             basedir="${basedir}">
-            <include name="${releasefile}/**/*" />
+            basedir="${basedir}">
+            <tarfileset dir="${basedir}" mode="755">
+                <include name="${releasefile}/bin/wrapper"/>
+                <include name="${releasefile}/bin/${app.name}"/>
+            </tarfileset>
+            <tarfileset dir="${basedir}">
+                <exclude name="${releasefile}/bin/wrapper"/>
+                <exclude name="${releasefile}/bin/${app.name}"/>
+            </tarfileset>
         </tar>
         <gzip zipfile="${releasedir}.tar.gz" src="${releasedir}.tar" />
     </target>
