@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.34  2002/11/02 03:27:13  mortenson
+ * Fix Bug #632215.  The WrapperManager.isLaunchedAsService() method was
+ * always returning false.
+ *
  * Revision 1.33  2002/10/29 03:59:34  mortenson
  * Fixed a problem on Unix systems where the default value for classpath
  * and java.library.path were not being set correctly.
@@ -1180,6 +1184,19 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                 sprintf(strings[index], "-Dwrapper.debug=\"TRUE\"");
             } else {
                 sprintf(strings[index], "-Dwrapper.debug=TRUE");
+            }
+        }
+        index++;
+    }
+
+    /* If this is being run as a service, add a service flag. */
+    if (!wrapperData->isConsole) {
+        if (strings) {
+            strings[index] = (char *)malloc(sizeof(char) * (24 + 1));
+            if (addQuotes) {
+                sprintf(strings[index], "-Dwrapper.service=\"TRUE\"");
+            } else {
+                sprintf(strings[index], "-Dwrapper.service=TRUE");
             }
         }
         index++;

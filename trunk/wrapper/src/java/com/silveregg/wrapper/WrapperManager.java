@@ -26,6 +26,10 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.27  2002/11/02 03:27:14  mortenson
+// Fix Bug #632215.  The WrapperManager.isLaunchedAsService() method was
+// always returning false.
+//
 // Revision 1.26  2002/10/29 02:59:36  mortenson
 // Make the warning displayed when the native library can not be found much more
 // descriptive.  Attempt to reduce support requests on that.
@@ -555,8 +559,10 @@ public final class WrapperManager implements Runnable {
     }
     
     /**
-     * Returns true if the Wrapper was launched as a service.  False if launched as a console.
-     *  This can be useful if you wish to display a user interface when in Console mode.
+     * Returns true if the Wrapper was launched as a service (Windows only).  False if
+     *  launched as a console.  This can be useful if you wish to display a user
+     *  interface when in Console mode.  On unix systems, the Wrapper is always launched
+     *  as a console application, so this method will always return false.
      */
     public static boolean isLaunchedAsService() {
         return _service;

@@ -60,6 +60,14 @@ $Id$
                     way.  The old property is still supported, but deprecated.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix Bug #632215.  The WrapperManager.isLaunchedAsService() method was always
+                    returning false, even when run as a service under Windows.  On linux, the
+                    Wrapper is always run as a console app, so this method will always return
+                    false.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
