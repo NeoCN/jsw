@@ -25,6 +25,9 @@
             <listitem>
                 <ulink url="#definition">Environment Variable Definition</ulink>
             </listitem>
+            <listitem>
+                <ulink url="#default-definitions">Default Environment Variable Definitions</ulink>
+            </listitem>
         </itemizedlist>
         <section id="expansion">
             <title>Environment Variable Expansion</title>
@@ -60,7 +63,7 @@
                 <screen format="linespecific"><![CDATA[wrapper.java.command=C:\Sun\jdk1.3/bin/java]]></screen>
             </informalexample>
             <informalexample>
-                <simpara><emphasis>Unix:</emphasis></simpara>
+                <simpara><emphasis>UNIX:</emphasis></simpara>
                 <screen format="linespecific"><![CDATA[wrapper.java.command=/opt/IBMJava2-131/bin/java]]></screen>
             </informalexample>
             <para>
@@ -130,15 +133,50 @@ wrapper.java.classpath.5=%EXTERN_APP%/lib/ext/jar4.jar]]></screen>
                     value pair in quotes.
                 </para>
             </note>
+        </section>
+        <section id="default-definitions">
+            <title>Default Environment Variable Definitions</title>
             <para>
-                On startup, the Wrapper sets a path separator environment variable to its
-                own environment.  The WRAPPER_PATH_SEPARATOR variable can be used to help
-                define other properties in a platform independent way.  The variable is set
-                to ';' on Windows and ':' on all other platforms.
+                On startup, the Wrapper sets the following environment variables into its own
+                environment.   These variables can be used within the wrapper.conf file or by
+                accessing the environment of the JVM or any of its child processes.
             </para>
+            <itemizedlist>
+                <listitem>
+                    <para>
+                        The <literal moreinfo="none">WRAPPER_FILE_SEPARATOR</literal> variable is
+                        set to '\' on Windows and '/' on UNIX platforms.  The variable can be used
+                        to set platform independent values for additional environment variables or
+                        properties.
+                    </para>
+                    <para>
+                        In general it is safe to always use '/' as a file separator for paths used
+                        within Java.  Java is designed to work correctly on all platforms when '/'
+                        is used.
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        The <literal moreinfo="none">WRAPPER_PATH_SEPARATOR</literal> variable is
+                        set to ';' on Windows and ':' on UNIX platforms.  The variable can be
+                        used to build up platform independent paths.
+                    </para>
+                </listitem>
+            </itemizedlist>
             <informalexample>
                 <simpara><emphasis>Example:</emphasis></simpara>
-                <screen format="linespecific"><![CDATA[set.PATH=../lib%WRAPPER_PATH_SEPARATOR%%PATH%]]></screen>
+                <screen format="linespecific"><![CDATA[set.PATH=..%WRAPPER_FILE_SEPARATOR%lib%WRAPPER_PATH_SEPARATOR%%PATH%]]></screen>
+            </informalexample>
+            <para>
+                Which resolves to the following:
+            </para>
+            <informalexample>
+                <simpara><emphasis>Windows:</emphasis></simpara>
+                <screen format="linespecific"><![CDATA[set.PATH=..\lib;%PATH%]]></screen>
+            </informalexample>
+            <informalexample>
+                <simpara><emphasis>UNIX:</emphasis></simpara>
+                <screen format="linespecific"><![CDATA[set.PATH=../lib:%PATH%]]></screen>
             </informalexample>
         </section>
     </section>
