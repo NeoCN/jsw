@@ -1,0 +1,242 @@
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>API Overview</title>
+</head>
+<body bgcolor="#ffffff" marginheight="4" marginwidth="4" leftmargin="4" topmargin="4" alink="#023264" vlink="#023264" link="#525D76" text="#000000">
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top"><a href="http://www.silveregg.co.jp/"><img src="images/silveregg-logo.png" border="0" vspace="0" hspace="0"></a></td><td bgcolor="#ffffff" align="right" valign="bottom" width="100%"><font color="gray" face="arial,helvetica,sanserif" size="+3"><i><b>Java Service Wrapper</b></i></font></td>
+</tr>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td bgcolor="gray" colspan="7"><img height="1" width="1" src="images/spacer.png"></td>
+</tr>
+<tr>
+<td valign="top" width="5"><img height="1" width="5" src="images/spacer.png"></td><td nowrap="1" valign="top" width="150">
+<br>
+<font face="arial,helvetica,sanserif">
+<br>
+<br>
+<font size="+1" color="#000000">Documentation</font>
+<br>
+<font size="-1">
+<ul>
+<li>
+<a href="introduction.html"><font size="-1">Introduction</font></a>
+</li>
+<li>
+<a href="api-overview.html"><font size="-1">API Overview</font></a>
+</li>
+<li>
+<a href="config-overview.html"><font size="-1">Configuration Overview</font></a>
+</li>
+<li>
+<a href="launch-overview.html"><font size="-1">Launching Your Application</font></a>
+</li>
+<li>
+<a href="release-notes.html"><font size="-1">Release Notes</font></a>
+</li>
+<li>
+<a href="authors.html"><font size="-1">Authors</font></a>
+</li>
+</ul>
+</font>
+<br>
+<br>
+<font size="+1" color="#000000">Users</font>
+<br>
+<font size="-1">
+<ul>
+<li>
+<a href="users.html"><font size="-1">Users of Wrapper</font></a>
+</li>
+</ul>
+</font>
+<br>
+<br>
+<font size="+1" color="#000000">Download</font>
+<br>
+<font size="-1">
+<ul>
+<li>
+<a href="http://sourceforge.net/projects/wrapper/"><font size="-1">Source Forge</font></a>
+</li>
+<li>
+<a href="http://sourceforge.net/project/showfiles.php?group_id=39428"><font size="-1">Binaries</font></a>
+</li>
+<li>
+<a href="http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/wrapper/"><font size="-1">Browse CVS</font></a>
+</li>
+</ul>
+</font>
+<br>
+<br>
+                        Hosted by:<br>
+<A href="http://sourceforge.net/projects/wrapper/"><IMG alt="SourceForge Logo" border="0" height="31" width="88" src="http://sourceforge.net/sflogo.php?group_id=39428"></A>
+<br>
+</font></td><td valign="top" width="2"><img height="1" width="2" src="images/spacer.png"></td><td bgcolor="gray" valign="top" width="1"><img height="1" width="1" src="images/spacer.png"></td><td valign="top" width="10"><img height="1" width="10" src="images/spacer.png"></td><td align="left" valign="top" width="*">
+<br>
+<title>API Overview</title>
+<center>
+<table width="80%">
+<tr>
+<td bgcolor="#F3DD61">
+<br>
+<center>
+<b><font face="arial,helvetica,sanserif" color="#000000">API Overview</font></b>
+</center>
+<br>
+</td>
+</tr>
+</table>
+</center>
+<br>
+ 
+     
+
+    
+<div>
+<a name="NA2B"></a>
+<table cellspacing="0" cellpadding="2" border="0" width="100%">
+<tr>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+1"><b>Overview of the Wrapper's Java API</b></font></td>
+</tr>
+<tr>
+<td><font face="arial,helvetica,sanserif" color="#000000">
+<br>
+        
+        
+<p align="justify">
+            The Java-side API for Wrapper is quite simple and can be run in one of two modes.
+        </p>
+        
+<ol>
+            
+<li>
+                
+<p align="justify">
+                    WrapperSimpleApp class:
+                </p>
+                
+<p align="justify">
+                    The first is to use the WrapperSimpleApp class to launch your Java application with out any modifications.  This class handles all communication with the native wrapper and simply launches your application by calling its main method as would be done from the command line.
+                </p>
+                
+<p align="justify">
+                    The drawback to this method is that when your service is stopped, it is killed as if the user had hit CTRL-C in the console.  Your application will not have a chance to call any shutdown code.
+                </p>
+            
+</li>
+            
+<li>
+                
+<p align="justify">
+                    Implement WrapperListener:
+                </p>
+                
+<p align="justify">
+                    The second and recommended method is to have your application implement the WrapperListener interface.  This interface provides three methods used to inform your application when it should start and stop as well as when a system control event takes place (for example, the user hitting CTRL-C, or logging out under windows)
+                </p>
+                
+<p align="justify">
+                    The WrapperListener class has the following methods.
+                    <div align="left">
+<p>
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>public interface WrapperListener {
+    /**
+     * The start method is called when the WrapperManager is signaled by the 
+     *	native wrapper code that it can start its application.  This
+     *	method call is expected to return, so a new thread should be launched
+     *	it necessary.
+     * If there are any problems, then an Integer should be returned, set to
+     *	the desired exit code.  If the application should continue,
+     *	return null.
+     */
+    Integer start(String[] args);
+    
+    /**
+     * Called when the application is shutting down.
+     */
+    int stop(int exitCode);
+    
+    /**
+     * Called whenever the native wrapper code traps a system control signal
+     *  against the Java process.  It is up to the callback to take any actions
+     *  necessary.  Possible values are: WrapperManager.WRAPPER_CTRL_C_EVENT, 
+     *    WRAPPER_CTRL_CLOSE_EVENT, WRAPPER_CTRL_LOGOFF_EVENT, or 
+     *    WRAPPER_CTRL_SHUTDOWN_EVENT
+     */
+    void controlEvent(int event);
+}</pre>
+</td>
+</tr>
+</table>
+</p>
+</div>
+                
+</p>
+                
+<p align="justify">
+An application implementing the WrapperListener should not directly start the
+application in the main method.  Everything that would normally be in the main
+method should be moved into the start method.
+                </p>
+                
+<p align="justify">
+                    The main method should simply contain the following code:
+                    <div align="left">
+<p>
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>public class MyApp implements WrapperListener {
+    ... Application methods ...
+    ... WrapperListener methods...
+
+    public static void main(String[] args) {
+        // Start the application.  If the JVM was launched from the native
+        //  Wrapper then the application will wait for the native Wrapper to
+        //  call the application's start method.  Otherwise the start method
+        //  will be called immediately.
+        WrapperManager.start(new MyApp(), args);
+    }
+}</pre>
+</td>
+</tr>
+</table>
+</p>
+</div>
+                
+</p>
+            
+</li>
+        
+</ol>
+    
+</font></td>
+</tr>
+</table>
+</div>
+<br> 
+
+</td><td valign="top" width="5"><img height="1" width="5" src="images/spacer.png"></td>
+</tr>
+<tr>
+<td bgcolor="gray" colspan="7"><img height="1" width="1" src="images/spacer.png"></td>
+</tr>
+</table>
+<table cellpadding="0" cellspacing="0" border="0" width="100%">
+<tr>
+<td align="center"><font color="#525D76" size="-1" face="arial,helvetica,sanserif"><i>
+                            Copyright &copy;2000-2001 by Silver Egg Technology Co., Ltd.
+                            All Rights Reserved.
+                        </i></font></td>
+</tr>
+</table>
+</body>
+</html>

@@ -1,0 +1,364 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "../dtd/docbook/4.1.2/docbookx.dtd">
+
+<!-- ********************************************************************
+     $Id$
+     ******************************************************************** -->
+
+<chapter id="api-overview">
+ 
+    <title>Configuration File Overview</title> 
+
+    <section>
+        <title>Configuring the Wrapper to Work With Your Application.</title>
+        <para>
+            Wrapper uses a configuration file to control how Java is launched.
+        </para>
+        <para>
+            The Wrapper config file contains the following information:
+            <programlisting format="linespecific">#********************************************************************
+# Wrapper parameters
+#********************************************************************
+# Java Application
+wrapper.java.command=@java.home@/bin/java
+
+# Java Main class
+wrapper.java.mainclass=com.silveregg.wrapper.test.Main
+
+# Java Classpath (include wrapper.jar)  Add class path elements as needed starting from 1
+wrapper.java.classpath.1=@wrapper.home@/lib/wrapper.jar
+wrapper.java.classpath.2=@wrapper.home@/lib/wrappertest.jar
+
+# Java Library Path (location of wrapper.lib)
+wrapper.java.library.path=@java.library.path@
+
+# Java Additional Parameters
+#wrapper.java.additional.1=-Xrs
+#wrapper.java.additional.2=-Xcheck:jni
+#wrapper.java.additional.3=-verbose:jni
+
+# Initial Java Heap Size (in MB)
+wrapper.java.initmemory=16
+
+# Maximum Java Heap Size (in MB)
+wrapper.java.maxmemory=64
+
+# Application parameters.  Add parameters as needed starting from 1
+wrapper.app.parameter.1=
+
+# Port which the native wrapper code will attempt to connect to
+wrapper.port=1777
+
+# Log file to use for wrapper output logging.
+wrapper.logfile=testwrapper.log
+
+# Number of seconds to allow for the JVM to be launched and contact the wrapper before the
+#  wrapper should assume that the JVM is hung and terminate the JVM process.  0 means never
+#  time out.  Defaults to 30 seconds.
+wrapper.startup.timeout=30
+
+# Number of seconds to allow between the wrapper pinging the JVM and the response.  0 means
+#  never time out.  Defaults to 30 seconds.
+wrapper.ping.timeout=30
+
+# Show debug messages
+wrapper.debug=TRUE
+
+#********************************************************************
+# Wrapper Unix daemon parameters
+#********************************************************************
+# File to write process ID to
+wrapper.pidfile=/var/run/aigent.pid
+
+#********************************************************************
+# Wrapper NT Service parameters
+#********************************************************************
+# WARNING - Do not modify any of these parameters when an application
+#  using this configuration file has been installed as a service.
+#  Please uninstall the service before modifying this section.  The
+#  service can then be reinstalled.
+
+# Name of the service
+wrapper.ntservice.name=WrapperTest
+
+# Display name of the service
+wrapper.ntservice.displayname=Wrapper Test
+
+# Service dependencies.  Add dependencies as needed starting from 1
+wrapper.ntservice.dependency.1=
+
+# Mode in which the service is installed.  AUTO_START or DEMAND_START
+wrapper.ntservice.starttype=AUTO_START</programlisting>
+        </para>
+    </section>
+    <section>
+        <title>Explanation of wrapper configuration file properties</title>
+        <section>
+            <title>Platform independant properties</title>
+            <glosslist>
+                <glossentry>
+                    <glossterm>wrapper.java.command</glossterm>
+                    <glossdef>
+                        <para>
+                            Location of the Java executable
+                            <informalexample>
+                                <simpara><emphasis>Example:</emphasis></simpara>
+                                <screen format="linespecific">wrapper.java.command=C:/jdk1.3/jre/bin/java</screen>
+                            </informalexample>
+                        </para>
+                    </glossdef>
+                </glossentry>
+                <glossentry>
+                    <glossterm>wrapper.java.mainclass</glossterm>
+                    <glossdef>
+                        <para>
+                            Class to execute when the wrapper starts the application.  If your application implements WrapperListener, then this will be that main class.  Otherwise, this should be com.silveregg.wrapper.WrapperSimpleApp Then your main class will be listed as the first application parameter below.
+                            <informalexample>
+                                <simpara><emphasis>Example (WrapperListener case):</emphasis></simpara>
+                                <screen format="linespecific">wrapper.java.mainclass=com.widgetsrus.MyAppMain</screen>
+                            </informalexample>
+                            <informalexample>
+                                <simpara><emphasis>Example (WrapperSimpleApp case):</emphasis></simpara>
+                                <screen format="linespecific">wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp</screen>
+                            </informalexample>
+                        </para>
+                    </glossdef>
+                </glossentry>
+                <glossentry>
+                    <glossterm>wrapper.java.classpath.&lt;n&gt;</glossterm>
+                    <glossdef>
+                        <para>
+                            Java Classpath to use.  You should have a series of properties listing up the various class path elements to use when launching the application.  Each element has a property name which starts with wrapper.java.classpath. and ends with an integer number counting up from 1.  There can be no missing numbers.
+                        </para>
+                        <para>
+                            This list must contain the wrapper.jar file.  It can contain jar files as well as directories contains class files.
+                            <informalexample>
+                                <simpara><emphasis>Example:</emphasis></simpara>
+                                <screen format="linespecific">wrapper.java.classpath.1=C:/MyApp/lib/wrapper.jar
+wrapper.java.classpath.2=C:/MyApp/lib/myapp.jar
+wrapper.java.classpath.3=C:/MyApp/lib/mysql.jar
+wrapper.java.classpath.4=C:/MyApp/classes</screen>
+                            </informalexample>
+                        </para>
+                    </glossdef>
+                </glossentry>
+                <glossentry>
+                    <glossterm>wrapper.java.library.path</glossterm>
+                    <glossdef>
+                        <para>
+                            Value of the Java library path.  This is a directory which contains any native (JNI) libraries used by the application.  You must place the Wrapper.DLL or libWrapper.so file in the directory specified.
+                            <informalexample>
+                                <simpara><emphasis>Example:</emphasis></simpara>
+                                <screen format="linespecific">wrapper.java.library.path=C:/MyApp/lib</screen>
+                            </informalexample>
+                        </para>
+                    </glossdef>
+                </glossentry>
+                <glossentry>
+                    <glossterm>wrapper.java.additional.&lt;n&gt;</glossterm>
+                    <glossdef>
+                        <para>
+                            Additional Java parameters to pass to Java when it is launched.  These are not parameters for your application, but rather parameters for the Java virtual machine.  Each element has a property name which starts with wrapper.java.additional. and ends with an integer number counting up from 1.  There can be no missing numbers.
+                        </para>
+                        <para>
+                            For each entry, you can also have a corresponding strip quotes flag which will remove the quotes from the element when run on Linux or Solaris machines.  This was necessary to allow for file references which contain spaces.  For parameters like the one below it would not otherwise be possible to decide when to remove quotes and when to leave them alone.
+                            <informalexample>
+                                <simpara><emphasis>Example:</emphasis></simpara>
+                                <screen format="linespecific">wrapper.java.additional.1=-Xrs
+wrapper.java.additional.2=-Dprop=TRUE
+wrapper.java.additional.3=-Dmyapp.data="C:/Program Files/MyAppData"
+wrapper.java.additional.3.stripquotes=TRUE</screen>
+                            </informalexample>
+                        </para>
+                    </glossdef>
+                </glossentry>
+                <glossentry>
+                    <glossterm>wrapper.java.initmemory</glossterm>
+                    <glossdef>
+                        <para>
+                            The initial amount of memory in megabytes that the JVM should use.  Some JVMs work more efficiently if this value is high rather than low.
+                            <informalexample>
+                                <simpara><emphasis>Example:</emphasis></simpara>
+                                <screen format="linespecific">wrapper.java.initmemory=16</screen>
+                            </informalexample>
+                        </para>
+                    </glossdef>
+                </glossentry>
+                <glossentry>
+                    <glossterm>wrapper.java.maxmemory</glossterm>
+                    <glossdef>
+                        <para>
+                            The maximum amount of memory in megabytes that the JVM will be allowed to use.  Java is set to 64MB by default.
+                            <informalexample>
+                                <simpara><emphasis>Example:</emphasis></simpara>
+                                <screen format="linespecific">wrapper.java.maxmemory=64</screen>
+                            </informalexample>
+                        </para>
+                    </glossdef>
+                </glossentry>
+                <glossentry>
+                    <glossterm>wrapper.app.parameter.&lt;n&gt;</glossterm>
+                    <glossdef>
+                        <para>
+                            Application parameters to pass to your application when it is launched.  These are the parameters passed to your application's main method.  Each element has a property name which starts with wrapper.java.parameter. and ends with an integer number counting up from 1.  There can be no missing numbers.
+                        </para>
+                        <para>
+                            When the value of wrapper.java.mainclass is com.silveregg.wrapper.WrapperSimpleApp, the first parameter to the application must be the name of the class which contains your main method.  All other parameters are then passed to your application's main method in order.
+                        </para>
+                        <para>
+                            For each entry, you can also have a corresponding strip quotes flag which will remove the quotes from the element when run on Linux or Solaris machines.  This was necessary to allow for file references which contain spaces.  For parameters like the one below it would not otherwise be possible to decide when to remove quotes and when to leave them alone.
+                            <informalexample>
+                                <simpara><emphasis>Example:</emphasis></simpara>
+                                <screen format="linespecific">wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp
+wrapper.app.parameter.1=com.widgetsrus.MyAppMain
+wrapper.app.parameter.2=-d
+wrapper.app.parameter.3=-c"C:/MyApp/conf/myapp.conf"
+wrapper.app.parameter.3.stripquotes=TRUE
+wrapper.app.parameter.4=-p4</screen>
+                            </informalexample>
+                        </para>
+                    </glossdef>
+                </glossentry>
+                <glossentry>
+                    <glossterm>wrapper.port</glossterm>
+                    <glossdef>
+                        <para>
+                            A port used to communicate between the Wrapper executable and the Java application.  Used to monitor the health of the Java application.  This can be any value. If at runtime, the specified value is in use, then a warning will be printed to the console and the next available port will be used in its place.
+                            <informalexample>
+                                <simpara><emphasis>Example:</emphasis></simpara>
+                                <screen format="linespecific">wrapper.port=1777</screen>
+                            </informalexample>
+                        </para>
+                    </glossdef>
+                </glossentry>
+                <glossentry>
+                    <glossterm>wrapper.logfile</glossterm>
+                    <glossdef>
+                        <para>
+                            Log file to which all output to the console will be logged.  The logfile also contains timestamps.
+                            <informalexample>
+                                <simpara><emphasis>Example:</emphasis></simpara>
+                                <screen format="linespecific">wrapper.logfile=testwrapper.log</screen>
+                            </informalexample>
+                        </para>
+                    </glossdef>
+                </glossentry>
+                <glossentry>
+                    <glossterm>wrapper.startup.timeout</glossterm>
+                    <glossdef>
+                        <para>
+                            Number of seconds to allow for the JVM to be launched and contact the wrapper before the wrapper should assume that the JVM is hung and terminate the JVM process.  0 means never time out.  Defaults to 30 seconds.  Increase this value if your application takes too long to start.  You can also make calls to the WrapperManager.signalStarting(n) method to indicate that the application is not hung, but needs more time to start.
+                            <informalexample>
+                                <simpara><emphasis>Example:</emphasis></simpara>
+                                <screen format="linespecific">wrapper.startup.timeout=30</screen>
+                            </informalexample>
+                        </para>
+                    </glossdef>
+                </glossentry>
+                <glossentry>
+                    <glossterm>wrapper.ping.timeout</glossterm>
+                    <glossdef>
+                        <para>
+                            Number of seconds to allow between the wrapper pinging the JVM and the response.  0 means never time out.  Defaults to 30 seconds.  Usually you do not need to change this, however, if your system often has periods of time where the CPU reaches 100% and you are having problems with the Wrapper thinking that the JVM has hung, this can be lengthened.  Be careful though, if you set this to one hour, then the Wrapper will not restart a hung JVM for one hour.
+                            <informalexample>
+                                <simpara><emphasis>Example:</emphasis></simpara>
+                                <screen format="linespecific">wrapper.ping.timeout=30</screen>
+                            </informalexample>
+                        </para>
+                    </glossdef>
+                </glossentry>
+                <glossentry>
+                    <glossterm>wrapper.debug</glossterm>
+                    <glossdef>
+                        <para>
+                            Turn on detailed Wrapper debug information.
+                            <informalexample>
+                                <simpara><emphasis>Example:</emphasis></simpara>
+                                <screen format="linespecific">wrapper.debug=TRUE</screen>
+                            </informalexample>
+                        </para>
+                    </glossdef>
+                </glossentry>
+            </glosslist>
+        </section>
+        <section>
+            <title>Unix specific properties</title>
+            <glosslist>
+                <glossentry>
+                    <glossterm>wrapper.pidfile</glossterm>
+                    <glossdef>
+                        <para>
+                            File to write process ID to
+                            <informalexample>
+                                <simpara><emphasis>Example:</emphasis></simpara>
+                                <screen format="linespecific">wrapper.pidfile=/var/run/myapp.pid</screen>
+                            </informalexample>
+                        </para>
+                    </glossdef>
+                </glossentry>
+            </glosslist>
+        </section>
+        <section>
+            <title>Windows NT/2000 specific properties</title>
+            <para>
+                NT Service Properties
+            </para>
+            <warning>
+                <simpara>
+                    WARNING - Do not modify any of these parameters when an application using this configuration file has been installed as a service.  Please uninstall the service before modifying this section.  The service can then be reinstalled.
+                </simpara>
+            </warning>
+            <glosslist>
+                <glossentry>
+                    <glossterm>wrapper.ntservice.name</glossterm>
+                    <glossdef>
+                        <para>
+                            Name of the NT service when installed
+                            <informalexample>
+                                <simpara><emphasis>Example:</emphasis></simpara>
+                                <screen format="linespecific">wrapper.ntservice.name=MyApp</screen>
+                            </informalexample>
+                        </para>
+                    </glossdef>
+                </glossentry>
+                <glossentry>
+                    <glossterm>wrapper.ntservice.displayname</glossterm>
+                    <glossdef>
+                        <para>
+                            Display name of the NT service when installed
+                            <informalexample>
+                                <simpara><emphasis>Example:</emphasis></simpara>
+                                <screen format="linespecific">wrapper.ntservice.displayname=My Application</screen>
+                            </informalexample>
+                        </para>
+                    </glossdef>
+                </glossentry>
+                <glossentry>
+                    <glossterm>wrapper.ntservice.dependency.&lt;n&gt;</glossterm>
+                    <glossdef>
+                        <para>
+                            Names of any other Services which must be running before this service can be started.  Stopping any of the listed services will also stop this service.  Add dependencies as needed starting from 1.
+                            <informalexample>
+                                <simpara><emphasis>Example:</emphasis></simpara>
+                                <screen format="linespecific">wrapper.ntservice.dependency.1=MySQL</screen>
+                            </informalexample>
+                        </para>
+                    </glossdef>
+                </glossentry>
+                <glossentry>
+                    <glossterm>wrapper.ntservice.starttype</glossterm>
+                    <glossdef>
+                        <para>
+                            Mode in which the service is installed.  AUTO_START starts the service automatically when the system is rebooted. Or DEMAND_START which requires that the service me started manually.
+                            <informalexample>
+                                <simpara><emphasis>Example:</emphasis></simpara>
+                                <screen format="linespecific">wrapper.ntservice.starttype=AUTO_START</screen>
+                            </informalexample>
+                        </para>
+                    </glossdef>
+                </glossentry>
+            </glosslist>
+        </section>
+    </section>
+</chapter>

@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "../dtd/docbook/4.1.2/docbookx.dtd">
+
+<!-- ********************************************************************
+     $Id$
+     ******************************************************************** -->
+
+<chapter id="api-overview">
+ 
+    <title>Wrapper Authors</title> 
+
+    <section>
+        <para>
+            The Java Service Wrapper was written by <ulink url="http://sourceforge.net/sendmessage.php?touser=228081">Leif Mortenson</ulink> and <ulink url="http://sourceforge.net/sendmessage.php?touser=9117">Ryan Shaw</ulink> for use in server-side development projects at <ulink url="http://www.silveregg.co.jp">Silver Egg Technology</ulink>.
+        </para>
+    </section>
+</chapter>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="euc-jp"?>
+
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "../dtd/docbook/4.1.2/docbookx.dtd">
+
+<!-- ********************************************************************
+     $Id$
+     ******************************************************************** -->
+
+<article id="index">
+    <title>Java Service Wrapper Release Notes</title>
+    <section>
+        <title>Version 2.2.2: Changes and bugfixes</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Added HTML based documentation.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
+    <section>
+        <title>Version 2.2.1: Changes and bugfixes</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Added Linux and Solaris build files.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Added Linux and Solaris documentation.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
+    <section>
+        <title>Version 2.2.0: Changes and bugfixes</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Initial Public Release.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
+</article>

@@ -1,0 +1,272 @@
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>API Overview</title>
+</head>
+<body bgcolor="#ffffff" marginheight="4" marginwidth="4" leftmargin="4" topmargin="4" alink="#023264" vlink="#023264" link="#525D76" text="#000000">
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top"><a href="http://www.silveregg.co.jp/"><img src="images/silveregg-logo.png" border="0" vspace="0" hspace="0"></a></td><td bgcolor="#ffffff" align="right" valign="bottom" width="100%"><font color="gray" face="arial,helvetica,sanserif" size="+3"><i><b>Java Service Wrapper</b></i></font></td>
+</tr>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td bgcolor="gray" colspan="7"><img height="1" width="1" src="images/spacer.png"></td>
+</tr>
+<tr>
+<td valign="top" width="5"><img height="1" width="5" src="images/spacer.png"></td><td nowrap="1" valign="top" width="150">
+<br>
+<font face="arial,helvetica,sanserif">
+<br>
+<br>
+<font size="+1" color="#000000">Documentation</font>
+<br>
+<font size="-1">
+<ul>
+<li>
+<a href="introduction.html"><font size="-1">Introduction</font></a>
+</li>
+<li>
+<a href="api-overview.html"><font size="-1">API Overview</font></a>
+</li>
+<li>
+<a href="config-overview.html"><font size="-1">Configuration Overview</font></a>
+</li>
+<li>
+<a href="launch-overview.html"><font size="-1">Launching Your Application</font></a>
+</li>
+<li>
+<a href="release-notes.html"><font size="-1">Release Notes</font></a>
+</li>
+<li>
+<a href="authors.html"><font size="-1">Authors</font></a>
+</li>
+</ul>
+</font>
+<br>
+<br>
+<font size="+1" color="#000000">Users</font>
+<br>
+<font size="-1">
+<ul>
+<li>
+<a href="users.html"><font size="-1">Users of Wrapper</font></a>
+</li>
+</ul>
+</font>
+<br>
+<br>
+<font size="+1" color="#000000">Download</font>
+<br>
+<font size="-1">
+<ul>
+<li>
+<a href="http://sourceforge.net/projects/wrapper/"><font size="-1">Source Forge</font></a>
+</li>
+<li>
+<a href="http://sourceforge.net/project/showfiles.php?group_id=39428"><font size="-1">Binaries</font></a>
+</li>
+<li>
+<a href="http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/wrapper/"><font size="-1">Browse CVS</font></a>
+</li>
+</ul>
+</font>
+<br>
+<br>
+                        Hosted by:<br>
+<A href="http://sourceforge.net/projects/wrapper/"><IMG alt="SourceForge Logo" border="0" height="31" width="88" src="http://sourceforge.net/sflogo.php?group_id=39428"></A>
+<br>
+</font></td><td valign="top" width="2"><img height="1" width="2" src="images/spacer.png"></td><td bgcolor="gray" valign="top" width="1"><img height="1" width="1" src="images/spacer.png"></td><td valign="top" width="10"><img height="1" width="10" src="images/spacer.png"></td><td align="left" valign="top" width="*">
+<br>
+<title>API Overview</title>
+<center>
+<table width="80%">
+<tr>
+<td bgcolor="#F3DD61">
+<br>
+<center>
+<b><font face="arial,helvetica,sanserif" color="#000000">API Overview</font></b>
+</center>
+<br>
+</td>
+</tr>
+</table>
+</center>
+<br>
+ 
+     
+
+    
+<div>
+<a name="NA2B"></a>
+<table cellspacing="0" cellpadding="2" border="0" width="100%">
+<tr>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+1"><b>Launching Your Application Under Wrapper</b></font></td>
+</tr>
+<tr>
+<td><font face="arial,helvetica,sanserif" color="#000000">
+<br>
+        
+        
+<div>
+<a name="NA30"></a>
+<table cellspacing="0" cellpadding="2" border="0" width="99%">
+<tr>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+0"><b>Windows NT/2000</b></font></td>
+</tr>
+<tr>
+<td><font face="arial,helvetica,sanserif" color="#000000">
+<br>
+            
+            
+<p align="justify">
+                To run your application as a console app, execute the following command.
+                <p align="justify">
+                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>C:/MyApp/bin&gt; Wrapper.exe -c C:\MyApp\conf\wrapper.conf</pre>
+</td>
+</tr>
+</table>
+</div>
+                
+</p>
+            
+</p>
+            
+<p align="justify">
+                To install the application as an NT service, execute.
+                <p align="justify">
+                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>C:/MyApp/bin&gt; Wrapper.exe -i C:\MyApp\conf\wrapper.conf</pre>
+</td>
+</tr>
+</table>
+</div>
+                
+</p>
+            
+</p>
+            
+<p align="justify">
+                This will create a file in the bin directory called ~serviceMyApp.exe This file contains all information needed to execute your application as an NT service and should not be run manually.
+            </p>
+            
+<p align="justify">
+                Then to start it, either reboot, go to the services control panel, or execute:
+                <p align="justify">
+                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>C:/MyApp/bin&gt; net start MyApp</pre>
+</td>
+</tr>
+</table>
+</div>
+                
+</p>
+            
+</p>
+            
+<p align="justify">
+                To uninstall the application as an NT service, execute:
+                <p align="justify">
+                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>C:/MyApp/bin&gt; Wrapper.exe -r C:\MyApp\conf\wrapper.conf</pre>
+</td>
+</tr>
+</table>
+</div>
+                
+</p>
+            
+</p>
+            
+<p align="justify">
+                These commands should normally be placed in batch files in the application's bin directory to make them easier to use.
+            </p>
+        
+</font></td>
+</tr>
+</table>
+</div>
+<br>
+        
+<div>
+<a name="NA64"></a>
+<table cellspacing="0" cellpadding="2" border="0" width="99%">
+<tr>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+0"><b>Linux/Solaris</b></font></td>
+</tr>
+<tr>
+<td><font face="arial,helvetica,sanserif" color="#000000">
+<br>
+            
+            
+<p align="justify">
+                To run your application from the command line:
+                <p align="justify">
+                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>$ wrapper [your application's wrapper config file]</pre>
+</td>
+</tr>
+</table>
+</div>
+                
+</p>
+            
+</p>
+            
+<p align="justify">
+                In the src/bin subdirectory you will find some shell (bash and sh)script templates for starting and stopping wrapped applications cleanly in. To use these scripts with your application, just set the APP_HOME (base dir of your application), APP_NAME, APP_LONG_NAME, and WRAPPER_CONF (path to your application's wrapper config file) variables in the scripts to the appropriate values.
+            </p>
+            
+<p align="justify">
+                You may need to tweak some of the other values (like PIDDIR in the sh script) to get them to fit your environment.
+            </p>
+        
+</font></td>
+</tr>
+</table>
+</div>
+<br>
+    
+</font></td>
+</tr>
+</table>
+</div>
+<br>
+
+</td><td valign="top" width="5"><img height="1" width="5" src="images/spacer.png"></td>
+</tr>
+<tr>
+<td bgcolor="gray" colspan="7"><img height="1" width="1" src="images/spacer.png"></td>
+</tr>
+</table>
+<table cellpadding="0" cellspacing="0" border="0" width="100%">
+<tr>
+<td align="center"><font color="#525D76" size="-1" face="arial,helvetica,sanserif"><i>
+                            Copyright &copy;2000-2001 by Silver Egg Technology Co., Ltd.
+                            All Rights Reserved.
+                        </i></font></td>
+</tr>
+</table>
+</body>
+</html>
