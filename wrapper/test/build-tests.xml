@@ -93,7 +93,7 @@
                  value="wrapper.pidfile=${basedir}/longrunningbackgroundthreads.pid" />
         
         <!-- Daemon Threads Test -->
-        <delete file="${test.dir}/longrunningbackgroundthreads.conf"/>
+        <delete file="${test.dir}/daemonthreads.conf"/>
         <filter token="app.name"          value="daemonthreads"/>
         <filter token="app.long.name"     value="Daemon Threads Case" />
         <copy file="${src.dir}/conf/wrapper.conf.in"
@@ -113,7 +113,7 @@
                  value="wrapper.pidfile=${basedir}/daemonthreads.pid" />
         
         <!-- No Return Test -->
-        <delete file="${test.dir}/longrunningbackgroundthreads.conf"/>
+        <delete file="${test.dir}/noreturn.conf"/>
         <filter token="app.name"          value="noreturn"/>
         <filter token="app.long.name"     value="No Return Case" />
         <copy file="${src.dir}/conf/wrapper.conf.in"
@@ -479,20 +479,20 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/action"
               filtering="on"/>
-	<replace file="${test.dir}/action">
-	    <replacetoken><![CDATA['start')
+    <replace file="${test.dir}/action">
+        <replacetoken><![CDATA['start')
         start
         ;;]]></replacetoken>
-	    <replacevalue><![CDATA['start')
+        <replacevalue><![CDATA['start')
         start $2
         ;;]]></replacevalue>
         </replace>
-	<replace file="${test.dir}/action">
-	    <replacetoken><![CDATA['restart')
+    <replace file="${test.dir}/action">
+        <replacetoken><![CDATA['restart')
         stop
         start
         ;;]]></replacetoken>
-	    <replacevalue><![CDATA['restart')
+        <replacevalue><![CDATA['restart')
         stop
         start $2
         ;;]]></replacevalue>
