@@ -1,0 +1,14 @@
+To do list for the Wrapper.
+
+Documentation:
+
+Add instructions on how to integrate with an application which is normally run
+from a bundled jar file.  Ie the main class is specified using the
+Main-Class: {classname} entry in the META-INF/MANIFEST.MF file.
+
+Add instructions/feature to show users how to get the Wrapper to launch an
+application when the machine reboots.  There for Windows, but not yet for
+UNIX.
+
+Add a section giving examples of how to integrate the Wrapper with a project
+at build time.  Show how to make platform specific builds etc using Ant.
