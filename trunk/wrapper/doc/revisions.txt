@@ -66,6 +66,9 @@ Java Service Wrapper Revision History.
   that code.  This was causing problems as the two threads tried to use the
   same buffers.  As part of this change, a new format variable 'D' was added
   to display the thread which is doing the logging.
+* Fix a problem where a thread dump would be invoked if the request thread
+  dump on failed JVM exit was enabled and the user forced an immediate
+  shutdown by pressing CTRL-C more than once.
 
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the

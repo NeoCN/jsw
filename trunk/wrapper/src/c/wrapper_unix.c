@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.59  2004/01/10 15:51:31  mortenson
+ * Fix a problem where a thread dump would be invoked if the request thread
+ * dump on failed JVM exit was enabled and the user forced an immediate
+ * shutdown by pressing CTRL-C more than once.
+ *
  * Revision 1.58  2004/01/09 19:45:03  mortenson
  * Implement the tick timer on Linux.
  *
@@ -246,6 +251,10 @@ void handleInterrupt(int sig_num) {
     } else {
         if (wrapperData->exitRequested) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "INT trapped.  Forcing immediate shutdown.");
+
+			/* Disable the thread dump on exit feature if it is set because it
+			 *  should not be displayed when the user requested the immediate exit. */
+			wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
             wrapperKillProcess();
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "INT trapped.  Shutting down.");
@@ -279,6 +288,10 @@ void handleTermination(int sig_num) {
     } else {
         if (wrapperData->exitRequested) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "TERM trapped.  Forcing immediate shutdown.");
+
+			/* Disable the thread dump on exit feature if it is set because it
+			 *  should not be displayed when the user requested the immediate exit. */
+			wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
             wrapperKillProcess();
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "TERM trapped.  Shutting down.");

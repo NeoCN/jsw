@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.63  2004/01/10 15:51:32  mortenson
+ * Fix a problem where a thread dump would be invoked if the request thread
+ * dump on failed JVM exit was enabled and the user forced an immediate
+ * shutdown by pressing CTRL-C more than once.
+ *
  * Revision 1.62  2004/01/09 18:22:41  mortenson
  * The code timing the thread dump before a shutdown was still based on the system
  * time, changed over to ticks.  Also extended the time from 3 to 5 seconds.
@@ -413,6 +418,9 @@ int wrapperConsoleHandler(int key) {
 
     if (quit) {
         if (halt) {
+			/* Disable the thread dump on exit feature if it is set because it
+			 *  should not be displayed when the user requested the immediate exit. */
+			wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
             wrapperKillProcess();
         } else {
             wrapperStopProcess(0);
