@@ -26,6 +26,9 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
+// Revision 1.2  2003/01/20 03:21:07  mortenson
+// Add limited support for java 1.2.x
+//
 // Revision 1.1  2002/03/29 06:12:44  rybesh
 // added new environment variables test
 //
@@ -34,6 +37,8 @@ import java.util.Properties;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.IOException;
+
+import com.silveregg.wrapper.WrapperManager;
 
 public class EnvironmentVariables {
 
@@ -70,8 +75,8 @@ public class EnvironmentVariables {
             System.out.println("Environment variables test FAILED.");
         }
 
-        System.out.println("Halting so that wrapper will restart me.");
-        Runtime.getRuntime().halt(0);
+        System.out.println("Request a JVM restart.");
+        WrapperManager.restart();
     }
 
     private static boolean check(String variable, String expected) {

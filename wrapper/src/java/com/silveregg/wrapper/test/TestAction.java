@@ -26,6 +26,9 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
+// Revision 1.4  2003/01/20 03:21:08  mortenson
+// Add limited support for java 1.2.x
+//
 // Revision 1.3  2002/11/06 05:44:51  mortenson
 // Add support for invoking a thread dump from a method call within the JVM.
 //
@@ -42,6 +45,9 @@ package com.silveregg.wrapper.test;
 
 import com.silveregg.wrapper.WrapperManager;
 import com.silveregg.wrapper.WrapperListener;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 public class TestAction implements WrapperListener {
     /**************************************************************************
@@ -104,7 +110,26 @@ public class TestAction implements WrapperListener {
             } else if (_action.equals("exit")) {
                 System.exit(0);
             } else if (_action.equals("halt")) {
-                Runtime.getRuntime().halt(0);
+                // Execute runtime.halt(0) using reflection so this class will
+                //  compile on 1.2.x versions of Java.
+                Method haltMethod;
+                try {
+                    haltMethod = Runtime.class.getMethod("halt", new Class[] {Integer.TYPE});
+                } catch (NoSuchMethodException e) {
+                    System.out.println("halt not supported by current JVM.");
+                    haltMethod = null;
+                }
+                
+                if (haltMethod != null) {
+                    Runtime runtime = Runtime.getRuntime();
+                    try {
+                        haltMethod.invoke(runtime, new Object[] {new Integer(0)});
+                    } catch (IllegalAccessException e) {
+                        System.out.println("Unable to call runitme.halt: " + e.getMessage());
+                    } catch (InvocationTargetException e) {
+                        System.out.println("Unable to call runitme.halt: " + e.getMessage());
+                    }
+                }
             } else if (_action.equals("restart")) {
                 WrapperManager.restart();
             } else if (_action.equals("dump")) {

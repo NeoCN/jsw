@@ -13,6 +13,10 @@ Java Service Wrapper Revision History.
 * Add a property, wrapper.ntservice.interactive, which makes it possible to
   control whether or not the Java process can gain access to the desktop while
   it is running as an NT service.
+* Add limited support for 1.2.x versions of Java.  Shutdown hooks are
+  supported until Java 1.3 so those functions will be disabled.  If the
+  application displays a GUI then Java 1.3 should be used as the GUI can not
+  currently be displayed when using Java 1.2.x.
 
 2.2.9
 * Added a new property, wrapper.restart.delay, which allows the user to control

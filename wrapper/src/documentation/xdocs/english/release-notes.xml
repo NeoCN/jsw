@@ -43,6 +43,14 @@ $Id$
                     it is running as an NT service.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add limited support for 1.2.x versions of Java.  Shutdown hooks are
+                    supported until Java 1.3 so those functions will be disabled.  If the
+                    application displays a GUI then Java 1.3 should be used as the GUI can not
+                    currently be displayed when using Java 1.2.x.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

@@ -26,6 +26,9 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
+// Revision 1.2  2003/01/20 03:21:08  mortenson
+// Add limited support for java 1.2.x
+//
 // Revision 1.1  2002/09/17 14:56:08  mortenson
 // Added a test to verify that there are no memory leaks in the JVM.
 //
@@ -33,6 +36,8 @@ package com.silveregg.wrapper.test;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 public class Memory implements Runnable
 {
@@ -125,6 +130,17 @@ public class Memory implements Runnable
     {
         System.out.println("Memory Tester Running...");
         
+        // Locate the add and remove shutdown hook methods using reflection so
+        //  that this class can be compiled on 1.2.x versions of java.
+        Method addShutdownHookMethod;
+        try {
+            addShutdownHookMethod =
+                Runtime.class.getMethod("addShutdownHook", new Class[] {Thread.class});
+        } catch (NoSuchMethodException e) {
+            System.out.println("Shutdown hooks not supported by current JVM.");
+            addShutdownHookMethod = null;
+        }
+        
         Memory app = new Memory();
         
         // Create a Writer for the memory output
@@ -138,9 +154,18 @@ public class Memory implements Runnable
             return;
         }
         
-        // Register a shutdown hook
-        Runtime r = Runtime.getRuntime();
-        r.addShutdownHook( new Thread( app, "shutdown-hook" ) );
+        // Register a shutdown hook using reflection.
+        if (addShutdownHookMethod != null) {
+            Runtime runtime = Runtime.getRuntime();
+            Thread hook = new Thread( app, "shutdown-hook" );
+            try {
+                addShutdownHookMethod.invoke(runtime, new Object[] {hook});
+            } catch (IllegalAccessException e) {
+                System.out.println("Unable to register shutdown hook: " + e.getMessage());
+            } catch (InvocationTargetException e) {
+                System.out.println("Unable to register shutdown hook: " + e.getMessage());
+            }
+        }
         
         // Start the runner
         new Thread( app, "runner" ).start();
