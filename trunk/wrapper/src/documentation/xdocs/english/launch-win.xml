@@ -31,6 +31,9 @@
             <listitem>
                 <ulink url="#exe">Using Wrapper.exe Directly</ulink>
             </listitem>
+            <listitem>
+                <ulink url="#command">UNIX-Style Command Based Script</ulink>
+            </listitem>
         </itemizedlist>
         <section id="scripts">
             <title>Setup The Scripts</title>
@@ -256,6 +259,78 @@ C:\MyApp\bin>Wrapper.exe -p ..\conf\wrapper.conf]]></screen>
             <para>
                 If the service is running at the time that it is uninstalled, the service
                 will be cleanly stopped and then removed.
+            </para>
+        </section>
+        <section id="command">
+            <title>UNIX-Style Command Based Script</title>
+            <para>
+                The Wrapper distribution also includes an alternative batch file
+                which functions very much like the shell script that is provided
+                with UNIX versions of the Wrapper.  This script requires a single
+                command argument, which tells the script what to do.  It has the
+                benefit of being able to do everything from a single batch file.
+                But the drawback of not being able to simply double-click on the
+                batch file from the File Manager.
+            </para>
+            <para>
+                To make use of this script, simply copy the following file to your
+                application's bin directory.
+            </para>
+            <informalexample>
+                <screen format="linespecific"><![CDATA[{WRAPPER_HOME}\src\bin\AppCommand.bat.in]]></screen>
+            </informalexample>
+            <para>
+                Rename the script as follows, replacing "MyApp" throughout this
+                document with the name of your application.
+                Be sure to remove the <literal moreinfo="none">.in</literal>
+                extensions so that the file ends in
+                <literal moreinfo="none">.bat</literal>.  Depending on how
+                your file explorer is configured, you may not be able to see
+                the extension.
+            </para>
+            <informalexample>
+                <screen format="linespecific"><![CDATA[C:\MyApp\bin\MyApp.bat]]></screen>
+            </informalexample>
+            <para>
+                To familiarize yourself with the script, run it without any
+                arguments.  You will see the following:
+            </para>
+            <informalexample>
+                <screen format="linespecific"><![CDATA[C:\MyApp\bin>MyApp.bat
+Usage: MyApp.bat { console : start : stop : restart : install : remove }
+Press any key to continue . . .]]></screen>
+            </informalexample>
+            <para>
+                The <literal moreinfo="none">console</literal> command runs the
+                Wrapper in the current command window.  The
+                <literal moreinfo="none">start</literal> and <literal moreinfo="none">stop</literal>
+                commands are used to start and stop the Wrapper when it is installed
+                as an NT service.  The <literal moreinfo="none">restart</literal>
+                command will stop and then immediately start the Wrapper.  And the
+                <literal moreinfo="none">install</literal> and <literal moreinfo="none">remove</literal>
+                commands are used to install and remove the Wrapper as an NT service.
+            </para>
+            <para>
+                There are a few differences between this script and the UNIX script.
+                The UNIX script can be used to stop a copy of the Wrapper running in
+                a console.  This is not possible with the Windows script.  In addition,
+                the <literal moreinfo="none">dump</literal> command is missing from
+                the Windows version of the script.
+            </para>
+            <para>
+                As an example, the Wrapper can be started in a console using the
+                following command:
+            </para>
+            <informalexample>
+                <screen format="linespecific"><![CDATA[C:\MyApp\bin>MyApp.bat console
+wrapper  | --> Wrapper Started as Console
+wrapper  | Launching a JVM...
+jvm 1    | Wrapper (Version 3.x.x)
+jvm 1    |]]></screen>
+            </informalexample>
+            <para>
+                To execute other commands, simply replace <literal moreinfo="none">console</literal>
+                with the command you wish to have executed.
             </para>
         </section>
     </section>

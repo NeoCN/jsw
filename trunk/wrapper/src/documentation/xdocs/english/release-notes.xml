@@ -17,6 +17,16 @@ $Id$
                     platform and architecture.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Added a new batch file which accepts commands like the UNIX shell script.
+                    The new file is offered as an alternative to the default batch files, and
+                    can be found at <literal moreinfo="none">src/bin/AppCommand.bat.in</literal>.
+                    Thanks to Mike Castle for donating the new script.  See the new
+                    <ulink url="launch-win.html#command">Command-Based Script</ulink>
+                    section for more information.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

@@ -3,6 +3,10 @@ Java Service Wrapper Revision History.
 3.1.0
 * Make it possible to load the native library using files named after the
   platform and architecture.
+* Added a new batch file which accepts commands like the UNIX shell script.
+  The new file is offered as an alternative to the default batch files, and
+  can be found at src/bin/AppCommand.bat.in.  Thanks to Mike Castle for
+  donating the new script.
   
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the
