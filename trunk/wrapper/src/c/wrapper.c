@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.112  2004/09/06 07:49:15  mortenson
+ * Add a new wrapper.loop_output property which makes it possible to enable high
+ * resolution debug output on the progress of the main event loop.
+ *
  * Revision 1.111  2004/08/31 16:36:10  mortenson
  * Rework the new 64-bit code so that it is done with only 32 bit variables.  A little
  * more complicated but it fixes compiler warnings on unix systems.
@@ -2168,6 +2172,9 @@ int wrapperLoadConfiguration() {
     
     /* Get the timer output status. */
     wrapperData->isTimerOutputEnabled = getBooleanProperty(properties, "wrapper.timer_output", FALSE);
+    
+    /* Get the loop debug output status. */
+    wrapperData->isLoopOutputEnabled = getBooleanProperty(properties, "wrapper.loop_output", FALSE);
 
     /* Get the shutdown hook status */
     wrapperData->isShutdownHookDisabled = getBooleanProperty(properties, "wrapper.disable_shutdown_hook", FALSE);
