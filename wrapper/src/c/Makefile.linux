@@ -6,7 +6,7 @@ DEFS = -I$(INCLUDE) -I$(INCLUDE)/linux
 
 realpath_SOURCE = realpath.c
 
-wrapper_SOURCE = wrapper.c wrapper_unix.c property.c
+wrapper_SOURCE = wrapper.c wrapper_unix.c property.c logger.c
 
 libwrapper_so_OBJECTS = wrapperjni_unix.o wrapperjni.o
 
