@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.3  2002/07/06 01:16:28  mortenson
+ * Fix a compilation error on some Solaris systems. Bug #574528
+ *
  * Revision 1.2  2002/03/07 09:23:25  mortenson
  * Go through and change the style of comments that we use so that they will not
  * cause compiler errors on older unix compilers.
@@ -56,7 +59,7 @@ void wrapperJNIHandleSignal(int signal) {
  * Method:    nativeGetControlEvent
  * Signature: (V)I
  */
-JNIEXPORT int JNICALL
+JNIEXPORT jint JNICALL
 Java_com_silveregg_wrapper_WrapperManager_nativeGetControlEvent(JNIEnv *env, jclass clazz) {
     int event;
 
