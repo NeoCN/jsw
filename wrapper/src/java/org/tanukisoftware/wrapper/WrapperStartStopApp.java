@@ -26,6 +26,11 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.2  2003/02/17 09:52:16  mortenson
+// Modify the way exceptions thrown by an application's main method are
+// presented to the user by the WrapperSimpleApp and WrapperStartStopApp so
+// they no longer look like a problem with Wrapper configuration.
+//
 // Revision 1.1  2003/02/03 06:55:28  mortenson
 // License transfer to TanukiSoftware.org
 //
@@ -138,19 +143,22 @@ public class WrapperStartStopApp
         }
         catch ( InvocationTargetException e )
         {
-            t = e;
+            t = e.getTargetException();
+            if ( t == null )
+            {
+                t = e;
+            }
         }
         
         // If we get here, then an error was thrown.  If this happened quickly 
         // enough, the start method should be allowed to shut things down.
-        System.out.println( "Encountered an error running start main: " + t );
+        System.out.println();
+        System.out.println( "WrapperStartStopApp: Encountered an error running start main: " + t );
 
         // We should print a stack trace here, because in the case of an 
         // InvocationTargetException, the user needs to know what exception
         // their app threw.
         t.printStackTrace();
-
-        showUsage();
 
         synchronized(this)
         {
