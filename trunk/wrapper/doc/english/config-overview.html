@@ -298,6 +298,9 @@ wrapper.ping.timeout=30
 #  to stop the server by default.
 #wrapper.disable_shutdown_hook=TRUE
 
+# Tell the Wrapper to request a JVM thread dump if the JVM fails to exit when requested.
+#wrapper.request_thread_dump_on_failed_jvm_exit=TRUE
+
 #********************************************************************
 # Wrapper Logging parameters
 #********************************************************************
@@ -1031,6 +1034,35 @@ wrapper.app.parameter.2=conf/myconffile.conf</pre>
 </dd>
                     
 <br>
+                    
+                        
+<dt>wrapper.request_thread_dump_on_failed_jvm_exit</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Enabling this property will tell the Wrapper to attempt to request a Thread Dump in the JVM before it is terminated in the event that the JVM does not exit when requested.  This can be useful in tracking down the reason why the JVM is not exiting.  Defaults to FALSE.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.request_thread_dump_on_failed_jvm_exit=TRUE</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
                 
 </dl>
 </div>
@@ -1053,7 +1085,7 @@ wrapper.app.parameter.2=conf/myconffile.conf</pre>
                 
                 
 <div class="glosslist">
-<a name="NC6C"></a>
+<a name="NC83"></a>
 <dl>
                     
                         
@@ -1341,7 +1373,7 @@ wrapper.logfile.format=
                 
                 
 <div class="glosslist">
-<a name="ND2E"></a>
+<a name="ND45"></a>
 <dl>
                     
                         
@@ -1412,7 +1444,7 @@ wrapper.logfile.format=
 </div>
                 
 <div class="glosslist">
-<a name="ND58"></a>
+<a name="ND6F"></a>
 <dl>
                     
                         
@@ -1593,7 +1625,7 @@ wrapper.logfile.format=
 <p align="justify">
                                     From the Windows API, each priority level is described as follows:
                                     <div class="glosslist">
-<a name="NDE6"></a>
+<a name="NDFD"></a>
 <dl>
                                         
                                             

@@ -42,6 +42,9 @@ wrapper.ping.timeout=30
 #  to stop the server by default.
 #wrapper.disable_shutdown_hook=TRUE
 
+# Tell the Wrapper to request a JVM thread dump if the JVM fails to exit when requested.
+#wrapper.request_thread_dump_on_failed_jvm_exit=TRUE
+
 #********************************************************************
 # Wrapper Logging parameters
 #********************************************************************

@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.17  2002/05/16 04:51:18  mortenson
+ * Add a debug message stating which thread lead to System.exit being called
+ *   via a call to shutdown.
+ *
  * Revision 1.16  2002/05/07 05:46:36  mortenson
  * Add the ability to set the priority at which the wrapper is run under NT systems.
  *
@@ -1638,6 +1642,9 @@ int wrapperLoadConfiguration() {
     if (wrapperData->pingTimeout <= 0) {
         wrapperData->pingTimeout = 31557600;  /* One Year.  Effectively never */
     }
+
+	/* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
+	wrapperData->requestThreadDumpOnFailedJVMExit = getBooleanProperty(properties, "wrapper.request_thread_dump_on_failed_jvm_exit", FALSE);
 
 #ifdef WIN32
     /* Configure the NT service information */
