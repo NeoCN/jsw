@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.8  2002/02/08 05:55:55  mortenson
+// Make the syslog never unregister to avoid EventLog errors.
+//
 // Revision 1.7  2002/02/02 16:02:13  spocke
 // re-enabled the unregisterSyslogMessageFile it's now executed when
 // a service is removed.
@@ -142,6 +145,10 @@ void setLogfileLevelInt( int log_file_level ) {
 	currentLogfileLevel = log_file_level;
 }
 
+int getLogfileLevelInt() {
+	return currentLogfileLevel;
+}
+
 void setLogfileLevel( char *log_file_level ) {
 	setLogfileLevelInt(getLogLevelForName(log_file_level));
 }
@@ -211,6 +218,10 @@ void setConsoleLogLevelInt( int console_log_level ) {
 	currentConsoleLevel = console_log_level;
 }
 
+int getConsoleLogLevelInt() {
+	return currentConsoleLevel;
+}
+
 void setConsoleLogLevel( char *console_log_level ) {
 	setConsoleLogLevelInt(getLogLevelForName(console_log_level));
 }
@@ -218,6 +229,10 @@ void setConsoleLogLevel( char *console_log_level ) {
 /* * Syslog/eventlog functions * */
 void setSyslogLevelInt( int loginfo_level ) {
 	currentLoginfoLevel = loginfo_level;
+}
+
+int getSyslogLevelInt() {
+	return currentLoginfoLevel;
 }
 
 void setSyslogLevel( char *loginfo_level ) {
@@ -379,10 +394,6 @@ int registerSyslogMessageFile( ) {
 	HKEY hKey;
 	DWORD categoryCount, typesSupported;
 
-	// * * Register only when SyslogLevel != NONE
-	if ((currentLoginfoLevel == LEVEL_UNKNOWN) || (currentLoginfoLevel == LEVEL_NONE))
-		return 0;
-
 	// * * Get absolute path to service manager
 	if( GetModuleFileName( NULL, buffer, _MAX_PATH ) ) {
 		sprintf( regPath, "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application\\%s", loginfoSourceName );
@@ -442,8 +453,6 @@ int unregisterSyslogMessageFile( ) {
 		return 0;
 
 	return -1; // Failure
-
-	return 0;
 #else
 	return 0;
 #endif

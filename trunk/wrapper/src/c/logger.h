@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.3  2002/02/08 05:55:55  mortenson
+// Make the syslog never unregister to avoid EventLog errors.
+//
 // Revision 1.2  2002/01/26 23:31:03  spocke
 // Added rolling file support to logger.
 //
@@ -76,6 +79,7 @@
 extern void setLogfilePath( char *log_file_path );
 extern void setLogfileFormat( char *log_file_format );
 extern void setLogfileLevelInt( int log_file_level );
+extern int getLogfileLevelInt();
 extern void setLogfileLevel( char *log_file_level );
 extern void setLogfileMaxFileSize( char *max_file_size );
 extern void setLogfileMaxFileSizeInt( int max_file_size );
@@ -85,10 +89,12 @@ extern void setLogfileMaxLogFilesInt( int max_log_files );
 /* * Console functions * */
 extern void setConsoleLogFormat( char *console_log_format );
 extern void setConsoleLogLevelInt( int console_log_level );
+extern int getConsoleLogLevelInt();
 extern void setConsoleLogLevel( char *console_log_level );
 
 /* * Syslog/eventlog functions * */
 extern void setSyslogLevelInt( int loginfo_level );
+extern int getSyslogLevelInt();
 extern void setSyslogLevel( char *loginfo_level );
 extern void setSyslogEventSourceName( char *event_source_name );
 extern int registerSyslogMessageFile( );
