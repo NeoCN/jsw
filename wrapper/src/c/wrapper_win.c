@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.68  2004/03/27 16:09:46  mortenson
+ * Add wrapper.on_exit.<n> properties to control what happens when a exits based
+ * on the exit code.  This led to a major rework of the state engine to make it possible.
+ *
  * Revision 1.67  2004/03/10 14:09:23  mortenson
  * Fix a potential access violation with very large system paths.
  * Fix a potential problem with the catch block executing before the logger was
@@ -302,7 +306,7 @@ void buildSystemPath() {
 
     /* Build an array of the path elements.  To make it easy, just
      *  assume there won't be more than 255 path elements. Verified
-	 *  in the loop. */
+     *  in the loop. */
     i = 0;
     lc = envBuffer;
     /* Get the elements ending in a ';' */
@@ -410,7 +414,12 @@ int wrapperConsoleHandler(int key) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "CTRL-C trapped, but ignored.");
         } else {
             /*  Always quit. */
-            if (wrapperData->exitRequested) {
+            if (wrapperData->exitRequested || wrapperData->restartRequested ||
+                (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
+                (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
+                (wrapperData->jState == WRAPPER_JSTATE_DOWN)) {
+
+                /* Pressed CTRL-C while we were already shutting down. */
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "CTRL-C trapped.  Forcing immediate shutdown.");
                 halt = TRUE;
             } else {
@@ -465,6 +474,15 @@ int wrapperConsoleHandler(int key) {
             wrapperStopProcess(0);
         }
         /* Don't actually kill the process here.  Let the application shut itself down */
+
+        /* To make sure that the JVM will not be restarted for any reason,
+         *  start the Wrapper shutdown process as well. */
+        if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
+            (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
+            /* Already stopping. */
+        } else {
+            wrapperData->wState = WRAPPER_WSTATE_STOPPING;
+        }
     }
 
     return TRUE; /* We handled the event. */
@@ -989,25 +1007,7 @@ int wrapperGetProcessStatus() {
             appExit(1);
         }
 
-        if (exitCode == 0) {
-            /* The JVM exit code was 0, so leave any current exit code as is. */
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "JVM process exited with a code of %d, leaving the wrapper exit code set to %d.",
-                exitCode, wrapperData->exitCode);
-
-        } else if (wrapperData->exitCode == 0) {
-            /* Update the wrapper exitCode. */
-            wrapperData->exitCode = exitCode;
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "JVM process exited with a code of %d, setting the wrapper exit code to %d.",
-                exitCode, wrapperData->exitCode);
-
-        } else {
-            /* The wrapper exit code was already non-zero, so leave it as is. */
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "JVM process exited with a code of %d, however the wrapper exit code was already %d.",
-                exitCode, wrapperData->exitCode);
-        }
+        wrapperJVMProcessExited(exitCode);
 
         /* Remove java pid file if it was registered and created by this process. */
         if ((ownJavaPidFile) && (wrapperData->javaPidFilename)) {
@@ -1065,9 +1065,9 @@ void wrapperKillProcess() {
          *  down.  Ideally, we would call ExitProcess, but that can only be
          *  called from within the process being killed. */
         if (TerminateProcess(wrapperProcess, 0)) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Java Virtual Machine did not exit on request, terminated");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM did not exit on request, terminated");
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Java Virtual Machine did not exit on request.");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM did not exit on request.");
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "  Attempt to terminate process failed.  Error=%d", GetLastError());
         }
 
@@ -1276,7 +1276,7 @@ void wrapperExecute() {
     }
 
     if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Java Virtual Machine started (PID=%d)", process_info.dwProcessId);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM started (PID=%d)", process_info.dwProcessId);
     }
 
     wrapperProcess = process_info.hProcess;
@@ -1347,6 +1347,16 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
 
         /* Tell the wrapper to shutdown normally */
         wrapperStopProcess(0);
+
+        /* To make sure that the JVM will not be restarted for any reason,
+         *  start the Wrapper shutdown process as well. */
+        if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
+            (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
+            /* Already stopping. */
+        } else {
+            wrapperData->wState = WRAPPER_WSTATE_STOPPING;
+        }
+
         return;
         
     case SERVICE_CONTROL_INTERROGATE:
@@ -1367,6 +1377,16 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
 
         /* Tell the wrapper to shutdown normally */
         wrapperStopProcess(0);
+
+        /* To make sure that the JVM will not be restarted for any reason,
+         *  start the Wrapper shutdown process as well. */
+        if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
+            (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
+            /* Already stopping. */
+        } else {
+            wrapperData->wState = WRAPPER_WSTATE_STOPPING;
+        }
+
         break;
 
     default:
@@ -2275,9 +2295,8 @@ void _CRTAPI1 main(int argc, char **argv) {
     wrapperData->lastPingTicks = wrapperGetTicks();
     wrapperData->jvmCommand = NULL;
     wrapperData->exitRequested = FALSE;
-    wrapperData->exitAcknowledged = FALSE;
+    wrapperData->restartRequested = TRUE; /* The first JVM needs to be started. */
     wrapperData->exitCode = 0;
-    wrapperData->restartRequested = FALSE;
     wrapperData->jvmRestarts = 0;
     wrapperData->jvmLaunchTicks = wrapperGetTicks();
     wrapperData->failedInvocationCount = 0;
@@ -2288,10 +2307,10 @@ void _CRTAPI1 main(int argc, char **argv) {
     logRegisterThread(WRAPPER_THREAD_MAIN);
 
     /* Enclose the rest of the program in a try catch block so we can
-	 *  display and log useful information should the need arise.  This
-	 *  must be done after logging has been initialized as the catch
-	 *  block makes use of the logger. */
-	__try {
+     *  display and log useful information should the need arise.  This
+     *  must be done after logging has been initialized as the catch
+     *  block makes use of the logger. */
+    __try {
 #ifdef _DEBUG
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Wrapper DEBUG build!");
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Logging initialized.");

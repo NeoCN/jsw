@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.45  2004/03/27 16:09:45  mortenson
+ * Add wrapper.on_exit.<n> properties to control what happens when a exits based
+ * on the exit code.  This led to a major rework of the state engine to make it possible.
+ *
  * Revision 1.44  2004/03/26 03:18:00  mortenson
  * Add the wrapper.startup.delay property along with console and service
  * specific variants which make it possible to configure a delay between the
@@ -239,12 +243,11 @@ struct WrapperConfig {
     int     libraryPathAppendPath;  /* TRUE if the PATH environment variable should be appended to the java library path. */
     int     isStateOutputEnabled;   /* TRUE if set in the configuration file.  Shows output on the state of the state engine. */
     int     isShutdownHookDisabled; /* TRUE if set in the configuration file */
-    int     exitCode;               /* Code which the wrapper will exit with */
-    int     exitRequested;          /* Non-zero if another thread has requested that the wrapper and JVM be shutdown */
-    int     exitAcknowledged;       /* Non-zero if the main thread has acknowledged the exit request */
     int     startupDelayConsole;    /* Delay in seconds before starting the first JVM in console mode. */
     int     startupDelayService;    /* Delay in seconds before starting the first JVM in service mode. */
-    int     restartRequested;       /* Non-zero if another thread has requested that the JVM be restarted */
+    int     exitCode;               /* Code which the wrapper will exit with */
+    int     exitRequested;          /* TRUE if the current JVM should be shutdown. */
+    int     restartRequested;       /* TRUE if the another JVM should be launched after the current JVM is shutdown. Only set if exitRequested is set. */
     int     jvmRestarts;            /* Number of times that a JVM has been launched since the wrapper was started. */
     int     restartDelay;           /* Delay in seconds before restarting a new JVM. */
     int     requestThreadDumpOnFailedJVMExit; /* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
@@ -331,6 +334,12 @@ extern void wrapperBuildJavaCommandArray(char ***strings, int *length, int addQu
 extern void wrapperFreeJavaCommandArray(char **strings, int length);
 
 extern void wrapperInitializeLogging();
+
+/**
+ * Called when the Wrapper detects that the JVM process has exited.
+ *  Contains code common to all platforms.
+ */
+extern void wrapperJVMProcessExited(int exitCode);
 
 /**
  * Logs a single line of child output allowing any filtering

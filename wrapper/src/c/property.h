@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.10  2004/03/27 16:09:45  mortenson
+ * Add wrapper.on_exit.<n> properties to control what happens when a exits based
+ * on the exit code.  This led to a major rework of the state engine to make it possible.
+ *
  * Revision 1.9  2004/01/16 04:41:59  mortenson
  * The license was revised for this version to include a copyright omission.
  * This change is to be retroactively applied to all versions of the Java
@@ -139,6 +143,8 @@ extern void addProperty(Properties *properties, const char *propertyName, const 
 extern int addPropertyPair(Properties *properties, const char *propertyNameValue, int finalValue, int quotable);
 
 extern const char* getStringProperty(Properties *properties, const char *propertyName, const char *defaultValue);
+
+extern int checkPropertyEqual(Properties *properties, const char *propertyName, const char *defaultValue, const char *value);
 
 extern int getIntProperty(Properties *properties, const char *propertyName, int defaultValue);
 
