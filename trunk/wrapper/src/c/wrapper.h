@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.22  2003/01/20 06:26:33  mortenson
+ * Make it possible to create a pid file on all unix platforms.
+ * By default they are only used by sh files however.
+ *
  * Revision 1.21  2002/12/06 18:48:39  mortenson
  * Add a property, wrapper.ntservice.interactive, which makes it possible to
  * control whether or not the Java process can gain access to the desktop while
@@ -201,12 +205,10 @@ struct WrapperConfig {
                                      * {SERVICE_AUTO_START | SERVICE_DEMAND_START} */
     DWORD   ntServicePriorityClass; /* Priority at which the Wrapper and its JVMS will run.
                                      * {HIGH_PRIORITY_CLASS | IDLE_PRIORITY_CLASS | NORMAL_PRIORITY_CLASS | REALTIME_PRIORITY_CLASS} */
-	char    *ntServiceAccount;      /* Account name to use when running as a service.  NULL to use the LocalSystem account. */
-	char    *ntServicePassword;     /* Password to use when running as a service.  NULL means no password. */
-	int     ntServiceInteractive;   /* Should the service be allowed to interact with the desktop? */
-#endif
-
-#ifdef SOLARIS
+    char    *ntServiceAccount;      /* Account name to use when running as a service.  NULL to use the LocalSystem account. */
+    char    *ntServicePassword;     /* Password to use when running as a service.  NULL means no password. */
+    int     ntServiceInteractive;   /* Should the service be allowed to interact with the desktop? */
+#else /* UNIX */
     char    *pidFilename;           /* Name of file to store wrapper pid in */
 #endif
 };

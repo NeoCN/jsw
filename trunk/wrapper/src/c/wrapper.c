@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.38  2003/01/20 06:26:33  mortenson
+ * Make it possible to create a pid file on all unix platforms.
+ * By default they are only used by sh files however.
+ *
  * Revision 1.37  2002/12/06 18:48:38  mortenson
  * Add a property, wrapper.ntservice.interactive, which makes it possible to
  * control whether or not the Java process can gain access to the desktop while
@@ -1872,17 +1876,9 @@ void wrapperBuildNTServiceInfo() {
 }
 #endif
 
-#ifdef SOLARIS
+#ifndef WIN32 /* UNIX */
 int wrapperBuildUnixDaemonInfo() {
-    char *name;
-    
-    name = (char *)getStringProperty(properties, "wrapper.pidfile", NULL);
-    if (name == NULL) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "No wrapper.pidfile property in wrapper config file");
-        return 1;
-    } else {
-        wrapperData->pidFilename = name;
-    }
+    wrapperData->pidFilename = (char *)getStringProperty(properties, "wrapper.pidfile", NULL);
     return 0;
 }
 #endif
@@ -2002,13 +1998,10 @@ int wrapperLoadConfiguration() {
 #ifdef WIN32
     /* Configure the NT service information */
     wrapperBuildNTServiceInfo();
-#endif
-    
-#ifdef SOLARIS
+    return 0;
+#else /* UNIX */
     /* Configure the Unix daemon information */
     return (wrapperBuildUnixDaemonInfo());
-#else
-    return 0;
 #endif
 }
 
