@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.97  2004/12/08 02:55:23  mortenson
+ * Modify the UNIX version so it always sets the working dir to the location
+ * of the wrapper binary on startup.  This is to make it work the same way
+ * as the Windows version.
+ *
  * Revision 1.96  2004/12/06 08:18:07  mortenson
  * Make it possible to reload the Wrapper configuration just before a JVM restart.
  *
@@ -1118,11 +1123,11 @@ void wrapperDumpCPUUsage() {
     }
 
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-        "Wrapper CPU: system %ld %ld, user %ld %ld  Java CPU: system %ld %ld, user %ld %ld",
-        wUsage.ru_stime.tv_sec, wUsage.ru_stime.tv_usec,
-        wUsage.ru_utime.tv_sec, wUsage.ru_utime.tv_usec,
-        jUsage.ru_stime.tv_sec, jUsage.ru_stime.tv_usec,
-        jUsage.ru_utime.tv_sec, jUsage.ru_utime.tv_usec);
+        "Wrapper CPU: system %ld.%03ld, user %ld.%03ld  Java CPU: system %ld.%03ld, user %ld.%03ld",
+        wUsage.ru_stime.tv_sec, wUsage.ru_stime.tv_usec / 1000,
+        wUsage.ru_utime.tv_sec, wUsage.ru_utime.tv_usec / 1000,
+        jUsage.ru_stime.tv_sec, jUsage.ru_stime.tv_usec / 1000,
+        jUsage.ru_utime.tv_sec, jUsage.ru_utime.tv_usec / 1000);
 }
 
 /**
@@ -1511,6 +1516,43 @@ void daemonize() {
 } 
 
 
+/**
+ * Sets the working directory to that of the current executable
+ */
+int setWorkingDir(char *app) {
+    char szPath[PATH_MAX];
+    char* pos;
+	
+    /* Get the full path and filename of this program */
+    if (realpath(app, szPath) == NULL) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to get the path-%s", getLastErrorText());
+        return 1;
+    }
+
+    /* The wrapperData->isDebugging flag will never be set here, so we can't really use it. */
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Executable Name: %s", szPath);
+#endif
+
+    /* To get the path, strip everything off after the last '\' */
+    pos = strrchr(szPath, '/');
+    if (pos == NULL) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to extract path from: %s", szPath);
+        return 1;
+    } else {
+        /* Clip the path at the position of the last backslash */
+        pos[0] = (char)0;
+    }
+
+    if (chdir(szPath)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+            "Unable to set working dir to %s : %s", szPath, getLastErrorText());
+        return 1;
+    }
+
+    return 0;
+}
+
 /*******************************************************************************
  * Main function                                                               *
  *******************************************************************************/
@@ -1548,7 +1590,23 @@ int main(int argc, char **argv) {
 
     /* Immediately register this thread with the logger. */
     logRegisterThread(WRAPPER_THREAD_MAIN);
-    
+
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Wrapper DEBUG build!");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Logging initialized.");
+#endif
+
+    if (setWorkingDir(argv[0])) {
+        appExit(1);
+    }
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Working directory set.");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Arguments:");
+    for ( i = 0; i < argc; i++ ) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  argv[%d]=%s", i, argv[i]);
+    }
+#endif
+	
     if (argc < 2) {
         wrapperUsage(argv[0]);
         appExit(1);
