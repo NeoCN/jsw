@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.132  2004/12/20 06:34:33  mortenson
+ * Add a comment.
+ *
  * Revision 1.131  2004/12/08 05:06:58  mortenson
  * Fix a UNIX compiler warning about unused variables.
  *
@@ -2867,6 +2870,7 @@ void wrapperStopPendingSignalled(int waitHint) {
     if (wrapperData->jState == WRAPPER_JSTATE_STARTED) {
         /* Change the state to STOPPING */
         wrapperData->jState = WRAPPER_JSTATE_STOPPING;
+        /* Don't need to set the timeout here because it will be set below. */
     }
 
     if (wrapperData->jState == WRAPPER_JSTATE_STOPPING) {
