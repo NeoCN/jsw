@@ -68,6 +68,14 @@ Java Service Wrapper Revision History.
   WRAPPER_CTRL_TERM_EVENT was added making it possible to selectively ignore
   the TERM signals.  This change may affect user implementations of the
   WrapperListener.controlEvent() method.  Bug #1086344.
+* The Windows version has a feature which allows the user to immediately kill
+  the Wrapper and its Java application without waiting for a clean shutdown
+  by pressing CTRL-C twice.  Windows sends the CTRL-C signal to both the
+  Wrapper and Java processes.  Due to a rare timing problem, it was possible
+  for the Java process to get the signal first and initialize a shutdown
+  before the Wrapper could respond to the signal.  In this case the Wrapper
+  was interpreting this as a second CTRL-C signal even though the user only
+  pressed it once.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager

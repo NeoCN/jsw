@@ -160,6 +160,18 @@ $Id$
                     <ulink url="http://sourceforge.net/tracker/?func=detail&amp;aid=1086344&amp;group_id=39428&amp;atid=425187">Bug #1086344</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    The Windows version has a feature which allows the user to immediately kill
+                    the Wrapper and its Java application without waiting for a clean shutdown
+                    by pressing CTRL-C twice.  Windows sends the CTRL-C signal to both the
+                    Wrapper and Java processes.  Due to a rare timing problem, it was possible
+                    for the Java process to get the signal first and initialize a shutdown
+                    before the Wrapper could respond to the signal.  In this case the Wrapper
+                    was interpreting this as a second CTRL-C signal even though the user only
+                    pressed it once.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">

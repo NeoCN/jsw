@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.98  2004/12/20 06:32:18  mortenson
+ * Fix a problem where the Wrapper would sometimes interpret a single CTRL-C as
+ * a double if the JVM got the signal first.
+ *
  * Revision 1.97  2004/12/06 08:18:07  mortenson
  * Make it possible to reload the Wrapper configuration just before a JVM restart.
  *
@@ -399,6 +403,9 @@ DWORD timerThreadId;
  *  tested. */
 DWORD timerTicks = 0xffffff00;
 
+/** Flag which keeps track of whether or not the CTRL-C key has been pressed. */
+int ctrlCTrapped = FALSE;
+
 char* getExceptionName(DWORD exCode);
 int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers);
 
@@ -644,20 +651,17 @@ int wrapperConsoleHandler(int key) {
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     "CTRL-C trapped, but ignored.");
             } else {
-                /*  Always quit. */
-                if (wrapperData->exitRequested || wrapperData->restartRequested ||
-                    (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
-                    (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
-                    (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
-                    (wrapperData->jState == WRAPPER_JSTATE_DOWN)) {
-    
-                    /* Pressed CTRL-C while we were already shutting down. */
+                /*  Always quit.  If the user has pressed CTRL-C previously then we want to force
+                 *   an immediate shutdown. */
+                if (ctrlCTrapped) {
+                    /* Pressed CTRL-C more than once. */
                     log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         "CTRL-C trapped.  Forcing immediate shutdown.");
                     halt = TRUE;
                 } else {
                     log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         "CTRL-C trapped.  Shutting down.");
+                    ctrlCTrapped = TRUE;
                 }
                 quit = TRUE;
             }
