@@ -26,6 +26,10 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.22  2002/09/11 14:58:19  mortenson
+// Fix a problem where applications that spend a long time in their start method
+// could time out because they are not pinged until they are actually running.
+//
 // Revision 1.21  2002/09/11 02:56:00  mortenson
 // A debug message was always being displayed.
 //
@@ -1153,7 +1157,7 @@ public final class WrapperManager implements Runnable {
                     long now = System.currentTimeMillis();
                     
                     // Unless the JVM is shutting dowm we want to show warning messages and maybe exit.
-                    if (!_stopping) {
+                    if ((_started) && (!_stopping)) {
                         if (_debug) {
                             System.out.println("Read Timed out. (Last Ping was " + (now - _lastPing) + " milliseconds ago)");
                         }
