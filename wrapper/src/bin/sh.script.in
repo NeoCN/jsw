@@ -89,46 +89,6 @@ else
     CMDNICE="nice -$PRIORITY"
 fi
 
-# Resolve an OS architecturee
-osarch=`uname -m`
-osarch=`echo $osarch | tr -s '[:upper:]' '[:lower:]'`
-if [ "$osarch" = "i386" ] | [ "$osarch" = "i486" ] | [ "$osarch" = "i586" ] | [ "$osarch" = "i686" ]
-then
-    osarch="i386"
-else
-    if [ "$osarch" = "sun4u" ]
-    then
-        osarch="sparc"
-    fi
-fi
-
-# Resolve an OS name
-osname=`uname -s`
-osname=`echo $osname | tr -s '[:upper:]' '[:lower:]'`
-
-# Decide on the wrapper binary that will be used.
-if [ -f "$WRAPPER_CMD-$osname-$osarch" ]
-then
-    echo "A"
-    WRAPPER_CMD="$WRAPPER_CMD-$osname-$osarch"
-else
-    if [ -f "$WRAPPER_CMD-$osname" ]
-    then
-        WRAPPER_CMD="$WRAPPER_CMD-$osname"
-    else
-        if [ -f "$WRAPPER_CMD" ]
-        then
-            WRAPPER_CMD="$WRAPPER_CMD"
-        else
-            echo "Unable to locate a wrapper binary with any of the following names:"
-            echo "  $WRAPPER_CMD-$osname-$osarch"
-            echo "  $WRAPPER_CMD-$osname"
-            echo "  $WRAPPER_CMD"
-            exit 1
-        fi
-    fi
-fi
-
 getpid() {
     if [ -f $PIDFILE ]
     then

@@ -26,6 +26,11 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.18  2003/10/12 18:01:52  mortenson
+// Back out some changes which made the WrapperManager look for the native
+// library by using the OS/arch as keys.  I want to solve that problem a different
+// way.
+//
 // Revision 1.17  2003/09/12 04:03:52  mortenson
 // Make it possible to load the native library using files named after the platform
 // and architecture.
@@ -586,18 +591,14 @@ public final class WrapperManager
         String libraryTail;
         
         // Resolve the osname and osarch for the currect system.
-        String osName = System.getProperty( "os.name" ).toLowerCase();
-        if ( osName.startsWith( "windows" ) )
+        String osName = System.getProperty( "os.name" );
+        if ( osName.indexOf( "Windows" ) >= 0 )
         {
-            // There are several windows names so combine them all into something familiar.
-            osName = "windows";
             libraryHead = "";
             libraryTail = ".dll";
         }
-        else if ( osName.startsWith( "mac" ) )
+        else if ( osName.indexOf( "Mac" ) >= 0 )
         {
-            // There are several windows names so combine them all into something familiar.
-            osName = "mac";
             libraryHead = "lib";
             libraryTail = ".jnilib";
         }
@@ -607,36 +608,14 @@ public final class WrapperManager
             libraryTail = ".so";
         }
         
-        String osArch = System.getProperty( "os.arch" ).toLowerCase();
-        
-        String name1 = "wrapper-" + osName + "-" + osArch;
-        String file1 = libraryHead + name1 + libraryTail;
-        String name2 = "wrapper-" + osName;
-        String file2 = libraryHead + name2 + libraryTail;
-        String name3 = "wrapper";
-        String file3 = libraryHead + name3 + libraryTail;
+        String name = "wrapper";
+        String file = libraryHead + name + libraryTail;
         
         // Attempt to load the native library using various names.
-        if ( loadNativeLibrary( name1, file1 ) )
+        if ( loadNativeLibrary( name, file ) )
         {
             m_libraryOK = true;
-        }
-        else if ( loadNativeLibrary( name2, file2 ) )
-        {
-            m_libraryOK = true;
-        }
-        else if ( loadNativeLibrary( name3, file3 ) )
-        {
-            m_libraryOK = true;
-        }
-        else
-        {
-            // Failed to load the native library using all 3 names.
-            m_libraryOK = false;
-        }
-        
-        if ( m_libraryOK )
-        {
+            
             // The library was loaded correctly, so initialize it.
             if ( m_debug )
             {
@@ -646,6 +625,8 @@ public final class WrapperManager
         }
         else
         {
+            m_libraryOK = false;
+            
             // The library could not be loaded, so we want to give the user a useful
             //  clue as to why not.
             String libPath = System.getProperty( "java.library.path" );
@@ -664,22 +645,16 @@ public final class WrapperManager
             }
             else
             {
-                File libFile;
-                if ( ( libFile = locateFileOnPath( file1, libPath ) ) == null )
-                {
-                    if ( ( libFile = locateFileOnPath( file1, libPath ) ) == null )
-                    {
-                        libFile = locateFileOnPath( file1, libPath );
-                    }
-                }
-                
+                File libFile = locateFileOnPath( file, libPath );
                 if ( libFile == null )
                 {
                     // The library could not be located on the library path.
                     System.out.println(
-                        "WARNING - Unable to load the Wrapper's native library because it does" );
+                        "WARNING - Unable to load native library 'wrapper' because the" );
                     System.out.println(
-                        "          not appear to exist on the following java.library.path:" );
+                        "          file '" + file + "' could not be located in the following" );
+                    System.out.println(
+                        "          java.library.path:" );
                     String pathSep = System.getProperty( "path.separator" );
                     StringTokenizer st = new StringTokenizer( libPath, pathSep );
                     while ( st.hasMoreTokens() )
@@ -687,13 +662,6 @@ public final class WrapperManager
                         File pathElement = new File( st.nextToken() );
                         System.out.println( "            " + pathElement.getAbsolutePath() );
                     }
-                    System.out.println(
-                        "          The native library is searched for using the following names " );
-                    System.out.println(
-                        "          in this order:" );
-                    System.out.println( "            " + file1 );
-                    System.out.println( "            " + file2 );
-                    System.out.println( "            " + file3 );
                     System.out.println(
                         "          Please see the documentation for the "
                         +          "wrapper.java.library.path" );
@@ -704,11 +672,11 @@ public final class WrapperManager
                 {
                     // The library file was found but could not be loaded for some reason.
                     System.out.println(
-                        "WARNING - Unable to load Wrapper's native library.  The file is located" );
+                        "WARNING - Unable to load native library '" + file + "'.  The file" );
                     System.out.println(
-                        "          on the library path at the following location but could not" );
+                        "          is located on the path at the following location but could" );
                     System.out.println(
-                        "          be loaded:" );
+                        "          not be loaded:" );
                     System.out.println(
                         "            " + libFile.getAbsolutePath() );
                     System.out.println(
