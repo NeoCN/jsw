@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.73  2003/10/18 06:42:39  mortenson
+ * Fix a compiler warning.
+ *
  * Revision 1.72  2003/10/12 18:59:06  mortenson
  * Add a new property, wrapper.native_library, which can be used to specify
  * the base name of the native library.
@@ -2196,7 +2199,7 @@ int wrapperLoadConfiguration() {
     }
 
     /* Load the name of the native library to be loaded. */
-    wrapperData->nativeLibrary = getStringProperty(properties, "wrapper.native_library", "wrapper");
+    wrapperData->nativeLibrary = (char *)getStringProperty(properties, "wrapper.native_library", "wrapper");
     
     /* Get the state output status. */
     wrapperData->isStateOutputEnabled = getBooleanProperty(properties, "wrapper.state_output", FALSE);
