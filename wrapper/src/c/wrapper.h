@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.20  2002/12/04 06:28:38  mortenson
+ * Add the ability to specify an account name and password when installing an
+ * NT service.
+ *
  * Revision 1.19  2002/10/10 03:20:09  mortenson
  * Fix a problem where the Wrapper would not respond to exit requests while
  * pausing between JVM invocations.
@@ -192,6 +196,8 @@ struct WrapperConfig {
                                      * {SERVICE_AUTO_START | SERVICE_DEMAND_START} */
     DWORD   ntServicePriorityClass; /* Priority at which the Wrapper and its JVMS will run.
                                      * {HIGH_PRIORITY_CLASS | IDLE_PRIORITY_CLASS | NORMAL_PRIORITY_CLASS | REALTIME_PRIORITY_CLASS} */
+	char    *ntServiceAccount;      /* Account name to use when running as a service.  NULL to use the LocalSystem account. */
+	char    *ntServicePassword;     /* Password to use when running as a service.  NULL means no password. */
 #endif
 
 #ifdef SOLARIS

@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.36  2002/12/04 06:28:38  mortenson
+ * Add the ability to specify an account name and password when installing an
+ * NT service.
+ *
  * Revision 1.35  2002/11/04 10:16:50  mortenson
  * On Windows systems change any forward slashes in the wrapper.java.command
  * property to back slashes.  Some users had reported having problems on
@@ -1838,6 +1842,25 @@ void wrapperBuildNTServiceInfo() {
     } else {
         wrapperData->ntServicePriorityClass = NORMAL_PRIORITY_CLASS;
     }
+
+	/* Account name */
+    wrapperData->ntServiceAccount = (char *)getStringProperty(properties, "wrapper.ntservice.account", NULL);
+	if ( wrapperData->ntServiceAccount && ( strlen( wrapperData->ntServiceAccount ) <= 0 ) )
+	{
+		wrapperData->ntServiceAccount = NULL;
+	}
+
+	/* Acount password */
+    wrapperData->ntServicePassword = (char *)getStringProperty(properties, "wrapper.ntservice.password", NULL);
+	if ( wrapperData->ntServicePassword && ( strlen( wrapperData->ntServicePassword ) <= 0 ) )
+	{
+		wrapperData->ntServicePassword = NULL;
+	}
+	if ( !wrapperData->ntServiceAccount )
+	{
+		/* If there is not account name, then the password must not be set. */
+		wrapperData->ntServicePassword = NULL;
+	}
 }
 #endif
 
