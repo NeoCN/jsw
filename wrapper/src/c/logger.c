@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.18  2002/11/25 08:47:24  mortenson
+ * Remove unused code.
+ *
  * Revision 1.17  2002/11/15 16:30:14  spocke
  * Fixed bug where wrapper.logfile.maxsize produced 0 if it didn't have an k or m multiple.
  *
@@ -107,7 +110,6 @@
 #endif
 
 #include "logger.h"
-#include "wrapper.h"
 
 /* Global data for logger */
 
@@ -128,8 +130,6 @@ char consoleFormat[32];
 char logfileFormat[32];
 
 /* Internal function declaration */
-int registerEventlogMessageFile( );
-int unregisterEventlogMessageFile( );
 void sendEventlogMessage( int source_id, int level, char *szBuff );
 void sendLoginfoMessage( int source_id, int level, char *szBuff );
 void writeTimeToStream( FILE *fp );
