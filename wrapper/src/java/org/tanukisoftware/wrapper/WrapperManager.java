@@ -44,6 +44,11 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.37  2004/06/15 05:26:57  mortenson
+// Fix a problem where the Wrapper would sometimes hang on shutdown if
+// another thread called System.exit while the Wrapper was shutting down.
+// Bug #955248.
+//
 // Revision 1.36  2004/05/24 09:24:34  mortenson
 // Fix a problem introduced in 3.1.0 where the JVM would not be restarted
 // correctly if it quit after a ping timeout to let the Wrapper resynch and
@@ -297,6 +302,9 @@ public final class WrapperManager
     private static Thread m_hook = null;
     private static boolean m_hookTriggered = false;
     
+    /* Flag which records when the shutdownJVM method has completed. */
+    private static boolean m_shutdownJVMComplete = false;
+    
     private static String[] m_args;
     private static int m_port    = DEFAULT_PORT;
     private static String m_key;
@@ -460,13 +468,13 @@ public final class WrapperManager
                  */
                 public void run()
                 {
+                    // Stop the Wrapper cleanly.
+                    m_hookTriggered = true;
+                    
                     if ( m_debug )
                     {
                         m_out.println( "Wrapper Manager: ShutdownHook started" );
                     }
-                    
-                    // Stop the Wrapper cleanly.
-                    m_hookTriggered = true;
                     
                     // If we are not already stopping, then do so.
                     WrapperManager.stop( 0 );
@@ -485,13 +493,17 @@ public final class WrapperManager
             }
             catch ( IllegalAccessException e )
             {
-                m_out.println( "Wrapper Manager: Unable to register shutdown hook: "
-                    + e.getMessage() );
+                m_out.println( "Wrapper Manager: Unable to register shutdown hook: " + e );
             }
             catch ( InvocationTargetException e )
             {
-                m_out.println( "Wrapper Manager: Unable to register shutdown hook: "
-                    + e.getMessage() );
+                Throwable t = e.getTargetException();
+                if ( t == null )
+                {
+                    t = e;
+                }
+                
+                m_out.println( "Wrapper Manager: Unable to register shutdown hook: " + t );
             }
         }
         
@@ -1517,13 +1529,17 @@ public final class WrapperManager
             }
             catch ( IllegalAccessException e )
             {
-                m_out.println(
-                    "Unable to call runtime.halt: " + e.getMessage() );
+                m_out.println( "Unable to call runtime.halt: " + e );
             }
             catch ( InvocationTargetException e )
             {
-                m_out.println(
-                    "Unable to call runtime.halt: " + e.getMessage() );
+                Throwable t = e.getTargetException();
+                if ( t == null )
+                {
+                    t = e;
+                }
+                
+                m_out.println( "Unable to call runtime.halt: " + t );
             }
         }
         else
@@ -1682,17 +1698,17 @@ public final class WrapperManager
             
             // Always send the stop command
             sendCommand( WRAPPER_MSG_STOP, Integer.toString( exitCode ) );
-        }
-        
-        // Give the Wrapper a chance to register the stop command before stopping.
-        // This avoids any errors thrown by the Wrapper because the JVM died before
-        //  it was expected to.
-        try
-        {
-            Thread.sleep( delay );
-        }
-        catch ( InterruptedException e )
-        {
+            
+            // Give the Wrapper a chance to register the stop command before stopping.
+            // This avoids any errors thrown by the Wrapper because the JVM died before
+            //  it was expected to.
+            try
+            {
+                Thread.sleep( delay );
+            }
+            catch ( InterruptedException e )
+            {
+            }
         }
     }
     
@@ -1785,11 +1801,16 @@ public final class WrapperManager
             
             // This is the shutdown hook, so fall through because things are
             //  already shutting down.
+            
+            m_shutdownJVMComplete = true;
         }
         else
         {
-            //  We do not want the ShutdownHook to execute, so unregister it before calling exit
-            if ( m_hook != null )
+            // We do not want the ShutdownHook to execute, so unregister it before calling exit.
+            //  It can't be unregistered if it has already fired however.  The only way that this
+            //  could happen is if user code calls System.exit from within the listener stop
+            //  method.
+            if ( ( !m_hookTriggered ) && ( m_hook != null ) )
             {
                 // Remove the shutdown hook using reflection.
                 try
@@ -1799,15 +1820,18 @@ public final class WrapperManager
                 }
                 catch ( IllegalAccessException e )
                 {
-                    m_out.println( "Wrapper Manager: Unable to unregister shutdown hook: "
-                        + e.getMessage() );
+                    m_out.println( "Wrapper Manager: Unable to unregister shutdown hook: " + e );
                 }
                 catch ( InvocationTargetException e )
                 {
-                    m_out.println( "Wrapper Manager: Unable to unregister shutdown hook: "
-                        + e.getMessage() );
+                    Throwable t = e.getTargetException();
+                    if ( t == null )
+                    {
+                        t = e;
+                    }
+                    
+                    m_out.println( "Wrapper Manager: Unable to unregister shutdown hook: " + t );
                 }
-                m_hook = null;
             }
             // Signal that the application has stopped and the JVM is about to shutdown.
             signalStopped( 0 );
@@ -1819,6 +1843,7 @@ public final class WrapperManager
             {
                 m_out.println( "calling System.exit(" + exitCode + ")" );
             }
+            m_shutdownJVMComplete = true;
             System.exit( exitCode );
         }
     }
@@ -1848,11 +1873,6 @@ public final class WrapperManager
                         "WrapperManager.stop() can not be called recursively." );
                 }
                 
-                if ( Thread.currentThread() == m_hook )
-                {
-                    // The hook should be allowed to fall through.
-                    return;
-                }
                 block = true;
             }
         }
@@ -1869,15 +1889,42 @@ public final class WrapperManager
             //  This thread can not be allowed to return to the caller, but another
             //  thread is already responsible for shutting down the JVM, so this
             //  one can do nothing but wait.
+            int loops = 0;
+            int wait = 50;
             while( true )
             {
                 try
                 {
-                    Thread.sleep( 100 );
+                    Thread.sleep( wait );
                 }
                 catch ( InterruptedException e )
                 {
                 }
+                
+                // If this is the wrapper's shutdown hook then we only want to loop until
+                //  the shutdownJVM method has completed.  We will only get into this state
+                //  if user code calls System.exit from within the WrapperListener.stop
+                //  method.  Failing to return here will cause the shutdown process to hang.
+                // If the user code calls System.exit directly in the stop method then the
+                //  m_shutdownJVMComplete flag will never be set.   Always time out after
+                //  5 seconds so the JVM will not hang in such cases.
+                if ( Thread.currentThread() == m_hook )
+                {
+                    if ( m_shutdownJVMComplete || ( loops > 5000 / wait ) )
+                    {
+                        if ( !m_shutdownJVMComplete )
+                        {
+                            if ( m_debug )
+                            {
+                                m_out.println( "Thread, " + Thread.currentThread().getName()
+                                    + ", continuing after 5 seconds." );
+                            }
+                        }
+                        return;
+                    }
+                }
+                
+                loops++;
             }
         }
         

@@ -44,6 +44,11 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.6  2004/06/15 05:26:57  mortenson
+// Fix a problem where the Wrapper would sometimes hang on shutdown if
+// another thread called System.exit while the Wrapper was shutting down.
+// Bug #955248.
+//
 // Revision 1.5  2004/02/13 02:53:26  mortenson
 // Add some javadocs describing what happens if an uncaught exception is thrown
 // within the start method.
@@ -101,6 +106,11 @@ public interface WrapperListener
      *  should be called to extend the timeout period.  If for some reason,
      *  the stop method can not return, then it must call
      *  WrapperManager.stopped() to avoid warning messages from the Wrapper.
+     * <p>
+     * WARNING - Directly calling System.exit in this method will result in
+     *  a deadlock in cases where this method is called from within a shutdown
+     *  hook.  This method will be invoked by a shutdown hook if the JVM
+     *  shutdown was originally initiated by a call to System.exit.
      *
      * @param exitCode The suggested exit code that will be returned to the OS
      *                 when the JVM exits.
