@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.118  2004/10/01 03:18:57  mortenson
+ * Remove C++ style comments.
+ *
  * Revision 1.117  2004/10/01 02:03:06  mortenson
  * Fix a compiler warning on Linux.
  *
@@ -1297,8 +1300,8 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         if (prop) {
             if (strlen(prop) > 0) {
                 if (strings) {
-                    // All additional parameters must begin with a - or they will be interpretted
-                    //  as the being the main class name by Java.
+                    /* All additional parameters must begin with a - or they will be interpretted
+                     *  as the being the main class name by Java. */
                     if (!((strstr(prop, "-") == prop) || (strstr(prop, "\"-") == prop))) {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                             "The value of property '%s', '%s' is not a valid argument to the jvm.  Skipping.",
