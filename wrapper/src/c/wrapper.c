@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.88  2004/03/18 06:28:36  mortenson
+ * Fix a problem where the first ping timeout after the JVM was started was
+ * still hard coded at 30 seconds.
+ *
  * Revision 1.87  2004/03/18 04:54:46  mortenson
  * Add a new wrapper.java.library.path.append_system_path property which will
  * cause the Wrapper to append the system path to the generated library path.
@@ -1072,7 +1076,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     int cpLen, cpLenAlloc;
     char *tmpString;
     struct stat statBuffer;
-	char *systemPath;
+    char *systemPath;
 #ifdef WIN32
     char cpPath[512];
     char *c;
@@ -1209,32 +1213,32 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 
     /* Library Path */
     if (strings) {
-		if (wrapperData->libraryPathAppendPath) {
-			/* We are going to want to append the full system path to
-			 *  whatever library path is generated. */
-			systemPath = getenv("PATH");
-		} else {
-			systemPath = NULL;
-		}
+        if (wrapperData->libraryPathAppendPath) {
+            /* We are going to want to append the full system path to
+             *  whatever library path is generated. */
+            systemPath = getenv("PATH");
+        } else {
+            systemPath = NULL;
+        }
 
         prop = getStringProperty(properties, "wrapper.java.library.path", NULL);
         if (prop) {
             /* An old style library path was specified. */
-			if (systemPath) {
-				strings[index] = malloc(sizeof(char) * (22 + strlen(prop) + 1 + strlen(systemPath) + 1));
-				if (addQuotes) {
-					sprintf(strings[index], "-Djava.library.path=\"%s%c%s\"", prop, wrapperClasspathSeparator, systemPath);
-				} else {
-					sprintf(strings[index], "-Djava.library.path=%s%c%s", prop, wrapperClasspathSeparator, systemPath);
-				}
-			} else {
-				strings[index] = malloc(sizeof(char) * (22 + strlen(prop) + 1));
-				if (addQuotes) {
-					sprintf(strings[index], "-Djava.library.path=\"%s\"", prop);
-				} else {
-					sprintf(strings[index], "-Djava.library.path=%s", prop);
-				}
-			}
+            if (systemPath) {
+                strings[index] = malloc(sizeof(char) * (22 + strlen(prop) + 1 + strlen(systemPath) + 1));
+                if (addQuotes) {
+                    sprintf(strings[index], "-Djava.library.path=\"%s%c%s\"", prop, wrapperClasspathSeparator, systemPath);
+                } else {
+                    sprintf(strings[index], "-Djava.library.path=%s%c%s", prop, wrapperClasspathSeparator, systemPath);
+                }
+            } else {
+                strings[index] = malloc(sizeof(char) * (22 + strlen(prop) + 1));
+                if (addQuotes) {
+                    sprintf(strings[index], "-Djava.library.path=\"%s\"", prop);
+                } else {
+                    sprintf(strings[index], "-Djava.library.path=%s", prop);
+                }
+            }
         } else {
             /* Look for a multiline library path. */
             cpLen = 0;
@@ -1282,8 +1286,8 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                 }
             } while (prop);
 
-			if (systemPath) {
-				/* We need to append the system path. */
+            if (systemPath) {
+                /* We need to append the system path. */
                 len2 = strlen(systemPath);
                 if (len2 > 0) {
                     /* Is there room for the entry? */
@@ -1304,7 +1308,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                     cpLen += len2;
                     j++;
                 }
-			}
+            }
 
             if (j == 0) {
                 /* No library path, use default. always room */
@@ -2435,7 +2439,7 @@ int wrapperLoadConfiguration() {
     /* Load the name of the native library to be loaded. */
     wrapperData->nativeLibrary = (char *)getStringProperty(properties, "wrapper.native_library", "wrapper");
 
-	/* Get the append PATH to library path flag. */
+    /* Get the append PATH to library path flag. */
     wrapperData->libraryPathAppendPath = getBooleanProperty(properties, "wrapper.java.library.path.append_system_path", FALSE);
     
     /* Get the state output status. */
@@ -2792,8 +2796,9 @@ void wrapperStartedSignalled() {
     if (wrapperData->jState == WRAPPER_JSTATE_STARTING) {
         wrapperData->jState = WRAPPER_JSTATE_STARTED;
 
-        /* Give the JVM 30 seconds to respond to a ping. */
-        wrapperData->jStateTimeoutTicks = wrapperAddToTicks(wrapperGetTicks(), 30);
+        /* We got a response to a ping.  Allow 5 + <pingTimeout> more seconds before the JVM
+         *  is considered to be dead. */
+        wrapperData->jStateTimeoutTicks = wrapperAddToTicks(wrapperGetTicks(), 5 + wrapperData->pingTimeout);
         wrapperData->jStateTimeoutTicksSet = 1;
 
         /* Is the wrapper state STARTING? */

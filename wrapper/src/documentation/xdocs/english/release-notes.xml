@@ -235,6 +235,14 @@ $Id$
                     <ulink url="https://sourceforge.net/tracker/index.php?func=detail&amp;aid=916001&amp;group_id=39428&amp;atid=425187">Bug #916001</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where the first ping timeout after the JVM was started was
+                    still hard coded at 30 seconds.  This was causing a combination of large
+                    values of <ulink url="prop-ping-interval.html">wrapper.ping.interval</ulink>
+                    and <ulink url="prop-ping-timeout.html">wrapper.ping.timeout</ulink> to fail.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
