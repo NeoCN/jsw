@@ -28,6 +28,9 @@
             <listitem>
                 <ulink url="#service">Installing and Running as an NT Service</ulink>
             </listitem>
+            <listitem>
+                <ulink url="#exe">Using Wrapper.exe Directly</ulink>
+            </listitem>
         </itemizedlist>
         <section id="scripts">
             <title>Setup The Scripts</title>
@@ -123,15 +126,17 @@ wrapper  | My Application installed.]]></screen>
             <para>
                 The service can also be started and stopped from within a Command
                 Window by using the <literal moreinfo="none">net start MyApp</literal>
-                and <literal moreinfo="none">net stop MyApp</literal> commands.
+                and <literal moreinfo="none">net stop MyApp</literal> commands, or
+                by passing commands to the <ulink url="#exe">Wrapper.exe</ulink>
+                executable.
             </para>
             <informalexample>
-                <screen format="linespecific"><![CDATA[C:\MyApp\bin> net start MyApp
+                <screen format="linespecific"><![CDATA[C:\MyApp\bin>net start MyApp
 The My Application service is starting....
 The My Application service was started successfully.]]></screen>
             </informalexample>
             <informalexample>
-                <screen format="linespecific"><![CDATA[C:\MyApp\bin> net stop MyApp
+                <screen format="linespecific"><![CDATA[C:\MyApp\bin>net stop MyApp
 The My Application service is stopping..
 The My Application service was stopped successfully.]]></screen>
             </informalexample>
@@ -152,6 +157,106 @@ wrapper  | Waiting to stop...
 wrapper  | My Application stopped.
 wrapper  | My Application removed.]]></screen>
             </informalexample>
+        </section>
+        <section id="exe">
+            <title>Using Wrapper.exe Directly</title>
+            <para>
+                As an alternative to using the scripts provided with the Java Service
+                Wrapper.  You may choose to launch the Wrapper directly.  If the
+                <literal moreinfo="none">Wrapper.exe</literal> executable is launched
+                without any parameters, the following usage output will be displayed.
+            </para>
+            <informalexample>
+                <screen format="linespecific"><![CDATA[C:\MyApp\bin>Wrapper.exe
+Usage:
+  Wrapper.exe <command> <configuration file> [configuration properties] [...]
+
+where <command> can be one of:
+  -c   run as a Console application
+  -t   starT an NT service
+  -p   stoP a running NT service
+  -i   Install as an NT service
+  -r   Remove as an NT service
+  -?   print this help message
+
+<configuration file> is the wrapper.conf to use
+
+[configuration properties] are configuration name-value pairs which override values
+  in wrapper.conf.  For example:
+  wrapper.debug=true]]></screen>
+            </informalexample>
+            <para>
+                To run the Java Service Wrapper as a console application, you would
+                specify the <literal moreinfo="none">-c</literal> command, followed
+                by the wrapper.conf file.  The location of the
+                <literal moreinfo="none">wrapper.conf</literal> file can be an
+                absolute or relative location.  If a relative path is used, the path
+                is always relative to the location of the
+                <literal moreinfo="none">Wrapper.exe</literal> file, not the current
+                directory.
+            </para>
+            <informalexample>
+                <screen format="linespecific"><![CDATA[C:\MyApp\bin>Wrapper.exe -c ..\conf\wrapper.conf]]></screen>
+            </informalexample>
+            <para>
+                To install the application as an NT service, execute:
+            </para>
+            <informalexample>
+                <screen format="linespecific"><![CDATA[C:\MyApp\bin>Wrapper.exe -i ..\conf\wrapper.conf]]></screen>
+            </informalexample>
+            <para>
+                Once installed, the service can be started just like any other NT
+                service.  If the <ulink url="prop-ntservice-starttype.html">wrapper.ntservice.starttype</ulink>
+                was set to <literal moreinfo="none">AUTO_START</literal> when
+                installed, then the service will be started the next time the
+                machine is rebooted.  It is also possible to start the service
+                manually from the services control panel, or by executing either
+                of the following two commands:
+            </para>
+            <informalexample>
+                <screen format="linespecific"><![CDATA[C:\MyApp\bin>net start MyApp
+C:\MyApp\bin>Wrapper.exe -t ..\conf\wrapper.conf]]></screen>
+            </informalexample>
+            <note>
+                <para>
+                    The <literal moreinfo="none">net start x</literal> and
+                    <literal moreinfo="none">net stop x</literal> commands have problems
+                    with services that take a long time to start or stop.  In most
+                    cases they will work, but if a service takes more than a few seconds
+                    to stop, the <literal moreinfo="none">net stop x</literal> command
+                    will return that the service was stopped even though it is still in
+                    the process of stopping.  This can lead to problems when a script
+                    must wait until a service has actually stopped before proceeding.
+                    By using the Wrapper to start and stop the service, you will be
+                    guaranteed not to have any such problems.
+                </para>
+                <para>
+                    The Wrapper method of starting and stopping the service is also
+                    useful in scripts as it does not require the actual name that
+                    the service is installed as to exist anywhere except in the
+                    <literal moreinfo="none">wrapper.conf</literal> file.  This
+                    removes the need for manual editing of multiple files if the
+                    service name is changed.
+                </para>
+            </note>
+            <para>
+                The service can be stopped using the services control panel, or by
+                executing either of the following commands:
+            </para>
+            <informalexample>
+                <screen format="linespecific"><![CDATA[C:\MyApp\bin>net stop MyApp
+C:\MyApp\bin>Wrapper.exe -p ..\conf\wrapper.conf]]></screen>
+            </informalexample>
+            <para>
+                 To uninstall the application as an NT service, execute:
+            </para>
+            <informalexample>
+                <screen format="linespecific"><![CDATA[C:\MyApp\bin>Wrapper.exe -r ..\conf\wrapper.conf]]></screen>
+            </informalexample>
+            <para>
+                If the service is running at the time that it is uninstalled, the service
+                will be cleanly stopped and then removed.
+            </para>
         </section>
     </section>
 </chapter>
