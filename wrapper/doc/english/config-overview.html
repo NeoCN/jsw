@@ -130,7 +130,7 @@
 
     
 <div>
-<a name="NA2B"></a>
+<a name="NA2D"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="100%">
 <tr>
 <td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+1"><b>Configuring the Wrapper to Work With Your Application.</b></font></td>
@@ -250,7 +250,8 @@
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
 <td>
-<pre>#********************************************************************
+<pre>
+#********************************************************************
 # Wrapper parameters
 #********************************************************************
 # Java Application
@@ -351,7 +352,9 @@ wrapper.ntservice.description=@app.description@
 wrapper.ntservice.dependency.1=
 
 # Mode in which the service is installed.  AUTO_START or DEMAND_START
-wrapper.ntservice.starttype=AUTO_START</pre>
+wrapper.ntservice.starttype=AUTO_START
+
+</pre>
 </td>
 </tr>
 </table>
@@ -517,7 +520,7 @@ wrapper.ntservice.starttype=AUTO_START</pre>
                 
                 
 <div class="glosslist">
-<a name="NAF0"></a>
+<a name="NAF2"></a>
 <dl>
                     
                         
@@ -812,21 +815,23 @@ wrapper.app.parameter.4=-p4</pre>
                             
 </p>
                             
+<p align="justify">
+                                
 <div align="center">
 <table cellspacing="2" cellpadding="2" border="1">
 <tr>
 <td bgcolor="#c0c0c0"><font size="-1" color="#023264">
-                                
+                                    
 <p align="justify">
-                                    Application parameters are designed to be individual parameters.  If you specify a parameter like '-c conf/myconffile.conf', it will work correctly on windows because the '-c' and 'conf/myconffile.conf' parameters will be correctly parsed when Java is launched.  But on Unix systems, the parameters will incorrectly be interpreted as a single parameter '-c conf/myconffile.conf'.
-                                </p>
-                                
-<p align="justify">
+                                        Application parameters are designed to be individual parameters.  If you specify a parameter like '-c conf/myconffile.conf', it will work correctly on windows because the '-c' and 'conf/myconffile.conf' parameters will be correctly parsed when Java is launched.  But on Unix systems, the parameters will incorrectly be interpreted as a single parameter '-c conf/myconffile.conf'.
+                                    </p>
                                     
 <p align="justify">
                                         
+<p align="justify">
+                                            
 <i>Incorrect:</i>
-                                        
+                                            
 <div align="left">
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
@@ -836,32 +841,34 @@ wrapper.app.parameter.4=-p4</pre>
 </tr>
 </table>
 </div>
-                                    
+                                        
 </p>
-                                    
+                                        
 <p align="justify">
-                                        
+                                            
 <i>Correct:</i>
-                                        
+                                            
 <div align="left">
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
 <td>
 <pre>wrapper.app.parameter.1=-c
-wrapper.app.parameter.2=conf/myconffile.conf</pre>
+                                                wrapper.app.parameter.2=conf/myconffile.conf</pre>
 </td>
 </tr>
 </table>
 </div>
+                                        
+</p>
                                     
 </p>
                                 
-</p>
-                            
 </font></td>
 </tr>
 </table>
 </div>
+                            
+</p>
                         
 </dd>
                     
@@ -987,23 +994,27 @@ wrapper.app.parameter.2=conf/myconffile.conf</pre>
                             
 </p>
                             
+<p align="justify">
+                                
 <div align="center">
 <table cellspacing="2" cellpadding="2" border="1">
 <tr>
 <td bgcolor="#c0c0c0"><font size="-1" color="#023264">
-                                
+                                    
 <p align="justify">
-                                    WARNING - When the Wrapper detects that System.exit() has been called, it will call the stop() method on your application if it implements the WrapperListener method.  You must be careful that your application does not call System.exit() again or call the dispose() method on an AWT frame or window.  Either one of these actions will result in a deadlock when called from within a ShutdownHook thread due to the way Java has implemented these methods.  If either of these cases can not be avoided, then the shutdown hook should be disabled.
-                                </p>
-                                
+                                        WARNING - When the Wrapper detects that System.exit() has been called, it will call the stop() method on your application if it implements the WrapperListener method.  You must be careful that your application does not call System.exit() again or call the dispose() method on an AWT frame or window.  Either one of these actions will result in a deadlock when called from within a ShutdownHook thread due to the way Java has implemented these methods.  If either of these cases can not be avoided, then the shutdown hook should be disabled.
+                                    </p>
+                                    
 <p align="justify">
-                                    If you have control over whether the System.exit() or dispose() methods are called, you may be able to make use of the WrapperManager.hasShutdownHookBeenTriggered() method to avoid the deadlock issue.
-                                </p>
-                            
+                                        If you have control over whether the System.exit() or dispose() methods are called, you may be able to make use of the WrapperManager.hasShutdownHookBeenTriggered() method to avoid the deadlock issue.
+                                    </p>
+                                
 </font></td>
 </tr>
 </table>
 </div>
+                            
+</p>
                         
 </dd>
                     
@@ -1030,7 +1041,7 @@ wrapper.app.parameter.2=conf/myconffile.conf</pre>
                 
                 
 <div class="glosslist">
-<a name="NC61"></a>
+<a name="NC69"></a>
 <dl>
                     
                         
@@ -1318,7 +1329,7 @@ wrapper.logfile.format=
                 
                 
 <div class="glosslist">
-<a name="ND23"></a>
+<a name="ND2B"></a>
 <dl>
                     
                         
@@ -1389,7 +1400,7 @@ wrapper.logfile.format=
 </div>
                 
 <div class="glosslist">
-<a name="ND4D"></a>
+<a name="ND55"></a>
 <dl>
                     
                         

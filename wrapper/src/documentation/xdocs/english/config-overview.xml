@@ -6,7 +6,9 @@
      $Id$
      ******************************************************************** -->
 
-<chapter id="api-overview">
+<chapter id="config-overview"
+         xmlns:xi="http://www.w3.org/2001/XInclude"
+         xml:base="context://xdocs/english">
  
     <title>Configuration File Overview</title> 
 
@@ -63,108 +65,8 @@
             </para>
             <para>
                 The Wrapper config file contains the following information.  This example assumes that the '@app.name@' and '@app.long.name@' tokens will be replaced with the name of your applicaiton on installation.  Good values are 'testwrapper' for '@app.name@' and 'Test Wrapper Application' for '@app.long.name@'.  A template wrapper.conf file can be found in the src/conf directory, named wrapper.conf.in.
-                <programlisting format="linespecific"><![CDATA[#********************************************************************
-# Wrapper parameters
-#********************************************************************
-# Java Application
-wrapper.java.command=java
-
-# Java Main class
-wrapper.java.mainclass=com.silveregg.wrapper.test.Main
-
-# Java Classpath (include wrapper.jar)  Add class path elements as needed starting from 1
-wrapper.java.classpath.1=../lib/wrapper.jar
-wrapper.java.classpath.2=../lib/wrappertest.jar
-
-# Java Library Path (location of wrapper.lib)
-wrapper.java.library.path=../lib
-
-# Java Additional Parameters
-#wrapper.java.additional.1=
-
-# Initial Java Heap Size (in MB)
-wrapper.java.initmemory=16
-
-# Maximum Java Heap Size (in MB)
-wrapper.java.maxmemory=64
-
-# Application parameters.  Add parameters as needed starting from 1
-#wrapper.app.parameter.1=
-
-# Port which the native wrapper code will attempt to connect to
-wrapper.port=1777
-
-# Number of seconds to allow for the JVM to be launched and contact the wrapper before the
-#  wrapper should assume that the JVM is hung and terminate the JVM process.  0 means never
-#  time out.  Defaults to 30 seconds.
-wrapper.startup.timeout=30
-
-# Number of seconds to allow between the wrapper pinging the JVM and the response.  0 means
-#  never time out.  Defaults to 30 seconds.
-wrapper.ping.timeout=30
-
-# The Wrapper detects when an application calls System.exit() and treats this as a request
-#  to stop the server by default.
-#wrapper.disable_shutdown_hook=TRUE
-
-#********************************************************************
-# Wrapper Logging parameters
-#********************************************************************
-# Format of output for the console.  (See docs for formats)
-wrapper.console.format=PM
-
-# Log Level for console output.  (See docs for log levels)
-wrapper.console.loglevel=INFO
-
-# Log file to use for wrapper output logging.
-wrapper.logfile=../logs/wrapper.log
-
-# Format of output for the log file.  (See docs for formats)
-wrapper.logfile.format=LPTM
-
-# Log Level for console output.  (See docs for log levels)
-wrapper.logfile.loglevel=INFO
-
-# Maximum size that the log file will be allowed to grow to before the log is rolled.
-#  Size is specified in bytes.  The default value of 0, disables log rolling.  May
-#  abreviate with the 'k' (kb) or 'm' (mb) suffix.  For example: 10m = 10 megabytes.
-wrapper.logfile.maxsize=0
-
-# Maximum number of rolled log files which will be allowed before old files are deleted.
-#  The default value of 0 implies no limit.
-wrapper.logfile.maxfiles=0
-
-# Log Level for sys/event log output.  (See docs for log levels)
-wrapper.syslog.loglevel=NONE
-
-#********************************************************************
-# Wrapper Unix daemon parameters
-#********************************************************************
-# File to write process ID to
-wrapper.pidfile=/var/run/aigent.pid
-
-#********************************************************************
-# Wrapper NT Service parameters
-#********************************************************************
-# WARNING - Do not modify any of these parameters when an application
-#  using this configuration file has been installed as a service.
-#  Please uninstall the service before modifying this section.  The
-#  service can then be reinstalled.
-
-# Name of the service
-wrapper.ntservice.name=@app.name@
-
-# Display name of the service
-wrapper.ntservice.displayname=@app.long.name@
-
-# Description of the service
-wrapper.ntservice.description=@app.description@
-
-# Service dependencies.  Add dependencies as needed starting from 1
-wrapper.ntservice.dependency.1=
-
-# Mode in which the service is installed.  AUTO_START or DEMAND_START
-wrapper.ntservice.starttype=AUTO_START]]></programlisting>
+                <programlisting format="linespecific">
+<xi:include href="../../../conf/wrapper.conf.in" parse="text"/></programlisting>
             </para>
         </section>
         <section id="command-line">
@@ -187,13 +89,13 @@ wrapper.ntservice.starttype=AUTO_START]]></programlisting>
                 </informalexample>
             </para>
             <warning>
-                <simpara>
+                <para>
                     NOTE - Properties specified on the command line can not contain unquoted spaces.  If you need to include spaces in the value of the property, simply include the entire name-value pair in quotes:
                     <informalexample>
                         <simpara><emphasis>Example:</emphasis></simpara>
                         <screen format="linespecific">Wrapper.exe -c ..\conf\wrapper.conf "wrapper.java.command=C:\Program Files\MyApp\jre\bin\java.exe"</screen>
                     </informalexample>
-                </simpara>
+                </para>
             </warning>
             <para>
                 This feature also works with the -i command on Windows systems when installing the application as a service.
@@ -348,22 +250,24 @@ wrapper.app.parameter.3.stripquotes=TRUE
 wrapper.app.parameter.4=-p4</screen>
                                 </informalexample>
                             </para>
-                            <warning>
-                                <simpara>
-                                    Application parameters are designed to be individual parameters.  If you specify a parameter like '-c conf/myconffile.conf', it will work correctly on windows because the '-c' and 'conf/myconffile.conf' parameters will be correctly parsed when Java is launched.  But on Unix systems, the parameters will incorrectly be interpreted as a single parameter '-c conf/myconffile.conf'.
-                                </simpara>
-                                <simpara>
-                                    <informalexample>
-                                        <simpara><emphasis>Incorrect:</emphasis></simpara>
-                                        <screen format="linespecific">wrapper.app.parameter.1=-c conf/myconffile.conf</screen>
-                                    </informalexample>
-                                    <informalexample>
-                                        <simpara><emphasis>Correct:</emphasis></simpara>
-                                        <screen format="linespecific">wrapper.app.parameter.1=-c
-wrapper.app.parameter.2=conf/myconffile.conf</screen>
-                                    </informalexample>
-                                </simpara>
-                            </warning>
+                            <para>
+                                <warning>
+                                    <simpara>
+                                        Application parameters are designed to be individual parameters.  If you specify a parameter like '-c conf/myconffile.conf', it will work correctly on windows because the '-c' and 'conf/myconffile.conf' parameters will be correctly parsed when Java is launched.  But on Unix systems, the parameters will incorrectly be interpreted as a single parameter '-c conf/myconffile.conf'.
+                                    </simpara>
+                                    <para>
+                                        <informalexample>
+                                            <simpara><emphasis>Incorrect:</emphasis></simpara>
+                                            <screen format="linespecific">wrapper.app.parameter.1=-c conf/myconffile.conf</screen>
+                                        </informalexample>
+                                        <informalexample>
+                                            <simpara><emphasis>Correct:</emphasis></simpara>
+                                            <screen format="linespecific">wrapper.app.parameter.1=-c
+                                                wrapper.app.parameter.2=conf/myconffile.conf</screen>
+                                        </informalexample>
+                                    </para>
+                                </warning>
+                            </para>
                         </glossdef>
                     </glossentry>
                     <glossentry>
@@ -418,14 +322,16 @@ wrapper.app.parameter.2=conf/myconffile.conf</screen>
                                     <screen format="linespecific">wrapper.disable_shutdown_hook=TRUE</screen>
                                 </informalexample>
                             </para>
-                            <warning>
-                                <simpara>
-                                    WARNING - When the Wrapper detects that System.exit() has been called, it will call the stop() method on your application if it implements the WrapperListener method.  You must be careful that your application does not call System.exit() again or call the dispose() method on an AWT frame or window.  Either one of these actions will result in a deadlock when called from within a ShutdownHook thread due to the way Java has implemented these methods.  If either of these cases can not be avoided, then the shutdown hook should be disabled.
-                                </simpara>
-                                <simpara>
-                                    If you have control over whether the System.exit() or dispose() methods are called, you may be able to make use of the WrapperManager.hasShutdownHookBeenTriggered() method to avoid the deadlock issue.
-                                </simpara>
-                            </warning>
+                            <para>
+                                <warning>
+                                    <simpara>
+                                        WARNING - When the Wrapper detects that System.exit() has been called, it will call the stop() method on your application if it implements the WrapperListener method.  You must be careful that your application does not call System.exit() again or call the dispose() method on an AWT frame or window.  Either one of these actions will result in a deadlock when called from within a ShutdownHook thread due to the way Java has implemented these methods.  If either of these cases can not be avoided, then the shutdown hook should be disabled.
+                                    </simpara>
+                                    <simpara>
+                                        If you have control over whether the System.exit() or dispose() methods are called, you may be able to make use of the WrapperManager.hasShutdownHookBeenTriggered() method to avoid the deadlock issue.
+                                    </simpara>
+                                </warning>
+                            </para>
                         </glossdef>
                     </glossentry>
                 </glosslist>
