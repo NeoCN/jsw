@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.22  2004/11/22 09:35:46  mortenson
+// Add methods for controlling other services.
+//
 // Revision 1.21  2004/11/22 04:06:42  mortenson
 // Add an event model to make it possible to communicate with user applications in
 // a more flexible way.
@@ -125,6 +128,7 @@ import java.awt.GridBagLayout;
 import java.awt.Label;
 import java.awt.List;
 import java.awt.Panel;
+import java.awt.TextField;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -160,6 +164,7 @@ public class Main
     private Thread m_userRunner;
     
     private List m_listenerFlags;
+    private TextField m_serviceName;
     
     /**************************************************************************
      * Constructors
@@ -250,7 +255,27 @@ public class Main
             flagPanel2.add( flagPanel, BorderLayout.WEST );
             
             buildCommand( gridBag, c, "Update Event Listener", "listener", flagPanel2 );
-                
+            
+            buildCommand( gridBag, c, "Service List", "service_list", "Displays a list of registered services on Windows." );
+            
+            m_serviceName = new TextField( "testwrapper" );
+            
+            Panel servicePanel = new Panel();
+            servicePanel.setLayout( new BorderLayout() );
+            servicePanel.add( new Label( "Interrogate Service.  Service name: " ), BorderLayout.WEST );
+            servicePanel.add( m_serviceName, BorderLayout.CENTER );
+            
+            Panel servicePanel2 = new Panel();
+            servicePanel2.setLayout( new BorderLayout() );
+            servicePanel2.add( servicePanel, BorderLayout.WEST );
+            
+            buildCommand( gridBag, c, "Service Interrogate", "service_interrogate", servicePanel2 );
+            
+            buildCommand( gridBag, c, "Service Start", "service_start", "Starts the above service." );
+            
+            buildCommand( gridBag, c, "Service Stop", "service_stop", "Stops the above service." );
+            
+            buildCommand( gridBag, c, "Service User Code", "service_user", "Sends a series of user codes to the above service." );
         }
         
         private void buildCommand( GridBagLayout gridBag,
@@ -310,6 +335,8 @@ public class Main
                 
                 setEventMask( mask );
             }
+            
+            setServiceName( m_serviceName.getText() );
             
             Main.this.doAction( action );
         }

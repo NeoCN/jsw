@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.17  2004/11/22 09:35:47  mortenson
+ * Add methods for controlling other services.
+ *
  * Revision 1.16  2004/11/15 08:15:49  mortenson
  * Make it possible for users to access the Wrapper and JVM PIDs from within the JVM.
  *
@@ -304,6 +307,28 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
         /* There is no DISPLAY variable, so assume that this JVM is non-interactive. */
         return NULL;
     }
+}
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeListServices
+ * Signature: ()[Lorg/tanukisoftware/wrapper/WrapperWin32Service;
+ */
+JNIEXPORT jobjectArray JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, jclass clazz) {
+    /** Not supported on UNIX platforms. */
+    return null;
+}
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeSendServiceControlCode
+ * Signature: ([BI)Lorg/tanukisoftware/wrapper/WrapperWin32Service;
+ */
+JNIEXPORT jobject JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIEnv *env, jclass clazz, jbyteArray serviceName, jint controlCode) {
+    /** Not supported on UNIX platforms. */
+    return 1;
 }
 
 #endif

@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.10  2004/11/22 09:35:45  mortenson
+// Add methods for controlling other services.
+//
 // Revision 1.9  2004/11/22 04:06:42  mortenson
 // Add an event model to make it possible to communicate with user applications in
 // a more flexible way.
@@ -82,6 +85,8 @@ import java.util.Enumeration;
 import java.util.Properties;
 
 import org.tanukisoftware.wrapper.WrapperManager;
+import org.tanukisoftware.wrapper.WrapperServiceException;
+import org.tanukisoftware.wrapper.WrapperWin32Service;
 import org.tanukisoftware.wrapper.event.WrapperEvent;
 import org.tanukisoftware.wrapper.event.WrapperEventListener;
 
@@ -101,6 +106,7 @@ public abstract class AbstractActionApp
     private boolean m_groups;
     
     private long m_eventMask = 0xffffffffffffffffL;
+    private String m_serviceName = "testWrapper";
     
     /*---------------------------------------------------------------
      * Constructors
@@ -164,6 +170,11 @@ public abstract class AbstractActionApp
     protected void setEventMask( long eventMask )
     {
         m_eventMask = eventMask;
+    }
+    
+    protected void setServiceName( String serviceName )
+    {
+        m_serviceName = serviceName;
     }
     
     protected void prepareSystemOutErr()
@@ -331,6 +342,77 @@ public abstract class AbstractActionApp
             System.out.println( "Updating Event Listeners:" );
             WrapperManager.removeWrapperEventListener( this );
             WrapperManager.addWrapperEventListener( this, m_eventMask );
+        }
+        else if ( action.equals( "service_list" ) )
+        {
+            WrapperWin32Service[] services = WrapperManager.listServices();
+            if ( services == null )
+            {
+                System.out.println( "Services not supported by current platform." );
+            }
+            else
+            {
+                System.out.println( "Registered Services:" );
+                for ( int i = 0; i < services.length; i++ )
+                {
+                    System.out.println( "  " + services[i] );
+                }
+            }
+        }
+        else if ( action.equals( "service_interrogate" ) )
+        {
+            try
+            {
+                WrapperWin32Service service = WrapperManager.sendServiceControlCode(
+                    m_serviceName, WrapperManager.SERVICE_CONTROL_CODE_INTERROGATE );
+                System.out.println( "Service after interrogate: " + service );
+            }
+            catch ( WrapperServiceException e )
+            {
+                e.printStackTrace();
+            }
+        }
+        else if ( action.equals( "service_start" ) )
+        {
+            try
+            {
+                WrapperWin32Service service = WrapperManager.sendServiceControlCode(
+                    m_serviceName, WrapperManager.SERVICE_CONTROL_CODE_START );
+                System.out.println( "Service after start: " + service );
+            }
+            catch ( WrapperServiceException e )
+            {
+                e.printStackTrace();
+            }
+        }
+        else if ( action.equals( "service_stop" ) )
+        {
+            try
+            {
+                WrapperWin32Service service = WrapperManager.sendServiceControlCode(
+                    m_serviceName, WrapperManager.SERVICE_CONTROL_CODE_STOP );
+                System.out.println( "Service after stop: " + service );
+            }
+            catch ( WrapperServiceException e )
+            {
+                e.printStackTrace();
+            }
+        }
+        else if ( action.equals( "service_user" ) )
+        {
+            try
+            {
+                for ( int i = 128; i < 256; i+=10 )
+                {
+                    WrapperWin32Service service = WrapperManager.sendServiceControlCode(
+                        m_serviceName, i );
+                    System.out.println( "Service after user code " + i + ": " + service );
+                }
+            }
+            catch ( WrapperServiceException e )
+            {
+                e.printStackTrace();
+            }
         }
         else
         {

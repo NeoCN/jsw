@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.21  2004/11/22 09:35:47  mortenson
+ * Add methods for controlling other services.
+ *
  * Revision 1.20  2004/11/15 08:15:49  mortenson
  * Make it possible for users to access the Wrapper and JVM PIDs from within the JVM.
  *
@@ -173,6 +176,35 @@ void
 initExplorerExeName() {
     /* Location: "\\HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Shell" */
     sprintf(explorerExe, "Explorer.exe");
+}
+
+void throwException(JNIEnv *env, const char *className, const char *message) {
+    jclass exceptionClass;
+    jmethodID constructor;
+    jbyteArray jMessage;
+    jobject exception;
+    
+    if (exceptionClass = (*env)->FindClass(env, className)) {
+        /* Look for the constructor. Ignore failures. */
+        if (constructor = (*env)->GetMethodID(env, exceptionClass, "<init>", "([B)V")) {
+            jMessage = (*env)->NewByteArray(env, strlen(message));
+            (*env)->SetByteArrayRegion(env, jMessage, 0, strlen(message), message);
+            
+            exception = (*env)->NewObject(env, exceptionClass, constructor, jMessage);
+            
+            if ((*env)->Throw(env, exception)){
+                printf("Unable to throw exception of class '%s' with message: %s", className, message);
+                flushall();
+            }
+        }
+    } else {
+        printf("Unable to load class, '%s' to report exception: %s", className, message);
+        flushall();
+    }
+}
+
+void throwServiceException(JNIEnv *env, const char *message) {
+    throwException(env, "org/tanukisoftware/wrapper/WrapperServiceException", message);
 }
 
 /**
@@ -502,7 +534,7 @@ createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean groups) {
             }
             free(tokenUser);
 
-         CloseHandle(hProcessToken);
+            CloseHandle(hProcessToken);
         } else {
             printf("Unable to open process token: %s\n", getLastErrorText());
             flushall();
@@ -644,16 +676,26 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump(JNIEnv *e
  */
 JNIEXPORT void JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle(JNIEnv *env, jclass clazz, jbyteArray jTitleBytes) {
-    jbyte *titleBytes = (*env)->GetByteArrayElements(env, jTitleBytes, 0);
+    int len;
+    char *title;
+    jbyte *titleBytes;
+    
+    /* The array we get from JNI is not null terminated so build our own string. */
+    len = (*env)->GetArrayLength(env, jTitleBytes);
+    title = malloc(len + 1);
+    titleBytes = (*env)->GetByteArrayElements(env, jTitleBytes, 0);
+    memcpy(title, titleBytes, len);
+    title[len] = 0;
+    (*env)->ReleaseByteArrayElements(env, jTitleBytes, titleBytes, JNI_ABORT);
 
     if (wrapperJNIDebugging) {
-        printf("Setting the console title to: %s\n", titleBytes);
+        printf("Setting the console title to: %s\n", title);
         flushall();
     }
 
-    SetConsoleTitle(titleBytes);
-
-    (*env)->ReleaseByteArrayElements(env, jTitleBytes, titleBytes, JNI_ABORT);
+    SetConsoleTitle(title);
+    
+    free(title);
 }
 
 /*
@@ -795,6 +837,260 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
     }
 
     return wrapperUser;
+}
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeListServices
+ * Signature: ()[Lorg/tanukisoftware/wrapper/WrapperWin32Service;
+ */
+JNIEXPORT jobjectArray JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, jclass clazz) {
+    char buffer[512];
+    SC_HANDLE hSCManager;
+    DWORD size, sizeNeeded, servicesReturned, resumeHandle;
+    DWORD err;
+    ENUM_SERVICE_STATUS serviceData;
+    ENUM_SERVICE_STATUS *services;
+    BOOL threwError = FALSE;
+    DWORD i;
+    
+    jobjectArray serviceArray = NULL;
+    jclass serviceClass;
+    jmethodID constructor;
+    jbyteArray jName;
+    jbyteArray jDisplayName;
+    DWORD state;
+    DWORD exitCode;
+    jobject service;
+    
+    hSCManager = OpenSCManager(NULL, NULL, SC_MANAGER_ENUMERATE_SERVICE);
+    if (hSCManager) {
+        /* Before we can get the list of services, we need to know how much memory it will take. */
+        resumeHandle = 0;
+        if (!EnumServicesStatus(hSCManager, SERVICE_WIN32, SERVICE_STATE_ALL, &serviceData, sizeof(serviceData), &sizeNeeded, &servicesReturned, &resumeHandle)) {
+            err = GetLastError();
+            if (err == ERROR_MORE_DATA) {
+                /* Allocate the needed memory and call again. */
+                size = sizeNeeded + sizeof(ENUM_SERVICE_STATUS);
+                services = malloc(size);
+                if (!EnumServicesStatus(hSCManager, SERVICE_WIN32, SERVICE_STATE_ALL, services, size, &sizeNeeded, &servicesReturned, &resumeHandle)) {
+                    /* Failed to get the services. */
+                    sprintf(buffer, "Unable to enumerate the system services: %s",
+                        getLastErrorText());
+                    throwServiceException(env, buffer );
+                    threwError = TRUE;
+                } else {
+                    /* Success. */
+                }
+            } else {
+                sprintf(buffer, "Unable to enumerate the system services: %s",
+                    getLastErrorText());
+                throwServiceException(env, buffer );
+                threwError = TRUE;
+            }
+        } else {
+            /* Success which means that no services were found. */
+        }
+        
+        if (!threwError) {
+            if (serviceClass = (*env)->FindClass(env, "org/tanukisoftware/wrapper/WrapperWin32Service")) {
+                /* Look for the constructor. Ignore failures. */
+                if (constructor = (*env)->GetMethodID(env, serviceClass, "<init>", "([B[BII)V")) {
+                    serviceArray = (*env)->NewObjectArray(env, servicesReturned, serviceClass, NULL);
+                    
+                    for (i = 0; i < servicesReturned; i++ ) {
+                        jName = (*env)->NewByteArray(env, strlen(services[i].lpServiceName));
+                        (*env)->SetByteArrayRegion(env, jName, 0, strlen(services[i].lpServiceName), services[i].lpServiceName);
+                        
+                        jDisplayName = (*env)->NewByteArray(env, strlen(services[i].lpDisplayName));
+                        (*env)->SetByteArrayRegion(env, jDisplayName, 0, strlen(services[i].lpDisplayName), services[i].lpDisplayName);
+                        
+                        state = services[i].ServiceStatus.dwCurrentState;
+                        
+                        exitCode = services[i].ServiceStatus.dwWin32ExitCode;
+                        if (exitCode == ERROR_SERVICE_SPECIFIC_ERROR) {
+                            exitCode = services[i].ServiceStatus.dwServiceSpecificExitCode;
+                        }
+                        
+                        service = (*env)->NewObject(env, serviceClass, constructor, jName, jDisplayName, state, exitCode);
+                        (*env)->SetObjectArrayElement(env, serviceArray, i, service);
+                    }
+                }
+            } else {
+                /* Unable to load the service class. */
+                sprintf(buffer, "Unable to locate class org.tanukisoftware.wrapper.WrapperWin32Service");
+                throwServiceException(env, buffer );
+            }
+        }
+
+        /* Close the handle to the service control manager database */
+        CloseServiceHandle(hSCManager);
+    } else {
+        /* Unable to open the service manager. */
+        sprintf(buffer, "Unable to open the Windows service control manager database: %s",
+            getLastErrorText());
+        throwServiceException(env, buffer );
+    }
+    
+    return serviceArray;
+}
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeSendServiceControlCode
+ * Signature: ([BI)Lorg/tanukisoftware/wrapper/WrapperWin32Service;
+ */
+JNIEXPORT jobject JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIEnv *env, jclass clazz, jbyteArray serviceName, jint controlCode) {
+    char buffer[512];
+    int len;
+    jbyte *jServiceNameBytes;
+    char *serviceNameBytes;
+    SC_HANDLE hSCManager;
+    SC_HANDLE hService;
+    int serviceAccess;
+    DWORD wControlCode;
+    BOOL threwError = FALSE;
+    SERVICE_STATUS serviceStatus;
+    jclass serviceClass;
+    jmethodID constructor;
+    jobject service = NULL;
+    char displayBuffer[512];
+    DWORD displayBufferSize = 512;
+    jbyteArray jDisplayName;
+    DWORD state;
+    DWORD exitCode;
+    
+    hSCManager = OpenSCManager(NULL, NULL, GENERIC_READ);
+    if (hSCManager) {
+        /* Decide on the access needed when opening the service. */
+        if (controlCode == org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_START ) {
+            serviceAccess = SERVICE_START | SERVICE_INTERROGATE | SERVICE_QUERY_STATUS;
+            wControlCode = SERVICE_CONTROL_INTERROGATE;
+        } else if (controlCode == org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_STOP) {
+            serviceAccess = SERVICE_STOP | SERVICE_QUERY_STATUS;
+            wControlCode = SERVICE_CONTROL_STOP;
+        } else if (controlCode == org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_INTERROGATE ) {
+            serviceAccess = SERVICE_INTERROGATE | SERVICE_QUERY_STATUS;
+            wControlCode = SERVICE_CONTROL_INTERROGATE;
+        } else if ( controlCode == org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_PAUSE ) {
+            serviceAccess = SERVICE_PAUSE_CONTINUE | SERVICE_QUERY_STATUS;
+            wControlCode = SERVICE_CONTROL_PAUSE;
+        } else if ( controlCode == org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_CONTINUE ) {
+            serviceAccess = SERVICE_PAUSE_CONTINUE | SERVICE_QUERY_STATUS;
+            wControlCode = SERVICE_CONTROL_CONTINUE;
+        } else if ( (controlCode >= 128) || (controlCode <= 255) ) {
+            serviceAccess = SERVICE_USER_DEFINED_CONTROL | SERVICE_QUERY_STATUS;
+            wControlCode = controlCode;
+        } else {
+            /* Illegal control code. */
+            sprintf(buffer, "Illegal Control code specified: %d", controlCode);
+            throwServiceException(env, buffer );
+            threwError = TRUE;
+        }
+        
+        if (!threwError) {
+            /* The array we get from JNI is not null terminated so build our own string. */
+            len = (*env)->GetArrayLength(env, serviceName);
+            serviceNameBytes = malloc(len + 1);
+            jServiceNameBytes = (*env)->GetByteArrayElements(env, serviceName, 0);
+            memcpy(serviceNameBytes, jServiceNameBytes, len);
+            serviceNameBytes[len] = 0;
+            (*env)->ReleaseByteArrayElements(env, serviceName, jServiceNameBytes, JNI_ABORT);
+            
+            hService = OpenService(hSCManager, serviceNameBytes, serviceAccess);
+            if (hService) {
+                /* If we are trying to start a service, it needs to be handled specially. */
+                if (controlCode == org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_START) {
+                    if (StartService(hService, 0, NULL)) {
+                        /* Started the service. Continue on and interrogate the service. */
+                    } else {
+                        /* Failed. */
+                        sprintf(buffer, "Unable to start service \"%s\": %s", serviceNameBytes,
+                            getLastErrorText());
+                        throwServiceException(env, buffer );
+                        threwError = TRUE;
+                    }
+                }
+                
+                if (!threwError) {
+                    if (ControlService(hService, wControlCode, &serviceStatus)) {
+                        /* Success.  fall through. */
+                    } else {
+                        /* Failed to send the control code.   See if the service is running. */
+                        if (GetLastError() == ERROR_SERVICE_NOT_ACTIVE) {
+                            /* Service is not running, so get its status information. */
+                            if (QueryServiceStatus(hService, &serviceStatus)) {
+                                /* We got the status.  fall through. */
+                            } else {
+                                /* Actual failure. */
+                                sprintf(buffer, "Unable to query status of service \"%s\": %s",
+                                    serviceNameBytes, getLastErrorText());
+                                throwServiceException(env, buffer );
+                                threwError = TRUE;
+                            }
+                        } else {
+                            /* Actual failure. */
+                            sprintf(buffer, "Unable to send control code to service \"%s\": %s",
+                                serviceNameBytes, getLastErrorText());
+                            throwServiceException(env, buffer );
+                            threwError = TRUE;
+                        }
+                    }
+                    
+                    if (!threwError) {
+                        /* Build up a service object to return. */
+                        if (serviceClass = (*env)->FindClass(env, "org/tanukisoftware/wrapper/WrapperWin32Service")) {
+                            /* Look for the constructor. Ignore failures. */
+                            if (constructor = (*env)->GetMethodID(env, serviceClass, "<init>", "([B[BII)V")) {
+                                
+                                if (!GetServiceDisplayName(hSCManager, serviceNameBytes, displayBuffer, &displayBufferSize)) {
+                                    strcpy(displayBuffer, serviceNameBytes);
+                                }
+                                jDisplayName = (*env)->NewByteArray(env, strlen(displayBuffer));
+                                (*env)->SetByteArrayRegion(env, jDisplayName, 0, strlen(displayBuffer), displayBuffer);
+                                
+                                state = serviceStatus.dwCurrentState;
+                                
+                                exitCode = serviceStatus.dwWin32ExitCode;
+                                if (exitCode == ERROR_SERVICE_SPECIFIC_ERROR) {
+                                    exitCode = serviceStatus.dwServiceSpecificExitCode;
+                                }
+                                
+                                service = (*env)->NewObject(env, serviceClass, constructor, serviceName, jDisplayName, state, exitCode);
+                            }
+                        } else {
+                            /* Unable to load the service class. */
+                            sprintf(buffer, "Unable to locate class org.tanukisoftware.wrapper.WrapperWin32Service");
+                            throwServiceException(env, buffer );
+                        }
+                    }
+                }
+                
+                CloseServiceHandle(hService);
+            } else {
+                /* Unable to open service. */
+                sprintf(buffer, "Unable to open the service '%s': %s",
+                    serviceNameBytes, getLastErrorText());
+                throwServiceException(env, buffer );
+                threwError = TRUE;
+            }
+            
+            free(serviceNameBytes);
+        }
+
+        /* Close the handle to the service control manager database */
+        CloseServiceHandle(hSCManager);
+    } else {
+        /* Unable to open the service manager. */
+        sprintf(buffer, "Unable to open the Windows service control manager database: %s",
+            getLastErrorText());
+        throwServiceException(env, buffer );
+        threwError = TRUE;
+    }
+    
+    return service;
 }
 
 #endif
