@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.20  2003/04/15 23:24:22  mortenson
+ * Remove casts from all malloc statements.
+ *
  * Revision 1.19  2003/04/15 14:17:45  mortenson
  * Clean up the code by setting all malloced variables to NULL after they are freed,
  *
@@ -153,7 +156,7 @@ void insertInnerProperty(Properties *properties, Property *newProperty) {
 Property* createInnerProperty() {
     Property *property;
 
-    property = (Property *)malloc(sizeof(Property));
+    property = malloc(sizeof(Property));
     property->name = NULL;
     property->next = NULL;
     property->previous = NULL;
@@ -320,7 +323,7 @@ void setInnerProperty(Property *property, const char *propertyValue) {
     } else {
         evaluateEnvironmentVariables(propertyValue, buffer, 2048);
 
-        property->value = (char *)malloc(sizeof(char) * (strlen(buffer) + 1));
+        property->value = malloc(sizeof(char) * (strlen(buffer) + 1));
 
         /* Strip any non valid characters like control characters */
         for (i = 0, count = 0; i < (int)strlen(buffer); i++) {
@@ -436,7 +439,7 @@ int loadProperties(Properties *properties, const char* filename) {
 }
 
 Properties* createProperties() {
-    Properties *properties = (Properties *)malloc(sizeof(Properties));
+    Properties *properties = malloc(sizeof(Properties));
     properties->first = NULL;
     properties->last = NULL;
     return properties;
@@ -501,7 +504,7 @@ void setEnv( const char *name, const char *value )
 {
     char *envBuf;
 
-    envBuf = (char*)malloc(sizeof(char) * (strlen(name) + strlen(value) + 2));
+    envBuf = malloc(sizeof(char) * (strlen(name) + strlen(value) + 2));
     sprintf(envBuf, "%s=%s", name, value);
     if (putenv(envBuf)) {
         printf("Unable to set environment variable: %s\n", envBuf);
@@ -525,7 +528,7 @@ void addProperty(Properties *properties, const char *propertyName, const char *p
         property = createInnerProperty();
 
         /* Store a copy of the name */
-        property->name = (char *)malloc(sizeof(char) * (strlen(propertyName) + 1));
+        property->name = malloc(sizeof(char) * (strlen(propertyName) + 1));
         strcpy(property->name, propertyName);
 
         /* Insert this property at the correct location. */

@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.38  2003/04/15 23:24:22  mortenson
+ * Remove casts from all malloc statements.
+ *
  * Revision 1.37  2003/04/09 09:17:58  mortenson
  * Fix a problem where environment variables in the registry which had no value
  * were causing the Wrapper to crash with an access violation.
@@ -133,7 +136,7 @@ void buildSystemPath() {
     }
 
     /* Allocate the memory to hold the PATH */
-    envBuffer = (char *)malloc(len * sizeof(char));
+    envBuffer = malloc(len * sizeof(char));
     GetEnvironmentVariable("PATH", envBuffer, len);
 
 #ifdef _DEBUG
@@ -148,7 +151,7 @@ void buildSystemPath() {
     while ((c = strchr(lc, ';')) != NULL)
     {
         len = c - lc;
-        systemPath[i] = (char *)malloc((len + 1) * sizeof(char));
+        systemPath[i] = malloc((len + 1) * sizeof(char));
         memcpy(systemPath[i], lc, len);
         systemPath[i][len] = '\0';
 #ifdef _DEBUG
@@ -159,7 +162,7 @@ void buildSystemPath() {
     }
     /* There should be one more value after the last ';' */
     len = strlen(lc);
-    systemPath[i] = (char *)malloc((len + 1) * sizeof(char));
+    systemPath[i] = malloc((len + 1) * sizeof(char));
     strcpy(systemPath[i], lc);
 #ifdef _DEBUG
     printf("PATH[%d]=%s\n", i, systemPath[i]);
@@ -379,7 +382,7 @@ void wrapperBuildJavaCommand() {
     commandLen++; /* '\0' */
 
     /* Build the actual command */
-    wrapperData->jvmCommand = (char *)malloc(sizeof(char) * commandLen);
+    wrapperData->jvmCommand = malloc(sizeof(char) * commandLen);
     commandLen = 0;
     for (i = 0; i < length; i++) {
         if (i > 0) {
@@ -1114,42 +1117,42 @@ int wrapperLoadEnvFromRegistry() {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Get the current local value of variable \"%s\"", name);
 #endif
                         envVal = getenv(name);
-						if (envVal == NULL) {
+                        if (envVal == NULL) {
 #ifdef DEBUG
-							log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  The current local value of variable \"%s\" is null, meaning it was \"\" in the registry.  Skipping.", name);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  The current local value of variable \"%s\" is null, meaning it was \"\" in the registry.  Skipping.", name);
 #endif
-						} else {
+                        } else {
 #ifdef DEBUG
-							log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "     \"%s\"=\"%s\"", name, envVal);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "     \"%s\"=\"%s\"", name, envVal);
 #endif
-							if (strchr(envVal, '%')) {
-								/* This variable contains tokens which need to be expanded. */
-								ret = ExpandEnvironmentStrings(envVal, data, dataLen);
-								if (ret == 0) {
-									log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to expand environment variable, %s - %s", name, getLastErrorText(szErr,256));
-									err = ERROR_NO_MORE_ITEMS;
-									result = 1;
-								} else if (ret >= dataLen) {
-									log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Unable to expand environment variable, %s as it would be longer than the %d byte buffer size.", name, dataLen);
-								} else if (strcmp(envVal, data) == 0) {
+                            if (strchr(envVal, '%')) {
+                                /* This variable contains tokens which need to be expanded. */
+                                ret = ExpandEnvironmentStrings(envVal, data, dataLen);
+                                if (ret == 0) {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to expand environment variable, %s - %s", name, getLastErrorText(szErr,256));
+                                    err = ERROR_NO_MORE_ITEMS;
+                                    result = 1;
+                                } else if (ret >= dataLen) {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Unable to expand environment variable, %s as it would be longer than the %d byte buffer size.", name, dataLen);
+                                } else if (strcmp(envVal, data) == 0) {
 #ifdef DEBUG
-									log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "       Value unchanged.  Referenced environment variable not set.");
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "       Value unchanged.  Referenced environment variable not set.");
 #endif
-								} else {
-									/* Set the expanded environment variable */
-									expanded = TRUE;
+                                } else {
+                                    /* Set the expanded environment variable */
+                                    expanded = TRUE;
 #ifdef DEBUG
-									log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Update local environment variable.  \"%s\"=\"%s\"", name, data);
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Update local environment variable.  \"%s\"=\"%s\"", name, data);
 #endif
-									sprintf(env, "%s=%s", name, data);
-									if (putenv(env)) {
-										log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to set environment variable from the registry - %s", getLastErrorText(szErr,256));
-										err = ERROR_NO_MORE_ITEMS;
-										result = 1;
-									}
-								}
-							}
-						}
+                                    sprintf(env, "%s=%s", name, data);
+                                    if (putenv(env)) {
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to set environment variable from the registry - %s", getLastErrorText(szErr,256));
+                                        err = ERROR_NO_MORE_ITEMS;
+                                        result = 1;
+                                    }
+                                }
+                            }
+                        }
                     } else if (err == ERROR_NO_MORE_ITEMS) {
                         /* No more environment variables. */
                     } else {
@@ -1444,7 +1447,7 @@ void _CRTAPI1 main(int argc, char **argv) {
         buildSystemPath();
 
         /* Initialize the WrapperConfig structure */
-        wrapperData = (WrapperConfig *)malloc(sizeof(WrapperConfig));
+        wrapperData = malloc(sizeof(WrapperConfig));
         wrapperData->isConsole = TRUE;
         wrapperData->wState = WRAPPER_WSTATE_STARTING;
         wrapperData->jState = WRAPPER_JSTATE_DOWN;
