@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.11  2004/01/10 17:17:26  mortenson
+ * Add the ability to request user information.
+ *
  * Revision 1.10  2003/11/03 10:27:46  mortenson
  * Fix some link errors.
  *
@@ -48,7 +51,9 @@
 #ifndef WIN32
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
+#include <pwd.h>
 #include <signal.h>
 #include <string.h>
 #include <sys/types.h>
@@ -129,33 +134,67 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle(JNIEnv *env
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeGetUser
- * Signature: ()Lorg/tanukisoftware/wrapper/WrapperUser;
+ * Signature: (Z)Lorg/tanukisoftware/wrapper/WrapperUser;
  */
 /*#define UVERBOSE*/
 JNIEXPORT jobject JNICALL
-Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass clazz) {
-    if (wrapperJNIDebugging) {
-        printf("getUser not yet supported on UNIX platforms.\n");
-        fflush(NULL);
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass clazz, jboolean groups) {
+    jclass wrapperUserClass;
+    jmethodID constructor;
+    uid_t uid;
+    struct passwd *pw;
+    jbyteArray jUser;
+    jobject wrapperUser = NULL;
+
+    printf("nativeGetUser\n");
+    fflush(NULL);
+
+    /* Look for the WrapperUser class. Ignore failures as JNI throws an exception. */
+    if ((wrapperUserClass = (*env)->FindClass(env, "org/tanukisoftware/wrapper/WrapperUNIXUser")) != NULL) {
+
+        /* Look for the constructor. Ignore failures. */
+        if ((constructor = (*env)->GetMethodID(env, wrapperUserClass, "<init>", "(I[B)V")) != NULL) {
+
+            uid = geteuid();
+            pw = getpwuid(uid);
+
+            /* Create the arguments to the constructor as java objects */
+
+            /* User byte array */
+            jUser = (*env)->NewByteArray(env, strlen(pw->pw_name));
+            (*env)->SetByteArrayRegion(env, jUser, 0, strlen(pw->pw_name), (jbyte*)pw->pw_name);
+
+            /* Now create the new wrapperUser using the constructor arguments collected above. */
+            wrapperUser = (*env)->NewObject(env, wrapperUserClass, constructor, uid, jUser);
+
+            /* If the caller requested the user's groups then look them up. */
+            if (groups) {
+                
+            }
+        }
     }
 
-    return NULL;
+    return wrapperUser;
 }
 
 
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeGetInteractiveUser
- * Signature: ()Lorg/tanukisoftware/wrapper/WrapperUser;
+ * Signature: (Z)Lorg/tanukisoftware/wrapper/WrapperUser;
  */
 JNIEXPORT jobject JNICALL
-Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *env, jclass clazz) {
-    if (wrapperJNIDebugging) {
-        printf("getInteractiveUser not yet supported on UNIX platforms.\n");
-        fflush(NULL);
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *env, jclass clazz, jboolean groups) {
+    /* If the DISPLAY environment variable is set then assume that this user
+     *  has access to an X display, in which case we will return the same thing
+     *  as nativeGetUser. */
+    if (getenv("DISPLAY")) {
+        /* This is an interactive JVM since it has access to a display. */
+        return Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(env, clazz, groups);
+    } else {
+        /* There is no DISPLAY variable, so assume that this JVM is non-interactive. */
+        return NULL;
     }
-
-    return NULL;
 }
 
 #endif
