@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.79  2004/07/05 08:41:03  mortenson
+ * Queue some additional signal output.
+ *
  * Revision 1.78  2004/07/05 07:43:54  mortenson
  * Fix a deadlock on solaris by being very careful that we never perform any direct
  * logging from within a signal handler.
@@ -348,10 +351,11 @@ int wrapperGetLastError() {
 /**
  * Send a signal to the JVM process asking it to dump its JVM state.
  */
-void requestDumpJVMState() {
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Dumping JVM state.");
+void requestDumpJVMState(int useLoggerQueue) {
+    log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+		"Dumping JVM state.");
     if (kill(jvmPid, SIGQUIT) < 0) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                    "Could not dump JVM state: %s", getLastErrorText());
     }
 }
@@ -532,7 +536,7 @@ void sigActionQuit(int sigNum, siginfo_t *sigInfo, void *na) {
 
     descSignal(sigInfo);
 
-    requestDumpJVMState();
+    requestDumpJVMState(TRUE);
 }
 
 /**
@@ -618,7 +622,7 @@ void handleQuit(int sig_num) {
     /* Ignore any other signals while in this handler. */
     signal(SIGQUIT, SIG_IGN);
 
-    requestDumpJVMState();
+    requestDumpJVMState(TRUE);
 
     signal(SIGQUIT, handleQuit); 
 }
