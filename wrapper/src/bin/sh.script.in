@@ -68,6 +68,18 @@ PIDDIR="./"
 PIDFILE="$PIDDIR/$APP_NAME.pid"
 pid=""
 
+PSEXE="/usr/bin/ps"
+if [ ! -x $PSEXE ]
+then
+    PSEXE="/bin/ps"
+    if [ ! -x $PSEXE ]
+    then
+        echo "Unable to locate 'ps'."
+        echo "Please report this with the location on your system."
+        exit 1
+    fi
+fi
+
 getpid() {
     if [ -f $PIDFILE ]
     then
@@ -77,7 +89,7 @@ getpid() {
             if [ "X$pid" != "X" ]
             then
                 # Verify that a process with this pid is still running.
-                pid=`/usr/bin/ps -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
+                pid=`$PSEXE -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
                 if [ "X$pid" = "X" ]
                 then
                     # This is a stale pid file.
@@ -93,7 +105,7 @@ getpid() {
 }
 
 testpid() {
-    pid=`/usr/bin/ps -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
+    pid=`$PSEXE -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
     if [ "X$pid" = "X" ]
     then
         # Process is gone so remove the pid file.

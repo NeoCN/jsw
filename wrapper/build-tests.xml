@@ -43,7 +43,7 @@
     </target>
     <target name="init-linux" if="is.Linux">
         <property name="is.Unix" value="true"/>
-        <property name="is.shell.bash" value="true"/>
+        <property name="is.shell.sh" value="true"/>
     </target>
     <target name="init-solaris" if="is.SunOS">
         <property name="is.Unix" value="true"/>
@@ -591,17 +591,7 @@ set ENV_VAR_4=d]]></replacevalue>
     </target>
     
     <!-- =================================================================== -->
-    <!-- Test Setup target (bash scripts - Linux)                            -->
-    <!-- =================================================================== -->
-    <target name="test-setup-bash" depends="test-setup-common" if="is.shell.bash">
-        <!-- Create a template script to make this easier -->
-        <delete file="${test.dir}/temp.script.in"/>
-        <copy file="${src.dir}/bin/bash.script.in"
-              tofile="${test.dir}/temp.script.in"/>
-    </target>
-    
-    <!-- =================================================================== -->
-    <!-- Test Setup target (sh scripts - Solaris, AIX, HPUX, Mac OS X, OSF1, FreeBSD, IRIX) -->
+    <!-- Test Setup target (sh scripts - Unix, Linux)                        -->
     <!-- =================================================================== -->
     <target name="test-setup-sh" depends="test-setup-common" if="is.shell.sh">
         <!-- Create a template script to make this easier -->
@@ -613,7 +603,7 @@ set ENV_VAR_4=d]]></replacevalue>
     <!-- =================================================================== -->
     <!-- Test Setup target (Unix)                                            -->
     <!-- =================================================================== -->
-    <target name="test-setup-unix" depends="test-setup-bash, test-setup-sh" if="is.Unix">
+    <target name="test-setup-unix" depends="test-setup-sh" if="is.Unix">
         <!-- Create the test specific script files -->
         <replace file="${test.dir}/temp.script.in"
                  token='WRAPPER_CMD="./wrapper"'

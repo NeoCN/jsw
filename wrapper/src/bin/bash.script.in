@@ -25,6 +25,12 @@ PRIORITY=
 # Do not modify anything beyond this point
 #-----------------------------------------------------------------------------
 
+echo "--------------------------------------------------------------------"
+echo "The Java Service Wrapper bash script has been deprecated and will be"
+echo "removed in a future version.  Please migrate to using the sh script."
+echo "--------------------------------------------------------------------"
+echo ""
+
 # Get the fully qualified path to the script
 case $0 in
     /*)
