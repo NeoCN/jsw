@@ -26,13 +26,16 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
-// Revision 1.1  2001/11/07 08:54:20  mortenson
-// Initial revision
+// Revision 1.2  2001/11/08 09:06:58  mortenson
+// Improve JavaDoc text.
+//
+// Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
+// no message
 //
 
 public interface WrapperListener {
     /**
-     * The start method is called when the WrapperManager is signalled by the 
+     * The start method is called when the WrapperManager is signaled by the 
      *	native wrapper code that it can start its application.  This
      *	method call is expected to return, so a new thread should be launched
      *	it necessary.
