@@ -333,11 +333,11 @@
             compress="true">
             <include name="${releasesrcfile}/**/*" />
         </zip>
-        <tar file="${releasesrcdir}_with_doc_src.tar"
+        <tar tarfile="${releasesrcdir}_with_doc_src.tar"
              basedir="${basedir}">
             <include name="${releasesrcfile}/**/*" />
         </tar>
-        <gzip file="${releasesrcdir}_with_doc_src.tar.gz" src="${releasesrcdir}_with_doc_src.tar" />
+        <gzip zipfile="${releasesrcdir}_with_doc_src.tar.gz" src="${releasesrcdir}_with_doc_src.tar" />
         
         <!-- Source archives without documentation source -->
         <zip zipfile="${releasesrcdir}.zip"
@@ -355,7 +355,7 @@
             <exclude name="${releasesrcfile}/tools/lib/resolver.jar" />
             <exclude name="${releasesrcfile}/tools/lib/xalan-2.2.0-D8.jar" />
         </zip>
-        <tar file="${releasesrcdir}.tar"
+        <tar tarfile="${releasesrcdir}.tar"
              basedir="${basedir}">
             <include name="${releasesrcfile}/**/*" />
             <exclude name="${releasesrcfile}/src/documentation/**/*" />
@@ -369,7 +369,7 @@
             <exclude name="${releasesrcfile}/tools/lib/resolver.jar" />
             <exclude name="${releasesrcfile}/tools/lib/xalan-2.2.0-D8.jar" />
         </tar>
-        <gzip file="${releasesrcdir}.tar.gz" src="${releasesrcdir}.tar" />
+        <gzip zipfile="${releasesrcdir}.tar.gz" src="${releasesrcdir}.tar" />
     </target>
     
     <!-- =================================================================== -->
@@ -428,11 +428,11 @@
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
-        <tar file="${releasedir}.tar"
+        <tar tarfile="${releasedir}.tar"
              basedir="${basedir}">
             <include name="${releasefile}/**/*" />
         </tar>
-        <gzip file="${releasedir}.tar.gz" src="${releasedir}.tar" />
+        <gzip zipfile="${releasedir}.tar.gz" src="${releasedir}.tar" />
     </target>
     
     <!-- =================================================================== -->
@@ -460,11 +460,11 @@
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
-        <tar file="${releasedir}.tar"
+        <tar tarfile="${releasedir}.tar"
              basedir="${basedir}">
             <include name="${releasefile}/**/*" />
         </tar>
-        <gzip file="${releasedir}.tar.gz" src="${releasedir}.tar" />
+        <gzip zipfile="${releasedir}.tar.gz" src="${releasedir}.tar" />
     </target>
     
     <!-- =================================================================== -->
