@@ -94,7 +94,7 @@
                     depending on the exact version installed.  Tomcat was installed in
                     the root directory, <literal moreinfo="none">D:\</literal>,
                     resulting in a Tomcat Home directory of
-                    <literal moreinfo="none">jakarta-tomcat-4.1.18</literal>.
+                    <literal moreinfo="none">D:\jakarta-tomcat-4.1.18</literal>.
                 </para>
             </section>
             <section>
@@ -102,13 +102,13 @@
                 <para>
                     There are four files which are required to be able to use the
                     Wrapper.  We will also copy over three additional batch files
-                    which can be used to launch JBoss as well as install and
+                    which can be used to launch Tomcat as well as install and
                     uninstall it as an NT Service.
                 </para>
                 <section>
                     <title>bin directory</title>
                     <para>
-                        First we will copy the following files into the JBoss bin
+                        First we will copy the following files into the Tomcat bin
                         directory:  
                     </para>
                     <informalexample>
@@ -126,9 +126,9 @@
                         the extensions.
                     </para>
                     <informalexample>
-                        <screen format="linespecific"><![CDATA[{JBOSS_HOME}\bin\Tomcat.bat
-{JBOSS_HOME}\bin\InstallTomcat-NT.bat
-{JBOSS_HOME}\bin\UninstallTomcat-NT.bat]]></screen>
+                        <screen format="linespecific"><![CDATA[{TOMCAT_HOME}\bin\Tomcat.bat
+{TOMCAT_HOME}\bin\InstallTomcat-NT.bat
+{TOMCAT_HOME}\bin\UninstallTomcat-NT.bat]]></screen>
                     </informalexample>
                     <para>
                         The Wrapper.exe file is the actual Wrapper executable.  The
@@ -182,7 +182,7 @@
                         to see the extension.  You should now have:
                     </para>
                     <informalexample>
-                        <screen format="linespecific"><![CDATA[{JBOSS_HOME}\conf\wrapper.conf]]></screen>
+                        <screen format="linespecific"><![CDATA[{TOMCAT_HOME}\conf\wrapper.conf]]></screen>
                     </informalexample>
                     <para>
                         If you wish to relocate the configuration file, you are free
@@ -196,7 +196,7 @@
                         The default <literal moreinfo="none">wrapper.conf</literal>
                         file will place a <literal moreinfo="none">wrapper.log</literal>
                         file in a <literal moreinfo="none">logs</literal> directory
-                        under the application home directory.  Tomct already has
+                        under the application home directory.  Tomcat already has
                         such a directory, so we are all set.
                     </para>
                     <para>
@@ -231,7 +231,7 @@
                     <literal moreinfo="none">startup.bat</literal> into an editor,
                     you will notice after some investigation, that Java is not
                     actually launched from this script.  Rather another batch
-                    file <literal moreinfo="none">catalina.bat</literal> is
+                    file, <literal moreinfo="none">catalina.bat</literal>, is
                     called.  Tomcat's scripts are very advanced and allow the user
                     to do a lot of configuration from the command line.  The command
                     line that we will capture and use with the Wrapper will actually
@@ -244,7 +244,7 @@
                     into an editor and scroll down to the very bottom of the file,
                     you will see four lines which launch Java.  With the defaults
                     that we are using, the first of these will be used.  The
-                    line we are interrested in looks like the following: (The command
+                    line we are interested in looks like the following: (The command
                     is very long and has been truncated.)
                 </para>
                 <informalexample>
@@ -382,7 +382,7 @@ wrapper.java.classpath.3=..\bin\bootstrap.jar]]></screen>
                 <section>
                     <title>Main Class</title>
                     <para>
-                        The final component of the command used to launch Tomcat is the
+                        The next component of the command used to launch Tomcat is the
                         main class, <literal moreinfo="none">org.apache.catalina.startup.Bootstrap</literal>.
                         The main class executed by Java when launched is specified by
                         using the 
