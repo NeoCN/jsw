@@ -10,6 +10,54 @@ $Id$
     <title>Troubleshooting</title>
     <section>
         <title>
+            My Program is not running as fast as I would like.
+        </title>
+        <para>
+            In general an application should run as fast under the Wrapper as it does
+            when running standalone.  Here are a few places to start looking.
+        </para>
+        <section>
+            <title>Console Output</title>
+            <para>
+                On some platforms, including Windows, sending large quantities of text to
+                System.out or System.err will cause the program to slow down.  This is because
+                all of that output is being rendered to the screen in a graphics environment.
+                This is actually the OS eating the CPU rather than the Wrapper or your
+                application but the end result is the same.
+            </para>
+            <para>
+                To significantly reduce this effect, use a logging tool which will output to
+                a file rather than to stdout.  By doing so the output is never sent to the
+                Wrapper or the user console.
+            </para>
+            <para>
+                Another option which is almost as good is to configure the Wrapper's console
+                log level, using the <ulink url="prop-console-loglevel.html">wrapper.console.loglevel</ulink>
+                property, so that the output is only sent to the Wrapper's log file.  Console
+                output is disabled by default when running as an NT service and the console has
+                not been enabled.
+            </para>
+        </section>
+        <section>
+            <title>Memory</title>
+            <para>
+                Make sure that your system has plenty of memory for the JVM to run without
+                doing any disk swapping.   Because of the way Java manages memory.  A very
+                significant speed hit is common simply because Java is forced to do paging
+                of large amounts of its memory as it attempted to perform garbage collection.
+            </para>
+        </section>
+        <section>
+            <title>Sun's Documentation</title>
+            <para>
+                Another good place to look is the
+                <ulink url="http://java.sun.com/docs/hotspot/index.html">Performance Documentation for the Java HotSpot VM</ulink>
+                page on Sun's site.
+            </para>
+        </section>
+    </section>
+    <section>
+        <title>
             I get an error about not being able to write a pid file when starting the Wrapper.
         </title>
         <para>
