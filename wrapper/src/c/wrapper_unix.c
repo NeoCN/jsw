@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.42  2003/08/02 16:12:26  mortenson
+ * Add a patch by Mike Castle to fix a problem where started wrapper processes
+ * would cause the shell from which they were started to hang on exit.
+ *
  * Revision 1.41  2003/07/09 05:59:47  mortenson
  * Fix a problem where the Wrapper was leaving a pipe unclosed each time the JVM
  * was restarted on all UNIX platforms.
@@ -561,6 +565,7 @@ int writePidFile() {
  */
 void daemonize() {
     pid_t pid;
+    int fd;
     
     umask(0); /* clear file creation mask */
     
@@ -584,8 +589,31 @@ void daemonize() {
         exit(0);
     }
     
-    setsid(); /* become session leader */
+    /* become session leader */
+    if (setsid()) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "setsid() failed: %s",
+           (char *)strerror(errno));
+        exit(1);
+    }
+    
     signal(SIGHUP, SIG_IGN); /* don't let future opens allocate controlling terminals */
+    
+    /* Redirect stdin, stdout and stderr before closing to prevent the shell which launched
+     *  the Wrapper from hanging when it exits. */
+    fd = open("/dev/null", O_RDWR, 0);
+    if (fd != -1) {
+        close(STDIN_FILENO);
+        dup2(fd, STDIN_FILENO);
+        close(STDOUT_FILENO);
+        dup2(fd, STDOUT_FILENO);
+        close(STDERR_FILENO);
+        dup2(fd, STDERR_FILENO);
+        if (fd != STDIN_FILENO &&
+            fd != STDOUT_FILENO &&
+            fd != STDERR_FILENO) {
+            close(fd);
+        }
+    }
     
     /* second fork */
     if (wrapperData->isDebugging) {
