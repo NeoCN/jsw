@@ -26,13 +26,16 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
+// Revision 1.2  2002/05/08 16:22:31  mortenson
+// Fix a typo.  transient instance variable should have been volatile.
+//
 // Revision 1.1  2002/05/08 03:18:16  mortenson
 // Fix a problem where the JVM was not exiting correctly when all non-daemon
 // threads completed.
 //
 
 public class LongRunningBackgroundThreads implements Runnable {
-    private transient int _threadCount;
+    private volatile int _threadCount;
     
     /*---------------------------------------------------------------
      * Runnable Method
