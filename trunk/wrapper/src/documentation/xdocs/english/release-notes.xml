@@ -35,7 +35,8 @@ $Id$
                 <para>
                     Fix a problem on HP-UX and AIX machines where the stop() function in the
                     shell scripts was causing a syntax error due to a conflict with a like named
-                    shell command on those platforms.
+                    shell command on those platforms.  This appears to be an issue with the
+                    Korn shell on all platforms.
                 </para>
             </listitem>
         </itemizedlist>
