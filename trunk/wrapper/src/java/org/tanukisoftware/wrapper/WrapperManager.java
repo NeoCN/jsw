@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.24  2003/11/02 20:29:30  mortenson
+// Add the ability to get information about the user account which is running the
+// Wrapper as well as the user account with which the Wrapper is interacting.
+//
 // Revision 1.23  2003/10/31 17:30:52  mortenson
 // Add some additional debug output to help identify the cause of problems
 // loading the native library.
@@ -560,6 +564,9 @@ public final class WrapperManager
     private static native void nativeRequestThreadDump();
     private static native void accessViolationInner();
     private static native void nativeSetConsoleTitle( byte[] titleBytes );
+    private static native WrapperUser nativeGetUser();
+    private static native WrapperUser nativeGetInteractiveUser();
+    private static native byte[] nativeGetLoggedOnUser();
     
     /*---------------------------------------------------------------
      * Methods
@@ -807,6 +814,46 @@ public final class WrapperManager
             nullTermBytes[titleBytes.length] = 0;
             
             nativeSetConsoleTitle( nullTermBytes );
+        }
+    }
+    
+    public static WrapperUser getUser()
+    {
+        WrapperUser user = null;
+        if ( m_libraryOK )
+        {
+            user = nativeGetUser();
+        }
+        return user;
+    }
+    
+    public static WrapperUser getInteractiveUser()
+    {
+        WrapperUser user = null;
+        if ( m_libraryOK )
+        {
+            user = nativeGetInteractiveUser();
+        }
+        return user;
+    }
+    
+    public static String getLoggedOnUser()
+    {
+        if ( m_libraryOK )
+        {
+            byte[] bytes = nativeGetLoggedOnUser();
+            if ( bytes == null )
+            {
+                return null;
+            }
+            else
+            {
+                return new String( bytes );
+            }
+        }
+        else
+        {
+            return null;
         }
     }
     
