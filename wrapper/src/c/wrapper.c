@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.103  2004/07/01 04:09:51  mortenson
+ * Fix a problem where HP-UX was not working correctly because the EAGAIN
+ * and EWOULDBLOCK constants are not equal on the platform.
+ *
  * Revision 1.102  2004/06/30 14:59:24  mortenson
  * Fix some indentation.
  *
@@ -551,7 +555,8 @@ void wrapperProtocolOpen() {
 #endif /* WIN32 */
     if (sd == INVALID_SOCKET) {
         rc = wrapperGetLastError();
-        if (rc == EWOULDBLOCK) {
+        /* EWOULDBLOCK != EAGAIN on some platforms. */
+        if ((rc == EWOULDBLOCK) || (rc == EAGAIN)) {
             /* There are no incomming sockets right now. */
             return;
         } else {
@@ -793,7 +798,8 @@ int wrapperProtocolRead() {
         if (len == SOCKET_ERROR) {
             err = wrapperGetLastError();
             if (wrapperData->isDebugging) {
-                if ((err != EWOULDBLOCK) && (err != ENOTSOCK) && (err != ECONNRESET)) {
+                if ((err != EWOULDBLOCK) && (err != EAGAIN)
+                    && (err != ENOTSOCK) && (err != ECONNRESET)) {
                     log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
                         "socket read failed. (%s)", getLastErrorText());
                     wrapperProtocolClose();
