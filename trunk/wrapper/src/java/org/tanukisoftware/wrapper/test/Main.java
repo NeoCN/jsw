@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.20  2004/11/12 09:52:19  mortenson
+// Don't set the console title from within java in the sample.  It makes the use of the
+// usage of the config file property confusing.
+//
 // Revision 1.19  2004/08/06 08:05:26  mortenson
 // Add test case which dumps the system properties.  Useful for testing.
 //
@@ -156,8 +160,6 @@ public class Main
         MainFrame()
         {
             super( "Wrapper Test Application" );
-            
-            WrapperManager.setConsoleTitle( getTitle() );
             
             init();
             pack();
