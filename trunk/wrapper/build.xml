@@ -679,6 +679,7 @@
         <delete dir="${build.dir}"/>
         <delete dir="${src.dir}/c/Debug"/>
         <delete dir="${src.dir}/c/Release"/>
+        <delete dir="${src.dir}/c/WrapperJNI___Win32_Debug"/>
         <delete dir="${src.dir}/c/WrapperJNI___Win32_Release"/>
         <delete includeEmptyDirs="true">
             <fileset dir="${basedir}">
