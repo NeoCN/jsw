@@ -58,6 +58,8 @@ Java Service Wrapper Revision History.
   with the Wrapper should not encounter any problems.  Other users may require
   slight changes to their configuration file to deal with the new way that the
   Wrapper deals with its initial working directory.
+* Add a new method WrapperManager.getProperties() which makes it possible to
+  access any property in the Wrapper configuration file.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager

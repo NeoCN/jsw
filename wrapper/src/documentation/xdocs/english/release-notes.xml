@@ -139,6 +139,13 @@ $Id$
                     Wrapper deals with its initial working directory.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add a new method <ulink url="javadocs.html">WrapperManager.getProperties()</ulink>
+                    which makes it possible to access any property in the Wrapper configuration
+                    file.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">

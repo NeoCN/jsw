@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.24  2004/12/08 04:54:27  mortenson
+// Make it possible to access the contents of the Wrapper configuration file from
+// within the JVM.
+//
 // Revision 1.23  2004/11/26 08:41:22  mortenson
 // Implement reading from System.in
 //
@@ -243,6 +247,9 @@ public class Main
             
             buildCommand( gridBag, c, "Dump Properties", "properties",
                 "Dumps all System Properties to the console." );
+            
+            buildCommand( gridBag, c, "Dump Configuration", "configuration",
+                "Dumps all Wrapper Configuration Properties to the console." );
             
             
             m_listenerFlags = new List( 2, true );

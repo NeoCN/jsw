@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.11  2004/12/08 04:54:29  mortenson
+ * Make it possible to access the contents of the Wrapper configuration file from
+ * within the JVM.
+ *
  * Revision 1.10  2004/03/27 16:09:45  mortenson
  * Add wrapper.on_exit.<n> properties to control what happens when a exits based
  * on the exit code.  This led to a major rework of the state engine to make it possible.
@@ -153,5 +157,9 @@ extern int getBooleanProperty(Properties *properties, const char *propertyName, 
 extern int isQuotableProperty(Properties *properties, const char *propertyName);
 
 extern void dumpProperties(Properties *properties);
+
+/** Creates a linearized representation of all of the properties.
+ *  The returned buffer must be freed by the calling code. */
+extern char *linearizeProperties(Properties *properties, char separator);
 
 #endif

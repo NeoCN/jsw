@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.13  2004/12/08 04:54:27  mortenson
+// Make it possible to access the contents of the Wrapper configuration file from
+// within the JVM.
+//
 // Revision 1.12  2004/11/26 08:41:22  mortenson
 // Implement reading from System.in
 //
@@ -213,6 +217,7 @@ public class TestAction
         System.err.println( "   console                  : Prompt for actions in the console." );
         System.err.println( "   idle                     : Do nothing just run in idle mode." );
         System.err.println( "   properties               : Dump all System Properties to the console." );
+        System.err.println( "   configuration            : Dump all Wrapper Configuration Properties to the console." );
         System.err.println( "" );
         System.err.println( "[EXAMPLE]" );
         System.err.println( "   TestAction access_violation_native " );
