@@ -152,4 +152,11 @@
             testing.
         </para>
     </section>
+    <section>
+        <title>Version 3.0.5</title>
+        <para>
+            Version 3.0.5 welcomed SGI Irix to the list of supported platforms.
+            Thanks to Andreas Wendt for the necessary patches and testing.
+        </para>
+    </section>
 </chapter>

@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.66  2003/08/11 16:40:10  mortenson
+ * Apply a patch by Andreas Wendt to add support for SGI Irix
+ *
  * Revision 1.65  2003/07/30 11:34:18  mortenson
  * Make the wrapper.port property optional.
  *
@@ -181,11 +184,14 @@
 #else
 #ifdef OSF1
 #else
+#ifdef IRIX
+#else
 #ifdef FREEBSD
 #include <errno.h>
 #else /* LINUX */
 #include <asm/errno.h>
 #endif /* FREEBSD */
+#endif /* IRIX */
 #endif /* OSF1 */
 #endif /* MACOSX */
 #endif /* HPUX */
@@ -417,8 +423,12 @@ void wrapperProtocolOpen() {
 #else
 #ifdef OSF1
     sd = accept(ssd, (struct sockaddr *)&addr_srv, &addr_srv_len);
+#else
+#ifdef IRIX
+    sd = accept(ssd, (struct sockaddr *)&addr_srv, &addr_srv_len);
 #else /* UNIX */
     sd = accept(ssd, (struct sockaddr *)&addr_srv, (socklen_t *)&addr_srv_len);
+#endif /* IRIX */
 #endif /* OSF1 */
 #endif /* MACOSX */
 #endif /* WIN32 */
