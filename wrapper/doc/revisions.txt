@@ -14,6 +14,9 @@ Java Service Wrapper Revision History.
   still being encountered.  Rather than reading up to 50 lines of input, the
   code will now read for a maximum of 250ms before returning to give the main
   event loop more cycles.
+* Fix a problem where the values of environment variables set in the
+  configuration file were not correct when those values included references
+  to other environment variables.
 
 3.0.1
 * Fix a problem with the wrapper.disable_shutdown_hook.  Due to a typo in the

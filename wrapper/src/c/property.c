@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.15  2003/04/03 16:13:35  mortenson
+ * Fix a problem where the values of environment variables set in the
+ * configuration file were not correct when those values included references
+ * to other environment variables.
+ *
  * Revision 1.14  2003/04/03 04:05:22  mortenson
  * Fix several typos in the docs.  Thanks to Mike Castle.
  *
@@ -430,7 +435,9 @@ void addProperty(Properties *properties, const char *propertyName, const char *p
     int setValue;
     Property *property;
 
-    /* printf("addProperty(%p, '%s', '%s', %d)\n", properties, propertyName, propertyValue, finalValue); */
+#ifdef _DEBUG
+    printf("addProperty(%p, '%s', '%s', %d)\n", properties, propertyName, propertyValue, finalValue);
+#endif
 
     /* See if the property already exists */
     setValue = TRUE;
@@ -461,8 +468,13 @@ void addProperty(Properties *properties, const char *propertyName, const char *p
 
         /* See if this is a special property */
         if ((strlen(propertyName) > 4) && (strstr(propertyName, "set.") == propertyName)) {
-            /* This property is an environment variable definition. */
-            setEnv(propertyName + 4, propertyValue);
+            /* This property is an environment variable definition.  Get the
+			 *  value back out of the property as it may have had environment
+			 *  replacements. */
+#ifdef _DEBUG
+		    printf("setEnv('%s', '%s')\n", propertyName + 4, property->value);
+#endif
+            setEnv(propertyName + 4, property->value);
         }
     }
 }
