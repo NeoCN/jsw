@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.9  2002/01/28 01:01:53  rybesh
+// few minor fixes to get solaris version to compile
+//
 // Revision 1.8  2002/01/27 19:35:00  spocke
 // Added support for wildcards on Unix classpaths and service description property.
 //
@@ -77,6 +80,7 @@
 #define ECONNRESET  WSAECONNRESET
 
 #else /* UNIX */
+#include <string.h>
 #include <glob.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -95,7 +99,6 @@
 #include <sys/fcntl.h>
 
 #else /* LINUX */
-#include <string.h>
 #include <asm/errno.h>
 
 #endif /* UNIX */
@@ -1474,7 +1477,7 @@ int wrapperBuildUnixDaemonInfo() {
     
     name = (char *)getStringProperty(properties, "wrapper.pidfile", NULL);
     if (name == NULL) {
-        wrapperLog(WRAPPER_SOURCE_WRAPPER, "No wrapper.pidfile property in wrapper config file");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "No wrapper.pidfile property in wrapper config file");
         return 1;
     } else {
         wrapperData->pidFilename = name;
