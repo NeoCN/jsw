@@ -161,16 +161,18 @@
         </condition>
         
         <!-- run make on Linux to build library -->
-        <exec executable="make" 
-              dir="${src.dir}/c" 
-              os="Linux">
+        <exec executable="make"
+            dir="${src.dir}/c" 
+            os="Linux" 
+            failonerror="true">
             <arg line="-f Makefile.linux" />
         </exec>
         
         <!-- run make on Solaris to build library -->
         <exec executable="gmake" 
-              dir="${src.dir}/c" 
-              os="SunOS">
+            dir="${src.dir}/c" 
+            os="SunOS" 
+            failonerror="true">
             <arg line="-f Makefile.solaris" />
         </exec>
     </target>
