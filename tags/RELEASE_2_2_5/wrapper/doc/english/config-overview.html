@@ -1,0 +1,1576 @@
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Configuration File Overview</title>
+</head>
+<body bgcolor="#ffffff" marginheight="4" marginwidth="4" leftmargin="4" topmargin="4" alink="#023264" vlink="#023264" link="#525D76" text="#000000">
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top"><a href="http://www.silveregg.co.jp/"><img src="images/silveregg-logo.png" border="0" vspace="0" hspace="0"></a></td><td bgcolor="#ffffff" align="right" valign="bottom" width="100%"><font color="gray" face="arial,helvetica,sanserif" size="+3"><i><b>Java Service Wrapper</b></i></font></td>
+</tr>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td bgcolor="gray" colspan="7"><img height="1" width="1" src="images/spacer.png"></td>
+</tr>
+<tr>
+<td valign="top" width="5"><img height="1" width="5" src="images/spacer.png"></td><td nowrap="1" valign="top" width="150">
+<br>
+<font face="arial,helvetica,sanserif">
+<br>
+<br>
+<font size="+1" color="#000000">Documentation</font>
+<br>
+<font size="-1">
+<ul>
+<li>
+<a href="introduction.html"><font size="-1">Introduction</font></a>
+</li>
+<li>
+<a href="example.html"><font size="-1">Example</font></a>
+</li>
+<li>
+<a href="api-overview.html"><font size="-1">API Overview</font></a>
+</li>
+<li>
+<a href="config-overview.html"><font size="-1">Configuration Overview</font></a>
+</li>
+<li>
+<a href="launch-overview.html"><font size="-1">Launching Your Application</font></a>
+</li>
+<li>
+<a href="release-notes.html"><font size="-1">Release Notes</font></a>
+</li>
+<li>
+<a href="faq.html"><font size="-1">FAQ</font></a>
+</li>
+<li>
+<a href="troubleshooting.html"><font size="-1">Troubleshooting</font></a>
+</li>
+<li>
+<a href="../../jdoc/index.html"><font size="-1">JavaDocs API</font></a>
+</li>
+</ul>
+</font>
+<br>
+<br>
+<font size="+1" color="#000000">Users</font>
+<br>
+<font size="-1">
+<ul>
+<li>
+<a href="users.html"><font size="-1">Users of Wrapper</font></a>
+</li>
+</ul>
+</font>
+<br>
+<br>
+<font size="+1" color="#000000">Download</font>
+<br>
+<font size="-1">
+<ul>
+<li>
+<a href="http://sourceforge.net/project/showfiles.php?group_id=39428"><font size="-1">Binaries</font></a>
+</li>
+<li>
+<a href="http://sourceforge.net/project/showfiles.php?group_id=39428"><font size="-1">Source Code</font></a>
+</li>
+</ul>
+</font>
+<br>
+<br>
+<font size="+1" color="#000000">Get Involved</font>
+<br>
+<font size="-1">
+<ul>
+<li>
+<a href="http://sourceforge.net/projects/wrapper/"><font size="-1">Source Forge</font></a>
+</li>
+<li>
+<a href="http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/wrapper/"><font size="-1">CVS Repository</font></a>
+</li>
+<li>
+<a href="http://sourceforge.net/forum/?group_id=39428"><font size="-1">Public Forums</font></a>
+</li>
+<li>
+<a href="http://sourceforge.net/tracker/?group_id=39428"><font size="-1">Issue Tracking</font></a>
+</li>
+<li>
+<a href="authors.html"><font size="-1">Authors</font></a>
+</li>
+<li>
+<a href="license.html"><font size="-1">License</font></a>
+</li>
+</ul>
+</font>
+<br>
+<br>
+                        Hosted by:<br>
+<A href="http://sourceforge.net/projects/wrapper/"><IMG alt="SourceForge Logo" border="0" height="31" width="88" src="http://sourceforge.net/sflogo.php?group_id=39428"></A>
+<br>
+</font></td><td valign="top" width="2"><img height="1" width="2" src="images/spacer.png"></td><td bgcolor="gray" valign="top" width="1"><img height="1" width="1" src="images/spacer.png"></td><td valign="top" width="10"><img height="1" width="10" src="images/spacer.png"></td><td align="left" valign="top" width="*">
+<br>
+<title>Configuration File Overview</title>
+<center>
+<table width="80%">
+<tr>
+<td bgcolor="#F3DD61">
+<br>
+<center>
+<b><font face="arial,helvetica,sanserif" color="#000000">Configuration File Overview</font></b>
+</center>
+<br>
+</td>
+</tr>
+</table>
+</center>
+<br>
+ 
+     
+
+    
+<div>
+<a name="NA2B"></a>
+<table cellspacing="0" cellpadding="2" border="0" width="100%">
+<tr>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+1"><b>Configuring the Wrapper to Work With Your Application.</b></font></td>
+</tr>
+<tr>
+<td><font face="arial,helvetica,sanserif" color="#000000">
+<br>
+        
+        
+<ul>
+            
+<li>
+                
+<p align="justify">
+                    
+<a href="config-overview.html#example-file">Example Wrapper Configuration File</a>
+                
+</p>
+            
+</li>
+            
+<li>
+                
+<p align="justify">
+                    
+<a href="config-overview.html#command-line">Command Line Configuration</a>
+                
+</p>
+            
+</li>
+            
+<li>
+                
+<p align="justify">
+                    
+<a href="config-overview.html#properties">Wrapper Configuration File Properties</a>
+                
+</p>
+                
+<ul>
+                    
+<li>
+                        
+<p align="justify">
+                            
+<a href="config-overview.html#path-note">Note about paths</a>
+                        
+</p>
+                    
+</li>
+                    
+<li>
+                        
+<p align="justify">
+                            
+<a href="config-overview.html#independant-properties">Platform independant properties</a>
+                        
+</p>
+                    
+</li>
+                    
+<li>
+                        
+<p align="justify">
+                            
+<a href="config-overview.html#logging-properties">Logging properties</a>
+                        
+</p>
+                    
+</li>
+                    
+<li>
+                        
+<p align="justify">
+                            
+<a href="config-overview.html#unix-properties">Unix specific properties</a>
+                        
+</p>
+                    
+</li>
+                    
+<li>
+                        
+<p align="justify">
+                            
+<a href="config-overview.html#windows-properties">Windows NT/2000 specific properties</a>
+                        
+</p>
+                    
+</li>
+                
+</ul>
+            
+</li>
+        
+</ul>
+        
+<div>
+<a name="example-file"></a>
+<table cellspacing="0" cellpadding="2" border="0" width="99%">
+<tr>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+0"><b>Example Wrapper Configuration File</b></font></td>
+</tr>
+<tr>
+<td><font face="arial,helvetica,sanserif" color="#000000">
+<br>
+            
+            
+<p align="justify">
+                Wrapper uses a configuration file to control how Java is launched.
+            </p>
+            
+<p align="justify">
+                The Wrapper config file contains the following information.  This example assumes that the '@app.name@' and '@app.long.name@' tokens will be replaced with the name of your applicaiton on installation.  Good values are 'testwrapper' for '@app.name@' and 'Test Wrapper Application' for '@app.long.name@'.  A template wrapper.conf file can be found in the src/conf directory, named wrapper.conf.in.
+                <div align="left">
+<p>
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>#********************************************************************
+# Wrapper parameters
+#********************************************************************
+# Java Application
+wrapper.java.command=java
+
+# Java Main class
+wrapper.java.mainclass=com.silveregg.wrapper.test.Main
+
+# Java Classpath (include wrapper.jar)  Add class path elements as needed starting from 1
+wrapper.java.classpath.1=../lib/wrapper.jar
+wrapper.java.classpath.2=../lib/wrappertest.jar
+
+# Java Library Path (location of wrapper.lib)
+wrapper.java.library.path=../lib
+
+# Java Additional Parameters
+#wrapper.java.additional.1=
+
+# Initial Java Heap Size (in MB)
+wrapper.java.initmemory=16
+
+# Maximum Java Heap Size (in MB)
+wrapper.java.maxmemory=64
+
+# Application parameters.  Add parameters as needed starting from 1
+#wrapper.app.parameter.1=
+
+# Port which the native wrapper code will attempt to connect to
+wrapper.port=1777
+
+# Number of seconds to allow for the JVM to be launched and contact the wrapper before the
+#  wrapper should assume that the JVM is hung and terminate the JVM process.  0 means never
+#  time out.  Defaults to 30 seconds.
+wrapper.startup.timeout=30
+
+# Number of seconds to allow between the wrapper pinging the JVM and the response.  0 means
+#  never time out.  Defaults to 30 seconds.
+wrapper.ping.timeout=30
+
+# The Wrapper detects when an application calls System.exit() and treats this as a request
+#  to stop the server by default.
+#wrapper.disable_shutdown_hook=TRUE
+
+#********************************************************************
+# Wrapper Logging parameters
+#********************************************************************
+# Format of output for the console.  (See docs for formats)
+wrapper.console.format=PM
+
+# Log Level for console output.  (See docs for log levels)
+wrapper.console.loglevel=INFO
+
+# Log file to use for wrapper output logging.
+wrapper.logfile=../logs/wrapper.log
+
+# Format of output for the log file.  (See docs for formats)
+wrapper.logfile.format=LPTM
+
+# Log Level for console output.  (See docs for log levels)
+wrapper.logfile.loglevel=INFO
+
+# Maximum size that the log file will be allowed to grow to before the log is rolled.
+#  Size is specified in bytes.  The default value of 0, disables log rolling.  May
+#  abreviate with the 'k' (kb) or 'm' (mb) suffix.  For example: 10m = 10 megabytes.
+wrapper.logfile.maxsize=0
+
+# Maximum number of rolled log files which will be allowed before old files are deleted.
+#  The default value of 0 implies no limit.
+wrapper.logfile.maxfiles=0
+
+# Log Level for sys/event log output.  (See docs for log levels)
+wrapper.syslog.loglevel=NONE
+
+#********************************************************************
+# Wrapper Unix daemon parameters
+#********************************************************************
+# File to write process ID to
+wrapper.pidfile=/var/run/aigent.pid
+
+#********************************************************************
+# Wrapper NT Service parameters
+#********************************************************************
+# WARNING - Do not modify any of these parameters when an application
+#  using this configuration file has been installed as a service.
+#  Please uninstall the service before modifying this section.  The
+#  service can then be reinstalled.
+
+# Name of the service
+wrapper.ntservice.name=@app.name@
+
+# Display name of the service
+wrapper.ntservice.displayname=@app.long.name@
+
+# Description of the service
+wrapper.ntservice.description=@app.description@
+
+# Service dependencies.  Add dependencies as needed starting from 1
+wrapper.ntservice.dependency.1=
+
+# Mode in which the service is installed.  AUTO_START or DEMAND_START
+wrapper.ntservice.starttype=AUTO_START</pre>
+</td>
+</tr>
+</table>
+</p>
+</div>
+            
+</p>
+        
+</font></td>
+</tr>
+</table>
+</div>
+<br>
+        
+<div>
+<a name="command-line"></a>
+<table cellspacing="0" cellpadding="2" border="0" width="99%">
+<tr>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+0"><b>Command Line Configuration</b></font></td>
+</tr>
+<tr>
+<td><font face="arial,helvetica,sanserif" color="#000000">
+<br>
+            
+            
+<p align="justify">
+                As of version 2.2.5, it is possible to specify Wrapper properties from the command line.  This can be useful in situations where configuration values can only be set at runtime.
+            </p>
+            
+<p align="justify">
+                Configuration properties can be set on the command line by including them after the configuration file when launching Wrapper.  Each property consists of a property name, followed by '=', followed by the property's value.  The syntax is exactly the same as in the wrapper.conf file.
+            </p>
+            
+<p align="justify">
+                In this example, an application is being launched using a specific java application and debug logging enabled.
+                <p align="justify">
+                    
+<i>Windows NT/2000:</i>
+                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>Wrapper.exe -c ..\conf\wrapper.conf wrapper.java.command=java wrapper.debug=true</pre>
+</td>
+</tr>
+</table>
+</div>
+                
+</p>
+                
+<p align="justify">
+                    
+<i>Linux / Solaris:</i>
+                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>./wrapper ../conf/wrapper.conf wrapper.java.command=java wrapper.debug=true</pre>
+</td>
+</tr>
+</table>
+</div>
+                
+</p>
+            
+</p>
+            
+<div align="center">
+<table cellspacing="2" cellpadding="2" border="1">
+<tr>
+<td bgcolor="#c0c0c0"><font size="-1" color="#023264">
+                
+<p align="justify">
+                    NOTE - Properties specified on the command line can not contain unquoted spaces.  If you need to include spaces in the value of the property, simply include the entire name-value pair in quotes:
+                    <p align="justify">
+                        
+<i>Example:</i>
+                        
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>Wrapper.exe -c ..\conf\wrapper.conf "wrapper.java.command=C:\Program Files\MyApp\jre\bin\java.exe"</pre>
+</td>
+</tr>
+</table>
+</div>
+                    
+</p>
+                
+</p>
+            
+</font></td>
+</tr>
+</table>
+</div>
+            
+<p align="justify">
+                This feature also works with the -i command on Windows systems when installing the application as a service.
+            </p>
+        
+</font></td>
+</tr>
+</table>
+</div>
+<br>
+        
+<div>
+<a name="properties"></a>
+<table cellspacing="0" cellpadding="2" border="0" width="99%">
+<tr>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+0"><b>Explanation of Wrapper Configuration File Properties</b></font></td>
+</tr>
+<tr>
+<td><font face="arial,helvetica,sanserif" color="#000000">
+<br>
+            
+            
+<div>
+<a name="path-note"></a>
+<table cellspacing="0" cellpadding="2" border="0" width="98%">
+<tr>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="-1"><b>Note about paths</b></font></td>
+</tr>
+<tr>
+<td><font face="arial,helvetica,sanserif" color="#000000">
+<br>
+                
+                
+<p align="justify">
+                    Java handles forward slashes, '/', and backslashes, '\', correctly on both Windows platforms.  To make your wrapper.conf cross platform compatible, you should always use forward slashes in all paths in wrapper.conf.
+                </p>
+                
+<p align="justify">
+                    Versions of the wrapper prior to 2.2.3 required that all paths in the wrapper.conf file be absolute.  This is mainly to accomodate running the Wrapper as an NT service, but it also makes the application's startup much more reliable when launching the application from different locations.
+                </p>
+                
+<p align="justify">
+                    In the Windows versions starting with 2.2.3, the Wrapper now sets its current working directory to the location of the wrapper executable.  When the Wrapper launches Java, its working directory will remain the same making relative path references possible.
+                </p>
+                
+<p align="justify">
+                    Linux and Solaris versions work correctly with relative paths if the current directory is always the same when the application is started.  (ie. You always start the application like ./myapp, as opposed to other locations like, bin/myapp)
+                </p>
+            
+</font></td>
+</tr>
+</table>
+</div>
+<br>
+            
+<div>
+<a name="independant-properties"></a>
+<table cellspacing="0" cellpadding="2" border="0" width="98%">
+<tr>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="-1"><b>Platform independant properties</b></font></td>
+</tr>
+<tr>
+<td><font face="arial,helvetica,sanserif" color="#000000">
+<br>
+                
+                
+<div class="glosslist">
+<a name="NAF0"></a>
+<dl>
+                    
+                        
+<dt>wrapper.java.command</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Location of the Java executable
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.java.command=java</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.java.mainclass</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Class to execute when the wrapper starts the application.  If your application implements WrapperListener, then this will be that main class.  Otherwise, this should be com.silveregg.wrapper.WrapperSimpleApp Then your main class will be listed as the first application parameter below.
+                                <p align="justify">
+                                    
+<i>Example (WrapperListener case):</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.java.mainclass=com.widgetsrus.MyAppMain</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                                
+<p align="justify">
+                                    
+<i>Example (WrapperSimpleApp case):</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.java.classpath.&lt;n&gt;</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Java Classpath to use.  You should have a series of properties listing up the various class path elements to use when launching the application.  Each element has a property name which starts with wrapper.java.classpath. and ends with an integer number counting up from 1.  There can be no missing numbers.
+                            </p>
+                            
+<p align="justify">
+                                This list must contain the wrapper.jar file.  It can contain jar files as well as directories contains class files.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.java.classpath.1=../lib/wrapper.jar
+wrapper.java.classpath.2=../lib/myapp.jar
+wrapper.java.classpath.3=../lib/mysql.jar
+wrapper.java.classpath.4=../classes</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                            
+<p align="justify">
+                                As of version 2.2.5, classpath entries which contain wildcards can be used.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.java.classpath.1=../lib/*.jar
+wrapper.java.classpath.2=../classes</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.java.library.path</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Value of the Java library path.  This is a directory which contains any native (JNI) libraries used by the application.  You must place the Wrapper.DLL or libWrapper.so file in the directory specified.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.java.library.path=../lib</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.java.additional.&lt;n&gt;</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Additional Java parameters to pass to Java when it is launched.  These are not parameters for your application, but rather parameters for the Java virtual machine.  Each element has a property name which starts with wrapper.java.additional. and ends with an integer number counting up from 1.  There can be no missing numbers.
+                            </p>
+                            
+<p align="justify">
+                                For each entry, you can also have a corresponding strip quotes flag which will remove the quotes from the element when run on Linux or Solaris machines.  This was necessary to allow for file references which contain spaces.  For parameters like the one below it would not otherwise be possible to decide when to remove quotes and when to leave them alone.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.java.additional.1=-Xrs
+wrapper.java.additional.2=-Dprop=TRUE
+wrapper.java.additional.3=-Dmyapp.data="../data"
+wrapper.java.additional.3.stripquotes=TRUE</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.java.initmemory</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                The initial amount of memory in megabytes that the JVM should use.  Some JVMs work more efficiently if this value is high rather than low.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.java.initmemory=16</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.java.maxmemory</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                The maximum amount of memory in megabytes that the JVM will be allowed to use.  Java is set to 64MB by default.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.java.maxmemory=64</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.app.parameter.&lt;n&gt;</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Application parameters to pass to your application when it is launched.  These are the parameters passed to your application's main method.  Each element has a property name which starts with wrapper.java.parameter. and ends with an integer number counting up from 1.  There can be no missing numbers.
+                            </p>
+                            
+<p align="justify">
+                                When the value of wrapper.java.mainclass is com.silveregg.wrapper.WrapperSimpleApp, the first parameter to the application must be the name of the class which contains your main method.  All other parameters are then passed to your application's main method in order.
+                            </p>
+                            
+<p align="justify">
+                                For each entry, you can also have a corresponding strip quotes flag which will remove the quotes from the element when run on Linux or Solaris machines.  This was necessary to allow for file references which contain spaces.  For parameters like the one below it would not otherwise be possible to decide when to remove quotes and when to leave them alone.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp
+wrapper.app.parameter.1=com.widgetsrus.MyAppMain
+wrapper.app.parameter.2=-d
+wrapper.app.parameter.3=-c"../conf/myapp.conf"
+wrapper.app.parameter.3.stripquotes=TRUE
+wrapper.app.parameter.4=-p4</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                            
+<div align="center">
+<table cellspacing="2" cellpadding="2" border="1">
+<tr>
+<td bgcolor="#c0c0c0"><font size="-1" color="#023264">
+                                
+<p align="justify">
+                                    Application parameters are designed to be individual parameters.  If you specify a parameter like '-c conf/myconffile.conf', it will work correctly on windows because the '-c' and 'conf/myconffile.conf' parameters will be correctly parsed when Java is launched.  But on Unix systems, the parameters will incorrectly be interpreted as a single parameter '-c conf/myconffile.conf'.
+                                </p>
+                                
+<p align="justify">
+                                    
+<p align="justify">
+                                        
+<i>Incorrect:</i>
+                                        
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.app.parameter.1=-c conf/myconffile.conf</pre>
+</td>
+</tr>
+</table>
+</div>
+                                    
+</p>
+                                    
+<p align="justify">
+                                        
+<i>Correct:</i>
+                                        
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.app.parameter.1=-c
+wrapper.app.parameter.2=conf/myconffile.conf</pre>
+</td>
+</tr>
+</table>
+</div>
+                                    
+</p>
+                                
+</p>
+                            
+</font></td>
+</tr>
+</table>
+</div>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.port</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                A port used to communicate between the Wrapper executable and the Java application.  Used to monitor the health of the Java application.  This can be any value. If at runtime, the specified value is in use, then a warning will be printed to the console and the next available port will be used in its place.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.port=1777</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.startup.timeout</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Number of seconds to allow for the JVM to be launched and contact the wrapper before the wrapper should assume that the JVM is hung and terminate the JVM process.  0 means never time out.  Defaults to 30 seconds.  Increase this value if your application takes too long to start.  You can also make calls to the WrapperManager.signalStarting(n) method to indicate that the application is not hung, but needs more time to start.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.startup.timeout=30</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.ping.timeout</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Number of seconds to allow between the wrapper pinging the JVM and the response.  0 means never time out.  Defaults to 30 seconds.  Usually you do not need to change this, however, if your system often has periods of time where the CPU reaches 100% and you are having problems with the Wrapper thinking that the JVM has hung, this can be lengthened.  Be careful though, if you set this to one hour, then the Wrapper will not restart a hung JVM for one hour.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.ping.timeout=30</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.disable_shutdown_hook</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Disable detection of calls to System.exit().  If disabled, calls to System.exit() will be treated as if the JVM had crashed and the Service will be restarted.
+                            </p>
+                            
+<p align="justify">
+                                The Wrapper registers a shutdown hook by default.  If an application ever calls System.exit() rather than calling WrapperManager.stop() to stop the service, then the Wrapper will correctly shutdown the server.
+                            </p>
+                            
+<p align="justify">
+                                You may wish to disable the shutdown hook for a number of reasons, including security.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.disable_shutdown_hook=TRUE</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                            
+<div align="center">
+<table cellspacing="2" cellpadding="2" border="1">
+<tr>
+<td bgcolor="#c0c0c0"><font size="-1" color="#023264">
+                                
+<p align="justify">
+                                    WARNING - When the Wrapper detects that System.exit() has been called, it will call the stop() method on your application if it implements the WrapperListener method.  You must be careful that your application does not call System.exit() again or call the dispose() method on an AWT frame or window.  Either one of these actions will result in a deadlock when called from within a ShutdownHook thread due to the way Java has implemented these methods.  If either of these cases can not be avoided, then the shutdown hook should be disabled.
+                                </p>
+                                
+<p align="justify">
+                                    If you have control over whether the System.exit() or dispose() methods are called, you may be able to make use of the WrapperManager.hasShutdownHookBeenTriggered() method to avoid the deadlock issue.
+                                </p>
+                            
+</font></td>
+</tr>
+</table>
+</div>
+                        
+</dd>
+                    
+<br>
+                
+</dl>
+</div>
+            
+</font></td>
+</tr>
+</table>
+</div>
+<br>
+            
+<div>
+<a name="logging-properties"></a>
+<table cellspacing="0" cellpadding="2" border="0" width="98%">
+<tr>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="-1"><b>Logging properties</b></font></td>
+</tr>
+<tr>
+<td><font face="arial,helvetica,sanserif" color="#000000">
+<br>
+                
+                
+<div class="glosslist">
+<a name="NC61"></a>
+<dl>
+                    
+                        
+<dt>wrapper.console.format</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Format to use for output to the console.  Logging was intentionally kept simple.  The format consists of the tokens 'L' for log level, 'P' for prefix, 'T' for time, and 'M' for message.  If the format contains these values then it will be included in the format.  The order of the tokens does not affect the way the log appears, but the M token should usually be placed last as it is the only column without a uniform width.  If the property is missing or commented out, then the default value 'PM' will be used.  Setting the property to a blank value will cause console output to be disabled.
+                                <p align="justify">
+                                    
+<i>Examples with sample output:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.console.format=PTM
+wrapper  | 2001/12/11 13:45:33 | --&gt; Wrapper Started as Console
+wrapper  | 2001/12/11 13:45:33 | Launching a JVM...
+jvm 1    | 2001/12/11 13:45:35 | Initializing...
+
+wrapper.console.format=PM
+wrapper  | --&gt; Wrapper Started as Console
+wrapper  | Launching a JVM...
+jvm 1    | Initializing...
+
+wrapper.console.format=M
+--&gt; Wrapper Started as Console
+Launching a JVM...
+Initializing...
+
+wrapper.console.format=
+&lt; No output &gt;</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.console.loglevel</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Log level to use for console output.  Valid log levels include: NONE for no output, FATAL to only show fatal error messages,  ERROR to show all error messages,  STATUS to show all state changes, INFO shows all JVM output and informative messages, and DEBUG shows detailed debug information.  The default value is INFO.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.console.loglevel=INFO</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.logfile</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Log file to which all output to the console will be logged.  If the logfile is not specified, then file logging will be written to a file called "wrapper.log" in the same directory as the Wrapper executable.  Providing a blank value will cause file logging to be disabled.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.logfile=../logs/wrapper.log</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.logfile.format</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Format to use for logging to the log file.  Logging was intentionally kept simple.  The format consists of the tokens 'L' for log level, 'P' for prefix, 'T' for time, and 'M' for message.  If the format contains these values then it will be included in the format.  The order of the tokens does not affect the way the log appears, but the M token should usually be placed last as it is the only column without a uniform width.  If the property is missing or commented out, then the default value 'LPTM' will be used.  Setting the property to a blank value will cause file logging to be disabled.
+                                <p align="justify">
+                                    
+<i>Examples with sample log entries:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.logfile.format=LPTM
+STATUS | wrapper  | 2001/12/11 13:45:33 | --&gt; Wrapper Started as Console
+STATUS | wrapper  | 2001/12/11 13:45:33 | Launching a JVM...
+INFO   | jvm 1    | 2001/12/11 13:45:35 | Initializing...
+
+wrapper.logfile.format=PM
+wrapper  | --&gt; Wrapper Started as Console
+wrapper  | Launching a JVM...
+jvm 1    | Initializing...
+
+wrapper.logfile.format=M
+--&gt; Wrapper Started as Console
+Launching a JVM...
+Initializing...
+
+wrapper.logfile.format=
+&lt; No logging &gt;</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.logfile.loglevel</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Log level to use for logging to the log file.  Valid log levels include: NONE for no log output, FATAL to only log fatal error messages,  ERROR to log all error messages,  STATUS to log all state changes, INFO logs all JVM output and informative messages, and DEBUG logs detailed debug information.  The default value is INFO.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.console.loglevel=INFO</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.logfile.maxsize</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                The wrapper.log file can be set to roll when the file reaches a specified size.  The default value of 0 will disable log file rolling.  To roll the file, specify a maximum file size in bytes.  The size can be abreviated with the suffixes 'k' for kilobytes, or 'm' for megabytes.  For example, '10m' sets the log file to be rolled when it reaches a size of 10 megabytes.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.logfile.maxsize=10m</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.logfile.maxfiles</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                When log file rolling is enabled, old log files will be renamed with an integer suffex.  Where larger indices are older log files.  The maximum number of log files can be set using this property.  The default value, 0, implies no limit on the number of files.  If this number is reduced from say 10 to 5, the extra 5 files will not be deleted, new log files will only be rolled within the first 5 indices.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.logfile.maxfiles=10</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.syslog.loglevel</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Log level to use for logging to the Event Log on Windows systems, or the syslog on unix systems.  Valid log levels include: NONE for no log output, FATAL to only log fatal error messages,  ERROR to log all error messages,  STATUS to log all state changes, INFO logs all JVM output and informative messages, and DEBUG logs detailed debug information.  The default value is NONE.  Be careful setting log which are too low.  DEBUG for example will very quickly fill up your syslog.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.syslog.loglevel=NONE</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                
+</dl>
+</div>
+            
+</font></td>
+</tr>
+</table>
+</div>
+<br>
+            
+<div>
+<a name="unix-properties"></a>
+<table cellspacing="0" cellpadding="2" border="0" width="98%">
+<tr>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="-1"><b>Unix specific properties</b></font></td>
+</tr>
+<tr>
+<td><font face="arial,helvetica,sanserif" color="#000000">
+<br>
+                
+                
+<div class="glosslist">
+<a name="ND23"></a>
+<dl>
+                    
+                        
+<dt>wrapper.pidfile</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                File to write process ID to
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.pidfile=/var/run/myapp.pid</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                
+</dl>
+</div>
+            
+</font></td>
+</tr>
+</table>
+</div>
+<br>
+            
+<div>
+<a name="windows-properties"></a>
+<table cellspacing="0" cellpadding="2" border="0" width="98%">
+<tr>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="-1"><b>Windows NT/2000 specific properties</b></font></td>
+</tr>
+<tr>
+<td><font face="arial,helvetica,sanserif" color="#000000">
+<br>
+                
+                
+<p align="justify">
+                    NT Service Properties
+                </p>
+                
+<div align="center">
+<table cellspacing="2" cellpadding="2" border="1">
+<tr>
+<td bgcolor="#c0c0c0"><font size="-1" color="#023264">
+                    
+<p align="justify">
+                        WARNING - Do not modify any of these parameters when an application using this configuration file has been installed as a service.  Please uninstall the service before modifying this section.  The service can then be reinstalled.
+                    </p>
+                
+</font></td>
+</tr>
+</table>
+</div>
+                
+<div class="glosslist">
+<a name="ND4D"></a>
+<dl>
+                    
+                        
+<dt>wrapper.ntservice.name</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Name of the NT service when installed
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.ntservice.name=MyApp</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.ntservice.displayname</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Display name of the NT service when installed
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.ntservice.displayname=My Application</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.ntservice.description</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Description of the NT service when installed.  (Only used in Windows 2000 and XP, not in NT.)
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.ntservice.description=Description of My Application</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.ntservice.dependency.&lt;n&gt;</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Names of any other Services which must be running before this service can be started.  Stopping any of the listed services will also stop this service.  Add dependencies as needed starting from 1.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.ntservice.dependency.1=MySQL</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.ntservice.starttype</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Mode in which the service is installed.  AUTO_START starts the service automatically when the system is rebooted. Or DEMAND_START which requires that the service me started manually.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.ntservice.starttype=AUTO_START</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                
+</dl>
+</div>
+            
+</font></td>
+</tr>
+</table>
+</div>
+<br>
+        
+</font></td>
+</tr>
+</table>
+</div>
+<br>
+    
+</font></td>
+</tr>
+</table>
+</div>
+<br>
+
+</td><td valign="top" width="5"><img height="1" width="5" src="images/spacer.png"></td>
+</tr>
+<tr>
+<td bgcolor="gray" colspan="7"><img height="1" width="1" src="images/spacer.png"></td>
+</tr>
+</table>
+<table cellpadding="0" cellspacing="0" border="0" width="100%">
+<tr>
+<td align="center"><font color="#525D76" size="-1" face="arial,helvetica,sanserif"><i>
+                            Copyright &copy;2000-2001 by Silver Egg Technology Co., Ltd.
+                            All Rights Reserved.
+                        </i></font></td>
+</tr>
+</table>
+</body>
+</html>

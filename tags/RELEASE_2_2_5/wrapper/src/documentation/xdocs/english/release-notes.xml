@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="euc-jp"?>
+
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "../dtd/docbook/4.1.2/docbookx.dtd">
+
+<!-- ********************************************************************
+     $Id$
+     ******************************************************************** -->
+
+<article id="index">
+    <title>Java Service Wrapper Release Notes</title>
+    <section>
+        <title>Version 2.2.5: Changes and bugfixes</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Fixed bug issue when reading config files from Windows on Unix.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Deprecated the wrapper.debug property in favor of loglevels.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Added support for service descriptions for Win2k and XP.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Added new logger functionality includes the following features: Loglevels like Log4j, NT Eventlog support, UNIX syslog support and rolling log files.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Added wildcard support for classpath entries in wrapper.conf.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Added the ability to specify configuration properties from the command line.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Changed the way NT services are installed so that a patched version of the Wrapper.exe file no longer needs to be created to reference the wrapper.conf file.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
+    <section>
+        <title>Version 2.2.4: Changes and bugfixes</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    The value of APP_NAME in the bash or sh scripts no longer needs to be the same as the script.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Added the ablility to format and/or disable file logging and output to the console.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Set mode of executables in binary release tar files so that they can be run without modification after being extracted.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Fixed line feeds in release so that bat files are always CRLF, unix scripts are always LF.  Other source files are always CRLF in ZIP archives and LF in tar.gz archives.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Make the build fail if Wrapper.exe or Wrapper.dll do not exist for Windows builds.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Added an empty wrapper.log to the releases so that the TestWrapper example program runs out of the box.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
+    <section>
+        <title>Version 2.2.3: Changes and bugfixes</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Added template scripts and conf files for ease of integration with other applications.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Cleaned up the build.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    The WrapperSimpleApp method of launchine applications was not working correctly with applications whose main method did not return.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Add sample scripts and wrapper.conf files in the bin and lib directories.  These scripts are used to start a sample application which runs out of the box.  See the new <ulink url="example.html">example.html</ulink> page in the documentation for more details.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Get rid of the platform specific directories in the bin and lib directories.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Enable relative paths for Windows version.  In previous versions of Wrapper, it was necessary to always use absolute paths because the working directory of the wrapper would be then NT System32 directory when run as a service.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    On the windows version, the wrapper always sets the current working directory to the location of the wrapper executable immediately after startup.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Improvements to the documentation / web page.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
+    <section>
+        <title>Version 2.2.2: Changes and bugfixes</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Added HTML based documentation.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
+    <section>
+        <title>Version 2.2.1: Changes and bugfixes</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Added Linux and Solaris build files.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Added Linux and Solaris documentation.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
+    <section>
+        <title>Version 2.2.0: Changes and bugfixes</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Initial Public Release.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
+</article>
