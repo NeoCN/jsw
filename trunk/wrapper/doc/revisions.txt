@@ -24,6 +24,10 @@ Java Service Wrapper Revision History.
   future version.
 * Modified the sh script so it is now possible to set the nice priority in the
   script configuration block.
+* Remove output to System.out in the WrapperManager.requestThreadDump() method.
+  If some JVM threads were hung while accessing the System.out object,
+  attempting to do a thread a dump would cause the calling thread to hang as
+  well.  Thanks to Thomas Hart for the patch.
 
 3.0.4
 * Fix a problem on UNIX systems where requesting a second thread dump any time
