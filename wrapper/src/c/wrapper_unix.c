@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.32  2003/04/03 07:39:56  mortenson
+ * Convert tabs to spaces.  No other changes.
+ *
  * Revision 1.31  2003/04/03 07:37:00  mortenson
  * In the last release, some work was done to avoid false timeouts caused by
  * large quantities of output.  On some heavily loaded systems, timeouts were
@@ -348,13 +351,13 @@ int wrapperReadChildOutput() {
     long durr;
     
     if (jvmOut != -1) {
-		ftime( &timeBuffer );
-		startTime = now = timeBuffer.time;
-		startTimeMillis = nowMillis = timeBuffer.millitm;
+        ftime( &timeBuffer );
+        startTime = now = timeBuffer.time;
+        startTimeMillis = nowMillis = timeBuffer.millitm;
 
-		/*
-		log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "now=%ld, nowMillis=%d", now, nowMillis);
-		*/
+        /*
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "now=%ld, nowMillis=%d", now, nowMillis);
+        */
 
         /* Loop and read as much input as is available.  When a large amount of output is
          *  being piped from the JVM this can lead to the main event loop not getting any
@@ -364,9 +367,9 @@ int wrapperReadChildOutput() {
          *  not read past a line break before returning. */
         childOutputBufferPos = 0;
         while(1) {
-			/*
-			log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "durr=%ld", durr);
-			*/
+            /*
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "durr=%ld", durr);
+            */
 
             if ((durr = (now - startTime) * 1000 + (nowMillis - startTimeMillis)) < 250) {
                 readSize = 1024;
@@ -434,10 +437,10 @@ int wrapperReadChildOutput() {
                 }
             }
 
-			/* Get the time again */
-			ftime( &timeBuffer );
-			now = timeBuffer.time;
-			nowMillis = timeBuffer.millitm;
+            /* Get the time again */
+            ftime( &timeBuffer );
+            now = timeBuffer.time;
+            nowMillis = timeBuffer.millitm;
         }
     }
     
