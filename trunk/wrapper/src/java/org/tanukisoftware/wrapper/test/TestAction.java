@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.9  2004/06/30 09:01:57  mortenson
+// Style fix.  Referencing a static method using an instance.
+//
 // Revision 1.8  2004/03/27 14:39:20  mortenson
 // Add actions for the stopImmediate method.
 //
@@ -156,7 +159,7 @@ public class TestAction
             while (m_alive) {
                 // Idle some
                 try {
-                    Thread.currentThread().sleep(500);
+                    Thread.sleep(500);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
