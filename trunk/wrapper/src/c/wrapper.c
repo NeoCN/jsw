@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.111  2004/08/31 16:36:10  mortenson
+ * Rework the new 64-bit code so that it is done with only 32 bit variables.  A little
+ * more complicated but it fixes compiler warnings on unix systems.
+ *
  * Revision 1.110  2004/08/31 14:34:28  mortenson
  * Fix a problem where the JVM would restart at certain times when using the
  * system time based timer due to an overflow error.
@@ -2324,17 +2328,43 @@ int wrapperLoadConfiguration() {
 /**
  * Calculates a tick count using the system time.
  *
- * We need 64 bits to do this calculation.
+ * We normally need 64 bits to do this calculation.  Play some games to get
+ *  the correct values with 32 bit variables.
  */
 DWORD wrapperGetSystemTicks() {
     struct timeb timeBuffer;
+    DWORD high, low, sum;
+#ifdef _DEBUG
+    DWORD assertSum;
+#endif
 
     ftime( &timeBuffer );
+
+    /* Break in half. */
+    high = timeBuffer.time >> 16;
+    low = timeBuffer.time & 0xffff;
+
+    /* Work on each half. */
+    high = high * 1000 / WRAPPER_TICK_MS;
+    low = (low * 1000 + timeBuffer.millitm) / WRAPPER_TICK_MS;
+
+    /* Now combine them in such a way that the correct bits are truncated. */
+    high = high + ((low >> 16) & 0xffff);
+    sum = ((high & 0xffff) << 16) + (low & 0xffff);
+
+    /* Check the result. */
+#ifdef _DEBUG
 #ifdef WIN32
-	return (DWORD)((timeBuffer.time * 1000UI64 + timeBuffer.millitm) / WRAPPER_TICK_MS);
+    assertSum = (DWORD)((timeBuffer.time * 1000UI64 + timeBuffer.millitm) / WRAPPER_TICK_MS);
 #else
-	return (DWORD)((timeBuffer.time * 1000ULL + timeBuffer.millitm) / WRAPPER_TICK_MS);
+    assertSum = (DWORD)((timeBuffer.time * 1000ULL + timeBuffer.millitm) / WRAPPER_TICK_MS);
 #endif
+    if (assertSum != sum) {
+        printf("wrapperGetSystemTicks() resulted in %08lx rather than %08lx\n", sum, assertSum);
+    }
+#endif
+
+    return sum;
 }
 
 /**
@@ -2357,14 +2387,11 @@ int wrapperGetTickAge(DWORD start, DWORD end) {
  * Returns a tick count that is the specified number of seconds later than
  *  the base tick count.
  *
- * We need 64 bits to do this calculation.
+ * This calculation will work as long as the number of seconds is not large
+ *  enough to require more than 32 bits when multiplied by 1000.
  */
 DWORD wrapperAddToTicks(DWORD start, int seconds) {
-#ifdef WIN32
-    return (DWORD)(start + seconds * 1000UI64 / WRAPPER_TICK_MS);
-#else
-    return (DWORD)(start + seconds * 1000ULL / WRAPPER_TICK_MS);
-#endif
+    return start + (seconds * 1000 / WRAPPER_TICK_MS);
 }
 
 /**

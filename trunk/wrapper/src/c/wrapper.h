@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.53  2004/08/31 16:36:10  mortenson
+ * Rework the new 64-bit code so that it is done with only 32 bit variables.  A little
+ * more complicated but it fixes compiler warnings on unix systems.
+ *
  * Revision 1.52  2004/08/06 16:17:04  mortenson
  * Added a new wrapper.java.command.loglevel property which makes it possible
  * to control the log level of the generated java command.
@@ -185,7 +189,9 @@
 #define WRAPPER_TICK_MS 100 /* The number of ms that are represented by a single
                              *  tick.  Ticks are used as an alternative time
                              *  keeping method. See the wrapperGetTicks() and
-                             *  wrapperGetTickAge() functions for more information. */
+                             *  wrapperGetTickAge() functions for more information.
+                             * Some code assumes that this number can be evenly
+                             *  divided into 1000. */
 
 #define WRAPPER_TIMER_FAST_THRESHOLD 2 * 24 * 3600 * 1000 / WRAPPER_TICK_MS /* Default to 2 days. */
 #define WRAPPER_TIMER_SLOW_THRESHOLD 2 * 24 * 3600 * 1000 / WRAPPER_TICK_MS /* Default to 2 days. */
