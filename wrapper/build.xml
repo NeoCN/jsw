@@ -73,22 +73,18 @@
     <target name="init-linux" if="is.Linux">
         <property name="is.Unix" value="true"/>
         <property name="is.shell.bash" value="true"/>
-        <property name="unix.script.in" value="src/bin/bash.script.in"/>
     </target>
     <target name="init-solaris" if="is.SunOS">
         <property name="is.Unix" value="true"/>
         <property name="is.shell.sh" value="true"/>
-        <property name="unix.script.in" value="src/bin/sh.script.in"/>
     </target>
     <target name="init-aix" if="is.AIX">
         <property name="is.Unix" value="true"/>
         <property name="is.shell.sh" value="true"/>
-        <property name="unix.script.in" value="src/bin/sh.script.in"/>
     </target>
     <target name="init-hpux" if="is.HPUX">
         <property name="is.Unix" value="true"/>
         <property name="is.shell.sh" value="true"/>
-        <property name="unix.script.in" value="src/bin/sh.script.in"/>
     </target>
 
     
@@ -96,7 +92,7 @@
     <!-- Initialize build.                                                   -->
     <!-- =================================================================== -->
     <target name="init"
-	    depends="init-windows-nt, init-windows-2000, init-windows-xp, init-linux, init-solaris, init-aix, init-hpux">
+        depends="init-windows-nt, init-windows-2000, init-windows-xp, init-linux, init-solaris, init-aix, init-hpux">
         <echo message="OS='${os.name}'"/>
         <tstamp/>
         <filter token="version"           value="${version}"       />
