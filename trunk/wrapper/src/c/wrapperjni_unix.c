@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.14  2004/01/12 17:40:03  mortenson
+ * Fix some compiler warnings on Solaris
+ *
  * Revision 1.13  2004/01/10 19:57:48  mortenson
  * Add the ability to request a user's groups on UNIX platforms.
  *
@@ -116,7 +119,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass cl
 JNIEXPORT void JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump(JNIEnv *env, jclass clazz) {
     if (wrapperJNIDebugging) {
-        printf("Sending SIGQUIT event to process group %d.\n", wrapperProcessId);
+        printf("Sending SIGQUIT event to process group %d.\n", (int)wrapperProcessId);
         fflush(NULL);
     }
     if (kill(wrapperProcessId, SIGQUIT) < 0) {
@@ -199,7 +202,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
             if (groups) {
                /* Set the user group. */
                if ((setGroup = (*env)->GetMethodID(env, wrapperUserClass, "setGroup", "(I[B)V")) != NULL) {
-                   if (aGroup = getgrgid(ugid)) {
+                   if ((aGroup = getgrgid(ugid)) != NULL) {
                        ggid = aGroup->gr_gid;
 
                        /* Group name byte array */
