@@ -1,4 +1,4 @@
-COMPILE = gcc -DAIX
+COMPILE = gcc -DAIX -DUSE_NANOSLEEP
 
 INCLUDE=$(JAVA_HOME)/include
 
@@ -14,21 +14,21 @@ LIB = ../../lib
 all: init wrapper libwrapper.so
 
 clean:
-	rm -f *.o
+    rm -f *.o
 
 cleanall: clean
-	rm -rf *~ .deps
-	rm -f $(BIN)/wrapper $(LIB)/libwrapper.so
+    rm -rf *~ .deps
+    rm -f $(BIN)/wrapper $(LIB)/libwrapper.so
 
 init:
-	if test ! -d .deps; then mkdir .deps; fi
+    if test ! -d .deps; then mkdir .deps; fi
 
 wrapper: $(wrapper_SOURCE)
-	$(COMPILE) -lpthread -lnsl -lm $(wrapper_SOURCE) -o $(BIN)/wrapper
+    $(COMPILE) -lpthread -lnsl -lm $(wrapper_SOURCE) -o $(BIN)/wrapper
 
 libwrapper.so: $(libwrapper_so_OBJECTS)
-	${COMPILE} -shared $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
+    ${COMPILE} -shared $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
 #	${COMPILE} -qmkshrobj $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
 
 %.o: %.c
-	${COMPILE} -c ${DEFS} $< 
+    ${COMPILE} -c ${DEFS} $< 
