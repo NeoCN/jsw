@@ -47,6 +47,9 @@ Java Service Wrapper Revision History.
   Wrapper to reload its configuration file immediately before a JVM restart.
   Properties which can not be reloaded have comments stating that fact in
   their documentation.  Feature Request #981060.
+* Fix a problem in the UNIX shell script which was preventing the script from
+  locating the PID and anchor files when the wrapper.working.dir property was
+  used.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager

@@ -119,6 +119,14 @@ $Id$
                     <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=981060&amp;group_id=39428&amp;atid=425190">Feature Request #981060</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem in the UNIX shell script which was preventing the script from
+                    locating the PID and anchor files when the
+                    <ulink url="prop-working-dir.html">wrapper.working.dir</ulink> property was
+                    used.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
