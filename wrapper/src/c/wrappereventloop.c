@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.19  2004/12/06 08:18:07  mortenson
+ * Make it possible to reload the Wrapper configuration just before a JVM restart.
+ *
  * Revision 1.18  2004/11/12 06:51:44  mortenson
  * Add a pair of properties which make it possible to control the range of ports
  * allocated by the Wrapper.
@@ -550,6 +553,22 @@ void jStateLaunch(DWORD nowTicks, int nextSleep) {
         /* Is it time to proceed? */
         if (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0) {
             /* Launch the new JVM */
+            
+            /* Unless this is the first JVM invocation, make it possible to reload the
+             *  Wrapper configuration file. */
+            if (wrapperData->jvmRestarts > 0) {
+                if (wrapperData->restartReloadConf) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                        "Reloading Wrapper configuration...");
+                    
+                    if (wrapperLoadConfigurationProperties()) {
+                        /* Failed to reload the configuration.  This is bad.
+                         *  The JVM is already down.  Shutdown the Wrapper. */
+                        wrapperData->wState = WRAPPER_WSTATE_STOPPING;
+                        return;
+                    }
+                }
+            }
 
             /* Set the launch time to the curent time */
             wrapperData->jvmLaunchTicks = wrapperGetTicks();

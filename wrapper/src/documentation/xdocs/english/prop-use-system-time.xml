@@ -39,6 +39,14 @@
         <para>
             Each value of this property has advantages in certain situations.
         </para>
+        <note>
+            <para>
+                <ulink url="prop-restart-reload-configuration.html">Reloading</ulink>
+                the Wrapper configuration will have no effect on the value of this property.
+                Changes will not take effect until the Wrapper has been restarted.  The threshold
+                properties described below can be updated.
+            </para>
+        </note>
         <section id="use-true">
             <title>wrapper.use_system_time=true (System time)</title>
             <para>

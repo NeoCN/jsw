@@ -83,5 +83,12 @@
                 Java GUI on older JVMs without this work around, I would love to hear it.
             </para>
         </note>
+        <note>
+            <para>
+                <ulink url="prop-restart-reload-configuration.html">Reloading</ulink>
+                the Wrapper configuration will have no effect on the value of this property.
+                Changes will not take effect until the Wrapper has been restarted.
+            </para>
+        </note>
     </section>
 </chapter>

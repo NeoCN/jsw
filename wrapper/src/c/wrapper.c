@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.128  2004/12/06 08:18:06  mortenson
+ * Make it possible to reload the Wrapper configuration just before a JVM restart.
+ *
  * Revision 1.127  2004/11/26 09:02:18  mortenson
  * Enable the tick timer by default.
  *
@@ -466,6 +469,8 @@ SOCKET ssd = INVALID_SOCKET;
 /* Client Socket. */
 SOCKET sd = INVALID_SOCKET;
 
+int loadConfiguration();
+
 void wrapperAddDefaultProperties() {
 #ifdef WIN32
     addPropertyPair(properties, "set.WRAPPER_FILE_SEPARATOR=\\", FALSE, FALSE);
@@ -474,6 +479,59 @@ void wrapperAddDefaultProperties() {
     addPropertyPair(properties, "set.WRAPPER_FILE_SEPARATOR=/", FALSE, FALSE);
     addPropertyPair(properties, "set.WRAPPER_PATH_SEPARATOR=:", FALSE, FALSE);
 #endif
+}
+
+int wrapperLoadConfigurationProperties() {
+    int i;
+    
+    /* Unless this is the first call, we need to dispose the previous properties object. */
+    if (properties) {
+        disposeProperties(properties);
+        properties = NULL;
+    }
+
+    /* Create a Properties structure. */
+    properties = createProperties();
+    wrapperAddDefaultProperties();
+
+    /* The argument prior to the argBase will be the configuration file, followed
+     *  by 0 or more command line properties.  The command line properties need to be
+     *  loaded first, followed by the configuration file. */
+    for (i = wrapperData->argBase; i < wrapperData->argCount; i++) {
+        if (addPropertyPair(properties, wrapperData->argValues[i], TRUE, TRUE)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, 
+                "The argument '%s' is not a valid property name-value pair.",
+                wrapperData->argValues[i]);
+            return 1;
+        }
+    }
+
+    /* Now load the configuration file. */
+    if (loadProperties(properties, wrapperData->argValues[wrapperData->argBase - 1])) {
+        /* File not found. */
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to open configuration file. %s",
+            wrapperData->argValues[wrapperData->argBase - 1]);
+        return 1;
+    }
+
+    /* Store the configuration file name. */
+    wrapperData->configFile = wrapperData->argValues[wrapperData->argBase - 1];
+
+#ifdef _DEBUG
+    /* Display the active properties */
+    printf("Debug Configuration Properties:\n");
+    dumpProperties(properties);
+#endif
+
+    /* Apply properties to the WrapperConfig structure */
+    if (loadConfiguration()) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+            "Problem loading wrapper configuration file: %s",
+            wrapperData->argValues[wrapperData->argBase - 1]);
+        return 1;
+    }
+
+    return 0;
 }
 
 void wrapperProtocolStartServer() {
@@ -2087,6 +2145,11 @@ void wrapperBuildNTServiceInfo() {
     len += 2;
 
     /* Actually build the buffer */
+    if (wrapperData->ntServiceDependencies) {
+        /** This is a reload, so free up the old data. */
+        free(wrapperData->ntServiceDependencies);
+        wrapperData->ntServiceDependencies = NULL;
+    }
     work = wrapperData->ntServiceDependencies = malloc(sizeof(char) * len);
     for (i = 0; i < 10; i++) {
         if (dependencies[i] != NULL) {
@@ -2183,7 +2246,7 @@ int getOutputFilterActionForName( const char *actionName ) {
     }
 }
 
-int wrapperLoadConfiguration() {
+int loadConfiguration() {
     char key[256];
     const char* val;
     int i;
@@ -2222,7 +2285,7 @@ int wrapperLoadConfiguration() {
 
     /* Register the syslog message file if syslog is enabled */
     if (getSyslogLevelInt() < LEVEL_NONE) {
-        registerSyslogMessageFile( );
+        registerSyslogMessageFile();
     }
 
     /* Initialize some values not loaded */
@@ -2271,7 +2334,9 @@ int wrapperLoadConfiguration() {
     }
 
     /* Get the use system time flag. */
-    wrapperData->useSystemTime = getBooleanProperty(properties, "wrapper.use_system_time", FALSE);
+    if (!wrapperData->configured) {
+        wrapperData->useSystemTime = getBooleanProperty(properties, "wrapper.use_system_time", FALSE);
+    }
     /* Get the timer thresholds. Properties are in seconds, but internally we use ticks. */
     wrapperData->timerFastThreshold = getIntProperty(properties, "wrapper.timer_fast_threshold", WRAPPER_TIMER_FAST_THRESHOLD * WRAPPER_TICK_MS / 1000) * 1000 / WRAPPER_TICK_MS;
     wrapperData->timerSlowThreshold = getIntProperty(properties, "wrapper.timer_slow_threshold", WRAPPER_TIMER_SLOW_THRESHOLD * WRAPPER_TICK_MS / 1000) * 1000 / WRAPPER_TICK_MS;
@@ -2321,6 +2386,9 @@ int wrapperLoadConfiguration() {
     if (wrapperData->restartDelay < 0) {
         wrapperData->restartDelay = 0;
     }
+    
+    /* Get the flag which decides whether or not configuration should be reloaded on JVM restart. */
+    wrapperData->restartReloadConf = getBooleanProperty(properties, "wrapper.restart.reload_configuration", FALSE);
     
     /* Get the disable restart flag */
     wrapperData->isRestartDisabled = getBooleanProperty(properties, "wrapper.disable_restarts", FALSE);
@@ -2389,7 +2457,21 @@ int wrapperLoadConfiguration() {
     /* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
     wrapperData->requestThreadDumpOnFailedJVMExit = getBooleanProperty(properties, "wrapper.request_thread_dump_on_failed_jvm_exit", FALSE);
 
-    /* Load the output filters.  First count the number available */
+    /* Load the output filters. */
+    /* To support reloading, we need to free up any previously loaded filters. */
+    if (wrapperData->outputFilterCount > 0) {
+        for (i = 0; i < wrapperData->outputFilterCount; i++) {
+            free(wrapperData->outputFilters[i]);
+            wrapperData->outputFilters[i] = NULL;
+            free(wrapperData->outputFilterActions[i]);
+            wrapperData->outputFilterActions[i] = NULL;
+        }
+        free(wrapperData->outputFilters);
+        wrapperData->outputFilters = NULL;
+        free(wrapperData->outputFilterActions);
+        wrapperData->outputFilterActions = NULL;
+    }
+    /* Count the number available */
     wrapperData->outputFilterCount = 0;
     do {
         sprintf(key, "wrapper.filter.trigger.%d", wrapperData->outputFilterCount + 1);
@@ -2418,10 +2500,6 @@ int wrapperLoadConfiguration() {
             printf("filter #%d, action=%d, filter='%s'\n", i + 1, wrapperData->outputFilterActions[i], wrapperData->outputFilters[i]);
 #endif
         }
-    } else {
-        /* No filters */
-        wrapperData->outputFilters = NULL;
-        wrapperData->outputFilterActions = NULL;
     }
 
     /** Get the pid files if any.  May be NULL */

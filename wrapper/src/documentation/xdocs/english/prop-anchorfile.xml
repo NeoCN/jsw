@@ -58,5 +58,23 @@
             property.  It defaults to 5 seconds, with valid values in the range
             of 1 to 3600 seconds.
         </para>
+        <note>
+            <para>
+                The value of this property should not be modified when
+                <ulink url="prop-restart-reload-configuration.html">Reloading</ulink>
+                the Wrapper configuration.   Doing so may have unexpected results on the
+                behavior of the Wrapper.
+            </para>
+            <para>
+                The anchor file is created when the Wrapper starts.  Disabling the anchor
+                file in the configuration will cause the Wrapper to stop monitoring the
+                file.
+            </para>
+            <para>
+                Setting an anchor file and then reloading the configuration will cause
+                the Wrapper to immediately shutdown.  This is because the Wrapper will
+                not create the anchor file, but it will notice that it does not exist.
+            </para>
+        </note>
     </section>
 </chapter>

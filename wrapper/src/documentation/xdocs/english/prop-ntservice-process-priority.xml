@@ -54,8 +54,10 @@
         </warning>
         <note>
             <para>
-                Changes to this property will not take effect until the
-                service is reinstalled.
+                <ulink url="prop-restart-reload-configuration.html">Reloading</ulink>
+                the Wrapper configuration will have no effect on the priority of the Wrapper
+                process.  But the priority of the restarted JVM process will take on the
+                updated value.
             </para>
         </note>
         <note>

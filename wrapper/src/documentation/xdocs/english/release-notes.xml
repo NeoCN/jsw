@@ -110,6 +110,15 @@ $Id$
                     defaults as they may no longer need to be extended.  
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add a new <ulink url="prop-restart-reload-configuration.html">wrapper.restart.reload_configuration</ulink>
+                    property which causes the Wrapper to reload its configuration file immediately
+                    before a JVM restart.  Properties which can not be reloaded have comments
+                    stating that fact in their documentation.
+                    <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=981060&amp;group_id=39428&amp;atid=425190">Feature Request #981060</ulink>.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
