@@ -650,8 +650,10 @@ wrapper.app.parameter.7=stop]]></screen>
                     <literal moreinfo="none">stop</literal>, and
                     <literal moreinfo="none">restart</literal> commands are common
                     to most daemon scripts and are used to control the wrapper and 
-                    its application as a daemon process.  The
-                    <literal moreinfo="none">console</literal> command
+                    its application as a daemon process.  The 
+                    <literal moreinfo="none">status</literal> command
+                    can be used to find out whether or not the wrapper is currently
+                    running.  The <literal moreinfo="none">console</literal> command
                     will launch the wrapper in the current shell, making it
                     possible to kill the application with CTRL-C.  The final
                     command, <literal moreinfo="none">dump</literal>, will send a
