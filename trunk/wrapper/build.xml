@@ -400,8 +400,8 @@
                  value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main" />
         <replace file="${conf.dir}/wrapper.conf">
             <replacetoken>wrapper.java.classpath.1=../lib/wrapper.jar</replacetoken>
-            <replacevalue><![CDATA[wrapper.java.classpath.1=../lib/wrapper.jar
-wrapper.java.classpath.2=../lib/wrappertest.jar]]></replacevalue>
+            <replacevalue><![CDATA[wrapper.java.classpath.1=../lib/wrappertest.jar
+wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         </replace>
         <replace file="${conf.dir}/wrapper.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
@@ -639,8 +639,8 @@ wrapper.java.classpath.2=../lib/wrappertest.jar]]></replacevalue>
                  value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main" />
         <replace file="${releasedir}/conf/wrapper.conf">
             <replacetoken>wrapper.java.classpath.1=../lib/wrapper.jar</replacetoken>
-            <replacevalue><![CDATA[wrapper.java.classpath.1=../lib/wrapper.jar
-wrapper.java.classpath.2=../lib/wrappertest.jar]]></replacevalue>
+            <replacevalue><![CDATA[wrapper.java.classpath.1=../lib/wrappertest.jar
+wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         </replace>
         <replace file="${releasedir}/conf/wrapper.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
