@@ -56,11 +56,6 @@ tt {
 
 /* Section Headers */
 .sectionheader1 {
-    __font-size: 1.2em;
-    __font-weight: bold;
-    __color: #eeeeee;
-    __background: #1c718d;
-    __margin-bottom: .5em;
     padding-top: .1em;
     padding-left: .5em;
     padding-right: .5em;
@@ -70,19 +65,8 @@ tt {
     border-right: 1px solid #000000;
     border-bottom: 1px solid #000000;
 }
-.__sectionbody1 {
-    font-size: .8em;
-    text-align: justify;
-}
 
 .sectionheader2 {
-    __font-size: 1.0em;
-    __font-weight: bold;
-    __text-align: justify;
-    __color: #eeeeee;
-    __background: #408ba0;
-    __margin-left: 1em;
-    __margin-bottom: .5em;
     padding-top: .1em;
     padding-left: .5em;
     padding-right: .5em;
@@ -91,20 +75,9 @@ tt {
     background-repeat: no-repeat;
     border-right: 1px solid #115b77;
     border-bottom: 1px solid #115b77;
-}
-
-.__sectionbody2 {
-    margin-left: 1em;
 }
 
 .sectionheader3 {
-    __font-size: .9em;
-    __font-weight: bold;
-    __text-align: justify;
-    __color: #eeeeee;
-    __background: #6fa8b7;
-    __margin-left: 1em;
-    __margin-bottom: .5em;
     padding-top: .1em;
     padding-left: .5em;
     padding-right: .5em;
@@ -113,10 +86,6 @@ tt {
     background-repeat: no-repeat;
     border-right: 1px solid #115b77;
     border-bottom: 1px solid #115b77;
-}
-
-.__sectionbody3 {
-    margin-left: 1em;
 }
 
 /* Warning Boxes */
@@ -132,8 +101,6 @@ tt {
     padding-left: .3em;
     padding-right: .3em;
     padding-bottom: 0em;
-    __background: #dd8080;
-    __color: #602222;
     border-top: 1px solid #804444;
     border-left: 1px solid #804444;
     border-right: 1px solid #ffdddd;
@@ -147,11 +114,6 @@ tt {
     margin-bottom: .4em;
 }
 
-.__warninglabel {
-    __color: #a00000;
-    __font-weight: bold;
-}
-
 /* Note Boxes */
 .note {
     margin-top: 1em;
@@ -163,8 +125,6 @@ tt {
     padding-left: .3em;
     padding-right: .3em;
     padding-bottom: 0em;
-    __background: #a0a0ff;
-    __color: #222260;
     border-top: 1px solid #444480;
     border-left: 1px solid #444480;
     border-right: 1px solid #ddddff;
@@ -172,15 +132,8 @@ tt {
 }
 
 .notebody p {
-    __font-size: .8em;
-    __text-align: justify;
     margin-top: .4em;
     margin-bottom: .4em;
-}
-
-.__notelabel {
-    __color: #0000a0;
-    __font-weight: bold;
 }
 
 /* Listing Boxes */
@@ -196,9 +149,7 @@ tt {
 
 .listingcell {
     padding: .3em;
-    __background: #f8f8f8;
     font-family: 'Andale Mono', Courier, monospace;
-    __color: #444444;
     font-size: .85em;
     border-top: 1px solid #cccccc;
     border-left: 1px solid #cccccc;
@@ -207,11 +158,6 @@ tt {
 }
 
 .listingpre {
-    __font-family: 'Andale Mono', Courier, monospace;
-    __color: #804444;
-    __font-size: .65em;
-    __color: #444444;
-    __font-size: .85em;
     margin: .1em;
 }
 
