@@ -762,6 +762,73 @@ wrapper.logfile.format=
                             </warning>
                         </glossdef>
                     </glossentry>
+                    <glossentry>
+                        <glossterm>wrapper.ntservice.account</glossterm>
+                        <glossdef>
+                            <para>
+                                The account to use when running the service.  Use an account name in
+                                the form: <literal moreinfo="none">{DomainName}\{UserName}</literal>.
+                                If the account belongs to the built-in domain, then you may specify
+                                the name if the form: <literal moreinfo="none">.\{UserName}</literal>.
+                                The default, blank value, will use the LocalSystem account.
+                                <informalexample>
+                                    <simpara><emphasis>Example:</emphasis></simpara>
+                                    <screen format="linespecific"><![CDATA[wrapper.ntservice.account=.\leif]]></screen>
+                                </informalexample>
+                            </para>
+                            <para>
+                                When attempting to install the service, you will encounter the
+                                following message if the account name is invalid, does not exist, or
+                                the password for the account is incorrect.  A common mistake is
+                                setting the account name to <literal moreinfo="none">leif</literal>
+                                rather than <literal moreinfo="none">.\leif</literal>.
+                                <informalexample>
+                                    <screen format="linespecific"><![CDATA[CreateService failed - The account name is invalid or does not exist,
+or the password is invalid for the account name specified. (0x421)]]></screen>
+                                </informalexample>
+                            </para>
+                            <para>
+                                Only accounts which have their "Logon as Service" right set can be
+                                used to run a service.  Failure to set this right will result in the
+                                following error message when you attempt to actually start the
+                                service:
+                                <informalexample>
+                                    <screen format="linespecific"><![CDATA[System error 1069 has occurred.
+
+The service did not start due to a logon failure.]]></screen>
+                                </informalexample>
+                            </para>
+                            <para>
+                                To set the "Logon as Service" right;  Go to the Administrative Tools
+                                folder in your control panel.  Open the Local Security Policy applet.
+                                Expand Local Policy and then click on User Rights Assignment.  On
+                                the right side there is a logon as service policy.  Open that and
+                                then add the user that you wish to allow to run the service.
+                            </para>
+                            <para>
+                                Note that the Local Security Policy applet only appears to be
+                                available on Professional versions of Windows NT, 2000 and XP.  Home
+                                versions do not seem to allow you to setup users with the
+                                "Logon as Service" right.
+                            </para>
+                        </glossdef>
+                    </glossentry>
+                    <glossentry>
+                        <glossterm>wrapper.ntservice.password</glossterm>
+                        <glossdef>
+                            <para>
+                                The password of the account specified in
+                                <literal moreinfo="none">wrapper.ntservice.account</literal>.
+                                If the account does not have a password, or if the LocalSystem
+                                account is being used, then this value can be blank.  The default
+                                is no password.
+                                <informalexample>
+                                    <simpara><emphasis>Example:</emphasis></simpara>
+                                    <screen format="linespecific"><![CDATA[wrapper.ntservice.password=secret]]></screen>
+                                </informalexample>
+                            </para>
+                        </glossdef>
+                    </glossentry>
                 </glosslist>
             </section>
             <section id="advanced-properties">

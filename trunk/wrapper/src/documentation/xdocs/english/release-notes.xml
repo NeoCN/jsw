@@ -26,7 +26,14 @@ $Id$
             </listitem>
             <listitem>
                 <para>
-                    Fixed bug where wrapper.logfile.maxsize produced 0 if it didn't have an k or m multiple.
+                    Fixed bug where wrapper.logfile.maxsize was being set to 0 if the 'k' or 'm'
+                    unit was ommitted.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Add the ability to specify an account name and password when installing an
+                    NT service.
                 </para>
             </listitem>
         </itemizedlist>

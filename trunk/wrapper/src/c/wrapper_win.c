@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.25  2002/12/04 06:28:38  mortenson
+ * Add the ability to specify an account name and password when installing an
+ * NT service.
+ *
  * Revision 1.24  2002/11/25 08:45:36  mortenson
  * Fix a problem where an access violation was leading to an infinite loop in the
  * try except block.
@@ -974,8 +978,8 @@ int wrapperInstall(int argc, char **argv) {
                                    NULL,                               /* no load ordering group */
                                    NULL,                               /* no tag identifier */
                                    wrapperData->ntServiceDependencies, /* dependencies */
-                                   NULL,                               /* LocalSystem account */
-                                   NULL);                              /* no password */
+                                   wrapperData->ntServiceAccount,      /* LocalSystem account if NULL */
+                                   wrapperData->ntServicePassword );   /* NULL for no password */
 
         /* Add service description to registry */
         sprintf(regPath, "SYSTEM\\CurrentControlSet\\Services\\%s", wrapperData->ntServiceName);
