@@ -40,7 +40,7 @@
         <informalexample>
             <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
 wrapper  | Launching a JVM...
-jvm 1    | Wrapper (Version 2.x.x)]]></screen>
+jvm 1    | Wrapper (Version 3.x.x)]]></screen>
         </informalexample>
         <para>
             If you do not see the Wrapper version displayed, then the
