@@ -24,6 +24,11 @@
  *
  *
  * $Log$
+ * Revision 1.26  2002/12/06 18:48:39  mortenson
+ * Add a property, wrapper.ntservice.interactive, which makes it possible to
+ * control whether or not the Java process can gain access to the desktop while
+ * it is running as an NT service.
+ *
  * Revision 1.25  2002/12/04 06:28:38  mortenson
  * Add the ability to specify an account name and password when installing an
  * NT service.
@@ -725,8 +730,8 @@ void wrapperExecute() {
     startup_info.dwXCountChars=0;
     startup_info.dwYCountChars=0;
     startup_info.dwFillAttribute=0;
-    startup_info.dwFlags=STARTF_USESTDHANDLES;
-    startup_info.wShowWindow=0;
+    startup_info.dwFlags=STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
+    startup_info.wShowWindow=SW_HIDE;
     startup_info.cbReserved2=0;
     startup_info.lpReserved2=NULL;
     startup_info.hStdInput=NULL;
@@ -904,6 +909,7 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
 int wrapperInstall(int argc, char **argv) {
     SC_HANDLE   schService;
     SC_HANDLE   schSCManager;
+	DWORD       serviceType;
 
     char szPath[512];
     char binaryPath[4096];
@@ -958,6 +964,13 @@ int wrapperInstall(int argc, char **argv) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Service command: %s", binaryPath);
     }
 
+	/* Decide on the service type */
+	if ( wrapperData->ntServiceInteractive ) {
+		serviceType = SERVICE_WIN32_OWN_PROCESS | SERVICE_INTERACTIVE_PROCESS;
+	} else {
+		serviceType = SERVICE_WIN32_OWN_PROCESS;
+	}
+
     /* Next, get a handle to the service control manager */
     schSCManager = OpenSCManager(
                                  NULL,                   
@@ -971,7 +984,7 @@ int wrapperInstall(int argc, char **argv) {
                                    wrapperData->ntServiceName,         /* name of service */
                                    wrapperData->ntServiceDisplayName,  /* name to display */
                                    SERVICE_ALL_ACCESS,                 /* desired access */
-                                   SERVICE_WIN32_OWN_PROCESS,          /* service type */
+                                   serviceType,                        /* service type */
                                    wrapperData->ntServiceStartType,    /* start type */
                                    SERVICE_ERROR_NORMAL,               /* error control type */
                                    binaryPath,                         /* service's binary */

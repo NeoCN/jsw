@@ -94,3 +94,6 @@ wrapper.ntservice.starttype=AUTO_START
 #  REALTIME
 wrapper.ntservice.process_priority=NORMAL
 
+# Allow the service to interact with the desktop.
+wrapper.ntservice.interactive=false
+
