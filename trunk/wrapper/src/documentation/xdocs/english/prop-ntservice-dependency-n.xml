@@ -36,6 +36,17 @@
             <simpara><emphasis>Example:</emphasis></simpara>
             <screen format="linespecific"><![CDATA[wrapper.ntservice.dependency.1=MySQL]]></screen>
         </informalexample>
+        <para>
+            There is a known problem with dependency ordering when shutting
+            down or restarting the machine.  For some reason, the Windows
+            Service Manager completely ignores the dependency tree and tells
+            all services to shutdown simultaneously.   Depending on which
+            service gets the signal first, this can result in the services
+            being shutdown in a random order.   This is a known problem with
+            all NT services and is not specific to the Java Service Wrapper.
+            Unfortunately there does not appear to be any way for the Wrapper
+            to work around this.
+        </para>
         <note>
             <para>
                 Changes to this property will not take effect until the service
