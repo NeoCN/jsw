@@ -67,11 +67,15 @@
         <property name="is.Unix" value="true"/>
         <property name="is.shell.sh" value="true"/>
     </target>
+    <target name="init-irix" if="is.Irix">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+    </target>
     
     <!-- =================================================================== -->
     <!-- Initialize build.                                                   -->
     <!-- =================================================================== -->
-    <target name="init" depends="init-windows-nt, init-windows-2000, init-windows-xp, init-linux, init-solaris, init-macosx, init-osf1, init-freebsd">
+    <target name="init" depends="init-windows-nt, init-windows-2000, init-windows-xp, init-linux, init-solaris, init-macosx, init-osf1, init-freebsd, init-irix">
     </target>
     
     <!-- =================================================================== -->
@@ -595,7 +599,7 @@ set ENV_VAR_4=d]]></replacevalue>
     </target>
     
     <!-- =================================================================== -->
-    <!-- Test Setup target (sh scripts - Solaris, AIX, HPUX, Mac OS X, OSF1, FreeBSD) -->
+    <!-- Test Setup target (sh scripts - Solaris, AIX, HPUX, Mac OS X, OSF1, FreeBSD, IRIX) -->
     <!-- =================================================================== -->
     <target name="test-setup-sh" depends="test-setup-common" if="is.shell.sh">
         <!-- Create a template script to make this easier -->
