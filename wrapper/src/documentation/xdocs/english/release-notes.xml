@@ -174,7 +174,16 @@ $Id$
             </listitem>
             <listitem>
                 <para>
-                    Make the wrapper.port property optional.
+                    Make the <ulink url="prop-port.html">wrapper.port</ulink> property optional.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Changed the way environment variables are loaded from the registry on Windows
+                    platforms so users will no longer get warning messages about not being able
+                    to handle very large environment variables.  Prior versions could only handle
+                    environment variables whose expanded value was less than 2048 characters in
+                    length.
                 </para>
             </listitem>
         </itemizedlist>

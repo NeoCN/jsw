@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.48  2003/08/02 06:49:13  mortenson
+ * Changed the way environment variables are loaded from the registry on Windows
+ * platforms so users will no longer get warning messages about not being able
+ * to handle very large environment variables.
+ *
  * Revision 1.47  2003/07/04 03:36:05  mortenson
  * Improve the error message displayed on Windows when the configured Java
  * command can not be executed or does not exist.
@@ -1123,14 +1128,12 @@ int wrapperLoadEnvFromRegistry() {
     char regPath[1024];
     DWORD dwIndex;
     LONG err;
-    int nameLen = 1024;
-    CHAR name[1024];
+    CHAR name[MAX_PROPERTY_NAME_LENGTH];
     DWORD cbName;
     DWORD type;
-    int dataLen = 2048;
-    byte data[2048];
+    byte data[MAX_PROPERTY_VALUE_LENGTH];
     DWORD cbData;
-    CHAR env[1024 - 1 + 2048 - 1 + 2];
+    CHAR env[MAX_PROPERTY_NAME_LENGTH - 1 + MAX_PROPERTY_VALUE_LENGTH - 1 + 2];
     char *envVal;
     BOOL expanded;
 
@@ -1149,8 +1152,8 @@ int wrapperLoadEnvFromRegistry() {
          *  through all the ones we set and Expand them if necessary. */
         dwIndex = 0;
         do {
-            cbName = nameLen;
-            cbData = dataLen;
+            cbName = MAX_PROPERTY_NAME_LENGTH;
+            cbData = MAX_PROPERTY_VALUE_LENGTH;
             err = RegEnumValue(hKey, dwIndex, name, &cbName, NULL, &type, data, &cbData);
             if (err != ERROR_NO_MORE_ITEMS) {
 #ifdef DEBUG
@@ -1188,8 +1191,8 @@ int wrapperLoadEnvFromRegistry() {
 
                 dwIndex = 0;
                 do {
-                    cbName = nameLen;
-                    cbData = dataLen;
+                    cbName = MAX_PROPERTY_NAME_LENGTH;
+                    cbData = MAX_PROPERTY_VALUE_LENGTH;
                     err = RegEnumValue(hKey, dwIndex, name, &cbName, NULL, NULL, NULL, NULL);
                     if (err != ERROR_NO_MORE_ITEMS) {
                         /* Found an environment variable in the registry.  Get the current value. */
@@ -1207,13 +1210,13 @@ int wrapperLoadEnvFromRegistry() {
 #endif
                             if (strchr(envVal, '%')) {
                                 /* This variable contains tokens which need to be expanded. */
-                                ret = ExpandEnvironmentStrings(envVal, data, dataLen);
+                                ret = ExpandEnvironmentStrings(envVal, data, MAX_PROPERTY_VALUE_LENGTH);
                                 if (ret == 0) {
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to expand environment variable, %s - %s", name, getLastErrorText());
                                     err = ERROR_NO_MORE_ITEMS;
                                     result = 1;
-                                } else if (ret >= dataLen) {
-                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Unable to expand environment variable, %s as it would be longer than the %d byte buffer size.", name, dataLen);
+                                } else if (ret >= MAX_PROPERTY_VALUE_LENGTH) {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Unable to expand environment variable, %s as it would be longer than the %d byte buffer size.", name, MAX_PROPERTY_VALUE_LENGTH);
                                 } else if (strcmp(envVal, data) == 0) {
 #ifdef DEBUG
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "       Value unchanged.  Referenced environment variable not set.");
