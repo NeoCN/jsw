@@ -10,6 +10,41 @@ $Id$
     <title>FAQ</title>
     <section>
         <title>
+            My application is an executable jar. What do I do.
+        </title>
+        <para>
+            The Wrapper does not directly support executable jar files.  But
+            this is easily worked around.
+        </para>
+        <para>
+            The first step is to find out what class is actually being executed
+            when the JVM runs the jar.  To do this, you will need to expand the
+            contents of the jar into a temp directory.  A jar file is nothing
+            more than a fancy ZIP file, so you can either use your favorite ZIP
+            utility or the jar utility that comes with Java.
+        </para>
+        <para>
+            Inside the jar file, you will find the file,
+            <literal moreinfo="none">meta-inf/Manifest.mf</literal>.  Opening
+            this into an editor, reveals something like the following:
+        </para>
+        <informalexample>
+            <screen format="linespecific"><![CDATA[Manifest-Version: 1.0
+Main-Class: com.myco.myapp.Main]]></screen>
+        </informalexample>
+        <para>
+            Passing the <literal moreinfo="none">-jar</literal> parameter and a
+            jar file to Java simply causes it to read the above main class name
+            and use it to run the application.  So to get the Wrapper to launch
+            the same application, all that needs to be done is to include the
+            executable jar on the wrapper classpath along with any other jars,
+            and then follow the normal <ulink url="integrate.html">integration</ulink>
+            steps using the <literal moreinfo="none">Main-Class</literal> as the
+            application's main class.
+        </para>
+    </section>
+    <section>
+        <title>
             The JVM exits unexpectedly when requesting a thread dump.
         </title>
         <para>
