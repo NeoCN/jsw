@@ -25,7 +25,7 @@ WRAPPER_CONF="../conf/wrapper.conf"
 PRIORITY=
 
 # Location of the pid file.
-PIDDIR="./"
+PIDDIR="."
 
 # If uncommented, causes the Wrapper to be shutdown using an anchor file.
 #  When launched with the 'start' command, it will also ignore all INT and
