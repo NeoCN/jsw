@@ -26,6 +26,12 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.8  2002/05/16 04:30:30  mortenson
+// JVM info was not being displayed if the Wrapper.DLL file was not loaded.
+// Modify so that dispose is called at the correct times.
+// Add a debug message stating which thread lead to System.exit being called
+//   via a call to shutdown.
+//
 // Revision 1.7  2002/05/08 03:18:16  mortenson
 // Fix a problem where the JVM was not exiting correctly when all non-daemon
 // threads completed.
@@ -199,6 +205,9 @@ public final class WrapperManager implements Runnable {
                     _hookTriggered = true;
                     WrapperManager.stop(0);
                     
+                    // Dispose the wrapper.
+                    dispose();
+                    
                     if (_debug) {
                         System.out.println("Wrapper Manager: ShutdownHook complete");
                     }
@@ -282,18 +291,18 @@ public final class WrapperManager implements Runnable {
             };
             _eventRunner.setDaemon(true);
             _eventRunner.start();
-            
-            if (_debug) {
-                // Display more JVM infor right after the call initialization of the library.
-                String fullVersion = System.getProperty("java.fullversion");
-                if (fullVersion == null) {
-                    fullVersion = System.getProperty("java.runtime.version") + " " + 
-                        System.getProperty("java.vm.name");
-                }
-                System.out.println("Java Version   : " + fullVersion);
-                System.out.println("Java VM Vendor : " + System.getProperty("java.vm.vendor"));
-                System.out.println();
+        }
+        
+        if (_debug) {
+            // Display more JVM infor right after the call initialization of the library.
+            String fullVersion = System.getProperty("java.fullversion");
+            if (fullVersion == null) {
+                fullVersion = System.getProperty("java.runtime.version") + " " + 
+                    System.getProperty("java.vm.name");
             }
+            System.out.println("Java Version   : " + fullVersion);
+            System.out.println("Java VM Vendor : " + System.getProperty("java.vm.vendor"));
+            System.out.println();
         }
         
         // Create the singleton
@@ -571,19 +580,15 @@ public final class WrapperManager implements Runnable {
      */
     private static void dispose() {
         synchronized(_instance.getClass()) {
-            if (_instance != null) {
-                _instance = null;
-            }
             _disposed = true;
             
             // Close the open socket if it exists.
-            if (_socket != null) {
-                try {
-                    _socket.close();
-                } catch (IOException e) {
-                }
-                _socket = null;
-            }
+            closeSocket();
+            
+            // Give the Connection Thread a chance to stop itself.
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {}
         }
     }
     
@@ -647,6 +652,14 @@ public final class WrapperManager implements Runnable {
             if ((_hook != null) && (!_hookTriggered)) {
                 Runtime.getRuntime().removeShutdownHook(_hook);
                 _hook = null;
+                
+                // Dispose the wrapper.  (If the hook runs, it will do this.)
+                dispose();
+            }
+            
+            if (_debug) {
+                System.out.println("Wrapper Manager: Calling System.exit(" + exitCode + ") " +
+                    "as part of shutdown process by thread: " + Thread.currentThread().getName() );
             }
             System.exit(exitCode);
         }
