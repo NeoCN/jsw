@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.45  2003/08/15 17:16:18  mortenson
+ * Fix tabs.
+ *
  * Revision 1.44  2003/08/15 17:13:17  mortenson
  * Added the wrapper.java.pidfile property which will cause the pid of the
  * java process to be written to a specified file.
@@ -345,23 +348,23 @@ void wrapperExecute() {
             (void)fcntl(jvmOut, F_SETFL, O_NONBLOCK);
             (void)fcntl(jvmOut, F_SETFD, FD_CLOEXEC);
 
-			/* If a java pid filename is specified then write the pid of the java process. */
-			if (wrapperData->javaPidFilename) {
-				old_umask = _umask(022);
-				pid_fp = fopen(wrapperData->javaPidFilename, "w");
-				_umask(old_umask);
+            /* If a java pid filename is specified then write the pid of the java process. */
+            if (wrapperData->javaPidFilename) {
+                old_umask = umask(022);
+                pid_fp = fopen(wrapperData->javaPidFilename, "w");
+                umask(old_umask);
 
-				if (pid_fp != NULL) {
-					fprintf(pid_fp, "%d\n", jvmPid);
-					fclose(pid_fp);
+                if (pid_fp != NULL) {
+                    fprintf(pid_fp, "%d\n", jvmPid);
+                    fclose(pid_fp);
 
-					/* Remember that we created the pid file. */
-					ownJavaPidFile = 1;
-				} else {
-					log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-						"Unable to write the Java PID file: %s", wrapperData->javaPidFilename);
-				}
-			}
+                    /* Remember that we created the pid file. */
+                    ownJavaPidFile = 1;
+                } else {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                        "Unable to write the Java PID file: %s", wrapperData->javaPidFilename);
+                }
+            }
         }
     }
 }
@@ -386,11 +389,11 @@ int wrapperGetProcessStatus() {
         /* JVM has exited. */
         status = WRAPPER_PROCESS_DOWN;
 
-		/* Remove java pid file if it was registered and created by this process. */
-		if ((ownJavaPidFile) && (wrapperData->javaPidFilename)) {
-			unlink(wrapperData->javaPidFilename);
-			ownJavaPidFile = 0;
-		}
+        /* Remove java pid file if it was registered and created by this process. */
+        if ((ownJavaPidFile) && (wrapperData->javaPidFilename)) {
+            unlink(wrapperData->javaPidFilename);
+            ownJavaPidFile = 0;
+        }
 
     } else {
         status = WRAPPER_PROCESS_UP;
@@ -553,11 +556,11 @@ void wrapperKillProcess() {
     wrapperData->jStateTimeout = 0;
     jvmPid = -1;
 
-	/* Remove java pid file if it was registered and created by this process. */
-	if ((ownJavaPidFile) && (wrapperData->javaPidFilename)) {
-		unlink(wrapperData->javaPidFilename);
-		ownJavaPidFile = 0;
-	}
+    /* Remove java pid file if it was registered and created by this process. */
+    if ((ownJavaPidFile) && (wrapperData->javaPidFilename)) {
+        unlink(wrapperData->javaPidFilename);
+        ownJavaPidFile = 0;
+    }
 
     /* Close any open socket to the JVM */
     wrapperProtocolClose();
