@@ -684,6 +684,7 @@
     <!-- =================================================================== -->
     <target name="total-clean" depends="clean" description="Clean up all build and target files">
         <delete dir="${jdoc.dir}"/>
+        <delete dir="${doc.dir}/english"/>
 
         <!-- Do not delete Wrapper.exe or Wrapper.DLL as they are not currently built by ant. -->
 
