@@ -6,6 +6,8 @@ Java Service Wrapper Revision History.
   launched.
 * Fixed bug #611024. The Wrapper would sometimes fail to start if
   wrapper.max_failed_invocations is set to 1.
+* Fix a problem where the number of non-daemon threads was not being calculated
+  in some cases.
 
 2.2.8
 * Fixed a compiler problem on Solaris some systems.

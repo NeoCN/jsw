@@ -24,6 +24,12 @@
                     wrapper.max_failed_invocations is set to 1.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where the number of non-daemon threads was not being calculated
+                    in some cases.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
