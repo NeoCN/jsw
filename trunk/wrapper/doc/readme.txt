@@ -342,7 +342,9 @@ wrapper.ntservice.starttype
 
 
 Launching your application under Wrapper.
+
 Windows NT/2000:
+
 To Run your application as a console, execute the following command.
     C:/MyApp/bin> Wrapper.exe -c C:\MyApp\conf\wrapper.conf
 
@@ -361,6 +363,19 @@ To uninstall the application as an NT service, execute.
 These commands should normally be placed in batch files in the application's
 bin directory to make them easier to use.
 
-Linux:
+Linux/Solaris:
 
-Solaris:
+To run your application from the command line:
+    $ wrapper -c [your application's wrapper config file]
+
+In the src/bin subdirectory you will find some shell (bash and sh)script 
+templates for starting and stopping wrapped applications cleanly in. To
+use these scripts with your application, just set the APP_HOME (base dir
+of your application), APP_NAME, APP_LONG_NAME, and WRAPPER_CONF (path to
+your application's wrapper config file) variables in the scripts to the 
+appropriate values.
+
+You may need to tweak some of the other values (like PIDDIR in the sh
+script) to get them to fit your environment. 
+
+
