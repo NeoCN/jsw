@@ -94,6 +94,15 @@
             <listitem>
                 <ulink url="prop-successful-invocation-time.html">wrapper.successful_invocation_time</ulink>
             </listitem>
+            <listitem>
+                <ulink url="prop-use-system-time.html#prop-timer-fast-threshold">wrapper.timer_fast_threshold</ulink>
+            </listitem>
+            <listitem>
+                <ulink url="prop-use-system-time.html#prop-timer-slow-threshold">wrapper.timer_slow_threshold</ulink>
+            </listitem>
+            <listitem>
+                <ulink url="prop-use-system-time.html">wrapper.use_system_time</ulink>
+            </listitem>
         </itemizedlist>
     </section>
 </chapter>

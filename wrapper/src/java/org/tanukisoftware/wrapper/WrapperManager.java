@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.28  2004/01/09 05:15:11  mortenson
+// Implement a tick timer and convert the system time over to be compatible.
+//
 // Revision 1.27  2004/01/01 12:51:54  mortenson
 // Requesting the groups of a user is a fairly heavy operation on Windows, so make
 // the requesting of a users groups optional.
@@ -190,6 +193,12 @@ public final class WrapperManager
     private static final int DEFAULT_SO_TIMEOUT          = 10000;
     private static final long DEFAULT_CPU_TIMEOUT        = 10000L;
     
+    /** The number of milliseconds in one tick.  Used for internal system
+     *   time independent time keeping. */
+    private static final int TICK_MS                     = 100;
+    private static final int TIMER_FAST_THRESHOLD     = 2 * 24 * 3600 * 1000 / TICK_MS; // 2 days.
+    private static final int TIMER_SLOW_THRESHOLD     = 2 * 24 * 3600 * 1000 / TICK_MS; // 2 days.
+    
     private static final byte WRAPPER_MSG_START          = (byte)100;
     private static final byte WRAPPER_MSG_STOP           = (byte)101;
     private static final byte WRAPPER_MSG_RESTART        = (byte)102;
@@ -263,11 +272,28 @@ public final class WrapperManager
     private static Thread m_commRunner;
     private static boolean m_commRunnerStarted = false;
     private static Thread m_eventRunner;
-    private static long m_eventRunnerTime;
+    private static int m_eventRunnerTicks;
+    
+    /** True if the system time should be used for internal timeouts. */
+    private static boolean m_useSystemTime;
+    
+    /** The threashold of how many ticks the timer can be fast before a
+     *   warning is displayed. */
+    private static int m_timerFastThreshold;
+    
+    /** The threashold of how many ticks the timer can be slow before a
+     *   warning is displayed. */
+    private static int m_timerSlowThreshold;
+    
+    /** An integer which stores the number of ticks since the
+     *   JVM was launched.  Using an int rather than a long allows the value
+     *   to be used without requiring any synchronization.  This is only
+     *   used if the m_useSystemTime flag is false. */
+    private static volatile int m_ticks;
     
     private static WrapperListener m_listener;
     
-    private static long m_lastPing;
+    private static int m_lastPingTicks;
     private static ServerSocket m_serverSocket;
     private static Socket m_socket;
     private static boolean m_shuttingDown = false;
@@ -318,26 +344,23 @@ public final class WrapperManager
         m_debug = getBooleanProperty( "wrapper.debug" );
         
         // Check for the jvmID
-        String jvmId = System.getProperty( "wrapper.jvmid" );
-        if ( jvmId != null )
-        {
-            try
-            {
-                m_jvmId = Integer.parseInt( jvmId );
-            }
-            catch ( NumberFormatException e )
-            {
-                m_jvmId = 1;
-            }
-        }
-        else
-        {
-            m_jvmId = 1;
-        }
+        m_jvmId = getIntProperty( "wrapper.jvmid", 1 );
         if ( m_debug )
         {
             m_out.println( "Wrapper Manager: JVM #" + m_jvmId );
         }
+        
+        // Initialize the timerTicks to a very high value.  This means that we will
+        // always encounter the first rollover (200 * WRAPPER_MS / 1000) seconds
+        // after the Wrapper the starts, which means the rollover will be well
+        // tested.
+        m_ticks = Integer.MAX_VALUE - 200;
+        
+        m_useSystemTime = ( System.getProperty( "wrapper.use_system_time" ) != null );
+        m_timerFastThreshold =
+            getIntProperty( "wrapper.timer_fast_threshold", TIMER_FAST_THRESHOLD ) * 1000 / TICK_MS;
+        m_timerSlowThreshold =
+            getIntProperty( "wrapper.timer_slow_threshold", TIMER_SLOW_THRESHOLD ) * 1000 / TICK_MS;
         
         // Check to see if we should register a shutdown hook
         boolean disableShutdownHook =
@@ -495,25 +518,79 @@ public final class WrapperManager
         
         // Start a thread which looks for control events sent to the
         //  process.  The thread is also used to keep track of whether
-        //  the VM has been getting CPU to avoid invalid timeouts.
-        m_eventRunnerTime = System.currentTimeMillis();
+        //  the VM has been getting CPU to avoid invalid timeouts and
+        //  to maintain the number of ticks since the JVM was launched.
+        m_eventRunnerTicks = getTicks();
         m_eventRunner = new Thread( "Wrapper-Control-Event-Monitor" )
         {
             public void run()
             {
+                int lastTickOffset = 0;
+                boolean first = true;
+                
                 while ( !m_shuttingDown )
                 {
-                    long now = System.currentTimeMillis();
-                    long age = now - m_eventRunnerTime;
+                    if ( !m_useSystemTime )
+                    {
+                        // Get the tick count based on the system time.
+                        int sysTicks = getSystemTicks();
+                        
+                        // Increment the tick counter by 1. This loop takes just slightly
+                        //  more than the length of a "tick" but it is a good enough
+                        //  approximation for our purposes.  The accuracy of the tick length
+                        //  falls sharply when the system is under heavly load, but this
+                        //  has the desired effect as the Wrapper is also much less likely
+                        //  to encounter false timeouts due to the heavy load.
+                        // The ticks field is volatile and a single integer, so it is not
+                        //  necessary to synchronize this.
+                        // When the ticks count reaches the upper limit of the int range,
+                        //  it is ok to just let it overflow and wrap.
+                        m_ticks++;
+                        
+                        // Calculate the offset between the two tick counts.
+                        //  This will always work due to overflow.
+                        int tickOffset = sysTicks - m_ticks;
+                        
+                        // The number we really want is the difference between this tickOffset
+                        //  and the previous one.
+                        int offsetDiff = tickOffset - lastTickOffset;
+                        
+                        if ( first )
+                        {
+                            first = false;
+                        }
+                        else
+                        {
+                            if ( offsetDiff > m_timerSlowThreshold )
+                            {
+                                m_out.println( "The timer fell behind the system clock by "
+                                    + ( offsetDiff * TICK_MS ) + "ms." );
+                            }
+                            else if ( offsetDiff < - m_timerFastThreshold )
+                            {
+                                m_out.println( "The system clock fell behind the timer by "
+                                    + ( -1 * offsetDiff * TICK_MS ) + "ms." );
+                            }
+                        }
+                        
+                        // Store this tick offset for the net time through the loop.
+                        lastTickOffset = tickOffset;
+                    }
+                    
+                    // Attempt to detect whether or not we are being starved of CPU.
+                    //  This will only have any effect if the m_useSystemTime flag is
+                    //  set.
+                    int nowTicks = getTicks();
+                    long age = getTickAge( m_eventRunnerTicks, nowTicks );
                     if ( age > m_cpuTimeout )
                     {
                         m_out.println( "JVM Process has not received any CPU time for "
                             + ( age / 1000 ) + " seconds.  Extending timeouts." );
                         
                         // Make sure that we don't get any ping timeouts in this event
-                        m_lastPing = now;
+                        m_lastPingTicks = nowTicks;
                     }
-                    m_eventRunnerTime = now;
+                    m_eventRunnerTicks = nowTicks;
                     
                     if ( m_libraryOK )
                     {
@@ -528,7 +605,7 @@ public final class WrapperManager
                     // Wait before checking for another control event.
                     try
                     {
-                        Thread.sleep( 200 );
+                        Thread.sleep( TICK_MS );
                     }
                     catch ( InterruptedException e )
                     {
@@ -589,6 +666,97 @@ public final class WrapperManager
     /*---------------------------------------------------------------
      * Methods
      *-------------------------------------------------------------*/
+    /**
+     * Resolves an integer property.
+     *
+     * @param name The name of the property to lookup.
+     * @param defaultValue The value to return if it is not set or is invalid.
+     *
+     * @return The requested property value.
+     */
+    private static int getIntProperty( String name, int defaultValue )
+    {
+        String val = System.getProperty( name );
+        if ( val != null )
+        {
+            try
+            {
+                return Integer.parseInt( val );
+            }
+            catch ( NumberFormatException e )
+            {
+                return defaultValue;
+            }
+        }
+        else
+        {
+            return defaultValue;
+        }
+    }
+    
+    /**
+     * Returns a tick count calculated from the system clock.
+     */
+    private static int getSystemTicks()
+    {
+        // Calculate a tick count using the current system time.  The
+        //  conversion from a long in ms, to an int in TICK_MS increments
+        //  will result in data loss, but the loss of bits and resulting
+        //  overflow is expected and Ok.
+        return (int)( System.currentTimeMillis() / TICK_MS );
+    }
+    
+    /**
+     * Returns the number of ticks since the JVM was launched.  This
+     *  count is not good enough to be used where accuracy is required but
+     *  it allows us to implement timeouts in environments where the system
+     *  time is modified while the JVM is running.
+     * <p>
+     * An int is used rather than a long so the counter can be implemented
+     *  without requiring any synchronization.  At the tick resolution, the
+     *  tick counter will overflow and wrap (every 6.8 years for 100ms ticks).
+     *  This behavior is expected.  The getTickAge method should be used
+     *  in cases where the difference between two ticks is required.
+     *
+     * Returns the tick count.
+     */
+    private static int getTicks()
+    {
+        if ( m_useSystemTime )
+        {
+            return getSystemTicks();
+        }
+        else
+        {
+            return m_ticks;
+        }
+    }
+    
+    /**
+     * Returns the number of milliseconds that have elapsed between the
+     *  start and end counters.  This method assumes that both tick counts
+     *  were obtained by calling getTicks().  This method will correctly
+     *  handle cases where the tick counter has overflowed and reset.
+     *
+     * @param start A base tick count.
+     * @param end An end tick count.
+     *
+     * @return The number of milliseconds that are represented by the
+     *         difference between the two specified tick counts.
+     */
+    private static long getTickAge( int start, int end )
+    {
+        if ( end < start )
+        {
+            // The tick counter wrapped.
+            return ( ( (long)end + Integer.MAX_VALUE - Integer.MIN_VALUE ) - start ) * TICK_MS;
+        }
+        else
+        {
+            return ( end - start ) * (long)TICK_MS;
+        }
+    }
+    
     /**
      * Attempts to load the a native library file.
      *
@@ -1941,7 +2109,7 @@ public final class WrapperManager
             {
                 // Set the last ping time so that the startup process does not time out
                 //  thinking that the JVM has not received a Ping for too long.
-                m_lastPing = System.currentTimeMillis();
+                m_lastPingTicks = getTicks();
             }
             
             // If the socket is open, then send the command, otherwise just throw it away.
@@ -2052,8 +2220,8 @@ public final class WrapperManager
                             break;
                             
                         case WRAPPER_MSG_PING:
-                            m_lastPing = System.currentTimeMillis();
-                            sendCommand( WRAPPER_MSG_PING, "ok" );
+                            m_lastPingTicks = getTicks();
+                            sendCommand( WRAPPER_MSG_PING, "ok" );	
                             break;
                             
                         case WRAPPER_MSG_BADKEY:
@@ -2115,7 +2283,7 @@ public final class WrapperManager
                 }
                 catch ( InterruptedIOException e )
                 {
-                    long now = System.currentTimeMillis();
+                    int nowTicks = getTicks();
                     
                     // Unless the JVM is shutting dowm we want to show warning messages and maybe exit.
                     if ( ( m_started ) && ( !m_stopping ) )
@@ -2123,13 +2291,13 @@ public final class WrapperManager
                         if ( m_debug )
                         {
                             m_out.println( "Read Timed out. (Last Ping was "
-                                + ( now - m_lastPing ) + " milliseconds ago)" );
+                                + getTickAge( m_lastPingTicks, nowTicks ) + " milliseconds ago)" );
                         }
                         
                         if ( !m_appearHung )
                         {
-                            long lastPingAge = now - m_lastPing;
-                            long eventRunnerAge = now - m_eventRunnerTime;
+                            long lastPingAge = getTickAge( m_lastPingTicks, nowTicks );
+                            long eventRunnerAge = getTickAge( m_eventRunnerTicks, nowTicks );
                             
                             // We may have timed out because the system was extremely busy or
                             //  suspended.  Only restart due to a lack of ping events if the
@@ -2319,8 +2487,8 @@ public final class WrapperManager
         //	gets put behind other threads.
         Thread.currentThread().setPriority( Thread.MAX_PRIORITY );
         
-        // Initialize the last ping time.
-        m_lastPing = System.currentTimeMillis();
+        // Initialize the last ping tick count.
+        m_lastPingTicks = getTicks();
         
         boolean gotPortOnce = false;
         while ( !m_disposed )
