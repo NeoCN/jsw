@@ -26,8 +26,12 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
-// Revision 1.1  2001/11/07 08:54:20  mortenson
-// Initial revision
+// Revision 1.2  2001/12/06 10:39:12  mortenson
+// The WrapperSimpleApp method of launchine applications was not
+// working correctly with applications whose main method did not return.
+//
+// Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
+// no message
 //
 
 import java.lang.reflect.InvocationTargetException;
@@ -54,69 +58,77 @@ public class WrapperSimpleApp implements WrapperListener, Runnable {
      * Used to launch the application in a separate thread.
      */
     public void run() {
-        synchronized(this) {
-            Throwable t = null;
-            try {
-                _mainMethod.invoke(null, new Object[] {_appArgs});
-                
-                // If we get here, then the application completed normally and we should shut down
-                //  if there are no daemon threads running.
-                Thread[] threads = new Thread[Thread.activeCount() * 2];
-                Thread.enumerate(threads);
-                
-                // Only shutdown if there are any non daemon threads which are still alive other than this thread.
-                int liveCount = 0;
-                for (int i = 0; i < threads.length; i++) {
-                    //if (threads[i] != null) {
-                    //	System.out.println("Check " + threads[i].getName() + " daemon=" + threads[i].isDaemon() + " alive=" + threads[i].isAlive());
-                    //}
-                    if ((threads[i] != null) && (threads[i].isAlive() && (!threads[i].isDaemon()))) {
-                        // Do not count this thread or the wrapper connection thread
-                        if ((Thread.currentThread() != threads[i]) && 
-                            (!WrapperManager.WRAPPER_CONNECTION_THREAD_NAME.equals(threads[i].getName()))) {
-                            
-                            // Non-Daemon livine thread
-                            liveCount++;
-                            //System.out.println("  -> Non-Daemon");
-                        }
-                    }
-                }
-                
-                // There will always be one non-daemon thread alive.  This thread is either the main
-                //  thread which has not yet completed, or a thread launched by java when the main
-                //  thread completes whose job is to wait around for all other non-daemon threads to
-                //  complete.  We are overriding that thread here.
-                if (liveCount <= 1) {
-                    // Exit normally
-                    WrapperManager.stop(0);
-                    // Will not get here.
-                } else {
-                    // There are daemons running, let the JVM continue to run.
-                }
-                this.notifyAll();
-                return;
-            } catch (IllegalAccessException e) {
-                t = e;
-            } catch (IllegalArgumentException e) {
-                t = e;
-            } catch (InvocationTargetException e) {
-                t = e;
+        Throwable t = null;
+        try {
+            if (WrapperManager.isDebugEnabled()) {
+                System.out.println("WrapperSimpleApp: invoking main method");
+            }
+            _mainMethod.invoke(null, new Object[] {_appArgs});
+            if (WrapperManager.isDebugEnabled()) {
+                System.out.println("WrapperSimpleApp: main method completed");
             }
             
-            // If we get here, then an error was thrown.  If this happened quickly enough, the
-            //  start method should be allowed to shut things down.
-            System.out.println("Encountered an error running main: " + t);
-            showUsage();
-            if (_waitTimedOut) {
-                // Shut down here.
-                WrapperManager.stop(1);
-                return; // Will not get here.
-            } else {
-                // Let start method handle shutdown.
-                _mainExitCode = new Integer(1);
-                this.notifyAll();
-                return;
+            // If we get here, then the application completed normally and we should shut down
+            //  if there are no daemon threads running.
+            Thread[] threads = new Thread[Thread.activeCount() * 2];
+            Thread.enumerate(threads);
+            
+            // Only shutdown if there are any non daemon threads which are still alive other than this thread.
+            int liveCount = 0;
+            for (int i = 0; i < threads.length; i++) {
+                //if (threads[i] != null) {
+                //	System.out.println("Check " + threads[i].getName() + " daemon=" + threads[i].isDaemon() + " alive=" + threads[i].isAlive());
+                //}
+                if ((threads[i] != null) && (threads[i].isAlive() && (!threads[i].isDaemon()))) {
+                    // Do not count this thread or the wrapper connection thread
+                    if ((Thread.currentThread() != threads[i]) && 
+                        (!WrapperManager.WRAPPER_CONNECTION_THREAD_NAME.equals(threads[i].getName()))) {
+                        
+                        // Non-Daemon livine thread
+                        liveCount++;
+                        //System.out.println("  -> Non-Daemon");
+                    }
+                }
             }
+            
+            // There will always be one non-daemon thread alive.  This thread is either the main
+            //  thread which has not yet completed, or a thread launched by java when the main
+            //  thread completes whose job is to wait around for all other non-daemon threads to
+            //  complete.  We are overriding that thread here.
+            if (liveCount <= 1) {
+                // Exit normally
+                WrapperManager.stop(0);
+                // Will not get here.
+            } else {
+                // There are daemons running, let the JVM continue to run.
+            }
+            synchronized(this) {
+                this.notifyAll();
+            }
+            return;
+        } catch (IllegalAccessException e) {
+            t = e;
+        } catch (IllegalArgumentException e) {
+            t = e;
+        } catch (InvocationTargetException e) {
+            t = e;
+        }
+        
+        // If we get here, then an error was thrown.  If this happened quickly enough, the
+        //  start method should be allowed to shut things down.
+        System.out.println("Encountered an error running main: " + t);
+        showUsage();
+        if (_waitTimedOut) {
+            // Shut down here.
+            WrapperManager.stop(1);
+            return; // Will not get here.
+        } else {
+            // Let start method handle shutdown.
+            _mainExitCode = new Integer(1);
+            synchronized(this) {
+                this.notifyAll();
+            }
+            return;
         }
     }
     
@@ -133,6 +145,10 @@ public class WrapperSimpleApp implements WrapperListener, Runnable {
      *	return null.
      */
     public Integer start(String[] args) {
+        if (WrapperManager.isDebugEnabled()) {
+            System.out.println("WrapperSimpleApp: start(args)");
+        }
+        
         Thread mainThread = new Thread(this, "WrapperSimpleAppMain");
         synchronized(this) {
             _appArgs = args;
@@ -143,6 +159,10 @@ public class WrapperSimpleApp implements WrapperListener, Runnable {
             } catch (InterruptedException e) {
             }
             _waitTimedOut = true;
+            
+            if (WrapperManager.isDebugEnabled()) {
+                System.out.println("WrapperSimpleApp: start(args) end.  TimedOut=" + _waitTimedOut + ", exitCode=" + _mainExitCode);
+            }
             return _mainExitCode;
         }
     }
@@ -151,6 +171,10 @@ public class WrapperSimpleApp implements WrapperListener, Runnable {
      * Called when the application is shutting down.
      */
     public int stop(int exitCode) {
+        if (WrapperManager.isDebugEnabled()) {
+            System.out.println("WrapperSimpleApp: stop(" + exitCode + ")");
+        }
+        
         // Normally an application will be asked to shutdown here.  Standard Java applications do
         //  not have shutdown hooks, so do nothing here.  It will be as if the user hit CTRL-C to
         //  kill the application.
@@ -166,8 +190,15 @@ public class WrapperSimpleApp implements WrapperListener, Runnable {
      */
     public void controlEvent(int event) {
         if (WrapperManager.isControlledByNativeWrapper()) {
+            if (WrapperManager.isDebugEnabled()) {
+                System.out.println("WrapperSimpleApp: controlEvent(" + event + ") Ignored");
+            }
             // Ignore the event as the native wrapper will handle it.
         } else {
+            if (WrapperManager.isDebugEnabled()) {
+                System.out.println("WrapperSimpleApp: controlEvent(" + event + ") Stopping");
+            }
+            
             // Not being run under a wrapper, so this isn't an NT service and should always exit.
             //  Handle the event here.
             WrapperManager.stop(0);
@@ -212,12 +243,12 @@ public class WrapperSimpleApp implements WrapperListener, Runnable {
         try {
             mainClass = Class.forName(args[0]);
         } catch (ClassNotFoundException e) {
-            System.out.println("Unable to locate the class " + args[0] + ": " + e);
+            System.out.println("WrapperSimpleApp: Unable to locate the class " + args[0] + ": " + e);
             showUsage();
             WrapperManager.stop(1);
             return;  // Will not get here
         } catch (LinkageError e) {
-            System.out.println("Unable to locate the class " + args[0] + ": " + e);
+            System.out.println("WrapperSimpleApp: Unable to locate the class " + args[0] + ": " + e);
             showUsage();
             WrapperManager.stop(1);
             return;  // Will not get here
@@ -228,12 +259,12 @@ public class WrapperSimpleApp implements WrapperListener, Runnable {
         try {
             mainMethod = mainClass.getDeclaredMethod("main", new Class[] {String[].class});
         } catch (NoSuchMethodException e) {
-            System.out.println("Unable to locate a static main method in class " + args[0] + ": " + e);
+            System.out.println("WrapperSimpleApp: Unable to locate a static main method in class " + args[0] + ": " + e);
             showUsage();
             WrapperManager.stop(1);
             return;  // Will not get here
         } catch (SecurityException e) {
-            System.out.println("Unable to locate a static main method in class " + args[0] + ": " + e);
+            System.out.println("WrapperSimpleApp: Unable to locate a static main method in class " + args[0] + ": " + e);
             showUsage();
             WrapperManager.stop(1);
             return;  // Will not get here
@@ -242,7 +273,7 @@ public class WrapperSimpleApp implements WrapperListener, Runnable {
         // Make sure that the method is public and static
         int modifiers = mainMethod.getModifiers();
         if (!(Modifier.isPublic(modifiers) && Modifier.isStatic(modifiers))) {
-            System.out.println("The main method in class " + args[0] + " must be declared public and static.");
+            System.out.println("WrapperSimpleApp: The main method in class " + args[0] + " must be declared public and static.");
             showUsage();
             WrapperManager.stop(1);
             return;  // Will not get here
