@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.20  2003/01/20 06:26:33  mortenson
+ * Make it possible to create a pid file on all unix platforms.
+ * By default they are only used by sh files however.
+ *
  * Revision 1.19  2002/09/18 10:37:15  mortenson
  * Fix Bug #611024. The Wrapper would sometimes fail to start if
  * wrapper.max_failed_invocations is set to 1.
@@ -429,7 +433,6 @@ void wrapperUsage(char *appName) {
     printf("Options:  --help\n");
 }
 
-#ifdef SOLARIS
 int writePidFile() {
     FILE *pid_fp = NULL;
     mode_t old_umask;
@@ -448,7 +451,6 @@ int writePidFile() {
     }
     return 0;
 }
-#endif
 
 /*******************************************************************************
  * Main function                                                               *
@@ -516,22 +518,25 @@ int main(int argc, char **argv) {
                     "Problem loading wrapper config file: %s", argv[1]);
                 exit(1);
             }
-#ifdef SOLARIS
+
             /* Write pid file. */
-            if (writePidFile()) {
-                log_printf
-                    (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                     "ERROR: Could not write pid file %s: %s",
-                     wrapperData->pidFilename, (char *)strerror(errno));
-                exit(1);
+            if (wrapperData->pidFilename) {
+                if (writePidFile()) {
+                    log_printf
+                        (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                         "ERROR: Could not write pid file %s: %s",
+                         wrapperData->pidFilename, (char *)strerror(errno));
+                    exit(1);
+                }
             }
-#endif
+
             exitStatus = wrapperRunConsole();
             
-#ifdef SOLARIS
             /* Remove pid file. */
-            unlink(wrapperData->pidFilename);
-#endif
+            if (wrapperData->pidFilename) {
+                unlink(wrapperData->pidFilename);
+            }
+
             exit(exitStatus);
         }
     }
