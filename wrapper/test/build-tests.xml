@@ -69,7 +69,7 @@
                  value="wrapper.logfile=../test/testwrapper.log" />
         <replace file="${test.dir}/backgroundthreads.conf"
                  token="wrapper.pidfile=/var/run/aigent.pid"
-                 value="wrapper.pidfile=." />
+                 value="wrapper.pidfile=${basedir}/backgroundthreads.pid" />
         
         <!-- Daemon Threads Test -->
         <filter token="app.name"          value="daemonthreads"/>
@@ -88,7 +88,7 @@
                  value="wrapper.logfile=../test/testwrapper.log" />
         <replace file="${test.dir}/daemonthreads.conf"
                  token="wrapper.pidfile=/var/run/aigent.pid"
-                 value="wrapper.pidfile=." />
+                 value="wrapper.pidfile=${basedir}/daemonthreads.pid" />
         
         <!-- No Return Test -->
         <filter token="app.name"          value="noreturn"/>
@@ -107,7 +107,7 @@
                  value="wrapper.logfile=../test/testwrapper.log" />
         <replace file="${test.dir}/noreturn.conf"
                  token="wrapper.pidfile=/var/run/aigent.pid"
-                 value="wrapper.pidfile=." />
+                 value="wrapper.pidfile=${basedir}/noreturn.pid" />
         <!-- Quick Complete Test -->
         <filter token="app.name"          value="quickcomplete"/>
         <filter token="app.long.name"     value="Quick Complete Case" />
@@ -125,7 +125,7 @@
                  value="wrapper.logfile=../test/testwrapper.log" />
         <replace file="${test.dir}/quickcomplete.conf"
                  token="wrapper.pidfile=/var/run/aigent.pid"
-                 value="wrapper.pidfile=." />
+                 value="wrapper.pidfile=${basedir}/quickcomplete.pid" />
     </target>
     
     <!-- =================================================================== -->
