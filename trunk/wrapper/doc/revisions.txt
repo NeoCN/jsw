@@ -38,6 +38,9 @@ Java Service Wrapper Revision History.
 * Fix a problem where is was not possible disable the wrapper log file as
   documented in the wrapper.logfile property.  Most likely broken way back
   in version 2.2.5.
+* Add some additional error checks after calls to control the pipe between
+  the JVM and Wrapper as well as improving the messages around other socket
+  related error messages.
 
 3.1.0
 * The license was revised for this version to include a copyright omission.
