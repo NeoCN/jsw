@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.40  2003/05/01 03:15:03  mortenson
+ * Rework some code to make its flow clearer.  Should be no functional change.
+ *
  * Revision 1.39  2003/04/16 04:13:11  mortenson
  * Go through and clean up the computation of the number of bytes allocated in
  * malloc statements to make sure that string sizes are always multiplied by
@@ -1002,22 +1005,29 @@ int wrapperInstall(int argc, char **argv) {
                                    wrapperData->ntServiceDependencies, /* dependencies */
                                    wrapperData->ntServiceAccount,      /* LocalSystem account if NULL */
                                    wrapperData->ntServicePassword );   /* NULL for no password */
-
-        /* Add service description to registry */
-        sprintf(regPath, "SYSTEM\\CurrentControlSet\\Services\\%s", wrapperData->ntServiceName);
-        if( schService && (wrapperData->ntServiceDescription != NULL && strlen(wrapperData->ntServiceDescription) > 0) && (RegOpenKeyEx(HKEY_LOCAL_MACHINE, regPath, 0, KEY_WRITE, (PHKEY) &hKey) == ERROR_SUCCESS) ) {
-            /* Set Description key in registry */
-            RegSetValueEx(hKey, "Description", (DWORD) 0, (DWORD) REG_SZ, (const unsigned char *) wrapperData->ntServiceDescription, (strlen(wrapperData->ntServiceDescription) + 1));
-            RegCloseKey(hKey);
-        }
-
-        if (schService){
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s installed.", wrapperData->ntServiceDisplayName);
+        
+        if (schService) {
+            /* Have the service, add a description to the registry. */
+            sprintf(regPath, "SYSTEM\\CurrentControlSet\\Services\\%s", wrapperData->ntServiceName);
+            if ((wrapperData->ntServiceDescription != NULL && strlen(wrapperData->ntServiceDescription) > 0)
+                && (RegOpenKeyEx(HKEY_LOCAL_MACHINE, regPath, 0, KEY_WRITE, (PHKEY) &hKey) == ERROR_SUCCESS)) {
+                
+                /* Set Description key in registry */
+                RegSetValueEx(hKey, "Description", (DWORD) 0, (DWORD) REG_SZ,
+                    (const unsigned char *)wrapperData->ntServiceDescription,
+                    (strlen(wrapperData->ntServiceDescription) + 1));
+                RegCloseKey(hKey);
+            }
+            
+            /* Service was installed. */
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s installed.",
+                wrapperData->ntServiceDisplayName);
 
             /* Close the handle to this service object */
             CloseServiceHandle(schService);
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "CreateService failed - %s", getLastErrorText(szErr, 256));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "CreateService failed - %s",
+                getLastErrorText(szErr, 256));
             result = 1;
         }
 
