@@ -25,11 +25,24 @@
     <section>
         <title>wrapper.port</title>
         <para>
-            A port used to communicate between the Wrapper executable and the
-            Java application.  Used to monitor the health of the Java
-            application.  This can be any value. If at runtime, the specified
-            value is in use, then a warning will be printed to the console and
-            the next available port will be used in its place.
+            The Wrapper uses a socket to communicate with its Java component running
+            inside a JVM.  This property allows the configuration of this port.  Most
+            applications need not specify this property as the default value of 0,
+            which instructs the Wrapper to choose its own port, will be sufficient.
+        </para>
+        <para>
+            When a port of 0 is specified, the Wrapper will search for the first
+            available port starting with port number 32000.  If a valid port can
+            not be found within the first 1000 attempts then the Wrapper will fail
+            with an error.  To my knowledge, this has never been seen.  This means
+            that auto allocated ports will fall in the range 32000-32999.
+        </para>
+        <para>
+            If a specific port should be used, then any port in the range 1-65535 may
+            be specified.  Note that on UNIX systems port numbers below 1024 will most
+            likely require root access to be set.  If the specified port is in use then
+            the Wrapper will display a warning to the log and, as with the default
+            case, will search for the first available port.
         </para>
         <para>
             When the Wrapper launches a JVM instance, it will open a server
@@ -37,6 +50,7 @@
             launched JVM will be supplied with a key which it must use to be
             able to connect back to the Wrapper process.  Once the JVM has
             connected, the Wrapper will no longer accept additional connections.
+            The way this is done should not raise any security issues.
         </para>
         <informalexample>
             <simpara><emphasis>Example:</emphasis></simpara>
