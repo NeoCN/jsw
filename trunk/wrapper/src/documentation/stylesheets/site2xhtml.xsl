@@ -65,11 +65,23 @@
         </table>
         <table width="100%" border="0" cellspacing="0" cellpadding="0">
             <tr>
-                <td align="center">
+                <td align="left">
                     <font face="arial,helvetica,sanserif" size="-1" color="#525D76">
                         <i>
                             Copyright &#169;2000-2001 by Silver Egg Technology Co., Ltd.
                             All Rights Reserved.
+                        </i>
+                    </font>
+                </td>
+                <td align="right">
+                    <font face="arial,helvetica,sanserif" size="-1" color="#525D76">
+                        <i>
+                            last modified:
+                            <script language="JavaScript">
+                                <![CDATA[<!-- 
+                                document.write(document.lastModified); 
+                                //  -->]]>
+                            </script>
                         </i>
                     </font>
                 </td>
