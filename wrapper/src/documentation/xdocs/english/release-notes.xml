@@ -1423,7 +1423,7 @@ $Id$
                     Wrapper that it was going to exit and the JVM process actually exiting.
                     This would cause the Wrapper to terminate the process prematurely in
                     cases where an application shutdown thread took longer than 5 seconds to
-                    complete.  The Wrapper not allows wrapper.jvm_exit.timeout seconds for
+                    complete.  The Wrapper now allows wrapper.jvm_exit.timeout seconds for
                     the JVM process to exit on its own before being forcibly terminated.
                 </para>
             </listitem>
