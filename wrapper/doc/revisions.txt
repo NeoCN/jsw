@@ -62,6 +62,8 @@ Java Service Wrapper Revision History.
 * Display a warning if the exit status of a JVM process ever returns the
   STILL_ACTIVE status on Windows.  There was no known problem here, just
   noticed it while looking over the code.
+* Display a descriptive error message on Windows if the the JVM process crashes
+  due to an uncaught exception in native JVM code.
 
 3.1.1
 * Modified the way libwrapper.so is built on Solaris and Linux so that it
