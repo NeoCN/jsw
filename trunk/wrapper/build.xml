@@ -151,6 +151,16 @@
         <filter token="app.name"          value="${app.name}"      />
         <filter token="app.long.name"     value="${app.long.name}" />
         <filter token="app.description"   value="${app.desc}"      />
+        
+        <!-- Docs can only be generated up through version 1.4.1 of the SDK due to jar
+             problems.  I will need to upgrade Cocoon to resolve this. -->
+        <condition property="is.docDisabled">
+            <or>
+                <contains string="${java.version}" substring="1.4.2"/>
+                <contains string="${java.version}" substring="1.4.3"/>
+                <contains string="${java.version}" substring="1.5"/>
+            </or>
+        </condition>
     </target>
     
     <!-- =================================================================== -->
@@ -436,11 +446,23 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
     <!-- =================================================================== -->
     <!-- Documentation target                                                -->
     <!-- =================================================================== -->
-    <target name="doc-src-test">
-    <available file="${src.dir}/documentation/english.uris" property="doc-src.present"/>
+    <target name="doc-test" depends="init" if="is.docDisabled">
+        <echo message="************************************************************"/>
+        <echo message="* Documentation can not currently be generated with this    "/>
+        <echo message="* JVM due to a jar incompatibility.  To build the docs      "/>
+        <echo message="* please use a version earlier than 1.4.2.  You are         "/>
+        <echo message="* currently using ${java.version}                           "/>
+        <echo message="*                                                           "/>
+        <echo message="* If you are building from a src distribution then you the  "/>
+        <echo message="* docs previously built for that distribution will be used. "/>
+        <echo message="************************************************************"/>
+    </target>
+    <target name="doc-src-test" depends="doc-test" unless="is.docDisabled">
+       <available file="${src.dir}/documentation/english.uris" property="doc-src.present"/>
     </target>
     <target name="doc" depends="doc-src-test" if="doc-src.present"
-    description="generates the Wrapper documentation">
+       description="generates the Wrapper documentation">
+        
         <mkdir dir="${build.dir}"/>
         <mkdir dir="${build.dir}/work"/>
         <mkdir dir="${doc.dir}"/>
