@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.23  2004/11/26 08:41:22  mortenson
+// Implement reading from System.in
+//
 // Revision 1.22  2004/11/22 09:35:46  mortenson
 // Add methods for controlling other services.
 //
@@ -233,6 +236,8 @@ public class Main
             
             buildCommand( gridBag, c, "Poll Users with Groups", "groups",
                 "Same as above, but includes information about the user's groups." );
+            
+            buildCommand( gridBag, c, "Console", "console", "Prompt for Actions in the console." );
             
             buildCommand( gridBag, c, "Idle", "idle", "Run idly." );
             

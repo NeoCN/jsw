@@ -241,17 +241,6 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.Memory" />
 
-        <!-- System.in Test -->
-        <delete file="${test.dir}/systemin.conf"/>
-        <filter token="app.name"          value="systemin"/>
-        <filter token="app.long.name"     value="System.in Case" />
-        <copy file="${test.dir}/template.conf"
-              tofile="${test.dir}/systemin.conf"
-              filtering="on"/>
-        <replace file="${test.dir}/systemin.conf"
-                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
-                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.SystemIn" />
-
         <!-- Filter Test -->
         <delete file="${test.dir}/filter.conf"/>
         <filter token="app.name"          value="filter"/>
@@ -503,18 +492,6 @@ set ENV_VAR_4=d]]></replacevalue>
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\memory.conf' />
         
-        <!-- System.in Test -->
-        <delete file="${test.dir}/TestSystemIn.bat"/>
-        <copy file="${src.dir}/bin/App.bat.in"
-              tofile="${test.dir}/TestSystemIn.bat"
-              filtering="on"/>
-        <replace file="${test.dir}/TestSystemIn.bat"
-                 token='set _WRAPPER_EXE=%_REALPATH%Wrapper.exe'
-                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\Wrapper.exe' />
-        <replace file="${test.dir}/TestSystemIn.bat"
-                 token='%_REALPATH%..\conf\wrapper.conf'
-                 value='%_REALPATH%..\test\systemin.conf' />
-        
         <!-- Filter Test -->
         <delete file="${test.dir}/TestFilter.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
@@ -734,14 +711,6 @@ export ENV_VAR_4=d]]></replacevalue>
               filtering="on"/>
         <chmod file="${test.dir}/memory" perm="+x"/> 
         
-        <!-- System.in Test -->
-        <filter token="app.name"          value="systemin"/>
-        <filter token="app.long.name"     value="System.in Case" />
-        <copy file="${test.dir}/temp.script.in"
-              tofile="${test.dir}/systemin"
-              filtering="on"/>
-        <chmod file="${test.dir}/systemin" perm="+x"/> 
-        
         <!-- Filter Test -->
         <filter token="app.name"          value="filter"/>
         <filter token="app.long.name"     value="Filter Case" />
@@ -784,8 +753,6 @@ export ENV_VAR_4=d]]></replacevalue>
         <delete>
             <fileset dir="${basedir}/test">
                 <exclude name=".cvsignore"/>
-                <exclude name="systeminnowrapper"/>
-                <exclude name="TestSystemInNoWrapper.bat"/>
             </fileset>
         </delete>
     </target>
