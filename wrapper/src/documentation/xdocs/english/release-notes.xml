@@ -13,6 +13,11 @@
         <itemizedlist>
             <listitem>
                 <para>
+                    Added the ablility to format and/or disable file logging and output to the console.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
                     Set mode of executables in binary release tar files so that they can be run without modification after being extracted.
                 </para>
             </listitem>

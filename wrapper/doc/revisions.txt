@@ -1,6 +1,8 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 2.2.4
+* Added the ablility to format and/or disable file logging and output to the
+  console.
 * Set mode of executables in binary release tar files so that they can be run
   without modification after being extracted.
 * Fixed line feeds in release so that bat files are always CRLF, unix scripts

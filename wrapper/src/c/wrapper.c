@@ -24,6 +24,10 @@
  */
 
 // $Log$
+// Revision 1.3  2001/12/11 05:19:39  mortenson
+// Added the ablility to format and/or disable file logging and output to
+// the console.
+//
 // Revision 1.2  2001/12/06 09:36:24  mortenson
 // Docs changes, Added sample apps, Fixed some problems with
 // relative paths  (See revisions.txt)
@@ -84,53 +88,102 @@ SOCKET ssd = INVALID_SOCKET;
 // Client Socket.
 SOCKET sd = INVALID_SOCKET;
 
+int wrapperBuildInnerLog(char *format, char *buffer, int sourceID, struct tm *nowTM, const char *message) {
+    char work[32];
+    int useOutput;
+    
+    useOutput = 0;
+    
+    // Start with a null terminated string
+    buffer[0] = '\0';
+    
+    // Add the prefix if necessary
+    if ((strchr(format, 'P') != NULL) || (strchr(format, 'p') != NULL)) {
+		// Build the source prefix
+		switch (sourceID) {
+		case WRAPPER_SOURCE_WRAPPER:
+			sprintf(work, "wrapper ");
+			break;
+
+		case WRAPPER_SOURCE_PROTOCOL:
+			sprintf(work, "wrapperp");
+			break;
+
+		default:
+			sprintf(work, "jvm %-4d", sourceID);
+			break;
+		}
+		strcat(buffer, work);
+		useOutput = 1;
+	}
+
+	// Add the time if necessary
+    if ((strchr(format, 'T') != NULL) || (strchr(format, 't') != NULL)) {
+		if (useOutput) {
+			strcat(buffer, " | ");
+		}
+		
+		// Write to a buffer to be written to the log file
+		sprintf(work, "%04d/%02d/%02d %02d:%02d:%02d",
+				nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday, 
+				nowTM->tm_hour, nowTM->tm_min, nowTM->tm_sec);
+
+		strcat(buffer, work);
+		useOutput = 1;
+	}
+
+	// Add the message if necessary
+    if ((strchr(format, 'M') != NULL) || (strchr(format, 'm') != NULL)) {
+		if (useOutput) {
+			strcat(buffer, " | ");
+		}
+
+		strcat(buffer, message);
+		useOutput = 1;
+	}
+
+	// Add a line feed to the end of the entry
+	if (useOutput) {
+		strcat(buffer, "\n");
+	}
+
+	return useOutput;
+}
+
 void wrapperInnerLog(int sourceID, const char *message) {
-    char header[16];
     time_t now;
     struct tm *nowTM;
     FILE *log;
 
-    // Build the source header
-    switch (sourceID) {
-    case WRAPPER_SOURCE_WRAPPER:
-        sprintf(header, "wrapper ");
-        break;
-
-    case WRAPPER_SOURCE_PROTOCOL:
-        sprintf(header, "wrapperp");
-        break;
-
-    default:
-        sprintf(header, "jvm %-4d", sourceID);
-        break;
-    }
-
     // Build a timestamp
     now = time(NULL);
     nowTM = localtime(&now);
+    
+    //
+    // Write the console entry
+    //
+	if (wrapperBuildInnerLog(wrapperData->consoleFormat, iLogBuffer, sourceID, nowTM, message)) {
+		printf(iLogBuffer);
+	}
 
-    // Write to a buffer to be written to the log file
-    sprintf(iLogBuffer, "%s | %04d/%02d/%02d %02d:%02d:%02d | %s\n", header, 
-            nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday, 
-            nowTM->tm_hour, nowTM->tm_min, nowTM->tm_sec,
-            message);
+    //
+    // Write the logFile entry
+    //
+	if (wrapperBuildInnerLog(wrapperData->logFileFormat, iLogBuffer, sourceID, nowTM, message)) {
+		if (wrapperData->logFile == NULL) {
+			// Use a default log file so that problems can be caught when run as a service.
+			wrapperData->logFile = "wrapper.log";
+		}
+		if (strlen(wrapperData->logFile) > 0) {
+			if ((log = fopen(wrapperData->logFile, "a")) == NULL) {
+				printf("Unable to open log file %s\n", wrapperData->logFile);
+			} else {
+				fputs(iLogBuffer, log);
 
-    // Write to standard output
-    printf("%s | %s\n", header, message);
-    //printf(iLogBuffer);
-
-    if (wrapperData->logFile == NULL) {
-        // Use a default log file so that problems can be caught when run as a service.
-        wrapperData->logFile = "Wrapper.log";
-    }
-
-    if ((log = fopen(wrapperData->logFile, "a")) == NULL) {
-        printf("Unable to open log file %s\n", wrapperData->logFile);
-        return;
-    }
-    fputs(iLogBuffer, log);
-
-    fclose(log);
+				fclose(log);
+			}
+		}
+	}
 }
 
 void wrapperLog(int sourceID, const char *message) {
@@ -1441,6 +1494,12 @@ int wrapperBuildUnixDaemonInfo() {
 int wrapperLoadConfiguration() {
     // Load log file
     wrapperData->logFile = (char *)getStringProperty(properties, "wrapper.logfile", "wrapper.log");
+    
+    // Load log file format
+    wrapperData->logFileFormat = (char *)getStringProperty(properties, "wrapper.logfile.format", "PTM");
+    
+    // Load console format
+    wrapperData->consoleFormat = (char *)getStringProperty(properties, "wrapper.console.format", "PM");
 
     // Initialize some values not loaded
     wrapperData->exitCode = 0;

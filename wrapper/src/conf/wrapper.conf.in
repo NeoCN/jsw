@@ -29,9 +29,6 @@ wrapper.java.maxmemory=64
 # Port which the native wrapper code will attempt to connect to
 wrapper.port=1777
 
-# Log file to use for wrapper output logging.
-wrapper.logfile=../logs/wrapper.log
-
 # Number of seconds to allow for the JVM to be launched and contact the wrapper before the
 #  wrapper should assume that the JVM is hung and terminate the JVM process.  0 means never
 #  time out.  Defaults to 30 seconds.
@@ -44,6 +41,18 @@ wrapper.ping.timeout=30
 # The Wrapper detects when an application calls System.exit() and treats this as a request
 #  to stop the server by default.
 #wrapper.disable_shutdown_hook=TRUE
+
+#********************************************************************
+# Wrapper Logging parameters
+#********************************************************************
+# Log file to use for wrapper output logging.
+wrapper.logfile=../logs/wrapper.log
+
+# Format of output for the log file.  (See docs for formats)
+wrapper.logfile.format=PTM
+
+# Format of output for the console.  (See docs for formats)
+wrapper.console.format=PM
 
 # Show debug messages
 #wrapper.debug=TRUE
