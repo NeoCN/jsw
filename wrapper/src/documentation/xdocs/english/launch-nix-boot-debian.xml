@@ -7,7 +7,7 @@
      ******************************************************************** -->
 
 <chapter id="launch-nix-boot-debian">
-    <title>Launching Your Application (Linux / UNIX)</title>
+    <title>Starting at Reboot (Debian Linux)</title>
     <section>
         <title>Launching Your Application</title>
         <itemizedlist>
