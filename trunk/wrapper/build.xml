@@ -23,7 +23,7 @@
     
     <!-- product version -->
     <property name="major.version" value="2" />
-    <property name="version"       value="${major.version}.3.0a" />
+    <property name="version"       value="${major.version}.3.0b" />
     
     <property name="bin.dir"       value="bin"/>
     <property name="conf.dir"      value="conf"/>
@@ -341,7 +341,7 @@
         <copy todir="${releasesrcdir}" >
             <fileset dir="${basedir}" >
                 <include name="index.html" />
-                <include name="build.*" />
+                <include name="build*" />
                 <include name="project.dtd" />
                 <include name="doc/**" />
                 <include name="src/bin/**" />
@@ -356,7 +356,6 @@
                 <include name="src/c/*.rc" />
                 <include name="src/c/*.bin" />
                 <include name="src/documentation/**" />
-                <include name="test/build-tests.xml" />
                 <include name="tools/**" />
                 <exclude name="**/CVS/*" />
             </fileset>
