@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.6  2004/07/05 08:42:38  mortenson
+ * Call maintainLogger a second time to make sure that any queued messages are
+ * displayed before any state changes to avoid confusing output.
+ *
  * Revision 1.5  2004/07/05 07:43:54  mortenson
  * Fix a deadlock on solaris by being very careful that we never perform any direct
  * logging from within a signal handler.
@@ -834,7 +838,11 @@ void wrapperEventLoop() {
         nextSleep = TRUE;
 
         /* Before doing anything else, always maintain the logger to make sure
-         *  that any queued messages are logged. */
+         *  that any queued messages are logged before doing anything else.
+         *  Called a second time after socket and child output to make sure
+         *  that all messages appropriate for the state changes have been
+         *  logged.  Failure to do so can result in a confusing sequence of
+         *  output. */
         maintainLogger();
 
         /* Check the stout pipe of the child process. */
@@ -857,6 +865,9 @@ void wrapperEventLoop() {
             nextSleep = FALSE;
         }
         
+        /* See comment for first call above. */
+        maintainLogger();
+
         /* Get the current time for use in this cycle. */
         nowTicks = wrapperGetTicks();
 
