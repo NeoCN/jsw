@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.90  2004/03/20 16:55:49  mortenson
+ * Add an adviser feature to help cut down on support requests from new users.
+ *
  * Revision 1.89  2004/03/18 07:43:20  mortenson
  * Fix a problem where unwanted read timeout messages were being displayed when
  * the ping interval was set to a large value.
@@ -1765,6 +1768,60 @@ void wrapperFreeJavaCommandArray(char **strings, int length) {
     }
 }
 
+void displayLaunchingTimeoutMessage() {
+    const char *mainClass;
+
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+        "Startup failed: Timed out waiting for a signal from the JVM.");
+
+    mainClass = getStringProperty(properties, "wrapper.java.mainclass", "Main");
+
+    if ((strstr(mainClass, "org.tanukisoftware.wrapper.WrapperSimpleApp") != NULL)
+        || (strstr(mainClass, "org.tanukisoftware.wrapper.WrapperStartStopApp") != NULL)
+        || (strstr(mainClass, "com.silveregg.wrapper.WrapperSimpleApp") != NULL)
+        || (strstr(mainClass, "com.silveregg.wrapper.WrapperStartStopApp") != NULL)) {
+
+        /* The user appears to be using a valid main class, so no advice available. */
+    } else {
+        if (wrapperData->isAdviserEnabled) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "" );
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                "------------------------------------------------------------------------" );
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                "Advice:" );
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                "The Wrapper consists of a native component as well as a set of classes");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                "which run within the JVM that it launches.  The Java component of the");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                "Wrapper must be initialized promptly after the JVM is launched or the");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                "Wrapper will timeout, as just happened.  Most likely the main class");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                "specified in the Wrapper configuration file is not correctly initializing");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                "the Wrapper classes:");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                "    %s", mainClass);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                "While it is possible to do so manually, the Wrapper ships with helper");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                "classes to make this initialization processes automatic.");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                "Please review the integration section of the Wrapper's documentation");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                "for the various methods which can be employed to launch an application");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                "within the Wrapper:");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                "    http://wrapper.tanukisoftware.org/doc/english/integrate.html");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                "------------------------------------------------------------------------" );
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "" );
+        }
+    }
+}
+
 /**
  * The main event loop for the wrapper.  Handles all state changes and events.
  */
@@ -2069,8 +2126,7 @@ void wrapperEventLoop() {
                  *  from the JVM attempting to register.
                  * Have we waited too long already */
                 if (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                               "Startup failed: Timed out waiting for signal from JVM.");
+                    displayLaunchingTimeoutMessage();
 
                     /* Give up on the JVM and start trying to kill it. */
                     wrapperKillProcess();
@@ -2436,6 +2492,13 @@ int wrapperLoadConfiguration() {
         if (getLowLogLevel() <= LEVEL_DEBUG) {
             wrapperData->isDebugging = TRUE;
         }
+    }
+
+    /* Get the adviser status */
+    wrapperData->isAdviserEnabled = getBooleanProperty(properties, "wrapper.adviser", TRUE);
+    /* The adviser is always enabled if debug is enabled. */
+    if (wrapperData->isDebugging) {
+        wrapperData->isAdviserEnabled = TRUE;
     }
 
     /* Get the use system time flag. */

@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.37  2004/03/20 16:55:49  mortenson
+ * Add an adviser feature to help cut down on support requests from new users.
+ *
  * Revision 1.36  2004/01/16 04:41:58  mortenson
  * The license was revised for this version to include a copyright omission.
  * This change is to be retroactively applied to all versions of the Java
@@ -140,7 +143,7 @@ int currentLogfileLevel = LEVEL_UNKNOWN;
 int currentLoginfoLevel = LEVEL_UNKNOWN;
 
 char logFilePath[ 1024 ];
-char *logLevelNames[] = { "NONE  ", "DEBUG ", "INFO  ", "STATUS", "WARN  ", "ERROR ", "FATAL " };
+char *logLevelNames[] = { "NONE  ", "DEBUG ", "INFO  ", "STATUS", "WARN  ", "ERROR ", "FATAL ", "ADVICE" };
 char loginfoSourceName[ 1024 ];
 int  logFileMaxSize = -1;
 int  logFileMaxLogFiles = -1;
@@ -236,6 +239,8 @@ int strcmpIgnoreCase( const char *str1, const char *str2 ) {
 int getLogLevelForName( char *logLevelName ) {
     if (strcmpIgnoreCase(logLevelName, "NONE") == 0) {
         return LEVEL_NONE;
+    } else if (strcmpIgnoreCase(logLevelName, "ADVICE") == 0) {
+        return LEVEL_ADVICE;
     } else if (strcmpIgnoreCase(logLevelName, "FATAL") == 0) {
         return LEVEL_FATAL;
     } else if (strcmpIgnoreCase(logLevelName, "ERROR") == 0) {
@@ -621,9 +626,17 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
     }
 
     /* Loginfo/Eventlog if levels match (not by format timecodes/status allready exists in evenlog) */
-    if( level >= currentLoginfoLevel ) {
-        sendEventlogMessage( source_id, level, threadMessageBuffers[thread_id] );
-        sendLoginfoMessage( source_id, level, threadMessageBuffers[thread_id] );
+    switch ( level ) {
+    case LEVEL_ADVICE:
+        /* Advice level messages are special in that they never get logged to the
+         *  EventLog / SysLog. */
+        break;
+
+    default:
+        if( level >= currentLoginfoLevel ) {
+            sendEventlogMessage( source_id, level, threadMessageBuffers[thread_id] );
+            sendLoginfoMessage( source_id, level, threadMessageBuffers[thread_id] );
+        }
     }
 }
 

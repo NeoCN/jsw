@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.34  2004/03/20 16:55:50  mortenson
+// Add an adviser feature to help cut down on support requests from new users.
+//
 // Revision 1.33  2004/03/18 07:40:43  mortenson
 // Fix a problem where unwanted read timeout messages were being displayed when
 // the ping interval was set to a large value.
@@ -270,6 +273,8 @@ public final class WrapperManager
     public static final int WRAPPER_LOG_LEVEL_ERROR      = 5;
     /** Log message at fatal log level. */
     public static final int WRAPPER_LOG_LEVEL_FATAL      = 6;
+    /** Log message at advice log level. */
+    public static final int WRAPPER_LOG_LEVEL_ADVICE     = 7;
     
     /** Reference to the original value of System.out. */
     private static PrintStream m_out;
@@ -296,7 +301,7 @@ public final class WrapperManager
     /** The lowest configured log level in the Wrapper's configuration.  This 
      *   is set to a high value by default to disable all logging if the
      *   Wrapper does not register its low level or is not present. */
-    private static int m_lowLogLevel = WRAPPER_LOG_LEVEL_FATAL + 1;
+    private static int m_lowLogLevel = WRAPPER_LOG_LEVEL_ADVICE + 1;
     
     /** The maximum amount of time in ms to allow to pass without the JVM
      *   pinging the server before the JVM is terminated to allow a resynch. */
@@ -1608,7 +1613,7 @@ public final class WrapperManager
         // Make sure that the logLevel is valid to avoid problems with the
         //  command sent to the server.
         
-        if ( ( logLevel < WRAPPER_LOG_LEVEL_DEBUG ) || ( logLevel > WRAPPER_LOG_LEVEL_FATAL ) )
+        if ( ( logLevel < WRAPPER_LOG_LEVEL_DEBUG ) || ( logLevel > WRAPPER_LOG_LEVEL_ADVICE ) )
         {
             throw new IllegalArgumentException( "The specified logLevel is not valid." );
         }
@@ -2158,6 +2163,10 @@ public final class WrapperManager
     
         case WRAPPER_MSG_LOG + WRAPPER_LOG_LEVEL_FATAL:
             name ="LOG(FATAL)";
+            break;
+    
+        case WRAPPER_MSG_LOG + WRAPPER_LOG_LEVEL_ADVICE:
+            name ="LOG(ADVICE)";
             break;
     
         default:

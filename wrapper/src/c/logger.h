@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.16  2004/03/20 16:55:49  mortenson
+ * Add an adviser feature to help cut down on support requests from new users.
+ *
  * Revision 1.15  2004/01/16 04:41:58  mortenson
  * The license was revised for this version to include a copyright omission.
  * This change is to be retroactively applied to all versions of the Java
@@ -116,7 +119,10 @@
 /* * * Log level constants * * */
 
 /* No logging at all. */
-#define LEVEL_NONE   7
+#define LEVEL_NONE   8
+
+/* Advisor messages which should always be displayed.  These never go to the syslog. */
+#define LEVEL_ADVICE 7
 
 /* Too many restarts, unable to start etc. Case when the Wrapper is forced to exit. */
 #define LEVEL_FATAL  6
