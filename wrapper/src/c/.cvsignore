@@ -5,5 +5,4 @@ WrapperJNI___Win32_Release
 Wrapper.ncb
 Wrapper.opt
 .deps
-*.dep
 
