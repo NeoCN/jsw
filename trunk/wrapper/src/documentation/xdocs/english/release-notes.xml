@@ -9,6 +9,19 @@ $Id$
 <article id="index">
     <title>Java Service Wrapper Release Notes</title>
     <section>
+        <title>Version 3.0.2: Changes and bugfixes</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Modified the sh and bash scripts so that console log output is disabled by
+                    default when the scripts are launched with the 'start' action.  Running with
+                    the 'console' action will still send output to the console.  Logging to the
+                    file is still enabled.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
+    <section>
         <title>Version 3.0.1: Changes and bugfixes</title>
         <itemizedlist>
             <listitem>
