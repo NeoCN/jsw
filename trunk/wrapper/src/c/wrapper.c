@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.129  2004/12/08 03:11:35  mortenson
+ * Fix some problems when configuration reloading is combined with the use of the
+ * wrapper.working.dir property.
+ *
  * Revision 1.128  2004/12/06 08:18:06  mortenson
  * Make it possible to reload the Wrapper configuration just before a JVM restart.
  *
@@ -483,11 +487,43 @@ void wrapperAddDefaultProperties() {
 
 int wrapperLoadConfigurationProperties() {
     int i;
+    int work;
+    char *filePart;
     
     /* Unless this is the first call, we need to dispose the previous properties object. */
     if (properties) {
         disposeProperties(properties);
         properties = NULL;
+    } else {
+        /* This is the first time, so preserve the full canonical location of the
+         *  configuration file. */
+#ifdef WIN32
+        work = GetFullPathName(wrapperData->argValues[wrapperData->argBase - 1], 0, NULL, NULL);
+        if (!work) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                "Unable to resolve the full path of the configuration file, %s: %s",
+                wrapperData->argValues[wrapperData->argBase - 1], getLastErrorText());
+            return 1;
+        }
+        wrapperData->configFile = malloc(sizeof(char) * work);
+        if (!GetFullPathName(wrapperData->argValues[wrapperData->argBase - 1], work, wrapperData->configFile, &filePart)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                "Unable to resolve the full path of the configuration file, %s: %s",
+                wrapperData->argValues[wrapperData->argBase - 1], getLastErrorText());
+            return 1;
+        }
+#else
+        /* The solaris implementation of realpath will return a relative path if a relative
+         *  path is provided.  We always need an abosulte path here.  So build up one and
+         *  then use realpath to remove any .. or other relative references. */
+        wrapperData->configFile = malloc(PATH_MAX);
+        if (realpath(wrapperData->argValues[wrapperData->argBase - 1], wrapperData->configFile) == NULL) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                "Unable to resolve the full path of the configuration file, %s: %s",
+                wrapperData->argValues[wrapperData->argBase - 1], getLastErrorText());
+            return 1;
+        }
+#endif
     }
 
     /* Create a Properties structure. */
@@ -507,15 +543,12 @@ int wrapperLoadConfigurationProperties() {
     }
 
     /* Now load the configuration file. */
-    if (loadProperties(properties, wrapperData->argValues[wrapperData->argBase - 1])) {
+    if (loadProperties(properties, wrapperData->configFile)) {
         /* File not found. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to open configuration file. %s",
-            wrapperData->argValues[wrapperData->argBase - 1]);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+            "Unable to open configuration file. %s", wrapperData->configFile);
         return 1;
     }
-
-    /* Store the configuration file name. */
-    wrapperData->configFile = wrapperData->argValues[wrapperData->argBase - 1];
 
 #ifdef _DEBUG
     /* Display the active properties */
@@ -526,8 +559,7 @@ int wrapperLoadConfigurationProperties() {
     /* Apply properties to the WrapperConfig structure */
     if (loadConfiguration()) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            "Problem loading wrapper configuration file: %s",
-            wrapperData->argValues[wrapperData->argBase - 1]);
+            "Problem loading wrapper configuration file: %s", wrapperData->configFile);
         return 1;
     }
 
@@ -2463,8 +2495,6 @@ int loadConfiguration() {
         for (i = 0; i < wrapperData->outputFilterCount; i++) {
             free(wrapperData->outputFilters[i]);
             wrapperData->outputFilters[i] = NULL;
-            free(wrapperData->outputFilterActions[i]);
-            wrapperData->outputFilterActions[i] = NULL;
         }
         free(wrapperData->outputFilters);
         wrapperData->outputFilters = NULL;
@@ -2503,11 +2533,15 @@ int loadConfiguration() {
     }
 
     /** Get the pid files if any.  May be NULL */
-    wrapperData->pidFilename = (char *)getStringProperty(properties, "wrapper.pidfile", NULL);
+    if (!wrapperData->configured) {
+        wrapperData->pidFilename = (char *)getStringProperty(properties, "wrapper.pidfile", NULL);
+    }
     wrapperData->javaPidFilename = (char *)getStringProperty(properties, "wrapper.java.pidfile", NULL);
 
     /** Get the anchor file if any.  May be NULL */
-    wrapperData->anchorFilename = (char *)getStringProperty(properties, "wrapper.anchorfile", NULL);
+    if (!wrapperData->configured) {
+        wrapperData->anchorFilename = (char *)getStringProperty(properties, "wrapper.anchorfile", NULL);
+    }
 
     /** Get the interval at which the anchor file will be polled. */
     wrapperData->anchorPollInterval = __min(__max(getIntProperty(properties, "wrapper.anchor.poll_interval", 5), 1), 3600);
