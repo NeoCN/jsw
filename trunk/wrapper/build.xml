@@ -475,6 +475,7 @@
             <fileset dir="${basedir}" >
                 <include name="index.html" />
                 <include name="bin/wrapper" />
+                <include name="bin/realpath" />
                 <include name="bin/${app.name}" />
                 <include name="conf/*.conf" />
                 <include name="lib/wrapper.jar" />
@@ -526,6 +527,7 @@
             <fileset dir="${basedir}" >
                 <include name="index.html" />
                 <include name="bin/wrapper" />
+                <include name="bin/realpath" />
                 <include name="bin/${app.name}" />
                 <include name="conf/*.conf" />
                 <include name="lib/wrapper.jar" />
