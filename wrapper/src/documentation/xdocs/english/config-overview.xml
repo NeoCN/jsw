@@ -1368,6 +1368,41 @@ INFO   | jvm 1    | JVM Process has not received any CPU time for 27 seconds.
                             </para>
                         </glossdef>
                     </glossentry>
+                    <glossentry>
+                        <glossterm>wrapper.filter.trigger.&lt;n&gt; and wrapper.filter.action.&lt;n&gt;</glossterm>
+                        <glossdef>
+                            <para>
+                                The wrapper.filter pair of properties make it possible to filter
+                                the output of a JVM and then perform some action whenever a
+                                specific trigger string is found.   The filtering process works by
+                                scanning through the triggers until a match is found.  At that point
+                                the associated action is executed.  Only the first matching trigger
+                                will be handled for any line of output.  Each trigger/action pair
+                                ends with an integer number counting up from 1. There can be no
+                                missing numbers.  If an action is omitted, it will default to
+                                RESTART.
+                            </para>
+                            <para>
+                                The trigger can be any string.  Possible actions are RESTART,
+                                SHUTDOWN, and NONE.  RESTART will stop the current JVM and then
+                                restart a new invocation.  SHUTDOWN will stop the JVM as well as
+                                the Wrapper.  NONE is useful because it will prevent any triggers
+                                with a higher number from being triggered.
+                            </para>
+                            <para>
+                                The following example will monitor the JVM output and then restart
+                                the JVM automatically whenever an OutOfMemoryError is thrown to the
+                                console.  Depending on where in an application the error is thrown,
+                                it is not always possible to trap and handle the error in a useful
+                                way from within the JVM.
+                                <informalexample>
+                                    <simpara><emphasis>Example:</emphasis></simpara>
+                                    <screen format="linespecific"><![CDATA[wrapper.trigger.filter.1=java.lang.OutOfMemoryError
+wrapper.trigger.action.1=RESTART]]></screen>
+                                </informalexample>
+                            </para>
+                        </glossdef>
+                    </glossentry>
                 </glosslist>
             </section>
         </section>

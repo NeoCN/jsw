@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.43  2003/02/07 16:05:27  mortenson
+ * Implemented feature request #676599 to enable the filtering of JVM output to
+ * trigger JVM restarts or Wrapper shutdowns.
+ *
  * Revision 1.42  2003/02/07 02:48:17  mortenson
  * Fixed a problem where missing environment variables specified in classpath
  * or library path properties were not being handled correctly.
@@ -568,6 +572,41 @@ void wrapperInitializeLogging() {
     setConsoleLogFormat("LPM");
     setConsoleLogLevelInt(LEVEL_DEBUG);
     setSyslogLevelInt(LEVEL_NONE);
+}
+
+/**
+ * Logs a single line of child output allowing any filtering
+ *  to be done in a common location.
+ */
+void wrapperLogChildOutput(const char* log) {
+    int i;
+
+    log_printf(wrapperData->jvmRestarts, LEVEL_INFO, "%s", log);
+
+    /* Look for output filters in the output.  Only match the first. */
+    for (i = 0; i < wrapperData->outputFilterCount; i++) {
+        if (strstr(log, wrapperData->outputFilters[i])) {
+            /* Found. */
+            switch(wrapperData->outputFilterActions[i]) {
+            case FILTER_ACTION_RESTART:
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Filter trigger matched.  Restarting JVM.");
+                wrapperRestartProcess();
+                break;
+
+            case FILTER_ACTION_SHUTDOWN:
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Filter trigger matched.  Shutting down.");
+                wrapperStopProcess(1); /* Exit with an error code. */
+                break;
+
+            default: /* FILTER_ACTION_NONE*/
+                /* Do nothing but masks later filters */
+                break;
+            }
+
+            /* break out of the loop */
+            break;
+        }
+    }
 }
 
 /**
@@ -1761,7 +1800,21 @@ void wrapperBuildUnixDaemonInfo() {
 }
 #endif
 
+int getOutputFilterActionForName( const char *actionName ) {
+    if (strcmpIgnoreCase(actionName, "RESTART") == 0) {
+        return FILTER_ACTION_RESTART;
+    } else if (strcmpIgnoreCase(actionName, "SHUTDOWN") == 0) {
+        return FILTER_ACTION_SHUTDOWN;
+    } else {
+        return FILTER_ACTION_NONE;
+    }
+}
+
 int wrapperLoadConfiguration() {
+    char key[256];
+    const char* val;
+    int i;
+
     /* Load log file */
     setLogfilePath((char *)getStringProperty(properties, "wrapper.logfile", "wrapper.log"));
     
@@ -1872,6 +1925,36 @@ int wrapperLoadConfiguration() {
 
     /* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
     wrapperData->requestThreadDumpOnFailedJVMExit = getBooleanProperty(properties, "wrapper.request_thread_dump_on_failed_jvm_exit", FALSE);
+
+    /* Load the output filters.  First count the number available */
+    wrapperData->outputFilterCount = 0;
+    do {
+        sprintf(key, "wrapper.filter.trigger.%d", wrapperData->outputFilterCount + 1);
+        val = getStringProperty(properties, key, NULL);
+        if (val) {
+            wrapperData->outputFilterCount++;
+        }
+    } while (val);
+    /* Now that a count is known, allocate memory to hold the filters and actions and load them in. */
+    wrapperData->outputFilters = (char**)malloc(sizeof(char *) * wrapperData->outputFilterCount);
+    wrapperData->outputFilterActions = (int*)malloc(sizeof(int) * wrapperData->outputFilterCount);
+    for (i = 0; i < wrapperData->outputFilterCount; i++) {
+        /* Get the filter */
+        sprintf(key, "wrapper.filter.trigger.%d", i + 1);
+        val = getStringProperty(properties, key, NULL);
+        wrapperData->outputFilters[i] = (char*)malloc(sizeof(char) * (strlen(val) + 1));
+        strcpy(wrapperData->outputFilters[i], val);
+
+        /* Get the action */
+        sprintf(key, "wrapper.filter.action.%d", i + 1);
+        val = getStringProperty(properties, key, "RESTART");
+        wrapperData->outputFilterActions[i] = getOutputFilterActionForName(val);
+
+#ifdef DEBUG
+        printf("filter #%d, action=%d, filter='%s'\n", i + 1, wrapperData->outputFilterActions[i], wrapperData->outputFilters[i]);
+#endif
+    }
+
 
 #ifdef WIN32
     /* Configure the NT service information */

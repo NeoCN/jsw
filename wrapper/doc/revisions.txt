@@ -47,6 +47,9 @@ Java Service Wrapper Revision History.
   the Wrapper as a spawned daemon process.
 * Fixed a problem where missing environment variables specified in classpath
   or library path properties were not being handled correctly.
+* Implemented feature request #676599 to enable the filtering of JVM output to
+  trigger JVM restarts or Wrapper shutdowns.  See the new
+  wrapper.filter.trigger.n and wrapper.filter.action.n properties.
 
 2.2.9
 * Added a new property, wrapperper.restart.delay, which allows the user to control

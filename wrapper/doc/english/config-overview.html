@@ -2911,6 +2911,62 @@ INFO   | jvm 1    | JVM Process has not received any CPU time for 27 seconds.
 </dd>
                     
 <br>
+                    
+                        
+<dt>
+<b>wrapper.filter.trigger.&lt;n&gt; and wrapper.filter.action.&lt;n&gt;</b>
+</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                The wrapper.filter pair of properties make it possible to filter
+                                the output of a JVM and then perform some action whenever a
+                                specific trigger string is found.   The filtering process works by
+                                scanning through the triggers until a match is found.  At that point
+                                the associated action is executed.  Only the first matching trigger
+                                will be handled for any line of output.  Each trigger/action pair
+                                ends with an integer number counting up from 1. There can be no
+                                missing numbers.  If an action is omitted, it will default to
+                                RESTART.
+                            </p>
+                            
+<p align="justify">
+                                The trigger can be any string.  Possible actions are RESTART,
+                                SHUTDOWN, and NONE.  RESTART will stop the current JVM and then
+                                restart a new invocation.  SHUTDOWN will stop the JVM as well as
+                                the Wrapper.  NONE is useful because it will prevent any triggers
+                                with a higher number from being triggered.
+                            </p>
+                            
+<p align="justify">
+                                The following example will monitor the JVM output and then restart
+                                the JVM automatically whenever an OutOfMemoryError is thrown to the
+                                console.  Depending on where in an application the error is thrown,
+                                it is not always possible to trap and handle the error in a useful
+                                way from within the JVM.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.trigger.filter.1=java.lang.OutOfMemoryError
+wrapper.trigger.action.1=RESTART</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
                 
 </dl>
 </div>

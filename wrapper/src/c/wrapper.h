@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.25  2003/02/07 16:05:28  mortenson
+ * Implemented feature request #676599 to enable the filtering of JVM output to
+ * trigger JVM restarts or Wrapper shutdowns.
+ *
  * Revision 1.24  2003/02/03 06:55:27  mortenson
  * License transfer to TanukiSoftware.org
  *
@@ -79,6 +83,10 @@
 #define WRAPPER_JSTATE_STOPPED   78 /* JVM has responed that it is stopped. */
 
 
+#define FILTER_ACTION_NONE       90
+#define FILTER_ACTION_RESTART    91
+#define FILTER_ACTION_SHUTDOWN   92
+
 /* Type definitions */
 typedef struct WrapperConfig WrapperConfig;
 struct WrapperConfig {
@@ -116,6 +124,9 @@ struct WrapperConfig {
     int     failedInvocationCount;  /* The number of times that the JVM exited in less than successfulInvocationTime in a row. */
     int     successfulInvocationTime;/* Amount of time that a new JVM must be running so that the invocation will be considered to have been a success, leading to a reset of the restart count. */
     int     maxFailedInvocations;   /* Maximum number of failed invocations in a row before the Wrapper will give up and exit. */
+    int     outputFilterCount;      /* Number of registered output filters. */
+    char**  outputFilters;          /* Array of output filters. */
+    int*    outputFilterActions;    /* Array of output filter actions. */
 
 #ifdef WIN32
     char    *ntServiceName;         /* Name of the NT Service */
@@ -183,6 +194,12 @@ extern void wrapperBuildJavaCommandArray(char ***strings, int *length, int addQu
 extern void wrapperFreeJavaCommandArray(char **strings, int length);
 
 extern void wrapperInitializeLogging();
+
+/**
+ * Logs a single line of child output allowing any filtering
+ *  to be done in a common location.
+ */
+extern void wrapperLogChildOutput(const char* log);
 
 /******************************************************************************
  * Platform specific methods

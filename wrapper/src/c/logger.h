@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.8  2003/02/07 16:05:27  mortenson
+ * Implemented feature request #676599 to enable the filtering of JVM output to
+ * trigger JVM restarts or Wrapper shutdowns.
+ *
  * Revision 1.7  2003/02/03 06:55:26  mortenson
  * License transfer to TanukiSoftware.org
  *
@@ -73,6 +77,7 @@
 #define LEVEL_UNKNOWN  0
 
 /* * * Function predeclaration * * */
+extern int strcmpIgnoreCase( const char *str1, const char *str2 );
 
 /* * Logfile functions * */
 extern void setLogfilePath( char *log_file_path );

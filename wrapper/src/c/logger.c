@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.21  2003/02/07 16:05:27  mortenson
+ * Implemented feature request #676599 to enable the filtering of JVM output to
+ * trigger JVM restarts or Wrapper shutdowns.
+ *
  * Revision 1.20  2003/02/03 06:55:26  mortenson
  * License transfer to TanukiSoftware.org
  *
@@ -80,7 +84,7 @@ void writeLevelToStream( FILE *fp, int level );
 void writeMessageToStream( FILE *fp, char *lpszFmt, va_list vargs );
 void checkAndRollLogs( );
 
-int strcmpIgnoreCase( char *str1, char *str2 ) {
+int strcmpIgnoreCase( const char *str1, const char *str2 ) {
 #ifdef WIN32
     return stricmp(str1, str2);
 #else /* UNIX */

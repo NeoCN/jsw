@@ -114,6 +114,13 @@ $Id$
                     or library path properties were not being handled correctly.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Implemented feature request #676599 to enable the filtering of JVM output to
+                    trigger JVM restarts or Wrapper shutdowns.  See the new
+                    wrapper.filter.trigger.n and wrapper.filter.action.n properties.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
