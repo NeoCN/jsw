@@ -1,5 +1,5 @@
 #********************************************************************
-# Wrapper parameters
+# Wrapper Properties
 #********************************************************************
 # Java Application
 wrapper.java.command=java
@@ -31,7 +31,7 @@ wrapper.java.maxmemory=64
 wrapper.port=1777
 
 #********************************************************************
-# Wrapper Logging parameters
+# Wrapper Logging Properties
 #********************************************************************
 # Format of output for the console.  (See docs for formats)
 wrapper.console.format=PM
@@ -62,9 +62,9 @@ wrapper.logfile.maxfiles=0
 wrapper.syslog.loglevel=NONE
 
 #********************************************************************
-# Wrapper NT Service parameters
+# Wrapper NT Service Properties
 #********************************************************************
-# WARNING - Do not modify any of these parameters when an application
+# WARNING - Do not modify any of these properties when an application
 #  using this configuration file has been installed as a service.
 #  Please uninstall the service before modifying this section.  The
 #  service can then be reinstalled.
