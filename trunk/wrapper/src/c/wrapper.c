@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.82  2004/01/14 09:35:14  mortenson
+ * Modify so that the exit code returned by the last JVM is always used when
+ * exiting the Wrapper.
+ *
  * Revision 1.81  2004/01/09 18:30:12  mortenson
  * Fix some compiler warnings.
  *
@@ -1778,7 +1782,7 @@ void wrapperEventLoop() {
             /*  to reasure it that we are still alive. */
             
             /* Tell the service manager that we are stopping */
-            wrapperReportStatus(WRAPPER_WSTATE_STOPPING, 0, 1000);
+            wrapperReportStatus(WRAPPER_WSTATE_STOPPING, wrapperData->exitCode, 1000);
             
             /* If the JVM state is now DOWN, then change the wrapper state */
             /*  to be STOPPED as well. */

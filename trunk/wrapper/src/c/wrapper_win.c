@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.64  2004/01/14 09:35:14  mortenson
+ * Modify so that the exit code returned by the last JVM is always used when
+ * exiting the Wrapper.
+ *
  * Revision 1.63  2004/01/10 15:51:32  mortenson
  * Fix a problem where a thread dump would be invoked if the request thread
  * dump on failed JVM exit was enabled and the user forced an immediate
@@ -418,9 +422,9 @@ int wrapperConsoleHandler(int key) {
 
     if (quit) {
         if (halt) {
-			/* Disable the thread dump on exit feature if it is set because it
-			 *  should not be displayed when the user requested the immediate exit. */
-			wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
+            /* Disable the thread dump on exit feature if it is set because it
+             *  should not be displayed when the user requested the immediate exit. */
+            wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
             wrapperKillProcess();
         } else {
             wrapperStopProcess(0);
@@ -780,7 +784,13 @@ void wrapperReportStatus(int status, int errorCode, int waitHint) {
         }
 
         ssStatus.dwCurrentState = natState;
-        ssStatus.dwWin32ExitCode = errorCode;
+        if (errorCode == 0) {
+            ssStatus.dwWin32ExitCode = NO_ERROR;
+            ssStatus.dwServiceSpecificExitCode = 0;
+        } else {
+            ssStatus.dwWin32ExitCode = errorCode; //ERROR_SERVICE_SPECIFIC_ERROR;
+            ssStatus.dwServiceSpecificExitCode = 0; //errorCode;
+        }
         ssStatus.dwWaitHint = waitHint;
 
         if ((natState == SERVICE_RUNNING ) || (natState == SERVICE_STOPPED)) {
@@ -791,8 +801,8 @@ void wrapperReportStatus(int status, int errorCode, int waitHint) {
 
         if (wrapperData->isStateOutputEnabled) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                "calling SetServiceStatus with status=%s, waitHint=%d, checkPoint=%ld",
-                natStateName, waitHint, dwCheckPoint);
+                "calling SetServiceStatus with status=%s, waitHint=%d, checkPoint=%ld, errorCode=%d",
+                natStateName, waitHint, dwCheckPoint, errorCode);
         }
 
         if (!(bResult = SetServiceStatus(sshStatusHandle, &ssStatus))) {
@@ -926,11 +936,39 @@ int wrapperReadChildOutput() {
  */
 int wrapperGetProcessStatus() {
     int res;
+    DWORD exitCode;
 
     switch (WaitForSingleObject(wrapperProcess, 0)) {
     case WAIT_ABANDONED:
     case WAIT_OBJECT_0:
         res = WRAPPER_PROCESS_DOWN;
+
+        /* Get the exit code of the process. */
+        if (!GetExitCodeProcess(wrapperProcess, &exitCode)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                "Critical error: unable to obtain the exit code of the JVM process: %s", getLastErrorText());
+            appExit(1);
+        }
+
+        if (exitCode == 0) {
+            /* The JVM exit code was 0, so leave any current exit code as is. */
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                "JVM process exited with a code of %d, leaving the wrapper exit code set to %d.",
+                exitCode, wrapperData->exitCode);
+
+        } else if (wrapperData->exitCode == 0) {
+            /* Update the wrapper exitCode. */
+            wrapperData->exitCode = exitCode;
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                "JVM process exited with a code of %d, setting the wrapper exit code to %d.",
+                exitCode, wrapperData->exitCode);
+
+        } else {
+            /* The wrapper exit code was already non-zero, so leave it as is. */
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                "JVM process exited with a code of %d, however the wrapper exit code was already %d.",
+                exitCode, wrapperData->exitCode);
+        }
 
         /* Remove java pid file if it was registered and created by this process. */
         if ((ownJavaPidFile) && (wrapperData->javaPidFilename)) {
@@ -982,7 +1020,11 @@ void wrapperKillProcess() {
             } while ( wrapperGetTickAge( startTicks, nowTicks ) < 5 );
         }
 
-        /* Kill it immediately. */
+        /* The JVM process is not responding so the only choice we have is to
+         *  kill it.  The TerminateProcess funtion will kill the process, but it
+         *  does not correctly notify the process's DLLs that it is shutting
+         *  down.  Ideally, we would call ExitProcess, but that can only be
+         *  called from within the process being killed. */
         if (TerminateProcess(wrapperProcess, 0)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Java Virtual Machine did not exit on request, terminated");
         } else {
@@ -992,6 +1034,9 @@ void wrapperKillProcess() {
 
         /* Give the JVM a chance to be killed so that the state will be correct. */
         Sleep(500); /* 0.5 seconds in milliseconds */
+
+		/* Set the exit code since we were forced to kill the JVM. */
+		wrapperData->exitCode = 1;
     }
 
     wrapperData->jState = WRAPPER_JSTATE_DOWN;
@@ -1043,6 +1088,9 @@ void wrapperExecute() {
 
     FILE *pid_fp = NULL;
     int old_umask;
+
+	/* Reset the exit code when we launch a new JVM. */
+	wrapperData->exitCode = 0;
 
     /* Increment the process ID for Log sourcing */
     wrapperData->jvmRestarts++;
@@ -1299,7 +1347,7 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
  */
 void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
 #ifdef _DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "wrapperServiceMain()");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "wrapperServiceMain()");
 #endif
 
     /* Immediately register this thread with the logger. */
@@ -1330,15 +1378,28 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
 
  finally:
 
-    /* Report to the service manager that the application is about to exit. */
-    if (sshStatusHandle) {
-        wrapperReportStatus(WRAPPER_WSTATE_STOPPED, wrapperData->exitCode, 0);
-        /* Will not make it here if successful as the process will have been  */
-        /*  stopped by the service manager. */
+    /* The the exit code is non-zero then we want the Service Manager to detect that we
+     *  are exiting in an error state.  If we tell it that it STOPPED then it appears to
+     *  ignore the exit code that we have set.   We need to simply exit the process.
+     * If the exit code is 0, however, then it is important that we actually report that
+     *  we have stopped with an exit code of 0. */
+    if (wrapperData->exitCode == 0) {
+        /* Report to the service manager that the application is about to exit. */
+        if (sshStatusHandle) {
+            /* This will continue on an be exited normally below. */
+            wrapperReportStatus(WRAPPER_WSTATE_STOPPED, wrapperData->exitCode, 1000);
+        }
     }
 
-    /* Kill the process if necessary */
-    appExit(0);
+#ifdef _DEBUG
+    /* The following message will not always appear on the screen if the STOPPED
+     *  status was set above.  But the code in the appExit function below always
+     *  appears to be getting executed.  Looks like some kind of a timing issue. */
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Exiting service process.");
+#endif
+
+    /* Actually exit the process, returning the current exit code. */
+    appExit(wrapperData->exitCode);
 }
 
 /**
