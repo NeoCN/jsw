@@ -202,6 +202,12 @@ $Id$
                     any entries that do not exist.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where it was possible to define a zero length filter that would
+                    trigger on any output.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

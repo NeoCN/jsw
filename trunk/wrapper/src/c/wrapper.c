@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.86  2004/03/02 16:05:25  mortenson
+ * Fix a problem where it was possible to define a zero length filter that would
+ * trigger on any output.
+ *
  * Revision 1.85  2004/02/17 03:29:27  mortenson
  * Modify the UNIX side warning displayed when a wildcard classpath element does
  * not match any files.
@@ -902,7 +906,7 @@ void wrapperLogChildOutput(const char* log) {
 
     /* Look for output filters in the output.  Only match the first. */
     for (i = 0; i < wrapperData->outputFilterCount; i++) {
-        if (strstr(log, wrapperData->outputFilters[i])) {
+        if ((strlen(wrapperData->outputFilters[i]) > 0) && (strstr(log, wrapperData->outputFilters[i]))) {
             /* Found. */
             switch(wrapperData->outputFilterActions[i]) {
             case FILTER_ACTION_RESTART:
