@@ -65,6 +65,9 @@
                 <ulink url="prop-max-failed-invocations.html">wrapper.max_failed_invocations</ulink>
             </listitem>
             <listitem>
+                <ulink url="prop-native-library.html">wrapper.native_library</ulink>
+            </listitem>
+            <listitem>
                 <ulink url="prop-pidfile.html">wrapper.pidfile</ulink>
             </listitem>
             <listitem>
