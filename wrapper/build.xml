@@ -17,7 +17,7 @@
     
     <!-- product version -->
     <property name="major.version"  value="2" />
-    <property name="version"        value="${major.version}.2.0" />
+    <property name="version"        value="${major.version}.2.1" />
     
     <property name="bin.dir" value="bin"/>
     <property name="src.dir" value="src"/>
