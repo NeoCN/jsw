@@ -21,33 +21,38 @@
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
+ *
+ *
+ * $Log$
+ * Revision 1.8  2002/03/07 09:23:25  mortenson
+ * Go through and change the style of comments that we use so that they will not
+ * cause compiler errors on older unix compilers.
+ *
+ * Revision 1.7  2002/03/07 08:10:13  mortenson
+ * Add support for Thread Dumping
+ * Fix a problem locating java on the path.
+ *
+ * Revision 1.6  2002/01/27 19:33:55  spocke
+ * Added support for the service description property.
+ *
+ * Revision 1.5  2002/01/24 09:43:56  mortenson
+ * Added new Logger code which allows log levels.
+ *
+ * Revision 1.4  2002/01/24 05:48:48  mortenson
+ * Remove old commented code.
+ *
+ * Revision 1.3  2001/12/11 05:19:39  mortenson
+ * Added the ablility to format and/or disable file logging and output to
+ * the console.
+ *
+ * Revision 1.2  2001/12/06 09:36:24  mortenson
+ * Docs changes, Added sample apps, Fixed some problems with
+ * relative paths  (See revisions.txt)
+ *
+ * Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
+ * no message
+ *
  */
-
-// $Log$
-// Revision 1.7  2002/03/07 08:10:13  mortenson
-// Add support for Thread Dumping
-// Fix a problem locating java on the path.
-//
-// Revision 1.6  2002/01/27 19:33:55  spocke
-// Added support for the service description property.
-//
-// Revision 1.5  2002/01/24 09:43:56  mortenson
-// Added new Logger code which allows log levels.
-//
-// Revision 1.4  2002/01/24 05:48:48  mortenson
-// Remove old commented code.
-//
-// Revision 1.3  2001/12/11 05:19:39  mortenson
-// Added the ablility to format and/or disable file logging and output to
-// the console.
-//
-// Revision 1.2  2001/12/06 09:36:24  mortenson
-// Docs changes, Added sample apps, Fixed some problems with
-// relative paths  (See revisions.txt)
-//
-// Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
-// no message
-//
 
 #ifndef _WRAPPER_H
 #define _WRAPPER_H
@@ -61,85 +66,82 @@
 
 #include "property.h"
 
-#define WRAPPER_WSTATE_STARTING  51 // Wrapper is starting.  Remains in this state
-                                    //  until the JVM enters the STARTED state or
-                                    //  the wrapper jumps into the STOPPING state
-                                    //  in response to the JVM application asking
-                                    //  to shut down.
-#define WRAPPER_WSTATE_STARTED   52 // The JVM has entered the STARTED state.
-                                    //  The wrapper will remain in this state
-                                    //  until the wrapper decides to shut down.
-                                    //  This is true even when the JVM process
-                                    //  is being restarted.
-#define WRAPPER_WSTATE_STOPPING  53 // The wrapper is shutting down.  Will be in
-                                    //  this state until the JVM enters the DOWN
-                                    //  state.
-#define WRAPPER_WSTATE_STOPPED   54 // The wrapper enters this state just before
-                                    //  it exits.
+#define WRAPPER_WSTATE_STARTING  51 /* Wrapper is starting.  Remains in this state
+                                     *  until the JVM enters the STARTED state or
+                                     *  the wrapper jumps into the STOPPING state
+                                     *  in response to the JVM application asking
+                                     *  to shut down. */
+#define WRAPPER_WSTATE_STARTED   52 /* The JVM has entered the STARTED state.
+                                     *  The wrapper will remain in this state
+                                     *  until the wrapper decides to shut down.
+                                     *  This is true even when the JVM process
+                                     *  is being restarted. */
+#define WRAPPER_WSTATE_STOPPING  53 /* The wrapper is shutting down.  Will be in
+                                     *  this state until the JVM enters the DOWN
+                                     *  state. */
+#define WRAPPER_WSTATE_STOPPED   54 /* The wrapper enters this state just before
+                                     *  it exits. */
 
 
-#define WRAPPER_JSTATE_DOWN      71 // JVM is confirmed to be down.  This is the 
-                                    //  initial state and the state after the JVM
-                                    //  process has gone away.
-#define WRAPPER_JSTATE_LAUNCHING 72 // JVM was launched, but has not yet responded.
-                                    //  Must enter the LAUNCHED state before <t>
-                                    //  or the JVM will be killed.
-#define WRAPPER_JSTATE_LAUNCHED  73 // JVM was launched, and responed to a ping.
-#define WRAPPER_JSTATE_STARTING  74 // JVM has been asked to start.  Must enter the
-                                    //  STARTED state before <t> or the JVM will be
-                                    //  killed.
-#define WRAPPER_JSTATE_STARTED   75 // JVM has responded that it is running.  Must
-                                    //  respond to a ping by <t> or the JVM will
-                                    //  be killed.
-#define WRAPPER_JSTATE_STOPPING  76 // JVM was sent a stop command, but has not yet
-                                    //  responded.  Must enter the STOPPED state
-                                    //  and exit before <t> or the JVM will be killed.
-#define WRAPPER_JSTATE_STOPPED   77 // JVM has responed that it is stopped.
+#define WRAPPER_JSTATE_DOWN      71 /* JVM is confirmed to be down.  This is the 
+                                     *  initial state and the state after the JVM
+                                     *  process has gone away. */
+#define WRAPPER_JSTATE_LAUNCHING 72 /* JVM was launched, but has not yet responded.
+                                     *  Must enter the LAUNCHED state before <t>
+                                     *  or the JVM will be killed. */
+#define WRAPPER_JSTATE_LAUNCHED  73 /* JVM was launched, and responed to a ping. */
+#define WRAPPER_JSTATE_STARTING  74 /* JVM has been asked to start.  Must enter the
+                                     *  STARTED state before <t> or the JVM will be
+                                     *  killed. */
+#define WRAPPER_JSTATE_STARTED   75 /* JVM has responded that it is running.  Must
+                                     *  respond to a ping by <t> or the JVM will
+                                     *  be killed. */
+#define WRAPPER_JSTATE_STOPPING  76 /* JVM was sent a stop command, but has not yet
+                                     *  responded.  Must enter the STOPPED state
+                                     *  and exit before <t> or the JVM will be killed. */
+#define WRAPPER_JSTATE_STOPPED   77 /* JVM has responed that it is stopped. */
 
 
 
-// Type definitions
+/* Type definitions */
 typedef struct WrapperConfig WrapperConfig;
 struct WrapperConfig {
-    u_short port;                   // Port number which the Wrapper is configured to be listening on
-    u_short actualPort;             // Port number which the Wrapper is actually listening on
-    int     sock;                   // Socket number. if open.
-    char    *configFile;            // Name of the config file
-//  char    *logFile;               // Name of the log file
-//	char    *logFileFormat;         // Any combination of PTM
-//	char    *consoleFormat;         // Any combination of PTM
+    u_short port;                   /* Port number which the Wrapper is configured to be listening on */
+    u_short actualPort;             /* Port number which the Wrapper is actually listening on */
+    int     sock;                   /* Socket number. if open. */
+    char    *configFile;            /* Name of the config file */
 #ifdef WIN32
-    char    *jvmCommand;            // Command used to launch the JVM
-#else // UNIX
-    char    **jvmCommand;           // Command used to launch the JVM
+    char    *jvmCommand;            /* Command used to launch the JVM */
+#else  * UNIX
+    char    **jvmCommand;           /* Command used to launch the JVM */
 #endif
-    char    key[17];                // Key which the JVM uses to authorize connections. (16 digits + \0)
-    int     isConsole;              // TRUE if the wrapper was launched as a console.
-    int     startupTimeout;         // Number of seconds the wrapper will wait for a JVM to startup
-    int     pingTimeout;            // Number of seconds the wrapper will wait for a JVM to reply to a ping
-    int     wState;                 // The current state of the wrapper
-    int     jState;                 // The current state of the jvm
-    time_t  jStateTimeout;          // Time until which the current jState is valid
-    time_t  lastPingTime;           // Time that the last ping was sent
-    int     isDebugging;            // TRUE if set in the config file
-	int     isShutdownHookDisabled; // TRUE if set in the config file
-    int     exitCode;               // Code which the wrapper will exit with
-    int     exitRequested;          // Non-zero if another thread has requested that the wrapper and JVM be shutdown
-    int     exitAcknowledged;       // Non-zero if the main thread has acknowledged the exit request
-    int     restartRequested;       // Non-zero if another thread has requested that the JVM be restarted
-    int     jvmRestarts;            // Number of times that a JVM has been launched since the wrapper was started.
+    char    key[17];                /* Key which the JVM uses to authorize connections. (16 digits + \0) */
+    int     isConsole;              /* TRUE if the wrapper was launched as a console. */
+    int     startupTimeout;         /* Number of seconds the wrapper will wait for a JVM to startup */
+    int     pingTimeout;            /* Number of seconds the wrapper will wait for a JVM to reply to a ping */
+    int     wState;                 /* The current state of the wrapper */
+    int     jState;                 /* The current state of the jvm */
+    time_t  jStateTimeout;          /* Time until which the current jState is valid */
+    time_t  lastPingTime;           /* Time that the last ping was sent */
+    int     isDebugging;            /* TRUE if set in the config file */
+    int     isShutdownHookDisabled; /* TRUE if set in the config file */
+    int     exitCode;               /* Code which the wrapper will exit with */
+    int     exitRequested;          /* Non-zero if another thread has requested that the wrapper and JVM be shutdown */
+    int     exitAcknowledged;       /* Non-zero if the main thread has acknowledged the exit request */
+    int     restartRequested;       /* Non-zero if another thread has requested that the JVM be restarted */
+    int     jvmRestarts;            /* Number of times that a JVM has been launched since the wrapper was started. */
 
 #ifdef WIN32
-    char    *ntServiceName;         // Name of the NT Service
-    char    *ntServiceDisplayName;  // Display name of the NT Service
-	char    *ntServiceDescription;  // Description for service in Win2k and XP
-    char    *ntServiceDependencies; // List of Dependencies
-    int     ntServiceStartType;     // Mode in which the Service is installed. 
-                                    // {SERVICE_AUTO_START | SERVICE_DEMAND_START}
+    char    *ntServiceName;         /* Name of the NT Service */
+    char    *ntServiceDisplayName;  /* Display name of the NT Service */
+    char    *ntServiceDescription;  /* Description for service in Win2k and XP */
+    char    *ntServiceDependencies; /* List of Dependencies */
+    int     ntServiceStartType;     /* Mode in which the Service is installed. 
+                                     * {SERVICE_AUTO_START | SERVICE_DEMAND_START} */
 #endif
 
 #ifdef SOLARIS
-    char    *pidFilename;           // Name of file to store wrapper pid in
+    char    *pidFilename;           /* Name of file to store wrapper pid in */
 #endif
 };
 
@@ -162,7 +164,7 @@ extern Properties    *properties;
 
 extern char wrapperClasspathSeparator;
 
-// Protocol Functions
+/* Protocol Functions */
 extern void wrapperProtocolStartServer();
 extern void wrapperProtocolStopServer();
 extern void wrapperProtocolOpen();

@@ -21,18 +21,23 @@
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
+ *
+ *
+ * $Log$
+ * Revision 1.4  2002/03/07 09:23:25  mortenson
+ * Go through and change the style of comments that we use so that they will not
+ * cause compiler errors on older unix compilers.
+ *
+ * Revision 1.3  2002/02/08 05:55:55  mortenson
+ * Make the syslog never unregister to avoid EventLog errors.
+ *
+ * Revision 1.2  2002/01/26 23:31:03  spocke
+ * Added rolling file support to logger.
+ *
+ * Revision 1.1  2002/01/24 09:38:56  mortenson
+ * Added new Logger code contributed by Johan Sorlin
+ *
  */
-
-// $Log$
-// Revision 1.3  2002/02/08 05:55:55  mortenson
-// Make the syslog never unregister to avoid EventLog errors.
-//
-// Revision 1.2  2002/01/26 23:31:03  spocke
-// Added rolling file support to logger.
-//
-// Revision 1.1  2002/01/24 09:38:56  mortenson
-// Added new Logger code contributed by Johan Sorlin
-//
 
 /**
  * Author:

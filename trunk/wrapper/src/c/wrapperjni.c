@@ -21,12 +21,17 @@
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
+ *
+ *
+ * $Log$
+ * Revision 1.2  2002/03/07 09:23:25  mortenson
+ * Go through and change the style of comments that we use so that they will not
+ * cause compiler errors on older unix compilers.
+ *
+ * Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
+ * no message
+ *
  */
-
-// $Log$
-// Revision 1.1  2001/11/07 08:54:20  mortenson
-// Initial revision
-//
 
 #include "wrapperjni.h"
 
@@ -36,12 +41,12 @@ int lastControlEvent = 0;
 int checkingControlEvent = 0;
 
 void wrapperJNIHandleSignal(int signal) {
-    // Wait for the semaphore before setting the value
+    /* Wait for the semaphore before setting the value */
     while (checkingControlEvent) {
-        // Tight loop, but will be very short.
+        /* Tight loop, but will be very short. */
     }
 
-    // Save the last signal
+    /* Save the last signal */
     lastControlEvent = signal;
 }
 
@@ -55,16 +60,16 @@ JNIEXPORT int JNICALL
 Java_com_silveregg_wrapper_WrapperManager_nativeGetControlEvent(JNIEnv *env, jclass clazz) {
     int event;
 
-    // Use this as a very simple semaphore
+    /* Use this as a very simple semaphore */
     checkingControlEvent = 1;
 
-    // Check the event.  This is not technically thread safe, but there are
-    //  very few threads coming through.
+    /* Check the event.  This is not technically thread safe, but there are
+     *  very few threads coming through. */
     if ((event = lastControlEvent) != 0) {
         lastControlEvent = 0;
     }
 
-    // Clear the semaphore
+    /* Clear the semaphore */
     checkingControlEvent = 0;
 
     return event;
@@ -79,7 +84,7 @@ JNIEXPORT void JNICALL
 Java_com_silveregg_wrapper_WrapperManager_accessViolationInner(JNIEnv *env, jclass clazz) {
     char *ptr;
 
-    // Cause access violation
+    /* Cause access violation */
     ptr = NULL;
     ptr[0] = '\n';
 }
