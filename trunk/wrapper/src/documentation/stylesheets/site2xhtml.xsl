@@ -3,14 +3,14 @@
 <html xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
     xsl:version="1.0">
     
-<!-- ********************************************************************
-     $Id$
-     ********************************************************************
-
-     Based on Jakarta Avalon Documentation Style sheets.
-     See http://jakarta.apache.org/avalon
-
-     ******************************************************************** -->
+    <!-- ********************************************************************
+    $Id$
+    ********************************************************************
+    
+    Based on Jakarta Avalon Documentation Style sheets.
+    See http://jakarta.apache.org/avalon
+    
+    ******************************************************************** -->
     
     <head><title><xsl:value-of select="/site/body/title"/></title></head>
     <body text="#000000" link="#525D76" vlink="#023264" alink="#023264"
