@@ -36,7 +36,9 @@
                 and a user pressed CTRL-C in the console.
             </para>
             <para>
-                Detailed overview and instructions (<ulink url="integrate-simple-win.html">Win32</ulink>
+                Detailed overview and instructions, using
+                <ulink url="http://www.jboss.org">JBoss</ulink> as an example.
+                (<ulink url="integrate-simple-win.html">Win32</ulink>
                 or <ulink url="integrate-simple-nix.html">Linux / UNIX</ulink>).
             </para>
         </section>
@@ -56,7 +58,9 @@
                 shutdown class when it is time for the application to be shutdown.
             </para>
             <para>
-                Detailed overview and instructions (<ulink url="integrate-start-stop-win.html">Win32</ulink>
+                Detailed overview and instructions, using
+                <ulink url="http://jakarta.apache.org/tomcat/">Tomcat</ulink> as an
+                example.  (<ulink url="integrate-start-stop-win.html">Win32</ulink>
                 or <ulink url="integrate-start-stop-nix.html">Linux / UNIX</ulink>).
             </para>
         </section>
