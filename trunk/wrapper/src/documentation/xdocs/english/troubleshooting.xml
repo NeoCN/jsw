@@ -15,9 +15,8 @@ $Id$
         <para>
             A few users have asked about the following message showing up in their wrapper.log file:
             <informalexample>
-                <screen format="linespecific">
-                    <![CDATA[WARNING - Unable to load native library 'wrapper' for class WrapperManager.
-                    System signals will not be handled correctly.]]></screen>
+                <screen format="linespecific"><![CDATA[WARNING - Unable to load native library 'wrapper' for class WrapperManager.
+          System signals will not be handled correctly.]]></screen>
             </informalexample>
             This message is being shown because the Java component of the Wrapper was unable to
             load its native libraries during initialization.  If you look in your wrapper.conf
@@ -26,6 +25,19 @@ $Id$
             library. (Wrapper.DLL on Windows, or libwrapper.so on Unix systems)  You should place
             the library file in the specified directory or change the property to point to the
             directory where it is located.
+        </para>
+        <para>
+            As of version 2.2.9 this error message was improved.  You will now see something like
+            the following (Depending on your platform of course):
+            <informalexample>
+                <screen format="linespecific"><![CDATA[WARNING - Unable to load native library 'wrapper' because the
+          file 'Wrapper.DLL' could not be located in the following
+          java.library.path:
+            C:\SourceForge\wrapper\bin\..\lib
+          Please see the documentation for the wrapper.java.library.path
+          configuration property.
+          System signals will not be handled correctly.]]></screen>
+            </informalexample>
         </para>
     </section>
     <section>
@@ -90,10 +102,10 @@ $Id$
             entry like the following in your log file, and the JVM being restarted:
             <informalexample>
                 <screen format="linespecific"><![CDATA[jvm 1    | 2001/12/01 12:23:23 | start()
-                wrapper  | 2001/12/01 12:23:44 | Startup failed: Timed out waiting for signal from JVM.
-                wrapper  | 2001/12/01 12:23:44 | Java Virtual Machine did not exit on request, terminated
-                wrapper  | 2001/12/01 12:23:49 | Launching a JVM...
-                jvm 2    | 2001/12/01 12:23:50 | Initializing...]]></screen>
+wrapper  | 2001/12/01 12:23:44 | Startup failed: Timed out waiting for signal from JVM.
+wrapper  | 2001/12/01 12:23:44 | Java Virtual Machine did not exit on request, terminated
+wrapper  | 2001/12/01 12:23:49 | Launching a JVM...
+jvm 2    | 2001/12/01 12:23:50 | Initializing...]]></screen>
             </informalexample>
         </para>
         <para>
