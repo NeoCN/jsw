@@ -138,8 +138,9 @@ Java Service Wrapper Revision History.
   will cause the JVM to use its own default values and also makes it possible
   to specify the memory parameters using the wrapper.java.additional.<n>
   properties.
-* Added an environment variable, WRAPPER_PATH_SEPARATOR, whose value is set
-  to either ':' or ';' on startup.  It can be used in the wrapper.conf file
+* Added a pair of environment variables, WRAPPER_FILE_SEPARATOR and
+  WRAPPER_PATH_SEPARATOR, whose values are set to either '/' and ':' or
+  '\' and ';' on startup.  They can be used in the wrapper.conf file
   to construct platform independent property values.
 
 3.0.5
