@@ -26,6 +26,9 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.10  2002/05/20 10:03:43  mortenson
+// Make the startup banner less intrusive.
+//
 // Revision 1.9  2002/05/17 09:15:13  mortenson
 // Rework the way the shutdown process works so that System.exit will never be
 // called before the stop method in WrapperListener has had a chance to complete.
@@ -429,8 +432,6 @@ public final class WrapperManager implements Runnable {
      */
     public static synchronized void start(WrapperListener listener, String[] args) {
         System.out.println("Wrapper (Version " + getVersion() + ")");
-        System.out.println("Copyright 2000, 2001 Silver Egg Technology, Inc.");
-        System.out.println("All rights reserved.");
         System.out.println();
         
         // Make sure that the class has not already been disposed.
