@@ -31,6 +31,18 @@
             -->
         <donorlist>
             <donor>
+                <date>Mar 23, 2005</date>
+                <amount>50.00</amount>
+                <name><ulink url="http://displaybiz.net/">Displaybiz.net Hosting</ulink></name>
+                <message>Javapipe.com - Finally the solution we've been looking for is RIGHT HERE! - Thanks!</message>
+            </donor>
+            <donor>
+                <date>Mar 17, 2005</date>
+                <amount>50.00</amount>
+                <name>Mauricio Piacentini</name>
+                <message>Works nicely and is well documented. Congratulations!</message>
+            </donor>
+            <donor>
                 <date>Jan 6, 2005</date>
                 <amount>25.00</amount>
                 <name>Anonymous</name>
