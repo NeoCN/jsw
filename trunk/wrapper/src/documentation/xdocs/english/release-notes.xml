@@ -232,7 +232,7 @@ $Id$
                 <para>
                     Fix a problem where spaces around the '=' character of a property definition
                     were rendering the property invisible to the Wrapper.
-                    <ulink url="https://sourceforge.net/tracker/index.php?func=detail&amp;aid=916001&amp;group_id=39428&amp;atid=425187">Bug #916001</ulink>.
+                    <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=916001&amp;group_id=39428&amp;atid=425187">Bug #916001</ulink>.
                 </para>
             </listitem>
             <listitem>
@@ -248,6 +248,7 @@ $Id$
                     Fix a problem where the JVM would fail to shutdown cleanly if the Wrapper
                     was asked to stop too soon after launching a JVM.  This was leading to the
                     JVM being killed after the shutdown timeout expired.
+                    <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=917281&amp;group_id=39428&amp;atid=425187">Bug #916001</ulink>.
                 </para>
             </listitem>
         </itemizedlist>

@@ -107,7 +107,7 @@ Java Service Wrapper Revision History.
   values of wrapper.ping.interval and wrapper.ping.timeout to fail.
 * Fix a problem where the JVM would fail to shutdown cleanly if the Wrapper
   was asked to stop too soon after launching a JVM.  This was leading to the
-  JVM being killed after the shutdown timeout expired.
+  JVM being killed after the shutdown timeout expired.  Bug #917281.
 
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the
