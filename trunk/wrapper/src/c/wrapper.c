@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.11  2002/01/28 19:06:02  spocke
+// Modified default property for wrapper.ntservice.description.
+//
 // Revision 1.10  2002/01/28 01:14:36  mortenson
 // Changed default nt description.
 // Looks like some tabs to spaces conversions also.
@@ -1433,8 +1436,8 @@ void wrapperBuildNTServiceInfo() {
     // Load the service display name
     wrapperData->ntServiceDisplayName = (char *)getStringProperty(properties, "wrapper.ntservice.displayname", "Wrapper");
 
-    // Load the service description
-    wrapperData->ntServiceDescription = (char *)getStringProperty(properties, "wrapper.ntservice.description", wrapperData->ntServiceDisplayName);
+    // Load the service description, default to nothing
+    wrapperData->ntServiceDescription = (char *)getStringProperty(properties, "wrapper.ntservice.description", "");
 
     // *** Build the dependency list ***
     len = 0;
@@ -1518,7 +1521,7 @@ int wrapperLoadConfiguration() {
     // Load syslog event source name
     setSyslogEventSourceName((char *)getStringProperty(properties, "wrapper.ntservice.name", "Wrapper"));
 
-    // Register the syslog message file
+    // Register the syslog message file, this will only be done is SyslogLevel != NONE
     registerSyslogMessageFile( );
 
     // Initialize some values not loaded
