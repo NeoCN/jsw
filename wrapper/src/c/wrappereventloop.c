@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.11  2004/09/09 13:20:28  mortenson
+ * Add more low level loop debug output.
+ *
  * Revision 1.10  2004/09/06 07:49:16  mortenson
  * Add a new wrapper.loop_output property which makes it possible to enable high
  * resolution debug output on the progress of the main event loop.
@@ -710,12 +713,18 @@ void jStateStarted(DWORD nowTicks, int nextSleep) {
             wrapperData->restartRequested = TRUE;
         } else if (wrapperGetTickAge(wrapperAddToTicks(wrapperData->lastPingTicks, wrapperData->pingInterval), nowTicks) >= 0) {
             /* It is time to send another ping to the JVM */
+            if (wrapperData->isLoopOutputEnabled) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Temp: Sending a ping packet.");
+            }
             ret = wrapperProtocolFunction(WRAPPER_MSG_PING, "ping");
             if (ret < 0) {
                 /* Failed to send the ping. */
                 if (wrapperData->isDebugging) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM Ping Failed.");
                 }
+            }
+            if (wrapperData->isLoopOutputEnabled) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Temp: Sent a ping packet.");
             }
             wrapperData->lastPingTicks = nowTicks;
         } else {
@@ -896,6 +905,9 @@ void wrapperEventLoop() {
 
     nextSleep = TRUE;
     do {
+        if (wrapperData->isLoopOutputEnabled) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Loop: %ssleep", (nextSleep ? "" : "no "));
+        }
         if (nextSleep) {
             /* Sleep for a quarter second. */
 #ifdef WIN32
@@ -1030,12 +1042,11 @@ void wrapperEventLoop() {
             }
         }
         
-        if (wrapperData->isLoopOutputEnabled) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Loop: handle state.  wrapper: %s, jvm: %s",
-                wrapperGetWState(wrapperData->wState), wrapperGetJState(wrapperData->jState));
-        }
-        
         /* Do something depending on the wrapper state */
+        if (wrapperData->isLoopOutputEnabled) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Loop: handle wrapper state: %s",
+                wrapperGetWState(wrapperData->wState));
+        }
         switch(wrapperData->wState) {
         case WRAPPER_WSTATE_STARTING:
             wStateStarting(nowTicks);
@@ -1059,6 +1070,10 @@ void wrapperEventLoop() {
         }
         
         /* Do something depending on the JVM state */
+        if (wrapperData->isLoopOutputEnabled) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Loop: handle jvm state: %s",
+                wrapperGetJState(wrapperData->jState));
+        }
         switch(wrapperData->jState) {
         case WRAPPER_JSTATE_DOWN:
             jStateDown(nowTicks, nextSleep);
