@@ -72,6 +72,7 @@ english/prop-ntservice-password.html
 english/prop-ntservice-process-priority.html
 english/prop-ntservice-starttype.html
 english/prop-pidfile.html
+english/prop-ping-interval.html
 english/prop-ping-timeout.html
 english/prop-port.html
 english/prop-request-thread-dump-on-failed-jvm-exit.html

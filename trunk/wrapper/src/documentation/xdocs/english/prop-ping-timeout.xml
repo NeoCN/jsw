@@ -29,6 +29,12 @@
             the response.  0 means never time out.  Defaults to 30 seconds.
         </para>
         <para>
+            The ping timeout must be at least 5 seconds longer than the value
+            of <ulink url="prop-ping-interval.html">wrapper.ping.interval</ulink>.
+            The Wrapper will modify the value at run time if necessary to avoid
+            problems.
+        </para>
+        <para>
             In normal operation, the Wrapper pings the JVM once every 5 seconds
             to make sure that its process has not frozen up.  The ping timeout
             is the amount of time to allow for a response from the JVM before

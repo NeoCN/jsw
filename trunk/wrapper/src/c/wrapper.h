@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.34  2003/09/04 05:40:08  mortenson
+ * Added a new wrapper.ping.interval property which lets users control the
+ * frequency that the Wrapper pings the JVM.
+ *
  * Revision 1.33  2003/09/03 02:33:38  mortenson
  * Requested restarts no longer reset the restart count.
  * Add new wrapper.ignore_signals property.
@@ -144,6 +148,7 @@ struct WrapperConfig {
     int     cpuTimeout;             /* Number of seconds without CPU before the JVM will issue a warning and extend timeouts */
     int     startupTimeout;         /* Number of seconds the wrapper will wait for a JVM to startup */
     int     pingTimeout;            /* Number of seconds the wrapper will wait for a JVM to reply to a ping */
+    int     pingInterval;           /* Number of seconds between pinging the JVM */
     int     shutdownTimeout;        /* Number of seconds the wrapper will wait for a JVM to shutdown */
     int     jvmExitTimeout;         /* Number of seconds the wrapper will wait for a JVM to process to terminate */
     int     wState;                 /* The current state of the wrapper */
