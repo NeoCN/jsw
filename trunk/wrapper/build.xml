@@ -342,6 +342,7 @@
             <fileset dir="${basedir}" >
                 <include name="index.html" />
                 <include name="build.*" />
+                <include name="project.dtd" />
                 <include name="doc/**" />
                 <include name="src/bin/**" />
                 <include name="src/conf/**" />
@@ -363,8 +364,9 @@
         <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat" eol="crlf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat.in" eol="crlf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="**/*.script.in" eol="lf" />
-        <fixcrlf srcdir="${releasesrcdir}" includes="tools/ant" eol="lf" />
-        <fixcrlf srcdir="${releasesrcdir}" includes="tools/antRun" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="build.sh" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="tools/bin/ant" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="tools/bin/antRun" eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="**/Makefile.*" eol="lf" />
         
         
@@ -372,7 +374,7 @@
         
         <!-- Set files to windows line feends for .zip files -->
         <fixcrlf srcdir="${releasesrcdir}"
-            includes="build.bat, build.xml, tools/bin/ant.bat, tools/bin/antRun.bat, **/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.conf*, **/*.c, **/*.h, **/*.log"
+            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.conf*, **/*.c, **/*.h, **/*.log"
             eol="crlf" />
         <fixcrlf srcdir="${releasesrcdir}"
             includes="src/documentation/**"
@@ -408,7 +410,7 @@
         
         <!-- Set files to unix line feends for .tar files -->
         <fixcrlf srcdir="${releasesrcdir}" 
-            includes="build.sh, build.sh, tools/bin/ant, tools/bin/antRun, **/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.conf*, **/*.c, **/*.h, **/*.log" 
+            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.conf*, **/*.c, **/*.h, **/*.log" 
             eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}"
             includes="src/documentation/**"
