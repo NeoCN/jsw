@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.27  2002/09/10 16:19:19  mortenson
+ * Fix a compilation problem on Linix platforms.
+ *
  * Revision 1.26  2002/09/10 16:17:26  mortenson
  * Get rid of tabs in files.  No other changes.
  *
@@ -482,14 +485,14 @@ int wrapperProtocolRead() {
     int len;
     int pos;
     int err;
-    struct _timeb timeBuffer;
+    struct timeb timeBuffer;
     long startTime;
     int startTimeMillis;
     long now;
     int nowMillis;
     long durr;
     
-    _ftime( &timeBuffer );
+    ftime( &timeBuffer );
     startTime = now = timeBuffer.time;
     startTimeMillis = nowMillis = timeBuffer.millitm;
 
@@ -619,7 +622,7 @@ int wrapperProtocolRead() {
         }
 
         /* Get the time again */
-        _ftime( &timeBuffer );
+        ftime( &timeBuffer );
         now = timeBuffer.time;
         nowMillis = timeBuffer.millitm;
     }
