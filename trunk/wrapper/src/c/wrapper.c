@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.106  2004/08/06 15:47:18  mortenson
+ * Fix a problem on Windows where a library path or class path which ended in
+ * a backslash was preventing the Wrapper from launching the JVM.
+ *
  * Revision 1.105  2004/07/05 07:43:53  mortenson
  * Fix a deadlock on solaris by being very careful that we never perform any direct
  * logging from within a signal handler.
@@ -1296,18 +1300,31 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 
         prop = getStringProperty(properties, "wrapper.java.library.path", NULL);
         if (prop) {
-            /* An old style library path was specified. */
+            /* An old style library path was specified.
+             * If quotes are being added, check the last character before the
+             *  closing quote. If it is a backslash then Windows will use it to
+             *  escape the quote.  To make things work correctly, we need to add
+             *  another backslash first so it will result in a single backslash
+             *  before the quote. */
             if (systemPath) {
-                strings[index] = malloc(sizeof(char) * (22 + strlen(prop) + 1 + strlen(systemPath) + 1));
+                strings[index] = malloc(sizeof(char) * (22 + strlen(prop) + 1 + strlen(systemPath) + 1 + 1));
                 if (addQuotes) {
-                    sprintf(strings[index], "-Djava.library.path=\"%s%c%s\"", prop, wrapperClasspathSeparator, systemPath);
+                    if ((strlen(systemPath) > 1) && (systemPath[strlen(systemPath) - 1] == '\\')) {
+                        sprintf(strings[index], "-Djava.library.path=\"%s%c%s\\\"", prop, wrapperClasspathSeparator, systemPath);
+                    } else {
+                        sprintf(strings[index], "-Djava.library.path=\"%s%c%s\"", prop, wrapperClasspathSeparator, systemPath);
+                    }
                 } else {
                     sprintf(strings[index], "-Djava.library.path=%s%c%s", prop, wrapperClasspathSeparator, systemPath);
                 }
             } else {
-                strings[index] = malloc(sizeof(char) * (22 + strlen(prop) + 1));
+                strings[index] = malloc(sizeof(char) * (22 + strlen(prop) + 1 + 1));
                 if (addQuotes) {
-                    sprintf(strings[index], "-Djava.library.path=\"%s\"", prop);
+                    if ((strlen(prop) > 1) && (prop[strlen(prop) - 1] == '\\')) {
+                        sprintf(strings[index], "-Djava.library.path=\"%s\\\"", prop);
+                    } else {
+                        sprintf(strings[index], "-Djava.library.path=\"%s\"", prop);
+                    }
                 } else {
                     sprintf(strings[index], "-Djava.library.path=%s", prop);
                 }
@@ -1387,8 +1404,15 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                 /* No library path, use default. always room */
                 sprintf(&(strings[index][cpLen++]), "./");
             }
-            /* Add ending quote */
+            /* Add ending quote.  If the previous character is a backslash then
+             *  Windows will use it to escape the quote.  To make things work
+             *  correctly, we need to add another backslash first so it will
+             *  result in a single backslash before the quote. */
             if (addQuotes) {
+                if (strings[index][cpLen - 1] == '\\') {
+                    sprintf(&(strings[index][cpLen]), "\\");
+                    cpLen++;
+                }
                 sprintf(&(strings[index][cpLen]), "\"");
                 cpLen++;
             }
@@ -1584,8 +1608,15 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             /* No classpath, use default. always room */
             sprintf(&(strings[index][cpLen++]), "./");
         }
-        /* Add ending quote */
+        /* Add ending quote.  If the previous character is a backslash then
+         *  Windows will use it to escape the quote.  To make things work
+         *  correctly, we need to add another backslash first so it will
+         *  result in a single backslash before the quote. */
         if (addQuotes) {
+            if (strings[index][cpLen - 1] == '\\') {
+                sprintf(&(strings[index][cpLen]), "\\");
+                cpLen++;
+            }
             sprintf(&(strings[index][cpLen]), "\"");
             cpLen++;
         }
