@@ -30,6 +30,12 @@ $Id$
                     on MAC OS X.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Rework the initialization of the bash and sh scripts so that they will
+                    work correctly when referenced as symbolic links.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
