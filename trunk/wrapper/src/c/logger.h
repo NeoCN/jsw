@@ -42,6 +42,12 @@
  * 
  *
  * $Log$
+ * Revision 1.17  2004/06/06 15:28:05  mortenson
+ * Fix a synchronization problem in the logging code which would
+ * occassionally cause the Wrapper to crash with an Access Violation.
+ * The problem was only encountered when the tick timer was enabled,
+ * and was only seen on multi-CPU systems.  Bug #949877.
+ *
  * Revision 1.16  2004/03/20 16:55:49  mortenson
  * Add an adviser feature to help cut down on support requests from new users.
  *
@@ -180,7 +186,7 @@ extern int unregisterSyslogMessageFile( );
 extern int getLowLogLevel();
 
 /* * General log functions * */
-extern void initLogBuffers();
+extern int initLogging();
 extern void logRegisterThread( int thread_id );
 extern void log_printf( int source_id, int level, char *lpszFmt, ... );
 

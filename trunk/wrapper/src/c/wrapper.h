@@ -42,6 +42,12 @@
  * 
  *
  * $Log$
+ * Revision 1.48  2004/06/06 15:28:18  mortenson
+ * Fix a synchronization problem in the logging code which would
+ * occassionally cause the Wrapper to crash with an Access Violation.
+ * The problem was only encountered when the tick timer was enabled,
+ * and was only seen on multi-CPU systems.  Bug #949877.
+ *
  * Revision 1.47  2004/04/08 14:58:59  mortenson
  * Add a wrapper.working.dir property.
  *
@@ -343,7 +349,7 @@ extern int wrapperCheckRestartTimeOK();
 extern void wrapperBuildJavaCommandArray(char ***strings, int *length, int addQuotes);
 extern void wrapperFreeJavaCommandArray(char **strings, int length);
 
-extern void wrapperInitializeLogging();
+extern int wrapperInitializeLogging();
 
 /**
  * Called when the Wrapper detects that the JVM process has exited.
