@@ -1,5 +1,10 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.1.2
+* Modify the way boolean system properties are resolved by the WrapperManager
+  so it is now possible to set them to true or false rather than assuming they
+  are true if set.
+
 3.1.1
 * Modified the way libwrapper.so is built on Solaris and Linux so that it
   no longer statically links its required libraries.

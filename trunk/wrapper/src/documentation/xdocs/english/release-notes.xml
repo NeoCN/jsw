@@ -8,6 +8,18 @@ $Id$
 
 <article id="index">
     <title>Java Service Wrapper Release Notes</title>
+    <section id="3.1.2">
+        <title>Version 3.1.2: Changes and bug fixes</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Modify the way boolean system properties are resolved by the WrapperManager
+                    so it is now possible to set them to true or false rather than assuming they
+                    are true if set.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
     <section id="3.1.1">
         <title>Version 3.1.1: Changes and bug fixes</title>
         <itemizedlist>
