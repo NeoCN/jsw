@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.17  2004/10/20 07:55:36  mortenson
+ * Make sure that the logfile is flushed in a timely manner rather than leaving
+ * it entirely up to the OS.
+ *
  * Revision 1.16  2004/10/20 05:23:17  mortenson
  * Add a new property, wrapper.disable_restarts, which will completely disable
  * the Wrapper's ability to restart JVMs.
@@ -1013,6 +1017,8 @@ void wrapperEventLoop() {
         }
         if (wrapperTickExpired(nowTicks, wrapperData->logfileInactivityTimeoutTicks)) {
             closeLogfile();
+        } else {
+            flushLogfile();
         }
 
         /* Has the process been getting CPU? This check will only detect a lag
