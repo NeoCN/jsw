@@ -592,7 +592,6 @@
                 <include name="index.html" />
                 <include name="bin/${wrapper.bin.name}" />
                 <include name="bin/*.bat" />
-                <include name="conf/*.conf" />
                 <include name="lib/${wrapper.lib.name}" />
                 <include name="lib/wrapper.jar" />
                 <include name="lib/wrappertest.jar" />
@@ -604,6 +603,10 @@
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
+        <!-- Copy a fresh wrapper.conf rather than the development file -->
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${releasedir}/conf/wrapper.conf"
+              filtering="on"/>
         <!-- Need an empty log file so that the logs directory will be included -->
         <touch file="${releasedir}/logs/wrapper.log"/>
         
@@ -633,7 +636,6 @@
                 <include name="bin/${wrapper.bin.name}" />
                 <include name="bin/realpath" />
                 <include name="bin/${app.name}" />
-                <include name="conf/*.conf" />
                 <include name="lib/wrapper.jar" />
                 <include name="lib/wrappertest.jar" />
                 <include name="lib/${wrapper.lib.name}" />
@@ -645,6 +647,10 @@
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
+        <!-- Copy a fresh wrapper.conf rather than the development file -->
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${releasedir}/conf/wrapper.conf"
+              filtering="on"/>
         <!-- Need an empty log file so that the logs directory will be included -->
         <touch file="${releasedir}/logs/wrapper.log"/>
         
