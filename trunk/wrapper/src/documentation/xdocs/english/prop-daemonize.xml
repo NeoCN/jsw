@@ -31,17 +31,6 @@
             has been closed.
         </para>
         <para>
-            Using the bash shell, it is also possible to spawn the process
-            from the shell using the &amp; operator.  However this does not work
-            correctly for other shells on some platforms.
-        </para>
-        <para>
-            Be aware that the daemon process will still send output to stdout
-            unless the
-            <ulink url="prop-console-loglevel.html">wrapper.console.loglevel</ulink>
-            property has been set to <literal moreinfo="none">NONE</literal>.
-        </para>
-        <para>
             In most cases, this property will not be set from within the
             wrapper.conf file.  It can be passed to the wrapper process by
             the shell script which launches the Wrapper.  An example can be

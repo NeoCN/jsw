@@ -107,14 +107,9 @@
                 <section>
                     <title>bin directory</title>
                     <para>
-                        The Wrapper is shipped with both
-                        <literal moreinfo="none">bash</literal> and
-                        <literal moreinfo="none">sh</literal> scripts.  Typically
-                        <literal moreinfo="none">bash</literal> scripts are used on
-                        Linux and <literal moreinfo="none">sh</literal> scripts on
-                        Solaris, HP-UX, AIX and Mac OSX.  This tutorial will assume
-                        that the <literal moreinfo="none">bash</literal> shell is
-                        being used.
+                        The Wrapper is shipped with a <literal moreinfo="none">sh</literal>
+                        script which can be used to reliably start and stop any Java
+                        application controlled by the Java Service Wrapper.
                     </para>
                     <para>
                         First we will copy the following files into the JBoss
@@ -122,8 +117,7 @@
                     </para>
                     <informalexample>
                         <screen format="linespecific"><![CDATA[{WRAPPER_HOME}/bin/wrapper
-{WRAPPER_HOME}/bin/realpath
-{WRAPPER_HOME}/src/bin/bash.script.in]]></screen>
+{WRAPPER_HOME}/src/bin/sh.script.in]]></screen>
                     </informalexample>
                     <para>
                         Rename the script file to reflect the name of the application.
@@ -138,7 +132,7 @@
                         of the script.  <literal moreinfo="none">APP_NAME</literal>
                         and <literal moreinfo="none">APP_LONG_NAME</literal>.  Note that
                         the default values of both of these variables are
-                        <ulink url="http://jakarta.apache.org/ant/">Ant</ulink> friendly
+                        <ulink url="http://ant.apache.org/">Ant</ulink> friendly
                         tokens which can easily be replaced as part of a build.
                         Suggested values for these variables are shown below.
                     </para>

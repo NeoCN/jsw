@@ -433,7 +433,7 @@ wrapper.app.parameter.1=org.jboss.Main]]></screen>
                         changed.  But there are several others available.  See the
                         documentation for details on their usage.  Note that
                         the default values of both of these variables are
-                        <ulink url="http://jakarta.apache.org/ant/">Ant</ulink> friendly
+                        <ulink url="http://ant.apache.org/">Ant</ulink> friendly
                         tokens which can easily be replaced as part of a build.
                     </para>
                     <informalexample>

@@ -32,12 +32,12 @@
             relative path references function reliably.
         </para>
         <para>
-            Linux and UNIX versions of the Wrapper make use of the realpath
-            utility to always set the working directory.  This is required
+            On Linux and UNIX versions, the <literal moreinfo="none">sh</literal>
+            script which ships with the Wrapper will change set the working
+            directory to the location of the script.  This is required
             so that relative paths will always work correctly even when
             the script used to launch the Wrapper is referenced using
-            a symbolic reference.  The bash and sh scripts, shipped with
-            the Wrapper, both make use of the realpath application.
+            a symbolic reference.
         </para>
         <para>
             The above functionality on all platforms makes it possible to

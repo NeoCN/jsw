@@ -17,6 +17,11 @@ Java Service Wrapper Revision History.
 * Stop clearing the file creation mask when the Unix version of the Wrapper is
   run as a daemon process.  The file creation mask will not be inherited from
   the process which launches the Wrapper.  Bug #788849.
+* Modify the sh script so it works on Linux, then deprecate the bash script.
+  This means that all Unix platforms can now use the same script to control
+  the Wrapper. Thanks to Mike Castle for the patch.  The bash script can still
+  be found in the release, but it is deprecated and will be removed in a
+  future version.
 
 3.0.4
 * Fix a problem on UNIX systems where requesting a second thread dump any time

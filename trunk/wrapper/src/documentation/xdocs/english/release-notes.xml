@@ -54,6 +54,15 @@ $Id$
                     <ulink url="http://sourceforge.net/tracker/?func=detail&amp;atid=425187&amp;aid=788849&amp;group_id=39428">Bug #788849</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Modify the sh script so it works on Linux, then deprecate the bash script.
+                    This means that all Unix platforms can now use the same script to control
+                    the Wrapper. Thanks to Mike Castle for the patch.  The bash script can still
+                    be found in the release, but it is deprecated and will be removed in a
+                    future version.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
