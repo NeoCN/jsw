@@ -361,7 +361,11 @@
     <!-- =================================================================== -->
     <!-- Documentation target                                                -->
     <!-- =================================================================== -->
-    <target name="doc" description="generates the Wrapper documentation">
+    <target name="doc-src-test">
+	<available file="${src.dir}/documentation/english.uris" property="doc-src.present"/>
+    </target>
+    <target name="doc" depends="doc-src-test" if="doc-src.present"
+	description="generates the Wrapper documentation">
         <mkdir dir="${build.dir}"/>
         <mkdir dir="${build.dir}/work"/>
         <mkdir dir="${doc.dir}"/>
