@@ -1,12 +1,12 @@
 #!/bin/sh
 
 echo
-echo "Aigent Build System"
-echo "-------------------"
+echo "Wrapper Build System"
+echo "--------------------"
 
-if [ "$AIGENT_TOOLS" = "" ] ; then
+if [ "$WRAPPER_TOOLS" = "" ] ; then
     if [ -d tools ] ; then 
-        AIGENT_TOOLS=tools
+        WRAPPER_TOOLS=tools
     else
         echo "Unable to locate tools directory at tools/."
         echo "Aborting."
@@ -14,7 +14,7 @@ if [ "$AIGENT_TOOLS" = "" ] ; then
     fi
 fi
 
-chmod u+x $AIGENT_TOOLS/bin/antRun
-chmod u+x $AIGENT_TOOLS/bin/ant
+chmod u+x $WRAPPER_TOOLS/bin/antRun
+chmod u+x $WRAPPER_TOOLS/bin/ant
 
-$AIGENT_TOOLS/bin/ant -logger org.apache.tools.ant.NoBannerLogger -emacs -Dtools.dir=$AIGENT_TOOLS $@ 
+$WRAPPER_TOOLS/bin/ant -logger org.apache.tools.ant.NoBannerLogger -emacs -Dtools.dir=$WRAPPER_TOOLS $@ 
