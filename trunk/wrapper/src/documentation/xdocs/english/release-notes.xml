@@ -39,6 +39,14 @@ $Id$
                     Added support for the <ulink url="prop-pidfile.html">wrapper.pidfile</ulink>
                     property on the Windows platform.
                 </para>
+                <warning>
+                    <simpara>
+                        (WINDOWS USERS) If you are using a wrapper.conf file that was created prior
+                        to version 3.0.0 of the Wrapper, then you may have this property defined in
+                        your configuration file.  You will get an error on startup if the specified
+                        path does not exist.
+                    </simpara>
+                </warning>
             </listitem>
             <listitem>
                 <para>

@@ -10,6 +10,29 @@ $Id$
     <title>Troubleshooting</title>
     <section>
         <title>
+            I get an error about not being able to write a pid file when starting the Wrapper.
+        </title>
+        <para>
+            Strarting with version 3.0.5 of the Java Service Wrapper, the
+            <ulink url="prop-wrapper-pidfile.html">wrapper.pidfile</ulink> property was
+            implemented on the Windows platform.  Previous versions of the Wrapper
+            ignored this property when running under Windows.  However, if the wrapper.conf
+            file that you are using was created using a version of the Wrapper prior to
+            3.0.0 then you may have this property defined as a holdout from when you
+            copied the file from the example wrapper.conf.  This will lead to an error
+            like the following:
+        </para>
+        <informalexample>
+            <screen format="linespecific"><![CDATA[ERROR: Could not write pid file /var/run/testwrapper.pid: The
+system cannot find the path specified. (0x3)]]></screen>
+        </informalexample>
+        <para>
+            To resolve this simply edit your wrapper.conf file and remove the
+            wrapper.pidfile property.
+        </para>
+    </section>
+    <section>
+        <title>
             I am getting a warning that the Wrapper can not load its native library.  What do I do?
         </title>
         <para>
