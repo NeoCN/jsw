@@ -182,6 +182,9 @@
         <replace file="${test.dir}/temp.script.in"
             token='WRAPPER_CONF="../conf/wrapper.conf"'
             value='WRAPPER_CONF="../test/@app.name@.conf"' />
+        <replace file="${test.dir}/temp.script.in"
+            token="SCRIPT=`$$SCRIPT_DIR/realpath $$0`"
+            value="SCRIPT=`$$SCRIPT_DIR/../bin/realpath $$0`" />
     </target>
     
     <!-- =================================================================== -->
@@ -200,8 +203,8 @@
             token='WRAPPER_CONF="../conf/wrapper.conf"'
             value='WRAPPER_CONF="../test/@app.name@.conf"' />
         <replace file="${test.dir}/temp.script.in"
-            token='SCRIPT=`$SCRIPT_DIR/realpath $0`'
-            value='SCRIPT=`$SCRIPT_DIR/../bin/realpath $0`' />
+            token="SCRIPT=`$$SCRIPT_DIR/realpath $$0`"
+            value="SCRIPT=`$$SCRIPT_DIR/../bin/realpath $$0`" />
     </target>
     
     <!-- =================================================================== -->
