@@ -129,6 +129,12 @@ Java Service Wrapper Revision History.
 * Modified the Windows batch files to fix a problem where the path to the
   Wrapper.exe contained more than one "/bin".  The new batch files are much
   simpler and should be easier to customize if needed.  Bug #925308.
+* Modified the wrapper.java.initmemory and wrapper.java.maxmemory properties
+  so that they now default to a value of 0 which causes the -Xms and -Xmx
+  parameters to be omitted from the command used to launch Java.  This
+  will cause the JVM to use its own default values and also makes it possible
+  to specify the memory parameters using the wrapper.java.additional.<n>
+  properties.
 
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the

@@ -304,6 +304,19 @@ $Id$
                     <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=925308&amp;group_id=39428&amp;atid=425187">Bug #925308</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Modified the <ulink url="prop-java-initmemory.html">wrapper.java.initmemory</ulink>
+                    and <ulink url="prop-java-maxmemory.html">wrapper.java.maxmemory</ulink> properties
+                    so that they now default to a value of 0 which causes the
+                    <literal moreinfo="none">-Xms</literal> and <literal moreinfo="none">-Xmx</literal>
+                    parameters to be omitted from the command used to launch Java.  This
+                    will cause the JVM to use its own default values and also makes it possible
+                    to specify the memory parameters using the
+                    <ulink url="prop-java-additional-n.html">wrapper.java.additional.&lt;n&gt;</ulink>
+                    properties.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
