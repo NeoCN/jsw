@@ -1,12 +1,10 @@
 #! /bin/sh
 
 #
-# Skeleton sh script suitable for starting and stopping 
-# wrapped Java apps on the Solaris platform. 
+# Copyright (c) 1999, 2004 Tanuki Software
 #
-# Make sure that PIDFILE points to the correct location,
-# if you have changed the default location set in the 
-# wrapper configuration file.
+# Java Service Wrapper sh script.  Suitable for starting and stopping
+#  wrapped Java applications on UNIX platforms.
 #
 
 #-----------------------------------------------------------------------------
@@ -43,6 +41,11 @@ PIDDIR="."
 #  the JVM and is not useful in situations where a privileged resource or
 #  port needs to be allocated prior to the user being changed.
 #RUN_AS_USER=
+
+# The following two lines are used by the chkconfig command. Change as is
+#  appropriate for your application.  They should remain commented.
+# chkconfig: 2345 20 80
+# description: @app.long.name@
 
 # Do not modify anything beyond this point
 #-----------------------------------------------------------------------------
