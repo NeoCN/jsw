@@ -181,6 +181,13 @@ $Id$
                     <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=852491&amp;group_id=39428&amp;atid=425190">Feature Request #852491</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add a status command to the UNIX shell script which can be used to find out
+                    whether or not the wrapper is currently running.  Patch submitted by
+                    Joseph Benavidez.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

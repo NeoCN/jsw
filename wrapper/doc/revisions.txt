@@ -82,6 +82,10 @@ Java Service Wrapper Revision History.
   service the Wrapper now correctly returns the correct exit code to the
   service manager so failure recovery tools should now work correctly.
   Feature Request #852491.
+* Add a status command to the UNIX shell script which can be used to find out
+  whether or not the wrapper is currently running.  Patch submitted by
+  Joseph Benavidez.
+
 
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the
