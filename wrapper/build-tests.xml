@@ -307,12 +307,16 @@ wrapper.filter.action.3=SHUTDOWN]]></replacevalue>
         <replace file="${test.dir}/systemproperty.conf">
             <replacetoken>#wrapper.java.additional.1=</replacetoken>
             <replacevalue><![CDATA[wrapper.java.additional.1=-DVAR1="abc"
+wrapper.java.additional.1.stripquotes=TRUE
 wrapper.java.additional.2=-DVAR2="\\"
+wrapper.java.additional.2.stripquotes=TRUE
 wrapper.java.additional.3=-DVAR3="\""
+wrapper.java.additional.3.stripquotes=TRUE
 wrapper.java.additional.4=-DVAR4=abc
 wrapper.java.additional.5=-DVAR5=\
 wrapper.java.additional.6=-DVAR6=\\
-wrapper.java.additional.7=-DVAR7=\"]]></replacevalue>
+wrapper.java.additional.7=-DVAR7=\"
+wrapper.java.additional.7.stripquotes=TRUE]]></replacevalue>
         </replace>
         <replace file="${test.dir}/systemproperty.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
