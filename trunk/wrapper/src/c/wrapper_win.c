@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.7  2002/01/27 19:35:45  spocke
+// Added support for service description property.
+//
 // Revision 1.6  2002/01/24 09:43:56  mortenson
 // Added new Logger code which allows log levels.
 //
@@ -741,6 +744,8 @@ int wrapperInstall(int argc, char **argv) {
     char binaryPath[4096];
     int i;
     int result = 0;
+    HKEY hKey;
+    char regPath[ 1024 ];
 
     // Get the full path and filename of this program
     if (GetModuleFileName(NULL, szPath, 512) == 0){
@@ -796,6 +801,14 @@ int wrapperInstall(int argc, char **argv) {
                                    wrapperData->ntServiceDependencies, // dependencies
                                    NULL,                               // LocalSystem account
                                    NULL);                              // no password
+
+        // Add service description to registry
+        sprintf(regPath, "SYSTEM\\CurrentControlSet\\Services\\%s", wrapperData->ntServiceName);
+        if( schService && (RegOpenKeyEx(HKEY_LOCAL_MACHINE, regPath, 0, KEY_WRITE, (PHKEY) &hKey) == ERROR_SUCCESS) ) {
+            // * * Set Description key in registry
+            RegSetValueEx(hKey, "Description", (DWORD) 0, (DWORD) REG_SZ, (const unsigned char *) wrapperData->ntServiceDescription, (strlen(wrapperData->ntServiceDescription) + 1));
+            RegCloseKey(hKey);
+        }
 
         if (schService){
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s installed.", wrapperData->ntServiceDisplayName);
