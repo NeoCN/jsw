@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.49  2004/11/29 14:26:52  mortenson
+// Add javadocs.
+//
 // Revision 1.48  2004/11/29 13:15:39  mortenson
 // Fix some javadocs problems.
 //
@@ -338,11 +341,23 @@ public final class WrapperManager
     /** Log message at advice log level. */
     public static final int WRAPPER_LOG_LEVEL_ADVICE     = 7;
     
+    /** Service Control code which can be sent to start a service. */
     public static final int SERVICE_CONTROL_CODE_START       = 0x10000;
+    
+    /** Service Control code which can be sent or received to stop a service. */
     public static final int SERVICE_CONTROL_CODE_STOP        = 1;
+    
+    /** Service Control code which can be sent to pause a service. */
     public static final int SERVICE_CONTROL_CODE_PAUSE       = 2;
+    
+    /** Service Control code which can be sent to resume a paused service. */
     public static final int SERVICE_CONTROL_CODE_CONTINUE    = 3;
+    
+    /** Service Control code which can be sent to or received interrogate the status of a service. */
     public static final int SERVICE_CONTROL_CODE_INTERROGATE = 4;
+    
+    /** Service Control code which can be received when the system is shutting down. */
+    public static final int SERVICE_CONTROL_CODE_SHUTDOWN    = 5;
     
     /** Reference to the original value of System.out. */
     private static PrintStream m_out;
@@ -1827,11 +1842,19 @@ public final class WrapperManager
      * Sends a service control code to the specified service.  The state of the
      *  service should be tested on return.  If the service was not currently
      *  running then the control code will not be sent.
+     * <p>
+     * The control code sent can be one of the system control codes:
+     *  WrapperManager.SERVICE_CONTROL_CODE_START,
+     *  WrapperManager.SERVICE_CONTROL_CODE_STOP,
+     *  WrapperManager.SERVICE_CONTROL_CODE_PAUSE,
+     *  WrapperManager.SERVICE_CONTROL_CODE_CONTINUE, or
+     *  WrapperManager.SERVICE_CONTROL_CODE_INTERROGATE.  In addition, user
+     *  defined codes in the range 128-255 can also be sent.
      *
      * @param serviceName Name of the Windows service which will receive the
      *                    control code.
      * @param controlCode The actual control code to be sent.  User defined
-     *                    conrol codes should be in the range 128-255.
+     *                    control codes should be in the range 128-255.
      *
      * @return A WrapperWin32Service containing the last known status of the
      *         service after sending the control code.  This will be null if
