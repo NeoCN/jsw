@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.19  2003/01/28 09:25:46  mortenson
+ * Added support for building the wrapper on AIX and HPUX systems.  Thanks for
+ * the patches involved go out to Ashish Gawarikar and William Lee.
+ *
  * Revision 1.18  2002/11/25 08:47:24  mortenson
  * Remove unused code.
  *
@@ -107,6 +111,7 @@
 #include <windows.h>
 #else
 #include <syslog.h>
+#include <strings.h>
 #endif
 
 #include "logger.h"

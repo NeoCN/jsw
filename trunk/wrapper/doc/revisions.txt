@@ -34,6 +34,8 @@ Java Service Wrapper Revision History.
 * Fix a problem where the Wrapper was incorrectly counting the number of
   non-daemon threads in BEA's JRockit Virtual Machine.  This was causing the
   application to shutdown when the non-daemon thread count dropped to 1.
+* Added support for building the wrapper on AIX and HPUX systems.  Thanks for
+  the patches involved go out to Ashish Gawarikar and William Lee.
 
 2.2.9
 * Added a new property, wrapperper.restart.delay, which allows the user to control
