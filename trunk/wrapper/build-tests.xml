@@ -301,7 +301,7 @@ wrapper.filter.action.3=SHUTDOWN]]></replacevalue>
         <delete file="${test.dir}/systemproperty.conf"/>
         <filter token="app.name"          value="systemproperty"/>
         <filter token="app.long.name"     value="System Property Case" />
-        <copy file="${test.dir}/template.conf"c
+        <copy file="${test.dir}/template.conf"
               tofile="${test.dir}/systemproperty.conf"
               filtering="on"/>
         <replace file="${test.dir}/systemproperty.conf">
