@@ -30,7 +30,11 @@ english/integrate-start-stop-nix.html
 english/integrate-start-stop-win.html
 english/introduction.html
 english/javadocs.html
+english/launch-nix.html
+english/launch-nix-boot-debian.html
 english/launch-overview.html
+english/launch-win.html
+english/launch.html
 english/license.html
 english/prop-app-parameter-n.html
 english/prop-console-format.html
