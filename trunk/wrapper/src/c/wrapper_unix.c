@@ -42,6 +42,12 @@
  * 
  *
  * $Log$
+ * Revision 1.80  2004/07/05 09:05:37  mortenson
+ * Go back to using signal on all UNIX platforms by default.  Encountered another
+ * problem where it is not immediately possible to prevent duplicate thread dumps
+ * when ctrl+\ is pressed in the console.   Disable this for now and maybe get it
+ * into a future release...
+ *
  * Revision 1.79  2004/07/05 08:41:03  mortenson
  * Queue some additional signal output.
  *
@@ -291,21 +297,22 @@
 #include "property.h"
 #include "logger.h"
 
-/* signal function calls were replaced with sigaction function calls to
- *  make it possible to increase the quantity and quality of debug output
- *  logged when a signal is encountered.
- * Unfortunately this does not work on FreeBSD.   For some reason when it is
- *  used, the pipe between the JVM and Wrapper remains in blocking mode
- *  despite it being set to non-blocking mode.  This results in the main
- *  event loop hanging until output from the JVM is received.
- * Rather than throwing the sigaction code away, its use is controlled with
- *  the WRAPPER_USE_SIGACTION define below.
- * Hopefully these problems can be resolved in the future.
- */
-#ifdef FREEBSD
-#else
-#define WRAPPER_USE_SIGACTION
-#endif
+/* An attempt was made to replace signal calls with sigaction.  This makes
+ *  it possible to obtain lots of useul information about where the signal
+ *  came from.
+ * There are a couple of problems.
+ * 1) On all platforms, the Wrapper will get duplicate signals for the timer
+ *    thread, JVM, and main process.  Many things can be filtered out, but
+ *    reliably filtering out the extra SIGQUITs for thread dumps proved
+ *    difficult.
+ * 2) On FreeBSD, it was causing the pipe between the JVM and Wrapper to be
+ *    stuck in blocking mode despite attempts to set it into non-blocking
+ *    mode.  This results in the event loop deadlocking until output is
+ *    received from the JVM.
+ * For now it is disabled, but rather than deleting it, there is still hope
+ *  to get it working sometime in the future.  In the mean time, it can be
+ *  enabled using the WRAPPER_USE_SIGACTION compiler definition. */
+/* #define WRAPPER_USE_SIGACTION */
 
 #ifdef WRAPPER_USE_SIGACTION
 #ifndef getsid
@@ -353,7 +360,7 @@ int wrapperGetLastError() {
  */
 void requestDumpJVMState(int useLoggerQueue) {
     log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-		"Dumping JVM state.");
+        "Dumping JVM state.");
     if (kill(jvmPid, SIGQUIT) < 0) {
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                    "Could not dump JVM state: %s", getLastErrorText());
@@ -531,12 +538,21 @@ void sigActionInterrupt(int sigNum, siginfo_t *sigInfo, void *na) {
  * Handle quit signals (i.e. Crtl-\).
  */
 void sigActionQuit(int sigNum, siginfo_t *sigInfo, void *na) {
+    pthread_t threadId;
+
     /* On UNIX the calling thread is the actual thread being interrupted
      *  so it has already been registered with logRegisterThread. */
 
     descSignal(sigInfo);
 
-    requestDumpJVMState(TRUE);
+    threadId = pthread_self();
+
+    if (threadId == timerThreadId) {
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+            "Timer thread received an Quit signal.  Ignoring.");
+    } else {
+        requestDumpJVMState(TRUE);
+    }
 }
 
 /**
@@ -616,13 +632,22 @@ void handleInterrupt(int sig_num) {
  * Handle quit signals (i.e. Crtl-\).
  */
 void handleQuit(int sig_num) {
+    pthread_t threadId;
+
     /* On UNIX the calling thread is the actual thread being interrupted
      *  so it has already been registered with logRegisterThread. */
+
+    threadId = pthread_self();
 
     /* Ignore any other signals while in this handler. */
     signal(SIGQUIT, SIG_IGN);
 
-    requestDumpJVMState(TRUE);
+    if (threadId == timerThreadId) {
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+            "Timer thread received an Quit signal.  Ignoring.");
+    } else {
+        requestDumpJVMState(TRUE);
+    }
 
     signal(SIGQUIT, handleQuit); 
 }

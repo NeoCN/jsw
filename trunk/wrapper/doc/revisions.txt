@@ -48,9 +48,6 @@ Java Service Wrapper Revision History.
   fixing a problem where long lines were being wrapped at 1024 characters.
   This rewrite also resulted in a 4 fold increase in speed when the JVM is
   sending large quantities of output to the console.
-* Increase debug output on UNIX platforms when a signal is caught.  When
-  possible, information about where the signal came from is now logged.
-  (Not currently supported on FreeBSD)
 * Modified the way log output from within signal handlers is handled so it
   is now queued and then logged by the main event loop.
 * Back out a 3.1.0 change where a JVM that had failed to exit cleanly was
