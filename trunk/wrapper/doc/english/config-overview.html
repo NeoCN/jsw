@@ -294,6 +294,11 @@ wrapper.startup.timeout=30
 #  never time out.  Defaults to 30 seconds.
 wrapper.ping.timeout=30
 
+# Number of seconds to allow for the JVM to shutdown before the wrapper should assume that
+#  the JVM is hung and terminate the JVM process.  0 means never time out.  Defaults to 30
+#  seconds.
+wrapper.shutdown.timeout=30
+
 # The Wrapper detects when an application calls System.exit() and treats this as a request
 #  to stop the server by default.
 #wrapper.disable_shutdown_hook=TRUE
