@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.43  2004/06/22 03:21:47  mortenson
+ * Fix a problem where is was not possible disable the wrapper log file as
+ * documented in the wrapper.logfile property.  Most likely broken way back
+ * in version 2.2.5.
+ *
  * Revision 1.42  2004/06/22 03:12:44  mortenson
  * A Windows user reported that using forward slashes in the path the log
  * file was failing.  Avoid this problem by always converting '/' to '\'
@@ -674,22 +679,26 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
     
     /* Log the message to the log file */
     if (level >= currentLogfileLevel) {
-        /* Make sure that the log file does not need to be rolled. */
-        checkAndRollLogs( );
-    
-        logfileFP = fopen( logFilePath, "a" );
-        if (logfileFP == NULL) {
-            /* The log file could not be opened.  Try the default file location. */
-            logfileFP = fopen( "wrapper.log", "a" );
-        }
-        
-        if (logfileFP != NULL) {
-            /* Build up the printBuffer. */
-            printBuffer = buildPrintBuffer( source_id, level, logfileFormat, threadMessageBuffer );
-    
-            fprintf( logfileFP, "%s\n", printBuffer );
-    
-            fclose( logfileFP );
+        /* If the log file was set to a blank value then it will not be used. */
+        if ( strlen( logFilePath ) > 0 )
+        {
+            /* Make sure that the log file does not need to be rolled. */
+            checkAndRollLogs( );
+            
+            logfileFP = fopen( logFilePath, "a" );
+            if (logfileFP == NULL) {
+                /* The log file could not be opened.  Try the default file location. */
+                logfileFP = fopen( "wrapper.log", "a" );
+            }
+            
+            if (logfileFP != NULL) {
+                /* Build up the printBuffer. */
+                printBuffer = buildPrintBuffer( source_id, level, logfileFormat, threadMessageBuffer );
+                
+                fprintf( logfileFP, "%s\n", printBuffer );
+                
+                fclose( logfileFP );
+            }
         }
     }
 

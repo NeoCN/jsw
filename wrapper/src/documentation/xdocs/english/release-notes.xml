@@ -100,6 +100,13 @@ $Id$
                     on Windows.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where is was not possible disable the wrapper log file as
+                    documented in the <ulink url="prop-logfile.html">wrapper.logfile</ulink>
+                    property.  Most likely broken way back in version 2.2.5.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.0">
