@@ -30,6 +30,8 @@ Java Service Wrapper Revision History.
 * Added a new property, wrapper.anchorfile, which makes it possible to
   cause the Wrapper to shutdown by deleting an anchor file.  The UNIX sh
   script has been modified to optionally make use of this feature.
+* Add a debug message at startup which makes it clear which timer is being
+  used.
 
 3.1.0
 * The license was revised for this version to include a copyright omission.

@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.100  2004/06/22 02:24:37  mortenson
+ * no message
+ *
  * Revision 1.99  2004/06/16 15:56:29  mortenson
  * Added a new property, wrapper.anchorfile, which makes it possible to
  * cause the Wrapper to shutdown by deleting an anchor file.
@@ -971,6 +974,14 @@ int wrapperRunConsole() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "--> Wrapper Started as Console");
     }
 #endif
+    
+    if (wrapperData->isDebugging) {
+        if (wrapperData->useSystemTime) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Using system timer.");
+        } else {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Using tick timer.");
+        }
+    }
 
     /* Enter main event loop */
     wrapperEventLoop();
@@ -1002,6 +1013,14 @@ int wrapperRunService() {
     }
 
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "--> Wrapper Started as Service");
+    
+    if (wrapperData->isDebugging) {
+        if (wrapperData->useSystemTime) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Using system timer.");
+        } else {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Using tick timer.");
+        }
+    }
 
     /* Enter main event loop */
     wrapperEventLoop();

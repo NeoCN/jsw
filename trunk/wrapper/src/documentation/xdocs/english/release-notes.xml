@@ -86,6 +86,12 @@ $Id$
                     use of this feature.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add a debug message at startup which makes it clear which timer is being
+                    used.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.0">
