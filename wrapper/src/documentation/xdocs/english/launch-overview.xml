@@ -41,16 +41,36 @@
                 </informalexample>
             </para>
             <para>
-                Then to start it, either reboot, go to the services control panel, or execute:
+                Then to start it, either reboot, go to the services control panel, or
+                execute one of the following commands:
                 <informalexample>
-                    <screen format="linespecific"><![CDATA[C:\MyApp\bin> net start MyApp]]></screen>
+                    <screen format="linespecific"><![CDATA[C:\MyApp\bin> net start MyApp
+C:\MyApp\bin> Wrapper.exe -t C:\MyApp\conf\wrapper.conf]]></screen>
                 </informalexample>
+                The later is useful as it can be used in batch files without needing to
+                copy the service name from the wrapper.conf file into the batch file.
+            </para>
+            <para>
+                To stop a service, either go to the services control panel, or execute
+                one of the following commands:
+                <informalexample>
+                    <screen format="linespecific"><![CDATA[C:\MyApp\bin> net stop MyApp
+C:\MyApp\bin> Wrapper.exe -p C:\MyApp\conf\wrapper.conf]]></screen>
+                </informalexample>
+                The later is useful as it can be used in batch files without needing to
+                copy the service name from the wrapper.conf file into the batch file.
+                In addition, in cases where a service takes a long time to stop, the
+                <literal>net stop</literal> command has a nasty habit of timing out
+                and saying that the service has stopped when in fact, it is still in the
+                process of doing so.
             </para>
             <para>
                 To uninstall the application as an NT service, execute:
                 <informalexample>
                     <screen format="linespecific"><![CDATA[C:\MyApp\bin> Wrapper.exe -r C:\MyApp\conf\wrapper.conf]]></screen>
                 </informalexample>
+                If the service is running at the time that it is uninstalled, the service
+                will be cleanly stopped and then removed.
             </para>
             <para>
                 These commands should normally be placed in batch files in the application's bin
