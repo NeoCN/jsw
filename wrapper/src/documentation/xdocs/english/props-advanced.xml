@@ -47,6 +47,9 @@
         </warning>
         <itemizedlist>
             <listitem>
+                <ulink url="prop-anchorfile.html">wrapper.anchorfile</ulink>
+            </listitem>
+            <listitem>
                 <ulink url="prop-cpu-timeout.html">wrapper.cpu.timeout</ulink>
             </listitem>
             <listitem>
