@@ -186,6 +186,13 @@ $Id$
                     length.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem on UNIX platforms where a shell used to start the Wrapper
+                    running as a detached process would hang when the user attempted to exit
+                    the shell.  Thanks to Mike Castle for this patch.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
