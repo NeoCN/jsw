@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.11  2004/11/26 08:41:22  mortenson
+// Implement reading from System.in
+//
 // Revision 1.10  2004/11/22 09:35:45  mortenson
 // Add methods for controlling other services.
 //
@@ -79,6 +82,9 @@ package org.tanukisoftware.wrapper.test;
 // Rework the test wrapper app so there is less code duplication.
 //
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Enumeration;
@@ -101,6 +107,7 @@ public abstract class AbstractActionApp
     private DeadlockPrintStream m_err;
     
     private Thread m_runner;
+    private Thread m_consoleRunner;
     
     private boolean m_users;
     private boolean m_groups;
@@ -285,6 +292,11 @@ public abstract class AbstractActionApp
                 System.out.println( "Begin polling the current and interactive users." );
                 m_users = true;
             }
+            else if ( m_groups )
+            {
+                System.out.println( "Stop polling for group info." );
+                m_groups = false;
+            }
             else
             {
                 System.out.println( "Stop polling the current and interactive users." );
@@ -313,6 +325,51 @@ public abstract class AbstractActionApp
             synchronized( AbstractActionApp.class )
             {
                 AbstractActionApp.class.notifyAll();
+            }
+        }
+        else if ( action.equals( "console" ) )
+        {
+            if ( m_consoleRunner == null )
+            {
+                m_consoleRunner = new Thread( "console-runner" )
+                {
+                    public void run()
+                    {
+                        System.out.println();
+                        System.out.println( "Start prompting for actions." );
+                        try
+                        {
+                            BufferedReader r = new BufferedReader(new InputStreamReader(System.in));
+                            String line;
+                            try
+                            {
+                                do {
+                                    System.out.println("Input an action (return stops prompting):");
+                                    line = r.readLine();
+                                    if ((line != null) && (!line.equals(""))) {
+                                        System.out.println("Read action: " + line );
+                                        if ( !doAction( line ) )
+                                        {
+                                            System.out.println( "Unknown action: " + line );
+                                        }
+                                    }
+                                } while ((line != null) && (!line.equals("")));
+                            }
+                            catch ( IOException e )
+                            {
+                                e.printStackTrace();
+                            }
+                        }
+                        finally
+                        {
+                            System.out.println( "Stop prompting for actions." );
+                            System.out.println();
+                            m_consoleRunner = null;
+                        }
+                    }
+                };
+                m_consoleRunner.setDaemon( true );
+                m_consoleRunner.start();
             }
         }
         else if ( action.equals( "idle" ) )

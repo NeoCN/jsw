@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.47  2004/11/26 08:41:25  mortenson
+// Implement reading from System.in
+//
 // Revision 1.46  2004/11/22 09:35:47  mortenson
 // Add methods for controlling other services.
 //
@@ -585,9 +588,6 @@ public final class WrapperManager
             {
                 m_out.println( "Wrapper Manager: Using wrapper" );
             }
-            
-            // Replace the System.in stream with one of our own to disable it.
-            System.setIn( new WrapperInputStream() );
             
             // A port must have been specified.
             String sPort;
@@ -3093,42 +3093,6 @@ public final class WrapperManager
         public int getTickOffset()
         {
             return m_tickOffset;
-        }
-    }
-    
-    /**
-     * When the JVM is being controlled by the Wrapper, stdin can not be used
-     *  as it is undefined.  This class makes it possible to provide the user
-     *  application with a descriptive error message if System.in is accessed.
-     */
-    private static class WrapperInputStream
-        extends InputStream
-    {
-        /**
-         * This method will always throw an IOException as the read method is
-         *  not valid.
-         */
-        public int read()
-            throws IOException
-        {
-            m_out.println( "WARNING - System.in can not be used when the JVM is being "
-                + "controlled by the Java Service Wrapper.  Calls will block indefinitely." );
-            
-            // Go into a loop that will never return.
-            while ( true )
-            {
-                synchronized( WrapperInputStream.this )
-                {
-                    try
-                    {
-                        this.wait();
-                    }
-                    catch ( InterruptedException e )
-                    {
-                        // Ignore.
-                    }
-                }
-            }
         }
     }
 }

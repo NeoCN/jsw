@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.12  2004/11/26 08:41:22  mortenson
+// Implement reading from System.in
+//
 // Revision 1.11  2004/08/06 08:05:26  mortenson
 // Add test case which dumps the system properties.  Useful for testing.
 //
@@ -207,6 +210,7 @@ public class TestAction
         System.err.println( "   deadlock_out             : Deadlocks the JVM's System.out and err streams." );
         System.err.println( "   users                    : Start polling the current and interactive users." );
         System.err.println( "   groups                   : Start polling the current and interactive users with groups." );
+        System.err.println( "   console                  : Prompt for actions in the console." );
         System.err.println( "   idle                     : Do nothing just run in idle mode." );
         System.err.println( "   properties               : Dump all System Properties to the console." );
         System.err.println( "" );

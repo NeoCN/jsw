@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.96  2004/11/26 08:41:24  mortenson
+ * Implement reading from System.in
+ *
  * Revision 1.95  2004/11/22 04:06:43  mortenson
  * Add an event model to make it possible to communicate with user applications in
  * a more flexible way.
@@ -1594,7 +1597,7 @@ void wrapperExecute() {
     
     startup_info.cbReserved2=0;
     startup_info.lpReserved2=NULL;
-    startup_info.hStdInput=NULL;
+    startup_info.hStdInput=GetStdHandle(STD_INPUT_HANDLE);
     startup_info.hStdOutput=wrapperChildStdoutWr;
     startup_info.hStdError=wrapperChildStdoutWr;
 
