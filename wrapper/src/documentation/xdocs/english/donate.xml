@@ -30,8 +30,8 @@
             shipped with commercial products.  If your usage of the Wrapper falls
             into this category we urge you to remember that your customers will most
             likely never even know that the Wrapper is a part of the product or
-            service that they are purchacing from you, and can therefor not
-            realisticly be expected to provide any support back to this project.
+            service that they are purchasing from you, and can therefor not
+            realistically be expected to provide any support back to this project.
             It would be appreciated if you could include a slight charge for the
             use of the Wrapper when billing your customers and then donate the
             money back to this project.  Please contact us if there is anything
@@ -47,6 +47,11 @@
         <para>
             We suggest a donation of $50 per machine, but you may donate any amount
             you feel to be appropriate by filling in the amount below.
+        </para>
+        <para>
+            By default we will respect your privacy.  But if you elect to do so we
+            will show our appreciation by listing your name and donation on our
+            <ulink url="sponsors.html">sponsor's page</ulink>.
         </para>
         <paypal-form/>
     </section>
