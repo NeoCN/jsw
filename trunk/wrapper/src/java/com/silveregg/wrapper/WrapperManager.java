@@ -26,6 +26,9 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.30  2003/01/20 03:21:11  mortenson
+// Add limited support for java 1.2.x
+//
 // Revision 1.29  2002/11/06 05:44:52  mortenson
 // Add support for invoking a thread dump from a method call within the JVM.
 //
@@ -133,6 +136,8 @@ package com.silveregg.wrapper;
 // no message
 //
 
+import com.silveregg.wrapper.resources.ResourceManager;
+
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -140,6 +145,8 @@ import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.BindException;
 import java.net.ConnectException;
 import java.net.InetAddress;
@@ -150,7 +157,6 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Properties;
 import java.util.StringTokenizer;
-import com.silveregg.wrapper.resources.ResourceManager;
 
 /**
  * Handles all communication with the native portion of the Wrapper code.
@@ -241,6 +247,9 @@ public final class WrapperManager implements Runnable {
     private static boolean _shuttingDown = false;
     private static boolean _appearHung = false;
     
+    private static Method _addShutdownHookMethod = null;
+    private static Method _removeShutdownHookMethod = null;
+    
     private static boolean _service = false;
     private static boolean _debug = false;
     private static int _jvmId = 0;
@@ -290,8 +299,27 @@ public final class WrapperManager implements Runnable {
             System.out.println("Wrapper Manager: JVM #" + _jvmId);
         }
         
-        // Check to see if we should register a shutdown hook.
-        if (System.getProperty("wrapper.disable_shutdown_hook") == null) {
+        // Check to see if we should register a shutdown hook
+        boolean disableShutdownHook = (System.getProperty("wrapper.disable_shutdown_hook") != null);
+        
+        // Locate the add and remove shutdown hook methods using reflection so
+        //  that this class can be compiled on 1.2.x versions of java.
+        try {
+            _addShutdownHookMethod =
+                Runtime.class.getMethod("addShutdownHook", new Class[] {Thread.class});
+            _removeShutdownHookMethod =
+                Runtime.class.getMethod("removeShutdownHook", new Class[] {Thread.class});
+        } catch (NoSuchMethodException e) {
+            if (_debug) {
+                System.out.println("Wrapper Manager: Shutdown hooks not supported by current JVM.");
+            }
+            _addShutdownHookMethod = null;
+            _removeShutdownHookMethod = null;
+            disableShutdownHook = true;
+        }
+        
+        // If the shutdown hook is not disabled, then register it.
+        if (!disableShutdownHook) {
             if (_debug) {
                 System.out.println("Wrapper Manager: Registering shutdown hook");
             }
@@ -315,7 +343,17 @@ public final class WrapperManager implements Runnable {
                     }
                 }
             };
-            Runtime.getRuntime().addShutdownHook(_hook);
+            
+            // Actually register the shutdown hook using reflection.
+            try {
+                _addShutdownHookMethod.invoke(Runtime.getRuntime(), new Object[] {_hook});
+            } catch (IllegalAccessException e) {
+                System.out.println("Wrapper Manager: Unable to register shutdown hook: "
+                    + e.getMessage());
+            } catch (InvocationTargetException e) {
+                System.out.println("Wrapper Manager: Unable to register shutdown hook: "
+                    + e.getMessage());
+            }
         }
         
         // A key is required for the wrapper to work correctly.  If it is not
@@ -885,7 +923,16 @@ public final class WrapperManager implements Runnable {
         } else {
             //  We do not want the ShutdownHook to execute, so unregister it before calling exit
             if (_hook != null) {
-                Runtime.getRuntime().removeShutdownHook(_hook);
+                // Remove the shutdown hook using reflection.
+                try {
+                    _removeShutdownHookMethod.invoke(Runtime.getRuntime(), new Object[] {_hook});
+                } catch (IllegalAccessException e) {
+                    System.out.println("Wrapper Manager: Unable to unregister shutdown hook: "
+                        + e.getMessage());
+                } catch (InvocationTargetException e) {
+                    System.out.println("Wrapper Manager: Unable to unregister shutdown hook: "
+                        + e.getMessage());
+                }
                 _hook = null;
             }
             // Signal that the application has stopped and the JVM is about to shutdown.

@@ -26,6 +26,9 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
+// Revision 1.9  2003/01/20 03:21:07  mortenson
+// Add limited support for java 1.2.x
+//
 // Revision 1.8  2002/11/06 05:44:51  mortenson
 // Add support for invoking a thread dump from a method call within the JVM.
 //
@@ -54,6 +57,7 @@ package com.silveregg.wrapper.test;
 
 import com.silveregg.wrapper.WrapperManager;
 import com.silveregg.wrapper.WrapperListener;
+
 import java.awt.Button;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -61,6 +65,8 @@ import java.awt.Frame;
 import java.awt.Label;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 public class Main implements WrapperListener {
     private MainFrame _frame;
@@ -133,7 +139,26 @@ public class Main implements WrapperListener {
             } else if (command.equals("System.exit(0)")) {
                 System.exit(0);
             } else if (command.equals("Runtime.getRuntime().halt(0)")) {
-                Runtime.getRuntime().halt(0);
+                // Execute runtime.halt(0) using reflection so this class will
+                //  compile on 1.2.x versions of Java.
+                Method haltMethod;
+                try {
+                    haltMethod = Runtime.class.getMethod("halt", new Class[] {Integer.TYPE});
+                } catch (NoSuchMethodException e) {
+                    System.out.println("halt not supported by current JVM.");
+                    haltMethod = null;
+                }
+                
+                if (haltMethod != null) {
+                    Runtime runtime = Runtime.getRuntime();
+                    try {
+                        haltMethod.invoke(runtime, new Object[] {new Integer(0)});
+                    } catch (IllegalAccessException e) {
+                        System.out.println("Unable to call runitme.halt: " + e.getMessage());
+                    } catch (InvocationTargetException e) {
+                        System.out.println("Unable to call runitme.halt: " + e.getMessage());
+                    }
+                }
             } else if (command.equals("Request Restart")) {
                 WrapperManager.restart();
             } else if (command.equals("Request Thread Dump")) {
