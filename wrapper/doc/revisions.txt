@@ -60,6 +60,14 @@ Java Service Wrapper Revision History.
   Wrapper deals with its initial working directory.
 * Add a new method WrapperManager.getProperties() which makes it possible to
   access any property in the Wrapper configuration file.
+* Fix a problem where TERM signals were not being correctly ignored by the
+  JVM process on UNIX platforms even if the wrapper.ignore_signals property
+  was set to true.   Earlier versions of the Wrapper would generate a
+  WRAPPER_CTRL_SHUTDOWN_EVENT when a TERM signal was received.   On Windows
+  that signal should never be ignored.  To resolve this a new
+  WRAPPER_CTRL_TERM_EVENT was added making it possible to selectively ignore
+  the TERM signals.  This change may affect user implementations of the
+  WrapperListener.controlEvent() method.  Bug #1086344.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager

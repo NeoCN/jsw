@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.8  2004/12/16 14:13:47  mortenson
+// Fix a problem where TERM signals were not being correctly ignored by the JVM
+// process on UNIX platforms even if wrapper.ignore_signals was set.
+//
 // Revision 1.7  2004/08/13 14:34:03  mortenson
 // Fix a typo in javadoc references to the signalStopping() method.
 //
@@ -129,8 +133,8 @@ public interface WrapperListener
      * Called whenever the native wrapper code traps a system control signal
      *  against the Java process.  It is up to the callback to take any actions
      *  necessary.  Possible values are: WrapperManager.WRAPPER_CTRL_C_EVENT, 
-     *    WRAPPER_CTRL_CLOSE_EVENT, WRAPPER_CTRL_LOGOFF_EVENT, or 
-     *    WRAPPER_CTRL_SHUTDOWN_EVENT.
+     *    WRAPPER_CTRL_CLOSE_EVENT, WRAPPER_CTRL_LOGOFF_EVENT, 
+     *    WRAPPER_CTRL_SHUTDOWN_EVENT, or WRAPPER_CTRL_TERM_EVENT.
      * <p>
      * The WRAPPER_CTRL_C_EVENT will be called whether or not the JVM is
      *  controlled by the Wrapper.  If controlled by the Wrapper, it is
@@ -159,6 +163,12 @@ public interface WrapperListener
      *  SHUTDOWN method whether running as a console or NT service.  Usually,
      *  the LOGOFF event should be ignored when the Wrapper is running as an
      *  NT service.
+     * <p>
+     * WRAPPER_CTRL_TERM_EVENT events will only be encountered on UNIX systems.
+     * <p>
+     * If the wrapper.ignore_signals property is set to TRUE then any
+     *  WRAPPER_CTRL_C_EVENT, WRAPPER_CTRL_CLOSE_EVENT, or WRAPPER_CTRL_TERM_EVENT
+     *  events will be blocked prior to this method being called.
      * <p>
      * Unless you know what you are doing, it is suggested that the body of
      *  this method contain the following code, or its functional equivalent.

@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.19  2004/12/16 14:13:45  mortenson
+ * Fix a problem where TERM signals were not being correctly ignored by the JVM
+ * process on UNIX platforms even if wrapper.ignore_signals was set.
+ *
  * Revision 1.18  2004/12/08 05:08:49  mortenson
  * Correct the return types of the unsupported Windows service related methods.
  *
@@ -118,7 +122,7 @@ void handleInterrupt(int sig_num) {
  */
 void handleTermination(int sig_num) {
     signal(SIGTERM, handleTermination); 
-    wrapperJNIHandleSignal(org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_SHUTDOWN_EVENT);
+    wrapperJNIHandleSignal(org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_TERM_EVENT);
 }
 
 /*
