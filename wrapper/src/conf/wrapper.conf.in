@@ -15,9 +15,7 @@ wrapper.java.classpath.2=../lib/wrappertest.jar
 wrapper.java.library.path=../lib
 
 # Java Additional Parameters
-#wrapper.java.additional.1=-Xrs
-#wrapper.java.additional.2=-Xcheck:jni
-#wrapper.java.additional.3=-verbose:jni
+#wrapper.java.additional.1=
 
 # Initial Java Heap Size (in MB)
 wrapper.java.initmemory=16
@@ -26,7 +24,7 @@ wrapper.java.initmemory=16
 wrapper.java.maxmemory=64
 
 # Application parameters.  Add parameters as needed starting from 1
-wrapper.app.parameter.1=
+#wrapper.app.parameter.1=
 
 # Port which the native wrapper code will attempt to connect to
 wrapper.port=1777
