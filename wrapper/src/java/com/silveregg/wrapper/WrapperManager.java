@@ -26,6 +26,9 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.12  2002/05/24 00:45:12  mortenson
+// Add some comments to the code.
+//
 // Revision 1.11  2002/05/22 16:05:35  mortenson
 // Comment out a debug error stack trace that would show up when the socket to
 // the native Wrapper was closed.  It was being shown on Linux systems.
@@ -714,6 +717,11 @@ public final class WrapperManager implements Runnable {
             if (_debug) {
                 System.out.println("Thread, " + Thread.currentThread().getName() + ", waiting for the JVM to exit.");
             }
+            
+            // This thread needs to be put into an infinite loop until the JVM exits.
+            //  This thread can not be allowed to return to the caller, but another
+            //  thread is already responsible for shutting down the JVM, so this
+            //  one can do nothing but wait.
             while(true) {
                 try {
                     Thread.sleep(100);
