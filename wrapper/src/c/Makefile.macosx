@@ -4,8 +4,6 @@ INCLUDE=$(JAVA_HOME)/include
 
 DEFS = -I$(INCLUDE) -I/System/Library/Frameworks/JavaVM.framework/Headers
 
-realpath_SOURCE = realpath.c
-
 wrapper_SOURCE = wrapper.c wrapperinfo.c wrapper_unix.c property.c logger.c
 
 libwrapper_so_OBJECTS = wrapperjni_unix.o wrapperinfo.o wrapperjni.o
@@ -13,20 +11,17 @@ libwrapper_so_OBJECTS = wrapperjni_unix.o wrapperinfo.o wrapperjni.o
 BIN = ../../bin
 LIB = ../../lib
 
-all: init realpath wrapper libwrapper.jnilib
+all: init wrapper libwrapper.jnilib
 
 clean:
 	rm -f *.o
 
 cleanall: clean
 	rm -rf *~ .deps
-	rm -f $(BIN)/realpath $(BIN)/wrapper $(LIB)/libwrapper.jnilib
+	rm -f $(BIN)/wrapper $(LIB)/libwrapper.jnilib
 
 init:
 	if test ! -d .deps; then mkdir .deps; fi
-
-realpath: $(realpath_SOURCE)
-	$(COMPILE) $(realpath_SOURCE) -o $(BIN)/realpath
 
 wrapper: $(wrapper_SOURCE)
 	$(COMPILE) -DMACOSX $(wrapper_SOURCE) -lcrypto -o $(BIN)/wrapper
