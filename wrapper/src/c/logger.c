@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.28  2003/07/04 03:57:18  mortenson
+ * Convert tabs to spaces.
+ *
  * Revision 1.27  2003/07/04 03:32:22  mortenson
  * The error code was being displayed twice when unable to write to the event log.
  *
@@ -574,13 +577,13 @@ void sendEventlogMessage( int source_id, int level, char *szBuff ) {
         0                         /* binary data buffer */
     );
     if (result == 0) {
-		// If there are any errors accessing the event log, like it is full, then disable its output.
-		setSyslogLevelInt(LEVEL_NONE);
+        // If there are any errors accessing the event log, like it is full, then disable its output.
+        setSyslogLevelInt(LEVEL_NONE);
 
-		// Recurse so this error gets set in the log file and console.  The syslog
-		//  output has been disabled so we will not get back here.
-		log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to write to the EventLog due to: %s", getLastErrorText());
-		log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Internally setting wrapper.syslog.loglevel=NONE to prevent further messages.");
+        // Recurse so this error gets set in the log file and console.  The syslog
+        //  output has been disabled so we will not get back here.
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to write to the EventLog due to: %s", getLastErrorText());
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Internally setting wrapper.syslog.loglevel=NONE to prevent further messages.");
     }
 
     DeregisterEventSource( handle );
