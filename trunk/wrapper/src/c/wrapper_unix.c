@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.9  2002/02/20 14:05:29  spocke
+// Fixed cmdline property change bug.
+//
 // Revision 1.8  2002/01/27 15:04:50  spocke
 // Removed some old logger stuff, and added new logger.
 //
@@ -439,7 +442,7 @@ int main(int argc, char **argv) {
             wrapperData->configFile = argv[1];
             
 			// Loop over the additional arguments and try to parse them as properties
-			for (i = 3; i < argc; i++) {
+			for (i = 2; i < argc; i++) {
 				if (addPropertyPair(properties, argv[i])) {
 					log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, 
 						"The argument '%s' is not a valid property name-value pair.", argv[i]);
