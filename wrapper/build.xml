@@ -365,14 +365,14 @@
             eol="crlf" />
         
         <!-- Source archives with documentation source -->
-        <zip file="${releasesrcdir}_with_doc_src.zip"
+        <zip zipfile="${releasesrcdir}_with_doc_src.zip"
             basedir="${basedir}"
             compress="true">
             <include name="${releasesrcfile}/**/*" />
         </zip>
         
         <!-- Source archives without documentation source -->
-        <zip file="${releasesrcdir}.zip"
+        <zip zipfile="${releasesrcdir}.zip"
             basedir="${basedir}"
             compress="true">
             <include name="${releasesrcfile}/**/*" />
@@ -459,7 +459,7 @@
         <fixcrlf srcdir="${releasesrcdir}" includes="bin/${app.name}" eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="**/*.script.in" eol="lf" />
         
-        <zip file="${releasedir}.zip"
+        <zip zipfile="${releasedir}.zip"
             basedir="${basedir}"
             compress="true">
             <include name="${releasefile}/**/*" />
