@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.81  2004/01/09 18:30:12  mortenson
+ * Fix some compiler warnings.
+ *
  * Revision 1.80  2004/01/09 17:49:00  mortenson
  * Rework the logging so it is now threadsafe.
  *
@@ -1438,9 +1441,9 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             if (strings) {
                 strings[index] = malloc(sizeof(char) * (43 + 1)); /* Allow for 10 digits */
                 if (addQuotes) {
-                    sprintf(strings[index], "-Dwrapper.timer_fast_threshold=\"%lu\"", wrapperData->timerFastThreshold * WRAPPER_TICK_MS / 1000);
+                    sprintf(strings[index], "-Dwrapper.timer_fast_threshold=\"%d\"", wrapperData->timerFastThreshold * WRAPPER_TICK_MS / 1000);
                 } else {
-                    sprintf(strings[index], "-Dwrapper.timer_fast_threshold=%lu", wrapperData->timerFastThreshold * WRAPPER_TICK_MS / 1000);
+                    sprintf(strings[index], "-Dwrapper.timer_fast_threshold=%d", wrapperData->timerFastThreshold * WRAPPER_TICK_MS / 1000);
                 }
             }
             index++;
@@ -1449,9 +1452,9 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             if (strings) {
                 strings[index] = malloc(sizeof(char) * (43 + 1)); /* Allow for 10 digits */
                 if (addQuotes) {
-                    sprintf(strings[index], "-Dwrapper.timer_slow_threshold=\"%lu\"", wrapperData->timerSlowThreshold * WRAPPER_TICK_MS / 1000);
+                    sprintf(strings[index], "-Dwrapper.timer_slow_threshold=\"%d\"", wrapperData->timerSlowThreshold * WRAPPER_TICK_MS / 1000);
                 } else {
-                    sprintf(strings[index], "-Dwrapper.timer_slow_threshold=%lu", wrapperData->timerSlowThreshold * WRAPPER_TICK_MS / 1000);
+                    sprintf(strings[index], "-Dwrapper.timer_slow_threshold=%d", wrapperData->timerSlowThreshold * WRAPPER_TICK_MS / 1000);
                 }
             }
             index++;
