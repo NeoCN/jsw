@@ -115,6 +115,12 @@ $Id$
                     supplying the patch.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where the sh and bash scripts were failing if the path to the
+                    script contained spaces.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

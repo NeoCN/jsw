@@ -47,6 +47,8 @@ Java Service Wrapper Revision History.
   continue to function as they did before.
 * Added support for DEC OSF1 (Alpha).  Big thanks to Andreas Wendt for
   supplying the patch.
+* Fix a problem where the sh and bash scripts were failing if the path to the
+  script contained spaces.
 
 3.0.3
 * Added support for Mac OS X.  Big thanks to Andy Barnett for supplying the
