@@ -131,6 +131,10 @@ SOURCE=.\property.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\psapi.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\resource.h
 # End Source File
 # Begin Source File

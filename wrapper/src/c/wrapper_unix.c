@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.91  2004/10/18 05:43:45  mortenson
+ * Add the wrapper.memory_output and wrapper.memory_output.interval properties to
+ * make it possible to track memory usage of the Wrapper and JVM over time.
+ * Change the JVM process variable names to make their meaning more obvious.
+ *
  * Revision 1.90  2004/09/22 11:06:28  mortenson
  * Start using nanosleep in place of usleep on UNIX platforms to work around usleep
  * problems with alarm signals on Solaris.
@@ -1041,6 +1046,14 @@ DWORD wrapperGetTicks() {
         /* Return a snapshot of the current tick count. */
         return timerTicks;
     }
+}
+
+/**
+ * Outputs a log entry at regular intervals to track the memory usage of the
+ *  Wrapper and its JVM.
+ */
+void wrapperDumpMemory() {
+    /* Not yet implemented on UNIX platforms. */
 }
 
 /**
