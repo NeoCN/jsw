@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.67  2005/03/24 06:23:57  mortenson
+ * Add a pair of properties to make the Wrapper prompt the user for a password
+ * when installing as a service.
+ *
  * Revision 1.66  2004/12/08 04:54:32  mortenson
  * Make it possible to access the contents of the Wrapper configuration file from
  * within the JVM.
@@ -388,6 +392,8 @@ struct WrapperConfig {
                                      * {HIGH_PRIORITY_CLASS | IDLE_PRIORITY_CLASS | NORMAL_PRIORITY_CLASS | REALTIME_PRIORITY_CLASS} */
     char    *ntServiceAccount;      /* Account name to use when running as a service.  NULL to use the LocalSystem account. */
     char    *ntServicePassword;     /* Password to use when running as a service.  NULL means no password. */
+    int     ntServicePasswordPrompt; /* If true then the user will be prompted for a password when installing as a service. */
+    int     ntServicePasswordPromptMask; /* If true then the password will be masked as it is input. */
     int     ntServiceInteractive;   /* Should the service be allowed to interact with the desktop? */
     int     ntHideJVMConsole;       /* Should the JVMs Console window be hidden when run as a service.  True by default but GUIs will not be visible for JVMs prior to 1.4.0. */
     int     ntHideWrapperConsole;   /* Should the Wrapper Console window be hidden when run as a service. */

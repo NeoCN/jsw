@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.101  2005/03/24 06:23:57  mortenson
+ * Add a pair of properties to make the Wrapper prompt the user for a password
+ * when installing as a service.
+ *
  * Revision 1.100  2005/02/12 11:29:51  mortenson
  * Fix a security problem where the value of the wrapper.ntservice.account
  * and wrapper.ntservice.password properties were being stored in plain text
@@ -2113,6 +2117,66 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
 }
 
 /**
+ * Reads a password from the console and then returns it as a malloced string.
+ *  This is only called once so the memory can leak.
+ */
+char *readPassword() {
+    char *buffer;
+    char c;
+    int cnt = 0;
+    
+    buffer = malloc(sizeof(char) * 65);
+    
+    do {
+        c = _getch();
+        switch (c) {
+        case 0x03: /* Ctrl-C */
+            printf( "\n" );
+            appExit(0);
+            break;
+            
+        case 0x08: /* Backspace */
+            if (cnt > 0) {
+                printf("%c %c", 0x08, 0x08);
+                cnt--;
+                buffer[cnt] = 0;
+            }
+            break;
+            
+        case 0xffffffe0: /* Arrow key. */
+            /* Skip the next character as well. */
+            _getch();
+            break;
+            
+        case 0x0d: /* CR */
+        case 0x0a: /* LF */
+            /* Done */
+            break;
+            
+        default:
+            if (cnt < 64) {
+                /* For now, ignore any non-standard ascii characters. */
+                if ((c >= 0x20) && (c < 0x7f)) {
+                    if (wrapperData->ntServicePasswordPromptMask) {
+                        printf("*");
+                    } else {
+                        printf("%c", c);
+                    }
+                    buffer[cnt] = c;
+                    buffer[cnt + 1] = 0;
+                    cnt++;
+                }
+            }
+            break;
+        }
+        //printf( "(%02x)", c );
+    } while ((c != 0x0d) && (c != 0x0a));
+    printf("\n");
+    
+    return buffer;
+}
+
+/**
  * Install the Wrapper as an NT Service using the information and service
  *  name in the current configuration file.
  *
@@ -2182,6 +2246,16 @@ int wrapperInstall(int argc, char **argv) {
     }
     if (wrapperData->isDebugging) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Service command: %s", binaryPath);
+    }
+    
+    if (wrapperData->ntServiceAccount && wrapperData->ntServicePasswordPrompt) {
+        /* Prompt the user for a password. */
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Prompting for account password...");
+        printf("Please input the password for account '%s': ", wrapperData->ntServiceAccount);
+        wrapperData->ntServicePassword = readPassword();
+#ifdef _DEBUG
+        printf("Password=[%s]\n", wrapperData->ntServicePassword);
+#endif
     }
 
     /* Decide on the service type */
