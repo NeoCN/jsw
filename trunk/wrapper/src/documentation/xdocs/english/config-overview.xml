@@ -48,9 +48,6 @@ wrapper.java.maxmemory=64
 # Port which the native wrapper code will attempt to connect to
 wrapper.port=1777
 
-# Log file to use for wrapper output logging.
-wrapper.logfile=../logs/wrapper.log
-
 # Number of seconds to allow for the JVM to be launched and contact the wrapper before the
 #  wrapper should assume that the JVM is hung and terminate the JVM process.  0 means never
 #  time out.  Defaults to 30 seconds.
@@ -63,6 +60,18 @@ wrapper.ping.timeout=30
 # The Wrapper detects when an application calls System.exit() and treats this as a request
 #  to stop the server by default.
 #wrapper.disable_shutdown_hook=TRUE
+
+#********************************************************************
+# Wrapper Logging parameters
+#********************************************************************
+# Log file to use for wrapper output logging.
+wrapper.logfile=../logs/wrapper.log
+
+# Format of output for the log file.  (See docs for formats)
+wrapper.logfile.format=PTM
+
+# Format of output for the console.  (See docs for formats)
+wrapper.console.format=PM
 
 # Show debug messages
 #wrapper.debug=TRUE
@@ -247,18 +256,6 @@ wrapper.app.parameter.4=-p4</screen>
                     </glossdef>
                 </glossentry>
                 <glossentry>
-                    <glossterm>wrapper.logfile</glossterm>
-                    <glossdef>
-                        <para>
-                            Log file to which all output to the console will be logged.  The logfile also contains timestamps.
-                            <informalexample>
-                                <simpara><emphasis>Example:</emphasis></simpara>
-                                <screen format="linespecific">wrapper.logfile=../logs/wrapper.log</screen>
-                            </informalexample>
-                        </para>
-                    </glossdef>
-                </glossentry>
-                <glossentry>
                     <glossterm>wrapper.startup.timeout</glossterm>
                     <glossdef>
                         <para>
@@ -306,6 +303,79 @@ wrapper.app.parameter.4=-p4</screen>
                                 If you have control over whether the System.exit() or dispose() methods are called, you may be able to make use of the WrapperManager.hasShutdownHookBeenTriggered() method to avoid the deadlock issue.
                             </simpara>
                         </warning>
+                    </glossdef>
+                </glossentry>
+            </glosslist>
+        </section>
+        <section>
+            <title>Logging properties</title>
+            <glosslist>
+                <glossentry>
+                    <glossterm>wrapper.logfile</glossterm>
+                    <glossdef>
+                        <para>
+                            Log file to which all output to the console will be logged.  If the logfile is not specified, then file logging will be written to a file called "wrapper.log" in the same directory as the Wrapper executable.  Providing a blank value will cause file logging to be disabled.
+                            <informalexample>
+                                <simpara><emphasis>Example:</emphasis></simpara>
+                                <screen format="linespecific">wrapper.logfile=../logs/wrapper.log</screen>
+                            </informalexample>
+                        </para>
+                    </glossdef>
+                </glossentry>
+                <glossentry>
+                    <glossterm>wrapper.logfile.format</glossterm>
+                    <glossdef>
+                        <para>
+                            Format to use for logging to the log file.  Logging was intentionally kept simple.  The format consists of the tokens 'P' for prefix, 'T' for time, and 'M' for message.  If the format contains these values then it will be included in the format.  The order of the tokens does not affect the way the log appears.  If the property is missing or commented out, then the default value 'PTM' will be used.  Setting the property to a blank value will cause file logging to be disabled.
+                            <informalexample>
+                                <simpara><emphasis>Examples with sample log entries:</emphasis></simpara>
+                                <screen format="linespecific"><![CDATA[wrapper.logfile.format=PTM
+wrapper  | 2001/12/11 13:45:33 | --> Wrapper Started as Console
+wrapper  | 2001/12/11 13:45:33 | Launching a JVM...
+jvm 1    | 2001/12/11 13:45:35 | Initializing...
+
+wrapper.logfile.format=PM
+wrapper  | --> Wrapper Started as Console
+wrapper  | Launching a JVM...
+jvm 1    | Initializing...
+
+wrapper.logfile.format=M
+--> Wrapper Started as Console
+Launching a JVM...
+Initializing...
+
+wrapper.logfile.format=
+< No logging >]]></screen>
+                            </informalexample>
+                        </para>
+                    </glossdef>
+                </glossentry>
+                <glossentry>
+                    <glossterm>wrapper.console.format</glossterm>
+                    <glossdef>
+                        <para>
+                            Format to use for output to the console.  Logging was intentionally kept simple.  The format consists of the tokens 'P' for prefix, 'T' for time, and 'M' for message.  If the format contains these values then it will be included in the format.  The order of the tokens does not affect the way the log appears.  If the property is missing or commented out, then the default value 'PM' will be used.  Setting the property to a blank value will cause console output to be disabled.
+                            <informalexample>
+                                <simpara><emphasis>Examples with sample output:</emphasis></simpara>
+                                <screen format="linespecific"><![CDATA[wrapper.console.format=PTM
+wrapper  | 2001/12/11 13:45:33 | --> Wrapper Started as Console
+wrapper  | 2001/12/11 13:45:33 | Launching a JVM...
+jvm 1    | 2001/12/11 13:45:35 | Initializing...
+
+wrapper.console.format=PM
+wrapper  | --> Wrapper Started as Console
+wrapper  | Launching a JVM...
+jvm 1    | Initializing...
+
+wrapper.console.format=M
+--> Wrapper Started as Console
+Launching a JVM...
+Initializing...
+
+wrapper.console.format=
+< No output >]]></screen>
+                            </informalexample>
+                        </para>
                     </glossdef>
                 </glossentry>
                 <glossentry>

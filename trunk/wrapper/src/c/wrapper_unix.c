@@ -24,6 +24,10 @@
  */
 
 // $Log$
+// Revision 1.4  2001/12/11 05:19:39  mortenson
+// Added the ablility to format and/or disable file logging and output to
+// the console.
+//
 // Revision 1.3  2001/12/07 07:29:38  rybesh
 // finished making wrapper scripts/executable relocatable on unix
 //
@@ -425,6 +429,8 @@ int main(int argc, char **argv) {
     wrapperData->wState = WRAPPER_WSTATE_STARTING;
     wrapperData->jState = WRAPPER_JSTATE_DOWN;
     wrapperData->logFile = NULL;
+    wrapperData->logFileFormat = "PTM";
+    wrapperData->consoleFormat = "PM";
     wrapperData->jvmCommand = NULL;
     wrapperData->exitRequested = FALSE;
     wrapperData->exitAcknowledged = FALSE;

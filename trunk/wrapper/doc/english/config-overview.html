@@ -182,9 +182,6 @@ wrapper.java.maxmemory=64
 # Port which the native wrapper code will attempt to connect to
 wrapper.port=1777
 
-# Log file to use for wrapper output logging.
-wrapper.logfile=../logs/wrapper.log
-
 # Number of seconds to allow for the JVM to be launched and contact the wrapper before the
 #  wrapper should assume that the JVM is hung and terminate the JVM process.  0 means never
 #  time out.  Defaults to 30 seconds.
@@ -197,6 +194,18 @@ wrapper.ping.timeout=30
 # The Wrapper detects when an application calls System.exit() and treats this as a request
 #  to stop the server by default.
 #wrapper.disable_shutdown_hook=TRUE
+
+#********************************************************************
+# Wrapper Logging parameters
+#********************************************************************
+# Log file to use for wrapper output logging.
+wrapper.logfile=../logs/wrapper.log
+
+# Format of output for the log file.  (See docs for formats)
+wrapper.logfile.format=PTM
+
+# Format of output for the console.  (See docs for formats)
+wrapper.console.format=PM
 
 # Show debug messages
 #wrapper.debug=TRUE
@@ -600,35 +609,6 @@ wrapper.app.parameter.4=-p4</pre>
 <br>
                 
                     
-<dt>wrapper.logfile</dt>
-                    
-<dd>
-                        
-<p align="justify">
-                            Log file to which all output to the console will be logged.  The logfile also contains timestamps.
-                            <p align="justify">
-                                
-<i>Example:</i>
-                                
-<div align="left">
-<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
-<tr>
-<td>
-<pre>wrapper.logfile=../logs/wrapper.log</pre>
-</td>
-</tr>
-</table>
-</div>
-                            
-</p>
-                        
-</p>
-                    
-</dd>
-                
-<br>
-                
-                    
 <dt>wrapper.startup.timeout</dt>
                     
 <dd>
@@ -740,6 +720,149 @@ wrapper.app.parameter.4=-p4</pre>
 </dd>
                 
 <br>
+            
+</dl>
+</div>
+        
+</font></td>
+</tr>
+</table>
+</div>
+<br>
+        
+<div>
+<a name="NB92"></a>
+<table cellspacing="0" cellpadding="2" border="0" width="99%">
+<tr>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+0"><b>Logging properties</b></font></td>
+</tr>
+<tr>
+<td><font face="arial,helvetica,sanserif" color="#000000">
+<br>
+            
+            
+<div class="glosslist">
+<a name="NB97"></a>
+<dl>
+                
+                    
+<dt>wrapper.logfile</dt>
+                    
+<dd>
+                        
+<p align="justify">
+                            Log file to which all output to the console will be logged.  If the logfile is not specified, then file logging will be written to a file called "wrapper.log" in the same directory as the Wrapper executable.  Providing a blank value will cause file logging to be disabled.
+                            <p align="justify">
+                                
+<i>Example:</i>
+                                
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.logfile=../logs/wrapper.log</pre>
+</td>
+</tr>
+</table>
+</div>
+                            
+</p>
+                        
+</p>
+                    
+</dd>
+                
+<br>
+                
+                    
+<dt>wrapper.logfile.format</dt>
+                    
+<dd>
+                        
+<p align="justify">
+                            Format to use for logging to the log file.  Logging was intentionally kept simple.  The format consists of the tokens 'P' for prefix, 'T' for time, and 'M' for message.  If the format contains these values then it will be included in the format.  The order of the tokens does not affect the way the log appears.  If the property is missing or commented out, then the default value 'PTM' will be used.  Setting the property to a blank value will cause file logging to be disabled.
+                            <p align="justify">
+                                
+<i>Examples with sample log entries:</i>
+                                
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.logfile.format=PTM
+wrapper  | 2001/12/11 13:45:33 | --&gt; Wrapper Started as Console
+wrapper  | 2001/12/11 13:45:33 | Launching a JVM...
+jvm 1    | 2001/12/11 13:45:35 | Initializing...
+
+wrapper.logfile.format=PM
+wrapper  | --&gt; Wrapper Started as Console
+wrapper  | Launching a JVM...
+jvm 1    | Initializing...
+
+wrapper.logfile.format=M
+--&gt; Wrapper Started as Console
+Launching a JVM...
+Initializing...
+
+wrapper.logfile.format=
+&lt; No logging &gt;</pre>
+</td>
+</tr>
+</table>
+</div>
+                            
+</p>
+                        
+</p>
+                    
+</dd>
+                
+<br>
+                
+                    
+<dt>wrapper.console.format</dt>
+                    
+<dd>
+                        
+<p align="justify">
+                            Format to use for output to the console.  Logging was intentionally kept simple.  The format consists of the tokens 'P' for prefix, 'T' for time, and 'M' for message.  If the format contains these values then it will be included in the format.  The order of the tokens does not affect the way the log appears.  If the property is missing or commented out, then the default value 'PM' will be used.  Setting the property to a blank value will cause console output to be disabled.
+                            <p align="justify">
+                                
+<i>Examples with sample output:</i>
+                                
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.console.format=PTM
+wrapper  | 2001/12/11 13:45:33 | --&gt; Wrapper Started as Console
+wrapper  | 2001/12/11 13:45:33 | Launching a JVM...
+jvm 1    | 2001/12/11 13:45:35 | Initializing...
+
+wrapper.console.format=PM
+wrapper  | --&gt; Wrapper Started as Console
+wrapper  | Launching a JVM...
+jvm 1    | Initializing...
+
+wrapper.console.format=M
+--&gt; Wrapper Started as Console
+Launching a JVM...
+Initializing...
+
+wrapper.console.format=
+&lt; No output &gt;</pre>
+</td>
+</tr>
+</table>
+</div>
+                            
+</p>
+                        
+</p>
+                    
+</dd>
+                
+<br>
                 
                     
 <dt>wrapper.debug</dt>
@@ -780,7 +903,7 @@ wrapper.app.parameter.4=-p4</pre>
 <br>
         
 <div>
-<a name="NBC0"></a>
+<a name="NBF7"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="99%">
 <tr>
 <td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+0"><b>Unix specific properties</b></font></td>
@@ -791,7 +914,7 @@ wrapper.app.parameter.4=-p4</pre>
             
             
 <div class="glosslist">
-<a name="NBC5"></a>
+<a name="NBFC"></a>
 <dl>
                 
                     
@@ -833,7 +956,7 @@ wrapper.app.parameter.4=-p4</pre>
 <br>
         
 <div>
-<a name="NBE0"></a>
+<a name="NC17"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="99%">
 <tr>
 <td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+0"><b>Windows NT/2000 specific properties</b></font></td>
@@ -862,7 +985,7 @@ wrapper.app.parameter.4=-p4</pre>
 </div>
             
 <div class="glosslist">
-<a name="NBEE"></a>
+<a name="NC25"></a>
 <dl>
                 
                     

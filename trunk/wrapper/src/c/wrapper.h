@@ -24,6 +24,10 @@
  */
 
 // $Log$
+// Revision 1.3  2001/12/11 05:19:39  mortenson
+// Added the ablility to format and/or disable file logging and output to
+// the console.
+//
 // Revision 1.2  2001/12/06 09:36:24  mortenson
 // Docs changes, Added sample apps, Fixed some problems with
 // relative paths  (See revisions.txt)
@@ -119,6 +123,8 @@ struct WrapperConfig {
     int     sock;                   // Socket number. if open.
     char    *configFile;            // Name of the config file
     char    *logFile;               // Name of the log file
+	char    *logFileFormat;         // Any combination of PTM
+	char    *consoleFormat;         // Any combination of PTM
 #ifdef WIN32
     char    *jvmCommand;            // Command used to launch the JVM
 #else // UNIX

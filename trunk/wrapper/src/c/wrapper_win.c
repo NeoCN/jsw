@@ -24,6 +24,10 @@
  */
 
 // $Log$
+// Revision 1.3  2001/12/11 05:19:39  mortenson
+// Added the ablility to format and/or disable file logging and output to
+// the console.
+//
 // Revision 1.2  2001/12/04 05:49:48  mortenson
 // Add ability to use relative paths in scripts and conf files to ease
 // application deployment on Windows systems.
@@ -1193,6 +1197,8 @@ void _CRTAPI1 main(int argc, char **argv) {
         wrapperData->wState = WRAPPER_WSTATE_STARTING;
         wrapperData->jState = WRAPPER_JSTATE_DOWN;
         wrapperData->logFile = NULL;
+        wrapperData->logFileFormat = "PTM";
+        wrapperData->consoleFormat = "PM";
         wrapperData->jvmCommand = NULL;
         wrapperData->exitRequested = FALSE;
         wrapperData->exitAcknowledged = FALSE;
