@@ -116,8 +116,8 @@
                         <literal moreinfo="none">bash</literal> shell is being used.
                     </para>
                     <para>
-                        First we will copy the following files into the JBoss bin
-                        directory:  
+                        First we will copy the following files into the JBoss
+                        <literal moreinfo="none">bin</literal> directory:  
                     </para>
                     <informalexample>
                         <screen format="linespecific"><![CDATA[{WRAPPER_HOME}/bin/wrapper
@@ -186,7 +186,8 @@ APP_LONG_NAME="JBoss Application Server"]]></screen>
                         location for this file is in a conf directory in the
                         application's home directory.  JBoss does not have such
                         a directory by default, so we will need to create one.
-                        Please do so and copy the template wrapper.conf file to
+                        Please do so and copy the template
+                        <literal moreinfo="none">wrapper.conf</literal> file to
                         that location:
                     </para>
                     <informalexample>
@@ -204,18 +205,19 @@ APP_LONG_NAME="JBoss Application Server"]]></screen>
                     <para>
                         If you wish to relocate the configuration file, you are free
                         to do so.  You will need to modify the batch scripts copied
-                        into the bin directory above, to reflect the new location.
+                        into the <literal moreinfo="none">bin</literal> directory above,
+                        to reflect the new location.
                     </para>
                 </section>
                 <section>
                     <title>logs directory</title>
                     <para>
-                        The default wrapper.conf file will place a
-                        <literal moreinfo="none">wrapper.log</literal> file in
-                        a logs directory under the application home directory.  JBoss
-                        does not have such a directory by default, so we will need to
-                        create one.  Please do so.  You should now have the following
-                        directory:
+                        The default <literal moreinfo="none">wrapper.conf</literal> file
+                        will place a <literal moreinfo="none">wrapper.log</literal> file
+                        in a <literal moreinfo="none">logs</literal> directory under the
+                        application home directory.  JBoss does not have such a directory
+                        by default, so we will need to create one.  Please do so.  You
+                        should now have the following directory:
                     </para>
                     <informalexample>
                         <screen format="linespecific"><![CDATA[{JBOSS_HOME}/logs]]></screen>
@@ -344,7 +346,7 @@ APP_LONG_NAME="JBoss Application Server"]]></screen>
                 <section>
                     <title>Classpath</title>
                     <para>
-                        Next, comes the classpath, which are configured using the
+                        Next, comes the classpath, which is configured using the
                         <literal moreinfo="none"><ulink url="prop-java-classpath-n.html">wrapper.java.classpath.&lt;n&gt;</ulink></literal>
                         properties.  The Wrapper requires that the classpath be
                         broken up into its individual elements.  Then, because we
@@ -359,7 +361,7 @@ wrapper.java.classpath.3=/opt/IBMJava2-131/lib/tools.jar]]></screen>
                     </informalexample>
                 </section>
                 <section>
-                    <title>Library Path</title>
+                    <title>Main Class</title>
                     <para>
                         The final component of the command used to launch JBoss is the
                         main class, <literal moreinfo="none">org.jboss.Main</literal>.
@@ -437,11 +439,11 @@ wrapper.app.parameter.1=org.jboss.Main]]></screen>
                         Notice what while this will function correctly on this
                         particular machine, it is highly dependent on the directory
                         structure and platform.  By taking advantage of the fact that
-                        the Wrapper always sets the working directory to the location
-                        of the <literal moreinfo="none">Wrapper.exe</literal> file
-                        and by making use of a single environment variable, we are able
-                        to modify the above properties so that they are completely
-                        platform and machine independent:
+                        the Wrapper's scripts always set the current directory, using
+                        <literal moreinfo="none">realpath</literal>, to the location
+                        of the script and by making use of a single environment
+                        variable, we are able to modify the above properties so that
+                        they are completely platform and machine independent:
                     </para>
                     <informalexample>
                         <screen format="linespecific"><![CDATA[wrapper.java.command=%JAVA_HOME%/bin/java
