@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.38  2003/04/16 03:58:34  mortenson
+ * Fix a potential error if any element of a command string contains % characters.
+ *
  * Revision 1.37  2003/04/16 03:39:01  mortenson
  * Make the Wrapper dump the configured properties if _DEBUG is set.
  *
@@ -227,7 +230,7 @@ void wrapperBuildJavaCommand() {
     for (i = 0; i <= length; i++) {
         if (i < length) {
             wrapperData->jvmCommand[i] = malloc(sizeof(char *) * strlen(strings[i]) + 1);
-            sprintf(wrapperData->jvmCommand[i], strings[i]);
+            strcpy(wrapperData->jvmCommand[i], strings[i]);
         } else {
             wrapperData->jvmCommand[i] = NULL;
         }
