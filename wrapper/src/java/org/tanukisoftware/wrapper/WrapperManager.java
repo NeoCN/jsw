@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.31  2004/01/24 17:46:30  mortenson
+// The addition of the getInteractiveUser placed a dependency on Windows NT
+// version 5.0.  Work around this so the Wrapper can still be used on NT 4.0.
+//
 // Revision 1.30  2004/01/16 04:42:00  mortenson
 // The license was revised for this version to include a copyright omission.
 // This change is to be retroactively applied to all versions of the Java
@@ -1160,6 +1164,10 @@ public final class WrapperManager
      *  interactive user logs out, the service will not automatically switch to
      *  another logged in user.  Rather, the next user to log in will become
      *  the new user which the service will interact with.
+     * <p>
+     * This method will always return NULL on versions of NT prior to Windows
+     *  2000.  This can not be helped as some required functions were not added
+     *  to the windows API until NT version 5.0, also known as Windows 2000.
      *
      * @param groups True if the user's groups should be returned as well.
      *               Requesting the groups that a user belongs to increases

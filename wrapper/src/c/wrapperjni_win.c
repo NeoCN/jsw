@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.18  2004/01/24 17:45:19  mortenson
+ * The addition of the getInteractiveUser placed a dependency on Windows NT
+ * version 5.0.  Work around this so the Wrapper can still be used on NT 4.0.
+ *
  * Revision 1.17  2004/01/16 04:42:00  mortenson
  * The license was revised for this version to include a copyright omission.
  * This change is to be retroactively applied to all versions of the Java
@@ -102,6 +106,12 @@ barf
 #include "wrapperjni.h"
 
 static DWORD wrapperProcessId = 0;
+
+FARPROC OptionalProcess32First = NULL;
+FARPROC OptionalProcess32Next = NULL;
+FARPROC OptionalThread32First = NULL;
+FARPROC OptionalThread32Next = NULL;
+FARPROC OptionalCreateToolhelp32Snapshot = NULL;
 
 /**
  * Handler to take care of the case where the user hits CTRL-C when the wrapper
@@ -498,6 +508,47 @@ createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean groups) {
     return wrapperUser;
 }
 
+void loadDLLProcs() {
+    HMODULE kernel32Mod;
+
+    if ((kernel32Mod = GetModuleHandle("KERNEL32.DLL")) == NULL) {
+        printf("Unable to load KERNEL32.DLL: %s\n", getLastErrorText());
+        flushall();
+        return;
+    }
+    if ((OptionalProcess32First = GetProcAddress(kernel32Mod, "Process32First")) == NULL) {
+        if (wrapperJNIDebugging) {
+            printf("The Process32First function is not available on this version of Windows.\n");
+            flushall();
+        }
+    }
+    if ((OptionalProcess32Next = GetProcAddress(kernel32Mod, "Process32Next")) == NULL) {
+        if (wrapperJNIDebugging) {
+            printf("The Process32Next function is not available on this version of Windows.\n");
+            flushall();
+        }
+    }
+    if ((OptionalThread32First = GetProcAddress(kernel32Mod, "Thread32First")) == NULL) {
+        if (wrapperJNIDebugging) {
+            printf("The Thread32First function is not available on this version of Windows.\n");
+            flushall();
+        }
+    }
+    if ((OptionalThread32Next = GetProcAddress(kernel32Mod, "Thread32Next")) == NULL) {
+        if (wrapperJNIDebugging) {
+            printf("The Thread32Next function is not available on this version of Windows.\n");
+            flushall();
+        }
+    }
+    if ((OptionalCreateToolhelp32Snapshot = GetProcAddress(kernel32Mod, "CreateToolhelp32Snapshot")) == NULL) {
+        if (wrapperJNIDebugging) {
+            printf("The CreateToolhelp32Snapshot function is not available on this version of Windows.\n");
+            flushall();
+        }
+    }
+}
+
+
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeInit
@@ -506,6 +557,7 @@ createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean groups) {
 JNIEXPORT void JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass clazz, jboolean debugging) {
     char szPath[512];
+    OSVERSIONINFO osVer;
 
     wrapperJNIDebugging = debugging;
 
@@ -522,6 +574,19 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass cl
             flushall();
         }
     }
+
+    osVer.dwOSVersionInfoSize = sizeof(osVer);
+    if (GetVersionEx(&osVer)) {
+        if (wrapperJNIDebugging) {
+            printf("Windows version: %ld.%ld.%ld\n", osVer.dwMajorVersion, osVer.dwMinorVersion, osVer.dwBuildNumber);
+            flushall();
+        }
+    } else {
+        printf("Unable to retrieve the Windows version information.\n");
+        flushall();
+    }
+
+    loadDLLProcs();
 
     /* Make sure that the handling of CTRL-C signals is enabled for this process. */
     SetConsoleCtrlHandler(NULL, FALSE);
@@ -615,14 +680,26 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
     flushall();
 #endif
 
+    /* This function will only work if all required optional functions existed. */
+    if ((OptionalProcess32First == NULL) || (OptionalProcess32Next == NULL) ||
+        (OptionalThread32First == NULL) || (OptionalThread32Next == NULL) ||
+        (OptionalCreateToolhelp32Snapshot == NULL)) {
+
+        if (wrapperJNIDebugging) {
+            printf("getInteractiveUser not supported on this platform.\n");
+            flushall();
+        }
+        return NULL;
+    }
+
     /* In order to be able to return the interactive user, we first need to locate the
      *  logged on user whose desktop we are able to open.  On XP systems, there will be
      *  more than one user with a desktop, but only the first one to log on will allow
      *  up to open its desktop.  On all NT systems, there will be additional logged on
      *  users if there are other services running. */
-    if ((snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS + TH32CS_SNAPTHREAD, 0)) >= 0) {
+    if ((snapshot = (void*)OptionalCreateToolhelp32Snapshot(TH32CS_SNAPPROCESS + TH32CS_SNAPTHREAD, 0)) >= 0) {
         processEntry.dwSize = sizeof(processEntry);
-        if (Process32First(snapshot, &processEntry)) {
+        if (OptionalProcess32First(snapshot, &processEntry)) {
             do {
                 /* We are only interrested in the Explorer processes. */
                 if (stricmp(explorerExe, processEntry.szExeFile) == 0) {
@@ -636,7 +713,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
 
                     /* Now look for a thread which is owned by the explorer process. */
                     threadEntry.dwSize = sizeof(threadEntry);
-                    if (Thread32First(snapshot, &threadEntry)) {
+                    if (OptionalThread32First(snapshot, &threadEntry)) {
                         foundThread = FALSE;
                         do {
                             /* We are only interrested in threads that belong to the current Explorer process. */
@@ -666,7 +743,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
                                 foundThread = TRUE;
                                 break;
                             }
-                        } while (Thread32Next(snapshot, &threadEntry));
+                        } while (OptionalThread32Next(snapshot, &threadEntry));
 
                         if (!foundThread && (GetLastError() != ERROR_NO_MORE_FILES)) {
 #ifdef IUVERBOSE
@@ -679,7 +756,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
                         flushall();
                     }
                 }
-            } while (Process32Next(snapshot, &processEntry));
+            } while (OptionalProcess32Next(snapshot, &processEntry));
 
 #ifdef IUVERBOSE
             if (GetLastError() != ERROR_NO_MORE_FILES) {
