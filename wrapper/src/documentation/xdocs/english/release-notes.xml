@@ -14,7 +14,7 @@ $Id$
             <listitem>
                 <para>
                     Deprecated the com.silveregg.wrapper package in favor of
-                    org.tanukisoftware.wrapper.  The classes and insterfaces in the silveregg
+                    org.tanukisoftware.wrapper.  The classes and interfaces in the silveregg
                     package will continue to function, but migration to the new package should
                     be done when possible.  See the project
                     <ulink url="history.html">history</ulink> for details.
@@ -99,6 +99,13 @@ $Id$
                 <para>
                     Implement feature request #653131 to force the JVM to immediately exit when
                     the user presses CTRL-C multiple times.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Added a 'console' action to the bash and sh scripts to make it possible to
+                    launch the Wrapper in the current shell process.  The 'start' task will launch
+                    the Wrapper as a spawned daemon process.
                 </para>
             </listitem>
         </itemizedlist>
