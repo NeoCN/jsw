@@ -35,10 +35,10 @@ ALL : "..\..\bin\wrapper.exe"
 
 CLEAN :
 	-@erase "$(INTDIR)\logger.obj"
-	-@erase "$(INTDIR)\messages.res"
 	-@erase "$(INTDIR)\property.obj"
 	-@erase "$(INTDIR)\vc60.idb"
 	-@erase "$(INTDIR)\wrapper.obj"
+	-@erase "$(INTDIR)\Wrapper.res"
 	-@erase "$(INTDIR)\wrapper_unix.obj"
 	-@erase "$(INTDIR)\wrapper_win.obj"
 	-@erase "$(INTDIR)\wrappereventloop.obj"
@@ -82,7 +82,7 @@ CPP_PROJ=/nologo /ML /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS"
 <<
 
 RSC=rc.exe
-RSC_PROJ=/l 0x411 /fo"$(INTDIR)\messages.res" /d "NDEBUG" 
+RSC_PROJ=/l 0x411 /fo"$(INTDIR)\Wrapper.res" /d "NDEBUG" 
 BSC32=bscmake.exe
 BSC32_FLAGS=/nologo /o"$(OUTDIR)\Wrapper.bsc" 
 BSC32_SBRS= \
@@ -95,9 +95,9 @@ LINK32_OBJS= \
 	"$(INTDIR)\wrapper.obj" \
 	"$(INTDIR)\wrapper_unix.obj" \
 	"$(INTDIR)\wrapper_win.obj" \
+	"$(INTDIR)\wrappereventloop.obj" \
 	"$(INTDIR)\wrapperinfo.obj" \
-	"$(INTDIR)\messages.res" \
-	"$(INTDIR)\wrappereventloop.obj"
+	"$(INTDIR)\Wrapper.res"
 
 "..\..\bin\wrapper.exe" : "$(OUTDIR)" $(DEF_FILE) $(LINK32_OBJS)
     $(LINK32) @<<
@@ -118,12 +118,12 @@ ALL : "..\..\bin\wrapper.exe" "$(OUTDIR)\Wrapper.bsc"
 CLEAN :
 	-@erase "$(INTDIR)\logger.obj"
 	-@erase "$(INTDIR)\logger.sbr"
-	-@erase "$(INTDIR)\messages.res"
 	-@erase "$(INTDIR)\property.obj"
 	-@erase "$(INTDIR)\property.sbr"
 	-@erase "$(INTDIR)\vc60.idb"
 	-@erase "$(INTDIR)\vc60.pdb"
 	-@erase "$(INTDIR)\wrapper.obj"
+	-@erase "$(INTDIR)\Wrapper.res"
 	-@erase "$(INTDIR)\wrapper.sbr"
 	-@erase "$(INTDIR)\wrapper_unix.obj"
 	-@erase "$(INTDIR)\wrapper_unix.sbr"
@@ -175,7 +175,7 @@ CPP_PROJ=/nologo /MLd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /
 <<
 
 RSC=rc.exe
-RSC_PROJ=/l 0x411 /fo"$(INTDIR)\messages.res" /d "_DEBUG" 
+RSC_PROJ=/l 0x411 /fo"$(INTDIR)\Wrapper.res" /d "_DEBUG" 
 BSC32=bscmake.exe
 BSC32_FLAGS=/nologo /o"$(OUTDIR)\Wrapper.bsc" 
 BSC32_SBRS= \
@@ -184,8 +184,8 @@ BSC32_SBRS= \
 	"$(INTDIR)\wrapper.sbr" \
 	"$(INTDIR)\wrapper_unix.sbr" \
 	"$(INTDIR)\wrapper_win.sbr" \
-	"$(INTDIR)\wrapperinfo.sbr" \
-	"$(INTDIR)\wrappereventloop.sbr"
+	"$(INTDIR)\wrappereventloop.sbr" \
+	"$(INTDIR)\wrapperinfo.sbr"
 
 "$(OUTDIR)\Wrapper.bsc" : "$(OUTDIR)" $(BSC32_SBRS)
     $(BSC32) @<<
@@ -200,9 +200,9 @@ LINK32_OBJS= \
 	"$(INTDIR)\wrapper.obj" \
 	"$(INTDIR)\wrapper_unix.obj" \
 	"$(INTDIR)\wrapper_win.obj" \
+	"$(INTDIR)\wrappereventloop.obj" \
 	"$(INTDIR)\wrapperinfo.obj" \
-	"$(INTDIR)\messages.res" \
-	"$(INTDIR)\wrappereventloop.obj"
+	"$(INTDIR)\Wrapper.res"
 
 "..\..\bin\wrapper.exe" : "$(OUTDIR)" $(DEF_FILE) $(LINK32_OBJS)
     $(LINK32) @<<
@@ -334,9 +334,9 @@ SOURCE=.\wrapperinfo.c
 
 !ENDIF 
 
-SOURCE=.\messages.rc
+SOURCE=.\Wrapper.rc
 
-"$(INTDIR)\messages.res" : $(SOURCE) "$(INTDIR)"
+"$(INTDIR)\Wrapper.res" : $(SOURCE) "$(INTDIR)"
 	$(RSC) $(RSC_PROJ) $(SOURCE)
 
 
