@@ -108,7 +108,7 @@
         <replace file="${test.dir}/noreturn.conf"
                  token="wrapper.pidfile=/var/run/aigent.pid"
                  value="wrapper.pidfile=${basedir}/noreturn.pid" />
-        
+
         <!-- Quick Complete Test -->
         <filter token="app.name"          value="quickcomplete"/>
         <filter token="app.long.name"     value="Quick Complete Case" />
@@ -127,6 +127,25 @@
         <replace file="${test.dir}/quickcomplete.conf"
                  token="wrapper.pidfile=/var/run/aigent.pid"
                  value="wrapper.pidfile=${basedir}/quickcomplete.pid" />
+
+        <!-- Environment Variables Test -->
+        <filter token="app.name"          value="envvars"/>
+        <filter token="app.long.name"     value="Environment Variables Case" />
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${test.dir}/envvars.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/envvars.conf"
+                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
+                 value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+        <replace file="${test.dir}/envvars.conf"
+                 token="#wrapper.app.parameter.1="
+                 value="wrapper.app.parameter.1=com.silveregg.wrapper.test.EnvironmentVariables" />
+        <replace file="${test.dir}/envvars.conf"
+                 token="wrapper.logfile=../logs/wrapper.log"
+                 value="wrapper.logfile=../test/testwrapper.log" />
+        <replace file="${test.dir}/envvars.conf"
+                 token="wrapper.pidfile=/var/run/aigent.pid"
+                 value="wrapper.pidfile=${basedir}/envvars.pid" />
         
         <!-- Percent Output Crash Test -->
         <filter token="app.name"          value="percentoutput"/>
@@ -195,8 +214,31 @@
                  token='set _APP_HOME=%_APP_HOME:\bin\=%'
                  value='set _APP_HOME=%_APP_HOME:\test\=%' />
         <replace file="${test.dir}/TestQuickComplete.bat"
-                 token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
-                 value='set _WRAPPER_CONF="%_APP_HOME%\test\quickcomplete.conf"' />
+                 token='set _WRAPPER_CONF="%_WRAPPER_HOME%\conf\wrapper.conf"'
+                 value='set _WRAPPER_CONF="%_WRAPPER_HOME%\test\quickcomplete.conf"' />
+
+        <!-- Environment Variables Test -->
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestEnvironmentVariables.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestEnvironmentVariables.bat"
+                 token='set _WRAPPER_HOME=%_WRAPPER_HOME:\bin\=%'
+                 value='set _WRAPPER_HOME=%_WRAPPER_HOME:\test\=%' />
+        <replace file="${test.dir}/TestEnvironmentVariables.bat"
+                 token='set _WRAPPER_CONF="%_WRAPPER_HOME%\conf\wrapper.conf"'
+                 value='set _WRAPPER_CONF="%_WRAPPER_HOME%\test\envvars.conf"' />
+        <replace file="${test.dir}/TestEnvironmentVariables.bat">
+            <replacetoken>@echo off</replacetoken>
+            <replacevalue><![CDATA[@echo off
+
+rem
+rem Set up some test environment variables
+rem
+set ENV_VAR_1=a
+set ENV_VAR_2=b
+set ENV_VAR_3=c
+set ENV_VAR_4=d]]></replacevalue>
+        </replace>
         
         <!-- Percent Output Test -->
         <copy file="${src.dir}/bin/App.bat.in"
@@ -277,6 +319,25 @@
               tofile="${test.dir}/quickcomplete"
               filtering="on"/>
         <chmod file="${test.dir}/quickcomplete" perm="+x"/> 
+        
+        <!-- Environment Variables Test -->
+        <filter token="app.name"          value="envvars"/>
+        <filter token="app.long.name"     value="Environment Variables Case" />
+        <delete file="${test.dir}/envvars"/>
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/envvars"
+              filtering="on"/>
+        <replace file="${test.dir}/envvars">
+            <replacetoken>the needs of your application</replacetoken>
+            <replacevalue><![CDATA[the needs of your application
+
+# Set up some test environment variables
+export ENV_VAR_1=a
+export ENV_VAR_2=b
+export ENV_VAR_3=c
+export ENV_VAR_4=d]]></replacevalue>
+        </replace>
+        <chmod file="${test.dir}/envvars" perm="+x"/> 
         
         <!-- Percent Output Test -->
         <filter token="app.name"          value="percentoutput"/>
