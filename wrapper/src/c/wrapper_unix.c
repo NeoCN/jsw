@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.36  2003/04/16 03:12:44  mortenson
+ * Remove a variable definition that is no longer being used.
+ *
  * Revision 1.35  2003/04/15 23:56:27  mortenson
  * Be more careful about writing to the childOutputBuffer to make sure there is
  * always enough space.
@@ -373,7 +376,6 @@ int wrapperReadChildOutput() {
     int readSize;
     ssize_t bytesRead;
     char readBuf [1025];
-    char *tempBuf;
     int readBufPos, childOutputBufferPos;
     struct timeb timeBuffer;
     long startTime;
