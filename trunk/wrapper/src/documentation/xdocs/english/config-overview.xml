@@ -95,6 +95,18 @@ wrapper.ntservice.starttype=AUTO_START</programlisting>
     <section>
         <title>Explanation of wrapper configuration file properties</title>
         <section>
+            <title>Note about paths</title>
+            <para>
+                Versions of the wrapper prior to 2.2.3 required that all paths in the wrapper.conf file be absolute.  This is mainly to accomodate running the Wrapper as an NT service, but it also makes the application's startup much more reliable when launching the application from different locations.
+            </para>
+            <para>
+                In the Windows versions starting with 2.2.3, the Wrapper now sets its current working directory to the location of the wrapper executable.  When the Wrapper launches Java, its working directory will remain the same making relative path references possible.
+            </para>
+            <para>
+                Linux and Solaris versions work correctly with relative paths if the current directory is always the same when the application is started.  (ie. You always start the application like ./myapp, as opposed to other locations like, bin/myapp)
+            </para>
+        </section>
+        <section>
             <title>Platform independant properties</title>
             <glosslist>
                 <glossentry>

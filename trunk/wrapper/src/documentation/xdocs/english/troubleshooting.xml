@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="euc-jp"?>
+
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "../dtd/docbook/4.1.2/docbookx.dtd">
+
+<!-- ********************************************************************
+     $Id$
+     ******************************************************************** -->
+
+<article id="index">
+    <title>Troubleshooting</title>
+    <section>
+        <title>My Application will not start.</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Output describing the problem should be displayed in the console as well as the configured log file.  To get more detailed output, edit your wrapper.conf file and enable debugging by uncommenting the wrapper.debug property.  This will display very detailed output at every step in the process of launching and monitoring your application.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
+    <section>
+        <title>I am not getting any output in my configured log file.</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    It is possible that the Wrapper is not able to locate the specified wrapper configuration file, or it is not able to open the configured log file for some reason.  In either case, the Wrapper will log output to a file called wrapper.log in the current working directory.  The current working directory will most likely be the directory containing the binary.  However, in some cases, when running as an NT service, the wrapper.log file may be placed in your WinNT\System32 directory.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
+</article>

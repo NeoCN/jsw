@@ -9,6 +9,19 @@
 <article id="index">
     <title>Java Service Wrapper Release Notes</title>
     <section>
+        <title>Version 2.2.3: Changes and bugfixes</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Enable relative paths for Windows version.  In previous versions of Wrapper, it was necessary to always use absolute paths because the working directory of the wrapper would be then NT System32 directory when run as a service.
+                </para>
+                <para>
+                    On the windows version, the wrapper always sets the current working directory to the location of the wrapper executable immediately after startup.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
+    <section>
         <title>Version 2.2.2: Changes and bugfixes</title>
         <itemizedlist>
             <listitem>

@@ -24,8 +24,12 @@
  */
 
 // $Log$
-// Revision 1.1  2001/11/07 08:54:20  mortenson
-// Initial revision
+// Revision 1.2  2001/12/04 05:49:48  mortenson
+// Add ability to use relative paths in scripts and conf files to ease
+// application deployment on Windows systems.
+//
+// Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
+// no message
 //
 
 #ifndef WIN32
@@ -35,6 +39,7 @@ barf
 
 #ifdef WIN32
 
+#include <direct.h>
 #include <math.h>
 #include <process.h>
 #include <stdio.h>
@@ -1006,6 +1011,46 @@ int wrapperRemove(char *appName, char *configFile) {
     return result;
 }
 
+/**
+ * Sets the working directory to that of the current executable
+ */
+int setWorkingDir() {
+    char szPath[512];
+	char* pos;
+	
+	// Get the full path and filename of this program
+	if (GetModuleFileName(NULL, szPath, 512) == 0){
+		wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to get the path-%s", getLastErrorText(szErr, 256));
+		return 1;
+	}
+
+	// The wrapperData->isDebugging flag will never be set here, so we can't really use it.
+#ifdef _DEBUG
+	wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Executable Name: %s", szPath);
+#endif
+
+	// To get the path, strip everything off after the last '\'
+	pos = strrchr(szPath, '\\');
+	if (pos == NULL) {
+		wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to extract path from: %s", szPath);
+		return 1;
+	} else {
+		// Clip the path at the position of the last backslash
+		pos[0] = (char)0;
+	}
+
+	if (chdir(szPath)) {
+		wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to set working directory to: %s", szPath);
+		return 1;
+	}
+
+	// The wrapperData->isDebugging flag will never be set here, so we can't really use it.
+#ifdef _DEBUG
+	wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Working directory set to: %s", szPath);
+#endif
+
+	return 0;
+}
 
 
 
@@ -1155,6 +1200,8 @@ void _CRTAPI1 main(int argc, char **argv) {
         wrapperData->restartRequested = FALSE;
         wrapperData->jvmRestarts = 0;
 
+		setWorkingDir();
+		
         switch(argc) {
         case 1:
             // If main is called without any arguments, it will probably be by the
