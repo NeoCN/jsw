@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.50  2004/06/16 15:56:29  mortenson
+ * Added a new property, wrapper.anchorfile, which makes it possible to
+ * cause the Wrapper to shutdown by deleting an anchor file.
+ *
  * Revision 1.49  2004/06/14 07:20:40  mortenson
  * Add some additional output and a wrapper.timer_output property to help with
  * debugging timer issues.
@@ -279,6 +283,9 @@ struct WrapperConfig {
     int*    outputFilterActions;    /* Array of output filter actions. */
     char    *pidFilename;           /* Name of file to store wrapper pid in */
     char    *javaPidFilename;       /* Name of file to store jvm pid in */
+    char    *anchorFilename;        /* Name of an anchor file used to control when the Wrapper should quit. */
+    int     anchorPollInterval;     /* Interval in seconds at which the existence of the anchor file is polled. */
+    DWORD   anchorTimeoutTicks;     /* Tick count at which the anchor file will be checked next. */
     int     ignoreSignals;          /* True if the Wrapper should ignore any catchable system signals and inform its JVM to do the same. */
 
 #ifdef WIN32

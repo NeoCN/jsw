@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.99  2004/06/16 15:56:29  mortenson
+ * Added a new property, wrapper.anchorfile, which makes it possible to
+ * cause the Wrapper to shutdown by deleting an anchor file.
+ *
  * Revision 1.98  2004/06/14 07:20:39  mortenson
  * Add some additional output and a wrapper.timer_output property to help with
  * debugging timer issues.
@@ -2160,6 +2164,12 @@ int wrapperLoadConfiguration() {
     /** Get the pid files if any.  May be NULL */
     wrapperData->pidFilename = (char *)getStringProperty(properties, "wrapper.pidfile", NULL);
     wrapperData->javaPidFilename = (char *)getStringProperty(properties, "wrapper.java.pidfile", NULL);
+
+    /** Get the anchor file if any.  May be NULL */
+    wrapperData->anchorFilename = (char *)getStringProperty(properties, "wrapper.anchorfile", NULL);
+
+    /** Get the interval at which the anchor file will be polled. */
+    wrapperData->anchorPollInterval = __min(__max(getIntProperty(properties, "wrapper.anchor.poll_interval", 5), 1), 3600);
 
     /** Flag controlling whether or not system signals should be ignored. */
     wrapperData->ignoreSignals = getBooleanProperty(properties, "wrapper.ignore_signals", FALSE);
