@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.4  2002/01/27 16:57:29  mortenson
+// Fixed a compiler warning.
+//
 // Revision 1.3  2002/01/27 14:58:27  spocke
 // Fixed bug issue when reading Windows config files in Unix.
 // Control characters like CR was not handled.
@@ -143,13 +146,13 @@ void setInnerProperty(Property *property, const char *propertyValue) {
     } else {
         property->value = (char *)malloc(sizeof(char) * (strlen(propertyValue) + 1));
 
-		/* Strip any non valid characters like control characters */
-		for( i=0, count=0; i<strlen( propertyValue ); i++ ) {
-			if( propertyValue[i] > 31 ) /* Only add valid chars, skip control chars */
+		// Strip any non valid characters like control characters
+		for (i = 0, count = 0; i < (int)strlen(propertyValue); i++) {
+			if (propertyValue[i] > 31) // Only add valid chars, skip control chars
 				property->value[count++] = propertyValue[i];
 		}
 
-		/* Crop string to new size */
+		// Crop string to new size
 		property->value[count] = '\0';
     }
 }
