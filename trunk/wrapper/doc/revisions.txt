@@ -18,6 +18,11 @@ Java Service Wrapper Revision History.
   second to once every five seconds.
 * Fix a minor problem where the hour in the date returned by
   WrapperInfo.getBuildTime() was not base 24.
+* Added -t and -p command line options to the Windows version of the Wrapper
+  to sTart and stoP the Wrapper as an NT service.  This can be used in place
+  of "net start" and "net stop", which do not always work correctly when a
+  service takes a long time to start up or shutdown.  See the Launch Overview
+  for more details.
 
 3.0.3
 * Added support for Mac OS X.  Big thanks to Andy Barnett for supplying the
