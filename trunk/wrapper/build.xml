@@ -353,6 +353,8 @@
                 <include name="src/c/*.dsp" />
                 <include name="src/c/*.dsw" />
                 <include name="src/c/*.plg" />
+                <include name="src/c/*.rc" />
+                <include name="src/c/*.bin" />
                 <include name="src/documentation/**" />
                 <include name="test/build-tests.xml" />
                 <include name="tools/**" />
