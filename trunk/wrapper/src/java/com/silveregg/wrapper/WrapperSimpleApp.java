@@ -26,6 +26,9 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.3  2001/12/07 06:52:06  mortenson
+// Fix a problem just added with the synchronization of the startup process.
+//
 // Revision 1.2  2001/12/06 10:39:12  mortenson
 // The WrapperSimpleApp method of launchine applications was not
 // working correctly with applications whose main method did not return.
@@ -39,9 +42,29 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
 public class WrapperSimpleApp implements WrapperListener, Runnable {
+    /**
+     * Application's main method
+     */
     private Method _mainMethod;
+    
+    /**
+     * Command line arguments to be passed on to the application
+     */
     private String[] _appArgs;
+    
+    /**
+     * Gets set to true when the thread used to launch the application completes.
+     */
+    private boolean _mainComplete;
+    
+    /**
+     * Exit code to be returned if the application fails to start.
+     */
     private Integer _mainExitCode;
+    
+    /**
+     * Flag used to signify that the start method is done waiting for the application to start.
+     */
     private boolean _waitTimedOut;
     
     /*---------------------------------------------------------------
@@ -73,12 +96,16 @@ public class WrapperSimpleApp implements WrapperListener, Runnable {
             Thread[] threads = new Thread[Thread.activeCount() * 2];
             Thread.enumerate(threads);
             
-            // Only shutdown if there are any non daemon threads which are still alive other than this thread.
+            // Only shutdown if there are any non daemon threads which are 
+            //  still alive other than this thread.
             int liveCount = 0;
             for (int i = 0; i < threads.length; i++) {
-                //if (threads[i] != null) {
-                //	System.out.println("Check " + threads[i].getName() + " daemon=" + threads[i].isDaemon() + " alive=" + threads[i].isAlive());
-                //}
+                /*
+                if (threads[i] != null) {
+                    System.out.println("Check " + threads[i].getName() + " daemon=" + 
+                        threads[i].isDaemon() + " alive=" + threads[i].isAlive());
+                }
+                */
                 if ((threads[i] != null) && (threads[i].isAlive() && (!threads[i].isDaemon()))) {
                     // Do not count this thread or the wrapper connection thread
                     if ((Thread.currentThread() != threads[i]) && 
@@ -91,6 +118,13 @@ public class WrapperSimpleApp implements WrapperListener, Runnable {
                 }
             }
             
+            synchronized(this) {
+                // Let the start() method know that the main method returned, in case it is 
+                //  still waiting.
+                _mainComplete = true;
+                this.notifyAll();
+            }
+            
             // There will always be one non-daemon thread alive.  This thread is either the main
             //  thread which has not yet completed, or a thread launched by java when the main
             //  thread completes whose job is to wait around for all other non-daemon threads to
@@ -101,9 +135,6 @@ public class WrapperSimpleApp implements WrapperListener, Runnable {
                 // Will not get here.
             } else {
                 // There are daemons running, let the JVM continue to run.
-            }
-            synchronized(this) {
-                this.notifyAll();
             }
             return;
         } catch (IllegalAccessException e) {
@@ -118,17 +149,18 @@ public class WrapperSimpleApp implements WrapperListener, Runnable {
         //  start method should be allowed to shut things down.
         System.out.println("Encountered an error running main: " + t);
         showUsage();
-        if (_waitTimedOut) {
-            // Shut down here.
-            WrapperManager.stop(1);
-            return; // Will not get here.
-        } else {
-            // Let start method handle shutdown.
-            _mainExitCode = new Integer(1);
-            synchronized(this) {
+        synchronized(this) {
+            if (_waitTimedOut) {
+                // Shut down here.
+                WrapperManager.stop(1);
+                return; // Will not get here.
+            } else {
+                // Let start method handle shutdown.
+                _mainComplete = true;
+                _mainExitCode = new Integer(1);
                 this.notifyAll();
+                return;
             }
-            return;
         }
     }
     
@@ -161,7 +193,8 @@ public class WrapperSimpleApp implements WrapperListener, Runnable {
             _waitTimedOut = true;
             
             if (WrapperManager.isDebugEnabled()) {
-                System.out.println("WrapperSimpleApp: start(args) end.  TimedOut=" + _waitTimedOut + ", exitCode=" + _mainExitCode);
+                System.out.println("WrapperSimpleApp: start(args) end.  Main Completed=" + 
+                    _mainComplete + ", exitCode=" + _mainExitCode);
             }
             return _mainExitCode;
         }
@@ -209,6 +242,9 @@ public class WrapperSimpleApp implements WrapperListener, Runnable {
     /*---------------------------------------------------------------
      * Methods
      *-------------------------------------------------------------*/
+    /**
+     * Displays application usage
+     */
     private static void showUsage() {
         System.out.println();
         System.out.println("WrapperSimpleApp Usage:");
