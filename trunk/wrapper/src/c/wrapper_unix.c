@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.5  2001/12/11 09:17:02  rybesh
+// removed code to set current dir on unix as it is no longer needed
+//
 // Revision 1.4  2001/12/11 05:19:39  mortenson
 // Added the ablility to format and/or disable file logging and output to
 // the console.
@@ -359,62 +362,16 @@ int writePidFile() {
     pid_fp = fopen(wrapperData->pidFilename, "w");
     umask(old_umask);
     //leave_suid();
-
+    
     if (pid_fp != NULL) {
         fprintf(pid_fp, "%d\n", (int)getpid());
         fclose(pid_fp);
     } else {
-    return 1;
+        return 1;
     }
     return 0;
 }
 #endif
-
-/**
- * Sets the working directory to that of the current executable
- */
-int setWorkingDir(char* path) {
-    char* resolved;
-    char* pos;
-    
-    resolved = malloc(PATH_MAX * sizeof(char));
-
-    // Get the full path and filename of this program
-    if (realpath(path, resolved) == NULL) {
-        wrapperLogSS(WRAPPER_SOURCE_WRAPPER, 
-                     "Unable to get the full path to %s: %s", path, (char *)strerror(errno));
-        return 1;
-    }
-    
-    // The wrapperData->isDebugging flag will never be set here, so we can't really use it.
-#ifdef DEBUG
-    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Path to executable: %s", resolved);
-#endif
-    
-    // To get the path, strip everything off after the last '\'
-    pos = strrchr(resolved, '/');
-    if (pos == NULL) {
-        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to extract dirname from: %s", resolved);
-        return 1;
-    } else {
-        // Clip the path at the position of the last slash
-        pos[0] = (char)0;
-    }
-    
-    if (chdir(resolved)) {
-        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to change working directory: %s", (char *)strerror(errno));
-        return 1;
-    }
-    
-    // The wrapperData->isDebugging flag will never be set here, so we can't really use it.
-#ifdef DEBUG
-    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Working directory set to: %s", resolved);
-#endif
-
-    free(resolved);
-    
-    return 0;
-}
 
 /*******************************************************************************
  * Main function                                                               *
@@ -438,10 +395,6 @@ int main(int argc, char **argv) {
     wrapperData->restartRequested = FALSE;
     wrapperData->jvmRestarts = 0;
         
-    if (setWorkingDir(argv[0])) {
-        exit(1);
-    }
-    
     if (argc != 2) {
         wrapperUsage(argv[0]);
         exit(1);
