@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.70  2004/04/08 14:58:59  mortenson
+ * Add a wrapper.working.dir property.
+ *
  * Revision 1.69  2004/04/08 03:21:57  mortenson
  * Added an environment variable, WRAPPER_PATH_SEPARATOR, whose value is set
  * to either ':' or ';' on startup.
@@ -1243,7 +1246,7 @@ void wrapperExecute() {
                       TRUE,           /* handles are inherited */
                       processflags,   /* we specify new process group */
                       environment,    /* use parent's environment */
-                      szPath,         /* use exe's install directory */
+                      NULL,           /* use the Wrapper's current working directory */
                       &startup_info,  /* STARTUPINFO pointer */
                       &process_info); /* PROCESS_INFORMATION pointer */
 
@@ -2118,17 +2121,7 @@ int setWorkingDir() {
         pos[0] = (char)0;
     }
 
-    if (chdir(szPath)) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to set working directory to: %s", szPath);
-        return 1;
-    }
-
-    /* The wrapperData->isDebugging flag will never be set here, so we can't really use it. */
-#ifdef _DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Working directory set to: %s", szPath);
-#endif
-
-    return 0;
+    return wrapperSetWorkingDir(szPath);
 }
 
 int writePidFile() {
@@ -2291,6 +2284,7 @@ void _CRTAPI1 main(int argc, char **argv) {
 
     /* Initialize the WrapperConfig structure */
     wrapperData = malloc(sizeof(WrapperConfig));
+    wrapperData->configured = FALSE;
     wrapperData->isConsole = TRUE;
     wrapperData->wState = WRAPPER_WSTATE_STARTING;
     wrapperData->jState = WRAPPER_JSTATE_DOWN;
@@ -2386,7 +2380,16 @@ void _CRTAPI1 main(int argc, char **argv) {
 #endif
 
                             /* Apply properties to the WrapperConfig structure */
-                            wrapperLoadConfiguration();
+                            if (wrapperLoadConfiguration()) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                                    "Problem loading wrapper configuration file: %s", argv[2]);
+                                exit(1);
+                            }
+
+                            /* Change the working directory if configured to do so. */
+                            if (wrapperSetWorkingDirProp()) {
+                             appExit(1);
+                            }
                         
                             /* Perform the specified command */
                             if(!_stricmp(argv[1],"-i") || !_stricmp(argv[1],"/i")) {

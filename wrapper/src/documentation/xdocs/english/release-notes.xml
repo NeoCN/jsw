@@ -333,6 +333,14 @@ $Id$
                     wrapper.conf file to construct platform independent property values.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add a new <ulink url="prop-working-dir.html">wrapper.working.dir</ulink>
+                    property which makes if possible to change the Wrapper and JVM's working
+                    directory to a location other than the location of the Wrapper binary.
+                    <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=738160&amp;group_id=39428&amp;atid=425190">Feature Request #738160</ulink>.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.0.5">

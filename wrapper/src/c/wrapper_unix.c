@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.65  2004/04/08 14:58:59  mortenson
+ * Add a wrapper.working.dir property.
+ *
  * Revision 1.64  2004/04/08 03:21:57  mortenson
  * Added an environment variable, WRAPPER_PATH_SEPARATOR, whose value is set
  * to either ':' or ';' on startup.
@@ -974,6 +977,7 @@ int main(int argc, char **argv) {
 
     /* Initialize the WrapperConfig structure. */
     wrapperData = malloc(sizeof(WrapperConfig));
+    wrapperData->configured = FALSE;
     wrapperData->isConsole = TRUE;
     wrapperData->wState = WRAPPER_WSTATE_STARTING;
     wrapperData->jState = WRAPPER_JSTATE_DOWN;
@@ -1040,7 +1044,12 @@ int main(int argc, char **argv) {
                     "Problem loading wrapper configuration file: %s", argv[1]);
                 exit(1);
             }
-            
+
+            /* Change the working directory if configured to do so. */
+            if (wrapperSetWorkingDirProp()) {
+                appExit(1);
+            }
+
             /* fork to a Daemonized process if configured to do so. */
             if (wrapperData->daemonize) {
                 daemonize();

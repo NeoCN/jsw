@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.47  2004/04/08 14:58:59  mortenson
+ * Add a wrapper.working.dir property.
+ *
  * Revision 1.46  2004/04/08 03:21:57  mortenson
  * Added an environment variable, WRAPPER_PATH_SEPARATOR, whose value is set
  * to either ':' or ';' on startup.
@@ -213,6 +216,7 @@
 /* Type definitions */
 typedef struct WrapperConfig WrapperConfig;
 struct WrapperConfig {
+    int     configured;             /* TRUE if loadConfiguration has been called. */
     int     useSystemTime;          /* TRUE if the wrapper should use the system clock for timing, FALSE if a tick counter should be used. */
     int     timerFastThreshold;     /* If the difference between the system time based tick count and the timer tick count ever falls by more than this value then a warning will be displayed. */
     int     timerSlowThreshold;     /* If the difference between the system time based tick count and the timer tick count ever grows by more than this value then a warning will be displayed. */
@@ -465,6 +469,20 @@ extern int wrapperGetTickAge(DWORD start, DWORD end);
  *  the base tick count.
  */
 extern DWORD wrapperAddToTicks(DWORD start, int seconds);
+
+/**
+ * Sets the working directory of the Wrapper to the specified directory.
+ *  The directory can be relative or absolute.
+ * If there are any problems then a non-zero value will be returned.
+ */
+extern int wrapperSetWorkingDir(const char* dir);
+
+/**
+ * Sets the working directory using the value of the wrapper.working.dir
+ *  property.  If it is not set then the directory will not be changed.
+ * If there are any problems then a non-zero value will be returned.
+ */
+extern int wrapperSetWorkingDirProp();
 
 /******************************************************************************
  * Protocol callback functions
