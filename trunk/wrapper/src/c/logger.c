@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.9  2002/02/19 10:34:11  spocke
+// Fixed bug issue with core dumps when trying to close an un-opened log file.
+//
 // Revision 1.8  2002/02/08 05:55:55  mortenson
 // Make the syslog never unregister to avoid EventLog errors.
 //
@@ -369,8 +372,9 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
 		}
 
 		fprintf( logfileFP, "\n" );
+
+		fclose( logfileFP );
 	}
-	fclose( logfileFP );
 
 	// * * Loginfo/Eventlog if levels match (not by format timecodes/status allready exists in evenlog)
 	if( level >= currentLoginfoLevel ) {
