@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.40  2003/05/18 04:08:45  mortenson
+ * Fix a problem on UNIX systems where requesting a second thread dump any time
+ * during the life of a single Wrapper process would cause the Wrapper and JVM
+ * to shutdown rather than perform the thread dump.
+ *
  * Revision 1.39  2003/04/16 04:13:11  mortenson
  * Go through and clean up the computation of the number of bytes allocated in
  * malloc statements to make sure that string sizes are always multiplied by
@@ -166,7 +171,7 @@ void handleInterrupt(int sig_num) {
  * Handle quit signals (i.e. Crtl-\).
  */
 void handleQuit(int sig_num) {
-    signal(SIGQUIT, handleInterrupt); 
+    signal(SIGQUIT, handleQuit); 
     requestDumpJVMState();
 }
 

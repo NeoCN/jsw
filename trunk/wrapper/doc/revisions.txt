@@ -1,5 +1,10 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.0.4
+* Fix a problem on UNIX systems where requesting a second thread dump any time
+  during the life of a single Wrapper process would cause the Wrapper and JVM
+  to shutdown rather than perform the thread dump.
+
 3.0.3
 * Added support for Mac OS X.  Big thanks to Andy Barnett for supplying the
   patch.
