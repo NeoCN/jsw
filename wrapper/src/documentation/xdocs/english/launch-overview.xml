@@ -162,7 +162,7 @@ set _WRAPPER_CONF=]]></screen>
                 </informalexample>
             </para>
             <para>
-                In the src/bin subdirectory you will find some shell (bash and sh)script templates for starting and stopping wrapped applications cleanly in. These examples assume that the '@app.name@' and '@app.long.name@' tokens will be replaced with the name of your applicaiton on installation.  Good values are 'testwrapper' for '@app.name@' and 'Test Wrapper Application' for '@app.long.name@'.  These scripts also make some assumtions about your project's directory structure.  Template scripts can be found in the src/bin directory, named bash.script.in and sh.script.in respectively.
+                In the src/bin subdirectory you will find some shell (bash and sh)script templates for starting and stopping wrapped applications cleanly in. These examples assume that the '@app.name@' and '@app.long.name@' tokens will be replaced with the name of your application on installation.  Good values are 'testwrapper' for '@app.name@' and 'Test Wrapper Application' for '@app.long.name@'.  These scripts also make some assumtions about your project's directory structure.  Template scripts can be found in the src/bin directory, named bash.script.in and sh.script.in respectively.
             </para>
             <para>
                 You may need to tweak some of the other values (like PIDDIR in the sh script) to get them to fit your environment.
