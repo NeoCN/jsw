@@ -99,6 +99,13 @@ $Id$
                     the JVM is killed.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where CTRL-C was being ignored by the WrapperManager if a
+                    WrapperListener is never registered.  This is not possible if the Wrapper
+                    is being used correctly but never the less a user did come across it.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

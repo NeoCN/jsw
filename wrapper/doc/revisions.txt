@@ -39,6 +39,9 @@ Java Service Wrapper Revision History.
 * Improved the algorithm of the request thread dump on failed JVM exit feature
   so that extremely large thread dumps will not be truncated when the JVM
   is killed.
+* Fix a problem where CTRL-C was being ignored by the WrapperManager if a
+  WrapperListener is never registered.  This is not possible if the Wrapper
+  is being used correctly but never the less a user did come across it.
   
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the
