@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.49  2003/03/26 07:10:17  mortenson
+ * More work getting the Wrapper to deal with lots of socket activity just before the
+ * JVM process exits.
+ *
  * Revision 1.48  2003/03/26 06:21:35  mortenson
  * Fix a problem where the Wrapper would detect that the JVM process had
  * terminated while there was still unread socket information.  This was leading to
@@ -396,6 +400,11 @@ int wrapperProtocolFunction(char function, const char *message) {
         return -1;
     }
 
+    if (wrapperData->isDebugging) {
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "send a packet %d : %s",
+            function, (message == NULL ? "NULL" : message));
+    }
+
     /* Build the packet */
     buffer[0] = function;
     if (message == NULL) {
@@ -415,9 +424,6 @@ int wrapperProtocolFunction(char function, const char *message) {
         }
         wrapperProtocolClose();
         return -1;
-    }
-    if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "sent %d bytes", rc);
     }
 
     return 1;
@@ -1367,8 +1373,14 @@ void wrapperEventLoop() {
             } else {
                 /* The JVM should be running, so it needs to be stopped. */
                 if (nextSleep && (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN)) {
-                    /* JVM Process is gone */
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM shut down unexpectedly.");
+                    /* The process is gone. */
+                    if (wrapperData->jState == WRAPPER_JSTATE_STOPPED) {
+                        if (wrapperData->isDebugging) {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM exited normally.");
+                        }
+                    } else {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM shut down unexpectedly.");
+                    }
                     wrapperData->jState = WRAPPER_JSTATE_DOWN;
                     wrapperData->jStateTimeout = 0;
                     wrapperProtocolClose();
@@ -2136,13 +2148,11 @@ void wrapperStoppedSignalled() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM signalled that it was stopped.");
     }
 
-    if (wrapperData->jState == WRAPPER_JSTATE_STOPPING) {
-        wrapperData->jState = WRAPPER_JSTATE_STOPPED;
+    wrapperData->jState = WRAPPER_JSTATE_STOPPED;
 
-        /* The Java side of the wrapper signalled that it stopped
-         *	allow 5 + jvmExitTimeout seconds for the JVM to exit. */
-        wrapperData->jStateTimeout = time(NULL) + 5 + wrapperData->jvmExitTimeout;
-    }
+    /* The Java side of the wrapper signalled that it stopped
+     *  allow 5 + jvmExitTimeout seconds for the JVM to exit. */
+    wrapperData->jStateTimeout = time(NULL) + 5 + wrapperData->jvmExitTimeout;
 }
 
 /**
