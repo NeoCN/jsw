@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.29  2004/01/10 16:45:30  mortenson
+// Add a way to get information about the currently logged in user.
+//
 // Revision 1.28  2004/01/09 05:15:11  mortenson
 // Implement a tick timer and convert the system time over to be compatible.
 //
@@ -1094,15 +1097,12 @@ public final class WrapperManager
      *  Wrapper is currently running.  Additional platform specific information
      *  can be obtained by casting the object to a platform specific subclass.
      *  WrapperWin32User, for example.
-     * <p>
-     * Currently this method will always return null on non-Windows platforms.
      *
      * @param groups True if the user's groups should be returned as well.
      *               Requesting the groups that a user belongs to increases
      *               the CPU load required to complete the call.
      *
-     * @return An object describing the current user, or null on non-Windows
-     *         platforms.
+     * @return An object describing the current user.
      */
     public static WrapperUser getUser( boolean groups )
     {
@@ -1137,8 +1137,6 @@ public final class WrapperManager
      *  interactive user logs out, the service will not automatically switch to
      *  another logged in user.  Rather, the next user to log in will become
      *  the new user which the service will interact with.
-     * <p>
-     * Currently this method will always return null on non-Windows platforms.
      *
      * @param groups True if the user's groups should be returned as well.
      *               Requesting the groups that a user belongs to increases

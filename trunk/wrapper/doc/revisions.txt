@@ -69,6 +69,10 @@ Java Service Wrapper Revision History.
 * Fix a problem where a thread dump would be invoked if the request thread
   dump on failed JVM exit was enabled and the user forced an immediate
   shutdown by pressing CTRL-C more than once.
+* Add getUser and getInteractiveUser methods to the WrapperManager class to
+  make it possible for user code to query information about the user running
+  Wrapper or the user who is interacting with the Wrapper and its JVM.
+  Feature Request #812175.
 
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the

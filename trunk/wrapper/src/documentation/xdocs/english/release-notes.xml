@@ -155,6 +155,14 @@ $Id$
                     more than once.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add getUser and getInteractiveUser methods to the <ulink url="javadocs.html">WrapperManager</ulink>
+                    class to make it possible for user code to query information about the user
+                    running Wrapper or the user who is interacting with the Wrapper and its JVM.
+                    <ulink url="http://sourceforge.net/tracker/index.php?func=detail&aid=812175&group_id=39428&atid=425190">Feature Request #812175</ulink>.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
