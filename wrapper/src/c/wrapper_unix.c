@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.43  2003/08/02 16:22:29  mortenson
+ * Replace direct calls to strerror with getLastErrorText() to make things
+ * consistent with the windows code.
+ *
  * Revision 1.42  2003/08/02 16:12:26  mortenson
  * Add a patch by Mike Castle to fix a problem where started wrapper processes
  * would cause the shell from which they were started to hang on exit.
@@ -161,7 +165,7 @@ void requestDumpJVMState() {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Dumping JVM state.");
     if (kill(jvmPid, SIGQUIT) < 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                   "Could not dump JVM state: %s", (char *)strerror(errno));
+                   "Could not dump JVM state: %s", getLastErrorText());
     }
 }
 
@@ -274,7 +278,7 @@ void wrapperExecute() {
         /* Create the pipe. */
         if (pipe (pipedes) < 0) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                       "Could not init pipe: %s", (char *)strerror(errno));
+                       "Could not init pipe: %s", getLastErrorText());
             return;
         }
         pipeInitialized = 1;
@@ -286,7 +290,7 @@ void wrapperExecute() {
     if (proc == -1) {
         /* Fork failed. */
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                   "Could not spawn JVM process: %s", (char *)strerror(errno));
+                   "Could not spawn JVM process: %s", getLastErrorText());
         
         /* The pipedes array is global so do not close the pipes. */
 
@@ -300,14 +304,14 @@ void wrapperExecute() {
             /* Send output to the pipe by dupicating the pipe fd and setting the copy as the stdout fd. */
             if (dup2(pipedes[STDOUT_FILENO], STDOUT_FILENO) < 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                           "Unable to set JVM's stdout: %s", (char *)strerror(errno));
+                           "Unable to set JVM's stdout: %s", getLastErrorText());
                 return;
             }
         
             /* Send errors to the pipe by dupicating the pipe fd and setting the copy as the stderr fd. */
             if (dup2(pipedes[STDOUT_FILENO], STDERR_FILENO) < 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                           "Unable to set JVM's stderr: %s", (char *)strerror(errno));
+                           "Unable to set JVM's stderr: %s", getLastErrorText());
                 return;
             }
 
@@ -317,7 +321,7 @@ void wrapperExecute() {
             execvp(wrapperData->jvmCommand[0], wrapperData->jvmCommand);
             
             /* We reached this point...meaning we were unable to start. */
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to start JVM: %s (%d)", (char *)strerror(errno), errno);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to start JVM: %s (%d)", getLastErrorText(), errno);
         
         } else {
             /* We are the parent side. */
@@ -347,7 +351,7 @@ int wrapperGetProcessStatus() {
     if (retval < 0) {
         /* Wait failed. */
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                   "Critical error: wait for JVM process failed (%s)", (char *)strerror(errno));
+                   "Critical error: wait for JVM process failed (%s)", getLastErrorText());
         exit(1);
 
     } else if (retval > 0) {
@@ -575,7 +579,7 @@ void daemonize() {
     }	
     if ((pid = fork()) < 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Could not spawn daemon process: %s",
-                   (char *)strerror(errno));
+            getLastErrorText());
         exit(1);
     } else if (pid != 0) {
         /* Intermediate process is now running.  This is the original process, so exit. */
@@ -590,9 +594,9 @@ void daemonize() {
     }
     
     /* become session leader */
-    if (setsid()) {
+    if (setsid() == -1) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "setsid() failed: %s",
-           (char *)strerror(errno));
+           getLastErrorText());
         exit(1);
     }
     
@@ -621,7 +625,7 @@ void daemonize() {
     }	
     if ((pid = fork()) < 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Could not spawn daemon process: %s",
-                   (char *)strerror(errno));
+            getLastErrorText());
         exit(1);
     } else if (pid != 0) {
         /* Daemon process is now running.  This is the intermediate process, so exit. */
@@ -714,7 +718,7 @@ int main(int argc, char **argv) {
                     log_printf
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                          "ERROR: Could not write pid file %s: %s",
-                         wrapperData->pidFilename, (char *)strerror(errno));
+                         wrapperData->pidFilename, getLastErrorText());
                     exit(1);
                 }
             }
