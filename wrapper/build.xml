@@ -387,6 +387,25 @@
         <copy file="${src.dir}/conf/wrapper.conf.in"
               tofile="${conf.dir}/wrapper.conf"
               filtering="on"/>
+        <replace file="${conf.dir}/wrapper.conf">
+            <replacetoken># Wrapper Properties</replacetoken>
+            <replacevalue><![CDATA[# TestWrapper Properties
+#
+# NOTE - Please use src/conf/wrapper.conf.in as a template for your
+#        own application rather than the values used for the
+#        TestWrapper sample.]]></replacevalue>
+        </replace>
+        <replace file="${conf.dir}/wrapper.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main" />
+        <replace file="${conf.dir}/wrapper.conf">
+            <replacetoken>wrapper.java.classpath.1=../lib/wrapper.jar</replacetoken>
+            <replacevalue><![CDATA[wrapper.java.classpath.1=../lib/wrapper.jar
+wrapper.java.classpath.2=../lib/wrappertest.jar]]></replacevalue>
+        </replace>
+        <replace file="${conf.dir}/wrapper.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="#wrapper.app.parameter.1=" />
     </target>
 
     <!-- =================================================================== -->
@@ -607,6 +626,25 @@
         <copy file="${src.dir}/conf/wrapper.conf.in"
               tofile="${releasedir}/conf/wrapper.conf"
               filtering="on"/>
+        <replace file="${releasedir}/conf/wrapper.conf">
+            <replacetoken># Wrapper Properties</replacetoken>
+            <replacevalue><![CDATA[# TestWrapper Properties
+#
+# NOTE - Please use src/conf/wrapper.conf.in as a template for your
+#        own application rather than the values used for the
+#        TestWrapper sample.]]></replacevalue>
+        </replace>
+        <replace file="${releasedir}/conf/wrapper.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main" />
+        <replace file="${releasedir}/conf/wrapper.conf">
+            <replacetoken>wrapper.java.classpath.1=../lib/wrapper.jar</replacetoken>
+            <replacevalue><![CDATA[wrapper.java.classpath.1=../lib/wrapper.jar
+wrapper.java.classpath.2=../lib/wrappertest.jar]]></replacevalue>
+        </replace>
+        <replace file="${releasedir}/conf/wrapper.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="#wrapper.app.parameter.1=" />
         <!-- Need an empty log file so that the logs directory will be included -->
         <touch file="${releasedir}/logs/wrapper.log"/>
         

@@ -43,6 +43,8 @@ Java Service Wrapper Revision History.
   related error messages.
 * Fix a problem on some HP-UX systems were not working correctly because
   the EAGAIN and EWOULDBLOCK constants are not equal with some compilers.
+* Change some of the defaults in the src/conf/wrapper.conf.in file which
+  ships with the Wrapper to avoid confusion with new users.
 
 3.1.0
 * The license was revised for this version to include a copyright omission.
