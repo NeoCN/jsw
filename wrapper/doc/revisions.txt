@@ -32,6 +32,10 @@ Java Service Wrapper Revision History.
 * Correct the wrapper.logfile.maxsize property so that a a kilobyte is now 1024
   rather than 1000, and a megabyte is a megabyte.  We aren't a hard drive
   manufacturer after all.
+* Add try-catch blocks around all thread entry points in the Windows version.
+  This has always been done in the main function, but these blocks will help
+  to narrow down the cause of problems should they ever be encountered in
+  control or service handlers.
 
 3.1.1
 * Modified the way libwrapper.so is built on Solaris and Linux so that it
@@ -66,7 +70,7 @@ Java Service Wrapper Revision History.
 * A Windows user reported that using forward slashes in the path the log
   file was failing.  Avoid this problem by always converting '/' to '\'
   in the wrapper.logfile property on Windows.
-* Fix a problem where is was not possible disable the wrapper log file as
+* Fix a problem where it was not possible disable the wrapper log file as
   documented in the wrapper.logfile property.  Most likely broken way back
   in version 2.2.5.
 * Add some additional error checks after calls to control the pipe between

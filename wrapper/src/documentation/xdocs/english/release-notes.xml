@@ -83,6 +83,14 @@ $Id$
                     is a megabyte.  We aren't a hard drive manufacturer after all.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add try-catch blocks around all thread entry points in the Windows version.
+                    This has always been done in the main function, but these blocks will help
+                    to narrow down the cause of problems should they ever be encountered in
+                    control or service handlers.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.1">
@@ -173,7 +181,7 @@ $Id$
             </listitem>
             <listitem>
                 <para>
-                    Fix a problem where is was not possible disable the wrapper log file as
+                    Fix a problem where it was not possible disable the wrapper log file as
                     documented in the <ulink url="prop-logfile.html">wrapper.logfile</ulink>
                     property.  Most likely broken way back in version 2.2.5.
                 </para>
