@@ -45,7 +45,12 @@ Java Service Wrapper Revision History.
 * Modify the Windows build so the Wrapper.exe and Wrapper.dll files can now
   be built from Ant if MSVC is installed.
 * Added a new wrapper.ping.interval property which lets users control the
-  frequency that the Wrapper pings the JVM.
+  frequency that the Wrapper pings the JVM.  Feature Request #607768.
+* When a JVM refuses to shutdown, the Wrapper can be configured to request a
+  thread dump using the wrapper.request_thread_dump_on_failed_jvm_exit
+  property.  The Wrapper was then waiting 1 second before the process was
+  killed.  This was not always long enough, resulting in a truncated thread
+  dump.  Increased the pause to 3 seconds.  Feature Request #633761.
 
 3.0.4
 * Fix a problem on UNIX systems where requesting a second thread dump any time

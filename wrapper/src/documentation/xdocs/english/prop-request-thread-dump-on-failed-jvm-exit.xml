@@ -29,7 +29,7 @@
             a Thread Dump in the event that the JVM does not exit when
             requested.  This information can be useful in tracking down the
             reason why the JVM is not exiting.  This will have no effect if the
-            JVM is hung for some reason as it process will not respond to the
+            JVM is hung for some reason as it's process will not respond to the
             thread dump request.  Defaults to FALSE.
         </para>
         <informalexample>
