@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.63  2003/07/02 04:01:52  mortenson
+ * Implement the ability to specify an NT service's load order group in response
+ * to feature request #764143.
+ *
  * Revision 1.62  2003/06/19 06:22:55  mortenson
  * Added support for DEC OSF1 (Alpha).  Big thanks to Andreas Wendt for
  * supplying the patch.
@@ -1932,6 +1936,9 @@ void wrapperBuildNTServiceInfo() {
 
     /* Load the service description, default to nothing */
     wrapperData->ntServiceDescription = (char *)getStringProperty(properties, "wrapper.ntservice.description", "");
+
+    /* Load the service load order group */
+    wrapperData->ntServiceLoadOrderGroup = (char *)getStringProperty(properties, "wrapper.ntservice.load_order_group", "");
 
     /* *** Build the dependency list *** */
     len = 0;

@@ -130,6 +130,14 @@ $Id$
                     the wrapper.key parameter.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Implement the ability to specify an NT service's load order group in response
+                    to feature request #764143.  See the javadocs for the new
+                    <ulink url="prop-ntservice-load-order-group.html">wrapper.ntservice.load_order_group</ulink>
+                    property for details.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

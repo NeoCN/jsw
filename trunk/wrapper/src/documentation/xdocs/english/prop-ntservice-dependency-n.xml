@@ -25,9 +25,12 @@
     <section>
         <title>wrapper.ntservice.dependency.&lt;n&gt;</title>
         <para>
-            Names of any other Services which must be running before this
-            service can be started.  Stopping any of the listed services will
-            also stop this service.  Add dependencies as needed starting from 1.
+            Names of any other Services or groups which must be running before
+            this service can be started.  Stopping any of the listed services,
+            or all members of a specified group, will also stop this service.
+            Because both services and groups share the same name space, group
+            names must be prefixed with the '+' character.  Add dependencies as
+            needed starting from 1.
         </para>
         <informalexample>
             <simpara><emphasis>Example:</emphasis></simpara>
@@ -35,8 +38,8 @@
         </informalexample>
         <note>
             <para>
-                Changes to this property will not take effect until the
-                service is reinstalled.
+                Changes to this property will not take effect until the service
+                is reinstalled.
             </para>
         </note>
     </section>

@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.45  2003/07/02 04:01:52  mortenson
+ * Implement the ability to specify an NT service's load order group in response
+ * to feature request #764143.
+ *
  * Revision 1.44  2003/06/10 14:22:01  mortenson
  * Fix bug #744801.  A Java GUI was not being displayed when the application was
  * run in either console mode or as a service with wrapper.ntservice.interactive
@@ -1086,8 +1090,8 @@ int wrapperInstall(int argc, char **argv) {
                                    wrapperData->ntServiceStartType,    /* start type */
                                    SERVICE_ERROR_NORMAL,               /* error control type */
                                    binaryPath,                         /* service's binary */
-                                   NULL,                               /* no load ordering group */
-                                   NULL,                               /* no tag identifier */
+                                   wrapperData->ntServiceLoadOrderGroup, /* load ordering group */
+                                   NULL,                               /* tag identifier not used because they are used for driver level services. */
                                    wrapperData->ntServiceDependencies, /* dependencies */
                                    wrapperData->ntServiceAccount,      /* LocalSystem account if NULL */
                                    wrapperData->ntServicePassword );   /* NULL for no password */

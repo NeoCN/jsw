@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.31  2003/07/02 04:01:52  mortenson
+ * Implement the ability to specify an NT service's load order group in response
+ * to feature request #764143.
+ *
  * Revision 1.30  2003/06/10 14:22:00  mortenson
  * Fix bug #744801.  A Java GUI was not being displayed when the application was
  * run in either console mode or as a service with wrapper.ntservice.interactive
@@ -161,6 +165,7 @@ struct WrapperConfig {
     char    *ntServiceName;         /* Name of the NT Service */
     char    *ntServiceDisplayName;  /* Display name of the NT Service */
     char    *ntServiceDescription;  /* Description for service in Win2k and XP */
+    char    *ntServiceLoadOrderGroup; /* Load order group name. */
     char    *ntServiceDependencies; /* List of Dependencies */
     int     ntServiceStartType;     /* Mode in which the Service is installed. 
                                      * {SERVICE_AUTO_START | SERVICE_DEMAND_START} */
