@@ -51,7 +51,7 @@
 <a href="troubleshooting.html"><font size="-1">Troubleshooting</font></a>
 </li>
 <li>
-<a href="../../jdoc/index.html"><font size="-1">JavaDocs API</font></a>
+<a href="javadocs.html"><font size="-1">JavaDocs API</font></a>
 </li>
 </ul>
 </font>
@@ -189,7 +189,7 @@
                         
 <p align="justify">
                             
-<a href="config-overview.html#independant-properties">Platform independant properties</a>
+<a href="config-overview.html#independant-properties">Platform independent properties</a>
                         
 </p>
                     
@@ -224,6 +224,16 @@
 </p>
                     
 </li>
+                    
+<li>
+                        
+<p align="justify">
+                            
+<a href="config-overview.html#advanced-properties">Advanced properties</a>
+                        
+</p>
+                    
+</li>
                 
 </ul>
             
@@ -247,7 +257,11 @@
             </p>
             
 <p align="justify">
-                The Wrapper config file contains the following information.  This example assumes that the '@app.name@' and '@app.long.name@' tokens will be replaced with the name of your applicaiton on installation.  Good values are 'testwrapper' for '@app.name@' and 'Test Wrapper Application' for '@app.long.name@'.  A template wrapper.conf file can be found in the src/conf directory, named wrapper.conf.in.
+                The Wrapper config file contains the following information.  This example assumes
+                that the '@app.name@' and '@app.long.name@' tokens will be replaced with the name
+                of your application on installation.  Good values are 'testwrapper' for '@app.name@'
+                and 'Test Wrapper Application' for '@app.long.name@'.  A template wrapper.conf file
+                can be found in the src/conf directory, named wrapper.conf.in.
                 <div align="left">
 <p>
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
@@ -263,7 +277,8 @@ wrapper.java.command=java
 # Java Main class
 wrapper.java.mainclass=com.silveregg.wrapper.test.Main
 
-# Java Classpath (include wrapper.jar)  Add class path elements as needed starting from 1
+# Java Classpath (include wrapper.jar)  Add class path elements as
+#  needed starting from 1
 wrapper.java.classpath.1=../lib/wrapper.jar
 wrapper.java.classpath.2=../lib/wrappertest.jar
 
@@ -285,32 +300,6 @@ wrapper.java.maxmemory=64
 # Port which the native wrapper code will attempt to connect to
 wrapper.port=1777
 
-# Number of seconds without CPU before the JVM will issue a warning and extend
-#  timeouts.  This value must be less than the values set for the other
-#  timeouts.  0 means never extend time outs.  Defaults to 10 seconds.
-wrapper.cpu.timeout=10
-
-# Number of seconds to allow for the JVM to be launched and contact the wrapper before the
-#  wrapper should assume that the JVM is hung and terminate the JVM process.  0 means never
-#  time out.  Defaults to 30 seconds.
-wrapper.startup.timeout=30
-
-# Number of seconds to allow between the wrapper pinging the JVM and the response.  0 means
-#  never time out.  Defaults to 30 seconds.
-wrapper.ping.timeout=30
-
-# Number of seconds to allow for the JVM to shutdown before the wrapper should assume that
-#  the JVM is hung and terminate the JVM process.  0 means never time out.  Defaults to 30
-#  seconds.
-wrapper.shutdown.timeout=30
-
-# The Wrapper detects when an application calls System.exit() and treats this as a request
-#  to stop the server by default.
-#wrapper.disable_shutdown_hook=TRUE
-
-# Tell the Wrapper to request a JVM thread dump if the JVM fails to exit when requested.
-#wrapper.request_thread_dump_on_failed_jvm_exit=TRUE
-
 #********************************************************************
 # Wrapper Logging parameters
 #********************************************************************
@@ -329,13 +318,14 @@ wrapper.logfile.format=LPTM
 # Log Level for log file output.  (See docs for log levels)
 wrapper.logfile.loglevel=INFO
 
-# Maximum size that the log file will be allowed to grow to before the log is rolled.
-#  Size is specified in bytes.  The default value of 0, disables log rolling.  May
-#  abreviate with the 'k' (kb) or 'm' (mb) suffix.  For example: 10m = 10 megabytes.
+# Maximum size that the log file will be allowed to grow to before
+#  the log is rolled. Size is specified in bytes.  The default value
+#  of 0, disables log rolling.  May abbreviate with the 'k' (kb) or
+#  'm' (mb) suffix.  For example: 10m = 10 megabytes.
 wrapper.logfile.maxsize=0
 
-# Maximum number of rolled log files which will be allowed before old files are deleted.
-#  The default value of 0 implies no limit.
+# Maximum number of rolled log files which will be allowed before old
+#  files are deleted.  The default value of 0 implies no limit.
 wrapper.logfile.maxfiles=0
 
 # Log Level for sys/event log output.  (See docs for log levels)
@@ -370,7 +360,8 @@ wrapper.ntservice.dependency.1=
 # Mode in which the service is installed.  AUTO_START or DEMAND_START
 wrapper.ntservice.starttype=AUTO_START
 
-# Priority at which the service is run.  NORMAL, LOW, HIGH, or REALTIME
+# Priority at which the service is run.  NORMAL, LOW, HIGH, or
+#  REALTIME
 wrapper.ntservice.process_priority=NORMAL
 
 </pre>
@@ -379,8 +370,10 @@ wrapper.ntservice.process_priority=NORMAL
 </table>
 </p>
 </div>
-            
-</p>
+                Additional properties, not found in the default configuration file above, are
+                described below in the <a href="config-overview.html#advanced-properties">Advanced properties</a>
+                section.
+            </p>
         
 </font></td>
 </tr>
@@ -458,7 +451,7 @@ wrapper.ntservice.process_priority=NORMAL
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
 <td>
-<pre>Wrapper.exe -c ..\conf\wrapper.conf "wrapper.java.command=C:\Program Files\MyApp\jre\bin\java.exe"</pre>
+<pre>Wrapper.exe -c ..\conf\wrapper.conf "wrapper.java.command=C:\My App\jre\bin\java.exe"</pre>
 </td>
 </tr>
 </table>
@@ -506,19 +499,30 @@ wrapper.ntservice.process_priority=NORMAL
                 
                 
 <p align="justify">
-                    Java handles forward slashes, '/', and backslashes, '\', correctly on both Windows platforms.  To make your wrapper.conf cross platform compatible, you should always use forward slashes in all paths in wrapper.conf.
+                    Java handles forward slashes, '/', and backslashes, '\', correctly on both
+                    Windows platforms.  To make your wrapper.conf cross platform compatible, you
+                    should always use forward slashes in all paths in wrapper.conf.
                 </p>
                 
 <p align="justify">
-                    Versions of the wrapper prior to 2.2.3 required that all paths in the wrapper.conf file be absolute.  This is mainly to accomodate running the Wrapper as an NT service, but it also makes the application's startup much more reliable when launching the application from different locations.
+                    Versions of the wrapper prior to 2.2.3 required that all paths in the
+                    wrapper.conf file be absolute.  This is mainly to accommodate running the
+                    Wrapper as an NT service, but it also makes the application's startup much
+                    more reliable when launching the application from different locations.
                 </p>
                 
 <p align="justify">
-                    In the Windows versions starting with 2.2.3, the Wrapper now sets its current working directory to the location of the wrapper executable.  When the Wrapper launches Java, its working directory will remain the same making relative path references possible.
+                    In the Windows versions starting with 2.2.3, the Wrapper now sets its current
+                    working directory to the location of the wrapper executable.  When the Wrapper
+                    launches Java, its working directory will remain the same making relative path
+                    references possible.
                 </p>
                 
 <p align="justify">
-                    Linux and Solaris versions work correctly with relative paths if the current directory is always the same when the application is started.  (ie. You always start the application like ./myapp, as opposed to other locations like, bin/myapp)
+                    Linux and Solaris versions work correctly with relative paths if the current
+                    directory is always the same when the application is started.  (i.e. You always
+                    start the application like ./myapp, as opposed to other locations like,
+                    bin/myapp)
                 </p>
             
 </font></td>
@@ -531,7 +535,7 @@ wrapper.ntservice.process_priority=NORMAL
 <a name="independant-properties"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="98%">
 <tr>
-<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="-1"><b>Platform independant properties</b></font></td>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="-1"><b>Platform independent properties</b></font></td>
 </tr>
 <tr>
 <td><font face="arial,helvetica,sanserif" color="#000000">
@@ -539,11 +543,13 @@ wrapper.ntservice.process_priority=NORMAL
                 
                 
 <div class="glosslist">
-<a name="N400AF2"></a>
+<a name="N400B00"></a>
 <dl>
                     
                         
-<dt>wrapper.java.command</dt>
+<dt>
+<b>wrapper.java.command</b>
+</dt>
                         
 <dd>
                             
@@ -572,7 +578,9 @@ wrapper.ntservice.process_priority=NORMAL
 <br>
                     
                         
-<dt>wrapper.java.mainclass</dt>
+<dt>
+<b>wrapper.java.mainclass</b>
+</dt>
                         
 <dd>
                             
@@ -617,7 +625,9 @@ wrapper.ntservice.process_priority=NORMAL
 <br>
                     
                         
-<dt>wrapper.java.classpath.&lt;n&gt;</dt>
+<dt>
+<b>wrapper.java.classpath.&lt;n&gt;</b>
+</dt>
                         
 <dd>
                             
@@ -649,7 +659,7 @@ wrapper.java.classpath.4=../classes</pre>
 </p>
                             
 <p align="justify">
-                                As of version 2.2.5, classpath entries which contain wildcards can be used.
+                                As of version 2.2.5, classpath entries which contain wild cards can be used.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -674,7 +684,9 @@ wrapper.java.classpath.2=../classes</pre>
 <br>
                     
                         
-<dt>wrapper.java.library.path</dt>
+<dt>
+<b>wrapper.java.library.path</b>
+</dt>
                         
 <dd>
                             
@@ -703,7 +715,9 @@ wrapper.java.classpath.2=../classes</pre>
 <br>
                     
                         
-<dt>wrapper.java.additional.&lt;n&gt;</dt>
+<dt>
+<b>wrapper.java.additional.&lt;n&gt;</b>
+</dt>
                         
 <dd>
                             
@@ -739,7 +753,9 @@ wrapper.java.additional.3.stripquotes=TRUE</pre>
 <br>
                     
                         
-<dt>wrapper.java.initmemory</dt>
+<dt>
+<b>wrapper.java.initmemory</b>
+</dt>
                         
 <dd>
                             
@@ -768,7 +784,9 @@ wrapper.java.additional.3.stripquotes=TRUE</pre>
 <br>
                     
                         
-<dt>wrapper.java.maxmemory</dt>
+<dt>
+<b>wrapper.java.maxmemory</b>
+</dt>
                         
 <dd>
                             
@@ -797,7 +815,9 @@ wrapper.java.additional.3.stripquotes=TRUE</pre>
 <br>
                     
                         
-<dt>wrapper.app.parameter.&lt;n&gt;</dt>
+<dt>
+<b>wrapper.app.parameter.&lt;n&gt;</b>
+</dt>
                         
 <dd>
                             
@@ -896,7 +916,9 @@ wrapper.app.parameter.2=conf/myconffile.conf</pre>
 <br>
                     
                         
-<dt>wrapper.port</dt>
+<dt>
+<b>wrapper.port</b>
+</dt>
                         
 <dd>
                             
@@ -905,7 +927,11 @@ wrapper.app.parameter.2=conf/myconffile.conf</pre>
                             </p>
                             
 <p align="justify">
-                                When the Wrapper launches a JVM instance, it will open a server socket listening on this port bound to the localhost address.  The lauched JVM will be supplied with a key which it must use to be able to connect back to the Wrapper process.  Once the JVM has connected, the Wrapper will no longer accept additional connections.
+                                When the Wrapper launches a JVM instance, it will open a server
+                                socket listening on this port bound to the localhost address.  The
+                                launched JVM will be supplied with a key which it must use to be
+                                able to connect back to the Wrapper process.  Once the JVM has
+                                connected, the Wrapper will no longer accept additional connections.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -915,181 +941,6 @@ wrapper.app.parameter.2=conf/myconffile.conf</pre>
 <tr>
 <td>
 <pre>wrapper.port=1777</pre>
-</td>
-</tr>
-</table>
-</div>
-                                
-</p>
-                            
-</p>
-                        
-</dd>
-                    
-<br>
-                    
-                        
-<dt>wrapper.cpu.timeout</dt>
-                        
-<dd>
-                            
-<p align="justify">
-                                Number of seconds without CPU before the JVM will issue a warning and extend timeouts.  This value must be less than the values set for the other timeouts (wrapper.startup.timeout, wrapper.ping.timeout, and wrapper.shutdown.timeout).  0 means never extend time outs.  Defaults to 10 seconds.  In most cases, this property should be left as its default value.  However if the system running the Wrapper is also running other applications which are taking up 100% of the CPU for long periods of time, it may be necessary to extend this timeout to avoid warning messages being logged.
-                                <p align="justify">
-                                    
-<i>Example:</i>
-                                    
-<div align="left">
-<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
-<tr>
-<td>
-<pre>wrapper.cpu.timeout=10</pre>
-</td>
-</tr>
-</table>
-</div>
-                                
-</p>
-                            
-</p>
-                        
-</dd>
-                    
-<br>
-                    
-                        
-<dt>wrapper.startup.timeout</dt>
-                        
-<dd>
-                            
-<p align="justify">
-                                Number of seconds to allow for the JVM to be launched and contact the wrapper before the wrapper should assume that the JVM is hung and terminate the JVM process.  0 means never time out.  Defaults to 30 seconds.  Increase this value if your application takes too long to start.  You can also make calls to the WrapperManager.signalStarting(n) method to indicate that the application is not hung, but needs more time to start.
-                                <p align="justify">
-                                    
-<i>Example:</i>
-                                    
-<div align="left">
-<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
-<tr>
-<td>
-<pre>wrapper.startup.timeout=30</pre>
-</td>
-</tr>
-</table>
-</div>
-                                
-</p>
-                            
-</p>
-                        
-</dd>
-                    
-<br>
-                    
-                        
-<dt>wrapper.ping.timeout</dt>
-                        
-<dd>
-                            
-<p align="justify">
-                                Number of seconds to allow between the wrapper pinging the JVM and the response.  0 means never time out.  Defaults to 30 seconds.  Usually you do not need to change this, however, if your system often has periods of time where the CPU reaches 100% and you are having problems with the Wrapper thinking that the JVM has hung, this can be lengthened.  Be careful though, if you set this to one hour, then the Wrapper will not restart a hung JVM for one hour.
-                                <p align="justify">
-                                    
-<i>Example:</i>
-                                    
-<div align="left">
-<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
-<tr>
-<td>
-<pre>wrapper.ping.timeout=30</pre>
-</td>
-</tr>
-</table>
-</div>
-                                
-</p>
-                            
-</p>
-                        
-</dd>
-                    
-<br>
-                    
-                        
-<dt>wrapper.disable_shutdown_hook</dt>
-                        
-<dd>
-                            
-<p align="justify">
-                                Disable detection of calls to System.exit().  If disabled, calls to System.exit() will be treated as if the JVM had crashed and the Service will be restarted.
-                            </p>
-                            
-<p align="justify">
-                                The Wrapper registers a shutdown hook by default.  If an application ever calls System.exit() rather than calling WrapperManager.stop() to stop the service, then the Wrapper will correctly shutdown the server.
-                            </p>
-                            
-<p align="justify">
-                                You may wish to disable the shutdown hook for a number of reasons, including security.
-                                <p align="justify">
-                                    
-<i>Example:</i>
-                                    
-<div align="left">
-<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
-<tr>
-<td>
-<pre>wrapper.disable_shutdown_hook=TRUE</pre>
-</td>
-</tr>
-</table>
-</div>
-                                
-</p>
-                            
-</p>
-                            
-<p align="justify">
-                                
-<div align="center">
-<table cellspacing="2" cellpadding="2" border="1">
-<tr>
-<td bgcolor="#c0c0c0"><font size="-1" color="#023264">
-                                    
-<p align="justify">
-                                        WARNING - When the Wrapper detects that System.exit() has been called, it will call the stop() method on your application if it implements the WrapperListener method.  You must be careful that your application does not call System.exit() again or call the dispose() method on an AWT frame or window.  Either one of these actions will result in a deadlock when called from within a ShutdownHook thread due to the way Java has implemented these methods.  If either of these cases can not be avoided, then the shutdown hook should be disabled.
-                                    </p>
-                                    
-<p align="justify">
-                                        If you have control over whether the System.exit() or dispose() methods are called, you may be able to make use of the WrapperManager.hasShutdownHookBeenTriggered() method to avoid the deadlock issue.
-                                    </p>
-                                
-</font></td>
-</tr>
-</table>
-</div>
-                            
-</p>
-                        
-</dd>
-                    
-<br>
-                    
-                        
-<dt>wrapper.request_thread_dump_on_failed_jvm_exit</dt>
-                        
-<dd>
-                            
-<p align="justify">
-                                Enabling this property will tell the Wrapper to attempt to request a Thread Dump in the JVM before it is terminated in the event that the JVM does not exit when requested.  This can be useful in tracking down the reason why the JVM is not exiting.  Defaults to FALSE.
-                                <p align="justify">
-                                    
-<i>Example:</i>
-                                    
-<div align="left">
-<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
-<tr>
-<td>
-<pre>wrapper.request_thread_dump_on_failed_jvm_exit=TRUE</pre>
 </td>
 </tr>
 </table>
@@ -1124,11 +975,13 @@ wrapper.app.parameter.2=conf/myconffile.conf</pre>
                 
                 
 <div class="glosslist">
-<a name="N400C9A"></a>
+<a name="N400C23"></a>
 <dl>
                     
                         
-<dt>wrapper.console.format</dt>
+<dt>
+<b>wrapper.console.format</b>
+</dt>
                         
 <dd>
                             
@@ -1173,7 +1026,9 @@ wrapper.console.format=
 <br>
                     
                         
-<dt>wrapper.console.loglevel</dt>
+<dt>
+<b>wrapper.console.loglevel</b>
+</dt>
                         
 <dd>
                             
@@ -1202,7 +1057,9 @@ wrapper.console.format=
 <br>
                     
                         
-<dt>wrapper.logfile</dt>
+<dt>
+<b>wrapper.logfile</b>
+</dt>
                         
 <dd>
                             
@@ -1231,7 +1088,9 @@ wrapper.console.format=
 <br>
                     
                         
-<dt>wrapper.logfile.format</dt>
+<dt>
+<b>wrapper.logfile.format</b>
+</dt>
                         
 <dd>
                             
@@ -1276,7 +1135,9 @@ wrapper.logfile.format=
 <br>
                     
                         
-<dt>wrapper.logfile.loglevel</dt>
+<dt>
+<b>wrapper.logfile.loglevel</b>
+</dt>
                         
 <dd>
                             
@@ -1305,12 +1166,19 @@ wrapper.logfile.format=
 <br>
                     
                         
-<dt>wrapper.logfile.maxsize</dt>
+<dt>
+<b>wrapper.logfile.maxsize</b>
+</dt>
                         
 <dd>
                             
 <p align="justify">
-                                The wrapper.log file can be set to roll when the file reaches a specified size.  The default value of 0 will disable log file rolling.  To roll the file, specify a maximum file size in bytes.  The size can be abreviated with the suffixes 'k' for kilobytes, or 'm' for megabytes.  For example, '10m' sets the log file to be rolled when it reaches a size of 10 megabytes.
+                                The wrapper.log file can be set to roll when the file reaches a
+                                specified size.  The default value of 0 will disable log file
+                                rolling.  To roll the file, specify a maximum file size in bytes.
+                                The size can be abbreviated with the suffixes 'k' for kilobytes, or
+                                'm' for megabytes.  For example, '10m' sets the log file to be
+                                rolled when it reaches a size of 10 megabytes.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -1334,12 +1202,20 @@ wrapper.logfile.format=
 <br>
                     
                         
-<dt>wrapper.logfile.maxfiles</dt>
+<dt>
+<b>wrapper.logfile.maxfiles</b>
+</dt>
                         
 <dd>
                             
 <p align="justify">
-                                When log file rolling is enabled, old log files will be renamed with an integer suffex.  Where larger indices are older log files.  The maximum number of log files can be set using this property.  The default value, 0, implies no limit on the number of files.  If this number is reduced from say 10 to 5, the extra 5 files will not be deleted, new log files will only be rolled within the first 5 indices.
+                                When log file rolling is enabled, old log files will be renamed with
+                                an integer suffix.  Where larger indices are older log files.  The
+                                maximum number of log files can be set using this property.  The
+                                default value, 0, implies no limit on the number of files.  If this
+                                number is reduced from say 10 to 5, the extra 5 files will not be
+                                deleted, new log files will only be rolled within the first 5
+                                indices.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -1363,7 +1239,9 @@ wrapper.logfile.format=
 <br>
                     
                         
-<dt>wrapper.syslog.loglevel</dt>
+<dt>
+<b>wrapper.syslog.loglevel</b>
+</dt>
                         
 <dd>
                             
@@ -1412,11 +1290,13 @@ wrapper.logfile.format=
                 
                 
 <div class="glosslist">
-<a name="N400D5C"></a>
+<a name="N400CE5"></a>
 <dl>
                     
                         
-<dt>wrapper.pidfile</dt>
+<dt>
+<b>wrapper.pidfile</b>
+</dt>
                         
 <dd>
                             
@@ -1483,11 +1363,13 @@ wrapper.logfile.format=
 </div>
                 
 <div class="glosslist">
-<a name="N400D86"></a>
+<a name="N400D0F"></a>
 <dl>
                     
                         
-<dt>wrapper.ntservice.name</dt>
+<dt>
+<b>wrapper.ntservice.name</b>
+</dt>
                         
 <dd>
                             
@@ -1516,7 +1398,9 @@ wrapper.logfile.format=
 <br>
                     
                         
-<dt>wrapper.ntservice.displayname</dt>
+<dt>
+<b>wrapper.ntservice.displayname</b>
+</dt>
                         
 <dd>
                             
@@ -1545,7 +1429,9 @@ wrapper.logfile.format=
 <br>
                     
                         
-<dt>wrapper.ntservice.description</dt>
+<dt>
+<b>wrapper.ntservice.description</b>
+</dt>
                         
 <dd>
                             
@@ -1574,7 +1460,9 @@ wrapper.logfile.format=
 <br>
                     
                         
-<dt>wrapper.ntservice.dependency.&lt;n&gt;</dt>
+<dt>
+<b>wrapper.ntservice.dependency.&lt;n&gt;</b>
+</dt>
                         
 <dd>
                             
@@ -1603,7 +1491,9 @@ wrapper.logfile.format=
 <br>
                     
                         
-<dt>wrapper.ntservice.starttype</dt>
+<dt>
+<b>wrapper.ntservice.starttype</b>
+</dt>
                         
 <dd>
                             
@@ -1632,7 +1522,9 @@ wrapper.logfile.format=
 <br>
                     
                         
-<dt>wrapper.ntservice.process_priority</dt>
+<dt>
+<b>wrapper.ntservice.process_priority</b>
+</dt>
                         
 <dd>
                             
@@ -1664,11 +1556,13 @@ wrapper.logfile.format=
 <p align="justify">
                                     From the Windows API, each priority level is described as follows:
                                     <div class="glosslist">
-<a name="N400E14"></a>
+<a name="N400D9D"></a>
 <dl>
                                         
                                             
-<dt>NORMAL</dt>
+<dt>
+<b>NORMAL</b>
+</dt>
                                             
 <dd>
                                                 
@@ -1681,7 +1575,9 @@ wrapper.logfile.format=
 <br>
                                         
                                             
-<dt>LOW</dt>
+<dt>
+<b>LOW</b>
+</dt>
                                             
 <dd>
                                                 
@@ -1694,7 +1590,9 @@ wrapper.logfile.format=
 <br>
                                         
                                             
-<dt>HIGH</dt>
+<dt>
+<b>HIGH</b>
+</dt>
                                             
 <dd>
                                                 
@@ -1707,7 +1605,9 @@ wrapper.logfile.format=
 <br>
                                         
                                             
-<dt>REALTIME</dt>
+<dt>
+<b>REALTIME</b>
+</dt>
                                             
 <dd>
                                                 
@@ -1728,6 +1628,800 @@ wrapper.logfile.format=
 </tr>
 </table>
 </div>
+                        
+</dd>
+                    
+<br>
+                
+</dl>
+</div>
+            
+</font></td>
+</tr>
+</table>
+</div>
+<br>
+            
+<div>
+<a name="advanced-properties"></a>
+<table cellspacing="0" cellpadding="2" border="0" width="98%">
+<tr>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="-1"><b>Advanced properties</b></font></td>
+</tr>
+<tr>
+<td><font face="arial,helvetica,sanserif" color="#000000">
+<br>
+                
+                
+<p align="justify">
+                    This section covers the advanced properties which can be used to further
+                    configure the Wrapper.  These properties are not found in the default
+                    <tt>wrapper.conf</tt> file distributed with the
+                    Wrapper.  However they can be added as needed.  The default values of these
+                    properties have been designed to work with the majority of applications.
+                    In most cases, they should not be changed.
+                </p>
+                
+<p align="justify">
+                    There are cases where they may need to be changed to suit the needs of a particular application.  When doing so however, please take the time to read the documentation of the property carefully and make sure that changing it is really what you want to do.
+                    <div align="center">
+<table cellspacing="2" cellpadding="2" border="1">
+<tr>
+<td bgcolor="#c0c0c0"><font size="-1" color="#023264">
+                        
+<p align="justify">
+                            WARNING - Do not modify any of these parameters unless you have read the description of the property below.  Incorrect settings can cause the Wrapper to fail to operate as expected.
+                        </p>
+                    
+</font></td>
+</tr>
+</table>
+</div>
+                
+</p>
+                
+<div class="glosslist">
+<a name="N400DEC"></a>
+<dl>
+                    
+                        
+<dt>
+<b>wrapper.startup.timeout</b>
+</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Number of seconds to allow between the time that the Wrapper
+                                launches the JVM process and the time that the JVM side of the
+                                Wrapper responds that the application has started.  0 means never
+                                time out.  Defaults to 30 seconds.
+                            </p>
+                            
+<p align="justify">
+                                If you are experiencing timeout problems as your application is
+                                starting up.  The most common cause is a misconfiguration.  Please
+                                verify that the WrapperManager is indeed being started.  You should
+                                see the following output in the console when you launch the Wrapper.
+                                <p align="justify">
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper  | --&gt; Wrapper Started as Console
+wrapper  | Launching a JVM...
+jvm 1    | Wrapper (Version 2.x.x)</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                                If you do not see the Wrapper version displayed, then the
+                                WrapperManager is not being launched.  Please make sure that you
+                                have read over the <a href="api-overview.html">API Overview</a>
+                                section.  If the configuration looks correct, then try enabling
+                                DEBUG level log output to try and narrow in on the problem.
+                            </p>
+                            
+<p align="justify">
+                                If the Wrapper version is being displayed, but the Wrapper is still
+                                timing out on startup, then it is most likely being caused by one
+                                of two things.  The first is that the start method call is not
+                                returning.  This should not be an issue if you are using the
+                                SimpleWrapperApp class to launch your application.   If you are
+                                implementing the WrapperListener however.  Please verify that the
+                                start method is indeed returning upon completion.  You should be
+                                able to see this with DEBUG output enabled.
+                            </p>
+                            
+<p align="justify">
+                                The other possibility is that the startup method is simply taking
+                                a while to complete.  In this case, it may be necessary to extend
+                                the default startup timeout.  Try setting to to 300 (5 minutes)
+                                and see if that makes the problem go away.
+                            </p>
+                            
+<p align="justify">
+                                It is best to choose a value which is long enough to let the
+                                application start reliably, but short enough that the Wrapper will
+                                react as quickly as possible in the event of an actual JVM hang.
+                            </p>
+                            
+<p align="justify">
+                                If the start procedure sometimes takes a long time.  One
+                                alternative to setting a long timeout is to periodically call the 
+                                <tt>WrapperManager.signalStarting(n)</tt>
+                                method.  This method gives the application the ability to request
+                                more time to startup, while at the same time assuring the Wrapper
+                                that the JVM is alive and well.
+                            </p>
+                            
+<p align="justify">
+                                
+<p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.startup.timeout=30</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                                
+<div align="center">
+<table cellspacing="2" cellpadding="2" border="1">
+<tr>
+<td bgcolor="#c0c0c0"><font size="-1" color="#023264">
+                                    
+<p align="justify">
+                                        WARNING - While the ability is there.  Be aware that
+                                        setting this property to 0 or some large value will mean
+                                        that the Wrapper's ability to detect a JVM hang during the
+                                        startup phase will be disabled.
+                                    </p>
+                                
+</font></td>
+</tr>
+</table>
+</div>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>
+<b>wrapper.ping.timeout</b>
+</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Number of seconds to allow between the wrapper pinging the JVM and
+                                the response.  0 means never time out.  Defaults to 30 seconds.
+                            </p>
+                            
+<p align="justify">
+                                In normal operation, the Wrapper pings the JVM once every 5 seconds
+                                to make sure that its process has not frozen up.  The ping timeout
+                                is the amount of time to allow for a response from the JVM before
+                                the Wrapper assumes that it is hung and restarts it.
+                            </p>
+                            
+<p align="justify">
+                                With the addition of the
+                                <tt>wrapper.cpu.timeout</tt> property,
+                                there is now almost no reason why you should ever need to change
+                                this property.  The only reasons why you should be getting ping
+                                timeouts are if the system is under heavy load or if the JVM is
+                                really hung.  The CPU timeout should now detect any problems in
+                                with CPU.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.ping.timeout=30</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                                
+<div align="center">
+<table cellspacing="2" cellpadding="2" border="1">
+<tr>
+<td bgcolor="#c0c0c0"><font size="-1" color="#023264">
+                                    
+<p align="justify">
+                                        WARNING - While the ability is there.  Be aware that
+                                        setting this property to 0 or some large value will mean
+                                        that the Wrapper's ability to detect a JVM hang as it is
+                                        running will be disabled.
+                                    </p>
+                                
+</font></td>
+</tr>
+</table>
+</div>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>
+<b>wrapper.shutdown.timeout</b>
+</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Number of seconds to allow between the time that the Wrapper asks
+                                the JVM to shutdown and the time that the JVM side of the Wrapper
+                                responds that it is stopping.  0 means never time out.  Defaults to
+                                30 seconds.
+                            </p>
+                            
+<p align="justify">
+                                If you are experiencing timeout problems as your application is
+                                shutting down, you may want to consider extending this timeout.
+                                This can happen in cases where the shutdown code within the
+                                application takes a long time to complete.  As a test, try setting
+                                this property to something like 300 (5 minutes) and see if this
+                                makes the problem go away.
+                            </p>
+                            
+<p align="justify">
+                                If the application still times out quicker than the 5 minute test
+                                timeout, then the problem may be in a later phase of shutdown.
+                                Take a look at the
+                                <tt>wrapper.jvm_exit.timeout</tt>
+                                property below.
+                            </p>
+                            
+<p align="justify">
+                                If the application still times out after waiting the full 5 minutes
+                                then you will have to do some debugging of your application to see
+                                what is taking so long.  If it is possible to speed up the
+                                application's shutdown phase, that would be best.  Otherwise set
+                                the timeout to a value that allows the application to shutdown
+                                cleanly.
+                            </p>
+                            
+<p align="justify">
+                                It is best to choose a value which is long enough to let the
+                                application run reliably, but short enough that the Wrapper will
+                                react as quickly as possible in the event of an actual JVM hang.
+                            </p>
+                            
+<p align="justify">
+                                If the shutdown procedure sometimes takes a long time.  One
+                                alternative to setting a long timeout is to periodically call the 
+                                <tt>WrapperManager.signalStopping(n)</tt>
+                                method.  This method gives the application the ability to request
+                                more time to shutdown, while at the same time assuring the Wrapper
+                                that the JVM is alive and well.
+                            </p>
+                            
+<p align="justify">								
+                                
+<p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.shutdown.timeout=30</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                                
+<div align="center">
+<table cellspacing="2" cellpadding="2" border="1">
+<tr>
+<td bgcolor="#c0c0c0"><font size="-1" color="#023264">
+                                    
+<p align="justify">
+                                        WARNING - While the ability is there.  Be aware that
+                                        setting this property to 0 or some large value will mean
+                                        that the Wrapper's ability to detect a JVM hang during the
+                                        shutdown phase will be disabled.
+                                    </p>
+                                
+</font></td>
+</tr>
+</table>
+</div>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>
+<b>wrapper.jvm_exit.timeout</b>
+</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Number of seconds to allow between the time that the JVM reports
+                                that it is stopped and the time that the JVM process actually
+                                terminates.  0 means never time out.  Defaults to 5 seconds.
+                            </p>
+                            
+<p align="justify">
+                                In normal operation, the Java side of the Wrapper will execute
+                                System.exit when it has completed its JVM shutdown cycle and is
+                                ready to exit.  When this timeout is triggered, a message like
+                                the following will be logged.
+                                <p align="justify">
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper  | Shutdown failed: Timed out waiting for the JVM to terminate.
+wrapper  | Java Virtual Machine did not exit on request, terminated</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                            
+<p align="justify">
+                                If the application has registered its own shutdown hook which takes
+                                some time to complete, you could experience timeouts waiting for the
+                                JVM process to terminate.  To avoind this problem, it may be
+                                necessary to extend the timeout to give the application's shutdown
+                                hook time to execute to completion.  Be aware that as a rule,
+                                shutdown hooks should always complete almost instantly.
+                            </p>
+                            
+<p align="justify">								
+                                
+<p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.jvm_exit.timeout=5</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                                
+<div align="center">
+<table cellspacing="2" cellpadding="2" border="1">
+<tr>
+<td bgcolor="#c0c0c0"><font size="-1" color="#023264">
+                                    
+<p align="justify">
+                                        WARNING - While the ability is there.  Be aware that
+                                        setting this property to 0 or some large value will mean
+                                        that the Wrapper's ability to detect a JVM hang as the JVM
+                                        process terminates will be disabled.
+                                    </p>
+                                
+</font></td>
+</tr>
+</table>
+</div>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>
+<b>wrapper.cpu.timeout</b>
+</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Number of seconds without CPU before the JVM will issue a warning
+                                and extend timeouts.  In order for this property to have any effect,
+                                it must have a value less than the other timeouts
+                                (<tt>wrapper.startup.timeout</tt>,
+                                <tt>wrapper.ping.timeout</tt>, and
+                                <tt>wrapper.shutdown.timeout</tt>).
+                                0 means never extend time outs.  Defaults to 10 seconds.
+                            </p>
+                            
+<p align="justify">
+                                If the Wrapper detects that it was denied CPU for an extended
+                                period of time, you may see messages like the following from
+                                the Wrapper, the JVM, or both.
+                                <p align="justify">
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>INFO   | wrapper  | Wrapper Process has not received any CPU time for 27 seconds.
+                    Extending timeouts.
+INFO   | jvm 1    | JVM Process has not received any CPU time for 27 seconds.
+                    Extending timeouts.</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                                These messages are warnings that, in this case, both the Wrapper
+                                and its JVM process were denied access to the CPU for a period of
+                                27 seconds.  Depending on the current state of the wrapper, either
+                                the startup, ping, or shutdown timeout is extended to avoid a false
+                                timeout caused by the lack of processing power.
+                            </p>
+                            
+<p align="justify">
+                                There are two cases where either the Wrapper or its controlled
+                                JVM could be denied access to the CPU for an extended period
+                                of time.  Either could lead to the Wrapper thinking that the JVM
+                                was hung, causing it to be restarted or shutdown because
+                                one or more of the timeouts expired.
+                            </p>
+                            
+<p align="justify">
+                                The first way that this can happen is when the Wrapper is competing
+                                for system resources with another process which has the habit of
+                                consuming 100% of the CPU for extended periods of time without
+                                yielding to other processes.  Most modern operating systems are
+                                fairly good about managing multitasking.  But there are still cases
+                                where it can fail.   One example of this on NT, is when the machine
+                                is very low on memory leading to lots of disk swapping.  If the
+                                total memory is large enough the entire system can freeze up for
+                                as long as a minute before any applications are again given any CPU
+                                cycles.
+                            </p>
+                            
+<p align="justify">
+                                In most cases, when you are having problems with CPU timeouts, you
+                                should really look at finding a way to resolve the problem of the
+                                Wrapper not getting any CPU rather than extending any timeouts.
+                                If the application being run by the Wrapper is not getting any
+                                CPU then it will not be able to reliably service requests from
+                                clients.
+                            </p>
+                            
+<p align="justify">
+                                A second way is if the system is suspended and then resumed.  This
+                                is a common thing to do on notebooks.  When the system comes back
+                                up, the system will appear to have suddenly been set ahead by
+                                potentially several hours.
+                            </p>
+                            
+<p align="justify">
+                                By default, warning messages will be displayed after 10 seconds,
+                                which is actually quite a while.  The CPU timeout being triggered
+                                will not have any adverse effects on an application other than the
+                                message being displayed in the logs.   To avoid this message being
+                                logged the timeout can be set to a larger value, or disabled
+                                completely.
+                            </p>
+                            
+<p align="justify">
+                                
+<p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.cpu.timeout=10</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                                
+<div align="center">
+<table cellspacing="2" cellpadding="2" border="1">
+<tr>
+<td bgcolor="#c0c0c0"><font size="-1" color="#023264">
+                                    
+<p align="justify">
+                                        WARNING - While the ability is there.  Be aware that
+                                        setting this property to 0 or a value larger than another
+                                        timeout could cause that timeout to be falsely triggered
+                                        in cases of heavy load.  This can lead to the JVM being
+                                        restarted when a restart is not really necessary.
+                                    </p>
+                                
+</font></td>
+</tr>
+</table>
+</div>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>
+<b>wrapper.max_failed_invocations</b>
+</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Maximum number of times that the Wrapper will attempt to restart
+                                the JVM if each attempted invocation exits abnormally shortly after
+                                having being launched.  Must be at least 1.  Defaults to 5
+                                invocations.
+                            </p>
+                            
+<p align="justify">
+                                If there are mistakes in the configuration of an application then
+                                the JVM could exit with a ClassNotFoundException or something.  This
+                                will be interpreted as the JVM having exited abnormally, leading to
+                                a JVM restart.  Obviously, this would lead to an infinite loop of
+                                JVM restarts.  To resolve this problem, this property sets the
+                                maximum number of times that the JVM will be restarted.
+                            </p>
+                            
+<p align="justify">
+                                If the JVM was running for longer than
+                                <tt>wrapper.successful_invocation_time</tt>
+                                seconds, then the restart count will be reset to 0.  So this count
+                                only applies to JVM invocations which fail on startup.
+                            </p>
+                            
+<p align="justify">
+                                In general, this property should be set to a time longer than the
+                                <tt>wrapper.startup.timeout</tt> as it is
+                                designed to count failures on startup.
+                            </p>
+                            
+<p align="justify">
+                                In most cases, a value of 1 would be acceptable.  But there are
+                                cases where some resources may not immediately be available.  For
+                                example.  On Solaris systems.  A server socket may remain bound for
+                                up to 2 minutes after the process which previously had it bound was
+                                terminated.  This can lead to cases where a server will start
+                                normally.  Then at some later date, when the JVM is restarted for
+                                some other reason, getting a BindException when the new JVM
+                                invocation tries to startup.  Setting the value to 5 makes it less
+                                likely that the JVM will not be able to restart successfully after
+                                a few failures.
+                            </p>
+                            
+<p align="justify">
+                                Note that the restart count is reset if a Java application requests
+                                a restart using the
+                                <tt>WrapperManager.restart()</tt> method.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.max_failed_invocations=5</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>
+<b>wrapper.successful_invocation_time</b>
+</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Specifies the amount of time that an application must remain
+                                running before it will be considered to have been a successful
+                                invocation.  This property's use is described above in the
+                                description of
+                                <tt>wrapper.max_failed_invocations</tt>.
+                                Defaults to 300 seconds.
+                            </p>
+                            
+<p align="justify">
+                                
+<p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.successful_invocation_time=300</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                                
+<div align="center">
+<table cellspacing="2" cellpadding="2" border="1">
+<tr>
+<td bgcolor="#c0c0c0"><font size="-1" color="#023264">
+                                    
+<p align="justify">
+                                        WARNING - If the specified time is too short then all
+                                        invocations may be viewed as having been successful.  This
+                                        can lead to a case where the JVM is restarted infinitely as
+                                        described above.
+                                    </p>
+                                
+</font></td>
+</tr>
+</table>
+</div>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>
+<b>wrapper.disable_shutdown_hook</b>
+</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Disable detection of calls to System.exit().  If disabled, calls to
+                                System.exit() will be treated as if the JVM had crashed and the
+                                Service will be restarted.
+                            </p>
+                            
+<p align="justify">
+                                The Wrapper registers a shutdown hook by default.  If an application
+                                ever calls System.exit() rather than calling WrapperManager.stop()
+                                to stop the service, then the Wrapper will correctly shutdown the
+                                server.
+                            </p>
+                            
+<p align="justify">
+                                You may wish to disable the shutdown hook for a number of reasons,
+                                including security.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.disable_shutdown_hook=TRUE</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                                
+<div align="center">
+<table cellspacing="2" cellpadding="2" border="1">
+<tr>
+<td bgcolor="#c0c0c0"><font size="-1" color="#023264">
+                                    
+<p align="justify">
+                                        WARNING - When the Wrapper detects that System.exit() has
+                                        been called, it will call the stop() method on your
+                                        application if it implements the WrapperListener method.
+                                        You must be careful that your application does not call
+                                        System.exit() again or call the dispose() method on an AWT
+                                        frame or window.  Either one of these actions will result
+                                        in a deadlock when called from within a ShutdownHook thread
+                                        due to the way Java has implemented these methods.  If
+                                        either of these cases can not be avoided, then the shutdown
+                                        hook should be disabled.
+                                    </p>
+                                    
+<p align="justify">
+                                        If you have control over whether the System.exit() or
+                                        dispose() methods are called, you may be able to make use
+                                        of the WrapperManager.hasShutdownHookBeenTriggered() method
+                                        to avoid the deadlock issue.
+                                    </p>
+                                    
+<p align="justify">
+                                        For more information on the AWT deadlock bug, see the full
+                                        description of <a href="http://developer.java.sun.com/developer/bugParade/bugs/4712342.html">bug #4712342</a>
+                                        on Sun's site.
+                                    </p>
+                                
+</font></td>
+</tr>
+</table>
+</div>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>
+<b>wrapper.request_thread_dump_on_failed_jvm_exit</b>
+</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Enabling this property will tell the Wrapper to attempt to request
+                                a Thread Dump in the event that the JVM does not exit when
+                                requested.  This information can be useful in tracking down the
+                                reason why the JVM is not exiting.  This will have no effect if the
+                                JVM is hung for some reason as it process will not respond to the
+                                thread dump request.  Defaults to FALSE.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.request_thread_dump_on_failed_jvm_exit=TRUE</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
                         
 </dd>
                     
@@ -1762,10 +2456,16 @@ wrapper.logfile.format=
 </table>
 <table cellpadding="0" cellspacing="0" border="0" width="100%">
 <tr>
-<td align="center"><font color="#525D76" size="-1" face="arial,helvetica,sanserif"><i>
+<td align="left"><font color="#525D76" size="-1" face="arial,helvetica,sanserif"><i>
                             Copyright &copy;2000-2001 by Silver Egg Technology Co., Ltd.
                             All Rights Reserved.
-                        </i></font></td>
+                        </i></font></td><td align="right"><font color="#525D76" size="-1" face="arial,helvetica,sanserif"><i>
+                            last modified:
+                            <script language="JavaScript">
+                                <!-- 
+                                document.write(document.lastModified); 
+                                //  -->
+                            </script></i></font></td>
 </tr>
 </table>
 </body>
