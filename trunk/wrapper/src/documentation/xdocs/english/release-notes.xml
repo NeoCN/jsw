@@ -220,6 +220,14 @@ $Id$
                     that it now sends a SIGTERM, waits up to 5 seconds, then sends a SIGKILL.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add a new <ulink url="prop-java-library-path-append-system-path.html">wrapper.java.library.path.append_system_path</ulink>
+                    which will cause the Wrapper to append the system path to the generated
+                    library path.
+                    <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=917902&amp;group_id=39428&amp;atid=425190">Feature Request #917902</ulink>.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

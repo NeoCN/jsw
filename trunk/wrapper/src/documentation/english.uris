@@ -52,6 +52,7 @@ english/prop-java-classpath-n.html
 english/prop-java-command.html
 english/prop-java-initmemory.html
 english/prop-java-library-path-n.html
+english/prop-java-library-path-append-system-path.html
 english/prop-java-mainclass.html
 english/prop-java-maxmemory.html
 english/prop-java-pidfile.html

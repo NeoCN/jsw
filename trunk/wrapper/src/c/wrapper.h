@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.42  2004/03/18 04:54:47  mortenson
+ * Add a new wrapper.java.library.path.append_system_path property which will
+ * cause the Wrapper to append the system path to the generated library path.
+ *
  * Revision 1.41  2004/01/16 04:41:59  mortenson
  * The license was revised for this version to include a copyright omission.
  * This change is to be retroactively applied to all versions of the Java
@@ -223,6 +227,7 @@ struct WrapperConfig {
 
     int     isDebugging;            /* TRUE if set in the configuration file */
     char    *nativeLibrary;         /* The base name of the native library loaded by the WrapperManager. */
+	int     libraryPathAppendPath;  /* TRUE if the PATH environment variable should be appended to the java library path. */
     int     isStateOutputEnabled;   /* TRUE if set in the configuration file.  Shows output on the state of the state engine. */
     int     isShutdownHookDisabled; /* TRUE if set in the configuration file */
     int     exitCode;               /* Code which the wrapper will exit with */
