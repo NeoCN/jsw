@@ -8,37 +8,12 @@
 <project name="wrapper" default="main" basedir=".">
     
     <!-- Local build properties -->
-    <property file="${user.home}/.ant.local.properties" />
+    <property file="${user.home}/.ant.properties" />
+    <property file="${basedir}/ant.properties"/>
+    <property file="${basedir}/default.properties"/>
     
     <!-- platform -->
     <property name="is.${os.name}" value="true"/>
-    
-    <property name="Name"          value="Wrapper"/>
-    <property name="name"          value="wrapper"/>
-    
-    <property name="app.name"      value="testwrapper"/>
-    <property name="app.caps.name" value="TestWrapper"/>
-    <property name="app.long.name" value="Test Wrapper Sample Application"/>
-    <property name="app.desc"      value="Test Wrapper Sample Application Description"/>
-    
-    <!-- product version -->
-    <property name="major.version" value="3" />
-    <property name="version"       value="${major.version}.0.5b" />
-    
-    <property name="bin.dir"       value="bin"/>
-    <property name="conf.dir"      value="conf"/>
-    <property name="src.dir"       value="src"/>
-    <property name="lib.dir"       value="lib"/>
-    <property name="logs.dir"      value="logs"/>
-    <property name="doc.dir"       value="doc"/>
-    <property name="jdoc.dir"      value="jdoc"/>
-    <property name="test.dir"      value="test"/>
-    <property name="context.dir"   value="${src.dir}/documentation"/>
-    
-    <property name="build.dir"     value="build"/>
-    <property name="build.classes" value="build/classes"/>
-    
-    <property name="tools.dir"     value="tools"/>
     
     <property name="classpath"     value=""/>
     
@@ -221,25 +196,60 @@
             </fileset> 
         </copy>
     </target>
-    <target name="compile-c-windows" depends="convert,update-info" if="is.Windows">
+    <target name="msvc-test" depends="convert,update-info" if="is.Windows">
+        <condition property="msvc.present">
+            <available file="${msvc.home}/VC98/BIN/VCVARS32.BAT"/>
+        </condition>
+        <condition property="msvc.missing">
+            <not>
+                <available file="${msvc.home}/VC98/BIN/VCVARS32.BAT"/>
+            </not>
+        </condition>
+    </target>
+    <target name="msvc-missing" depends="msvc-test" if="msvc.missing">
+        <echo message="**********************************************************************"/>
+        <echo message="Microsoft Visual Studio was not found at the following location:"/>
+        <echo message="  ${msvc.home}"/>
+        <echo message="Wrapper.exe and Wrapper.DLL will be rebuilt.  If you do not have MSVC "/>
+        <echo message="installed then you can obtain Wrapper.exe and Wrapper.DLL from a "/>
+        <echo message="binary release of the project."/>
+        <echo message=" "/>
+        <echo message="If it is installed at a different location, create a file called "/>
+        <echo message="  ${user.home}/.ant.properties"/>
+        <echo message="Then define a mvs.home property pointing to the MSVC root:"/>
+        <echo message="  mvs.home = ${msvc.home}"/>
+        <echo message="**********************************************************************"/>
+    </target>
+    <target name="compile-c-windows" depends="msvc-missing" if="msvc.present">
         <mkdir dir="${bin.dir}"/>        
         <mkdir dir="${lib.dir}"/>
         
-        <!-- Make sure that the native Windows code was built Part 1 -->
+        <!-- Build windows C targets -->
+        <exec executable="${src.dir}/c/makewin32.bat"
+            dir="${src.dir}/c" 
+            failonerror="true">
+            <arg value="${msvc.home}" />
+        </exec>
+    </target>
+    <target name="compile-c-windows-check" depends="compile-c-windows" if="is.Windows">
+        <!-- Make sure that the native Windows tergets exist. -->
         <condition property="isWindowsNativeMissing">
-            <and>
-                <os family="windows"/>
-                <not>
-                    <and>
-                        <available file="${bin.dir}/${wrapper.bin.name}"/>
-                        <available file="${lib.dir}/${wrapper.lib.name}"/>
-                    </and>
-                </not>
-            </and>
+            <not>
+                <and>
+                    <available file="${bin.dir}/${wrapper.bin.name}"/>
+                    <available file="${lib.dir}/${wrapper.lib.name}"/>
+                </and>
+            </not>
         </condition>
     </target>
-    <target name="compile-c-windows-check" depends="compile-c-windows" if="isWindowsNativeMissing">
-        <fail message="bin/${wrapper.bin.name} or lib/${wrapper.lib.name} are missing, please build them using MSVC using the project workspace src/c/Wrapper.dsw"/>
+    <target name="compile-c-windows-check2" depends="compile-c-windows-check" if="isWindowsNativeMissing">
+        <echo message="**********************************************************************"/>
+        <echo message="bin/${wrapper.bin.name} or lib/${wrapper.lib.name} are missing."/>
+        <echo message="Please optain the files from a binary release or install MSVC."/>
+        <echo message="The targets can be build in the task above, or using the MSVC project"/>
+        <echo message="workspace src/c/Wrapper.dsw"/>
+        <echo message="**********************************************************************"/>
+        <fail message="bin/${wrapper.bin.name} or lib/${wrapper.lib.name} are missing."/>
     </target>
     <target name="compile-c-unix" depends="convert,update-info" if="is.Unix">
         <mkdir dir="${bin.dir}"/>        
@@ -251,7 +261,7 @@
             <arg line="-f ${makefile.name}" />
         </exec>
     </target>
-    <target name="compile-c" depends="compile-c-windows-check,compile-c-unix">
+    <target name="compile-c" depends="compile-c-windows-check2,compile-c-unix">
     </target>
     <target name="compile" depends="compile-c,compile-java"
         description="Compiles all java and c source">
@@ -362,10 +372,10 @@
     <!-- Documentation target                                                -->
     <!-- =================================================================== -->
     <target name="doc-src-test">
-	<available file="${src.dir}/documentation/english.uris" property="doc-src.present"/>
+    <available file="${src.dir}/documentation/english.uris" property="doc-src.present"/>
     </target>
     <target name="doc" depends="doc-src-test" if="doc-src.present"
-	description="generates the Wrapper documentation">
+    description="generates the Wrapper documentation">
         <mkdir dir="${build.dir}"/>
         <mkdir dir="${build.dir}/work"/>
         <mkdir dir="${doc.dir}"/>
@@ -402,6 +412,7 @@
             <fileset dir="${basedir}" >
                 <include name="index.html" />
                 <include name="build*" />
+                <include name="default.properties" />
                 <include name="project.dtd" />
                 <include name="doc/**" />
                 <include name="src/bin/**" />
@@ -410,6 +421,7 @@
                 <include name="src/c/*.c" />
                 <include name="src/c/*.h" />
                 <include name="src/c/Makefile.*" />
+                <include name="src/c/*.mak" />
                 <include name="src/c/*.dsp" />
                 <include name="src/c/*.dsw" />
                 <include name="src/c/*.plg" />
