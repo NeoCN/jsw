@@ -24,6 +24,11 @@
  *
  *
  * $Log$
+ * Revision 1.21  2002/09/13 10:29:17  mortenson
+ * Fix a problem where the Wrapper would sometimes die on startup due to an
+ * uninitialized variable.  This was new to 2.2.8 and not released.  Worked on most
+ * machines, so glad it was caught...
+ *
  * Revision 1.20  2002/09/10 16:17:27  mortenson
  * Get rid of tabs in files.  No other changes.
  *
@@ -1277,8 +1282,9 @@ void _CRTAPI1 main(int argc, char **argv) {
         wrapperData->exitCode = 0;
         wrapperData->restartRequested = FALSE;
         wrapperData->jvmRestarts = 0;
+        wrapperData->failedInvocationCount = 0;
 
-    wrapperInitializeLogging();
+        wrapperInitializeLogging();
 
         if (setWorkingDir()) {
             appExit(1);
