@@ -26,6 +26,10 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.16  2002/07/06 00:50:08  mortenson
+// Modified to show a stack trace when the Server Daemon Dies.  Needed for
+// tracking down problems.
+//
 // Revision 1.15  2002/06/06 00:52:21  mortenson
 // If a JVM tries to reconnect to the Wrapper after it has started shutting down, the
 // Wrapper was getting confused in some cases.  I think that this was just a problem
@@ -1190,7 +1194,9 @@ public final class WrapperManager implements Runnable {
                 System.out.println(_warning.format("SERVER_DAEMON_KILLED"));
             } catch (Throwable t) {
                 if (! _shuttingDown) {
-                    System.out.println(_error.format("SERVER_DAEMON_DIED") + "  " + t);
+                    // Show a stack trace here because this is fairly critical
+                    System.out.println(_error.format("SERVER_DAEMON_DIED"));
+                    t.printStackTrace();
                 }
             }
         }
