@@ -18,6 +18,8 @@ restarter
 restarter.conf
 shutdownhook
 shutdownhook.conf
+outputloader
+outputloader.conf
 testwrapper.log
 TestAction.bat
 TestBackgroundThreads.bat
@@ -29,4 +31,5 @@ TestPercentOutput.bat
 TestQuickComplete.bat
 TestRestarter.bat
 TestShutdownHook.bat
+TestOutputLoader.bat
 
