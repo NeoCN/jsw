@@ -1,6 +1,6 @@
 # Makefile for SGI IRIX 6.5 (may work on other versions as well but not tested)
 # MIPSpro Compilers: Version 7.3.1.3m
-COMPILE = cc -DIRIX -KPIC -DUSE_NANOSLEEP
+COMPILE = cc -DIRIX -KPIC
 
 INCLUDE=$(JAVA_HOME)/include
 

@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.98  2004/12/08 03:31:21  mortenson
+ * Simplify the makefiles by making the use of nanosleep the default in the c source.
+ *
  * Revision 1.97  2004/12/08 02:55:23  mortenson
  * Modify the UNIX version so it always sets the working dir to the location
  * of the wrapper binary on startup.  This is to make it work the same way
@@ -366,7 +369,7 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 
-#ifdef USE_NANOSLEEP
+#ifndef USE_USLEEP
 #include <time.h>
 #endif
 
@@ -878,11 +881,16 @@ int wrapperInitialize() {
  *  Sleeps over one second are not allowed.
  */
 void wrapperSleep(int ms) {
-    /* We want to use nanosleep if it is available, but fall back to using
-       usleep otherwise.
+    /* We want to use nanosleep if it is available, but make it possible for the
+       user to build a version that uses usleep if they want.
        usleep does not behave nicely with signals thrown while sleeping.  This
        was the believed cause of a hang experienced on one Solaris system. */
-#ifdef USE_NANOSLEEP
+#ifdef USE_USLEEP
+    if (wrapperData->isSleepOutputEnabled) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Sleep: usleep %dms", ms);
+    }
+    usleep(ms * 1000); /* microseconds */
+#else
     struct timespec ts;
     
     ts.tv_sec = 0;
@@ -892,11 +900,6 @@ void wrapperSleep(int ms) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Sleep: nanosleep %dms", ms);
     }
     nanosleep(&ts, NULL);
-#else
-    if (wrapperData->isSleepOutputEnabled) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Sleep: usleep %dms", ms);
-    }
-    usleep(ms * 1000); /* microseconds */
 #endif
     
     if (wrapperData->isSleepOutputEnabled) {
@@ -1522,7 +1525,7 @@ void daemonize() {
 int setWorkingDir(char *app) {
     char szPath[PATH_MAX];
     char* pos;
-	
+    
     /* Get the full path and filename of this program */
     if (realpath(app, szPath) == NULL) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to get the path-%s", getLastErrorText());
@@ -1606,7 +1609,7 @@ int main(int argc, char **argv) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  argv[%d]=%s", i, argv[i]);
     }
 #endif
-	
+    
     if (argc < 2) {
         wrapperUsage(argv[0]);
         appExit(1);

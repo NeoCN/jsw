@@ -1,4 +1,4 @@
-COMPILE = gcc -DAIX -DUSE_NANOSLEEP
+COMPILE = gcc -DAIX
 
 INCLUDE=$(JAVA_HOME)/include
 
