@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.52  2003/10/30 19:29:45  mortenson
+ * Fix some Java style comments.
+ *
  * Revision 1.51  2003/09/11 07:37:27  mortenson
  * Fix a compiler warning on Solaris.
  *
@@ -539,7 +542,7 @@ int wrapperReadChildOutput() {
                     childOutputBufferPos = 0;
 
                     if ( readSize == 1 ) {
-                        // This last line was read byte by byte, now exit.
+                        /* This last line was read byte by byte, now exit. */
                         return -1;
                     }
                 } else {
