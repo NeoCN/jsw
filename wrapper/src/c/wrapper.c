@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.33  2002/10/29 03:59:34  mortenson
+ * Fixed a problem on Unix systems where the default value for classpath
+ * and java.library.path were not being set correctly.
+ *
  * Revision 1.32  2002/10/29 03:39:23  mortenson
  * Add support for multiple library path elements.  Feature Request #613539
  *
@@ -926,7 +930,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     /* Library Path */
     if (strings) {
         prop = getStringProperty(properties, "wrapper.java.library.path", NULL);
-        if (prop != NULL) {
+        if (prop) {
             /* An old style library path was specified. */
             strings[index] = (char *)malloc(sizeof(char) * (22 + strlen(prop) + 1));
             if (addQuotes) {
@@ -981,9 +985,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             } while (prop);
             if (j == 0) {
                 /* No library path, use default. always room */
-                if (addQuotes) {
-                    sprintf(&(strings[index][cpLen++]), "./");
-                }
+                sprintf(&(strings[index][cpLen++]), "./");
             }
             /* Add ending quote */
             if (addQuotes) {
@@ -1141,9 +1143,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         } while (prop);
         if (j == 0) {
             /* No classpath, use default. always room */
-            if (addQuotes) {
-                sprintf(&(strings[index][cpLen++]), "./");
-            }
+            sprintf(&(strings[index][cpLen++]), "./");
         }
         /* Add ending quote */
         if (addQuotes) {
