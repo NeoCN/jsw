@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.13  2003/11/02 20:57:04  mortenson
+ * Remove code that was just checked in so it can be used later if ever needed.
+ * Code for a couple other methods of obtaining info about the current user account
+ * took a long time to come up with and just flat out deleting it would be a shame.
+ *
  * Revision 1.12  2003/11/02 20:29:29  mortenson
  * Add the ability to get information about the user account which is running the
  * Wrapper as well as the user account with which the Wrapper is interacting.
@@ -118,10 +123,16 @@ initExplorerExeName() {
 	sprintf(explorerExe, "Explorer.exe");
 }
 
+/**
+ * Generates a text representation of an SID.
+ *
+ * Code was taken from the Microsoft site:
+ * http://msdn.microsoft.com/library/default.asp?url=/library/en-us/security/security/converting_a_binary_sid_to_string_format.asp
+ */
 BOOL GetTextualSid(
-    PSID pSid,            // binary Sid
-    LPTSTR TextualSid,    // buffer for Textual representation of Sid
-    LPDWORD lpdwBufferLen // required/provided TextualSid buffersize
+    PSID pSid,            /* binary Sid */
+    LPTSTR TextualSid,    /* buffer for Textual representation of Sid */
+    LPDWORD lpdwBufferLen /* required/provided TextualSid buffersize */
     )
 {
     PSID_IDENTIFIER_AUTHORITY psia;
@@ -130,25 +141,25 @@ BOOL GetTextualSid(
     DWORD dwCounter;
     DWORD dwSidSize;
 
-    // Validate the binary SID.
+    /* Validate the binary SID. */
 
     if(!IsValidSid(pSid)) return FALSE;
 
-    // Get the identifier authority value from the SID.
+    /* Get the identifier authority value from the SID. */
 
     psia = GetSidIdentifierAuthority(pSid);
 
-    // Get the number of subauthorities in the SID.
+    /* Get the number of subauthorities in the SID. */
 
     dwSubAuthorities = *GetSidSubAuthorityCount(pSid);
 
-    // Compute the buffer length.
-    // S-SID_REVISION- + IdentifierAuthority- + subauthorities- + NULL
+    /* Compute the buffer length. */
+    /* S-SID_REVISION- + IdentifierAuthority- + subauthorities- + NULL */
 
     dwSidSize=(15 + 12 + (12 * dwSubAuthorities) + 1) * sizeof(TCHAR);
 
-    // Check input buffer length.
-    // If too small, indicate the proper size and set last error.
+    /* Check input buffer length. */
+    /* If too small, indicate the proper size and set last error. */
 
     if (*lpdwBufferLen < dwSidSize)
     {
@@ -157,11 +168,11 @@ BOOL GetTextualSid(
         return FALSE;
     }
 
-    // Add 'S' prefix and revision number to the string.
+    /* Add 'S' prefix and revision number to the string. */
 
     dwSidSize=wsprintf(TextualSid, TEXT("S-%lu-"), dwSidRev );
 
-    // Add SID identifier authority to the string.
+    /* Add SID identifier authority to the string. */
 
     if ( (psia->Value[0] != 0) || (psia->Value[1] != 0) )
     {
@@ -184,8 +195,7 @@ BOOL GetTextualSid(
                     (ULONG)(psia->Value[2] << 24)   );
     }
 
-    // Add SID subauthorities to the string.
-    //
+    /* Add SID subauthorities to the string. */
     for (dwCounter=0 ; dwCounter < dwSubAuthorities ; dwCounter++)
     {
         dwSidSize+=wsprintf(TextualSid + dwSidSize, TEXT("-%lu"),
@@ -193,30 +203,6 @@ BOOL GetTextualSid(
     }
 
     return TRUE;
-}
-
-void
-dumpSIDAccount(SID *sid) {
-	TCHAR sidText[1024];
-	DWORD sidTextSize;
-	TCHAR userName[1024];
-	TCHAR domainName[1024];
-	DWORD userNameSize;
-	DWORD domainNameSize;
-	SID_NAME_USE sidType;
-
-	sidTextSize = sizeof(sidText);
-	GetTextualSid(sid, sidText, &sidTextSize);
-
-	userNameSize = sizeof(userName);
-	domainNameSize = sizeof(domainName);
-	if (LookupAccountSid(NULL, sid, userName, &userNameSize, domainName, &domainNameSize, &sidType)) {
-		printf("    Sid: %s = %s/%s\n", sidText, domainName, userName);
-		flushall();
-	} else {
-		printf("    Unable to locate account for Sid: %s : %s\n", sidText, getLastErrorText());
-		flushall();
-	}
 }
 
 /**
@@ -548,190 +534,6 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle(JNIEnv *env
     (*env)->ReleaseByteArrayElements(env, jTitleBytes, titleBytes, JNI_ABORT);
 }
 
-WINADVAPI
-HDESK
-WINAPI
-GetInputDesktop();
-
-BOOL CALLBACK
-enumDesktopProc(LPTSTR lpszDesktop, LPARAM lParam) {
-	HDESK desktop;
-	DWORD sidBufferSize;
-	char *sidBuffer;
-	//DWORD sidTextSize;
-	//char sidText[1024];
-
-	printf("  enum desktop %s\n", lpszDesktop);
-	flushall();
-
-	if (desktop = OpenDesktop(lpszDesktop, 0, FALSE, MAXIMUM_ALLOWED)) {
-		GetUserObjectInformation(desktop, UOI_USER_SID, NULL, 0, &sidBufferSize);
-		sidBuffer = (char*)malloc(sizeof(char) * sidBufferSize);
-		if (GetUserObjectInformation(desktop, UOI_USER_SID, sidBuffer, sidBufferSize, &sidBufferSize)) {
-			//sidTextSize = sizeof(sidText);
-			//GetTextualSid((SID *)sidBuffer, sidText, &sidTextSize);
-			//printf("    desktop SID => %s\n", sidText);
-			//flushall();
-
-			dumpSIDAccount((SID *)sidBuffer);
-		} else {
-			printf("Unable to retrieve desktop User Information: %s\n", getLastErrorText());
-			flushall();
-		}
-
-		free(sidBuffer);
-
-		CloseDesktop(desktop);
-	} else {
-		printf("Unable to open the desktop: %s\n", getLastErrorText());
-		flushall();
-	}
-
-	return TRUE;
-}
-
-BOOL CALLBACK
-enumWindowStationProc(LPTSTR lpszWindowStation, LPARAM lParam) {
-	HWINSTA winStation;
-
-	printf(" enum station %s\n", lpszWindowStation);
-	flushall();
-
-	if (winStation = OpenWindowStation(lpszWindowStation, FALSE, MAXIMUM_ALLOWED)) {
-		EnumDesktops(winStation, enumDesktopProc, 0);
-
-		CloseWindowStation(winStation);
-	} else {
-		printf("Unable to open the window station: %s\n", getLastErrorText());
-		flushall();
-	}
-
-	return TRUE;
-}
-
-void
-dumpDesktops() {
-	EnumWindowStations(enumWindowStationProc, 0);
-}
-
-void
-dumpUserDesktops() {
-	char *explorerExe;
-	HANDLE snapshot;
-	PROCESSENTRY32 processEntry;
-	THREADENTRY32 threadEntry;
-	BOOL foundThread;
-	HDESK desktop;
-	DWORD sidBufferSize;
-	char *sidBuffer;
-	DWORD sidTextSize;
-	char sidText[1024];
-
-	HANDLE hProcess;
-	HANDLE hProcessToken;
-	TOKEN_USER *tokenUser;
-	DWORD tokenUserSize;
-
-	// Get the name of the explorer executable from the registry.
-	explorerExe = "Explorer.exe";
-
-	if ((snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS + TH32CS_SNAPTHREAD, 0)) >= 0) {
-		processEntry.dwSize = sizeof(processEntry);
-		if (Process32First(snapshot, &processEntry)) {
-			do {
-				// We are only interrested in the Explorer processes.
-				if (stricmp(explorerExe, processEntry.szExeFile) == 0) {
-					printf("Process size=%ld, cnt=%ld, id=%ld, parentId=%ld, moduleId=%ld, threads=%ld, exe=%s\n",
-						processEntry.dwSize, processEntry.cntUsage, processEntry.th32ProcessID,
-						processEntry.th32ParentProcessID, processEntry.th32ModuleID, processEntry.cntThreads,
-						processEntry.szExeFile);
-					flushall();
-
-					if (hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processEntry.th32ProcessID)) {
-						if (OpenProcessToken(hProcess, TOKEN_ALL_ACCESS, &hProcessToken)) {
-							GetTokenInformation(hProcessToken, TokenUser, NULL, 0, &tokenUserSize);
-							tokenUser = (TOKEN_USER *)malloc(tokenUserSize);
-							if (GetTokenInformation(hProcessToken, TokenUser, tokenUser, tokenUserSize, &tokenUserSize)) {
-								dumpSIDAccount(tokenUser->User.Sid);
-							} else {
-								printf("Unable to get token information %ld %ld: %s\n", sizeof(tokenUser), tokenUserSize, getLastErrorText());
-								flushall();
-							}
-							free(tokenUser);
-						} else {
-							printf("Unable to open process token: %s\n", getLastErrorText());
-							flushall();
-						}
-
-						CloseHandle(hProcess);
-					} else {
-						printf("Unable to open process: %s\n", getLastErrorText());
-						flushall();
-					}
-
-					// Now look for a thread which is owned by the explorer process.
-					threadEntry.dwSize = sizeof(threadEntry);
-					if (Thread32First(snapshot, &threadEntry)) {
-						foundThread = FALSE;
-						do {
-							// We are only interrested in threads that belong to the current Explorer process.
-							if (threadEntry.th32OwnerProcessID == processEntry.th32ProcessID) {
-								printf("  Thread id=%ld\n", threadEntry.th32ThreadID);
-								flushall();
-
-								if (desktop = GetThreadDesktop(threadEntry.th32ThreadID)) {
-									GetUserObjectInformation(desktop, UOI_USER_SID, NULL, 0, &sidBufferSize);
-									sidBuffer = (char*)malloc(sizeof(char) * sidBufferSize);
-									if (GetUserObjectInformation(desktop, UOI_USER_SID, sidBuffer, sidBufferSize, &sidBufferSize)) {
-										sidTextSize = sizeof(sidText);
-										GetTextualSid((SID *)sidBuffer, sidText, &sidTextSize);
-										printf("    desktop SID => %s\n", sidText);
-										flushall();
-									} else {
-										printf("Unable to retrieve desktop User Information: %s\n", getLastErrorText());
-										flushall();
-									}
-
-									free(sidBuffer);
-									CloseDesktop(desktop);
-								} else {
-									printf("GetThreadDesktop failed: %s\n", getLastErrorText());
-									flushall();
-								}
-
-								// We only need the first thread, so break
-								foundThread = TRUE;
-								break;
-							}
-						} while (Thread32Next(snapshot, &threadEntry));
-
-						if (!foundThread && (GetLastError() != ERROR_NO_MORE_FILES)) {
-							printf("Unable to get next thread entry: %s\n", getLastErrorText());
-							flushall();
-						}
-					} else if (GetLastError() != ERROR_NO_MORE_FILES) {
-						printf("Unable to get first thread entry: %s\n", getLastErrorText());
-						flushall();
-					}
-				}
-			} while (Process32Next(snapshot, &processEntry));
-
-			if (GetLastError() != ERROR_NO_MORE_FILES) {
-				printf("Unable to get next process entry: %s\n", getLastErrorText());
-				flushall();
-			}
-		} else if (GetLastError() != ERROR_NO_MORE_FILES) {
-			printf("Unable to get first process entry: %s\n", getLastErrorText());
-			flushall();
-		}
-
-		CloseHandle(snapshot);
-	} else {
-        printf("Toolhelp snapshot failed: %s\n", getLastErrorText());
-        flushall();
-	}
-}
-
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeGetUser
@@ -784,7 +586,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
 		processEntry.dwSize = sizeof(processEntry);
 		if (Process32First(snapshot, &processEntry)) {
 			do {
-				// We are only interrested in the Explorer processes.
+				/* We are only interrested in the Explorer processes. */
 				if (stricmp(explorerExe, processEntry.szExeFile) == 0) {
 #ifdef IUVERBOSE
 					printf("Process size=%ld, cnt=%ld, id=%ld, parentId=%ld, moduleId=%ld, threads=%ld, exe=%s\n",
@@ -806,7 +608,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
 								flushall();
 #endif
 
-								// We have a thread, now see if we can gain access to its desktop
+								/* We have a thread, now see if we can gain access to its desktop */
 								if (desktop = GetThreadDesktop(threadEntry.th32ThreadID)) {
 									/* We got the desktop!   We now know that this is the thread and thus
 									 *  process that we have been looking for.   Unfortunately it does not
@@ -859,188 +661,6 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
 	}
 
 	return wrapperUser;
-}
-
-
-/*
- * Class:     org_tanukisoftware_wrapper_WrapperManager
- * Method:    nativeGetLoggedOnUser
- * Signature: ()[B
- */
-JNIEXPORT jbyteArray JNICALL
-Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetLoggedOnUser(JNIEnv *env, jclass clazz) {
-	HKEY     userKey;
-	int      i;
-	TCHAR    userKeyName[MAX_PATH];
-	DWORD    userKeyNameSize;
-	FILETIME lastTime;
-	int      tokenCount;
-	int      revision;
-	DWORD    identifierAuthorityVal;
-	SID_IDENTIFIER_AUTHORITY identifierAuthority;
-	BYTE     subAuthorityCount;
-	DWORD    subAuthority0, subAuthority1, subAuthority2, subAuthority3, subAuthority4, subAuthority5, subAuthority6, subAuthority7;
-	SID      *userSID;
-
-	TCHAR    userName[1024];
-	TCHAR    userName2[1024];
-	DWORD    userNameSize;
-	TCHAR    domainName[1024];
-	TCHAR    domainName2[1024];
-	DWORD    domainNameSize;
-	SID_NAME_USE sidType;
-	SYSTEMTIME loginTime;
-
-	HWINSTA winStation;
-	HDESK desktop;
-	char *buffer;
-	DWORD needed;
-
-	DWORD sidBufferSize;
-	char sidBuffer[1024];
-
-	//wrapperJNIDebugging = TRUE;
-    if (wrapperJNIDebugging) {
-        printf("Looking for Logged on users.\n");
-        flushall();
-    }
-
-	// Open a key to the HKRY_USERS registry.
-	if (RegOpenKey(HKEY_USERS, NULL, &userKey) != ERROR_SUCCESS) {
-		printf("Error opening registry for HKEY_USERS: %s\n", getLastErrorText());
-        flushall();
-		return NULL;
-	}
-	
-	// Loop over the users
-	i = 0;
-	userKeyNameSize = sizeof( userKeyName );
-	while (RegEnumKeyEx(userKey, i, userKeyName, &userKeyNameSize, NULL, NULL, NULL, &lastTime) == ERROR_SUCCESS) {
-		// Ignore non user keys
-		if ((!strstr(userKeyName, "Classes")) && (!strstr(userKeyName, "DEFAULT"))) {
-		    //if (wrapperJNIDebugging) {
-				printf("  Testing SID: %s\n", userKeyName);
-				flushall();
-			//}
-
-			// Extract an SID from the name
-			tokenCount = sscanf(userKeyName, "S-%d-%x-%lu-%lu-%lu-%lu-%lu-%lu-%lu-%lu",
-				&revision, &identifierAuthorityVal,
-				&subAuthority0, &subAuthority1, &subAuthority2, &subAuthority3,
-				&subAuthority4, &subAuthority5, &subAuthority6, &subAuthority7);
-
-			// The SID is only valid if at least one sub authority exists.
-			if (tokenCount > 2) {
-				// Convert the identifier authority value
-
-				identifierAuthority.Value[0] = 0;
-				identifierAuthority.Value[1] = 0;
-				identifierAuthority.Value[2] = (BYTE)((identifierAuthorityVal >> 24) & 0xff);
-				identifierAuthority.Value[3] = (BYTE)((identifierAuthorityVal >> 16) & 0xff);
-				identifierAuthority.Value[4] = (BYTE)((identifierAuthorityVal >> 8) & 0xff);
-				identifierAuthority.Value[5] = (BYTE)(identifierAuthorityVal & 0xff);
-
-				// Allocate the SID
-				subAuthorityCount = tokenCount - 2;
-				userSID = NULL;
-				if (AllocateAndInitializeSid(&identifierAuthority, subAuthorityCount,
-					subAuthority0, subAuthority1, subAuthority2, subAuthority3,
-					subAuthority4, subAuthority5, subAuthority6, subAuthority7, &userSID)) {
-
-					sidBufferSize = sizeof(sidBuffer);
-					GetTextualSid(userSID, sidBuffer, &sidBufferSize);
-					printf("    => %s\n", sidBuffer);
-					flushall();
-
-					// Using the SID, lookup the account information
-					userNameSize = sizeof(userName);
-					domainNameSize = sizeof(domainName);
-					if (LookupAccountSid(NULL, userSID, userName, &userNameSize, domainName, &domainNameSize, &sidType)) {
-						// We are only interested in user accounts.
-						if (sidType == SidTypeUser) {
-							// We found a logged in user.  What a journey!
-							FileTimeToLocalFileTime(&lastTime, &lastTime);
-							FileTimeToSystemTime(&lastTime, &loginTime);
-							//if (wrapperJNIDebugging) {
-								printf("  %s/%s logged in at %04d/%02d/%02d %02d:%02d:%02d\n",
-									domainName, userName,
-									loginTime.wYear, loginTime.wMonth, loginTime.wDay,
-									loginTime.wHour, loginTime.wMinute, loginTime.wSecond);
-								flushall();
-							//}
-
-							if (winStation = OpenWindowStation("WinSta0", FALSE, MAXIMUM_ALLOWED)) {
-								printf("Got the station: %p.\n", winStation);
-								flushall();
-								if (desktop = GetInputDesktop()) {
-								//if (desktop = OpenDesktop("Default", 0, FALSE, MAXIMUM_ALLOWED)) {
-								//if (desktop = OpenInputDesktop(0, FALSE, MAXIMUM_ALLOWED)) {
-									printf("Got the desktop: %p.\n", desktop);
-									flushall();
-
-									// Find out who owns the desktop by requesting the SID, we first need to find out how big the SID is
-									GetUserObjectInformation(desktop, UOI_USER_SID, NULL, 0, &needed);
-									buffer = (char*)malloc(sizeof(char) * needed);
-									if (GetUserObjectInformation(desktop, UOI_USER_SID, buffer, needed, &needed)) {
-										sidBufferSize = sizeof(sidBuffer);
-										GetTextualSid((SID *)buffer, sidBuffer, &sidBufferSize);
-										printf("    desktop SID => %s\n", sidBuffer);
-										flushall();
-
-										// Now lookup the account name and domain of this SID
-										userNameSize = sizeof(userName2);
-										domainNameSize = sizeof(domainName2);
-										if (LookupAccountSid(NULL, (SID *)buffer, userName2, &userNameSize, domainName2, &domainNameSize, &sidType)) {
-											printf("    Desktop owner: %s/%s\n", domainName2, userName2);
-											flushall();
-										} else {
-											printf("Unable to locate account for desktop Sid: %d %d %s\n", ERROR_NONE_MAPPED, GetLastError(), getLastErrorText());
-											flushall();
-										}
-									} else {
-										printf("Unable to retrieve the User Information: %s\n", getLastErrorText());
-										flushall();
-									}
-									free(buffer);
-
-									CloseDesktop(desktop);
-								} else {
-									printf("Unable to open the desktop: %s\n", getLastErrorText());
-									flushall();
-								}
-								CloseWindowStation(winStation);
-							} else {
-								printf("Unable to open the window station: %s\n", getLastErrorText());
-								flushall();
-							}
-						}
-					} else {
-						// The account could not be located.  It is normal for this to happen for some accounts.
-						//printf("Unable to locate account for Sid, %s: %s\n", userKeyName, getLastErrorText());
-						//flushall();
-					}
-
-					// Always free up the SID
-					FreeSid(userSID);
-				} else {
-					printf("Unable to initialize an Sid: %s\n", getLastErrorText());
-					flushall();
-					break;
-				}
-			}
-		}
-
-		userKeyNameSize = sizeof(userKeyName);
-		i++;
-	}
-
-	// Always close the userKey.
-	RegCloseKey(userKey);
-
-	dumpUserDesktops();
-	//dumpDesktops();
-
-	return NULL;
 }
 
 #endif
