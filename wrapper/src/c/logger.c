@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.47  2004/09/06 08:01:53  mortenson
+ * Correct the wrapper.logfile.maxsize property so that a a kilobyte is now 1024
+ * rather than 1000, and a megabyte is a megabyte.
+ *
  * Revision 1.46  2004/08/06 16:17:04  mortenson
  * Added a new wrapper.java.command.loglevel property which makes it possible
  * to control the log level of the generated java command.
@@ -385,12 +389,12 @@ void setLogfileMaxFileSize( char *max_file_size ) {
             switch( chr ) {
                 case 'k': /* Kilobytes */
                 case 'K':
-                    multiple = 1000;
+                    multiple = 1024;
                 break;
 
                 case 'M': /* Megabytes */
                 case 'm':
-                    multiple = 1000000;
+                    multiple = 1048576;
                 break;
             }
 
