@@ -69,7 +69,7 @@ Java Service Wrapper Revision History.
 * Fix a problem where the Wrapper was incorrectly counting the number of
   non-daemon threads in BEA's JRockit Virtual Machine.  This was causing the
   application to shutdown when the non-daemon thread count dropped to 1.
-* Added support for building the wrapper on AIX and HPUX systems.  Thanks for
+* Added support for building the wrapper on AIX and HP-UX systems.  Thanks for
   the patches involved go out to Ashish Gawarikar and William Lee.
 * Implement feature request #653131 to force the JVM to immediately exit when
   the user presses CTRL-C multiple times.
@@ -92,9 +92,9 @@ Java Service Wrapper Revision History.
   a minimum of 3Mb.  The minimum value accepted by the Wrapper was changed
   from 8Mb to 1Mb to make it possible to reduce the footprint of applications
   to what is possible without using the wrapper.
-* Improve the parsing of config files so that leading and trailing white space
-  is now correctly trimmed.  It is also now possible to have comments at the
-  end of a line containing a property.
+* Improve the parsing of configuration files so that leading and trailing white
+  space is now correctly trimmed.  It is also now possible to have comments at
+  the end of a line containing a property.
 * Modify the way exceptions thrown by an application's main method are
   presented to the user by the WrapperSimpleApp and WrapperStartStopApp so
   they no longer look like a problem with Wrapper configuration.
@@ -160,7 +160,7 @@ Java Service Wrapper Revision History.
   function.  But users must now read to the advanced configuration
   documentation to learn about their existence.  Added quite about to the
   descriptions of these properties to hopefully clear up any confusion
-  about thier usage.
+  about their usage.
 * When the JVM exits abnormally, the Wrapper will pause for a few seconds
   before starting another JVM.  If the user pressed CTRL-C during this
   pause, a new JVM would still be launched.  The new JVM was exiting
@@ -231,7 +231,7 @@ Java Service Wrapper Revision History.
 
 2.2.5
 * Added support for service descriptions for Win2k and XP.
-* Fixed bug issue when reading config files from Windows on Unix.
+* Fixed bug issue when reading configuration files from Windows on Unix.
 * Deprecated the wrapper.debug property in favor of loglevels.
 * Added new logger functionality includes the following features:
   Loglevels like Log4j, NT Eventlog support, UNIX syslog support and rolling
@@ -245,7 +245,7 @@ Java Service Wrapper Revision History.
 2.2.4
 * The value of APP_NAME in the bash or sh scripts no longer needs to be the
   same as the script.
-* Added the ablility to format and/or disable file logging and output to the
+* Added the ability to format and/or disable file logging and output to the
   console.
 * Set mode of executables in binary release tar files so that they can be run
   without modification after being extracted.

@@ -13,24 +13,35 @@
     <section>
         <title>Debugging Your Java Application using the Wrapper</title>
         <para>
-            The Wrapper offers some simple features which will aid you in tracking down any problems that you may be having with your application.
+            The Wrapper offers some simple features which will aid you in tracking down
+            any problems that you may be having with your application.
         </para>
         <section>
             <title>Requesting a Thread Dump</title>
             <para>
-                The Wrapper contains support for requesting that the JVM dump out its current state.  The exact contents of the information will vary depending on which JVM is being run.
+                The Wrapper contains support for requesting that the JVM dump out its current
+                state.  The exact contents of the information will vary depending on which JVM
+                is being run.
             </para>
             <para>
                 The Sun JVMs will display the stack traces of all running threads to the console.
             </para>
             <para>
-                IBM JVMs provide even more useful information.  The stack traces of all threads as well as object monitor states are dumped to the console.  In addition a file is created in the current directory which in addition to the information shown in the console also contains useful information about the system including all of the environment variables.
+                IBM JVMs provide even more useful information.  The stack traces of all threads
+                as well as object monitor states are dumped to the console.  In addition a file
+                is created in the current directory which in addition to the information shown
+                in the console also contains useful information about the system including all
+                of the environment variables.
             </para>
             <para>
-                A Thread Dump can be requested on Windows systems by pressing CTRL-BREAK or on Linux systems by pressing CTRL-\.  Invoking a thread dump does not affect the JVM.  It will continue to run normally.
+                A Thread Dump can be requested on Windows systems by pressing CTRL-BREAK or on
+                Linux systems by pressing CTRL-\.  Invoking a thread dump does not affect the
+                JVM.  It will continue to run normally.
             </para>
             <para>
-                The startup for Linux and Solaris provided with the Wrapper instalation, launch the Wrapper in a backgroud thread.  To request a thread dump using these scripts, simply rerun the script specifying the 'dump' parameter.
+                The startup for Linux and Solaris provided with the Wrapper installation, launch
+                the Wrapper in a background thread.  To request a thread dump using these scripts,
+                simply rerun the script specifying the 'dump' parameter.
             </para>
         </section>
         <section>

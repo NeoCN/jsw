@@ -9,7 +9,7 @@ $Id$
 <article id="index">
     <title>Java Service Wrapper Release Notes</title>
     <section>
-        <title>Version 3.0.2: Changes and bugfixes</title>
+        <title>Version 3.0.2: Changes and bug fixes</title>
         <itemizedlist>
             <listitem>
                 <para>
@@ -30,7 +30,7 @@ $Id$
         </itemizedlist>
     </section>
     <section>
-        <title>Version 3.0.1: Changes and bugfixes</title>
+        <title>Version 3.0.1: Changes and bug fixes</title>
         <itemizedlist>
             <listitem>
                 <para>
@@ -84,7 +84,7 @@ $Id$
         </itemizedlist>
     </section>
     <section>
-        <title>Version 3.0.0: Changes and bugfixes</title>
+        <title>Version 3.0.0: Changes and bug fixes</title>
         <itemizedlist>
             <listitem>
                 <para>
@@ -166,7 +166,7 @@ $Id$
             </listitem>
             <listitem>
                 <para>
-                    Added support for building the wrapper on AIX and HPUX systems.  Thanks for
+                    Added support for building the wrapper on AIX and HP-UX systems.  Thanks for
                     the patches involved go out to Ashish Gawarikar and William Lee.
                 </para>
             </listitem>
@@ -223,9 +223,9 @@ $Id$
             </listitem>
             <listitem>
                 <para>
-                    Improve the parsing of config files so that leading and trailing white space
-                    is now correctly trimmed.  It is also now possible to have comments at the
-                    end of a line containing a property.
+                    Improve the parsing of configuration files so that leading and trailing white
+                    space is now correctly trimmed.  It is also now possible to have comments at
+                    the end of a line containing a property.
                 </para>
             </listitem>
             <listitem>
@@ -238,7 +238,7 @@ $Id$
         </itemizedlist>
     </section>
     <section>
-        <title>Version 2.2.9: Changes and bugfixes</title>
+        <title>Version 2.2.9: Changes and bug fixes</title>
         <itemizedlist>
             <listitem>
                 <para>
@@ -292,7 +292,7 @@ $Id$
             <listitem>
                 <para>
                     Fix Bug #632215.  The WrapperManager.isLaunchedAsService() method was always
-                    returning false, even when run as a service under Windows.  On linux, the
+                    returning false, even when run as a service under Windows.  On Linux, the
                     Wrapper is always run as a console app, so this method will always return
                     false.
                 </para>
@@ -307,7 +307,7 @@ $Id$
         </itemizedlist>
     </section>
     <section>
-        <title>Version 2.2.8: Changes and bugfixes</title>
+        <title>Version 2.2.8: Changes and bug fixes</title>
         <itemizedlist>
             <listitem>
                 <para>
@@ -357,7 +357,7 @@ $Id$
                     function.  But users must now read to the advanced configuration
                     documentation to learn about their existence.  Added quite about to the
                     descriptions of these properties to hopefully clear up any confusion
-                    about thier usage.
+                    about their usage.
                 </para>
             </listitem>
             <listitem>
@@ -398,41 +398,54 @@ $Id$
         </itemizedlist>
     </section>
     <section>
-        <title>Version 2.2.7: Changes and bugfixes</title>
+        <title>Version 2.2.7: Changes and bug fixes</title>
         <itemizedlist>
             <listitem>
                 <para>
-                    Fix a problem where the JVM was trying to reconnect the Wrapper as it was being shutdown.  This was causing problems if the JVM was being restarted.
+                    Fix a problem where the JVM was trying to reconnect the Wrapper as it was
+                    being shutdown.  This was causing problems if the JVM was being restarted.
                 </para>
             </listitem>
             <listitem>
                 <para>
-                    Added support for the system being suspended to RAM or disk.  Also improved wrapper performance when a system is under 100% load.  See the new example output in the <ulink url="example.html">example</ulink> section. 
+                    Added support for the system being suspended to RAM or disk.  Also improved
+                    wrapper performance when a system is under 100% load.  See the new example
+                    output in the <ulink url="example.html">example</ulink> section. 
                 </para>
             </listitem>
             <listitem>
                 <para>
-                    Fix a problem where the log output was not being directed to a file called wrapper.log in the same directory as the Wrapper binary in the event that the configured wrapper log file could not be accessed.
+                    Fix a problem where the log output was not being directed to a file called
+                    wrapper.log in the same directory as the Wrapper binary in the event that the
+                    configured wrapper log file could not be accessed.
                 </para>
             </listitem>
             <listitem>
                 <para>
-                    Fix a problem where the Wrapper was not shutting down the JVM correctly when all non daemon threads completed.   Normally a JVM will exit when all of its non daemon threads have completed so this was causing some problems.  (Thanks to Jung Tamas)
+                    Fix a problem where the Wrapper was not shutting down the JVM correctly when
+                    all non daemon threads completed.   Normally a JVM will exit when all of its
+                    non daemon threads have completed so this was causing some problems.
+                    (Thanks to Jung Tamas)
                 </para>
             </listitem>
             <listitem>
                 <para>
-                    Added the ability to set the priority of the Wrapper and its JVM when run as an NT service or console application.  The same thing can be better achieved on Unix systems by using "nice" in the shell script used to launch the Wrapper.  See the documentation for for details.
+                    Added the ability to set the priority of the Wrapper and its JVM when run
+                    as an NT service or console application.  The same thing can be better
+                    achieved on Unix systems by using "nice" in the shell script used to launch
+                    the Wrapper.  See the documentation for for details.
                 </para>
             </listitem>
             <listitem>
                 <para>
-                    JVM information was not being displayed correctly when the Wrapper native library could not be loaded.
+                    JVM information was not being displayed correctly when the Wrapper native
+                    library could not be loaded.
                 </para>
             </listitem>
             <listitem>
                 <para>
-                    Added a new property to cause the wrapper to attempt to request a thread dump when the JVM does not exit on request.
+                    Added a new property to cause the wrapper to attempt to request a thread dump
+                    when the JVM does not exit on request.
                 </para>
             </listitem>
             <listitem>
@@ -442,12 +455,14 @@ $Id$
             </listitem>
             <listitem>
                 <para>
-                    Adding a new property wrapper.shutdown.timeout to allow the user to extend the length of time that an application is allowed to take shutting down.
+                    Adding a new property wrapper.shutdown.timeout to allow the user to extend the
+                    length of time that an application is allowed to take shutting down.
                 </para>
             </listitem>
             <listitem>
                 <para>
-                    Rework the way the shutdown process works so that System.exit will never be called before the stop method in WrapperListener has had a chance to complete.
+                    Rework the way the shutdown process works so that System.exit will never be
+                    called before the stop method in WrapperListener has had a chance to complete.
                 </para>
             </listitem>
             <listitem>
@@ -457,7 +472,9 @@ $Id$
             </listitem>
             <listitem>
                 <para>
-                    Fix a problem on Unix versions where '%' characters in Java output would sometimes cause the wrapper to crash.  Somehow missed getting this into the last release.
+                    Fix a problem on Unix versions where '%' characters in Java output would
+                    sometimes cause the wrapper to crash.  Somehow missed getting this into the
+                    last release.
                 </para>
             </listitem>
             <listitem>
@@ -467,27 +484,36 @@ $Id$
             </listitem>
             <listitem>
                 <para>
-                    Added support for building under Windows XP.  Prebuilt installations had already been working.
+                    Added support for building under Windows XP.  Prebuilt installations had
+                    already been working.
                 </para>
             </listitem>
         </itemizedlist>
     </section>
     <section>
-        <title>Version 2.2.6: Changes and bugfixes</title>
+        <title>Version 2.2.6: Changes and bug fixes</title>
         <itemizedlist>
             <listitem>
                 <para>
-                    Fix a problem where '%' characters in Java output would sometimes cause the wrapper to crash.  (Thanks to Frode Moe)
+                    Fix a problem where '%' characters in Java output would sometimes cause the
+                    wrapper to crash.  (Thanks to Frode Moe)
                 </para>
             </listitem>
             <listitem>
                 <para>
-                    Added support for requesting a Java thread dump without shutting down the Java process.
+                    Added support for requesting a Java thread dump without shutting down the
+                    Java process.
                 </para>
             </listitem>
             <listitem>
                 <para>
-                    Fixed a problem on windows where the java command was looking in the windows system and system32 directories for the java executable before checking the path when the full path to the java executable was not specified in the configuration file.  This could lead to different JVM being run from the Wrapper than was run if java -version was run from the command line.  The Wrapper will now attempt to resolve the full java path using the PATH environment variable.
+                    Fixed a problem on windows where the java command was looking in the windows
+                    system and system32 directories for the java executable before checking the
+                    path when the full path to the java executable was not specified in the
+                    configuration file.  This could lead to different JVM being run from the
+                    Wrapper than was run if java -version was run from the command line.  The
+                    Wrapper will now attempt to resolve the full java path using the PATH
+                    environment variable.
                 </para>
             </listitem>
             <listitem>
@@ -497,17 +523,18 @@ $Id$
             </listitem>
             <listitem>
                 <para>
-                    Modified c source to use /* */ style comments rather than // style comments.  Some people were having problems with some compilers.
+                    Modified c source to use /* */ style comments rather than // style comments.
+                    Some people were having problems with some compilers.
                 </para>
             </listitem>
         </itemizedlist>
     </section>
     <section>
-        <title>Version 2.2.5: Changes and bugfixes</title>
+        <title>Version 2.2.5: Changes and bug fixes</title>
         <itemizedlist>
             <listitem>
                 <para>
-                    Fixed bug issue when reading config files from Windows on Unix.
+                    Fixed bug issue when reading configuration files from Windows on Unix.
                 </para>
             </listitem>
             <listitem>
@@ -522,7 +549,8 @@ $Id$
             </listitem>
             <listitem>
                 <para>
-                    Added new logger functionality includes the following features: Loglevels like Log4j, NT Eventlog support, UNIX syslog support and rolling log files.
+                    Added new logger functionality includes the following features: Loglevels like
+                    Log4j, NT Eventlog support, UNIX syslog support and rolling log files.
                 </para>
             </listitem>
             <listitem>
@@ -537,52 +565,62 @@ $Id$
             </listitem>
             <listitem>
                 <para>
-                    Changed the way NT services are installed so that a patched version of the Wrapper.exe file no longer needs to be created to reference the wrapper.conf file.
+                    Changed the way NT services are installed so that a patched version of the
+                    Wrapper.exe file no longer needs to be created to reference the wrapper.conf
+                    file.
                 </para>
             </listitem>
         </itemizedlist>
     </section>
     <section>
-        <title>Version 2.2.4: Changes and bugfixes</title>
+        <title>Version 2.2.4: Changes and bug fixes</title>
         <itemizedlist>
             <listitem>
                 <para>
-                    The value of APP_NAME in the bash or sh scripts no longer needs to be the same as the script.
+                    The value of APP_NAME in the bash or sh scripts no longer needs to be the
+                    same as the script.
                 </para>
             </listitem>
             <listitem>
                 <para>
-                    Added the ablility to format and/or disable file logging and output to the console.
+                    Added the ability to format and/or disable file logging and output to the
+                    console.
                 </para>
             </listitem>
             <listitem>
                 <para>
-                    Set mode of executables in binary release tar files so that they can be run without modification after being extracted.
+                    Set mode of executables in binary release tar files so that they can be run
+                    without modification after being extracted.
                 </para>
             </listitem>
             <listitem>
                 <para>
-                    Fixed line feeds in release so that bat files are always CRLF, unix scripts are always LF.  Other source files are always CRLF in ZIP archives and LF in tar.gz archives.
+                    Fixed line feeds in release so that bat files are always CRLF, unix scripts
+                    are always LF.  Other source files are always CRLF in ZIP archives and LF in
+                    tar.gz archives.
                 </para>
             </listitem>
             <listitem>
                 <para>
-                    Make the build fail if Wrapper.exe or Wrapper.dll do not exist for Windows builds.
+                    Make the build fail if Wrapper.exe or Wrapper.dll do not exist for Windows
+                    builds.
                 </para>
             </listitem>
             <listitem>
                 <para>
-                    Added an empty wrapper.log to the releases so that the TestWrapper example program runs out of the box.
+                    Added an empty wrapper.log to the releases so that the TestWrapper example
+                    program runs out of the box.
                 </para>
             </listitem>
         </itemizedlist>
     </section>
     <section>
-        <title>Version 2.2.3: Changes and bugfixes</title>
+        <title>Version 2.2.3: Changes and bug fixes</title>
         <itemizedlist>
             <listitem>
                 <para>
-                    Added template scripts and conf files for ease of integration with other applications.
+                    Added template scripts and conf files for ease of integration with other
+                    applications.
                 </para>
             </listitem>
             <listitem>
@@ -592,12 +630,16 @@ $Id$
             </listitem>
             <listitem>
                 <para>
-                    The WrapperSimpleApp method of launchine applications was not working correctly with applications whose main method did not return.
+                    The WrapperSimpleApp method of launching applications was not working correctly
+                    with applications whose main method did not return.
                 </para>
             </listitem>
             <listitem>
                 <para>
-                    Add sample scripts and wrapper.conf files in the bin and lib directories.  These scripts are used to start a sample application which runs out of the box.  See the new <ulink url="example.html">example.html</ulink> page in the documentation for more details.
+                    Add sample scripts and wrapper.conf files in the bin and lib directories.
+                    These scripts are used to start a sample application which runs out of the box.
+                    See the new <ulink url="example.html">example.html</ulink> page in the
+                    documentation for more details.
                 </para>
             </listitem>
             <listitem>
@@ -607,12 +649,15 @@ $Id$
             </listitem>
             <listitem>
                 <para>
-                    Enable relative paths for Windows version.  In previous versions of Wrapper, it was necessary to always use absolute paths because the working directory of the wrapper would be then NT System32 directory when run as a service.
+                    Enable relative paths for Windows version.  In previous versions of Wrapper,
+                    it was necessary to always use absolute paths because the working directory of
+                    the wrapper would be then NT System32 directory when run as a service.
                 </para>
             </listitem>
             <listitem>
                 <para>
-                    On the windows version, the wrapper always sets the current working directory to the location of the wrapper executable immediately after startup.
+                    On the windows version, the wrapper always sets the current working directory
+                    to the location of the wrapper executable immediately after startup.
                 </para>
             </listitem>
             <listitem>
@@ -623,7 +668,7 @@ $Id$
         </itemizedlist>
     </section>
     <section>
-        <title>Version 2.2.2: Changes and bugfixes</title>
+        <title>Version 2.2.2: Changes and bug fixes</title>
         <itemizedlist>
             <listitem>
                 <para>
@@ -633,7 +678,7 @@ $Id$
         </itemizedlist>
     </section>
     <section>
-        <title>Version 2.2.1: Changes and bugfixes</title>
+        <title>Version 2.2.1: Changes and bug fixes</title>
         <itemizedlist>
             <listitem>
                 <para>
@@ -648,7 +693,7 @@ $Id$
         </itemizedlist>
     </section>
     <section>
-        <title>Version 2.2.0: Changes and bugfixes</title>
+        <title>Version 2.2.0: Changes and bug fixes</title>
         <itemizedlist>
             <listitem>
                 <para>

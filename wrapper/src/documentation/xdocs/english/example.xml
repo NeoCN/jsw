@@ -129,7 +129,7 @@ jvm 1    | 2001/12/06 16:18:30 | start()]]></screen>
         <section id="testwrapper-internal">
             <title>Testing Wrapper Features (Internal Exits and Problems)</title>
             <para>
-                This section will demonstratehow the Wrapper responds to various
+                This section will demonstrate how the Wrapper responds to various
                 events.  Each of these events can be tested in the safety of your
                 very own home by pressing the various buttons on the TestWrapper
                 sample application's dialog.
@@ -314,7 +314,7 @@ jvm 2    | start()]]></screen>
             <section>
                 <title>Runtime.getRuntime().halt(0)</title>
                 <para>
-                    This button calls a very lowlevel method to stop the JVM very
+                    This button calls a very low-level method to stop the JVM very
                     forcibly.  In this case, Shutdown Hooks are not executed and the
                     Wrapper has no way to catch it.
                 </para>
@@ -463,7 +463,7 @@ jvm 2    | start()]]></screen>
                     The Wrapper will be restarted without any problems.
                 </para>
                 <para>
-                    If rather than killing the Java process, the Wrapepr process is
+                    If rather than killing the Java process, the Wrapper process is
                     killed then there is currently now recovery mode.  The WrapperManager
                     inside the Java process reacts to the loss of the Wrapper by assuming
                     that it is abandoned.  This leads to the JVM being shutdown cleanly
@@ -501,7 +501,7 @@ wrapper  | Wrapper Process has not received any CPU time for 255 seconds.  Exten
             <title>Running as an NT Service</title>
             <para>
                 When running as an NT service, the TestWrapper will be unable to show
-                its Dialog.  So this application is not very interresting.  We can
+                its Dialog.  So this application is not very interesting.  We can
                 however do a few tests to verify that the Wrapper acts as an NT service
                 correctly.
             </para>
@@ -543,7 +543,7 @@ wrapper  | Test Wrapper Application removed.]]></screen>
             </informalexample>
             <para>
                 If you look at the contents of <literal moreinfo="none">logs/wrapper.log</literal>,
-                you will see output very simmilar to that of the console.  Except this
+                you will see output very similar to that of the console.  Except this
                 time, the start message informs you that the application is being started
                 as a Service.
             </para>

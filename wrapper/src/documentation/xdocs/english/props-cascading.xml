@@ -20,12 +20,12 @@
         <title>Cascading Configuration Files</title>
         <para>
             Starting with version 3.0.0, it is possible to specify include
-            files within a config file.  This is useful where there is a need
+            files within a configuration file.  This is useful where there is a need
             to override default values without modifying the main
             configuration file.
         </para>
         <para>
-            Include files are specified by placing a line in the config file
+            Include files are specified by placing a line in the configuration file
             with the following syntax:
         </para>
         <informalexample>

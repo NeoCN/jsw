@@ -48,7 +48,7 @@
                 daemon processes on UNIX systems.
             </para>
             <para>
-                The Wrapper correctly handles user logouts under Windows, service
+                The Wrapper correctly handles user log outs under Windows, service
                 dependencies, and the ability to run services which interact with
                 the desktop.
             </para>
@@ -62,7 +62,7 @@
                 ideal world, only software which is 100% bug free will ever be released
                 and installed.  However, history has shown this not to be the case.
                 Almost every application suffers from quality issues at one point or
-                another during their lifecycle.  Applications hang, crash, run out of
+                another during their life-cycle.  Applications hang, crash, run out of
                 memory or suffer from any number of problems.  Where possible, problems
                 are fixed quickly without significant service outages.  There are times,
                 however, when fixing a problem can be prohibitively expensive or
@@ -171,14 +171,15 @@
     <section>
         <title>Supported JVMs</title>
         <para>
-            The Wrapper is known to work with the Sun, IBM, Blackdown and JRocket JVMs
-            without any problems.  If you get a chance to test any other JVMs, please
-            be sure and let us know the results.
+            The Wrapper is known to work with the Sun, IBM, Blackdown and BEA WebLogic
+            JRockit JVMs without any problems.  If you get a chance to test any other
+            JVMs, please be sure and let us know the results.
         </para>
         <note>
             <para>
                 The Wrapper can be used with 1.2.x versions however some functions are disabled
-                due to this version of Java's lack of support for shutdown hooks.
+                due to this version of Java's lack of support for shutdown hooks.  Shutdown
+                hooks were implemented with the 1.3.0 release of Java.
             </para>
         </note>
     </section>
@@ -186,7 +187,7 @@
         <title>Supported Platforms</title>
         <para>
             The Wrapper can be build from source without modification on Windows, Linux,
-            Solaris, AIX, and HPUX systems.  It you have tested the Wrapper build on any
+            Solaris, AIX, and HP-UX systems.  It you have tested the Wrapper build on any
             other platforms, please let us know and we will add them to the list.
         </para>
     </section>

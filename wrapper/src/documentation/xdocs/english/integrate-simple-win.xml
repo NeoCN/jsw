@@ -52,7 +52,7 @@
                 immediately initialize the <literal moreinfo="none">WrapperManager</literal>
                 and register the JVM with the Wrapper.  The
                 <literal moreinfo="none">WrapperSimpleApp</literal> class then manages all
-                interaction with the Wrapper as well as the lifecycle of an application.
+                interaction with the Wrapper as well as the life-cycle of an application.
                 When the Wrapper sends a start message to the JVM via the 
                 <literal moreinfo="none">WrapperManager</literal>, the main method of
                 the application's actual main class is called.

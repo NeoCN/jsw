@@ -52,7 +52,7 @@
                 immediately initialize the <literal moreinfo="none">WrapperManager</literal>
                 and register the JVM with the Wrapper.  The
                 <literal moreinfo="none">WrapperSimpleApp</literal> class then manages all
-                interaction with the Wrapper as well as the lifecycle of an application.
+                interaction with the Wrapper as well as the life-cycle of an application.
                 When the Wrapper sends a start message to the JVM via the 
                 <literal moreinfo="none">WrapperManager</literal>, the main method of
                 the application's actual main class is called.
@@ -487,7 +487,7 @@ wrapper.app.parameter.1=org.jboss.Main]]></screen>
                     <literal moreinfo="none">console</literal> command
                     will launch the wrapper in the current shell, making it
                     possible to kill the application with CTRL-C.  The final
-                    command, <literal moreinfo="none">dum</literal>p, will send a
+                    command, <literal moreinfo="none">dump</literal>, will send a
                     <literal moreinfo="none">kill -3</literal> signal to the wrapper
                     causing the its JVM to do a full thread dump.
                 </para>

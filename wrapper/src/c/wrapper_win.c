@@ -5,7 +5,7 @@
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without 
  * restriction, including without limitation the rights to use, 
- * copy, modify, merge, publish, distribute, sublicense, and/or 
+ * copy, modify, merge, publish, distribute, sub-license , and/or 
  * sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following 
  * conditions:
@@ -16,13 +16,16 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
+ * NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
  * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.34  2003/04/03 04:05:22  mortenson
+ * Fix several typos in the docs.  Thanks to Mike Castle.
+ *
  * Revision 1.33  2003/03/21 21:25:33  mortenson
  * Fix a problem where very heavy output from the JVM can cause the Wrapper to
  * give a false timeout.  The Wrapper now only ready 50 lines of input at a time
@@ -980,9 +983,9 @@ int wrapperInstall(int argc, char **argv) {
  *  variables set when the machine was last rebooted.  This makes it possible
  *  to access the latest values in registry without a reboot.
  *
- * Note that this function is always called before the config file has been
- *  loaded this means that any logging that takes place will be sent to the
- *  default log file which may be difficult for the user to locate.
+ * Note that this function is always called before the configuration file has
+ *  been loaded this means that any logging that takes place will be sent to
+ *  the default log file which may be difficult for the user to locate.
  */
 int wrapperLoadEnvFromRegistry() {
     int result = 0;
@@ -1307,7 +1310,7 @@ int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
  */
 void wrapperUsage(char *appName) {
     printf("Usage:\n");
-    printf("  %s <command> <config file> [config properties] [...]\n", appName);
+    printf("  %s <command> <configuration file> [configuration properties] [...]\n", appName);
     printf("\n");
     printf("where <command> can be one of:\n");
     printf("  -c   run as a console application\n");
@@ -1317,9 +1320,9 @@ void wrapperUsage(char *appName) {
     /*printf("  -s   used by service manager\n"); */
     printf("  -?   print this help message\n");
     printf("\n");
-    printf("<config file> is the wrapper.conf to use\n");
+    printf("<configuration file> is the wrapper.conf to use\n");
     printf("\n");
-    printf("[config properties] are configuration name-value pairs which override values\n");
+    printf("[configuration properties] are configuration name-value pairs which override values\n");
     printf("  in wrapper.conf.  For example:\n");
     printf("  wrapper.debug=true\n");
     printf("\n");
@@ -1363,16 +1366,16 @@ void _CRTAPI1 main(int argc, char **argv) {
         
         if (argc >= 3) {
             /* argv[1] should be the command */
-            /* argv[2] should be the config file */
+            /* argv[2] should be the configuration file */
 
             if(!_stricmp(argv[1],"-?") || !_stricmp(argv[1],"/?")) {
                 /* User asked for the usage. */
                 wrapperUsage(argv[0]);
             } else {
-                /* All 4 valid commands use the config file.  It is loaded here to reduce
-                 *  duplicate code.  But before loading the parameters, in the case of an
-                 *  NT service. the environment variables must first be loaded from the
-                 *  registry. */
+                /* All 4 valid commands use the configuration file.  It is loaded here to
+                 *  reduce duplicate code.  But before loading the parameters, in the case
+                 *  of an NT service. the environment variables must first be loaded from
+                 *  the registry. */
                 if (!_stricmp(argv[1],"-s") || !_stricmp(argv[1],"/s")) {
                     if (wrapperLoadEnvFromRegistry())
                     {
@@ -1384,9 +1387,9 @@ void _CRTAPI1 main(int argc, char **argv) {
                     /* Create a Properties structure. */
                     properties = createProperties();
 
-                    /* All 4 valid commands accept a config file, followed by 0 or more
+                    /* All 4 valid commands accept a configuration file, followed by 0 or more
                      *  command line properties.  The command line properties need to be
-                     *  loaded first, followed by the config file. */
+                     *  loaded first, followed by the configuration file. */
                     for (i = 3; i < argc; i++) {
                         if (addPropertyPair(properties, argv[i], TRUE)) {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, 
@@ -1395,13 +1398,13 @@ void _CRTAPI1 main(int argc, char **argv) {
                         }
                     }
 
-                    /* Now load the config file. */
+                    /* Now load the configuration file. */
                     if (loadProperties(properties, argv[2])) {
                         /* File not found. */
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "unable to open config file. %s", argv[2]);
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "unable to open configuration file. %s", argv[2]);
                         result = 1;
                     } else {
-                        /* Store the config file name */
+                        /* Store the configuration file name */
                         wrapperData->configFile = argv[2];
 
                         if (result) {
@@ -1409,7 +1412,7 @@ void _CRTAPI1 main(int argc, char **argv) {
                         } else {
                             /* Display the active properties */
 #ifdef _DEBUG
-                            printf("Debug Config Properties:\n");
+                            printf("Debug Configuration Properties:\n");
                             dumpProperties(properties);
 #endif
 
