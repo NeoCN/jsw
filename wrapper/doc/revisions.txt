@@ -55,6 +55,10 @@ Java Service Wrapper Revision History.
   occasionally hang on calls to usleep.  From research, it appears that usleep
   has problems when signals are encountered while sleeping.  Still testing
   whether or not this change solved the problem.
+* Upgrade the version of Ant included with source releases to 1.6.2 to fix
+  some problems generating jni headers when building with Java 1.4.2.
+* Upgrade the version of Cocoon included with source releases to 2.0.4 to
+  fix some problems generating documentation using Java 1.4.2.
 
 3.1.1
 * Modified the way libwrapper.so is built on Solaris and Linux so that it
