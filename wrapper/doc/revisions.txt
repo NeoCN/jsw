@@ -23,6 +23,9 @@ Java Service Wrapper Revision History.
 * Rework the way the shutdown process works so that System.exit will never be
   called before the stop method in WrapperListener has had a chance to complete.
 * Add a Restart button to the TestWrapper application.
+* Fix a problem on Unix versions where '%' characters in Java output would
+  sometimes cause the wrapper to crash.  Somehow missed getting this into the
+  last release.
 
 2.2.6
 * Fix a problem where '%' characters in Java output would sometimes cause the
