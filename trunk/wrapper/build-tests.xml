@@ -84,256 +84,184 @@
     <!-- Test Setup target (Common)                                          -->
     <!-- =================================================================== -->
     <target name="test-setup-common" depends="init">
-        <!-- Create the test specific wrapper.conf files -->
+        <!-- Create a template wrapper.conf file that will be used to create the files for
+            each of the additional conf files for each test. -->
+        <delete file="${test.dir}/template.conf"/>
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${test.dir}/template.conf"/>
+        <replace file="${test.dir}/template.conf">
+            <replacetoken>wrapper.java.classpath.1=../lib/wrapper.jar</replacetoken>
+            <replacevalue><![CDATA[wrapper.java.classpath.1=../lib/wrapper.jar
+wrapper.java.classpath.2=../lib/wrappertest.jar]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/template.conf"
+                 token="wrapper.logfile=../logs/wrapper.log"
+                 value="wrapper.logfile=../test/testwrapper.log" />
         
         <!-- Background Threads Test -->
         <delete file="${test.dir}/backgroundthreads.conf"/>
         <filter token="app.name"          value="backgroundthreads"/>
         <filter token="app.long.name"     value="Background Threads Case" />
-        <copy file="${src.dir}/conf/wrapper.conf.in"
+        <copy file="${test.dir}/template.conf"
               tofile="${test.dir}/backgroundthreads.conf"
               filtering="on"/>
         <replace file="${test.dir}/backgroundthreads.conf"
-                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
-                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
-        <replace file="${test.dir}/backgroundthreads.conf"
-                 token="#wrapper.app.parameter.1="
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.BackgroundThreads" />
-        <replace file="${test.dir}/backgroundthreads.conf"
-                 token="wrapper.logfile=../logs/wrapper.log"
-                 value="wrapper.logfile=../test/testwrapper.log" />
         
         <!-- Long Running Background Threads Test -->
         <delete file="${test.dir}/longrunningbackgroundthreads.conf"/>
         <filter token="app.name"          value="longrunningbackgroundthreads"/>
         <filter token="app.long.name"     value="Long Running Background Threads Case" />
-        <copy file="${src.dir}/conf/wrapper.conf.in"
+        <copy file="${test.dir}/template.conf"
               tofile="${test.dir}/longrunningbackgroundthreads.conf"
               filtering="on"/>
         <replace file="${test.dir}/longrunningbackgroundthreads.conf"
-                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
-                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
-        <replace file="${test.dir}/longrunningbackgroundthreads.conf"
-                 token="#wrapper.app.parameter.1="
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.LongRunningBackgroundThreads" />
-        <replace file="${test.dir}/longrunningbackgroundthreads.conf"
-                 token="wrapper.logfile=../logs/wrapper.log"
-                 value="wrapper.logfile=../test/testwrapper.log" />
         
         <!-- Daemon Threads Test -->
         <delete file="${test.dir}/daemonthreads.conf"/>
         <filter token="app.name"          value="daemonthreads"/>
         <filter token="app.long.name"     value="Daemon Threads Case" />
-        <copy file="${src.dir}/conf/wrapper.conf.in"
+        <copy file="${test.dir}/template.conf"
               tofile="${test.dir}/daemonthreads.conf"
               filtering="on"/>
         <replace file="${test.dir}/daemonthreads.conf"
-                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
-                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
-        <replace file="${test.dir}/daemonthreads.conf"
-                 token="#wrapper.app.parameter.1="
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.DaemonThreads" />
-        <replace file="${test.dir}/daemonthreads.conf"
-                 token="wrapper.logfile=../logs/wrapper.log"
-                 value="wrapper.logfile=../test/testwrapper.log" />
         
         <!-- No Return Test -->
         <delete file="${test.dir}/noreturn.conf"/>
         <filter token="app.name"          value="noreturn"/>
         <filter token="app.long.name"     value="No Return Case" />
-        <copy file="${src.dir}/conf/wrapper.conf.in"
+        <copy file="${test.dir}/template.conf"
               tofile="${test.dir}/noreturn.conf"
               filtering="on"/>
         <replace file="${test.dir}/noreturn.conf"
-                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
-                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
-        <replace file="${test.dir}/noreturn.conf"
-                 token="#wrapper.app.parameter.1="
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.NoReturn" />
-        <replace file="${test.dir}/noreturn.conf"
-                 token="wrapper.logfile=../logs/wrapper.log"
-                 value="wrapper.logfile=../test/testwrapper.log" />
 
         <!-- Quick Complete Test -->
         <delete file="${test.dir}/quickcomplete.conf"/>
         <filter token="app.name"          value="quickcomplete"/>
         <filter token="app.long.name"     value="Quick Complete Case" />
-        <copy file="${src.dir}/conf/wrapper.conf.in"
+        <copy file="${test.dir}/template.conf"
               tofile="${test.dir}/quickcomplete.conf"
               filtering="on"/>
         <replace file="${test.dir}/quickcomplete.conf"
-                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
-                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
-        <replace file="${test.dir}/quickcomplete.conf"
-                 token="#wrapper.app.parameter.1="
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.QuickComplete" />
-        <replace file="${test.dir}/quickcomplete.conf"
-                 token="wrapper.logfile=../logs/wrapper.log"
-                 value="wrapper.logfile=../test/testwrapper.log" />
 
         <!-- Environment Variables Test -->
         <delete file="${test.dir}/envvars.conf"/>
         <filter token="app.name"          value="envvars"/>
         <filter token="app.long.name"     value="Environment Variables Case" />
-        <copy file="${src.dir}/conf/wrapper.conf.in"
+        <copy file="${test.dir}/template.conf"
               tofile="${test.dir}/envvars.conf"
               filtering="on"/>
         <replace file="${test.dir}/envvars.conf"
-                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
-                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
-        <replace file="${test.dir}/envvars.conf"
-                 token="#wrapper.app.parameter.1="
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.EnvironmentVariables" />
-        <replace file="${test.dir}/envvars.conf"
-                 token="wrapper.logfile=../logs/wrapper.log"
-                 value="wrapper.logfile=../test/testwrapper.log" />
         
         <!-- Percent Output Crash Test -->
         <delete file="${test.dir}/percentoutput.conf"/>
         <filter token="app.name"          value="percentoutput"/>
         <filter token="app.long.name"     value="Percent Output Case" />
-        <copy file="${src.dir}/conf/wrapper.conf.in"
+        <copy file="${test.dir}/template.conf"
               tofile="${test.dir}/percentoutput.conf"
               filtering="on"/>
         <replace file="${test.dir}/percentoutput.conf"
-                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
-                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
-        <replace file="${test.dir}/percentoutput.conf"
-                 token="#wrapper.app.parameter.1="
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.PercentOutput" />
-        <replace file="${test.dir}/percentoutput.conf"
-                 token="wrapper.logfile=../logs/wrapper.log"
-                 value="wrapper.logfile=../test/testwrapper.log" />
         
         <!-- Log Output Test -->
         <delete file="${test.dir}/logoutput.conf"/>
         <filter token="app.name"          value="logoutput"/>
         <filter token="app.long.name"     value="Log Output Case" />
-        <copy file="${src.dir}/conf/wrapper.conf.in"
+        <copy file="${test.dir}/template.conf"
               tofile="${test.dir}/logoutput.conf"
               filtering="on"/>
         <replace file="${test.dir}/logoutput.conf"
-                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
-                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
-        <replace file="${test.dir}/logoutput.conf"
-                 token="#wrapper.app.parameter.1="
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.LogOutput" />
-        <replace file="${test.dir}/logoutput.conf"
-                 token="wrapper.logfile=../logs/wrapper.log"
-                 value="wrapper.logfile=../test/testwrapper.log" />
         
         <!-- Restarter Test -->
         <delete file="${test.dir}/restarter.conf"/>
         <filter token="app.name"          value="restarter"/>
         <filter token="app.long.name"     value="Restarter Case" />
-        <copy file="${src.dir}/conf/wrapper.conf.in"
+        <copy file="${test.dir}/template.conf"
               tofile="${test.dir}/restarter.conf"
               filtering="on"/>
         <replace file="${test.dir}/restarter.conf"
-                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
                  value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Restarter" />
-        <replace file="${test.dir}/restarter.conf"
-                 token="wrapper.logfile=../logs/wrapper.log"
-                 value="wrapper.logfile=../test/testwrapper.log" />
         
         <!-- Action Test -->
         <delete file="${test.dir}/action.conf"/>
         <filter token="app.name"          value="action"/>
         <filter token="app.long.name"     value="Action Test Case" />
-        <copy file="${src.dir}/conf/wrapper.conf.in"
+        <copy file="${test.dir}/template.conf"
               tofile="${test.dir}/action.conf"
               filtering="on"/>
         <replace file="${test.dir}/action.conf"
-                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
                  value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.TestAction" />
-        <replace file="${test.dir}/action.conf"
-                 token="wrapper.logfile=../logs/wrapper.log"
-                 value="wrapper.logfile=../test/testwrapper.log" />
         
         <!-- Shutdown Hook Test -->
         <delete file="${test.dir}/shutdownhook.conf"/>
         <filter token="app.name"          value="shutdownhook"/>
         <filter token="app.long.name"     value="Shutdown Hook Case" />
-        <copy file="${src.dir}/conf/wrapper.conf.in"
+        <copy file="${test.dir}/template.conf"
               tofile="${test.dir}/shutdownhook.conf"
               filtering="on"/>
         <replace file="${test.dir}/shutdownhook.conf"
-                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
-                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
-        <replace file="${test.dir}/shutdownhook.conf"
-                 token="#wrapper.app.parameter.1="
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.ShutdownHook" />
-        <replace file="${test.dir}/shutdownhook.conf"
-                 token="wrapper.logfile=../logs/wrapper.log"
-                 value="wrapper.logfile=../test/testwrapper.log" />
         
         <!-- OutputLoader Test -->
         <delete file="${test.dir}/outputloader.conf"/>
         <filter token="app.name"          value="outputloader"/>
         <filter token="app.long.name"     value="Output Loader Case" />
-        <copy file="${src.dir}/conf/wrapper.conf.in"
+        <copy file="${test.dir}/template.conf"
               tofile="${test.dir}/outputloader.conf"
               filtering="on"/>
         <replace file="${test.dir}/outputloader.conf"
-                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
-                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
-        <replace file="${test.dir}/outputloader.conf"
-                 token="#wrapper.app.parameter.1="
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.OutputLoader" />
-        <replace file="${test.dir}/outputloader.conf"
-                 token="wrapper.logfile=../logs/wrapper.log"
-                 value="wrapper.logfile=../test/testwrapper.log" />
         
         <!-- Memory Test -->
         <delete file="${test.dir}/memory.conf"/>
         <filter token="app.name"          value="memory"/>
         <filter token="app.long.name"     value="Memory Case" />
-        <copy file="${src.dir}/conf/wrapper.conf.in"
+        <copy file="${test.dir}/template.conf"
               tofile="${test.dir}/memory.conf"
               filtering="on"/>
         <replace file="${test.dir}/memory.conf"
-                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
-                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
-        <replace file="${test.dir}/memory.conf"
-                 token="#wrapper.app.parameter.1="
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.Memory" />
-        <replace file="${test.dir}/memory.conf"
-                 token="wrapper.logfile=../logs/wrapper.log"
-                 value="wrapper.logfile=../test/testwrapper.log" />
 
         <!-- System.in Test -->
         <delete file="${test.dir}/systemin.conf"/>
         <filter token="app.name"          value="systemin"/>
         <filter token="app.long.name"     value="System.in Case" />
-        <copy file="${src.dir}/conf/wrapper.conf.in"
+        <copy file="${test.dir}/template.conf"
               tofile="${test.dir}/systemin.conf"
               filtering="on"/>
         <replace file="${test.dir}/systemin.conf"
-                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
-                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
-        <replace file="${test.dir}/systemin.conf"
-                 token="#wrapper.app.parameter.1="
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.SystemIn" />
-        <replace file="${test.dir}/systemin.conf"
-                 token="wrapper.logfile=../logs/wrapper.log"
-                 value="wrapper.logfile=../test/testwrapper.log" />
 
         <!-- Filter Test -->
         <delete file="${test.dir}/filter.conf"/>
         <filter token="app.name"          value="filter"/>
         <filter token="app.long.name"     value="Filter Case" />
-        <copy file="${src.dir}/conf/wrapper.conf.in"
+        <copy file="${test.dir}/template.conf"
               tofile="${test.dir}/filter.conf"
               filtering="on"/>
         <replace file="${test.dir}/filter.conf"
-                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
-                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
-        <replace file="${test.dir}/filter.conf"
-                 token="#wrapper.app.parameter.1="
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.Filter" />
-        <replace file="${test.dir}/filter.conf"
-                 token="wrapper.logfile=../logs/wrapper.log"
-                 value="wrapper.logfile=../test/testwrapper.log" />
         <replace file="${test.dir}/filter.conf">
             <replacetoken>wrapper.syslog.loglevel=NONE</replacetoken>
             <replacevalue><![CDATA[wrapper.syslog.loglevel=NONE
@@ -350,14 +278,14 @@ wrapper.filter.action.3=SHUTDOWN]]></replacevalue>
         <delete file="${test.dir}/loadedwrapperlistener.conf"/>
         <filter token="app.name"          value="loadedwrapperlistener"/>
         <filter token="app.long.name"     value="Loaded WrapperListener Case" />
-        <copy file="${src.dir}/conf/wrapper.conf.in"
+        <copy file="${test.dir}/template.conf"
               tofile="${test.dir}/loadedwrapperlistener.conf"
               filtering="on"/>
         <replace file="${test.dir}/loadedwrapperlistener.conf"
-                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
                  value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.LoadedWrapperListener" />
         <replace file="${test.dir}/loadedwrapperlistener.conf"
-                 token="#wrapper.app.parameter.1="
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.debug=TRUE" />
         <replace file="${test.dir}/loadedwrapperlistener.conf"
                  token="wrapper.java.initmemory=3"
@@ -365,9 +293,6 @@ wrapper.filter.action.3=SHUTDOWN]]></replacevalue>
         <replace file="${test.dir}/loadedwrapperlistener.conf"
                  token="wrapper.java.maxmemory=64"
                  value="wrapper.java.maxmemory=256" />
-        <replace file="${test.dir}/loadedwrapperlistener.conf"
-                 token="wrapper.logfile=../logs/wrapper.log"
-                 value="wrapper.logfile=../test/testwrapper.log" />
         <replace file="${test.dir}/loadedwrapperlistener.conf"
                  token="wrapper.ntservice.process_priority=NORMAL"
                  value="wrapper.ntservice.process_priority=HIGH" />
