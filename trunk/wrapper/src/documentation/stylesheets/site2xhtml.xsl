@@ -57,17 +57,18 @@
         
         <table border="0" width="100%" cellspacing="0" cellpadding="0">
             <tr>
-                <td bgcolor="#c7d9e2" width="200" valign="top">
-                    <img src="images/spacer.gif" width="200" height="1"/>
+                <td bgcolor="#c7d9e2" width="180" valign="top">
+                    <img src="images/spacer.gif" width="180" height="1"/>
                     <table border="0" width="100%" cellspacing="0" cellpadding="4">
                         <tr>
                             <td nowrap="true">
                                 <xsl:copy-of select="/site/menu/node()|@*"/>
-                                <br/>
-                                Hosted by:<br/>
-                                <a href="http://sourceforge.net/projects/wrapper/">
-                                    <img src="http://sourceforge.net/sflogo.php?group_id=39428" width="88" height="31" border="0" alt="SourceForge"/>
-                                </a>
+                                <p>
+                                    <b>Hosted by:</b><br/>
+                                    <a href="http://sourceforge.net/projects/wrapper/">
+                                        <img src="http://sourceforge.net/sflogo.php?group_id=39428" width="88" height="31" border="0" alt="SourceForge"/>
+                                    </a>
+                                </p>
                             </td>
                         </tr>
                     </table>
@@ -90,7 +91,7 @@
                 <td colspan="2" bgcolor="#115b77"><img src="images/spacer.gif"/></td>
             </tr>
             <tr>
-                <td align="left">
+                <td align="left" id="copyright">
                     <font face="arial,helvetica,sanserif" size="-1" color="#525D76">
                         <i>
                             Copyright &#169;1999-2003 by <a href="http://www.tanukisoftware.org">TanukiSoftware.org</a>.
