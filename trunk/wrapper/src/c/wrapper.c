@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.32  2002/10/29 03:39:23  mortenson
+ * Add support for multiple library path elements.  Feature Request #613539
+ *
  * Revision 1.31  2002/10/10 03:24:55  mortenson
  * Close an unclosed comment.  Wasn't causing any problems.
  *
@@ -922,12 +925,71 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 
     /* Library Path */
     if (strings) {
-        prop = getStringProperty(properties, "wrapper.java.library.path", "./");
-        strings[index] = (char *)malloc(sizeof(char) * (22 + strlen(prop) + 1));
-        if (addQuotes) {
-            sprintf(strings[index], "-Djava.library.path=\"%s\"", prop);
+        prop = getStringProperty(properties, "wrapper.java.library.path", NULL);
+        if (prop != NULL) {
+            /* An old style library path was specified. */
+            strings[index] = (char *)malloc(sizeof(char) * (22 + strlen(prop) + 1));
+            if (addQuotes) {
+                sprintf(strings[index], "-Djava.library.path=\"%s\"", prop);
+            } else {
+                sprintf(strings[index], "-Djava.library.path=%s", prop);
+            }
         } else {
-            sprintf(strings[index], "-Djava.library.path=%s", prop);
+            /* Look for a multiline library path. */
+            cpLen = 0;
+            cpLenAlloc = 1024;
+            strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
+            
+            /* Start with the property value. */
+            sprintf(&(strings[index][cpLen]), "-Djava.library.path=");
+            cpLen += 20;
+            
+            /* Add an open quote to the library path */
+            if (addQuotes) {
+                sprintf(&(strings[index][cpLen]), "\"");
+                cpLen++;
+            }
+            
+            /* Loop over the library path entries adding each one */
+            i = 0;
+            j = 0;
+            do {
+                sprintf(paramBuffer, "wrapper.java.library.path.%d", i + 1);
+                prop = getStringProperty(properties, paramBuffer, NULL);
+                if (prop) {
+                    len2 = strlen(prop);
+                    if (len2 > 0) {
+                        /* Is there room for the entry? */
+                        if (cpLen + len2 + 3 > cpLenAlloc) {
+                            /* Resize the buffer */
+                            tmpString = strings[index];
+                            cpLenAlloc += 1024;
+                            strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
+                            sprintf(strings[index], tmpString);
+                            free(tmpString);
+                        }
+                        
+                        if (j > 0) {
+                            strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
+                        }
+                        sprintf(&(strings[index][cpLen]), prop);
+                        cpLen += len2;
+                        j++;
+                    }
+                    i++;
+                }
+            } while (prop);
+            if (j == 0) {
+                /* No library path, use default. always room */
+                if (addQuotes) {
+                    sprintf(&(strings[index][cpLen++]), "./");
+                }
+            }
+            /* Add ending quote */
+            if (addQuotes) {
+                sprintf(&(strings[index][cpLen]), "\"");
+                cpLen++;
+            }
         }
     }
     index++;
@@ -1066,7 +1128,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                             free(tmpString);
                         }
 
-                     if (j > 0) {
+                        if (j > 0) {
                             strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
                         }
                         sprintf(&(strings[index][cpLen]), prop);

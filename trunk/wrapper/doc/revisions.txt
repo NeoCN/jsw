@@ -18,6 +18,10 @@ Java Service Wrapper Revision History.
 * Modified the message displayed when the native library could not be found,
   so that it is much more descriptive.  Hopefully it will cut down on questions
   caused by configuration problems.
+* Implemented feature request #613539. Modified the wrapper.java.library.path
+  to function like the wrapper.java.classpath.n properties so that multiple
+  directories can be specified in the library path in a platform independent
+  way.  The old property is still supported, but deprecated.
 
 2.2.8
 * Fixed a compiler problem on Solaris some systems.

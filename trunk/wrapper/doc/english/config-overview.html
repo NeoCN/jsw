@@ -296,7 +296,7 @@ wrapper.java.classpath.1=../lib/wrapper.jar
 wrapper.java.classpath.2=../lib/wrappertest.jar
 
 # Java Library Path (location of Wrapper.DLL or libwrapper.so)
-wrapper.java.library.path=../lib
+wrapper.java.library.path.1=../lib
 
 # Java Additional Parameters
 #wrapper.java.additional.1=
@@ -719,11 +719,16 @@ wrapper.ntservice.process_priority=NORMAL
 <dd>
                             
 <p align="justify">
-                                Java Classpath to use.  You should have a series of properties listing up the various class path elements to use when launching the application.  Each element has a property name which starts with wrapper.java.classpath. and ends with an integer number counting up from 1.  There can be no missing numbers.
+                                Java Classpath to use.  You should have a series of properties
+                                listing up the various class path elements to use when launching
+                                the application.  Each element has a property name which starts
+                                with wrapper.java.classpath. and ends with an integer number
+                                counting up from 1.  There can be no missing numbers.
                             </p>
                             
 <p align="justify">
-                                This list must contain the wrapper.jar file.  It can contain jar files as well as directories contains class files.
+                                This list must contain the wrapper.jar file.  It can contain jar
+                                files as well as directories contains class files.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -746,7 +751,8 @@ wrapper.java.classpath.4=../classes</pre>
 </p>
                             
 <p align="justify">
-                                As of version 2.2.5, classpath entries which contain wild cards can be used.
+                                As of version 2.2.5, classpath entries which contain wild cards can
+                                be used.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -772,13 +778,24 @@ wrapper.java.classpath.2=../classes</pre>
                     
                         
 <dt>
-<b>wrapper.java.library.path</b>
+<b>wrapper.java.library.path.&lt;n&gt;</b>
 </dt>
                         
 <dd>
                             
 <p align="justify">
-                                Value of the Java library path.  This is a directory which contains any native (JNI) libraries used by the application.  You must place the Wrapper.DLL or libWrapper.so file in the directory specified.
+                                Java library path to use. You should have a series of properties
+                                listing up the various library path elements to use when launching
+                                the application.  Each element has a property name which starts
+                                with wrapper.java.library.path. and ends with an integer number
+                                counting up from 1.  There can be no missing numbers.
+                            </p>
+                            
+<p align="justify">
+                                The library path is used to specify a list of directories in which
+                                to look for any native (JNI) libraries used by the application.
+                                You must place the Wrapper.DLL or libWrapper.so file in one of the
+                                directories specified.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -787,7 +804,7 @@ wrapper.java.classpath.2=../classes</pre>
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
 <td>
-<pre>wrapper.java.library.path=../lib</pre>
+<pre>wrapper.java.library.path.1=../lib</pre>
 </td>
 </tr>
 </table>
@@ -1062,7 +1079,7 @@ wrapper.app.parameter.2=conf/myconffile.conf</pre>
                 
                 
 <div class="glosslist">
-<a name="N400C58"></a>
+<a name="N400C5B"></a>
 <dl>
                     
                         
@@ -1377,7 +1394,7 @@ wrapper.logfile.format=
                 
                 
 <div class="glosslist">
-<a name="N400D1A"></a>
+<a name="N400D1D"></a>
 <dl>
                     
                         
@@ -1450,7 +1467,7 @@ wrapper.logfile.format=
 </div>
                 
 <div class="glosslist">
-<a name="N400D44"></a>
+<a name="N400D47"></a>
 <dl>
                     
                         
@@ -1643,7 +1660,7 @@ wrapper.logfile.format=
 <p align="justify">
                                     From the Windows API, each priority level is described as follows:
                                     <div class="glosslist">
-<a name="N400DD2"></a>
+<a name="N400DD5"></a>
 <dl>
                                         
                                             
@@ -1768,7 +1785,7 @@ wrapper.logfile.format=
 </p>
                 
 <div class="glosslist">
-<a name="N400E21"></a>
+<a name="N400E24"></a>
 <dl>
                     
                         

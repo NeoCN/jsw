@@ -52,6 +52,14 @@ $Id$
                     caused by configuration problems.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Implemented feature request #613539. Modified the wrapper.java.library.path
+                    to function like the wrapper.java.classpath.n properties so that multiple
+                    directories can be specified in the library path in a platform independent
+                    way.  The old property is still supported, but deprecated.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
