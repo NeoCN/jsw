@@ -189,11 +189,11 @@
     </xsl:template>
     
     <xsl:template match="donorlist/donor/date">
-        <td valign="top"><xsl:apply-templates/></td>
+        <td valign="top" nowrap="true"><xsl:apply-templates/></td>
     </xsl:template>
     
     <xsl:template match="donorlist/donor/amount">
-        <td valign="top">$<xsl:apply-templates/></td>
+        <td valign="top" nowrap="true">$<xsl:apply-templates/></td>
     </xsl:template>
     
     <xsl:template match="donorlist/donor/name">
