@@ -24,6 +24,10 @@
  */
 
 // $Log$
+// Revision 1.7  2002/02/02 16:02:13  spocke
+// re-enabled the unregisterSyslogMessageFile it's now executed when
+// a service is removed.
+//
 // Revision 1.6  2002/01/28 19:05:01  spocke
 // Changed registerSyslogMessageFile so it only places Eventlog registry info
 // when the syslog is enabled.
@@ -427,7 +431,6 @@ int registerSyslogMessageFile( ) {
 
 int unregisterSyslogMessageFile( ) {
 #ifdef WIN32
-	/*
 	// If we deregister this application, then the event viewer will not work when the program is not running.
 	// Don't want to clutter up the Registry, but is there another way?  
 	char regPath[ 1024 ];
@@ -439,7 +442,7 @@ int unregisterSyslogMessageFile( ) {
 		return 0;
 
 	return -1; // Failure
-	*/
+
 	return 0;
 #else
 	return 0;
