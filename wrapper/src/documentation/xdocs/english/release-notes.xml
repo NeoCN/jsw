@@ -39,6 +39,13 @@ $Id$
                     rather than a raw number.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Reduce the frequency of "Waiting to stop..." messages displayed when removing
+                    an NT service that is currently running.  Decreased frequency from once per
+                    second to once every five seconds.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

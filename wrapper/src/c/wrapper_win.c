@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.42  2003/05/29 10:00:10  mortenson
+ * Reduce the frequency of "Waiting to stop..." messages displayed when removing
+ * an NT service that is currently running.  Decreased frequency from once per
+ * second to once every five seconds.
+ *
  * Revision 1.41  2003/05/29 09:47:58  mortenson
  * Add some debug output to make it possible to verify that the NT ServiceManager
  * is correctly being kept up to date on the status of the service.
@@ -1223,6 +1228,7 @@ int wrapperRemove(char *appName, char *configFile) {
     SC_HANDLE   schSCManager;
 
     int result = 0;
+    int msgCntr;
 
     /* First, get a handle to the service control manager */
     schSCManager = OpenSCManager(
@@ -1245,12 +1251,17 @@ int wrapperRemove(char *appName, char *configFile) {
                 Sleep( 1000 );
 
                 /* Poll the status of the service for SERVICE_STOP_PENDING */
+                msgCntr = 0;
                 while(QueryServiceStatus( schService, &ssStatus)){
 
                     /* If the service has not stopped, wait another second */
                     if ( ssStatus.dwCurrentState == SERVICE_STOP_PENDING ){
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Waiting to stop...");
+                        if (msgCntr >= 5) {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Waiting to stop...");
+                            msgCntr = 0;
+                        }
                         Sleep(1000);
+                        msgCntr++;
                     }
                     else
                         break;
