@@ -31,6 +31,18 @@
             -->
         <donorlist>
             <donor>
+                <date>May 26, 2004</date>
+                <amount>20.00</amount>
+                <name>Anonymous</name>
+                <message>Thanks for providing such useful software!</message>
+            </donor>
+            <donor>
+                <date>May 13, 2004</date>
+                <amount>10.00</amount>
+                <name>Anonymous</name>
+                <message>Your software it's great, please continue this way...</message>
+            </donor>
+            <donor>
                 <date>Apr 20, 2004</date>
                 <amount>100.00</amount>
                 <name>Gunnar Eketrapp</name>
