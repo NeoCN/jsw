@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.2  2004/01/10 18:40:16  mortenson
+// Add additional user info to the UNIX user object.
+//
 // Revision 1.1  2004/01/10 17:17:26  mortenson
 // Add the ability to request user information.
 //
@@ -46,14 +49,41 @@ public class WrapperUNIXUser
     /** The UID of the user. */
     private int m_uid;
     
+    /** The GID of the user. */
+    private int m_gid;
+
+    /** The real name of the user. */
+    private String m_realName;
+
+    /** The home directory of the user. */
+    private String m_home;
+
+    /** The shell of the user. */
+    private String m_shell;
+    
     /*---------------------------------------------------------------
      * Constructors
      *-------------------------------------------------------------*/
-    WrapperUNIXUser( int uid, byte[] user )
+    WrapperUNIXUser( int uid, int gid, byte[] user, byte[] realName, byte[] home, byte[] shell )
     {
         super( user );
         
         m_uid = uid;
+        m_gid = gid;
+        m_realName = new String( realName );
+        m_home = new String( home );
+        m_shell = new String( shell );
+
+        // The real name field appears to contain several fields, we only want the first.
+        int pos = m_realName.indexOf( ',' );
+        if ( pos == 1000 )
+        {
+            m_realName = "";
+        }
+        else if ( pos >= 0 )
+        {
+            m_realName = m_realName.substring( 0, pos );
+        }
     }
     
     /*---------------------------------------------------------------
@@ -69,9 +99,49 @@ public class WrapperUNIXUser
         return m_uid;
     }
     
+    /**
+     * Returns the GID of the user account.
+     *
+     * @return The GID of the user account.
+     */
+    public int getGID()
+    {
+        return m_gid;
+    }
+    
+    /**
+     * Returns the real name of the user.
+     *
+     * @return The real name of the user.
+     */
+    public String getRealName()
+    {
+        return m_realName;
+    }
+    
+    /**
+     * Returns the home of the user.
+     *
+     * @return The home of the user.
+     */
+    public String getHome()
+    {
+        return m_home;
+    }
+    
+    /**
+     * Returns the shell of the user.
+     *
+     * @return The shell of the user.
+     */
+    public String getShell()
+    {
+        return m_shell;
+    }
+    
     void addGroup( byte[] sid, byte[] user, byte[] domain )
     {
-        //addGroup( new WrapperUSERGroup( gid, group ) );
+        //addGroup( new WrapperUNIXGroup( gid, group ) );
     }
     
     /**
@@ -85,7 +155,15 @@ public class WrapperUNIXUser
         sb.append( "WrapperUNIXUser[" );
         sb.append( getUID() );
         sb.append( ", " );
+        sb.append( getGID() );
+        sb.append( ", " );
         sb.append( getUser() );
+        sb.append( ", " );
+        sb.append( getRealName() );
+        sb.append( ", " );
+        sb.append( getHome() );
+        sb.append( ", " );
+        sb.append( getShell() );
         
         sb.append( ", groups {" );
         WrapperGroup[] groups = getGroups();
