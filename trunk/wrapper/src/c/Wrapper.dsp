@@ -123,6 +123,10 @@ SOURCE=.\logger.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\messages.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\property.h
 # End Source File
 # Begin Source File
