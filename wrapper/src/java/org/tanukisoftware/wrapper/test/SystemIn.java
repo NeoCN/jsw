@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.4  2004/04/15 07:10:05  mortenson
+// Update a comment to reflect that System.in now blocks.
+//
 // Revision 1.3  2004/01/16 04:41:55  mortenson
 // The license was revised for this version to include a copyright omission.
 // This change is to be retroactively applied to all versions of the Java
@@ -72,7 +75,7 @@ public class SystemIn {
      *-------------------------------------------------------------*/
     public static void main(String[] args) {
         System.out.println("Test the functionality of System.in when run as a console application.");
-        System.out.println("If being controlled by the Wrapper, then an IOException should be thrown.");
+        System.out.println("If being controlled by the Wrapper, then the call should block.");
         System.out.println("If run as a standard Java app, then no errors should be thrown.");
         BufferedReader r = new BufferedReader(new InputStreamReader(System.in));
         try {
