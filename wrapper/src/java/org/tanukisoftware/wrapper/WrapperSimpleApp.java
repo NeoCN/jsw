@@ -44,6 +44,11 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.6  2004/02/16 04:37:20  mortenson
+// Modify the WrapperSimpleApp and WrapperStartStopApp so that the main method
+// of a class is located even if it exists in a parent class rather than the
+// class specified.
+//
 // Revision 1.5  2004/01/16 04:42:00  mortenson
 // The license was revised for this version to include a copyright omission.
 // This change is to be retroactively applied to all versions of the Java
@@ -349,11 +354,15 @@ public class WrapperSimpleApp
         Method mainMethod;
         try
         {
-            mainMethod = mainClass.getDeclaredMethod( "main", new Class[] { String[].class } );
+            // getDeclaredMethod will return any method named main in the specified class,
+            //  while getMethod will only return public methods, but it will search up the
+            //  inheritance path.
+            mainMethod = mainClass.getMethod( "main", new Class[] { String[].class } );
         }
         catch ( NoSuchMethodException e )
         {
-            System.out.println( "WrapperSimpleApp: Unable to locate a static main method in class "
+            System.out.println(
+                "WrapperSimpleApp: Unable to locate a public static main method in class "
                 + args[0] + ": " + e );
             showUsage();
             WrapperManager.stop( 1 );
@@ -361,7 +370,8 @@ public class WrapperSimpleApp
         }
         catch ( SecurityException e )
         {
-            System.out.println( "WrapperSimpleApp: Unable to locate a static main method in class "
+            System.out.println(
+                "WrapperSimpleApp: Unable to locate a public static main method in class "
                 + args[0] + ": " + e );
             showUsage();
             WrapperManager.stop( 1 );

@@ -188,6 +188,13 @@ $Id$
                     Joseph Benavidez.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Modify the WrapperSimpleApp and WrapperStartStopApp so that the main method
+                    of a class is located even if it exists in a parent class rather than the
+                    class specified.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

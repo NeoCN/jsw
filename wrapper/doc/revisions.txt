@@ -85,7 +85,9 @@ Java Service Wrapper Revision History.
 * Add a status command to the UNIX shell script which can be used to find out
   whether or not the wrapper is currently running.  Patch submitted by
   Joseph Benavidez.
-
+* Modify the WrapperSimpleApp and WrapperStartStopApp so that the main method
+  of a class is located even if it exists in a parent class rather than the
+  class specified.
 
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the
