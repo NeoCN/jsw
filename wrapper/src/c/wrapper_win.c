@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.66  2004/01/24 17:13:40  mortenson
+ * Make sure that we only attempt to set the console title when it is actually going
+ * to be visible.
+ *
  * Revision 1.65  2004/01/16 04:42:00  mortenson
  * The license was revised for this version to include a copyright omission.
  * This change is to be retroactively applied to all versions of the Java
@@ -737,10 +741,14 @@ int wrapperInitialize() {
         }
     }
 
+    /* Attempt to set the console tilte if it exists and is accessable. */
     if (wrapperData->consoleTitle) {
-        if (!SetConsoleTitle(wrapperData->consoleTitle)) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                "Attempt to set the console tile failed: %s", getLastErrorText());
+        if (wrapperData->isConsole || (wrapperData->ntServiceInteractive && !wrapperData->ntHideWrapperConsole)) {
+            /* The console should be visible. */
+            if (!SetConsoleTitle(wrapperData->consoleTitle)) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                    "Attempt to set the console title failed: %s", getLastErrorText());
+            }
         }
     }
 
