@@ -23,6 +23,11 @@ Java Service Wrapper Revision History.
   of "net start" and "net stop", which do not always work correctly when a
   service takes a long time to start up or shutdown.  See the Launch Overview
   for more details.
+* Add a new method WrapperManager.stopImmediate which will cause the JVM to
+  exit immediately without calling any stop methods or shutdown hooks.
+* Add a new class, WrapperActionServer, which makes it easy to remotely control
+  the Wrapper remotely by opening a socket and sending commands.  See the
+  javadocs of the class for more details.
 
 3.0.3
 * Added support for Mac OS X.  Big thanks to Andy Barnett for supplying the
