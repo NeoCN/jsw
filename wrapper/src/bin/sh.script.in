@@ -105,6 +105,27 @@ stop() {
     fi
 }
 
+dump() {
+    echo "Dumping $APP_LONG_NAME..."
+    getpid
+    if [ "X$pid" = "X" ]
+    then
+        echo "$APP_LONG_NAME was not running."
+
+    else
+        kill -3 $pid
+
+        if [ $? -ne 0 ]
+        then
+            echo "Failed to dump $APP_LONG_NAME."
+            exit 1
+        else
+            echo "Dumped $APP_LONG_NAME."
+            echo "Look for a javacore*.*.txt file in the directory from which $APP_LONG_NAME was started."
+        fi
+    fi
+}
+
 case "$1" in
 
     'start')
@@ -118,10 +139,14 @@ case "$1" in
     'restart')
         stop
         start
-    ;;
+        ;;
+
+    'dump')
+        dump
+        ;;
 
     *)
-        echo "Usage: $0 { start | stop | restart }"
+        echo "Usage: $0 { start | stop | restart | dump }"
         exit 1
         ;;
 esac
