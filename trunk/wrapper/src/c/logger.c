@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.49  2004/09/22 11:09:44  mortenson
+ * Remove some debug output that was added to track down a shutdown crash.
+ *
  * Revision 1.48  2004/09/16 04:04:32  mortenson
  * Close the Handle to the logging mutex on shutdown.
  *
@@ -273,8 +276,6 @@ int initLogging() {
  * Disposes of any logging resouces prior to shutdown.
  */
 int disposeLogging() {
-    printf("disposeLogging()\n");
-    fflush(NULL);
 #ifdef WIN32
     if (log_printfMutexHandle) {
         if (!CloseHandle(log_printfMutexHandle))

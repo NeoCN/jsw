@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.87  2004/09/22 11:09:44  mortenson
+ * Remove some debug output that was added to track down a shutdown crash.
+ *
  * Revision 1.86  2004/09/22 11:06:28  mortenson
  * Start using nanosleep in place of usleep on UNIX platforms to work around usleep
  * problems with alarm signals on Solaris.
@@ -471,28 +474,21 @@ int initInvocationMutex() {
  * exits the application after running shutdown code.
  */
 void appExit(int exitCode) {
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "appExit(%d)", exitCode);
-    
     /* Remove pid file.  It may no longer exist. */
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "appExit 1 %p", wrapperData->pidFilename);
     if (wrapperData->pidFilename) {
         unlink(wrapperData->pidFilename);
     }
 
     /* Remove anchor file.  It may no longer exist. */
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "appExit 2 %p", wrapperData->anchorFilename);
     if (wrapperData->anchorFilename) {
         unlink(wrapperData->anchorFilename);
     }
     
     /* Close the invocation mutex if we created or looked it up. */
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "appExit 3 %p", invocationMutexHandle);
     if (invocationMutexHandle) {
         CloseHandle(invocationMutexHandle);
         invocationMutexHandle = NULL;
     }
-    
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "appExit 4");
     
     /* Clean up the logging system. */
     disposeLogging();
