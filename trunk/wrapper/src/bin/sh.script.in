@@ -121,7 +121,6 @@ dump() {
             exit 1
         else
             echo "Dumped $APP_LONG_NAME."
-            echo "Look for a javacore*.*.txt file in the directory from which $APP_LONG_NAME was started."
         fi
     fi
 }
