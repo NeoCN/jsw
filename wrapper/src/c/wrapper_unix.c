@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.88  2004/09/16 04:07:20  mortenson
+ * Centralize shutdown code on UNIX version in an appExit method as was already
+ * being done for Windows versions.
+ *
  * Revision 1.87  2004/08/06 16:17:05  mortenson
  * Added a new wrapper.java.command.loglevel property which makes it possible
  * to control the log level of the generated java command.
@@ -362,6 +366,26 @@ DWORD timerTicks = 0xffffff00;
 /******************************************************************************
  * Platform specific methods
  *****************************************************************************/
+
+/**
+ * exits the application after running shutdown code.
+ */
+void appExit(int exitCode) {
+    /* Remove pid file.  It may no longer exist. */
+    if (wrapperData->pidFilename) {
+        unlink(wrapperData->pidFilename);
+    }
+
+    /* Remove anchor file.  It may no longer exist. */
+    if (wrapperData->anchorFilename) {
+        unlink(wrapperData->anchorFilename);
+    }
+    
+    /* Clean up the logging system. */
+    disposeLogging();
+
+    exit(exitCode);
+}
 
 /**
  * Gets the error code for the last operation that failed.
@@ -829,10 +853,10 @@ void wrapperBuildJavaCommand() {
     length = 0;
     wrapperBuildJavaCommandArray(&strings, &length, FALSE);
     
-	if (wrapperData->commandLogLevel != LEVEL_NONE) {
+    if (wrapperData->commandLogLevel != LEVEL_NONE) {
         for (i = 0; i < length; i++) {
             log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel,
-				"Command[%d] : %s", i, strings[i]);
+                "Command[%d] : %s", i, strings[i]);
         }
     }
 
@@ -992,7 +1016,7 @@ int wrapperGetProcessStatus() {
         /* Wait failed. */
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                    "Critical error: wait for JVM process failed (%s)", getLastErrorText());
-        exit(1);
+        appExit(1);
 
     } else if (retval > 0) {
         /* JVM has exited. */
@@ -1295,7 +1319,7 @@ void daemonize() {
     if ((pid = fork()) < 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Could not spawn daemon process: %s",
             getLastErrorText());
-        exit(1);
+        appExit(1);
     } else if (pid != 0) {
         /* Intermediate process is now running.  This is the original process, so exit. */
         
@@ -1305,6 +1329,7 @@ void daemonize() {
          * Sleep for 0.5 seconds. */
         usleep(500000);
         
+        /* Call exit rather than appExit as we are only exiting this process. */
         exit(0);
     }
     
@@ -1312,7 +1337,7 @@ void daemonize() {
     if (setsid() == -1) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "setsid() failed: %s",
            getLastErrorText());
-        exit(1);
+        appExit(1);
     }
     
     signal(SIGHUP, SIG_IGN); /* don't let future opens allocate controlling terminals */
@@ -1344,9 +1369,10 @@ void daemonize() {
     if ((pid = fork()) < 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Could not spawn daemon process: %s",
             getLastErrorText());
-        exit(1);
+        appExit(1);
     } else if (pid != 0) {
         /* Daemon process is now running.  This is the intermediate process, so exit. */
+        /* Call exit rather than appExit as we are only exiting this process. */
         exit(0);
     }
 } 
@@ -1378,7 +1404,7 @@ int main(int argc, char **argv) {
     wrapperData->failedInvocationCount = 0;
         
     if (wrapperInitializeLogging()) {
-        exit(1);
+        appExit(1);
     }
 
     /* Immediately register this thread with the logger. */
@@ -1386,11 +1412,11 @@ int main(int argc, char **argv) {
     
     if (argc < 2) {
         wrapperUsage(argv[0]);
-        exit(1);
+        appExit(1);
         
     } else if (strcmp(argv[1],"--help") == 0) {
         wrapperUsage(argv[0]);
-        exit(0);
+        appExit(0);
         
     } else {
         /* Create a Properties structure. */
@@ -1404,7 +1430,7 @@ int main(int argc, char **argv) {
             if (addPropertyPair(properties, argv[i], TRUE, TRUE)) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, 
                     "The argument '%s' is not a valid property name-value pair.", argv[i]);
-                exit(1);
+                appExit(1);
             }
         }
 
@@ -1413,7 +1439,7 @@ int main(int argc, char **argv) {
             /* File not found. */
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Unable to open wrapper configuration file: %s", argv[1]);
-            exit(1);
+            appExit(1);
         
         } else {
             /* Store the configuration file name. */
@@ -1429,12 +1455,12 @@ int main(int argc, char **argv) {
             if (wrapperLoadConfiguration()) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                     "Problem loading wrapper configuration file: %s", argv[1]);
-                exit(1);
+                appExit(1);
             }
 
             /* Change the working directory if configured to do so. */
             if (wrapperSetWorkingDirProp()) {
-                exit(1);
+                appExit(1);
             }
 
             /* fork to a Daemonized process if configured to do so. */
@@ -1450,7 +1476,7 @@ int main(int argc, char **argv) {
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                          "ERROR: Could not write anchor file %s: %s",
                          wrapperData->anchorFilename, getLastErrorText());
-                    exit(1);
+                    appExit(1);
                 }
             }
             if (wrapperData->pidFilename) {
@@ -1459,23 +1485,13 @@ int main(int argc, char **argv) {
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                          "ERROR: Could not write pid file %s: %s",
                          wrapperData->pidFilename, getLastErrorText());
-                    exit(1);
+                    appExit(1);
                 }
             }
 
             exitStatus = wrapperRunConsole();
-
-            /* Remove pid file.  It may no longer exist. */
-            if (wrapperData->pidFilename) {
-                unlink(wrapperData->pidFilename);
-            }
             
-            /* Remove anchor file.  It may no longer exist. */
-            if (wrapperData->anchorFilename) {
-                unlink(wrapperData->anchorFilename);
-            }
-
-            exit(exitStatus);
+            appExit(exitStatus);
         }
     }
 }

@@ -36,6 +36,8 @@ Java Service Wrapper Revision History.
   This has always been done in the main function, but these blocks will help
   to narrow down the cause of problems should they ever be encountered in
   control or service handlers.
+* Centralize shutdown code on UNIX version in an appExit method as was already
+  being done for Windows versions.
 
 3.1.1
 * Modified the way libwrapper.so is built on Solaris and Linux so that it
