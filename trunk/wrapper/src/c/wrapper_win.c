@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.59  2003/10/31 10:16:27  mortenson
+ * Improved the algorithm of the request thread dump on failed JVM exit feature
+ * so that extremely large thread dumps will not be truncated when the JVM
+ * is killed.
+ *
  * Revision 1.58  2003/10/31 03:57:17  mortenson
  * Add a new property, wrapper.console.title, which makes it possible to set
  * the title of the console in which the Wrapper is currently running.
@@ -831,6 +836,8 @@ int wrapperGetProcessStatus() {
  */
 void wrapperKillProcess() {
     int ret;
+    time_t start;
+    time_t now;
 
     /* Check to make sure that the JVM process is still running */
     ret = WaitForSingleObject(wrapperProcess, 0);
@@ -839,10 +846,18 @@ void wrapperKillProcess() {
         if (wrapperData->requestThreadDumpOnFailedJVMExit) {
             requestDumpJVMState();
 
-            /* Wait 3 seconds to give the JVM time to dump its state before the JVM
-             *  process is killed.  This used to be 1 second but that was not long
-             *  enough if the system was under load. */
-            Sleep(3000);     /* milliseconds */
+            /* Loop for 3 seconds reading all available input before actually killing
+             *  the JVM process.  This is to make sure that the JVM is given enough
+             *  time to perform the full thread dump. */
+            now = start = time(NULL);
+            do {
+                if ( !wrapperReadChildOutput() )
+                {
+                    /* Sleep a moment so this loop does not eat too much CPU. */
+                    Sleep(250); /* milliseconds */
+                }
+                now = time(NULL);
+            } while ( now - start < 3 );
         }
 
         /* Kill it immediately. */
