@@ -14,8 +14,13 @@
     
     <!-- platform -->
     <property name="is.${os.name}" value="true"/>
+
+    <!-- property name="classpath"     value=""/ -->
     
-    <property name="classpath"     value=""/>
+    <!-- Project classpath -->
+    <path id="project.class.path">
+        <pathelement location="${build.classes}"/>
+    </path>
     
     <path id="tools.class.path">
         <!-- Different platforms do things slightly different, so include both
@@ -26,6 +31,12 @@
         <fileset dir="${tools.dir}/lib">
             <include name="*.jar" />
         </fileset>
+    </path>
+    
+    <path id="test.class.path">
+        <pathelement location="${build.testclasses}"/>
+        <!--pathelement location="${junit.jar}"/-->
+        <path refid="project.class.path"/>
     </path>
     
     <!-- =================================================================== -->
@@ -193,15 +204,25 @@
     <target name="compile-java" depends="convert,update-info">
         <mkdir dir="${build.dir}"/>
         <mkdir dir="${build.classes}"/>
+        <mkdir dir="${build.testclasses}"/>
         <mkdir dir="${lib.dir}"/>
         
-        <!-- compile everything under com -->
+        <!-- compile everything under src/java -->
         <javac srcdir="${src.dir}/java" destdir="${build.classes}"
                deprecation="on"
                debug="on"
                optimize="on"
                target="1.2"> <!-- The 1.2 target is done so we work with older JVMs -->
-            <classpath id="compile.classpath"/>
+            <classpath refid="project.class.path"/>
+        </javac>
+
+        <!-- compile everything under src/test -->
+        <javac srcdir="${src.dir}/test" destdir="${build.testclasses}"
+               deprecation="on"
+               debug="on"
+               optimize="on"
+               target="1.2"> <!-- The 1.2 target is done so we work with older JVMs -->
+            <classpath refid="test.class.path"/>
         </javac>
 
         <!-- copy resource files to build directory -->
@@ -341,6 +362,30 @@
     </target>
     
     <!-- =================================================================== -->
+    <!-- Test Task                                                           -->
+    <!-- =================================================================== -->
+    <target name="test" depends="jar" description="Runs unit tests">
+        <mkdir dir="${build.tests}"/>
+        
+        <junit fork="true"
+            haltonfailure="${junit.failonerror}"
+            printsummary="yes"
+            dir="${build.tests}">
+            <classpath refid="test.class.path"/>
+            
+            <!--formatter type="xml"/-->    <!-- xml reports for junitreport -->
+            <formatter type="plain" usefile="false"/>  <!-- text reports for humans     -->
+            
+            <batchtest todir="${build.tests}">
+                <fileset dir="${build.testclasses}">
+                    <include name="**/*TestCase.class"/>
+                    <exclude name="**/Abstract*"/>
+                </fileset>
+            </batchtest>
+        </junit>
+    </target>
+    
+    <!-- =================================================================== -->
     <!-- Creates the javadocs archive                                        -->
     <!-- =================================================================== -->
     <target name="jdoc" description="generates the Wrapper javadocs">
@@ -438,7 +483,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
     <!-- Main target                                                         -->
     <!-- =================================================================== -->
     <target name="main"
-        depends="jar, bin, conf, test-setup"
+        depends="test, bin, conf, test-setup"
         description="default development build task">
         
     </target>
