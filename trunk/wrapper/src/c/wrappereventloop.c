@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.2  2004/03/27 16:50:15  mortenson
+ * Get the latest changes to compile on UNIX platforms.
+ *
  * Revision 1.1  2004/03/27 16:09:48  mortenson
  * Add wrapper.on_exit.<n> properties to control what happens when a exits based
  * on the exit code.  This led to a major rework of the state engine to make it possible.
@@ -60,6 +63,13 @@
  */
 
 #include <stdio.h>
+#include <string.h>
+
+#ifdef WIN32
+#else /* UNIX */
+#include <unistd.h>
+#endif
+
 #include "wrapper.h"
 #include "logger.h"
 
