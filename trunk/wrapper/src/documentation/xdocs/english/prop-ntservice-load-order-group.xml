@@ -26,7 +26,7 @@
         <title>wrapper.ntservice.load_order_group</title>
         <para>
             Specifies the name of the load ordering group of which the service
-            will be a member.  If not name is specified then the service will
+            will be a member.  If no name is specified then the service will
             not belong to a group.  Defaults to no value.
         </para>
         <informalexample>
