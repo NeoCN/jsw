@@ -18,7 +18,11 @@
     <property name="classpath"     value=""/>
     
     <path id="tools.class.path">
+        <!-- Different platforms do things slightly different, so include both
+             possible locations of the tools.jar file. -->
+        <pathelement location="${java.home}/lib/tools.jar"/>
         <pathelement location="${java.home}/../lib/tools.jar"/>
+        
         <fileset dir="${tools.dir}/lib">
             <include name="*.jar" />
         </fileset>
