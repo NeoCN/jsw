@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.3  2001/12/07 07:29:38  rybesh
+// finished making wrapper scripts/executable relocatable on unix
+//
 // Revision 1.2  2001/12/07 01:48:28  rybesh
 // updated unix scripts + code to make paths relative, more easily relocatable
 //
@@ -40,6 +43,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <signal.h>
+#include <limits.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -366,41 +370,44 @@ int writePidFile() {
  * Sets the working directory to that of the current executable
  */
 int setWorkingDir(char* path) {
-    char* realpath;
+    char* resolved;
     char* pos;
     
-    realpath = malloc(PATH_MAX * sizeof(char));
+    resolved = malloc(PATH_MAX * sizeof(char));
 
     // Get the full path and filename of this program
-    if (realpath(path, realpath) == NULL) {
-        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to get the path: %s", (char *)strerror(errno));
+    if (realpath(path, resolved) == NULL) {
+        wrapperLogSS(WRAPPER_SOURCE_WRAPPER, 
+                     "Unable to get the full path to %s: %s", path, (char *)strerror(errno));
         return 1;
     }
     
     // The wrapperData->isDebugging flag will never be set here, so we can't really use it.
-#ifdef _DEBUG
-    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Path to executable: %s", realpath);
+#ifdef DEBUG
+    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Path to executable: %s", resolved);
 #endif
     
     // To get the path, strip everything off after the last '\'
-    pos = strrchr(realpath, '/');
+    pos = strrchr(resolved, '/');
     if (pos == NULL) {
-        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to extract dirname from: %s", realpath);
+        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to extract dirname from: %s", resolved);
         return 1;
     } else {
         // Clip the path at the position of the last slash
         pos[0] = (char)0;
     }
     
-    if (chdir(realpath)) {
+    if (chdir(resolved)) {
         wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to change working directory: %s", (char *)strerror(errno));
         return 1;
     }
     
     // The wrapperData->isDebugging flag will never be set here, so we can't really use it.
-#ifdef _DEBUG
-    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Working directory set to: %s", realpath);
+#ifdef DEBUG
+    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Working directory set to: %s", resolved);
 #endif
+
+    free(resolved);
     
     return 0;
 }
@@ -425,7 +432,7 @@ int main(int argc, char **argv) {
     wrapperData->restartRequested = FALSE;
     wrapperData->jvmRestarts = 0;
         
-    if (setWorkingDir()) {
+    if (setWorkingDir(argv[0])) {
         exit(1);
     }
     
