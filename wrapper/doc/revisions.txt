@@ -1,5 +1,11 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+2.2.4
+* Make the build fail if Wrapper.exe or Wrapper.dll do not exist for Windows
+  builds.
+* Added an empty wrapper.log to the releases so that the TestWrapper example
+  program runs out of the box.
+
 2.2.3
 * Added template scripts and conf files for ease of integration with other
   applications.

@@ -21,7 +21,7 @@
     
     <!-- product version -->
     <property name="major.version" value="2" />
-    <property name="version"       value="${major.version}.2.3" />
+    <property name="version"       value="${major.version}.2.4" />
     
     <property name="bin.dir"       value="bin"/>
     <property name="conf.dir"      value="conf"/>
@@ -144,7 +144,18 @@
             </fileset> 
         </copy>
         
-        <!-- run Nmake on Windows to build native code -->
+        <!-- Make sure that the native Windows code was built Part 1 -->
+        <condition property="isWindowsNativeMissing">
+            <and>
+                <os family="windows"/>
+                <not>
+                    <and>
+                        <available file="${bin.dir}/Wrapper.exe"/>
+                        <available file="${lib.dir}/Wrapper.dll"/>
+                    </and>
+                </not>
+            </and>
+        </condition>
         
         <!-- run make on Linux to build library -->
         <exec executable="make" 
@@ -159,13 +170,19 @@
               os="SunOS">
             <arg line="-f Makefile.solaris" />
         </exec>
-        
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Make sure that the native Windows code was built Part 2             -->
+    <!-- =================================================================== -->
+    <target name="compile-windows-check" depends="compile" if="isWindowsNativeMissing">
+        <fail message="bin/Wrapper.exe or lib/Wrapper.dll are missing, please build them using MSVC using the project workspace src/c/Wrapper.dsw"/>
     </target>
     
     <!-- =================================================================== -->
     <!-- Creates the jar archive                                             -->
     <!-- =================================================================== -->
-    <target name="jar" depends="compile">
+    <target name="jar" depends="compile-windows-check">
         <jar file="${lib.dir}/wrapper.jar"
              basedir="${build.classes}"
              includes="com/silveregg/wrapper/*.class,com/silveregg/wrapper/resources/*.class,**/*.properties"
@@ -310,6 +327,7 @@
                 <include name="doc/**" />
                 <include name="bin/*.bat" />
                 <include name="conf/*.conf" />
+                <include name="logs" />
                 <include name="src/bin/**" />
                 <include name="src/conf/**" />
                 <include name="src/java/**" />
@@ -326,6 +344,8 @@
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
+        <!-- Need an empty log file so that the logs directory will be included -->
+        <touch file="${releasesrcdir}/logs/wrapper.log"/>
         
         <!-- Source archives with documentation source -->
         <zip file="${releasesrcdir}_with_doc_src.zip"
@@ -389,6 +409,7 @@
                 <include name="lib/Wrapper.dll" />
                 <include name="lib/wrapper.jar" />
                 <include name="lib/wrappertest.jar" />
+                <include name="logs" />
                 <include name="src/bin/*.bat.in" />
                 <include name="src/conf/**" />
                 <include name="jdoc/**" />
@@ -396,6 +417,9 @@
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
+        <!-- Need an empty log file so that the logs directory will be included -->
+        <touch file="${releasedir}/logs/wrapper.log"/>
+        
         <zip file="${releasedir}.zip"
             basedir="${basedir}"
             compress="true">
@@ -420,6 +444,7 @@
                 <include name="lib/wrapper.jar" />
                 <include name="lib/wrappertest.jar" />
                 <include name="lib/libwrapper.so" />
+                <include name="logs" />
                 <include name="src/bin/bash.script.in" />
                 <include name="src/conf/**" />
                 <include name="jdoc/**" />
@@ -428,6 +453,9 @@
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
+        <!-- Need an empty log file so that the logs directory will be included -->
+        <touch file="${releasedir}/logs/wrapper.log"/>
+        
         <tar tarfile="${releasedir}.tar"
              basedir="${basedir}">
             <include name="${releasefile}/**/*" />
@@ -452,6 +480,7 @@
                 <include name="lib/wrapper.jar" />
                 <include name="lib/wrappertest.jar" />
                 <include name="lib/libwrapper.so" />
+                <include name="logs" />
                 <include name="src/bin/sh.script.in" />
                 <include name="src/conf/**" />
                 <include name="jdoc/**" />
@@ -460,6 +489,9 @@
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
+        <!-- Need an empty log file so that the logs directory will be included -->
+        <touch file="${releasedir}/logs/wrapper.log"/>
+        
         <tar tarfile="${releasedir}.tar"
              basedir="${basedir}">
             <include name="${releasefile}/**/*" />
