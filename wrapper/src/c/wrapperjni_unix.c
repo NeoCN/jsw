@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.8  2003/10/31 11:10:46  mortenson
+ * Add a getLastErrorText function so we can display more user friendly messages
+ * within the native library.
+ *
  * Revision 1.7  2003/10/31 05:59:34  mortenson
  * Added a new method, setConsoleTitle, to the WrapperManager class which
  * enables the application to dynamically set the console title.
@@ -98,7 +102,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump(JNIEnv *e
         fflush(NULL);
     }
     if (kill(wrapperProcessId, SIGQUIT) < 0) {
-        printf("Unable to send SIGQUIT to JVM process.  Err(%s)\n", (char *)strerror(errno));
+        printf("Unable to send SIGQUIT to JVM process: %s\n", getLastErrorText());
         fflush(NULL);
     }
 }
