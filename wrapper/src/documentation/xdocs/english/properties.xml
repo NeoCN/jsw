@@ -88,6 +88,9 @@
                     <ulink url="prop-daemonize.html">wrapper.daemonize</ulink>
                 </listitem>
                 <listitem>
+                    <ulink url="prop-debug.html">wrapper.debug</ulink>
+                </listitem>
+                <listitem>
                     <ulink url="prop-disable-shutdown-hook.html">wrapper.disable_shutdown_hook</ulink>
                 </listitem>
                 <listitem>

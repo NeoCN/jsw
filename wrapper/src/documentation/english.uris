@@ -45,6 +45,7 @@ english/prop-console-loglevel.html
 english/prop-console-title.html
 english/prop-cpu-timeout.html
 english/prop-daemonize.html
+english/prop-debug.html
 english/prop-disable-shutdown-hook.html
 english/prop-filter-x-n.html
 english/prop-ignore-signals.html
