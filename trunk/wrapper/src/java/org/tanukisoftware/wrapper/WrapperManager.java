@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.45  2004/11/22 04:06:44  mortenson
+// Add an event model to make it possible to communicate with user applications in
+// a more flexible way.
+//
 // Revision 1.44  2004/11/19 03:39:43  mortenson
 // Be more consistent with synchronization in the WrapperManager class.
 //
@@ -238,8 +242,16 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.StringTokenizer;
 
+import org.tanukisoftware.wrapper.event.WrapperEvent;
+import org.tanukisoftware.wrapper.event.WrapperEventListener;
+import org.tanukisoftware.wrapper.event.WrapperPingEvent;
+import org.tanukisoftware.wrapper.event.WrapperServiceControlEvent;
+import org.tanukisoftware.wrapper.event.WrapperTickEvent;
 import org.tanukisoftware.wrapper.resources.ResourceManager;
 
 /**
@@ -290,6 +302,7 @@ public final class WrapperManager
     private static final byte WRAPPER_MSG_BADKEY         = (byte)111;
     private static final byte WRAPPER_MSG_LOW_LOG_LEVEL  = (byte)112;
     private static final byte WRAPPER_MSG_PING_TIMEOUT   = (byte)113;
+    private static final byte WRAPPER_MSG_SERVICE_CONTROL_CODE = (byte)114;
     
     /** Log commands are actually 116 + the LOG LEVEL. */
     private static final byte WRAPPER_MSG_LOG            = (byte)116;
@@ -393,6 +406,17 @@ public final class WrapperManager
     private static Thread m_stoppingThread;
     private static boolean m_libraryOK = false;
     private static byte[] m_commandBuffer = new byte[512];
+    
+    /** List of registered WrapperEventListeners and their registered masks. */
+    private static List m_wrapperEventListenerMaskList = new ArrayList();
+    
+    /** Array of registered WrapperEventListeners and their registered masks.
+     *   Should not be referenced directly.  Access by calling
+     *   getWrapperEventListenerMasks(). */ 
+    private static WrapperEventListenerMask[] m_wrapperEventListenerMasks = null;
+    
+    /** Flag used to tell whether or not WrapperCoreEvents should be produced. */
+    private static boolean m_produceCoreEvents = false;
     
     // message resources: eventually these will be split up
     private static ResourceManager m_res        = ResourceManager.getResourceManager();
@@ -637,11 +661,13 @@ public final class WrapperManager
         {
             public void run()
             {
+                WrapperTickEventImpl tickEvent = new WrapperTickEventImpl();
                 int lastTickOffset = 0;
                 boolean first = true;
                 
                 while ( !m_shuttingDown )
                 {
+                    int offsetDiff;
                     if ( !m_useSystemTime )
                     {
                         // Get the tick count based on the system time.
@@ -665,7 +691,7 @@ public final class WrapperManager
                         
                         // The number we really want is the difference between this tickOffset
                         //  and the previous one.
-                        int offsetDiff = tickOffset - lastTickOffset;
+                        offsetDiff = tickOffset - lastTickOffset;
                         
                         if ( first )
                         {
@@ -688,6 +714,10 @@ public final class WrapperManager
                         // Store this tick offset for the net time through the loop.
                         lastTickOffset = tickOffset;
                     }
+                    else
+                    {
+                        offsetDiff = 0;
+                    }
                     
                     //m_out.println( "  UNIX Time: " + Long.toHexString( System.currentTimeMillis() )
                     //  + ", ticks=" + Integer.toHexString( getTicks() ) + ", sysTicks="
@@ -707,6 +737,15 @@ public final class WrapperManager
                         m_lastPingTicks = nowTicks;
                     }
                     m_eventRunnerTicks = nowTicks;
+                    
+                    // If there are any listeners interrested in core events then fire
+                    //  off a tick event.
+                    if ( m_produceCoreEvents )
+                    {
+                        tickEvent.m_ticks = nowTicks;
+                        tickEvent.m_tickOffset = offsetDiff;
+                        fireWrapperEvent( tickEvent );
+                    }
                     
                     if ( m_libraryOK )
                     {
@@ -1726,6 +1765,65 @@ public final class WrapperManager
         }
     }
     
+    /**
+     * Adds a WrapperEventListener which will receive WrapperEvents.  The
+     *  specific events can be controlled using the mask parameter.  This API
+     *  was chosen to allow for additional events in the future.
+     *
+     * To avoid future compatibility problems, WrapperEventListeners should
+     *  always test the class of an event before making use of it.  This will
+     *  avoid problems caused by new event classes added in future versions
+     *  of the Wrapper.
+     *
+     * This method should only be called once for a given WrapperEventListener.
+     *  Build up a single mask to receive events of multiple types.
+     *
+     * @param listener WrapperEventListener to be start receiving events.
+     * @param mask A mask specifying the event types that the listener is
+     *             interrested in receiving.  See the WrapperEventListener
+     *             class for a full list of flags.  A mask is created by
+     *             combining multiple flags using the binary '|' OR operator.
+     */
+    public static void addWrapperEventListener( WrapperEventListener listener, long mask )
+    {
+        synchronized( WrapperManager.class )
+        {
+            WrapperEventListenerMask listenerMask = new WrapperEventListenerMask();
+            listenerMask.m_listener = listener;
+            listenerMask.m_mask = mask;
+            
+            m_wrapperEventListenerMaskList.add( listenerMask );
+            m_wrapperEventListenerMasks = null;
+        }
+        
+        updateWrapperEventListenerFlags();
+    }
+    
+    /**
+     * Removes a WrapperEventListener so it will not longer receive WrapperEvents.
+     *
+     * @param listener WrapperEventListener to be stop receiving events.
+     */
+    public static void removeWrapperEventListener( WrapperEventListener listener )
+    {
+        synchronized( WrapperManager.class )
+        {
+            // Look for the first instance of a given listener in the list.
+            for ( Iterator iter = m_wrapperEventListenerMaskList.iterator(); iter.hasNext(); )
+            {
+                WrapperEventListenerMask listenerMask = (WrapperEventListenerMask)iter.next();
+                if ( listenerMask.m_listener == listener )
+                {
+                    iter.remove();
+                    m_wrapperEventListenerMasks = null;
+                    break;
+                }
+            }
+        }
+        
+        updateWrapperEventListenerFlags();
+    }
+    
     /*---------------------------------------------------------------
      * Constructors
      *-------------------------------------------------------------*/
@@ -1739,6 +1837,85 @@ public final class WrapperManager
     /*---------------------------------------------------------------
      * Private methods
      *-------------------------------------------------------------*/
+    /**
+     * Returns an array of WrapperEventListenerMask instances which can
+     *  be safely used outside of synchronization.
+     *
+     * @return An array of WrapperEventListenerMask instances.
+     */
+    private static WrapperEventListenerMask[] getWrapperEventListenerMasks()
+    {
+        WrapperEventListenerMask[] listenerMasks = m_wrapperEventListenerMasks;
+        if ( listenerMasks == null )
+        {
+            synchronized( WrapperManager.class )
+            {
+                if ( listenerMasks == null )
+                {
+                    listenerMasks =
+                        new WrapperEventListenerMask[m_wrapperEventListenerMaskList.size()];
+                    m_wrapperEventListenerMaskList.toArray( listenerMasks );
+                    m_wrapperEventListenerMasks = listenerMasks;
+                }
+            }
+        }
+        
+        return listenerMasks;
+    }
+    
+    /**
+     * Updates the internal flags based on the WrapperEventListeners currently
+     *  registered.
+     */
+    private static void updateWrapperEventListenerFlags()
+    {
+        boolean core = false;
+        
+        WrapperEventListenerMask[] listenerMasks = getWrapperEventListenerMasks();
+        for ( int i = 0; i < listenerMasks.length; i++ )
+        {
+            long mask = listenerMasks[i].m_mask;
+            
+            // See whether particular event types are required.
+            core = core | ( ( mask & WrapperEventListener.EVENT_FLAG_CORE ) != 0 );
+        }
+        
+        m_produceCoreEvents = core;
+    }
+    
+    /**
+     * Notifies registered listeners that an event has been fired.
+     *
+     * @param event Event to notify the listeners of.
+     */
+    private static void fireWrapperEvent( WrapperEvent event )
+    {
+        long eventMask = event.getFlags();
+        
+        WrapperEventListenerMask[] listenerMasks = getWrapperEventListenerMasks();
+        for ( int i = 0; i < listenerMasks.length; i++ )
+        {
+            long listenerMask = listenerMasks[i].m_mask;
+            
+            // See if the event should be passed to this listner.
+            if ( ( listenerMask & eventMask ) != 0 )
+            {
+                // The listener wants the event.
+                WrapperEventListener listener = listenerMasks[i].m_listener;
+                try
+                {
+                    listener.fired( event );
+                }
+                catch ( Throwable t )
+                {
+                    m_out.println( "Encountered an uncaught exception while notifying "
+                        + "WrapperEventListener of an event:" );
+                    t.printStackTrace( m_out );
+                }
+            }
+        }
+    }
+    
     /**
      * Executed code common to the stop and stopImmediate methods.
      */
@@ -2270,6 +2447,10 @@ public final class WrapperManager
             name ="PING_TIMEOUT";
             break;
     
+        case WRAPPER_MSG_SERVICE_CONTROL_CODE:
+            name ="SERVICE_CONTROL_CODE";
+            break;
+    
         case WRAPPER_MSG_LOG + WRAPPER_LOG_LEVEL_DEBUG:
             name ="LOG(DEBUG)";
             break;
@@ -2378,6 +2559,7 @@ public final class WrapperManager
      */
     private static void handleSocket()
     {
+        WrapperPingEvent pingEvent = new WrapperPingEvent();
         byte[] buffer = new byte[256];
         try
         {
@@ -2441,7 +2623,13 @@ public final class WrapperManager
                             
                         case WRAPPER_MSG_PING:
                             m_lastPingTicks = getTicks();
-                            sendCommand( WRAPPER_MSG_PING, "ok" );	
+                            sendCommand( WRAPPER_MSG_PING, "ok" );
+                            
+                            if ( m_produceCoreEvents )
+                            {
+                                fireWrapperEvent( pingEvent );
+                            }
+                            
                             break;
                             
                         case WRAPPER_MSG_BADKEY:
@@ -2495,6 +2683,26 @@ public final class WrapperManager
                                 m_socket.setSoTimeout( m_pingTimeout );
                             }
                             
+                            break;
+                            
+                        case WRAPPER_MSG_SERVICE_CONTROL_CODE:
+                            try
+                            {
+                                int serviceControlCode = Integer.parseInt( msg );
+                                if ( m_debug )
+                                {
+                                    m_out.println( "Wrapper Manager: ServiceControlCode from "
+                                        + "Wrapper with code " + serviceControlCode );
+                                }
+                                WrapperServiceControlEvent event =
+                                    new WrapperServiceControlEvent( serviceControlCode );
+                                fireWrapperEvent( event );
+                            }
+                            catch ( NumberFormatException e )
+                            {
+                                m_out.println( "Encountered an Illegal ServiceControlCode from "
+                                    + "the Wrapper: " + msg );
+                            }
                             break;
                             
                         default:
@@ -2782,6 +2990,53 @@ public final class WrapperManager
     /*---------------------------------------------------------------
      * Inner Classes
      *-------------------------------------------------------------*/
+    /**
+     * Mapping between WrapperEventListeners and their registered masks.
+     *  This is necessary to support the case where the same listener is
+     *  registered more than once.   It also makes it possible to reference
+     *  an array of these mappings without synchronization.
+     */
+    private static class WrapperEventListenerMask
+    {
+        private WrapperEventListener m_listener;
+        private long m_mask;
+    }
+    
+    private static class WrapperTickEventImpl
+        extends WrapperTickEvent
+    {
+        private int m_ticks;
+        private int m_tickOffset;
+        
+        /**
+         * Returns the tick count at the point the event is fired.
+         *
+         * @return The tick count at the point the event is fired.
+         */
+        public int getTicks()
+        {
+            return m_ticks;
+        }
+        
+        /**
+         * Returns the offset between the tick count used by the Wrapper for time
+         *  keeping and the tick count generated directly from the system time.
+         *
+         * This will be 0 in most cases.  But will be a positive value if the
+         *  system time is ever set back for any reason.  It will be a negative
+         *  value if the system time is set forward or if the system is under
+         *  heavy load.  If the wrapper.use_system_time property is set to TRUE
+         *  then the Wrapper will be using the system tick count for internal
+         *  timing and this value will always be 0.
+         *
+         * @return The tick count offset.
+         */
+        public int getTickOffset()
+        {
+            return m_tickOffset;
+        }
+    }
+    
     /**
      * When the JVM is being controlled by the Wrapper, stdin can not be used
      *  as it is undefined.  This class makes it possible to provide the user

@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.9  2004/11/22 04:06:42  mortenson
+// Add an event model to make it possible to communicate with user applications in
+// a more flexible way.
+//
 // Revision 1.8  2004/10/18 09:35:46  mortenson
 // Remove the gc call in the main loop.  It was causing a noticeable hickup in the
 // CPU usage every 5 seconds.
@@ -78,12 +82,16 @@ import java.util.Enumeration;
 import java.util.Properties;
 
 import org.tanukisoftware.wrapper.WrapperManager;
+import org.tanukisoftware.wrapper.event.WrapperEvent;
+import org.tanukisoftware.wrapper.event.WrapperEventListener;
 
 /**
  * @author Leif Mortenson <leif@tanukisoftware.com>
  * @version $Revision$
  */
-public abstract class AbstractActionApp {
+public abstract class AbstractActionApp
+    implements WrapperEventListener
+{
     private DeadlockPrintStream m_out;
     private DeadlockPrintStream m_err;
     
@@ -92,9 +100,11 @@ public abstract class AbstractActionApp {
     private boolean m_users;
     private boolean m_groups;
     
-    /**************************************************************************
+    private long m_eventMask = 0xffffffffffffffffL;
+    
+    /*---------------------------------------------------------------
      * Constructors
-     *************************************************************************/
+     *-------------------------------------------------------------*/
     protected AbstractActionApp() {
         m_runner = new Thread( "WrapperActionTest_Runner" )
         {
@@ -126,9 +136,36 @@ public abstract class AbstractActionApp {
         m_runner.start();
     }
     
-    /**************************************************************************
+    /*---------------------------------------------------------------
+     * WrapperEventListener Methods
+     *-------------------------------------------------------------*/
+    /**
+     * Called whenever a WrapperEvent is fired.  The exact set of events that a
+     *  listener will receive will depend on the mask supplied when
+     *  WrapperManager.addWrapperEventListener was called to register the
+     *  listener.
+     *
+     * Listener implementations should never assume that they will only receive
+     *  events of a particular type.   To assure that events added to future
+     *  versions of the Wrapper do not cause problems with user code, events
+     *  should always be tested with "if ( event instanceof {EventClass} )"
+     *  before casting it to a specific event type.
+     *
+     * @param event WrapperEvent which was fired.
+     */
+    public void fired( WrapperEvent event )
+    {
+        System.out.println( "Received event: " + event );
+    }
+    
+    /*---------------------------------------------------------------
      * Methods
-     *************************************************************************/
+     *-------------------------------------------------------------*/
+    protected void setEventMask( long eventMask )
+    {
+        m_eventMask = eventMask;
+    }
+    
     protected void prepareSystemOutErr()
     {
         m_out = new DeadlockPrintStream( System.out );
@@ -288,6 +325,12 @@ public abstract class AbstractActionApp {
                 System.out.println( "  " + name + "=" + System.getProperty( name ) );
             }
             System.out.println();
+        }
+        else if ( action.equals( "listener" ) )
+        {
+            System.out.println( "Updating Event Listeners:" );
+            WrapperManager.removeWrapperEventListener( this );
+            WrapperManager.addWrapperEventListener( this, m_eventMask );
         }
         else
         {

@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.126  2004/11/22 04:06:43  mortenson
+ * Add an event model to make it possible to communicate with user applications in
+ * a more flexible way.
+ *
  * Revision 1.125  2004/11/15 08:15:48  mortenson
  * Make it possible for users to access the Wrapper and JVM PIDs from within the JVM.
  *
@@ -515,7 +519,7 @@ void wrapperProtocolStartServer() {
 
   tryagain:
     /* Try binding to the port. */
-    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_STATUS, "Trying port %d", port);
+    /*log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_STATUS, "Trying port %d", port);*/
     
     /* Cleanup the addr_srv first */
     memset(&addr_srv, 0, sizeof(addr_srv));
@@ -759,6 +763,10 @@ char *wrapperProtocolGetCodeName(char code) {
 
     case WRAPPER_MSG_PING_TIMEOUT:
         name ="PING_TIMEOUT";
+        break;
+
+    case WRAPPER_MSG_SERVICE_CONTROL_CODE:
+        name ="SERVICE_CONTROL_CODE";
         break;
 
     case WRAPPER_MSG_LOG + LEVEL_DEBUG:

@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.64  2004/11/22 04:06:43  mortenson
+ * Add an event model to make it possible to communicate with user applications in
+ * a more flexible way.
+ *
  * Revision 1.63  2004/11/15 08:15:48  mortenson
  * Make it possible for users to access the Wrapper and JVM PIDs from within the JVM.
  *
@@ -394,6 +398,7 @@ struct WrapperConfig {
 #define WRAPPER_MSG_BADKEY        (char)111
 #define WRAPPER_MSG_LOW_LOG_LEVEL (char)112
 #define WRAPPER_MSG_PING_TIMEOUT  (char)113
+#define WRAPPER_MSG_SERVICE_CONTROL_CODE (char)114
 
 /** Log commands are actually 116 + the LOG LEVEL. */
 #define WRAPPER_MSG_LOG           (char)116

@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.95  2004/11/22 04:06:43  mortenson
+ * Add an event model to make it possible to communicate with user applications in
+ * a more flexible way.
+ *
  * Revision 1.94  2004/11/15 08:15:48  mortenson
  * Make it possible for users to access the Wrapper and JVM PIDs from within the JVM.
  *
@@ -1920,6 +1924,9 @@ void wrapperDumpCPUUsage() {
  *	RegisterServiceCtrlHandler in wrapperServiceMain.
  */
 VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
+    /* Allow for a large integer + \0 */
+    char buffer[11];
+    
     /* Enclose the contents of this call in a try catch block so we can
      *  display and log useful information should the need arise. */
     __try {
@@ -1930,6 +1937,10 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
         /* This thread appears to always be the same as the main thread.
          *  Just to be safe reregister it. */
         logRegisterThread(WRAPPER_THREAD_MAIN);
+        
+        /* Forward the control code off to the JVM. */
+        sprintf(buffer, "%d", dwCtrlCode);
+        wrapperProtocolFunction(WRAPPER_MSG_SERVICE_CONTROL_CODE, buffer);
     
         switch(dwCtrlCode) {
         case SERVICE_CONTROL_STOP:
