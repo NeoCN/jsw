@@ -73,6 +73,13 @@ $Id$
                     Thanks to Rajiv Subrahmanyam for the patch.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where the Wrapper was incorrectly counting the number of
+                    non-daemon threads in BEA's JRockit Virtual Machine.  This was causing the
+                    application to shutdown when the non-daemon thread count dropped to 1.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

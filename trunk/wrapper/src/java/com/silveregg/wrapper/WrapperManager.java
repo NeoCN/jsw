@@ -26,6 +26,11 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.31  2003/01/20 15:27:46  mortenson
+// Fix a problem where the Wrapper was incorrectly counting the number of
+// non-daemon threads in BEA's JRockit Virtual Machine.  This was causing the
+// application to shutdown when the non-daemon thread count dropped to 1.
+//
 // Revision 1.30  2003/01/20 03:21:11  mortenson
 // Add limited support for java 1.2.x
 //
@@ -227,6 +232,10 @@ public final class WrapperManager implements Runnable {
     private static String _key;
     private static int _soTimeout = DEFAULT_SO_TIMEOUT;
     private static long _cpuTimeout = DEFAULT_CPU_TIMEOUT;
+    
+    /** The number of threads to ignore when deciding when all application
+     *   threads have completed. */
+    private static int _systemThreadCount;
     
     /** The lowest configured log level in the Wrapper's configuration.  This 
      *   is set to a high value by default to disable all logging if the
@@ -497,13 +506,27 @@ public final class WrapperManager implements Runnable {
         _eventRunner.setDaemon(true);
         _eventRunner.start();
         
+        // Resolve the system thread count based on the Java Version
+        String fullVersion = System.getProperty("java.fullversion");
+        if (fullVersion == null) {
+            fullVersion = System.getProperty("java.runtime.version") + " " + 
+                System.getProperty("java.vm.name");
+        }
+        if (fullVersion.indexOf("JRockit") >= 0) {
+            // BEA Weblogic JRockit(R) Virtual Machine
+            // This JVM handles its shutdown thread differently that IBM, Sun
+            //  and Blackdown.
+            _systemThreadCount = 0;
+        } else {
+            // All other known JVMs have a system thread which is used by the
+            //  system to trigger a JVM shutdown after all other threads have
+            //  terminated.  This thread must be ignored when counting the
+            //  remaining number of threads.
+            _systemThreadCount = 1;
+        }
+        
         if (_debug) {
             // Display more JVM infor right after the call initialization of the library.
-            String fullVersion = System.getProperty("java.fullversion");
-            if (fullVersion == null) {
-                fullVersion = System.getProperty("java.runtime.version") + " " + 
-                    System.getProperty("java.vm.name");
-            }
             System.out.println("Java Version   : " + fullVersion);
             System.out.println("Java VM Vendor : " + System.getProperty("java.vm.vendor"));
             System.out.println();
@@ -1392,11 +1415,11 @@ public final class WrapperManager implements Runnable {
     private static void checkThreads() {
         int liveCount = getNonDaemonThreadCount();
         
-        // There will always be one non-daemon thread alive.  This thread is either the main
-        //  thread which has not yet completed, or a thread launched by java when the main
-        //  thread completes whose job is to wait around for all other non-daemon threads to
-        //  complete.  We are overriding that thread here.
-        if (liveCount <= 1) {
+        // Depending on the JVM, there will always be one (or zero) non-daemon thread alive.
+        //  This thread is either the main thread which has not yet completed, or a thread
+        //  launched by java when the main thread completes whose job is to wait around for
+        //  all other non-daemon threads to complete.  We are overriding that thread here.
+        if (liveCount <= _systemThreadCount) {
             if (_debug) {
                 System.out.println("All non-daemon threads have stopped.  Exiting.");
             }

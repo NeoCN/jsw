@@ -31,6 +31,9 @@ Java Service Wrapper Revision History.
   when using the sh shell.  The default sh and bash scripts both make use of
   this in the default.  Please update your scripts for use with this version.
   Thanks to Rajiv Subrahmanyam for the patch.
+* Fix a problem where the Wrapper was incorrectly counting the number of
+  non-daemon threads in BEA's JRockit Virtual Machine.  This was causing the
+  application to shutdown when the non-daemon thread count dropped to 1.
 
 2.2.9
 * Added a new property, wrapperper.restart.delay, which allows the user to control
