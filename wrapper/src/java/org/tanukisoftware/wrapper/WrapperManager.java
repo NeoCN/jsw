@@ -26,6 +26,11 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.12  2003/08/28 07:21:54  mortenson
+// Remove output to System.out in the WrapperManager.requestThreadDump()
+// method to avoid hang problems if the JVM is already hung while accessing
+// the System.out object.
+//
 // Revision 1.11  2003/08/14 09:31:34  mortenson
 // Fix a problem where the native library was missing from the release of OSX
 //
@@ -639,7 +644,6 @@ public final class WrapperManager
      */
     public static void requestThreadDump()
     {
-        System.out.println( "Dumping JVM state." );
         if ( m_libraryOK )
         {
             nativeRequestThreadDump();

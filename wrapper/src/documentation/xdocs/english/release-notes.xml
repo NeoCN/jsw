@@ -69,6 +69,14 @@ $Id$
                     script configuration block.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Remove output to System.out in the WrapperManager.requestThreadDump() method.
+                    If some JVM threads were hung while accessing the System.out object,
+                    attempting to do a thread a dump would cause the calling thread to hang as
+                    well.  Thanks to Thomas Hart for the patch.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
