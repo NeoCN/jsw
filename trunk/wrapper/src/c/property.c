@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.6  2002/10/16 14:47:32  mortenson
+ * Add support for environment variable evaluation in configuration file.
+ *
  * Revision 1.5  2002/03/07 09:23:25  mortenson
  * Go through and change the style of comments that we use so that they will not
  * cause compiler errors on older unix compilers.
@@ -136,8 +139,86 @@ void disposeInnerProperty(Property *property) {
     free(property);
 }
 
+/**
+ * Parses a property value and populates any environment variables.
+ */
+void evaluateEnvironmentVariables(const char *propertyValue, char *buffer) {
+	const char *in;
+	char *out;
+	char envName[256];
+	char *envValue;
+	char *start;
+	char *end;
+	int len;
+
+#ifdef _DEBUG
+	printf("evaluateEnvironmentVariables('%s', buffer)\n", propertyValue);
+#endif
+
+	buffer[0] = '\0';
+	in = propertyValue;
+	out = buffer;
+
+	/* Loop until we hit the end of string. */
+	while (in[0] != '\0') {
+#ifdef _DEBUG
+		printf("  in='%s', out='%s'\n", in, out);
+#endif
+
+		start = strchr(in, '%');
+		if (start != NULL) {
+			end = strchr(start + 1, '%');
+			if (end != NULL) {
+				/* A pair of '%' characters was found.  An environment */
+				/*  variable name should be between the two. */
+				len = end - start - 1;
+				memcpy(envName, start + 1, len);
+				envName[len] = '\0';
+
+				/* Look up the environment variable */
+				envValue = getenv(envName);
+				if (envValue != NULL) {
+					/* An envvar value was found. */
+					/* Copy over any text before the envvar */
+					len = start - in;
+					memcpy(out, in, len);
+					out += len;
+					/* Copy over the env value */
+					strcpy(out, envValue);
+					out += strlen(out);
+					/* Set the new in pointer */
+					in = end + 1;
+				} else {
+					/* Not found.  So copy over the input up until the */
+					/*  second '%'.  Leave it in case it is actually the */
+					/*  start of an environment variable name */
+					len = end - in;
+					memcpy(out, in, len);
+					out += len;
+					out[0] = '\0';
+					in += len;
+				}
+			} else {
+				/* Only a single '%' char was found. Leave it as is. */
+				strcpy(out, in);
+				in += strlen(in);
+				out += strlen(out);
+			}
+		} else {
+			/* No more '%' chars in the string. Copy over the rest. */
+			strcpy(out, in);
+			in += strlen(in);
+			out += strlen(out);
+		}
+	}
+#ifdef _DEBUG
+	printf("  final buffer='%s'\n", buffer);
+#endif
+}
+
 void setInnerProperty(Property *property, const char *propertyValue) {
     int i, count;
+    char buffer[2048];
 
     /* Free any existing value */
     if (property->value != NULL) {
@@ -148,12 +229,14 @@ void setInnerProperty(Property *property, const char *propertyValue) {
     if (propertyValue == NULL) {
         property->value = NULL;
     } else {
-        property->value = (char *)malloc(sizeof(char) * (strlen(propertyValue) + 1));
+		evaluateEnvironmentVariables(propertyValue, buffer);
+
+        property->value = (char *)malloc(sizeof(char) * (strlen(buffer) + 1));
 
         /* Strip any non valid characters like control characters */
-        for (i = 0, count = 0; i < (int)strlen(propertyValue); i++) {
-            if (propertyValue[i] > 31) /* Only add valid chars, skip control chars */
-                property->value[count++] = propertyValue[i];
+        for (i = 0, count = 0; i < (int)strlen(buffer); i++) {
+            if (buffer[i] > 31) /* Only add valid chars, skip control chars */
+                property->value[count++] = buffer[i];
         }
 
         /* Crop string to new size */
