@@ -26,6 +26,10 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.9  2002/05/17 09:15:13  mortenson
+// Rework the way the shutdown process works so that System.exit will never be
+// called before the stop method in WrapperListener has had a chance to complete.
+//
 // Revision 1.8  2002/05/16 04:30:30  mortenson
 // JVM info was not being displayed if the Wrapper.DLL file was not loaded.
 // Modify so that dispose is called at the correct times.
@@ -96,8 +100,7 @@ public final class WrapperManager implements Runnable {
     private static final String  WRAPPER_CONNECTION_THREAD_NAME = "Wrapper-Connection";
     
     private static final int DEFAULT_PORT    = 15003;
-    private static final int DEFAULT_BACKLOG = 50;
-    private static final int DEFAULT_TIMEOUT = 10;
+    private static final int DEFAULT_TIMEOUT = 10000;
     
     private static final byte WRAPPER_MSG_START          = (byte)100;
     private static final byte WRAPPER_MSG_STOP           = (byte)101;
@@ -125,10 +128,10 @@ public final class WrapperManager implements Runnable {
     private static int _port    = DEFAULT_PORT;
     private static String _key;
     private static int _timeout = DEFAULT_TIMEOUT;
-    private static int _backlog = DEFAULT_BACKLOG;
     
     /** Thread which processes all communications with the native code. */
-    private static Thread _runner;
+    private static Thread _commRunner;
+    private static boolean _commRunnerStarted = false;
     private static Thread _eventRunner;
     
     private static WrapperListener _listener;
@@ -143,6 +146,7 @@ public final class WrapperManager implements Runnable {
     private static boolean _debug = false;
     private static int _jvmId = 0;
     private static boolean _stopping = false;
+    private static Thread _stoppingThread;
     private static boolean _libraryOK = false;
     private static byte[] _commandBuffer = new byte[512];
     
@@ -192,7 +196,7 @@ public final class WrapperManager implements Runnable {
             if (_debug) {
                 System.out.println("Wrapper Manager: Registering shutdown hook");
             }
-            _hook = new Thread() {
+            _hook = new Thread("Wrapper-Shutdown-Hook") {
                 /**
                  * Run the shutdown hook. (Triggered by the JVM when it is about to shutdown)
                  */
@@ -203,10 +207,9 @@ public final class WrapperManager implements Runnable {
                     
                     // Stop the Wrapper cleanly.
                     _hookTriggered = true;
-                    WrapperManager.stop(0);
                     
-                    // Dispose the wrapper.
-                    dispose();
+                    // If we are not already stopping, then do so.
+                    WrapperManager.stop(0);
                     
                     if (_debug) {
                         System.out.println("Wrapper Manager: ShutdownHook complete");
@@ -460,17 +463,27 @@ public final class WrapperManager implements Runnable {
      *	all listeners that the JVM is about to shutdown before killing the JVM.
      */
     public static void restart() {
-        if (!_started) {
-            startRunner();
-            // Wait to give the runner a chance to connect.
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
+        boolean stopping;
+        synchronized(_instance) {
+            stopping = _stopping;
+            if (!stopping) {
+                _stopping = true;
             }
         }
         
-        // Always send the stop command
-        sendCommand(WRAPPER_MSG_RESTART, "restart");
+        if (!stopping) {
+            if (!_commRunnerStarted) {
+                startRunner();
+                // Wait to give the runner a chance to connect.
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                }
+            }
+            
+            // Always send the stop command
+            sendCommand(WRAPPER_MSG_RESTART, "restart");
+        }
         
         // Give the Wrapper a chance to register the stop command before stopping.
         // This avoids any errors thrown by the Wrapper because the JVM died before
@@ -480,13 +493,7 @@ public final class WrapperManager implements Runnable {
         } catch (InterruptedException e) {
         }
         
-        // Don't do anything if we are already stopping
-        if (!_stopping) {
-            stopInner(0);
-        } else {
-            // If stop is called when we are already stopping, then it is time to shutdown the JVM
-            shutdownJVM(0);
-        }
+        stopInner(0);
     }
     
     /**
@@ -494,18 +501,28 @@ public final class WrapperManager implements Runnable {
      *	all listeners that the JVM is about to shutdown before killing the JVM.
      */
     public static void stop(int exitCode) {
-        if (!_started) {
-            startRunner();
-            // Wait to give the runner a chance to connect.
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
+        boolean stopping;
+        synchronized(_instance) {
+            stopping = _stopping;
+            if (!stopping) {
+                _stopping = true;
             }
         }
         
-        // Always send the stop command
-        sendCommand(WRAPPER_MSG_STOP, Integer.toString(exitCode));
-
+        if (!stopping) {
+            if (!_commRunnerStarted) {
+                startRunner();
+                // Wait to give the runner a chance to connect.
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                }
+            }
+            
+            // Always send the stop command
+            sendCommand(WRAPPER_MSG_STOP, Integer.toString(exitCode));
+        }
+        
         // Give the Wrapper a chance to register the stop command before stopping.
         // This avoids any errors thrown by the Wrapper because the JVM died before
         //  it was expected to.
@@ -514,13 +531,7 @@ public final class WrapperManager implements Runnable {
         } catch (InterruptedException e) {
         }
         
-        // Don't do anything if we are already stopping
-        if (!_stopping) {
-            stopInner(exitCode);
-        } else {
-            // If stop is called when we are already stopping, then it is time to shutdown the JVM
-            shutdownJVM(exitCode);
-        }
+        stopInner(exitCode);
     }
 
     /**
@@ -549,9 +560,6 @@ public final class WrapperManager implements Runnable {
     public static void signalStopped(int exitCode) {
         _stopping = true;
         sendCommand(WRAPPER_MSG_STOPPED, Integer.toString(exitCode));
-        
-        // Close the socket to the wrapper before killing the JVM
-        closeSocket();
     }
     
     /**
@@ -596,17 +604,16 @@ public final class WrapperManager implements Runnable {
      * Informs the listener that it should start.
      */
     private static void startInner() {
-        if (_debug) {
-            System.out.println("call start() on listener");
-        }
-        
         // Set the thread priority back to normal so that any spawned threads
         //	will use the normal priority
         int oldPriority = Thread.currentThread().getPriority();
         Thread.currentThread().setPriority(Thread.NORM_PRIORITY);
         
-        // This is user code, so don't trust it.
+        if (_debug) {
+            System.out.println("calling listener.start()");
+        }
         if (_listener != null) {
+            // This is user code, so don't trust it.
             try {
                 Integer result = _listener.start(_args);
                 if (result != null) {
@@ -620,10 +627,13 @@ public final class WrapperManager implements Runnable {
                 System.out.println("Error in WrapperListener.start callback.  " + t);
                 t.printStackTrace();
                 // Kill the JVM, but don't tell the wrapper that we want to stop.  This may be a problem with this instantiation only.
-                shutdownJVM(1);
+                stopInner(1);
                 // Won't make it here.
                 return;
             }
+        }
+        if (_debug) {
+            System.out.println("returned from listener.start()");
         }
         
         // Crank the priority back up.
@@ -635,72 +645,115 @@ public final class WrapperManager implements Runnable {
     
     private static void shutdownJVM(int exitCode) {
         // Signal that the application has stopped and the JVM is about to shutdown.
-        signalStopped(exitCode);
+        //signalStopped(exitCode);
         
         // Give the native end of things a chance to receive the stopped event
         //  before actually killing the JVM
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-        }
+        //try {
+        //	Thread.sleep(1000);
+        //} catch (InterruptedException e) {
+        //}
         
         // Do not call System.exit if this is the ShutdownHook
         if (Thread.currentThread() == _hook) {
-            // This is the shutdown hook, so fall through
+            // Signal that the application has stopped and the JVM is about to shutdown.
+            signalStopped(0);
+            
+            // Dispose the wrapper.  (If the hook runs, it will do this.)
+            dispose();
+            
+            // This is the shutdown hook, so fall through because things are
+            //  already shutting down.
         } else {
             //  We do not want the ShutdownHook to execute, so unregister it before calling exit
-            if ((_hook != null) && (!_hookTriggered)) {
+            if (_hook != null) {
                 Runtime.getRuntime().removeShutdownHook(_hook);
                 _hook = null;
-                
-                // Dispose the wrapper.  (If the hook runs, it will do this.)
-                dispose();
             }
+            // Signal that the application has stopped and the JVM is about to shutdown.
+            signalStopped(0);
+            
+            // Dispose the wrapper.  (If the hook runs, it will do this.)
+            dispose();
             
             if (_debug) {
-                System.out.println("Wrapper Manager: Calling System.exit(" + exitCode + ") " +
-                    "as part of shutdown process by thread: " + Thread.currentThread().getName() );
+                System.out.println("calling System.exit(" + exitCode + ")");
             }
             System.exit(exitCode);
         }
     }
     
     /**
-     * Informs all listeners that the JVM will be shut down.
+     * Informs the listener that the JVM will be shut down.
      */
     private static void stopInner(int exitCode) {
-        if (_debug) {
-            System.out.println("call stop() on listener");
-        }
-        
-        _stopping = true;
-
-        // Set the thread priority back to normal so that any spawned threads
-        //	will use the normal priority
-        int oldPriority = Thread.currentThread().getPriority();
-        Thread.currentThread().setPriority(Thread.NORM_PRIORITY);
-        
-        int code = exitCode;
-        if (_listener != null) {
-            // This is user code, so don't trust it.
-            try {
-                code = _listener.stop(code);
-            } catch (Throwable t) {
-                System.out.println("Error in WrapperListener.stop callback.  " + t);
-                t.printStackTrace();
+        boolean block;
+        synchronized(_instance) {
+            // Always set the stopping flag.
+            _stopping = true;
+            
+            // Only one thread can be allowed to continue.
+            if (_stoppingThread == null) {
+                _stoppingThread = Thread.currentThread();
+                block = false;
+            } else {
+                if (Thread.currentThread() == _hook) {
+                    // The hook should be allowed to fall through.
+                    return;
+                }
+                block = true;
             }
         }
         
-        // Crank the priority back up.
-        Thread.currentThread().setPriority(oldPriority);
+        if (block) {
+            if (_debug) {
+                System.out.println("Thread, " + Thread.currentThread().getName() + ", waiting for the JVM to exit.");
+            }
+            while(true) {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {}
+            }
+        }
+        
+        if (_debug) {
+            System.out.println("Thread, " + Thread.currentThread().getName() + ", handling the shutdown process.");
+        }
+        
+        // Only stop the listener if the app has been started.
+        int code = exitCode;
+        if (_started) {
+            // Set the thread priority back to normal so that any spawned threads
+            //	will use the normal priority
+            int oldPriority = Thread.currentThread().getPriority();
+            Thread.currentThread().setPriority(Thread.NORM_PRIORITY);
+            
+            if (_debug) {
+                System.out.println("calling listener.stop()");
+            }
+            if (_listener != null) {
+                // This is user code, so don't trust it.
+                try {
+                    code = _listener.stop(code);
+                } catch (Throwable t) {
+                    System.out.println("Error in WrapperListener.stop callback.  " + t);
+                    t.printStackTrace();
+                }
+            }
+            if (_debug) {
+                System.out.println("returned from listener.stop()");
+            }
+            
+            // Crank the priority back up.
+            Thread.currentThread().setPriority(oldPriority);
+        }
 
         shutdownJVM(code);
     }
-
-    
     
     private static void signalStarted() {
         sendCommand(WRAPPER_MSG_STARTED, "");
+        _started = true;
     }
     
     /**
@@ -786,7 +839,7 @@ public final class WrapperManager implements Runnable {
             
             // Set the SO_TIMEOUT for the socket (max block time)
             if (_timeout > 0) {
-                _socket.setSoTimeout(_timeout * 1000);
+                _socket.setSoTimeout(_timeout);
             }
         } catch (IOException e) {
             System.out.println(e);
@@ -927,23 +980,26 @@ public final class WrapperManager implements Runnable {
                 } catch (InterruptedIOException e) {
                     long now = System.currentTimeMillis();
                     
-                    if (_debug) {
-                        System.out.println("Read Timed out. (Last Ping was " + (now - _lastPing) + " milliseconds ago)");
-                    }
-                    
-                    if (!_appearHung) {
-                        // How long has it been since we received the last ping from the Wrapper?
-                        if (now - _lastPing > 120000) {
-                            // It has been more than 2 minutes, so just give up and kill the JVM
-                            System.out.println("JVM did not exit.  Give up.");
-                            System.exit(1);
-                        } else if (now - _lastPing > 30000) {
-                            // It has been more than 30 seconds, so give a warning.
-                            System.out.println("The Wrapper code did not ping the JVM for " + ((now - _lastPing) / 1000) + " seconds.  Quit and let the wrapper resynch.");
-                            
-                            // Don't do anything if we are already stopping
-                            if (!_stopping) {
-                                stopInner(1);
+                    // Unless the JVM is shutting dowm we want to show warning messages and maybe exit.
+                    if (!_stopping) {
+                        if (_debug) {
+                            System.out.println("Read Timed out. (Last Ping was " + (now - _lastPing) + " milliseconds ago)");
+                        }
+                        
+                        if (!_appearHung) {
+                            // How long has it been since we received the last ping from the Wrapper?
+                            if (now - _lastPing > 120000) {
+                                // It has been more than 2 minutes, so just give up and kill the JVM
+                                System.out.println("JVM did not exit.  Give up.");
+                                System.exit(1);
+                            } else if (now - _lastPing > 30000) {
+                                // It has been more than 30 seconds, so give a warning.
+                                System.out.println("The Wrapper code did not ping the JVM for " + ((now - _lastPing) / 1000) + " seconds.  Quit and let the wrapper resynch.");
+                                
+                                // Don't do anything if we are already stopping
+                                if (!_stopping) {
+                                    stopInner(1);
+                                }
                             }
                         }
                     }
@@ -956,7 +1012,12 @@ public final class WrapperManager implements Runnable {
 
         } catch (SocketException e) {
             if (_debug) {
-                System.out.println("Closed socket: " + e);
+                if (_socket == null) {
+                    // This error happens if the socket is closed while reading:
+                    // java.net.SocketException: Descriptor not a socket: JVM_recv in socket input stream read
+                } else {
+                    System.out.println("Closed socket: " + e);
+                }
             }
             return;
         } catch (IOException e) {
@@ -964,6 +1025,34 @@ public final class WrapperManager implements Runnable {
             e.printStackTrace();
             return;
         }
+    }
+    
+    private static int getNonDaemonThreadCount() {
+        Thread[] threads = new Thread[Thread.activeCount() * 2];
+        Thread.enumerate(threads);
+        
+        // Only count any non daemon threads which are 
+        //  still alive other than this thread.
+        int liveCount = 0;
+        for (int i = 0; i < threads.length; i++) {
+            /*
+            if (threads[i] != null) {
+                System.out.println("Check " + threads[i].getName() + " daemon=" + 
+                    threads[i].isDaemon() + " alive=" + threads[i].isAlive());
+            }
+            */
+            if ((threads[i] != null) && (threads[i].isAlive() && (!threads[i].isDaemon()))) {
+                // Do not count this thread or the wrapper connection thread
+                if ((Thread.currentThread() != threads[i]) && (threads[i] != _commRunner)) {
+                    // Non-Daemon living thread
+                    liveCount++;
+                    //System.out.println("  -> Non-Daemon");
+                }
+            }
+        }
+        //System.out.println("  => liveCount = " + liveCount);
+        
+        return liveCount;
     }
     
     /**
@@ -976,30 +1065,7 @@ public final class WrapperManager implements Runnable {
      *  propperly informed.
      */
     private static void checkThreads() {
-        //System.out.println("checkThreads()");
-        Thread[] threads = new Thread[Thread.activeCount() * 2];
-        Thread.enumerate(threads);
-        
-        // Only shutdown if there are any non daemon threads which are 
-        //  still alive other than this thread.
-        int liveCount = 0;
-        for (int i = 0; i < threads.length; i++) {
-            /*
-            if (threads[i] != null) {
-                System.out.println("Check " + threads[i].getName() + " daemon=" + 
-                    threads[i].isDaemon() + " alive=" + threads[i].isAlive());
-            }
-            */
-            if ((threads[i] != null) && (threads[i].isAlive() && (!threads[i].isDaemon()))) {
-                // Do not count this thread or the wrapper connection thread
-                if ((Thread.currentThread() != threads[i]) && (threads[i] != _runner)) {
-                    // Non-Daemon living thread
-                    liveCount++;
-                    //System.out.println("  -> Non-Daemon");
-                }
-            }
-        }
-        //System.out.println("  => liveCount = " + liveCount);
+        int liveCount = getNonDaemonThreadCount();
         
         // There will always be one non-daemon thread alive.  This thread is either the main
         //  thread which has not yet completed, or a thread launched by java when the main
@@ -1020,21 +1086,21 @@ public final class WrapperManager implements Runnable {
     
     private static void startRunner() {
         if (isControlledByNativeWrapper()) {
-            if (_runner == null) {
+            if (_commRunner == null) {
                 // Create and launch a new thread to manage this connection
-                _runner = new Thread(_instance, WRAPPER_CONNECTION_THREAD_NAME);
+                _commRunner = new Thread(_instance, WRAPPER_CONNECTION_THREAD_NAME);
                 // This thread can not be a daemon or the JVM will quit immediately
-                _runner.start();
+                _commRunner.start();
             }
         }
-        
-        _started = true;
     }
     
     /*---------------------------------------------------------------
      * Runnable Methods
      *-------------------------------------------------------------*/
     public void run() {
+        _commRunnerStarted = true;
+        
         // This thread needs to have a very high priority so that it never
         //	gets put behind other threads.
         Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
