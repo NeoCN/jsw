@@ -1,4 +1,5 @@
 COMPILE = gcc -O3 -Wall --pedantic
+ --std=gnu89
 
 INCLUDE=$(JAVA_HOME)/include
 
