@@ -21,6 +21,9 @@ Java Service Wrapper Revision History.
   extremely large environment variables.
 * Fix a problem where the inability to expand very large environment variables
   was causing an access violation when run as an NT service.
+* Add some extra checks in the event where the native library can not be loaded
+  so that the WrapperManager can differentiate between the library missing and
+  not being readable due to permission problems.
 
 3.0.1
 * Fix a problem with the wrapper.disable_shutdown_hook.  Due to a typo in the
