@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "../dtd/docbook/4.1.2/docbookx.dtd">
+
+<!-- ********************************************************************
+     $Id$
+     ******************************************************************** -->
+
+<chapter id="prop-logfile">
+    <title>wrapper.logfile Property</title>
+    <section>
+        <title>Configuration Property Overview</title>
+        <itemizedlist>
+            <listitem>
+                <ulink url="properties.html">Configuration Property Overview</ulink>
+            </listitem>
+            <listitem>
+                <ulink url="props-logging.html">Logging Configuration Properties</ulink>
+            </listitem>
+            <listitem>
+                <ulink url="properties.html#name">Property List by Name</ulink>
+            </listitem>
+        </itemizedlist>
+    </section>
+    <section>
+        <title>wrapper.logfile</title>
+        <para>
+            Log file to which all output to the console will be logged.  If the
+            logfile is not specified, then file logging will be written to a
+            file called <literal moreinfo="none">"wrapper.log"</literal> in the
+            same directory as the Wrapper executable.  Providing a blank value
+            will cause file logging to be disabled.
+        </para>
+        <informalexample>
+            <simpara><emphasis>Example:</emphasis></simpara>
+            <screen format="linespecific"><![CDATA[wrapper.logfile=../logs/wrapper.log]]></screen>
+        </informalexample>
+    </section>
+</chapter>

@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "../dtd/docbook/4.1.2/docbookx.dtd">
+
+<!-- ********************************************************************
+     $Id$
+     ******************************************************************** -->
+
+<chapter id="prop-daemonize">
+    <title>wrapper.daemonize Property</title>
+    <section>
+        <title>Configuration Property Overview</title>
+        <itemizedlist>
+            <listitem>
+                <ulink url="properties.html">Configuration Property Overview</ulink>
+            </listitem>
+            <listitem>
+                <ulink url="props-unix.html">Linux/Unix Configuration Properties</ulink>
+            </listitem>
+            <listitem>
+                <ulink url="properties.html#name">Property List by Name</ulink>
+            </listitem>
+        </itemizedlist>
+    </section>
+    <section>
+        <title>wrapper.daemonize</title>
+        <para>
+            Spawns a fork of the Wrapper process as a detached non-session
+            group leader.  This means that the process will continue to run
+            even after the console from which the Wrapper process was launched
+            has been closed.
+        </para>
+        <para>
+            Using the bash shell, it is also possible to spawn the process
+            from the shell using the &amp; operator.  However this does not work
+            correctly for other shells on some platforms.
+        </para>
+        <para>
+            Be aware that the daemon process will still send output to stdout
+            unless the
+            <ulink url="prop-console-loglevel.html">wrapper.console.loglevel</ulink>
+            property has been set to <literal moreinfo="none">NONE</literal>.
+        </para>
+        <para>
+            In most cases, this property will not be set from within the
+            wrapper.conf file.  It can be passed to the wrapper process by
+            the shell script which launches the Wrapper.  An example can be
+            found in the <literal moreinfo="none">sh.script.in</literal> file
+            in the <literal moreinfo="none">src/bin</literal> directory.
+        </para>
+        <informalexample>
+            <simpara><emphasis>Example:</emphasis></simpara>
+            <screen format="linespecific"><![CDATA[wrapper.daemonize=TRUE]]></screen>
+        </informalexample>
+    </section>
+</chapter>

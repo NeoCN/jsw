@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "../dtd/docbook/4.1.2/docbookx.dtd">
+
+<!-- ********************************************************************
+     $Id$
+     ******************************************************************** -->
+
+<chapter id="props-nt">
+    <title>Windows NT/2000/XP Service Configuration Properties</title>
+    <section>
+        <title>Configuration Property Overview</title>
+        <itemizedlist>
+            <listitem>
+                <ulink url="properties.html">Configuration Property Overview</ulink>
+            </listitem>
+            <listitem>
+                <ulink url="properties.html#category">Property List by Category</ulink>
+            </listitem>
+            <listitem>
+                <ulink url="properties.html#name">Property List by Name</ulink>
+            </listitem>
+        </itemizedlist>
+    </section>
+    <section>
+        <title>Windows NT/2000/XP Service Configuration Properties</title>
+        <para>
+            Properties which are only used on Windows platforms.
+        </para>
+        <warning>
+            <simpara>
+                Do not modify any of these parameters when an application using
+                the configuration file has been installed as a service.  Please
+                uninstall the service before modifying this section.  The
+                service can then be safely reinstalled.
+            </simpara>
+        </warning>
+        <itemizedlist>
+            <listitem>
+                <ulink url="prop-ntservice-name.html">wrapper.ntservice.name</ulink>
+            </listitem>
+            <listitem>
+                <ulink url="prop-ntservice-displayname.html">wrapper.ntservice.displayname</ulink>
+            </listitem>
+            <listitem>
+                <ulink url="prop-ntservice-description.html">wrapper.ntservice.description</ulink>
+            </listitem>
+            <listitem>
+                <ulink url="prop-ntservice-dependency-n.html">wrapper.ntservice.dependency.&lt;n&gt;</ulink>
+            </listitem>
+            <listitem>
+                <ulink url="prop-ntservice-starttype.html">wrapper.ntservice.starttype</ulink>
+            </listitem>
+            <listitem>
+                <ulink url="prop-ntservice-process-priority.html">wrapper.ntservice.process_priority</ulink>
+            </listitem>
+            <listitem>
+                <ulink url="prop-ntservice-account.html">wrapper.ntservice.account</ulink>
+            </listitem>
+            <listitem>
+                <ulink url="prop-ntservice-password.html">wrapper.ntservice.password</ulink>
+            </listitem>
+            <listitem>
+                <ulink url="prop-ntservice-interactive.html">wrapper.ntservice.interactive</ulink>
+            </listitem>
+        </itemizedlist>
+    </section>
+</chapter>
