@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.48  2004/09/16 04:04:32  mortenson
+ * Close the Handle to the logging mutex on shutdown.
+ *
  * Revision 1.47  2004/09/06 08:01:53  mortenson
  * Correct the wrapper.logfile.maxsize property so that a a kilobyte is now 1024
  * rather than 1000, and a megabyte is a megabyte.
@@ -263,6 +266,26 @@ int initLogging() {
         threadIds[i] = 0;
     }
 
+    return 0;
+}
+
+/**
+ * Disposes of any logging resouces prior to shutdown.
+ */
+int disposeLogging() {
+    printf("disposeLogging()\n");
+    fflush(NULL);
+#ifdef WIN32
+    if (log_printfMutexHandle) {
+        if (!CloseHandle(log_printfMutexHandle))
+        {
+            printf("Unable to close Logging Mutex handle. %s\n", getLastErrorText());
+            fflush(NULL);
+            return 1;
+        }
+    }
+#endif
+    
     return 0;
 }
 
