@@ -9,6 +9,18 @@ $Id$
 <article id="index">
     <title>Java Service Wrapper Release Notes</title>
     <section>
+        <title>Version 3.0.1: Changes and bugfixes</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Fix a problem with the wrapper.disable_shutdown_hook.  Due to a typo in the
+                    source, the property was being ignored.  This was broken in the 3.0.0
+                    release.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
+    <section>
         <title>Version 3.0.0: Changes and bugfixes</title>
         <itemizedlist>
             <listitem>
