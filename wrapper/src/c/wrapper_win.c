@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.52  2003/09/03 02:33:38  mortenson
+ * Requested restarts no longer reset the restart count.
+ * Add new wrapper.ignore_signals property.
+ *
  * Revision 1.51  2003/08/15 17:16:18  mortenson
  * Fix tabs.
  *
@@ -136,7 +140,7 @@
  */
 
 #ifndef WIN32
-/* For some reason this is not defines sometimes when I build $%$%$@@!! */
+/* For some reason this is not defined sometimes when I build $%$%$@@!! */
 barf
 #endif
 
@@ -304,15 +308,18 @@ int wrapperConsoleHandler(int key) {
     case CTRL_C_EVENT:
     case CTRL_CLOSE_EVENT:
         /* The user hit CTRL-C.  Can only happen when run as a console. */
-        /*  Always quit. */
-        if (wrapperData->exitRequested)
-        {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "CTRL-C trapped.  Forcing immediate shutdown.");
-            halt = TRUE;
+        if (wrapperData->ignoreSignals) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "CTRL-C trapped, but ignored.");
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "CTRL-C trapped.  Shutting down.");
+            /*  Always quit. */
+            if (wrapperData->exitRequested) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "CTRL-C trapped.  Forcing immediate shutdown.");
+                halt = TRUE;
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "CTRL-C trapped.  Shutting down.");
+            }
+            quit = TRUE;
         }
-        quit = TRUE;
         break;
 
     case CTRL_BREAK_EVENT:

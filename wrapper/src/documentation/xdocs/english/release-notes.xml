@@ -23,6 +23,7 @@ $Id$
                     or 3.0.4 binary releases for OSX, building from source was working correctly.
                     This has been fixed and the build greatly simplified to avoid such problems
                     in the future.
+                    <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=791755&amp;group_id=39428&amp;atid=425187">Bug #791755</ulink>.
                 </para>
             </listitem>
             <listitem>
@@ -75,6 +76,28 @@ $Id$
                     If some JVM threads were hung while accessing the System.out object,
                     attempting to do a thread a dump would cause the calling thread to hang as
                     well.  Thanks to Thomas Hart for the patch.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Make it obvious in the log whether or not the Wrapper was started as a
+                    daemon process on UNIX systems.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Modify the way restarts requested from the JVM, or caused by a filter are
+                    handled.  The Wrapper will no longer reset the restart count in either of
+                    these cases.  If an application runs for longer than the
+                    <ulink url="prop-successful-invocation-time.html">wrapper.successful_invocation_time</ulink>
+                    timeout then the count will still be reset back to 0.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Added a new <ulink url="prop-ignore-signals.html">wrapper.ignore_signals</ulink>
+                    property which makes it possible to configure the Wrapper so it will ignore
+                    CTRL-C, HALT and INT signals.
                 </para>
             </listitem>
         </itemizedlist>

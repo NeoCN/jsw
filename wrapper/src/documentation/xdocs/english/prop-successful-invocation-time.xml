@@ -27,10 +27,9 @@
         <para>
             Specifies the amount of time that an application must remain
             running before it will be considered to have been a successful
-            invocation.  This property's use is described above in the
-            description of
-            <literal moreinfo="none">wrapper.max_failed_invocations</literal>.
-            Defaults to 300 seconds.
+            invocation.  This property's use is described in the description of
+            the <ulink url="prop-max-failed-invocations.html">wrapper.max_failed_invocations</ulink>
+            property.  Defaults to 300 seconds.
         </para>
         <informalexample>
             <simpara><emphasis>Example:</emphasis></simpara>
@@ -40,8 +39,7 @@
             <simpara>
                 If the specified time is too short then all
                 invocations may be viewed as having been successful.  This
-                can lead to a case where the JVM is restarted infinitely as
-                described above.
+                can lead to a case where the JVM is restarted infinitely.
             </simpara>
         </warning>
     </section>

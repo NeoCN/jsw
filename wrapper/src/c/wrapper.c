@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.68  2003/09/03 02:33:38  mortenson
+ * Requested restarts no longer reset the restart count.
+ * Add new wrapper.ignore_signals property.
+ *
  * Revision 1.67  2003/08/15 16:30:51  mortenson
  * Added support for the wrapper.pidfile property on the Windows platform.
  *
@@ -850,7 +854,15 @@ int wrapperRunConsole() {
         return res;
     }
 
+#ifdef WIN32
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "--> Wrapper Started as Console");
+#else
+    if (wrapperData->daemonize) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "--> Wrapper Started as Daemon");
+    } else {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "--> Wrapper Started as Console");
+    }
+#endif
 
     /* Enter main event loop */
     wrapperEventLoop();
@@ -925,10 +937,6 @@ void wrapperRestartProcess() {
         }
 
         wrapperData->restartRequested = TRUE;
-
-        /* This restart was intentional, so make the JVM appear to have been running for */
-        /*  a long time so the JVM will not be considered a failed launch.               */
-        wrapperData->jvmLaunchTime = 0;
     } else {
         if (wrapperData->isDebugging) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "wrapperRestartProcess() called.  (IGNORED)");
@@ -1352,6 +1360,19 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                 sprintf(strings[index], "-Dwrapper.debug=\"TRUE\"");
             } else {
                 sprintf(strings[index], "-Dwrapper.debug=TRUE");
+            }
+        }
+        index++;
+    }
+
+    /* Store the ignore signals flag if configured to do so */
+    if (wrapperData->ignoreSignals) {
+        if (strings) {
+            strings[index] = malloc(sizeof(char) * (31 + 1));
+            if (addQuotes) {
+                sprintf(strings[index], "-Dwrapper.ignore_signals=\"TRUE\"");
+            } else {
+                sprintf(strings[index], "-Dwrapper.ignore_signals=TRUE");
             }
         }
         index++;
@@ -2227,6 +2248,9 @@ int wrapperLoadConfiguration() {
     /** Get the pid files if any.  May be NULL */
     wrapperData->pidFilename = (char *)getStringProperty(properties, "wrapper.pidfile", NULL);
     wrapperData->javaPidFilename = (char *)getStringProperty(properties, "wrapper.java.pidfile", NULL);
+
+    /** Flag controlling whether or not system signals should be ignored. */
+    wrapperData->ignoreSignals = getBooleanProperty(properties, "wrapper.ignore_signals", FALSE);
 
 #ifdef WIN32
     /* Configure the NT service information */

@@ -26,19 +26,18 @@
         <title>wrapper.max_failed_invocations</title>
         <para>
             Maximum number of times that the Wrapper will attempt to restart
-            the JVM if each attempted invocation exits abnormally shortly after
-            having being launched.  Must be at least 1.  Defaults to 5
-            invocations.
+            the JVM if each attempted invocation exits abnormally or is
+            restarted shortly after having being launched.  Must be at least 1.
+            Defaults to 5 invocations.
         </para>
         <para>
             If there are mistakes in the configuration of an application then
-            the JVM could exit with a
-            <literal moreinfo="none">ClassNotFoundException</literal> or
-            something.  This will be interpreted as the JVM having exited
-            abnormally, leading to a JVM restart.  Obviously, this would
-            lead to an infinite loop of JVM restarts.  To resolve this
-            problem, this property sets the maximum number of times that
-            the JVM will be restarted.
+            the JVM could, for example, exit with a
+            <literal moreinfo="none">ClassNotFoundException</literal>.  This
+            will be interpreted as the JVM having exited abnormally, leading
+            to a JVM restart.  Obviously, this would lead to an infinite loop
+            of JVM restarts.  To resolve this problem, this property sets the
+            maximum number of times that the JVM will be restarted.
         </para>
         <para>
             If the JVM was running for a period longer than the value set in the
@@ -50,7 +49,8 @@
             In general, this property should be set to a time longer than the
             period set with the
             <ulink url="prop-startup-timeout.html">wrapper.startup.timeout</ulink>
-            property as it is designed to count failures on startup.
+            property as it is designed to count failures on startup or shortly
+            there after.
         </para>
         <para>
             In most cases, a value of 1 would be acceptable.  But there are
@@ -66,9 +66,11 @@
             a few failures.
         </para>
         <para>
-            Note that the restart count is reset if a Java application requests
-            a restart using the
-            <literal moreinfo="none">WrapperManager.restart()</literal> method.
+            Restart requests from the JVM, using the
+            <literal moreinfo="none">WrapperManager.restart()</literal> method,
+            and restarts which are triggered by a filter are treated like any
+            other restart.  If the request takes place soon after the JVM is
+            launched the restart count will be incremented.
         </para>
         <informalexample>
             <simpara><emphasis>Example:</emphasis></simpara>

@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.33  2003/09/03 02:33:38  mortenson
+ * Requested restarts no longer reset the restart count.
+ * Add new wrapper.ignore_signals property.
+ *
  * Revision 1.32  2003/08/15 16:30:51  mortenson
  * Added support for the wrapper.pidfile property on the Windows platform.
  *
@@ -164,7 +168,8 @@ struct WrapperConfig {
     char**  outputFilters;          /* Array of output filters. */
     int*    outputFilterActions;    /* Array of output filter actions. */
     char    *pidFilename;           /* Name of file to store wrapper pid in */
-    char    *javaPidFilename;        /* Name of file to store jvm pid in */
+    char    *javaPidFilename;       /* Name of file to store jvm pid in */
+    int     ignoreSignals;          /* True if the Wrapper should ignore any catchable system signals and inform its JVM to do the same. */
 
 #ifdef WIN32
     char    *ntServiceName;         /* Name of the NT Service */

@@ -91,6 +91,9 @@
                     <ulink url="prop-filter-x-n.html">wrapper.filter.trigger.&lt;n&gt;</ulink>
                 </listitem>
                 <listitem>
+                    <ulink url="prop-ignore-signals.html">wrapper.ignore_signals</ulink>
+                </listitem>
+                <listitem>
                     <ulink url="prop-java-additional-n.html">wrapper.java.additional.&lt;n&gt;</ulink>
                 </listitem>
                 <listitem>
