@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.28  2004/03/27 16:09:45  mortenson
+ * Add wrapper.on_exit.<n> properties to control what happens when a exits based
+ * on the exit code.  This led to a major rework of the state engine to make it possible.
+ *
  * Revision 1.27  2004/03/18 05:26:13  mortenson
  * Fix a problem where spaces around the '=' character of a property definition
  * were rendering the property invisible to the Wrapper.  Bug #916001.
@@ -594,51 +598,51 @@ void setEnv( const char *name, const char *value )
  *  buffer is at least as large as the in buffer. */
 void trim(const char *in, char *out)
 {
-	int len;
-	int first;
-	int last;
+    int len;
+    int first;
+    int last;
 
-	len = strlen(in);
-	first = 0;
-	last = len - 1;
+    len = strlen(in);
+    first = 0;
+    last = len - 1;
 
-	/* Right Trim */
-	while (((in[first] == ' ') || (in[first] == '\t')) && (first < last)) {
-		first++;
-	}
-	/* Left Trim */
-	while (((in[last] == ' ') || (in[last] == '\t')) && (last > first)) {
-		last--;
-	}
+    /* Right Trim */
+    while (((in[first] == ' ') || (in[first] == '\t')) && (first < last)) {
+        first++;
+    }
+    /* Left Trim */
+    while (((in[last] == ' ') || (in[last] == '\t')) && (last > first)) {
+        last--;
+    }
 
-	/* Copy over what is left. */
-	len = last - first + 1;
-	if (len > 0) {
-		memcpy(out, in + first, len);
-	}
-	out[len] = '\0';
+    /* Copy over what is left. */
+    len = last - first + 1;
+    if (len > 0) {
+        memcpy(out, in + first, len);
+    }
+    out[len] = '\0';
 }
 
 void addProperty(Properties *properties, const char *propertyName, const char *propertyValue, int finalValue, int quotable) {
     int setValue;
     Property *property;
-	char *propertyNameTrim;
-	char *propertyValueTrim;
+    char *propertyNameTrim;
+    char *propertyValueTrim;
 
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "addProperty(%p, '%s', '%s', %d, %d)",
         properties, propertyName, propertyValue, finalValue, quotable);
 #endif
 
-	/* It is possible that the propertyName and or properyValue contains extra spaces. */
-	propertyNameTrim = malloc(sizeof(char) * (strlen(propertyName) + 1));
-	trim(propertyName, propertyNameTrim);
-	propertyValueTrim = malloc(sizeof(char) * (strlen(propertyValue) + 1));
-	trim(propertyValue, propertyValueTrim);
+    /* It is possible that the propertyName and or properyValue contains extra spaces. */
+    propertyNameTrim = malloc(sizeof(char) * (strlen(propertyName) + 1));
+    trim(propertyName, propertyNameTrim);
+    propertyValueTrim = malloc(sizeof(char) * (strlen(propertyValue) + 1));
+    trim(propertyValue, propertyValueTrim);
 
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  trimmed name='%s', value='%s'",
-		propertyNameTrim, propertyValueTrim);
+        propertyNameTrim, propertyValueTrim);
 #endif
 
     /* See if the property already exists */
@@ -684,9 +688,9 @@ void addProperty(Properties *properties, const char *propertyName, const char *p
         }
     }
 
-	/* Free up the trimmed buffers */
-	free(propertyNameTrim);
-	free(propertyValueTrim);
+    /* Free up the trimmed buffers */
+    free(propertyNameTrim);
+    free(propertyValueTrim);
 }
 
 /**
@@ -730,6 +734,37 @@ const char* getStringProperty(Properties *properties, const char *propertyName, 
     }
 }
 
+/**
+ * Performs a case insensitive check of the property value against the value provided.
+ *  If the property is not set then it is compared with the defaultValue.
+ */
+int checkPropertyEqual(Properties *properties, const char *propertyName, const char *defaultValue, const char *value) {
+    Property *property;
+    const char *propertyValue;
+    char *dupValue;
+    int equal;
+
+    property = getInnerProperty(properties, propertyName);
+    if (property == NULL) {
+        propertyValue = defaultValue;
+    } else {
+        propertyValue = property->value;
+    }
+
+    /* Duplicate the value so we can change it to lower case without affecting the original. */
+    dupValue = strdup(propertyValue);
+
+#ifdef WIN32
+    equal = (strcmp(strlwr(dupValue), value) == 0);
+#else /* UNIX */
+    equal = (strcasecmp(dupValue, "true") == 0);
+#endif
+
+    free(dupValue);
+
+    return equal;
+}
+
 int getIntProperty(Properties *properties, const char *propertyName, int defaultValue) {
     Property *property;
     property = getInnerProperty(properties, propertyName);
@@ -741,21 +776,10 @@ int getIntProperty(Properties *properties, const char *propertyName, int default
 }
 
 int getBooleanProperty(Properties *properties, const char *propertyName, int defaultValue) {
-    Property *property;
-    property = getInnerProperty(properties, propertyName);
-    if (property == NULL) {
-        return defaultValue;
+    if (defaultValue) {
+        return checkPropertyEqual(properties, propertyName, "true", "true");
     } else {
-        /* A value was set.  Set to true only if the value equals "true" */
-#ifdef WIN32
-        if (strcmp(strlwr(property->value), "true") == 0) {
-#else /* UNIX */
-        if (strcasecmp(property->value, "true") == 0) {
-#endif
-            return TRUE;
-        } else {
-            return FALSE;
-        }
+        return checkPropertyEqual(properties, propertyName, "false", "true");
     }
 }
 

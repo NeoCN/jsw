@@ -190,6 +190,9 @@
                     <ulink url="prop-ntservice-starttype.html">wrapper.ntservice.starttype</ulink>
                 </listitem>
                 <listitem>
+                    <ulink url="prop-on-exit-n.html">wrapper.on_exit.&lt;n&gt;</ulink>
+                </listitem>
+                <listitem>
                     <ulink url="prop-pidfile.html">wrapper.pidfile</ulink>
                 </listitem>
                 <listitem>

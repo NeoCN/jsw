@@ -283,6 +283,12 @@ $Id$
                     documentation and official status.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add <ulink url="prop-on-exit-n.html">wrapper.on_exit.&lt;n&gt;</ulink>
+                    properties to control what happens when a exits based on the exit code.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

@@ -116,6 +116,13 @@ Java Service Wrapper Revision History.
   3.0.3.  They have been removed in this release.  The sh script is recommended
   on all UNIX platforms, and the realpath utility which was used by pre-3.0.3
   bash and sh scripts has not been used since.
+* Add the wrapper.startup.delay property along with console and service
+  specific variants which make it possible to configure a delay between the
+  Wrapper being launched and the first JVM being launched.
+* Promote the wrapper.debug property back from being "deprecated".  It has
+  continued to be useful and deserved documentation and official status.
+* Add wrapper.on_exit.<n> properties to control what happens when a exits
+  based on the exit code.
 
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the

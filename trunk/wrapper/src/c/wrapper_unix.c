@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.63  2004/03/27 16:09:45  mortenson
+ * Add wrapper.on_exit.<n> properties to control what happens when a exits based
+ * on the exit code.  This led to a major rework of the state engine to make it possible.
+ *
  * Revision 1.62  2004/03/14 14:02:37  mortenson
  * Modify the way the Wrapper forcibly kills a frozen JVM on UNIX platforms so
  * that it now sends a SIGTERM, waits up to 5 seconds, then sends a SIGKILL.
@@ -269,6 +273,39 @@ void requestDumpJVMState() {
     }
 }
 
+void handleCommon(const char* signal) {
+    if (wrapperData->ignoreSignals) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s trapped, but ignored.", signal);
+    } else {
+        if (wrapperData->exitRequested || wrapperData->restartRequested ||
+            (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
+            (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
+            (wrapperData->jState == WRAPPER_JSTATE_DOWN)) {
+
+            /* Signalled while we were already shutting down. */
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s trapped.  Forcing immediate shutdown.", signal);
+
+            /* Disable the thread dump on exit feature if it is set because it
+             *  should not be displayed when the user requested the immediate exit. */
+            wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
+            wrapperKillProcess();
+        } else {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s trapped.  Shutting down.", signal);
+            wrapperStopProcess(0);
+        }
+        /* Don't actually kill the process here.  Let the application shut itself down */
+
+        /* To make sure that the JVM will not be restarted for any reason,
+         *  start the Wrapper shutdown process as well. */
+        if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
+            (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
+            /* Already stopping. */
+        } else {
+            wrapperData->wState = WRAPPER_WSTATE_STOPPING;
+        }
+    }
+}
+
 /**
  * Handle interrupt signals (i.e. Crtl-C).
  */
@@ -278,21 +315,7 @@ void handleInterrupt(int sig_num) {
 
     signal(SIGINT, handleInterrupt);
 
-    if (wrapperData->ignoreSignals) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "INT trapped, but ignored.");
-    } else {
-        if (wrapperData->exitRequested) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "INT trapped.  Forcing immediate shutdown.");
-
-            /* Disable the thread dump on exit feature if it is set because it
-             *  should not be displayed when the user requested the immediate exit. */
-            wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
-            wrapperKillProcess();
-        } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "INT trapped.  Shutting down.");
-            wrapperStopProcess(0);
-        }
-    }
+    handleCommon("INT");
 }
 
 /**
@@ -315,21 +338,7 @@ void handleTermination(int sig_num) {
 
     signal(SIGTERM, handleTermination); 
 
-    if (wrapperData->ignoreSignals) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "TERM trapped, but ignored.");
-    } else {
-        if (wrapperData->exitRequested) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "TERM trapped.  Forcing immediate shutdown.");
-
-            /* Disable the thread dump on exit feature if it is set because it
-             *  should not be displayed when the user requested the immediate exit. */
-            wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
-            wrapperKillProcess();
-        } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "TERM trapped.  Shutting down.");
-            wrapperStopProcess(0);
-        }
-    }
+    handleCommon("TERM");
 }
 
 /**
@@ -595,8 +604,10 @@ DWORD wrapperGetTicks() {
 int wrapperGetProcessStatus() {
     int retval;
     int status;
+    int exitCode;
+    int res;
 
-    retval = waitpid(jvmPid, NULL, WNOHANG);
+    retval = waitpid(jvmPid, &status, WNOHANG);
 
     if (retval < 0) {
         /* Wait failed. */
@@ -606,19 +617,29 @@ int wrapperGetProcessStatus() {
 
     } else if (retval > 0) {
         /* JVM has exited. */
-        status = WRAPPER_PROCESS_DOWN;
+        res = WRAPPER_PROCESS_DOWN;
+
+        /* Get the exit code of the process. */
+        if (WIFEXITED(status)) {
+            exitCode = WEXITSTATUS(status);
+        } else {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                       "WIFEXITED indicates that the JVM exited abnormally.");
+            exitCode = 1;
+        }
+
+        wrapperJVMProcessExited(exitCode);
 
         /* Remove java pid file if it was registered and created by this process. */
         if ((ownJavaPidFile) && (wrapperData->javaPidFilename)) {
             unlink(wrapperData->javaPidFilename);
             ownJavaPidFile = 0;
         }
-
     } else {
-        status = WRAPPER_PROCESS_UP;
+        res = WRAPPER_PROCESS_UP;
     }
     
-    return status;
+    return res;
 }
 
 /**
@@ -957,9 +978,8 @@ int main(int argc, char **argv) {
     wrapperData->lastPingTicks = wrapperGetTicks();
     wrapperData->jvmCommand = NULL;
     wrapperData->exitRequested = FALSE;
-    wrapperData->exitAcknowledged = FALSE;
+    wrapperData->restartRequested = TRUE; /* The first JVM needs to be started. */
     wrapperData->exitCode = 0;
-    wrapperData->restartRequested = FALSE;
     wrapperData->jvmRestarts = 0;
     wrapperData->jvmLaunchTicks = wrapperGetTicks();
     wrapperData->failedInvocationCount = 0;

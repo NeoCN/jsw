@@ -107,6 +107,10 @@ SOURCE=.\wrapper_win.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\wrappereventloop.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\wrapperinfo.c
 # End Source File
 # End Group

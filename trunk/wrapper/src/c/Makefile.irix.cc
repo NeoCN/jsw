@@ -6,7 +6,7 @@ INCLUDE=$(JAVA_HOME)/include
 
 DEFS = -I$(INCLUDE) -I$(INCLUDE)/irix 
 
-wrapper_OBJECTS = wrapper.o wrapperinfo.o wrapper_unix.o property.o logger.o
+wrapper_OBJECTS = wrapper.o wrapperinfo.o wrappereventloop.o wrapper_unix.o property.o logger.o
 
 libwrapper_so_OBJECTS = wrapperjni_unix.o wrapperinfo.o wrapperjni.o
 
