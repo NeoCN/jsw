@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.30  2003/02/07 16:05:28  mortenson
+ * Implemented feature request #676599 to enable the filtering of JVM output to
+ * trigger JVM restarts or Wrapper shutdowns.
+ *
  * Revision 1.29  2003/02/07 02:48:17  mortenson
  * Fixed a problem where missing environment variables specified in classpath
  * or library path properties were not being handled correctly.
@@ -518,7 +522,7 @@ void wrapperReadChildOutput() {
 
         /* Make sure that this is just another LF if the last line was missing it's LF */
         if ((lfPos > 0) || (wrapperChildStdoutRdLastLF)) {
-            log_printf(wrapperData->jvmRestarts, LEVEL_INFO, "%s", chBuf);
+            wrapperLogChildOutput(chBuf);
         }
 
         wrapperChildStdoutRdLastLF = thisLF;

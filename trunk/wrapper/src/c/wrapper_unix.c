@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.24  2003/02/07 16:05:28  mortenson
+ * Implemented feature request #676599 to enable the filtering of JVM output to
+ * trigger JVM restarts or Wrapper shutdowns.
+ *
  * Revision 1.23  2003/02/03 06:58:35  mortenson
  * License transfer to TanukiSoftware.org
  *
@@ -316,7 +320,7 @@ void wrapperReadChildOutput() {
                 if (readBuf[r] == (char)0x0a) {
                     /* Line feed; write out buffer and reset it. */
                     writeBuf[w] = '\0';
-                    log_printf(wrapperData->jvmRestarts, LEVEL_INFO, "%s", writeBuf);
+                    wrapperLogChildOutput(writeBuf);
                     w = 0;
                 } else {
                     /* Add character to write buffer. */
@@ -327,7 +331,7 @@ void wrapperReadChildOutput() {
             /* Write out the rest of the buffer. */
             if (w > 0) {
                 writeBuf[w] = '\0';
-                log_printf(wrapperData->jvmRestarts, LEVEL_INFO, "%s", writeBuf);
+                wrapperLogChildOutput(writeBuf);
                 w = 0;
             }
         }
