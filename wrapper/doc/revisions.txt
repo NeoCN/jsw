@@ -50,7 +50,6 @@ Java Service Wrapper Revision History.
   sending large quantities of output to the console.
 * Increase debug output on UNIX platforms when a signal is caught.  When
   possible, information about where the signal came from is now logged.
-  (Not currently supported on FreeBSD)
 * Modified the way log output from within signal handlers is handled so it
   is now queued and then logged by the main event loop.
 * Back out a 3.1.0 change where a JVM that had failed to exit cleanly was
@@ -62,6 +61,12 @@ Java Service Wrapper Revision History.
 * Add an icon resource to the Wrapper binary on Windows versions.
 * Fix a typo in the UNIX sh script which caused an extra slash to be included
   in the path of the pid file.  Was not causing any known problems.
+* Added support for 64-bit HP-UX.  Big thanks to Venkatesh Sellappa for
+  supplying the patch.
+* Fix a deadlock problem introduced in 3.1.0 with some FreeBSD systems.  Not
+  all users were experiencing it, but those who did were able to reliably
+  reproduce the problem.  The problem appears to have been caused by
+  FreeBSD bug #kern/64313.
 
 3.1.0
 * The license was revised for this version to include a copyright omission.

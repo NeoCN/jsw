@@ -41,7 +41,7 @@
             platforms and then provide the binary releases.
         </para>
         <para>
-            Ashish Gawarikar (AIX, HP-UX)
+            Ashish Gawarikar (AIX, HP-UX 32-bit)
         </para>
         <para>
             Andy Barnett (MAC OSX)
@@ -51,6 +51,9 @@
         </para>
         <para>
             Alphonse Bendt (FreeBSD)
+        </para>
+        <para>
+            Venkatesh Sellappa (HP-UX 64-bit)
         </para>
     </section>
 </chapter>

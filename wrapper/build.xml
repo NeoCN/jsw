@@ -91,6 +91,15 @@
         <property name="makefile.name" value="Makefile.hpux"/>
         <property name="releasefile" value="wrapper_hpux_${version}"/>
     </target>
+    <target name="init-hpux64" if="is.HP-UX64">
+        <property name="is.Unix" value="true"/>
+        <property name="is.shell.sh" value="true"/>
+        <property name="wrapper.bin.name" value="wrapper"/>
+        <property name="wrapper.lib.name" value="libwrapper.sl"/>
+        <property name="make.name" value="gmake"/>
+        <property name="makefile.name" value="Makefile.hpux64"/>
+        <property name="releasefile" value="wrapper_hpux64_${version}"/>
+    </target>
     <target name="init-macosx" if="is.Mac OS X">
         <property name="is.Unix" value="true"/>
         <property name="is.shell.sh" value="true"/>
@@ -132,7 +141,7 @@
     <!-- Initialize build.                                                   -->
     <!-- =================================================================== -->
     <target name="init"
-        depends="init-windows, init-linux, init-solaris, init-aix, init-hpux, init-macosx, init-osf1, init-freebsd, init-irix">
+        depends="init-windows, init-linux, init-solaris, init-aix, init-hpux, init-hpux64, init-macosx, init-osf1, init-freebsd, init-irix">
         <echo message="OS='${os.name}'"/>
         <tstamp/>
         <filter token="version"           value="${version}"       />
