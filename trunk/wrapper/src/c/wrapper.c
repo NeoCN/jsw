@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.15  2002/03/07 10:05:47  rybesh
+ * fixed some miscellaneous unix compile errors
+ *
  * Revision 1.14  2002/03/07 09:23:25  mortenson
  * Go through and change the style of comments that we use so that they will not
  * cause compiler errors on older unix compilers.
@@ -691,14 +694,14 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     int stripQuote;
     int initMemory = 0, maxMemory;
     char paramBuffer[128];
-    int i, j, len2, found;
+    int i, j, len2;
     int cpLen, cpLenAlloc;
     char *tmpString;
 #ifdef WIN32
     char cpPath[512];
     char *c;
     long handle;
-    int len;
+    int len, found;
     struct _finddata_t fblock;
 #else
     glob_t g;
@@ -711,8 +714,9 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     if (strings) {
         prop = getStringProperty(properties, "wrapper.java.command", "java");
 
-        found = 0;
 #ifdef WIN32
+        found = 0;
+
         /* If the full path to the java command was not specified, then we
          *  need to try and resolve it here to avoid problems later when
          *  calling CreateProcess.  CreateProcess will look in the windows
@@ -734,7 +738,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                 /*printf("Could not find %s on path.\n", cpPath); */
             }
         }
-#endif
+
         if (found) {
             strings[index] = (char *)malloc(sizeof(char) * (strlen(cpPath) + 2 + 1));
             if (addQuotes) {
@@ -750,6 +754,16 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                 sprintf(strings[index], "%s", prop);
             }
         }
+
+#else /* UNIX */
+
+        strings[index] = (char *)malloc(sizeof(char) * (strlen(prop) + 2 + 1));
+        if (addQuotes) {
+            sprintf(strings[index], "\"%s\"", prop);
+        } else {
+            sprintf(strings[index], "%s", prop);
+        }
+#endif
     }
     index++;
 

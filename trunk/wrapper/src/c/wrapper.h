@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.9  2002/03/07 10:05:48  rybesh
+ * fixed some miscellaneous unix compile errors
+ *
  * Revision 1.8  2002/03/07 09:23:25  mortenson
  * Go through and change the style of comments that we use so that they will not
  * cause compiler errors on older unix compilers.
@@ -112,7 +115,7 @@ struct WrapperConfig {
     char    *configFile;            /* Name of the config file */
 #ifdef WIN32
     char    *jvmCommand;            /* Command used to launch the JVM */
-#else  * UNIX
+#else /* UNIX */
     char    **jvmCommand;           /* Command used to launch the JVM */
 #endif
     char    key[17];                /* Key which the JVM uses to authorize connections. (16 digits + \0) */
