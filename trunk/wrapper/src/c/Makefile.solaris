@@ -27,7 +27,7 @@ wrapper: $(wrapper_SOURCE)
 	$(COMPILE) -lsocket -lpthread -lnsl -lm $(wrapper_SOURCE) -o $(BIN)/wrapper
 
 libwrapper.so: $(libwrapper_so_OBJECTS)
-	ld -G -fPIC $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
+	${COMPILE} -G -fPIC $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
 
 %.o: %.c
 	@echo '$(COMPILE) -c $<'; \

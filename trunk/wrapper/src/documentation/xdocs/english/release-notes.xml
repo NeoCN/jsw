@@ -13,6 +13,17 @@ $Id$
         <itemizedlist>
             <listitem>
                 <para>
+                    Modified the way libwrapper.so is built on Solaris and Linux so that it
+                    no longer statically links its required libraries.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
+    <section id="3.1.0">
+        <title>Version 3.1.0: Changes and bug fixes</title>
+        <itemizedlist>
+            <listitem>
+                <para>
                     The <ulink url="license.html">license</ulink> was revised for this version
                     to include a copyright omission.  This change is to be retroactively applied
                     to all versions of the Java Service Wrapper starting with version 3.0.0.
