@@ -23,6 +23,13 @@ $Id$
                     WrapperManager.getInteractiveUser on Windows platforms.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem introduced in 3.1.0 where the JVM would not be restarted
+                    correctly if it quit after a ping timeout to let the Wrapper resynch and
+                    restart it.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.0">

@@ -5,6 +5,9 @@ Java Service Wrapper Revision History.
   no longer statically links its required libraries.
 * Fix a file handle leak when calling WrapperManager.getUser or
   WrapperManager.getInteractiveUser on Windows platforms.
+* Fix a problem introduced in 3.1.0 where the JVM would not be restarted
+  correctly if it quit after a ping timeout to let the Wrapper resynch and
+  restart it.
 
 3.1.0
 * The license was revised for this version to include a copyright omission.
