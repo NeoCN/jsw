@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.73  2004/06/15 02:14:19  mortenson
+ * Get the new sigaction code compiling on Solaris.
+ *
  * Revision 1.72  2004/06/14 16:59:20  mortenson
  * Replace the signal function with sigaction so that we can provide useful
  * debug information about where the signal came from.
@@ -319,8 +322,10 @@ const char* getSignalCodeDesc(int code) {
     case SI_USER:
         return "kill, sigsend or raise";
 
+#ifdef SI_KERNEL
     case SI_KERNEL:
         return "the kernel";
+#endif
 
     case SI_QUEUE:
         return "sigqueue";
@@ -334,8 +339,10 @@ const char* getSignalCodeDesc(int code) {
     case SI_ASYNCIO:
         return "AIO completed";
 
+#ifdef SI_SIGIO
     case SI_SIGIO:
         return "queued SIGIO";
+#endif
 
     default:
         return "unknown";
@@ -348,6 +355,8 @@ void descSignal(siginfo_t *sigInfo) {
 
     /* Not supported on all platforms */
     if (sigInfo == NULL) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+            "Signal trapped.  No details available.");
         return;
     }
 
