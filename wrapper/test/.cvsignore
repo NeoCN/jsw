@@ -1,3 +1,4 @@
+template.conf
 action
 action.conf
 backgroundthreads
@@ -30,6 +31,8 @@ filter
 filter.conf
 memory
 memory.conf
+systemproperty
+systemproperty.conf
 testwrapper.log
 memory.log
 TestAction.bat
@@ -48,5 +51,6 @@ TestOutputLoader.bat
 TestMemory.bat
 TestSystemIn.bat
 TestFilter.bat
+TestSystemProperty.bat
 OutputLoader.log
 
