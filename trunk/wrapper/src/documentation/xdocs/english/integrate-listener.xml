@@ -115,7 +115,7 @@ public class Main
     /**
      * Called when the application is shutting down.  The Wrapper assumes that
      *  this method will return fairly quickly.  If the shutdown code code
-     *  could potentially take a long time, then WrapperManager.stopping()
+     *  could potentially take a long time, then WrapperManager.signalStopping()
      *  should be called to extend the timeout period.  If for some reason,
      *  the stop method can not return, then it must call
      *  WrapperManager.stopped() to avoid warning messages from the Wrapper.

@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.7  2004/08/13 14:34:03  mortenson
+// Fix a typo in javadoc references to the signalStopping() method.
+//
 // Revision 1.6  2004/06/15 05:26:57  mortenson
 // Fix a problem where the Wrapper would sometimes hang on shutdown if
 // another thread called System.exit while the Wrapper was shutting down.
@@ -102,7 +105,7 @@ public interface WrapperListener
     /**
      * Called when the application is shutting down.  The Wrapper assumes that
      *  this method will return fairly quickly.  If the shutdown code code
-     *  could potentially take a long time, then WrapperManager.stopping()
+     *  could potentially take a long time, then WrapperManager.signalStopping()
      *  should be called to extend the timeout period.  If for some reason,
      *  the stop method can not return, then it must call
      *  WrapperManager.stopped() to avoid warning messages from the Wrapper.

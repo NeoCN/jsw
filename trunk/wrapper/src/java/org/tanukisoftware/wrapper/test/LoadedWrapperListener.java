@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.4  2004/08/13 14:34:03  mortenson
+// Fix a typo in javadoc references to the signalStopping() method.
+//
 // Revision 1.3  2004/01/16 04:41:55  mortenson
 // The license was revised for this version to include a copyright omission.
 // This change is to be retroactively applied to all versions of the Java
@@ -119,7 +122,7 @@ public class LoadedWrapperListener
     /**
      * Called when the application is shutting down.  The Wrapper assumes that
      *  this method will return fairly quickly.  If the shutdown code code
-     *  could potentially take a long time, then WrapperManager.stopping()
+     *  could potentially take a long time, then WrapperManager.signalStopping()
      *  should be called to extend the timeout period.  If for some reason,
      *  the stop method can not return, then it must call
      *  WrapperManager.stopped() to avoid warning messages from the Wrapper.
