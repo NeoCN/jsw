@@ -288,10 +288,10 @@ wrapper.filter.action.3=SHUTDOWN]]></replacevalue>
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.debug=TRUE" />
         <replace file="${test.dir}/loadedwrapperlistener.conf"
-                 token="wrapper.java.initmemory=3"
+                 token="#wrapper.java.initmemory=3"
                  value="wrapper.java.initmemory=256" />
         <replace file="${test.dir}/loadedwrapperlistener.conf"
-                 token="wrapper.java.maxmemory=64"
+                 token="#wrapper.java.maxmemory=64"
                  value="wrapper.java.maxmemory=256" />
         <replace file="${test.dir}/loadedwrapperlistener.conf"
                  token="wrapper.ntservice.process_priority=NORMAL"
