@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.3  2003/08/20 17:42:03  mortenson
+// Got rid of some old messages.
+//
 // Revision 1.2  2003/06/08 04:15:34  mortenson
 // Synchronize access to the actions map.
 // Cast chars to byte so that the class will compile under Java 1.2.x
@@ -34,17 +37,6 @@ package org.tanukisoftware.wrapper;
 // Add a new class, WrapperActionServer, which makes it easy to remotely control
 // the Wrapper remotely by opening a socket and sending commands.  See the
 // javadocs of the class for more details.
-//
-// Revision 1.3  2003/05/29 10:11:21  mortenson
-// Fix a minor problem where the hour in the date returned by
-// WrapperInfo.getBuildTime() was not base 24.
-//
-// Revision 1.2  2003/04/03 04:05:23  mortenson
-// Fix several typos in the docs.  Thanks to Mike Castle.
-//
-// Revision 1.1  2003/02/03 06:55:28  mortenson
-// License transfer to TanukiSoftware.org
-//
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
