@@ -4,7 +4,10 @@
 # Java Application
 wrapper.java.command=java
 
-# Java Main class
+# Java Main class.  This class must implement the WrapperListener interface
+#  or guarantee that the WrapperManager class is initialized.  Helper
+#  classes are provided to do this for you.  See the Integration section
+#  of the documentation for details.
 wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main
 
 # Java Classpath (include wrapper.jar)  Add class path elements as
