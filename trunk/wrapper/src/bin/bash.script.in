@@ -4,25 +4,28 @@
 # Skeleton bash script suitable for starting and stopping 
 # wrapped Java apps on the Linux platform.
 #
+# This script expects to find the 'realpath' executable
+# in the same directory. 
+#
 
 #-----------------------------------------------------------------------------
 # These settings can be modified to fit the needs of your application
 
 # Application
-WRAPPER_HOME="$PWD/`dirname $0`/.."
-WRAPPER_NAME="testwrapper"
-WRAPPER_LONG_NAME="Wrapper Test Application"
+APP_NAME="@app.name@"
+APP_LONG_NAME="@app.long.name@"
 
 # Wrapper
-WRAPPER_BIN="$WRAPPER_HOME/bin"
-WRAPPER_CMD="$WRAPPER_BIN/wrapper"
-WRAPPER_CONF="$WRAPPER_HOME/conf/wrapper.conf"
+WRAPPER_CMD="./wrapper"
+WRAPPER_CONF="../conf/wrapper.conf"
 
 # Do not modify anything beyond this point
 #-----------------------------------------------------------------------------
 
-# Set the current directory so that relative paths in $WRAPPER_CONF will work
-cd $WRAPPER_BIN
+# Get to the actual location of this script
+SCRIPT_DIR=`dirname $0`
+SCRIPT=`$SCRIPT_DIR/realpath $0`
+cd `dirname $SCRIPT`
 
 # Find pidof.
 PIDOF="/bin/pidof"
@@ -38,39 +41,39 @@ then
 fi
 
 start() {
-    echo "Starting $WRAPPER_LONG_NAME..."
-    pid=`$PIDOF $WRAPPER_NAME`
+    echo "Starting $APP_LONG_NAME..."
+    pid=`$PIDOF $APP_NAME`
     if [ -z $pid ]
     then
-        exec -a $WRAPPER_NAME $WRAPPER_CMD $WRAPPER_CONF &
+        exec -a $APP_NAME $WRAPPER_CMD $WRAPPER_CONF &
     else
-        echo "$WRAPPER_LONG_NAME is already running."
+        echo "$APP_LONG_NAME is already running."
         exit 1
     fi
 }
 
 stop() {
-    echo "Stopping $WRAPPER_LONG_NAME..."
-    pid=`$PIDOF $WRAPPER_NAME`
+    echo "Stopping $APP_LONG_NAME..."
+    pid=`$PIDOF $APP_NAME`
     if [ -z $pid ]
     then
-        echo "$WRAPPER_LONG_NAME was not running."
+        echo "$APP_LONG_NAME was not running."
     else
         kill $pid
         sleep 6
 
-        pid=`$PIDOF $WRAPPER_NAME`
+        pid=`$PIDOF $APP_NAME`
         if [ ! -z $pid ]
         then
             kill -9 $pid
         fi
 
-        pid=`$PIDOF $WRAPPER_NAME`
+        pid=`$PIDOF $APP_NAME`
         if [ ! -z $pid ]
         then
-            echo "Failed to stop $WRAPPER_LONG_NAME."
+            echo "Failed to stop $APP_LONG_NAME."
         else
-            echo "Stopped $WRAPPER_LONG_NAME."
+            echo "Stopped $APP_LONG_NAME."
         fi
     fi
 }
