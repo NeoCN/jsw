@@ -426,13 +426,13 @@
                         <td width="*" class="sectionheader1" bgcolor="#1c718d"><font size="4" color="#eeeeee"><b><xsl:value-of select="title"/></b></font></td>
                     </xsl:when>
                     <xsl:when test="$level=2">
-                        <td width="*" class="sectionheader1" bgcolor="#408ba0"><font size="3" color="#eeeeee"><b><xsl:value-of select="title"/></b></font></td>
+                        <td width="*" class="sectionheader2" bgcolor="#408ba0"><font size="3" color="#eeeeee"><b><xsl:value-of select="title"/></b></font></td>
                     </xsl:when>
                     <xsl:when test="$level=3">
-                        <td width="*" class="sectionheader1" bgcolor="#6fa8b7"><font size="2" color="#eeeeee"><b><xsl:value-of select="title"/></b></font></td>
+                        <td width="*" class="sectionheader3" bgcolor="#6fa8b7"><font size="2" color="#eeeeee"><b><xsl:value-of select="title"/></b></font></td>
                     </xsl:when>
                     <xsl:otherwise>
-                        <td width="*" class="sectionheader1" bgcolor="#7fc1e6"><font size="2" color="#eeeeee"><b><xsl:value-of select="title"/></b></font></td>
+                        <td width="*" class="sectionheader3" bgcolor="#7fc1e6"><font size="2" color="#eeeeee"><b><xsl:value-of select="title"/></b></font></td>
                     </xsl:otherwise>
                 </xsl:choose>
             </tr>
