@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.71  2004/06/14 08:24:42  mortenson
+ * Catch and ignore SIGALRM signals that we are being hit with on Solaris when the
+ * Tick timer is being used.
+ *
  * Revision 1.70  2004/06/14 07:20:40  mortenson
  * Add some additional output and a wrapper.timer_output property to help with
  * debugging timer issues.
@@ -344,15 +348,43 @@ void handleCommon(const char* signal) {
 }
 
 /**
+ * Handle alarm signals.  We are getting them on solaris when running with
+ *  the tick timer.  Not yet sure where they are coming from.
+ */
+void handleAlarm(int sig_num) {
+    pthread_t threadId;
+
+    /* On UNIX the calling thread is the actual thread being interrupted
+     *  so it has already been registered with logRegisterThread. */
+
+    /* Ignore any other signals while in this handler. */
+    signal(SIGALRM, SIG_IGN);
+
+    threadId = pthread_self();
+
+    if (threadId == timerThreadId) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Timer thread received an Alarm signal.  Ignoring.");
+    } else {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Received an Alarm signal.  Ignoring.");
+    }
+    
+
+    signal(SIGALRM, handleAlarm);
+}
+
+/**
  * Handle interrupt signals (i.e. Crtl-C).
  */
 void handleInterrupt(int sig_num) {
     /* On UNIX the calling thread is the actual thread being interrupted
      *  so it has already been registered with logRegisterThread. */
 
-    signal(SIGINT, handleInterrupt);
+    /* Ignore any other signals while in this handler. */
+    signal(SIGINT, SIG_IGN);
 
     handleCommon("INT");
+
+    signal(SIGINT, handleInterrupt);
 }
 
 /**
@@ -362,8 +394,12 @@ void handleQuit(int sig_num) {
     /* On UNIX the calling thread is the actual thread being interrupted
      *  so it has already been registered with logRegisterThread. */
 
-    signal(SIGQUIT, handleQuit); 
+    /* Ignore any other signals while in this handler. */
+    signal(SIGQUIT, SIG_IGN);
+
     requestDumpJVMState();
+
+    signal(SIGQUIT, handleQuit); 
 }
 
 /**
@@ -373,9 +409,12 @@ void handleTermination(int sig_num) {
     /* On UNIX the calling thread is the actual thread being interrupted
      *  so it has already been registered with logRegisterThread. */
 
-    signal(SIGTERM, handleTermination); 
+    /* Ignore any other signals while in this handler. */
+    signal(SIGTERM, SIG_IGN);
 
     handleCommon("TERM");
+
+    signal(SIGTERM, handleTermination); 
 }
 
 /**
@@ -472,7 +511,8 @@ int wrapperInitialize() {
     int res;
 
     /* Set handlers for signals */
-    if (signal(SIGINT,  handleInterrupt)   == SIG_ERR ||
+    if (signal(SIGALRM, handleAlarm)       == SIG_ERR ||
+        signal(SIGINT,  handleInterrupt)   == SIG_ERR ||
         signal(SIGQUIT, handleQuit)        == SIG_ERR ||
         signal(SIGTERM, handleTermination) == SIG_ERR) {
         retval = -1;
