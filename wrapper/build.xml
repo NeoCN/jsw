@@ -299,6 +299,16 @@
         <mkdir dir="${build.dir}/work"/>
         <mkdir dir="${doc.dir}"/>
         
+        <fixcrlf eol="lf" destdir="${context.dir}/xdocs/english" srcdir="${src.dir}/bin">
+            <include name="*.script.in"/>
+            <include name="App.bat.in"/>
+            <include name="Simple*.bat.in"/>
+        </fixcrlf>
+
+        <fixcrlf eol="lf" destdir="${context.dir}/xdocs/english" srcdir="${src.dir}/conf">
+            <include name="wrapper.conf.in"/>
+        </fixcrlf>
+
         <java classname="org.apache.cocoon.Main" fork="true">
             <jvmarg value="-Xmx256M"/>
             <arg value="-c${context.dir}/"/>
@@ -601,7 +611,6 @@
     <!-- =================================================================== -->
     <target name="clean" description="Clean up any files from the build">
         <delete dir="${build.dir}"/>
-        <delete dir="${jdoc.dir}"/>
         <delete>
             <fileset dir="${basedir}">
                 <include name="wrapper_*"/>
@@ -625,6 +634,8 @@
     <!-- Total cleanup                                                       -->
     <!-- =================================================================== -->
     <target name="total-clean" depends="clean" description="Clean up all build and target files">
+        <delete dir="${doc.dir}"/>
+        <delete dir="${jdoc.dir}"/>
         <delete file="${lib.dir}/wrapper.jar"/>
         <delete file="${lib.dir}/wrappertest.jar"/>
         <exec executable="make" 

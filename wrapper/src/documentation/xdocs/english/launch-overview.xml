@@ -60,17 +60,17 @@
                 <informalexample>
                     <simpara><emphasis>MyApp.bat</emphasis></simpara>
                     <screen format="linespecific">
-<xi:include href="../../../bin/SimpleApp.bat.in" parse="text"/></screen>
+<xi:include href="SimpleApp.bat.in" parse="text"/></screen>
                 </informalexample>
                 <informalexample>
                     <simpara><emphasis>InstallMyApp-NT.bat</emphasis></simpara>
                     <screen format="linespecific">
-<xi:include href="../../../bin/SimpleInstallApp-NT.bat.in" parse="text"/></screen>
+<xi:include href="SimpleInstallApp-NT.bat.in" parse="text"/></screen>
                 </informalexample>
                 <informalexample>
                     <simpara><emphasis>UninstallMyApp-NT.bat</emphasis></simpara>
                     <screen format="linespecific">
-<xi:include href="../../../bin/SimpleUninstallApp-NT.bat.in" parse="text"/></screen>
+<xi:include href="SimpleUninstallApp-NT.bat.in" parse="text"/></screen>
                 </informalexample>
             </para>
             <para>
@@ -78,7 +78,7 @@
                 <informalexample>
                     <simpara><emphasis>MyApp.bat</emphasis></simpara>
                     <screen format="linespecific">
-<xi:include href="../../../bin/App.bat.in" parse="text"/></screen>
+<xi:include href="App.bat.in" parse="text"/></screen>
                 </informalexample>
             </para>
             <para>
@@ -106,12 +106,12 @@
                 <informalexample>
                     <simpara><emphasis>bash script</emphasis></simpara>
                     <screen format="linespecific">
-<xi:include href="../../../bin/bash.script.in" parse="text"/></screen>
+<xi:include href="bash.script.in" parse="text"/></screen>
                 </informalexample>
                 <informalexample>
                     <simpara><emphasis>sh script</emphasis></simpara>
                     <screen format="linespecific">
-<xi:include href="../../../bin/sh.script.in" parse="text"/></screen>
+<xi:include href="sh.script.in" parse="text"/></screen>
                 </informalexample>
             </para>
         </section>
