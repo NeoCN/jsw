@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.2  2003/03/02 04:23:31  mortenson
+// Add a little more javadocs.
+//
 // Revision 1.1  2003/02/03 06:55:28  mortenson
 // License transfer to TanukiSoftware.org
 //
@@ -800,7 +803,10 @@ public final class WrapperManager
 
     /**
      * Signal the native wrapper that the startup is progressing but that more
-     *  time is needed.
+     *  time is needed.  The Wrapper will extend the startup timeout by the
+     *  specified time.
+     *
+     * @param waitHint Additional time in milliseconds.
      */
     public static void signalStarting( int waitHint )
     {
@@ -809,7 +815,10 @@ public final class WrapperManager
 
     /**
      * Signal the native wrapper that the shutdown is progressing but that more
-     *  time is needed.
+     *  time is needed.  The Wrapper will extend the stop timeout by the
+     *  specified time.
+     *
+     * @param waitHint Additional time in milliseconds.
      */
     public static void signalStopping( int waitHint )
     {
