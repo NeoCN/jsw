@@ -43,7 +43,8 @@
                                                 <b>Hosted by:</b><br/>
                                                 <a href="http://sourceforge.net/projects/wrapper/">
                                                     <img src="http://sourceforge.net/sflogo.php?group_id=39428" width="88" height="31" border="0" alt="SourceForge"/>
-                                                </a>
+                                                </a><br/>
+                                                <a href="http://www.spreadfirefox.com/?q=affiliates&amp;id=4611&amp;t=75"><img border="0" width="120" height="60" alt="Get Firefox!" title="Get Firefox!" src="http://www.spreadfirefox.com/community/images/affiliates/Buttons/120x60/trust.gif"/></a>
                                             </p>
                                         </td>
                                     </tr>
