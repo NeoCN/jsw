@@ -39,7 +39,7 @@
                 wrapper.conf file.  They are described in detail in the
                 <ulink url="config-overview.html">Configuration Overview</ulink>.
                 <programlisting format="linespecific"><![CDATA[# Set the main class to be the WrapperSimpleApp
-wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp
+wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp
 
 # Set the first application parameter to the name of the class whose main method
 # is to be launched.  Additional parameters come after this one.
@@ -91,7 +91,7 @@ wrapper.java.classpath.2=../lib/myapp.jar]]></programlisting>
                 file.  They are described in detail in the
                 <ulink url="config-overview.html">Configuration Overview</ulink>.
                 <programlisting format="linespecific"><![CDATA[# Set the main class to be the WrapperStartStopApp
-wrapper.java.mainclass=com.silveregg.wrapper.WrapperStartStopApp
+wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperStartStopApp
 
 # Set the first application parameter to the name of the class whose main method
 # is to be launched. The class is followed by the number of parameters to be passed

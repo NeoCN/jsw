@@ -1,7 +1,7 @@
-package com.silveregg.wrapper.test;
+package org.tanukisoftware.wrapper.test;
 
 /*
- * Copyright (c) 2001 Silver Egg Technology
+ * Copyright (c) 1999, 2003 TanukiSoftware.org
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -26,20 +26,18 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
-// Revision 1.3  2002/11/02 03:27:13  mortenson
-// Fix Bug #632215.  The WrapperManager.isLaunchedAsService() method was
-// always returning false.
-//
-// Revision 1.2  2002/05/08 16:22:31  mortenson
-// Fix a typo.  transient instance variable should have been volatile.
-//
-// Revision 1.1  2002/05/08 03:18:16  mortenson
-// Fix a problem where the JVM was not exiting correctly when all non-daemon
-// threads completed.
+// Revision 1.1  2003/02/03 06:55:29  mortenson
+// License transfer to TanukiSoftware.org
 //
 
-import com.silveregg.wrapper.WrapperManager;
+import org.tanukisoftware.wrapper.WrapperManager;
 
+/**
+ *
+ *
+ * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @version $Revision$
+ */
 public class LongRunningBackgroundThreads implements Runnable {
     private volatile int _threadCount;
     

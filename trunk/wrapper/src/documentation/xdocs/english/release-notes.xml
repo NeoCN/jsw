@@ -9,8 +9,17 @@ $Id$
 <article id="index">
     <title>Java Service Wrapper Release Notes</title>
     <section>
-        <title>Version 2.3.0: Changes and bugfixes</title>
+        <title>Version 3.0.0: Changes and bugfixes</title>
         <itemizedlist>
+            <listitem>
+                <para>
+                    Deprecated the com.silveregg.wrapper package in favor of
+                    org.tanukisoftware.wrapper.  The classes and insterfaces in the silveregg
+                    package will continue to function, but migration to the new package should
+                    be done when possible.  See the project
+                    <ulink url="history.html">history</ulink> for details.
+                </para>
+            </listitem>
             <listitem>
                 <para>
                     On Windows systems change any forward slashes in the wrapper.java.command

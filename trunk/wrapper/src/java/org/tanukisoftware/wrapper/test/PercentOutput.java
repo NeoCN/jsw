@@ -1,7 +1,7 @@
-package com.silveregg.wrapper.test;
+package org.tanukisoftware.wrapper.test;
 
 /*
- * Copyright (c) 2001 Silver Egg Technology
+ * Copyright (c) 1999, 2003 TanukiSoftware.org
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -26,38 +26,29 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
-// Revision 1.1  2002/11/02 04:43:43  mortenson
-// Improve the message thrown when user code attempts to access System.in from
-// within a JVM being controlled by the Wrapper.  System.in will not work
-// because the JVM is a spawned process.
+// Revision 1.1  2003/02/03 06:55:29  mortenson
+// License transfer to TanukiSoftware.org
 //
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.IOException;
-
-public class SystemIn {
+/**
+ * Tests Bug #531880 where % characters in the text output were causing
+ *  the wrapper to crash.
+ *
+ * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @version $Revision$
+ */
+public class PercentOutput {
     /*---------------------------------------------------------------
      * Main Method
      *-------------------------------------------------------------*/
     public static void main(String[] args) {
-        System.out.println("Test the functionality of System.in when run as a console application.");
-        System.out.println("If being controlled by the Wrapper, then an IOException should be thrown.");
-        System.out.println("If run as a standard Java app, then no errors should be thrown.");
-        BufferedReader r = new BufferedReader(new InputStreamReader(System.in));
-        try {
-            String line;
-            do {
-                System.out.println("Type something (return quits):");
-                System.out.print(" Input: ");
-                line = r.readLine();
-                if (!line.equals("")) {
-                    System.out.println("   Got: " + line );
-                }
-            } while (!line.equals(""));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        System.out.println("Starting Test...");
+        System.out.println("%");
+        System.out.println("%%");
+        System.out.println("%s");
+        System.out.println("%d");
+        System.out.println("\\%s%%");
+        System.out.println("Test Complete...");
     }
 }
 

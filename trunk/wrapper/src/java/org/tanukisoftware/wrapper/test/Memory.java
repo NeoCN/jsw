@@ -1,7 +1,7 @@
-package com.silveregg.wrapper.test;
+package org.tanukisoftware.wrapper.test;
 
 /*
- * Copyright (c) 2001 Silver Egg Technology
+ * Copyright (c) 1999, 2003 TanukiSoftware.org
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -26,11 +26,8 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
-// Revision 1.2  2003/01/20 03:21:08  mortenson
-// Add limited support for java 1.2.x
-//
-// Revision 1.1  2002/09/17 14:56:08  mortenson
-// Added a test to verify that there are no memory leaks in the JVM.
+// Revision 1.1  2003/02/03 06:55:29  mortenson
+// License transfer to TanukiSoftware.org
 //
 
 import java.io.FileWriter;
@@ -39,6 +36,12 @@ import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+/**
+ *
+ *
+ * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @version $Revision$
+ */
 public class Memory implements Runnable
 {
     private Writer m_writer;

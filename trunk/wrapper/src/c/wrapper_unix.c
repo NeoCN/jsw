@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001 Silver Egg Technology
+ * Copyright (c) 1999, 2003 TanukiSoftware.org
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -22,92 +22,16 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  *
- *
  * $Log$
- * Revision 1.22  2003/02/02 14:51:52  mortenson
- * Implement feature request #653131 to force the JVM to immediately exit when
- * the user presses CTRL-C multiple times.
- *
- * Revision 1.21  2003/01/20 09:35:51  mortenson
- * Added a new wrapper.daemonize property which, when set, will form the wrapper
- * process to be a detached non-session group leader.
- * Patch by Rajiv Subrahmanyam
- *
- * Revision 1.20  2003/01/20 06:26:33  mortenson
- * Make it possible to create a pid file on all unix platforms.
- * By default they are only used by sh files however.
- *
- * Revision 1.19  2002/09/18 10:37:15  mortenson
- * Fix Bug #611024. The Wrapper would sometimes fail to start if
- * wrapper.max_failed_invocations is set to 1.
- *
- * Revision 1.18  2002/09/17 13:16:22  mortenson
- * Added a property to control the delay between JVM invocations.
- *
- * Revision 1.17  2002/09/13 10:29:17  mortenson
- * Fix a problem where the Wrapper would sometimes die on startup due to an
- * uninitialized variable.  This was new to 2.2.8 and not released.  Worked on most
- * machines, so glad it was caught...
- *
- * Revision 1.16  2002/09/10 16:17:26  mortenson
- * Get rid of tabs in files.  No other changes.
- *
- * Revision 1.15  2002/06/06 00:52:21  mortenson
- * If a JVM tries to reconnect to the Wrapper after it has started shutting down, the
- * Wrapper was getting confused in some cases.  I think that this was just a problem
- * with the "Appear Hung" test, but the Wrapper should be more stable now.
- *
- * Revision 1.14  2002/05/23 12:42:41  rybesh
- * fixed logger initialization on unix
- *
- * Revision 1.13  2002/05/22 16:19:53  mortenson
- * Fixed the % in JVM output bug on the unix version.
- *
- * Revision 1.12  2002/05/16 04:51:18  mortenson
- * Add a debug message stating which thread lead to System.exit being called
- *   via a call to shutdown.
- *
- * Revision 1.11  2002/03/07 09:23:25  mortenson
- * Go through and change the style of comments that we use so that they will not
- * cause compiler errors on older unix compilers.
- *
- * Revision 1.10  2002/03/07 03:22:22  rybesh
- * added signal handling for SIGQUIT (dumps JVM state)
- *
- * Revision 1.9  2002/02/20 14:05:29  spocke
- * Fixed cmdline property change bug.
- *
- * Revision 1.8  2002/01/27 15:04:50  spocke
- * Removed some old logger stuff, and added new logger.
- *
- * Revision 1.7  2002/01/24 09:43:56  mortenson
- * Added new Logger code which allows log levels.
- *
- * Revision 1.6  2002/01/10 08:19:37  mortenson
- * Added the ability to override properties from the command line.
- *
- * Revision 1.5  2001/12/11 09:17:02  rybesh
- * removed code to set current dir on unix as it is no longer needed
- *
- * Revision 1.4  2001/12/11 05:19:39  mortenson
- * Added the ablility to format and/or disable file logging and output to
- * the console.
- *
- * Revision 1.3  2001/12/07 07:29:38  rybesh
- * finished making wrapper scripts/executable relocatable on unix
- *
- * Revision 1.2  2001/12/07 01:48:28  rybesh
- * updated unix scripts + code to make paths relative, more easily relocatable
- *
- * Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
- * no message
+ * Revision 1.23  2003/02/03 06:58:35  mortenson
+ * License transfer to TanukiSoftware.org
  *
  */
 
 /**
  * Author:
- *   Leif Mortenson <leif@silveregg.co.jp>
- *   Ryan Shaw      <ryan@silveregg.co.jp>
+ *   Leif Mortenson <leif@tanukisoftware.com>
+ *   Ryan Shaw
  *
  * Version CVS $Revision$ $Date$
  */

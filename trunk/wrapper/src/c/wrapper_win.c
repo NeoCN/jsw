@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001 Silver Egg Technology
+ * Copyright (c) 1999, 2003 TanukiSoftware.org
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -22,115 +22,15 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  *
- *
  * $Log$
- * Revision 1.27  2003/02/02 14:43:25  mortenson
- * Implement feature request #653131 to force the JVM to immediately exit when
- * the user presses CTRL-C multiple times.
- *
- * Revision 1.26  2002/12/06 18:48:39  mortenson
- * Add a property, wrapper.ntservice.interactive, which makes it possible to
- * control whether or not the Java process can gain access to the desktop while
- * it is running as an NT service.
- *
- * Revision 1.25  2002/12/04 06:28:38  mortenson
- * Add the ability to specify an account name and password when installing an
- * NT service.
- *
- * Revision 1.24  2002/11/25 08:45:36  mortenson
- * Fix a problem where an access violation was leading to an infinite loop in the
- * try except block.
- *
- * Revision 1.23  2002/09/18 10:37:15  mortenson
- * Fix Bug #611024. The Wrapper would sometimes fail to start if
- * wrapper.max_failed_invocations is set to 1.
- *
- * Revision 1.22  2002/09/17 13:16:22  mortenson
- * Added a property to control the delay between JVM invocations.
- *
- * Revision 1.21  2002/09/13 10:29:17  mortenson
- * Fix a problem where the Wrapper would sometimes die on startup due to an
- * uninitialized variable.  This was new to 2.2.8 and not released.  Worked on most
- * machines, so glad it was caught...
- *
- * Revision 1.20  2002/09/10 16:17:27  mortenson
- * Get rid of tabs in files.  No other changes.
- *
- * Revision 1.19  2002/06/06 00:52:21  mortenson
- * If a JVM tries to reconnect to the Wrapper after it has started shutting down, the
- * Wrapper was getting confused in some cases.  I think that this was just a problem
- * with the "Appear Hung" test, but the Wrapper should be more stable now.
- *
- * Revision 1.18  2002/05/23 12:42:41  rybesh
- * fixed logger initialization on unix
- *
- * Revision 1.17  2002/05/16 04:51:18  mortenson
- * Add a debug message stating which thread lead to System.exit being called
- *   via a call to shutdown.
- *
- * Revision 1.16  2002/05/07 16:32:24  mortenson
- * the return value of setWorkingDir was not being handled correctly. (Bug #553220)
- *
- * Revision 1.15  2002/05/07 05:46:36  mortenson
- * Add the ability to set the priority at which the wrapper is run under NT systems.
- *
- * Revision 1.14  2002/03/29 05:23:21  mortenson
- * Fix Bug #531880 involving percent characters in JVM output.
- *
- * Revision 1.13  2002/03/07 09:23:25  mortenson
- * Go through and change the style of comments that we use so that they will not
- * cause compiler errors on older unix compilers.
- *
- * Revision 1.12  2002/03/07 08:23:35  mortenson
- * Fix a problem where the JVM was getting two thread dump signals.
- *
- * Revision 1.11  2002/03/07 08:10:13  mortenson
- * Add support for Thread Dumping
- * Fix a problem locating java on the path.
- *
- * Revision 1.10  2002/02/08 05:55:11  mortenson
- * Services installed on a path which included spaces were not working.
- * Make the syslog never unregister to avoid EventLog errors.
- * Fixed the log level of "waiting tostop..." messages
- *
- * Revision 1.9  2002/02/02 16:02:26  spocke
- * re-enabled the unregisterSyslogMessageFile it's now executed when
- * a service is removed.
- *
- * Revision 1.8  2002/01/28 19:08:08  spocke
- * Modified the NT Service Description support so that it doesn't insert
- * registry value when the string is empty (default value).
- *
- * Revision 1.7  2002/01/27 19:35:45  spocke
- * Added support for service description property.
- *
- * Revision 1.6  2002/01/24 09:43:56  mortenson
- * Added new Logger code which allows log levels.
- *
- * Revision 1.5  2002/01/10 08:19:37  mortenson
- * Added the ability to override properties from the command line.
- *
- * Revision 1.4  2002/01/09 01:16:10  mortenson
- * Modified the way the Wrapper is installed as a service on NT systems
- * so that a patched version of the Wrapper.exe file no longer needs to
- * be created.  (Based on code submitted by Johan Sorlin)
- *
- * Revision 1.3  2001/12/11 05:19:39  mortenson
- * Added the ablility to format and/or disable file logging and output to
- * the console.
- *
- * Revision 1.2  2001/12/04 05:49:48  mortenson
- * Add ability to use relative paths in scripts and conf files to ease
- * application deployment on Windows systems.
- *
- * Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
- * no message
+ * Revision 1.28  2003/02/03 06:55:27  mortenson
+ * License transfer to TanukiSoftware.org
  *
  */
 
 /**
  * Author:
- *   Leif Mortenson <leif@silveregg.co.jp>
+ *   Leif Mortenson <leif@tanukisoftware.com>
  *
  * Version CVS $Revision$ $Date$
  */

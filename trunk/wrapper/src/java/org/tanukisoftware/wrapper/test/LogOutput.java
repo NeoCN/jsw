@@ -1,7 +1,7 @@
-package com.silveregg.wrapper.test;
+package org.tanukisoftware.wrapper.test;
 
 /*
- * Copyright (c) 2001 Silver Egg Technology
+ * Copyright (c) 1999, 2003 TanukiSoftware.org
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -26,18 +26,17 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
-// Revision 1.2  2002/09/10 16:03:03  mortenson
-// Improve the performance of the log from JVM feature by allowing for more than
-// one log message each time through the main loop.
-//
-// Revision 1.1  2002/09/09 17:19:47  mortenson
-// Add ability to log to specific log levels from within the Wrapper.
+// Revision 1.1  2003/02/03 06:55:29  mortenson
+// License transfer to TanukiSoftware.org
 //
 
-import com.silveregg.wrapper.WrapperManager;
+import org.tanukisoftware.wrapper.WrapperManager;
 
 /**
- * Tests the various log levels via the WrapperManager.log() method.
+ *
+ *
+ * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @version $Revision$
  */
 public class LogOutput {
     private static void sleep() {

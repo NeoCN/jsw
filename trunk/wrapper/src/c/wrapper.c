@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001 Silver Egg Technology
+ * Copyright (c) 1999, 2003 TanukiSoftware.org
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -22,163 +22,16 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  *
- *
  * $Log$
- * Revision 1.40  2003/01/28 09:25:48  mortenson
- * Added support for building the wrapper on AIX and HPUX systems.  Thanks for
- * the patches involved go out to Ashish Gawarikar and William Lee.
- *
- * Revision 1.39  2003/01/20 09:35:50  mortenson
- * Added a new wrapper.daemonize property which, when set, will form the wrapper
- * process to be a detached non-session group leader.
- * Patch by Rajiv Subrahmanyam
- *
- * Revision 1.38  2003/01/20 06:26:33  mortenson
- * Make it possible to create a pid file on all unix platforms.
- * By default they are only used by sh files however.
- *
- * Revision 1.37  2002/12/06 18:48:38  mortenson
- * Add a property, wrapper.ntservice.interactive, which makes it possible to
- * control whether or not the Java process can gain access to the desktop while
- * it is running as an NT service.
- *
- * Revision 1.36  2002/12/04 06:28:38  mortenson
- * Add the ability to specify an account name and password when installing an
- * NT service.
- *
- * Revision 1.35  2002/11/04 10:16:50  mortenson
- * On Windows systems change any forward slashes in the wrapper.java.command
- * property to back slashes.  Some users had reported having problems on
- * Windows XP.
- *
- * Revision 1.34  2002/11/02 03:27:13  mortenson
- * Fix Bug #632215.  The WrapperManager.isLaunchedAsService() method was
- * always returning false.
- *
- * Revision 1.33  2002/10/29 03:59:34  mortenson
- * Fixed a problem on Unix systems where the default value for classpath
- * and java.library.path were not being set correctly.
- *
- * Revision 1.32  2002/10/29 03:39:23  mortenson
- * Add support for multiple library path elements.  Feature Request #613539
- *
- * Revision 1.31  2002/10/10 03:24:55  mortenson
- * Close an unclosed comment.  Wasn't causing any problems.
- *
- * Revision 1.30  2002/10/10 03:20:09  mortenson
- * Fix a problem where the Wrapper would not respond to exit requests while
- * pausing between JVM invocations.
- *
- * Revision 1.29  2002/09/18 10:37:15  mortenson
- * Fix Bug #611024. The Wrapper would sometimes fail to start if
- * wrapper.max_failed_invocations is set to 1.
- *
- * Revision 1.28  2002/09/17 13:16:22  mortenson
- * Added a property to control the delay between JVM invocations.
- *
- * Revision 1.27  2002/09/10 16:19:19  mortenson
- * Fix a compilation problem on Linix platforms.
- *
- * Revision 1.26  2002/09/10 16:17:26  mortenson
- * Get rid of tabs in files.  No other changes.
- *
- * Revision 1.25  2002/09/10 16:02:26  mortenson
- * Improve the performance of the log from JVM feature by allowing for more than
- * one log message each time through the main loop.
- * Fix some java c++ style comments that slipped into the code.
- *
- * Revision 1.24  2002/09/09 17:19:45  mortenson
- * Add ability to log to specific log levels from within the Wrapper.
- *
- * Revision 1.23  2002/08/11 05:32:44  mortenson
- * Make it possible for the user to configure the restart count and time via
- * the wrapper.max_failed_invocations and wrapper.successful_invocation_time
- * properties.  It was always 5 restarts within 30 seconds.
- * Added the ability to configure the JVM exit timeout via the
- * wrapper.jvm_exit.timeout property.  It was always 5.
- *
- * Revision 1.22  2002/07/19 02:06:11  mortenson
- * Added a new property: wrapper.cpu.timeout to control the cpu timeout added in
- * v2.2.7
- *
- * Revision 1.21  2002/06/06 00:52:21  mortenson
- * If a JVM tries to reconnect to the Wrapper after it has started shutting down, the
- * Wrapper was getting confused in some cases.  I think that this was just a problem
- * with the "Appear Hung" test, but the Wrapper should be more stable now.
- *
- * Revision 1.20  2002/06/02 13:38:58  mortenson
- * Added support for System Suspend and made the Wrapper handle heavy loads
- * better by avoiding unwanted timeouts.
- *
- * Revision 1.19  2002/05/23 12:42:41  rybesh
- * fixed logger initialization on unix
- *
- * Revision 1.18  2002/05/17 09:09:56  mortenson
- * Add a wrapper.shutdown.timeout property.
- *
- * Revision 1.17  2002/05/16 04:51:18  mortenson
- * Add a debug message stating which thread lead to System.exit being called
- *   via a call to shutdown.
- *
- * Revision 1.16  2002/05/07 05:46:36  mortenson
- * Add the ability to set the priority at which the wrapper is run under NT systems.
- *
- * Revision 1.15  2002/03/07 10:05:47  rybesh
- * fixed some miscellaneous unix compile errors
- *
- * Revision 1.14  2002/03/07 09:23:25  mortenson
- * Go through and change the style of comments that we use so that they will not
- * cause compiler errors on older unix compilers.
- *
- * Revision 1.13  2002/03/07 08:10:12  mortenson
- * Add support for Thread Dumping
- * Fix a problem locating java on the path.
- *
- * Revision 1.12  2002/02/08 05:55:55  mortenson
- * Make the syslog never unregister to avoid EventLog errors.
- *
- * Revision 1.11  2002/01/28 19:06:02  spocke
- * Modified default property for wrapper.ntservice.description.
- *
- * Revision 1.10  2002/01/28 01:14:36  mortenson
- * Changed default nt description.
- * Looks like some tabs to spaces conversions also.
- *
- * Revision 1.9  2002/01/28 01:01:53  rybesh
- * few minor fixes to get solaris version to compile
- *
- * Revision 1.8  2002/01/27 19:35:00  spocke
- * Added support for wildcards on Unix classpaths and service description property.
- *
- * Revision 1.7  2002/01/27 16:58:32  mortenson
- * Changed the log rolling defaults from -1 to 0
- *
- * Revision 1.6  2002/01/26 23:30:35  spocke
- * Added rolling file support to logger.
- *
- * Revision 1.5  2002/01/24 09:43:56  mortenson
- * Added new Logger code which allows log levels.
- *
- * Revision 1.4  2002/01/13 04:49:53  mortenson
- * Added Wildcard support for Classpath entries.
- *
- * Revision 1.3  2001/12/11 05:19:39  mortenson
- * Added the ablility to format and/or disable file logging and output to
- * the console.
- *
- * Revision 1.2  2001/12/06 09:36:24  mortenson
- * Docs changes, Added sample apps, Fixed some problems with
- * relative paths  (See revisions.txt)
- *
- * Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
- * no message
+ * Revision 1.41  2003/02/03 06:55:26  mortenson
+ * License transfer to TanukiSoftware.org
  *
  */
 
 /**
  * Author:
- *   Leif Mortenson <leif@silveregg.co.jp>
- *   Ryan Shaw      <ryan@silveregg.co.jp>
+ *   Leif Mortenson <leif@tanukisoftware.com>
+ *   Ryan Shaw
  *
  * Version CVS $Revision$ $Date$
  */

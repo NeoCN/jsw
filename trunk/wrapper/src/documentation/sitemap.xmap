@@ -6,7 +6,7 @@
 
     <map:components>
 
-	<map:generators default="file">
+    <map:generators default="file">
             <map:generator 
                            name="file"        
                            src="org.apache.cocoon.generation.FileGenerator" label="content"/>
@@ -84,13 +84,6 @@
                 <map:transform type="xinclude"/>
                 <map:transform src="stylesheets/docbook2body.xsl"/>
                 <map:serialize type="xml"/>
-            </map:match>
-
-            <map:match pattern="*/*.pdf">
-                <map:generate src="xdocs/{1}/{2}.xml"/>
-                <map:transform type="xinclude"/>
-                <map:transform src="stylesheets/docbook/silveregg/fo/{1}.xsl"/>
-                <map:serialize type="fo2pdf"/>
             </map:match>
 
             <!-- ================  Static  =========================== -->

@@ -76,11 +76,11 @@
               tofile="${test.dir}/backgroundthreads.conf"
               filtering="on"/>
         <replace file="${test.dir}/backgroundthreads.conf"
-                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
-                 value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
         <replace file="${test.dir}/backgroundthreads.conf"
                  token="#wrapper.app.parameter.1="
-                 value="wrapper.app.parameter.1=com.silveregg.wrapper.test.BackgroundThreads" />
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.BackgroundThreads" />
         <replace file="${test.dir}/backgroundthreads.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
@@ -93,11 +93,11 @@
               tofile="${test.dir}/longrunningbackgroundthreads.conf"
               filtering="on"/>
         <replace file="${test.dir}/longrunningbackgroundthreads.conf"
-                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
-                 value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
         <replace file="${test.dir}/longrunningbackgroundthreads.conf"
                  token="#wrapper.app.parameter.1="
-                 value="wrapper.app.parameter.1=com.silveregg.wrapper.test.LongRunningBackgroundThreads" />
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.LongRunningBackgroundThreads" />
         <replace file="${test.dir}/longrunningbackgroundthreads.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
@@ -110,11 +110,11 @@
               tofile="${test.dir}/daemonthreads.conf"
               filtering="on"/>
         <replace file="${test.dir}/daemonthreads.conf"
-                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
-                 value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
         <replace file="${test.dir}/daemonthreads.conf"
                  token="#wrapper.app.parameter.1="
-                 value="wrapper.app.parameter.1=com.silveregg.wrapper.test.DaemonThreads" />
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.DaemonThreads" />
         <replace file="${test.dir}/daemonthreads.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
@@ -127,11 +127,11 @@
               tofile="${test.dir}/noreturn.conf"
               filtering="on"/>
         <replace file="${test.dir}/noreturn.conf"
-                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
-                 value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
         <replace file="${test.dir}/noreturn.conf"
                  token="#wrapper.app.parameter.1="
-                 value="wrapper.app.parameter.1=com.silveregg.wrapper.test.NoReturn" />
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.NoReturn" />
         <replace file="${test.dir}/noreturn.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
@@ -144,11 +144,11 @@
               tofile="${test.dir}/quickcomplete.conf"
               filtering="on"/>
         <replace file="${test.dir}/quickcomplete.conf"
-                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
-                 value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
         <replace file="${test.dir}/quickcomplete.conf"
                  token="#wrapper.app.parameter.1="
-                 value="wrapper.app.parameter.1=com.silveregg.wrapper.test.QuickComplete" />
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.QuickComplete" />
         <replace file="${test.dir}/quickcomplete.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
@@ -161,11 +161,11 @@
               tofile="${test.dir}/envvars.conf"
               filtering="on"/>
         <replace file="${test.dir}/envvars.conf"
-                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
-                 value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
         <replace file="${test.dir}/envvars.conf"
                  token="#wrapper.app.parameter.1="
-                 value="wrapper.app.parameter.1=com.silveregg.wrapper.test.EnvironmentVariables" />
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.EnvironmentVariables" />
         <replace file="${test.dir}/envvars.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
@@ -178,11 +178,11 @@
               tofile="${test.dir}/percentoutput.conf"
               filtering="on"/>
         <replace file="${test.dir}/percentoutput.conf"
-                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
-                 value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
         <replace file="${test.dir}/percentoutput.conf"
                  token="#wrapper.app.parameter.1="
-                 value="wrapper.app.parameter.1=com.silveregg.wrapper.test.PercentOutput" />
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.PercentOutput" />
         <replace file="${test.dir}/percentoutput.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
@@ -195,11 +195,11 @@
               tofile="${test.dir}/logoutput.conf"
               filtering="on"/>
         <replace file="${test.dir}/logoutput.conf"
-                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
-                 value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
         <replace file="${test.dir}/logoutput.conf"
                  token="#wrapper.app.parameter.1="
-                 value="wrapper.app.parameter.1=com.silveregg.wrapper.test.LogOutput" />
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.LogOutput" />
         <replace file="${test.dir}/logoutput.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
@@ -212,8 +212,8 @@
               tofile="${test.dir}/restarter.conf"
               filtering="on"/>
         <replace file="${test.dir}/restarter.conf"
-                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
-                 value="wrapper.java.mainclass=com.silveregg.wrapper.test.Restarter" />
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Restarter" />
         <replace file="${test.dir}/restarter.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
@@ -226,8 +226,8 @@
               tofile="${test.dir}/action.conf"
               filtering="on"/>
         <replace file="${test.dir}/action.conf"
-                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
-                 value="wrapper.java.mainclass=com.silveregg.wrapper.test.TestAction" />
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.TestAction" />
         <replace file="${test.dir}/action.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
@@ -240,11 +240,11 @@
               tofile="${test.dir}/shutdownhook.conf"
               filtering="on"/>
         <replace file="${test.dir}/shutdownhook.conf"
-                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
-                 value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
         <replace file="${test.dir}/shutdownhook.conf"
                  token="#wrapper.app.parameter.1="
-                 value="wrapper.app.parameter.1=com.silveregg.wrapper.test.ShutdownHook" />
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.ShutdownHook" />
         <replace file="${test.dir}/shutdownhook.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
@@ -257,11 +257,11 @@
               tofile="${test.dir}/outputloader.conf"
               filtering="on"/>
         <replace file="${test.dir}/outputloader.conf"
-                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
-                 value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
         <replace file="${test.dir}/outputloader.conf"
                  token="#wrapper.app.parameter.1="
-                 value="wrapper.app.parameter.1=com.silveregg.wrapper.test.OutputLoader" />
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.OutputLoader" />
         <replace file="${test.dir}/outputloader.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
@@ -274,11 +274,11 @@
               tofile="${test.dir}/memory.conf"
               filtering="on"/>
         <replace file="${test.dir}/memory.conf"
-                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
-                 value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
         <replace file="${test.dir}/memory.conf"
                  token="#wrapper.app.parameter.1="
-                 value="wrapper.app.parameter.1=com.silveregg.wrapper.test.Memory" />
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.Memory" />
         <replace file="${test.dir}/memory.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
@@ -291,11 +291,11 @@
               tofile="${test.dir}/systemin.conf"
               filtering="on"/>
         <replace file="${test.dir}/systemin.conf"
-                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
-                 value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp" />
         <replace file="${test.dir}/systemin.conf"
                  token="#wrapper.app.parameter.1="
-                 value="wrapper.app.parameter.1=com.silveregg.wrapper.test.SystemIn" />
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.SystemIn" />
         <replace file="${test.dir}/systemin.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />

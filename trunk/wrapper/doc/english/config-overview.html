@@ -6,7 +6,7 @@
 <body bgcolor="#ffffff" marginheight="4" marginwidth="4" leftmargin="4" topmargin="4" alink="#023264" vlink="#023264" link="#525D76" text="#000000">
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top"><a href="http://www.silveregg.co.jp/"><img src="images/silveregg-logo.png" border="0" vspace="0" hspace="0"></a></td><td bgcolor="#ffffff" align="right" valign="bottom" width="100%"><font color="gray" face="arial,helvetica,sanserif" size="+3"><i><b>Java Service Wrapper</b></i></font></td>
+<td align="left" valign="top"><a href="http://www.tanukisoftware.org/"><img src="images/TanukiSoftwareOrgLogo.png" border="0" vspace="0" hspace="0"></a></td><td bgcolor="#ffffff" align="right" valign="bottom" width="100%"><font color="gray" face="arial,helvetica,sanserif" size="+3"><i><b>Java Service Wrapper</b></i></font></td>
 </tr>
 </table>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
@@ -54,18 +54,10 @@
 <a href="troubleshooting.html"><font size="-1">Troubleshooting</font></a>
 </li>
 <li>
-<a href="javadocs.html"><font size="-1">JavaDocs API</font></a>
+<a href="history.html"><font size="-1">Project History</font></a>
 </li>
-</ul>
-</font>
-<br>
-<br>
-<font size="+1" color="#000000">Users</font>
-<br>
-<font size="-1">
-<ul>
 <li>
-<a href="users.html"><font size="-1">Users of Wrapper</font></a>
+<a href="javadocs.html"><font size="-1">JavaDocs API</font></a>
 </li>
 </ul>
 </font>
@@ -288,7 +280,7 @@
 wrapper.java.command=java
 
 # Java Main class
-wrapper.java.mainclass=com.silveregg.wrapper.test.Main
+wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main
 
 # Java Classpath (include wrapper.jar)  Add class path elements as
 #  needed starting from 1
@@ -680,7 +672,7 @@ wrapper.ntservice.interactive=false
 <p align="justify">
                                 Class to execute when the wrapper starts the application.  If your
                                 application implements WrapperListener, then this will be that main
-                                class.  Otherwise, this should be com.silveregg.wrapper.WrapperSimpleApp
+                                class.  Otherwise, this should be org.tanukisoftware.wrapper.WrapperSimpleApp
                                 Then your main class will be listed as the first application
                                 parameter below.
                                 <p align="justify">
@@ -707,7 +699,7 @@ wrapper.ntservice.interactive=false
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
 <td>
-<pre>wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp</pre>
+<pre>wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp</pre>
 </td>
 </tr>
 </table>
@@ -957,7 +949,7 @@ wrapper.java.additional.3.stripquotes=TRUE</pre>
                             </p>
                             
 <p align="justify">
-                                When the value of wrapper.java.mainclass is com.silveregg.wrapper.WrapperSimpleApp,
+                                When the value of wrapper.java.mainclass is org.tanukisoftware.wrapper.WrapperSimpleApp,
                                 the first parameter to the application must be the name of the
                                 class which contains your main method.  All other parameters are
                                 then passed to your application's main method in order.
@@ -978,7 +970,7 @@ wrapper.java.additional.3.stripquotes=TRUE</pre>
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
 <td>
-<pre>wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp
+<pre>wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp
 wrapper.app.parameter.1=com.widgetsrus.MyAppMain
 wrapper.app.parameter.2=-d
 wrapper.app.parameter.3=-c"../conf/myapp.conf"
@@ -2949,7 +2941,7 @@ INFO   | jvm 1    | JVM Process has not received any CPU time for 27 seconds.
 <table cellpadding="0" cellspacing="0" border="0" width="100%">
 <tr>
 <td align="left"><font color="#525D76" size="-1" face="arial,helvetica,sanserif"><i>
-                            Copyright &copy;2000-2001 by Silver Egg Technology Co., Ltd.
+                            Copyright &copy;1999-2003 by TanukiSoftware.org.
                             All Rights Reserved.
                         </i></font></td><td align="right"><font color="#525D76" size="-1" face="arial,helvetica,sanserif"><i>
                             last modified:

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001 Silver Egg Technology
+ * Copyright (c) 1999, 2003 TanukiSoftware.org
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -22,17 +22,9 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  *
- *
  * $Log$
- * Revision 1.3  2002/07/06 01:16:28  mortenson
- * Fix a compilation error on some Solaris systems. Bug #574528
- *
- * Revision 1.2  2002/03/07 09:23:25  mortenson
- * Go through and change the style of comments that we use so that they will not
- * cause compiler errors on older unix compilers.
- *
- * Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
- * no message
+ * Revision 1.4  2003/02/03 06:55:27  mortenson
+ * License transfer to TanukiSoftware.org
  *
  */
 
@@ -55,12 +47,12 @@ void wrapperJNIHandleSignal(int signal) {
 
 
 /*
- * Class:     com_silveregg_wrapper_WrapperManager
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeGetControlEvent
  * Signature: (V)I
  */
 JNIEXPORT jint JNICALL
-Java_com_silveregg_wrapper_WrapperManager_nativeGetControlEvent(JNIEnv *env, jclass clazz) {
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetControlEvent(JNIEnv *env, jclass clazz) {
     int event;
 
     /* Use this as a very simple semaphore */
@@ -79,12 +71,12 @@ Java_com_silveregg_wrapper_WrapperManager_nativeGetControlEvent(JNIEnv *env, jcl
 }
 
 /*
- * Class:     com_silveregg_wrapper_WrapperManager
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    accessViolationInner
  * Signature: (V)V
  */
 JNIEXPORT void JNICALL
-Java_com_silveregg_wrapper_WrapperManager_accessViolationInner(JNIEnv *env, jclass clazz) {
+Java_org_tanukisoftware_wrapper_WrapperManager_accessViolationInner(JNIEnv *env, jclass clazz) {
     char *ptr;
 
     /* Cause access violation */

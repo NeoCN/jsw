@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001 Silver Egg Technology
+ * Copyright (c) 1999, 2003 TanukiSoftware.org
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -22,79 +22,16 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  *
- *
  * $Log$
- * Revision 1.19  2003/01/28 09:25:46  mortenson
- * Added support for building the wrapper on AIX and HPUX systems.  Thanks for
- * the patches involved go out to Ashish Gawarikar and William Lee.
- *
- * Revision 1.18  2002/11/25 08:47:24  mortenson
- * Remove unused code.
- *
- * Revision 1.17  2002/11/15 16:30:14  spocke
- * Fixed bug where wrapper.logfile.maxsize produced 0 if it didn't have an k or m multiple.
- *
- * Revision 1.16  2002/09/10 16:01:12  mortenson
- * Fix some java c++ style comments that slipped into the code.
- *
- * Revision 1.15  2002/09/09 17:19:43  mortenson
- * Add ability to log to specific log levels from within the Wrapper.
- *
- * Revision 1.14  2002/09/09 15:52:41  mortenson
- * Fix an allignment problem with WARN level output.
- *
- * Revision 1.13  2002/08/11 05:21:28  mortenson
- * Add a Warning level to the logger
- *
- * Revision 1.12  2002/05/08 03:59:43  mortenson
- * Fix a problem where the log output was not being directed to a file called
- *  wrapper.log in the same directory as the Wrapper binary in the event that the
- *  configured wrapper log file could not be accessed.
- * I think there was also a file handle leak there that I noticed when I was looking at
- *  the code.
- *
- * Revision 1.11  2002/03/29 05:23:21  mortenson
- * Fix Bug #531880 involving percent characters in JVM output.
- *
- * Revision 1.10  2002/03/07 09:23:25  mortenson
- * Go through and change the style of comments that we use so that they will not
- * cause compiler errors on older unix compilers.
- *
- * Revision 1.9  2002/02/19 10:34:11  spocke
- * Fixed bug issue with core dumps when trying to close an un-opened log file.
- *
- * Revision 1.8  2002/02/08 05:55:55  mortenson
- * Make the syslog never unregister to avoid EventLog errors.
- *
- * Revision 1.7  2002/02/02 16:02:13  spocke
- * re-enabled the unregisterSyslogMessageFile it's now executed when
- * a service is removed.
- *
- * Revision 1.6  2002/01/28 19:05:01  spocke
- * Changed registerSyslogMessageFile so it only places Eventlog registry info
- * when the syslog is enabled.
- *
- * Revision 1.5  2002/01/27 19:30:58  spocke
- * Added include on errno.h to enable compilation on Unix.
- *
- * Revision 1.4  2002/01/27 16:59:54  mortenson
- * Modified the log rolling code so that a max log files value is not required.
- *
- * Revision 1.3  2002/01/27 15:02:45  spocke
- * Fixed some Unix issues, so it compiles better.
- *
- * Revision 1.2  2002/01/26 23:31:03  spocke
- * Added rolling file support to logger.
- *
- * Revision 1.1  2002/01/24 09:38:56  mortenson
- * Added new Logger code contributed by Johan Sorlin
+ * Revision 1.20  2003/02/03 06:55:26  mortenson
+ * License transfer to TanukiSoftware.org
  *
  */
 
 /**
  * Author:
  *   Johan Sorlin   <Johan.Sorlin@Paregos.se>
- *   Leif Mortenson <leif@silveregg.co.jp>
+ *   Leif Mortenson <leif@tanukisoftware.com>
  *
  * Version CVS $Revision$ $Date$
  */

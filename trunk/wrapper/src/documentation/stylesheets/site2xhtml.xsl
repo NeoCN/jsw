@@ -19,8 +19,8 @@
         <table width="100%" cellspacing="0" cellpadding="0" border="0">
             <tr>
                 <td valign="top" align="left">
-                    <a href="http://www.silveregg.co.jp/">
-                        <img hspace="0" vspace="0" border="0" src="images/silveregg-logo.png"/>
+                    <a href="http://www.tanukisoftware.org/">
+                        <img hspace="0" vspace="0" border="0" src="images/TanukiSoftwareOrgLogo.png"/>
                     </a>
                 </td>
                 <td width="100%" valign="bottom" align="right" bgcolor="#ffffff">
@@ -68,7 +68,7 @@
                 <td align="left">
                     <font face="arial,helvetica,sanserif" size="-1" color="#525D76">
                         <i>
-                            Copyright &#169;2000-2001 by Silver Egg Technology Co., Ltd.
+                            Copyright &#169;1999-2003 by TanukiSoftware.org.
                             All Rights Reserved.
                         </i>
                     </font>

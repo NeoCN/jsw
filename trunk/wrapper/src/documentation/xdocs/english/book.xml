@@ -6,7 +6,7 @@
 
 <book software="Wrapper" 
       title="Java Service Wrapper" 
-      copyright="Silver Egg Technology Co., Ltd.">
+      copyright="TanukiSoftware.org">
     
     <menu label="Documentation">
         <menu-item label="Introduction"               href="introduction.html"/>
@@ -19,11 +19,8 @@
         <menu-item label="Integration Samples"        href="samples.html"/>
         <menu-item label="FAQ"                        href="faq.html"/>
         <menu-item label="Troubleshooting"            href="troubleshooting.html"/>
+        <menu-item label="Project History"            href="history.html"/>
         <menu-item label="JavaDocs API"               href="javadocs.html"/>
-    </menu>
-    
-    <menu label="Users">
-        <menu-item label="Users of Wrapper"           href="users.html"/>
     </menu>
     
     <menu label="Download">

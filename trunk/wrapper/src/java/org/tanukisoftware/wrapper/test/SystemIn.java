@@ -1,7 +1,7 @@
-package com.silveregg.wrapper.test;
+package org.tanukisoftware.wrapper.test;
 
 /*
- * Copyright (c) 2001 Silver Egg Technology
+ * Copyright (c) 1999, 2003 TanukiSoftware.org
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -26,24 +26,41 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
-// Revision 1.1  2001/12/06 10:39:12  mortenson
-// The WrapperSimpleApp method of launchine applications was not
-// working correctly with applications whose main method did not return.
+// Revision 1.1  2003/02/03 06:55:29  mortenson
+// License transfer to TanukiSoftware.org
 //
 
-public class NoReturn {
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.IOException;
+
+/**
+ *
+ *
+ * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @version $Revision$
+ */
+public class SystemIn {
     /*---------------------------------------------------------------
      * Main Method
      *-------------------------------------------------------------*/
     public static void main(String[] args) {
-        System.out.println("Main starting loop that will not return");
-        
-        while(true) {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-            }
-            System.out.println("NoReturn.main() running...");
+        System.out.println("Test the functionality of System.in when run as a console application.");
+        System.out.println("If being controlled by the Wrapper, then an IOException should be thrown.");
+        System.out.println("If run as a standard Java app, then no errors should be thrown.");
+        BufferedReader r = new BufferedReader(new InputStreamReader(System.in));
+        try {
+            String line;
+            do {
+                System.out.println("Type something (return quits):");
+                System.out.print(" Input: ");
+                line = r.readLine();
+                if (!line.equals("")) {
+                    System.out.println("   Got: " + line );
+                }
+            } while (!line.equals(""));
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
