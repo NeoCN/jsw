@@ -102,10 +102,12 @@
             log to the Windows event log and Unix syslog.
         </para>
         <para>
-            In April 2002, after having suffered the same fate as so many other great
-            internet companies, Silver Egg was forced to close its doors.  Ryan and
-            Leif both moved on to new jobs but continued to maintain the Wrapper on
-            private time as had been done since its initial release on SourceForge.
+            Being a company which provides middleware software and services to other
+            internet companies, Silver Egg felt the full brunt of the downward spiral
+            in the post bubble internet market, and in April 2002 were forced to do
+            a reorganization.  They have since come back strong, but Ryan and Leif
+            both chose to move on to new jobs while continuing to maintain the Wrapper
+            as a project on SourceForge.
         </para>
     </section>
     <section>
