@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.27  2003/07/04 03:32:22  mortenson
+ * The error code was being displayed twice when unable to write to the event log.
+ *
  * Revision 1.26  2003/07/04 03:18:36  mortenson
  * Improve the error message displayed when the NT EventLog is full in response
  * to feature request #643617.
@@ -576,8 +579,7 @@ void sendEventlogMessage( int source_id, int level, char *szBuff ) {
 
 		// Recurse so this error gets set in the log file and console.  The syslog
 		//  output has been disabled so we will not get back here.
-		log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to write to the EventLog due to: %s (err %d)",
-			getLastErrorText(), GetLastError());
+		log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to write to the EventLog due to: %s", getLastErrorText());
 		log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Internally setting wrapper.syslog.loglevel=NONE to prevent further messages.");
     }
 
