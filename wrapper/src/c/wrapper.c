@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.102  2004/06/30 14:59:24  mortenson
+ * Fix some indentation.
+ *
  * Revision 1.101  2004/06/30 14:58:03  mortenson
  * Fix several error messages that were displaying errno values directly
  * rather than displaying their human readable meanings.
@@ -2340,7 +2343,7 @@ void wrapperKeyRegistered(char *key) {
             /* Send the ping timeout to the JVM. */
             if ( wrapperData->pingTimeout >= WRAPPER_TIMEOUT_MAX ) {
                 /* Timeout disabled */
-             sprintf(buffer, "%d", 0);
+                sprintf(buffer, "%d", 0);
             } else {
                 sprintf(buffer, "%d", wrapperData->pingTimeout);
             }
