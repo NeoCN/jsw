@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.20  2002/09/10 16:17:27  mortenson
+ * Get rid of tabs in files.  No other changes.
+ *
  * Revision 1.19  2002/06/06 00:52:21  mortenson
  * If a JVM tries to reconnect to the Wrapper after it has started shutting down, the
  * Wrapper was getting confused in some cases.  I think that this was just a problem
@@ -305,7 +308,7 @@ int wrapperConsoleHandler(int key) {
         /* If the java process was launched using the same console, ie where processflags=CREATE_NEW_PROCESS_GROUP; */
         /* then the java process will also get this message, so it can be ignored here.                             */
         /*
-		requestDumpJVMState();
+        requestDumpJVMState();
         */
 
         quit = FALSE;
@@ -352,13 +355,13 @@ int wrapperConsoleHandler(int key) {
  */
 void requestDumpJVMState() {
     if (wrapperProcess != NULL) {
-		log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Dumping JVM state.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Dumping JVM state.");
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Sending BREAK event to process group %ld.", wrapperProcessId);
-		if ( GenerateConsoleCtrlEvent( CTRL_BREAK_EVENT, wrapperProcessId ) == 0 ) {
-			log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to send BREAK event to JVM process.  Err(%ld : %s)",
-				GetLastError(), getLastErrorText(szErr, 256));
-		}
-	}
+        if ( GenerateConsoleCtrlEvent( CTRL_BREAK_EVENT, wrapperProcessId ) == 0 ) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to send BREAK event to JVM process.  Err(%ld : %s)",
+                GetLastError(), getLastErrorText(szErr, 256));
+        }
+    }
 }
 
 void wrapperBuildJavaCommand() {
@@ -613,12 +616,12 @@ void wrapperKillProcess() {
     /* Check to make sure that the JVM process is still running */
     ret = WaitForSingleObject(wrapperProcess, 0);
     if (ret == WAIT_TIMEOUT) {
-		/* JVM is still up when it should have already stopped itself. */
-		if (wrapperData->requestThreadDumpOnFailedJVMExit) {
-			requestDumpJVMState();
+        /* JVM is still up when it should have already stopped itself. */
+        if (wrapperData->requestThreadDumpOnFailedJVMExit) {
+            requestDumpJVMState();
 
-	        Sleep(1000);     /* 1 second in milliseconds */
-		}
+         Sleep(1000);     /* 1 second in milliseconds */
+        }
 
         /* Kill it immediately. */
         if (TerminateProcess(wrapperProcess, 0)) {
@@ -629,7 +632,7 @@ void wrapperKillProcess() {
         }
 
         /* Give the JVM a chance to be killed so that the state will be correct. */
-		Sleep(500); /* 0.5 seconds in milliseconds */
+        Sleep(500); /* 0.5 seconds in milliseconds */
     }
 
     wrapperData->jState = WRAPPER_JSTATE_DOWN;
@@ -1275,7 +1278,7 @@ void _CRTAPI1 main(int argc, char **argv) {
         wrapperData->restartRequested = FALSE;
         wrapperData->jvmRestarts = 0;
 
-	wrapperInitializeLogging();
+    wrapperInitializeLogging();
 
         if (setWorkingDir()) {
             appExit(1);
