@@ -94,7 +94,7 @@ then
     if [ ! -x $PSEXE ]
     then
         echo "Unable to locate 'ps'."
-        echo "Please report this with the location on your system."
+        echo "Please report this message along with the location of the command on your system."
         exit 1
     fi
 fi
@@ -110,7 +110,20 @@ fi
 # Check the configured user
 if [ "X$RUN_AS_USER" != "X" ]
 then
-    if [ "`id -u -n`" = "$RUN_AS_USER" ]
+    # Resolve the location of the 'id' command
+    IDEXE="/usr/xpg4/bin/id"
+    if [ ! -x $IDEXE ]
+    then
+        IDEXE="/usr/bin/id"
+        if [ ! -x $IDEXE ]
+        then
+            echo "Unable to locate 'id'."
+            echo "Please report this message along with the location of the command on your system."
+            exit 1
+        fi
+    fi
+
+    if [ "`$IDEXE -u -n`" = "$RUN_AS_USER" ]
     then
         # Already running as the configured user.  Avoid password prompts by not calling su.
         RUN_AS_USER=""
