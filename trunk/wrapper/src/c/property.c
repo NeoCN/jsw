@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.33  2004/12/16 14:23:57  mortenson
+ * Fix some UNIX compiler warnings.
+ *
  * Revision 1.32  2004/12/08 04:54:29  mortenson
  * Make it possible to access the contents of the Wrapper configuration file from
  * within the JVM.
@@ -845,12 +848,12 @@ char *linearizeProperties(Properties *properties, char separator) {
         
         /* Handle any characters that will need to be escaped. */
         c = property->name;
-        while (c = strchr(c, separator)) {
+        while ((c = strchr(c, separator)) != NULL) {
             size++;
             c++;
         }
         c = property->value;
-        while (c = strchr(c, separator)) {
+        while ((c = strchr(c, separator)) != NULL) {
             size++;
             c++;
         }
@@ -869,7 +872,7 @@ char *linearizeProperties(Properties *properties, char separator) {
     while (property != NULL) {
         /* name */
         work = property->name;
-        while (c = strchr(work, separator)) {
+        while ((c = strchr(work, separator)) != NULL) {
             memcpy(buffer, work, c - work + 1);
             buffer += c - work + 1;
             buffer[0] = separator;
@@ -885,7 +888,7 @@ char *linearizeProperties(Properties *properties, char separator) {
         
         /* value */
         work = property->value;
-        while (c = strchr(work, separator)) {
+        while ((c = strchr(work, separator)) != NULL) {
             memcpy(buffer, work, c - work + 1);
             buffer += c - work + 1;
             buffer[0] = separator;
