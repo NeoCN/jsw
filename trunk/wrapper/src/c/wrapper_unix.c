@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.46  2003/08/15 17:40:26  mortenson
+ * Stop clearing the file creation mask when the Unix version of the Wrapper is
+ * run as a daemon process.
+ *
  * Revision 1.45  2003/08/15 17:16:18  mortenson
  * Fix tabs.
  *
@@ -613,8 +617,6 @@ int writePidFile() {
 void daemonize() {
     pid_t pid;
     int fd;
-    
-    umask(0); /* clear file creation mask */
     
     /* first fork */
     if (wrapperData->isDebugging) {
