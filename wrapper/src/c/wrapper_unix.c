@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.67  2004/06/02 09:15:55  mortenson
+ * Fix some indentation and a few comment typos.
+ *
  * Revision 1.66  2004/04/08 15:09:12  mortenson
  * Fix a compiler error.
  *
@@ -367,41 +370,42 @@ void *timerRunner(void *arg) {
     int first = 1;
 
     /* Immediately register this thread with the logger. */
-   logRegisterThread(WRAPPER_THREAD_TIMER);
+    logRegisterThread(WRAPPER_THREAD_TIMER);
 
-   while (TRUE) {
-       usleep(WRAPPER_TICK_MS * 1000);
+    while (TRUE) {
+        usleep(WRAPPER_TICK_MS * 1000);
 
-       /* Get the tick count based on the system time. */
-       sysTicks = wrapperGetSystemTicks();
+        /* Get the tick count based on the system time. */
+        sysTicks = wrapperGetSystemTicks();
 
-       /* Advance the timer tick count. */
-       timerTicks++;
+        /* Advance the timer tick count. */
+        timerTicks++;
 
-       /* Calculate the offset between the two tick counts. This will always work due to overflow. */
-       tickOffset = sysTicks - timerTicks;
+        /* Calculate the offset between the two tick counts. This will always work due to overflow. */
+        tickOffset = sysTicks - timerTicks;
 
-       /* The number we really want is the difference between this tickOffset and the previous one. */
-       offsetDiff = tickOffset - lastTickOffset;
+        /* The number we really want is the difference between this tickOffset and the previous one. */
+        offsetDiff = tickOffset - lastTickOffset;
 
-       if (first) {
-           first = 0;
-       } else {
-           if (offsetDiff > wrapperData->timerSlowThreshold) {
-               log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The timer fell behind the system clock by %ldms.", offsetDiff * WRAPPER_TICK_MS);
-           } else if (offsetDiff < -1 * wrapperData->timerFastThreshold) {
-               log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The system clock fell behind the timer by %ldms.", -1 * offsetDiff * WRAPPER_TICK_MS);
-       }
-           /*
-           log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Timer running: %lu, %lu, %lu, %ld", timerTicks, sysTicks, tickOffset, offsetDiff);
-           */
-       }
+        if (first) {
+            first = 0;
+        } else {
+            if (offsetDiff > wrapperData->timerSlowThreshold) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The timer fell behind the system clock by %ldms.", offsetDiff * WRAPPER_TICK_MS);
+            } else if (offsetDiff < -1 * wrapperData->timerFastThreshold) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The system clock fell behind the timer by %ldms.", -1 * offsetDiff * WRAPPER_TICK_MS);
+            }
 
-       /* Store this tick offset for the next time through the loop. */
-       lastTickOffset = tickOffset;
-   }
+            /*
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Timer running: %lu, %lu, %lu, %ld", timerTicks, sysTicks, tickOffset, offsetDiff);
+            */
+        }
 
-   return NULL;
+        /* Store this tick offset for the next time through the loop. */
+        lastTickOffset = tickOffset;
+    }
+
+    return NULL;
 }
 
 /**
@@ -416,7 +420,7 @@ int initializeTimer() {
         &timerThreadId,
         NULL, /* No attributes. */
         timerRunner,
-        NULL); /* No parameters need to passed to the thread. */
+        NULL); /* No parameters need to be passed to the thread. */
     if (res) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
             "Unable to create a timer thread: %d, %s", res, getLastErrorText());
@@ -444,7 +448,7 @@ int wrapperInitialize() {
         /* We are going to be using system time so there is no reason to start up a timer thread. */
         timerThreadId = 0;
     } else {
-        /* Create an initialize a timer thread. */
+        /* Create and initialize a timer thread. */
         if ((res = initializeTimer()) != 0 ) {
             return res;
         } 
