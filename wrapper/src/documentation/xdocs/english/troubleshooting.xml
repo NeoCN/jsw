@@ -52,7 +52,9 @@ $Id$
             <para>
                 Another good place to look is the
                 <ulink url="http://java.sun.com/docs/hotspot/index.html">Performance Documentation for the Java HotSpot VM</ulink>
-                page on Sun's site.
+                page on Sun's site.  In addition, there was a very informative JDC Tech Tip talking
+                about <ulink url="http://java.sun.com/developer/JDCTechTips/2004/tt0420.html#2">garbage collection</ulink>
+                issues.
             </para>
         </section>
     </section>
