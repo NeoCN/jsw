@@ -7,7 +7,7 @@
      ******************************************************************** -->
 
 <chapter id="props-nt">
-    <title>Windows NT/2000/XP Service Configuration Properties</title>
+    <title>Windows NT/2000/XP Configuration Properties</title>
     <section>
         <title>Configuration Property Overview</title>
         <itemizedlist>
@@ -23,55 +23,66 @@
         </itemizedlist>
     </section>
     <section>
-        <title>Windows NT/2000/XP Service Configuration Properties</title>
+        <title>Windows NT/2000/XP Configuration Properties</title>
         <para>
             Properties which are only used on Windows platforms.
         </para>
-        <warning>
-            <simpara>
-                Do not modify any of these parameters when an application using
-                the configuration file has been installed as a service.  Please
-                uninstall the service before modifying this section.  The
-                service can then be safely reinstalled.
-            </simpara>
-        </warning>
-        <itemizedlist>
-            <listitem>
-                <ulink url="prop-ntservice-name.html">wrapper.ntservice.name</ulink>
-            </listitem>
-            <listitem>
-                <ulink url="prop-ntservice-displayname.html">wrapper.ntservice.displayname</ulink>
-            </listitem>
-            <listitem>
-                <ulink url="prop-ntservice-description.html">wrapper.ntservice.description</ulink>
-            </listitem>
-            <listitem>
-                <ulink url="prop-ntservice-load-order-group.html">wrapper.ntservice.load_order_group</ulink>
-            </listitem>
-            <listitem>
-                <ulink url="prop-ntservice-dependency-n.html">wrapper.ntservice.dependency.&lt;n&gt;</ulink>
-            </listitem>
-            <listitem>
-                <ulink url="prop-ntservice-starttype.html">wrapper.ntservice.starttype</ulink>
-            </listitem>
-            <listitem>
-                <ulink url="prop-ntservice-process-priority.html">wrapper.ntservice.process_priority</ulink>
-            </listitem>
-            <listitem>
-                <ulink url="prop-ntservice-account.html">wrapper.ntservice.account</ulink>
-            </listitem>
-            <listitem>
-                <ulink url="prop-ntservice-password.html">wrapper.ntservice.password</ulink>
-            </listitem>
-            <listitem>
-                <ulink url="prop-ntservice-interactive.html">wrapper.ntservice.interactive</ulink>
-            </listitem>
-            <listitem>
-                <ulink url="prop-ntservice-console.html">wrapper.ntservice.console</ulink>
-            </listitem>
-            <listitem>
-                <ulink url="prop-ntservice-hide-console.html">wrapper.ntservice.hide_console</ulink>
-            </listitem>
-        </itemizedlist>
+        <section>
+            <title>General Properties</title>
+            <itemizedlist>
+                <listitem>
+                    <ulink url="prop-console-title.html">wrapper.console.title</ulink>
+                </listitem>
+            </itemizedlist>
+        </section>
+        <section>
+            <title>NT Service Properties</title>
+            <warning>
+                <simpara>
+                    Do not modify any of these parameters when an application using
+                    the configuration file has been installed as a service.  Please
+                    uninstall the service before modifying this section.  The
+                    service can then be safely reinstalled.
+                </simpara>
+            </warning>
+            <itemizedlist>
+                <listitem>
+                    <ulink url="prop-ntservice-name.html">wrapper.ntservice.name</ulink>
+                </listitem>
+                <listitem>
+                    <ulink url="prop-ntservice-displayname.html">wrapper.ntservice.displayname</ulink>
+                </listitem>
+                <listitem>
+                    <ulink url="prop-ntservice-description.html">wrapper.ntservice.description</ulink>
+                </listitem>
+                <listitem>
+                    <ulink url="prop-ntservice-load-order-group.html">wrapper.ntservice.load_order_group</ulink>
+                </listitem>
+                <listitem>
+                    <ulink url="prop-ntservice-dependency-n.html">wrapper.ntservice.dependency.&lt;n&gt;</ulink>
+                </listitem>
+                <listitem>
+                    <ulink url="prop-ntservice-starttype.html">wrapper.ntservice.starttype</ulink>
+                </listitem>
+                <listitem>
+                    <ulink url="prop-ntservice-process-priority.html">wrapper.ntservice.process_priority</ulink>
+                </listitem>
+                <listitem>
+                    <ulink url="prop-ntservice-account.html">wrapper.ntservice.account</ulink>
+                </listitem>
+                <listitem>
+                    <ulink url="prop-ntservice-password.html">wrapper.ntservice.password</ulink>
+                </listitem>
+                <listitem>
+                    <ulink url="prop-ntservice-interactive.html">wrapper.ntservice.interactive</ulink>
+                </listitem>
+                <listitem>
+                    <ulink url="prop-ntservice-console.html">wrapper.ntservice.console</ulink>
+                </listitem>
+                <listitem>
+                    <ulink url="prop-ntservice-hide-console.html">wrapper.ntservice.hide_console</ulink>
+                </listitem>
+            </itemizedlist>
+        </section>
     </section>
 </chapter>

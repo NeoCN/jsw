@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.76  2003/10/31 03:57:17  mortenson
+ * Add a new property, wrapper.console.title, which makes it possible to set
+ * the title of the console in which the Wrapper is currently running.
+ *
  * Revision 1.75  2003/10/30 19:34:34  mortenson
  * Added a new wrapper.ntservice.console property so the console can be shown for
  * services.
@@ -2137,6 +2141,9 @@ void wrapperBuildNTServiceInfo() {
 
     /* Hide the JVM Console Window. */
     wrapperData->ntHideJVMConsole = getBooleanProperty( properties, "wrapper.ntservice.hide_console", TRUE );
+
+    /* Obtain the Console Title. */
+    wrapperData->consoleTitle = (char *)getStringProperty(properties, "wrapper.console.title", NULL);
 }
 #endif
 

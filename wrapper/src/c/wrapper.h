@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.37  2003/10/31 03:57:17  mortenson
+ * Add a new property, wrapper.console.title, which makes it possible to set
+ * the title of the console in which the Wrapper is currently running.
+ *
  * Revision 1.36  2003/10/30 19:34:34  mortenson
  * Added a new wrapper.ntservice.console property so the console can be shown for
  * services.
@@ -188,6 +192,7 @@ struct WrapperConfig {
     int     ignoreSignals;          /* True if the Wrapper should ignore any catchable system signals and inform its JVM to do the same. */
 
 #ifdef WIN32
+    char    *consoleTitle;          /* Text to set the console title to. */
     char    *ntServiceName;         /* Name of the NT Service */
     char    *ntServiceDisplayName;  /* Display name of the NT Service */
     char    *ntServiceDescription;  /* Description for service in Win2k and XP */

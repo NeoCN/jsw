@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.58  2003/10/31 03:57:17  mortenson
+ * Add a new property, wrapper.console.title, which makes it possible to set
+ * the title of the console in which the Wrapper is currently running.
+ *
  * Revision 1.57  2003/10/30 19:34:34  mortenson
  * Added a new wrapper.ntservice.console property so the console can be shown for
  * services.
@@ -586,6 +590,13 @@ int wrapperInitialize() {
             SetConsoleTitle( titleBuffer );
 
             wrapperData->wrapperConsoleHandle = findAndHideConsoleWindow( titleBuffer );
+        }
+    }
+
+    if (wrapperData->consoleTitle) {
+        if (!SetConsoleTitle(wrapperData->consoleTitle)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                "Attempt to set the console tile failed: %s", getLastErrorText());
         }
     }
 

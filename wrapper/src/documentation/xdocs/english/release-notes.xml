@@ -76,6 +76,13 @@ $Id$
                     <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=831775&amp;group_id=39428&amp;atid=425187">Bug #831775</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add a new property, <ulink url="prop-console-title.html">wrapper.console.title</ulink>,
+                    which makes it possible to set the title of the console in which the Wrapper
+                    is currently running.  This currently only works on Windows platforms.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

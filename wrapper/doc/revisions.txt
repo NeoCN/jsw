@@ -30,6 +30,9 @@ Java Service Wrapper Revision History.
   be displayed when running as an NT service.
 * Fixed a problem where the request thread dump on failed JVM exit feature
   had never worked when running as an NT service.  Bug #831775.
+* Add a new property, wrapper.console.title, which makes it possible to set
+  the title of the console in which the Wrapper is currently running.  This
+  currently only works on Windows platforms.
   
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the
