@@ -9,7 +9,8 @@ Java Service Wrapper Revision History.
   file or from the command line.
 * Fix a problem on HP-UX and AIX machines where the stop() function in the
   shell scripts was causing a syntax error due to a conflict with a like named
-  shell command on those platforms.
+  shell command on those platforms.  This appears to be an issue with the
+  Korn shell on all platforms.
 
 3.0.0
 * Deprecated the com.silveregg.wrapper package in favor of
