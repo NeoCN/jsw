@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.17  2002/11/15 16:30:14  spocke
+ * Fixed bug where wrapper.logfile.maxsize produced 0 if it didn't have an k or m multiple.
+ *
  * Revision 1.16  2002/09/10 16:01:12  mortenson
  * Fix some java c++ style comments that slipped into the code.
  *
@@ -197,7 +200,7 @@ void setLogfileMaxFileSize( char *max_file_size ) {
             return;
 
         /* Generate multiple and remove unwanted chars */
-        multiple = 0;
+        multiple = 1;
         newLength = 0;
         for( i=0; i<(int) strlen(max_file_size); i++ ) {
             chr = max_file_size[i];

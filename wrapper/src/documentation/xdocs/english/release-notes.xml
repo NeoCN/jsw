@@ -24,6 +24,11 @@ $Id$
                     to force the current JVM to immediately perform a thread dump.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fixed bug where wrapper.logfile.maxsize produced 0 if it didn't have an k or m multiple.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

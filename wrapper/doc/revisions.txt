@@ -6,6 +6,8 @@ Java Service Wrapper Revision History.
   Windows XP.
 * Implemented feature request #633178.  Added WrapperManager.requestThreadDump()
   to force the current JVM to immediately perform a thread dump.
+* Fixed bug where wrapper.logfile.maxsize produced 0 if it didn't have
+  an k or m multiple.
 
 2.2.9
 * Added a new property, wrapper.restart.delay, which allows the user to control
