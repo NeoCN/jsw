@@ -63,6 +63,12 @@ $Id$
                     future version.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Modified the sh script so it is now possible to set the nice priority in the
+                    script configuration block.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
