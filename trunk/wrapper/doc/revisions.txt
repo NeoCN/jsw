@@ -24,11 +24,14 @@ Java Service Wrapper Revision History.
   exit.  Applications which were exiting promptly will not see any difference.
 * Fix a problem where the JVM would restart at certain times when using the
   system time based timer due to an overflow error.  This problem was
-  introduced in 3.1.0.  Due to another bug in 3.1.0, the Wrapper would
+  introduced in 3.1.0.  Due to a separate bug in 3.1.0, the Wrapper would
   shutdown rather than simply restarting the JVM as was happening in 3.1.1.
   The last restart happened on Aug 21, 2004.  It will next occur Oct 10, 2004
   and repeat at regular intervals.  There are no problems when using the new
   Tick based timer.  Bug #1014405.
+* Correct the wrapper.logfile.maxsize property so that a a kilobyte is now 1024
+  rather than 1000, and a megabyte is a megabyte.  We aren't a hard drive
+  manufacturer after all.
 
 3.1.1
 * Modified the way libwrapper.so is built on Solaris and Linux so that it
