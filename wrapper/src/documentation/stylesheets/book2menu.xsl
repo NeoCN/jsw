@@ -34,7 +34,16 @@
     <xsl:template match="menu-item">
         <xsl:if test="not(@type) or @type!='hidden'">
             <div>
-                <a href="{@href}"><xsl:value-of select="@label"/></a>
+                <xsl:if test="@highlight">
+                    <b>
+                        &gt;&gt;
+                        <a href="{@href}"><xsl:value-of select="@label"/></a>
+                        &lt;&lt;
+                    </b>
+                </xsl:if>
+                <xsl:if test="not(@highlight)">
+                    <a href="{@href}"><xsl:value-of select="@label"/></a>
+                </xsl:if>
             </div>
         </xsl:if>
     </xsl:template>
