@@ -9,6 +9,16 @@
 <article id="index">
     <title>Java Service Wrapper Release Notes</title>
     <section>
+        <title>Version 2.2.7: Changes and bugfixes</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Added the ability to set the priority of the Wrapper and its JVM when run as an NT service or console application.  The same thing can be better achieved on Unix systems by using "nice" in the shell script used to launch the Wrapper.  See the documentation for for details.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
+    <section>
         <title>Version 2.2.6: Changes and bugfixes</title>
         <itemizedlist>
             <listitem>

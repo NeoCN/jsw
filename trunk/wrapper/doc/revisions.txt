@@ -1,5 +1,11 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+2.2.7
+* Added the ability to set the priority of the Wrapper and its JVM when run
+  as an NT service or console application.  The same thing can be better
+  achieved on Unix systems by using "nice" in the shell script used to launch
+  the Wrapper.  See the documentation for for details.
+
 2.2.6
 * Fix a problem where '%' characters in Java output would sometimes cause the
   wrapper to crash.  (Thanks to Frode Moe)

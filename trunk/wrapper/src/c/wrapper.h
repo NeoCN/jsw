@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.10  2002/05/07 05:46:36  mortenson
+ * Add the ability to set the priority at which the wrapper is run under NT systems.
+ *
  * Revision 1.9  2002/03/07 10:05:48  rybesh
  * fixed some miscellaneous unix compile errors
  *
@@ -141,6 +144,8 @@ struct WrapperConfig {
     char    *ntServiceDependencies; /* List of Dependencies */
     int     ntServiceStartType;     /* Mode in which the Service is installed. 
                                      * {SERVICE_AUTO_START | SERVICE_DEMAND_START} */
+	DWORD   ntServicePriorityClass; /* Priority at which the Wrapper and its JVMS will run.
+									 * {HIGH_PRIORITY_CLASS | IDLE_PRIORITY_CLASS | NORMAL_PRIORITY_CLASS | REALTIME_PRIORITY_CLASS} */
 #endif
 
 #ifdef SOLARIS

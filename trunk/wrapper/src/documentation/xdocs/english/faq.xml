@@ -9,6 +9,15 @@
 <article id="index">
     <title>FAQ</title>
     <section>
+        <title>How can I change the priority at which my application runs on the system?</title>
+        <para>
+            On Windows systems, the priority can be set by setting the wrapper.ntservice.process_priority property in the wrapper.conf file.  Please the configuration overview for more details.
+        </para>
+        <para>
+            On Unix systems, the suggested method for setting the priority is to use the nice command in your shell scripts when launching the Wrapper.
+        </para>
+    </section>
+    <section>
         <title>Why does installing as a service on NT generate a new .exe?</title>
         <para>
             NOTE - Wrapper was changed in version 2.2.5 so that it no longer creates a copy of the Wrapper.exe.  If you are using a newer version, this no longer is applicable.

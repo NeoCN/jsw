@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.15  2002/05/07 05:46:36  mortenson
+ * Add the ability to set the priority at which the wrapper is run under NT systems.
+ *
  * Revision 1.14  2002/03/29 05:23:21  mortenson
  * Fix Bug #531880 involving percent characters in JVM output.
  *
@@ -391,6 +394,10 @@ int wrapperInitialize() {
 
     int res;
 
+	/* Set the process priority. */
+	HANDLE process = GetCurrentProcess();
+	SetPriorityClass(process, wrapperData->ntServicePriorityClass);
+
     /* Set the handler to trap console signals */
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)wrapperConsoleHandler, TRUE);
 
@@ -628,7 +635,7 @@ void wrapperExecute() {
 
     /* Create a new process group as part of this console so that signals can */
     /*  be sent to the JVM. */
-    int processflags=CREATE_NEW_PROCESS_GROUP;
+    DWORD processflags=CREATE_NEW_PROCESS_GROUP;
 
     /* Do not show another console for the new process, but show its output in the current console. */
     /*int processflags=CREATE_NEW_PROCESS_GROUP; */
@@ -647,6 +654,9 @@ void wrapperExecute() {
 
     /* Increment the process ID for Log sourcing */
     wrapperData->jvmRestarts++;
+
+	/* Add the priority class of the new process to the processflags */
+	processflags = processflags | wrapperData->ntServicePriorityClass;
 
     /* Setup the command line */
     commandline = wrapperData->jvmCommand;
