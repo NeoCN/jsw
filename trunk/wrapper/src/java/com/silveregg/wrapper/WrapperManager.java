@@ -26,6 +26,9 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.18  2002/08/22 13:38:08  mortenson
+// Open up the thread count method to other classes in the Wrapper package.
+//
 // Revision 1.17  2002/07/19 02:06:12  mortenson
 // Added a new property: wrapper.cpu.timeout to control the cpu timeout added in
 // v2.2.7
@@ -1112,7 +1115,7 @@ public final class WrapperManager implements Runnable {
         }
     }
     
-    private static int getNonDaemonThreadCount() {
+    protected static int getNonDaemonThreadCount() {
         Thread[] threads = new Thread[Thread.activeCount() * 2];
         Thread.enumerate(threads);
         
