@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.31  2004/01/09 17:49:00  mortenson
+ * Rework the logging so it is now threadsafe.
+ *
  * Revision 1.30  2003/10/30 19:34:34  mortenson
  * Added a new wrapper.ntservice.console property so the console can be shown for
  * services.
@@ -99,7 +102,7 @@ int currentConsoleLevel = LEVEL_UNKNOWN;
 int currentLogfileLevel = LEVEL_UNKNOWN;
 int currentLoginfoLevel = LEVEL_UNKNOWN;
 
-char szBuff[ MAX_LOG_SIZE + 1 ];
+//char szBuff[ MAX_LOG_SIZE + 1 ];
 char logFilePath[ 1024 ];
 char *logLevelNames[] = { "NONE  ", "DEBUG ", "INFO  ", "STATUS", "WARN  ", "ERROR ", "FATAL " };
 char loginfoSourceName[ 1024 ];
@@ -116,11 +119,14 @@ void sendLoginfoMessage( int source_id, int level, char *szBuff );
 #ifdef WIN32
 void writeToConsole( char *lpszFmt, ... );
 #endif
-void writeTimeToStream( FILE *fp );
-void writeHeaderToStream( FILE *fp, int source_id );
-void writeLevelToStream( FILE *fp, int level );
-void writeMessageToStream( FILE *fp, char *lpszFmt, va_list vargs );
 void checkAndRollLogs( );
+
+/* Thread specific work buffers. */
+DWORD threadIds[WRAPPER_THREAD_COUNT];
+char *threadMessageBuffers[WRAPPER_THREAD_COUNT];
+int threadMessageBufferSizes[WRAPPER_THREAD_COUNT];
+char *threadPrintBuffers[WRAPPER_THREAD_COUNT];
+int threadPrintBufferSizes[WRAPPER_THREAD_COUNT];
 
 #ifdef WIN32
 HANDLE consoleStdoutHandle = NULL;
@@ -128,6 +134,51 @@ void setConsoleStdoutHandle( HANDLE stdoutHandle ) {
     consoleStdoutHandle = stdoutHandle;
 }
 #endif
+
+void initLogBuffers() {
+    int i;
+
+    for ( i = 0; i < WRAPPER_THREAD_COUNT; i++ ) {
+        threadIds[i] = 0;
+        threadMessageBuffers[i] = NULL;
+        threadMessageBufferSizes[i] = 0;
+        threadPrintBuffers[i] = NULL;
+        threadPrintBufferSizes[i] = 0;
+    }
+}
+
+/** Registers the calling thread so it can be recognized when it calls
+ *  again later. */
+void logRegisterThread( int thread_id ) {
+    DWORD threadId;
+    threadId = GetCurrentThreadId();
+
+    if ( thread_id >= 0 && thread_id < WRAPPER_THREAD_COUNT )
+    {
+        threadIds[thread_id] = threadId;
+    }
+}
+
+int getThreadId() {
+#ifdef WIN32
+    DWORD threadId;
+    int i;
+
+    threadId = GetCurrentThreadId();
+    /*printf( "threadId=%lu\n", threadId );*/
+
+    for ( i = 0; i < WRAPPER_THREAD_COUNT; i++ ) {
+        if ( threadIds[i] == threadId ) {
+            return i;
+        }
+    }
+    
+    printf( "WARNING - Encountered an unknown thread %ld in getThreadId().\n", threadId );
+    return threadIds[0]; /* WRAPPER_THREAD_SIGNAL */
+#else
+    return WRAPPER_THREAD_MAIN;
+#endif
+}
 
 int strcmpIgnoreCase( const char *str1, const char *str2 ) {
 #ifdef WIN32
@@ -278,77 +329,209 @@ int getLowLogLevel() {
     return lowLogLevel;
 }
 
+/* Writes to and then returns a buffer that is reused by the current thread.
+ *  It should not be released. */
+char* buildPrintBuffer( int thread_id, int source_id, int level, char *format, char *message ) {
+    time_t    now;
+    struct tm *nowTM;
+    int       i;
+    int       reqSize;
+    int       numColumns;
+    char      *pos;
+    int       currentColumn;
+    int       handledFormat;
+
+    /* Build a timestamp */
+    now = time( NULL );
+    nowTM = localtime( &now );
+    
+    /* Decide the number of columns and come up with a required length for the printBuffer. */
+    reqSize = 0;
+    for( i = 0, numColumns = 0; i < (int)strlen( format ); i++ ) {
+        switch( format[i] ) {
+        case 'P':
+            reqSize += 8 + 3;
+            numColumns++;
+            break;
+
+        case 'L':
+            reqSize += 6 + 3;
+            numColumns++;
+            break;
+
+        case 'D':
+            reqSize += 7 + 3;
+            numColumns++;
+            break;
+
+        case 'T':
+            reqSize += 19 + 3;
+            numColumns++;
+            break;
+
+        case 'M':
+            reqSize += strlen( message ) + 3;
+            numColumns++;
+            break;
+        }
+
+        /* Always add room for the null. */
+        reqSize += 1;
+    }
+
+    if ( threadPrintBuffers[thread_id] == NULL ) {
+        threadPrintBuffers[thread_id] = (char *)malloc( reqSize * sizeof( char ) );
+        threadPrintBufferSizes[thread_id] = reqSize;
+    } else if ( threadPrintBufferSizes[thread_id] < reqSize ) {
+        free( threadPrintBuffers[thread_id] );
+        threadPrintBuffers[thread_id] = (char *)malloc( reqSize * sizeof( char ) );
+        threadPrintBufferSizes[thread_id] = reqSize;
+    }
+
+    /* Create a pointer to the beginning of the print buffer, it will be advanced
+     *  as the formatted message is build up. */
+    pos = threadPrintBuffers[thread_id];
+
+    /* We now have a buffer large enough to store the entire formatted message. */
+    for( i = 0, currentColumn = 0; i < (int)strlen( format ); i++ ) {
+        handledFormat = 1;
+
+        switch( format[i] ) {
+        case 'P':
+            switch ( source_id ) {
+            case WRAPPER_SOURCE_WRAPPER:
+                pos += sprintf( pos, "wrapper " );
+                break;
+
+            case WRAPPER_SOURCE_PROTOCOL:
+                pos += sprintf( pos, "wrapperp" );
+                break;
+
+            default:
+                pos += sprintf( pos, "jvm %-4d", source_id );
+                break;
+            }
+            currentColumn++;
+            break;
+
+        case 'L':
+            pos += sprintf( pos, "%s", logLevelNames[ level ] );
+            currentColumn++;
+            break;
+
+        case 'D':
+            switch ( thread_id )
+            {
+            case WRAPPER_THREAD_SIGNAL:
+                pos += sprintf( pos, "signal " );
+                break;
+
+            case WRAPPER_THREAD_MAIN:
+                pos += sprintf( pos, "main   " );
+                break;
+
+            case WRAPPER_THREAD_SRVMAIN:
+                pos += sprintf( pos, "srvmain" );
+                break;
+
+            case WRAPPER_THREAD_TIMER:
+                pos += sprintf( pos, "timer  " );
+                break;
+
+            default:
+                pos += sprintf( pos, "unknown" );
+                break;
+            }
+            currentColumn++;
+            break;
+
+        case 'T':
+            pos += sprintf( pos, "%04d/%02d/%02d %02d:%02d:%02d", 
+                nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday, 
+                nowTM->tm_hour, nowTM->tm_min, nowTM->tm_sec );
+            currentColumn++;
+            break;
+
+        case 'M':
+            pos += sprintf( pos, "%s", message );
+            currentColumn++;
+            break;
+
+        default:
+            handledFormat = 0;
+        }
+
+        /* Add separator chars */
+        if ( handledFormat && ( currentColumn != numColumns ) ) {
+            pos += sprintf( pos, " | " );
+        }
+    }
+
+    /* Return the print buffer to the caller. */
+    return threadPrintBuffers[thread_id];
+}
+
 /* General log functions */
 void log_printf( int source_id, int level, char *lpszFmt, ... ) {
     va_list		vargs;
-    int			i;
-    int			handledFormat, numColumns, currentColumn;
     FILE		*logfileFP = NULL;
+    int         thread_id;
+    int         count;
+    char        *printBuffer;
+    
+    /* The contents of this function are not thread safe but it is called by multiple
+     *  threads.  To make this safe we need to either refrain from using static
+     *  buffers, which would be slow.  Or make sure that a buffer is reserved for each
+     *  thread.  We choose the later.
+     *
+     * Obtain a thread_id that will be used as an index to to the static buffer array. */
+    thread_id = getThreadId();
+
+    /* Loop until the buffer is large enough that we are able to successfully
+     *  print into it. Once the buffer has grown to the largest message size,
+     *  smaller messages will pass through this code without looping. */
+    do {
+        if ( threadMessageBufferSizes[thread_id] == 0 )
+        {
+            /* No buffer yet. It will be allocated below. */
+            count = -1;
+        }
+        else
+        {
+            /* Try writing to the buffer. */
+            va_start( vargs, lpszFmt );
+#ifdef WIN32
+            count = _vsnprintf( threadMessageBuffers[thread_id], threadMessageBufferSizes[thread_id], lpszFmt, vargs );
+#else
+            count = vsnprintf( threadMessageBuffers[thread_id], threadMessageBufferSizes[thread_id], lpszFmt, vargs );
+#endif
+            va_end( vargs );
+            if ( ( count < 0 ) || ( count == threadMessageBufferSizes[thread_id] ) ) {
+                /* If the count is exactly equal to the buffer size then a null char was not written.  It must be larger. */
+                /* Failed, free the buffer so a larger one can be reallocated below. */
+                free( threadMessageBuffers[thread_id] );
+                count = -1;
+            }
+        }
+        if ( count < 0 ) {
+            /* We need to allocate a new buffer. */
+            threadMessageBufferSizes[thread_id] += 100;
+            threadMessageBuffers[thread_id] = (char*)malloc( threadMessageBufferSizes[thread_id] * sizeof(char) );
+        }
+    } while ( count < 0 );
 
     /* Console output by format */
     if( level >= currentConsoleLevel ) {
-        /* Count number of columns inorder to skip last '|' char */
-        for( i = 0, numColumns = 0; i < (int)strlen( consoleFormat ); i++ ) {
-            switch( consoleFormat[i] ) {
-                case 'P':
-                case 'L':
-                case 'M':
-                case 'T':
-                    numColumns++;
-                break;
-            }
-        }
+        /* Build up the printBuffer. */
+        printBuffer = buildPrintBuffer( thread_id, source_id, level, consoleFormat, threadMessageBuffers[thread_id] );
 
-        for( i = 0, currentColumn = 0; i < (int)strlen( consoleFormat ); i++ ) {
-            handledFormat = 1;
-
-            switch( consoleFormat[i] ) {
-                case 'P': /* Prefix */
-                    writeHeaderToStream( stdout, source_id );
-                    currentColumn++;
-                break;
-
-                case 'L': /* Loglevel */
-                    writeLevelToStream( stdout, level );
-                    currentColumn++;
-                break;
-
-                case 'M': /* Message */
-                    va_start( vargs, lpszFmt );
-                    writeMessageToStream( stdout, lpszFmt, vargs );
-                    va_end( vargs );
-                    currentColumn++;
-                break;
-
-                case 'T': /* Timestamp */
-                    writeTimeToStream( stdout );
-                    currentColumn++;
-                break;
-
-                default:
-                    handledFormat = 0;
-            }
-
-            /* Add separator chars */
-            if( handledFormat && (currentColumn != numColumns) ) {
-#ifdef WIN32
-                if ( consoleStdoutHandle != NULL ) {
-                    writeToConsole( " | " );
-                } else {
-#endif
-                    fprintf( stdout, " | " );
-#ifdef WIN32
-                }
-#endif
-            }
-        }
-
+        /* Write the print buffer to the console. */
 #ifdef WIN32
         if ( consoleStdoutHandle != NULL ) {
-            writeToConsole( "\n" );
+            writeToConsole( "%s\n", printBuffer );
         } else {
 #endif
-            fprintf( stdout, "\n" );
+            fprintf( stdout, "%s\n", printBuffer );
 #ifdef WIN32
         }
 #endif
@@ -367,54 +550,10 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
         }
         
         if (logfileFP != NULL) {
-            /* Count number of columns inorder to skip last '|' char */
-            for( i = 0, numColumns = 0; i < (int)strlen( logfileFormat ); i++ ) {
-                switch( logfileFormat[i] ) {
-                    case 'P':
-                    case 'L':
-                    case 'M':
-                    case 'T':
-                        numColumns++;
-                    break;
-                }
-            }
+            /* Build up the printBuffer. */
+            printBuffer = buildPrintBuffer( thread_id, source_id, level, logfileFormat, threadMessageBuffers[thread_id] );
     
-            for( i = 0, currentColumn = 0; i < (int)strlen( logfileFormat ); i++ ) {
-                handledFormat = 1;
-    
-                switch( logfileFormat[i] ) {
-                    case 'P': /* Prefix */
-                        writeHeaderToStream( logfileFP, source_id );
-                        currentColumn++;
-                    break;
-    
-                    case 'L': /* Loglevel */
-                        writeLevelToStream( logfileFP, level );
-                        currentColumn++;
-                    break;
-    
-                    case 'M': /* Message */
-                        va_start( vargs, lpszFmt );
-                        writeMessageToStream( logfileFP, lpszFmt, vargs );
-                        va_end( vargs );
-                        currentColumn++;
-                    break;
-    
-                    case 'T': /* Timestamp */
-                        writeTimeToStream( logfileFP );
-                        currentColumn++;
-                    break;
-    
-                    default:
-                        handledFormat = 0;
-                }
-    
-                /* Add separator chars */
-                if( handledFormat && (currentColumn != numColumns) )
-                    fprintf( logfileFP, " | " );
-            }
-    
-            fprintf( logfileFP, "\n" );
+            fprintf( logfileFP, "%s\n", printBuffer );
     
             fclose( logfileFP );
         }
@@ -422,14 +561,8 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
 
     /* Loginfo/Eventlog if levels match (not by format timecodes/status allready exists in evenlog) */
     if( level >= currentLoginfoLevel ) {
-        va_list		vargs;
-
-        va_start( vargs,lpszFmt );
-        vsprintf( szBuff, lpszFmt, vargs );
-        va_end( vargs );
-
-        sendEventlogMessage( source_id, level, szBuff );
-        sendLoginfoMessage( source_id, level, szBuff );
+        sendEventlogMessage( source_id, level, threadMessageBuffers[thread_id] );
+        sendLoginfoMessage( source_id, level, threadMessageBuffers[thread_id] );
     }
 }
 
@@ -719,81 +852,6 @@ void writeToConsole( char *lpszFmt, ... ) {
 }
 #endif
 
-void writeTimeToStream( FILE *fp ) {
-    time_t		now;
-    struct tm	*nowTM;
-
-    /* Build a timestamp */
-    now = time( NULL );
-    nowTM = localtime( &now );
-
-    /* Write timestamp */
-#ifdef WIN32
-    if ( ( fp == stdout ) && ( consoleStdoutHandle != NULL ) ) {
-        writeToConsole( "%04d/%02d/%02d %02d:%02d:%02d", 
-            nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday, 
-            nowTM->tm_hour, nowTM->tm_min, nowTM->tm_sec );
-    } else {
-#endif
-        fprintf( fp, "%04d/%02d/%02d %02d:%02d:%02d", 
-            nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday, 
-            nowTM->tm_hour, nowTM->tm_min, nowTM->tm_sec );
-#ifdef WIN32
-    }
-#endif
-}
-
-void writeHeaderToStream( FILE *fp, int source_id ) {
-    char header[16];
-
-    /* Build the source header */
-    switch( source_id ) {
-        case WRAPPER_SOURCE_WRAPPER:
-            sprintf( header, "wrapper " );
-        break;
-
-        case WRAPPER_SOURCE_PROTOCOL:
-            sprintf( header, "wrapperp" );
-        break;
-
-        default:
-            sprintf( header, "jvm %-4d", source_id );
-        break;
-    }
-
-#ifdef WIN32
-    if ( ( fp == stdout ) && ( consoleStdoutHandle != NULL ) ) {
-        writeToConsole( "%s", header );
-    } else {
-#endif
-        fprintf( fp, "%s", header );
-#ifdef WIN32
-    }
-#endif
-}
-
-void writeLevelToStream( FILE *fp, int level ) {
-#ifdef WIN32
-    if ( ( fp == stdout ) && ( consoleStdoutHandle != NULL ) ) {
-        writeToConsole( "%s", logLevelNames[ level ] );
-    } else {
-#endif
-        fprintf( fp, "%s", logLevelNames[ level ] );
-#ifdef WIN32
-    }
-#endif
-}
-void writeMessageToStream( FILE *fp, char *lpszFmt, va_list vargs ) {
-#ifdef WIN32
-    if ( ( fp == stdout ) && ( consoleStdoutHandle != NULL ) ) {
-        vWriteToConsole( lpszFmt, vargs );
-    } else {
-#endif
-        vfprintf( fp, lpszFmt, vargs );
-#ifdef WIN32
-    }
-#endif
-}
 
 void checkAndRollLogs() {
     struct stat fileStat;

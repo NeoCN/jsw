@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.13  2004/01/09 17:49:00  mortenson
+ * Rework the logging so it is now threadsafe.
+ *
  * Revision 1.12  2003/10/30 19:34:34  mortenson
  * Added a new wrapper.ntservice.console property so the console can be shown for
  * services.
@@ -67,6 +70,15 @@
 
 #define WRAPPER_SOURCE_WRAPPER -1
 #define WRAPPER_SOURCE_PROTOCOL -2
+
+/* * * Log thread constants * * */
+/* These are indexes in an array so they must be sequential, start
+ *  with zero and be one less than the final WRAPPER_THREAD_COUNT */
+#define WRAPPER_THREAD_SIGNAL   0
+#define WRAPPER_THREAD_MAIN     1
+#define WRAPPER_THREAD_SRVMAIN  2
+#define WRAPPER_THREAD_TIMER    3
+#define WRAPPER_THREAD_COUNT    4
 
 #define MAX_LOG_SIZE 4096
 
@@ -131,6 +143,8 @@ extern int unregisterSyslogMessageFile( );
 extern int getLowLogLevel();
 
 /* * General log functions * */
+extern void initLogBuffers();
+extern void logRegisterThread( int thread_id );
 extern void log_printf( int source_id, int level, char *lpszFmt, ... );
 
 extern char* getLastErrorText();
