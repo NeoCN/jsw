@@ -37,6 +37,14 @@ $Id$
                     which will completely disable the Wrapper's ability to restart JVMs.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add a pair of new properties, <ulink url="prop-port.html">wrapper.port.min</ulink>
+                    and <ulink url="prop-port.html">wrapper.port.max</ulink>, which make it
+                    possible to define the port range used when a specific
+                    <ulink url="prop-port.html">wrapper.port</ulink> is not specified.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
