@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.5  2002/01/10 08:19:37  mortenson
+// Added the ability to override properties from the command line.
+//
 // Revision 1.4  2002/01/09 01:16:10  mortenson
 // Modified the way the Wrapper is installed as a service on NT systems
 // so that a patched version of the Wrapper.exe file no longer needs to
@@ -1019,9 +1022,9 @@ int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
  */
 void wrapperUsage(char *appName) {
     printf("Usage:\n");
-    printf("  %s [command] [config file]\n", appName);
+    printf("  %s <command> <config file> [config properties] [...]\n", appName);
     printf("\n");
-    printf("where commands include:\n");
+    printf("where <command> canbe one of:\n");
     printf("  -c   run as a console application\n");
     printf("  -i   install as an NT service\n");
     printf("  -r   remove as an NT service\n");
@@ -1029,9 +1032,16 @@ void wrapperUsage(char *appName) {
     //printf("  -s   used by service manager\n");
     printf("  -?   print this help message\n");
     printf("\n");
+	printf("<config file> is the wrapper.conf to use\n");
+    printf("\n");
+	printf("[config properties] are configuration name-value pairs which override values\n");
+	printf("  in wrapper.conf.  For example:\n");
+	printf("  wrapper.debug=true\n");
+    printf("\n");
 }
 void _CRTAPI1 main(int argc, char **argv) {
     int result = 0;
+	int i;
 
     // The StartServiceCtrlDispatcher requires this table to specify
     // the ServiceMain function to run in the calling process. The first
@@ -1065,100 +1075,86 @@ void _CRTAPI1 main(int argc, char **argv) {
 
         setWorkingDir();
         
-        switch(argc) {
-        case 3:
-            // The first parameter should be a command and the second should be a config file.
-            if(!_stricmp(argv[1],"-i") || !_stricmp(argv[1],"/i")) {
-                properties = loadProperties(argv[2]);
-                if (properties == NULL) {
-                    // File not found.
-                    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "unable to open config file. %s", argv[2]);
-                    result = 1;
-                } else {
-                    // Store the config file name
-                    wrapperData->configFile = argv[2];
+		if (argc >= 3) {
+			// argv[1] should be the command
+			// argv[2] should be the config file
 
-                    // Apply properties to the WrapperConfig structure
-                    wrapperLoadConfiguration();
+			if(!_stricmp(argv[1],"-?") || !_stricmp(argv[1],"/?")) {
+				// User asked for the usage.
+				wrapperUsage(argv[0]);
+			} else {
+				// All 4 valid commands use the config file, so start by getting it loaded.
+				properties = loadProperties(argv[2]);
+				if (properties == NULL) {
+					// File not found.
+					wrapperLogS(WRAPPER_SOURCE_WRAPPER, "unable to open config file. %s", argv[2]);
+					result = 1;
+				} else {
+					// Store the config file name
+					wrapperData->configFile = argv[2];
 
-                    //result = wrapperInstall(argv[0], argv[2]);
-                    result = wrapperInstall(argc, argv);
-                }
-            } else if(!_stricmp(argv[1],"-r") || !_stricmp(argv[1],"/r")) {
-                properties = loadProperties(argv[2]);
-                if (properties == NULL) {
-                    // File not found.
-                    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "unable to open config file. %s", argv[2]);
-                    result = 1;
-                } else {
-                    // Store the config file name
-                    wrapperData->configFile = argv[2];
+					// Loop over the additional arguments and try to parse them as properties
+					for (i = 3; i < argc; i++) {
+						if (addPropertyPair(properties, argv[i])) {
+							wrapperLogS(WRAPPER_SOURCE_WRAPPER, 
+								"The argument '%s' is not a valid property name-value pair.", argv[i]);
+							result = 1;
+						}
+					}
 
-                    // Apply properties to the WrapperConfig structure
-                    wrapperLoadConfiguration();
+					if (result) {
+						// There was a problem with the arguments
+					} else {
+						// Display the active properties
+#ifdef _DEBUG
+						printf("Debug Config Properties:\n");
+						dumpProperties(properties);
+#endif
 
-                    result = wrapperRemove(argv[0], argv[2]);
-                }
-            } else if(!_stricmp(argv[1],"-c") || !_stricmp(argv[1],"/c")) {
-                properties = loadProperties(argv[2]);
-                if (properties == NULL) {
-                    // File not found.
-                    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "unable to open config file. %s", argv[2]);
-                    result = 1;
-                } else {
-                    // Store the config file name
-                    wrapperData->configFile = argv[2];
-
-                    // Apply properties to the WrapperConfig structure
-                    wrapperLoadConfiguration();
-
-                    //result = wrapperConsole(argv[0], argv[2]);
-                    result = wrapperRunConsole();
-                }
-            } else if(!_stricmp(argv[1],"-s") || !_stricmp(argv[1],"/s")) {
-                properties = loadProperties(argv[2]);
-                if (properties == NULL) {
-                    // File not found.
-                    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "unable to open config file. %s", argv[2]);
-                    result = 1;
-                } else {
-                    // Store the config file name
-                    wrapperData->configFile = argv[2];
+						// Apply properties to the WrapperConfig structure
+						wrapperLoadConfiguration();
+						
+						// Perform the specified command
+						if(!_stricmp(argv[1],"-i") || !_stricmp(argv[1],"/i")) {
+							// Install an NT service
+							result = wrapperInstall(argc, argv);
+						} else if(!_stricmp(argv[1],"-r") || !_stricmp(argv[1],"/r")) {
+							// Remove an NT service
+							result = wrapperRemove(argv[0], argv[2]);
+						} else if(!_stricmp(argv[1],"-c") || !_stricmp(argv[1],"/c")) {
+							// Run as a console application
+							result = wrapperRunConsole();
+						} else if(!_stricmp(argv[1],"-s") || !_stricmp(argv[1],"/s")) {
+							// Run as a service
+							// Prepare the service table
+							serviceTable[0].lpServiceName = wrapperData->ntServiceName;
+							serviceTable[0].lpServiceProc = (LPSERVICE_MAIN_FUNCTION)wrapperServiceMain;
+							serviceTable[1].lpServiceName = NULL;
+							serviceTable[1].lpServiceProc = NULL;
                     
-                    // Apply properties to the WrapperConfig structure
-                    wrapperLoadConfiguration();
+							printf("Attempting to start %s as an NT service.\n", wrapperData->ntServiceDisplayName);
+							printf("\nCalling StartServiceCtrlDispatcher...please wait.\n");
                     
-                    // Prepare the service table
-                    serviceTable[0].lpServiceName = wrapperData->ntServiceName;
-                    serviceTable[0].lpServiceProc = (LPSERVICE_MAIN_FUNCTION)wrapperServiceMain;
-                    serviceTable[1].lpServiceName = NULL;
-                    serviceTable[1].lpServiceProc = NULL;
-                    
-                    printf("Attempting to start %s as an NT service.\n", wrapperData->ntServiceDisplayName);
-                    printf("\nCalling StartServiceCtrlDispatcher...please wait.\n");
-                    
-                    // Start the service control dispatcher.  This will not return
-                    //  if the service is started without problems
-                    if (!StartServiceCtrlDispatcher(serviceTable)){
-                        printf("\nStartServiceControlDispatcher failed!\n");
-                        printf("\nFor help, type\n\n%s /?\n\n", argv[0]);
-                        result = 1;
-                    }
-                }
-            } else if(!_stricmp(argv[1],"-?") || !_stricmp(argv[1],"/?")) {
-                wrapperUsage(argv[0]);
-            } else {
-                printf("\nUnrecognized option: %s\n", argv[1]);
-                wrapperUsage(argv[0]);
-                result = 1;
-            }
-            break;
-        default:
+							// Start the service control dispatcher.  This will not return
+							//  if the service is started without problems
+							if (!StartServiceCtrlDispatcher(serviceTable)){
+								printf("\nStartServiceControlDispatcher failed!\n");
+								printf("\nFor help, type\n\n%s /?\n\n", argv[0]);
+								result = 1;
+							}
+						} else {
+							printf("\nUnrecognized option: %s\n", argv[1]);
+							wrapperUsage(argv[0]);
+							result = 1;
+						}
+					}
+				}
+			}
+		} else {
             // Invalid parameters were provided.
             wrapperUsage(argv[0]);
             result = 1;
-            break;
-        }
+		}
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
         wrapperLog(WRAPPER_SOURCE_WRAPPER, "<-- Wrapper Stopping due to error");
         result = 1;

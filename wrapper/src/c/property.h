@@ -24,8 +24,11 @@
  */
 
 // $Log$
-// Revision 1.1  2001/11/07 08:54:20  mortenson
-// Initial revision
+// Revision 1.2  2002/01/10 08:19:37  mortenson
+// Added the ability to override properties from the command line.
+//
+// Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
+// no message
 //
 
 #ifndef TRUE
@@ -82,10 +85,20 @@ extern void removeProperty(Properties *properties, const char *propertyName);
  */
 extern void addProperty(Properties *properties, const char *propertyName, const char *propertyValue);
 
+/**
+ * Takes a name/value pair in the form <name>=<value> and attempts to add
+ * it to the specified properties table.
+ *
+ * Returns 0 if successful, otherwise 1
+ */
+extern int addPropertyPair(Properties *properties, const char *propertyNameValue);
+
 extern const char* getStringProperty(Properties *properties, const char *propertyName, const char *defaultValue);
 
 extern int getIntProperty(Properties *properties, const char *propertyName, int defaultValue);
 
 extern int getBooleanProperty(Properties *properties, const char *propertyName, int defaultValue);
+
+extern void dumpProperties(Properties *properties);
 
 #endif

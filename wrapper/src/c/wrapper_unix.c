@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.6  2002/01/10 08:19:37  mortenson
+// Added the ability to override properties from the command line.
+//
 // Revision 1.5  2001/12/11 09:17:02  rybesh
 // removed code to set current dir on unix as it is no longer needed
 //
@@ -346,8 +349,12 @@ void wrapperKillProcess() {
  * Show usage.
  */
 void wrapperUsage(char *appName) {
-    printf("Usage: %s <file>\n", appName);
+    printf("Usage: %s <file> [config properties] [...]\n", appName);
     printf("<file> is the application config file.\n");
+    printf("\n");
+	printf("[config properties] are configuration name-value pairs which override values\n");
+	printf("  in wrapper.conf.  For example:\n");
+	printf("  wrapper.debug=true\n");
     printf("\n");
     printf("Options:  --help\n");
 }
@@ -379,6 +386,7 @@ int writePidFile() {
 
 int main(int argc, char **argv) {
     int exitStatus;
+	int i;
 
     // Initialize the WrapperConfig structure.
     wrapperData = (WrapperConfig *)malloc(sizeof(WrapperConfig));
@@ -395,7 +403,7 @@ int main(int argc, char **argv) {
     wrapperData->restartRequested = FALSE;
     wrapperData->jvmRestarts = 0;
         
-    if (argc != 2) {
+    if (argc < 2) {
         wrapperUsage(argv[0]);
         exit(1);
         
@@ -414,6 +422,19 @@ int main(int argc, char **argv) {
             // Store the config file name.
             wrapperData->configFile = argv[1];
             
+			// Loop over the additional arguments and try to parse them as properties
+			for (i = 3; i < argc; i++) {
+				if (addPropertyPair(properties, argv[i])) {
+					wrapperLogS(WRAPPER_SOURCE_WRAPPER, 
+						"The argument '%s' is not a valid property name-value pair.", argv[i]);
+					exit(1);
+				}
+			}
+
+			// Display the active properties
+			//printf("Debug Config Properties:\n");
+			//dumpProperties(properties);
+
             // Apply properties to the WrapperConfig structure.
             if (wrapperLoadConfiguration()) {
                 wrapperLogS
@@ -423,12 +444,12 @@ int main(int argc, char **argv) {
 #ifdef SOLARIS
             // Write pid file.
             if (writePidFile()) {
-         wrapperLogSS
-            (WRAPPER_SOURCE_WRAPPER,
-             "ERROR: Could not write pid file %s: %s",
-             wrapperData->pidFilename, (char *)strerror(errno));
-        exit(1);
-        }
+				wrapperLogSS
+					(WRAPPER_SOURCE_WRAPPER,
+					 "ERROR: Could not write pid file %s: %s",
+					 wrapperData->pidFilename, (char *)strerror(errno));
+				exit(1);
+			}
 #endif
             exitStatus = wrapperRunConsole();
             

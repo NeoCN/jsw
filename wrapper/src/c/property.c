@@ -24,8 +24,11 @@
  */
 
 // $Log$
-// Revision 1.1  2001/11/07 08:54:20  mortenson
-// Initial revision
+// Revision 1.2  2002/01/10 08:19:37  mortenson
+// Added the ability to override properties from the command line.
+//
+// Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
+// no message
 //
 
 #include <malloc.h>
@@ -267,6 +270,32 @@ void addProperty(Properties *properties, const char *propertyName, const char *p
     setInnerProperty(property, propertyValue);
 }
 
+/**
+ * Takes a name/value pair in the form <name>=<value> and attempts to add
+ * it to the specified properties table.
+ *
+ * Returns 0 if successful, otherwise 1
+ */
+int addPropertyPair(Properties *properties, const char *propertyNameValue) {
+    char buffer[1024];
+    char *d;
+
+	// Make a copy of the pair that we can edit
+	strcpy(buffer, propertyNameValue);
+
+    // Locate the first '=' in the pair
+    if ((d = strchr(buffer, '=')) != NULL) {
+        // Null terminate the first half of the line.
+        *d = '\0';
+        d++;
+        addProperty(properties, buffer, d);
+
+		return 0;
+    } else {
+		return 1;
+	}
+}
+
 const char* getStringProperty(Properties *properties, const char *propertyName, const char *defaultValue) {
     Property *property;
     property = getInnerProperty(properties, propertyName);
@@ -304,5 +333,14 @@ int getBooleanProperty(Properties *properties, const char *propertyName, int def
             return FALSE;
         }
     }
+}
+
+void dumpProperties(Properties *properties) {
+	Property *property;
+	property = properties->first;
+	while (property != NULL) {
+		printf("    name:%s value:%s\n", property->name, property->value);
+		property = property->next;
+	}
 }
 
