@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.57  2004/10/18 05:43:45  mortenson
+ * Add the wrapper.memory_output and wrapper.memory_output.interval properties to
+ * make it possible to track memory usage of the Wrapper and JVM over time.
+ * Change the JVM process variable names to make their meaning more obvious.
+ *
  * Revision 1.56  2004/09/22 11:06:28  mortenson
  * Start using nanosleep in place of usleep on UNIX platforms to work around usleep
  * problems with alarm signals on Solaris.
@@ -298,6 +303,9 @@ struct WrapperConfig {
     int     isTimerOutputEnabled;   /* TRUE if detailed timer output should be included in debug output. */
     int     isLoopOutputEnabled;    /* TRUE if very detailed output from the main loop should be output. */
     int     isSleepOutputEnabled;   /* TRUE if detailed sleep output should be included in debug output. */
+    int     isMemoryOutputEnabled;  /* TRUE if detailed memory output should be included in debug output. */
+    int     memoryOutputInterval;   /* Interval in seconds at which memory usage is logged. */
+    DWORD   memoryOutputTimeoutTicks; /* Tick count at which memory will next be logged. */
     int     isShutdownHookDisabled; /* TRUE if set in the configuration file */
     int     startupDelayConsole;    /* Delay in seconds before starting the first JVM in console mode. */
     int     startupDelayService;    /* Delay in seconds before starting the first JVM in service mode. */
@@ -481,6 +489,12 @@ extern void wrapperExecute();
  */
 extern DWORD wrapperGetTicks();
 
+/**
+ * Outputs a log entry at regular intervals to track the memory usage of the
+ *  Wrapper and its JVM.
+ */
+extern void wrapperDumpMemory();
+
 /******************************************************************************
  * Wrapper inner methods.
  *****************************************************************************/
@@ -524,6 +538,12 @@ extern DWORD wrapperGetSystemTicks();
  *  and end tick counts were taken.  See the wrapperGetTicks() function.
  */
 extern int wrapperGetTickAge(DWORD start, DWORD end);
+
+/**
+ * Returns TRUE if the specified tick timeout has expired relative to the
+ *  specified tick count.
+ */
+extern wrapperTickExpired(DWORD nowTicks, DWORD timeoutTicks);
 
 /**
  * Returns a tick count that is the specified number of seconds later than

@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.91  2004/10/18 05:43:45  mortenson
+ * Add the wrapper.memory_output and wrapper.memory_output.interval properties to
+ * make it possible to track memory usage of the Wrapper and JVM over time.
+ * Change the JVM process variable names to make their meaning more obvious.
+ *
  * Revision 1.90  2004/10/17 01:32:13  mortenson
  * Add additional output when the JVM can not be launched due to security
  * restrictions on Windows.
@@ -327,6 +332,7 @@ barf
 #include <windows.h>
 #include <sys/timeb.h>
 #include <conio.h>
+#include "psapi.h"
 
 #include "wrapper.h"
 #include "property.h"
@@ -342,6 +348,8 @@ SERVICE_STATUS_HANDLE   sshStatusHandle;
 static char *systemPath[SYSTEM_PATH_MAX_LEN];
 static HANDLE wrapperProcess = NULL;
 static DWORD  wrapperProcessId = 0;
+static HANDLE javaProcess = NULL;
+static DWORD  javaProcessId = 0;
 static HANDLE wrapperChildStdoutWr = NULL;
 static HANDLE wrapperChildStdoutRd = NULL;
 
@@ -374,9 +382,27 @@ DWORD timerTicks = 0xffffff00;
 char* getExceptionName(DWORD exCode);
 int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers);
 
+/* Dynamically loaded functions. */
+FARPROC OptionalGetProcessMemoryInfo = NULL;
+
 /******************************************************************************
  * Windows specific code
  ******************************************************************************/
+void loadDLLProcs() {
+    HMODULE psapiMod;
+
+    /* The PSAPI module was added in NT 4.0. */
+    if ((psapiMod = LoadLibrary("PSAPI.DLL")) == NULL) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+            "The PSAPI.DLL was not found.  Some functions will be disabled.");
+    } else {
+        if ((OptionalGetProcessMemoryInfo = GetProcAddress(psapiMod, "GetProcessMemoryInfo")) == NULL) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                "The GetProcessMemoryInfo is not available in this PSAPI.DLL version.  Some functions will be disabled.");
+        }
+    }
+}
+
 /**
  * Builds an array in memory of the system path.
  */
@@ -668,12 +694,12 @@ int wrapperConsoleHandler(int key) {
  * Send a signal to the JVM process asking it to dump its JVM state.
  */
 void requestDumpJVMState(int useLoggerQueue) {
-    if (wrapperProcess != NULL) {
+    if (javaProcess != NULL) {
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
             "Dumping JVM state.");
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-            "Sending BREAK event to process group %ld.", wrapperProcessId);
-        if ( GenerateConsoleCtrlEvent( CTRL_BREAK_EVENT, wrapperProcessId ) == 0 ) {
+            "Sending BREAK event to process group %ld.", javaProcessId);
+        if ( GenerateConsoleCtrlEvent( CTRL_BREAK_EVENT, javaProcessId ) == 0 ) {
             log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 "Unable to send BREAK event to JVM process.  Err(%ld : %s)",
                 GetLastError(), getLastErrorText());
@@ -1280,13 +1306,13 @@ int wrapperGetProcessStatus() {
     DWORD exitCode;
     char *exName;
 
-    switch (WaitForSingleObject(wrapperProcess, 0)) {
+    switch (WaitForSingleObject(javaProcess, 0)) {
     case WAIT_ABANDONED:
     case WAIT_OBJECT_0:
         res = WRAPPER_PROCESS_DOWN;
 
         /* Get the exit code of the process. */
-        if (!GetExitCodeProcess(wrapperProcess, &exitCode)) {
+        if (!GetExitCodeProcess(javaProcess, &exitCode)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Critical error: unable to obtain the exit code of the JVM process: %s", getLastErrorText());
             appExit(1);
@@ -1314,6 +1340,12 @@ int wrapperGetProcessStatus() {
         if (wrapperData->javaPidFilename) {
             unlink(wrapperData->javaPidFilename);
         }
+        if (!CloseHandle(javaProcess)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                "Failed to close the Java process handle: %s", getLastErrorText());
+        }
+        javaProcess = NULL;
+        javaProcessId = 0;
 
         break;
 
@@ -1337,7 +1369,7 @@ void wrapperKillProcessNow() {
     int ret;
 
     /* Check to make sure that the JVM process is still running */
-    ret = WaitForSingleObject(wrapperProcess, 0);
+    ret = WaitForSingleObject(javaProcess, 0);
     if (ret == WAIT_TIMEOUT) {
         /* JVM is still up when it should have already stopped itself. */
 
@@ -1346,7 +1378,7 @@ void wrapperKillProcessNow() {
          *  does not correctly notify the process's DLLs that it is shutting
          *  down.  Ideally, we would call ExitProcess, but that can only be
          *  called from within the process being killed. */
-        if (TerminateProcess(wrapperProcess, 0)) {
+        if (TerminateProcess(javaProcess, 0)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM did not exit on request, terminated");
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM did not exit on request.");
@@ -1364,12 +1396,17 @@ void wrapperKillProcessNow() {
     wrapperData->jState = WRAPPER_JSTATE_DOWN;
     wrapperData->jStateTimeoutTicks = 0;
     wrapperData->jStateTimeoutTicksSet = 0;
-    wrapperProcess = NULL;
 
     /* Remove java pid file if it was registered and created by this process. */
     if (wrapperData->javaPidFilename) {
         unlink(wrapperData->javaPidFilename);
     }
+    if (!CloseHandle(javaProcess)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            "Failed to close the Java process handle: %s", getLastErrorText());
+    }
+    javaProcess = NULL;
+    javaProcessId = 0;
 
     /* Close any open socket to the JVM */
     wrapperProtocolClose();
@@ -1386,7 +1423,7 @@ void wrapperKillProcess(int useLoggerQueue) {
     DWORD timeout = wrapperGetTicks();
 
     /* Check to make sure that the JVM process is still running */
-    ret = WaitForSingleObject(wrapperProcess, 0);
+    ret = WaitForSingleObject(javaProcess, 0);
     if (ret == WAIT_TIMEOUT) {
         /* JVM is still up when it should have already stopped itself. */
         if (wrapperData->requestThreadDumpOnFailedJVMExit) {
@@ -1530,7 +1567,7 @@ void wrapperExecute() {
     if (GetModuleFileName(NULL, szPath, 512) == 0){
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to launch %s -%s",
                      wrapperData->ntServiceDisplayName, getLastErrorText());
-        wrapperProcess = NULL;
+        javaProcess = NULL;
         return;
     }
     c = strrchr(szPath, '\\');
@@ -1560,7 +1597,7 @@ void wrapperExecute() {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Unable to execute Java command.  %s", getLastErrorText());
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "    %s", commandline);
-            wrapperProcess = NULL;
+            javaProcess = NULL;
             
             if (err == ERROR_ACCESS_DENIED) {
                 if (wrapperData->isAdviserEnabled) {
@@ -1596,7 +1633,7 @@ void wrapperExecute() {
     /* Now check if we have a process handle again for the Swedish WinNT bug */
     if (process_info.hProcess==NULL) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "can not execute \"%s\"", commandline);
-        wrapperProcess = NULL;
+        javaProcess = NULL;
         return;
     }
 
@@ -1617,20 +1654,13 @@ void wrapperExecute() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM started (PID=%d)", process_info.dwProcessId);
     }
 
-    wrapperProcess = process_info.hProcess;
-    wrapperProcessId = process_info.dwProcessId;
+    javaProcess = process_info.hProcess;
+    javaProcessId = process_info.dwProcessId;
 
     /* If a java pid filename is specified then write the pid of the java process. */
     if (wrapperData->javaPidFilename) {
-        old_umask = _umask(022);
-        pid_fp = fopen(wrapperData->javaPidFilename, "w");
-        _umask(old_umask);
-
-        if (pid_fp != NULL) {
-            fprintf(pid_fp, "%d\n", wrapperProcessId);
-            fclose(pid_fp);
-        } else {
-         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+        if (writePidFile(wrapperData->javaPidFilename, javaProcessId)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 "Unable to write the Java PID file: %s", wrapperData->javaPidFilename);
         }
     }
@@ -1648,6 +1678,50 @@ DWORD wrapperGetTicks() {
     } else {
         /* Return a snapshot of the current tick count. */
         return timerTicks;
+    }
+}
+
+/**
+ * Outputs a log entry at regular intervals to track the memory usage of the
+ *  Wrapper and its JVM.
+ */
+void wrapperDumpMemory() {
+    PROCESS_MEMORY_COUNTERS wCounters;
+    PROCESS_MEMORY_COUNTERS jCounters;
+    
+    if (OptionalGetProcessMemoryInfo) {
+        /* Start with the Wrapper process. */
+        if (OptionalGetProcessMemoryInfo(wrapperProcess, &wCounters, sizeof(wCounters)) == 0) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                "Call to GetProcessMemoryInfo failed for Wrapper process %08x: %s",
+                wrapperProcessId, getLastErrorText());
+            return;
+        }
+        
+        if (javaProcess != NULL) {
+            /* Next the Java process. */
+            if (OptionalGetProcessMemoryInfo(javaProcess, &jCounters, sizeof(jCounters)) == 0) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                    "Call to GetProcessMemoryInfo failed for Java process %08x: %s",
+                    javaProcessId, getLastErrorText());
+                return;
+            }
+        } else {
+            memset(&jCounters, 0, sizeof(jCounters));
+        }
+        
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            "Wrapper memory: %lu, %lu (%lu), %lu (%lu), %lu (%lu), %lu (%lu)  Java memory: %lu, %lu (%lu), %lu (%lu), %lu (%lu), %lu (%lu)",
+            wCounters.PageFaultCount,
+            wCounters.WorkingSetSize, wCounters.PeakWorkingSetSize,
+            wCounters.QuotaPagedPoolUsage, wCounters.QuotaPeakPagedPoolUsage,
+            wCounters.QuotaNonPagedPoolUsage, wCounters.QuotaPeakNonPagedPoolUsage,
+            wCounters.PagefileUsage, wCounters.PeakPagefileUsage,
+            jCounters.PageFaultCount,
+            jCounters.WorkingSetSize, jCounters.PeakWorkingSetSize,
+            jCounters.QuotaPagedPoolUsage, jCounters.QuotaPeakPagedPoolUsage,
+            jCounters.QuotaNonPagedPoolUsage, jCounters.QuotaPeakNonPagedPoolUsage,
+            jCounters.PagefileUsage, jCounters.PeakPagefileUsage);
     }
 }
 
@@ -2470,7 +2544,7 @@ int setWorkingDir() {
     return wrapperSetWorkingDir(szPath);
 }
 
-int writePidFile(const char *filename) {
+int writePidFile(const char *filename, DWORD pid) {
     FILE *pid_fp = NULL;
     int old_umask;
 
@@ -2479,7 +2553,7 @@ int writePidFile(const char *filename) {
     _umask(old_umask);
     
     if (pid_fp != NULL) {
-        fprintf(pid_fp, "%d\n", (int)getpid());
+        fprintf(pid_fp, "%d\n", pid);
         fclose(pid_fp);
     } else {
         return 1;
@@ -2768,15 +2842,22 @@ void _CRTAPI1 main(int argc, char **argv) {
                             } else if(!_stricmp(argv[1],"-c") || !_stricmp(argv[1],"/c")) {
                                 /* Run as a console application */
                                 
+                                /* Load any dynamic functions. */
+                                loadDLLProcs();
+                                
                                 /* Initialize the invocation mutex as necessary, exit if it already exists. */
                                 if (initInvocationMutex()) {
                                     appExit(1);
                                 }
                                 
+                                /* Get the current process. */
+                                wrapperProcess = GetCurrentProcess();
+                                wrapperProcessId = GetCurrentProcessId();
+                                
                                 /* Write pid and anchor files as requested.  If they are the same file the file is
                                  *  simply overwritten. */
                                 if (wrapperData->anchorFilename) {
-                                    if (writePidFile(wrapperData->anchorFilename)) {
+                                    if (writePidFile(wrapperData->anchorFilename, wrapperProcessId)) {
                                         log_printf
                                             (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                                              "ERROR: Could not write anchor file %s: %s",
@@ -2785,7 +2866,7 @@ void _CRTAPI1 main(int argc, char **argv) {
                                     }
                                 }
                                 if (wrapperData->pidFilename) {
-                                    if (writePidFile(wrapperData->pidFilename)) {
+                                    if (writePidFile(wrapperData->pidFilename, wrapperProcessId)) {
                                         log_printf
                                             (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                                              "ERROR: Could not write pid file %s: %s",
@@ -2800,15 +2881,22 @@ void _CRTAPI1 main(int argc, char **argv) {
                             } else if(!_stricmp(argv[1],"-s") || !_stricmp(argv[1],"/s")) {
                                 /* Run as a service */
                                 
+                                /* Load any dynamic functions. */
+                                loadDLLProcs();
+                                
                                 /* Initialize the invocation mutex as necessary, exit if it already exists. */
                                 if (initInvocationMutex()) {
                                     appExit(1);
                                 }
                                 
+                                /* Get the current process. */
+                                wrapperProcess = GetCurrentProcess();
+                                wrapperProcessId = GetCurrentProcessId();
+                                
                                 /* Write pid and anchor files as requested.  If they are the same file the file is
                                  *  simply overwritten. */
                                 if (wrapperData->anchorFilename) {
-                                    if (writePidFile(wrapperData->anchorFilename)) {
+                                    if (writePidFile(wrapperData->anchorFilename, wrapperProcessId)) {
                                         log_printf
                                             (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                                              "ERROR: Could not write anchor file %s: %s",
@@ -2817,7 +2905,7 @@ void _CRTAPI1 main(int argc, char **argv) {
                                     }
                                 }
                                 if (wrapperData->pidFilename) {
-                                    if (writePidFile(wrapperData->pidFilename)) {
+                                    if (writePidFile(wrapperData->pidFilename, wrapperProcessId)) {
                                         log_printf
                                             (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                                              "ERROR: Could not write pid file %s: %s",

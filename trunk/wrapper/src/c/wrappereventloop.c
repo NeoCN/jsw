@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.13  2004/10/18 05:43:45  mortenson
+ * Add the wrapper.memory_output and wrapper.memory_output.interval properties to
+ * make it possible to track memory usage of the Wrapper and JVM over time.
+ * Change the JVM process variable names to make their meaning more obvious.
+ *
  * Revision 1.12  2004/09/22 11:06:28  mortenson
  * Start using nanosleep in place of usleep on UNIX platforms to work around usleep
  * problems with alarm signals on Solaris.
@@ -245,7 +250,7 @@ void anchorPoll(DWORD nowTicks) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Loop: check anchor file");
         }
         
-        if (wrapperGetTickAge(wrapperData->anchorTimeoutTicks, nowTicks) >= 0) {
+        if (wrapperTickExpired(nowTicks, wrapperData->anchorTimeoutTicks)) {
             result = stat(wrapperData->anchorFilename, &fileStat);
             if (result == 0) {
                 /* Anchor file exists.  Do nothing. */
@@ -271,7 +276,7 @@ void anchorPoll(DWORD nowTicks) {
                     /* Start the shutdown process. */
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Anchor file deleted.  Shutting down.");
 
-                  wrapperStopProcess(FALSE, 0);
+                    wrapperStopProcess(FALSE, 0);
 
                     /* To make sure that the JVM will not be restarted for any reason,
                      *  start the Wrapper shutdown process as well. */
@@ -284,7 +289,7 @@ void anchorPoll(DWORD nowTicks) {
                 }
             }
 
-         wrapperData->anchorTimeoutTicks = wrapperAddToTicks(nowTicks, wrapperData->anchorPollInterval);
+            wrapperData->anchorTimeoutTicks = wrapperAddToTicks(nowTicks, wrapperData->anchorPollInterval);
         }
     }
 }
@@ -898,6 +903,7 @@ void wrapperEventLoop() {
     int nextSleep;
 
     wrapperData->anchorTimeoutTicks = lastCycleTicks;
+    wrapperData->memoryOutputTimeoutTicks = lastCycleTicks;
 
     if (wrapperData->isTimerOutputEnabled) {
         logTimerStats();
@@ -963,6 +969,14 @@ void wrapperEventLoop() {
 
         /* Get the current time for use in this cycle. */
         nowTicks = wrapperGetTicks();
+        
+        /* Log memory usage. */
+        if (wrapperData->isMemoryOutputEnabled) {
+            if (wrapperTickExpired(nowTicks, wrapperData->memoryOutputTimeoutTicks)) {
+                wrapperDumpMemory();
+                wrapperData->memoryOutputTimeoutTicks = wrapperAddToTicks(nowTicks, wrapperData->memoryOutputInterval);
+            }
+        }
 
         /* Has the process been getting CPU? This check will only detect a lag
          * if the useSystemTime flag is set. */

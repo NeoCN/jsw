@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.119  2004/10/18 05:43:45  mortenson
+ * Add the wrapper.memory_output and wrapper.memory_output.interval properties to
+ * make it possible to track memory usage of the Wrapper and JVM over time.
+ * Change the JVM process variable names to make their meaning more obvious.
+ *
  * Revision 1.118  2004/10/01 03:18:57  mortenson
  * Remove C++ style comments.
  *
@@ -2214,6 +2219,10 @@ int wrapperLoadConfiguration() {
     /* Get the sleep debug output status. */
     wrapperData->isSleepOutputEnabled = getBooleanProperty(properties, "wrapper.sleep_output", FALSE);
 
+    /* Get the memory debug output status. */
+    wrapperData->isMemoryOutputEnabled = getBooleanProperty(properties, "wrapper.memory_output", FALSE);
+    wrapperData->memoryOutputInterval = getIntProperty(properties, "wrapper.memory_output.interval", 1);
+    
     /* Get the shutdown hook status */
     wrapperData->isShutdownHookDisabled = getBooleanProperty(properties, "wrapper.disable_shutdown_hook", FALSE);
     
@@ -2424,8 +2433,23 @@ int wrapperGetTickAge(DWORD start, DWORD end) {
      *  due to overflow.
      *  0x00000001 - 0xffffffff = 0x00000002 = 2
      *  0xffffffff - 0x00000001 = 0xfffffffe = -2
-    */
+     */
     return (int)((end - start) * WRAPPER_TICK_MS) / 1000;
+}
+
+/**
+ * Returns TRUE if the specified tick timeout has expired relative to the
+ *  specified tick count.
+ */
+int wrapperTickExpired(DWORD nowTicks, DWORD timeoutTicks) {
+    /* Convert to a signed value. */
+    long int age = nowTicks - timeoutTicks;
+    
+    if (age >= 0) {
+        return TRUE;
+    } else {
+        return FALSE;
+    }
 }
 
 /**
