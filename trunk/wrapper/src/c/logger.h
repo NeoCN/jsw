@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.21  2004/10/19 11:48:20  mortenson
+ * Rework logging so that the logfile is kept open.  Results in a 4 fold speed increase.
+ *
  * Revision 1.20  2004/09/16 04:04:32  mortenson
  * Close the Handle to the logging mutex on shutdown.
  *
@@ -179,6 +182,9 @@ extern void setLogfileMaxFileSize( char *max_file_size );
 extern void setLogfileMaxFileSizeInt( int max_file_size );
 extern void setLogfileMaxLogFiles( char *max_log_files );
 extern void setLogfileMaxLogFilesInt( int max_log_files );
+extern DWORD getLogfileActivity();
+extern void closeLogfile();
+extern void setLogfileAutoClose(int autoClose);
 
 /* * Console functions * */
 extern void setConsoleLogFormat( char *console_log_format );
@@ -205,6 +211,7 @@ extern void log_printf( int source_id, int level, char *lpszFmt, ... );
 extern void log_printf_queue( int useQueue, int source_id, int level, char *lpszFmt, ... );
 
 extern char* getLastErrorText();
+extern int getLastError();
 extern void maintainLogger();
 
 #endif

@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.59  2004/10/19 11:48:20  mortenson
+ * Rework logging so that the logfile is kept open.  Results in a 4 fold speed increase.
+ *
  * Revision 1.58  2004/10/18 09:37:22  mortenson
  * Add the wrapper.cpu_output and wrapper.cpu_output.interval properties to
  * make it possible to track CPU usage of the Wrapper and JVM over time.
@@ -313,6 +316,8 @@ struct WrapperConfig {
     int     isCPUOutputEnabled;     /* TRUE if detailed CPU output should be included in status output. */
     int     cpuOutputInterval;      /* Interval in seconds at which CPU usage is logged. */
     DWORD   cpuOutputTimeoutTicks;  /* Tick count at which CPU will next be logged. */
+    int     logfileInactivityTimeout; /* The number of seconds of inactivity before the logfile will be closed. */
+    DWORD   logfileInactivityTimeoutTicks; /* Tick count at which the logfile will be considered inactive and closed. */
     int     isShutdownHookDisabled; /* TRUE if set in the configuration file */
     int     startupDelayConsole;    /* Delay in seconds before starting the first JVM in console mode. */
     int     startupDelayService;    /* Delay in seconds before starting the first JVM in service mode. */

@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.50  2004/10/19 11:48:20  mortenson
+ * Rework logging so that the logfile is kept open.  Results in a 4 fold speed increase.
+ *
  * Revision 1.49  2004/09/22 11:09:44  mortenson
  * Remove some debug output that was added to track down a shutdown crash.
  *
@@ -236,6 +239,15 @@ char *threadMessageBuffer = NULL;
 int threadMessageBufferSize = 0;
 char *threadPrintBuffer = NULL;
 int threadPrintBufferSize = 0;
+
+/* Logger file pointer.  It is kept open under high log loads but closed whenever it has been idle. */
+FILE *logfileFP = NULL;
+
+/** Flag which controls whether or not the logfile is auto closed after each line. */
+int autoCloseLogfile = 0;
+
+/* The number of lines sent to the log file since the getLogfileActivity method was last called. */
+DWORD logfileActivityCount;
 
 /* Mutex for syncronization of the log_printf function. */
 #ifdef WIN32
@@ -450,6 +462,88 @@ void setLogfileMaxLogFilesInt( int max_log_files ) {
     logFileMaxLogFiles = max_log_files;
 }
 
+/** Returns the number of lines of log file activity since the last call. */
+DWORD getLogfileActivity() {
+    DWORD logfileLines;
+    
+    /* Don't worry about synchronization here.  Any errors are not critical the way this is used. */
+    logfileLines = logfileActivityCount;
+    logfileActivityCount = 0;
+    
+    return logfileLines;
+}
+
+/** Obtains a lock on the logging mutex. */
+int lockLoggingMutex() {
+#ifdef WIN32
+    switch (WaitForSingleObject(log_printfMutexHandle, INFINITE)) {
+    case WAIT_ABANDONED:
+        printf("Logging Mutex was abandoned.\n");
+        fflush(NULL);
+        return -1;
+    case WAIT_FAILED:
+        printf("Logging Mutex wait failed.\n");
+        fflush(NULL);
+        return -1;
+    case WAIT_TIMEOUT:
+        printf("Logging Mutex wait timed out.\n");
+        fflush(NULL);
+        return -1;
+    default:
+        /* Ok */
+        break;
+    }
+#else
+    pthread_mutex_lock(&log_printfMutex);
+#endif
+    
+    return 0;
+}
+
+/** Releases a lock on the logging mutex. */
+int releaseLoggingMutex() {
+#ifdef WIN32
+    if (!ReleaseMutex(log_printfMutexHandle)) {
+        printf( "Failed to release logging mutex. %s\n", getLastErrorText());
+        fflush(NULL);
+        return -1;
+    }
+#else
+    pthread_mutex_unlock(&log_printfMutex);
+#endif
+    return 0;
+}
+
+/** Closes the logfile if it is open. */
+void closeLogfile() {
+    /* We need to be very careful that only one thread is allowed in here
+     *  at a time.  On Windows this is done using a Mutex object that is
+     *  initialized in the initLogging function. */
+    if (lockLoggingMutex()) {
+        return;
+    }
+    
+    if (logfileFP != NULL) {
+#ifdef _DEBUG
+        printf("Closing logfile by request...\n");
+        fflush(NULL);
+#endif
+        
+        fclose(logfileFP);
+        logfileFP = NULL;
+    }
+
+    /* Release the lock we have on this function so that other threads can get in. */
+    if (releaseLoggingMutex()) {
+        return;
+    }
+}
+
+/** Sets the auto close log file flag. */
+void setLogfileAutoClose(int autoClose) {
+    autoCloseLogfile = autoClose;
+}
+
 /* Console functions */
 void setConsoleLogFormat( char *console_log_format ) {
     if( console_log_format != NULL )
@@ -634,37 +728,25 @@ char* buildPrintBuffer( int source_id, int level, char *format, char *message ) 
     return threadPrintBuffer;
 }
 
+void forceFlush(FILE *fp) {
+    int lastError;
+    
+    fflush(fp);
+    lastError = getLastError();
+}
+
 /* General log functions */
 void log_printf( int source_id, int level, char *lpszFmt, ... ) {
     va_list     vargs;
-    FILE        *logfileFP = NULL;
     int         count;
     char        *printBuffer;
 
     /* We need to be very careful that only one thread is allowed in here
      *  at a time.  On Windows this is done using a Mutex object that is
-     *  initialized in the */
-#ifdef WIN32
-    switch (WaitForSingleObject(log_printfMutexHandle, INFINITE)) {
-    case WAIT_ABANDONED:
-        printf("Logging Mutex was abandoned.\n");
-        fflush(NULL);
+     *  initialized in the initLogging function. */
+    if (lockLoggingMutex()) {
         return;
-    case WAIT_FAILED:
-        printf("Logging Mutex wait failed.\n");
-        fflush(NULL);
-        return;
-    case WAIT_TIMEOUT:
-        printf("Logging Mutex wait timed out.\n");
-        fflush(NULL);
-        return;
-    default:
-        /* Ok */
-        break;
     }
-#else
-    pthread_mutex_lock(&log_printfMutex);
-#endif
 
     /* Loop until the buffer is large enough that we are able to successfully
      *  print into it. Once the buffer has grown to the largest message size,
@@ -740,21 +822,49 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
         if ( strlen( logFilePath ) > 0 )
         {
             /* Make sure that the log file does not need to be rolled. */
-            checkAndRollLogs( );
+            checkAndRollLogs();
             
-            logfileFP = fopen( logFilePath, "a" );
+            /* If the file needs to be opened then do so. */
             if (logfileFP == NULL) {
-                /* The log file could not be opened.  Try the default file location. */
-                logfileFP = fopen( "wrapper.log", "a" );
+                logfileFP = fopen( logFilePath, "a" );
+                if (logfileFP == NULL) {
+                    /* The log file could not be opened.  Try the default file location. */
+                    logfileFP = fopen( "wrapper.log", "a" );
+                }
+                
+#ifdef _DEBUG				
+                if (logfileFP != NULL) {
+                    printf("Opened logfile\n", logfileFP);
+                    fflush(NULL);
+                }
+#endif
             }
             
-            if (logfileFP != NULL) {
+            if (logfileFP == NULL) {
+                printf("Unable to open logfile %s: %s\n", logFilePath, getLastErrorText());
+                fflush(NULL);
+            } else {
                 /* Build up the printBuffer. */
                 printBuffer = buildPrintBuffer( source_id, level, logfileFormat, threadMessageBuffer );
                 
                 fprintf( logfileFP, "%s\n", printBuffer );
                 
-                fclose( logfileFP );
+                /* Increment the activity counter. */
+                logfileActivityCount++;
+                
+                /* Only close the file if autoClose is set.  Otherwise it will be closed later
+                 *  after an appropriate period of inactivity. */
+                if (autoCloseLogfile) {
+#ifdef _DEBUG
+                    printf("Closing logfile immediately...\n");
+                    fflush(NULL);
+#endif
+                    
+                    fclose(logfileFP);
+                    logfileFP = NULL;
+                }
+                
+                /* Leave the file open.  It will be closed later after a period of inactivity. */
             }
         }
     }
@@ -774,15 +884,9 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
     }
 
     /* Release the lock we have on this function so that other threads can get in. */
-#ifdef WIN32
-    if (!ReleaseMutex(log_printfMutexHandle)) {
-        printf( "Failed to release logging mutex. %s\n", getLastErrorText());
-        fflush(NULL);
+    if (releaseLoggingMutex()) {
         return;
     }
-#else
-    pthread_mutex_unlock(&log_printfMutex);
-#endif
 }
 
 /* Internal functions */
@@ -820,9 +924,15 @@ char* getLastErrorText() {
 
     return lastErrBuf;
 }
+int getLastError() {
+    return GetLastError();
+}
 #else
 char* getLastErrorText() {
     return strerror(errno);
+}
+int getLastError() {
+    return errno;
 }
 #endif
 
@@ -1113,8 +1223,12 @@ void writeToConsole( char *lpszFmt, ... ) {
 }
 #endif
 
-
+/**
+ * Check to see whether or not the log file needs to be rolled.
+ *  This is only called when synchronized.
+ */
 void checkAndRollLogs() {
+    long position;
     struct stat fileStat;
     char *tmpLogFilePathOld;
     char *tmpLogFilePathNew;
@@ -1123,100 +1237,125 @@ void checkAndRollLogs() {
 
     if (logFileMaxSize <= 0)
         return;
-
-    if (stat(logFilePath, &fileStat) == 0) {
-        /* printf("%s has size=%d >= %d?\n", logFilePath, fileStat.st_size, logFileMaxSize); */
-
-        /* Does the log file need to rotated? */
-        if(fileStat.st_size >= logFileMaxSize) {
-            tmpLogFilePathOld = NULL;
-            tmpLogFilePathNew = NULL;
+    
+    /* Find out the current size of the file.  If the file is currently open then we need to
+     *  use ftell to make sure that the buffered data is also included. */
+    if (logfileFP != NULL) {
+        if ((position = ftell(logfileFP)) < 0) {
+            printf("Unable to get the current logfile size with ftell: %s\n", getLastErrorText());
+            return;
+        }
+    } else {
+        if (stat(logFilePath, &fileStat) != 0) {
+            printf("Unable to get the current logfile size with stat: %s\n", getLastErrorText());
+            return;
+        }
+        
+        position = fileStat.st_size;
+    }
+    
+    /* Does the log file need to rotated? */
+    if (position >= logFileMaxSize) {
+        tmpLogFilePathOld = NULL;
+        tmpLogFilePathNew = NULL;
+        
+        /* If the log file is currently open, it needs to be closed. */
+        if (logfileFP != NULL) {
 #ifdef _DEBUG
-                printf("Rolling log files...\n");
+            printf("Closing logfile so it can be rolled...\n");
+            fflush(NULL);
 #endif
-            /* Allocate buffers (Allow for 10 digit file indices) */
-            if ((tmpLogFilePathOld = malloc(sizeof(char) * (strlen(logFilePath) + 10 + 2))) == NULL) {
-                /* Don't log this as with other errors as that would cause recursion. */
-                fprintf(stderr, "Out of memory.\n");
-                goto cleanup;
-            }
-            if ((tmpLogFilePathNew = malloc(sizeof(char) * (strlen(logFilePath) + 10 + 2))) == NULL) {
-                /* Don't log this as with other errors as that would cause recursion. */
-                fprintf(stderr, "Out of memory.\n");
-                goto cleanup;
-            }
 
-            /* We don't know how many log files need to be rotated yet, so look. */
-            i = 0;
-            do {
-                i++;
-                sprintf(tmpLogFilePathOld, "%s.%d", logFilePath, i);
-                result = stat(tmpLogFilePathOld, &fileStat);
+            fclose(logfileFP);
+            logfileFP = NULL;
+        }
+        
 #ifdef _DEBUG
-                if (result == 0) {
-                    printf("Rolled log file %s exists.\n", tmpLogFilePathOld);
-                }
+            printf("Rolling log files...\n");
 #endif
-            } while((result == 0) && ((logFileMaxLogFiles <= 0) || (i < logFileMaxLogFiles)));
+        /* Allocate buffers (Allow for 10 digit file indices) */
+        if ((tmpLogFilePathOld = malloc(sizeof(char) * (strlen(logFilePath) + 10 + 2))) == NULL) {
+            /* Don't log this as with other errors as that would cause recursion. */
+            fprintf(stderr, "Out of memory.\n");
+            goto cleanup;
+        }
+        if ((tmpLogFilePathNew = malloc(sizeof(char) * (strlen(logFilePath) + 10 + 2))) == NULL) {
+            /* Don't log this as with other errors as that would cause recursion. */
+            fprintf(stderr, "Out of memory.\n");
+            goto cleanup;
+        }
 
-            /* Remove the file with the highest index if it exists */
+        /* We don't know how many log files need to be rotated yet, so look. */
+        i = 0;
+        do {
+            i++;
             sprintf(tmpLogFilePathOld, "%s.%d", logFilePath, i);
-            remove(tmpLogFilePathOld);
-
-            /* Now, starting at the highest file rename them up by one index. */
-            for (; i > 1; i--) {
-                sprintf(tmpLogFilePathNew, "%s", tmpLogFilePathOld);
-                sprintf(tmpLogFilePathOld, "%s.%d", logFilePath, i - 1);
-
-                if (rename(tmpLogFilePathOld, tmpLogFilePathNew) != 0) {
-                    if (errno == 13) {
-                        /* Don't log this as with other errors as that would cause recursion. */
-                        printf("Unable to rename log file %s to %s.  File is in use by another application.\n",
-                            tmpLogFilePathOld, tmpLogFilePathNew);
-                    } else {
-                        /* Don't log this as with other errors as that would cause recursion. */
-                        printf("Unable to rename log file %s to %s. (errno %d)\n",
-                            tmpLogFilePathOld, tmpLogFilePathNew, errno);
-                    }
-                    goto cleanup;
-                }
+            result = stat(tmpLogFilePathOld, &fileStat);
 #ifdef _DEBUG
-                else {
-                    printf("Renamed %s to %s\n", tmpLogFilePathOld, tmpLogFilePathNew);
-                }
-#endif
+            if (result == 0) {
+                printf("Rolled log file %s exists.\n", tmpLogFilePathOld);
             }
+#endif
+        } while((result == 0) && ((logFileMaxLogFiles <= 0) || (i < logFileMaxLogFiles)));
 
-            /* Rename the current file to the #1 index position */
+        /* Remove the file with the highest index if it exists */
+        sprintf(tmpLogFilePathOld, "%s.%d", logFilePath, i);
+        remove(tmpLogFilePathOld);
+
+        /* Now, starting at the highest file rename them up by one index. */
+        for (; i > 1; i--) {
             sprintf(tmpLogFilePathNew, "%s", tmpLogFilePathOld);
-            if (rename(logFilePath, tmpLogFilePathNew) != 0) {
+            sprintf(tmpLogFilePathOld, "%s.%d", logFilePath, i - 1);
+
+            if (rename(tmpLogFilePathOld, tmpLogFilePathNew) != 0) {
                 if (errno == 13) {
                     /* Don't log this as with other errors as that would cause recursion. */
                     printf("Unable to rename log file %s to %s.  File is in use by another application.\n",
-                        logFilePath, tmpLogFilePathNew);
+                        tmpLogFilePathOld, tmpLogFilePathNew);
                 } else {
                     /* Don't log this as with other errors as that would cause recursion. */
                     printf("Unable to rename log file %s to %s. (errno %d)\n",
-                        logFilePath, tmpLogFilePathNew, errno);
+                        tmpLogFilePathOld, tmpLogFilePathNew, errno);
                 }
                 goto cleanup;
             }
 #ifdef _DEBUG
             else {
-                printf("Renamed %s to %s\n", logFilePath, tmpLogFilePathNew);
+                printf("Renamed %s to %s\n", tmpLogFilePathOld, tmpLogFilePathNew);
             }
 #endif
+        }
 
-            cleanup:
-            /* Free memory */
-            if (tmpLogFilePathOld != NULL) {
-                free((void *)tmpLogFilePathOld);
-                tmpLogFilePathOld = NULL;
+        /* Rename the current file to the #1 index position */
+        sprintf(tmpLogFilePathNew, "%s", tmpLogFilePathOld);
+        if (rename(logFilePath, tmpLogFilePathNew) != 0) {
+            if (errno == 13) {
+                /* Don't log this as with other errors as that would cause recursion. */
+                printf("Unable to rename log file %s to %s.  File is in use by another application.\n",
+                    logFilePath, tmpLogFilePathNew);
+            } else {
+                /* Don't log this as with other errors as that would cause recursion. */
+                printf("Unable to rename log file %s to %s. (errno %d)\n",
+                    logFilePath, tmpLogFilePathNew, errno);
             }
-            if (tmpLogFilePathNew != NULL) {
-                free((void *)tmpLogFilePathNew);
-                tmpLogFilePathNew = NULL;
-            }
+            exit(1);
+            goto cleanup;
+        }
+#ifdef _DEBUG
+        else {
+            printf("Renamed %s to %s\n", logFilePath, tmpLogFilePathNew);
+        }
+#endif
+
+        cleanup:
+        /* Free memory */
+        if (tmpLogFilePathOld != NULL) {
+            free((void *)tmpLogFilePathOld);
+            tmpLogFilePathOld = NULL;
+        }
+        if (tmpLogFilePathNew != NULL) {
+            free((void *)tmpLogFilePathNew);
+            tmpLogFilePathNew = NULL;
         }
     }
 }

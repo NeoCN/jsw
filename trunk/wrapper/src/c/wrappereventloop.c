@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.15  2004/10/19 11:48:20  mortenson
+ * Rework logging so that the logfile is kept open.  Results in a 4 fold speed increase.
+ *
  * Revision 1.14  2004/10/18 09:37:23  mortenson
  * Add the wrapper.cpu_output and wrapper.cpu_output.interval properties to
  * make it possible to track CPU usage of the Wrapper and JVM over time.
@@ -901,14 +904,17 @@ void logTimerStats() {
 /**
  * The main event loop for the wrapper.  Handles all state changes and events.
  */
+DWORD lastLogfileActivity = 0;
 void wrapperEventLoop() {
     DWORD nowTicks;
     DWORD lastCycleTicks = wrapperGetTicks();
     int nextSleep;
+    DWORD activity;
 
     wrapperData->anchorTimeoutTicks = lastCycleTicks;
     wrapperData->memoryOutputTimeoutTicks = lastCycleTicks;
     wrapperData->cpuOutputTimeoutTicks = lastCycleTicks;
+    wrapperData->logfileInactivityTimeoutTicks = lastCycleTicks;
 
     if (wrapperData->isTimerOutputEnabled) {
         logTimerStats();
@@ -989,6 +995,16 @@ void wrapperEventLoop() {
                 wrapperDumpCPUUsage();
                 wrapperData->cpuOutputTimeoutTicks = wrapperAddToTicks(nowTicks, wrapperData->cpuOutputInterval);
             }
+        }
+        
+        /* Test the activity of the logfile. */
+        activity = getLogfileActivity();
+        if (activity != lastLogfileActivity) {
+            /* There has been recent output.  update the timeout. */
+            wrapperData->logfileInactivityTimeoutTicks = wrapperAddToTicks(nowTicks, wrapperData->logfileInactivityTimeout);
+        }
+        if (wrapperTickExpired(nowTicks, wrapperData->logfileInactivityTimeoutTicks)) {
+            closeLogfile();
         }
 
         /* Has the process been getting CPU? This check will only detect a lag
