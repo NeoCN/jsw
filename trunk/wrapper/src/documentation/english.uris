@@ -50,6 +50,7 @@ english/prop-java-initmemory.html
 english/prop-java-library-path-n.html
 english/prop-java-mainclass.html
 english/prop-java-maxmemory.html
+english/prop-java-pidfile.html
 english/prop-jvm-exit-timeout.html
 english/prop-logfile.html
 english/prop-logfile-format.html
