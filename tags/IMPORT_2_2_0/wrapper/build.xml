@@ -1,0 +1,266 @@
+<?xml version="1.0"?>
+
+<!-- ======================================================================= -->
+<!-- Wrapper build file                                                     -->
+<!-- ======================================================================= -->
+
+<project name="wrapper" default="main" basedir=".">
+    
+    <!-- Local build properties -->
+    <property file="${user.home}/.ant.local.properties" />
+    
+    <!-- platform -->
+    <property name="is.${os.name}" value="true"/>
+    
+    <property name="Name" value="Wrapper"/>
+    <property name="name" value="wrapper"/>
+    
+    <!-- product version -->
+    <property name="major.version"  value="2" />
+    <property name="version"        value="${major.version}.2.0" />
+    
+    <property name="bin.dir" value="bin"/>
+    <property name="src.dir" value="src"/>
+    <property name="lib.dir" value="lib"/>
+    <property name="doc.dir" value="doc"/>
+    <property name="jdoc.dir" value="jdoc"/>
+    
+    <property name="build.dir" value="build"/>
+    <property name="build.classes" value="build/classes"/>
+    
+    <property name="classpath" value=""/>
+    
+    <!-- =================================================================== -->
+    <!-- Initialize Windows NT build properties.                             -->
+    <!-- =================================================================== -->
+    <target name="init-windows-nt" if="is.Windows NT" >
+        <property name="platform"        value="windows"/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Initialize Windows 2000 build properties.                           -->
+    <!-- =================================================================== -->
+    <target name="init-windows-2000" if="is.Windows 2000" >
+        <property name="platform"        value="windows"/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Initialize Linux build properties.                                  -->
+    <!-- =================================================================== -->
+    <target name="init-linux" if="is.Linux" >
+        <property name="platform"        value="linux"/>
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Initialize Solaris build properties.                                -->
+    <!-- =================================================================== -->
+    <target name="init-solaris" if="is.SunOS" >
+        <property name="platform"        value="solaris"/>
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Initialize build.                                                   -->
+    <!-- =================================================================== -->
+    <target name="init" depends="init-windows-nt, init-windows-2000, init-linux, init-solaris">
+        <filter token="java.home"         value="${java.home}" />
+        <filter token="wrapper.home"      value="${basedir}" />
+        <filter token="java.library.path" value="${basedir}/lib/${platform}" />
+        
+        <tstamp/>
+        <filter token="version"           value="${version}"       />
+        <filter token="build.date"        value="${DSTAMP}"        />
+        <filter token="build.time"        value="${TSTAMP}"        />
+        
+        <copy file="test/test.conf.in"    tofile="test/test.conf" filtering="on"/>
+        <copy file="test/testapp.conf.in" tofile="test/testapp.conf" filtering="on"/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Prepares the build directory                                        -->
+    <!-- =================================================================== -->
+    <target name="prepare">
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${lib.dir}"/>
+        <mkdir dir="${lib.dir}/linux"/>
+        <mkdir dir="${lib.dir}/solaris"/>
+        <mkdir dir="${lib.dir}/windows"/>
+        <mkdir dir="${bin.dir}"/>        
+        <mkdir dir="${bin.dir}/linux"/>
+        <mkdir dir="${bin.dir}/solaris"/>
+        <mkdir dir="${bin.dir}/windows"/>
+        <mkdir dir="${doc.dir}"/>
+        <mkdir dir="${jdoc.dir}"/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Converts natively encoded src files to ascii                        -->
+    <!-- =================================================================== -->
+    <target name="convert" depends="init">
+        <native2ascii src="${src.dir}/java"
+                      dest="${src.dir}/java"
+                      encoding="JISAutoDetect"
+                      ext="native"
+                      includes="**/*.native" />
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Updates version info and build time in source code                  -->
+    <!-- =================================================================== -->
+    <target name="update-info" depends="init">
+        
+        <!-- nuke server info source file to make sure it gets rewritten every build -->
+        <delete file="${src.dir}/java/com/silveregg/wrapper/WrapperInfo.java" />
+        
+        <!-- copy server info source, using filtering to update version and build time -->
+        <copy file="${src.dir}/java/com/silveregg/wrapper/WrapperInfo.java.in"
+              tofile="${src.dir}/java/com/silveregg/wrapper/WrapperInfo.java" 
+              filtering="on"/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Compiles the source code                                            -->
+    <!-- =================================================================== -->
+    <target name="compile" depends="prepare,convert,update-info">
+        <mkdir dir="${build.classes}"/>
+        
+        <!-- compile everything under com -->
+        <javac srcdir="${src.dir}/java" destdir="${build.classes}"
+               deprecation="on"
+               debug="on"
+               optimize="on">
+            <include name="com/**" />
+            <classpath id="compile.classpath"> 
+            </classpath>
+        </javac>
+
+        <!-- copy resource files to build directory -->
+        <copy todir="${build.classes}" > 
+            <fileset dir="${src.dir}/java" > 
+                <include name="com/**/*.properties" /> 
+                <include name="com/**/*.jpg" />
+            </fileset> 
+        </copy>
+
+        <!-- copy Manifests to build directory -->
+        <copy todir="${build.classes}" > 
+            <fileset dir="${src.dir}/java" > 
+                <include name="**/Manifest"/>
+            </fileset> 
+        </copy>
+        
+        <!-- run Nmake on Windows to build native code -->
+        
+        <!-- run make on Linux to build library -->
+        <exec executable="make" 
+              dir="${src.dir}/c" 
+              os="Linux">
+            <arg line="-f Makefile.linux" />
+        </exec>
+        <exec executable="ln" dir="${bin.dir}" os="Linux" output="/dev/null">
+            <arg line="-s linux/wrapper wrapper" />
+        </exec>
+        
+        <!-- run make on Solaris to build library -->
+        <exec executable="gmake" 
+              dir="${src.dir}/c" 
+              os="SunOS">
+            <arg line="-f Makefile.solaris" />
+        </exec>
+        <exec executable="ln" dir="${bin.dir}" os="SunOS" output="/dev/null">
+            <arg line="-s solaris/wrapper wrapper" />
+        </exec>
+        
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Creates the jar archive                                             -->
+    <!-- =================================================================== -->
+    <target name="jar" depends="compile">
+        <jar jarfile="${lib.dir}/wrapper.jar"
+             basedir="${build.classes}"
+             includes="com/silveregg/wrapper/*.class,com/silveregg/wrapper/resources/*.class,**/*.properties"
+             />
+        <jar jarfile="${lib.dir}/wrappertest.jar"
+             basedir="${build.classes}"
+             includes="com/silveregg/wrapper/*.class,com/silveregg/wrapper/resources/*.class,com/silveregg/wrapper/test/*.class,**/*.properties"
+             />
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Creates the javadocs archive                                             -->
+    <!-- =================================================================== -->
+    <target name="jdoc" depends="prepare">
+        <javadoc packagenames="com.silveregg.wrapper.*"
+            sourcepath="${src.dir}/java"
+            destdir="${jdoc.dir}"
+            author="true"
+            version="true"
+            private="true"
+            use="true"
+            windowtitle="SilverEgg Wrapper API"
+            doctitle="SilverEgg Wrapper"
+            bottom="Copyright 2000, 2001 SilverEgg Technology Corp. All Rights Reserved."
+        />
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Main target                                                         -->
+    <!-- =================================================================== -->
+    <target name="main" depends="jar">
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Run test.                                                           -->
+    <!-- =================================================================== -->
+    <target name="test" depends="main">
+        <exec executable="sh" dir="test" os="Linux">
+            <arg value="TestWrapper"/>
+        </exec>
+    </target>
+
+    <!-- =================================================================== -->
+    <!-- Cleans up generated stuff                                           -->
+    <!-- =================================================================== -->
+    <target name="clean">
+        <delete dir="${build.dir}"/>
+        <delete dir="${jdoc.dir}"/>
+        <exec executable="make"
+              dir="${src.dir}/c"
+              os="Linux">
+            <arg line="-f Makefile.linux" />
+            <arg value="clean"/>
+        </exec>
+        <exec executable="make" 
+              dir="${src.dir}/c" 
+              os="SunOS">
+            <arg line="-f Makefile.solaris" />
+            <arg value="clean"/>
+        </exec>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Total cleanup                                                       -->
+    <!-- =================================================================== -->
+    <target name="total-clean" depends="clean">
+        <delete file="test/test.conf" />
+        <delete file="${lib.dir}/wrapper.jar"/>
+        <delete file="${lib.dir}/wrappertest.jar"/>
+        <exec executable="make" 
+              dir="${src.dir}/c" 
+              os="Linux">
+            <arg line="-f Makefile.linux" />
+            <arg value="cleanall"/>
+        </exec>
+        <exec executable="make"
+              dir="${src.dir}/c"
+              os="SunOS">
+            <arg line="-f Makefile.solaris" />
+            <arg value="cleanall"/>
+        </exec>
+        <delete dir="${lib.dir}/linux"/>
+        <delete dir="${lib.dir}/solaris"/>
+        <delete dir="${bin.dir}/linux"/>
+        <delete dir="${bin.dir}/solaris"/>
+    </target>
+</project>
+
