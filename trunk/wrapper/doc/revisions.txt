@@ -9,6 +9,11 @@ Java Service Wrapper Revision History.
   timeout within the JVM.  Before the timeout on responses to the Wrapper
   could be controlled, but the ping timeout within the JVM was hardcoded to
   30 seconds.
+* In the last release, some work was done to avoid false timeouts caused by
+  large quantities of output.  On some heavily loaded systems, timeouts were
+  still being encountered.  Rather than reading up to 50 lines of input, the
+  code will now read for a maximum of 250ms before returning to give the main
+  event loop more cycles.
 
 3.0.1
 * Fix a problem with the wrapper.disable_shutdown_hook.  Due to a typo in the
