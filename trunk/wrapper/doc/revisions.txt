@@ -22,6 +22,13 @@ Java Service Wrapper Revision History.
 * Change the default value of wrapper.jvm_exit.timeout from 5 to 15 seconds.
   The old default was too fast for some applications which take a while to
   exit.  Applications which were exiting promptly will not see any difference.
+* Fix a problem where the JVM would restart at certain times when using the
+  system time based timer due to an overflow error.  This problem was
+  introduced in 3.1.0.  Due to another bug in 3.1.0, the Wrapper would
+  shutdown rather than simply restarting the JVM as was happening in 3.1.1.
+  The last restart happened on Aug 21, 2004.  It will next occur Oct 10, 2004
+  and repeat at regular intervals.  There are no problems when using the new
+  Tick based timer.  Bug #1014405.
 
 3.1.1
 * Modified the way libwrapper.so is built on Solaris and Linux so that it
