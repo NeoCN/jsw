@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.47  2003/03/26 05:14:23  mortenson
+ * Improve the way the Wrapper handles large quantities of log output received
+ * across its socket.
+ *
  * Revision 1.46  2003/03/21 21:25:29  mortenson
  * Fix a problem where very heavy output from the JVM can cause the Wrapper to
  * give a false timeout.  The Wrapper now only ready 50 lines of input at a time
@@ -416,6 +420,7 @@ int wrapperProtocolFunction(char function, const char *message) {
  * Read any data sent from the JVM.  This function will loop and read as many
  *  packets are available.  The loop will only be allowed to go for 250ms to
  *  ensure that other functions are handled correctly.
+ * Returns 0 if all available data has been read, 1 if more data is waiting.
  */
 int wrapperProtocolRead() {
     char c, code;
@@ -451,14 +456,14 @@ int wrapperProtocolRead() {
                 wrapperProtocolStartServer();
                 if (ssd == INVALID_SOCKET) {
                     /* Failed. */
-                    return FALSE;
+                    return 0;
                 }
             }
 
             /* Try accepting a socket */
             wrapperProtocolOpen();
             if (sd == INVALID_SOCKET) {
-                return FALSE;
+                return 0;
             }
         }
 
@@ -475,13 +480,13 @@ int wrapperProtocolRead() {
             /*
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "no data");
             */
-            return FALSE;	
+            return 0;	
         } else if (len != 1) {
             if (wrapperData->isDebugging) {
                 log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket read no code (closed?).");
             }
             wrapperProtocolClose();
-            return FALSE;	
+            return 0;	
         }
 
         code = c;
@@ -566,7 +571,11 @@ int wrapperProtocolRead() {
     /*
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "done durr=%ld", durr);
     */
-    return TRUE;
+    if ((durr = (now - startTime) * 1000 + (nowMillis - startTimeMillis)) < 250) {
+        return 0;
+    } else {
+        return 1;
+    }
 }
 
 
@@ -1295,7 +1304,14 @@ void wrapperEventLoop() {
         }
         
         /* Check for incoming data packets. */
-        wrapperProtocolRead();
+        if ( wrapperProtocolRead() )
+        {
+            if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                    "Pause reading socket data to share cycles.");
+            }
+            nextSleep = FALSE;
+        }
         
         /* Get the current time for use in this cycle. */
         now = time(NULL);
