@@ -12,13 +12,12 @@
         <menu-item label="Introduction"               href="introduction.html"/>
         <menu-item label="Integration Methods"        href="integrate.html"/>
         <menu-item label="Configuration Properties"   href="properties.html"/>
-        <!--<menu-item label="Launching Your Application" href="launch.html"/>-->
-        <menu-item label="Show Your Support"          href="donate.html"/>
+        <menu-item label="Launching Your Application" href="launch.html"/>
+        <menu-item label="Show Your Support"          href="donate.html" highlight="true"/>
     </menu>
         
     <menu label="Documentation">
         <menu-item label="Feature Examples"           href="example.html"/>
-        <menu-item label="Launching Your Application" href="launch-overview.html"/>
         <menu-item label="Debugging Your Application" href="debugging.html"/>
         <menu-item label="Troubleshooting"            href="troubleshooting.html"/>
         <menu-item label="FAQ"                        href="faq.html"/>
