@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.12  2002/02/08 05:55:55  mortenson
+// Make the syslog never unregister to avoid EventLog errors.
+//
 // Revision 1.11  2002/01/28 19:06:02  spocke
 // Modified default property for wrapper.ntservice.description.
 //
@@ -1521,8 +1524,10 @@ int wrapperLoadConfiguration() {
     // Load syslog event source name
     setSyslogEventSourceName((char *)getStringProperty(properties, "wrapper.ntservice.name", "Wrapper"));
 
-    // Register the syslog message file, this will only be done is SyslogLevel != NONE
-    registerSyslogMessageFile( );
+    // Register the syslog message file if syslog is enabled
+	if (getSyslogLevelInt() < LEVEL_NONE) {
+		registerSyslogMessageFile( );
+	}
 
     // Initialize some values not loaded
     wrapperData->exitCode = 0;
