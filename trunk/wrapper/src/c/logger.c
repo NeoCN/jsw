@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.38  2004/04/16 04:13:35  mortenson
+ * Fix a typo in error code that could have caused a crash if it was ever encountered.
+ *
  * Revision 1.37  2004/03/20 16:55:49  mortenson
  * Add an adviser feature to help cut down on support requests from new users.
  *
@@ -225,7 +228,7 @@ int getThreadId() {
     }
     
     printf( "WARNING - Encountered an unknown thread %ld in getThreadId().\n", (long int)threadId );
-    return threadIds[0]; /* WRAPPER_THREAD_SIGNAL */
+    return 0; /* WRAPPER_THREAD_SIGNAL */
 }
 
 int strcmpIgnoreCase( const char *str1, const char *str2 ) {
