@@ -26,6 +26,9 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
+// Revision 1.8  2002/11/06 05:44:51  mortenson
+// Add support for invoking a thread dump from a method call within the JVM.
+//
 // Revision 1.7  2002/06/02 11:38:42  mortenson
 // Increase window size so that the window displays on XP correctly.
 //
@@ -102,14 +105,19 @@ public class Main implements WrapperListener {
             add(rsButton);
             rsButton.addActionListener(this);
             
+            Button tdButton = new Button("Request Thread Dump");
+            add(tdButton);
+            tdButton.addActionListener(this);
+            
             add(new Label("The Access Violation button only works with Sun JVMs."));
             add(new Label("Also try killing the JVM process or pressing CTRL-C in the console window."));
             add(new Label("Simulate JVM Hang only has an effect when controlled by native Wrapper."));
             add(new Label("System.exit(0) should cause the Wrapper to exit."));
             add(new Label("Runtime.getRuntime().halt(0) should result in the JVM restarting."));
             add(new Label("Request Restart should cause the JVM to stop and be restarted cleanly."));
+            add(new Label("Request Thread Dump should cause the JVM dump its thread states."));
             
-            setSize(new Dimension(512, 260));
+            setSize(new Dimension(550, 290));
         }
         
         public void actionPerformed(ActionEvent event) {
@@ -128,6 +136,8 @@ public class Main implements WrapperListener {
                 Runtime.getRuntime().halt(0);
             } else if (command.equals("Request Restart")) {
                 WrapperManager.restart();
+            } else if (command.equals("Request Thread Dump")) {
+                WrapperManager.requestThreadDump();
             }
         }
     }

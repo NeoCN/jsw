@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.6  2002/11/06 05:44:51  mortenson
+ * Add support for invoking a thread dump from a method call within the JVM.
+ *
  * Revision 1.5  2002/03/07 09:23:25  mortenson
  * Go through and change the style of comments that we use so that they will not
  * cause compiler errors on older unix compilers.
@@ -58,6 +61,8 @@ barf
 
 #include <windows.h>
 #include "wrapperjni.h"
+
+static DWORD wrapperProcessId = 0;
 
 /**
  * Handler to take care of the case where the user hits CTRL-C when the wrapper
@@ -130,5 +135,26 @@ Java_com_silveregg_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass clazz, 
 
     /* Initialize the CTRL-C handler */
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)wrapperConsoleHandler, TRUE);
+
+	/* Store the current process Id */
+	wrapperProcessId = GetCurrentProcessId();
 }
+
+/*
+ * Class:     com_silveregg_wrapper_WrapperManager
+ * Method:    nativeRequestThreadDump
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL
+Java_com_silveregg_wrapper_WrapperManager_nativeRequestThreadDump(JNIEnv *env, jclass clazz) {
+    if (wrapperJNIDebugging) {
+	    printf("Sending BREAK event to process group %ld.\n", wrapperProcessId);
+	    flushall();
+	}
+    if ( GenerateConsoleCtrlEvent( CTRL_BREAK_EVENT, wrapperProcessId ) == 0 ) {
+        printf("Unable to send BREAK event to JVM process.  Err(%ld)\n", GetLastError());
+	    flushall();
+    }
+}
+
 #endif

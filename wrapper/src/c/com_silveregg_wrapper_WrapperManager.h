@@ -93,6 +93,14 @@ JNIEXPORT jint JNICALL Java_com_silveregg_wrapper_WrapperManager_nativeGetContro
 JNIEXPORT void JNICALL Java_com_silveregg_wrapper_WrapperManager_accessViolationInner
   (JNIEnv *, jclass);
 
+/*
+ * Class:     com_silveregg_wrapper_WrapperManager
+ * Method:    nativeRequestThreadDump
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_silveregg_wrapper_WrapperManager_nativeRequestThreadDump
+  (JNIEnv *, jclass);
+
 #ifdef __cplusplus
 }
 #endif

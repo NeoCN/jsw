@@ -26,6 +26,9 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
+// Revision 1.3  2002/11/06 05:44:51  mortenson
+// Add support for invoking a thread dump from a method call within the JVM.
+//
 // Revision 1.2  2002/05/24 00:44:47  mortenson
 // Show an error message if an unknown action is passed to the test.
 //
@@ -104,6 +107,8 @@ public class TestAction implements WrapperListener {
                 Runtime.getRuntime().halt(0);
             } else if (_action.equals("restart")) {
                 WrapperManager.restart();
+            } else if (_action.equals("dump")) {
+                WrapperManager.requestThreadDump();
             } else {
                 printHelp("\"" + _action + "\" is an unknown action.");
                 WrapperManager.stop(0);
@@ -156,6 +161,7 @@ public class TestAction implements WrapperListener {
         System.err.println( "   appear_hung              : Calls WrapperManager.appearHung()" );
         System.err.println( "   halt                     : Calls Runtime.getRuntime().halt(0)" );
         System.err.println( "   restart                  : Calls WrapperManager.restart()" );
+        System.err.println( "   dump                     : Calls WrapperManager.requestThreadDump()" );
         System.err.println( "" );
         System.err.println( "[EXAMPLE]" );
         System.err.println( "   TestAction access_violation_native " );

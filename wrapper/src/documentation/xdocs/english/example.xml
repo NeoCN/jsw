@@ -81,7 +81,7 @@
                 When the application starts, you should see the following dialog:
             </para>
             <screenshot>
-                <screeninfo>512x250x256</screeninfo>
+                <screeninfo>550x290x256</screeninfo>
                 <graphic fileref="images/TestWrapper"/>
             </screenshot>
             <para>
