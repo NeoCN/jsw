@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.33  2004/01/10 18:22:00  mortenson
+ * Fix a problem where the message buffer was not being expanded correctly.
+ *
  * Revision 1.32  2004/01/09 19:45:03  mortenson
  * Implement the tick timer on Linux.
  *
@@ -486,8 +489,8 @@ char* buildPrintBuffer( int thread_id, int source_id, int level, char *format, c
 
 /* General log functions */
 void log_printf( int source_id, int level, char *lpszFmt, ... ) {
-    va_list		vargs;
-    FILE		*logfileFP = NULL;
+    va_list     vargs;
+    FILE        *logfileFP = NULL;
     int         thread_id;
     int         count;
     char        *printBuffer;
@@ -506,30 +509,46 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
     do {
         if ( threadMessageBufferSizes[thread_id] == 0 )
         {
-            /* No buffer yet. It will be allocated below. */
-            count = -1;
-        }
-        else
-        {
-            /* Try writing to the buffer. */
-            va_start( vargs, lpszFmt );
-#ifdef WIN32
-            count = _vsnprintf( threadMessageBuffers[thread_id], threadMessageBufferSizes[thread_id], lpszFmt, vargs );
-#else
-            count = vsnprintf( threadMessageBuffers[thread_id], threadMessageBufferSizes[thread_id], lpszFmt, vargs );
-#endif
-            va_end( vargs );
-            if ( ( count < 0 ) || ( count == threadMessageBufferSizes[thread_id] ) ) {
-                /* If the count is exactly equal to the buffer size then a null char was not written.  It must be larger. */
-                /* Failed, free the buffer so a larger one can be reallocated below. */
-                free( threadMessageBuffers[thread_id] );
-                count = -1;
-            }
-        }
-        if ( count < 0 ) {
-            /* We need to allocate a new buffer. */
-            threadMessageBufferSizes[thread_id] += 100;
+            /* No buffer yet. Allocate one to get started. */
+            threadMessageBufferSizes[thread_id] = 100;
             threadMessageBuffers[thread_id] = (char*)malloc( threadMessageBufferSizes[thread_id] * sizeof(char) );
+        }
+
+        /* Try writing to the buffer. */
+        va_start( vargs, lpszFmt );
+#ifdef WIN32
+        count = _vsnprintf( threadMessageBuffers[thread_id], threadMessageBufferSizes[thread_id], lpszFmt, vargs );
+#else
+        count = vsnprintf( threadMessageBuffers[thread_id], threadMessageBufferSizes[thread_id], lpszFmt, vargs );
+#endif
+        va_end( vargs );
+        /*
+        printf( " vsnprintf->%d, size=%d\n", count, threadMessageBufferSizes[thread_id] );
+        fflush(NULL);
+        */
+        if ( ( count < 0 ) || ( count >= threadMessageBufferSizes[thread_id] ) ) {
+            /* If the count is exactly equal to the buffer size then a null char was not written.
+             *  It must be larger.
+             * Windows will return -1 if the buffer is too small. If the number is
+             *  exact however, we still need to expand it to have room for the null.
+             * UNIX will return the required size. */
+
+            /* Free the old buffer for starters. */
+            free( threadMessageBuffers[thread_id] );
+
+            /* Decide on a new buffer size. */
+            if ( count <= threadMessageBufferSizes[thread_id] ) {
+                threadMessageBufferSizes[thread_id] += 100;
+            } else if ( count + 1 <= threadMessageBufferSizes[thread_id] + 100 ) {
+                threadMessageBufferSizes[thread_id] += 100;
+            } else {
+                threadMessageBufferSizes[thread_id] = count + 1;
+            }
+
+            threadMessageBuffers[thread_id] = (char*)malloc( threadMessageBufferSizes[thread_id] * sizeof(char) );
+
+            /* Always set the count to -1 so we will loop again. */
+            count = -1;
         }
     } while ( count < 0 );
 
