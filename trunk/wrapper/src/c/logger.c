@@ -24,6 +24,10 @@
  */
 
 // $Log$
+// Revision 1.6  2002/01/28 19:05:01  spocke
+// Changed registerSyslogMessageFile so it only places Eventlog registry info
+// when the syslog is enabled.
+//
 // Revision 1.5  2002/01/27 19:30:58  spocke
 // Added include on errno.h to enable compilation on Unix.
 //
@@ -370,6 +374,10 @@ int registerSyslogMessageFile( ) {
 	char regPath[ 1024 ];
 	HKEY hKey;
 	DWORD categoryCount, typesSupported;
+
+	// * * Register only when SyslogLevel != NONE
+	if ((currentLoginfoLevel == LEVEL_UNKNOWN) || (currentLoginfoLevel == LEVEL_NONE))
+		return 0;
 
 	// * * Get absolute path to service manager
 	if( GetModuleFileName( NULL, buffer, _MAX_PATH ) ) {
