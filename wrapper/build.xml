@@ -372,7 +372,7 @@
         
         <!-- Set files to windows line feends for .zip files -->
         <fixcrlf srcdir="${releasesrcdir}"
-            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.conf*, **/*.c, **/*.h, **/*.log"
+            includes="build.bat, build.xml, tools/bin/ant.bat, tools/bin/antRun.bat, **/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.conf*, **/*.c, **/*.h, **/*.log"
             eol="crlf" />
         <fixcrlf srcdir="${releasesrcdir}"
             includes="src/documentation/**"
@@ -408,7 +408,7 @@
         
         <!-- Set files to unix line feends for .tar files -->
         <fixcrlf srcdir="${releasesrcdir}" 
-            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.conf*, **/*.c, **/*.h, **/*.log" 
+            includes="build.sh, build.sh, tools/bin/ant, tools/bin/antRun, **/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.conf*, **/*.c, **/*.h, **/*.log" 
             eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}"
             includes="src/documentation/**"
@@ -416,26 +416,44 @@
             eol="lf" />
         
         <!-- Source archives with documentation source -->
-        <tar tarfile="${releasesrcdir}_with_doc_src.tar"
-             basedir="${basedir}">
-            <include name="${releasesrcfile}/**/*" />
+        <tar tarfile="${releasesrcdir}_with_doc_src.tar">
+            <tarfileset dir="${basedir}" mode="755">
+                <include name="${releasesrcfile}/build.sh"/>
+                <include name="${releasesrcfile}/tools/bin/ant"/>
+                <include name="${releasesrcfile}/tools/bin/antRun"/>
+            </tarfileset>
+            <tarfileset dir="${basedir}">
+                <include name="${releasesrcfile}/**/*" />
+                <exclude name="${releasesrcfile}/build.sh"/>
+                <exclude name="${releasesrcfile}/tools/bin/ant"/>
+                <exclude name="${releasesrcfile}/tools/bin/antRun"/>
+            </tarfileset>
         </tar>
         <gzip zipfile="${releasesrcdir}_with_doc_src.tar.gz" src="${releasesrcdir}_with_doc_src.tar" />
         
         <!-- Source archives without documentation source -->
-        <tar tarfile="${releasesrcdir}.tar"
-             basedir="${basedir}">
-            <include name="${releasesrcfile}/**/*" />
-            <exclude name="${releasesrcfile}/src/documentation/**/*" />
-            <exclude name="${releasesrcfile}/tools/lib/avalon-excalibur.jar" />
-            <exclude name="${releasesrcfile}/tools/lib/avalon-framework.jar" />
-            <exclude name="${releasesrcfile}/tools/lib/batik-libs.jar" />
-            <exclude name="${releasesrcfile}/tools/lib/cocoon.jar" />
-            <exclude name="${releasesrcfile}/tools/lib/fop-0_20_1-dev.jar" />
-            <exclude name="${releasesrcfile}/tools/lib/logkit.jar" />
-            <exclude name="${releasesrcfile}/tools/lib/NetComponents.jar" />
-            <exclude name="${releasesrcfile}/tools/lib/resolver.jar" />
-            <exclude name="${releasesrcfile}/tools/lib/xalan-2.2.0-D8.jar" />
+        <tar tarfile="${releasesrcdir}.tar">
+            <tarfileset dir="${basedir}" mode="755">
+                <include name="${releasesrcfile}/build.sh"/>
+                <include name="${releasesrcfile}/tools/bin/ant"/>
+                <include name="${releasesrcfile}/tools/bin/antRun"/>
+            </tarfileset>
+            <tarfileset dir="${basedir}">
+                <include name="${releasesrcfile}/**/*" />
+                <exclude name="${releasesrcfile}/src/documentation/**/*" />
+                <exclude name="${releasesrcfile}/tools/lib/avalon-excalibur.jar" />
+                <exclude name="${releasesrcfile}/tools/lib/avalon-framework.jar" />
+                <exclude name="${releasesrcfile}/tools/lib/batik-libs.jar" />
+                <exclude name="${releasesrcfile}/tools/lib/cocoon.jar" />
+                <exclude name="${releasesrcfile}/tools/lib/fop-0_20_1-dev.jar" />
+                <exclude name="${releasesrcfile}/tools/lib/logkit.jar" />
+                <exclude name="${releasesrcfile}/tools/lib/NetComponents.jar" />
+                <exclude name="${releasesrcfile}/tools/lib/resolver.jar" />
+                <exclude name="${releasesrcfile}/tools/lib/xalan-2.2.0-D8.jar" />
+                <exclude name="${releasesrcfile}/build.sh"/>
+                <exclude name="${releasesrcfile}/tools/bin/ant"/>
+                <exclude name="${releasesrcfile}/tools/bin/antRun"/>
+            </tarfileset>
         </tar>
         <gzip zipfile="${releasesrcdir}.tar.gz" src="${releasesrcdir}.tar" />
     </target>
