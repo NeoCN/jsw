@@ -1,4 +1,5 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE project PUBLIC "-//ANT//DTD project//EN" "project.dtd">
 
 <!-- ======================================================================= -->
 <!-- Wrapper build file                                                     -->
@@ -185,11 +186,11 @@
     <!-- Creates the jar archive                                             -->
     <!-- =================================================================== -->
     <target name="jar" depends="compile-windows-check">
-        <jar file="${lib.dir}/wrapper.jar"
+        <jar jarfile="${lib.dir}/wrapper.jar"
              basedir="${build.classes}"
              includes="com/silveregg/wrapper/*.class,com/silveregg/wrapper/resources/*.class,**/*.properties"
              />
-        <jar file="${lib.dir}/wrappertest.jar"
+        <jar jarfile="${lib.dir}/wrappertest.jar"
              basedir="${build.classes}"
              includes="com/silveregg/wrapper/test/*.class"
              />
@@ -640,6 +641,7 @@
         </exec>
         <delete file="${lib.dir}/libwrapper.so"/>
         <delete file="${bin.dir}/wrapper"/>
+        <ant antfile="build-tests.xml" dir="${test.dir}" target="total-clean" inheritall="false"/>  
     </target>
 </project>
 
