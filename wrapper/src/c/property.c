@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.7  2002/10/24 04:48:43  mortenson
+ * Fixed a problem where the wrapper.conf was being open with both read and
+ * write locks when a read lock is all that is needed.
+ *
  * Revision 1.6  2002/10/16 14:47:32  mortenson
  * Add support for environment variable evaluation in configuration file.
  *
@@ -252,7 +256,7 @@ Properties* loadProperties(const char* filename) {
     char *d;
 
     /* Look for the specified file. */
-    if ((stream = fopen(filename, "r+t")) == NULL) {
+    if ((stream = fopen(filename, "rt")) == NULL) {
         /* Unable to open the file. */
         return NULL;
     }

@@ -12,6 +12,9 @@ Java Service Wrapper Revision History.
   wrapper.conf file will now be evaluated as the file is loaded.  The windows
   syntax for environment variables is used on all platforms to make them
   platform independent.
+* Fixed a problem where the wrapper.conf was being open with both read and
+  write locks when a read lock is all that is needed.  Made the wrapper fail
+  on startup if another application held a read lock on the conf file.
 
 2.2.8
 * Fixed a compiler problem on Solaris some systems.
