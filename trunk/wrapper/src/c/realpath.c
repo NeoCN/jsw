@@ -20,12 +20,12 @@ int main(int argc, char **argv) {
         return 1;
     }
     
-    printf(resolved);
+    printf("%s", resolved);
     
     free(resolved);
 
     return 0;
 }
 
-		
+        
 

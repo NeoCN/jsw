@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.11  2002/03/29 05:23:21  mortenson
+ * Fix Bug #531880 involving percent characters in JVM output.
+ *
  * Revision 1.10  2002/03/07 09:23:25  mortenson
  * Go through and change the style of comments that we use so that they will not
  * cause compiler errors on older unix compilers.
@@ -678,7 +681,7 @@ void checkAndRollLogs() {
 
             /* Now, starting at the highest file rename them up by one index. */
             for (; i > 1; i--) {
-                sprintf(tmpLogFilePathNew, tmpLogFilePathOld);
+                sprintf(tmpLogFilePathNew, "%s", tmpLogFilePathOld);
                 sprintf(tmpLogFilePathOld, "%s.%d", logFilePath, i - 1);
 
                 if (rename(tmpLogFilePathOld, tmpLogFilePathNew) != 0) {
@@ -701,7 +704,7 @@ void checkAndRollLogs() {
             }
 
             /* Rename the current file to the #1 index position */
-            sprintf(tmpLogFilePathNew, tmpLogFilePathOld);
+            sprintf(tmpLogFilePathNew, "%s", tmpLogFilePathOld);
             if (rename(logFilePath, tmpLogFilePathNew) != 0) {
                 if (errno == 13) {
                     /* Don't log this as with other errors as that would cause recursion. */

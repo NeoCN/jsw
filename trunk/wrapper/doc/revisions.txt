@@ -1,6 +1,8 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 2.2.6
+* Fix a problem where '%' characters in Java output would sometimes cause the
+  wrapper to crash.  (Thanks to Frode Moe)
 * Added support for requesting a Java thread dump without shutting down the
   Java process.
 * Fixed a problem on windows where the java command was looking in the windows

@@ -13,6 +13,11 @@
         <itemizedlist>
             <listitem>
                 <para>
+                    Fix a problem where '%' characters in Java output would sometimes cause the wrapper to crash.  (Thanks to Frode Moe)
+                </para>
+            </listitem>
+            <listitem>
+                <para>
                     Added support for requesting a Java thread dump without shutting down the Java process.
                 </para>
             </listitem>

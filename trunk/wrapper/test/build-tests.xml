@@ -108,6 +108,7 @@
         <replace file="${test.dir}/noreturn.conf"
                  token="wrapper.pidfile=/var/run/aigent.pid"
                  value="wrapper.pidfile=${basedir}/noreturn.pid" />
+        
         <!-- Quick Complete Test -->
         <filter token="app.name"          value="quickcomplete"/>
         <filter token="app.long.name"     value="Quick Complete Case" />
@@ -126,6 +127,25 @@
         <replace file="${test.dir}/quickcomplete.conf"
                  token="wrapper.pidfile=/var/run/aigent.pid"
                  value="wrapper.pidfile=${basedir}/quickcomplete.pid" />
+        
+        <!-- Percent Output Crash Test -->
+        <filter token="app.name"          value="percentoutput"/>
+        <filter token="app.long.name"     value="Percent Output Case" />
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${test.dir}/percentoutput.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/percentoutput.conf"
+                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
+                 value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+        <replace file="${test.dir}/percentoutput.conf"
+                 token="#wrapper.app.parameter.1="
+                 value="wrapper.app.parameter.1=com.silveregg.wrapper.test.PercentOutput" />
+        <replace file="${test.dir}/percentoutput.conf"
+                 token="wrapper.logfile=../logs/wrapper.log"
+                 value="wrapper.logfile=../test/testwrapper.log" />
+        <replace file="${test.dir}/percentoutput.conf"
+                 token="wrapper.pidfile=/var/run/aigent.pid"
+                 value="wrapper.pidfile=${basedir}/percentoutput.pid" />
     </target>
     
     <!-- =================================================================== -->
@@ -139,44 +159,55 @@
               tofile="${test.dir}/TestBackgroundThreads.bat"
               filtering="on"/>
         <replace file="${test.dir}/TestBackgroundThreads.bat"
-                 token='set _WRAPPER_HOME=%_WRAPPER_HOME:\bin\=%'
-                 value='set _WRAPPER_HOME=%_WRAPPER_HOME:\test\=%' />
+                 token='set _APP_HOME=%_APP_HOME:\bin\=%'
+                 value='set _APP_HOME=%_APP_HOME:\test\=%' />
         <replace file="${test.dir}/TestBackgroundThreads.bat"
-                 token='set _WRAPPER_CONF="%_WRAPPER_HOME%\conf\wrapper.conf"'
-                 value='set _WRAPPER_CONF="%_WRAPPER_HOME%\test\backgroundthreads.conf"' />
+                 token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
+                 value='set _WRAPPER_CONF="%_APP_HOME%\test\backgroundthreads.conf"' />
         
         <!-- Daemon Threads Test -->
         <copy file="${src.dir}/bin/App.bat.in"
               tofile="${test.dir}/TestDaemonThreads.bat"
               filtering="on"/>
         <replace file="${test.dir}/TestDaemonThreads.bat"
-                 token='set _WRAPPER_HOME=%_WRAPPER_HOME:\bin\=%'
-                 value='set _WRAPPER_HOME=%_WRAPPER_HOME:\test\=%' />
+                 token='set _APP_HOME=%_APP_HOME:\bin\=%'
+                 value='set _APP_HOME=%_APP_HOME:\test\=%' />
         <replace file="${test.dir}/TestDaemonThreads.bat"
-                 token='set _WRAPPER_CONF="%_WRAPPER_HOME%\conf\wrapper.conf"'
-                 value='set _WRAPPER_CONF="%_WRAPPER_HOME%\test\daemonthreads.conf"' />
+                 token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
+                 value='set _WRAPPER_CONF="%_APP_HOME%\test\daemonthreads.conf"' />
         
         <!-- No Return Test -->
         <copy file="${src.dir}/bin/App.bat.in"
               tofile="${test.dir}/TestNoReturn.bat"
               filtering="on"/>
         <replace file="${test.dir}/TestNoReturn.bat"
-                 token='set _WRAPPER_HOME=%_WRAPPER_HOME:\bin\=%'
-                 value='set _WRAPPER_HOME=%_WRAPPER_HOME:\test\=%' />
+                 token='set _APP_HOME=%_APP_HOME:\bin\=%'
+                 value='set _APP_HOME=%_APP_HOME:\test\=%' />
         <replace file="${test.dir}/TestNoReturn.bat"
-                 token='set _WRAPPER_CONF="%_WRAPPER_HOME%\conf\wrapper.conf"'
-                 value='set _WRAPPER_CONF="%_WRAPPER_HOME%\test\noreturn.conf"' />
+                 token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
+                 value='set _WRAPPER_CONF="%_APP_HOME%\test\noreturn.conf"' />
         
         <!-- Quick Complete Test -->
         <copy file="${src.dir}/bin/App.bat.in"
               tofile="${test.dir}/TestQuickComplete.bat"
               filtering="on"/>
         <replace file="${test.dir}/TestQuickComplete.bat"
-                 token='set _WRAPPER_HOME=%_WRAPPER_HOME:\bin\=%'
-                 value='set _WRAPPER_HOME=%_WRAPPER_HOME:\test\=%' />
+                 token='set _APP_HOME=%_APP_HOME:\bin\=%'
+                 value='set _APP_HOME=%_APP_HOME:\test\=%' />
         <replace file="${test.dir}/TestQuickComplete.bat"
-                 token='set _WRAPPER_CONF="%_WRAPPER_HOME%\conf\wrapper.conf"'
-                 value='set _WRAPPER_CONF="%_WRAPPER_HOME%\test\quickcomplete.conf"' />
+                 token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
+                 value='set _WRAPPER_CONF="%_APP_HOME%\test\quickcomplete.conf"' />
+        
+        <!-- Percent Output Test -->
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestPercentOutput.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestPercentOutput.bat"
+                 token='set _APP_HOME=%_APP_HOME:\bin\=%'
+                 value='set _APP_HOME=%_APP_HOME:\test\=%' />
+        <replace file="${test.dir}/TestPercentOutput.bat"
+                 token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
+                 value='set _WRAPPER_CONF="%_APP_HOME%\test\percentoutput.conf"' />
     </target>
     
     <!-- =================================================================== -->
@@ -246,6 +277,14 @@
               tofile="${test.dir}/quickcomplete"
               filtering="on"/>
         <chmod file="${test.dir}/quickcomplete" perm="+x"/> 
+        
+        <!-- Percent Output Test -->
+        <filter token="app.name"          value="percentoutput"/>
+        <filter token="app.long.name"     value="Percent Output Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/percentoutput"
+              filtering="on"/>
+        <chmod file="${test.dir}/percentoutput" perm="+x"/> 
         
         <!-- Get rid of the temp script file -->
         <delete file="${test.dir}/temp.script.in"/>

@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.14  2002/03/29 05:23:21  mortenson
+ * Fix Bug #531880 involving percent characters in JVM output.
+ *
  * Revision 1.13  2002/03/07 09:23:25  mortenson
  * Go through and change the style of comments that we use so that they will not
  * cause compiler errors on older unix compilers.
@@ -537,7 +540,7 @@ void wrapperReadChildOutput() {
 
         /* Make sure that this is just another LF if the last line was missing it's LF */
         if ((lfPos > 0) || (wrapperChildStdoutRdLastLF)) {
-            log_printf(wrapperData->jvmRestarts, LEVEL_INFO, chBuf);
+            log_printf(wrapperData->jvmRestarts, LEVEL_INFO, "%s", chBuf);
         }
 
         wrapperChildStdoutRdLastLF = thisLF;
