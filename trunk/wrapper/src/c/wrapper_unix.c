@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.99  2005/03/24 06:09:14  mortenson
+ * Fix some compiler warnings on A64 linux platforms.
+ *
  * Revision 1.98  2004/12/08 03:31:21  mortenson
  * Simplify the makefiles by making the use of nanosleep the default in the c source.
  *
@@ -1150,7 +1153,9 @@ int wrapperGetProcessStatus() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                    "Critical error: wait for JVM process failed (%s)", getLastErrorText());
         appExit(1);
-
+        
+        /* For compiler, won't get here. */
+        res = WRAPPER_PROCESS_DOWN;
     } else if (retval > 0) {
         /* JVM has exited. */
         res = WRAPPER_PROCESS_DOWN;
@@ -1589,6 +1594,7 @@ int main(int argc, char **argv) {
         
     if (wrapperInitializeLogging()) {
         appExit(1);
+        return 1; /* For compiler. */
     }
 
     /* Immediately register this thread with the logger. */
@@ -1601,6 +1607,7 @@ int main(int argc, char **argv) {
 
     if (setWorkingDir(argv[0])) {
         appExit(1);
+        return 1; /* For compiler. */
     }
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Working directory set.");
@@ -1613,10 +1620,12 @@ int main(int argc, char **argv) {
     if (argc < 2) {
         wrapperUsage(argv[0]);
         appExit(1);
+        return 1; /* For compiler. */
         
     } else if (strcmp(argv[1],"--help") == 0) {
         wrapperUsage(argv[0]);
         appExit(0);
+        return 0; /* For compiler. */
         
     } else {
         /* Store information about the arguments. */
@@ -1629,10 +1638,13 @@ int main(int argc, char **argv) {
             /* Unable to load the configuration.  Any errors will have already
              *  been reported. */
             appExit(1);
+            return 1; /* For compiler. */
+            
         } else {
             /* Change the working directory if configured to do so. */
             if (wrapperSetWorkingDirProp()) {
                 appExit(1);
+                return 1; /* For compiler. */
             }
 
             /* fork to a Daemonized process if configured to do so. */
@@ -1649,6 +1661,7 @@ int main(int argc, char **argv) {
                          "ERROR: Could not write anchor file %s: %s",
                          wrapperData->anchorFilename, getLastErrorText());
                     appExit(1);
+                    return 1; /* For compiler. */
                 }
             }
             if (wrapperData->pidFilename) {
@@ -1658,12 +1671,14 @@ int main(int argc, char **argv) {
                          "ERROR: Could not write pid file %s: %s",
                          wrapperData->pidFilename, getLastErrorText());
                     appExit(1);
+                    return 1; /* For compiler. */
                 }
             }
 
             exitStatus = wrapperRunConsole();
             
             appExit(exitStatus);
+            return exitStatus; /* For compiler. */
         }
     }
 }
