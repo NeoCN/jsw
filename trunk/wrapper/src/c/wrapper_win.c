@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.27  2003/02/02 14:43:25  mortenson
+ * Implement feature request #653131 to force the JVM to immediately exit when
+ * the user presses CTRL-C multiple times.
+ *
  * Revision 1.26  2002/12/06 18:48:39  mortenson
  * Add a property, wrapper.ntservice.interactive, which makes it possible to
  * control whether or not the Java process can gain access to the desktop while
@@ -316,13 +320,20 @@ int wrapperInitChildPipe() {
  */
 int wrapperConsoleHandler(int key) {
     int quit = FALSE;
+    int halt = FALSE;
 
     switch (key) {
     case CTRL_C_EVENT:
     case CTRL_CLOSE_EVENT:
         /* The user hit CTRL-C.  Can only happen when run as a console. */
         /*  Always quit. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "CTRL-C trapped.  Shutting down.");
+        if (wrapperData->exitRequested)
+        {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "CTRL-C trapped.  Forcing immediate shutdown.");
+            halt = TRUE;
+        } else {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "CTRL-C trapped.  Shutting down.");
+        }
         quit = TRUE;
         break;
 
@@ -362,7 +373,11 @@ int wrapperConsoleHandler(int key) {
     }
 
     if (quit) {
-        wrapperStopProcess(0);
+        if (halt) {
+            wrapperKillProcess();
+        } else {
+            wrapperStopProcess(0);
+        }
         /* Don't actually kill the process here.  Let the application shut itself down */
     }
 
@@ -909,7 +924,7 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
 int wrapperInstall(int argc, char **argv) {
     SC_HANDLE   schService;
     SC_HANDLE   schSCManager;
-	DWORD       serviceType;
+    DWORD       serviceType;
 
     char szPath[512];
     char binaryPath[4096];
@@ -964,12 +979,12 @@ int wrapperInstall(int argc, char **argv) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Service command: %s", binaryPath);
     }
 
-	/* Decide on the service type */
-	if ( wrapperData->ntServiceInteractive ) {
-		serviceType = SERVICE_WIN32_OWN_PROCESS | SERVICE_INTERACTIVE_PROCESS;
-	} else {
-		serviceType = SERVICE_WIN32_OWN_PROCESS;
-	}
+    /* Decide on the service type */
+    if ( wrapperData->ntServiceInteractive ) {
+        serviceType = SERVICE_WIN32_OWN_PROCESS | SERVICE_INTERACTIVE_PROCESS;
+    } else {
+        serviceType = SERVICE_WIN32_OWN_PROCESS;
+    }
 
     /* Next, get a handle to the service control manager */
     schSCManager = OpenSCManager(

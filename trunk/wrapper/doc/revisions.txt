@@ -36,6 +36,8 @@ Java Service Wrapper Revision History.
   application to shutdown when the non-daemon thread count dropped to 1.
 * Added support for building the wrapper on AIX and HPUX systems.  Thanks for
   the patches involved go out to Ashish Gawarikar and William Lee.
+* Implement feature request #653131 to force the JVM to immediately exit when
+  the user presses CTRL-C multiple times.
 
 2.2.9
 * Added a new property, wrapperper.restart.delay, which allows the user to control
