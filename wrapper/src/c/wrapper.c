@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.74  2003/10/18 16:15:19  mortenson
+ * Correct an ifdef reference
+ *
  * Revision 1.73  2003/10/18 06:42:39  mortenson
  * Fix a compiler warning.
  *
@@ -2302,7 +2305,7 @@ int wrapperLoadConfiguration() {
             val = getStringProperty(properties, key, "RESTART");
             wrapperData->outputFilterActions[i] = getOutputFilterActionForName(val);
 
-#ifdef DEBUG
+#ifdef _DEBUG
             printf("filter #%d, action=%d, filter='%s'\n", i + 1, wrapperData->outputFilterActions[i], wrapperData->outputFilters[i]);
 #endif
         }
