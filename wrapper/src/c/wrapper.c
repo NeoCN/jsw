@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.16  2002/05/07 05:46:36  mortenson
+ * Add the ability to set the priority at which the wrapper is run under NT systems.
+ *
  * Revision 1.15  2002/03/07 10:05:47  rybesh
  * fixed some miscellaneous unix compile errors
  *
@@ -1531,6 +1534,9 @@ void wrapperBuildNTServiceInfo() {
     work[0] = '\0';
     work[1] = '\0';
     /* *** Dependency list completed *** */
+	/* Memory allocated in work is stored in wrapperData.  The memory should not be released here. */
+	work = NULL;
+
 
     /* Set the service start type */
     if (strcmp(_strupr((char *)getStringProperty(properties, "wrapper.ntservice.starttype", "DEMAND_START")), "AUTO_START") == 0) {
@@ -1538,6 +1544,19 @@ void wrapperBuildNTServiceInfo() {
     } else {
         wrapperData->ntServiceStartType = SERVICE_DEMAND_START;
     }
+
+
+	/* Set the service priority class */
+	work = _strupr((char *)getStringProperty(properties, "wrapper.ntservice.process_priority", "NORMAL"));
+	if ( (strcmp(work, "LOW") == 0) || (strcmp(work, "IDLE") == 0) ) {
+		wrapperData->ntServicePriorityClass = IDLE_PRIORITY_CLASS;
+	} else if (strcmp(work, "HIGH") == 0) {
+		wrapperData->ntServicePriorityClass = HIGH_PRIORITY_CLASS;
+	} else if (strcmp(work, "REALTIME") == 0) {
+		wrapperData->ntServicePriorityClass = REALTIME_PRIORITY_CLASS;
+	} else {
+		wrapperData->ntServicePriorityClass = NORMAL_PRIORITY_CLASS;
+	}
 }
 #endif
 
