@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.21  2003/07/26 10:13:26  mortenson
+ * Fix a problem where the '#' character, which signifies a comment, could not
+ * be included in property values.
+ *
  * Revision 1.20  2003/04/15 23:24:22  mortenson
  * Remove casts from all malloc statements.
  *
@@ -350,6 +354,8 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
     int trimmedBufferLen;
     char *c;
     char *d;
+	int i, j;
+	int len;
 
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "loadPropertiesInner(props, '%s', %d)", filename, depth);
@@ -380,11 +386,32 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
             }
 
             /* If the line does not start with a comment, make sure that
-             *  any comment at the end of line is stripped */
+             *  any comment at the end of line are stripped.  If any any point, a
+			 *  double hash, '##', is encountered it should be interpreted as a
+			 *  hash in the actual property rather than the beginning of a comment. */
             if (trimmedBuffer[0] != '#') {
-                if ((d = strchr(trimmedBuffer, '#')) != NULL) {
-                    d[0] = '\0';
-                }
+				len = strlen(trimmedBuffer);
+				i = 0;
+				while (i < len) {
+					if (trimmedBuffer[i] == '#') {
+						/* Checking the next character will always be ok because it will be
+						 *  '\0 at the end of the string. */
+						if (trimmedBuffer[i + 1] == '#') {
+							/* We found an escaped #. Shift the rest of the string
+							 *  down by one character to remove the second '#'.
+							 *  Include the shifting of the '\0'. */
+							for (j = i + 1; j <= len; j++) {
+								trimmedBuffer[j - 1] = trimmedBuffer[j];
+							}
+							len--;
+						} else {
+							/* We found a comment. So this is the end. */
+							trimmedBuffer[i] = '\0';
+							len = i;
+						}
+					}
+					i++;
+				}
             }
 
             /* Strip any whitespace from the end of the line. */
@@ -416,7 +443,7 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
                 } else if (trimmedBuffer[0] != '#') {
                     /* printf("%s\n", trimmedBuffer); */
 
-                    /* Locate the first '=' in the line */
+                    /* Locate the first '=' in the line, ignore lines that do not contain a '=' */
                     if ((d = strchr(trimmedBuffer, '=')) != NULL) {
                         /* Null terminate the first half of the line. */
                         *d = '\0';

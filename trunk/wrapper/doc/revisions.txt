@@ -66,6 +66,9 @@ Java Service Wrapper Revision History.
 * Fix a problem where the Wrapper was leaving a pipe unclosed each time the JVM
   was restarted on all UNIX platforms.  This was causing the Wrapper to run out
   of file handles.   Bug #767267, discovered and patched by David Wong.
+* Fix a problem where the '#' character, which signifies a comment, could not
+  be included in property values.  A double hash, '##' will now resolve into a
+  '#' within the property value.  Bug #777303.
 
 3.0.3
 * Added support for Mac OS X.  Big thanks to Andy Barnett for supplying the
