@@ -1,6 +1,9 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 2.2.3
+* Added template scripts and conf files for ease of integration with other
+  applications.
+* Cleaned up the build.
 * The WrapperSimpleApp method of launchine applications was not working 
   correctly with applications whose main method did not return.
 * Add sample scripts and wrapper.conf files in the bin and lib directories.

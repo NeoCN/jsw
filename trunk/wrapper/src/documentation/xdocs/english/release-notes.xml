@@ -13,6 +13,16 @@
         <itemizedlist>
             <listitem>
                 <para>
+                    Added template scripts and conf files for ease of integration with other applications.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Cleaned up the build.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
                     The WrapperSimpleApp method of launchine applications was not working correctly with applications whose main method did not return.
                 </para>
             </listitem>

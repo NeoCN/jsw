@@ -1,0 +1,241 @@
+<?xml version="1.0"?>
+
+<!-- ======================================================================= -->
+<!-- Wrapper build file                                                     -->
+<!-- ======================================================================= -->
+
+<project name="wrapper-tests" default="test-setup" basedir=".">
+    
+    <!-- Local build properties -->
+    <property file="${user.home}/.ant.local.properties" />
+    
+    <!-- platform -->
+    <property name="is.${os.name}" value="true"/>
+    
+    <property name="test.dir"      value="${basedir}"/>
+    <property name="src.dir"       value="../src"/>
+    
+    <!-- =================================================================== -->
+    <!-- Help on usage                                                       -->
+    <!-- =================================================================== -->
+    <target name="usage">
+        <echo message="Use the -projecthelp option instead"/>
+    </target>
+    <target name="help" depends="usage"/>
+    
+    <!-- =================================================================== -->
+    <!-- Initialize build.                                                   -->
+    <!-- =================================================================== -->
+    <target name="init">
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Test Setup target (Windows)                                         -->
+    <!-- =================================================================== -->
+    <target name="test-setup-common">
+        <!-- Create the test specific wrapper.conf files -->
+        
+        <!-- Background Threads Test -->
+        <filter token="app.name"          value="backgroundthreads"/>
+        <filter token="app.long.name"     value="Background Threads Case" />
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+            tofile="${test.dir}/backgroundthreads.conf"
+            filtering="on"/>
+        <replace file="${test.dir}/backgroundthreads.conf"
+            token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
+            value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+        <replace file="${test.dir}/backgroundthreads.conf"
+            token="#wrapper.app.parameter.1="
+            value="wrapper.app.parameter.1=com.silveregg.wrapper.test.BackgroundThreads" />
+        <replace file="${test.dir}/backgroundthreads.conf"
+            token="wrapper.logfile=../logs/wrapper.log"
+            value="wrapper.logfile=../test/testwrapper.log" />
+        
+        <!-- Daemon Threads Test -->
+        <filter token="app.name"          value="daemonthreads"/>
+        <filter token="app.long.name"     value="Daemon Threads Case" />
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+            tofile="${test.dir}/daemonthreads.conf"
+            filtering="on"/>
+        <replace file="${test.dir}/daemonthreads.conf"
+            token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
+            value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+        <replace file="${test.dir}/daemonthreads.conf"
+            token="#wrapper.app.parameter.1="
+            value="wrapper.app.parameter.1=com.silveregg.wrapper.test.DaemonThreads" />
+        <replace file="${test.dir}/daemonthreads.conf"
+            token="wrapper.logfile=../logs/wrapper.log"
+            value="wrapper.logfile=../test/testwrapper.log" />
+        
+        <!-- No Return Test -->
+        <filter token="app.name"          value="noreturn"/>
+        <filter token="app.long.name"     value="No Return Case" />
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+            tofile="${test.dir}/noreturn.conf"
+            filtering="on"/>
+        <replace file="${test.dir}/noreturn.conf"
+            token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
+            value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+        <replace file="${test.dir}/noreturn.conf"
+            token="#wrapper.app.parameter.1="
+            value="wrapper.app.parameter.1=com.silveregg.wrapper.test.NoReturn" />
+        <replace file="${test.dir}/noreturn.conf"
+            token="wrapper.logfile=../logs/wrapper.log"
+            value="wrapper.logfile=../test/testwrapper.log" />
+        
+        <!-- Quick Complete Test -->
+        <filter token="app.name"          value="quickcomplete"/>
+        <filter token="app.long.name"     value="Quick Complete Case" />
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+            tofile="${test.dir}/quickcomplete.conf"
+            filtering="on"/>
+        <replace file="${test.dir}/quickcomplete.conf"
+            token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
+            value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+        <replace file="${test.dir}/quickcomplete.conf"
+            token="#wrapper.app.parameter.1="
+            value="wrapper.app.parameter.1=com.silveregg.wrapper.test.QuickComplete" />
+        <replace file="${test.dir}/quickcomplete.conf"
+            token="wrapper.logfile=../logs/wrapper.log"
+            value="wrapper.logfile=../test/testwrapper.log" />
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Test Setup target (Windows)                                         -->
+    <!-- =================================================================== -->
+    <target name="test-setup-windows" depends="test-setup-common">
+        <!-- Create the test specific batch files -->
+        
+        <!-- Background Threads Test -->
+        <copy file="${src.dir}/bin/App.bat.in"
+            tofile="${test.dir}/TestBackgroundThreads.bat"
+            filtering="on"/>
+        <replace file="${test.dir}/TestBackgroundThreads.bat"
+            token='set _WRAPPER_HOME=%_WRAPPER_HOME:\bin\=%'
+            value='set _WRAPPER_HOME=%_WRAPPER_HOME:\test\=%' />
+        <replace file="${test.dir}/TestBackgroundThreads.bat"
+            token='set _WRAPPER_CONF="%_WRAPPER_HOME%\conf\wrapper.conf"'
+            value='set _WRAPPER_CONF="%_WRAPPER_HOME%\test\backgroundthreads.conf"' />
+        
+        <!-- Daemon Threads Test -->
+        <copy file="${src.dir}/bin/App.bat.in"
+            tofile="${test.dir}/TestDaemonThreads.bat"
+            filtering="on"/>
+        <replace file="${test.dir}/TestDaemonThreads.bat"
+            token='set _WRAPPER_HOME=%_WRAPPER_HOME:\bin\=%'
+            value='set _WRAPPER_HOME=%_WRAPPER_HOME:\test\=%' />
+        <replace file="${test.dir}/TestDaemonThreads.bat"
+            token='set _WRAPPER_CONF="%_WRAPPER_HOME%\conf\wrapper.conf"'
+            value='set _WRAPPER_CONF="%_WRAPPER_HOME%\test\daemonthreads.conf"' />
+        
+        <!-- No Return Test -->
+        <copy file="${src.dir}/bin/App.bat.in"
+            tofile="${test.dir}/TestNoReturn.bat"
+            filtering="on"/>
+        <replace file="${test.dir}/TestNoReturn.bat"
+            token='set _WRAPPER_HOME=%_WRAPPER_HOME:\bin\=%'
+            value='set _WRAPPER_HOME=%_WRAPPER_HOME:\test\=%' />
+        <replace file="${test.dir}/TestNoReturn.bat"
+            token='set _WRAPPER_CONF="%_WRAPPER_HOME%\conf\wrapper.conf"'
+            value='set _WRAPPER_CONF="%_WRAPPER_HOME%\test\noreturn.conf"' />
+        
+        <!-- Quick Complete Test -->
+        <copy file="${src.dir}/bin/App.bat.in"
+            tofile="${test.dir}/TestQuickComplete.bat"
+            filtering="on"/>
+        <replace file="${test.dir}/TestQuickComplete.bat"
+            token='set _WRAPPER_HOME=%_WRAPPER_HOME:\bin\=%'
+            value='set _WRAPPER_HOME=%_WRAPPER_HOME:\test\=%' />
+        <replace file="${test.dir}/TestQuickComplete.bat"
+            token='set _WRAPPER_CONF="%_WRAPPER_HOME%\conf\wrapper.conf"'
+            value='set _WRAPPER_CONF="%_WRAPPER_HOME%\test\quickcomplete.conf"' />
+    </target>
+    <target name="test-setup-windows-nt" depends="test-setup-windows" if="is.Windows NT">
+    </target>
+    <target name="test-setup-windows-2000" depends="test-setup-windows" if="is.Windows 2000">
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Test Setup target (Linux)                       if="is.Linux"                     -->
+    <!-- =================================================================== -->
+    <target name="test-setup-linux" depends="test-setup-common">
+        <!-- Create the test specific script files -->
+        
+        <!-- Create a template script to make this easier -->
+        <copy file="${src.dir}/bin/bash.script.in"
+            tofile="${test.dir}/temp.script.in"/>
+        <replace file="${test.dir}/temp.script.in"
+            token='WRAPPER_CMD="./wrapper"'
+            value='WRAPPER_CMD="../bin/wrapper"' />
+        <replace file="${test.dir}/temp.script.in"
+            token='WRAPPER_CONF="../conf/wrapper.conf"'
+            value='WRAPPER_CONF="../test/@app.name@.conf"' />
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Test Setup target (Solaris)                                                -->
+    <!-- =================================================================== -->
+    <target name="test-setup-solaris" depends="test-setup-common" if="is.SunOS">
+        <!-- Create the test specific script files -->
+        
+        <!-- Create a template script to make this easier -->
+        <copy file="${src.dir}/bin/sh.script.in"
+            tofile="${test.dir}/temp.script.in"/>
+        <replace file="${test.dir}/temp.script.in"
+            token='WRAPPER_CMD="./wrapper"'
+            value='WRAPPER_CMD="../bin/wrapper"' />
+        <replace file="${test.dir}/temp.script.in"
+            token='WRAPPER_CONF="../conf/wrapper.conf"'
+            value='WRAPPER_CONF="../test/@app.name@.conf"' />
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Test Setup target (Unix)                                            -->
+    <!-- =================================================================== -->
+    <target name="test-setup-unix" depends="test-setup-linux, test-setup-solaris">
+        <!-- Create the test specific script files -->
+        
+        <!-- Background Threads Test -->
+        <filter token="app.name"          value="backgroundthreads"/>
+        <filter token="app.long.name"     value="Background Threads Case" />
+        <copy file="${test.dir}/temp.script.in"
+            tofile="${test.dir}/backgroundthreads"
+            filtering="on"/>
+        <chmod file="${bin.dir}/backgroundthreads" perm="+x"/> 
+        
+        <!-- Daemon Threads Test -->
+        <filter token="app.name"          value="daemonthreads"/>
+        <filter token="app.long.name"     value="Daemon Threads Case" />
+        <copy file="${test.dir}/temp.script.in"
+            tofile="${test.dir}/daemonthreads"
+            filtering="on"/>
+        <chmod file="${bin.dir}/daemonthreads" perm="+x"/> 
+        
+        <!-- No Return Test -->
+        <filter token="app.name"          value="noreturn"/>
+        <filter token="app.long.name"     value="No Return Case" />
+        <copy file="${test.dir}/temp.script.in"
+            tofile="${test.dir}/noreturn"
+            filtering="on"/>
+        <chmod file="${bin.dir}/noreturn" perm="+x"/> 
+        
+        <!-- Quick Complete Test -->
+        <filter token="app.name"          value="quickcomplete"/>
+        <filter token="app.long.name"     value="Quick Complete Case" />
+        <copy file="${test.dir}/temp.script.in"
+            tofile="${test.dir}/quickcomplete"
+            filtering="on"/>
+        <chmod file="${bin.dir}/quickcomplete" perm="+x"/> 
+        
+        <!-- Get rid of the temp script file -->
+        <delete file="${test.dir}/temp.script.in"/>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Test Setup target                                                   -->
+    <!-- =================================================================== -->
+    <target name="test-setup" 
+        depends="test-setup-windows-nt, test-setup-windows-2000, test-setup-unix">
+    </target>
+</project>
+
