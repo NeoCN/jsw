@@ -26,6 +26,11 @@
                     Added debug output showing Java version information when the JVM first starts.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Modified c source to use /* */ style comments rather than // style comments.  Some people were having problems with some compilers.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
