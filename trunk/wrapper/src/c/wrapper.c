@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.4  2002/01/13 04:49:53  mortenson
+// Added Wildcard support for Classpath entries.
+//
 // Revision 1.3  2001/12/11 05:19:39  mortenson
 // Added the ablility to format and/or disable file logging and output to
 // the console.
@@ -36,6 +39,8 @@
 // no message
 //
 
+#include <errno.h>
+#include <io.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -778,7 +783,12 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     int stripQuote;
     int initMemory = 0, maxMemory;
     char paramBuffer[128];
-    int i, len, len2;
+    int i, j, len, len2;
+	int cpLen, cpLenAlloc;
+	char *tmpString, *c;
+	char cpPath[512];
+	struct _finddata_t fblock;
+	long handle;
 
     index = 0;
 
@@ -864,6 +874,128 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     }
     index++;
     if (strings) {
+		// Build a classpath
+		cpLen = 0;
+		cpLenAlloc = 1024;
+        strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
+		
+		// Add an open quote the classpath
+		if (addQuotes) {
+			sprintf(&(strings[index][cpLen]), "\"");
+			cpLen++;
+		}
+
+		// Loop over the classpath entries adding each one
+		i = 0;
+		j = 0;
+		do {
+            sprintf(paramBuffer, "wrapper.java.classpath.%d", i + 1);
+            prop = getStringProperty(properties, paramBuffer, NULL);
+            if (prop) {
+                len2 = strlen(prop);
+                if (len2 > 0) {
+					// Does this contain wildcards?
+				    if ((strchr(prop, '*') != NULL) || (strchr(prop, '?') != NULL)) {
+						// Need to do a wildcard search
+
+						// Extract any path information of the beginning of the file
+						strcpy(cpPath, prop);
+						c = max(strrchr(cpPath, '\\'), strrchr(cpPath, '/'));
+						if (c == NULL) {
+							cpPath[0] = '\0';
+						} else {
+							c[1] = '\0'; // terminate after the slash
+						}
+						len = strlen(cpPath);
+
+						//if (_findfirst(prop, &fblock, _A_NORMAL) != 0) {
+						if ((handle = _findfirst(prop, &fblock)) <= 0) {
+							if (errno == ENOENT) {
+								wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Warning no matching files for classpath element: %s", prop);
+							} else {
+								// Encountered an error of some kind.
+								wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Error in findfirst for classpath element: %s", prop);
+							}
+						} else {
+							len2 = strlen(fblock.name);
+
+							// Is there room for the entry?
+							if (cpLen + len + len2 + 3 > cpLenAlloc) {
+								// Resize the buffer
+								tmpString = strings[index];
+								cpLenAlloc += 1024;
+								strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
+								sprintf(strings[index], tmpString);
+								free(tmpString);
+							}
+
+							if (j > 0) {
+								strings[index][cpLen++] = wrapperClasspathSeparator; // separator
+							}
+							sprintf(&(strings[index][cpLen]), "%s%s", cpPath, fblock.name);
+							cpLen += (len + len2);
+							j++;
+
+							// Look for additional entries
+							while (_findnext(handle, &fblock) == 0) {
+								len2 = strlen(fblock.name);
+
+								// Is there room for the entry?
+								if (cpLen + len + len2 + 3 > cpLenAlloc) {
+									// Resize the buffer
+									tmpString = strings[index];
+									cpLenAlloc += 1024;
+									strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
+									sprintf(strings[index], tmpString);
+									free(tmpString);
+								}
+
+								if (j > 0) {
+									strings[index][cpLen++] = wrapperClasspathSeparator; // separator
+								}
+								sprintf(&(strings[index][cpLen]), "%s%s", cpPath, fblock.name);
+								cpLen += (len + len2);
+								j++;
+							}
+
+							// Close the file search
+							_findclose(handle);
+						}
+					} else {
+						// Is there room for the entry?
+						if (cpLen + len2 + 3 > cpLenAlloc) {
+							// Resize the buffer
+							tmpString = strings[index];
+							cpLenAlloc += 1024;
+							strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
+							sprintf(strings[index], tmpString);
+							free(tmpString);
+						}
+
+	                    if (j > 0) {
+							strings[index][cpLen++] = wrapperClasspathSeparator; // separator
+						}
+						sprintf(&(strings[index][cpLen]), prop);
+                        cpLen += len2;
+						j++;
+					}
+                }
+                i++;
+            }
+        } while (prop);
+		if (j == 0) {
+			// No classpath, use default. always room
+            if (addQuotes) {
+				sprintf(&(strings[index][cpLen++]), "./");
+            }
+		}
+		// Add ending quote
+		if (addQuotes) {
+			sprintf(&(strings[index][cpLen]), "\"");
+			cpLen++;
+		}
+
+		/*	
         // Figure out how long the classpath will be
         len = 0;
         i = 0;
@@ -873,10 +1005,15 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             if (prop) {
                 len2 = strlen(prop);
                 if (len2 > 0) {
-                    if (i > 0) {
-                        len++; // will insert a separator
-                    }
-                    len += len2;
+					// Does this contain wildcards?
+				    if ((strchr(prop, '*') != NULL) || (strchr(prop, '?') != NULL)) {
+						// Need to do a wildcard search
+					} else {
+	                    if (i > 0) {
+							len++; // will insert a separator
+						}
+						len += len2;
+					}
                 }
                 i++;
             }
@@ -925,6 +1062,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             }
             strings[index][len++] = '\0'; // Null terminate
         }
+		*/
     }
     index++;
 

@@ -13,6 +13,11 @@
         <itemizedlist>
             <listitem>
                 <para>
+                    Added wildcard support for classpath entries in wrapper.conf.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
                     Added the ability to specify configuration properties from the command line.
                 </para>
             </listitem>

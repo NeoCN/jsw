@@ -450,6 +450,10 @@ wrapper.ntservice.starttype=AUTO_START</pre>
                 
                 
 <p align="justify">
+                    Java handles forward slashes, '/', and backslashes, '\', correctly on both Windows platforms.  To make your wrapper.conf cross platform compatible, you should always use forward slashes in all paths in wrapper.conf.
+                </p>
+                
+<p align="justify">
                     Versions of the wrapper prior to 2.2.3 required that all paths in the wrapper.conf file be absolute.  This is mainly to accomodate running the Wrapper as an NT service, but it also makes the application's startup much more reliable when launching the application from different locations.
                 </p>
                 
@@ -479,7 +483,7 @@ wrapper.ntservice.starttype=AUTO_START</pre>
                 
                 
 <div class="glosslist">
-<a name="NAE2"></a>
+<a name="NAE5"></a>
 <dl>
                     
                         
@@ -579,6 +583,27 @@ wrapper.ntservice.starttype=AUTO_START</pre>
 wrapper.java.classpath.2=../lib/myapp.jar
 wrapper.java.classpath.3=../lib/mysql.jar
 wrapper.java.classpath.4=../classes</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                            
+<p align="justify">
+                                As of version 2.2.5, classpath entries which contain wildcards can be used.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.java.classpath.1=../lib/*.jar
+wrapper.java.classpath.2=../classes</pre>
 </td>
 </tr>
 </table>
@@ -971,7 +996,7 @@ wrapper.app.parameter.2=conf/myconffile.conf</pre>
                 
                 
 <div class="glosslist">
-<a name="NC45"></a>
+<a name="NC56"></a>
 <dl>
                     
                         
@@ -1143,7 +1168,7 @@ wrapper.console.format=
                 
                 
 <div class="glosslist">
-<a name="NCAB"></a>
+<a name="NCBC"></a>
 <dl>
                     
                         
@@ -1214,7 +1239,7 @@ wrapper.console.format=
 </div>
                 
 <div class="glosslist">
-<a name="NCD5"></a>
+<a name="NCE6"></a>
 <dl>
                     
                         
