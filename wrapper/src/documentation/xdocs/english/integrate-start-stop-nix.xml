@@ -520,10 +520,10 @@ wrapper.app.parameter.3=start
 # wait for all non daemon threads to complete before exiting the JVM.
 # The flag is followed by the number of parameters to be passed to the
 # stop class's main method.  Finally comes the actual parameters.
-wrapper.app.parameter.5=org.apache.catalina.startup.Bootstrap
-wrapper.app.parameter.6=true
-wrapper.app.parameter.7=1
-wrapper.app.parameter.8=stop]]></screen>
+wrapper.app.parameter.4=org.apache.catalina.startup.Bootstrap
+wrapper.app.parameter.5=true
+wrapper.app.parameter.6=1
+wrapper.app.parameter.7=stop]]></screen>
                     </informalexample>
                     <para>
                         The start and stop class names should be fairly clear.  The
@@ -532,7 +532,7 @@ wrapper.app.parameter.8=stop]]></screen>
                         consistency.
                     </para>
                     <para>
-                        The flag at parameter #6 above is used to control the
+                        The flag at parameter #5 above is used to control the
                         behavior of the <literal moreinfo="none">WrapperStartStopApp</literal>
                         helper class when it is shutting down the JVM.  When the Wrapper
                         sends a JVM shutdown request, <literal moreinfo="none">WrapperStartStopApp</literal>
@@ -595,10 +595,10 @@ wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperStartStopApp
 wrapper.app.parameter.1=org.apache.catalina.startup.Bootstrap
 wrapper.app.parameter.2=1
 wrapper.app.parameter.3=start
-wrapper.app.parameter.5=org.apache.catalina.startup.Bootstrap
-wrapper.app.parameter.6=true
-wrapper.app.parameter.7=1
-wrapper.app.parameter.8=stop]]></screen>
+wrapper.app.parameter.4=org.apache.catalina.startup.Bootstrap
+wrapper.app.parameter.5=true
+wrapper.app.parameter.6=1
+wrapper.app.parameter.7=stop]]></screen>
                     </informalexample>
                     <para>
                         Notice what while this will function correctly on this
@@ -632,10 +632,10 @@ wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperStartStopApp
 wrapper.app.parameter.1=org.apache.catalina.startup.Bootstrap
 wrapper.app.parameter.2=1
 wrapper.app.parameter.3=start
-wrapper.app.parameter.5=org.apache.catalina.startup.Bootstrap
-wrapper.app.parameter.6=true
-wrapper.app.parameter.7=1
-wrapper.app.parameter.8=stop]]></screen>
+wrapper.app.parameter.4=org.apache.catalina.startup.Bootstrap
+wrapper.app.parameter.5=true
+wrapper.app.parameter.6=1
+wrapper.app.parameter.7=stop]]></screen>
                     </informalexample>
                 </section>
             </section>
