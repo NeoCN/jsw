@@ -214,19 +214,19 @@
                  token='set _APP_HOME=%_APP_HOME:\bin\=%'
                  value='set _APP_HOME=%_APP_HOME:\test\=%' />
         <replace file="${test.dir}/TestQuickComplete.bat"
-                 token='set _WRAPPER_CONF="%_WRAPPER_HOME%\conf\wrapper.conf"'
-                 value='set _WRAPPER_CONF="%_WRAPPER_HOME%\test\quickcomplete.conf"' />
+                 token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
+                 value='set _WRAPPER_CONF="%_APP_HOME%\test\quickcomplete.conf"' />
 
         <!-- Environment Variables Test -->
         <copy file="${src.dir}/bin/App.bat.in"
               tofile="${test.dir}/TestEnvironmentVariables.bat"
               filtering="on"/>
         <replace file="${test.dir}/TestEnvironmentVariables.bat"
-                 token='set _WRAPPER_HOME=%_WRAPPER_HOME:\bin\=%'
-                 value='set _WRAPPER_HOME=%_WRAPPER_HOME:\test\=%' />
+                 token='set _APP_HOME=%_APP_HOME:\bin\=%'
+                 value='set _APP_HOME=%_APP_HOME:\test\=%' />
         <replace file="${test.dir}/TestEnvironmentVariables.bat"
-                 token='set _WRAPPER_CONF="%_WRAPPER_HOME%\conf\wrapper.conf"'
-                 value='set _WRAPPER_CONF="%_WRAPPER_HOME%\test\envvars.conf"' />
+                 token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
+                 value='set _WRAPPER_CONF="%_APP_HOME%\test\envvars.conf"' />
         <replace file="${test.dir}/TestEnvironmentVariables.bat">
             <replacetoken>@echo off</replacetoken>
             <replacevalue><![CDATA[@echo off
