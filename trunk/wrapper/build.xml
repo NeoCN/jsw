@@ -62,54 +62,98 @@
     <!-- =================================================================== -->
     <target name="init-windows-nt" if="is.Windows NT">
         <property name="is.Windows" value="true"/>
-        <property name="is.shell.bat" value="true"/>
     </target>
     <target name="init-windows-2000" if="is.Windows 2000">
         <property name="is.Windows" value="true"/>
-        <property name="is.shell.bat" value="true"/>
     </target>
     <target name="init-windows-xp" if="is.Windows XP">
         <property name="is.Windows" value="true"/>
+    </target>
+    <target name="init-windows"
+        depends="init-windows-nt, init-windows-2000, init-windows-xp"
+        if="is.Windows">
         <property name="is.shell.bat" value="true"/>
+        <property name="wrapper.bin.name" value="Wrapper.exe"/>
+        <property name="wrapper.lib.name" value="Wrapper.dll"/>
     </target>
     <target name="init-linux" if="is.Linux">
         <property name="is.Unix" value="true"/>
         <property name="is.shell.bash" value="true"/>
+        <property name="wrapper.bin.name" value="wrapper"/>
+        <property name="wrapper.lib.name" value="libwrapper.so"/>
+        <property name="make.name" value="make"/>
+        <property name="makefile.name" value="Makefile.linux"/>
+        <property name="releasefile" value="wrapper_linux_${version}"/>
     </target>
     <target name="init-solaris" if="is.SunOS">
         <property name="is.Unix" value="true"/>
         <property name="is.shell.sh" value="true"/>
+        <property name="wrapper.bin.name" value="wrapper"/>
+        <property name="wrapper.lib.name" value="libwrapper.so"/>
+        <property name="make.name" value="make"/>
+        <property name="makefile.name" value="Makefile.solaris"/>
+        <property name="releasefile" value="wrapper_solaris_${version}"/>
     </target>
     <target name="init-aix" if="is.AIX">
         <property name="is.Unix" value="true"/>
         <property name="is.shell.sh" value="true"/>
+        <property name="wrapper.bin.name" value="wrapper"/>
+        <property name="wrapper.lib.name" value="libwrapper.so"/>
+        <property name="make.name" value="gmake"/>
+        <property name="makefile.name" value="Makefile.aix"/>
+        <property name="releasefile" value="wrapper_aix_${version}"/>
     </target>
     <target name="init-hpux" if="is.HP-UX">
         <property name="is.Unix" value="true"/>
         <property name="is.shell.sh" value="true"/>
+        <property name="wrapper.bin.name" value="wrapper"/>
+        <property name="wrapper.lib.name" value="libwrapper.so"/>
+        <property name="make.name" value="gmake"/>
+        <property name="makefile.name" value="Makefile.hpux"/>
+        <property name="releasefile" value="wrapper_hpux_${version}"/>
     </target>
     <target name="init-macosx" if="is.Mac OS X">
         <property name="is.Unix" value="true"/>
         <property name="is.shell.sh" value="true"/>
+        <property name="wrapper.bin.name" value="wrapper"/>
+        <property name="wrapper.lib.name" value="libwrapper.jnilib"/>
+        <property name="make.name" value="make"/>
+        <property name="makefile.name" value="Makefile.macosx"/>
+        <property name="releasefile" value="wrapper_macosx_${version}"/>
     </target>
     <target name="init-osf1" if="is.OSF1">
         <property name="is.Unix" value="true"/>
         <property name="is.shell.sh" value="true"/>
+        <property name="wrapper.bin.name" value="wrapper"/>
+        <property name="wrapper.lib.name" value="libwrapper.so"/>
+        <property name="make.name" value="gmake"/>
+        <property name="makefile.name" value="Makefile.osf1"/>
+        <property name="releasefile" value="wrapper_osf1_${version}"/>
     </target>
     <target name="init-freebsd" if="is.FreeBSD">
         <property name="is.Unix" value="true" />
         <property name="is.shell.sh" value="true"/>
+        <property name="wrapper.bin.name" value="wrapper"/>
+        <property name="wrapper.lib.name" value="libwrapper.so"/>
+        <property name="make.name" value="gmake"/>
+        <property name="makefile.name" value="Makefile.freebsd"/>
+        <property name="releasefile" value="wrapper_freebsd_${version}"/>
     </target>
     <target name="init-irix" if="is.Irix">
         <property name="is.Unix" value="true"/>
         <property name="is.shell.sh" value="true"/>
+        <property name="wrapper.bin.name" value="wrapper"/>
+        <property name="wrapper.lib.name" value="libwrapper.so"/>
+        <property name="make.name" value="gmake"/>
+        <property name="makefile.name" value="Makefile.irix"/>
+        <property name="releasefile" value="wrapper_irix_${version}"/>
     </target>
     
     <!-- =================================================================== -->
     <!-- Initialize build.                                                   -->
     <!-- =================================================================== -->
     <target name="init"
-        depends="init-windows-nt, init-windows-2000, init-windows-xp, init-linux, init-solaris, init-aix, init-hpux, init-macosx, init-osf1, init-freebsd, init-irix">
+        depends="init-windows, init-linux, init-solaris, init-aix, init-hpux, init-macosx, init-osf1, init-freebsd, init-irix">
         <echo message="OS='${os.name}'"/>
         <tstamp/>
         <filter token="version"           value="${version}"       />
@@ -149,14 +193,10 @@
     <!-- =================================================================== -->
     <!-- Compiles the source code                                            -->
     <!-- =================================================================== -->
-    <target name="compile" depends="convert,update-info" 
-        description="Compiles all java and c source">
-        
-        <mkdir dir="${bin.dir}"/>        
+    <target name="compile-java" depends="convert,update-info">
         <mkdir dir="${build.dir}"/>
         <mkdir dir="${build.classes}"/>
         <mkdir dir="${lib.dir}"/>
-        <mkdir dir="${logs.dir}"/>
         
         <!-- compile everything under com -->
         <javac srcdir="${src.dir}/java" destdir="${build.classes}"
@@ -180,6 +220,10 @@
                 <include name="**/Manifest"/>
             </fileset> 
         </copy>
+    </target>
+    <target name="compile-c-windows" depends="convert,update-info" if="is.Windows">
+        <mkdir dir="${bin.dir}"/>        
+        <mkdir dir="${lib.dir}"/>
         
         <!-- Make sure that the native Windows code was built Part 1 -->
         <condition property="isWindowsNativeMissing">
@@ -187,89 +231,38 @@
                 <os family="windows"/>
                 <not>
                     <and>
-                        <available file="${bin.dir}/Wrapper.exe"/>
-                        <available file="${lib.dir}/Wrapper.dll"/>
+                        <available file="${bin.dir}/${wrapper.bin.name}"/>
+                        <available file="${lib.dir}/${wrapper.lib.name}"/>
                     </and>
                 </not>
             </and>
         </condition>
+    </target>
+    <target name="compile-c-windows-check" depends="compile-c-windows" if="isWindowsNativeMissing">
+        <fail message="bin/${wrapper.bin.name} or lib/${wrapper.lib.name} are missing, please build them using MSVC using the project workspace src/c/Wrapper.dsw"/>
+    </target>
+    <target name="compile-c-unix" depends="convert,update-info" if="is.Unix">
+        <mkdir dir="${bin.dir}"/>        
+        <mkdir dir="${lib.dir}"/>
         
-        <!-- run make on Linux to build library -->
-        <exec executable="make"
+        <exec executable="${make.name}"
             dir="${src.dir}/c" 
-            os="Linux" 
             failonerror="true">
-            <arg line="-f Makefile.linux" />
-        </exec>
-
-        <!-- run make on Solaris to build library -->
-        <exec executable="make" 
-            dir="${src.dir}/c" 
-            os="SunOS" 
-            failonerror="true">
-            <arg line="-f Makefile.solaris" />
-        </exec>
-
-        <!-- run make on AIX to build library -->
-        <exec executable="gmake"
-            dir="${src.dir}/c" 
-            os="AIX" 
-            failonerror="true">
-            <arg line="-f Makefile.aix" />
-        </exec>
-
-        <!-- run make on HP-UX to build library -->
-        <exec executable="gmake"
-            dir="${src.dir}/c" 
-            os="HP-UX" 
-            failonerror="true">
-            <arg line="-f Makefile.hpux" />
-        </exec>
-
-        <!-- run make on Mac OS X to build library -->
-        <exec executable="make" 
-            dir="${src.dir}/c" 
-            os="Mac OS X" 
-            failonerror="true">
-            <arg line="-f Makefile.macosx" />
-        </exec>
-
-        <!-- run make on DEC OSF1 (Alpha) to build library -->
-        <exec executable="gmake" 
-            dir="${src.dir}/c" 
-            os="OSF1" 
-            failonerror="true">
-            <arg line="-f Makefile.osf1" />
-        </exec>
-
-        <!-- run make on FreeBSD to build library -->
-        <exec executable="gmake" 
-            dir="${src.dir}/c" 
-            os="FreeBSD" 
-            failonerror="true">
-            <arg line="-f Makefile.freebsd" />
-        </exec>
-
-        <!-- run make on SGI Irix to build library -->
-        <exec executable="gmake" 
-            dir="${src.dir}/c" 
-            os="Irix" 
-            failonerror="true">
-            <arg line="-f Makefile.irix" />
+            <arg line="-f ${makefile.name}" />
         </exec>
     </target>
-    
-    <!-- =================================================================== -->
-    <!-- Make sure that the native Windows code was built Part 2             -->
-    <!-- =================================================================== -->
-    <target name="compile-windows-check" depends="compile" if="isWindowsNativeMissing">
-        <fail message="bin/Wrapper.exe or lib/Wrapper.dll are missing, please build them using MSVC using the project workspace src/c/Wrapper.dsw"/>
+    <target name="compile-c" depends="compile-c-windows-check,compile-c-unix">
+    </target>
+    <target name="compile" depends="compile-c,compile-java"
+        description="Compiles all java and c source">
+        
+        <mkdir dir="${logs.dir}"/>
     </target>
     
     <!-- =================================================================== -->
     <!-- Creates the jar archive                                             -->
     <!-- =================================================================== -->
-    <target name="jar" depends="compile-windows-check">
+    <target name="jar" depends="compile">
         <jar jarfile="${lib.dir}/wrapper.jar"
              basedir="${build.classes}"
              includes="**/*.class,**/*.properties"
@@ -546,10 +539,10 @@
         <copy todir="${releasedir}" >
             <fileset dir="${basedir}" >
                 <include name="index.html" />
-                <include name="bin/Wrapper.exe" />
+                <include name="bin/${wrapper.bin.name}" />
                 <include name="bin/*.bat" />
                 <include name="conf/*.conf" />
-                <include name="lib/Wrapper.dll" />
+                <include name="lib/${wrapper.lib.name}" />
                 <include name="lib/wrapper.jar" />
                 <include name="lib/wrappertest.jar" />
                 <include name="logs" />
@@ -577,80 +570,22 @@
     </target>
     
     <!-- =================================================================== -->
-    <!-- Release (Linux)                                                     -->
-    <!-- =================================================================== -->
-    <target name="release-linux" depends="release-common" if="is.Linux">
-        <property name="releasefile" value="wrapper_linux_${version}"/>
-    </target>
-
-    <!-- =================================================================== -->
-    <!-- Release (Solaris)                                                   -->
-    <!-- =================================================================== -->
-    <target name="release-solaris" depends="release-common" if="is.SunOS">
-        <property name="releasefile" value="wrapper_solaris_${version}"/>
-    </target>
-
-    <!-- =================================================================== -->
-    <!-- Release (AIX)                                                       -->
-    <!-- =================================================================== -->
-    <target name="release-aix" depends="release-common" if="is.AIX">
-        <property name="releasefile" value="wrapper_aix_${version}"/>
-    </target>
-
-    <!-- =================================================================== -->
-    <!-- Release (HP-UX)                                                     -->
-    <!-- =================================================================== -->
-    <target name="release-hpux" depends="release-common" if="is.HP-UX">
-        <property name="releasefile" value="wrapper_hpux_${version}"/>
-    </target>
-
-    <!-- =================================================================== -->
-    <!-- Release (Mac OS X)                                                  -->
-    <!-- =================================================================== -->
-    <target name="release-macosx" depends="release-common" if="is.Mac OS X">
-        <property name="releasefile" value="wrapper_macosx_${version}"/>
-    </target>
-
-    <!-- =================================================================== -->
-    <!-- Release (DEC OSF1)                                                  -->
-    <!-- =================================================================== -->
-    <target name="release-osf1" depends="release-common" if="is.OSF1">
-        <property name="releasefile" value="wrapper_osf1_${version}"/>
-    </target>
-
-    <!-- =================================================================== -->
-    <!-- Release (FreeBSD)                                                  -->
-    <!-- =================================================================== -->
-    <target name="release-freebsd" depends="release-common" if="is.FreeBSD">
-        <property name="releasefile" value="wrapper_freebsd_${version}"/>
-    </target>
-    
-    <!-- =================================================================== -->
-    <!-- Release (SGI Irix)                                                  -->
-    <!-- =================================================================== -->
-    <target name="release-irix" depends="release-common" if="is.Irix">
-        <property name="releasefile" value="wrapper_irix_${version}"/>
-    </target>
-    
-    <!-- =================================================================== -->
     <!-- Release (Unix)                                                      -->
     <!-- =================================================================== -->
-    <target name="release-unix"
-            depends="release-linux, release-solaris, release-aix, release-hpux, release-macosx, release-osf1, release-freebsd, release-irix"
-            if="is.Unix">
+    <target name="release-unix" depends="release-common" if="is.Unix">
         <property name="releasedir" value="${basedir}/${releasefile}"/>
         <delete dir="${releasedir}"/>
         <mkdir dir="${releasedir}"/>
         <copy todir="${releasedir}" >
             <fileset dir="${basedir}" >
                 <include name="index.html" />
-                <include name="bin/wrapper" />
+                <include name="bin/${wrapper.bin.name}" />
                 <include name="bin/realpath" />
                 <include name="bin/${app.name}" />
                 <include name="conf/*.conf" />
                 <include name="lib/wrapper.jar" />
                 <include name="lib/wrappertest.jar" />
-                <include name="lib/libwrapper.so" />
+                <include name="lib/${wrapper.lib.name}" />
                 <include name="logs" />
                 <include name="src/conf/**" />
                 <include name="jdoc/**" />
@@ -670,13 +605,13 @@
 
         <tar tarfile="${releasedir}.tar">
             <tarfileset dir="${basedir}" mode="755">
-                <include name="${releasefile}/bin/wrapper"/>
+                <include name="${releasefile}/bin/${wrapper.bin.name}"/>
                 <include name="${releasefile}/bin/realpath"/>
                 <include name="${releasefile}/bin/${app.name}"/>
             </tarfileset>
             <tarfileset dir="${basedir}">
                 <include name="${releasefile}/**"/>
-                <exclude name="${releasefile}/bin/wrapper"/>
+                <exclude name="${releasefile}/bin/${wrapper.bin.name}"/>
                 <exclude name="${releasefile}/bin/realpath"/>
                 <exclude name="${releasefile}/bin/${app.name}"/>
             </tarfileset>
@@ -695,7 +630,14 @@
     <!-- =================================================================== -->
     <!-- Cleans up generated stuff                                           -->
     <!-- =================================================================== -->
-    <target name="clean" description="Clean up any files from the build">
+    <target name="clean-unix" if="is.Unix">
+        <exec executable="${make.name}"
+              dir="${src.dir}/c">
+            <arg line="-f ${makefile.name}" />
+            <arg value="clean"/>
+        </exec>
+    </target>
+    <target name="clean" depends="clean-unix" description="Clean up any files from the build">
         <delete dir="${build.dir}"/>
         <delete includeEmptyDirs="true">
             <fileset dir="${basedir}">
@@ -705,61 +647,21 @@
                 <include name="wrapper_*"/>
             </fileset>
         </delete>
-
-        <exec executable="make"
-              dir="${src.dir}/c"
-              os="Linux">
-            <arg line="-f Makefile.linux" />
-            <arg value="clean"/>
-        </exec>
-        <exec executable="make" 
-              dir="${src.dir}/c" 
-              os="SunOS">
-            <arg line="-f Makefile.solaris" />
-            <arg value="clean"/>
-        </exec>
-        <exec executable="gmake" 
-              dir="${src.dir}/c" 
-              os="AIX">
-            <arg line="-f Makefile.aix" />
-            <arg value="clean"/>
-        </exec>
-        <exec executable="gmake" 
-              dir="${src.dir}/c" 
-              os="HP-UX">
-            <arg line="-f Makefile.hpux" />
-            <arg value="clean"/>
-        </exec>
-        <exec executable="make" 
-              dir="${src.dir}/c" 
-              os="Mac OS X">
-            <arg line="-f Makefile.macosx" />
-            <arg value="clean"/>
-        </exec>
-        <exec executable="gmake" 
-              dir="${src.dir}/c" 
-              os="OSF1">
-            <arg line="-f Makefile.osf1" />
-            <arg value="clean"/>
-        </exec>
-        <exec executable="gmake" 
-              dir="${src.dir}/c" 
-              os="FreeBSD">
-            <arg line="-f Makefile.freebsd" />
-            <arg value="clean"/>
-        </exec>
-        <exec executable="gmake" 
-              dir="${src.dir}/c" 
-              os="Irix">
-            <arg line="-f Makefile.irix" />
-            <arg value="clean"/>
-        </exec>
     </target>
     
     <!-- =================================================================== -->
     <!-- Total cleanup                                                       -->
     <!-- =================================================================== -->
-    <target name="total-clean" depends="clean" description="Clean up all build and target files">
+    <target name="total-clean-unix" if="is.Unix">
+        <exec executable="${make.name}"
+              dir="${src.dir}/c">
+            <arg line="-f ${makefile.name}" />
+            <arg value="cleanall"/>
+        </exec>
+    </target>
+    <target name="total-clean" depends="clean, total-clean-unix"
+        description="Clean up all build and target files">
+        
         <delete dir="${jdoc.dir}"/>
         <delete dir="${doc.dir}/english"/>
 
@@ -767,55 +669,6 @@
 
         <delete file="${lib.dir}/wrapper.jar"/>
         <delete file="${lib.dir}/wrappertest.jar"/>
-
-        <exec executable="make" 
-              dir="${src.dir}/c" 
-              os="Linux">
-            <arg line="-f Makefile.linux" />
-            <arg value="cleanall"/>
-        </exec>
-        <exec executable="make"
-              dir="${src.dir}/c"
-              os="SunOS">
-            <arg line="-f Makefile.solaris" />
-            <arg value="cleanall"/>
-        </exec>
-        <exec executable="gmake" 
-              dir="${src.dir}/c" 
-              os="AIX">
-            <arg line="-f Makefile.aix" />
-            <arg value="cleanall"/>
-        </exec>
-        <exec executable="gmake" 
-              dir="${src.dir}/c" 
-              os="HP-UX">
-            <arg line="-f Makefile.hpux" />
-            <arg value="cleanall"/>
-        </exec>
-        <exec executable="make" 
-              dir="${src.dir}/c" 
-              os="Mac OS X">
-            <arg line="-f Makefile.macosx" />
-            <arg value="cleanall"/>
-        </exec>
-        <exec executable="gmake" 
-              dir="${src.dir}/c" 
-              os="OSF1">
-            <arg line="-f Makefile.osf1" />
-            <arg value="cleanall"/>
-        </exec>
-        <exec executable="gmake" 
-              dir="${src.dir}/c" 
-              os="FreeBSD">
-            <arg line="-f Makefile.freebsd" />
-            <arg value="cleanall"/>
-        </exec>
-        <exec executable="gmake" 
-              dir="${src.dir}/c" 
-              os="Irix">
-            <arg line="-f Makefile.irix" />
-            <arg value="cleanall"/>
-        </exec>
 
         <ant antfile="build-tests.xml" target="total-clean" inheritall="false"/>  
     </target>
