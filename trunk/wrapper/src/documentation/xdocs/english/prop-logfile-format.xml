@@ -29,6 +29,7 @@
             intentionally kept simple.  The format consists of the tokens
             <literal moreinfo="none">'L'</literal> for log level,
             <literal moreinfo="none">'P'</literal> for prefix,
+            <literal moreinfo="none">'D'</literal> for thread,
             <literal moreinfo="none">'T'</literal> for time, and
             <literal moreinfo="none">'M'</literal> for message.
             If the format contains these values then it will be included in the

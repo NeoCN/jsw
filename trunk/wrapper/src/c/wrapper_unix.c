@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.55  2004/01/09 17:49:00  mortenson
+ * Rework the logging so it is now threadsafe.
+ *
  * Revision 1.54  2004/01/09 05:15:11  mortenson
  * Implement a tick timer and convert the system time over to be compatible.
  *
@@ -216,6 +219,9 @@ void requestDumpJVMState() {
  * Handle interrupt signals (i.e. Crtl-C).
  */
 void handleInterrupt(int sig_num) {
+    /* Immediately register this thread with the logger. */
+    logRegisterThread(WRAPPER_THREAD_SIGNAL);
+
     signal(SIGINT, handleInterrupt);
 
     if (wrapperData->ignoreSignals) {
@@ -235,6 +241,9 @@ void handleInterrupt(int sig_num) {
  * Handle quit signals (i.e. Crtl-\).
  */
 void handleQuit(int sig_num) {
+    /* Immediately register this thread with the logger. */
+    logRegisterThread(WRAPPER_THREAD_SIGNAL);
+
     signal(SIGQUIT, handleQuit); 
     requestDumpJVMState();
 }
@@ -243,6 +252,9 @@ void handleQuit(int sig_num) {
  * Handle termination signals (i.e. machine is shutting down).
  */
 void handleTermination(int sig_num) {
+    /* Immediately register this thread with the logger. */
+    logRegisterThread(WRAPPER_THREAD_SIGNAL);
+
     signal(SIGTERM, handleTermination); 
 
     if (wrapperData->ignoreSignals) {
@@ -415,8 +427,8 @@ void wrapperExecute() {
  *  wrapperGetTickAge() function to perform time keeping.
  */
 DWORD wrapperGetTicks() {
-	/* Not yet implemented on UNIX, return the system ticks. */
-	return wrapperGetSystemTicks();
+    /* Not yet implemented on UNIX, return the system ticks. */
+    return wrapperGetSystemTicks();
 }
 
 /**
@@ -766,6 +778,9 @@ int main(int argc, char **argv) {
     wrapperData->failedInvocationCount = 0;
         
     wrapperInitializeLogging();
+
+    /* Immediately register this thread with the logger. */
+    logRegisterThread(WRAPPER_THREAD_MAIN);
     
     if (argc < 2) {
         wrapperUsage(argv[0]);

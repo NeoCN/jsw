@@ -61,6 +61,11 @@ Java Service Wrapper Revision History.
   in a future version of the Wrapper.
   A pair of related properties, wrapper.timer_fast_threshold and
   wrapper.timer_slow_threshold were also added to aid in debugging.
+* Rework the logging code so it is now thread safe.  The addition of the
+  timer thread means that there is now more than a single thread accessing
+  that code.  This was causing problems as the two threads tried to use the
+  same buffers.  As part of this change, a new format variable 'D' was added
+  to display the thread which is doing the logging.
 
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the

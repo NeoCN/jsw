@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.61  2004/01/09 17:49:00  mortenson
+ * Rework the logging so it is now threadsafe.
+ *
  * Revision 1.60  2004/01/09 05:15:11  mortenson
  * Implement a tick timer and convert the system time over to be compatible.
  *
@@ -349,6 +352,9 @@ int wrapperConsoleHandler(int key) {
     int quit = FALSE;
     int halt = FALSE;
 
+    /* Immediately register this thread with the logger. */
+    logRegisterThread(WRAPPER_THREAD_SIGNAL);
+
     switch (key) {
     case CTRL_C_EVENT:
     case CTRL_CLOSE_EVENT:
@@ -553,49 +559,52 @@ void showConsoleWindow(HWND consoleHandle) {
  *  use the system time as a base for the tick counter.
  */
 DWORD WINAPI timerRunner(LPVOID parameter) {
-	DWORD sysTicks;
-	DWORD lastTickOffset = 0;
-	DWORD tickOffset;
-	long int offsetDiff;
-	int first = 1;
+    DWORD sysTicks;
+    DWORD lastTickOffset = 0;
+    DWORD tickOffset;
+    long int offsetDiff;
+    int first = 1;
 
-	/* In case there are ever any problems in this thread, enclose it in a try catch block. */
-	__try {
-		while(TRUE) {
-			Sleep(WRAPPER_TICK_MS);
+    /* In case there are ever any problems in this thread, enclose it in a try catch block. */
+    __try {
+        /* Immediately register this thread with the logger. */
+        logRegisterThread(WRAPPER_THREAD_TIMER);
 
-			/* Get the tick count based on the system time. */
-			sysTicks = wrapperGetSystemTicks();
+        while(TRUE) {
+            Sleep(WRAPPER_TICK_MS);
 
-			/* Advance the timer tick count. */
-			timerTicks++;
+            /* Get the tick count based on the system time. */
+            sysTicks = wrapperGetSystemTicks();
 
-			/* Calculate the offset between the two tick counts. This will always work due to overflow. */
-			tickOffset = sysTicks - timerTicks;
+            /* Advance the timer tick count. */
+            timerTicks++;
 
-			/* The number we really want is the difference between this tickOffset and the previous one. */
-			offsetDiff = tickOffset - lastTickOffset;
+            /* Calculate the offset between the two tick counts. This will always work due to overflow. */
+            tickOffset = sysTicks - timerTicks;
 
-			if (first) {
-				first = 0;
-			} else {
-				if (offsetDiff > wrapperData->timerSlowThreshold) {
-					log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The timer fell behind the system clock by %ldms.", offsetDiff * WRAPPER_TICK_MS);
-				} else if (offsetDiff < -1 * wrapperData->timerFastThreshold) {
-					log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The system clock fell behind the timer by %ldms.", -1 * offsetDiff * WRAPPER_TICK_MS);
-				}
-				/*
-				log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Timer running: %lu, %lu, %lu, %ld", timerTicks, sysTicks, tickOffset, offsetDiff);
-				*/
-			}
+            /* The number we really want is the difference between this tickOffset and the previous one. */
+            offsetDiff = tickOffset - lastTickOffset;
 
-			/* Store this tick offset for the next time through the loop. */
-			lastTickOffset = tickOffset;
-		}
+            if (first) {
+                first = 0;
+            } else {
+                if (offsetDiff > wrapperData->timerSlowThreshold) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The timer fell behind the system clock by %ldms.", offsetDiff * WRAPPER_TICK_MS);
+                } else if (offsetDiff < -1 * wrapperData->timerFastThreshold) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The system clock fell behind the timer by %ldms.", -1 * offsetDiff * WRAPPER_TICK_MS);
+                }
+                /*
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Timer running: %lu, %lu, %lu, %ld", timerTicks, sysTicks, tickOffset, offsetDiff);
+                */
+            }
+
+            /* Store this tick offset for the next time through the loop. */
+            lastTickOffset = tickOffset;
+        }
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Fatal error in the Timer thread.");
-		appExit(1);
-		return 1; /* For the compiler, we will never get here. */
+        appExit(1);
+        return 1; /* For the compiler, we will never get here. */
     }
 }
 
@@ -605,21 +614,21 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
  *  to using the system clock.
  */
 int initializeTimer() {
-	timerThreadHandle = CreateThread(
-		NULL, /* No security attributes as there will not be any child processes of the thread. */
-		0,    /* Use the default stack size. */
-		timerRunner,
-		NULL, /* No parameters need to passed to the thread. */
-		0,    /* Start the thread running immediately. */
-		&timerThreadId
-		);
-	if (!timerThreadHandle) {
+    timerThreadHandle = CreateThread(
+        NULL, /* No security attributes as there will not be any child processes of the thread. */
+        0,    /* Use the default stack size. */
+        timerRunner,
+        NULL, /* No parameters need to passed to the thread. */
+        0,    /* Start the thread running immediately. */
+        &timerThreadId
+        );
+    if (!timerThreadHandle) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
             "Unable to create a timer thread: %s", getLastErrorText());
-		return 1;
-	} else {
-		return 0;
-	}
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 /**
@@ -696,16 +705,16 @@ int wrapperInitialize() {
         }
     }
 
-	if (wrapperData->useSystemTime) {
-		/* We are going to be using system time so there is no reason to start up a timer thread. */
-		timerThreadHandle = NULL;
-		timerThreadId = 0;
-	} else {
-		/* Create and initialize a timer thread. */
-		if ((res = initializeTimer()) != 0) {
-			return res;
-		}
-	}
+    if (wrapperData->useSystemTime) {
+        /* We are going to be using system time so there is no reason to start up a timer thread. */
+        timerThreadHandle = NULL;
+        timerThreadId = 0;
+    } else {
+        /* Create and initialize a timer thread. */
+        if ((res = initializeTimer()) != 0) {
+            return res;
+        }
+    }
 
     return 0;
 }
@@ -976,7 +985,7 @@ void wrapperKillProcess() {
 
     wrapperData->jState = WRAPPER_JSTATE_DOWN;
     wrapperData->jStateTimeoutTicks = 0;
-	wrapperData->jStateTimeoutTicksSet = 0;
+    wrapperData->jStateTimeoutTicksSet = 0;
     wrapperProcess = NULL;
 
     /* Remove java pid file if it was registered and created by this process. */
@@ -1199,14 +1208,14 @@ void wrapperExecute() {
  *  wrapperGetTickAge() function to perform time keeping.
  */
 DWORD wrapperGetTicks() {
-	if (wrapperData->useSystemTime) {
-		/* We want to return a tick count that is based on the current system time. */
-		return wrapperGetSystemTicks();
+    if (wrapperData->useSystemTime) {
+        /* We want to return a tick count that is based on the current system time. */
+        return wrapperGetSystemTicks();
 
-	} else {
-		/* Return a snapshot of the current tick count. */
-		return timerTicks;
-	}
+    } else {
+        /* Return a snapshot of the current tick count. */
+        return timerTicks;
+    }
 }
 
 /******************************************************************************
@@ -1222,6 +1231,10 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
     if (wrapperData->isDebugging) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "ServiceControlHandler(%d)", dwCtrlCode);
     }
+
+    /* This thread appears to always be the same as the main thread.
+     *  Just to be safe reregister it. */
+    logRegisterThread(WRAPPER_THREAD_MAIN);
 
     switch(dwCtrlCode) {
     case SERVICE_CONTROL_STOP:
@@ -1277,6 +1290,9 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "wrapperServiceMain()");
 #endif
+
+    /* Immediately register this thread with the logger. */
+    logRegisterThread(WRAPPER_THREAD_SRVMAIN);
 
     /* Call RegisterServiceCtrlHandler immediately to register a service control */
     /* handler function. The returned SERVICE_STATUS_HANDLE is saved with global */
@@ -2157,6 +2173,9 @@ void _CRTAPI1 main(int argc, char **argv) {
         wrapperData->failedInvocationCount = 0;
 
         wrapperInitializeLogging();
+
+        /* Immediately register this thread with the logger. */
+        logRegisterThread(WRAPPER_THREAD_MAIN);
 #ifdef _DEBUG
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Wrapper DEBUG build!");
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Logging initialized.");
