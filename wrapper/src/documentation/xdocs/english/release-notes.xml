@@ -55,6 +55,13 @@ $Id$
                     was causing an access violation when run as an NT service.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add some extra checks in the event where the native library can not be loaded
+                    so that the WrapperManager can differentiate between the library missing and
+                    not being readable due to permission problems.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
