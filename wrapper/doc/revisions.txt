@@ -22,6 +22,8 @@ Java Service Wrapper Revision History.
   the Wrapper. Thanks to Mike Castle for the patch.  The bash script can still
   be found in the release, but it is deprecated and will be removed in a
   future version.
+* Modified the sh script so it is now possible to set the nice priority in the
+  script configuration block.
 
 3.0.4
 * Fix a problem on UNIX systems where requesting a second thread dump any time
