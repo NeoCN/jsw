@@ -50,6 +50,11 @@ Java Service Wrapper Revision History.
 * Implemented feature request #676599 to enable the filtering of JVM output to
   trigger JVM restarts or Wrapper shutdowns.  See the new
   wrapper.filter.trigger.n and wrapper.filter.action.n properties.
+* Modify the Win32 version of the Wrapper so that Environment Variables are
+  always read from the system registry when the Wrapper is run as a service.
+  By doing this, it makes it possible to change or add the system environment
+  variables and have them take effect without having to first reboot the
+  machine.
 
 2.2.9
 * Added a new property, wrapperper.restart.delay, which allows the user to control

@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.31  2003/02/08 14:35:40  mortenson
+ * Modify the Win32 version of the Wrapper so that Environment Variables are
+ * always read from the system registry when the Wrapper is run as a service.
+ *
  * Revision 1.30  2003/02/07 16:05:28  mortenson
  * Implemented feature request #676599 to enable the filtering of JVM output to
  * trigger JVM restarts or Wrapper shutdowns.
@@ -946,6 +950,110 @@ int wrapperInstall(int argc, char **argv) {
 }
 
 /**
+ * Sets any environment variables stored in the system registry to the current
+ *  environment.  The NT service environment only has access to the environment
+ *  variables set when the machine was last rebooted.  This makes it possible
+ *  to access the latest values in registry without a reboot.
+ *
+ * Note that this function is always called before the config file has been
+ *  loaded this means that any logging that takes place will be sent to the
+ *  default log file which may be difficult for the user to locate.
+ */
+int wrapperLoadEnvFromRegistry() {
+    int result = 0;
+    HKEY hKey;
+    char regPath[1024];
+    DWORD dwIndex;
+    LONG err;
+    CHAR name[1024];
+    DWORD cbName;
+    DWORD type;
+    byte data[2048];
+    DWORD cbData;
+    CHAR env[3072];
+    char *envVal;
+
+    /* Open the registry entry where the current environment variables are stored. */
+    sprintf(regPath, "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment\\");
+    if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, regPath, 0, KEY_ENUMERATE_SUB_KEYS | KEY_QUERY_VALUE, (PHKEY) &hKey) == ERROR_SUCCESS) {
+        /* Read in each of the environment variables and set them into the environment.
+         *  These values will be set as is without doing any environment variable
+         *  expansion.  In order for the ExpandEnvironmentStrings function to work all
+         *  of the environment variables to be replaced must already be set.  To handle
+         *  this, after we set the values as is from the registry, we need to go back
+         *  through all the ones we set and Expand them if necessary. */
+        dwIndex = 0;
+        do {
+            cbName = 1024;
+            cbData = 2048;
+            err = RegEnumValue(hKey, dwIndex, name, &cbName, NULL, &type, data, &cbData);
+            if (err != ERROR_NO_MORE_ITEMS) {
+                /* Found an environment variable in the registry.  Set it to the current environment. */
+                sprintf(env, "%s=%s", name, data);
+                if (putenv(env)) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to set environment variable from the registry - %s", getLastErrorText(szErr,256));
+                    err = ERROR_NO_MORE_ITEMS;
+                    result = 1;
+                }
+            } else if (err == ERROR_NO_MORE_ITEMS) {
+                /* No more environment variables. */
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to read registry - %s", getLastErrorText(szErr,256));
+                err = ERROR_NO_MORE_ITEMS;
+                result = 1;
+            }
+            dwIndex++;
+        } while (err != ERROR_NO_MORE_ITEMS);
+
+        if (!result) {
+            /* Go back and loop over the environment variables we just set and expand any
+             *  variables which contain % characters. */
+            dwIndex = 0;
+            do {
+                cbName = 1024;
+                cbData = 2048;
+                err = RegEnumValue(hKey, dwIndex, name, &cbName, NULL, NULL, NULL, NULL);
+                if (err != ERROR_NO_MORE_ITEMS) {
+                    /* Found an environment variable in the registry.  Get the current value. */
+                    envVal = getenv(name);
+                    if (strchr(envVal, '%')) {
+                        /* This variable contains tokens which need to be expanded. */
+                        if (!ExpandEnvironmentStrings(envVal, data, 2048)) {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to expand environment variable, %s - %s", name, getLastErrorText(szErr,256));
+                            err = ERROR_NO_MORE_ITEMS;
+                            result = 1;
+                        } else {
+                            /* Set the expanded environment variable */
+                            sprintf(env, "%s=%s", name, data);
+                            if (putenv(env)) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to set environment variable from the registry - %s", getLastErrorText(szErr,256));
+                                err = ERROR_NO_MORE_ITEMS;
+                                result = 1;
+                            }
+                        }
+                    }
+                } else if (err == ERROR_NO_MORE_ITEMS) {
+                    /* No more environment variables. */
+                } else {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to read registry - %s", getLastErrorText(szErr,256));
+                    err = ERROR_NO_MORE_ITEMS;
+                    result = 1;
+                }
+                dwIndex++;
+            } while (err != ERROR_NO_MORE_ITEMS);
+        }
+
+        /* Close the registry entry */
+        RegCloseKey(hKey);
+    } else {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to access registry to obtain environment variables - %s", getLastErrorText(szErr,256));
+        result = 1;
+    }
+
+    return result;
+}
+
+/**
  * Uninstall the service and clean up
  */
 int wrapperRemove(char *appName, char *configFile) {
@@ -1236,69 +1344,82 @@ void _CRTAPI1 main(int argc, char **argv) {
                 /* User asked for the usage. */
                 wrapperUsage(argv[0]);
             } else {
-                /* All 4 valid commands use the config file, so start by getting it loaded. */
-                properties = loadProperties(argv[2]);
-                if (properties == NULL) {
-                    /* File not found. */
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "unable to open config file. %s", argv[2]);
-                    result = 1;
-                } else {
-                    /* Store the config file name */
-                    wrapperData->configFile = argv[2];
-
-                    /* Loop over the additional arguments and try to parse them as properties */
-                    for (i = 3; i < argc; i++) {
-                        if (addPropertyPair(properties, argv[i])) {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, 
-                                "The argument '%s' is not a valid property name-value pair.", argv[i]);
-                            result = 1;
-                        }
+                /* All 4 valid commands use the config file.  It is loaded here to reduce
+                 *  duplicate code.  But before loading the parameters, in the case of an
+                 *  NT service. the environment variables must first be loaded from the
+                 *  registry. */
+                if (!_stricmp(argv[1],"-s") || !_stricmp(argv[1],"/s")) {
+                    if (wrapperLoadEnvFromRegistry())
+                    {
+                        result = 1;
                     }
+                }
 
-                    if (result) {
-                        /* There was a problem with the arguments */
+                if (!result) {
+                    /* All 4 valid commands use the config file, so start by getting it loaded. */
+                    properties = loadProperties(argv[2]);
+                    if (properties == NULL) {
+                        /* File not found. */
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "unable to open config file. %s", argv[2]);
+                        result = 1;
                     } else {
-                        /* Display the active properties */
-#ifdef _DEBUG
-                        printf("Debug Config Properties:\n");
-                        dumpProperties(properties);
-#endif
+                        /* Store the config file name */
+                        wrapperData->configFile = argv[2];
 
-                        /* Apply properties to the WrapperConfig structure */
-                        wrapperLoadConfiguration();
-                        
-                        /* Perform the specified command */
-                        if(!_stricmp(argv[1],"-i") || !_stricmp(argv[1],"/i")) {
-                            /* Install an NT service */
-                            result = wrapperInstall(argc, argv);
-                        } else if(!_stricmp(argv[1],"-r") || !_stricmp(argv[1],"/r")) {
-                            /* Remove an NT service */
-                            result = wrapperRemove(argv[0], argv[2]);
-                        } else if(!_stricmp(argv[1],"-c") || !_stricmp(argv[1],"/c")) {
-                            /* Run as a console application */
-                            result = wrapperRunConsole();
-                        } else if(!_stricmp(argv[1],"-s") || !_stricmp(argv[1],"/s")) {
-                            /* Run as a service */
-                            /* Prepare the service table */
-                            serviceTable[0].lpServiceName = wrapperData->ntServiceName;
-                            serviceTable[0].lpServiceProc = (LPSERVICE_MAIN_FUNCTION)wrapperServiceMain;
-                            serviceTable[1].lpServiceName = NULL;
-                            serviceTable[1].lpServiceProc = NULL;
-                    
-                            printf("Attempting to start %s as an NT service.\n", wrapperData->ntServiceDisplayName);
-                            printf("\nCalling StartServiceCtrlDispatcher...please wait.\n");
-                    
-                            /* Start the service control dispatcher.  This will not return */
-                            /*  if the service is started without problems */
-                            if (!StartServiceCtrlDispatcher(serviceTable)){
-                                printf("\nStartServiceControlDispatcher failed!\n");
-                                printf("\nFor help, type\n\n%s /?\n\n", argv[0]);
+                        /* Loop over the additional arguments and try to parse them as properties */
+                        for (i = 3; i < argc; i++) {
+                            if (addPropertyPair(properties, argv[i])) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, 
+                                    "The argument '%s' is not a valid property name-value pair.", argv[i]);
                                 result = 1;
                             }
+                        }
+
+                        if (result) {
+                            /* There was a problem with the arguments */
                         } else {
-                            printf("\nUnrecognized option: %s\n", argv[1]);
-                            wrapperUsage(argv[0]);
-                            result = 1;
+                            /* Display the active properties */
+#ifdef _DEBUG
+                            printf("Debug Config Properties:\n");
+                            dumpProperties(properties);
+#endif
+
+                            /* Apply properties to the WrapperConfig structure */
+                            wrapperLoadConfiguration();
+                        
+                            /* Perform the specified command */
+                            if(!_stricmp(argv[1],"-i") || !_stricmp(argv[1],"/i")) {
+                                /* Install an NT service */
+                                result = wrapperInstall(argc, argv);
+                            } else if(!_stricmp(argv[1],"-r") || !_stricmp(argv[1],"/r")) {
+                                /* Remove an NT service */
+                                result = wrapperRemove(argv[0], argv[2]);
+                            } else if(!_stricmp(argv[1],"-c") || !_stricmp(argv[1],"/c")) {
+                                /* Run as a console application */
+                                result = wrapperRunConsole();
+                            } else if(!_stricmp(argv[1],"-s") || !_stricmp(argv[1],"/s")) {
+                                /* Run as a service */
+                                /* Prepare the service table */
+                                serviceTable[0].lpServiceName = wrapperData->ntServiceName;
+                                serviceTable[0].lpServiceProc = (LPSERVICE_MAIN_FUNCTION)wrapperServiceMain;
+                                serviceTable[1].lpServiceName = NULL;
+                                serviceTable[1].lpServiceProc = NULL;
+                    
+                                printf("Attempting to start %s as an NT service.\n", wrapperData->ntServiceDisplayName);
+                                printf("\nCalling StartServiceCtrlDispatcher...please wait.\n");
+                    
+                                /* Start the service control dispatcher.  This will not return */
+                                /*  if the service is started without problems */
+                                if (!StartServiceCtrlDispatcher(serviceTable)){
+                                    printf("\nStartServiceControlDispatcher failed!\n");
+                                    printf("\nFor help, type\n\n%s /?\n\n", argv[0]);
+                                    result = 1;
+                                }
+                            } else {
+                                printf("\nUnrecognized option: %s\n", argv[1]);
+                                wrapperUsage(argv[0]);
+                                result = 1;
+                            }
                         }
                     }
                 }

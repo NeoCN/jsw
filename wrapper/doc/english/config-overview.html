@@ -559,6 +559,17 @@ wrapper.ntservice.interactive=false
                     at run time within the values of any of the properties listed on this page.
                     To maintain the platform independent nature of the wrapper.conf file, the
                     windows syntax is used for all platforms.
+                </p>
+                
+<p align="justify">
+                    Starting with version 3.0.0, when the Wrapper is run as a service, environment
+                    variables will be loaded from the system registry rather than from the
+                    environment.  This was necessary because Windows loads the environment variables
+                    which are available to services when the machine is booted.  Any changes to the
+                    system environment variables in the registry (set directly or through the
+                    system control panel) are not made available to the services until the machine
+                    is once again rebooted.  By loading the environment variables from the registry,
+                    the reboot can be avoided while providing the same functionality.
                     <p align="justify">
                         
 <i>Example referencing the JAVA_HOME environment variable:</i>
@@ -629,7 +640,7 @@ wrapper.ntservice.interactive=false
                 
                 
 <div class="glosslist">
-<a name="N400B35"></a>
+<a name="N400B38"></a>
 <dl>
                     
                         
@@ -1115,7 +1126,7 @@ wrapper.app.parameter.2=conf/myconffile.conf</pre>
                 
                 
 <div class="glosslist">
-<a name="N400C5B"></a>
+<a name="N400C5E"></a>
 <dl>
                     
                         
@@ -1467,7 +1478,7 @@ wrapper.logfile.format=
                 
                 
 <div class="glosslist">
-<a name="N400D1D"></a>
+<a name="N400D20"></a>
 <dl>
                     
                         
@@ -1605,7 +1616,7 @@ wrapper.logfile.format=
 </div>
                 
 <div class="glosslist">
-<a name="N400D6A"></a>
+<a name="N400D6D"></a>
 <dl>
                     
                         
@@ -1806,7 +1817,7 @@ wrapper.logfile.format=
                                     From the Windows API, each priority level is described as
                                     follows:
                                     <div class="glosslist">
-<a name="N400DF8"></a>
+<a name="N400DFB"></a>
 <dl>
                                         
                                             
@@ -2123,7 +2134,7 @@ The service did not start due to a logon failure.</pre>
 </p>
                 
 <div class="glosslist">
-<a name="N400EBA"></a>
+<a name="N400EBD"></a>
 <dl>
                     
                         
