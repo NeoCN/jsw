@@ -121,6 +121,15 @@ $Id$
                     wrapper.filter.trigger.n and wrapper.filter.action.n properties.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Modify the Win32 version of the Wrapper so that Environment Variables are
+                    always read from the system registry when the Wrapper is run as a service.
+                    By doing this, it makes it possible to change or add the system environment
+                    variables and have them take effect without having to first reboot the
+                    machine.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

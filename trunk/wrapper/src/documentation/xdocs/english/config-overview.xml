@@ -162,6 +162,16 @@
                     at run time within the values of any of the properties listed on this page.
                     To maintain the platform independent nature of the wrapper.conf file, the
                     windows syntax is used for all platforms.
+                </para>
+                <para>
+                    Starting with version 3.0.0, when the Wrapper is run as a service, environment
+                    variables will be loaded from the system registry rather than from the
+                    environment.  This was necessary because Windows loads the environment variables
+                    which are available to services when the machine is booted.  Any changes to the
+                    system environment variables in the registry (set directly or through the
+                    system control panel) are not made available to the services until the machine
+                    is once again rebooted.  By loading the environment variables from the registry,
+                    the reboot can be avoided while providing the same functionality.
                     <informalexample>
                         <simpara><emphasis>Example referencing the JAVA_HOME environment variable:</emphasis></simpara>
                         <screen format="linespecific"><![CDATA[wrapper.java.command=%JAVA_HOME%/bin/java]]></screen>
