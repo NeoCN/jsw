@@ -12,6 +12,8 @@ percentoutput
 percentoutput.conf
 quickcomplete
 quickcomplete.conf
+restarter
+restarter.conf
 testwrapper.log
 TestBackgroundThreads.bat
 TestDaemonThreads.bat
@@ -20,3 +22,5 @@ TestLongRunningBackgroundThreads.bat
 TestNoReturn.bat
 TestPercentOutput.bat
 TestQuickComplete.bat
+TestRestarter.bat
+
