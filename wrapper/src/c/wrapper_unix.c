@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.86  2004/08/06 07:27:06  mortenson
+ * Make it possible to display timer output without having to enable all debug output.
+ *
  * Revision 1.85  2004/07/15 14:30:49  mortenson
  * Remove an unused variable.
  *
@@ -694,8 +697,8 @@ void *timerRunner(void *arg) {
     /* Immediately register this thread with the logger. */
     logRegisterThread(WRAPPER_THREAD_TIMER);
 
-    if (wrapperData->isTimerOutputEnabled && wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Timer thread started.");
+    if (wrapperData->isTimerOutputEnabled) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Timer thread started.");
     }
 
     while (TRUE) {
@@ -722,8 +725,8 @@ void *timerRunner(void *arg) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The system clock fell behind the timer by %ldms.", -1 * offsetDiff * WRAPPER_TICK_MS);
             }
 
-            if (wrapperData->isTimerOutputEnabled && wrapperData->isDebugging) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+            if (wrapperData->isTimerOutputEnabled) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     "    Timer: ticks=%lu, system ticks=%lu, offset=%lu, offsetDiff=%ld",
                     timerTicks, sysTicks, tickOffset, offsetDiff);
             }
@@ -744,8 +747,8 @@ void *timerRunner(void *arg) {
 int initializeTimer() {
     int res;
 
-    if (wrapperData->isTimerOutputEnabled && wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Launching Timer thread.");
+    if (wrapperData->isTimerOutputEnabled) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Launching Timer thread.");
     }
 
     res = pthread_create(
