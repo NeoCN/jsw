@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.133  2005/03/24 06:24:58  mortenson
+ * Avoid displaying the packets used to transmit the wrapper properties in the log
+ * file as it is very large and distracting.
+ *
  * Revision 1.132  2004/12/20 06:34:33  mortenson
  * Add a comment.
  *
@@ -915,6 +919,14 @@ char *protocolSendBuffer = NULL;
 int wrapperProtocolFunction(char function, const char *message) {
     int rc;
     int len;
+    const char *logMsg;
+    
+    /* We don't want to show the full properties log message.  It is quite long and distracting. */
+    if (function == WRAPPER_MSG_PROPERTIES) {
+        logMsg = "(Property Values)";
+    } else {
+        logMsg = message;
+    }
     
     /* Make sure the buffer is big enough for this message. */
     if (message == NULL) {
@@ -936,14 +948,14 @@ int wrapperProtocolFunction(char function, const char *message) {
         /* A socket was not opened */
         if (wrapperData->isDebugging) {
             log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket not open, so packet not sent %s : %s",
-                wrapperProtocolGetCodeName(function), (message == NULL ? "NULL" : message));
+                wrapperProtocolGetCodeName(function), (message == NULL ? "NULL" : logMsg));
         }
         return -1;
     }
 
     if (wrapperData->isDebugging) {
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "send a packet %s : %s",
-            wrapperProtocolGetCodeName(function), (message == NULL ? "NULL" : message));
+            wrapperProtocolGetCodeName(function), (message == NULL ? "NULL" : logMsg));
     }
 
     /* Build the packet */
@@ -2266,6 +2278,8 @@ void wrapperBuildNTServiceInfo() {
     }
 
     /* Acount password */
+    wrapperData->ntServicePasswordPrompt = getBooleanProperty( properties, "wrapper.ntservice.password.prompt", FALSE );
+    wrapperData->ntServicePasswordPromptMask = getBooleanProperty( properties, "wrapper.ntservice.password.prompt.mask", TRUE );
     wrapperData->ntServicePassword = (char *)getStringProperty(properties, "wrapper.ntservice.password", NULL);
     if ( wrapperData->ntServicePassword && ( strlen( wrapperData->ntServicePassword ) <= 0 ) )
     {
