@@ -59,7 +59,7 @@
             <para>
                 To register both of the above MBeans, create an XML file named
                 <literal moreinfo="none">java-service-wrapper-service.xml</literal> in
-                the <literal moreinfo="none">${jboss.home}/server/default</literal>
+                the <literal moreinfo="none">${jboss.home}/server/default/deploy</literal>
                 directory.  The file should contain the following:
             </para>
             <informalexample>
