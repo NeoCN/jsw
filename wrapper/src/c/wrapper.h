@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.4  2002/01/24 05:48:48  mortenson
+// Remove old commented code.
+//
 // Revision 1.3  2001/12/11 05:19:39  mortenson
 // Added the ablility to format and/or disable file logging and output to
 // the console.
@@ -47,36 +50,6 @@
 #endif
 
 #include "property.h"
-
-//#ifdef __cplusplus
-//extern "C" {
-//#endif
-
-// =========================================================
-// TO DO: change as needed for specific Java app and service
-// =========================================================
-/*
-// internal name of the service
-#define SZSERVICENAME        "Wrapper"
-// displayed name of the service
-#define SZSERVICEDISPLAYNAME "Wrapper"
-// list of service dependencies - "dep1\0dep2\0\0"
-#define SZDEPENDENCIES       "\0\0"
-// Main java class
-#define SZMAINCLASS          "com/silveregg/wrapper/test/Main"
-// Service TYPE
-#define SERVICESTARTTYPE     SERVICE_AUTO_START
-// Path to Parameter Key
-#define SZPARAMKEY           "SYSTEM\\CurrentControlSet\\Services\\Wrapper\\Parameters"
-// name of the executable
-#define SZAPPNAME            "Wrapper"
-// Value name for app parameters
-#define SZAPPPARAMS          "AppParameters"
-// Name of the Java SCMEventManager
-//#define SZSCMEVENTMANAGER  "com/silveregg/adverbot/servermain/SCMEventManager"
-#define SZFAILURE            "StartServiceControlDispatcher failed!"
-#define SZSCMGRFAILURE       "OpenSCManager failed - %s\n"
-*/
 
 #define WRAPPER_WSTATE_STARTING  51 // Wrapper is starting.  Remains in this state
                                     //  until the JVM enters the STARTED state or
