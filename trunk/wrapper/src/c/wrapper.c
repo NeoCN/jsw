@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.56  2003/04/16 03:42:04  mortenson
+ * Fix a problem where a 0 length malloc was being called if there were no
+ * configured filters.  This was fine on most platforms but caused a crash
+ * on MAC OS X.
+ *
  * Revision 1.55  2003/04/15 23:15:13  mortenson
  * Remove casts from all malloc statements.
  *
@@ -2030,23 +2035,29 @@ int wrapperLoadConfiguration() {
         }
     } while (val);
     /* Now that a count is known, allocate memory to hold the filters and actions and load them in. */
-    wrapperData->outputFilters = malloc(sizeof(char *) * wrapperData->outputFilterCount);
-    wrapperData->outputFilterActions = malloc(sizeof(int) * wrapperData->outputFilterCount);
-    for (i = 0; i < wrapperData->outputFilterCount; i++) {
-        /* Get the filter */
-        sprintf(key, "wrapper.filter.trigger.%d", i + 1);
-        val = getStringProperty(properties, key, NULL);
-        wrapperData->outputFilters[i] = malloc(sizeof(char) * (strlen(val) + 1));
-        strcpy(wrapperData->outputFilters[i], val);
+    if (wrapperData->outputFilterCount > 0) {
+        wrapperData->outputFilters = malloc(sizeof(char *) * wrapperData->outputFilterCount);
+        wrapperData->outputFilterActions = malloc(sizeof(int) * wrapperData->outputFilterCount);
+        for (i = 0; i < wrapperData->outputFilterCount; i++) {
+            /* Get the filter */
+            sprintf(key, "wrapper.filter.trigger.%d", i + 1);
+            val = getStringProperty(properties, key, NULL);
+            wrapperData->outputFilters[i] = malloc(sizeof(char) * (strlen(val) + 1));
+            strcpy(wrapperData->outputFilters[i], val);
 
-        /* Get the action */
-        sprintf(key, "wrapper.filter.action.%d", i + 1);
-        val = getStringProperty(properties, key, "RESTART");
-        wrapperData->outputFilterActions[i] = getOutputFilterActionForName(val);
+            /* Get the action */
+            sprintf(key, "wrapper.filter.action.%d", i + 1);
+            val = getStringProperty(properties, key, "RESTART");
+            wrapperData->outputFilterActions[i] = getOutputFilterActionForName(val);
 
 #ifdef DEBUG
-        printf("filter #%d, action=%d, filter='%s'\n", i + 1, wrapperData->outputFilterActions[i], wrapperData->outputFilters[i]);
+            printf("filter #%d, action=%d, filter='%s'\n", i + 1, wrapperData->outputFilterActions[i], wrapperData->outputFilters[i]);
 #endif
+        }
+    } else {
+        /* No filters */
+        wrapperData->outputFilters = NULL;
+        wrapperData->outputFilterActions = NULL;
     }
 
 

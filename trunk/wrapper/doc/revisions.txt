@@ -5,6 +5,9 @@ Java Service Wrapper Revision History.
   patch.
 * Fix a segmentation fault on UNIX systems when the first console output
   from the JVM was an empty line.  Thanks to Mike Castle for finding this.
+* Fix a problem where a 0 length malloc was being called if there were no
+  configured filters.  This was fine on most platforms but caused a crash
+  on MAC OS X.
 
 3.0.2
 * Modified the sh and bash scripts so that console log output is disabled by

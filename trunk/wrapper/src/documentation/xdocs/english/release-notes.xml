@@ -23,6 +23,13 @@ $Id$
                     from the JVM was an empty line.  Thanks to Mike Castle for finding this.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where a 0 length malloc was being called if there were no
+                    configured filters.  This was fine on most platforms but caused a crash
+                    on MAC OS X.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
