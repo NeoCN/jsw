@@ -31,6 +31,18 @@
             -->
         <donorlist>
             <donor>
+                <date>Nov 2, 2004</date>
+                <amount>50.00</amount>
+                <name>Alexsandro Glas</name>
+                <message></message>
+            </donor>
+            <donor>
+                <date>Oct 25, 2004</date>
+                <amount>150.00</amount>
+                <name><ulink url="http://www.eApps.com">eApps Hosting</ulink></name>
+                <message></message>
+            </donor>
+            <donor>
                 <date>Oct 6, 2004</date>
                 <amount>25.00</amount>
                 <name>Sergei Rodionov</name>
