@@ -24,15 +24,31 @@
     <target name="help" depends="usage"/>
     
     <!-- =================================================================== -->
+    <!-- Resolve Platform properties                                         -->
+    <!-- =================================================================== -->
+    <target name="init-windows-nt" if="is.Windows NT">
+        <property name="is.Windows" value="true"/>
+    </target>
+    <target name="init-windows-2000" if="is.Windows 2000">
+        <property name="is.Windows" value="true"/>
+    </target>
+    <target name="init-linux" if="is.Linux">
+        <property name="is.Unix" value="true"/>
+    </target>
+    <target name="init-solaris" if="is.SunOS">
+        <property name="is.Unix" value="true"/>
+    </target>
+    
+    <!-- =================================================================== -->
     <!-- Initialize build.                                                   -->
     <!-- =================================================================== -->
-    <target name="init">
+    <target name="init" depends="init-windows-nt, init-windows-2000, init-linux, init-solaris">
     </target>
     
     <!-- =================================================================== -->
     <!-- Test Setup target (Windows)                                         -->
     <!-- =================================================================== -->
-    <target name="test-setup-common">
+    <target name="test-setup-common" depends="init">
         <!-- Create the test specific wrapper.conf files -->
         
         <!-- Background Threads Test -->
@@ -103,7 +119,7 @@
     <!-- =================================================================== -->
     <!-- Test Setup target (Windows)                                         -->
     <!-- =================================================================== -->
-    <target name="test-setup-windows" depends="test-setup-common">
+    <target name="test-setup-windows" depends="test-setup-common" if="is.Windows">
         <!-- Create the test specific batch files -->
         
         <!-- Background Threads Test -->
@@ -150,10 +166,6 @@
             token='set _WRAPPER_CONF="%_WRAPPER_HOME%\conf\wrapper.conf"'
             value='set _WRAPPER_CONF="%_WRAPPER_HOME%\test\quickcomplete.conf"' />
     </target>
-    <target name="test-setup-windows-nt" depends="test-setup-windows" if="is.Windows NT">
-    </target>
-    <target name="test-setup-windows-2000" depends="test-setup-windows" if="is.Windows 2000">
-    </target>
     
     <!-- =================================================================== -->
     <!-- Test Setup target (Linux)                                           -->
@@ -192,7 +204,7 @@
     <!-- =================================================================== -->
     <!-- Test Setup target (Unix)                                            -->
     <!-- =================================================================== -->
-    <target name="test-setup-unix" depends="test-setup-linux, test-setup-solaris">
+    <target name="test-setup-unix" depends="test-setup-linux, test-setup-solaris" if="is.Unix">
         <!-- Create the test specific script files -->
         
         <!-- Background Threads Test -->
@@ -235,7 +247,7 @@
     <!-- Test Setup target                                                   -->
     <!-- =================================================================== -->
     <target name="test-setup" 
-        depends="test-setup-windows-nt, test-setup-windows-2000, test-setup-unix">
+        depends="test-setup-windows, test-setup-unix">
     </target>
 </project>
 
