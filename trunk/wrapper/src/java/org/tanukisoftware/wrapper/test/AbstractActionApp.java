@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.7  2004/08/06 08:05:26  mortenson
+// Add test case which dumps the system properties.  Useful for testing.
+//
 // Revision 1.6  2004/08/06 07:56:20  mortenson
 // Add test case which runs idle.  Useful to test some operations.
 //
@@ -67,6 +70,8 @@ package org.tanukisoftware.wrapper.test;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Enumeration;
+import java.util.Properties;
 
 import org.tanukisoftware.wrapper.WrapperManager;
 
@@ -269,6 +274,17 @@ public abstract class AbstractActionApp {
             {
                 AbstractActionApp.class.notifyAll();
             }
+        }
+        else if ( action.equals( "properties" ) )
+        {
+            System.out.println( "Dump System Properties:" );
+            Properties props = System.getProperties();
+            for ( Enumeration enum = props.propertyNames(); enum.hasMoreElements(); )
+            {
+                String name = (String)enum.nextElement();
+                System.out.println( "  " + name + "=" + System.getProperty( name ) );
+            }
+            System.out.println();
         }
         else
         {
