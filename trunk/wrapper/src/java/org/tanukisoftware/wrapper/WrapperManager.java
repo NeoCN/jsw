@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.9  2003/06/07 05:18:32  mortenson
+// Add a new method WrapperManager.stopImmediate which will cause the JVM to
+// exit immediately without calling any stop methods or shutdown hooks.
+//
 // Revision 1.8  2003/05/29 09:27:14  mortenson
 // Improve the debug output so that packet codes are now shown using a name
 // rather than a raw number.
@@ -820,10 +824,9 @@ public final class WrapperManager
     }
     
     /**
-     * Tells the native wrapper that the JVM wants to shut down, then informs
-     *	all listeners that the JVM is about to shutdown before killing the JVM.
+     * Executed code common to the stop and stopImmediate methods.
      */
-    public static void stop( int exitCode )
+    private static void stopCommon( int exitCode, int delay )
     {
         boolean stopping;
         synchronized( m_instance )
@@ -859,15 +862,74 @@ public final class WrapperManager
         //  it was expected to.
         try
         {
-            Thread.sleep( 1000 );
+            Thread.sleep( delay );
         }
         catch ( InterruptedException e )
         {
         }
+    }
+    
+    /**
+     * Tells the native wrapper that the JVM wants to shut down, then informs
+     *	all listeners that the JVM is about to shutdown before killing the JVM.
+     */
+    public static void stop( int exitCode )
+    {
+        stopCommon( exitCode, 1000 );
         
         stopInner( exitCode );
     }
 
+    /**
+     * Tells the native wrapper that the JVM wants to shut down and then
+     *  promptly halts.  Be careful when using this method as an application
+     *  will not be given a chance to shutdown cleanly.
+     */
+    public static void stopImmediate( int exitCode )
+    {
+        stopCommon( exitCode, 250 );
+        
+        signalStopped( exitCode );
+        
+        // Execute runtime.halt(0) using reflection so this class will
+        //  compile on 1.2.x versions of Java.
+        Method haltMethod;
+        try
+        {
+            haltMethod =
+                Runtime.class.getMethod( "halt", new Class[] { Integer.TYPE } );
+        }
+        catch ( NoSuchMethodException e )
+        {
+            System.out.println( "halt not supported by current JVM." );
+            haltMethod = null;
+        }
+        
+        if ( haltMethod != null )
+        {
+            Runtime runtime = Runtime.getRuntime();
+            try
+            {
+                haltMethod.invoke( runtime, new Object[] { new Integer( 0 ) } );
+            }
+            catch ( IllegalAccessException e )
+            {
+                System.out.println(
+                    "Unable to call runitme.halt: " + e.getMessage() );
+            }
+            catch ( InvocationTargetException e )
+            {
+                System.out.println(
+                    "Unable to call runitme.halt: " + e.getMessage() );
+            }
+        }
+        else
+        {
+            // Shutdown normally
+            stopInner( exitCode );
+        }
+    }
+    
     /**
      * Signal the native wrapper that the startup is progressing but that more
      *  time is needed.  The Wrapper will extend the startup timeout by the
@@ -903,6 +965,17 @@ public final class WrapperManager
     {
         m_stopping = true;
         sendCommand( WRAPPER_MSG_STOPPED, Integer.toString( exitCode ) );
+        
+        // Give the socket time to actuall send the packet to the Wrapper
+        //  as this call is often immediately followed by a halt command.
+        try
+        {
+            Thread.sleep( 250 );
+        }
+        catch ( InterruptedException e )
+        {
+            // Ignore.
+        }
     }
     
     /**
@@ -1053,7 +1126,7 @@ public final class WrapperManager
         if ( Thread.currentThread() == m_hook )
         {
             // Signal that the application has stopped and the JVM is about to shutdown.
-            signalStopped(0);
+            signalStopped( 0 );
             
             // Dispose the wrapper.  (If the hook runs, it will do this.)
             dispose();
