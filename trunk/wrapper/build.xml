@@ -84,7 +84,7 @@
         <property name="is.Unix" value="true"/>
         <property name="is.shell.sh" value="true"/>
     </target>
-    <target name="init-hpux" if="is.HPUX">
+    <target name="init-hpux" if="is.HP-UX">
         <property name="is.Unix" value="true"/>
         <property name="is.shell.sh" value="true"/>
     </target>
@@ -203,7 +203,7 @@
             <arg line="-f Makefile.aix" />
         </exec>
 
-        <!-- run make on HPUX to build library -->
+        <!-- run make on HP-UX to build library -->
         <exec executable="gmake"
             dir="${src.dir}/c" 
             os="HP-UX" 
@@ -286,7 +286,7 @@
     </target>
     
     <!-- =================================================================== -->
-    <!-- Bin target (sh scripts - Solaris, AIX, HPUX)                        -->
+    <!-- Bin target (sh scripts - Solaris, AIX, HP-UX)                        -->
     <!-- =================================================================== -->
     <target name="bin-sh" depends="compile" if="is.shell.sh">
         <copy file="${src.dir}/bin/sh.script.in"
@@ -557,9 +557,9 @@
     </target>
 
     <!-- =================================================================== -->
-    <!-- Release (HPUX)                                                      -->
+    <!-- Release (HP-UX)                                                      -->
     <!-- =================================================================== -->
-    <target name="release-hpux" depends="release-common" if="is.HPUX">
+    <target name="release-hpux" depends="release-common" if="is.HP-UX">
         <property name="releasefile" value="wrapper_hpux_${version}"/>
     </target>
 
