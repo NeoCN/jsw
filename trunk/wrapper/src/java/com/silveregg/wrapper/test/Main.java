@@ -26,6 +26,9 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
+// Revision 1.3  2002/05/16 03:34:32  mortenson
+// Added comments to the buttons that had no comments to make their use clear.
+//
 // Revision 1.2  2001/12/06 09:36:24  mortenson
 // Docs changes, Added sample apps, Fixed some problems with
 // relative paths  (See revisions.txt)
@@ -86,8 +89,10 @@ public class Main implements WrapperListener {
             add(new Label("The Access Violation button only works with Sun JVMs."));
             add(new Label("Also try killing the JVM process or pressing CTRL-C in the console window."));
             add(new Label("Simmulate JVM Hang only has an effect when controlled by native Wrapper."));
+            add(new Label("System.exit(0) should cause the Wrapper to exit."));
+            add(new Label("Runtime.getRuntime().halt(0) should result in the JVM restarting."));
             
-            setSize(new Dimension(512, 200));
+            setSize(new Dimension(512, 240));
         }
         
         public void actionPerformed(ActionEvent event) {
