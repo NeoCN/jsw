@@ -26,6 +26,10 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.23  2002/09/30 03:22:27  mortenson
+// Fix a problem where the non-daemon thread count was not being calculated
+// correctly.
+//
 // Revision 1.22  2002/09/11 14:58:19  mortenson
 // Fix a problem where applications that spend a long time in their start method
 // could time out because they are not pinged until they are actually running.
@@ -1214,30 +1218,44 @@ public final class WrapperManager implements Runnable {
         }
     }
     
+    /**
+     * Returns a count of all non-daemon threads in the JVM, starting with the top
+     *  thread group.
+     *
+     * @return Number of non-daemon threads.
+     */
     protected static int getNonDaemonThreadCount() {
-        Thread[] threads = new Thread[Thread.activeCount() * 2];
+        // Locate the top thread group.
+        ThreadGroup topGroup = Thread.currentThread().getThreadGroup();
+        while (topGroup.getParent() != null ) {
+            topGroup = topGroup.getParent();
+        }
+        
+        // Get a list of all threads.  Use an array that is twice the total number of
+        //  threads as the number of running threads may be increasing as this runs.
+        Thread[] threads = new Thread[topGroup.activeCount() * 2];
         Thread.enumerate(threads);
         
         // Only count any non daemon threads which are 
         //  still alive other than this thread.
         int liveCount = 0;
         for (int i = 0; i < threads.length; i++) {
-            /*
+            ///*
             if (threads[i] != null) {
             System.out.println("Check " + threads[i].getName() + " daemon=" + 
             threads[i].isDaemon() + " alive=" + threads[i].isAlive());
             }
-             */
+            // */
             if ((threads[i] != null) && (threads[i].isAlive() && (!threads[i].isDaemon()))) {
                 // Do not count this thread or the wrapper connection thread
                 if ((Thread.currentThread() != threads[i]) && (threads[i] != _commRunner)) {
                     // Non-Daemon living thread
                     liveCount++;
-                    //System.out.println("  -> Non-Daemon");
+                    System.out.println("  -> Non-Daemon");
                 }
             }
         }
-        //System.out.println("  => liveCount = " + liveCount);
+        System.out.println("  => liveCount = " + liveCount);
         
         return liveCount;
     }
