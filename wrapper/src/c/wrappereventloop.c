@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.7  2004/08/31 15:13:48  mortenson
+ * Add additional log output when timer output is enabled to show when tick
+ * overflows will take place.
+ *
  * Revision 1.6  2004/07/05 08:42:38  mortenson
  * Call maintainLogger a second time to make sure that any queued messages are
  * displayed before any state changes to avoid confusing output.
@@ -78,6 +82,7 @@
  */
 
 #include <stdio.h>
+#include <time.h>
 #include <sys/stat.h>
 #include <string.h>
 
@@ -815,6 +820,46 @@ void jStateKilling(DWORD nowTicks, int nextSleep) {
  * Event Loop / State Engine
  *******************************************************************/
 
+void logTimerStats() {
+	char buffer[30];
+	struct tm when;
+	time_t now, overflowTime;
+
+	DWORD sysTicks;
+	DWORD ticks;
+
+	time(&now);
+
+	sysTicks = wrapperGetSystemTicks();
+	overflowTime = (time_t)(now - ((0UI64 + sysTicks) * WRAPPER_TICK_MS) / 1000);
+	when = *localtime(&overflowTime);
+	sprintf(buffer, "%s", asctime(&when));
+	buffer[strlen(buffer) - 1] = '\0'; /* Remove the line feed. */
+	log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Last system time tick overflow at: %s", buffer);
+
+	overflowTime = (time_t)(now + ((0xffffffffUI64 - sysTicks) * WRAPPER_TICK_MS) / 1000);
+	when = *localtime(&overflowTime);
+	sprintf(buffer, "%s", asctime(&when));
+	buffer[strlen(buffer) - 1] = '\0'; /* Remove the line feed. */
+	log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Next system time tick overflow at: %s", buffer);
+
+	if (!wrapperData->useSystemTime) {
+		ticks = wrapperGetTicks(); 
+
+		overflowTime = (time_t)(now - ((0UI64 + ticks) * WRAPPER_TICK_MS) / 1000);
+		when = *localtime(&overflowTime);
+		sprintf(buffer, "%s", asctime(&when));
+		buffer[strlen(buffer) - 1] = '\0'; /* Remove the line feed. */
+		log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Last tick overflow at: %s", buffer);
+
+		overflowTime = (time_t)(now + ((0xffffffffUI64 - ticks) * WRAPPER_TICK_MS) / 1000);
+		when = *localtime(&overflowTime);
+		sprintf(buffer, "%s", asctime(&when));
+		buffer[strlen(buffer) - 1] = '\0'; /* Remove the line feed. */
+		log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Next tick overflow at: %s", buffer);
+	}
+}
+
 /**
  * The main event loop for the wrapper.  Handles all state changes and events.
  */
@@ -824,6 +869,10 @@ void wrapperEventLoop() {
     int nextSleep;
 
     wrapperData->anchorTimeoutTicks = lastCycleTicks;
+
+    if (wrapperData->isTimerOutputEnabled) {
+		logTimerStats();
+    }
 
     nextSleep = TRUE;
     do {
