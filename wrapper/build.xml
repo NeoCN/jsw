@@ -244,6 +244,11 @@
             compress="true">
             <include name="${releasesrcfile}/**/*" />
         </zip>
+        <tar tarfile="${releasesrcdir}.tar"
+             basedir="${basedir}">
+            <include name="${releasesrcfile}/**/*" />
+        </tar>
+        <gzip zipfile="${releasesrcdir}.tar.gz" src="${releasesrcdir}.tar" />
     </target>
     
     <target name="release-win" depends="release-common">
@@ -280,14 +285,15 @@
                 <include name="lib/linux/libwrapper.so" />
                 <include name="jdoc/**" />
                 <include name="doc/**" />
+                <include name="src/bin/*.script.in" />
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
-        <zip zipfile="${releasedir}.zip"
-            basedir="${basedir}"
-            compress="true">
+        <tar tarfile="${releasedir}.tar"
+             basedir="${basedir}">
             <include name="${releasefile}/**/*" />
-        </zip>
+        </tar>
+        <gzip zipfile="${releasedir}.tar.gz" src="${releasedir}.tar" />
     </target>
     
     <target name="release-solaris" depends="release-common">
@@ -302,14 +308,15 @@
                 <include name="lib/solaris/libwrapper.so" />
                 <include name="jdoc/**" />
                 <include name="doc/**" />
+                <include name="src/bin/*.script.in" />
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
-        <zip zipfile="${releasedir}.zip"
-            basedir="${basedir}"
-            compress="true">
+        <tar tarfile="${releasedir}.tar"
+             basedir="${basedir}">
             <include name="${releasefile}/**/*" />
-        </zip>
+        </tar>
+        <gzip zipfile="${releasedir}.tar.gz" src="${releasedir}.tar" />
     </target>
     
     <!-- =================================================================== -->
