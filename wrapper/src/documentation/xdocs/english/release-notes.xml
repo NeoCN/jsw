@@ -30,6 +30,12 @@ $Id$
                     restart it.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where CTRL-C was not being handled correctly if the console
+                    was configured to be shown when running as an NT service.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.0">

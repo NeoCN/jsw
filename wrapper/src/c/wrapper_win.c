@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.71  2004/05/26 06:56:18  mortenson
+ * Fix a problem where CTRL-C was not being handled correctly if the console
+ * was configured to be shown when running as an NT service.
+ *
  * Revision 1.70  2004/04/08 14:58:59  mortenson
  * Add a wrapper.working.dir property.
  *
@@ -720,9 +724,6 @@ int wrapperInitialize() {
     HANDLE process = GetCurrentProcess();
     SetPriorityClass(process, wrapperData->ntServicePriorityClass);
 
-    /* Set the handler to trap console signals */
-    SetConsoleCtrlHandler((PHANDLER_ROUTINE)wrapperConsoleHandler, TRUE);
-
     /* Initialize Winsock */
     if ((res = WSAStartup(ws_version, &ws_data)) != 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Cannot initialize Windows socket DLLs.");
@@ -783,6 +784,10 @@ int wrapperInitialize() {
             }
         }
     }
+
+    /* Set the handler to trap console signals.  This must be done after the console
+     *  is created or it will not be applied to that console. */
+    SetConsoleCtrlHandler((PHANDLER_ROUTINE)wrapperConsoleHandler, TRUE);
 
     if (wrapperData->useSystemTime) {
         /* We are going to be using system time so there is no reason to start up a timer thread. */

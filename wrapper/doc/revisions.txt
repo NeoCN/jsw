@@ -8,6 +8,8 @@ Java Service Wrapper Revision History.
 * Fix a problem introduced in 3.1.0 where the JVM would not be restarted
   correctly if it quit after a ping timeout to let the Wrapper resynch and
   restart it.
+* Fix a problem where CTRL-C was not being handled correctly if the console
+  was configured to be shown when running as an NT service.
 
 3.1.0
 * The license was revised for this version to include a copyright omission.
