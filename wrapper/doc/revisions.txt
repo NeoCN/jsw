@@ -6,6 +6,11 @@ Java Service Wrapper Revision History.
   are true if set.
 * Fix a problem where some localized error messages were not having their
   tokens replaced correctly.
+* Fix a problem when using the WrapperStartStopApp helper class.  The usage
+  text was incorrectly being displayed in the console if an exception was
+  thrown while executing the main method of the configured stop class.  This
+  did not change the functionality of the application, but it did cause some
+  confusion.
 
 3.1.1
 * Modified the way libwrapper.so is built on Solaris and Linux so that it
