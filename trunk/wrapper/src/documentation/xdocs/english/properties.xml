@@ -56,7 +56,7 @@
                     <ulink url="props-unix.html">Linux/Unix Configuration Properties</ulink>
                 </listitem>
                 <listitem>
-                    <ulink url="props-nt.html">Windows NT/2000/XP Service Configuration Properties</ulink>
+                    <ulink url="props-nt.html">Windows NT/2000/XP Configuration Properties</ulink>
                 </listitem>
                 <listitem>
                     <ulink url="props-advanced.html">Advanced Properties</ulink>
@@ -74,6 +74,9 @@
                 </listitem>
                 <listitem>
                     <ulink url="prop-console-loglevel.html">wrapper.console.loglevel</ulink>
+                </listitem>
+                <listitem>
+                    <ulink url="prop-console-title.html">wrapper.console.title</ulink>
                 </listitem>
                 <listitem>
                     <ulink url="prop-cpu-timeout.html">wrapper.cpu.timeout</ulink>
