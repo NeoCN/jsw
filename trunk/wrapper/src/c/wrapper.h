@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.49  2004/06/14 07:20:40  mortenson
+ * Add some additional output and a wrapper.timer_output property to help with
+ * debugging timer issues.
+ *
  * Revision 1.48  2004/06/06 15:28:18  mortenson
  * Fix a synchronization problem in the logging code which would
  * occassionally cause the Wrapper to crash with an Access Violation.
@@ -256,6 +260,7 @@ struct WrapperConfig {
     char    *nativeLibrary;         /* The base name of the native library loaded by the WrapperManager. */
     int     libraryPathAppendPath;  /* TRUE if the PATH environment variable should be appended to the java library path. */
     int     isStateOutputEnabled;   /* TRUE if set in the configuration file.  Shows output on the state of the state engine. */
+    int     isTimerOutputEnabled;   /* TRUE if detailed timer output should be included in debug output. */
     int     isShutdownHookDisabled; /* TRUE if set in the configuration file */
     int     startupDelayConsole;    /* Delay in seconds before starting the first JVM in console mode. */
     int     startupDelayService;    /* Delay in seconds before starting the first JVM in service mode. */

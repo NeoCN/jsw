@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.74  2004/06/14 07:20:40  mortenson
+ * Add some additional output and a wrapper.timer_output property to help with
+ * debugging timer issues.
+ *
  * Revision 1.73  2004/06/06 15:28:18  mortenson
  * Fix a synchronization problem in the logging code which would
  * occassionally cause the Wrapper to crash with an Access Violation.
@@ -658,6 +662,10 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
         /* Immediately register this thread with the logger. */
         logRegisterThread(WRAPPER_THREAD_TIMER);
 
+        if (wrapperData->isTimerOutputEnabled && wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Timer thread started.");
+        }
+
         while(TRUE) {
             Sleep(WRAPPER_TICK_MS);
 
@@ -681,9 +689,12 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
                 } else if (offsetDiff < -1 * wrapperData->timerFastThreshold) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The system clock fell behind the timer by %dms.", (int)(-1 * offsetDiff * WRAPPER_TICK_MS));
                 }
-                /*
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Timer running: %u, %u, %u, %d", timerTicks, sysTicks, tickOffset, offsetDiff);
-                */
+
+                if (wrapperData->isTimerOutputEnabled && wrapperData->isDebugging) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                        "    Timer: ticks=%lu, system ticks=%lu, offset=%lu, offsetDiff=%ld",
+                        timerTicks, sysTicks, tickOffset, offsetDiff);
+                }
             }
 
             /* Store this tick offset for the next time through the loop. */
@@ -702,6 +713,10 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
  *  to using the system clock.
  */
 int initializeTimer() {
+    if (wrapperData->isTimerOutputEnabled && wrapperData->isDebugging) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Launching Timer thread.");
+    }
+
     timerThreadHandle = CreateThread(
         NULL, /* No security attributes as there will not be any child processes of the thread. */
         0,    /* Use the default stack size. */
@@ -2315,7 +2330,7 @@ void _CRTAPI1 main(int argc, char **argv) {
 
     if (wrapperInitializeLogging()) {
         appExit(1);
-	}
+    }
 
     /* Immediately register this thread with the logger. */
     logRegisterThread(WRAPPER_THREAD_MAIN);

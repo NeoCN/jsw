@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.98  2004/06/14 07:20:39  mortenson
+ * Add some additional output and a wrapper.timer_output property to help with
+ * debugging timer issues.
+ *
  * Revision 1.97  2004/06/06 15:28:05  mortenson
  * Fix a synchronization problem in the logging code which would
  * occassionally cause the Wrapper to crash with an Access Violation.
@@ -889,8 +893,8 @@ int wrapperProtocolRead() {
  */
 int wrapperInitializeLogging() {
     if (initLogging()) {
-		return 1;
-	}
+        return 1;
+    }
 
     setLogfilePath("wrapper.log");
     setLogfileFormat("LPTM");
@@ -899,7 +903,7 @@ int wrapperInitializeLogging() {
     setConsoleLogLevelInt(LEVEL_DEBUG);
     setSyslogLevelInt(LEVEL_NONE);
 
-	return 0;
+    return 0;
 }
 
 /**
@@ -2030,6 +2034,9 @@ int wrapperLoadConfiguration() {
     
     /* Get the state output status. */
     wrapperData->isStateOutputEnabled = getBooleanProperty(properties, "wrapper.state_output", FALSE);
+    
+    /* Get the timer output status. */
+    wrapperData->isTimerOutputEnabled = getBooleanProperty(properties, "wrapper.timer_output", FALSE);
 
     /* Get the shutdown hook status */
     wrapperData->isShutdownHookDisabled = getBooleanProperty(properties, "wrapper.disable_shutdown_hook", FALSE);
