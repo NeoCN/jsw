@@ -26,6 +26,9 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.6  2002/03/29 06:09:21  rybesh
+// minor style fix
+//
 // Revision 1.5  2002/03/07 08:10:14  mortenson
 // Add support for Thread Dumping
 // Fix a problem locating java on the path.
@@ -296,10 +299,10 @@ public final class WrapperManager implements Runnable {
     /*---------------------------------------------------------------
      * Native Methods
      *-------------------------------------------------------------*/
-    private native static void nativeInit(boolean debug);
-    private native static int nativeGetControlEvent();
+    private static native void nativeInit(boolean debug);
+    private static native int nativeGetControlEvent();
     
-    private native static void accessViolationInner();
+    private static native void accessViolationInner();
     
     /*---------------------------------------------------------------
      * Public Methods
