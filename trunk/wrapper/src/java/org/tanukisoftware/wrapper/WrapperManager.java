@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.38  2004/06/15 07:09:44  mortenson
+// Fix a problem where the tick age was not being calculated correctly when the
+// age was negative.
+//
 // Revision 1.37  2004/06/15 05:26:57  mortenson
 // Fix a problem where the Wrapper would sometimes hang on shutdown if
 // another thread called System.exit while the Wrapper was shutting down.
@@ -817,15 +821,9 @@ public final class WrapperManager
      */
     private static long getTickAge( int start, int end )
     {
-        if ( end < start )
-        {
-            // The tick counter wrapped.
-            return ( ( (long)end + Integer.MAX_VALUE - Integer.MIN_VALUE ) - start ) * TICK_MS;
-        }
-        else
-        {
-            return ( end - start ) * (long)TICK_MS;
-        }
+        // Important to cast the first value so that negative values are correctly
+        //  cast to negative long values.
+        return (long)( end - start ) * TICK_MS;
     }
     
     /**
