@@ -216,7 +216,7 @@
         <copy file="${test.dir}/temp.script.in"
             tofile="${test.dir}/backgroundthreads"
             filtering="on"/>
-        <chmod file="${bin.dir}/backgroundthreads" perm="+x"/> 
+        <chmod file="${test.dir}/backgroundthreads" perm="+x"/> 
         
         <!-- Daemon Threads Test -->
         <filter token="app.name"          value="daemonthreads"/>
@@ -224,7 +224,7 @@
         <copy file="${test.dir}/temp.script.in"
             tofile="${test.dir}/daemonthreads"
             filtering="on"/>
-        <chmod file="${bin.dir}/daemonthreads" perm="+x"/> 
+        <chmod file="${test.dir}/daemonthreads" perm="+x"/> 
         
         <!-- No Return Test -->
         <filter token="app.name"          value="noreturn"/>
@@ -232,7 +232,7 @@
         <copy file="${test.dir}/temp.script.in"
             tofile="${test.dir}/noreturn"
             filtering="on"/>
-        <chmod file="${bin.dir}/noreturn" perm="+x"/> 
+        <chmod file="${test.dir}/noreturn" perm="+x"/> 
         
         <!-- Quick Complete Test -->
         <filter token="app.name"          value="quickcomplete"/>
@@ -240,7 +240,7 @@
         <copy file="${test.dir}/temp.script.in"
             tofile="${test.dir}/quickcomplete"
             filtering="on"/>
-        <chmod file="${bin.dir}/quickcomplete" perm="+x"/> 
+        <chmod file="${test.dir}/quickcomplete" perm="+x"/> 
         
         <!-- Get rid of the temp script file -->
         <delete file="${test.dir}/temp.script.in"/>
