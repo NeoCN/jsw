@@ -64,9 +64,9 @@ wrapper.startup.delay.service=30]]></screen>
         <para>
             On UNIX platforms, the Wrapper is running as a service if its
             <ulink url="prop-daemonize.html">wrapper.daemonize</ulink> property
-            is set.  The sh script, provided with the Wrapper, will set this
-            property if the <literal moreinfo="none">start</literal> command
-            is used when.
+            is set.  The sh script, provided with the Wrapper, will set the
+            wrapper.daemonize property if the <literal moreinfo="none">start</literal>
+            command is used when.
         </para>
     </section>
 </chapter>
