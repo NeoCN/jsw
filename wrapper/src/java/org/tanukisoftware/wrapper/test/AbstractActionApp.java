@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.8  2004/10/18 09:35:46  mortenson
+// Remove the gc call in the main loop.  It was causing a noticeable hickup in the
+// CPU usage every 5 seconds.
+//
 // Revision 1.7  2004/08/06 08:05:26  mortenson
 // Add test case which dumps the system properties.  Useful for testing.
 //
@@ -115,7 +119,6 @@ public abstract class AbstractActionApp {
                         {
                         }
                     }
-                    System.gc();
                 }
             }
         };
