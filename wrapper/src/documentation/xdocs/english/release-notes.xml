@@ -23,6 +23,11 @@
             </listitem>
             <listitem>
                 <para>
+                    Added support for service descriptions for Win2k and XP.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
                     Added new logger functionality includes the following features: Loglevels like Log4j, NT Eventlog support, UNIX syslog support and rolling log files.
                 </para>
             </listitem>
