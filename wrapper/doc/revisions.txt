@@ -24,6 +24,9 @@ Java Service Wrapper Revision History.
 * Fix a problem where the Wrapper would sometimes hang on shutdown if
   another thread called System.exit while the Wrapper was shutting down.
   Bug #955248.
+* Fix a problem introduced in 3.1.0 where a very very large CPU timeout
+  warning message was being displayed if the system time was set back
+  while using the default system timer.
 
 3.1.0
 * The license was revised for this version to include a copyright omission.

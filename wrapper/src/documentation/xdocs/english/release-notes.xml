@@ -71,6 +71,13 @@ $Id$
                     <ulink url="http://sourceforge.net/tracker/?func=detail&amp;aid=955248&amp;group_id=39428&amp;atid=425187">Bug #955248</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem introduced in 3.1.0 where a very very large CPU timeout
+                    warning message was being displayed if the system time was set back
+                    while using the default system timer.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.0">
