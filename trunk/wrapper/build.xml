@@ -372,12 +372,6 @@
         <mkdir dir="${build.dir}/work"/>
         <mkdir dir="${doc.dir}"/>
         
-        <fixcrlf eol="lf" destdir="${context.dir}/xdocs/english" srcdir="${src.dir}/bin">
-            <include name="*.script.in"/>
-            <include name="App.bat.in"/>
-            <include name="Simple*.bat.in"/>
-        </fixcrlf>
-
         <fixcrlf eol="lf" destdir="${context.dir}/xdocs/english" srcdir="${src.dir}/conf">
             <include name="wrapper.conf.in"/>
         </fixcrlf>
