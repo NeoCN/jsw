@@ -127,6 +127,15 @@ $Id$
                     <ulink url="http://sourceforge.net/tracker/?func=detail&amp;aid=1024008&amp;group_id=39428&amp;atid=425187">Bug #1024008</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Replace calls to usleep with nanosleep on platforms where it is available.
+                    This was to fix an occasional hang on a specific Solaris machine.  It would
+                    occasionally hang on calls to usleep.  From research, it appears that usleep
+                    has problems when signals are encountered while sleeping.  Still testing
+                    whether or not this change solved the problem.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.1">

@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.114  2004/09/22 11:06:27  mortenson
+ * Start using nanosleep in place of usleep on UNIX platforms to work around usleep
+ * problems with alarm signals on Solaris.
+ *
  * Revision 1.113  2004/09/16 07:11:24  mortenson
  * Add a new wrapper.single_invocation property which will prevent multiple
  * invocations of an application from being started on Windows platforms.
@@ -2182,6 +2186,9 @@ int wrapperLoadConfiguration() {
     
     /* Get the loop debug output status. */
     wrapperData->isLoopOutputEnabled = getBooleanProperty(properties, "wrapper.loop_output", FALSE);
+    
+    /* Get the sleep debug output status. */
+    wrapperData->isSleepOutputEnabled = getBooleanProperty(properties, "wrapper.sleep_output", FALSE);
 
     /* Get the shutdown hook status */
     wrapperData->isShutdownHookDisabled = getBooleanProperty(properties, "wrapper.disable_shutdown_hook", FALSE);

@@ -50,6 +50,11 @@ Java Service Wrapper Revision History.
 * Fix a problem with the run as user feature of the shell script on Solaris.
   Needed to be using /usr/xpg4/bin/id rather than /usr/bin/in if available.
   Bug #1024008.
+* Replace calls to usleep with nanosleep on platforms where it is available.
+  This was to fix an occasional hang on a specific Solaris machine.  It would
+  occasionally hang on calls to usleep.  From research, it appears that usleep
+  has problems when signals are encountered while sleeping.  Still testing
+  whether or not this change solved the problem.
 
 3.1.1
 * Modified the way libwrapper.so is built on Solaris and Linux so that it

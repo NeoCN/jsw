@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.90  2004/09/22 11:06:28  mortenson
+ * Start using nanosleep in place of usleep on UNIX platforms to work around usleep
+ * problems with alarm signals on Solaris.
+ *
  * Revision 1.89  2004/09/17 01:27:46  mortenson
  * Fix an access violation on shutdown when the Wrapper was started without any
  * arguments.  Caused by uninitialized pointers.
@@ -331,6 +335,10 @@
 #include "wrapper.h"
 #include "property.h"
 #include "logger.h"
+
+#ifdef USE_NANOSLEEP
+#include <time.h>
+#endif
 
 /* Moved from using the signal call to using sigaction.  Until this has
  *  been well tested on all platforms, make it easy to go back by commenting
@@ -734,7 +742,7 @@ void *timerRunner(void *arg) {
     }
 
     while (TRUE) {
-        usleep(WRAPPER_TICK_MS * 1000);
+        wrapperSleep(WRAPPER_TICK_MS);
 
         /* Get the tick count based on the system time. */
         sysTicks = wrapperGetSystemTicks();
@@ -833,6 +841,37 @@ int wrapperInitialize() {
     }
 
     return retval;
+}
+
+/**
+ * Cause the current thread to sleep for the specified number of milliseconds.
+ *  Sleeps over one second are not allowed.
+ */
+void wrapperSleep(int ms) {
+    /* We want to use nanosleep if it is available, but fall back to using
+       usleep otherwise.
+       usleep does not behave nicely with signals thrown while sleeping.  This
+       was the believed cause of a hang experienced on one Solaris system. */
+#ifdef USE_NANOSLEEP
+    struct timespec ts;
+    
+    ts.tv_sec = 0;
+    ts.tv_nsec = ms * 1000000; /* nanoseconds */
+    
+    if (wrapperData->isSleepOutputEnabled) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Sleep: nanosleep %dms", ms);
+    }
+    nanosleep(&ts, NULL);
+#else
+    if (wrapperData->isSleepOutputEnabled) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Sleep: usleep %dms", ms);
+    }
+    usleep(ms * 1000); /* microseconds */
+#endif
+    
+    if (wrapperData->isSleepOutputEnabled) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Sleep: awake");
+    }
 }
 
 void wrapperBuildJavaCommand() {
@@ -1223,7 +1262,7 @@ void wrapperKillProcessNow() {
         }
 
         /* Give the JVM a chance to be killed so that the state will be correct. */
-        usleep(500000); /* 0.5 seconds in microseconds */
+        wrapperSleep(500); /* 0.5 seconds */
 
         /* Set the exit code since we were forced to kill the JVM. */
         wrapperData->exitCode = 1;
@@ -1331,7 +1370,7 @@ void daemonize() {
          * the console output look nice by making sure that all output from the
          * intermediate and daemon threads are complete before this thread exits.
          * Sleep for 0.5 seconds. */
-        usleep(500000);
+        wrapperSleep(500);
         
         /* Call exit rather than appExit as we are only exiting this process. */
         exit(0);
