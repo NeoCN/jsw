@@ -35,6 +35,13 @@
         </informalexample>
         <note>
             <para>
+                This property must be set to FALSE if the
+                <ulink url="prop-ntservice-account.html">wrapper.ntservice.account</ulink>
+                property is also set.
+            </para>
+        </note>
+        <note>
+            <para>
                 Changes to this property will not take effect until the
                 service is reinstalled.
             </para>

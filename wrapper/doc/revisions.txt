@@ -13,6 +13,8 @@ Java Service Wrapper Revision History.
   Emberson for the code to resolve symbolic links.
 * Removed the realpath binary from the *NIX distributions as it is no longer
   used by the bash or sh scripts.
+* Added a test to make sure that wrapper.ntservice.interactive is not set to
+  TRUE when an account is specified using wrapper.ntservice.account.
 
 3.0.2
 * Modified the sh and bash scripts so that console log output is disabled by

@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.58  2003/05/01 04:16:41  mortenson
+ * Added a test to make sure that wrapper.ntservice.interactive is not set to
+ * TRUE when an account is specified using wrapper.ntservice.account.
+ *
  * Revision 1.57  2003/04/16 04:13:10  mortenson
  * Go through and clean up the computation of the number of bytes allocated in
  * malloc statements to make sure that string sizes are always multiplied by
@@ -1891,6 +1895,12 @@ void wrapperBuildNTServiceInfo() {
 
     /* Interactive */
     wrapperData->ntServiceInteractive = getBooleanProperty( properties, "wrapper.ntservice.interactive", FALSE );
+	/* The interactive flag can not be set if an account is also set. */
+	if ( wrapperData->ntServiceAccount && wrapperData->ntServiceInteractive ) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            "Ignoring the wrapper.ntservice.interactive property because it can not be set when wrapper.ntservice.account is also set.");
+		wrapperData->ntServiceInteractive = FALSE;
+	}
 }
 #endif
 

@@ -43,6 +43,14 @@ $Id$
                     used by the bash or sh scripts.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Added a test to make sure that
+                    <ulink url="prop-ntservice-interactive.html">wrapper.ntservice.interactive</ulink>
+                    is not set to TRUE when an account is specified using
+                    <ulink url="prop-ntservice-account.html">wrapper.ntservice.account</ulink>.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
