@@ -26,6 +26,9 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
+// Revision 1.2  2002/05/24 00:44:47  mortenson
+// Show an error message if an unknown action is passed to the test.
+//
 // Revision 1.1  2002/05/22 02:39:03  mortenson
 // Rename MainConsole.java to TestAction.java.
 // Added Windows/Unix scripts to run the test in the test directory.
@@ -101,6 +104,9 @@ public class TestAction implements WrapperListener {
                 Runtime.getRuntime().halt(0);
             } else if (_action.equals("restart")) {
                 WrapperManager.restart();
+            } else {
+                printHelp("\"" + _action + "\" is an unknown action.");
+                WrapperManager.stop(0);
             }
         }
     
