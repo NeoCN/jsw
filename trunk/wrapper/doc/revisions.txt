@@ -42,6 +42,7 @@ Java Service Wrapper Revision History.
   set.
 * Added a pair of MBean interfaces which allow the Wrapper to be controlled
   using JMX.  See the new JMX section in the documentation for details.
+  Thanks to Sal Ingrilli for help with testing.
 * Modify the Windows build so the Wrapper.exe and Wrapper.dll files can now
   be built from Ant if MSVC is installed.
 * Added a new wrapper.ping.interval property which lets users control the
