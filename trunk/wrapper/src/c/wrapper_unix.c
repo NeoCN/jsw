@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.66  2004/04/08 15:09:12  mortenson
+ * Fix a compiler error.
+ *
  * Revision 1.65  2004/04/08 14:58:59  mortenson
  * Add a wrapper.working.dir property.
  *
@@ -1047,7 +1050,7 @@ int main(int argc, char **argv) {
 
             /* Change the working directory if configured to do so. */
             if (wrapperSetWorkingDirProp()) {
-                appExit(1);
+                exit(1);
             }
 
             /* fork to a Daemonized process if configured to do so. */
