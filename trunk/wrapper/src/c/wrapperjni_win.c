@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.15  2003/11/05 16:56:25  mortenson
+ * Get the version checking code working on Linux.
+ *
  * Revision 1.14  2003/11/05 16:45:42  mortenson
  * The WrapperManager class now checks to make sure that its current version
  * matches the version of the native library and Wrapper.
@@ -68,7 +71,6 @@ barf
 #include <windows.h>
 #include <time.h>
 #include <tlhelp32.h>
-#include "wrapperinfo.h"
 #include "wrapperjni.h"
 
 static DWORD wrapperProcessId = 0;
@@ -501,20 +503,6 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass cl
 
     /* Initialize the explorer.exe name. */
     initExplorerExeName();
-}
-
-/*
- * Class:     org_tanukisoftware_wrapper_WrapperManager
- * Method:    nativeGetLibraryVersion
- * Signature: ()Ljava/lang/String;
- */
-JNIEXPORT jstring JNICALL
-Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetLibraryVersion(JNIEnv *env, jclass clazz) {
-    jstring version;
-
-    version = (*env)->NewStringUTF(env, wrapperVersion);
-
-    return version;
 }
 
 /*

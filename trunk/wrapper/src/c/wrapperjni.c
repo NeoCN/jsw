@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.8  2003/11/05 16:56:25  mortenson
+ * Get the version checking code working on Linux.
+ *
  * Revision 1.7  2003/10/31 11:18:48  mortenson
  * Fix a compiler error on linux caused by missing headers.
  *
@@ -46,6 +49,7 @@
 #include <tchar.h>
 #endif
 
+#include "wrapperinfo.h"
 #include "wrapperjni.h"
 
 int wrapperJNIDebugging = JNI_FALSE;
@@ -102,6 +106,19 @@ void wrapperJNIHandleSignal(int signal) {
     lastControlEvent = signal;
 }
 
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeGetLibraryVersion
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetLibraryVersion(JNIEnv *env, jclass clazz) {
+    jstring version;
+
+    version = (*env)->NewStringUTF(env, wrapperVersion);
+
+    return version;
+}
 
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager

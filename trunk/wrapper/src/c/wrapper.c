@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.78  2003/11/05 16:56:25  mortenson
+ * Get the version checking code working on Linux.
+ *
  * Revision 1.77  2003/11/05 16:45:41  mortenson
  * The WrapperManager class now checks to make sure that its current version
  * matches the version of the native library and Wrapper.
@@ -1417,7 +1420,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         if (addQuotes) {
             sprintf(strings[index], "-Dwrapper.version=\"%s\"", wrapperVersion);
         } else {
-            sprintf(strings[index], "-Dwrapper.debug=%s", wrapperVersion);
+            sprintf(strings[index], "-Dwrapper.version=%s", wrapperVersion);
         }
     }
     index++;
