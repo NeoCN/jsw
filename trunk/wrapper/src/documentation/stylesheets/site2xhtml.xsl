@@ -12,65 +12,88 @@
     
     ******************************************************************** -->
     
-    <head><title><xsl:value-of select="/site/body/title"/></title></head>
+    <head>
+        <title>Java Service Wrapper - <xsl:value-of select="/site/body/title"/></title>
+        <style type="text/css" media="all">
+            @import url("./style/wrapper.css");
+        </style>
+    </head>
+    
     <body text="#000000" link="#525D76" vlink="#023264" alink="#023264"
-        topmargin="4" leftmargin="4" marginwidth="4" marginheight="4"
+        topmargin="0" leftmargin="0" marginwidth="0" marginheight="0"
         bgcolor="#ffffff">
-        <table width="100%" cellspacing="0" cellpadding="0" border="0">
+        
+        <table border="0" width="100%" cellspacing="0" cellpadding="0">
             <tr>
-                <td valign="top" align="left">
-                    <a href="http://www.tanukisoftware.org/">
-                        <img hspace="0" vspace="0" border="0" src="images/TanukiSoftwareOrgLogo.png"/>
-                    </a>
+                <td rowspan="6" bgcolor="#7fc1e6" width="282" height="115"><a href="http://wrapper.tanukisoftware.org"><img src="images/WrapperLogo.png" width="282" height="115" border="0"/></a></td>
+                <td bgcolor="#7fc1e6" width="67" height="50"><img src="images/spacer.gif"/></td>
+                <td bgcolor="#7fc1e6" align="right" width="*" height="50"><a href="http://www.tanukisoftware.org"><img src="images/TanukiSoftwareOrgLogo.png" width="259" height="33" border="0"/></a></td>
+            </tr>
+            <tr>
+                <td rowspan="7" width="67" height="70" align="right" valign="top" background="images/BannerBackground.png"><img src="images/BannerAngle.png" width="67" height="70"/></td>
+                <td width="*" height="3"><img src="images/spacer.gif"/></td>
+            </tr>
+            <tr>
+                <td bgcolor="#000000" width="*" height="2"><img src="images/spacer.gif"/></td>
+            </tr>
+            <tr>
+                <td bgcolor="#c7d9e2" align="right" width="*" height="12"><a href="donate.html"><img src="images/DonationRequest.png" width="201" height="12" border="0"/></a></td>
+            </tr>
+            <tr>
+                <td bgcolor="#115b77" width="*" height="1"><img src="images/spacer.gif"/></td>
+            </tr>
+            <tr>
+                <td width="*" height="46" nowrap="true"><font size="5" color="#115b77"><b><xsl:value-of select="/site/body/title"/></b></font><img src="images/TitleDefinition.png" align="center"/></td>
+            </tr>
+            <tr>
+                <td width="282" height="3"><img src="images/spacer.gif"/></td>
+                <td width="*" height="3"><img src="images/spacer.gif"/></td>
+            </tr>
+            <tr>
+                <td bgcolor="#000000" width="282" height="2"><img src="images/spacer.gif"/></td>
+                <td width="*" height="2"><img src="images/spacer.gif"/></td>
+            </tr>
+        </table>
+        
+        <table border="0" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td bgcolor="#c7d9e2" width="200" valign="top">
+                    <img src="images/spacer.gif" width="200" height="1"/>
+                    <table border="0" width="100%" cellspacing="0" cellpadding="4">
+                        <tr>
+                            <td nowrap="true">
+                                <xsl:copy-of select="/site/menu/node()|@*"/>
+                                <br/>
+                                Hosted by:<br/>
+                                <a href="http://sourceforge.net/projects/wrapper/">
+                                    <img src="http://sourceforge.net/sflogo.php?group_id=39428" width="88" height="31" border="0" alt="SourceForge"/>
+                                </a>
+                            </td>
+                        </tr>
+                    </table>
                 </td>
-                <td width="100%" valign="bottom" align="right" bgcolor="#ffffff">
-                    <font size="+3" face="arial,helvetica,sanserif" color="gray">
-                        <i><b>Java Service Wrapper</b></i>
-                    </font>
+                <td bgcolor="#115b77" width="1"><img src="images/spacer.gif" width="1" height="300"/></td>
+                <td valign="top" width="*">
+                    <table border="0" width="100%" cellspacing="0" cellpadding="4">
+                        <tr>
+                            <td>
+                                <xsl:copy-of select="/site/body/node()|@*"/>
+                            </td>
+                        </tr>
+                    </table>
                 </td>
             </tr>
         </table>
         
-        <table width="100%" cellspacing="0" cellpadding="0" border="0">
-            <tr>
-                <td colspan="7" bgcolor="gray"><img src="images/spacer.png" width="1" height="1"/></td>
-            </tr>
-            <tr>
-                <td width="5" valign="top"><img src="images/spacer.png" width="5" height="1"/></td>
-                <td width="150" valign="top" nowrap="1">
-                    <br/>
-                    <font face="arial,helvetica,sanserif">
-                        <center>
-                            <img src="images/DukeTowel.png" border="0"/>
-                        </center>
-                        <xsl:copy-of select="/site/menu/node()|@*"/>
-                        <br/>
-                        Hosted by:<br/>
-                        <A href="http://sourceforge.net/projects/wrapper/">
-                            <IMG src="http://sourceforge.net/sflogo.php?group_id=39428" width="88" height="31" border="0" alt="SourceForge Logo"/>
-                        </A>
-                        <br/>
-                    </font>
-                </td>
-                <td width="2" valign="top"><img src="images/spacer.png" width="2" height="1"/></td>
-                <td width="1" valign="top" bgcolor="gray"><img src="images/spacer.png" width="1" height="1"/></td>
-                <td width="10" valign="top"><img src="images/spacer.png" width="10" height="1"/></td>
-                <td width="*" valign="top" align="left">
-                    <br/>
-                    <xsl:copy-of select="/site/body/node()|@*"/>
-                </td>
-                <td width="5" valign="top"><img src="images/spacer.png" width="5" height="1"/></td>
-            </tr>
-            <tr>
-                <td colspan="7" bgcolor="gray"><img src="images/spacer.png" width="1" height="1"/></td>
-            </tr>
-        </table>
         <table width="100%" border="0" cellspacing="0" cellpadding="0">
+            <tr>
+                <td colspan="2" bgcolor="#115b77"><img src="images/spacer.gif"/></td>
+            </tr>
             <tr>
                 <td align="left">
                     <font face="arial,helvetica,sanserif" size="-1" color="#525D76">
                         <i>
-                            Copyright &#169;1999-2003 by TanukiSoftware.org.
+                            Copyright &#169;1999-2003 by <a href="http://www.tanukisoftware.org">TanukiSoftware.org</a>.
                             All Rights Reserved.
                         </i>
                     </font>

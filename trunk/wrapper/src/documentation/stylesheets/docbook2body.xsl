@@ -90,6 +90,81 @@
         </iframe>				
     </xsl:template>
     
+    <xsl:template match="paypal-form">
+        <form action="https://www.paypal.com/cgi-bin/webscr" method="post">
+            <center>
+                <table bgcolor="#115b77" border="0" cellspacing="0" cellpadding="2">
+                    <tr>
+                        <td>
+                            <table bgcolor="#c7d9e2" border="0" cellspacing="0" cellpadding="8">
+                                <tr valign="top">
+                                    <td align="right">
+                                        <p>
+                                            <b>Anonymity</b>:<br/>
+                                            <font size="-2">choose whether to<br/>donate anonymously</font>
+                                        </p>
+                                    </td>
+                                    <td nowrap="true">
+                                        <table border="0" cellspacing="0" cellpadding="2">
+                                            <tr>
+                                                <td valign="top">
+                                                    <input type="radio" name="item_number" value="101" checked="true" />
+                                                </td>
+                                                <td>
+                                                    <p><i>Anonymous donation</i></p>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td valign="top">
+                                                    <input type="radio" name="item_number" value="102" />
+                                                </td>
+                                                <td>
+                                                    <p><i>Named on future<br/>sponsor's page</i></p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td align="right">
+                                        <p>
+                                            <b>Amount (US$)</b>:<br/>
+                                            <font size="-2">enter the amount you<br/>wish to donate</font>
+                                        </p>
+                                    </td>
+                                    <td nowrap="true" align="center">
+                                        <input type="text" name="amount" size="8" value="50.00" />
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td align="right">
+                                        <p>
+                                            <b>Submit</b>:<br/>
+                                            <font size="-2">click the image to donate</font>
+                                        </p>
+                                    </td>
+                                    <td nowrap="true" align="center">
+                                        <input type="image" src="http://images.paypal.com/images/x-click-butcc-donate.gif" border="0" name="submit" alt="Make payments with PayPal - it's fast, free and secure!"/>
+                                        <input type="hidden" name="business" value="leif@tanukisoftware.com"/>
+                                        
+                                        <input type="hidden" name="cmd" value="_xclick"/>
+                                        <input type="hidden" name="item_name" value="Java Service Wrapper"/>
+                                        <input type="hidden" name="image_url" value="http://wrapper.tanukisoftware.org/paypal/WrapperLogoWhite.png"/>
+                                        <input type="hidden" name="no_shipping" value="1"/>
+                                        <input type="hidden" name="return" value="http://wrapper.tanukisoftware.org/doc/english/donate-thanks.html"/>
+                                        <input type="hidden" name="cancel_return" value="http://wrapper.tanukisoftware.org/doc/english/donate.html"/>
+                                        <input type="hidden" name="currency_code" value="USD"/>
+                                        <input type="hidden" name="tax" value="0"/>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </center>
+        </form>
+    </xsl:template>
+    
     <xsl:template match="glossary">
         <body>
             <xsl:call-template name="header"/>
@@ -101,24 +176,6 @@
     
     <xsl:template name="header">
         <title><xsl:value-of select="title"/></title>
-        <center>
-            <table width="80%">
-                <tr>
-                    <td bgcolor="#F3DD61">
-                        <br/>
-                        <center>
-                            <b>
-                                <font color="#000000" face="arial,helvetica,sanserif">
-                                    <xsl:value-of select="title"/>
-                                </font>
-                            </b>
-                        </center>
-                        <br/>
-                    </td>
-                </tr>
-            </table>
-        </center>
-        <br/>
         <xsl:if test="subtitle">
             <font face="arial,helvetica,sanserif" color="#525D76"><i><xsl:value-of select="subtitle"/></i></font><br/>
         </xsl:if>
@@ -240,9 +297,7 @@
     </xsl:template>
     
     <xsl:template match="para|simpara">
-        <p align="justify">
-            <xsl:apply-templates/>
-        </p>
+        <p><xsl:apply-templates/></p>
     </xsl:template>
     
     <xsl:template name="italics">
@@ -317,37 +372,41 @@
         <xsl:variable name="id">
             <xsl:call-template name="object.id"/>
         </xsl:variable>
-        
-        <div><!-- align="right" -->
-            <a name="{$id}"/>
-            <table border="0" cellpadding="2" cellspacing="0">
-                <xsl:attribute name="width"><xsl:value-of select="number(100)-(1*(number($level)-1))"/>%</xsl:attribute>
-                <tr>
-                    <td bgcolor="#525D76">
-                        <font color="#ffffff" face="arial,helvetica,sanserif">
-                            <xsl:attribute name="size">
-                                <xsl:choose>
-                                    <xsl:when test="number($level)=1">+1</xsl:when>
-                                    <xsl:when test="number($level)=2">+0</xsl:when>
-                                    <xsl:otherwise>-<xsl:value-of select="number($level)-2"/></xsl:otherwise>
-                                </xsl:choose>
-                            </xsl:attribute>
-                            <b><xsl:value-of select="title"/></b>
-                        </font>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <font color="#000000" face="arial,helvetica,sanserif">
-                            <br/>
-                            <xsl:apply-templates>
-                                <xsl:with-param name="level" select="number($level)+1"/>
-                            </xsl:apply-templates>
-                        </font>
-                    </td>
-                </tr>
-            </table>
-        </div><br/>
+
+        <a name="{$id}"/>
+        <table border="0" width="100%" cellspacing="0" cellpadding="2">
+            <tr>
+                <xsl:choose>
+                    <xsl:when test="$level>1">
+                        <td width="10" rowspan="3"><img src="./images/spacer.gif" width="10" height="1"/></td>
+                    </xsl:when>
+                </xsl:choose>
+                <xsl:choose>
+                    <xsl:when test="$level=1">
+                        <td width="*" class="sectionheader1" bgcolor="#1c718d"><font size="4" color="#eeeeee"><b><xsl:value-of select="title"/></b></font></td>
+                    </xsl:when>
+                    <xsl:when test="$level=2">
+                        <td width="*" class="sectionheader1" bgcolor="#408ba0"><font size="3" color="#eeeeee"><b><xsl:value-of select="title"/></b></font></td>
+                    </xsl:when>
+                    <xsl:when test="$level=3">
+                        <td width="*" class="sectionheader1" bgcolor="#6fa8b7"><font size="2" color="#eeeeee"><b><xsl:value-of select="title"/></b></font></td>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <td width="*" class="sectionheader1" bgcolor="#7fc1e6"><font size="2" color="#eeeeee"><b><xsl:value-of select="title"/></b></font></td>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </tr>
+            <tr>
+                <td><img src="./images/spacer.gif" width="1" height="4"/></td>
+            </tr>
+            <tr>
+                <td>
+                    <xsl:apply-templates>
+                        <xsl:with-param name="level" select="number($level)+1"/>
+                    </xsl:apply-templates>
+                </td>
+            </tr>
+        </table>
     </xsl:template>
     
     <xsl:template match="bookinfo">
@@ -413,26 +472,44 @@
         </div>
     </xsl:template>
     
-    <xsl:template match="programlisting|screen">
-        <div align="left">
-            <p>      
-                <table bgcolor="#eeeeee" width="100%" border="0" cellpadding="2" cellspacing="2">
-                    <tr>
-                        <td>
-                            <pre>
-                                <xsl:apply-templates/>
-                            </pre>
-                        </td>
-                    </tr>
-                </table>
-            </p>
-        </div>
+    <xsl:template match="programlisting">
+        <table class="listing" border="0" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+                <td class="listingcell" bgcolor="#eeeeee">
+                    <font color="#444444">
+                        <pre class="listingpre"><xsl:apply-templates/></pre>
+                    </font>
+                </td>
+            </tr>
+        </table>
     </xsl:template>
     
     <xsl:template match="example|informalexample">
-        <p align="justify">
+        <table class="listing" border="0" width="100%" cellpadding="0" cellspacing="0">
+            <xsl:if test="simpara">
+                <tr>
+                    <td class="listingcaption">
+                        <xsl:apply-templates select="simpara" mode="example"/>
+                    </td>
+                </tr>
+            </xsl:if>
+            <xsl:if test="screen">
+                <tr>
+                    <td class="listingcell" bgcolor="#eeeeee">
+                        <font color="#444444">
+                            <pre class="listingpre"><xsl:apply-templates select="screen" mode="example"/></pre>
+                        </font>
+                    </td>
+                </tr>
+            </xsl:if>
+        </table>
+        
+        
+        <!--
+        <div class="listing">
             <xsl:apply-templates mode="example"/>
-        </p>
+        </div>
+        -->
     </xsl:template>
     
     <xsl:template match="title" mode="example">
@@ -442,22 +519,11 @@
     </xsl:template>
     
     <xsl:template match="simpara" mode="example">
-        <!--hr width="0"/-->
         <xsl:apply-templates/>
     </xsl:template>
     
     <xsl:template match="programlisting|screen" mode="example">
-        <div align="left">
-            <table bgcolor="#eeeeee" width="100%" border="0" cellpadding="2" cellspacing="2">
-                <tr>
-                    <td>
-                        <pre>
-                            <xsl:apply-templates/>
-                        </pre>
-                    </td>
-                </tr>
-            </table>
-        </div>
+        <xsl:apply-templates/>
     </xsl:template>
     
     <xsl:template match="orderedlist"><ol><xsl:apply-templates/></ol></xsl:template>
@@ -487,7 +553,21 @@
         </div>
     </xsl:template>
     
-    <xsl:template match="warning|note">
+    <xsl:template match="warning">
+        <div class="warning">
+            <table border="0" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td valign="top"><p class="warninglabel"><font color="#a00000"><b>WARNING</b></font></p></td>
+                    <td><img src="images/spacer.gif" width="10"/></td>
+                    <td class="warningbody" bgcolor="#dd8080">
+                        <font color="#602222">
+                            <xsl:apply-templates/>
+                        </font>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <!--
         <div align="center">
             <table border="1" cellpadding="2" cellspacing="2">
                 <xsl:if test="title">
@@ -504,6 +584,27 @@
                 </tr>
             </table>
         </div>
+        -->
+    </xsl:template>
+
+    <xsl:template match="note">
+        <div class="note">
+            <table border="0" width="100%" cellpadding="2" cellspacing="0">
+                <tr>
+                    <td valign="top"><p class="notelabel"><font color="#0000a0"><b>NOTE</b></font></p></td>
+                    <td><img src="images/spacer.gif" width="10"/></td>
+                    <td class="notebody" bgcolor="#a0a0ff">
+                        <font color="#222260">
+                            <xsl:apply-templates/>
+                        </font>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </xsl:template>
+    
+    <xsl:template match="donation-duke">
+        <img src="images/DonationDuke.png" width="250" height="223" align="right" hspace="5" vspace="5"/>
     </xsl:template>
     
     <xsl:template match="link">
@@ -594,6 +695,11 @@
     <!-- ==================================================================== -->
     
     <xsl:template match="glosslist">
+        <table border="0" width="100%" cellpadding="2" cellspacing="0">
+            <xsl:apply-templates/>
+        </table>
+    
+        <!--
         <div class="{name(.)}">
             <a>
                 <xsl:attribute name="name">
@@ -605,23 +711,44 @@
                 <xsl:apply-templates/>
             </dl>
         </div>
+        -->
     </xsl:template>
     
     <xsl:template match="glossentry">
         <xsl:apply-templates/>
+        <tr>
+            <td colspan="2"><img src="images/spacer.gif" width="1" height="10"/></td>
+        </tr>
+    
+        <!--
+        <xsl:apply-templates/>
         <br/>
+        -->
     </xsl:template>
     
     <xsl:template match="glossentry/glossterm">
-        <dt> <!-- style="font-weight: bold" -->
+        <tr>
+            <td colspan="2"><b><xsl:apply-templates/></b></td>
+        </tr>
+    
+        <!--
+        <dt>
             <b><xsl:apply-templates/></b>
         </dt>
+        -->
     </xsl:template>
     
     <xsl:template match="glossentry/glossdef">
+        <tr>
+            <td width="20"><img src="images/spacer.gif" width="20" height="1"/></td>
+            <td width="*"><xsl:apply-templates/></td>
+        </tr>
+    
+        <!--
         <dd>
             <xsl:apply-templates/>
         </dd>
+        -->
     </xsl:template>
     
     <xsl:template match="glossentry/glossdef/simpara">
