@@ -297,17 +297,32 @@ wrapper.ping.timeout=30
 #********************************************************************
 # Wrapper Logging parameters
 #********************************************************************
+# Format of output for the console.  (See docs for formats)
+wrapper.console.format=PM
+
+# Log Level for console output.  (See docs for log levels)
+wrapper.console.loglevel=INFO
+
 # Log file to use for wrapper output logging.
 wrapper.logfile=../logs/wrapper.log
 
 # Format of output for the log file.  (See docs for formats)
-wrapper.logfile.format=PTM
+wrapper.logfile.format=LPTM
 
-# Format of output for the console.  (See docs for formats)
-wrapper.console.format=PM
+# Log Level for console output.  (See docs for log levels)
+wrapper.logfile.loglevel=INFO
 
-# Show debug messages
-#wrapper.debug=TRUE
+# Maximum size that the log file will be allowed to grow to before the log is rolled.
+#  Size is specified in bytes.  The default value of 0, disables log rolling.  May
+#  abreviate with the 'k' (kb) or 'm' (mb) suffix.  For example: 10m = 10 megabytes.
+wrapper.logfile.maxsize=0
+
+# Maximum number of rolled log files which will be allowed before old files are deleted.
+#  The default value of 0 implies no limit.
+wrapper.logfile.maxfiles=0
+
+# Log Level for sys/event log output.  (See docs for log levels)
+wrapper.syslog.loglevel=NONE
 
 #********************************************************************
 # Wrapper Unix daemon parameters
@@ -409,8 +424,7 @@ wrapper.ntservice.starttype=AUTO_START</pre>
 <td bgcolor="#c0c0c0"><font size="-1" color="#023264">
                 
 <p align="justify">
-                    NOTE - Properties specified on the command line can not contain unquoted spaces.
-                    If you need to include spaces in the value of the property, simply include the entire name-value pair in quotes:
+                    NOTE - Properties specified on the command line can not contain unquoted spaces.  If you need to include spaces in the value of the property, simply include the entire name-value pair in quotes:
                     <p align="justify">
                         
 <i>Example:</i>
@@ -1017,86 +1031,12 @@ wrapper.app.parameter.2=conf/myconffile.conf</pre>
 <dl>
                     
                         
-<dt>wrapper.logfile</dt>
-                        
-<dd>
-                            
-<p align="justify">
-                                Log file to which all output to the console will be logged.  If the logfile is not specified, then file logging will be written to a file called "wrapper.log" in the same directory as the Wrapper executable.  Providing a blank value will cause file logging to be disabled.
-                                <p align="justify">
-                                    
-<i>Example:</i>
-                                    
-<div align="left">
-<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
-<tr>
-<td>
-<pre>wrapper.logfile=../logs/wrapper.log</pre>
-</td>
-</tr>
-</table>
-</div>
-                                
-</p>
-                            
-</p>
-                        
-</dd>
-                    
-<br>
-                    
-                        
-<dt>wrapper.logfile.format</dt>
-                        
-<dd>
-                            
-<p align="justify">
-                                Format to use for logging to the log file.  Logging was intentionally kept simple.  The format consists of the tokens 'P' for prefix, 'T' for time, and 'M' for message.  If the format contains these values then it will be included in the format.  The order of the tokens does not affect the way the log appears.  If the property is missing or commented out, then the default value 'PTM' will be used.  Setting the property to a blank value will cause file logging to be disabled.
-                                <p align="justify">
-                                    
-<i>Examples with sample log entries:</i>
-                                    
-<div align="left">
-<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
-<tr>
-<td>
-<pre>wrapper.logfile.format=PTM
-wrapper  | 2001/12/11 13:45:33 | --&gt; Wrapper Started as Console
-wrapper  | 2001/12/11 13:45:33 | Launching a JVM...
-jvm 1    | 2001/12/11 13:45:35 | Initializing...
-
-wrapper.logfile.format=PM
-wrapper  | --&gt; Wrapper Started as Console
-wrapper  | Launching a JVM...
-jvm 1    | Initializing...
-
-wrapper.logfile.format=M
---&gt; Wrapper Started as Console
-Launching a JVM...
-Initializing...
-
-wrapper.logfile.format=
-&lt; No logging &gt;</pre>
-</td>
-</tr>
-</table>
-</div>
-                                
-</p>
-                            
-</p>
-                        
-</dd>
-                    
-<br>
-                    
-                        
 <dt>wrapper.console.format</dt>
                         
 <dd>
                             
 <p align="justify">
-                                Format to use for output to the console.  Logging was intentionally kept simple.  The format consists of the tokens 'P' for prefix, 'T' for time, and 'M' for message.  If the format contains these values then it will be included in the format.  The order of the tokens does not affect the way the log appears.  If the property is missing or commented out, then the default value 'PM' will be used.  Setting the property to a blank value will cause console output to be disabled.
+                                Format to use for output to the console.  Logging was intentionally kept simple.  The format consists of the tokens 'L' for log level, 'P' for prefix, 'T' for time, and 'M' for message.  If the format contains these values then it will be included in the format.  The order of the tokens does not affect the way the log appears, but the M token should usually be placed last as it is the only column without a uniform width.  If the property is missing or commented out, then the default value 'PM' will be used.  Setting the property to a blank value will cause console output to be disabled.
                                 <p align="justify">
                                     
 <i>Examples with sample output:</i>
@@ -1136,12 +1076,12 @@ wrapper.console.format=
 <br>
                     
                         
-<dt>wrapper.debug</dt>
+<dt>wrapper.console.loglevel</dt>
                         
 <dd>
                             
 <p align="justify">
-                                Turn on detailed Wrapper debug information.
+                                Log level to use for console output.  Valid log levels include: NONE for no output, FATAL to only show fatal error messages,  ERROR to show all error messages,  STATUS to show all state changes, INFO shows all JVM output and informative messages, and DEBUG shows detailed debug information.  The default value is INFO.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -1150,7 +1090,197 @@ wrapper.console.format=
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
 <td>
-<pre>wrapper.debug=TRUE</pre>
+<pre>wrapper.console.loglevel=INFO</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.logfile</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Log file to which all output to the console will be logged.  If the logfile is not specified, then file logging will be written to a file called "wrapper.log" in the same directory as the Wrapper executable.  Providing a blank value will cause file logging to be disabled.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.logfile=../logs/wrapper.log</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.logfile.format</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Format to use for logging to the log file.  Logging was intentionally kept simple.  The format consists of the tokens 'L' for log level, 'P' for prefix, 'T' for time, and 'M' for message.  If the format contains these values then it will be included in the format.  The order of the tokens does not affect the way the log appears, but the M token should usually be placed last as it is the only column without a uniform width.  If the property is missing or commented out, then the default value 'LPTM' will be used.  Setting the property to a blank value will cause file logging to be disabled.
+                                <p align="justify">
+                                    
+<i>Examples with sample log entries:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.logfile.format=LPTM
+STATUS | wrapper  | 2001/12/11 13:45:33 | --&gt; Wrapper Started as Console
+STATUS | wrapper  | 2001/12/11 13:45:33 | Launching a JVM...
+INFO   | jvm 1    | 2001/12/11 13:45:35 | Initializing...
+
+wrapper.logfile.format=PM
+wrapper  | --&gt; Wrapper Started as Console
+wrapper  | Launching a JVM...
+jvm 1    | Initializing...
+
+wrapper.logfile.format=M
+--&gt; Wrapper Started as Console
+Launching a JVM...
+Initializing...
+
+wrapper.logfile.format=
+&lt; No logging &gt;</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.logfile.loglevel</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Log level to use for logging to the log file.  Valid log levels include: NONE for no log output, FATAL to only log fatal error messages,  ERROR to log all error messages,  STATUS to log all state changes, INFO logs all JVM output and informative messages, and DEBUG logs detailed debug information.  The default value is INFO.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.console.loglevel=INFO</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.logfile.maxsize</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                The wrapper.log file can be set to roll when the file reaches a specified size.  The default value of 0 will disable log file rolling.  To roll the file, specify a maximum file size in bytes.  The size can be abreviated with the suffixes 'k' for kilobytes, or 'm' for megabytes.  For example, '10m' sets the log file to be rolled when it reaches a size of 10 megabytes.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.logfile.maxsize=10m</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.logfile.maxfiles</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                When log file rolling is enabled, old log files will be renamed with an integer suffex.  Where larger indices are older log files.  The maximum number of log files can be set using this property.  The default value, 0, implies no limit on the number of files.  If this number is reduced from say 10 to 5, the extra 5 files will not be deleted, new log files will only be rolled within the first 5 indices.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.logfile.maxfiles=10</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</dd>
+                    
+<br>
+                    
+                        
+<dt>wrapper.syslog.loglevel</dt>
+                        
+<dd>
+                            
+<p align="justify">
+                                Log level to use for logging to the Event Log on Windows systems, or the syslog on unix systems.  Valid log levels include: NONE for no log output, FATAL to only log fatal error messages,  ERROR to log all error messages,  STATUS to log all state changes, INFO logs all JVM output and informative messages, and DEBUG logs detailed debug information.  The default value is NONE.  Be careful setting log which are too low.  DEBUG for example will very quickly fill up your syslog.
+                                <p align="justify">
+                                    
+<i>Example:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.syslog.loglevel=NONE</pre>
 </td>
 </tr>
 </table>
@@ -1185,7 +1315,7 @@ wrapper.console.format=
                 
                 
 <div class="glosslist">
-<a name="NCC7"></a>
+<a name="ND23"></a>
 <dl>
                     
                         
@@ -1256,7 +1386,7 @@ wrapper.console.format=
 </div>
                 
 <div class="glosslist">
-<a name="NCF1"></a>
+<a name="ND4D"></a>
 <dl>
                     
                         

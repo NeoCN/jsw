@@ -2,6 +2,7 @@ Java Service Wrapper Revision History.
 --------------------------------------
 2.2.5
 * Fixed bug issue when reading config files from Windows on Unix.
+* Deprecated the wrapper.debug property in favor of loglevels.
 * Added new logger functionality includes the following features:
   Loglevels like Log4j, NT Eventlog support, UNIX syslog support and rolling
   log files.
