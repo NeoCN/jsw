@@ -8,6 +8,8 @@ Java Service Wrapper Revision History.
 * Fix a problem where a 0 length malloc was being called if there were no
   configured filters.  This was fine on most platforms but caused a crash
   on MAC OS X.
+* Rework the initialization of the bash and sh scripts so that they will
+  work correctly when referenced as symbolic links.
 
 3.0.2
 * Modified the sh and bash scripts so that console log output is disabled by
