@@ -53,12 +53,6 @@ $Id$
             </listitem>
             <listitem>
                 <para>
-                    Increase debug output on UNIX platforms when a signal is caught.  When
-                    possible, information about where the signal came from is now logged.
-                </para>
-            </listitem>
-            <listitem>
-                <para>
                     Fix a problem when using the tick timer where the Wrapper would sometimes
                     exit on startup due to an uncaught SIGALRM.  Only reported on multi-CPU
                     Solaris systems.

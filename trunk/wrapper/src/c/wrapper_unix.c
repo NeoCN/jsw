@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.77  2004/07/05 03:15:55  mortenson
+ * Partially back out the switch from signal to sigaction as it had problems on some
+ * platforms.  It can still be enabled by uncommenting the WRAPPER_USE_SIGACTION
+ * define.
+ *
  * Revision 1.76  2004/07/01 03:33:31  mortenson
  * Add some additional error checks after calls to control the pipe between
  * the JVM and Wrapper.
@@ -279,9 +284,19 @@
 #include "property.h"
 #include "logger.h"
 
+/* An attempt was made to convert from using action over to sigaction to gain
+ *  the ability to track down the source of a signal.  But on Solaris this
+ *  led to occassional hangs when processign signals.  On FreeBSD socket
+ *  functions were affected.  Hopefully these problems can be resolved.  But
+ *  until then, provide the following define to make it possible to use either.
+ */
+/*#define WRAPPER_USE_SIGACTION */
+
+#ifdef WRAPPER_USE_SIGACTION
 #ifndef getsid
 /* getpid links ok on Linux, but is not defined correctly. */
 pid_t getsid(pid_t pid);
+#endif
 #endif
 
 #define max(x,y) (((x) > (y)) ? (x) : (y)) 
@@ -329,6 +344,7 @@ void requestDumpJVMState() {
     }
 }
 
+#ifdef WRAPPER_USE_SIGACTION
 const char* getSignalCodeDesc(int code) {
     switch (code) {
     case SI_USER:
@@ -403,8 +419,13 @@ void descSignal(siginfo_t *sigInfo) {
         }
     }
 }
+#endif
 
+#ifdef WRAPPER_USE_SIGACTION
 void sigActionCommon(const char *sigName, siginfo_t *sigInfo) {
+#else
+void handleCommon(const char* sigName) {
+#endif
     pthread_t threadId;
     threadId = pthread_self();
 
@@ -447,6 +468,7 @@ void sigActionCommon(const char *sigName, siginfo_t *sigInfo) {
     }
 }
 
+#ifdef WRAPPER_USE_SIGACTION
 /**
  * Handle alarm signals.  We are getting them on solaris when running with
  *  the tick timer.  Not yet sure where they are coming from.
@@ -505,6 +527,96 @@ void sigActionTermination(int sigNum, siginfo_t *sigInfo, void *na) {
 
     sigActionCommon("TERM", sigInfo);
 }
+
+/**
+ * Registers a single signal handler.
+ */
+int registerSigAction(int sigNum, void (*sigAction)(int, siginfo_t *, void *)) {
+    struct sigaction newAct;
+
+    newAct.sa_sigaction = sigAction;
+    sigemptyset(&newAct.sa_mask);
+    newAct.sa_flags = SA_SIGINFO;
+
+    if (sigaction(sigNum, &newAct, NULL)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+            "Unable to register signal handler for signal %d.  %s", sigNum, getLastErrorText());
+        return 1;
+    }
+    return 0;
+}
+#else
+/**
+ * Handle alarm signals.  We are getting them on solaris when running with
+ *  the tick timer.  Not yet sure where they are coming from.
+ */
+void handleAlarm(int sig_num) {
+    pthread_t threadId;
+
+    /* On UNIX the calling thread is the actual thread being interrupted
+     *  so it has already been registered with logRegisterThread. */
+
+    /* Ignore any other signals while in this handler. */
+    signal(SIGALRM, SIG_IGN);
+
+    threadId = pthread_self();
+
+    if (wrapperData->isDebugging) {
+        if (threadId == timerThreadId) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Timer thread received an Alarm signal.  Ignoring.");
+        } else {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Received an Alarm signal.  Ignoring.");
+        }
+    }    
+
+    signal(SIGALRM, handleAlarm);
+}
+
+/**
+ * Handle interrupt signals (i.e. Crtl-C).
+ */
+void handleInterrupt(int sig_num) {
+    /* On UNIX the calling thread is the actual thread being interrupted
+     *  so it has already been registered with logRegisterThread. */
+
+    /* Ignore any other signals while in this handler. */
+    signal(SIGINT, SIG_IGN);
+
+    handleCommon("INT");
+
+    signal(SIGINT, handleInterrupt);
+}
+
+/**
+ * Handle quit signals (i.e. Crtl-\).
+ */
+void handleQuit(int sig_num) {
+    /* On UNIX the calling thread is the actual thread being interrupted
+     *  so it has already been registered with logRegisterThread. */
+
+    /* Ignore any other signals while in this handler. */
+    signal(SIGQUIT, SIG_IGN);
+
+    requestDumpJVMState();
+
+    signal(SIGQUIT, handleQuit); 
+}
+
+/**
+ * Handle termination signals (i.e. machine is shutting down).
+ */
+void handleTermination(int sig_num) {
+    /* On UNIX the calling thread is the actual thread being interrupted
+     *  so it has already been registered with logRegisterThread. */
+
+    /* Ignore any other signals while in this handler. */
+    signal(SIGTERM, SIG_IGN);
+
+    handleCommon("TERM");
+
+    signal(SIGTERM, handleTermination); 
+}
+#endif
 
 /**
  * The main entry point for the timer thread which is started by
@@ -593,30 +705,13 @@ int initializeTimer() {
 }
 
 /**
- * Registers a single signal handler.
- */
-int registerSigAction(int sigNum, void (*sigAction)(int, siginfo_t *, void *)) {
-    struct sigaction newAct;
-
-    newAct.sa_sigaction = sigAction;
-    sigemptyset(&newAct.sa_mask);
-    newAct.sa_flags = SA_SIGINFO;
-
-    if (sigaction(sigNum, &newAct, NULL)) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            "Unable to register signal handler for signal %d.  %s", sigNum, getLastErrorText());
-        return 1;
-    }
-    return 0;
-}
-
-/**
  * Execute initialization code to get the wrapper set up.
  */
 int wrapperInitialize() {
     int retval = 0;
     int res;
 
+#ifdef WRAPPER_USE_SIGACTION
     /* Register any signal actions we are concerned with. */
     if (registerSigAction(SIGALRM, sigActionAlarm) ||
         registerSigAction(SIGINT,  sigActionInterrupt) ||
@@ -624,6 +719,15 @@ int wrapperInitialize() {
         registerSigAction(SIGTERM, sigActionTermination)) {
         retval = -1;
     }
+#else
+    /* Register any signals we are concerned with. */
+    if (signal(SIGALRM, handleAlarm)       == SIG_ERR ||
+        signal(SIGINT,  handleInterrupt)   == SIG_ERR ||
+        signal(SIGQUIT, handleQuit)        == SIG_ERR ||
+        signal(SIGTERM, handleTermination) == SIG_ERR) {
+        retval = -1;
+    }
+#endif
 
     if (wrapperData->useSystemTime) {
         /* We are going to be using system time so there is no reason to start up a timer thread. */
