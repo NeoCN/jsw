@@ -121,6 +121,7 @@
                             </td>
                         </tr>
                     </table>
+                    <script language="JavaScript"><![CDATA[ //@@BODY_SECTION@@ ]]></script>
                 </td>
             </tr>
         </table>
@@ -142,11 +143,7 @@
                     <font face="arial,helvetica,sanserif" size="-1" color="#525D76">
                         <i>
                             last modified:
-                            <script language="JavaScript">
-                                <![CDATA[<!-- 
-                                document.write(document.lastModified); 
-                                //  -->]]>
-                            </script>
+                            <script language="JavaScript"><![CDATA[ document.write(document.lastModified); ]]></script>
                         </i>
                     </font>
                 </td>
