@@ -56,6 +56,10 @@ Java Service Wrapper Revision History.
   variables and have them take effect without having to first reboot the
   machine.
 * Implemented cascading configuration files.
+* Changed the default value for the wrapper.java.initmemory property to be 2MB.
+  This is in line with the default for the JVM.  The minimum value was also
+  changed from 8MB to 1MB to make it possible to reduce the footprint of
+  applications to what is possible without using the wrapper.
 
 2.2.9
 * Added a new property, wrapperper.restart.delay, which allows the user to control
