@@ -31,6 +31,12 @@
             -->
         <donorlist>
             <donor>
+                <date>Jan 6, 2005</date>
+                <amount>25.00</amount>
+                <name>Anonymous</name>
+                <message>My second donation.  Great solution for deploying Java applications!</message>
+            </donor>
+            <donor>
                 <date>Nov 2, 2004</date>
                 <amount>50.00</amount>
                 <name>Alexsandro Glas</name>
