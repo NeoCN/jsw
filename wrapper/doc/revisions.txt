@@ -41,6 +41,8 @@ Java Service Wrapper Revision History.
 * Add some additional error checks after calls to control the pipe between
   the JVM and Wrapper as well as improving the messages around other socket
   related error messages.
+* Fix a problem on some HP-UX systems were not working correctly because
+  the EAGAIN and EWOULDBLOCK constants are not equal with some compilers.
 
 3.1.0
 * The license was revised for this version to include a copyright omission.
