@@ -26,6 +26,10 @@ Java Service Wrapper Revision History.
   contents correctly even if the line feeds in the file are incorrect for
   the current platform.  Windows line feeds had been causing problems when
   used on UNIX platforms.  Feature Request #829896.
+* Added a new property, wrapper.ntservice.console, which allows a console to
+  be displayed when running as an NT service.
+* Fixed a problem where the request thread dump on failed JVM exit feature
+  had never worked when running as an NT service.  Bug #831775.
   
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the

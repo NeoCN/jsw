@@ -23,6 +23,12 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.36  2003/10/30 19:34:34  mortenson
+ * Added a new wrapper.ntservice.console property so the console can be shown for
+ * services.
+ * Fixed a problem where requesting thread dumps on exit was failing when running
+ * as a service.
+ *
  * Revision 1.35  2003/10/12 18:59:06  mortenson
  * Add a new property, wrapper.native_library, which can be used to specify
  * the base name of the native library.
@@ -194,7 +200,10 @@ struct WrapperConfig {
     char    *ntServiceAccount;      /* Account name to use when running as a service.  NULL to use the LocalSystem account. */
     char    *ntServicePassword;     /* Password to use when running as a service.  NULL means no password. */
     int     ntServiceInteractive;   /* Should the service be allowed to interact with the desktop? */
-    int     ntHideJavaConsole;      /* Should the Java console window be hidden when run as a service.  True by default but does not work with 1.2.x JVMs. */
+    int     ntHideJVMConsole;       /* Should the JVMs Console window be hidden when run as a service.  True by default but GUIs will not be visible for JVMs prior to 1.4.0. */
+    int     ntHideWrapperConsole;   /* Should the Wrapper Console window be hidden when run as a service. */
+    HWND    wrapperConsoleHandle;   /* Pointer to the Wrapper Console handle if it exists.  This will only be set if the console was allocated then hidden. */
+    int     ntAllocConsole;         /* True if a console should be allocated for the Service. */
 #else /* UNIX */
     int     daemonize;              /* TRUE if the process  should be spawned as a daemon process on launch. */
 #endif

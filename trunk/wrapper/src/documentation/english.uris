@@ -62,6 +62,7 @@ english/prop-logfile-maxsize.html
 english/prop-max-failed-invocations.html
 english/prop-native-library.html
 english/prop-ntservice-account.html
+english/prop-ntservice-console.html
 english/prop-ntservice-dependency-n.html
 english/prop-ntservice-description.html
 english/prop-ntservice-displayname.html

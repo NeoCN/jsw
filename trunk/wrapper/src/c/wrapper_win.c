@@ -23,6 +23,12 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.57  2003/10/30 19:34:34  mortenson
+ * Added a new wrapper.ntservice.console property so the console can be shown for
+ * services.
+ * Fixed a problem where requesting thread dumps on exit was failing when running
+ * as a service.
+ *
  * Revision 1.56  2003/10/18 16:19:40  mortenson
  * Commit a patch by Eric Smith which corrects a misuse of the putenv function.
  * Also cleaned up some DEBUG ifdef code.
@@ -171,6 +177,7 @@ barf
 #include <windows.h>
 #include <time.h>
 #include <sys/timeb.h>
+#include <conio.h>
 
 #include "wrapper.h"
 #include "property.h"
@@ -459,14 +466,71 @@ void wrapperBuildJavaCommand() {
     wrapperFreeJavaCommandArray(strings, length);
 }
 
+void hideConsoleWindow(HWND consoleHandle) {
+    WINDOWPLACEMENT consolePlacement;
+    
+    if (GetWindowPlacement(consoleHandle, &consolePlacement)) {
+        /* Hide the Window. */
+        consolePlacement.showCmd = SW_HIDE;
+
+        /* If we hide the window too soon after it is shown, it sometimes sticks, so wait a moment. */
+        Sleep(10);
+
+        if (!SetWindowPlacement(consoleHandle, &consolePlacement)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                "Unable to set window placement information: %s", getLastErrorText());
+        }
+    } else {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            "Unable to obtain window placement information: %s", getLastErrorText());
+    }
+}
+
+HWND findAndHideConsoleWindow( char *title ) {
+    HWND consoleHandle;
+    int i = 0;
+
+    /* Allow up to 2 seconds for the window to show up, but don't hang
+     *  up if it doesn't */
+    consoleHandle = NULL;
+    while ((!consoleHandle) && (i < 200)) {
+        Sleep(10);
+        consoleHandle = FindWindow("ConsoleWindowClass", title);
+        i++;
+    }
+    if (consoleHandle != NULL) {
+        hideConsoleWindow(consoleHandle);
+    }
+    
+    return consoleHandle;
+}
+
+void showConsoleWindow(HWND consoleHandle) {
+    WINDOWPLACEMENT consolePlacement;
+    
+    if (GetWindowPlacement(consoleHandle, &consolePlacement)) {
+        /* Show the Window. */
+        consolePlacement.showCmd = SW_SHOW;
+
+        if (!SetWindowPlacement(consoleHandle, &consolePlacement)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                "Unable to set window placement information: %s", getLastErrorText());
+        }
+    } else {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            "Unable to obtain window placement information: %s", getLastErrorText());
+    }
+}
+
 /**
  * Execute initialization code to get the wrapper set up.
  */
 int wrapperInitialize() {
     WORD ws_version=MAKEWORD(1, 1);
     WSADATA ws_data;
-
+    HANDLE hStdout;
     int res;
+    char titleBuffer[80];
 
     /* Set the process priority. */
     HANDLE process = GetCurrentProcess();
@@ -484,6 +548,45 @@ int wrapperInitialize() {
     /* Initialize the pipe to capture the child process output */
     if ((res = wrapperInitChildPipe()) != 0) {
         return res;
+    }
+
+    /* Initialize the Wrapper console handle to null */
+    wrapperData->wrapperConsoleHandle = NULL;
+    
+    /* The Wrapper will not have its own console when running as a service.  We need
+     *  to create one here. */
+    if ((!wrapperData->isConsole) && (wrapperData->ntAllocConsole)) {
+#ifdef _DEBUG
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Allocating a console for the service.");
+#endif
+
+        if (!AllocConsole()) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                "ERROR: Unable to allocate a console for the service: %s", getLastErrorText());
+            return 1;
+        }
+
+        hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+        if (hStdout == INVALID_HANDLE_VALUE) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                "ERROR: Unable to get the new stdout handle: %s", getLastErrorText());
+           return 1;
+        }
+        setConsoleStdoutHandle( hStdout );
+
+        if (wrapperData->ntHideWrapperConsole) {
+            /* A console needed to be allocated for the process but it should be hidden. */
+#ifdef _DEBUG
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Hiding the console.");
+#endif
+
+            /* Generate a unique time for the console so we can look for it below. */
+            sprintf(titleBuffer, "Wrapper Console ID %d%d (Do not close)", rand(), rand());
+
+            SetConsoleTitle( titleBuffer );
+
+            wrapperData->wrapperConsoleHandle = findAndHideConsoleWindow( titleBuffer );
+        }
     }
 
     return 0;
@@ -787,9 +890,7 @@ void wrapperExecute() {
     char szPath[512];
     char *c;
     char titleBuffer[80];
-    int i;
-    HWND consoleHandle;
-    WINDOWPLACEMENT consolePlacement;
+    int hideConsole;
 
     FILE *pid_fp = NULL;
     int old_umask;
@@ -829,21 +930,43 @@ void wrapperExecute() {
     startup_info.dwXCountChars=0;
     startup_info.dwYCountChars=0;
     startup_info.dwFillAttribute=0;
-    if (wrapperData->isConsole || (!wrapperData->ntHideJavaConsole)) {
-        /* When run in console mode, the launched JVM will use the same console
-         *  as the wrapper, so the first additional window shown will be any
-         *  GUI displayed by the Java Application. */
-        startup_info.dwFlags=STARTF_USESTDHANDLES;
-        startup_info.wShowWindow=0;
+    
+    /* Set the default flags which will not hide any windows opened by the JVM. */
+    startup_info.dwFlags=STARTF_USESTDHANDLES;
+    startup_info.wShowWindow=0;
+    hideConsole = FALSE;
+    if (wrapperData->isConsole) {
+        /* We are running as a console so no special console handling needs to be done. */
     } else {
-        /* When run as an NT service, a console will not exist so the JVM will
-         *  create one.  The following settings wil hide that console window
-         *  so it does not show up when the service is run in interactive mode.
-         * Java 1.4 will correctly force its GUI to display, but earlier versions
-         *  of Java will not. */
-        startup_info.dwFlags=STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
-        startup_info.wShowWindow=SW_HIDE;
+        /* Running as a service. */
+        if (wrapperData->ntAllocConsole) {
+            /* A console was allocated when the service was started so the JVM will not create
+             *  its own. */
+            if (wrapperData->wrapperConsoleHandle) {
+                /* The console exists but is currently hidden. */
+                if (!wrapperData->ntHideJVMConsole) {
+                    /* In order to support older JVMs we need to show the console when the
+                     *  JVM is launched.  We need to remember to hide it below. */
+                    showConsoleWindow(wrapperData->wrapperConsoleHandle);
+                    hideConsole = TRUE;
+                }
+            }
+        } else {
+            /* A console does not yet exist so the JVM will create and display one itself. */
+            if (wrapperData->ntHideJVMConsole) {
+                /* The console that the JVM creates should be surpressed and never shown.
+                 *  JVMs of version 1.4.0 and above will still display a GUI.  But older JVMs
+                 *  will not. */
+                startup_info.dwFlags=STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
+                startup_info.wShowWindow=SW_HIDE;
+            } else {
+                /* The new JVM console should be allowed to be displayed.  But we need to
+                 *  remember to hide it below. */
+                hideConsole = TRUE;
+            }
+        }
     }
+    
     startup_info.cbReserved2=0;
     startup_info.lpReserved2=NULL;
     startup_info.hStdInput=NULL;
@@ -903,37 +1026,16 @@ void wrapperExecute() {
         return;
     }
 
-    /* Locate the Java Console Window.  Will only exist when being run as a
-     *  service with interactive mode enabled and hide console disabled.
-     *  This way the console, and this its child windows will be displayed,
-     *  but we hide it as quickly as possible with no harm done but a black
-     *  window popping up for a brief moment. */
-    if ((!wrapperData->isConsole) && (wrapperData->ntServiceInteractive)
-        && (!wrapperData->ntHideJavaConsole)) {
-        /* Allow up to 2 seconds for the window to show up, but don't hang
-         *  up if it doesn't */
-        consoleHandle = NULL;
-        while ((!consoleHandle) && (i < 200)) {
-            Sleep(10);
-            consoleHandle = FindWindow("ConsoleWindowClass", titleBuffer);
-            i++;
-        }
-        if (consoleHandle != NULL) {
-            if (GetWindowPlacement(consoleHandle, &consolePlacement)) {
-                /* Hide the Window. */
-                consolePlacement.showCmd = SW_HIDE;
-
-                /* If we hide the window too soon after it is shown, it sometimes sticks, so wait a moment. */
-                Sleep(10);
-
-                if (!SetWindowPlacement(consoleHandle, &consolePlacement)) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                        "Unable to set window placement information: %s", getLastErrorText());
-                }
-            } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                    "Unable to obtain window placement information: %s", getLastErrorText());
-            }
+    if (hideConsole) {
+        /* Now that the JVM has been launched we need to hide the console that it
+         *  is using. */
+        if (wrapperData->wrapperConsoleHandle) {
+            /* The wrapper's console needs to be hidden. */
+            hideConsoleWindow(wrapperData->wrapperConsoleHandle);
+        } else {
+            /* We need to locate the console that was created by the JVM on launch
+             *  and hide it. */
+         findAndHideConsoleWindow(titleBuffer);
         }
     }
 
@@ -1241,7 +1343,7 @@ int wrapperLoadEnvFromRegistry() {
          *  through all the ones we set and Expand them if necessary. */
         dwIndex = 0;
 
-        // First time through, count all of the keys.
+        /* First time through, count all of the keys. */
         do {
             cbName = MAX_PROPERTY_NAME_LENGTH;
             cbData = MAX_PROPERTY_VALUE_LENGTH;
@@ -1250,9 +1352,9 @@ int wrapperLoadEnvFromRegistry() {
         } while (err != ERROR_NO_MORE_ITEMS);
 
         if (dwIndex > 0) {
-            // Now allocate a buffer for the environment strings.
+            /* Now allocate a buffer for the environment strings. */
             if (envKeys != NULL) {
-                // An old set of keys are already allocated.  Free them up.
+                /* An old set of keys are already allocated.  Free them up. */
                 int x = 0;
                 for (x = 0; x < envKeysCount; x++) {
                     if (NULL != envKeys[x]) {
@@ -1348,7 +1450,7 @@ int wrapperLoadEnvFromRegistry() {
 #ifdef _DEBUG
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Update local environment variable.  \"%s\"=\"%s\"", name, data);
 #endif
-                                    // Replace the env string.
+                                    /* Replace the env string. */
                                     sprintf(envKeys[ dwIndex ], "%s=%s", name, data);
                                     if (putenv(envKeys[ dwIndex ])) {
                                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to set environment variable from the registry - %s", getLastErrorText());
@@ -1484,7 +1586,7 @@ int wrapperStartService() {
                         } while ((serviceStatus.dwCurrentState != SERVICE_STOPPED)
                             && (serviceStatus.dwCurrentState != SERVICE_RUNNING));
 
-                        // Was the service started?
+                        /* Was the service started? */
                         if (serviceStatus.dwCurrentState == SERVICE_RUNNING) {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s started.", wrapperData->ntServiceDisplayName);
                         } else {
@@ -1646,7 +1748,7 @@ int wrapperRemove() {
     result = wrapperStopService( FALSE );
     if ( result )
     {
-        // There was a problem stopping the service.
+        /* There was a problem stopping the service. */
         return result;
     }
 

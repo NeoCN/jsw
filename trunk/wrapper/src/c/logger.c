@@ -23,6 +23,12 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.30  2003/10/30 19:34:34  mortenson
+ * Added a new wrapper.ntservice.console property so the console can be shown for
+ * services.
+ * Fixed a problem where requesting thread dumps on exit was failing when running
+ * as a service.
+ *
  * Revision 1.29  2003/08/02 15:50:02  mortenson
  * Implement getLastErrorText on UNIX versions.
  *
@@ -78,6 +84,7 @@
 #ifdef WIN32
 #include <windows.h>
 #include <tchar.h>
+#include <conio.h>
 #else
 #include <syslog.h>
 #include <strings.h>
@@ -106,11 +113,21 @@ char logfileFormat[32];
 /* Internal function declaration */
 void sendEventlogMessage( int source_id, int level, char *szBuff );
 void sendLoginfoMessage( int source_id, int level, char *szBuff );
+#ifdef WIN32
+void writeToConsole( char *lpszFmt, ... );
+#endif
 void writeTimeToStream( FILE *fp );
 void writeHeaderToStream( FILE *fp, int source_id );
 void writeLevelToStream( FILE *fp, int level );
 void writeMessageToStream( FILE *fp, char *lpszFmt, va_list vargs );
 void checkAndRollLogs( );
+
+#ifdef WIN32
+HANDLE consoleStdoutHandle = NULL;
+void setConsoleStdoutHandle( HANDLE stdoutHandle ) {
+    consoleStdoutHandle = stdoutHandle;
+}
+#endif
 
 int strcmpIgnoreCase( const char *str1, const char *str2 ) {
 #ifdef WIN32
@@ -287,24 +304,24 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
 
             switch( consoleFormat[i] ) {
                 case 'P': /* Prefix */
-                    writeHeaderToStream( stderr, source_id );
+                    writeHeaderToStream( stdout, source_id );
                     currentColumn++;
                 break;
 
                 case 'L': /* Loglevel */
-                    writeLevelToStream( stderr, level );
+                    writeLevelToStream( stdout, level );
                     currentColumn++;
                 break;
 
                 case 'M': /* Message */
                     va_start( vargs, lpszFmt );
-                    writeMessageToStream( stderr, lpszFmt, vargs );
+                    writeMessageToStream( stdout, lpszFmt, vargs );
                     va_end( vargs );
                     currentColumn++;
                 break;
 
                 case 'T': /* Timestamp */
-                    writeTimeToStream( stderr );
+                    writeTimeToStream( stdout );
                     currentColumn++;
                 break;
 
@@ -313,11 +330,28 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
             }
 
             /* Add separator chars */
-            if( handledFormat && (currentColumn != numColumns) )
-                fprintf( stderr, " | " );
+            if( handledFormat && (currentColumn != numColumns) ) {
+#ifdef WIN32
+                if ( consoleStdoutHandle != NULL ) {
+                    writeToConsole( " | " );
+                } else {
+#endif
+                    fprintf( stdout, " | " );
+#ifdef WIN32
+                }
+#endif
+            }
         }
 
-        fprintf( stderr, "\n" );
+#ifdef WIN32
+        if ( consoleStdoutHandle != NULL ) {
+            writeToConsole( "\n" );
+        } else {
+#endif
+            fprintf( stdout, "\n" );
+#ifdef WIN32
+        }
+#endif
     }
 
     /* Logfile output by format */
@@ -436,7 +470,7 @@ char* getLastErrorText() {
 }
 #else
 char* getLastErrorText() {
-	return strerror(errno);
+    return strerror(errno);
 }
 #endif
 
@@ -584,11 +618,11 @@ void sendEventlogMessage( int source_id, int level, char *szBuff ) {
         0                         /* binary data buffer */
     );
     if (result == 0) {
-        // If there are any errors accessing the event log, like it is full, then disable its output.
+        /* If there are any errors accessing the event log, like it is full, then disable its output. */
         setSyslogLevelInt(LEVEL_NONE);
 
-        // Recurse so this error gets set in the log file and console.  The syslog
-        //  output has been disabled so we will not get back here.
+        /* Recurse so this error gets set in the log file and console.  The syslog
+         *  output has been disabled so we will not get back here. */
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to write to the EventLog due to: %s", getLastErrorText());
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Internally setting wrapper.syslog.loglevel=NONE to prevent further messages.");
     }
@@ -637,6 +671,54 @@ void sendLoginfoMessage( int source_id, int level, char *szBuff ) {
 #endif
 }
 
+#ifdef WIN32
+int vWriteToConsoleBufferSize = 100;
+char *vWriteToConsoleBuffer = NULL;
+void vWriteToConsole( char *lpszFmt, va_list vargs ) {
+    int cnt;
+    DWORD wrote;
+
+    /* This should only be called if consoleStdoutHandle is set. */
+    if ( consoleStdoutHandle == NULL ) {
+        return;
+    }
+
+    if ( vWriteToConsoleBuffer == NULL ) {
+        vWriteToConsoleBuffer = (char *)malloc( vWriteToConsoleBufferSize * sizeof(char) );
+    }
+
+    /* The only way I could figure out how to write to the console
+     *  returned by AllocConsole when running as a service was to
+     *  do all of this special casing and use the handle to the new
+     *  console's stdout and the WriteConsole function.  If anyone
+     *  puzzling over this code knows a better way of doing this
+     *  let me know.
+     * WriteConsole takes a fixed buffer and does not do any expansions
+     *  We need to prepare the string to be displayed ahead of time.
+     *  This means storing the message into a temporary buffer.  The
+     *  following loop will expand the global buffer to hold the current
+     *  message.  It will grow as needed to handle any arbitrarily large
+     *  user message.  The buffer needs to be able to hold all available
+     *  characters + a null char. */
+    while ( ( cnt = _vsnprintf( vWriteToConsoleBuffer, vWriteToConsoleBufferSize - 1, lpszFmt, vargs ) ) < 0 ) {
+        /* Expand the size of the buffer */
+        free( vWriteToConsoleBuffer );
+        vWriteToConsoleBufferSize += 100;
+        vWriteToConsoleBuffer = (char *)malloc( vWriteToConsoleBufferSize * sizeof(char) );
+    }
+
+    /* We can now write the message. */
+    WriteConsole(consoleStdoutHandle, vWriteToConsoleBuffer, strlen( vWriteToConsoleBuffer ), &wrote, NULL);
+}
+void writeToConsole( char *lpszFmt, ... ) {
+    va_list		vargs;
+
+    va_start( vargs, lpszFmt );
+    vWriteToConsole( lpszFmt, vargs );
+    va_end( vargs );
+}
+#endif
+
 void writeTimeToStream( FILE *fp ) {
     time_t		now;
     struct tm	*nowTM;
@@ -646,9 +728,19 @@ void writeTimeToStream( FILE *fp ) {
     nowTM = localtime( &now );
 
     /* Write timestamp */
-    fprintf( fp, "%04d/%02d/%02d %02d:%02d:%02d", 
-    nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday, 
-    nowTM->tm_hour, nowTM->tm_min, nowTM->tm_sec );
+#ifdef WIN32
+    if ( ( fp == stdout ) && ( consoleStdoutHandle != NULL ) ) {
+        writeToConsole( "%04d/%02d/%02d %02d:%02d:%02d", 
+            nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday, 
+            nowTM->tm_hour, nowTM->tm_min, nowTM->tm_sec );
+    } else {
+#endif
+        fprintf( fp, "%04d/%02d/%02d %02d:%02d:%02d", 
+            nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday, 
+            nowTM->tm_hour, nowTM->tm_min, nowTM->tm_sec );
+#ifdef WIN32
+    }
+#endif
 }
 
 void writeHeaderToStream( FILE *fp, int source_id ) {
@@ -669,15 +761,38 @@ void writeHeaderToStream( FILE *fp, int source_id ) {
         break;
     }
 
-    fprintf( fp, "%s", header );
+#ifdef WIN32
+    if ( ( fp == stdout ) && ( consoleStdoutHandle != NULL ) ) {
+        writeToConsole( "%s", header );
+    } else {
+#endif
+        fprintf( fp, "%s", header );
+#ifdef WIN32
+    }
+#endif
 }
 
 void writeLevelToStream( FILE *fp, int level ) {
-    fprintf( fp, "%s", logLevelNames[ level ] );
+#ifdef WIN32
+    if ( ( fp == stdout ) && ( consoleStdoutHandle != NULL ) ) {
+        writeToConsole( "%s", logLevelNames[ level ] );
+    } else {
+#endif
+        fprintf( fp, "%s", logLevelNames[ level ] );
+#ifdef WIN32
+    }
+#endif
 }
-
 void writeMessageToStream( FILE *fp, char *lpszFmt, va_list vargs ) {
-    vfprintf( fp, lpszFmt, vargs );
+#ifdef WIN32
+    if ( ( fp == stdout ) && ( consoleStdoutHandle != NULL ) ) {
+        vWriteToConsole( lpszFmt, vargs );
+    } else {
+#endif
+        vfprintf( fp, lpszFmt, vargs );
+#ifdef WIN32
+    }
+#endif
 }
 
 void checkAndRollLogs() {
