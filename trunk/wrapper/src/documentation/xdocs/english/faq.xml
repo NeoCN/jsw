@@ -28,6 +28,34 @@ $Id$
     </section>
     <section>
         <title>
+            My application uses the Windows COMM API, but it doesn't work with the Wrapper.
+        </title>
+        <para>
+            Some users have reported problems when attempting to get their COMM
+            applications working with the Wrapper.  The application will work fine
+            standalone, but when run under the Wrapper errors like the following
+            are thrown:
+        </para>
+        <informalexample>
+            <screen format="linespecific"><![CDATA[Caught java.lang.NullPointerException: name can't be null while loading driver com.sun.comm.Win32Driver]]></screen>
+        </informalexample>
+        <para>
+            The COMM API requires two files to be available:  The win32com.dll file
+            on the library path, and a javax.comm.properties file located in a lib
+            subdirectory of the directory returned by System.getProperty("java.home").
+        </para>
+        <para>
+            Problems are caused if your wrapper.conf has configured that you use a
+            different JVM than is specified by your JAVA_HOME environment variable.
+            You can make sure you are using the correct JVM by specifying the following
+            in your wrapper.conf file
+        </para>
+        <informalexample>
+            <screen format="linespecific"><![CDATA[wrapper.java.command=%JAVA_HOME%/bin/java]]></screen>
+        </informalexample>
+    </section>
+    <section>
+        <title>
             My is throwing security exceptions when I run with the Wrapper.
         </title>
         <para>
