@@ -24,16 +24,17 @@
                 The first method is to use the
                 <literal moreinfo="none">WrapperSimpleApp</literal> helper class to
                 launch the application.  This is by far the simplest way to integrate
-                with the Wrapper and where possible, it is highly recommended.  There
+                with the Wrapper, and where possible, it is highly recommended.  There
                 are some things to be aware of when using this method however.  When
-                the Wrapper attempts to shutdown the application, it will do so by
-                calling <literal moreinfo="none">System.exit()</literal> within the
-                JVM.  If the application has registered its own shutdown hook, it
-                will be invoked, giving the application a chance to shutdown normally.
-                If on the other hand, a shutdown hook is not registered, then the
-                application will suddenly exit.   This is the exact same behavior
-                as if the application was running in a console without the Wrapper
-                and a user pressed CTRL-C in the console.
+                the Wrapper shuts down the JVM, there is no direct call to an
+                application requesting that it shutdown cleanly.  Rather, the Wrapper
+                will exit the JVM by calling <literal moreinfo="none">System.exit()</literal>
+                from within the JVM.  If the application has registered its own shutdown
+                hook, it will be invoked, giving the application a chance to shutdown
+                cleanly.  If on the other hand, a shutdown hook is not registered, then
+                the application will suddenly exit.   Both cases, with and without a
+                shutdown hook, provide the exact same behavior as if the application
+                was running without the Wrapper and a user pressed CTRL-C in the console.
             </para>
             <para>
                 Detailed overview and instructions, using
