@@ -64,7 +64,9 @@ wrapper.syslog.loglevel=NONE
 #********************************************************************
 # Wrapper Unix daemon parameters
 #********************************************************************
-# File to write process ID to
+# File to write process ID to.  If you change this value and you are
+#  using an sh script to launch the wrapper then you must also update
+#  that script.  bash scripts do not require any modification.
 wrapper.pidfile=/var/run/@app.name@.pid
 
 #********************************************************************

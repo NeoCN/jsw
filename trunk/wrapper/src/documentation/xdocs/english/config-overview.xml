@@ -596,10 +596,20 @@ wrapper.logfile.format=
                         <glossterm>wrapper.pidfile</glossterm>
                         <glossdef>
                             <para>
-                                File to write process ID to
+                                File to write process ID to.  This file is used by sh scripts to
+                                make it possible to tell whether or not the wrapper process is
+                                already running.  If you modify this parameter and you are using a
+                                sh script to control the wrapper then please make sure that you make
+                                sure you also update the script to reflect this change.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
                                     <screen format="linespecific"><![CDATA[wrapper.pidfile=/var/run/myapp.pid]]></screen>
+                                </informalexample>
+                                <informalexample>
+                                    <simpara><emphasis>Text in sh.script which needs to updated:</emphasis></simpara>
+                                    <screen format="linespecific"><![CDATA[# Process ID
+PIDDIR="/var/run"
+PIDFILE="$PIDDIR/$APP_NAME.pid"]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>

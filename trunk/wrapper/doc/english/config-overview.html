@@ -347,7 +347,9 @@ wrapper.syslog.loglevel=NONE
 #********************************************************************
 # Wrapper Unix daemon parameters
 #********************************************************************
-# File to write process ID to
+# File to write process ID to.  If you change this value and you are
+#  using an sh script to launch the wrapper then you must also update
+#  that script.  bash scripts do not require any modification.
 wrapper.pidfile=/var/run/@app.name@.pid
 
 #********************************************************************
@@ -1491,7 +1493,11 @@ wrapper.logfile.format=
 <dd>
                             
 <p align="justify">
-                                File to write process ID to
+                                File to write process ID to.  This file is used by sh scripts to
+                                make it possible to tell whether or not the wrapper process is
+                                already running.  If you modify this parameter and you are using a
+                                sh script to control the wrapper then please make sure that you make
+                                sure you also update the script to reflect this change.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -1501,6 +1507,24 @@ wrapper.logfile.format=
 <tr>
 <td>
 <pre>wrapper.pidfile=/var/run/myapp.pid</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                                
+<p align="justify">
+                                    
+<i>Text in sh.script which needs to updated:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre># Process ID
+PIDDIR="/var/run"
+PIDFILE="$PIDDIR/$APP_NAME.pid"</pre>
 </td>
 </tr>
 </table>
@@ -1556,7 +1580,7 @@ wrapper.logfile.format=
 </div>
                 
 <div class="glosslist">
-<a name="N400D47"></a>
+<a name="N400D52"></a>
 <dl>
                     
                         
@@ -1757,7 +1781,7 @@ wrapper.logfile.format=
                                     From the Windows API, each priority level is described as
                                     follows:
                                     <div class="glosslist">
-<a name="N400DD5"></a>
+<a name="N400DE0"></a>
 <dl>
                                         
                                             
@@ -2074,7 +2098,7 @@ The service did not start due to a logon failure.</pre>
 </p>
                 
 <div class="glosslist">
-<a name="N400E97"></a>
+<a name="N400EA2"></a>
 <dl>
                     
                         
