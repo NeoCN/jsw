@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.41  2003/05/29 09:47:58  mortenson
+ * Add some debug output to make it possible to verify that the NT ServiceManager
+ * is correctly being kept up to date on the status of the service.
+ *
  * Revision 1.40  2003/05/01 03:15:03  mortenson
  * Rework some code to make its flow clearer.  Should be no functional change.
  *
@@ -451,21 +455,26 @@ void wrapperCleanup() {
  */
 void wrapperReportStatus(int status, int errorCode, int waitHint) {
     int natState;
+    char *natStateName;
     static DWORD dwCheckPoint = 1;
     BOOL bResult = TRUE;
 
     switch (status) {
     case WRAPPER_WSTATE_STARTING:
         natState = SERVICE_START_PENDING;
+        natStateName = "SERVICE_START_PENDING";
         break;
     case WRAPPER_WSTATE_STARTED:
         natState = SERVICE_RUNNING;
+        natStateName = "SERVICE_RUNNING";
         break;
     case WRAPPER_WSTATE_STOPPING:
         natState = SERVICE_STOP_PENDING;
+        natStateName = "SERVICE_STOP_PENDING";
         break;
     case WRAPPER_WSTATE_STOPPED:
         natState = SERVICE_STOPPED;
+        natStateName = "SERVICE_STOPPED";
         break;
     default:
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unknown status: %d", status);
@@ -487,6 +496,12 @@ void wrapperReportStatus(int status, int errorCode, int waitHint) {
             ssStatus.dwCheckPoint = 0;
         } else {
             ssStatus.dwCheckPoint = dwCheckPoint++;
+        }
+
+        if (wrapperData->isStateOutputEnabled) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                "calling SetServiceStatus with status=%s, waitHint=%d, checkPoint=%ld",
+                natStateName, waitHint, dwCheckPoint);
         }
 
         if (!(bResult = SetServiceStatus(sshStatusHandle, &ssStatus))) {
