@@ -26,6 +26,10 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.14  2002/06/02 13:38:58  mortenson
+// Added support for System Suspend and made the Wrapper handle heavy loads
+// better by avoiding unwanted timeouts.
+//
 // Revision 1.13  2002/05/28 11:54:06  mortenson
 // Add a check for the stop method being called recursively by user code.
 //
@@ -146,6 +150,7 @@ public final class WrapperManager implements Runnable {
     private static Thread _commRunner;
     private static boolean _commRunnerStarted = false;
     private static Thread _eventRunner;
+    private static long _eventRunnerTime;
     
     private static WrapperListener _listener;
     
@@ -287,27 +292,44 @@ public final class WrapperManager implements Runnable {
                 System.out.println("Calling native initialization method.");
             }
             nativeInit(_debug);
-            
-            _eventRunner = new Thread("Wrapper-Control-Event-Monitor") {
-                public void run() {
-                    while (!_shuttingDown) {
+        }
+        
+        // Start a thread which looks for control events sent to the
+        //  process.  The thread is also used to keep track of whether
+        //  the VM has been getting CPU to avoid invalid timeouts.
+        _eventRunnerTime = System.currentTimeMillis();
+        _eventRunner = new Thread("Wrapper-Control-Event-Monitor") {
+            public void run() {
+                while (!_shuttingDown) {
+                    long now = System.currentTimeMillis();
+                    long age = now - _eventRunnerTime;
+                    if (age > 10000) {
+                        System.out.println("JVM Process has not received any CPU time for " +
+                            (age / 1000) + " seconds.  Extending timeouts.");
+                        
+                        // Make sure that we don't get any ping timeouts in this event
+                        _lastPing = now;
+                    }
+                    _eventRunnerTime = now;
+                    
+                    if (_libraryOK) {
                         // Look for a control event in the wrapper library
                         int event = WrapperManager.nativeGetControlEvent();
                         if (event != 0) {
                             WrapperManager.controlEvent(event);
                         }
-                        
-                        // Wait before checking for another control event.
-                        try {
-                            Thread.sleep(200);
-                        } catch (InterruptedException e) {
-                        }
+                    }
+                    
+                    // Wait before checking for another control event.
+                    try {
+                        Thread.sleep(200);
+                    } catch (InterruptedException e) {
                     }
                 }
-            };
-            _eventRunner.setDaemon(true);
-            _eventRunner.start();
-        }
+            }
+        };
+        _eventRunner.setDaemon(true);
+        _eventRunner.start();
         
         if (_debug) {
             // Display more JVM infor right after the call initialization of the library.
@@ -1007,18 +1029,26 @@ public final class WrapperManager implements Runnable {
                         }
                         
                         if (!_appearHung) {
-                            // How long has it been since we received the last ping from the Wrapper?
-                            if (now - _lastPing > 120000) {
-                                // It has been more than 2 minutes, so just give up and kill the JVM
-                                System.out.println("JVM did not exit.  Give up.");
-                                System.exit(1);
-                            } else if (now - _lastPing > 30000) {
-                                // It has been more than 30 seconds, so give a warning.
-                                System.out.println("The Wrapper code did not ping the JVM for " + ((now - _lastPing) / 1000) + " seconds.  Quit and let the wrapper resynch.");
-                                
-                                // Don't do anything if we are already stopping
-                                if (!_stopping) {
-                                    stopInner(1);
+                            long lastPingAge = now - _lastPing;
+                            long eventRunnerAge = now - _eventRunnerTime;
+                            
+                            // We may have timed out because the system was extremely busy or suspended.
+                            //  Only restart due to a lack of ping events if the event thread has been
+                            //  running.
+                            if (eventRunnerAge < 10000) {
+                                // How long has it been since we received the last ping from the Wrapper?
+                                if (lastPingAge > 120000) {
+                                    // It has been more than 2 minutes, so just give up and kill the JVM
+                                    System.out.println("JVM did not exit.  Give up.");
+                                    System.exit(1);
+                                } else if (lastPingAge > 30000) {
+                                    // It has been more than 30 seconds, so give a warning.
+                                    System.out.println("The Wrapper code did not ping the JVM for " + (lastPingAge / 1000) + " seconds.  Quit and let the wrapper resynch.");
+                                    
+                                    // Don't do anything if we are already stopping
+                                    if (!_stopping) {
+                                        stopInner(1);
+                                    }
                                 }
                             }
                         }
