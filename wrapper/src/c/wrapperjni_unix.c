@@ -24,8 +24,15 @@
  */
 
 // $Log$
-// Revision 1.1  2001/11/07 08:54:20  mortenson
-// Initial revision
+// Revision 1.2  2001/11/08 04:22:28  mortenson
+// Had been having a problem with the windows build where the WIN32
+// symbol was not defined sometimes.  Figured out that that was the
+// cause of a strange build problem enabling me to remove the
+// workaround code.  wrapperjni_win.c will now fail to build if the symbol
+// is not defined.
+//
+// Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
+// no message
 //
 
 #ifndef WIN32
@@ -69,9 +76,4 @@ Java_com_silveregg_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass clazz, 
     signal(SIGINT,  handleInterrupt);
     signal(SIGTERM, handleTermination);
 }
-
-JNIEXPORT void JNICALL
-Java_com_silveregg_wrapper_WrapperManager_nativeDummy(JNIEnv *env, jclass clazz, jboolean debugging) {
-}
-
 #endif
