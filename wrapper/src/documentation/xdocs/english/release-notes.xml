@@ -146,6 +146,12 @@ $Id$
                     repeating.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Improve the error message displayed on Windows when the configured Java
+                    command can not be executed or does not exist.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

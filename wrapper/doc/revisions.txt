@@ -61,6 +61,8 @@ Java Service Wrapper Revision History.
   to feature request #643617.  The EventLog output will now be disabled if any
   errors are encountered while logging events.  This prevents the error from
   repeating.
+* Improve the error message displayed on Windows when the configured Java
+  command can not be executed or does not exist.
 
 3.0.3
 * Added support for Mac OS X.  Big thanks to Andy Barnett for supplying the
