@@ -26,6 +26,9 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.3  2002/05/17 09:11:37  mortenson
+// Improve javadocs for the stop method.
+//
 // Revision 1.2  2001/11/08 09:06:58  mortenson
 // Improve JavaDoc text.
 //
@@ -38,7 +41,7 @@ public interface WrapperListener {
      * The start method is called when the WrapperManager is signaled by the 
      *	native wrapper code that it can start its application.  This
      *	method call is expected to return, so a new thread should be launched
-     *	it necessary.
+     *	if necessary.
      * If there are any problems, then an Integer should be returned, set to
      *	the desired exit code.  If the application should continue,
      *	return null.
@@ -46,7 +49,20 @@ public interface WrapperListener {
     Integer start(String[] args);
     
     /**
-     * Called when the application is shutting down.
+     * Called when the application is shutting down.  The Wrapper assumes that
+     *  this method will return fairly quickly.  If the shutdown code code
+     *  could potentially take a long time, then WrapperManager.stopping()
+     *  should be called to extend the timeout period.  If for some reason,
+     *  the stop method can not return, then it must call
+     *  WrapperManager.stopped() to avoid warning messages from the Wrapper.
+     *
+     * @param exitCode The suggested exit code that will be returned to the OS
+     *                 when the JVM exits.
+     *
+     * @return The exit code to actually return to the OS.  In most cases, this
+     *         should just be the value of exitCode, however the user code has
+     *         the option of changing the exit code if there are any problems
+     *         during shutdown.
      */
     int stop(int exitCode);
     
