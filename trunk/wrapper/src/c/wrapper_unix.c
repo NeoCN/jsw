@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.84  2004/07/15 10:09:55  mortenson
+ * Correct the FREEBSD ifdef statement.
+ *
  * Revision 1.83  2004/07/15 03:26:36  mortenson
  * Now that the FreeBSD O_NONBLOCK bug is better understood, apply a better
  * patch to fix it.
@@ -1085,7 +1088,7 @@ int wrapperReadChildOutput() {
                 readSize = 1;
             }
 
-#if defined HAVE_PTHREADS && (defined HAVE_OPENBSD_OS || defined HAVE_FREEBSD_OS)
+#if defined OPENBSD || defined FREEBSD
             /* Work around FreeBSD Bug #kern/64313
              *  http://www.freebsd.org/cgi/query-pr.cgi?pr=kern/64313
              *
