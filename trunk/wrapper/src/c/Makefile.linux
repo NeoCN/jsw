@@ -1,8 +1,10 @@
-COMPILE = gcc -Wall -O
+COMPILE = gcc -O3 -Wall --pedantic
 
 INCLUDE=$(JAVA_HOME)/include
 
 DEFS = -I$(INCLUDE) -I$(INCLUDE)/linux
+
+realpath_SOURCE = realpath.c
 
 wrapper_SOURCE = wrapper.c wrapper_unix.c property.c
 
@@ -11,16 +13,19 @@ libwrapper_so_OBJECTS = wrapperjni_unix.o wrapperjni.o
 BIN = ../../bin
 LIB = ../../lib
 
-all: init wrapper libwrapper.so
+all: init realpath wrapper libwrapper.so
 
 clean:
-	rm -f *.o $(BIN)/wrapper $(LIB)/libwrapper.so
+	rm -f *.o $(BIN)/realpath $(BIN)/wrapper $(LIB)/libwrapper.so
 
 cleanall: clean
-	rm -f *~
+	rm -rf *~ .deps
 
 init:
 	if test ! -d .deps; then mkdir .deps; fi
+
+realpath: $(realpath_SOURCE)
+	$(COMPILE) $(realpath_SOURCE) -o $(BIN)/realpath
 
 wrapper: $(wrapper_SOURCE)
 	$(COMPILE) $(wrapper_SOURCE) -o $(BIN)/wrapper
