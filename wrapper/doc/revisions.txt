@@ -38,6 +38,8 @@ Java Service Wrapper Revision History.
   control or service handlers.
 * Centralize shutdown code on UNIX version in an appExit method as was already
   being done for Windows versions.
+* Fix a problem where the build.sh was not correctly using the included ant
+  if an ANT_HOME environment variable was defined.
 
 3.1.1
 * Modified the way libwrapper.so is built on Solaris and Linux so that it

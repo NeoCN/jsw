@@ -97,6 +97,12 @@ $Id$
                     being done for Windows versions.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where the build.sh was not correctly using the included ant
+                    if an ANT_HOME environment variable was defined.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.1">
