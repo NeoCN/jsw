@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.4  2002/01/27 16:59:54  mortenson
+// Modified the log rolling code so that a max log files value is not required.
+//
 // Revision 1.3  2002/01/27 15:02:45  spocke
 // Fixed some Unix issues, so it compiles better.
 //
@@ -46,6 +49,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <time.h>
+#include <sys/stat.h>
 #include <string.h>
 
 #ifdef WIN32
@@ -164,7 +168,7 @@ void setLogfileMaxFileSize( char *max_file_size ) {
 		tmpFileSizeBuff[newLength] = '\0';/* Crop string */
 
 		logFileMaxSize = atoi( tmpFileSizeBuff );
-		if( logFileMaxSize != -1 )
+		if( logFileMaxSize > 0 )
 			logFileMaxSize *= multiple;
 
 		/* * Free memory * */
@@ -284,7 +288,10 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
 	}
 
 	// * * Logfile output by format
+	// Make sure that the log file does not need to be rolled.
 	checkAndRollLogs( );
+
+	// Log the message to the log file
 	logfileFP = fopen( logFilePath, "a" );
 	if( (level >= currentLogfileLevel) && (logfileFP != NULL) ) {
 		// * * Count number of columns inorder to skip last '|' char
@@ -587,55 +594,109 @@ void writeMessageToStream( FILE *fp, char *lpszFmt, va_list vargs ) {
 	vfprintf( fp, lpszFmt, vargs );
 }
 
-void checkAndRollLogs( ) {
-	FILE *fp;
-	int fileSize;
-	char *tmpLogFilePath1;
-	char *tmpLogFilePath2;
+void checkAndRollLogs() {
+	struct stat fileStat;
+	//FILE *fp;
+	//int fileSize;
+	char *tmpLogFilePathOld;
+	char *tmpLogFilePathNew;
+	int result;
 	int i;
 
-	if( (logFileMaxSize <= -1) || (logFileMaxLogFiles <= -1) )
+	if (logFileMaxSize <= 0)
 		return;
 
-	/* * Allocate buffers * */
-	tmpLogFilePath1 = (char *) malloc( ((int) strlen( logFilePath )) + 10 );
-	tmpLogFilePath2 = (char *) malloc( ((int) strlen( logFilePath )) + 10 );
+	if (stat(logFilePath, &fileStat) == 0) {
+		//printf("%s has size=%d >= %d?\n", logFilePath, fileStat.st_size, logFileMaxSize);
 
-	/* * Check if the allocation was successful * */
-	if( (tmpLogFilePath1 == NULL) || (tmpLogFilePath2 == NULL) ) {
-		free( (void *) tmpLogFilePath1 );
-		free( (void *) tmpLogFilePath2 );
-		return;
-	}
-
-	if( (fp = fopen( logFilePath, "rb" )) != NULL ) {
-		/* * Get file size and close file * */
-		fseek( fp, 0, SEEK_END );
-		fileSize = ftell( fp );
-		fclose( fp );
-
-		/* * Is it time to roll them * */
-		if( fileSize > logFileMaxSize ) {
-			/* * Loop and rename them * */
-			for( i=logFileMaxLogFiles; i>=0; i-- ) {
-				sprintf( tmpLogFilePath1, "%s.%d", logFilePath, i );
-				sprintf( tmpLogFilePath2, "%s.%d", logFilePath, i + 1 );
-
-				rename( tmpLogFilePath1, tmpLogFilePath2 );
+		// Does the log file need to rotated?
+		if(fileStat.st_size >= logFileMaxSize) {
+			tmpLogFilePathOld = NULL;
+			tmpLogFilePathNew = NULL;
+#ifdef _DEBUG
+				printf("Rolling log files...\n");
+#endif
+			// Allocate buffers (Allow for 10 digit file indices)
+			if ((tmpLogFilePathOld = (char *)malloc(((int)strlen(logFilePath)) + 10 + 2)) == NULL) {
+				// Don't log this as with other errors as that would cause recursion.
+				fprintf(stderr, "Out of memory.\n");
+				goto cleanup;
+			}
+			if ((tmpLogFilePathNew = (char *)malloc(((int)strlen(logFilePath)) + 10 + 2)) == NULL) {
+				// Don't log this as with other errors as that would cause recursion.
+				fprintf(stderr, "Out of memory.\n");
+				goto cleanup;
 			}
 
-			/* * Rename base file to first index * */
-			sprintf( tmpLogFilePath1, "%s", logFilePath );
-			sprintf( tmpLogFilePath2, "%s.1", logFilePath );
-			rename( tmpLogFilePath1, tmpLogFilePath2 );
+			// We don't know how many log files need to be rotated yet, so look.
+			i = 0;
+			do {
+				i++;
+				sprintf(tmpLogFilePathOld, "%s.%d", logFilePath, i);
+				result = stat(tmpLogFilePathOld, &fileStat);
+#ifdef _DEBUG
+				if (result == 0) {
+					printf("Rolled log file %s exists.\n", tmpLogFilePathOld);
+				}
+#endif
+			} while((result == 0) && ((logFileMaxLogFiles <= 0) || (i < logFileMaxLogFiles)));
 
-			/* * Remove the last file * */
-			sprintf( tmpLogFilePath1, "%s.%d", logFilePath, logFileMaxLogFiles + 1 );
-			remove( tmpLogFilePath1 );
+			// Remove the file with the highest index if it exists
+			sprintf(tmpLogFilePathOld, "%s.%d", logFilePath, i);
+			remove(tmpLogFilePathOld);
+
+			// Now, starting at the highest file rename them up by one index.
+			for (; i > 1; i--) {
+				sprintf(tmpLogFilePathNew, tmpLogFilePathOld);
+				sprintf(tmpLogFilePathOld, "%s.%d", logFilePath, i - 1);
+
+				if (rename(tmpLogFilePathOld, tmpLogFilePathNew) != 0) {
+					if (errno == 13) {
+						// Don't log this as with other errors as that would cause recursion.
+						printf("Unable to rename log file %s to %s.  File is in use by another application.\n",
+							tmpLogFilePathOld, tmpLogFilePathNew);
+					} else {
+						// Don't log this as with other errors as that would cause recursion.
+						printf("Unable to rename log file %s to %s. (errno %d)\n",
+							tmpLogFilePathOld, tmpLogFilePathNew, errno);
+					}
+					goto cleanup;
+				}
+#ifdef _DEBUG
+				else {
+					printf("Renamed %s to %s\n", tmpLogFilePathOld, tmpLogFilePathNew);
+				}
+#endif
+			}
+
+			// Rename the current file to the #1 index position
+			sprintf(tmpLogFilePathNew, tmpLogFilePathOld);
+			if (rename(logFilePath, tmpLogFilePathNew) != 0) {
+				if (errno == 13) {
+					// Don't log this as with other errors as that would cause recursion.
+					printf("Unable to rename log file %s to %s.  File is in use by another application.\n",
+						logFilePath, tmpLogFilePathNew);
+				} else {
+					// Don't log this as with other errors as that would cause recursion.
+					printf("Unable to rename log file %s to %s. (errno %d)\n",
+						logFilePath, tmpLogFilePathNew, errno);
+				}
+				goto cleanup;
+			}
+#ifdef _DEBUG
+			else {
+				printf("Renamed %s to %s\n", logFilePath, tmpLogFilePathNew);
+			}
+#endif
+
+			cleanup:
+			// Free memory
+			if (tmpLogFilePathOld != NULL) {
+				free((void *)tmpLogFilePathOld);
+			}
+			if (tmpLogFilePathNew != NULL) {
+				free((void *)tmpLogFilePathNew);
+			}
 		}
 	}
-
-	/* * Free memory * */
-	free( (void *) tmpLogFilePath1 );
-	free( (void *) tmpLogFilePath2 );
 }
