@@ -1,6 +1,11 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 2.2.4
+* Set mode of executables in binary release tar files so that they can be run
+  without modification after being extracted.
+* Fixed line feeds in release so that bat files are always CRLF, unix scripts
+  are always LF.  Other source files are always CRLF in ZIP archives and LF
+  in tar.gz archives.
 * Make the build fail if Wrapper.exe or Wrapper.dll do not exist for Windows
   builds.
 * Added an empty wrapper.log to the releases so that the TestWrapper example

@@ -7,29 +7,25 @@
      ******************************************************************** -->
 
 <article id="index">
-    <title>Troubleshooting</title>
+    <title>FAQ</title>
     <section>
         <title>Why does installing as a service on NT generate a new .exe?</title>
-        <itemizedlist>
-            <listitem>
-                <para>
-                    When an NT service is launched, it is not possible to provide it with any parameters.  Most NT services get around this my storing information in the NT registry.  The problem that we had with Wrapper was that we needed to be able to run multiple applications on the same machine at the same time.  If the Wrapper stored its application specific information in the registry, then each copy of the Wrapper would be trying to look in the same location in the registry for their parameters.
-                </para>
-                <para>
-                    We could have gotten around this by requiring the integrator to edit a c header file and then recompile custom versions of the Wrapper.exe.  But we decided to make the process more elegant by having the Wrapper take care of this step for you.
-                </para>
-                <para>
-                    When you run Wrapper.exe -i &lt;conf&gt;, the Wrapper makes a copy of itself with the full path to the specified configuration file embedded in its .exe.  This new .exe is then registered with the NT Service Manager.  Whenever the service is started, the new Wrapper is able to locate its configuration file because its location is now hard coded in its .exe.
-                </para>
-                <para>
-                    This means that you can modify your wrapper.conf file without having to uninstall and then reinstall your service.  You will still have to restart it for changes to take place.
-                </para>
-                <warning>
-                    <simpara>
-                        WARNING - Do not modify any of the NT service specific parameters in the wrapper.conf when an application using that configuration file has been installed as a service.  Changing the name of the service for example will make it impossible to uninstall.
-                    </simpara>
-                </warning>
-            </listitem>
-        </itemizedlist>
+        <para>
+            When an NT service is launched, it is not possible to provide it with any parameters.  Most NT services get around this my storing information in the NT registry.  The problem that we had with Wrapper was that we needed to be able to run multiple applications on the same machine at the same time.  If the Wrapper stored its application specific information in the registry, then each copy of the Wrapper would be trying to look in the same location in the registry for their parameters.
+        </para>
+        <para>
+            We could have gotten around this by requiring the integrator to edit a c header file and then recompile custom versions of the Wrapper.exe.  But we decided to make the process more elegant by having the Wrapper take care of this step for you.
+        </para>
+        <para>
+            When you run Wrapper.exe -i &lt;conf&gt;, the Wrapper makes a copy of itself with the full path to the specified configuration file embedded in its .exe.  This new .exe is then registered with the NT Service Manager.  Whenever the service is started, the new Wrapper is able to locate its configuration file because its location is now hard coded in its .exe.
+        </para>
+        <para>
+            This means that you can modify your wrapper.conf file without having to uninstall and then reinstall your service.  You will still have to restart it for changes to take place.
+        </para>
+        <warning>
+            <simpara>
+                WARNING - Do not modify any of the NT service specific parameters in the wrapper.conf when an application using that configuration file has been installed as a service.  Changing the name of the service for example will make it impossible to uninstall.
+            </simpara>
+        </warning>
     </section>
 </article>

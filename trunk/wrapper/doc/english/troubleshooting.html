@@ -131,24 +131,20 @@
 <a name="NA2B"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="100%">
 <tr>
-<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+1"><b>My Application will not start.</b></font></td>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+1"><b>My Application will not start.  What can I do to narrow down the problem?</b></font></td>
 </tr>
 <tr>
 <td><font face="arial,helvetica,sanserif" color="#000000">
 <br>
         
         
-<ul>
-            
-<li>
-                
 <p align="justify">
-                    Output describing the problem should be displayed in the console as well as the configured log file.  To get more detailed output, edit your wrapper.conf file and enable debugging by uncommenting the wrapper.debug property.  This will display very detailed output at every step in the process of launching and monitoring your application.
-                </p>
-            
-</li>
+            Output describing the problem should be displayed in the console as well as the configured log file.  To get more detailed output, edit your wrapper.conf file and enable debugging by uncommenting the wrapper.debug property.  This will display very detailed output at every step in the process of launching and monitoring your application.
+        </p>
         
-</ul>
+<p align="justify">
+            If your application works when not using the Wrapper, but fails with the Wrapper, then it is very likely that there is a problem in the way you set up your wrapper.conf file.  Please look closely at the command used to launch java, in the debug output.  It is possible that there is a mistake in the classpath or something.
+        </p>
     
 </font></td>
 </tr>
@@ -157,7 +153,7 @@
 <br>
     
 <div>
-<a name="NA3A"></a>
+<a name="NA37"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="100%">
 <tr>
 <td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+1"><b>I am not getting any output in my configured log file.</b></font></td>
@@ -167,17 +163,30 @@
 <br>
         
         
-<ul>
-            
-<li>
-                
 <p align="justify">
-                    It is possible that the Wrapper is not able to locate the specified wrapper configuration file, or it is not able to open the configured log file for some reason.  In either case, the Wrapper will log output to a file called wrapper.log in the current working directory.  The current working directory will most likely be the directory containing the binary.  However, in some cases, when running as an NT service, the wrapper.log file may be placed in your WinNT\System32 directory.
-                </p>
-            
-</li>
+            It is possible that the Wrapper is not able to locate the specified wrapper configuration file, or it is not able to open the configured log file for some reason.  In either case, the Wrapper will log output to a file called wrapper.log in the current working directory.  The current working directory will most likely be the directory containing the binary.  However, in some cases, when running as an NT service, the wrapper.log file may be placed in your WinNT\System32 directory.
+        </p>
+    
+</font></td>
+</tr>
+</table>
+</div>
+<br>
+    
+<div>
+<a name="NA40"></a>
+<table cellspacing="0" cellpadding="2" border="0" width="100%">
+<tr>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+1"><b>My application is hanging while it is shutting down.</b></font></td>
+</tr>
+<tr>
+<td><font face="arial,helvetica,sanserif" color="#000000">
+<br>
         
-</ul>
+        
+<p align="justify">
+            If you call System.exit() in your application then Wrapper will catch this and attempt to shutdown the applicaiton cleanly.  If during the shutdown process, your application once again calls System.exit() then the call will block indeffinately causing your application to hang.  There are also problems with calling the destroy() method on an AWT frame or window from within a shutdown hoot thread.  Please take a look at the wrapper.disable_shutdown_hook property in the Configuration File Overview for details on how to avoid this problem.
+        </p>
     
 </font></td>
 </tr>
@@ -189,35 +198,6 @@
 <a name="NA49"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="100%">
 <tr>
-<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+1"><b>My application is hanging while it is shutting down.</b></font></td>
-</tr>
-<tr>
-<td><font face="arial,helvetica,sanserif" color="#000000">
-<br>
-        
-        
-<ul>
-            
-<li>
-                
-<p align="justify">
-                    If you call System.exit() in your application then Wrapper will catch this and attempt to shutdown the applicaiton cleanly.  If during the shutdown process, your application once again calls System.exit() then the call will block indeffinately causing your application to hang.  There are also problems with calling the destroy() method on an AWT frame or window from within a shutdown hoot thread.  Please take a look at the wrapper.disable_shutdown_hook property in the Configuration File Overview for details on how to avoid this problem.
-                </p>
-            
-</li>
-        
-</ul>
-    
-</font></td>
-</tr>
-</table>
-</div>
-<br>
-    
-<div>
-<a name="NA58"></a>
-<table cellspacing="0" cellpadding="2" border="0" width="100%">
-<tr>
 <td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+1"><b>My JVM is sometimes restarted when the system is heavily loaded.</b></font></td>
 </tr>
 <tr>
@@ -225,14 +205,10 @@
 <br>
         
         
-<ul>
-            
-<li>
-                
 <p align="justify">
-                    Because the Wrapper is using a pinging mechanism to check on the health of the JVM, it is possible that the Wrapper will think that the JVM is hung when it isn't if another process is taking 100% of the CPU for longer than 30 seconds.  This will result in an entry like the following in your log file, and the JVM being restarted:
-                    <p align="justify">
-                        
+            Because the Wrapper is using a pinging mechanism to check on the health of the JVM, it is possible that the Wrapper will think that the JVM is hung when it isn't if another process is taking 100% of the CPU for longer than 30 seconds.  This will result in an entry like the following in your log file, and the JVM being restarted:
+            <p align="justify">
+                
 <div align="left">
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
@@ -246,18 +222,14 @@ jvm 2    | 2001/12/01 12:23:50 | Initializing...</pre>
 </tr>
 </table>
 </div>
-                    
-</p>
-                
-</p>
-                
-<p align="justify">
-                    The property <tt>wrapper.ping.timeout=30</tt> in <tt>conf/wrapper.log</tt> can be used to extend this timeout.  But be aware that this will also lengthen the amount of time that your application will remain hung in the event of a real problem.
-                </p>
             
-</li>
+</p>
         
-</ul>
+</p>
+        
+<p align="justify">
+            The property <tt>wrapper.ping.timeout=30</tt> in <tt>conf/wrapper.log</tt> can be used to extend this timeout.  But be aware that this will also lengthen the amount of time that your application will remain hung in the event of a real problem.
+        </p>
     
 </font></td>
 </tr>

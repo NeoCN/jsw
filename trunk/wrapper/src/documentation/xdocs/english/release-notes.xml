@@ -9,8 +9,18 @@
 <article id="index">
     <title>Java Service Wrapper Release Notes</title>
     <section>
-        <title>Version 2.2.3: Changes and bugfixes</title>
+        <title>Version 2.2.4: Changes and bugfixes</title>
         <itemizedlist>
+            <listitem>
+                <para>
+                    Set mode of executables in binary release tar files so that they can be run without modification after being extracted.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Fixed line feeds in release so that bat files are always CRLF, unix scripts are always LF.  Other source files are always CRLF in ZIP archives and LF in tar.gz archives.
+                </para>
+            </listitem>
             <listitem>
                 <para>
                     Make the build fail if Wrapper.exe or Wrapper.dll do not exist for Windows builds.
