@@ -78,5 +78,18 @@ Initializing...]]></screen>
             <simpara><emphasis>Example output where <literal moreinfo="none">wrapper.console.format=</literal></emphasis></simpara>
             <screen format="linespecific"><![CDATA[< No Output >]]></screen>
         </informalexample>
+        <para>
+            The <literal moreinfo="none">'D'</literal> format token is mainly useful
+            for debugging the Wrapper.  It displays which internal Wrapper thread output
+            a given log message.  It does not show information about Java threads.
+            The <literal moreinfo="none">'D'</literal> format token was added in version
+            3.1.0.
+        </para>
+        <informalexample>
+            <simpara><emphasis>Example output where <literal moreinfo="none">wrapper.console.format=LPDTM</literal></emphasis></simpara>
+            <screen format="linespecific"><![CDATA[STATUS | wrapper  | main    | 2001/12/11 13:45:33 | --> Wrapper Started as Console
+STATUS | wrapper  | main    | 2001/12/11 13:45:33 | Launching a JVM...
+INFO   | jvm 1    | main    | 2001/12/11 13:45:35 | Initializing...]]></screen>
+        </informalexample>
     </section>
 </chapter>
