@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.131  2004/12/08 05:06:58  mortenson
+ * Fix a UNIX compiler warning about unused variables.
+ *
  * Revision 1.130  2004/12/08 04:54:29  mortenson
  * Make it possible to access the contents of the Wrapper configuration file from
  * within the JVM.
@@ -491,9 +494,11 @@ void wrapperAddDefaultProperties() {
 
 int wrapperLoadConfigurationProperties() {
     int i;
+#ifdef WIN32
     int work;
     char *filePart;
-    
+#endif
+
     /* Unless this is the first call, we need to dispose the previous properties object. */
     if (properties) {
         disposeProperties(properties);
