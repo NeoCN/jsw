@@ -9,6 +9,21 @@
 <article id="index">
     <title>FAQ</title>
     <section>
+        <title>Does the Wrapper handle the problem of JVMs exiting when a user logs out under Windows?</title>
+        <para>
+            Some Java Service application have a problem with the Java process exiting whenever a user logs out under Windows.  Several people have asked about whether or not the Wrapper handles this.  The answer is that the Wrapper has handled this correctly since its first release.
+        </para>
+        <para>
+            The Java side of the Wrapper requires a native library to make this work.  (Wrapper.DLL on Windows and libwrapper.so on Unix systems.)  The native library is responsible for trapping all system signals sent to the JVM process and handling them correctly.  A Java Application may handle these signals by implementing the <literal moreinfo="none">controlEvent</literal> method in the <literal moreinfo="none">WrapperListener</literal> interface.
+        </para>
+        <para>
+            If you are experiencing any problems with your JVM being restarted by the Wrapper when a user logs out, please verify that the library is being loaded.  If it is not, then a warning message will be displayed in the JVM output during the WrapperManager initialization.
+        </para>
+        <para>
+            You can find examples of what happens the user logs out while Wrapper is being run as a console application and as a service in the <ulink url="example.html">Examples</ulink> section of the documentation.
+        </para>
+    </section>
+    <section>
         <title>How can I change the priority at which my application runs on the system?</title>
         <para>
             On Windows systems, the priority can be set by setting the wrapper.ntservice.process_priority property in the wrapper.conf file.  Please the configuration overview for more details.
