@@ -23,6 +23,12 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.75  2003/10/30 19:34:34  mortenson
+ * Added a new wrapper.ntservice.console property so the console can be shown for
+ * services.
+ * Fixed a problem where requesting thread dumps on exit was failing when running
+ * as a service.
+ *
  * Revision 1.74  2003/10/18 16:15:19  mortenson
  * Correct an ifdef reference
  *
@@ -2124,8 +2130,13 @@ void wrapperBuildNTServiceInfo() {
         wrapperData->ntServiceInteractive = FALSE;
     }
 
-    /* Hide the Java Console Window. */
-    wrapperData->ntHideJavaConsole = getBooleanProperty( properties, "wrapper.ntservice.hide_console", TRUE );
+    /* Display a Console Window. */
+    wrapperData->ntAllocConsole = getBooleanProperty( properties, "wrapper.ntservice.console", FALSE );
+    /* Set the default hide wrapper console flag to the inverse of the alloc console flag. */
+    wrapperData->ntHideWrapperConsole = !wrapperData->ntAllocConsole;
+
+    /* Hide the JVM Console Window. */
+    wrapperData->ntHideJVMConsole = getBooleanProperty( properties, "wrapper.ntservice.hide_console", TRUE );
 }
 #endif
 
@@ -2325,6 +2336,17 @@ int wrapperLoadConfiguration() {
 #ifdef WIN32
     /* Configure the NT service information */
     wrapperBuildNTServiceInfo();
+
+    if (wrapperData->requestThreadDumpOnFailedJVMExit) {
+        if (!wrapperData->ntAllocConsole) {
+            /* We need to allocate a console in order for the thread dumps to work
+             *  when running as a service.  But the user did not request that a
+             *  console be visible so we want to hide it. */
+            wrapperData->ntAllocConsole = TRUE;
+            wrapperData->ntHideWrapperConsole = TRUE;
+        }
+    }
+
 #else /* UNIX */
     /* Configure the Unix daemon information */
     wrapperBuildUnixDaemonInfo();
@@ -2347,7 +2369,7 @@ void wrapperLogSignalled(int logLevel, char *msg) {
 }
 
 void wrapperKeyRegistered(char *key) {
-    // Allow for a large integer + \0
+    /* Allow for a large integer + \0 */
     char buffer[11];
 
     if (wrapperData->isDebugging) {

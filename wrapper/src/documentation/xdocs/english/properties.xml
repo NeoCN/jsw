@@ -145,6 +145,9 @@
                     <ulink url="prop-ntservice-account.html">wrapper.ntservice.account</ulink>
                 </listitem>
                 <listitem>
+                    <ulink url="prop-ntservice-console.html">wrapper.ntservice.console</ulink>
+                </listitem>
+                <listitem>
                     <ulink url="prop-ntservice-dependency-n.html">wrapper.ntservice.dependency.&lt;n&gt;</ulink>
                 </listitem>
                 <listitem>

@@ -23,6 +23,12 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.12  2003/10/30 19:34:34  mortenson
+ * Added a new wrapper.ntservice.console property so the console can be shown for
+ * services.
+ * Fixed a problem where requesting thread dumps on exit was failing when running
+ * as a service.
+ *
  * Revision 1.11  2003/08/02 15:50:03  mortenson
  * Implement getLastErrorText on UNIX versions.
  *
@@ -52,6 +58,10 @@
 
 #ifndef _LOGGER_H
 #define _LOGGER_H
+
+#ifdef WIN32
+#include <windows.h>
+#endif
 
 /* * * Log source constants * * */
 
@@ -85,6 +95,10 @@
 
 /* Unknown level */
 #define LEVEL_UNKNOWN  0
+
+#ifdef WIN32
+extern void setConsoleStdoutHandle( HANDLE stdoutHandle );
+#endif
 
 /* * * Function predeclaration * * */
 extern int strcmpIgnoreCase( const char *str1, const char *str2 );

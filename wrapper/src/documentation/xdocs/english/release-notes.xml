@@ -60,7 +60,20 @@ $Id$
                     contents correctly even if the line feeds in the file are incorrect for
                     the current platform.  Windows line feeds had been causing problems when
                     used on UNIX platforms.  
-                    <ulink url="http://sourceforge.net/tracker/index.php?func=detail&aid=829896&group_id=39428&atid=425190">Feature Request #829896</ulink>.
+                    <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=829896&amp;group_id=39428&amp;atid=425190">Feature Request #829896</ulink>.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Added a new property, <ulink url="prop-ntservice-console.html">wrapper.ntservice.console</ulink>,
+                    which allows a console to be displayed when running as an NT service.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Fixed a problem where the <ulink url="prop-request-thread-dump-on-failed-jvm-exit.html">request thread dump on failed JVM exit</ulink>
+                    feature had never worked when running as an NT service.
+                    <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=831775&amp;group_id=39428&amp;atid=425187">Bug #831775</ulink>.
                 </para>
             </listitem>
         </itemizedlist>

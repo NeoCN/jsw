@@ -36,5 +36,22 @@
             <simpara><emphasis>Example:</emphasis></simpara>
             <screen format="linespecific"><![CDATA[wrapper.request_thread_dump_on_failed_jvm_exit=TRUE]]></screen>
         </informalexample>
+        <para>
+            When running an NT service, this property will automatically set the
+            <ulink url="prop-ntservice-console.html">wrapper.ntservice.console</ulink>
+            property to true.  This is required so that the necessary signal can be
+            sent to the JVM.  When the
+            <ulink url="prop-ntservice-console.html">wrapper.ntservice.console</ulink>
+            is not explicitly set to true in the configuration file, the Wrapper will
+            hide the console immediately after it is displayed.  This will cause a
+            noticeable flicker on the screen when the Wrapper is first started.
+        </para>
+        <note>
+            <para>
+                If any Windows API gurus out there can figure out a way to allocate a
+                console without it being displayed on the screen, I would love to
+                hear about it so that I can get rid if the flicker.
+            </para>
+        </note>
     </section>
 </chapter>
