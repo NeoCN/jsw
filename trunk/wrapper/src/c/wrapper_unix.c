@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.22  2003/02/02 14:51:52  mortenson
+ * Implement feature request #653131 to force the JVM to immediately exit when
+ * the user presses CTRL-C multiple times.
+ *
  * Revision 1.21  2003/01/20 09:35:51  mortenson
  * Added a new wrapper.daemonize property which, when set, will form the wrapper
  * process to be a detached non-session group leader.
@@ -159,9 +163,15 @@ void requestDumpJVMState() {
  * Handle interrupt signals (i.e. Crtl-C).
  */
 void handleInterrupt(int sig_num) {
-    signal(SIGINT, handleInterrupt); 
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Shutting down.");
-    wrapperStopProcess(0);
+    signal(SIGINT, handleInterrupt);
+
+    if (wrapperData->exitRequested) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Forcing immediate shutdown.");
+        wrapperKillProcess();
+    } else {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Shutting down.");
+        wrapperStopProcess(0);
+    }
 }
 
 /**
@@ -177,8 +187,14 @@ void handleQuit(int sig_num) {
  */
 void handleTermination(int sig_num) {
     signal(SIGTERM, handleTermination); 
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Shutting down.");
-    wrapperStopProcess(0);
+
+    if (wrapperData->exitRequested) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Forcing immediate shutdown.");
+        wrapperKillProcess();
+    } else {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Shutting down.");
+        wrapperStopProcess(0);
+    }
 }
 
 /**
