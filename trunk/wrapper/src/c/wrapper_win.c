@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.29  2003/02/07 02:48:17  mortenson
+ * Fixed a problem where missing environment variables specified in classpath
+ * or library path properties were not being handled correctly.
+ *
  * Revision 1.28  2003/02/03 06:55:27  mortenson
  * License transfer to TanukiSoftware.org
  *
@@ -343,7 +347,7 @@ void wrapperBuildJavaCommand() {
         if (i > 0) {
             wrapperData->jvmCommand[commandLen++] = ' ';
         }
-        sprintf((char *)(&(wrapperData->jvmCommand[commandLen])), strings[i]);
+        sprintf((char *)(&(wrapperData->jvmCommand[commandLen])), "%s", strings[i]);
         commandLen += strlen(strings[i]);
     }
     wrapperData->jvmCommand[commandLen++] = '\0';

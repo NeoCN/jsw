@@ -108,6 +108,12 @@ $Id$
                     the Wrapper as a spawned daemon process.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fixed a problem where missing environment variables specified in classpath
+                    or library path properties were not being handled correctly.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

@@ -45,6 +45,8 @@ Java Service Wrapper Revision History.
 * Added a 'console' action to the bash and sh scripts to make it possible to
   launch the Wrapper in the current shell process.  The 'start' task will launch
   the Wrapper as a spawned daemon process.
+* Fixed a problem where missing environment variables specified in classpath
+  or library path properties were not being handled correctly.
 
 2.2.9
 * Added a new property, wrapperper.restart.delay, which allows the user to control
