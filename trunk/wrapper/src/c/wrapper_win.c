@@ -24,6 +24,11 @@
  */
 
 // $Log$
+// Revision 1.4  2002/01/09 01:16:10  mortenson
+// Modified the way the Wrapper is installed as a service on NT systems
+// so that a patched version of the Wrapper.exe file no longer needs to
+// be created.  (Based on code submitted by Johan Sorlin)
+//
 // Revision 1.3  2001/12/11 05:19:39  mortenson
 // Added the ablility to format and/or disable file logging and output to
 // the console.
@@ -62,18 +67,6 @@ barf
 SERVICE_STATUS          ssStatus;       
 SERVICE_STATUS_HANDLE   sshStatusHandle;
 TCHAR                   szErr[1024];
-
-// Allocate a 512 byte buffer in the exe to store a static config file name
-//	when installed as a service.
-static char             *staticConfigFilename = \
-"zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz" \
-"zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz" \
-"zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz" \
-"zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz" \
-"zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz" \
-"zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz" \
-"zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz" \
-"zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz";
 
 static HANDLE wrapperProcess = NULL;
 static HANDLE wrapperChildStdoutWr = NULL;
@@ -716,26 +709,16 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
  * Install the Wrapper as an NT Service using the information and service
  *  name in the current configuration file.
  *
- * Creates a copy of the wrapper.exe file named ~service<ServiceName>.exe
- *  and store the current config file name in the new .exe
- *
- * This makes it possible to let the service find its config file when
- *  launched by the NT service manager.
+ * Stores the parameters with the service name so that the wrapper.conf file
+ *  can be located at runtime.
  */
-int wrapperInstall(char *appName, char *configFile) {
+int wrapperInstall(int argc, char **argv) {
     SC_HANDLE   schService;
     SC_HANDLE   schSCManager;
 
     char szPath[512];
-    char newPath[512];
-    char *c;
-    FILE *source;
-    FILE *target;
-    char *buffer;
-    char *zbuffer;
-    long int lSize, hSize, write, read;
-    boolean found;
-    int i, j;
+    char binaryPath[4096];
+    int i;
     int result = 0;
 
     // Get the full path and filename of this program
@@ -744,129 +727,31 @@ int wrapperInstall(char *appName, char *configFile) {
                      wrapperData->ntServiceDisplayName, getLastErrorText(szErr, 256));
         return 1;
     }
-
-    // In order to create the NT service, we have to create a copy of the
-    //	current exe named "serviceWrapper.exe" if the service to be installed is called Wrapper.
-    // Find the last backslash in szPath;
-    c = strrchr(szPath, '\\');
-    if (c == NULL) {
-        // Have not seen this case.  Assume current directory.
-        sprintf(newPath, "~service%s.exe", wrapperData->ntServiceName);
-    } else {
-        memcpy(newPath, szPath, c - szPath);
-        sprintf((char*)((int)newPath + c - szPath), "\\~service%s.exe", wrapperData->ntServiceName);
-    }
-
-    // Make sure that a file does not already exist with this name
-    /*
-      if ((target = fopen(newPath, "r")) != NULL) {
-      // The file already exists
-
-      // Close the file;
-      fclose(target);
-
-      wrapperLogSS(WRAPPER_SOURCE_WRAPPER, "Unable to install the service %s because the file %s already exists.",
-      wrapperData->ntServiceName, newPath);
-      wrapperLog("Another service may not have been uninstalled correctly.");
-
-      return 1;
-      }
-    */
-    // This was confusing.  Just delete the file for now.
-    remove(newPath);
-
-    // Generate the new binary for the service by making a modified copy of the original
-    // Open the source
-    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Generating new binary for service: %s", newPath);
-    if ((source = fopen(szPath, "rb")) == NULL) {
-        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to open file : %s", szPath);
-        return 1;
-    }
-
-    // Open the target file
-    if ((target = fopen(newPath, "wb")) == NULL) {
-        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to create file : %s", newPath);
-        fclose(source);
-        return 1;
-    }
-
-    // Build the search key.  Do it this way so that it dows not exist in the binary.
-    zbuffer = (char *)malloc(sizeof(char) * 512);
-    memset(zbuffer, 'z', 512);
-
-    // Loop over and read in 1024 byte blocks, keeping 2048 bytes in memory at all times to make the search easy.
-    hSize = 0;
-    lSize = 0;
-    read = 0;
-    buffer = (char *)malloc(sizeof(char) * 2048);
-    found = FALSE;
-    do {
-        // Read a new 1024 block into the high half of the buffer
-        hSize = fread(buffer + 1024, sizeof(char), sizeof(char) *1024, source);
-        read += hSize;
-
-        if (read > 171000) {
-            read = read;
+    
+    // Build a new command line with all of the parameters.
+    binaryPath[0] = '\0';
+    for (i = 0; i < argc; i++) {
+        if (i > 0) {
+            strcat(binaryPath, " ");
         }
-        if (lSize > 0) {
-            // If we have not yet found the search key, then look for it.
-
-            if (!found) {
-                for (i = 0; (i < 1024) && (i < lSize + hSize - 511); i++) {
-                    if ((buffer + i)[0] == 'z') {
-                        // Count the number of consecutive 'z's
-                        j = 0;
-                        while ((buffer + i)[j] == 'z') {
-                            j++;
-                        }
-
-                        if (j >= 512) {
-                            // Found the key;
-                            found = TRUE;
-
-                            // Clear the memory first, then write the config file path.
-                            memset(buffer + i, 'y', 512);
-                            sprintf(buffer + i, "%s", wrapperData->configFile);
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // Write the low half of the buffer to disk
-            write = fwrite(buffer, sizeof(char), lSize, target);
-            if (write != lSize) {
-                wrapperLogII(WRAPPER_SOURCE_WRAPPER, "Unable to write new EXE to disk.  (%0 != %1)", write, lSize);
-                // Clean up
-                fclose(source);
-                fclose(target);
-                free(buffer);
-                free(zbuffer);
-                return 1;
-            }
+        switch (i) {
+        case 0:
+            // argv[0] is the binary name
+            strcat(binaryPath, szPath);
+            break;
+        case 1:
+            // argv[1] is '-i' option -> change to '-s'
+            strcat(binaryPath, "-s");
+            break;
+        default:
+            // All other argv[n] should be preserved as is.
+            strcat(binaryPath, argv[i]);
+            break;
         }
-
-        // Move the high block to the low block's memory.
-        if (hSize > 0) {
-            memcpy(buffer, buffer + 1024, 1024);
-        }
-        lSize = hSize;
-        hSize = 0;
-    } while (lSize > 0);
-
-    // Clean up
-    fclose(source);
-    fclose(target);
-    free(buffer);
-    free(zbuffer);
-
-    if (!found) {
-        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to locate replacement key in : %s", szPath);
-        remove(newPath);
-        return 1;
     }
-
-
+    if (wrapperData->isDebugging) {
+        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Service command: %s", binaryPath);
+    }
 
     // Next, get a handle to the service control manager
     schSCManager = OpenSCManager(
@@ -884,7 +769,7 @@ int wrapperInstall(char *appName, char *configFile) {
                                    SERVICE_WIN32_OWN_PROCESS,          // service type
                                    wrapperData->ntServiceStartType,    // start type
                                    SERVICE_ERROR_NORMAL,               // error control type
-                                   newPath,                            // service's binary
+                                   binaryPath,                         // service's binary
                                    NULL,                               // no load ordering group
                                    NULL,                               // no tag identifier
                                    wrapperData->ntServiceDependencies, // dependencies
@@ -907,10 +792,6 @@ int wrapperInstall(char *appName, char *configFile) {
         wrapperLogS(WRAPPER_SOURCE_WRAPPER, "OpenSCManager failed - %s", getLastErrorText(szErr,256));
         result = 1;
     }
-    // If there were any problems then remove the new file.
-    if (result != 0) {
-        remove(newPath);
-    }
 
     return result;
 }
@@ -922,9 +803,6 @@ int wrapperRemove(char *appName, char *configFile) {
     SC_HANDLE   schService;
     SC_HANDLE   schSCManager;
 
-    char szPath[512];
-    char newPath[512];
-    char *c;
     int result = 0;
 
     // First, get a handle to the service control manager
@@ -970,29 +848,6 @@ int wrapperRemove(char *appName, char *configFile) {
             // Now try to remove the service...
             if (DeleteService(schService)) {
                 wrapperLogS(WRAPPER_SOURCE_WRAPPER, "%s removed.", wrapperData->ntServiceDisplayName);
-
-                // Remove the service exe
-                // Get the full path and filename of this program
-                if (GetModuleFileName(NULL, szPath, 512) == 0){
-                    wrapperLogSS(WRAPPER_SOURCE_WRAPPER, "Unable to install %s -%s",
-                                 wrapperData->ntServiceDisplayName, getLastErrorText(szErr, 256));
-                    return 1;
-                }
-
-                // In order to create the NT service, we have to create a copy of the
-                //	current exe named "serviceWrapper.exe" if the service to be installed is called Wrapper.
-                // Find the last backslash in szPath;
-                c = strrchr(szPath, '\\');
-                if (c == NULL) {
-                    // Have not seen this case.  Assume current directory.
-                    sprintf(newPath, "~service%s.exe", wrapperData->ntServiceName);
-                } else {
-                    memcpy(newPath, szPath, c - szPath);
-                    sprintf((char*)((int)newPath + c - szPath), "\\~service%s.exe", wrapperData->ntServiceName);
-                }
-
-                // Delete the service file
-                remove(newPath);
             } else {
                 wrapperLogS(WRAPPER_SOURCE_WRAPPER, "DeleteService failed - %s", getLastErrorText(szErr,256));
                 result = 1;
@@ -1020,40 +875,40 @@ int wrapperRemove(char *appName, char *configFile) {
  */
 int setWorkingDir() {
     char szPath[512];
-	char* pos;
-	
-	// Get the full path and filename of this program
-	if (GetModuleFileName(NULL, szPath, 512) == 0){
-		wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to get the path-%s", getLastErrorText(szErr, 256));
-		return 1;
-	}
+    char* pos;
+    
+    // Get the full path and filename of this program
+    if (GetModuleFileName(NULL, szPath, 512) == 0){
+        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to get the path-%s", getLastErrorText(szErr, 256));
+        return 1;
+    }
 
-	// The wrapperData->isDebugging flag will never be set here, so we can't really use it.
+    // The wrapperData->isDebugging flag will never be set here, so we can't really use it.
 #ifdef _DEBUG
-	wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Executable Name: %s", szPath);
+    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Executable Name: %s", szPath);
 #endif
 
-	// To get the path, strip everything off after the last '\'
-	pos = strrchr(szPath, '\\');
-	if (pos == NULL) {
-		wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to extract path from: %s", szPath);
-		return 1;
-	} else {
-		// Clip the path at the position of the last backslash
-		pos[0] = (char)0;
-	}
+    // To get the path, strip everything off after the last '\'
+    pos = strrchr(szPath, '\\');
+    if (pos == NULL) {
+        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to extract path from: %s", szPath);
+        return 1;
+    } else {
+        // Clip the path at the position of the last backslash
+        pos[0] = (char)0;
+    }
 
-	if (chdir(szPath)) {
-		wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to set working directory to: %s", szPath);
-		return 1;
-	}
+    if (chdir(szPath)) {
+        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to set working directory to: %s", szPath);
+        return 1;
+    }
 
-	// The wrapperData->isDebugging flag will never be set here, so we can't really use it.
+    // The wrapperData->isDebugging flag will never be set here, so we can't really use it.
 #ifdef _DEBUG
-	wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Working directory set to: %s", szPath);
+    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Working directory set to: %s", szPath);
 #endif
 
-	return 0;
+    return 0;
 }
 
 
@@ -1170,6 +1025,8 @@ void wrapperUsage(char *appName) {
     printf("  -c   run as a console application\n");
     printf("  -i   install as an NT service\n");
     printf("  -r   remove as an NT service\n");
+    // Omit '-s' option from help as it is only used by the service manager.
+    //printf("  -s   used by service manager\n");
     printf("  -?   print this help message\n");
     printf("\n");
 }
@@ -1206,45 +1063,80 @@ void _CRTAPI1 main(int argc, char **argv) {
         wrapperData->restartRequested = FALSE;
         wrapperData->jvmRestarts = 0;
 
-		setWorkingDir();
-		
+        setWorkingDir();
+        
         switch(argc) {
-        case 1:
-            // If main is called without any arguments, it will probably be by the
-            // service control manager, in which case StartServiceCtrlDispatcher
-            // must be called here. A message will be printed just in case this 
-            // happens from the console.
-
-            // In this case, this must be a modified version of the EXE with the
-            //	config file hard coded in.  Check this
-            if (strstr(staticConfigFilename, "zzzzzzzzzz") == staticConfigFilename) {
-                // This is an unmodified version of the EXE
-                // The user needs to be shown the usage info.
-                wrapperUsage(argv[0]);
-                result = 1;
-            } else {
-                // The EXE has been modified, so we can continue
-                properties = loadProperties(staticConfigFilename);
+        case 3:
+            // The first parameter should be a command and the second should be a config file.
+            if(!_stricmp(argv[1],"-i") || !_stricmp(argv[1],"/i")) {
+                properties = loadProperties(argv[2]);
                 if (properties == NULL) {
                     // File not found.
-                    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "unable to open config file. %s", staticConfigFilename);
+                    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "unable to open config file. %s", argv[2]);
                     result = 1;
                 } else {
                     // Store the config file name
-                    wrapperData->configFile = staticConfigFilename;
+                    wrapperData->configFile = argv[2];
 
                     // Apply properties to the WrapperConfig structure
                     wrapperLoadConfiguration();
 
+                    //result = wrapperInstall(argv[0], argv[2]);
+                    result = wrapperInstall(argc, argv);
+                }
+            } else if(!_stricmp(argv[1],"-r") || !_stricmp(argv[1],"/r")) {
+                properties = loadProperties(argv[2]);
+                if (properties == NULL) {
+                    // File not found.
+                    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "unable to open config file. %s", argv[2]);
+                    result = 1;
+                } else {
+                    // Store the config file name
+                    wrapperData->configFile = argv[2];
+
+                    // Apply properties to the WrapperConfig structure
+                    wrapperLoadConfiguration();
+
+                    result = wrapperRemove(argv[0], argv[2]);
+                }
+            } else if(!_stricmp(argv[1],"-c") || !_stricmp(argv[1],"/c")) {
+                properties = loadProperties(argv[2]);
+                if (properties == NULL) {
+                    // File not found.
+                    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "unable to open config file. %s", argv[2]);
+                    result = 1;
+                } else {
+                    // Store the config file name
+                    wrapperData->configFile = argv[2];
+
+                    // Apply properties to the WrapperConfig structure
+                    wrapperLoadConfiguration();
+
+                    //result = wrapperConsole(argv[0], argv[2]);
+                    result = wrapperRunConsole();
+                }
+            } else if(!_stricmp(argv[1],"-s") || !_stricmp(argv[1],"/s")) {
+                properties = loadProperties(argv[2]);
+                if (properties == NULL) {
+                    // File not found.
+                    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "unable to open config file. %s", argv[2]);
+                    result = 1;
+                } else {
+                    // Store the config file name
+                    wrapperData->configFile = argv[2];
+                    
+                    // Apply properties to the WrapperConfig structure
+                    wrapperLoadConfiguration();
+                    
                     // Prepare the service table
                     serviceTable[0].lpServiceName = wrapperData->ntServiceName;
                     serviceTable[0].lpServiceProc = (LPSERVICE_MAIN_FUNCTION)wrapperServiceMain;
                     serviceTable[1].lpServiceName = NULL;
                     serviceTable[1].lpServiceProc = NULL;
-
+                    
                     printf("Attempting to start %s as an NT service.\n", wrapperData->ntServiceDisplayName);
                     printf("\nCalling StartServiceCtrlDispatcher...please wait.\n");
-
+                    
                     // Start the service control dispatcher.  This will not return
                     //  if the service is started without problems
                     if (!StartServiceCtrlDispatcher(serviceTable)){
@@ -1253,86 +1145,18 @@ void _CRTAPI1 main(int argc, char **argv) {
                         result = 1;
                     }
                 }
-            }
-            break;
-        case 3:
-            // Make sure that this is not an altered version of the EXE
-            if (strstr(staticConfigFilename, "zzzzzzzzzz") != staticConfigFilename) {
-                // This is a modified version of the EXE
-
-                printf("The exe %s was built for the Service defined in the config file %s.  " \
-                       "This file should not be run manually.\n\n", argv[0], staticConfigFilename);
-                result = 1;
+            } else if(!_stricmp(argv[1],"-?") || !_stricmp(argv[1],"/?")) {
+                wrapperUsage(argv[0]);
             } else {
-                // The first parameter should be a command and the second should be a config file.
-                if(!_stricmp(argv[1],"-i") || !_stricmp(argv[1],"/i")) {
-                    properties = loadProperties(argv[2]);
-                    if (properties == NULL) {
-                        // File not found.
-                        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "unable to open config file. %s", argv[2]);
-                        result = 1;
-                    } else {
-                        // Store the config file name
-                        wrapperData->configFile = argv[2];
-
-                        // Apply properties to the WrapperConfig structure
-                        wrapperLoadConfiguration();
-
-                        result = wrapperInstall(argv[0], argv[2]);
-                    }
-                } else if(!_stricmp(argv[1],"-r") || !_stricmp(argv[1],"/r")) {
-                    properties = loadProperties(argv[2]);
-                    if (properties == NULL) {
-                        // File not found.
-                        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "unable to open config file. %s", argv[2]);
-                        result = 1;
-                    } else {
-                        // Store the config file name
-                        wrapperData->configFile = argv[2];
-
-                        // Apply properties to the WrapperConfig structure
-                        wrapperLoadConfiguration();
-
-                        result = wrapperRemove(argv[0], argv[2]);
-                    }
-                } else if(!_stricmp(argv[1],"-c") || !_stricmp(argv[1],"/c")) {
-                    properties = loadProperties(argv[2]);
-                    if (properties == NULL) {
-                        // File not found.
-                        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "unable to open config file. %s", argv[2]);
-                        result = 1;
-                    } else {
-                        // Store the config file name
-                        wrapperData->configFile = argv[2];
-
-                        // Apply properties to the WrapperConfig structure
-                        wrapperLoadConfiguration();
-
-                        //result = wrapperConsole(argv[0], argv[2]);
-                        result = wrapperRunConsole();
-                    }
-                } else if(!_stricmp(argv[1],"-?") || !_stricmp(argv[1],"/?")) {
-                    wrapperUsage(argv[0]);
-                } else {
-                    printf("\nUnrecognized option: %s\n", argv[1]);
-                    wrapperUsage(argv[0]);
-                    result = 1;
-                }
+                printf("\nUnrecognized option: %s\n", argv[1]);
+                wrapperUsage(argv[0]);
+                result = 1;
             }
             break;
         default:
             // Invalid parameters were provided.
-            if (strstr(staticConfigFilename, "zzzzzzzzzz") != staticConfigFilename) {
-                // This is a modified version of the EXE
-
-                printf("The exe %s was built for the Service " \
-                       "defined in the config file %s.  This file should not be run manually.\n\n",
-                       argv[0], staticConfigFilename);
-                result = 1;
-            } else {
-                wrapperUsage(argv[0]);
-                result = 1;
-            }
+            wrapperUsage(argv[0]);
+            result = 1;
             break;
         }
     } __except (exceptionFilterFunction(GetExceptionInformation())) {

@@ -407,34 +407,7 @@ jvm 2    | start()]]></screen>
                 </informalexample>
                 <informalexample>
                     <simpara><emphasis>You will see the output:</emphasis></simpara>
-                    <screen format="linespecific"><![CDATA[wrapper  | Generating new binary for service: C:\SilverEgg\wrapper\bin\~serviceTestWrapper.exe
-wrapper  | Test Wrapper Application installed.]]></screen>
-                </informalexample>
-            </para>
-            <para>
-                When a wrapper is installed as a service, it creates a new modified version of the Wrapper.exe file named after the service.  This new exe contains all information necessary to run as a service.  The benifits of doing it this way are that, as you can see, there is no recompilation necessary.  It is also possible to have multiple Wrapper based services running on the same machine, at the same time, as long as their NT service names are configured uniquely.  Attempting to run this generated exe manually will result in the following:
-                <informalexample>
-                    <screen format="linespecific"><![CDATA[Attempting to start Test Wrapper Application as an NT service.
-
-Calling StartServiceCtrlDispatcher...please wait.
-
-StartServiceControlDispatcher failed!
-
-For help, type
-
-C:\SilverEgg\wrapper\bin\~serviceTestWrapper.exe /?]]></screen>
-                </informalexample>
-            </para>
-            <para>
-                Running this binary with the /? command line option will tell you the wrapper.conf file that the service will use to start.
-                <informalexample>
-                    <screen format="linespecific">~serviceTestWrapper.exe /?</screen>
-                </informalexample>
-                <informalexample>
-                    <simpara><emphasis>You will see the output:</emphasis></simpara>
-                    <screen format="linespecific"><![CDATA[The exe C:\SilverEgg\wrapper\bin\~serviceTestWrapper.exe was built for the
-Service defined in the config file C:\SilverEgg\wrapper\conf\wrapper.conf.
-This file should not be run manually.]]></screen>
+                    <screen format="linespecific"><![CDATA[wrapper  | Test Wrapper Application installed.]]></screen>
                 </informalexample>
             </para>
             <para>

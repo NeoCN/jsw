@@ -139,6 +139,10 @@
         
         
 <p align="justify">
+            NOTE - Wrapper was changed in version 2.2.5 so that it no longer creates a copy of the Wrapper.exe.  If you are using a newer version, this no longer is applicable.
+        </p>
+        
+<p align="justify">
             When an NT service is launched, it is not possible to provide it with any parameters.  Most NT services get around this my storing information in the NT registry.  The problem that we had with Wrapper was that we needed to be able to run multiple applications on the same machine at the same time.  If the Wrapper stored its application specific information in the registry, then each copy of the Wrapper would be trying to look in the same location in the registry for their parameters.
         </p>
         
