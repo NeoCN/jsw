@@ -1,6 +1,7 @@
 @echo off
 setlocal
 
+rem Copyright (c) 1999, 2004 Tanuki Software
 rem
 rem Java Service Wrapper general NT service install script
 rem

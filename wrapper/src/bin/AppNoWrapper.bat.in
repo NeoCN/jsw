@@ -1,3 +1,4 @@
+rem Copyright (c) 1999, 2004 Tanuki Software
 rem
 rem This script lets you run your application without the wrapper.  Useful for testing.
 rem
