@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.5  2002/01/27 19:30:58  spocke
+// Added include on errno.h to enable compilation on Unix.
+//
 // Revision 1.4  2002/01/27 16:59:54  mortenson
 // Modified the log rolling code so that a max log files value is not required.
 //
@@ -51,6 +54,7 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <errno.h>
 
 #ifdef WIN32
 #include <windows.h>
