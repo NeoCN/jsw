@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.20  2004/09/16 04:04:32  mortenson
+ * Close the Handle to the logging mutex on shutdown.
+ *
  * Revision 1.19  2004/08/06 16:17:04  mortenson
  * Added a new wrapper.java.command.loglevel property which makes it possible
  * to control the log level of the generated java command.
@@ -195,6 +198,7 @@ extern int getLowLogLevel();
 
 /* * General log functions * */
 extern int initLogging();
+extern int disposeLogging();
 extern int getLogLevelForName( const char *logLevelName );
 extern void logRegisterThread( int thread_id );
 extern void log_printf( int source_id, int level, char *lpszFmt, ... );

@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.83  2004/09/16 04:04:32  mortenson
+ * Close the Handle to the logging mutex on shutdown.
+ *
  * Revision 1.82  2004/09/09 15:46:20  mortenson
  * Add try-catch blocks around all thread entry points in the Windows version.
  *
@@ -424,6 +427,9 @@ void appExit(int exitCode) {
     if (wrapperData->anchorFilename) {
         unlink(wrapperData->anchorFilename);
     }
+    
+    /* Clean up the logging system. */
+    disposeLogging();
 
     /* Do this here to unregister the syslog resources on exit.*/
     /*unregisterSyslogMessageFile(); */
