@@ -43,6 +43,8 @@ extern "C" {
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_LOW_LOG_LEVEL 112L
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_PING_TIMEOUT
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_PING_TIMEOUT 113L
+#undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_SERVICE_CONTROL_CODE
+#define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_SERVICE_CONTROL_CODE 114L
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_LOG
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_LOG 116L
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_C_EVENT
@@ -107,6 +109,9 @@ extern "C" {
 /* Inaccessible static: m_stoppingThread */
 /* Inaccessible static: m_libraryOK */
 /* Inaccessible static: m_commandBuffer */
+/* Inaccessible static: m_wrapperEventListenerMaskList */
+/* Inaccessible static: m_wrapperEventListenerMasks */
+/* Inaccessible static: m_produceCoreEvents */
 /* Inaccessible static: m_res */
 /* Inaccessible static: m_error */
 /* Inaccessible static: m_warning */

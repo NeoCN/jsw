@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.21  2004/11/22 04:06:42  mortenson
+// Add an event model to make it possible to communicate with user applications in
+// a more flexible way.
+//
 // Revision 1.20  2004/11/12 09:52:19  mortenson
 // Don't set the console title from within java in the sample.  It makes the use of the
 // usage of the config file property confusing.
@@ -111,17 +115,23 @@ package org.tanukisoftware.wrapper.test;
 // License transfer to TanukiSoftware.org
 //
 
+import java.awt.BorderLayout;
 import java.awt.Button;
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Label;
+import java.awt.List;
+import java.awt.Panel;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 import org.tanukisoftware.wrapper.WrapperActionServer;
 import org.tanukisoftware.wrapper.WrapperManager;
 import org.tanukisoftware.wrapper.WrapperListener;
+import org.tanukisoftware.wrapper.event.WrapperEventListener;
 
 /**
  * This is a Test / Example program which can be used to test the
@@ -148,6 +158,8 @@ public class Main
     private DeadlockPrintStream m_err;
     
     private Thread m_userRunner;
+    
+    private List m_listenerFlags;
     
     /**************************************************************************
      * Constructors
@@ -221,13 +233,31 @@ public class Main
             
             buildCommand( gridBag, c, "Dump Properties", "properties",
                 "Dumps all System Properties to the console." );
+            
+            
+            m_listenerFlags = new List( 2, true );
+            m_listenerFlags.add( "Service" );
+            m_listenerFlags.add( "Core" );
+            
+            Panel flagPanel = new Panel();
+            flagPanel.setLayout( new BorderLayout() );
+            flagPanel.add( new Label( "Event Flags: " ), BorderLayout.WEST );
+            flagPanel.add( m_listenerFlags, BorderLayout.CENTER );
+            flagPanel.setSize( 100, 10 );
+            
+            Panel flagPanel2 = new Panel();
+            flagPanel2.setLayout( new BorderLayout() );
+            flagPanel2.add( flagPanel, BorderLayout.WEST );
+            
+            buildCommand( gridBag, c, "Update Event Listener", "listener", flagPanel2 );
+                
         }
         
         private void buildCommand( GridBagLayout gridBag,
                                    GridBagConstraints c,
                                    String label,
                                    String command,
-                                   String description )
+                                   Object description )
         {
             Button button = new Button( label );
             button.setActionCommand( command );
@@ -239,14 +269,49 @@ public class Main
             button.addActionListener(this);
             
             c.gridwidth = GridBagConstraints.REMAINDER;
-            Label desc = new Label( description );
+            Component desc;
+            if ( description instanceof String )
+            {
+                desc = new Label( (String)description );
+            }
+            else if ( description instanceof Component )
+            {
+                desc = (Component)description;
+            }
+            else
+            {
+                desc = new Label( description.toString() );
+            }
+            
             gridBag.setConstraints( desc, c );
             add( desc );
         }
         
         public void actionPerformed( ActionEvent event )
         {
-            Main.this.doAction( event.getActionCommand() );
+            String action = event.getActionCommand();
+            if ( action.equals( "listener" ) )
+            {
+                // Create the mask.
+                long mask = 0;
+                String[] flags = m_listenerFlags.getSelectedItems();
+                for ( int i = 0; i < flags.length; i++ )
+                {
+                    String flag = flags[i];
+                    if ( flag.equals( "Service" ) )
+                    {
+                        mask |= WrapperEventListener.EVENT_FLAG_SERVICE;
+                    }
+                    else if ( flag.equals( "Core" ) )
+                    {
+                        mask |= WrapperEventListener.EVENT_FLAG_CORE;
+                    }
+                }
+                
+                setEventMask( mask );
+            }
+            
+            Main.this.doAction( action );
         }
     }
     
