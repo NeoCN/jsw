@@ -10,6 +10,41 @@ $Id$
     <title>FAQ</title>
     <section>
         <title>
+            My is throwing security exceptions when I run with the Wrapper.
+        </title>
+        <para>
+            The only difference between the way your application is running
+            under the Wrapper and the way is was running before being integrated
+            is that before your application's main method was being called directly
+            by the JVM on startup.  Now, assuming that you are using the
+            WrapperSimpleApp or WrapperStartStopApp helper classes, the JVM first
+            calls that class's main method, then after the Wrapper has initialized,
+            it calls your application's main method.
+        </para>
+        <para>
+            This can cause some problems when a security manager is in use.  The
+            reason is that the Java security manager searches up the call stack to
+            make sure that every class and method is authorized to call the protected
+            code before granting access.  If the Wrapper's classes exist in your call
+            stack and they are not given privileges then you will get a security
+            exception.
+        </para>
+        <para>
+            Try giving wrapper.jar permissions by adding the following to your policy
+            file:
+        </para>
+        <informalexample>
+            <screen format="linespecific"><![CDATA[// Give Wrapper classes full permissions
+grant codeBase "file:../lib/wrapper.jar" {
+    permission java.security.AllPermission;
+};]]></screen>
+        </informalexample>
+        <para>
+            This usually fixes this kind of problem.
+        </para>
+    </section>
+    <section>
+        <title>
             Does the Wrapper handle the problem of JVMs exiting when a user logs out under Windows?
         </title>
         <para>
