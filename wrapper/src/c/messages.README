@@ -12,7 +12,9 @@ messages.h
 messages.rc
 MSG00001.bin
 
-The first two can be ignored, but the 3rd is used in the type "11" resource
-with Id 1.  That id and type is required and specifies the Message tables
+The messages.h file is used by logger.c to reference the messages.
+messages.rc is not used.
+The 3rd file, MSG00001.bin is used in the type "11" resource with Id 1.
+That id and type is required and specifies the Message tables
 used by the Event Log.  The resource is set up to dynamically load the bin
 file, so everything should update on its own.
