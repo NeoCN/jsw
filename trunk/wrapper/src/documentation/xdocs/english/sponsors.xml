@@ -31,6 +31,12 @@
             -->
         <donorlist>
             <donor>
+                <date>Sep 11, 2004</date>
+                <amount>25.00</amount>
+                <name>Cliff Wright</name>
+                <message>Awesome product; awesome documentation; keep up the great work!!</message>
+            </donor>
+            <donor>
                 <date>Sep 2, 2004</date>
                 <amount>150.00</amount>
                 <name><ulink url="http://www.outerthought.org/">Outerthought</ulink></name>
