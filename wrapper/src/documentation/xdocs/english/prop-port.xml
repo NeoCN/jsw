@@ -56,5 +56,25 @@
             <simpara><emphasis>Example:</emphasis></simpara>
             <screen format="linespecific"><![CDATA[wrapper.port=1777]]></screen>
         </informalexample>
+        </section>
+        <section>
+            <title>Controlling the port range.</title>
+            <para>
+                In some cases, it is necessary to control the range of ports that
+                the Wrapper will use when choosing a port.  The defaults were chosen
+                to make it very unlikely that they would conflict with any well known
+                ports.  If the default 32000-32999 range is causing problems, it can
+                be changed using the <literal moreinfo="none">wrapper.port.min</literal>
+                and <literal moreinfo="none">wrapper.port.max</literal> properties.
+                If these are used, be sure to provide a large enough range to make it
+                unlikely that all of the ports will be in use when the Wrapper attempts
+                to start.
+            </para>
+            <informalexample>
+                <simpara><emphasis>Example:</emphasis></simpara>
+                <screen format="linespecific"><![CDATA[wrapper.port.min=32000
+wrapper.port.min=32999]]></screen>
+            </informalexample>
+        </section>
     </section>
 </chapter>

@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.124  2004/11/12 06:51:44  mortenson
+ * Add a pair of properties which make it possible to control the range of ports
+ * allocated by the Wrapper.
+ *
  * Revision 1.123  2004/10/20 05:23:17  mortenson
  * Add a new property, wrapper.disable_restarts, which will completely disable
  * the Wrapper's ability to restart JVMs.
@@ -465,8 +469,8 @@ void wrapperAddDefaultProperties() {
 void wrapperProtocolStartServer() {
     struct sockaddr_in addr_srv;
     int rc;
-    u_short port;
-    int trys;
+    int port;
+    int fixedPort;
 
 #ifdef WIN32
     u_long dwNoBlock = TRUE;
@@ -500,19 +504,22 @@ void wrapperProtocolStartServer() {
      *  port starting at 32000. */
     port = wrapperData->port;
     if (port <= 0) {
-        port = 32000;
+        port = wrapperData->portMin;
+        fixedPort = FALSE;
+    } else {
+        fixedPort = TRUE;
     }
-    trys = 0;
 
   tryagain:
     /* Try binding to the port. */
+    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_STATUS, "Trying port %d", port);
     
     /* Cleanup the addr_srv first */
     memset(&addr_srv, 0, sizeof(addr_srv));
     
     addr_srv.sin_family = AF_INET;
     addr_srv.sin_addr.s_addr = inet_addr("127.0.0.1");
-    addr_srv.sin_port = htons(port);
+    addr_srv.sin_port = htons((u_short)port);
 #ifdef WIN32
     rc = bind(ssd, (struct sockaddr FAR *)&addr_srv, sizeof(addr_srv));
 #else /* UNIX */
@@ -525,22 +532,34 @@ void wrapperProtocolStartServer() {
         /* The specified port could bot be bound. */
         if (rc == EADDRINUSE) {
             /* Address in use, try looking at the next one. */
-            port++;
-            if (port > 65000) {
-                port = 10000;
-            }
-            if (trys < 1000) {
-                trys++;
+            if (fixedPort) {
+                /* The last port checked was the defined fixed port, switch to the dynamic range. */
+                port = wrapperData->portMin;
+                fixedPort = FALSE;
                 goto tryagain;
+            } else {
+                port++;
+                if (port <= wrapperData->portMax) {
+                    goto tryagain;
+                }
             }
         }
 
         /* Log an error.  This is fatal, so die. */
-        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_FATAL, "unable to bind listener port %d. (%s)", wrapperData->port, getLastErrorText());
+        if (wrapperData->port <= 0) {
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_FATAL,
+                "unable to bind listener to any port in the range %d-%d. (%s)",
+                wrapperData->portMin, wrapperData->portMax, getLastErrorText());
+        } else {
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_FATAL,
+                "unable to bind listener port %d, or any port in the range %d-%d. (%s)",
+                wrapperData->port, wrapperData->portMin, wrapperData->portMax, getLastErrorText());
+        }
 
-        wrapperStopProcess(FALSE, rc);
-
+        wrapperStopProcess(FALSE, getLastError());
         wrapperProtocolStopServer();
+        wrapperData->exitRequested = TRUE;
+        wrapperData->restartRequested = FALSE;
         return;
     }
 
@@ -2190,6 +2209,22 @@ int wrapperLoadConfiguration() {
 
     /* Get the port. The int will wrap within the 0-65535 valid range, so no need to test the value. */
     wrapperData->port = getIntProperty(properties, "wrapper.port", 0);
+    wrapperData->portMin = getIntProperty(properties, "wrapper.port.min", 32000);
+    if ((wrapperData->portMin < 1) || (wrapperData->portMin > 65535)) {
+        wrapperData->portMin = 32000;
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            "wrapper.port.min must be in the range 1-65535.  Changing to %d.", wrapperData->portMin);
+    }
+    wrapperData->portMax = getIntProperty(properties, "wrapper.port.max", 32999);
+    if ((wrapperData->portMax < 1) || (wrapperData->portMax > 65535)) {
+        wrapperData->portMax = __min(wrapperData->portMin + 999, 65535);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            "wrapper.port.min must be in the range 1-65535.  Changing to %d.", wrapperData->portMax);
+    } else if (wrapperData->portMax < wrapperData->portMin) {
+        wrapperData->portMax = __min(wrapperData->portMin + 999, 65535);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            "wrapper.port.max must be greater than or equal to wrapper.port.min.  Changing to %d.", wrapperData->portMax);
+    }
 
     /* Get the debug status (Property is deprecated but flag is still used) */
     wrapperData->isDebugging = getBooleanProperty(properties, "wrapper.debug", FALSE);

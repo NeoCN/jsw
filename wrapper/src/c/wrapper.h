@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.62  2004/11/12 06:51:44  mortenson
+ * Add a pair of properties which make it possible to control the range of ports
+ * allocated by the Wrapper.
+ *
  * Revision 1.61  2004/10/20 05:23:17  mortenson
  * Add a new property, wrapper.disable_restarts, which will completely disable
  * the Wrapper's ability to restart JVMs.
@@ -284,8 +288,10 @@ struct WrapperConfig {
     int     timerFastThreshold;     /* If the difference between the system time based tick count and the timer tick count ever falls by more than this value then a warning will be displayed. */
     int     timerSlowThreshold;     /* If the difference between the system time based tick count and the timer tick count ever grows by more than this value then a warning will be displayed. */
 
-    u_short port;                   /* Port number which the Wrapper is configured to be listening on */
-    u_short actualPort;             /* Port number which the Wrapper is actually listening on */
+    int     port;                   /* Port number which the Wrapper is configured to be listening on */
+    int     portMin;                /* Minimum port to use when looking for a port to bind to. */
+    int     portMax;                /* Maximum port to use when looking for a port to bind to. */
+    int     actualPort;             /* Port number which the Wrapper is actually listening on */
     int     sock;                   /* Socket number. if open. */
     char    *configFile;            /* Name of the configuration file */
     int     commandLogLevel;        /* The log level to use when logging the java command. */

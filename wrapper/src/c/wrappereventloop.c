@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.18  2004/11/12 06:51:44  mortenson
+ * Add a pair of properties which make it possible to control the range of ports
+ * allocated by the Wrapper.
+ *
  * Revision 1.17  2004/10/20 07:55:36  mortenson
  * Make sure that the logfile is flushed in a timely manner rather than leaving
  * it entirely up to the OS.
@@ -975,13 +979,19 @@ void wrapperEventLoop() {
         if (wrapperData->isLoopOutputEnabled) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Loop: process socket");
         }
-        if ( wrapperProtocolRead() )
-        {
-            if (wrapperData->isDebugging) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                    "Pause reading socket data to share cycles.");
+        /* Don't bother processing the socket if we are shutting down and the JVM is down. */
+        if ((wrapperData->jState == WRAPPER_JSTATE_DOWN) &&
+            ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) || (wrapperData->wState == WRAPPER_WSTATE_STOPPED))) {
+            /* Skin socket processing. */
+        } else {
+            if ( wrapperProtocolRead() )
+            {
+                if (wrapperData->isDebugging) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                        "Pause reading socket data to share cycles.");
+                }
+                nextSleep = FALSE;
             }
-            nextSleep = FALSE;
         }
         
         /* See comment for first call above. */
