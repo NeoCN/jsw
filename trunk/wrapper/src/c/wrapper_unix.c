@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.83  2004/07/15 03:26:36  mortenson
+ * Now that the FreeBSD O_NONBLOCK bug is better understood, apply a better
+ * patch to fix it.
+ *
  * Revision 1.82  2004/07/11 14:01:34  mortenson
  * Work around a problem where the non-blocking bit on the JVM pipe is reset
  * on some FreeBSD systems.
@@ -1081,28 +1085,25 @@ int wrapperReadChildOutput() {
                 readSize = 1;
             }
 
-            /* On some versions of FreeBSD, there is a bug related to pthreads which causes
-             *  the non-blocking flag on the pipe to the JVM to be reset back to blocking
-             *  mode.  This is of course bad as it will cause this thread to hang when there
-             *  is no JVM output.  We need to check it and reset it as needed. */
-            flags = fcntl(jvmOut, F_GETFL);
-            if (flags < 0) {
+#if defined HAVE_PTHREADS && (defined HAVE_OPENBSD_OS || defined HAVE_FREEBSD_OS)
+            /* Work around FreeBSD Bug #kern/64313
+             *  http://www.freebsd.org/cgi/query-pr.cgi?pr=kern/64313
+             *
+             * When linked with the pthreads library the O_NONBLOCK flag is being reset
+             *  on the jvmOut handle.  Not sure yet of the exact event that is causing
+             *  this, but once it happens reads will start to block even though calls
+             *  to fcntl(jvmOut, F_GETFL) say that the O_NONBLOCK flag is set.
+             * Calling fcntl(jvmOut, F_SETFL, O_NONBLOCK) again will set the flag back
+             *  again and cause it to start working correctly.  This may only need to
+             *  be done once, however, because F_GETFL does not return the accurate
+             *  state there is no reliable way to check.  Be safe and always set the
+             *  flag. */
+            if (fcntl(jvmOut, F_SETFL, O_NONBLOCK) < 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                    "Failed to get jvm output handle flags: %s (%d)",
+                    "Failed to set jvm output handle to non blocking mode: %s (%d)",
                     getLastErrorText(), errno);
-            } else if (!(flags & O_NONBLOCK)) {
-                /* The no blocking flag has been reset and needs to be set again. */
-                if (wrapperData->isDebugging) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                        "The non-blocking flag on the jvm output handle has been reset. Setting it back.");
-                }
-
-                if (fcntl(jvmOut, F_SETFL, O_NONBLOCK) < 0) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                        "Failed to set jvm output handle to non blocking mode: %s (%d)",
-                        getLastErrorText(), errno);
-                }
             }
+#endif
 
             /* Fill read buffer. */
             bytesRead = read(jvmOut, readBuf, readSize);
