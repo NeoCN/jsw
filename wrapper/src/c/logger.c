@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.24  2003/04/15 23:24:21  mortenson
+ * Remove casts from all malloc statements.
+ *
  * Revision 1.23  2003/04/15 14:17:43  mortenson
  * Clean up the code by setting all malloced variables to NULL after they are freed,
  *
@@ -634,12 +637,12 @@ void checkAndRollLogs() {
                 printf("Rolling log files...\n");
 #endif
             /* Allocate buffers (Allow for 10 digit file indices) */
-            if ((tmpLogFilePathOld = (char *)malloc(((int)strlen(logFilePath)) + 10 + 2)) == NULL) {
+            if ((tmpLogFilePathOld = malloc(((int)strlen(logFilePath)) + 10 + 2)) == NULL) {
                 /* Don't log this as with other errors as that would cause recursion. */
                 fprintf(stderr, "Out of memory.\n");
                 goto cleanup;
             }
-            if ((tmpLogFilePathNew = (char *)malloc(((int)strlen(logFilePath)) + 10 + 2)) == NULL) {
+            if ((tmpLogFilePathNew = malloc(((int)strlen(logFilePath)) + 10 + 2)) == NULL) {
                 /* Don't log this as with other errors as that would cause recursion. */
                 fprintf(stderr, "Out of memory.\n");
                 goto cleanup;

@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.34  2003/04/15 23:24:22  mortenson
+ * Remove casts from all malloc statements.
+ *
  * Revision 1.33  2003/04/03 08:10:19  mortenson
  * Fix the imports so the file compiles.  Had edited on a win32 machine.
  *
@@ -209,11 +212,11 @@ void wrapperBuildJavaCommand() {
     }
 
     /* Allocate memory to hold array of command strings */
-    wrapperData->jvmCommand = (char **)malloc(sizeof(char *) * length + 1); 
+    wrapperData->jvmCommand = malloc(sizeof(char *) * length + 1); 
     /*                        number of arguments + 1 for a NULL pointer at the end */
     for (i = 0; i <= length; i++) {
         if (i < length) {
-            wrapperData->jvmCommand[i] = (char *)malloc(sizeof(char *) * strlen(strings[i]) + 1);
+            wrapperData->jvmCommand[i] = malloc(sizeof(char *) * strlen(strings[i]) + 1);
             sprintf(wrapperData->jvmCommand[i], strings[i]);
         } else {
             wrapperData->jvmCommand[i] = NULL;
@@ -425,7 +428,7 @@ int wrapperReadChildOutput() {
                             childOutputBufferSize, childOutputBufferSize + 1024);
                         */
 
-                        tempBuf = (char*)malloc(sizeof(char) * (childOutputBufferSize + 1024));
+                        tempBuf = malloc(sizeof(char) * (childOutputBufferSize + 1024));
                         if (childOutputBuffer != NULL) {
                             /* Copy over the old data */
                             memcpy(tempBuf, childOutputBuffer, childOutputBufferSize);
@@ -578,7 +581,7 @@ int main(int argc, char **argv) {
     int i;
 
     /* Initialize the WrapperConfig structure. */
-    wrapperData = (WrapperConfig *)malloc(sizeof(WrapperConfig));
+    wrapperData = malloc(sizeof(WrapperConfig));
     wrapperData->isConsole = TRUE;
     wrapperData->wState = WRAPPER_WSTATE_STARTING;
     wrapperData->jState = WRAPPER_JSTATE_DOWN;
