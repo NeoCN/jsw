@@ -26,6 +26,9 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.29  2002/11/06 05:44:52  mortenson
+// Add support for invoking a thread dump from a method call within the JVM.
+//
 // Revision 1.28  2002/11/02 04:41:45  mortenson
 // Improve the message thrown when user code attempts to access System.in from
 // within a JVM being controlled by the Wrapper.  System.in will not work
@@ -477,7 +480,7 @@ public final class WrapperManager implements Runnable {
      *-------------------------------------------------------------*/
     private static native void nativeInit(boolean debug);
     private static native int nativeGetControlEvent();
-    
+    private static native void nativeRequestThreadDump();
     private static native void accessViolationInner();
     
     /*---------------------------------------------------------------
@@ -503,6 +506,21 @@ public final class WrapperManager implements Runnable {
      */
     public static int getJVMId() {
         return _jvmId;
+    }
+    
+    /**
+     * Requests that the current JVM process request a thread dump.  This is
+     *  the same as pressing CTRL-BREAK (under Windows) or CTRL-\ (under Unix)
+     *  in the the console in which Java is running.  This method does nothing
+     *  if the native library is not loaded.
+     */
+    public static void requestThreadDump() {
+        System.out.println("Dumping JVM state.");
+        if (_libraryOK) {
+            nativeRequestThreadDump();
+        } else {
+            System.out.println("  wrapper library not loaded.");
+        }
     }
     
     /**

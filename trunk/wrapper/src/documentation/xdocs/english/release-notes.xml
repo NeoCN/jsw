@@ -18,6 +18,12 @@ $Id$
                     Windows XP.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Implemented feature request #633178.  Added WrapperManager.requestThreadDump()
+                    to force the current JVM to immediately perform a thread dump.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
