@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.115  2004/09/30 10:15:48  mortenson
+ * Add a test for invalid jvm arguments set using the wrapper.java.additional.<n>
+ * properties.  Invalid arguments could cause the Wrapper startup to fail in
+ * non obvious ways if they are mistaken by the JVM as the main class.
+ *
  * Revision 1.114  2004/09/22 11:06:27  mortenson
  * Start using nanosleep in place of usleep on UNIX platforms to work around usleep
  * problems with alarm signals on Solaris.
@@ -1286,31 +1291,41 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         if (prop) {
             if (strlen(prop) > 0) {
                 if (strings) {
-                    quotable = isQuotableProperty(properties, paramBuffer);
-                    sprintf(paramBuffer, "wrapper.java.additional.%d.stripquotes", i + 1);
-                    if (addQuotes) {
-                        stripQuote = FALSE;
+                    // All additional parameters must begin with a - or they will be interpretted
+                    //  as the being the main class name by Java.
+                    if (!((strstr(prop, "-") == prop) || (strstr(prop, "\"-") == prop))) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                            "The value of property '%s', '%s' is not valid.  Skipping.",
+                            paramBuffer, prop );
+                        strings[index] = malloc(sizeof(char) * 1);
+                        sprintf(strings[index], "", propStripped);
                     } else {
-                        stripQuote = getBooleanProperty(properties, paramBuffer, FALSE);
-                    }
-                    if (stripQuote) {
-                        propStripped = malloc(sizeof(char) * (strlen(prop) + 1));
-                        wrapperStripQuotes(prop, propStripped);
-                    } else {
-                        propStripped = (char *)prop;
-                    }
-
-                    strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1 + 2));
-                    if (addQuotes && quotable && strchr(propStripped, ' ')) {
-                        /* We want to add quotes to the value. */
-                     sprintf(strings[index], "\"%s\"", propStripped);
-                    } else {
-                     sprintf(strings[index], "%s", propStripped);
-                    }
-
-                    if (stripQuote) {
-                        free(propStripped);
-                        propStripped = NULL;
+                        quotable = isQuotableProperty(properties, paramBuffer);
+                        sprintf(paramBuffer, "wrapper.java.additional.%d.stripquotes", i + 1);
+                        if (addQuotes) {
+                            stripQuote = FALSE;
+                        } else {
+                            stripQuote = getBooleanProperty(properties, paramBuffer, FALSE);
+                        }
+                        if (stripQuote) {
+                            propStripped = malloc(sizeof(char) * (strlen(prop) + 1));
+                            wrapperStripQuotes(prop, propStripped);
+                        } else {
+                            propStripped = (char *)prop;
+                        }
+    
+                        strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1 + 2));
+                        if (addQuotes && quotable && strchr(propStripped, ' ')) {
+                            /* We want to add quotes to the value. */
+                            sprintf(strings[index], "\"%s\"", propStripped);
+                        } else {
+                            sprintf(strings[index], "%s", propStripped);
+                        }
+    
+                        if (stripQuote) {
+                            free(propStripped);
+                            propStripped = NULL;
+                        }
                     }
                 }
                 index++;
