@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.61  2004/10/20 05:23:17  mortenson
+ * Add a new property, wrapper.disable_restarts, which will completely disable
+ * the Wrapper's ability to restart JVMs.
+ *
  * Revision 1.60  2004/10/19 12:13:26  mortenson
  * Fix some compiler warnings on Linux.
  *
@@ -329,6 +333,7 @@ struct WrapperConfig {
     int     restartRequested;       /* TRUE if the another JVM should be launched after the current JVM is shutdown. Only set if exitRequested is set. */
     int     jvmRestarts;            /* Number of times that a JVM has been launched since the wrapper was started. */
     int     restartDelay;           /* Delay in seconds before restarting a new JVM. */
+    int     isRestartDisabled;      /* TRUE if restarts should be disabled. */
     int     requestThreadDumpOnFailedJVMExit; /* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
     DWORD   jvmLaunchTicks;         /* The tick count at which the previous or current JVM was launched. */
     int     failedInvocationCount;  /* The number of times that the JVM exited in less than successfulInvocationTime in a row. */

@@ -17,6 +17,26 @@ $Id$
                     restrictions on Windows.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Greatly improved the performance of file logging.  On a windows test machine
+                    3.1.2 could log 67210 lines of output in 20 seconds with a 80-15% split
+                    between the Wrapper and JVM process CPU usage.  It now outputs 215214 lines
+                    with a 64-34% split, also showing less load on the system process.  In both
+                    cases, the JVM was completely idle other than the console output which makes
+                    the Wrapper appear to be a bit of a CPU hog.  In fact it is the only process
+                    doing any work in this case.  This improvement was accomplished by keeping
+                    the log file open unless idle.  The idle time can be controlled using the
+                    new <ulink url="prop-logfile-inactivity-timeout.html">wrapper.logfile.inactivity.timeout</ulink>
+                    property.  The speed increase on UNIX platforms was much smaller at around 10%.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Add a new property, <ulink url="prop-disable-restarts.html">wrapper.disable_restarts</ulink>,
+                    which will completely disable the Wrapper's ability to restart JVMs.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
