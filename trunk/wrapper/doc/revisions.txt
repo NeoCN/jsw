@@ -59,6 +59,7 @@ Java Service Wrapper Revision History.
   the functionality more difficult to implement.
 * Add the ability to set the user that the Wrapper and its JVM will run as
   from within the sh script on UNIX platforms.
+* Add an icon resource to the Wrapper binary on Windows versions.
 
 3.1.0
 * The license was revised for this version to include a copyright omission.
