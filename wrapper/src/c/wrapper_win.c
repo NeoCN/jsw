@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.88  2004/09/24 04:34:44  mortenson
+ * Add a test of the exit status returned by GetExitCodeProcess
+ *
  * Revision 1.87  2004/09/22 11:09:44  mortenson
  * Remove some debug output that was added to track down a shutdown crash.
  *
@@ -1278,7 +1281,13 @@ int wrapperGetProcessStatus() {
                 "Critical error: unable to obtain the exit code of the JVM process: %s", getLastErrorText());
             appExit(1);
         }
-
+        
+        if (exitCode == STILL_ACTIVE) {
+            /* Should never happen, but check for it. */
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                "The JVM returned JVM exit code was STILL_ACTIVE." );
+        }
+        
         wrapperJVMProcessExited(exitCode);
 
         /* Remove java pid file if it was registered and created by this process. */
