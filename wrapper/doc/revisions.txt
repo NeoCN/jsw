@@ -4,6 +4,8 @@ Java Service Wrapper Revision History.
 * Added a new property, wrapper.restart.delay, which allows the user to control
   the amount of time to pause between a JVM exiting and a new JVM being
   launched.
+* Fixed bug #611024. The Wrapper would sometimes fail to start if
+  wrapper.max_failed_invocations is set to 1.
 
 2.2.8
 * Fixed a compiler problem on Solaris some systems.
