@@ -60,6 +60,15 @@ wrapper.logfile.format=LPTM
 # Log Level for console output.  (See docs for log levels)
 wrapper.logfile.loglevel=INFO
 
+# Maximum size that the log file will be allowed to grow to before the log is rolled.
+#  Size is specified in bytes.  The default value of 0, disables log rolling.  May
+#  abreviate with the 'k' (kb) or 'm' (mb) suffix.  For example: 10m = 10 megabytes.
+wrapper.logfile.maxsize=0
+
+# Maximum number of rolled log files which will be allowed before old files are deleted.
+#  The default value of 0 implies no limit.
+wrapper.logfile.maxfiles=0
+
 # Log Level for sys/event log output.  (See docs for log levels)
 wrapper.syslog.loglevel=NONE
 
