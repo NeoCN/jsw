@@ -26,6 +26,11 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.15  2002/06/06 00:52:21  mortenson
+// If a JVM tries to reconnect to the Wrapper after it has started shutting down, the
+// Wrapper was getting confused in some cases.  I think that this was just a problem
+// with the "Appear Hung" test, but the Wrapper should be more stable now.
+//
 // Revision 1.14  2002/06/02 13:38:58  mortenson
 // Added support for System Suspend and made the Wrapper handle heavy loads
 // better by avoiding unwanted timeouts.
@@ -896,6 +901,10 @@ public final class WrapperManager implements Runnable {
     
     private static synchronized void closeSocket() {
         if (_socket != null) {
+            if (_debug) {
+                System.out.println("Closing socket.");
+            }
+            
             try {
                 _socket.close();
             } catch (IOException e) {
@@ -1088,10 +1097,10 @@ public final class WrapperManager implements Runnable {
         for (int i = 0; i < threads.length; i++) {
             /*
             if (threads[i] != null) {
-                System.out.println("Check " + threads[i].getName() + " daemon=" + 
-                    threads[i].isDaemon() + " alive=" + threads[i].isAlive());
+            System.out.println("Check " + threads[i].getName() + " daemon=" + 
+            threads[i].isDaemon() + " alive=" + threads[i].isAlive());
             }
-            */
+             */
             if ((threads[i] != null) && (threads[i].isAlive() && (!threads[i].isDaemon()))) {
                 // Do not count this thread or the wrapper connection thread
                 if ((Thread.currentThread() != threads[i]) && (threads[i] != _commRunner)) {
@@ -1175,14 +1184,7 @@ public final class WrapperManager implements Runnable {
                     }
                 } finally {
                     // Always close the socket here.
-                    if (_socket != null) {
-                        try {
-                            _socket.close();
-                        } catch (IOException e) {
-                            // do nothing
-                        }
-                        _socket = null;
-                    }
+                    closeSocket();
                 }
             } catch (ThreadDeath td) {
                 System.out.println(_warning.format("SERVER_DAEMON_KILLED"));

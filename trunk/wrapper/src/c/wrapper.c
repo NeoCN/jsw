@@ -24,6 +24,11 @@
  *
  *
  * $Log$
+ * Revision 1.21  2002/06/06 00:52:21  mortenson
+ * If a JVM tries to reconnect to the Wrapper after it has started shutting down, the
+ * Wrapper was getting confused in some cases.  I think that this was just a problem
+ * with the "Appear Hung" test, but the Wrapper should be more stable now.
+ *
  * Revision 1.20  2002/06/02 13:38:58  mortenson
  * Added support for System Suspend and made the Wrapper handle heavy loads
  * better by avoiding unwanted timeouts.
@@ -362,8 +367,8 @@ void wrapperProtocolOpen() {
             /* There are no incomming sockets right now. */
             return;
         } else {
-         if (wrapperData->isDebugging) {
-              log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket creation failed. (%d)", rc);
+            if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket creation failed. (%d)", rc);
             }
             return;
         }
@@ -382,7 +387,7 @@ void wrapperProtocolOpen() {
 #endif
     if (rc == SOCKET_ERROR) {
         if (wrapperData->isDebugging) {
-         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket ioctlsocket failed. (%d)", wrapperGetLastError());
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket ioctlsocket failed. (%d)", wrapperGetLastError());
         }
         wrapperProtocolClose();
         return;
@@ -400,7 +405,7 @@ void wrapperProtocolClose() {
         rc = close(sd);
 #endif
         if (rc == SOCKET_ERROR) {
-         if (wrapperData->isDebugging) {
+            if (wrapperData->isDebugging) {
                 log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket close failed. (%d)", wrapperGetLastError());
             }
         }
@@ -483,6 +488,7 @@ int wrapperProtocolRead() {
         if (wrapperData->isDebugging) {
             if ((err != EWOULDBLOCK) && (err != ENOTSOCK) && (err != ECONNRESET)) {
                 log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket read failed. (%d)", err);
+		        wrapperProtocolClose();
             }
         }
         return FALSE;	
@@ -490,6 +496,7 @@ int wrapperProtocolRead() {
         if (wrapperData->isDebugging) {
             log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket read no code (closed?).");
         }
+        wrapperProtocolClose();
         return FALSE;	
     }
 
