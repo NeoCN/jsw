@@ -47,6 +47,11 @@
                     <simpara><emphasis>Linux / Solaris:</emphasis></simpara>
                     <screen format="linespecific">./testwrapper start</screen>
                 </informalexample>
+                <note>
+                    <simpara>
+                        The Solaris <literal moreinfo="none">testwrapper</literal> script tries to write a PID file to <literal moreinfo="none">/var/run</literal>. If you aren't logged in as root, this will fail. You can fix this by simply changing the <literal moreinfo="none">PIDDIR</literal> variable in the script, or by logging in as root. If you log in as root, make sure that you have permission to use the X server or else you won't be able to see the <literal moreinfo="none">testwrapper</literal> GUI.
+                    </simpara>
+                </note>
             </para>
             <para>
                 The Windows console can be stopped cleanly by hitting CTRL-C, but the Linux and Solaris version require you to run the script with the stop parameter:
