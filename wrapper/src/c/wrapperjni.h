@@ -21,12 +21,17 @@
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
+ *
+ *
+ * $Log$
+ * Revision 1.2  2002/03/07 09:23:25  mortenson
+ * Go through and change the style of comments that we use so that they will not
+ * cause compiler errors on older unix compilers.
+ *
+ * Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
+ * no message
+ *
  */
-
-// $Log$
-// Revision 1.1  2001/11/07 08:54:20  mortenson
-// Initial revision
-//
 
 #ifndef _WRAPPERJNI_H
 #define _WRAPPERJNI_H

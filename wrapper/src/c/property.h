@@ -21,15 +21,20 @@
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
+ *
+ *
+ * $Log$
+ * Revision 1.3  2002/03/07 09:23:25  mortenson
+ * Go through and change the style of comments that we use so that they will not
+ * cause compiler errors on older unix compilers.
+ *
+ * Revision 1.2  2002/01/10 08:19:37  mortenson
+ * Added the ability to override properties from the command line.
+ *
+ * Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
+ * no message
+ *
  */
-
-// $Log$
-// Revision 1.2  2002/01/10 08:19:37  mortenson
-// Added the ability to override properties from the command line.
-//
-// Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
-// no message
-//
 
 #ifndef TRUE
 #define TRUE -1
@@ -52,8 +57,8 @@ struct Property {
 
 typedef struct Properties Properties;
 struct Properties {
-    Property *first;         // Pointer to the first property.
-    Property *last;          // Pointer to the last property.
+    Property *first;         /* Pointer to the first property. */
+    Property *last;          /* Pointer to the last property.  */
 };
 
 /**

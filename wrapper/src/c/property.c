@@ -21,22 +21,26 @@
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
+ *
+ * $Log$
+ * Revision 1.5  2002/03/07 09:23:25  mortenson
+ * Go through and change the style of comments that we use so that they will not
+ * cause compiler errors on older unix compilers.
+ *
+ * Revision 1.4  2002/01/27 16:57:29  mortenson
+ * Fixed a compiler warning.
+ *
+ * Revision 1.3  2002/01/27 14:58:27  spocke
+ * Fixed bug issue when reading Windows config files in Unix.
+ * Control characters like CR was not handled.
+ *
+ * Revision 1.2  2002/01/10 08:19:37  mortenson
+ * Added the ability to override properties from the command line.
+ *
+ * Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
+ * no message
+ *
  */
-
-// $Log$
-// Revision 1.4  2002/01/27 16:57:29  mortenson
-// Fixed a compiler warning.
-//
-// Revision 1.3  2002/01/27 14:58:27  spocke
-// Fixed bug issue when reading Windows config files in Unix.
-// Control characters like CR was not handled.
-//
-// Revision 1.2  2002/01/10 08:19:37  mortenson
-// Added the ability to override properties from the command line.
-//
-// Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
-// no message
-//
 
 #include <malloc.h>
 #include <stdio.h>
@@ -51,21 +55,21 @@ Property* getInnerProperty(Properties *properties, const char *propertyName) {
     Property *property;
     int cmp;
 
-    // Loop over the properties which are in order and look for the specified property.
+    /* Loop over the properties which are in order and look for the specified property. */
     property = properties->first;
     while (property != NULL) {
         cmp = strcmp(property->name, propertyName);
         if (cmp > 0) {
-            // This property would be after the one being looked for, so it does not exist.
+            /* This property would be after the one being looked for, so it does not exist. */
             return NULL;
         } else if (cmp == 0) {
-            // We found it.
+            /* We found it. */
             return property;
         }
-        // Keep looking
+        /* Keep looking */
         property = property->next;
     }
-    // We did not find the property being looked for.
+    /* We did not find the property being looked for. */
     return NULL;
 }
 
@@ -73,37 +77,37 @@ void insertInnerProperty(Properties *properties, Property *newProperty) {
     Property *property;
     int cmp;
 
-    // Loop over the properties which are in order and look for the specified property.
-    // This function assumes that Property is not already in properties.
+    /* Loop over the properties which are in order and look for the specified property. */
+    /* This function assumes that Property is not already in properties. */
     property = properties->first;
     while (property != NULL) {
         cmp = strcmp(property->name, newProperty->name);
         if (cmp > 0) {
-            // This property would be after the new property, so insert it here.
+            /* This property would be after the new property, so insert it here. */
             newProperty->previous = property->previous;
             newProperty->next = property;
             if (property->previous == NULL) {
-                // This was the first property
+                /* This was the first property */
                 properties->first = newProperty;
             } else {
                 property->previous->next = newProperty;
             }
             property->previous = newProperty;
 
-            // We are done, so return
+            /* We are done, so return */
             return;
         }
 
         property = property->next;
     }
 
-    // The new property needs to be added at the end
+    /* The new property needs to be added at the end */
     newProperty->previous = properties->last;
     if (properties->last == NULL) {
-        // This will be the first property.
+        /* This will be the first property. */
         properties->first = newProperty;
     } else {
-        // Point the old last property to the new last property.
+        /* Point the old last property to the new last property. */
         properties->last->next = newProperty;
     }
     properties->last = newProperty;
@@ -133,63 +137,62 @@ void disposeInnerProperty(Property *property) {
 }
 
 void setInnerProperty(Property *property, const char *propertyValue) {
-	int i, count;
+    int i, count;
 
-    // Free any existing value
+    /* Free any existing value */
     if (property->value != NULL) {
         free(property->value);
     }
 
-    // Set the new value using a copy of the provided value.
+    /* Set the new value using a copy of the provided value. */
     if (propertyValue == NULL) {
         property->value = NULL;
     } else {
         property->value = (char *)malloc(sizeof(char) * (strlen(propertyValue) + 1));
 
-		// Strip any non valid characters like control characters
-		for (i = 0, count = 0; i < (int)strlen(propertyValue); i++) {
-			if (propertyValue[i] > 31) // Only add valid chars, skip control chars
-				property->value[count++] = propertyValue[i];
-		}
+        /* Strip any non valid characters like control characters */
+        for (i = 0, count = 0; i < (int)strlen(propertyValue); i++) {
+            if (propertyValue[i] > 31) /* Only add valid chars, skip control chars */
+                property->value[count++] = propertyValue[i];
+        }
 
-		// Crop string to new size
-		property->value[count] = '\0';
+        /* Crop string to new size */
+        property->value[count] = '\0';
     }
 }
 
 Properties* loadProperties(const char* filename) {
     Properties *properties;
     FILE *stream;
-    //int len;
     char buffer[1024];
     char *c;
     char *d;
 
-    // Look for the specified file.
+    /* Look for the specified file. */
     if ((stream = fopen(filename, "r+t")) == NULL) {
-        // Unable to open the file.
+        /* Unable to open the file. */
         return NULL;
     }
 
-    // Create a Properties structure.
+    /* Create a Properties structure. */
     properties = createProperties();
 
-    // Load in all of the properties
+    /* Load in all of the properties */
     do {
         c = fgets(buffer, 1024, stream);
         if (c != NULL) {
-            // Strip the LF off the end of the line.
+            /* Strip the LF off the end of the line. */
             if ((d = strchr(buffer, '\n')) != NULL) {
                 *d = '\0';
             }
 
-            // Only look at lines which contain data and do not start with a '#'
+            /* Only look at lines which contain data and do not start with a '#' */
             if ((strlen(buffer) > 0) && (buffer[0] != '#')) {
-                //printf("%s\n", buffer);
+                /* printf("%s\n", buffer); */
 
-                // Locate the first '=' in the line
+                /* Locate the first '=' in the line */
                 if ((d = strchr(buffer, '=')) != NULL) {
-                    // Null terminate the first half of the line.
+                    /* Null terminate the first half of the line. */
                     *d = '\0';
                     d++;
                     addProperty(properties, buffer, d);
@@ -198,7 +201,7 @@ Properties* loadProperties(const char* filename) {
         }
     } while (c != NULL);
 
-    // Close the file
+    /* Close the file */
     fclose(stream);
 
     return properties;
@@ -212,23 +215,23 @@ Properties* createProperties() {
 }
 
 void disposeProperties(Properties *properties) {
-    // Loop and dispose any Property structures
+    /* Loop and dispose any Property structures */
     Property *tempProperty;
     Property *property = properties->first;
     properties->first = NULL;
     properties->last = NULL;
     while (property != NULL) {
-        // Save the next property
+        /* Save the next property */
         tempProperty = property->next;
 
-        // Clean up the current property
+        /* Clean up the current property */
         disposeInnerProperty(property);
 
-        // set the current property to the next.
+        /* set the current property to the next. */
         property = tempProperty;
     }
 
-    // Dispose the Properties structure
+    /* Dispose the Properties structure */
     free(properties);
 }
 
@@ -237,29 +240,29 @@ void removeProperty(Properties *properties, const char *propertyName) {
     Property *next;
     Property *previous;
 
-    // Look up the property
+    /* Look up the property */
     property = getInnerProperty(properties, propertyName);
     if (property == NULL) {
-        // The property did not exist, so nothing to do.
+        /* The property did not exist, so nothing to do. */
     } else {
         next = property->next;
         previous = property->previous;
 
-        // Disconnect the property
+        /* Disconnect the property */
         if (next == NULL) {
-            // This was the last property
+            /* This was the last property */
             properties->last = previous;
         } else {
             next->previous = property->previous;
         }
         if (previous ==  NULL) {
-            // This was the first property
+            /* This was the first property */
             properties->first = next;
         } else {
             previous->next = property->next;
         }
 
-        // Now that property is disconnected, if can be disposed.
+        /* Now that property is disconnected, if can be disposed. */
         disposeInnerProperty(property);
     }
 }
@@ -267,23 +270,23 @@ void removeProperty(Properties *properties, const char *propertyName) {
 void addProperty(Properties *properties, const char *propertyName, const char *propertyValue) {
     Property *property;
 
-    //printf("addProperty(%p, '%s', '%s')\n", properties, propertyName, propertyValue);
+    /* printf("addProperty(%p, '%s', '%s')\n", properties, propertyName, propertyValue); */
 
-    // See if the property already exists
+    /* See if the property already exists */
     property = getInnerProperty(properties, propertyName);
     if (property == NULL) {
-        // This is a new property
+        /* This is a new property */
         property = createInnerProperty();
 
-        // Store a copy of the name
+        /* Store a copy of the name */
         property->name = (char *)malloc(sizeof(char) * (strlen(propertyName) + 1));
         strcpy(property->name, propertyName);
 
-        // Insert this property at the correct location.
+        /* Insert this property at the correct location. */
         insertInnerProperty(properties, property);
     }
     
-    // Set the property value.
+    /* Set the property value. */
     setInnerProperty(property, propertyValue);
 }
 
@@ -297,20 +300,20 @@ int addPropertyPair(Properties *properties, const char *propertyNameValue) {
     char buffer[1024];
     char *d;
 
-	// Make a copy of the pair that we can edit
-	strcpy(buffer, propertyNameValue);
+    /* Make a copy of the pair that we can edit */
+    strcpy(buffer, propertyNameValue);
 
-    // Locate the first '=' in the pair
+    /* Locate the first '=' in the pair */
     if ((d = strchr(buffer, '=')) != NULL) {
-        // Null terminate the first half of the line.
+        /* Null terminate the first half of the line. */
         *d = '\0';
         d++;
         addProperty(properties, buffer, d);
 
-		return 0;
+        return 0;
     } else {
-		return 1;
-	}
+        return 1;
+    }
 }
 
 const char* getStringProperty(Properties *properties, const char *propertyName, const char *defaultValue) {
@@ -339,10 +342,10 @@ int getBooleanProperty(Properties *properties, const char *propertyName, int def
     if (property == NULL) {
         return defaultValue;
     } else {
-        // A value was set.  Set to true only if the value equals "true"
+        /* A value was set.  Set to true only if the value equals "true" */
 #ifdef WIN32
         if (strcmp(strlwr(property->value), "true") == 0) {
-#else // UNIX
+#else /* UNIX */
         if (strcasecmp(property->value, "true") == 0) {
 #endif
             return TRUE;
@@ -353,11 +356,11 @@ int getBooleanProperty(Properties *properties, const char *propertyName, int def
 }
 
 void dumpProperties(Properties *properties) {
-	Property *property;
-	property = properties->first;
-	while (property != NULL) {
-		printf("    name:%s value:%s\n", property->name, property->value);
-		property = property->next;
-	}
+    Property *property;
+    property = properties->first;
+    while (property != NULL) {
+        printf("    name:%s value:%s\n", property->name, property->value);
+        property = property->next;
+    }
 }
 
