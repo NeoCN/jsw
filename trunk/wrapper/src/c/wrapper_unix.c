@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.76  2004/07/01 03:33:31  mortenson
+ * Add some additional error checks after calls to control the pipe between
+ * the JVM and Wrapper.
+ *
  * Revision 1.75  2004/06/16 15:56:29  mortenson
  * Added a new property, wrapper.anchorfile, which makes it possible to
  * cause the Wrapper to shutdown by deleting an anchor file.
@@ -743,7 +747,8 @@ void wrapperExecute() {
             execvp(wrapperData->jvmCommand[0], wrapperData->jvmCommand);
             
             /* We reached this point...meaning we were unable to start. */
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to start JVM: %s (%d)", getLastErrorText(), errno);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                "Unable to start JVM: %s (%d)", getLastErrorText(), errno);
         
         } else {
             /* We are the parent side. */
@@ -754,8 +759,16 @@ void wrapperExecute() {
             
             /* Mark our side of the pipe so that it won't block
              * and will close on exec, so new children won't see it. */
-            (void)fcntl(jvmOut, F_SETFL, O_NONBLOCK);
-            (void)fcntl(jvmOut, F_SETFD, FD_CLOEXEC);
+            if (fcntl(jvmOut, F_SETFL, O_NONBLOCK) < 0) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                    "Failed to set jvm output handle to non blocking mode: %s (%d)",
+                    getLastErrorText(), errno);
+            }
+            if (fcntl(jvmOut, F_SETFD, FD_CLOEXEC) < 0) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                    "Failed to set jvm output handle to close on JVM exit: %s (%d)",
+                    getLastErrorText(), errno);
+            }
 
             /* If a java pid filename is specified then write the pid of the java process. */
             if (wrapperData->javaPidFilename) {
@@ -919,7 +932,14 @@ int wrapperReadChildOutput() {
             bytesRead = read(jvmOut, readBuf, readSize);
 
             if (bytesRead <= 0) {
-                /* No more bytes available, return for now. */
+                /* No more bytes available, return for now.  But make sure that this was not an error. */
+                if ( errno == EAGAIN ) {
+                    /* Normal, the call would have blocked as there is no data available. */
+                } else {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                        "Failed to read console output from the JVM: %s (%d)",
+                        getLastErrorText(), errno);
+                }
 
                 if (childOutputBufferPos > 0) {
                     /* We have a partial line, write it out so it is not lost. */
