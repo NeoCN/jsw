@@ -81,6 +81,11 @@
                                 <xsl:copy-of select="/site/body/node()|@*"/>
                             </td>
                         </tr>
+                        <tr>
+                            <td id="author" align="right">
+                                <p><i>by Leif Mortenson</i></p>
+                            </td>
+                        </tr>
                     </table>
                 </td>
             </tr>
