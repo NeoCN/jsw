@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.113  2004/09/16 07:11:24  mortenson
+ * Add a new wrapper.single_invocation property which will prevent multiple
+ * invocations of an application from being started on Windows platforms.
+ *
  * Revision 1.112  2004/09/06 07:49:15  mortenson
  * Add a new wrapper.loop_output property which makes it possible to enable high
  * resolution debug output on the progress of the main event loop.
@@ -2068,6 +2072,9 @@ void wrapperBuildNTServiceInfo() {
 
     /* Obtain the Console Title. */
     wrapperData->consoleTitle = (char *)getStringProperty(properties, "wrapper.console.title", NULL);
+
+    /* Set the single invocation flag. */
+    wrapperData->isSingleInvocation = getBooleanProperty( properties, "wrapper.single_invocation", FALSE );
 }
 #endif
 

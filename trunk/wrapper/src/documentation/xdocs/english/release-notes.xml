@@ -103,6 +103,14 @@ $Id$
                     if an ANT_HOME environment variable was defined.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add a new <ulink url="prop-single-invocation.html">wrapper.single_invocation</ulink>
+                    property which will prevent multiple invocations of an application from being
+                    started on Windows platforms.  The shell script handles this on UNIX platforms.
+                    <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=889123&amp;group_id=39428&amp;atid=425190">Feature Request #889123</ulink>.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.1">

@@ -220,6 +220,9 @@
                     <ulink url="prop-shutdown-timeout.html">wrapper.shutdown.timeout</ulink>
                 </listitem>
                 <listitem>
+                    <ulink url="prop-single-invocation.html">wrapper.single_invocation</ulink>
+                </listitem>
+                <listitem>
                     <ulink url="prop-startup-delay.html">wrapper.startup.delay</ulink>
                 </listitem>
                 <listitem>

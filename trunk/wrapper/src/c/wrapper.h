@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.55  2004/09/16 07:11:26  mortenson
+ * Add a new wrapper.single_invocation property which will prevent multiple
+ * invocations of an application from being started on Windows platforms.
+ *
  * Revision 1.54  2004/09/06 07:49:16  mortenson
  * Add a new wrapper.loop_output property which makes it possible to enable high
  * resolution debug output on the progress of the main event loop.
@@ -314,6 +318,7 @@ struct WrapperConfig {
 
 #ifdef WIN32
     char    *consoleTitle;          /* Text to set the console title to. */
+    int     isSingleInvocation;     /* TRUE if only a single invocation of an application should be allowed to launch. */
     char    *ntServiceName;         /* Name of the NT Service */
     char    *ntServiceDisplayName;  /* Display name of the NT Service */
     char    *ntServiceDescription;  /* Description for service in Win2k and XP */

@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.84  2004/09/16 07:11:26  mortenson
+ * Add a new wrapper.single_invocation property which will prevent multiple
+ * invocations of an application from being started on Windows platforms.
+ *
  * Revision 1.83  2004/09/16 04:04:32  mortenson
  * Close the Handle to the logging mutex on shutdown.
  *
@@ -415,6 +419,47 @@ char** wrapperGetSystemPath() {
 }
 
 /**
+ * Initializes the invocation mutex.  Returns 1 if the mutex already exists
+ *  or can not be created.  0 if this is the first instance.
+ */
+HANDLE invocationMutexHandle = NULL;
+int initInvocationMutex() {
+    char *mutexName;
+    if (wrapperData->isSingleInvocation) {
+        mutexName = malloc(sizeof(char) * (23 + strlen(wrapperData->ntServiceName) + 1));
+        sprintf(mutexName, "Java Service Wrapper - %s", wrapperData->ntServiceName);
+        
+        if (!(invocationMutexHandle = CreateMutex(NULL, FALSE, mutexName))) {
+            free(mutexName);
+            
+            if (GetLastError() == ERROR_ACCESS_DENIED) {
+                /* Most likely the app is running as a service and we tried to run it as a console. */
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                    "ERROR: Another instance of the %s application is already running.",
+                    wrapperData->ntServiceName);
+                return 1;
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                    "ERROR: Unable to create the single invation mutex. %s",
+                    getLastErrorText());
+                return 1;
+            }
+        } else {
+            free(mutexName);
+        }
+        
+        if (GetLastError() == ERROR_ALREADY_EXISTS) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                "ERROR: Another instance of the %s application is already running.",
+                wrapperData->ntServiceName);
+            return 1;
+        }
+    }
+    
+    return 0;
+}
+
+/**
  * exits the application after running shutdown code.
  */
 void appExit(int exitCode) {
@@ -426,6 +471,12 @@ void appExit(int exitCode) {
     /* Remove anchor file.  It may no longer exist. */
     if (wrapperData->anchorFilename) {
         unlink(wrapperData->anchorFilename);
+    }
+    
+    /* Close the invocation mutex if we created or looked it up. */
+    if (invocationMutexHandle) {
+        CloseHandle(invocationMutexHandle);
+        invocationMutexHandle = NULL;
     }
     
     /* Clean up the logging system. */
@@ -2603,9 +2654,9 @@ void _CRTAPI1 main(int argc, char **argv) {
 
                             /* Change the working directory if configured to do so. */
                             if (wrapperSetWorkingDirProp()) {
-                             appExit(1);
+                                appExit(1);
                             }
-                        
+                            
                             /* Perform the specified command */
                             if(!_stricmp(argv[1],"-i") || !_stricmp(argv[1],"/i")) {
                                 /* Install an NT service */
@@ -2621,7 +2672,12 @@ void _CRTAPI1 main(int argc, char **argv) {
                                 result = wrapperStopService(TRUE);
                             } else if(!_stricmp(argv[1],"-c") || !_stricmp(argv[1],"/c")) {
                                 /* Run as a console application */
-
+                                
+                                /* Initialize the invocation mutex as necessary, exit if it already exists. */
+                                if (initInvocationMutex()) {
+                                    appExit(1);
+                                }
+                                
                                 /* Write pid and anchor files as requested.  If they are the same file the file is
                                  *  simply overwritten. */
                                 if (wrapperData->anchorFilename) {
@@ -2648,7 +2704,12 @@ void _CRTAPI1 main(int argc, char **argv) {
                                 }
                             } else if(!_stricmp(argv[1],"-s") || !_stricmp(argv[1],"/s")) {
                                 /* Run as a service */
-
+                                
+                                /* Initialize the invocation mutex as necessary, exit if it already exists. */
+                                if (initInvocationMutex()) {
+                                    appExit(1);
+                                }
+                                
                                 /* Write pid and anchor files as requested.  If they are the same file the file is
                                  *  simply overwritten. */
                                 if (wrapperData->anchorFilename) {
