@@ -26,6 +26,9 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.19  2002/09/09 17:19:47  mortenson
+// Add ability to log to specific log levels from within the Wrapper.
+//
 // Revision 1.18  2002/08/22 13:38:08  mortenson
 // Open up the thread count method to other classes in the Wrapper package.
 //
@@ -146,11 +149,28 @@ public final class WrapperManager implements Runnable {
     private static final byte WRAPPER_MSG_STOPPED        = (byte)107;
     private static final byte WRAPPER_MSG_KEY            = (byte)110;
     private static final byte WRAPPER_MSG_BADKEY         = (byte)111;
+    private static final byte WRAPPER_MSG_LOW_LOG_LEVEL  = (byte)112;
+    
+    /** Log commands are actually 116 + the LOG LEVEL. */
+    private static final byte WRAPPER_MSG_LOG            = (byte)116;
     
     public static final int WRAPPER_CTRL_C_EVENT         = 200;
     public static final int WRAPPER_CTRL_CLOSE_EVENT     = 201;
     public static final int WRAPPER_CTRL_LOGOFF_EVENT    = 202;
     public static final int WRAPPER_CTRL_SHUTDOWN_EVENT  = 203;
+    
+    /** Log message at debug log level. */
+    public static final int WRAPPER_LOG_LEVEL_DEBUG      = 1;
+    /** Log message at info log level. */
+    public static final int WRAPPER_LOG_LEVEL_INFO       = 2;
+    /** Log message at status log level. */
+    public static final int WRAPPER_LOG_LEVEL_STATUS     = 3;
+    /** Log message at warn log level. */
+    public static final int WRAPPER_LOG_LEVEL_WARN       = 4;
+    /** Log message at error log level. */
+    public static final int WRAPPER_LOG_LEVEL_ERROR      = 5;
+    /** Log message at fatal log level. */
+    public static final int WRAPPER_LOG_LEVEL_FATAL      = 6;
     
     private static boolean _disposed = false;
     private static boolean _started = false;
@@ -163,6 +183,11 @@ public final class WrapperManager implements Runnable {
     private static String _key;
     private static int _soTimeout = DEFAULT_SO_TIMEOUT;
     private static long _cpuTimeout = DEFAULT_CPU_TIMEOUT;
+    
+    /** The lowest configured log level in the Wrapper's configuration.  This 
+     *   is set to a high value by default to disable all logging if the
+     *   Wrapper does not register its low level or is not present. */
+    private static int _lowLogLevel = WRAPPER_LOG_LEVEL_FATAL + 1;
     
     /** Thread which processes all communications with the native code. */
     private static Thread _commRunner;
@@ -635,6 +660,41 @@ public final class WrapperManager implements Runnable {
         return _hookTriggered;
     }
     
+    /**
+     * Requests that the Wrapper log a message at the specified log level.
+     *  If the JVM is not being managed by the Wrapper then calls to this
+     *  method will be ignored.  This method has been optimized to ignore
+     *  messages at a log level which will not be logged given the current
+     *  log levels of the Wrapper.
+     * <p>
+     * Log messages will currently by trimmed by the Wrapper at 4k (4096 bytes).
+     * <p>
+     * Because of differences in the way console output is collected and
+     *  messages logged via this method, it is expected that interspersed
+     *  console and log messages will not be in the correct order in the
+     *  resulting log file.
+     *
+     * @param logLevel The level to log the message at can be one of
+     *                 WRAPPER_LOG_LEVEL_DEBUG, WRAPPER_LOG_LEVEL_INFO,
+     *                 WRAPPER_LOG_LEVEL_STATUS, WRAPPER_LOG_LEVEL_WARN,
+     *                 WRAPPER_LOG_LEVEL_ERROR, or WRAPPER_LOG_LEVEL_FATAL.
+     * @param message The message to be logged.
+     */
+    public static void log(int logLevel, String message) {
+        // Make sure that the logLevel is valid to avoid problems with the
+        //  command sent to the server.
+        
+        if ((logLevel < WRAPPER_LOG_LEVEL_DEBUG) || (logLevel > WRAPPER_LOG_LEVEL_FATAL)) {
+            throw new IllegalArgumentException( "The specified logLevel is not valid." );
+        }
+        if (message == null) {
+            throw new IllegalArgumentException( "The message parameter can not be null." );
+        }
+        
+        if (_lowLogLevel <= logLevel) {
+            sendCommand((byte)(WRAPPER_MSG_LOG + logLevel), message);
+        }
+    }
     
     /*---------------------------------------------------------------
      * Constructors
@@ -965,11 +1025,18 @@ public final class WrapperManager implements Runnable {
             // If the socket is open, then send the command, otherwise just throw it away.
             if (socket != null) {
                 try {
+                    // It is possible that a logged message is quite large.  Expand the size
+                    // of the command buffer if necessary so that it can be included.  This
+                    //  means that the command buffer will be the size of the largest message.
+                    byte[] messageBytes = message.getBytes();
+                    if ( _commandBuffer.length < messageBytes.length + 2 ) {
+                        _commandBuffer = new byte[messageBytes.length + 2];
+                    }
+                    
                     // Writing the bytes one by one was sometimes causing the first byte to be lost.
                     // Try to work around this problem by creating a buffer and sending the whole lot
                     // at once.
                     _commandBuffer[0] = code;
-                    byte[] messageBytes = message.getBytes();
                     System.arraycopy(messageBytes, 0, _commandBuffer, 1, messageBytes.length);
                     int len = messageBytes.length + 2;
                     _commandBuffer[len - 1] = 0;
@@ -1033,6 +1100,7 @@ public final class WrapperManager implements Runnable {
                         case WRAPPER_MSG_START:
                             startInner();
                             break;
+                            
                         case WRAPPER_MSG_STOP:
                             // Don't do anything if we are already stopping
                             if (!_stopping) {
@@ -1040,16 +1108,30 @@ public final class WrapperManager implements Runnable {
                                 // Should never get back here.
                             }
                             break;
+                            
                         case WRAPPER_MSG_PING:
                             _lastPing = System.currentTimeMillis();
                             sendCommand(WRAPPER_MSG_PING, "ok");
                             break;
+                            
                         case WRAPPER_MSG_BADKEY:
                             // The key sent to the wrapper was incorrect.  We need to shutdown.
                             System.out.println("Authorization key rejected by Wrapper.  Exiting JVM.");
                             closeSocket();
                             stopInner(1);
                             break;
+                            
+                        case WRAPPER_MSG_LOW_LOG_LEVEL:
+                            try {
+                                _lowLogLevel = Integer.parseInt( msg );
+                                //if (_debug) {
+                                    System.out.println("Wrapper Manager: LowLogLevel from Wrapper is " + _lowLogLevel);
+                                //}
+                            } catch (NumberFormatException e) {
+                                System.out.println("Encountered an Illegal LowLogLevel from the Wrapper: " + msg);
+                            }
+                            break;
+                            
                         default:
                             // Ignore unknown messages
                             System.out.println("Wrapper code received an unknown packet type: " + code);
@@ -1093,7 +1175,9 @@ public final class WrapperManager implements Runnable {
                 }
                 
                 // Check to see if all non-daemon threads have exited.
-                checkThreads();
+                if (_started) {
+                    checkThreads();
+                }
             }
             return;
 

@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.16  2002/09/09 17:19:46  mortenson
+ * Add ability to log to specific log levels from within the Wrapper.
+ *
  * Revision 1.15  2002/08/11 05:32:44  mortenson
  * Make it possible for the user to configure the restart count and time via
  * the wrapper.max_failed_invocations and wrapper.successful_invocation_time
@@ -192,6 +195,10 @@ struct WrapperConfig {
 #define WRAPPER_MSG_STOPPED       (char)107
 #define WRAPPER_MSG_KEY           (char)110
 #define WRAPPER_MSG_BADKEY        (char)111
+#define WRAPPER_MSG_LOW_LOG_LEVEL (char)112
+
+/** Log commands are actually 116 + the LOG LEVEL. */
+#define WRAPPER_MSG_LOG           (char)116
 
 #define WRAPPER_PROCESS_DOWN      200
 #define WRAPPER_PROCESS_UP        201
@@ -319,6 +326,7 @@ extern int  wrapperLoadConfiguration();
 /******************************************************************************
  * Protocol callback functions
  *****************************************************************************/
+extern void wrapperLogSignalled(int logLevel, char *msg);
 extern void wrapperKeyRegistered(char *key);
 extern void wrapperPingResponded();
 extern void wrapperStopRequested(int exitCode);

@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.15  2002/09/09 17:19:43  mortenson
+ * Add ability to log to specific log levels from within the Wrapper.
+ *
  * Revision 1.14  2002/09/09 15:52:41  mortenson
  * Fix an allignment problem with WARN level output.
  *
@@ -107,6 +110,7 @@ int currentConsoleLevel = LEVEL_UNKNOWN;
 int currentLogfileLevel = LEVEL_UNKNOWN;
 int currentLoginfoLevel = LEVEL_UNKNOWN;
 
+char szBuff[ MAX_LOG_SIZE + 1 ];
 char logFilePath[ 1024 ];
 char *logLevelNames[] = { "NONE  ", "DEBUG ", "INFO  ", "STATUS", "WARN  ", "ERROR ", "FATAL " };
 char loginfoSourceName[ 1024 ];
@@ -270,21 +274,16 @@ void setSyslogEventSourceName( char *event_source_name ) {
         strcpy( loginfoSourceName, event_source_name );
 }
 
-int loggerNeedsDebug() {
-    if ((currentLogfileLevel <= LEVEL_DEBUG) ||
-        (currentConsoleLevel <= LEVEL_DEBUG) ||
-        (currentLoginfoLevel <= LEVEL_DEBUG)) {
-        return 1;
-    } else {
-        return 0;
-    }
+int getLowLogLevel() {
+	int lowLogLevel = (currentLogfileLevel < currentConsoleLevel ? currentLogfileLevel : currentConsoleLevel);
+	lowLogLevel =  (currentLoginfoLevel < lowLogLevel ? currentLoginfoLevel : lowLogLevel);
+	return lowLogLevel;
 }
 
 /* General log functions */
 void log_printf( int source_id, int level, char *lpszFmt, ... ) {
     va_list		vargs;
     int			i;
-    char		szBuff[2048];
     int			handledFormat, numColumns, currentColumn;
     FILE		*logfileFP = NULL;
 

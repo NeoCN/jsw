@@ -195,6 +195,26 @@
                  token="wrapper.pidfile=/var/run/aigent.pid"
                  value="wrapper.pidfile=${basedir}/percentoutput.pid" />
         
+        <!-- Log Output Test -->
+        <delete file="${test.dir}/logoutput.conf"/>
+        <filter token="app.name"          value="logoutput"/>
+        <filter token="app.long.name"     value="Log Output Case" />
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${test.dir}/logoutput.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/logoutput.conf"
+                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
+                 value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+        <replace file="${test.dir}/logoutput.conf"
+                 token="#wrapper.app.parameter.1="
+                 value="wrapper.app.parameter.1=com.silveregg.wrapper.test.LogOutput" />
+        <replace file="${test.dir}/logoutput.conf"
+                 token="wrapper.logfile=../logs/wrapper.log"
+                 value="wrapper.logfile=../test/testwrapper.log" />
+        <replace file="${test.dir}/logoutput.conf"
+                 token="wrapper.pidfile=/var/run/aigent.pid"
+                 value="wrapper.pidfile=${basedir}/logoutput.pid" />
+        
         <!-- Restarter Test -->
         <delete file="${test.dir}/restarter.conf"/>
         <filter token="app.name"          value="restarter"/>
@@ -372,6 +392,18 @@ set ENV_VAR_4=d]]></replacevalue>
                  token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
                  value='set _WRAPPER_CONF="%_APP_HOME%\test\percentoutput.conf"' />
         
+        <!-- Log Output Test -->
+        <delete file="${test.dir}/TestLogOutput.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestLogOutput.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestLogOutput.bat"
+                 token='set _APP_HOME=%_APP_HOME:\bin\=%'
+                 value='set _APP_HOME=%_APP_HOME:\test\=%' />
+        <replace file="${test.dir}/TestLogOutput.bat"
+                 token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
+                 value='set _WRAPPER_CONF="%_APP_HOME%\test\logoutput.conf"' />
+        
         <!-- Restarter Test -->
         <delete file="${test.dir}/TestRestarter.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
@@ -531,6 +563,14 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/percentoutput"
               filtering="on"/>
         <chmod file="${test.dir}/percentoutput" perm="+x"/> 
+        
+        <!-- Log Output Test -->
+        <filter token="app.name"          value="logoutput"/>
+        <filter token="app.long.name"     value="Log Output Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/logoutput"
+              filtering="on"/>
+        <chmod file="${test.dir}/logoutput" perm="+x"/> 
         
         <!-- Restarter Test -->
         <filter token="app.name"          value="restarter"/>

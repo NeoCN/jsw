@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.24  2002/09/09 17:19:45  mortenson
+ * Add ability to log to specific log levels from within the Wrapper.
+ *
  * Revision 1.23  2002/08/11 05:32:44  mortenson
  * Make it possible for the user to configure the restart count and time via
  * the wrapper.max_failed_invocations and wrapper.successful_invocation_time
@@ -163,8 +166,7 @@
 #endif /* WIN32 */
 
 WrapperConfig *wrapperData;
-char         logBuffer[2048];
-char         iLogBuffer[2048];  /* Used by wrapperInnerLog */
+char         packetBuffer[MAX_LOG_SIZE + 1];
 char         *keyChars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
 
 /* Properties structure loaded in from the config file. */
@@ -467,7 +469,6 @@ int wrapperProtocolRead() {
     int len;
     int pos;
     int err;
-    char buffer[257];
 
     /* If we have an open client socket, then use it. */
     if (sd == INVALID_SOCKET) {
@@ -518,8 +519,8 @@ int wrapperProtocolRead() {
             if (c == 0) {
                 /* End of string */
                 len = 0;
-            } else if (pos < 256) {
-                buffer[pos] = c;
+            } else if (pos < MAX_LOG_SIZE) {
+                packetBuffer[pos] = c;
                 pos++;
             }
         } else {
@@ -527,40 +528,57 @@ int wrapperProtocolRead() {
         }
     } while (len == 1);
     /* terminate the string; */
-    buffer[pos] = '\0';
+    packetBuffer[pos] = '\0';
 
     if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "read a packet %d : %s", code, buffer);
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "read a packet %d : %s", code, packetBuffer);
     }
 
     switch (code) {
     case WRAPPER_MSG_STOP:
-        wrapperStopRequested(atoi(buffer));
+        wrapperStopRequested(atoi(packetBuffer));
         break;
+
     case WRAPPER_MSG_RESTART:
         wrapperRestartRequested();
         break;
+
     case WRAPPER_MSG_PING:
         wrapperPingResponded();
         break;
+
     case WRAPPER_MSG_STOP_PENDING:
-        wrapperStopPendingSignalled(atoi(buffer));
+        wrapperStopPendingSignalled(atoi(packetBuffer));
         break;
+
     case WRAPPER_MSG_STOPPED:
         wrapperStoppedSignalled();
         break;
+
     case WRAPPER_MSG_START_PENDING:
-        wrapperStartPendingSignalled(atoi(buffer));
+        wrapperStartPendingSignalled(atoi(packetBuffer));
         break;
+
     case WRAPPER_MSG_STARTED:
         wrapperStartedSignalled();
         break;
+
     case WRAPPER_MSG_KEY:
-        wrapperKeyRegistered(buffer);
+        wrapperKeyRegistered(packetBuffer);
         break;
+
+	case WRAPPER_MSG_LOG + LEVEL_DEBUG:
+	case WRAPPER_MSG_LOG + LEVEL_INFO:
+	case WRAPPER_MSG_LOG + LEVEL_STATUS:
+	case WRAPPER_MSG_LOG + LEVEL_WARN:
+	case WRAPPER_MSG_LOG + LEVEL_ERROR:
+	case WRAPPER_MSG_LOG + LEVEL_FATAL:
+		wrapperLogSignalled(code - WRAPPER_MSG_LOG, packetBuffer);
+		break;
+
     default:
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "received unknown packet (%d:%s)", code, buffer);
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "received unknown packet (%d:%s)", code, packetBuffer);
         }
         break;
     }
@@ -1717,7 +1735,7 @@ int wrapperLoadConfiguration() {
         setConsoleLogLevelInt(LEVEL_DEBUG);
         setLogfileLevelInt(LEVEL_DEBUG);
     } else {
-        if (loggerNeedsDebug()) {
+        if (getLowLogLevel() <= LEVEL_DEBUG) {
             wrapperData->isDebugging = TRUE;
         }
     }
@@ -1790,7 +1808,19 @@ int wrapperLoadConfiguration() {
 /******************************************************************************
  * Protocol callback functions
  *****************************************************************************/
+void wrapperLogSignalled(int logLevel, char *msg) {
+	/* */
+    if (wrapperData->isDebugging) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Got a log message from JVM: %s", msg);
+    }
+	/* */
+
+	log_printf(wrapperData->jvmRestarts, logLevel, "%s", msg);
+}
+
 void wrapperKeyRegistered(char *key) {
+	char buffer[7];
+
     if (wrapperData->isDebugging) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Got key from JVM: %s", key);
     }
@@ -1805,6 +1835,10 @@ void wrapperKeyRegistered(char *key) {
             /* We now know that the Java side wrapper code has started. */
             wrapperData->jState = WRAPPER_JSTATE_LAUNCHED;
             wrapperData->jStateTimeout = 0;
+
+			/* Send the low log level to the JVM so that it can control output via the log method. */
+			sprintf(buffer, "%d", getLowLogLevel());
+            wrapperProtocolFunction(WRAPPER_MSG_LOW_LOG_LEVEL, buffer);
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Received a connection request with an incorrect key.  Waiting for another connection.");
 

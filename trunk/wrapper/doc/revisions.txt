@@ -40,6 +40,8 @@ Java Service Wrapper Revision History.
 * Added a page to the documentation which shows inline javadocs.  This
   will hopefully make it easier to navigate them as part of the full
   documentation set.
+* Added a new method to the WrapperManager which enables user code to
+  log at any log level.
 
 2.2.7
 * Fix a problem where the JVM was trying to reconnect the Wrapper as it was
