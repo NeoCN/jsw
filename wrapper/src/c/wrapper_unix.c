@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.8  2002/01/27 15:04:50  spocke
+// Removed some old logger stuff, and added new logger.
+//
 // Revision 1.7  2002/01/24 09:43:56  mortenson
 // Added new Logger code which allows log levels.
 //
@@ -70,6 +73,7 @@
 #include <sys/wait.h>
 #include "wrapper.h"
 #include "property.h"
+#include "logger.h"
 
 #define max(x,y) (((x) > (y)) ? (x) : (y)) 
 #define min(x,y) (((x) < (y)) ? (x) : (y)) 
@@ -404,9 +408,10 @@ int main(int argc, char **argv) {
     wrapperData->isConsole = TRUE;
     wrapperData->wState = WRAPPER_WSTATE_STARTING;
     wrapperData->jState = WRAPPER_JSTATE_DOWN;
-    wrapperData->logFile = NULL;
+/*  Removed from compile, not needed??
+	wrapperData->logFile = NULL;
     wrapperData->logFileFormat = "PTM";
-    wrapperData->consoleFormat = "PM";
+    wrapperData->consoleFormat = "PM";*/
     wrapperData->jvmCommand = NULL;
     wrapperData->exitRequested = FALSE;
     wrapperData->exitAcknowledged = FALSE;
