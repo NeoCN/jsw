@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.31  2002/10/10 03:24:55  mortenson
+ * Close an unclosed comment.  Wasn't causing any problems.
+ *
  * Revision 1.30  2002/10/10 03:20:09  mortenson
  * Fix a problem where the Wrapper would not respond to exit requests while
  * pausing between JVM invocations.
@@ -1446,7 +1449,7 @@ void wrapperEventLoop() {
 
                 /* Is it time to proceed? */
                 if (now > wrapperData->jStateTimeout) {
-                    /* Launch the new JVM
+                    /* Launch the new JVM */
 
                     /* Set the launch time to the curent time */
                     wrapperData->jvmLaunchTime = time(NULL);
