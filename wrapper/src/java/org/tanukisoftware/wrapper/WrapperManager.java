@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.26  2003/11/05 16:45:43  mortenson
+// The WrapperManager class now checks to make sure that its current version
+// matches the version of the native library and Wrapper.
+//
 // Revision 1.25  2003/11/02 20:55:05  mortenson
 // Add some javadocs.
 // Remove code that was just checked in so it can be used later if ever needed.
@@ -476,8 +480,14 @@ public final class WrapperManager
             }
         }
         
+        // Make sure that the version of the Wrapper is correct.
+        verifyWrapperVersion();
+        
         // Initialize the native code to trap system signals
         initializeNativeLibrary();
+        
+        // Make sure that the native library's version is correct.
+        verifyNativeLibraryVersion();
         
         // Start a thread which looks for control events sent to the
         //  process.  The thread is also used to keep track of whether
@@ -564,6 +574,7 @@ public final class WrapperManager
      * Native Methods
      *-------------------------------------------------------------*/
     private static native void nativeInit( boolean debug );
+    private static native String nativeGetLibraryVersion();
     private static native int nativeGetControlEvent();
     private static native void nativeRequestThreadDump();
     private static native void accessViolationInner();
@@ -747,6 +758,92 @@ public final class WrapperManager
                 }
             }
             m_out.println( "          System signals will not be handled correctly." );
+            m_out.println();
+        }
+    }
+    
+    /**
+     * Compares the version of the wrapper which launched this JVM with that of
+     *  the jar.  If they differ then a Warning message will be displayed.  The
+     *  Wrapper application will still be allowed to start.
+     */
+    private static void verifyWrapperVersion()
+    {
+        // If we are not being controlled by the wrapper then return.
+        if ( !WrapperManager.isControlledByNativeWrapper() )
+        {
+            return;
+        }
+        
+        // Lookup the version from the wrapper.  It should have been set as a property
+        //  when the JVM was launched.
+        String wrapperVersion = System.getProperty( "wrapper.version" );
+        if ( wrapperVersion == null )
+        {
+            wrapperVersion = "unknown";
+        }
+        
+        if ( !WrapperInfo.getVersion().equals( wrapperVersion ) )
+        {
+            m_out.println(
+                "WARNING - The Wrapper jar file currently in use is version \""
+                + WrapperInfo.getVersion() + "\"" );
+            m_out.println(
+                "          while the version of the Wrapper which launched this JVM is " );
+            m_out.println(
+                "          \"" + wrapperVersion + "\"." );
+            m_out.println(
+                "          The Wrapper may appear to work correctly but some features may" );
+            m_out.println(
+                "          not function correctly.  This configuration has not been tested" );
+            m_out.println(
+                "          and is not supported." );
+            m_out.println();
+        }
+    }
+    
+    /**
+     * Compares the version of the native library with that of this jar.  If
+     *  they differ then a Warning message will be displayed.  The Wrapper
+     *  application will still be allowed to start.
+     */
+    private static void verifyNativeLibraryVersion()
+    {
+        // If the library was not loaded then return
+        if ( !m_libraryOK )
+        {
+            return;
+        }
+        
+        // Request the version from the native library.  Be careful as the method
+        //  will not exist if the library is old.
+        String jniVersion;
+        try
+        {
+            jniVersion = nativeGetLibraryVersion();
+        }
+        catch ( Throwable e )
+        {
+            if ( m_debug )
+            {
+                m_out.println( "Call to nativeGetLibraryVersion() failed: " + e );
+            }
+            jniVersion = "unknown";
+        }
+        
+        if ( !WrapperInfo.getVersion().equals( jniVersion ) )
+        {
+            m_out.println(
+                "WARNING - The Wrapper jar file currently in use is version \""
+                + WrapperInfo.getVersion() + "\"" );
+            m_out.println(
+                "          while the version of the native library is \"" + jniVersion + "\"." );
+            m_out.println(
+                "          The Wrapper may appear to work correctly but some features may" );
+            m_out.println(
+                "          not function correctly.  This configuration has not been tested" );
+            m_out.println(
+                "          and is not supported." );
             m_out.println();
         }
     }

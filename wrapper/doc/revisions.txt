@@ -44,7 +44,12 @@ Java Service Wrapper Revision History.
   is being used correctly but never the less a user did come across it.
 * Add some additional debug output to help identify the cause of problems
   loading the native library.
-  
+* The WrapperManager class now checks to make sure that its current version
+  matches the version of the native library and Wrapper.  If there are any
+  discrepancies found then appropriate warnings will be displayed, but the
+  Application will still be allowed to start.  This was added to make obvious
+  the cause of problems resulting from mismatched versions.
+
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the
   patch.

@@ -105,6 +105,10 @@ SOURCE=.\wrapper_unix.c
 
 SOURCE=.\wrapper_win.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\wrapperinfo.c
+# End Source File
 # End Group
 # Begin Group "Header Files"
 
@@ -120,6 +124,10 @@ SOURCE=.\property.h
 # Begin Source File
 
 SOURCE=.\wrapper.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\wrapperinfo.h
 # End Source File
 # End Group
 # Begin Group "Resource Files"

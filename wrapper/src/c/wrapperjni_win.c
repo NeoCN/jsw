@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.14  2003/11/05 16:45:42  mortenson
+ * The WrapperManager class now checks to make sure that its current version
+ * matches the version of the native library and Wrapper.
+ *
  * Revision 1.13  2003/11/02 20:57:04  mortenson
  * Remove code that was just checked in so it can be used later if ever needed.
  * Code for a couple other methods of obtaining info about the current user account
@@ -64,6 +68,7 @@ barf
 #include <windows.h>
 #include <time.h>
 #include <tlhelp32.h>
+#include "wrapperinfo.h"
 #include "wrapperjni.h"
 
 static DWORD wrapperProcessId = 0;
@@ -119,8 +124,8 @@ int wrapperConsoleHandler(int key) {
 char explorerExe[1024];
 void
 initExplorerExeName() {
-	/* Location: "\\HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Shell" */
-	sprintf(explorerExe, "Explorer.exe");
+    /* Location: "\\HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Shell" */
+    sprintf(explorerExe, "Explorer.exe");
 }
 
 /**
@@ -210,25 +215,25 @@ BOOL GetTextualSid(
  */
 time_t
 fileTimeToTimeT(FILETIME *filetime) {
-	SYSTEMTIME utc;
-	SYSTEMTIME local;
-	TIME_ZONE_INFORMATION timeZoneInfo;
-	struct tm tm;
+    SYSTEMTIME utc;
+    SYSTEMTIME local;
+    TIME_ZONE_INFORMATION timeZoneInfo;
+    struct tm tm;
 
-	FileTimeToSystemTime(filetime, &utc);
-	GetTimeZoneInformation(&timeZoneInfo);
-	SystemTimeToTzSpecificLocalTime(&timeZoneInfo, &utc, &local);
+    FileTimeToSystemTime(filetime, &utc);
+    GetTimeZoneInformation(&timeZoneInfo);
+    SystemTimeToTzSpecificLocalTime(&timeZoneInfo, &utc, &local);
 
-	tm.tm_sec = local.wSecond;
-	tm.tm_min = local.wMinute;
-	tm.tm_hour = local.wHour;
-	tm.tm_mday = local.wDay;
-	tm.tm_mon = local.wMonth - 1;
-	tm.tm_year = local.wYear - 1900;
-	tm.tm_wday = local.wDayOfWeek;
-	tm.tm_yday = -1;
-	tm.tm_isdst = -1;
-	return mktime(&tm);
+    tm.tm_sec = local.wSecond;
+    tm.tm_min = local.wMinute;
+    tm.tm_hour = local.wHour;
+    tm.tm_mday = local.wDay;
+    tm.tm_mon = local.wMonth - 1;
+    tm.tm_year = local.wYear - 1900;
+    tm.tm_wday = local.wDayOfWeek;
+    tm.tm_yday = -1;
+    tm.tm_isdst = -1;
+    return mktime(&tm);
 }
 
 /**
@@ -237,122 +242,122 @@ fileTimeToTimeT(FILETIME *filetime) {
  */
 time_t
 getUserLoginTime(TCHAR *sidText) {
-	HKEY     userKey;
-	int      i;
-	TCHAR    userKeyName[MAX_PATH];
-	DWORD    userKeyNameSize;
-	FILETIME lastTime;
-	time_t   loginTime;
+    HKEY     userKey;
+    int      i;
+    TCHAR    userKeyName[MAX_PATH];
+    DWORD    userKeyNameSize;
+    FILETIME lastTime;
+    time_t   loginTime;
 
-	loginTime = 0;
+    loginTime = 0;
 
-	/* Open a key to the HKRY_USERS registry. */
-	if (RegOpenKey(HKEY_USERS, NULL, &userKey) != ERROR_SUCCESS) {
-		printf("Error opening registry for HKEY_USERS: %s\n", getLastErrorText());
+    /* Open a key to the HKRY_USERS registry. */
+    if (RegOpenKey(HKEY_USERS, NULL, &userKey) != ERROR_SUCCESS) {
+        printf("Error opening registry for HKEY_USERS: %s\n", getLastErrorText());
         flushall();
-		return loginTime;
-	}
+        return loginTime;
+    }
 
-	/* Loop over the users */
-	i = 0;
-	userKeyNameSize = sizeof(userKeyName);
-	while (RegEnumKeyEx(userKey, i, userKeyName, &userKeyNameSize, NULL, NULL, NULL, &lastTime) == ERROR_SUCCESS) {
-		if (stricmp(sidText, userKeyName) == 0) {
-			/* We found the SID! */
+    /* Loop over the users */
+    i = 0;
+    userKeyNameSize = sizeof(userKeyName);
+    while (RegEnumKeyEx(userKey, i, userKeyName, &userKeyNameSize, NULL, NULL, NULL, &lastTime) == ERROR_SUCCESS) {
+        if (stricmp(sidText, userKeyName) == 0) {
+            /* We found the SID! */
 
-			/* Convert the FILETIME to UNIX time. */
-			loginTime = fileTimeToTimeT(&lastTime);
+            /* Convert the FILETIME to UNIX time. */
+            loginTime = fileTimeToTimeT(&lastTime);
 
-			break;
-		}
+            break;
+        }
 
-		userKeyNameSize = sizeof(userKeyName);
-		i++;
-	}
+        userKeyNameSize = sizeof(userKeyName);
+        i++;
+    }
 
-	/* Always close the userKey. */
-	RegCloseKey(userKey);
+    /* Always close the userKey. */
+    RegCloseKey(userKey);
 
-	return loginTime;
+    return loginTime;
 }
 
 void
 setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HANDLE hProcessToken) {
-	jmethodID addGroup;
+    jmethodID addGroup;
 
-	TOKEN_GROUPS *tokenGroups;
-	DWORD tokenGroupsSize;
-	DWORD i;
+    TOKEN_GROUPS *tokenGroups;
+    DWORD tokenGroupsSize;
+    DWORD i;
 
-	DWORD sidTextSize;
-	TCHAR *sidText;
-	TCHAR *groupName;
-	DWORD groupNameSize;
-	TCHAR *domainName;
-	DWORD domainNameSize;
-	SID_NAME_USE sidType;
+    DWORD sidTextSize;
+    TCHAR *sidText;
+    TCHAR *groupName;
+    DWORD groupNameSize;
+    TCHAR *domainName;
+    DWORD domainNameSize;
+    SID_NAME_USE sidType;
 
-	jbyteArray jSID;
-	jbyteArray jGroupName;
-	jbyteArray jDomainName;
+    jbyteArray jSID;
+    jbyteArray jGroupName;
+    jbyteArray jDomainName;
 
-	/* Look for the method used to add groups to the user. */
-	if (addGroup = (*env)->GetMethodID(env, wrapperUserClass, "addGroup", "([B[B[B)V")) {
-		/* Get the TokenGroups info from the token. */
-		GetTokenInformation(hProcessToken, TokenGroups, NULL, 0, &tokenGroupsSize);
-		tokenGroups = (TOKEN_GROUPS *)malloc(tokenGroupsSize);
-		if (GetTokenInformation(hProcessToken, TokenGroups, tokenGroups, tokenGroupsSize, &tokenGroupsSize)) {
-			/* Loop over each of the groups and add each one to the user. */
-			for (i = 0; i < tokenGroups->GroupCount; i++) {
-				/* Get the text representation of the sid. */
-				sidTextSize = 0;
-				GetTextualSid(tokenGroups->Groups[i].Sid, NULL, &sidTextSize);
-				sidText = (TCHAR*)malloc(sizeof(TCHAR) * sidTextSize);
-				GetTextualSid(tokenGroups->Groups[i].Sid, sidText, &sidTextSize);
-				
-				/* We now have an SID, use it to lookup the account. */
-				groupNameSize = 0;
-				domainNameSize = 0;
-				LookupAccountSid(NULL, tokenGroups->Groups[i].Sid, NULL, &groupNameSize, NULL, &domainNameSize, &sidType);
-				groupName = (TCHAR*)malloc(sizeof(TCHAR) * groupNameSize);
-				domainName = (TCHAR*)malloc(sizeof(TCHAR) * domainNameSize);
-				if (LookupAccountSid(NULL, tokenGroups->Groups[i].Sid, groupName, &groupNameSize, domainName, &domainNameSize, &sidType)) {
-					/*printf("SID=%s, group=%s/%s\n", sidText, domainName, groupName);*/
+    /* Look for the method used to add groups to the user. */
+    if (addGroup = (*env)->GetMethodID(env, wrapperUserClass, "addGroup", "([B[B[B)V")) {
+        /* Get the TokenGroups info from the token. */
+        GetTokenInformation(hProcessToken, TokenGroups, NULL, 0, &tokenGroupsSize);
+        tokenGroups = (TOKEN_GROUPS *)malloc(tokenGroupsSize);
+        if (GetTokenInformation(hProcessToken, TokenGroups, tokenGroups, tokenGroupsSize, &tokenGroupsSize)) {
+            /* Loop over each of the groups and add each one to the user. */
+            for (i = 0; i < tokenGroups->GroupCount; i++) {
+                /* Get the text representation of the sid. */
+                sidTextSize = 0;
+                GetTextualSid(tokenGroups->Groups[i].Sid, NULL, &sidTextSize);
+                sidText = (TCHAR*)malloc(sizeof(TCHAR) * sidTextSize);
+                GetTextualSid(tokenGroups->Groups[i].Sid, sidText, &sidTextSize);
+                
+                /* We now have an SID, use it to lookup the account. */
+                groupNameSize = 0;
+                domainNameSize = 0;
+                LookupAccountSid(NULL, tokenGroups->Groups[i].Sid, NULL, &groupNameSize, NULL, &domainNameSize, &sidType);
+                groupName = (TCHAR*)malloc(sizeof(TCHAR) * groupNameSize);
+                domainName = (TCHAR*)malloc(sizeof(TCHAR) * domainNameSize);
+                if (LookupAccountSid(NULL, tokenGroups->Groups[i].Sid, groupName, &groupNameSize, domainName, &domainNameSize, &sidType)) {
+                    /*printf("SID=%s, group=%s/%s\n", sidText, domainName, groupName);*/
 
-					/* Create the arguments to the constructor as java objects */
+                    /* Create the arguments to the constructor as java objects */
 
-					/* SID byte array */
-					jSID = (*env)->NewByteArray(env, strlen(sidText));
-					(*env)->SetByteArrayRegion(env, jSID, 0, strlen(sidText), sidText);
+                    /* SID byte array */
+                    jSID = (*env)->NewByteArray(env, strlen(sidText));
+                    (*env)->SetByteArrayRegion(env, jSID, 0, strlen(sidText), sidText);
 
-					/* GroupName byte array */
-					jGroupName = (*env)->NewByteArray(env, strlen(groupName));
-					(*env)->SetByteArrayRegion(env, jGroupName, 0, strlen(groupName), groupName);
+                    /* GroupName byte array */
+                    jGroupName = (*env)->NewByteArray(env, strlen(groupName));
+                    (*env)->SetByteArrayRegion(env, jGroupName, 0, strlen(groupName), groupName);
 
-					/* DomainName byte array */
-					jDomainName = (*env)->NewByteArray(env, strlen(domainName));
-					(*env)->SetByteArrayRegion(env, jDomainName, 0, strlen(domainName), domainName);
+                    /* DomainName byte array */
+                    jDomainName = (*env)->NewByteArray(env, strlen(domainName));
+                    (*env)->SetByteArrayRegion(env, jDomainName, 0, strlen(domainName), domainName);
 
-					/* Now actually add the group to the user. */
-					(*env)->CallVoidMethod(env, wrapperUser, addGroup, jSID, jGroupName, jDomainName);
-				} else {
-					/* This is normal as some accounts do not seem to be mappable. */
-					/*
-					printf("Unable to locate account for Sid, %s: %s\n", sidText, getLastErrorText());
-					flushall();
-					*/
-				}
-				free(sidText);
-				free(groupName);
-				free(domainName);
-			}
-		} else {
-			printf("Unable to get token information: %s\n", getLastErrorText());
-			flushall();
-		}
+                    /* Now actually add the group to the user. */
+                    (*env)->CallVoidMethod(env, wrapperUser, addGroup, jSID, jGroupName, jDomainName);
+                } else {
+                    /* This is normal as some accounts do not seem to be mappable. */
+                    /*
+                    printf("Unable to locate account for Sid, %s: %s\n", sidText, getLastErrorText());
+                    flushall();
+                    */
+                }
+                free(sidText);
+                free(groupName);
+                free(domainName);
+            }
+        } else {
+            printf("Unable to get token information: %s\n", getLastErrorText());
+            flushall();
+        }
 
-		free(tokenGroups);
-	}
+        free(tokenGroups);
+    }
 }
 
 /**
@@ -361,103 +366,103 @@ setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HANDLE 
  */
 jobject
 createWrapperUserForProcess(JNIEnv *env, DWORD processId) {
-	HANDLE hProcess;
-	HANDLE hProcessToken;
-	TOKEN_USER *tokenUser;
-	DWORD tokenUserSize;
+    HANDLE hProcess;
+    HANDLE hProcessToken;
+    TOKEN_USER *tokenUser;
+    DWORD tokenUserSize;
 
-	DWORD sidTextSize;
-	TCHAR *sidText;
-	TCHAR *userName;
-	DWORD userNameSize;
-	TCHAR *domainName;
-	DWORD domainNameSize;
-	SID_NAME_USE sidType;
-	time_t loginTime;
+    DWORD sidTextSize;
+    TCHAR *sidText;
+    TCHAR *userName;
+    DWORD userNameSize;
+    TCHAR *domainName;
+    DWORD domainNameSize;
+    SID_NAME_USE sidType;
+    time_t loginTime;
 
-	jclass wrapperUserClass;
-	jmethodID constructor;
-	jbyteArray jSID;
-	jbyteArray jUserName;
-	jbyteArray jDomainName;
-	jobject wrapperUser = NULL;
+    jclass wrapperUserClass;
+    jmethodID constructor;
+    jbyteArray jSID;
+    jbyteArray jUserName;
+    jbyteArray jDomainName;
+    jobject wrapperUser = NULL;
 
-	if (hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId)) {
-		if (OpenProcessToken(hProcess, TOKEN_ALL_ACCESS, &hProcessToken)) {
-			GetTokenInformation(hProcessToken, TokenUser, NULL, 0, &tokenUserSize);
-			tokenUser = (TOKEN_USER *)malloc(tokenUserSize);
-			if (GetTokenInformation(hProcessToken, TokenUser, tokenUser, tokenUserSize, &tokenUserSize)) {
+    if (hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId)) {
+        if (OpenProcessToken(hProcess, TOKEN_ALL_ACCESS, &hProcessToken)) {
+            GetTokenInformation(hProcessToken, TokenUser, NULL, 0, &tokenUserSize);
+            tokenUser = (TOKEN_USER *)malloc(tokenUserSize);
+            if (GetTokenInformation(hProcessToken, TokenUser, tokenUser, tokenUserSize, &tokenUserSize)) {
 
-				/* Get the text representation of the sid. */
-				sidTextSize = 0;
-				GetTextualSid(tokenUser->User.Sid, NULL, &sidTextSize);
-				sidText = (TCHAR*)malloc(sizeof(TCHAR) * sidTextSize);
-				GetTextualSid(tokenUser->User.Sid, sidText, &sidTextSize);
+                /* Get the text representation of the sid. */
+                sidTextSize = 0;
+                GetTextualSid(tokenUser->User.Sid, NULL, &sidTextSize);
+                sidText = (TCHAR*)malloc(sizeof(TCHAR) * sidTextSize);
+                GetTextualSid(tokenUser->User.Sid, sidText, &sidTextSize);
 
-				/* We now have an SID, use it to lookup the account. */
-				userNameSize = 0;
-				domainNameSize = 0;
-				LookupAccountSid(NULL, tokenUser->User.Sid, NULL, &userNameSize, NULL, &domainNameSize, &sidType);
-				userName = (TCHAR*)malloc(sizeof(TCHAR) * userNameSize);
-				domainName = (TCHAR*)malloc(sizeof(TCHAR) * domainNameSize);
-				if (LookupAccountSid(NULL, tokenUser->User.Sid, userName, &userNameSize, domainName, &domainNameSize, &sidType)) {
+                /* We now have an SID, use it to lookup the account. */
+                userNameSize = 0;
+                domainNameSize = 0;
+                LookupAccountSid(NULL, tokenUser->User.Sid, NULL, &userNameSize, NULL, &domainNameSize, &sidType);
+                userName = (TCHAR*)malloc(sizeof(TCHAR) * userNameSize);
+                domainName = (TCHAR*)malloc(sizeof(TCHAR) * domainNameSize);
+                if (LookupAccountSid(NULL, tokenUser->User.Sid, userName, &userNameSize, domainName, &domainNameSize, &sidType)) {
 
-					/* Get the time that this user logged in. */
-					loginTime = getUserLoginTime(sidText);
+                    /* Get the time that this user logged in. */
+                    loginTime = getUserLoginTime(sidText);
 
-					/* Look for the WrapperUser class. Ignore failures as JNI throws an exception. */
-					if (wrapperUserClass = (*env)->FindClass(env, "org/tanukisoftware/wrapper/WrapperWin32User")) {
+                    /* Look for the WrapperUser class. Ignore failures as JNI throws an exception. */
+                    if (wrapperUserClass = (*env)->FindClass(env, "org/tanukisoftware/wrapper/WrapperWin32User")) {
 
-						/* Look for the constructor. Ignore failures. */
-						if (constructor = (*env)->GetMethodID(env, wrapperUserClass, "<init>", "([B[B[BI)V")) {
+                        /* Look for the constructor. Ignore failures. */
+                        if (constructor = (*env)->GetMethodID(env, wrapperUserClass, "<init>", "([B[B[BI)V")) {
 
-							/* Create the arguments to the constructor as java objects */
+                            /* Create the arguments to the constructor as java objects */
 
-							/* SID byte array */
-							jSID = (*env)->NewByteArray(env, strlen(sidText));
-							(*env)->SetByteArrayRegion(env, jSID, 0, strlen(sidText), sidText);
+                            /* SID byte array */
+                            jSID = (*env)->NewByteArray(env, strlen(sidText));
+                            (*env)->SetByteArrayRegion(env, jSID, 0, strlen(sidText), sidText);
 
-							/* UserName byte array */
-							jUserName = (*env)->NewByteArray(env, strlen(userName));
-							(*env)->SetByteArrayRegion(env, jUserName, 0, strlen(userName), userName);
+                            /* UserName byte array */
+                            jUserName = (*env)->NewByteArray(env, strlen(userName));
+                            (*env)->SetByteArrayRegion(env, jUserName, 0, strlen(userName), userName);
 
-							/* DomainName byte array */
-							jDomainName = (*env)->NewByteArray(env, strlen(domainName));
-							(*env)->SetByteArrayRegion(env, jDomainName, 0, strlen(domainName), domainName);
+                            /* DomainName byte array */
+                            jDomainName = (*env)->NewByteArray(env, strlen(domainName));
+                            (*env)->SetByteArrayRegion(env, jDomainName, 0, strlen(domainName), domainName);
 
-							/* Now create the new wrapperUser using the constructor arguments collected above. */
-							wrapperUser = (*env)->NewObject(env, wrapperUserClass, constructor, jSID, jUserName, jDomainName, loginTime);
+                            /* Now create the new wrapperUser using the constructor arguments collected above. */
+                            wrapperUser = (*env)->NewObject(env, wrapperUserClass, constructor, jSID, jUserName, jDomainName, loginTime);
 
-							setUserGroups(env, wrapperUserClass, wrapperUser, hProcessToken);
-						}
-					}
-				} else {
-					/* This is normal as some accounts do not seem to be mappable. */
-					/*
-					printf("Unable to locate account for Sid, %s: %s\n", sidText, getLastErrorText());
-					flushall();
-					*/
-				}
-				free(sidText);
-				free(userName);
-				free(domainName);
-			} else {
-				printf("Unable to get token information: %s\n", getLastErrorText());
-				flushall();
-			}
-			free(tokenUser);
-		} else {
-			printf("Unable to open process token: %s\n", getLastErrorText());
-			flushall();
-		}
+                            setUserGroups(env, wrapperUserClass, wrapperUser, hProcessToken);
+                        }
+                    }
+                } else {
+                    /* This is normal as some accounts do not seem to be mappable. */
+                    /*
+                    printf("Unable to locate account for Sid, %s: %s\n", sidText, getLastErrorText());
+                    flushall();
+                    */
+                }
+                free(sidText);
+                free(userName);
+                free(domainName);
+            } else {
+                printf("Unable to get token information: %s\n", getLastErrorText());
+                flushall();
+            }
+            free(tokenUser);
+        } else {
+            printf("Unable to open process token: %s\n", getLastErrorText());
+            flushall();
+        }
 
-		CloseHandle(hProcess);
-	} else {
-		printf("Unable to open process: %s\n", getLastErrorText());
-		flushall();
-	}
+        CloseHandle(hProcess);
+    } else {
+        printf("Unable to open process: %s\n", getLastErrorText());
+        flushall();
+    }
 
-	return wrapperUser;
+    return wrapperUser;
 }
 
 /*
@@ -494,8 +499,22 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass cl
     /* Store the current process Id */
     wrapperProcessId = GetCurrentProcessId();
 
-	/* Initialize the explorer.exe name. */
-	initExplorerExeName();
+    /* Initialize the explorer.exe name. */
+    initExplorerExeName();
+}
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeGetLibraryVersion
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetLibraryVersion(JNIEnv *env, jclass clazz) {
+    jstring version;
+
+    version = (*env)->NewStringUTF(env, wrapperVersion);
+
+    return version;
 }
 
 /*
@@ -542,17 +561,17 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle(JNIEnv *env
 /*#define UVERBOSE*/
 JNIEXPORT jobject JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass clazz) {
-	DWORD processId;
+    DWORD processId;
 
 #ifdef UVERBOSE
-	printf("nativeGetUser()\n");
-	flushall();
+    printf("nativeGetUser()\n");
+    flushall();
 #endif
 
-	/* Get the current processId. */
-	processId = GetCurrentProcessId();
+    /* Get the current processId. */
+    processId = GetCurrentProcessId();
 
-	return createWrapperUserForProcess(env, processId);
+    return createWrapperUserForProcess(env, processId);
 }
 
 
@@ -564,103 +583,103 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
 /*#define IUVERBOSE*/
 JNIEXPORT jobject JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *env, jclass clazz) {
-	HANDLE snapshot;
-	PROCESSENTRY32 processEntry;
-	THREADENTRY32 threadEntry;
-	BOOL foundThread;
-	HDESK desktop;
+    HANDLE snapshot;
+    PROCESSENTRY32 processEntry;
+    THREADENTRY32 threadEntry;
+    BOOL foundThread;
+    HDESK desktop;
 
-	jobject wrapperUser = NULL;
-
-#ifdef IUVERBOSE
-	printf("nativeGetInteractiveUser()\n");
-	flushall();
-#endif
-
-	/* In order to be able to return the interactive user, we first need to locate the
-	 *  logged on user whose desktop we are able to open.  On XP systems, there will be
-	 *  more than one user with a desktop, but only the first one to log on will allow
-	 *  up to open its desktop.  On all NT systems, there will be additional logged on
-	 *  users if there are other services running. */
-	if ((snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS + TH32CS_SNAPTHREAD, 0)) >= 0) {
-		processEntry.dwSize = sizeof(processEntry);
-		if (Process32First(snapshot, &processEntry)) {
-			do {
-				/* We are only interrested in the Explorer processes. */
-				if (stricmp(explorerExe, processEntry.szExeFile) == 0) {
-#ifdef IUVERBOSE
-					printf("Process size=%ld, cnt=%ld, id=%ld, parentId=%ld, moduleId=%ld, threads=%ld, exe=%s\n",
-						processEntry.dwSize, processEntry.cntUsage, processEntry.th32ProcessID,
-						processEntry.th32ParentProcessID, processEntry.th32ModuleID, processEntry.cntThreads,
-						processEntry.szExeFile);
-					flushall();
-#endif
-
-					/* Now look for a thread which is owned by the explorer process. */
-					threadEntry.dwSize = sizeof(threadEntry);
-					if (Thread32First(snapshot, &threadEntry)) {
-						foundThread = FALSE;
-						do {
-							/* We are only interrested in threads that belong to the current Explorer process. */
-							if (threadEntry.th32OwnerProcessID == processEntry.th32ProcessID) {
-#ifdef IUVERBOSE
-								printf("  Thread id=%ld\n", threadEntry.th32ThreadID);
-								flushall();
-#endif
-
-								/* We have a thread, now see if we can gain access to its desktop */
-								if (desktop = GetThreadDesktop(threadEntry.th32ThreadID)) {
-									/* We got the desktop!   We now know that this is the thread and thus
-									 *  process that we have been looking for.   Unfortunately it does not
-									 *  appear that we can get the Sid of the account directly from this
-									 *  desktop.  I tried using GetUserObjectInformation, but the Sid
-									 *  returned does not seem to map to a valid account. */
-
-									wrapperUser = createWrapperUserForProcess(env, processEntry.th32ProcessID);
-								} else {
-#ifdef IUVERBOSE
-									printf("GetThreadDesktop failed: %s\n", getLastErrorText());
-									flushall();
-#endif
-								}
-
-								/* We only need the first thread, so break */
-								foundThread = TRUE;
-								break;
-							}
-						} while (Thread32Next(snapshot, &threadEntry));
-
-						if (!foundThread && (GetLastError() != ERROR_NO_MORE_FILES)) {
-#ifdef IUVERBOSE
-							printf("Unable to get next thread entry: %s\n", getLastErrorText());
-							flushall();
-#endif
-						}
-					} else if (GetLastError() != ERROR_NO_MORE_FILES) {
-						printf("Unable to get first thread entry: %s\n", getLastErrorText());
-						flushall();
-					}
-				}
-			} while (Process32Next(snapshot, &processEntry));
+    jobject wrapperUser = NULL;
 
 #ifdef IUVERBOSE
-			if (GetLastError() != ERROR_NO_MORE_FILES) {
-				printf("Unable to get next process entry: %s\n", getLastErrorText());
-				flushall();
-			}
+    printf("nativeGetInteractiveUser()\n");
+    flushall();
 #endif
-		} else if (GetLastError() != ERROR_NO_MORE_FILES) {
-			printf("Unable to get first process entry: %s\n", getLastErrorText());
-			flushall();
-		}
 
-		CloseHandle(snapshot);
-	} else {
+    /* In order to be able to return the interactive user, we first need to locate the
+     *  logged on user whose desktop we are able to open.  On XP systems, there will be
+     *  more than one user with a desktop, but only the first one to log on will allow
+     *  up to open its desktop.  On all NT systems, there will be additional logged on
+     *  users if there are other services running. */
+    if ((snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS + TH32CS_SNAPTHREAD, 0)) >= 0) {
+        processEntry.dwSize = sizeof(processEntry);
+        if (Process32First(snapshot, &processEntry)) {
+            do {
+                /* We are only interrested in the Explorer processes. */
+                if (stricmp(explorerExe, processEntry.szExeFile) == 0) {
+#ifdef IUVERBOSE
+                    printf("Process size=%ld, cnt=%ld, id=%ld, parentId=%ld, moduleId=%ld, threads=%ld, exe=%s\n",
+                        processEntry.dwSize, processEntry.cntUsage, processEntry.th32ProcessID,
+                        processEntry.th32ParentProcessID, processEntry.th32ModuleID, processEntry.cntThreads,
+                        processEntry.szExeFile);
+                    flushall();
+#endif
+
+                    /* Now look for a thread which is owned by the explorer process. */
+                    threadEntry.dwSize = sizeof(threadEntry);
+                    if (Thread32First(snapshot, &threadEntry)) {
+                        foundThread = FALSE;
+                        do {
+                            /* We are only interrested in threads that belong to the current Explorer process. */
+                            if (threadEntry.th32OwnerProcessID == processEntry.th32ProcessID) {
+#ifdef IUVERBOSE
+                                printf("  Thread id=%ld\n", threadEntry.th32ThreadID);
+                                flushall();
+#endif
+
+                                /* We have a thread, now see if we can gain access to its desktop */
+                                if (desktop = GetThreadDesktop(threadEntry.th32ThreadID)) {
+                                    /* We got the desktop!   We now know that this is the thread and thus
+                                     *  process that we have been looking for.   Unfortunately it does not
+                                     *  appear that we can get the Sid of the account directly from this
+                                     *  desktop.  I tried using GetUserObjectInformation, but the Sid
+                                     *  returned does not seem to map to a valid account. */
+
+                                    wrapperUser = createWrapperUserForProcess(env, processEntry.th32ProcessID);
+                                } else {
+#ifdef IUVERBOSE
+                                    printf("GetThreadDesktop failed: %s\n", getLastErrorText());
+                                    flushall();
+#endif
+                                }
+
+                                /* We only need the first thread, so break */
+                                foundThread = TRUE;
+                                break;
+                            }
+                        } while (Thread32Next(snapshot, &threadEntry));
+
+                        if (!foundThread && (GetLastError() != ERROR_NO_MORE_FILES)) {
+#ifdef IUVERBOSE
+                            printf("Unable to get next thread entry: %s\n", getLastErrorText());
+                            flushall();
+#endif
+                        }
+                    } else if (GetLastError() != ERROR_NO_MORE_FILES) {
+                        printf("Unable to get first thread entry: %s\n", getLastErrorText());
+                        flushall();
+                    }
+                }
+            } while (Process32Next(snapshot, &processEntry));
+
+#ifdef IUVERBOSE
+            if (GetLastError() != ERROR_NO_MORE_FILES) {
+                printf("Unable to get next process entry: %s\n", getLastErrorText());
+                flushall();
+            }
+#endif
+        } else if (GetLastError() != ERROR_NO_MORE_FILES) {
+            printf("Unable to get first process entry: %s\n", getLastErrorText());
+            flushall();
+        }
+
+        CloseHandle(snapshot);
+    } else {
         printf("Toolhelp snapshot failed: %s\n", getLastErrorText());
         flushall();
-	}
+    }
 
-	return wrapperUser;
+    return wrapperUser;
 }
 
 #endif

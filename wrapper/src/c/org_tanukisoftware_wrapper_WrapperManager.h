@@ -98,14 +98,22 @@ extern "C" {
 /* Inaccessible static: m_error */
 /* Inaccessible static: m_warning */
 /* Inaccessible static: m_info */
-/* Inaccessible static: class_00024java_00024lang_00024Runtime */
 /* Inaccessible static: class_00024java_00024lang_00024Thread */
+/* Inaccessible static: class_00024java_00024lang_00024Runtime */
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
- * Method:    accessViolationInner
- * Signature: ()V
+ * Method:    nativeInit
+ * Signature: (Z)V
  */
-JNIEXPORT void JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_accessViolationInner
+JNIEXPORT void JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit
+  (JNIEnv *, jclass, jboolean);
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeGetLibraryVersion
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetLibraryVersion
   (JNIEnv *, jclass);
 
 /*
@@ -118,19 +126,27 @@ JNIEXPORT jint JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetC
 
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
- * Method:    nativeGetInteractiveUser
- * Signature: ()Lorg/tanukisoftware/wrapper/WrapperUser;
+ * Method:    nativeRequestThreadDump
+ * Signature: ()V
  */
-JNIEXPORT jobject JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser
+JNIEXPORT void JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump
   (JNIEnv *, jclass);
 
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
- * Method:    nativeGetLoggedOnUser
- * Signature: ()[B
+ * Method:    accessViolationInner
+ * Signature: ()V
  */
-JNIEXPORT jbyteArray JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetLoggedOnUser
+JNIEXPORT void JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_accessViolationInner
   (JNIEnv *, jclass);
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeSetConsoleTitle
+ * Signature: ([B)V
+ */
+JNIEXPORT void JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle
+  (JNIEnv *, jclass, jbyteArray);
 
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
@@ -142,27 +158,11 @@ JNIEXPORT jobject JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeG
 
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
- * Method:    nativeInit
- * Signature: (Z)V
+ * Method:    nativeGetInteractiveUser
+ * Signature: ()Lorg/tanukisoftware/wrapper/WrapperUser;
  */
-JNIEXPORT void JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit
-  (JNIEnv *, jclass, jboolean);
-
-/*
- * Class:     org_tanukisoftware_wrapper_WrapperManager
- * Method:    nativeRequestThreadDump
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump
+JNIEXPORT jobject JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser
   (JNIEnv *, jclass);
-
-/*
- * Class:     org_tanukisoftware_wrapper_WrapperManager
- * Method:    nativeSetConsoleTitle
- * Signature: ([B)V
- */
-JNIEXPORT void JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle
-  (JNIEnv *, jclass, jbyteArray);
 
 #ifdef __cplusplus
 }
