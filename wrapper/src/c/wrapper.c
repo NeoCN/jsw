@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.46  2003/03/21 21:25:29  mortenson
+ * Fix a problem where very heavy output from the JVM can cause the Wrapper to
+ * give a false timeout.  The Wrapper now only ready 50 lines of input at a time
+ * to guarantee that the Wrapper's event loop always gets cycles.
+ *
  * Revision 1.45  2003/03/01 15:26:56  mortenson
  * Change the default initial memory from 2 to 3 Mb so that the default will be valid
  * on Solaris systems.
@@ -1265,17 +1270,29 @@ void wrapperEventLoop() {
     int ret;
     time_t now;
     time_t lastCycleTime = time(NULL);
+    int nextSleep;
 
+    nextSleep = TRUE;
     do {
-        /* Sleep for a quarter second. */
+        if (nextSleep) {
+            /* Sleep for a quarter second. */
 #ifdef WIN32
-        Sleep(250);     /* milliseconds */
+            Sleep(250);     /* milliseconds */
 #else /* UNIX */
-        usleep(250000); /* microseconds */
+            usleep(250000); /* microseconds */
 #endif
+        }
+        nextSleep = TRUE;
 
         /* Check the stout pipe of the child process. */
-        wrapperReadChildOutput();
+        if ( wrapperReadChildOutput() )
+        {
+            if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                    "Pause reading child output to share cycles.");
+            }
+            nextSleep = FALSE;
+        }
         
         /* Check for incoming data packets. */
         wrapperProtocolRead();
