@@ -30,10 +30,10 @@
             of the application.  Startup time is optimized when this value
             is fairly close to the actual amount of memory required by the
             application once it has been started.  The default value is
-            2 Mb.  This is the same as the Sun JVM.  Valid values are in
-            the range 1 to 4096Mb.  The value must be less than or equal
-            to the value set for the
-            <ulink url="prop-java-maxmemory.html">wrapper.java.maxmemory</ulink>
+            3Mb.  Windows and Linux JVMs default to 2Mb, but Solaris JVMs
+            require a minimum of 3Mb. Valid values are in the range 1 to
+            4096Mb.  The value must be less than or equal to the value set
+            for the <ulink url="prop-java-maxmemory.html">wrapper.java.maxmemory</ulink>
             property.
         </para>
         <informalexample>
