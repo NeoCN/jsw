@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.91  2004/03/26 03:18:00  mortenson
+ * Add the wrapper.startup.delay property along with console and service
+ * specific variants which make it possible to configure a delay between the
+ * Wrapper being launched and the first JVM being launched.
+ *
  * Revision 1.90  2004/03/20 16:55:49  mortenson
  * Add an adviser feature to help cut down on support requests from new users.
  *
@@ -1830,6 +1835,7 @@ void wrapperEventLoop() {
     DWORD nowTicks;
     DWORD lastCycleTicks = wrapperGetTicks();
     int nextSleep;
+	int startupDelay;
 
     nextSleep = TRUE;
     do {
@@ -2015,6 +2021,13 @@ void wrapperEventLoop() {
                         wrapperData->jState = WRAPPER_JSTATE_LAUNCH;
                         wrapperData->jStateTimeoutTicks = wrapperAddToTicks(nowTicks, wrapperData->restartDelay);
                         wrapperData->jStateTimeoutTicksSet = 1;
+
+						if (wrapperData->restartDelay > 0) {
+							if (wrapperData->isDebugging) {
+								log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
+									"Waiting %d seconds before launching another JVM.", wrapperData->restartDelay);
+							}
+						}
                     } else {
                         /* The last JVM invocation died quickly and was considered to have */
                         /*  been a faulty launch.  Increase the failed count.              */
@@ -2034,6 +2047,13 @@ void wrapperEventLoop() {
                             wrapperData->jState = WRAPPER_JSTATE_LAUNCH;
                             wrapperData->jStateTimeoutTicks = wrapperAddToTicks(nowTicks, wrapperData->restartDelay);
                             wrapperData->jStateTimeoutTicksSet = 1;
+
+							if (wrapperData->restartDelay > 0) {
+								if (wrapperData->isDebugging) {
+									log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
+										"Waiting %d seconds before launching another JVM.", wrapperData->restartDelay);
+								}
+							}
                         } else {
                             /* Unable to launch another JVM. */
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
@@ -2048,10 +2068,22 @@ void wrapperEventLoop() {
                     /* This will be the first invocation. */
                     wrapperData->failedInvocationCount = 0;
 
-                    /* Set the state to launch immediately. */
+                    /* Set the state to launch after the startup delay. */
                     wrapperData->jState = WRAPPER_JSTATE_LAUNCH;
-                    wrapperData->jStateTimeoutTicks = nowTicks;
+					if (wrapperData->isConsole) {
+						startupDelay = wrapperData->startupDelayConsole;
+					} else {
+						startupDelay = wrapperData->startupDelayService;
+					}
+					wrapperData->jStateTimeoutTicks = wrapperAddToTicks(nowTicks, startupDelay);
                     wrapperData->jStateTimeoutTicksSet = 1;
+
+					if (startupDelay > 0) {
+						if (wrapperData->isDebugging) {
+							log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
+								"Waiting %d seconds before launching the first JVM.", startupDelay);
+						}
+					}
                 }
             } else {
                 /* The wrapper is shutting down.  Do nothing. */
@@ -2443,6 +2475,7 @@ int wrapperLoadConfiguration() {
     char key[256];
     const char* val;
     int i;
+	int startupDelay;
 
     /* Load log file */
     setLogfilePath((char *)getStringProperty(properties, "wrapper.logfile", "wrapper.log"));
@@ -2519,6 +2552,17 @@ int wrapperLoadConfiguration() {
     /* Get the shutdown hook status */
     wrapperData->isShutdownHookDisabled = getBooleanProperty(properties, "wrapper.disable_shutdown_hook", FALSE);
     
+    /* Get the startup delay. */
+	startupDelay = getIntProperty(properties, "wrapper.startup.delay", 0);
+    wrapperData->startupDelayConsole = getIntProperty(properties, "wrapper.startup.delay.console", startupDelay);
+    if (wrapperData->startupDelayConsole < 0) {
+        wrapperData->startupDelayConsole = 0;
+    }
+    wrapperData->startupDelayService = getIntProperty(properties, "wrapper.startup.delay.service", startupDelay);
+    if (wrapperData->startupDelayService < 0) {
+        wrapperData->startupDelayService = 0;
+    }
+
     /* Get the restart delay. */
     wrapperData->restartDelay = getIntProperty(properties, "wrapper.restart.delay", 5);
     if (wrapperData->restartDelay < 0) {

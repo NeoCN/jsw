@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.44  2004/03/26 03:18:00  mortenson
+ * Add the wrapper.startup.delay property along with console and service
+ * specific variants which make it possible to configure a delay between the
+ * Wrapper being launched and the first JVM being launched.
+ *
  * Revision 1.43  2004/03/20 16:55:49  mortenson
  * Add an adviser feature to help cut down on support requests from new users.
  *
@@ -237,6 +242,8 @@ struct WrapperConfig {
     int     exitCode;               /* Code which the wrapper will exit with */
     int     exitRequested;          /* Non-zero if another thread has requested that the wrapper and JVM be shutdown */
     int     exitAcknowledged;       /* Non-zero if the main thread has acknowledged the exit request */
+    int     startupDelayConsole;    /* Delay in seconds before starting the first JVM in console mode. */
+    int     startupDelayService;    /* Delay in seconds before starting the first JVM in service mode. */
     int     restartRequested;       /* Non-zero if another thread has requested that the JVM be restarted */
     int     jvmRestarts;            /* Number of times that a JVM has been launched since the wrapper was started. */
     int     restartDelay;           /* Delay in seconds before restarting a new JVM. */

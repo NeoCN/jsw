@@ -268,6 +268,14 @@ $Id$
                     bash and sh scripts has not been used since.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add the <ulink url="prop-startup-delay.html">wrapper.startup.delay</ulink>
+                    property along with console and service specific variants which make it
+                    possible to configure a delay between the Wrapper being launched and the
+                    first JVM being launched.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
