@@ -145,6 +145,13 @@ $Id$
                     applications to what is possible without using the wrapper.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Improve the parsing of config files so that leading and trailing white space
+                    is now correctly trimmed.  It is also now possible to have comments at the
+                    end of a line containing a property.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.12  2003/02/17 03:38:25  mortenson
+ * Improve the parsing of config files so that leading and trailing white space
+ * is now correctly trimmed.  It is also now possible to have comments at the
+ * end of a line containing a property.
+ *
  * Revision 1.11  2003/02/09 08:25:14  mortenson
  * Add the ability to use environment variable reference for the names of include
  * files.
@@ -251,6 +256,8 @@ int loadPropertiesInner(const char* filename, Properties* properties, int depth)
     FILE *stream;
     char buffer[1024];
     char expBuffer[2048];
+    char *trimmedBuffer;
+    int trimmedBufferLen;
     char *c;
     char *d;
 
@@ -273,16 +280,39 @@ int loadPropertiesInner(const char* filename, Properties* properties, int depth)
         if (c != NULL) {
             /* Strip the LF off the end of the line. */
             if ((d = strchr(buffer, '\n')) != NULL) {
-                *d = '\0';
+                d[0] = '\0';
+            }
+
+            /* Strip any whitespace from the front of the line. */
+            trimmedBuffer = buffer;
+            while ((trimmedBuffer[0] == ' ') || (trimmedBuffer[0] == 0x08)) {
+                trimmedBuffer++;
+            }
+
+            /* If the line does not start with a comment, make sure that
+             *  any comment at the end of line is stripped */
+            if (trimmedBuffer[0] != '#') {
+                if ((d = strchr(trimmedBuffer, '#')) != NULL) {
+                    d[0] = '\0';
+                }
+            }
+
+            /* Strip any whitespace from the end of the line. */
+            trimmedBufferLen = strlen(trimmedBuffer);
+            while ((trimmedBufferLen > 0) && ((trimmedBuffer[trimmedBufferLen - 1] == ' ')
+                || (trimmedBuffer[trimmedBufferLen - 1] == 0x08))) {
+
+                trimmedBuffer[trimmedBufferLen - 1] = '\0';
+                trimmedBufferLen--;
             }
 
             /* Only look at lines which contain data and do not start with a '#'
              *  If the line starts with '#include' then recurse to the include file */
-            if (strlen(buffer) > 0) {
-                if (strstr(buffer, "#include") == buffer) {
+            if (strlen(trimmedBuffer) > 0) {
+                if (strstr(trimmedBuffer, "#include") == trimmedBuffer) {
                     /* Include file, if the file does not exist, then ignore it */
                     /* Strip any leading whitespace */
-                    c = buffer + 8;
+                    c = trimmedBuffer + 8;
                     while ((c[0] != '\0') && (c[0] == ' ')) {
                         c++;
                     }
@@ -293,15 +323,15 @@ int loadPropertiesInner(const char* filename, Properties* properties, int depth)
 
                         loadPropertiesInner(expBuffer, properties, depth + 1);
                     }
-                } else if (buffer[0] != '#') {
-                    /* printf("%s\n", buffer); */
+                } else if (trimmedBuffer[0] != '#') {
+                    /* printf("%s\n", trimmedBuffer); */
 
                     /* Locate the first '=' in the line */
-                    if ((d = strchr(buffer, '=')) != NULL) {
+                    if ((d = strchr(trimmedBuffer, '=')) != NULL) {
                         /* Null terminate the first half of the line. */
                         *d = '\0';
                         d++;
-                        addProperty(properties, buffer, d);
+                        addProperty(properties, trimmedBuffer, d);
                     }
                 }
             }
