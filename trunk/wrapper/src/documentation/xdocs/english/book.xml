@@ -15,7 +15,6 @@
         
         
         <menu-item label="TestWrapper Example"        href="example.html"/>
-        <menu-item label="API Overview"               href="api-overview.html"/>
         <menu-item label="Launching Your Application" href="launch-overview.html"/>
         <menu-item label="Release Notes"              href="release-notes.html"/>
         <menu-item label="Debugging Your Application" href="debugging.html"/>
