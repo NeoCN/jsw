@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.3  2004/01/10 19:57:48  mortenson
+// Add the ability to request a user's groups on UNIX platforms.
+//
 // Revision 1.2  2004/01/10 18:40:16  mortenson
 // Add additional user info to the UNIX user object.
 //
@@ -51,6 +54,9 @@ public class WrapperUNIXUser
     
     /** The GID of the user. */
     private int m_gid;
+
+    /** The Group of the user. */
+    private WrapperUNIXGroup m_group;
 
     /** The real name of the user. */
     private String m_realName;
@@ -108,6 +114,18 @@ public class WrapperUNIXUser
     {
         return m_gid;
     }
+
+    /**
+     * Returns the WrapperUNIXGroup which corresponds to the GID.
+     *  Null will be returned if groups were not requested with the
+     *  user.
+     *
+     * @return The WrapperUNIXGroup which corresponds to the GID.
+     */
+    public WrapperUNIXGroup getGroup()
+    {
+        return m_group;
+    }
     
     /**
      * Returns the real name of the user.
@@ -139,9 +157,15 @@ public class WrapperUNIXUser
         return m_shell;
     }
     
-    void addGroup( byte[] sid, byte[] user, byte[] domain )
+    void setGroup( int gid, byte[] name )
     {
-        //addGroup( new WrapperUNIXGroup( gid, group ) );
+        m_group = new WrapperUNIXGroup( gid, name );
+        addGroup( m_group );
+    }
+
+    void addGroup( int gid, byte[] name )
+    {
+        addGroup( new WrapperUNIXGroup( gid, name ) );
     }
     
     /**
