@@ -9,6 +9,17 @@ $Id$
 <article id="index">
     <title>Java Service Wrapper Release Notes</title>
     <section>
+        <title>Version 3.0.3: Changes and bug fixes</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Added support for Mac OS X.  Big thanks to Andy Barnett for supplying the
+                    patch.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
+    <section>
         <title>Version 3.0.2: Changes and bug fixes</title>
         <itemizedlist>
             <listitem>
