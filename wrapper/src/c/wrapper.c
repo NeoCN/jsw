@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.62  2003/06/19 06:22:55  mortenson
+ * Added support for DEC OSF1 (Alpha).  Big thanks to Andreas Wendt for
+ * supplying the patch.
+ *
  * Revision 1.61  2003/06/10 14:21:59  mortenson
  * Fix bug #744801.  A Java GUI was not being displayed when the application was
  * run in either console mode or as a service with wrapper.ntservice.interactive
@@ -164,8 +168,11 @@
 #ifdef HPUX
 #else
 #ifdef MACOSX
+#else
+#ifdef OSF1
 #else /* LINUX */
 #include <asm/errno.h>
+#endif /* OSF1 */
 #endif /* MACOSX */
 #endif /* HPUX */
 #endif /* AIX */
@@ -386,10 +393,14 @@ void wrapperProtocolOpen() {
 #else
 #ifdef MACOSX
     sd = accept(ssd, (struct sockaddr *)&addr_srv, &addr_srv_len);
+#else
+#ifdef OSF1
+    sd = accept(ssd, (struct sockaddr *)&addr_srv, &addr_srv_len);
 #else /* UNIX */
     sd = accept(ssd, (struct sockaddr *)&addr_srv, (socklen_t *)&addr_srv_len);
-#endif
-#endif
+#endif /* OSF1 */
+#endif /* MACOSX */
+#endif /* WIN32 */
     if (sd == INVALID_SOCKET) {
         rc = wrapperGetLastError();
         if (rc == EWOULDBLOCK) {

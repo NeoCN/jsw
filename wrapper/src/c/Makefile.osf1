@@ -1,0 +1,40 @@
+COMPILE = gcc -DOSF1 -D_REENTRANT
+
+INCLUDE=$(JAVA_HOME)/include
+
+DEFS = -I$(INCLUDE) -I$(INCLUDE)/alpha
+
+realpath_SOURCE = realpath.c
+
+wrapper_SOURCE = wrapper.c wrapper_unix.c property.c logger.c
+
+libwrapper_so_OBJECTS = wrapperjni_unix.o wrapperjni.o
+
+BIN = ../../bin
+LIB = ../../lib
+
+all: init realpath wrapper libwrapper.so
+
+clean:
+	rm -f *.o
+
+cleanall: clean
+	rm -rf *~ .deps
+	rm -f $(BIN)/realpath $(BIN)/wrapper $(LIB)/libwrapper.so
+
+init:
+	if test ! -d .deps; then mkdir .deps; fi
+
+realpath: $(realpath_SOURCE)
+	$(COMPILE) $(realpath_SOURCE) -o $(BIN)/realpath
+
+wrapper: $(wrapper_SOURCE)
+	$(COMPILE) -lpthread -lm $(wrapper_SOURCE) -o $(BIN)/wrapper
+
+libwrapper.so: $(libwrapper_so_OBJECTS)
+	${COMPILE} -shared $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
+#	${COMPILE} -qmkshrobj $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
+
+%.o: %.c
+	${COMPILE} -c ${DEFS} $< 
+

@@ -45,6 +45,8 @@ Java Service Wrapper Revision History.
   Users who have implemented the WrapperListener interface themselves should
   review the Javadocs.  The changes are not required and applications will
   continue to function as they did before.
+* Added support for DEC OSF1 (Alpha).  Big thanks to Andreas Wendt for
+  supplying the patch.
 
 3.0.3
 * Added support for Mac OS X.  Big thanks to Andy Barnett for supplying the
