@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.16  2002/09/10 16:01:12  mortenson
+ * Fix some java c++ style comments that slipped into the code.
+ *
  * Revision 1.15  2002/09/09 17:19:43  mortenson
  * Add ability to log to specific log levels from within the Wrapper.
  *
@@ -275,9 +278,9 @@ void setSyslogEventSourceName( char *event_source_name ) {
 }
 
 int getLowLogLevel() {
-	int lowLogLevel = (currentLogfileLevel < currentConsoleLevel ? currentLogfileLevel : currentConsoleLevel);
-	lowLogLevel =  (currentLoginfoLevel < lowLogLevel ? currentLoginfoLevel : lowLogLevel);
-	return lowLogLevel;
+    int lowLogLevel = (currentLogfileLevel < currentConsoleLevel ? currentLogfileLevel : currentConsoleLevel);
+    lowLogLevel =  (currentLoginfoLevel < lowLogLevel ? currentLoginfoLevel : lowLogLevel);
+    return lowLogLevel;
 }
 
 /* General log functions */
@@ -347,7 +350,7 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
     if (level >= currentLogfileLevel) {
         logfileFP = fopen( logFilePath, "a" );
         if (logfileFP == NULL) {
-            // The log file could not be opened.  Try the default file location.
+            /* The log file could not be opened.  Try the default file location. */
             logfileFP = fopen( "wrapper.log", "a" );
         }
         
