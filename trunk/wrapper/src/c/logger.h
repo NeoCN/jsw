@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.5  2002/08/11 05:21:28  mortenson
+ * Add a Warning level to the logger
+ *
  * Revision 1.4  2002/03/07 09:23:25  mortenson
  * Go through and change the style of comments that we use so that they will not
  * cause compiler errors on older unix compilers.
@@ -58,13 +61,16 @@
 /* * * Log level constants * * */
 
 /* No logging at all. */
-#define LEVEL_NONE   6
+#define LEVEL_NONE   7
 
 /* Too many restarts, unable to start etc. Case when the Wrapper is forced to exit. */
-#define LEVEL_FATAL  5
+#define LEVEL_FATAL  6
 
 /* JVM died, hung messages */
-#define LEVEL_ERROR  4
+#define LEVEL_ERROR  5
+
+/* Warning messages. */
+#define LEVEL_WARN   4
 
 /* Started, Stopped, Restarted messages. */
 #define LEVEL_STATUS 3
