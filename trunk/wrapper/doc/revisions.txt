@@ -1,6 +1,10 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 2.2.7
+* Fix a problem where the Wrapper was not shutting down the JVM correctly when
+  all non-daemon threads completed.   Normally a JVM will exit when all of its
+  non-daemon threads have completed so this was causing some problems.
+  (Thanks to Jung Tamas)
 * Added the ability to set the priority of the Wrapper and its JVM when run
   as an NT service or console application.  The same thing can be better
   achieved on Unix systems by using "nice" in the shell script used to launch

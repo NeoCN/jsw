@@ -26,6 +26,10 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.5  2002/05/08 03:18:16  mortenson
+// Fix a problem where the JVM was not exiting correctly when all non-daemon
+// threads completed.
+//
 // Revision 1.4  2002/03/29 06:10:04  rybesh
 // added some better error reporting
 //
@@ -94,33 +98,6 @@ public class WrapperSimpleApp implements WrapperListener, Runnable {
                 System.out.println("WrapperSimpleApp: main method completed");
             }
             
-            // If we get here, then the application completed normally and we should shut down
-            //  if there are no daemon threads running.
-            Thread[] threads = new Thread[Thread.activeCount() * 2];
-            Thread.enumerate(threads);
-            
-            // Only shutdown if there are any non daemon threads which are 
-            //  still alive other than this thread.
-            int liveCount = 0;
-            for (int i = 0; i < threads.length; i++) {
-                /*
-                if (threads[i] != null) {
-                    System.out.println("Check " + threads[i].getName() + " daemon=" + 
-                        threads[i].isDaemon() + " alive=" + threads[i].isAlive());
-                }
-                */
-                if ((threads[i] != null) && (threads[i].isAlive() && (!threads[i].isDaemon()))) {
-                    // Do not count this thread or the wrapper connection thread
-                    if ((Thread.currentThread() != threads[i]) && 
-                        (!WrapperManager.WRAPPER_CONNECTION_THREAD_NAME.equals(threads[i].getName()))) {
-                        
-                        // Non-Daemon livine thread
-                        liveCount++;
-                        //System.out.println("  -> Non-Daemon");
-                    }
-                }
-            }
-            
             synchronized(this) {
                 // Let the start() method know that the main method returned, in case it is 
                 //  still waiting.
@@ -128,17 +105,6 @@ public class WrapperSimpleApp implements WrapperListener, Runnable {
                 this.notifyAll();
             }
             
-            // There will always be one non-daemon thread alive.  This thread is either the main
-            //  thread which has not yet completed, or a thread launched by java when the main
-            //  thread completes whose job is to wait around for all other non-daemon threads to
-            //  complete.  We are overriding that thread here.
-            if (liveCount <= 1) {
-                // Exit normally
-                WrapperManager.stop(0);
-                // Will not get here.
-            } else {
-                // There are daemons running, let the JVM continue to run.
-            }
             return;
         } catch (IllegalAccessException e) {
             t = e;

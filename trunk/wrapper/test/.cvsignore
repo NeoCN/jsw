@@ -2,6 +2,10 @@ backgroundthreads
 backgroundthreads.conf
 daemonthreads
 daemonthreads.conf
+envvars
+envvars.conf
+longrunningbackgroundthreads
+longrunningbackgroundthreads.conf
 noreturn
 noreturn.conf
 percentoutput
@@ -11,6 +15,8 @@ quickcomplete.conf
 testwrapper.log
 TestBackgroundThreads.bat
 TestDaemonThreads.bat
+TestEnvironmentVariables.bat
+TestLongRunningBackgroundThreads.bat
 TestNoReturn.bat
 TestPercentOutput.bat
 TestQuickComplete.bat

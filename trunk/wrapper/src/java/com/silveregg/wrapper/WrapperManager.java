@@ -26,6 +26,10 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.7  2002/05/08 03:18:16  mortenson
+// Fix a problem where the JVM was not exiting correctly when all non-daemon
+// threads completed.
+//
 // Revision 1.6  2002/03/29 06:09:21  rybesh
 // minor style fix
 //
@@ -83,7 +87,7 @@ import com.silveregg.wrapper.resources.ResourceManager;
  *    javah -jni -classpath ./ com.silveregg.wrapper.WrapperManager
  */
 public final class WrapperManager implements Runnable {
-    public static final String  WRAPPER_CONNECTION_THREAD_NAME = "Wrapper-Connection";
+    private static final String  WRAPPER_CONNECTION_THREAD_NAME = "Wrapper-Connection";
     
     private static final int DEFAULT_PORT    = 15003;
     private static final int DEFAULT_BACKLOG = 50;
@@ -931,6 +935,9 @@ public final class WrapperManager implements Runnable {
                         }
                     }
                 }
+                
+                // Check to see if all non-daemon threads have exited.
+                checkThreads();
             }
             return;
 
@@ -943,6 +950,58 @@ public final class WrapperManager implements Runnable {
             System.out.println(e);
             e.printStackTrace();
             return;
+        }
+    }
+    
+    /**
+     * With a normal Java application, the JVM will exit when all non-daemon
+     *  threads have completed.  This does not work correctly with the wrapper
+     *  because the connection thread is not a daemon.  It would also cause
+     *  problems because the wrapper would not know whether the exit had been
+     *  intentional or not.  This method takes care of making sure that the
+     *  JVM exits when it is supposed to and makes sure that the Wrapper is
+     *  propperly informed.
+     */
+    private static void checkThreads() {
+        //System.out.println("checkThreads()");
+        Thread[] threads = new Thread[Thread.activeCount() * 2];
+        Thread.enumerate(threads);
+        
+        // Only shutdown if there are any non daemon threads which are 
+        //  still alive other than this thread.
+        int liveCount = 0;
+        for (int i = 0; i < threads.length; i++) {
+            /*
+            if (threads[i] != null) {
+                System.out.println("Check " + threads[i].getName() + " daemon=" + 
+                    threads[i].isDaemon() + " alive=" + threads[i].isAlive());
+            }
+            */
+            if ((threads[i] != null) && (threads[i].isAlive() && (!threads[i].isDaemon()))) {
+                // Do not count this thread or the wrapper connection thread
+                if ((Thread.currentThread() != threads[i]) && (threads[i] != _runner)) {
+                    // Non-Daemon living thread
+                    liveCount++;
+                    //System.out.println("  -> Non-Daemon");
+                }
+            }
+        }
+        //System.out.println("  => liveCount = " + liveCount);
+        
+        // There will always be one non-daemon thread alive.  This thread is either the main
+        //  thread which has not yet completed, or a thread launched by java when the main
+        //  thread completes whose job is to wait around for all other non-daemon threads to
+        //  complete.  We are overriding that thread here.
+        if (liveCount <= 1) {
+            if (_debug) {
+                System.out.println("All non-daemon threads have stopped.  Exiting.");
+            }
+            
+            // Exit normally
+            WrapperManager.stop(0);
+            // Will not get here.
+        } else {
+            // There are daemons running, let the JVM continue to run.
         }
     }
     

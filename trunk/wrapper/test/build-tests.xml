@@ -71,6 +71,25 @@
                  token="wrapper.pidfile=/var/run/aigent.pid"
                  value="wrapper.pidfile=${basedir}/backgroundthreads.pid" />
         
+        <!-- Long Running Background Threads Test -->
+        <filter token="app.name"          value="longrunningbackgroundthreads"/>
+        <filter token="app.long.name"     value="Long Running Background Threads Case" />
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${test.dir}/longrunningbackgroundthreads.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/longrunningbackgroundthreads.conf"
+                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
+                 value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+        <replace file="${test.dir}/longrunningbackgroundthreads.conf"
+                 token="#wrapper.app.parameter.1="
+                 value="wrapper.app.parameter.1=com.silveregg.wrapper.test.LongRunningBackgroundThreads" />
+        <replace file="${test.dir}/longrunningbackgroundthreads.conf"
+                 token="wrapper.logfile=../logs/wrapper.log"
+                 value="wrapper.logfile=../test/testwrapper.log" />
+        <replace file="${test.dir}/longrunningbackgroundthreads.conf"
+                 token="wrapper.pidfile=/var/run/aigent.pid"
+                 value="wrapper.pidfile=${basedir}/longrunningbackgroundthreads.pid" />
+        
         <!-- Daemon Threads Test -->
         <filter token="app.name"          value="daemonthreads"/>
         <filter token="app.long.name"     value="Daemon Threads Case" />
@@ -184,6 +203,17 @@
                  token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
                  value='set _WRAPPER_CONF="%_APP_HOME%\test\backgroundthreads.conf"' />
         
+        <!-- Long Running Background Threads Test -->
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestLongRunningBackgroundThreads.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestLongRunningBackgroundThreads.bat"
+                 token='set _APP_HOME=%_APP_HOME:\bin\=%'
+                 value='set _APP_HOME=%_APP_HOME:\test\=%' />
+        <replace file="${test.dir}/TestLongRunningBackgroundThreads.bat"
+                 token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
+                 value='set _WRAPPER_CONF="%_APP_HOME%\test\longrunningbackgroundthreads.conf"' />
+        
         <!-- Daemon Threads Test -->
         <copy file="${src.dir}/bin/App.bat.in"
               tofile="${test.dir}/TestDaemonThreads.bat"
@@ -295,6 +325,14 @@ set ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/backgroundthreads"
               filtering="on"/>
         <chmod file="${test.dir}/backgroundthreads" perm="+x"/> 
+        
+        <!-- Long Running Background Threads Test -->
+        <filter token="app.name"          value="longrunningbackgroundthreads"/>
+        <filter token="app.long.name"     value="Long Running Background Threads Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/longrunningbackgroundthreads"
+              filtering="on"/>
+        <chmod file="${test.dir}/longrunningbackgroundthreads" perm="+x"/> 
         
         <!-- Daemon Threads Test -->
         <filter token="app.name"          value="daemonthreads"/>
