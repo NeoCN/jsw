@@ -159,14 +159,13 @@
     <!-- Updates version info and build time in source code                  -->
     <!-- =================================================================== -->
     <target name="update-info" depends="init">
-        
-        <!-- nuke server info source file to make sure it gets rewritten every build -->
-        <delete file="${src.dir}/java/org/tanukisoftware/wrapper/WrapperInfo.java" />
-        
         <!-- copy server info source, using filtering to update version and build time -->
         <copy file="${src.dir}/java/org/tanukisoftware/wrapper/WrapperInfo.java.in"
               tofile="${src.dir}/java/org/tanukisoftware/wrapper/WrapperInfo.java" 
-              filtering="on"/>
+              filtering="on" overwrite="true"/>
+        <copy file="${src.dir}/c/wrapperinfo.c.in"
+              tofile="${src.dir}/c/wrapperinfo.c" 
+              filtering="on" overwrite="true"/>
     </target>
     
     <!-- =================================================================== -->

@@ -35,6 +35,7 @@ ALL : "..\..\lib\wrapper.dll"
 
 CLEAN :
     -@erase "$(INTDIR)\vc60.idb"
+    -@erase "$(INTDIR)\wrapperinfo.obj"
     -@erase "$(INTDIR)\wrapperjni.obj"
     -@erase "$(INTDIR)\wrapperjni_unix.obj"
     -@erase "$(INTDIR)\wrapperjni_win.obj"
@@ -90,7 +91,8 @@ LINK32_FLAGS=kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi3
 LINK32_OBJS= \
     "$(INTDIR)\wrapperjni.obj" \
     "$(INTDIR)\wrapperjni_unix.obj" \
-    "$(INTDIR)\wrapperjni_win.obj"
+    "$(INTDIR)\wrapperjni_win.obj" \
+    "$(INTDIR)\wrapperinfo.obj"
 
 "..\..\lib\wrapper.dll" : "$(OUTDIR)" $(DEF_FILE) $(LINK32_OBJS)
     $(LINK32) @<<
@@ -111,6 +113,8 @@ ALL : "..\..\lib\wrapper.dll" "$(OUTDIR)\WrapperJNI.bsc"
 CLEAN :
     -@erase "$(INTDIR)\vc60.idb"
     -@erase "$(INTDIR)\vc60.pdb"
+    -@erase "$(INTDIR)\wrapperinfo.obj"
+    -@erase "$(INTDIR)\wrapperinfo.sbr"
     -@erase "$(INTDIR)\wrapperjni.obj"
     -@erase "$(INTDIR)\wrapperjni.sbr"
     -@erase "$(INTDIR)\wrapperjni_unix.obj"
@@ -168,7 +172,8 @@ BSC32_FLAGS=/nologo /o"$(OUTDIR)\WrapperJNI.bsc"
 BSC32_SBRS= \
     "$(INTDIR)\wrapperjni.sbr" \
     "$(INTDIR)\wrapperjni_unix.sbr" \
-    "$(INTDIR)\wrapperjni_win.sbr"
+    "$(INTDIR)\wrapperjni_win.sbr" \
+    "$(INTDIR)\wrapperinfo.sbr"
 
 "$(OUTDIR)\WrapperJNI.bsc" : "$(OUTDIR)" $(BSC32_SBRS)
     $(BSC32) @<<
@@ -180,7 +185,8 @@ LINK32_FLAGS=kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi3
 LINK32_OBJS= \
     "$(INTDIR)\wrapperjni.obj" \
     "$(INTDIR)\wrapperjni_unix.obj" \
-    "$(INTDIR)\wrapperjni_win.obj"
+    "$(INTDIR)\wrapperjni_win.obj" \
+    "$(INTDIR)\wrapperinfo.obj"
 
 "..\..\lib\wrapper.dll" : "$(OUTDIR)" $(DEF_FILE) $(LINK32_OBJS)
     $(LINK32) @<<
@@ -200,6 +206,22 @@ LINK32_OBJS= \
 
 
 !IF "$(CFG)" == "WrapperJNI - Win32 Release" || "$(CFG)" == "WrapperJNI - Win32 Debug"
+SOURCE=.\wrapperinfo.c
+
+!IF  "$(CFG)" == "WrapperJNI - Win32 Release"
+
+
+"$(INTDIR)\wrapperinfo.obj" : $(SOURCE) "$(INTDIR)"
+
+
+!ELSEIF  "$(CFG)" == "WrapperJNI - Win32 Debug"
+
+
+"$(INTDIR)\wrapperinfo.obj"	"$(INTDIR)\wrapperinfo.sbr" : $(SOURCE) "$(INTDIR)"
+
+
+!ENDIF 
+
 SOURCE=.\wrapperjni.c
 
 !IF  "$(CFG)" == "WrapperJNI - Win32 Release"

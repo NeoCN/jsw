@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.77  2003/11/05 16:45:41  mortenson
+ * The WrapperManager class now checks to make sure that its current version
+ * matches the version of the native library and Wrapper.
+ *
  * Revision 1.76  2003/10/31 03:57:17  mortenson
  * Add a new property, wrapper.console.title, which makes it possible to set
  * the title of the console in which the Wrapper is currently running.
@@ -183,6 +187,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <sys/timeb.h>
+#include "wrapperinfo.h"
 #include "property.h"
 #include "wrapper.h"
 #include "logger.h"
@@ -1404,6 +1409,18 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         }
         index++;
     }
+    
+    /* Always write the version of the wrapper binary as a property.  The
+     *  WrapperManager class uses it to verify that the version matches. */
+    if (strings) {
+        strings[index] = malloc(sizeof(char) * (20 + strlen(wrapperVersion) + 1));
+        if (addQuotes) {
+            sprintf(strings[index], "-Dwrapper.version=\"%s\"", wrapperVersion);
+        } else {
+            sprintf(strings[index], "-Dwrapper.debug=%s", wrapperVersion);
+        }
+    }
+    index++;
 
     /* Store the base name of the native library. */
     if (strings) {
