@@ -77,6 +77,9 @@ Java Service Wrapper Revision History.
   to handle very large environment variables.  Prior versions could only handle
   environment variables whose expanded value was less than 2048 characters in
   length.
+* Fix a problem on UNIX platforms where a shell used to start the Wrapper
+  running as a detached process would hang when the user attempted to exit
+  the shell.  Thanks to Mike Castle for this patch.
 
 3.0.3
 * Added support for Mac OS X.  Big thanks to Andy Barnett for supplying the
