@@ -224,6 +224,32 @@
         <mkdir dir="${bin.dir}"/>        
         <mkdir dir="${lib.dir}"/>
         
+        <echo message="Java.vendor=${java.vendor}"/>
+        
+        <!-- IBM had to make their include directory structure slightly different than Sun's so
+             we have to play some games to locate the required JNI files -->
+        <property name="jni.h" value="${java.home}\..\include\jni.h"/>
+        <available property="jni_md.h" value="${java.home}\..\include\jni_md.h" file="${java.home}\..\include\jni_md.h"/>
+        <property name="jni_md.h" value="${java.home}\..\include\win32\jni_md.h"/>
+        
+        <!-- Prepare the WrapperJNI.mak and WrapperJNI.dep files for the current environment. -->
+        <copy file ="${src.dir}/c/WrapperJNI.mak.in" tofile="${src.dir}/c/WrapperJNI.mak" overwrite="true" encoding="Shift_JIS">
+            <filterset>
+                <filter token="java.home" value="${java.home}\.."/>
+            </filterset>
+        </copy>
+        <copy file ="${src.dir}/c/Wrapper.dep.in" tofile="${src.dir}/c/Wrapper.dep" overwrite="true">
+            <filterset>
+                <filter token="msvc.home" value="${msvc.home}"/>
+            </filterset>
+        </copy>
+        <copy file ="${src.dir}/c/WrapperJNI.dep.in" tofile="${src.dir}/c/WrapperJNI.dep" overwrite="true">
+            <filterset>
+                <filter token="jni.h" value="${jni.h}"/>
+                <filter token="jni_md.h" value="${jni_md.h}"/>
+            </filterset>
+        </copy>
+        
         <!-- Build windows C targets -->
         <exec executable="${src.dir}/c/makewin32.bat"
             dir="${src.dir}/c" 
@@ -423,7 +449,12 @@
                 <include name="src/c/*.h" />
                 <include name="src/c/Makefile.*" />
                 <include name="src/c/*.mak" />
+                <exclude name="src/c/WrapperJNI.mak" />
+                <include name="src/c/*.mak.in" />
                 <include name="src/c/*.dep" />
+                <exclude name="src/c/Wrapper.dep" />
+                <exclude name="src/c/WrapperJNI.dep" />
+                <include name="src/c/*.dep.in" />
                 <include name="src/c/*.dsp" />
                 <include name="src/c/*.dsw" />
                 <include name="src/c/*.plg" />
@@ -646,6 +677,9 @@
     </target>
     <target name="clean" depends="clean-unix" description="Clean up any files from the build">
         <delete dir="${build.dir}"/>
+        <delete dir="${src.dir}/c/Debug"/>
+        <delete dir="${src.dir}/c/Release"/>
+        <delete dir="${src.dir}/c/WrapperJNI___Win32_Release"/>
         <delete includeEmptyDirs="true">
             <fileset dir="${basedir}">
                 <include name="wrapper_*/**/*"/>
