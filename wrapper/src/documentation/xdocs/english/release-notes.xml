@@ -111,7 +111,7 @@ $Id$
                 <para>
                     Added a pair of MBean interfaces which allow the Wrapper to be controlled
                     using JMX.  See the new <ulink url="jmx.html">JMX</ulink> section in the
-                    documentation for details.
+                    documentation for details.  Thanks to Sal Ingrilli for help with testing.
                 </para>
             </listitem>
             <listitem>
