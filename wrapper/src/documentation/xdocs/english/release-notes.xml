@@ -61,6 +61,11 @@
                     Fix a problem on Unix versions where '%' characters in Java output would sometimes cause the wrapper to crash.  Somehow missed getting this into the last release.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Added a test to make sure that WrapperManager.stop is not called recursively.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
