@@ -49,20 +49,20 @@
     <section>
         <title>Quick Start</title>
         <para>
-            As with any application, reading through all the documentation the best
+            As with any application, reading through the documentation the best
             way to get started.  But realizing the desire to get your feet wet
-            quickly...   At a minimum, you should glance over this page to see
-            what the Wrapper is.
+            quickly, you should glance over this page to get a feel for what the
+            Wrapper can do.
         </para>
         <para>
-            In order to get up and running with the Wrapper, at a minimum you will
-            need to read over the <ulink url="integrate.html">Integration Page</ulink>.
-            There you will be presented with one of 3 integration methods.  From the
+            Then to get up and running , at a minimum you will need to read over
+            the <ulink url="integrate.html">Integration Page</ulink>.
+            There you will be presented with 3 integration methods.  From the
             overviews, choose the one that best meets your needs and then proceed
             to read over the page dedicated to that integration method.
         </para>
         <para>
-            Finally, the Wrapper provides a very large feature set.  At some point
+            The Wrapper provides a very large feature set.  At some point
             it is suggested that you look over the
             <ulink url="properties.html">full properties list</ulink> to get a
             feel for the full power of the Java Service Wrapper.
