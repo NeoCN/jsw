@@ -42,7 +42,7 @@ wrapper  | Java Virtual Machine did not exit on request, terminated]]></screen>
         <para>
             If the application has registered its own shutdown hook which takes
             some time to complete, you could experience timeouts waiting for the
-            JVM process to terminate.  To avoind this problem, it may be
+            JVM process to terminate.  To avoid this problem, it may be
             necessary to extend the timeout to give the application's shutdown
             hook time to execute to completion.  Be aware that as a rule,
             shutdown hooks should always complete almost instantly.

@@ -233,7 +233,7 @@ public class Main
                     differences that you will have to keep in mind however.  The
                     <literal moreinfo="none">start</literal> method is called while the
                     application is in its startup phase and the application will not be
-                    concidered to have started until the
+                    considered to have started until the
                     <literal moreinfo="none">start</literal> method has returned.
                 </para>
                 <para>
@@ -276,7 +276,7 @@ public class Main
                     The return value of the start method gives the application a chance
                     to abort the startup process before the application has actually
                     been officially started.   This can be important where dependent
-                    services are concered.  If you have such concerns then you must
+                    services are concerned.  If you have such concerns then you must
                     use this integration method.  Both the
                     <literal moreinfo="none">WrapperSimpleApp</literal> and
                     <literal moreinfo="none">WrapperStartStopApp</literal> helper classes
@@ -411,12 +411,12 @@ public class Main
                     run the Java application directly without using the Wrapper.  This
                     can be done for testing or any number of reasons.  In this case, it
                     is the responsibility of the Java application to handle its own
-                    lifecycle.
+                    life-cycle.
                 </para>
                 <para>
                     The following example will trigger a shutdown of the JVM if the user
                     presses <literal moreinfo="none">CTRL-C</literal>, hits the close box,
-                    logs out, or shutsdown the machine.  But only if not controlled by
+                    logs out, or shuts down the machine.  But only if not controlled by
                     the Wrapper.
                 </para>
                 <informalexample>

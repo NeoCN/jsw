@@ -104,7 +104,7 @@
             <para>
                 To run your application from the command line:
                 <informalexample>
-                    <screen format="linespecific"><![CDATA[$ wrapper [your application's wrapper config file]]]></screen>
+                    <screen format="linespecific"><![CDATA[$ wrapper [your application's wrapper configuration file]]]></screen>
                 </informalexample>
             </para>
             <para>
@@ -113,8 +113,8 @@
                 that the '@app.name@' and '@app.long.name@' tokens will be replaced with the name
                 of your application on installation.  Good values are 'testwrapper' for '@app.name@'
                 and 'Test Wrapper Application' for '@app.long.name@'.  These scripts also make some
-                assumtions about your project's directory structure.  Template scripts can be found
-                in the src/bin directory, named bash.script.in and sh.script.in respectively.
+                assumptions about your project's directory structure.  Template scripts can be
+                found in the src/bin directory, named bash.script.in and sh.script.in respectively.
             </para>
             <para>
                 You may need to tweak some of the other values (like PIDDIR in the sh script) to

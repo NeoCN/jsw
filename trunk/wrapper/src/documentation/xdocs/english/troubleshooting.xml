@@ -85,8 +85,8 @@ $Id$
         <title>My application is hanging while it is shutting down.</title>
         <para>
             If you call System.exit() in your application then Wrapper will catch this and attempt
-            to shutdown the applicaiton cleanly.  If during the shutdown process, your application
-            once again calls System.exit() then the call will block indeffinately causing your
+            to shutdown the application cleanly.  If during the shutdown process, your application
+            once again calls System.exit() then the call will block indefinitely causing your
             application to hang.  There are also problems with calling the destroy() method on an
             AWT frame or window from within a shutdown hoot thread.  Please take a look at the
             wrapper.disable_shutdown_hook property in the Configuration File Overview for details

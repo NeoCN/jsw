@@ -5,7 +5,7 @@
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without 
  * restriction, including without limitation the rights to use, 
- * copy, modify, merge, publish, distribute, sublicense, and/or 
+ * copy, modify, merge, publish, distribute, sub-license , and/or 
  * sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following 
  * conditions:
@@ -16,13 +16,16 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
+ * NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
  * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.51  2003/04/03 04:05:22  mortenson
+ * Fix several typos in the docs.  Thanks to Mike Castle.
+ *
  * Revision 1.50  2003/04/02 10:05:52  mortenson
  * Modified the wrapper.ping.timeout property so it also controls the ping
  * timeout within the JVM.  Before the timeout on responses to the Wrapper
@@ -132,7 +135,7 @@ WrapperConfig *wrapperData;
 char         packetBuffer[MAX_LOG_SIZE + 1];
 char         *keyChars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
 
-/* Properties structure loaded in from the config file. */
+/* Properties structure loaded in from the configuration file. */
 Properties              *properties;
 
 /* Server Socket. */

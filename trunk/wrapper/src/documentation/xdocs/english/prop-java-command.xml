@@ -28,7 +28,7 @@
             The command to use when launching a JVM.  If the full path to the
             java executable is not specified, then the Wrapper will attempt
             to locate a java executable on the system path.  It is advised
-            that the value does not contain an extenstion.  Specifying a
+            that the value does not contain an extension.  Specifying a
             value like <literal moreinfo="none">java.exe</literal> would mean
             that the same configuration file could not be used on Linux or
             UNIX systems.

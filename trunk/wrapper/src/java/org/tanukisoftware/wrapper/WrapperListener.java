@@ -7,7 +7,7 @@ package org.tanukisoftware.wrapper;
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without 
  * restriction, including without limitation the rights to use, 
- * copy, modify, merge, publish, distribute, sublicense, and/or 
+ * copy, modify, merge, publish, distribute, sub-license , and/or 
  * sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following 
  * conditions:
@@ -18,7 +18,7 @@ package org.tanukisoftware.wrapper;
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
+ * NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
  * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.2  2003/04/03 04:05:23  mortenson
+// Fix several typos in the docs.  Thanks to Mike Castle.
+//
 // Revision 1.1  2003/02/03 06:55:28  mortenson
 // License transfer to TanukiSoftware.org
 //
@@ -34,7 +37,7 @@ package org.tanukisoftware.wrapper;
  * Applications which need to be controlled directly as a service can implement
  *  the WrapperListener interface and then register themselves with the
  *  WrapperManager on instantiation.  The WrapperManager will then control the
- *  the class as a service for its entire lifecycle.
+ *  the class as a service for its entire life-cycle.
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
  * @version $Revision$

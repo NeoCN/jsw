@@ -21,7 +21,7 @@
     <section>
         <title>Example Configuration File</title>
         <para>
-            The Wrapper config file contains the following information.  This
+            The Wrapper configuration file contains the following information.  This
             example assumes that the <literal moreinfo="none">'@app.name@'</literal>,
             <literal moreinfo="none">'@app.long.name@'</literal>, and
             <literal moreinfo="none">'@app.description@'</literal> tokens

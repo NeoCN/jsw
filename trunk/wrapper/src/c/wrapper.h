@@ -5,7 +5,7 @@
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without 
  * restriction, including without limitation the rights to use, 
- * copy, modify, merge, publish, distribute, sublicense, and/or 
+ * copy, modify, merge, publish, distribute, sub-license , and/or 
  * sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following 
  * conditions:
@@ -16,13 +16,16 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
+ * NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
  * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.28  2003/04/03 04:05:22  mortenson
+ * Fix several typos in the docs.  Thanks to Mike Castle.
+ *
  * Revision 1.27  2003/04/02 10:05:53  mortenson
  * Modified the wrapper.ping.timeout property so it also controls the ping
  * timeout within the JVM.  Before the timeout on responses to the Wrapper
@@ -106,7 +109,7 @@ struct WrapperConfig {
     u_short port;                   /* Port number which the Wrapper is configured to be listening on */
     u_short actualPort;             /* Port number which the Wrapper is actually listening on */
     int     sock;                   /* Socket number. if open. */
-    char    *configFile;            /* Name of the config file */
+    char    *configFile;            /* Name of the configuration file */
 #ifdef WIN32
     char    *jvmCommand;            /* Command used to launch the JVM */
 #else /* UNIX */
@@ -123,9 +126,9 @@ struct WrapperConfig {
     int     jState;                 /* The current state of the jvm */
     time_t  jStateTimeout;          /* Time until which the current jState is valid */
     time_t  lastPingTime;           /* Time that the last ping was sent */
-    int     isDebugging;            /* TRUE if set in the config file */
-    int     isStateOutputEnabled;   /* TRUE if set in the config file.  Shows output on the state of the state engine. */
-    int     isShutdownHookDisabled; /* TRUE if set in the config file */
+    int     isDebugging;            /* TRUE if set in the configuration file */
+    int     isStateOutputEnabled;   /* TRUE if set in the configuration file.  Shows output on the state of the state engine. */
+    int     isShutdownHookDisabled; /* TRUE if set in the configuration file */
     int     exitCode;               /* Code which the wrapper will exit with */
     int     exitRequested;          /* Non-zero if another thread has requested that the wrapper and JVM be shutdown */
     int     exitAcknowledged;       /* Non-zero if the main thread has acknowledged the exit request */

@@ -28,7 +28,7 @@
             The properties listed on this page are used to configure the JVM
             which is launched by the Java Service Wrapper.  The values set to
             many of these properties are dependent on the method used to
-            integrate an appplication with the Wrapper.  Please make sure
+            integrate an application with the Wrapper.  Please make sure
             you are familiar with the integration methods before modifying
             any of these properties
         </para>

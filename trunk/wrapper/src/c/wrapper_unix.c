@@ -5,7 +5,7 @@
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without 
  * restriction, including without limitation the rights to use, 
- * copy, modify, merge, publish, distribute, sublicense, and/or 
+ * copy, modify, merge, publish, distribute, sub-license , and/or 
  * sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following 
  * conditions:
@@ -16,13 +16,16 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
+ * NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
  * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.30  2003/04/03 04:05:22  mortenson
+ * Fix several typos in the docs.  Thanks to Mike Castle.
+ *
  * Revision 1.29  2003/03/26 04:01:40  mortenson
  * Fix an unreleased problem where extremely long lines of output from the
  * JVM were causing a segmentation fault on Unix systems.
@@ -449,11 +452,11 @@ void wrapperKillProcess() {
  * Show usage.
  */
 void wrapperUsage(char *appName) {
-    printf("Usage: %s <file> [config properties] [...]\n", appName);
-    printf("<file> is the application config file.\n");
+    printf("Usage: %s <file> [configuration properties] [...]\n", appName);
+    printf("<file> is the application configuration file.\n");
     printf("\n");
-    printf("[config properties] are configuration name-value pairs which override values\n");
-    printf("  in wrapper.conf.  For example:\n");
+    printf("[configuration properties] are configuration name-value pairs which\n");
+    printf("  override values in wrapper.conf.  For example:\n");
     printf("  wrapper.debug=true\n");
     printf("\n");
     printf("Options:  --help\n");
@@ -570,9 +573,9 @@ int main(int argc, char **argv) {
         /* Create a Properties structure. */
         properties = createProperties();
 
-        /* The first argument is the config file, followed by 0 or more
+        /* The first argument is the configuration file, followed by 0 or more
          *  command line properties.  The command line properties need to be
-         *  loaded first, followed by the config file. */
+         *  loaded first, followed by the configuration file. */
         for (i = 2; i < argc; i++) {
             if (addPropertyPair(properties, argv[i], TRUE)) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, 
@@ -581,26 +584,27 @@ int main(int argc, char **argv) {
             }
         }
 
-        /* Now load the config file. */
+        /* Now load the configuration file. */
         if (loadProperties(properties, argv[1])) {
             /* File not found. */
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to open wrapper config file: %s", argv[1]);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                "Unable to open wrapper configuration file: %s", argv[1]);
             exit(1);
         
         } else {
-            /* Store the config file name. */
+            /* Store the configuration file name. */
             wrapperData->configFile = argv[1];
             
             /* Display the active properties */
             /*
-            printf("Debug Config Properties:\n");
+            printf("Debug Configuration Properties:\n");
             dumpProperties(properties);
             */
 
             /* Apply properties to the WrapperConfig structure. */
             if (wrapperLoadConfiguration()) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                    "Problem loading wrapper config file: %s", argv[1]);
+                    "Problem loading wrapper configuration file: %s", argv[1]);
                 exit(1);
             }
             
