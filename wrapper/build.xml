@@ -15,16 +15,22 @@
     <property name="Name"          value="Wrapper"/>
     <property name="name"          value="wrapper"/>
     
+    <property name="app.name"      value="testwrapper"/>
+    <property name="app.caps.name" value="TestWrapper"/>
+    <property name="app.long.name" value="Test Wrapper Sample Application"/>
+    
     <!-- product version -->
     <property name="major.version" value="2" />
     <property name="version"       value="${major.version}.2.3" />
     
     <property name="bin.dir"       value="bin"/>
+    <property name="conf.dir"      value="conf"/>
     <property name="src.dir"       value="src"/>
     <property name="lib.dir"       value="lib"/>
     <property name="logs.dir"      value="logs"/>
     <property name="doc.dir"       value="doc"/>
     <property name="jdoc.dir"      value="jdoc"/>
+    <property name="test.dir"      value="test"/>
     <property name="context.dir"   value="${src.dir}/documentation"/>
     
     <property name="build.dir"     value="build"/>
@@ -48,33 +54,16 @@
     <target name="help" depends="usage"/>
     
     <!-- =================================================================== -->
-    <!-- Init (Linux)                                                        -->
-    <!-- =================================================================== -->
-    <target name="init-linux" if="is.Linux">
-        <copy file="${src.dir}/bin/bash.script.in" tofile="${bin.dir}/testwrapper"/>
-        <chmod file="${bin.dir}/testwrapper" perm="+x"/> 
-    </target>
-    
-    <!-- =================================================================== -->
-    <!-- Init (Solaris)                                                      -->
-    <!-- =================================================================== -->
-    <target name="init-solaris" if="is.SunOS">
-        <copy file="${src.dir}/bin/sh.script.in" tofile="${bin.dir}/testwrapper"/>
-        <chmod file="${bin.dir}/testwrapper" perm="+x"/> 
-    </target>
-    
-    <!-- =================================================================== -->
     <!-- Initialize build.                                                   -->
     <!-- =================================================================== -->
-    <target name="init" depends="init-linux, init-solaris">
-        <!--filter token="java.home"         value="${java.home}" /-->
-        <!--filter token="wrapper.home"      value="${basedir}" /-->
-        <!--filter token="java.library.path" value="${basedir}/lib" /-->
-        
+    <target name="init">
         <tstamp/>
         <filter token="version"           value="${version}"       />
         <filter token="build.date"        value="${DSTAMP}"        />
         <filter token="build.time"        value="${TSTAMP}"        />
+        
+        <filter token="app.name"          value="${app.name}"      />
+        <filter token="app.long.name"     value="${app.long.name}" />
     </target>
     
     <!-- =================================================================== -->
@@ -191,11 +180,83 @@
             bottom="Copyright 2000, 2001 SilverEgg Technology Corp. All Rights Reserved."
         />
     </target>
+    
+    <!-- =================================================================== -->
+    <!-- Bin target (Windows)                                                -->
+    <!-- =================================================================== -->
+    <target name="bin-windows" depends="compile">
+        <!-- Create batch files for the TestWrapper Sample Application -->
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${bin.dir}/${app.caps.name}.bat"
+              filtering="on"/>
+        <copy file="${src.dir}/bin/AppNoWrapper.bat.in"
+              tofile="${bin.dir}/${app.caps.name}NoWrapper.bat"
+              filtering="on"/>
+        <copy file="${src.dir}/bin/InstallApp-NT.bat.in"
+              tofile="${bin.dir}/Install${app.caps.name}-NT.bat"
+              filtering="on"/>
+        <copy file="${src.dir}/bin/UninstallApp-NT.bat.in"
+              tofile="${bin.dir}/Uninstall${app.caps.name}-NT.bat"
+              filtering="on"/>
+    </target>
+    <target name="bin-windows-nt" depends="bin-windows" if="is.Windows NT">
+    </target>
+    <target name="bin-windows-2000" depends="bin-windows" if="is.Windows 2000">
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Bin target (Linux)                                                  -->
+    <!-- =================================================================== -->
+    <target name="bin-linux" depends="compile" if="is.Linux">
+        <!-- Create script files for the TestWrapper Sample Application -->
+        <copy file="${src.dir}/bin/bash.script.in"
+            tofile="${bin.dir}/${app.name}"
+            filtering="on"/>
+        <chmod file="${bin.dir}/${app.name}" perm="+x"/> 
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Bin target (Solaris)                                                -->
+    <!-- =================================================================== -->
+    <target name="bin-solaris" depends="compile" if="is.SunOS">
+        <copy file="${src.dir}/bin/sh.script.in"
+            tofile="${bin.dir}/${app.name}"
+            filtering="on"/>
+        <chmod file="${bin.dir}/${app.name}" perm="+x"/> 
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Bin target                                                          -->
+    <!-- =================================================================== -->
+    <target name="bin" depends="bin-windows-nt, bin-windows-2000, bin-linux, bin-solaris">
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Conf target                                                         -->
+    <!-- =================================================================== -->
+    <target name="conf">
+        <mkdir dir="${conf.dir}"/>
+        
+        <!-- Create wrapper.conf for the TestWrapper Sample Application -->
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${conf.dir}/wrapper.conf"
+              filtering="on"/>
+    </target>
 
+    <!-- =================================================================== -->
+    <!-- Test Setup target                                                   -->
+    <!-- =================================================================== -->
+    <target name="test-setup">
+        <ant antfile="build-tests.xml" dir="${test.dir}" target="test-setup" inheritall="false"/>  
+    </target>
+    
     <!-- =================================================================== -->
     <!-- Main target                                                         -->
     <!-- =================================================================== -->
-    <target name="main" depends="jar" description="default development build task">
+    <target name="main"
+        depends="jar, bin, conf, test-setup"
+        description="default development build task">
+        
     </target>
     
     <!-- =================================================================== -->
@@ -238,6 +299,7 @@
                 <include name="bin/*.bat" />
                 <include name="conf/*.conf" />
                 <include name="src/bin/**" />
+                <include name="src/conf/**" />
                 <include name="src/java/**" />
                 <include name="src/c/*.c" />
                 <include name="src/c/*.h" />
@@ -315,6 +377,8 @@
                 <include name="lib/Wrapper.dll" />
                 <include name="lib/wrapper.jar" />
                 <include name="lib/wrappertest.jar" />
+                <include name="src/bin/*.bat.in" />
+                <include name="src/conf/**" />
                 <include name="jdoc/**" />
                 <include name="doc/**" />
                 <exclude name="**/CVS/*" />
@@ -348,6 +412,8 @@
                 <include name="lib/wrapper.jar" />
                 <include name="lib/wrappertest.jar" />
                 <include name="lib/libwrapper.so" />
+                <include name="src/bin/bash.script.in" />
+                <include name="src/conf/**" />
                 <include name="jdoc/**" />
                 <include name="doc/**" />
                 <include name="src/bin/*.script.in" />
@@ -378,6 +444,8 @@
                 <include name="lib/wrapper.jar" />
                 <include name="lib/wrappertest.jar" />
                 <include name="lib/libwrapper.so" />
+                <include name="src/bin/sh.script.in" />
+                <include name="src/conf/**" />
                 <include name="jdoc/**" />
                 <include name="doc/**" />
                 <include name="src/bin/*.script.in" />

@@ -1,1 +1,13 @@
+backgroundthreads
+backgroundthreads.conf
+daemonthreads
+daemonthreads.conf
+noreturn
+noreturn.conf
+quickcomplete
+quickcomplete.conf
 testwrapper.log
+TestBackgroundThreads.bat
+TestDaemonThreads.bat
+TestNoReturn.bat
+TestQuickComplete.bat
