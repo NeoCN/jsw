@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.5  2003/06/19 05:45:00  mortenson
+// Modified the suggested behavior of the WrapperListener.controlEvent() method.
+//
 // Revision 1.4  2003/06/07 05:19:10  mortenson
 // Add a new class, WrapperActionServer, which makes it easy to remotely control
 // the Wrapper remotely by opening a socket and sending commands.  See the
@@ -216,16 +219,12 @@ public class Main implements WrapperListener {
     public void controlEvent(int event) {
         System.out.println("controlEvent(" + event + ")");
         
-        if (WrapperManager.isControlledByNativeWrapper()) {
-            // The Wrapper will take care of this event
+        if ((event == WrapperManager.WRAPPER_CTRL_LOGOFF_EVENT)
+            && WrapperManager.isLaunchedAsService()) {
+            System.out.println("  Ignoring logoff event");
+            // Ignore
         } else {
-            // We are not being controlled by the Wrapper, so
-            //  handle the event ourselves.
-            if ((event == WrapperManager.WRAPPER_CTRL_C_EVENT) ||
-                (event == WrapperManager.WRAPPER_CTRL_CLOSE_EVENT) ||
-                (event == WrapperManager.WRAPPER_CTRL_SHUTDOWN_EVENT)){
-                WrapperManager.stop(0);
-            }
+            WrapperManager.stop(0);
         }
     }
     

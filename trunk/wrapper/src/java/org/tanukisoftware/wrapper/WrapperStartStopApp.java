@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.4  2003/06/19 05:45:02  mortenson
+// Modified the suggested behavior of the WrapperListener.controlEvent() method.
+//
 // Revision 1.3  2003/04/03 04:05:23  mortenson
 // Fix several typos in the docs.  Thanks to Mike Castle.
 //
@@ -308,13 +311,14 @@ public class WrapperStartStopApp
      */
     public void controlEvent( int event )
     {
-        if ( WrapperManager.isControlledByNativeWrapper() )
+        if ( ( event == WrapperManager.WRAPPER_CTRL_LOGOFF_EVENT )
+            && WrapperManager.isLaunchedAsService() )
         {
+            // Ignore
             if ( WrapperManager.isDebugEnabled() )
             {
                 System.out.println( "WrapperStartStopApp: controlEvent(" + event + ") Ignored" );
             }
-            // Ignore the event as the native wrapper will handle it.
         }
         else
         {
@@ -322,9 +326,6 @@ public class WrapperStartStopApp
             {
                 System.out.println( "WrapperStartStopApp: controlEvent(" + event + ") Stopping" );
             }
-            
-            // Not being run under a wrapper, so this isn't an NT service and should always exit.
-            //  Handle the event here.
             WrapperManager.stop( 0 );
             // Will not get here.
         }

@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.3  2003/06/19 05:45:02  mortenson
+// Modified the suggested behavior of the WrapperListener.controlEvent() method.
+//
 // Revision 1.2  2003/04/03 04:05:23  mortenson
 // Fix several typos in the docs.  Thanks to Mike Castle.
 //
@@ -81,7 +84,52 @@ public interface WrapperListener
      *  against the Java process.  It is up to the callback to take any actions
      *  necessary.  Possible values are: WrapperManager.WRAPPER_CTRL_C_EVENT, 
      *    WRAPPER_CTRL_CLOSE_EVENT, WRAPPER_CTRL_LOGOFF_EVENT, or 
-     *    WRAPPER_CTRL_SHUTDOWN_EVENT
+     *    WRAPPER_CTRL_SHUTDOWN_EVENT.
+     * <p>
+     * The WRAPPER_CTRL_C_EVENT will be called whether or not the JVM is
+     *  controlled by the Wrapper.  If controlled by the Wrapper, it is
+     *  undetermined as to whether the Wrapper or the JVM will receive this
+     *  signal first, but the Wrapper will always initiate a shutdown.  In
+     *  most cases, the implementation of this method should call
+     *  WrapperManager.stop() to initiate a shutdown from within the JVM.
+     *  The WrapperManager will always handle the shutdown correctly whether
+     *  shutdown is initiated from the Wrapper, within the JVM or both.
+     *  By calling stop here, it will ensure that the application will behave
+     *  correctly when run standalone, without the Wrapper.
+     * <p>
+     * WRAPPER_CTRL_CLOSE_EVENT, WRAPPER_CTRL_LOGOFF_EVENT, and
+     *  WRAPPER_CTRL_SHUTDOWN_EVENT events will only be encountered on Windows
+     *  systems.  Like the WRAPPER_CTRL_C_EVENT event, it is undetermined as to
+     *  whether the Wrapper or JVM will receive the signal first.  All signals
+     *  will be triggered by the OS whether the JVM is being run as an NT
+     *  service or as a console application.  If the JVM is running as a
+     *  console application, the Application must respond to the CLOSE and
+     *  LOGOFF events by calling WrapperManager.stop() in a timely manner.
+     *  In these cases, Windows will wait for the JVM process to exit before
+     *  moving on to signal the next process.  If the JVM process does not exit
+     *  within a reasonable amount of time, Windows will pop up a message box
+     *  for the user asking if they wish to wait for the process or exit or
+     *  forcibly close it.  The JVM must call stop() in response to the
+     *  SHUTDOWN method whether running as a console or NT service.  Usually,
+     *  the LOGOFF event should be ignored when the Wrapper is running as an
+     *  NT service.
+     * <p>
+     * Unless you know what you are doing, it is suggested that the body of
+     *  this method contain the following code, or its functional equivalent.
+     * <pre>
+     *   public void controlEvent( int event )
+     *   {
+     *       if ( ( event == WrapperManager.WRAPPER_CTRL_LOGOFF_EVENT )
+     *           && WrapperManager.isLaunchedAsService() )
+     *       {
+     *           // Ignore
+     *       }
+     *       else
+     *       {
+     *           WrapperManager.stop( 0 );
+     *       }
+     *   }
+     * </pre>
      *
      * @param event The system control signal.
      */
