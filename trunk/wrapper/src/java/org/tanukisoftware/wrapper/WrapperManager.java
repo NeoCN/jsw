@@ -26,6 +26,11 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.6  2003/04/09 06:26:14  mortenson
+// Add some extra checks in the event where the native library can not be loaded
+// so that the WrapperManager can differentiate between the library missing and
+// not being readable due to permission problems.
+//
 // Revision 1.5  2003/04/03 04:05:23  mortenson
 // Fix several typos in the docs.  Thanks to Mike Castle.
 //
@@ -408,7 +413,6 @@ public final class WrapperManager
             {
                 // A library path exists but the library was not found on it.
                 String pathSep = System.getProperty( "path.separator" );
-                StringTokenizer st = new StringTokenizer( libPath, pathSep );
                 String libFile;
                 if ( System.getProperty( "os.name" ).indexOf( "Windows" ) >= 0 )
                 {
@@ -418,21 +422,59 @@ public final class WrapperManager
                 {
                     libFile = "libwrapper.so";
                 }
-                System.out.println(
-                    "WARNING - Unable to load native library 'wrapper' because the" );
-                System.out.println(
-                    "          file '" + libFile + "' could not be located in the following" );
-                System.out.println(
-                    "          java.library.path:" );
-                while ( st.hasMoreTokens() )
+                
+                // Search for the file on the library path to verify that it does not
+                //  exist, it could be some other problem
+                boolean libFileFound = false;
+                File pathElement = null;
+                StringTokenizer st = new StringTokenizer( libPath, pathSep );
+                while( st.hasMoreTokens() )
                 {
-                    File pathElement = new File( st.nextToken() );
-                    System.out.println( "            " + pathElement.getAbsolutePath() );
+                    pathElement = new File( new File( st.nextToken() ), libFile );
+                    if ( pathElement.exists() )
+                    {
+                        libFileFound = true;
+                        break;
+                    }
                 }
-                System.out.println(
-                    "          Please see the documentation for the wrapper.java.library.path" );
-                System.out.println(
-                    "          configuration property." );
+                
+                if ( libFileFound )
+                {
+                    // The library file was found but it could not be loaded.
+                    System.out.println(
+                        "WARNING - Unable to load native library '" + libFile + "'.  The file" );
+                    System.out.println(
+                        "          is located on the path at the following location but could" );
+                    System.out.println(
+                        "          be loaded:" );
+                    System.out.println(
+                        "            " + pathElement.getAbsolutePath() );
+                    System.out.println(
+                        "          Please verify that the file is readable by the current user" );
+                    System.out.println(
+                        "          and that the file has not been corrupted in any way." );
+                }
+                else
+                {
+                    // The library file does not appear to exist.
+                    System.out.println(
+                        "WARNING - Unable to load native library 'wrapper' because the" );
+                    System.out.println(
+                        "          file '" + libFile + "' could not be located in the following" );
+                    System.out.println(
+                        "          java.library.path:" );
+                    st = new StringTokenizer( libPath, pathSep );
+                    while ( st.hasMoreTokens() )
+                    {
+                        pathElement = new File( st.nextToken() );
+                        System.out.println( "            " + pathElement.getAbsolutePath() );
+                    }
+                    System.out.println(
+                        "          Please see the documentation for the "
+                        +          "wrapper.java.library.path" );
+                    System.out.println(
+                        "          configuration property." );
+                }
             }
             System.out.println( "          System signals will not be handled correctly." );
             System.out.println();
