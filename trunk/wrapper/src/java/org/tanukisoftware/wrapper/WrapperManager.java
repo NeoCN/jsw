@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.21  2003/10/31 05:59:34  mortenson
+// Added a new method, setConsoleTitle, to the WrapperManager class which
+// enables the application to dynamically set the console title.
+//
 // Revision 1.20  2003/10/18 08:11:16  mortenson
 // Modify the WrapperManager class so it now stores references to System.out
 // and System.err on initialization and always writes to those stored streams.
@@ -547,6 +551,7 @@ public final class WrapperManager
     private static native int nativeGetControlEvent();
     private static native void nativeRequestThreadDump();
     private static native void accessViolationInner();
+    private static native void nativeSetConsoleTitle( byte[] titleBytes );
     
     /*---------------------------------------------------------------
      * Methods
@@ -763,6 +768,34 @@ public final class WrapperManager
     public static int getJVMId()
     {
         return m_jvmId;
+    }
+    
+    /**
+     * Sets the title of the console in which the Wrapper is running.  This
+     *  is currently only supported on Windows platforms.
+     * <p>
+     * As an alternative, it is also possible to set the console title from
+     *  within the wrapper.conf file using the wrapper.console.title property.
+     *
+     * @param title The new title.  The specified string will be encoded
+     *              to a byte array using the default encoding for the
+     *              current platform.
+     */
+    public static void setConsoleTitle( String title )
+    {
+        if ( m_libraryOK )
+        {
+            // Convert the unicode string to a string of bytes using the default
+            //  platform encoding.
+            byte[] titleBytes = title.getBytes();
+            
+            // We need a null terminated string.
+            byte[] nullTermBytes = new byte[titleBytes.length + 1];
+            System.arraycopy( titleBytes, 0, nullTermBytes, 0, titleBytes.length );
+            nullTermBytes[titleBytes.length] = 0;
+            
+            nativeSetConsoleTitle( nullTermBytes );
+        }
     }
     
     /**

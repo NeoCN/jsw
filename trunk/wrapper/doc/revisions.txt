@@ -33,6 +33,9 @@ Java Service Wrapper Revision History.
 * Add a new property, wrapper.console.title, which makes it possible to set
   the title of the console in which the Wrapper is currently running.  This
   currently only works on Windows platforms.
+* Added a new method, setConsoleTitle, to the WrapperManager class which
+  enables the application to dynamically set the console title.  Like the
+  wrapper.console.title property, this only works on Windows platforms.
   
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the

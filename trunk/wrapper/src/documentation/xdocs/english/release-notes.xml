@@ -83,6 +83,15 @@ $Id$
                     is currently running.  This currently only works on Windows platforms.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Added a new method, setConsoleTitle, to the
+                    <ulink url="javadocs.html">WrapperManager</ulink> class which
+                    enables the application to dynamically set the console title.  Like the
+                    <ulink url="prop-console-title.html">wrapper.console.title</ulink>
+                    property, this only works on Windows platforms.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

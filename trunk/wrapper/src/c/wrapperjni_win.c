@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.10  2003/10/31 05:59:34  mortenson
+ * Added a new method, setConsoleTitle, to the WrapperManager class which
+ * enables the application to dynamically set the console title.
+ *
  * Revision 1.9  2003/06/19 05:23:40  mortenson
  * Fix a problem where the JVM was not receiving CTRL-C and CTRL-CLOSE events
  * when running under the Wrapper on Windows.
@@ -143,6 +147,25 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump(JNIEnv *e
         printf("Unable to send BREAK event to JVM process.  Err(%ld)\n", GetLastError());
         flushall();
     }
+}
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeSetConsoleTitle
+ * Signature: ([B)V
+ */
+JNIEXPORT void JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle(JNIEnv *env, jclass clazz, jbyteArray jTitleBytes) {
+    jbyte *titleBytes = (*env)->GetByteArrayElements(env, jTitleBytes, 0);
+
+    if (wrapperJNIDebugging) {
+        printf("Setting the console title to: %s\n", titleBytes);
+        flushall();
+    }
+
+    SetConsoleTitle(titleBytes);
+
+    (*env)->ReleaseByteArrayElements(env, jTitleBytes, titleBytes, JNI_ABORT);
 }
 
 #endif

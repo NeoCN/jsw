@@ -36,5 +36,12 @@
             <simpara><emphasis>Example:</emphasis></simpara>
             <screen format="linespecific"><![CDATA[wrapper.console.title=My Application]]></screen>
         </informalexample>
+        <para>
+            As an alternative, or in addition to this property, it is also possible
+            to set the console title from within the Java application by using the
+            <ulink url="javadocs.html">WrapperManager.setConsoleTitle()</ulink>
+            method.  This allows the application to dynamically change the title as
+            the application runs.
+        </para>
     </section>
 </chapter>
