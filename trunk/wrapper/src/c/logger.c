@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.29  2003/08/02 15:50:02  mortenson
+ * Implement getLastErrorText on UNIX versions.
+ *
  * Revision 1.28  2003/07/04 03:57:18  mortenson
  * Convert tabs to spaces.
  *
@@ -398,11 +401,11 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
 
 /* Internal functions */
 
-#ifdef WIN32
 /**
  * Create an error message from GetLastError() using the
  *  FormatMessage API Call...
  */
+#ifdef WIN32
 TCHAR lastErrBuf[1024];
 char* getLastErrorText() {
     DWORD dwRet;
@@ -430,6 +433,10 @@ char* getLastErrorText() {
     }
 
     return lastErrBuf;
+}
+#else
+char* getLastErrorText() {
+	return strerror(errno);
 }
 #endif
 
