@@ -26,8 +26,11 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
-// Revision 1.1  2001/11/07 08:54:20  mortenson
-// Initial revision
+// Revision 1.2  2001/11/08 09:06:58  mortenson
+// Improve JavaDoc text.
+//
+// Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
+// no message
 //
 
 import java.io.DataInputStream;
@@ -250,10 +253,16 @@ public final class WrapperManager implements Runnable {
     /*---------------------------------------------------------------
      * Public Methods
      *-------------------------------------------------------------*/
+    /**
+     * Obtain the current version of Wrapper.
+     */
     public static String getVersion() {
         return WrapperInfo.getVersion();
     }
     
+    /**
+     * Obtain the build time of Wrapper.
+     */
     public static String getBuildTime() {
         return WrapperInfo.getBuildTime();
     }
@@ -267,9 +276,10 @@ public final class WrapperManager implements Runnable {
     }
     
     /**
-     * Causes the WrapperManager to go into a state which makes the JVM appear to be hung when
-     *  viewed from the native Wrapper code.  Does not have any effect when the JVM is not being
-     *  controlled from the native Wrapper. Useful for testing the Wrapper functions.
+     * (Testing Method) Causes the WrapperManager to go into a state which makes the JVM appear
+     *  to be hung when viewed from the native Wrapper code.  Does not have any effect when the
+     *  JVM is not being controlled from the native Wrapper. Useful for testing the Wrapper 
+     *  functions.
      */
     public static void appearHung() {
         System.out.println("WARNING: Making JVM appear to be hung...");
@@ -277,8 +287,9 @@ public final class WrapperManager implements Runnable {
     }
     
     /**
-     * Cause an access violation within the Java code.  Useful for testing the Wrapper functions.
-     * This currently only crashes Sun JVMs and takes advantage of Bug #4369043
+     * (Testing Method) Cause an access violation within the Java code.  Useful for testing the
+     *  Wrapper functions.  This currently only crashes Sun JVMs and takes advantage of 
+     *  Bug #4369043
      */
     public static void accessViolation() {
         System.out.println("WARNING: Attempting to cause an access violation...");
@@ -303,8 +314,9 @@ public final class WrapperManager implements Runnable {
     }
 
     /**
-     * Cause an access violation within native JNI code.  Useful for testing the Wrapper functions.
-     * This currently causes the access violation by attempting to write to a null pointer.
+     * (Testing Method) Cause an access violation within native JNI code.  Useful for testing the
+     *  Wrapper functions. This currently causes the access violation by attempting to write to 
+     *  a null pointer.
      */
     public static void accessViolationNative() {
         System.out.println("WARNING: Attempting to cause an access violation...");
@@ -318,16 +330,24 @@ public final class WrapperManager implements Runnable {
     }
         
     /**
-     * 
+     * Returns true if the JVM was launched by the Wrapper application.  False if the JVM
+     *  was launched manually without the Wrapper controlling it.
      */
     public static boolean isControlledByNativeWrapper() {
         return _key != null;
     }
     
+    /**
+     * Returns true if the Wrapper was launched as a service.  False if launched as a console.
+     *  This can be useful if you wish to display a user interface when in Console mode.
+     */
     public static boolean isLaunchedAsService() {
         return _service;
     }
     
+    /**
+     * Returns true if the wrapper.debug property is set the wrapper config file.
+     */
     public static boolean isDebugEnabled() {
         return _debug;
     }
