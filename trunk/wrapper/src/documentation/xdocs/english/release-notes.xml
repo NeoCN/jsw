@@ -13,6 +13,11 @@
         <itemizedlist>
             <listitem>
                 <para>
+                    Fixed bug issue when reading config files from Windows on Unix.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
                     Added new logger functionality includes the following features: Loglevels like Log4j, NT Eventlog support, UNIX syslog support and rolling log files.
                 </para>
             </listitem>
