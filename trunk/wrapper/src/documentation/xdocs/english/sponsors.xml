@@ -26,6 +26,12 @@
         </para>
         <donorlist>
             <donor>
+                <date>Mar 20, 2004</date>
+                <amount>10.00</amount>
+                <name>Anonymous</name>
+                <message></message>
+            </donor>
+            <donor>
                 <date>Feb 19, 2004</date>
                 <amount>50.00</amount>
                 <name>Daniel Weston</name>
