@@ -66,7 +66,12 @@
                     Added a test to make sure that WrapperManager.stop is not called recursively.
                 </para>
             </listitem>
-        </itemizedlist>
+			<listitem>
+				<para>
+					Added support for building under Windows XP.  Prebuilt installations had already been working.
+				</para>
+			</listitem>
+		</itemizedlist>
     </section>
     <section>
         <title>Version 2.2.6: Changes and bugfixes</title>

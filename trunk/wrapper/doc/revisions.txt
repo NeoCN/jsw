@@ -27,6 +27,8 @@ Java Service Wrapper Revision History.
   sometimes cause the wrapper to crash.  Somehow missed getting this into the
   last release.
 * Added a test to make sure that WrapperManager.stop is not called recursively.
+* Added support for building under Windows XP.  Prebuilt installations had
+  already been working. 
 
 2.2.6
 * Fix a problem where '%' characters in Java output would sometimes cause the

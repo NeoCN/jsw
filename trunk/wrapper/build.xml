@@ -64,7 +64,10 @@
     <target name="init-windows-2000" if="is.Windows 2000">
         <property name="is.Windows" value="true"/>
     </target>
-    <target name="init-linux" if="is.Linux">
+	<target name="init-windows-xp" if="is.Windows XP">
+		<property name="is.Windows" value="true"/>
+	</target>
+	<target name="init-linux" if="is.Linux">
         <property name="is.Unix" value="true"/>
     </target>
     <target name="init-solaris" if="is.SunOS">
@@ -74,7 +77,7 @@
     <!-- =================================================================== -->
     <!-- Initialize build.                                                   -->
     <!-- =================================================================== -->
-    <target name="init" depends="init-windows-nt, init-windows-2000, init-linux, init-solaris">
+    <target name="init" depends="init-windows-nt, init-windows-2000, init-windows-xp, init-linux, init-solaris">
         <tstamp/>
         <filter token="version"           value="${version}"       />
         <filter token="build.date"        value="${DSTAMP}"        />
