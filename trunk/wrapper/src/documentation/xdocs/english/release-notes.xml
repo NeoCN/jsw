@@ -146,6 +146,16 @@ $Id$
                     <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=633761&amp;group_id=39428&amp;atid=425190">Feature Request #633761</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a bug where <ulink url="prop-app-parameter-n.html">wrapper.app.parameter.&lt;n&gt;</ulink>
+                    and <ulink url="prop-java-additional-n.html">wrapper.java.additional.&lt;n&gt;</ulink>
+                    properties declared from the Windows
+                    <ulink url="props-command-line.html">command line</ulink> were not correctly
+                    handling spaces in their values.
+                    <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=802139&amp;group_id=39428&amp;atid=425188">Support Request #802139</ulink>.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

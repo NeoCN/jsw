@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.50  2003/09/09 14:18:10  mortenson
+ * Fix a problem where not all properties specified on the command line worked
+ * correctly when they included spaces.
+ *
  * Revision 1.49  2003/09/04 06:08:17  mortenson
  * Extend the pause between requesting a thread dump on exit and killing the JVM.
  *
@@ -564,9 +568,9 @@ void wrapperKillProcess() {
         if (wrapperData->requestThreadDumpOnFailedJVMExit) {
             requestDumpJVMState();
 
-			/* Wait 3 seconds to give the JVM time to dump its state before the JVM
-			 *  process is killed.  This used to be 1 second but that was not long
-			 *  enough if the system was under load. */
+            /* Wait 3 seconds to give the JVM time to dump its state before the JVM
+             *  process is killed.  This used to be 1 second but that was not long
+             *  enough if the system was under load. */
             usleep(3000000); /* microseconds */
         }
 
@@ -746,7 +750,7 @@ int main(int argc, char **argv) {
          *  command line properties.  The command line properties need to be
          *  loaded first, followed by the configuration file. */
         for (i = 2; i < argc; i++) {
-            if (addPropertyPair(properties, argv[i], TRUE)) {
+            if (addPropertyPair(properties, argv[i], TRUE, TRUE)) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, 
                     "The argument '%s' is not a valid property name-value pair.", argv[i]);
                 exit(1);

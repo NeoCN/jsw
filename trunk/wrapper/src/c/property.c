@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.24  2003/09/09 14:18:10  mortenson
+ * Fix a problem where not all properties specified on the command line worked
+ * correctly when they included spaces.
+ *
  * Revision 1.23  2003/08/02 06:49:13  mortenson
  * Changed the way environment variables are loaded from the registry on Windows
  * platforms so users will no longer get warning messages about not being able
@@ -458,7 +462,7 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
                         /* Null terminate the first half of the line. */
                         *d = '\0';
                         d++;
-                        addProperty(properties, trimmedBuffer, d, FALSE);
+                        addProperty(properties, trimmedBuffer, d, FALSE, FALSE);
                     }
                 }
             }
@@ -548,13 +552,13 @@ void setEnv( const char *name, const char *value )
     }
 }
 
-void addProperty(Properties *properties, const char *propertyName, const char *propertyValue, int finalValue) {
+void addProperty(Properties *properties, const char *propertyName, const char *propertyValue, int finalValue, int quotable) {
     int setValue;
     Property *property;
 
 #ifdef _DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "addProperty(%p, '%s', '%s', %d)",
-        properties, propertyName, propertyValue, finalValue);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "addProperty(%p, '%s', '%s', %d, %d)",
+        properties, propertyName, propertyValue, finalValue, quotable);
 #endif
 
     /* See if the property already exists */
@@ -584,6 +588,9 @@ void addProperty(Properties *properties, const char *propertyName, const char *p
         /* Store the final flag */
         property->finalValue = finalValue;
 
+        /* Store the quotable flag. */
+        property->quotable = quotable;
+
         /* See if this is a special property */
         if ((strlen(propertyName) > 4) && (strstr(propertyName, "set.") == propertyName)) {
             /* This property is an environment variable definition.  Get the
@@ -604,11 +611,16 @@ void addProperty(Properties *properties, const char *propertyName, const char *p
  *
  * Returns 0 if successful, otherwise 1
  */
-int addPropertyPair(Properties *properties, const char *propertyNameValue, int finalValue) {
+int addPropertyPair(Properties *properties, const char *propertyNameValue, int finalValue, int quotable) {
     char buffer[MAX_PROPERTY_NAME_VALUE_LENGTH];
     char *d;
 
     /* Make a copy of the pair that we can edit */
+    if (strlen(propertyNameValue) + 1 >= MAX_PROPERTY_NAME_VALUE_LENGTH) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, 
+            "The following property name value pair is too large.  Need to increase the internal buffer size: %s", propertyNameValue);
+        return 1;
+    }
     strcpy(buffer, propertyNameValue);
 
     /* Locate the first '=' in the pair */
@@ -616,7 +628,7 @@ int addPropertyPair(Properties *properties, const char *propertyNameValue, int f
         /* Null terminate the first half of the line. */
         *d = '\0';
         d++;
-        addProperty(properties, buffer, d, finalValue);
+        addProperty(properties, buffer, d, finalValue, quotable);
 
         return 0;
     } else {
@@ -660,6 +672,17 @@ int getBooleanProperty(Properties *properties, const char *propertyName, int def
         } else {
             return FALSE;
         }
+    }
+}
+
+
+int isQuotableProperty(Properties *properties, const char *propertyName) {
+    Property *property;
+    property = getInnerProperty(properties, propertyName);
+    if (property == NULL) {
+        return FALSE;
+    } else {
+		return property->quotable;
     }
 }
 

@@ -38,12 +38,13 @@
             <literal moreinfo="none">org.tanukisoftware.wrapper.WrapperSimpleApp</literal>,
             the first parameter to the application must be the name of the
             class which contains your main method.  All other parameters are
-            then passed to your application's main method in order.
+            then passed to your application's main method in order.  See the
+            <ulink url="integrate.html">Integration</ulink> section for more details.
         </para>
         <para>
             For each entry, you can also have a corresponding strip quotes flag
             which will remove the quotes from the element when run on Linux or
-            Solaris machines.  This was necessary to allow for file references
+            UNIX machines.  This was necessary to allow for file references
             which contain spaces.  For parameters like the one below it would
             not otherwise be possible to decide when to remove quotes and when
             to leave them alone.
