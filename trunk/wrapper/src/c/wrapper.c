@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.96  2004/04/08 14:58:58  mortenson
+ * Add a wrapper.working.dir property.
+ *
  * Revision 1.95  2004/04/08 03:51:38  mortenson
  * Add a default WRAPPER_FILE_SEPARATOR environment variable.
  *
@@ -281,6 +284,7 @@
 #include "logger.h"
 
 #ifdef WIN32
+#include <direct.h>
 #include <io.h>
 #include <winsock.h>
 #include <shlwapi.h>
@@ -2161,6 +2165,8 @@ int wrapperLoadConfiguration() {
     wrapperBuildUnixDaemonInfo();
 #endif
     
+    wrapperData->configured = TRUE;
+
     return 0;
 }
 
@@ -2196,6 +2202,47 @@ DWORD wrapperAddToTicks(DWORD start, int seconds) {
     return start + seconds * 1000 / WRAPPER_TICK_MS;
 }
 
+/**
+ * Sets the working directory of the Wrapper to the specified directory.
+ *  The directory can be relative or absolute.
+ * If there are any problems then a non-zero value will be returned.
+ */
+int wrapperSetWorkingDir(const char* dir) {
+    int showOutput = wrapperData->configured;
+
+    if (chdir(dir)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+            "Unable to set working directory to: %s (%s)", dir, getLastErrorText());
+        return TRUE;
+    }
+
+    /* This function is sometimes called before the configuration is loaded. */
+#ifdef _DEBUG
+    showOutput = TRUE;
+#endif
+
+    if (showOutput) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Working directory set to: %s", dir);
+    }
+
+    return FALSE;
+}
+
+/**
+ * Sets the working directory using the value of the wrapper.working.dir
+ *  property.  If it is not set then the directory will not be changed.
+ * If there are any problems then a non-zero value will be returned.
+ */
+int wrapperSetWorkingDirProp() {
+    const char* dir;
+
+    dir = getStringProperty(properties, "wrapper.working.dir", NULL);
+    if (dir && (strlen(dir) > 0)) {
+        return wrapperSetWorkingDir(dir);
+    } else {
+        return 0;
+    }
+}
 
 /******************************************************************************
  * Protocol callback functions

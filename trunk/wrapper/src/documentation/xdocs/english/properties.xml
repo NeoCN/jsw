@@ -234,6 +234,9 @@
                 <listitem>
                     <ulink url="prop-use-system-time.html">wrapper.use_system_time</ulink>
                 </listitem>
+                <listitem>
+                    <ulink url="prop-working-dir.html">wrapper.working.dir</ulink>
+                </listitem>
             </itemizedlist>
         </section>
     </section>

@@ -142,6 +142,9 @@ Java Service Wrapper Revision History.
   WRAPPER_PATH_SEPARATOR, whose values are set to either '/' and ':' or
   '\' and ';' on startup.  They can be used in the wrapper.conf file
   to construct platform independent property values.
+* Add a new wrapper.working.dir property which makes if possible to change
+  the Wrapper and JVM's working directory to a location other than the
+  location of the Wrapper binary. Feature Request #738160.
 
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the
