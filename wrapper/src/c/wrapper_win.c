@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.72  2004/05/31 08:08:22  mortenson
+ * Clean up some data types.  Should have no effect on actual functionality.
+ *
  * Revision 1.71  2004/05/26 06:56:18  mortenson
  * Fix a problem where CTRL-C was not being handled correctly if the console
  * was configured to be shown when running as an NT service.
@@ -641,7 +644,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
     DWORD sysTicks;
     DWORD lastTickOffset = 0;
     DWORD tickOffset;
-    long int offsetDiff;
+    int offsetDiff;
     int first = 1;
 
     /* In case there are ever any problems in this thread, enclose it in a try catch block. */
@@ -662,18 +665,18 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
             tickOffset = sysTicks - timerTicks;
 
             /* The number we really want is the difference between this tickOffset and the previous one. */
-            offsetDiff = tickOffset - lastTickOffset;
+            offsetDiff = (int)(tickOffset - lastTickOffset);
 
             if (first) {
                 first = 0;
             } else {
                 if (offsetDiff > wrapperData->timerSlowThreshold) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The timer fell behind the system clock by %ldms.", offsetDiff * WRAPPER_TICK_MS);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The timer fell behind the system clock by %dms.", (int)(offsetDiff * WRAPPER_TICK_MS));
                 } else if (offsetDiff < -1 * wrapperData->timerFastThreshold) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The system clock fell behind the timer by %ldms.", -1 * offsetDiff * WRAPPER_TICK_MS);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The system clock fell behind the timer by %dms.", (int)(-1 * offsetDiff * WRAPPER_TICK_MS));
                 }
                 /*
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Timer running: %lu, %lu, %lu, %ld", timerTicks, sysTicks, tickOffset, offsetDiff);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Timer running: %u, %u, %u, %d", timerTicks, sysTicks, tickOffset, offsetDiff);
                 */
             }
 
@@ -870,7 +873,7 @@ void wrapperReportStatus(int status, int errorCode, int waitHint) {
 
         if (wrapperData->isStateOutputEnabled) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                "calling SetServiceStatus with status=%s, waitHint=%d, checkPoint=%ld, errorCode=%d",
+                "calling SetServiceStatus with status=%s, waitHint=%d, checkPoint=%u, errorCode=%d",
                 natStateName, waitHint, dwCheckPoint, errorCode);
         }
 
