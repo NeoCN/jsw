@@ -24,6 +24,11 @@
  *
  *
  * $Log$
+ * Revision 1.25  2002/09/10 16:02:26  mortenson
+ * Improve the performance of the log from JVM feature by allowing for more than
+ * one log message each time through the main loop.
+ * Fix some java c++ style comments that slipped into the code.
+ *
  * Revision 1.24  2002/09/09 17:19:45  mortenson
  * Add ability to log to specific log levels from within the Wrapper.
  *
@@ -125,6 +130,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/timeb.h>
 #include "property.h"
 #include "wrapper.h"
 #include "logger.h"
@@ -463,126 +469,160 @@ int wrapperProtocolFunction(char function, const char *message) {
     return 1;
 }
 
-
+/**
+ * Read any data sent from the JVM.  This function will loop and read as many
+ *  packets are available.  The loop will only be allowed to go for 250ms to
+ *  ensure that other functions are handled correctly.
+ */
 int wrapperProtocolRead() {
     char c, code;
     int len;
     int pos;
     int err;
+	struct _timeb timeBuffer;
+    long startTime;
+	int startTimeMillis;
+	long now;
+	int nowMillis;
+	long durr;
+	
+	_ftime( &timeBuffer );
+	startTime = now = timeBuffer.time;
+	startTimeMillis = nowMillis = timeBuffer.millitm;
 
-    /* If we have an open client socket, then use it. */
-    if (sd == INVALID_SOCKET) {
-        /* A Client socket is not open */
+	/*
+	log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "now=%ld, nowMillis=%d", now, nowMillis);
+	*/
 
-        /* Is the server socket open? */
-        if (ssd == INVALID_SOCKET) {
-            wrapperProtocolStartServer();
-            if (ssd == INVALID_SOCKET) {
-                /* Failed. */
-                return FALSE;
-            }
-        }
+	while((durr = (now - startTime) * 1000 + (nowMillis - startTimeMillis)) < 250) {
+		/*
+		log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "durr=%ld", durr);
+		*/
 
-        /* Try accepting a socket */
-        wrapperProtocolOpen();
-        if (sd == INVALID_SOCKET) {
-            return FALSE;
-        }
-    }
+		/* If we have an open client socket, then use it. */
+		if (sd == INVALID_SOCKET) {
+			/* A Client socket is not open */
 
-    /* Try receiving a packet code */
-    len = recv(sd, &c, 1, 0);
-    if (len == SOCKET_ERROR) {
-        err = wrapperGetLastError();
-        if (wrapperData->isDebugging) {
-            if ((err != EWOULDBLOCK) && (err != ENOTSOCK) && (err != ECONNRESET)) {
-                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket read failed. (%d)", err);
-		        wrapperProtocolClose();
-            }
-        }
-        return FALSE;	
-    } else if (len != 1) {
-        if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket read no code (closed?).");
-        }
-        wrapperProtocolClose();
-        return FALSE;	
-    }
+			/* Is the server socket open? */
+			if (ssd == INVALID_SOCKET) {
+				wrapperProtocolStartServer();
+				if (ssd == INVALID_SOCKET) {
+					/* Failed. */
+					return FALSE;
+				}
+			}
 
-    code = c;
+			/* Try accepting a socket */
+			wrapperProtocolOpen();
+			if (sd == INVALID_SOCKET) {
+				return FALSE;
+			}
+		}
 
-    /* Read in any message */
-    pos = 0;
-    do {
-        len = recv(sd, &c, 1, 0);
-        if (len == 1) {
-            if (c == 0) {
-                /* End of string */
-                len = 0;
-            } else if (pos < MAX_LOG_SIZE) {
-                packetBuffer[pos] = c;
-                pos++;
-            }
-        } else {
-            len = 0;
-        }
-    } while (len == 1);
-    /* terminate the string; */
-    packetBuffer[pos] = '\0';
+		/* Try receiving a packet code */
+		len = recv(sd, &c, 1, 0);
+		if (len == SOCKET_ERROR) {
+			err = wrapperGetLastError();
+			if (wrapperData->isDebugging) {
+				if ((err != EWOULDBLOCK) && (err != ENOTSOCK) && (err != ECONNRESET)) {
+					log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket read failed. (%d)", err);
+					wrapperProtocolClose();
+				}
+			}
+			/*
+			log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "no data");
+			*/
+			return FALSE;	
+		} else if (len != 1) {
+			if (wrapperData->isDebugging) {
+				log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket read no code (closed?).");
+			}
+			wrapperProtocolClose();
+			return FALSE;	
+		}
 
-    if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "read a packet %d : %s", code, packetBuffer);
-    }
+		code = c;
 
-    switch (code) {
-    case WRAPPER_MSG_STOP:
-        wrapperStopRequested(atoi(packetBuffer));
-        break;
+		/* Read in any message */
+		pos = 0;
+		do {
+			len = recv(sd, &c, 1, 0);
+			if (len == 1) {
+				if (c == 0) {
+					/* End of string */
+					len = 0;
+				} else if (pos < MAX_LOG_SIZE) {
+					packetBuffer[pos] = c;
+					pos++;
+				}
+			} else {
+				len = 0;
+			}
+		} while (len == 1);
+		/* terminate the string; */
+		packetBuffer[pos] = '\0';
 
-    case WRAPPER_MSG_RESTART:
-        wrapperRestartRequested();
-        break;
+		if (wrapperData->isDebugging) {
+			log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "read a packet %d : %s", code, packetBuffer);
+		}
 
-    case WRAPPER_MSG_PING:
-        wrapperPingResponded();
-        break;
+		switch (code) {
+		case WRAPPER_MSG_STOP:
+			wrapperStopRequested(atoi(packetBuffer));
+			break;
 
-    case WRAPPER_MSG_STOP_PENDING:
-        wrapperStopPendingSignalled(atoi(packetBuffer));
-        break;
+		case WRAPPER_MSG_RESTART:
+			wrapperRestartRequested();
+			break;
 
-    case WRAPPER_MSG_STOPPED:
-        wrapperStoppedSignalled();
-        break;
+		case WRAPPER_MSG_PING:
+			wrapperPingResponded();
+			break;
 
-    case WRAPPER_MSG_START_PENDING:
-        wrapperStartPendingSignalled(atoi(packetBuffer));
-        break;
+		case WRAPPER_MSG_STOP_PENDING:
+			wrapperStopPendingSignalled(atoi(packetBuffer));
+			break;
 
-    case WRAPPER_MSG_STARTED:
-        wrapperStartedSignalled();
-        break;
+		case WRAPPER_MSG_STOPPED:
+			wrapperStoppedSignalled();
+			break;
 
-    case WRAPPER_MSG_KEY:
-        wrapperKeyRegistered(packetBuffer);
-        break;
+		case WRAPPER_MSG_START_PENDING:
+			wrapperStartPendingSignalled(atoi(packetBuffer));
+			break;
 
-	case WRAPPER_MSG_LOG + LEVEL_DEBUG:
-	case WRAPPER_MSG_LOG + LEVEL_INFO:
-	case WRAPPER_MSG_LOG + LEVEL_STATUS:
-	case WRAPPER_MSG_LOG + LEVEL_WARN:
-	case WRAPPER_MSG_LOG + LEVEL_ERROR:
-	case WRAPPER_MSG_LOG + LEVEL_FATAL:
-		wrapperLogSignalled(code - WRAPPER_MSG_LOG, packetBuffer);
-		break;
+		case WRAPPER_MSG_STARTED:
+			wrapperStartedSignalled();
+			break;
 
-    default:
-        if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "received unknown packet (%d:%s)", code, packetBuffer);
-        }
-        break;
-    }
+		case WRAPPER_MSG_KEY:
+			wrapperKeyRegistered(packetBuffer);
+			break;
 
+		case WRAPPER_MSG_LOG + LEVEL_DEBUG:
+		case WRAPPER_MSG_LOG + LEVEL_INFO:
+		case WRAPPER_MSG_LOG + LEVEL_STATUS:
+		case WRAPPER_MSG_LOG + LEVEL_WARN:
+		case WRAPPER_MSG_LOG + LEVEL_ERROR:
+		case WRAPPER_MSG_LOG + LEVEL_FATAL:
+			wrapperLogSignalled(code - WRAPPER_MSG_LOG, packetBuffer);
+			break;
+
+		default:
+			if (wrapperData->isDebugging) {
+				log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "received unknown packet (%d:%s)", code, packetBuffer);
+			}
+			break;
+		}
+
+		/* Get the time again */
+		_ftime( &timeBuffer );
+		now = timeBuffer.time;
+		nowMillis = timeBuffer.millitm;
+	}
+	/*
+	log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "done durr=%ld", durr);
+	*/
     return TRUE;
 }
 
@@ -698,8 +738,8 @@ void wrapperRestartProcess() {
 
         wrapperData->restartRequested = TRUE;
 
-		// This restart was intentional, so make the JVM appear to have been running for
-		//  a long time so the JVM will not be considered a failed launch.
+		/* This restart was intentional, so make the JVM appear to have been running for */
+		/*  a long time so the JVM will not be considered a failed launch.               */
 		wrapperData->jvmLaunchTime = 0;
     } else {
         if (wrapperData->isDebugging) {
@@ -717,13 +757,13 @@ int wrapperCheckRestartTimeOK() {
     time_t newTime = time(NULL);
 
 	if (newTime - wrapperData->jvmLaunchTime >= wrapperData->successfulInvocationTime) {
-		// The previous JVM invocation was running long enough that its invocation
-		//   should be considered a success.  Reset the failedInvocationStart to
-		//   start the count fresh.
+		/* The previous JVM invocation was running long enough that its invocation */
+		/*   should be considered a success.  Reset the failedInvocationStart to   */
+		/*   start the count fresh.                                                */
 		wrapperData->failedInvocationCount = 0;
 	} else {
-		// The last JVM invocation died quickly and was considered to have
-		//  been a faulty launch.  Increase the failed count.
+		/* The last JVM invocation died quickly and was considered to have */
+		/*  been a faulty launch.  Increase the failed count.              */
 		wrapperData->failedInvocationCount++;
 
 		if (wrapperData->isDebugging) {
@@ -733,12 +773,12 @@ int wrapperCheckRestartTimeOK() {
 		}
 	}
 
-	// See if we are allowed to try restarting the JVM again.
+	/* See if we are allowed to try restarting the JVM again. */
 	if (wrapperData->failedInvocationCount < wrapperData->maxFailedInvocations) {
-		// Try reslaunching the JVM
+		/* Try reslaunching the JVM */
 		return TRUE;
 	} else {
-		// Tried enough times.  Time to give up and exit the Wrapper.  A message will be diplayed later.
+		/* Tried enough times.  Time to give up and exit the Wrapper.  A message will be diplayed later. */
 		return FALSE;
 	}
 }
@@ -1111,7 +1151,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 
     /* Store the CPU Timeout value */
     if (strings) {
-		// Just to be safe, allow 20 characters for the timeout value
+		/* Just to be safe, allow 20 characters for the timeout value */
         strings[index] = (char *)malloc(sizeof(char) * (24 + 20 + 1));
         if (addQuotes) {
             sprintf(strings[index], "-Dwrapper.cpu.timeout=\"%d\"", wrapperData->cpuTimeout);
@@ -1356,15 +1396,15 @@ void wrapperEventLoop() {
                 if (wrapperCheckRestartTimeOK()) {
                     wrapperPauseBeforeExecute();
 
-					// Since we were paused for a while, it is possible that the user
-					//  hit CTRL-C or some other event occurred to signal that the
-					//  Wrapper should exit.  This check makes the Wrapper more well
-					//  behaved if the user hits CTRL-C right after the JVM exits
-					//  abnormally.
+					/* Since we were paused for a while, it is possible that the user */
+					/*  hit CTRL-C or some other event occurred to signal that the    */
+					/*  Wrapper should exit.  This check makes the Wrapper more well  */
+					/*  behaved if the user hits CTRL-C right after the JVM exits     */
+					/*  abnormally.                                                   */
 					if (wrapperData->exitRequested) {
-						// Exit was requested while we were paused.  Fall through.
+						/* Exit was requested while we were paused.  Fall through. */
 					} else {
-						// Set the launch time to the curent time
+						/* Set the launch time to the curent time */
 						wrapperData->jvmLaunchTime = time(NULL);
 
 						/* Generate a unique key to use when communicating with the JVM */
@@ -1764,7 +1804,7 @@ int wrapperLoadConfiguration() {
 	if (wrapperData->cpuTimeout <= 0) {
         wrapperData->cpuTimeout = 31557600;  /* One Year.  Effectively never */
 	} else {
-		// Make sure that the timeouts are all longer than the cpu timeout.
+		/* Make sure that the timeouts are all longer than the cpu timeout. */
 		if ( wrapperData->startupTimeout < wrapperData->cpuTimeout ) {
 			log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
 				"CPU timeout detection may not operate correctly during startup because wrapper.cpu.timeout is not smaller than wrapper.startup.timeout.");
@@ -1777,7 +1817,7 @@ int wrapperLoadConfiguration() {
 			log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
 				"CPU timeout detection may not operate correctly during shutdown because wrapper.cpu.timeout is not smaller than wrapper.shutdown.timeout.");
 		}
-		// jvmExit timeout can be shorter than the cpu timeout.
+		/* jvmExit timeout can be shorter than the cpu timeout. */
 	}
 
 	/* Load properties controlling the number times the JVM can be restarted. */
