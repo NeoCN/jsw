@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.13  2003/03/13 15:40:41  mortenson
+ * Add the ability to set environment variables from within the configuration
+ * file or from the command line.
+ *
  * Revision 1.12  2003/02/17 03:38:25  mortenson
  * Improve the parsing of config files so that leading and trailing white space
  * is now correctly trimmed.  It is also now possible to have comments at the
@@ -252,7 +256,7 @@ void setInnerProperty(Property *property, const char *propertyValue) {
  *  the line will be interpreted as a cascading include file.  If the file
  *  does not exist, the include definition is ignored.
  */
-int loadPropertiesInner(const char* filename, Properties* properties, int depth) {
+int loadPropertiesInner(Properties* properties, const char* filename, int depth) {
     FILE *stream;
     char buffer[1024];
     char expBuffer[2048];
@@ -262,7 +266,7 @@ int loadPropertiesInner(const char* filename, Properties* properties, int depth)
     char *d;
 
 #ifdef _DEBUG
-    printf("loadPropertiesInner('%s', props, %d)\n", filename, depth);
+    printf("loadPropertiesInner(props, '%s', %d)\n", filename, depth);
 #endif
 
     /* Look for the specified file. */
@@ -321,7 +325,7 @@ int loadPropertiesInner(const char* filename, Properties* properties, int depth)
                         /* The filename may contain environment variables, so expand them. */
                         evaluateEnvironmentVariables(c, expBuffer);
 
-                        loadPropertiesInner(expBuffer, properties, depth + 1);
+                        loadPropertiesInner(properties, expBuffer, depth + 1);
                     }
                 } else if (trimmedBuffer[0] != '#') {
                     /* printf("%s\n", trimmedBuffer); */
@@ -331,7 +335,7 @@ int loadPropertiesInner(const char* filename, Properties* properties, int depth)
                         /* Null terminate the first half of the line. */
                         *d = '\0';
                         d++;
-                        addProperty(properties, trimmedBuffer, d);
+                        addProperty(properties, trimmedBuffer, d, FALSE);
                     }
                 }
             }
@@ -344,19 +348,8 @@ int loadPropertiesInner(const char* filename, Properties* properties, int depth)
     return 0;
 }
 
-Properties* loadProperties(const char* filename) {
-    Properties *properties;
-
-    /* Create a Properties structure. */
-    properties = createProperties();
-
-    if (loadPropertiesInner(filename, properties, 0)) {
-        /* The base config file could not be found so we want to return null. */
-        disposeProperties(properties);
-        return NULL;
-    }
-
-    return properties;
+int loadProperties(Properties *properties, const char* filename) {
+    return loadPropertiesInner(properties, filename, 0);
 }
 
 Properties* createProperties() {
@@ -419,12 +412,25 @@ void removeProperty(Properties *properties, const char *propertyName) {
     }
 }
 
-void addProperty(Properties *properties, const char *propertyName, const char *propertyValue) {
+void setEnv( const char *name, const char *value )
+{
+    char *envBuf;
+
+    envBuf = (char*)malloc(sizeof(char) * (strlen(name) + strlen(value) + 2));
+    sprintf(envBuf, "%s=%s", name, value);
+    if (putenv(envBuf)) {
+        printf("Unable to set environment variable: %s\n", envBuf);
+    }
+}
+
+void addProperty(Properties *properties, const char *propertyName, const char *propertyValue, int finalValue) {
+    int setValue;
     Property *property;
 
-    /* printf("addProperty(%p, '%s', '%s')\n", properties, propertyName, propertyValue); */
+    /* printf("addProperty(%p, '%s', '%s', %d)\n", properties, propertyName, propertyValue, finalValue); */
 
     /* See if the property already exists */
+    setValue = TRUE;
     property = getInnerProperty(properties, propertyName);
     if (property == NULL) {
         /* This is a new property */
@@ -436,10 +442,26 @@ void addProperty(Properties *properties, const char *propertyName, const char *p
 
         /* Insert this property at the correct location. */
         insertInnerProperty(properties, property);
+    } else {
+        /* The property was already set.  Only change it if non final */
+        if ( property->finalValue ) {
+            setValue = FALSE;
+        }
     }
-    
-    /* Set the property value. */
-    setInnerProperty(property, propertyValue);
+
+    if (setValue) {
+        /* Set the property value. */
+        setInnerProperty(property, propertyValue);
+
+        /* Store the final flag */
+        property->finalValue = finalValue;
+
+        /* See if this is a special property */
+        if ((strlen(propertyName) > 4) && (strstr(propertyName, "set.") == propertyName)) {
+            /* This property is an environment variable definition. */
+            setEnv(propertyName + 4, propertyValue);
+        }
+    }
 }
 
 /**
@@ -448,7 +470,7 @@ void addProperty(Properties *properties, const char *propertyName, const char *p
  *
  * Returns 0 if successful, otherwise 1
  */
-int addPropertyPair(Properties *properties, const char *propertyNameValue) {
+int addPropertyPair(Properties *properties, const char *propertyNameValue, int finalValue) {
     char buffer[1024];
     char *d;
 
@@ -460,7 +482,7 @@ int addPropertyPair(Properties *properties, const char *propertyNameValue) {
         /* Null terminate the first half of the line. */
         *d = '\0';
         d++;
-        addProperty(properties, buffer, d);
+        addProperty(properties, buffer, d, finalValue);
 
         return 0;
     } else {

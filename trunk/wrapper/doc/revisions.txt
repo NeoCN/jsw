@@ -5,6 +5,8 @@ Java Service Wrapper Revision History.
   source, the property was being ignored.  This was broken in the 3.0.0
   release.
 * Fix a problem with the HP-UX release build reported by Ashish Gawarikar.
+* Add the ability to set environment variables from within the configuration
+  file or from the command line.
 
 3.0.0
 * Deprecated the com.silveregg.wrapper package in favor of

@@ -7,7 +7,7 @@
      ******************************************************************** -->
 
 <chapter id="props-envvars">
-    <title>Environment Variable Expansion</title>
+    <title>Environment Variables</title>
     <section>
         <title>Configuration Property Overview</title>
         <itemizedlist>
@@ -17,45 +17,119 @@
         </itemizedlist>
     </section>
     <section>
-        <title>Environment Variable Expansion</title>
-        <para>
-            The Wrapper supports environment variable expansion at run time
-            within the values of any property.  To maintain the platform
-            independent nature of the <literal moreinfo="none">wrapper.conf</literal>
-            file, the windows syntax is used for all platforms.
-        </para>
-        <para>
-            When the Wrapper is run as a service, environment variables will
-            be loaded from the system registry rather than from the
-            environment.  This was necessary because Windows loads the
-            environment variables which are available to services when the
-            machine is booted.  Any changes to the system environment variables
-            in the registry (set directly or through the system control panel)
-            are not made available to the services until the machine is once
-            again rebooted.  By loading the environment variables from the
-            registry, the reboot can be avoided while providing the same
-            functionality.
-        </para>
-        <informalexample>
-            <simpara><emphasis>Example referencing the <literal moreinfo="none">JAVA_HOME</literal> environment variable:</emphasis></simpara>
-            <screen format="linespecific"><![CDATA[wrapper.java.command=%JAVA_HOME%/bin/java]]></screen>
-        </informalexample>
-        <para>
-            This will expand at runtime to a fully qualified path on any
-            system which defines the <literal moreinfo="none">JAVA_HOME</literal>
-            environment variable.
-        </para>
-        <informalexample>
-            <simpara><emphasis>Windows:</emphasis></simpara>
-            <screen format="linespecific"><![CDATA[wrapper.java.command=C:\Sun\jdk1.3/bin/java]]></screen>
-        </informalexample>
-        <informalexample>
-            <simpara><emphasis>Unix:</emphasis></simpara>
-            <screen format="linespecific"><![CDATA[wrapper.java.command=/opt/IBMJava2-131/bin/java]]></screen>
-        </informalexample>
-        <para>
-            If a referenced environment variable is not defined, then it will
-            be left unchanged in the property value.
-        </para>
+        <title>Working with Environment Variables</title>
+        <itemizedlist>
+            <listitem>
+                <ulink url="#expansion">Environment Variable Expansion</ulink>
+            </listitem>
+            <listitem>
+                <ulink url="#definition">Environment Variable Definition</ulink>
+            </listitem>
+        </itemizedlist>
+        <section id="expansion">
+            <title>Environment Variable Expansion</title>
+            <para>
+                The Wrapper supports environment variable expansion at run time
+                within the values of any property.  To maintain the platform
+                independent nature of the <literal moreinfo="none">wrapper.conf</literal>
+                file, the windows syntax is used for all platforms.
+            </para>
+            <para>
+                When the Wrapper is run as a service, environment variables will
+                be loaded from the system registry rather than from the
+                environment.  This was necessary because Windows loads the
+                environment variables which are available to services when the
+                machine is booted.  Any changes to the system environment variables
+                in the registry (set directly or through the system control panel)
+                are not made available to the services until the machine is once
+                again rebooted.  By loading the environment variables from the
+                registry, the reboot can be avoided while providing the same
+                functionality.
+            </para>
+            <informalexample>
+                <simpara><emphasis>Example referencing the <literal moreinfo="none">JAVA_HOME</literal> environment variable:</emphasis></simpara>
+                <screen format="linespecific"><![CDATA[wrapper.java.command=%JAVA_HOME%/bin/java]]></screen>
+            </informalexample>
+            <para>
+                This will expand at runtime to a fully qualified path on any
+                system which defines the <literal moreinfo="none">JAVA_HOME</literal>
+                environment variable.
+            </para>
+            <informalexample>
+                <simpara><emphasis>Windows:</emphasis></simpara>
+                <screen format="linespecific"><![CDATA[wrapper.java.command=C:\Sun\jdk1.3/bin/java]]></screen>
+            </informalexample>
+            <informalexample>
+                <simpara><emphasis>Unix:</emphasis></simpara>
+                <screen format="linespecific"><![CDATA[wrapper.java.command=/opt/IBMJava2-131/bin/java]]></screen>
+            </informalexample>
+            <para>
+                If a referenced environment variable is not defined, then it will
+                be left unchanged in the property value.
+            </para>
+        </section>
+        <section id="definition">
+            <title>Environment Variable Definition</title>
+            <para>
+                The Wrapper supports the ability to define environment variables
+                from within the <literal moreinfo="none">wrapper.conf</literal> file
+                or from the command line.  Once defined, the environment variable
+                can be referenced like any other environment variable.  This includes
+                use in variable expansion as described above.
+            </para>
+            <para>
+                Environment variables are defined by using special property names which
+                begin with <literal moreinfo="none">"set."</literal> followed by the name
+                of the environment variable.  The value of the property will be the value
+                of the new environment variable.
+            </para>
+            <informalexample>
+                <screen format="linespecific"><![CDATA[set.EXTERN_APP=C:/ExternAppHome]]></screen>
+            </informalexample>
+            <para>
+                The ability to define environment variables make it possible to easily
+                modify values that may be used throughout a configuration file.  The
+                example below shows how an environment variable can be used to specify
+                the location of an external application.
+            </para>
+            <informalexample>
+                <screen format="linespecific"><![CDATA[set.EXTERN_APP=C:/ExternAppHome
+
+wrapper.java.classpath.1=../lib/wrapper.jar
+wrapper.java.classpath.2=%EXTERN_APP%/lib/jar1.jar
+wrapper.java.classpath.3=%EXTERN_APP%/lib/jar2.jar
+wrapper.java.classpath.4=%EXTERN_APP%/lib/ext/jar3.jar
+wrapper.java.classpath.5=%EXTERN_APP%/lib/ext/jar4.jar]]></screen>
+            </informalexample>
+            <para>
+                The use of environment variables definitions can be very powerful if you
+                understand how and when their values are set.  Environment variables which
+                were set before the Wrapper is launched can of course be used as usual.
+                If the same variable name is specified in the configuration file then
+                the value in the configuration file will override the existing value.
+            </para>
+            <para>
+                Environment variables defined from the command line work a little
+                differently.  These values will override any values from either the system
+                or those set in the configuration file.  This makes it possible to define
+                default environment variables within the <literal moreinfo="none">wrapper.conf</literal>
+                file and then override that value from the command line.
+            </para>
+            <informalexample>
+                <simpara><emphasis>Windows:</emphasis></simpara>
+                <screen format="linespecific"><![CDATA[Wrapper.exe -c ..\conf\wrapper.conf "set.EXTERN_APP=C:\Program Files\ExternAppHome"]]></screen>
+            </informalexample>
+            <informalexample>
+                <simpara><emphasis>Unix:</emphasis></simpara>
+                <screen format="linespecific"><![CDATA[wrapper ../conf/wrapper.conf set.EXTERN_APP=/usr/lib/externapphome]]></screen>
+            </informalexample>
+            <note>
+                <para>
+                    Notice that like all properties set from the command line, properties
+                    which include spaces can be defined by including the entire property name,
+                    value pair in quotes.
+                </para>
+            </note>
+        </section>
     </section>
 </chapter>

@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.5  2003/03/13 15:40:41  mortenson
+ * Add the ability to set environment variables from within the configuration
+ * file or from the command line.
+ *
  * Revision 1.4  2003/02/03 06:55:26  mortenson
  * License transfer to TanukiSoftware.org
  *
@@ -41,10 +45,11 @@
 
 typedef struct Property Property;
 struct Property {
-    char *name;
-    char *value;
-    Property *next;
-    Property *previous;
+    char *name;              /* The name of the property. */
+    char *value;             /* The value of the property. */
+    int finalValue;          /* TRUE if the Property can not be changed. */
+    Property *next;          /* Pointer to the next Property in a linked list */
+    Property *previous;      /* Pointer to the next Property in a linked list */
 };
 
 typedef struct Properties Properties;
@@ -57,7 +62,7 @@ struct Properties {
  * Create a Properties structure loaded in from the specified file.
  *  Must call disposeProperties to free up allocated memory.
  */
-extern Properties* loadProperties(const char* filename);
+extern int loadProperties(Properties *properties, const char* filename);
 
 /**
  * Create a Properties structure.  Must call disposeProperties to free up
@@ -80,7 +85,7 @@ extern void removeProperty(Properties *properties, const char *propertyName);
 /**
  *
  */
-extern void addProperty(Properties *properties, const char *propertyName, const char *propertyValue);
+extern void addProperty(Properties *properties, const char *propertyName, const char *propertyValue, int finalValue);
 
 /**
  * Takes a name/value pair in the form <name>=<value> and attempts to add
@@ -88,7 +93,7 @@ extern void addProperty(Properties *properties, const char *propertyName, const 
  *
  * Returns 0 if successful, otherwise 1
  */
-extern int addPropertyPair(Properties *properties, const char *propertyNameValue);
+extern int addPropertyPair(Properties *properties, const char *propertyNameValue, int finalValue);
 
 extern const char* getStringProperty(Properties *properties, const char *propertyName, const char *defaultValue);
 
