@@ -289,6 +289,13 @@ $Id$
                     properties to control what happens when a exits based on the exit code.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Modify the way calls to System.in.read() are handled so that they now block
+                    rather than throwing an exception.  Currently, System.in can not be used with
+                    the Wrapper because of the way I/O is passed between the Wrapper and JVM.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

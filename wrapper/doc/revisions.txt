@@ -123,6 +123,9 @@ Java Service Wrapper Revision History.
   continued to be useful and deserved documentation and official status.
 * Add wrapper.on_exit.<n> properties to control what happens when a exits
   based on the exit code.
+* Modify the way calls to System.in.read() are handled so that they now block
+  rather than throwing an exception.  Currently, System.in can not be used with
+  the Wrapper because of the way I/O is passed between the Wrapper and JVM.
 
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the
