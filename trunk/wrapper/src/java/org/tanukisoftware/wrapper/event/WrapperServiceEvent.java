@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.event;
  */
 
 // $Log$
+// Revision 1.2  2004/11/29 13:15:38  mortenson
+// Fix some javadocs problems.
+//
 // Revision 1.1  2004/11/22 04:06:44  mortenson
 // Add an event model to make it possible to communicate with user applications in
 // a more flexible way.
@@ -59,7 +62,7 @@ public abstract class WrapperServiceEvent
      *  This value is compared with the mask supplied when when a
      *  WrapperEventListener is registered to decide which listeners should
      *  receive the event.
-     *
+     * <p>
      * If a subclassed, the return value of the super class should usually
      *  be ORed with any additional flags.
      *

@@ -383,7 +383,9 @@
         <mkdir dir="${jdoc.dir}"/>
         
         <!-- Locale must be before any doclet parameters -->
-        <javadoc packagenames="org.tanukisoftware.wrapper"
+        <javadoc
+            packagenames="*"
+            excludepackagenames="com.*, org.tanukisoftware.wrapper.test.*"
             Locale="en_US"
             sourcepath="${src.dir}/java"
             destdir="${jdoc.dir}"

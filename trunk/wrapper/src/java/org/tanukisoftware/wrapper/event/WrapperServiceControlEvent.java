@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.event;
  */
 
 // $Log$
+// Revision 1.2  2004/11/29 13:15:38  mortenson
+// Fix some javadocs problems.
+//
 // Revision 1.1  2004/11/22 04:06:44  mortenson
 // Add an event model to make it possible to communicate with user applications in
 // a more flexible way.
@@ -63,7 +66,7 @@ public class WrapperServiceControlEvent
     /**
      * Creates a new WrapperServiceControlEvent.
      *
-     * @param serviceControlEvent Service Control Code.
+     * @param serviceControlCode Service Control Code.
      */
     public WrapperServiceControlEvent( int serviceControlCode )
     {

@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.event;
  */
 
 // $Log$
+// Revision 1.2  2004/11/29 13:15:38  mortenson
+// Fix some javadocs problems.
+//
 // Revision 1.1  2004/11/22 04:06:44  mortenson
 // Add an event model to make it possible to communicate with user applications in
 // a more flexible way.
@@ -35,7 +38,7 @@ package org.tanukisoftware.wrapper.event;
  * WrapperPingEvent are fired each time a ping is received from the Wrapper
  *  process.   This event is mainly useful for debugging and statistic
  *  collection purposes.
- *
+ * <p>
  * WARNING - Great care should be taken when receiving events of this type.
  *  They are sent from within the Wrapper's internal timing thread.  If the
  *  listner takes too much time working with the event, Wrapper performance
@@ -71,7 +74,7 @@ public abstract class WrapperTickEvent
     /**
      * Returns the offset between the tick count used by the Wrapper for time
      *  keeping and the tick count generated directly from the system time.
-     *
+     * <p>
      * This will be 0 in most cases.  But will be a positive value if the
      *  system time is ever set back for any reason.  It will be a negative
      *  value if the system time is set forward or if the system is under
