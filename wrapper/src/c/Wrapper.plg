@@ -6,17 +6,13 @@
 --------------------構成: Wrapper - Win32 Release--------------------
 </h3>
 <h3>ｺﾏﾝﾄﾞ ﾗｲﾝ</h3>
-一時ﾌｧｲﾙ "C:\DOCUME~1\leif\LOCALS~1\Temp\RSP589.tmp" を作成し、次の内容を記録します
+一時ﾌｧｲﾙ "C:\DOCUME~1\leif\LOCALS~1\Temp\RSPB57.tmp" を作成し、次の内容を記録します
 [
 /nologo /ML /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /Fp"Release/Wrapper.pch" /YX /Fo"Release/" /Fd"Release/" /FD /c 
-"C:\SourceForge\wrapper-trunk\src\c\logger.c"
-"C:\SourceForge\wrapper-trunk\src\c\property.c"
 "C:\SourceForge\wrapper-trunk\src\c\wrapper.c"
-"C:\SourceForge\wrapper-trunk\src\c\wrapper_unix.c"
-"C:\SourceForge\wrapper-trunk\src\c\wrapper_win.c"
 ]
-Creating command line "cl.exe @C:\DOCUME~1\leif\LOCALS~1\Temp\RSP589.tmp" 
-一時ﾌｧｲﾙ "C:\DOCUME~1\leif\LOCALS~1\Temp\RSP58A.tmp" を作成し、次の内容を記録します
+Creating command line "cl.exe @C:\DOCUME~1\leif\LOCALS~1\Temp\RSPB57.tmp" 
+一時ﾌｧｲﾙ "C:\DOCUME~1\leif\LOCALS~1\Temp\RSPB58.tmp" を作成し、次の内容を記録します
 [
 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib shlwapi.lib /nologo /subsystem:console /incremental:no /pdb:"Release/Wrapper.pdb" /machine:I386 /out:"../../bin/Wrapper.exe" 
 ".\Release\logger.obj"
@@ -26,14 +22,10 @@ kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32
 ".\Release\wrapper_win.obj"
 ".\Release\messages.res"
 ]
-ｺﾏﾝﾄﾞ ﾗｲﾝ "link.exe @C:\DOCUME~1\leif\LOCALS~1\Temp\RSP58A.tmp" の作成中
+ｺﾏﾝﾄﾞ ﾗｲﾝ "link.exe @C:\DOCUME~1\leif\LOCALS~1\Temp\RSPB58.tmp" の作成中
 <h3>ｱｳﾄﾌﾟｯﾄ ｳｨﾝﾄﾞｳ</h3>
 ｺﾝﾊﾟｲﾙ中...
-logger.c
-property.c
 wrapper.c
-wrapper_unix.c
-wrapper_win.c
 ﾘﾝｸ中...
 
 
