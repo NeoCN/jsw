@@ -27,6 +27,14 @@ $Id$
                     section for more information.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    The Windows version of the Wrapper was not correctly registering that it
+                    would accept SHUTDOWN messages when running as a service.  The Wrapper
+                    was getting the message anyway so this should not change functionality.
+                    Thanks to Jason Tishler for noticing this and sending in a patch.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

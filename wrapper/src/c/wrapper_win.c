@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.55  2003/10/07 08:10:57  mortenson
+ * The Windows version of the Wrapper was not correctly registering that it
+ * would accept SHUTDOWN messages when running as a service.
+ * Thanks to Jason Tishler for noticing this and sending in a patch.
+ *
  * Revision 1.54  2003/09/09 14:18:10  mortenson
  * Fix a problem where not all properties specified on the command line worked
  * correctly when they included spaces.
@@ -520,7 +525,7 @@ void wrapperReportStatus(int status, int errorCode, int waitHint) {
         if (natState == SERVICE_START_PENDING) {
             ssStatus.dwControlsAccepted = 0;
         } else {
-            ssStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP;
+            ssStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN;
         }
 
         ssStatus.dwCurrentState = natState;
