@@ -38,7 +38,7 @@
                 this class.  All you need to do is set the following properties in your
                 wrapper.conf file.  They are described in detail in the
                 <ulink url="config-overview.html">Configuration Overview</ulink>.
-                <programlisting format="linespecific"># Set the main class to be the WrapperSimpleApp
+                <programlisting format="linespecific"><![CDATA[# Set the main class to be the WrapperSimpleApp
 wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp
 
 # Set the first application parameter to the name of the class whose main method
@@ -49,7 +49,7 @@ wrapper.app.parameter.3=parameter2
 
 # Be sure to set your classpath.
 wrapper.java.classpath.1=../lib/wrapper.jar
-wrapper.java.classpath.2=../lib/myapp.jar</programlisting>
+wrapper.java.classpath.2=../lib/myapp.jar]]></programlisting>
                 In most cases, that should be it.  Your application can now be launched
                 using the scripts found in the
                 <ulink url="launch-overview.html">Launch Overview</ulink>.
@@ -90,7 +90,7 @@ wrapper.java.classpath.2=../lib/myapp.jar</programlisting>
                 application, you must set the following properties in your wrapper.conf
                 file.  They are described in detail in the
                 <ulink url="config-overview.html">Configuration Overview</ulink>.
-                <programlisting format="linespecific"># Set the main class to be the WrapperStartStopApp
+                <programlisting format="linespecific"><![CDATA[# Set the main class to be the WrapperStartStopApp
 wrapper.java.mainclass=com.silveregg.wrapper.WrapperStartStopApp
 
 # Set the first application parameter to the name of the class whose main method
@@ -113,7 +113,7 @@ wrapper.app.parameter.8=stopparameter1
 
 # Be sure to set your classpath.
 wrapper.java.classpath.1=../lib/wrapper.jar
-wrapper.java.classpath.2=../lib/myapp.jar</programlisting>
+wrapper.java.classpath.2=../lib/myapp.jar]]></programlisting>
                 That should be all that you have to do.  com.widgetsrus.MyAppStart.main will be
                 called at startup and com.widgetsrus.MyAppStop.main will be called at shutdown.
             </para>
@@ -129,7 +129,7 @@ wrapper.java.classpath.2=../lib/myapp.jar</programlisting>
             </para>
             <para>
                 The WrapperListener class has the following methods.
-                <programlisting format="linespecific">public interface WrapperListener {
+                <programlisting format="linespecific"><![CDATA[public interface WrapperListener {
     /**
      * The start method is called when the WrapperManager is signaled by the 
      *	native wrapper code that it can start its application.  This
@@ -167,7 +167,7 @@ wrapper.java.classpath.2=../lib/myapp.jar</programlisting>
      *    WRAPPER_CTRL_SHUTDOWN_EVENT
      */
     void controlEvent(int event);
-}</programlisting>
+}]]></programlisting>
             </para>
             <para>
                 An application implementing the WrapperListener should not directly
@@ -176,7 +176,7 @@ wrapper.java.classpath.2=../lib/myapp.jar</programlisting>
             </para>
             <para>
                 The main method should simply contain the following code:
-                <programlisting format="linespecific">public class MyApp implements WrapperListener {
+                <programlisting format="linespecific"><![CDATA[public class MyApp implements WrapperListener {
     ... Application methods ...
     ... WrapperListener methods...
 
@@ -187,7 +187,7 @@ wrapper.java.classpath.2=../lib/myapp.jar</programlisting>
         //  will be called immediately.
         WrapperManager.start(new MyApp(), args);
     }
-}</programlisting>
+}]]></programlisting>
             </para>
         </section>
         <section>

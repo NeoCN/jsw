@@ -406,15 +406,21 @@ wrapper.ntservice.process_priority=NORMAL
             
             
 <p align="justify">
-                As of version 2.2.5, it is possible to specify Wrapper properties from the command line.  This can be useful in situations where configuration values can only be set at runtime.
+                As of version 2.2.5, it is possible to specify Wrapper properties from the command
+                line.  This can be useful in situations where configuration values can only be set
+                at runtime.
             </p>
             
 <p align="justify">
-                Configuration properties can be set on the command line by including them after the configuration file when launching Wrapper.  Each property consists of a property name, followed by '=', followed by the property's value.  The syntax is exactly the same as in the wrapper.conf file.
+                Configuration properties can be set on the command line by including them after the
+                configuration file when launching Wrapper.  Each property consists of a property
+                name, followed by '=', followed by the property's value.  The syntax is exactly the
+                same as in the wrapper.conf file.
             </p>
             
 <p align="justify">
-                In this example, an application is being launched using a specific java application and debug logging enabled.
+                In this example, an application is being launched using a specific java application
+                and debug logging enabled.
                 <p align="justify">
                     
 <i>Windows NT/2000:</i>
@@ -455,7 +461,9 @@ wrapper.ntservice.process_priority=NORMAL
 <td bgcolor="#c0c0c0"><font size="-1" color="#023264">
                 
 <p align="justify">
-                    NOTE - Properties specified on the command line can not contain unquoted spaces.  If you need to include spaces in the value of the property, simply include the entire name-value pair in quotes:
+                    NOTE - Properties specified on the command line can not contain unquoted spaces.
+                    If you need to include spaces in the value of the property, simply include the
+                    entire name-value pair in quotes:
                     <p align="justify">
                         
 <i>Example:</i>
@@ -480,7 +488,8 @@ wrapper.ntservice.process_priority=NORMAL
 </div>
             
 <p align="justify">
-                This feature also works with the -i command on Windows systems when installing the application as a service.
+                This feature also works with the -i command on Windows systems when installing the
+                application as a service.
             </p>
         
 </font></td>
@@ -672,7 +681,11 @@ wrapper.ntservice.process_priority=NORMAL
 <dd>
                             
 <p align="justify">
-                                Class to execute when the wrapper starts the application.  If your application implements WrapperListener, then this will be that main class.  Otherwise, this should be com.silveregg.wrapper.WrapperSimpleApp Then your main class will be listed as the first application parameter below.
+                                Class to execute when the wrapper starts the application.  If your
+                                application implements WrapperListener, then this will be that main
+                                class.  Otherwise, this should be com.silveregg.wrapper.WrapperSimpleApp
+                                Then your main class will be listed as the first application
+                                parameter below.
                                 <p align="justify">
                                     
 <i>Example (WrapperListener case):</i>
@@ -826,11 +839,21 @@ wrapper.java.classpath.2=../classes</pre>
 <dd>
                             
 <p align="justify">
-                                Additional Java parameters to pass to Java when it is launched.  These are not parameters for your application, but rather parameters for the Java virtual machine.  Each element has a property name which starts with wrapper.java.additional. and ends with an integer number counting up from 1.  There can be no missing numbers.
+                                Additional Java parameters to pass to Java when it is launched.
+                                    These are not parameters for your application, but rather
+                                    parameters for the Java virtual machine.  Each element has a
+                                    property name which starts with wrapper.java.additional. and
+                                    ends with an integer number counting up from 1.  There can be
+                                    no missing numbers.
                             </p>
                             
 <p align="justify">
-                                For each entry, you can also have a corresponding strip quotes flag which will remove the quotes from the element when run on Linux or Solaris machines.  This was necessary to allow for file references which contain spaces.  For parameters like the one below it would not otherwise be possible to decide when to remove quotes and when to leave them alone.
+                                For each entry, you can also have a corresponding strip quotes flag
+                                    which will remove the quotes from the element when run on Linux
+                                    or Solaris machines.  This was necessary to allow for file
+                                    references which contain spaces.  For parameters like the one
+                                    below it would not otherwise be possible to decide when to
+                                    remove quotes and when to leave them alone.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -864,7 +887,9 @@ wrapper.java.additional.3.stripquotes=TRUE</pre>
 <dd>
                             
 <p align="justify">
-                                The initial amount of memory in megabytes that the JVM should use.  Some JVMs work more efficiently if this value is high rather than low.
+                                The initial amount of memory in megabytes that the JVM should use.
+                                Some JVMs work more efficiently if this value is high rather than
+                                low.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -895,7 +920,8 @@ wrapper.java.additional.3.stripquotes=TRUE</pre>
 <dd>
                             
 <p align="justify">
-                                The maximum amount of memory in megabytes that the JVM will be allowed to use.  Java is set to 64MB by default.
+                                The maximum amount of memory in megabytes that the JVM will be
+                                allowed to use.  Java is set to 64MB by default.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -926,15 +952,27 @@ wrapper.java.additional.3.stripquotes=TRUE</pre>
 <dd>
                             
 <p align="justify">
-                                Application parameters to pass to your application when it is launched.  These are the parameters passed to your application's main method.  Each element has a property name which starts with wrapper.java.parameter. and ends with an integer number counting up from 1.  There can be no missing numbers.
+                                Application parameters to pass to your application when it is
+                                launched.  These are the parameters passed to your application's
+                                main method.  Each element has a property name which starts with
+                                wrapper.java.parameter. and ends with an integer number counting
+                                up from 1.  There can be no missing numbers.
                             </p>
                             
 <p align="justify">
-                                When the value of wrapper.java.mainclass is com.silveregg.wrapper.WrapperSimpleApp, the first parameter to the application must be the name of the class which contains your main method.  All other parameters are then passed to your application's main method in order.
+                                When the value of wrapper.java.mainclass is com.silveregg.wrapper.WrapperSimpleApp,
+                                the first parameter to the application must be the name of the
+                                class which contains your main method.  All other parameters are
+                                then passed to your application's main method in order.
                             </p>
                             
 <p align="justify">
-                                For each entry, you can also have a corresponding strip quotes flag which will remove the quotes from the element when run on Linux or Solaris machines.  This was necessary to allow for file references which contain spaces.  For parameters like the one below it would not otherwise be possible to decide when to remove quotes and when to leave them alone.
+                                For each entry, you can also have a corresponding strip quotes flag
+                                which will remove the quotes from the element when run on Linux or
+                                Solaris machines.  This was necessary to allow for file references
+                                which contain spaces.  For parameters like the one below it would
+                                not otherwise be possible to decide when to remove quotes and when
+                                to leave them alone.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -966,7 +1004,13 @@ wrapper.app.parameter.4=-p4</pre>
 <td bgcolor="#c0c0c0"><font size="-1" color="#023264">
                                     
 <p align="justify">
-                                        Application parameters are designed to be individual parameters.  If you specify a parameter like '-c conf/myconffile.conf', it will work correctly on windows because the '-c' and 'conf/myconffile.conf' parameters will be correctly parsed when Java is launched.  But on Unix systems, the parameters will incorrectly be interpreted as a single parameter '-c conf/myconffile.conf'.
+                                        Application parameters are designed to be individual
+                                        parameters.  If you specify a parameter like
+                                        '-c conf/myconffile.conf', it will work correctly on windows
+                                        because the '-c' and 'conf/myconffile.conf' parameters will
+                                        be correctly parsed when Java is launched.  But on Unix
+                                        systems, the parameters will incorrectly be interpreted as
+                                        a single parameter '-c conf/myconffile.conf'.
                                     </p>
                                     
 <p align="justify">
@@ -979,8 +1023,7 @@ wrapper.app.parameter.4=-p4</pre>
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
 <td>
-<pre>
-wrapper.app.parameter.1=-c conf/myconffile.conf</pre>
+<pre>wrapper.app.parameter.1=-c conf/myconffile.conf</pre>
 </td>
 </tr>
 </table>
@@ -996,8 +1039,7 @@ wrapper.app.parameter.1=-c conf/myconffile.conf</pre>
 <table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
 <tr>
 <td>
-<pre>
-wrapper.app.parameter.1=-c
+<pre>wrapper.app.parameter.1=-c
 wrapper.app.parameter.2=conf/myconffile.conf</pre>
 </td>
 </tr>
@@ -1027,7 +1069,11 @@ wrapper.app.parameter.2=conf/myconffile.conf</pre>
 <dd>
                             
 <p align="justify">
-                                A port used to communicate between the Wrapper executable and the Java application.  Used to monitor the health of the Java application.  This can be any value. If at runtime, the specified value is in use, then a warning will be printed to the console and the next available port will be used in its place.
+                                A port used to communicate between the Wrapper executable and the
+                                Java application.  Used to monitor the health of the Java
+                                application.  This can be any value. If at runtime, the specified
+                                value is in use, then a warning will be printed to the console and
+                                the next available port will be used in its place.
                             </p>
                             
 <p align="justify">
@@ -1090,7 +1136,15 @@ wrapper.app.parameter.2=conf/myconffile.conf</pre>
 <dd>
                             
 <p align="justify">
-                                Format to use for output to the console.  Logging was intentionally kept simple.  The format consists of the tokens 'L' for log level, 'P' for prefix, 'T' for time, and 'M' for message.  If the format contains these values then it will be included in the format.  The order of the tokens does not affect the way the log appears, but the M token should usually be placed last as it is the only column without a uniform width.  If the property is missing or commented out, then the default value 'PM' will be used.  Setting the property to a blank value will cause console output to be disabled.
+                                Format to use for output to the console.  Logging was intentionally
+                                kept simple.  The format consists of the tokens 'L' for log level,
+                                'P' for prefix, 'T' for time, and 'M' for message.  If the format
+                                contains these values then it will be included in the format.  The
+                                order of the tokens does not affect the way the log appears, but
+                                the M token should usually be placed last as it is the only column
+                                without a uniform width.  If the property is missing or commented
+                                out, then the default value 'PM' will be used.  Setting the
+                                property to a blank value will cause console output to be disabled.
                                 <p align="justify">
                                     
 <i>Examples with sample output:</i>
@@ -1137,7 +1191,11 @@ wrapper.console.format=
 <dd>
                             
 <p align="justify">
-                                Log level to use for console output.  Valid log levels include: NONE for no output, FATAL to only show fatal error messages,  ERROR to show all error messages,  STATUS to show all state changes, INFO shows all JVM output and informative messages, and DEBUG shows detailed debug information.  The default value is INFO.
+                                Log level to use for console output.  Valid log levels include:
+                                NONE for no output, FATAL to only show fatal error messages,
+                                ERROR to show all error messages,  STATUS to show all state
+                                changes, INFO shows all JVM output and informative messages, and
+                                DEBUG shows detailed debug information.  The default value is INFO.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -1168,7 +1226,11 @@ wrapper.console.format=
 <dd>
                             
 <p align="justify">
-                                Log file to which all output to the console will be logged.  If the logfile is not specified, then file logging will be written to a file called "wrapper.log" in the same directory as the Wrapper executable.  Providing a blank value will cause file logging to be disabled.
+                                Log file to which all output to the console will be logged.  If the
+                                logfile is not specified, then file logging will be written to a
+                                file called "wrapper.log" in the same directory as the Wrapper
+                                executable.  Providing a blank value will cause file logging to
+                                be disabled.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -1199,7 +1261,16 @@ wrapper.console.format=
 <dd>
                             
 <p align="justify">
-                                Format to use for logging to the log file.  Logging was intentionally kept simple.  The format consists of the tokens 'L' for log level, 'P' for prefix, 'T' for time, and 'M' for message.  If the format contains these values then it will be included in the format.  The order of the tokens does not affect the way the log appears, but the M token should usually be placed last as it is the only column without a uniform width.  If the property is missing or commented out, then the default value 'LPTM' will be used.  Setting the property to a blank value will cause file logging to be disabled.
+                                Format to use for logging to the log file.  Logging was
+                                intentionally kept simple.  The format consists of the tokens 'L'
+                                for log level, 'P' for prefix, 'T' for time, and 'M' for message.
+                                If the format contains these values then it will be included in the
+                                format.  The order of the tokens does not affect the way the log
+                                appears, but the M token should usually be placed last as it is the
+                                only column without a uniform width.  If the property is missing or
+                                commented out, then the default value 'LPTM' will be used.  Setting
+                                the property to a blank value will cause file logging to be
+                                disabled.
                                 <p align="justify">
                                     
 <i>Examples with sample log entries:</i>
@@ -1246,7 +1317,12 @@ wrapper.logfile.format=
 <dd>
                             
 <p align="justify">
-                                Log level to use for logging to the log file.  Valid log levels include: NONE for no log output, FATAL to only log fatal error messages,  ERROR to log all error messages,  STATUS to log all state changes, INFO logs all JVM output and informative messages, and DEBUG logs detailed debug information.  The default value is INFO.
+                                Log level to use for logging to the log file.  Valid log levels
+                                include: NONE for no log output, FATAL to only log fatal error
+                                messages,  ERROR to log all error messages,  STATUS to log all
+                                state changes, INFO logs all JVM output and informative messages,
+                                and DEBUG logs detailed debug information.  The default value is
+                                INFO.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -1350,7 +1426,14 @@ wrapper.logfile.format=
 <dd>
                             
 <p align="justify">
-                                Log level to use for logging to the Event Log on Windows systems, or the syslog on unix systems.  Valid log levels include: NONE for no log output, FATAL to only log fatal error messages,  ERROR to log all error messages,  STATUS to log all state changes, INFO logs all JVM output and informative messages, and DEBUG logs detailed debug information.  The default value is NONE.  Be careful setting log which are too low.  DEBUG for example will very quickly fill up your syslog.
+                                Log level to use for logging to the Event Log on Windows systems,
+                                or the syslog on unix systems.  Valid log levels include: NONE for
+                                no log output, FATAL to only log fatal error messages,  ERROR to
+                                log all error messages,  STATUS to log all state changes, INFO logs
+                                all JVM output and informative messages, and DEBUG logs detailed
+                                debug information.  The default value is NONE.  Be careful setting
+                                log which are too low.  DEBUG for example will very quickly fill up
+                                your syslog.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -1458,7 +1541,10 @@ wrapper.logfile.format=
 <td bgcolor="#c0c0c0"><font size="-1" color="#023264">
                     
 <p align="justify">
-                        WARNING - Do not modify any of these parameters when an application using this configuration file has been installed as a service.  Please uninstall the service before modifying this section.  The service can then be reinstalled.
+                        WARNING - Do not modify any of these parameters when an application using
+                        this configuration file has been installed as a service.  Please uninstall
+                        the service before modifying this section.  The service can then be
+                        reinstalled.
                     </p>
                 
 </font></td>
@@ -1540,7 +1626,8 @@ wrapper.logfile.format=
 <dd>
                             
 <p align="justify">
-                                Description of the NT service when installed.  (Only used in Windows 2000 and XP, not in NT.)
+                                Description of the NT service when installed.
+                                (Only used in Windows 2000 and XP, not in NT.)
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -1571,7 +1658,9 @@ wrapper.logfile.format=
 <dd>
                             
 <p align="justify">
-                                Names of any other Services which must be running before this service can be started.  Stopping any of the listed services will also stop this service.  Add dependencies as needed starting from 1.
+                                Names of any other Services which must be running before this
+                                service can be started.  Stopping any of the listed services will
+                                also stop this service.  Add dependencies as needed starting from 1.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -1602,7 +1691,9 @@ wrapper.logfile.format=
 <dd>
                             
 <p align="justify">
-                                Mode in which the service is installed.  AUTO_START starts the service automatically when the system is rebooted. Or DEMAND_START which requires that the service me started manually.
+                                Mode in which the service is installed.  AUTO_START starts the
+                                service automatically when the system is rebooted. Or DEMAND_START
+                                which requires that the service me started manually.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -1633,7 +1724,9 @@ wrapper.logfile.format=
 <dd>
                             
 <p align="justify">
-                                Specifies the priority at which the Wrapper and its JVM will be run at when run as an NT service or as a console application.  Possible values are NORMAL, LOW, HIGH, and REALTIME.  Defaults to NORMAL.
+                                Specifies the priority at which the Wrapper and its JVM will be run
+                                at when run as an NT service or as a console application.  Possible
+                                values are NORMAL, LOW, HIGH, and REALTIME.  Defaults to NORMAL.
                                 <p align="justify">
                                     
 <i>Example:</i>
@@ -1658,7 +1751,8 @@ wrapper.logfile.format=
 <td bgcolor="#c0c0c0"><font size="-1" color="#023264">
                                 
 <p align="justify">
-                                    From the Windows API, each priority level is described as follows:
+                                    From the Windows API, each priority level is described as
+                                    follows:
                                     <div class="glosslist">
 <a name="N400DD5"></a>
 <dl>
@@ -1671,7 +1765,8 @@ wrapper.logfile.format=
 <dd>
                                                 
 <p align="justify">
-                                                    Specify this class for a process with no special scheduling needs.
+                                                    Specify this class for a process with no
+                                                    special scheduling needs.
                                                 </p>
                                             
 </dd>
@@ -1686,7 +1781,12 @@ wrapper.logfile.format=
 <dd>
                                                 
 <p align="justify">
-                                                    Specify this class for a process whose threads run only when the system is idle. The threads of the process are preempted by the threads of any process running in a higher priority class. An example is a screen saver. The idle-priority class is inherited by child processes.
+                                                    Specify this class for a process whose threads
+                                                    run only when the system is idle. The threads
+                                                    of the process are preempted by the threads of
+                                                    any process running in a higher priority class.
+                                                    An example is a screen saver. The idle-priority
+                                                    class is inherited by child processes.
                                                 </p>
                                             
 </dd>
@@ -1701,7 +1801,17 @@ wrapper.logfile.format=
 <dd>
                                                 
 <p align="justify">
-                                                    Specify this class for a process that performs time-critical tasks that must be executed immediately. The threads of the process preempt the threads of normal or idle priority class processes. An example is the Task List, which must respond quickly when called by the user, regardless of the load on the operating system. Use extreme care when using the high-priority class, because a high-priority class application can use nearly all available CPU time.
+                                                    Specify this class for a process that performs
+                                                    time-critical tasks that must be executed
+                                                    immediately. The threads of the process preempt
+                                                    the threads of normal or idle priority class
+                                                    processes. An example is the Task List, which
+                                                    must respond quickly when called by the user,
+                                                    regardless of the load on the operating system.
+                                                    Use extreme care when using the high-priority
+                                                    class, because a high-priority class
+                                                    application can use nearly all available CPU
+                                                    time.
                                                 </p>
                                             
 </dd>
@@ -1716,7 +1826,14 @@ wrapper.logfile.format=
 <dd>
                                                 
 <p align="justify">
-                                                    Specify this class for a process that has the highest possible priority. The threads of the process preempt the threads of all other processes, including operating system processes performing important tasks. For example, a real-time process that executes for more than a very brief interval can cause disk caches not to flush or cause the mouse to be unresponsive.
+                                                    Specify this class for a process that has the
+                                                    highest possible priority. The threads of the
+                                                    process preempt the threads of all other
+                                                    processes, including operating system processes
+                                                    performing important tasks. For example, a
+                                                    real-time process that executes for more than
+                                                    a very brief interval can cause disk caches not
+                                                    to flush or cause the mouse to be unresponsive.
                                                 </p>
                                             
 </dd>
@@ -1767,14 +1884,19 @@ wrapper.logfile.format=
                 </p>
                 
 <p align="justify">
-                    There are cases where they may need to be changed to suit the needs of a particular application.  When doing so however, please take the time to read the documentation of the property carefully and make sure that changing it is really what you want to do.
+                    There are cases where they may need to be changed to suit the needs of a
+                    particular application.  When doing so however, please take the time to read
+                    the documentation of the property carefully and make sure that changing it is
+                    really what you want to do.
                     <div align="center">
 <table cellspacing="2" cellpadding="2" border="1">
 <tr>
 <td bgcolor="#c0c0c0"><font size="-1" color="#023264">
                         
 <p align="justify">
-                            WARNING - Do not modify any of these parameters unless you have read the description of the property below.  Incorrect settings can cause the Wrapper to fail to operate as expected.
+                            WARNING - Do not modify any of these parameters unless you have read
+                            the description of the property below.  Incorrect settings can cause
+                            the Wrapper to fail to operate as expected.
                         </p>
                     
 </font></td>

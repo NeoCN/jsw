@@ -89,33 +89,42 @@
         <section id="command-line">
             <title>Command Line Configuration</title>
             <para>
-                As of version 2.2.5, it is possible to specify Wrapper properties from the command line.  This can be useful in situations where configuration values can only be set at runtime.
+                As of version 2.2.5, it is possible to specify Wrapper properties from the command
+                line.  This can be useful in situations where configuration values can only be set
+                at runtime.
             </para>
             <para>
-                Configuration properties can be set on the command line by including them after the configuration file when launching Wrapper.  Each property consists of a property name, followed by '=', followed by the property's value.  The syntax is exactly the same as in the wrapper.conf file.
+                Configuration properties can be set on the command line by including them after the
+                configuration file when launching Wrapper.  Each property consists of a property
+                name, followed by '=', followed by the property's value.  The syntax is exactly the
+                same as in the wrapper.conf file.
             </para>
             <para>
-                In this example, an application is being launched using a specific java application and debug logging enabled.
+                In this example, an application is being launched using a specific java application
+                and debug logging enabled.
                 <informalexample>
                     <simpara><emphasis>Windows NT/2000:</emphasis></simpara>
-                    <screen format="linespecific">Wrapper.exe -c ..\conf\wrapper.conf wrapper.java.command=java wrapper.debug=true</screen>
+                    <screen format="linespecific"><![CDATA[Wrapper.exe -c ..\conf\wrapper.conf wrapper.java.command=java wrapper.debug=true]]></screen>
                 </informalexample>
                 <informalexample>
                     <simpara><emphasis>Linux / Solaris:</emphasis></simpara>
-                    <screen format="linespecific">./wrapper ../conf/wrapper.conf wrapper.java.command=java wrapper.debug=true</screen>
+                    <screen format="linespecific"><![CDATA[./wrapper ../conf/wrapper.conf wrapper.java.command=java wrapper.debug=true]]></screen>
                 </informalexample>
             </para>
             <warning>
                 <para>
-                    NOTE - Properties specified on the command line can not contain unquoted spaces.  If you need to include spaces in the value of the property, simply include the entire name-value pair in quotes:
+                    NOTE - Properties specified on the command line can not contain unquoted spaces.
+                    If you need to include spaces in the value of the property, simply include the
+                    entire name-value pair in quotes:
                     <informalexample>
                         <simpara><emphasis>Example:</emphasis></simpara>
-                        <screen format="linespecific">Wrapper.exe -c ..\conf\wrapper.conf "wrapper.java.command=C:\My App\jre\bin\java.exe"</screen>
+                        <screen format="linespecific"><![CDATA[Wrapper.exe -c ..\conf\wrapper.conf "wrapper.java.command=C:\My App\jre\bin\java.exe"]]></screen>
                     </informalexample>
                 </para>
             </warning>
             <para>
-                This feature also works with the -i command on Windows systems when installing the application as a service.
+                This feature also works with the -i command on Windows systems when installing the
+                application as a service.
             </para>
         </section>
         <section id="properties">
@@ -155,17 +164,17 @@
                     windows syntax is used for all platforms.
                     <informalexample>
                         <simpara><emphasis>Example referencing the JAVA_HOME environment variable:</emphasis></simpara>
-                        <screen format="linespecific">wrapper.java.command=%JAVA_HOME%/bin/java</screen>
+                        <screen format="linespecific"><![CDATA[wrapper.java.command=%JAVA_HOME%/bin/java]]></screen>
                     </informalexample>
                     This will expand at runtime to a fully qualified path on any system which
                     defines the JAVA_HOME environment variable.
                     <informalexample>
                         <simpara><emphasis>Windows:</emphasis></simpara>
-                        <screen format="linespecific">wrapper.java.command=C:\Sun\jdk1.3/bin/java</screen>
+                        <screen format="linespecific"><![CDATA[wrapper.java.command=C:\Sun\jdk1.3/bin/java]]></screen>
                     </informalexample>
                     <informalexample>
                         <simpara><emphasis>Unix:</emphasis></simpara>
-                        <screen format="linespecific">wrapper.java.command=/opt/IBMJava2-131/bin/java</screen>
+                        <screen format="linespecific"><![CDATA[wrapper.java.command=/opt/IBMJava2-131/bin/java]]></screen>
                     </informalexample>
                     If a referenced environment variable is not defined, then it will be left
                     unchanged in the property value.
@@ -181,7 +190,7 @@
                                 Location of the Java executable.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.java.command=java</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.java.command=java]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -190,14 +199,18 @@
                         <glossterm>wrapper.java.mainclass</glossterm>
                         <glossdef>
                             <para>
-                                Class to execute when the wrapper starts the application.  If your application implements WrapperListener, then this will be that main class.  Otherwise, this should be com.silveregg.wrapper.WrapperSimpleApp Then your main class will be listed as the first application parameter below.
+                                Class to execute when the wrapper starts the application.  If your
+                                application implements WrapperListener, then this will be that main
+                                class.  Otherwise, this should be com.silveregg.wrapper.WrapperSimpleApp
+                                Then your main class will be listed as the first application
+                                parameter below.
                                 <informalexample>
                                     <simpara><emphasis>Example (WrapperListener case):</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.java.mainclass=com.widgetsrus.MyAppMain</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.java.mainclass=com.widgetsrus.MyAppMain]]></screen>
                                 </informalexample>
                                 <informalexample>
                                     <simpara><emphasis>Example (WrapperSimpleApp case):</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -217,10 +230,10 @@
                                 files as well as directories contains class files.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.java.classpath.1=../lib/wrapper.jar
+                                    <screen format="linespecific"><![CDATA[wrapper.java.classpath.1=../lib/wrapper.jar
 wrapper.java.classpath.2=../lib/myapp.jar
 wrapper.java.classpath.3=../lib/mysql.jar
-wrapper.java.classpath.4=../classes</screen>
+wrapper.java.classpath.4=../classes]]></screen>
                                 </informalexample>
                             </para>
                             <para>
@@ -228,8 +241,8 @@ wrapper.java.classpath.4=../classes</screen>
                                 be used.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.java.classpath.1=../lib/*.jar
-wrapper.java.classpath.2=../classes</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.java.classpath.1=../lib/*.jar
+wrapper.java.classpath.2=../classes]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -251,7 +264,7 @@ wrapper.java.classpath.2=../classes</screen>
                                 directories specified.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.java.library.path.1=../lib</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.java.library.path.1=../lib]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -260,16 +273,26 @@ wrapper.java.classpath.2=../classes</screen>
                         <glossterm>wrapper.java.additional.&lt;n&gt;</glossterm>
                         <glossdef>
                             <para>
-                                Additional Java parameters to pass to Java when it is launched.  These are not parameters for your application, but rather parameters for the Java virtual machine.  Each element has a property name which starts with wrapper.java.additional. and ends with an integer number counting up from 1.  There can be no missing numbers.
+                                Additional Java parameters to pass to Java when it is launched.
+                                    These are not parameters for your application, but rather
+                                    parameters for the Java virtual machine.  Each element has a
+                                    property name which starts with wrapper.java.additional. and
+                                    ends with an integer number counting up from 1.  There can be
+                                    no missing numbers.
                             </para>
                             <para>
-                                For each entry, you can also have a corresponding strip quotes flag which will remove the quotes from the element when run on Linux or Solaris machines.  This was necessary to allow for file references which contain spaces.  For parameters like the one below it would not otherwise be possible to decide when to remove quotes and when to leave them alone.
+                                For each entry, you can also have a corresponding strip quotes flag
+                                    which will remove the quotes from the element when run on Linux
+                                    or Solaris machines.  This was necessary to allow for file
+                                    references which contain spaces.  For parameters like the one
+                                    below it would not otherwise be possible to decide when to
+                                    remove quotes and when to leave them alone.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.java.additional.1=-Xrs
+                                    <screen format="linespecific"><![CDATA[wrapper.java.additional.1=-Xrs
 wrapper.java.additional.2=-Dprop=TRUE
 wrapper.java.additional.3=-Dmyapp.data="../data"
-wrapper.java.additional.3.stripquotes=TRUE</screen>
+wrapper.java.additional.3.stripquotes=TRUE]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -278,10 +301,12 @@ wrapper.java.additional.3.stripquotes=TRUE</screen>
                         <glossterm>wrapper.java.initmemory</glossterm>
                         <glossdef>
                             <para>
-                                The initial amount of memory in megabytes that the JVM should use.  Some JVMs work more efficiently if this value is high rather than low.
+                                The initial amount of memory in megabytes that the JVM should use.
+                                Some JVMs work more efficiently if this value is high rather than
+                                low.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.java.initmemory=16</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.java.initmemory=16]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -290,10 +315,11 @@ wrapper.java.additional.3.stripquotes=TRUE</screen>
                         <glossterm>wrapper.java.maxmemory</glossterm>
                         <glossdef>
                             <para>
-                                The maximum amount of memory in megabytes that the JVM will be allowed to use.  Java is set to 64MB by default.
+                                The maximum amount of memory in megabytes that the JVM will be
+                                allowed to use.  Java is set to 64MB by default.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.java.maxmemory=64</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.java.maxmemory=64]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -302,39 +328,55 @@ wrapper.java.additional.3.stripquotes=TRUE</screen>
                         <glossterm>wrapper.app.parameter.&lt;n&gt;</glossterm>
                         <glossdef>
                             <para>
-                                Application parameters to pass to your application when it is launched.  These are the parameters passed to your application's main method.  Each element has a property name which starts with wrapper.java.parameter. and ends with an integer number counting up from 1.  There can be no missing numbers.
+                                Application parameters to pass to your application when it is
+                                launched.  These are the parameters passed to your application's
+                                main method.  Each element has a property name which starts with
+                                wrapper.java.parameter. and ends with an integer number counting
+                                up from 1.  There can be no missing numbers.
                             </para>
                             <para>
-                                When the value of wrapper.java.mainclass is com.silveregg.wrapper.WrapperSimpleApp, the first parameter to the application must be the name of the class which contains your main method.  All other parameters are then passed to your application's main method in order.
+                                When the value of wrapper.java.mainclass is com.silveregg.wrapper.WrapperSimpleApp,
+                                the first parameter to the application must be the name of the
+                                class which contains your main method.  All other parameters are
+                                then passed to your application's main method in order.
                             </para>
                             <para>
-                                For each entry, you can also have a corresponding strip quotes flag which will remove the quotes from the element when run on Linux or Solaris machines.  This was necessary to allow for file references which contain spaces.  For parameters like the one below it would not otherwise be possible to decide when to remove quotes and when to leave them alone.
+                                For each entry, you can also have a corresponding strip quotes flag
+                                which will remove the quotes from the element when run on Linux or
+                                Solaris machines.  This was necessary to allow for file references
+                                which contain spaces.  For parameters like the one below it would
+                                not otherwise be possible to decide when to remove quotes and when
+                                to leave them alone.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp
+                                    <screen format="linespecific"><![CDATA[wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp
 wrapper.app.parameter.1=com.widgetsrus.MyAppMain
 wrapper.app.parameter.2=-d
 wrapper.app.parameter.3=-c"../conf/myapp.conf"
 wrapper.app.parameter.3.stripquotes=TRUE
-wrapper.app.parameter.4=-p4</screen>
+wrapper.app.parameter.4=-p4]]></screen>
                                 </informalexample>
                             </para>
                             <para>
                                 <warning>
                                     <simpara>
-                                        Application parameters are designed to be individual parameters.  If you specify a parameter like '-c conf/myconffile.conf', it will work correctly on windows because the '-c' and 'conf/myconffile.conf' parameters will be correctly parsed when Java is launched.  But on Unix systems, the parameters will incorrectly be interpreted as a single parameter '-c conf/myconffile.conf'.
+                                        Application parameters are designed to be individual
+                                        parameters.  If you specify a parameter like
+                                        '-c conf/myconffile.conf', it will work correctly on windows
+                                        because the '-c' and 'conf/myconffile.conf' parameters will
+                                        be correctly parsed when Java is launched.  But on Unix
+                                        systems, the parameters will incorrectly be interpreted as
+                                        a single parameter '-c conf/myconffile.conf'.
                                     </simpara>
                                     <para>
                                         <informalexample>
                                             <simpara><emphasis>Incorrect:</emphasis></simpara>
-                                            <screen format="linespecific">
-wrapper.app.parameter.1=-c conf/myconffile.conf</screen>
+                                            <screen format="linespecific"><![CDATA[wrapper.app.parameter.1=-c conf/myconffile.conf]]></screen>
                                         </informalexample>
                                         <informalexample>
                                             <simpara><emphasis>Correct:</emphasis></simpara>
-                                            <screen format="linespecific">
-wrapper.app.parameter.1=-c
-wrapper.app.parameter.2=conf/myconffile.conf</screen>
+                                            <screen format="linespecific"><![CDATA[wrapper.app.parameter.1=-c
+wrapper.app.parameter.2=conf/myconffile.conf]]></screen>
                                         </informalexample>
                                     </para>
                                 </warning>
@@ -345,7 +387,11 @@ wrapper.app.parameter.2=conf/myconffile.conf</screen>
                         <glossterm>wrapper.port</glossterm>
                         <glossdef>
                             <para>
-                                A port used to communicate between the Wrapper executable and the Java application.  Used to monitor the health of the Java application.  This can be any value. If at runtime, the specified value is in use, then a warning will be printed to the console and the next available port will be used in its place.
+                                A port used to communicate between the Wrapper executable and the
+                                Java application.  Used to monitor the health of the Java
+                                application.  This can be any value. If at runtime, the specified
+                                value is in use, then a warning will be printed to the console and
+                                the next available port will be used in its place.
                             </para>
                             <para>
                                 When the Wrapper launches a JVM instance, it will open a server
@@ -355,7 +401,7 @@ wrapper.app.parameter.2=conf/myconffile.conf</screen>
                                 connected, the Wrapper will no longer accept additional connections.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.port=1777</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.port=1777]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -369,7 +415,15 @@ wrapper.app.parameter.2=conf/myconffile.conf</screen>
                         <glossterm>wrapper.console.format</glossterm>
                         <glossdef>
                             <para>
-                                Format to use for output to the console.  Logging was intentionally kept simple.  The format consists of the tokens 'L' for log level, 'P' for prefix, 'T' for time, and 'M' for message.  If the format contains these values then it will be included in the format.  The order of the tokens does not affect the way the log appears, but the M token should usually be placed last as it is the only column without a uniform width.  If the property is missing or commented out, then the default value 'PM' will be used.  Setting the property to a blank value will cause console output to be disabled.
+                                Format to use for output to the console.  Logging was intentionally
+                                kept simple.  The format consists of the tokens 'L' for log level,
+                                'P' for prefix, 'T' for time, and 'M' for message.  If the format
+                                contains these values then it will be included in the format.  The
+                                order of the tokens does not affect the way the log appears, but
+                                the M token should usually be placed last as it is the only column
+                                without a uniform width.  If the property is missing or commented
+                                out, then the default value 'PM' will be used.  Setting the
+                                property to a blank value will cause console output to be disabled.
                                 <informalexample>
                                     <simpara><emphasis>Examples with sample output:</emphasis></simpara>
                                     <screen format="linespecific"><![CDATA[wrapper.console.format=PTM
@@ -397,10 +451,14 @@ wrapper.console.format=
                         <glossterm>wrapper.console.loglevel</glossterm>
                         <glossdef>
                             <para>
-                                Log level to use for console output.  Valid log levels include: NONE for no output, FATAL to only show fatal error messages,  ERROR to show all error messages,  STATUS to show all state changes, INFO shows all JVM output and informative messages, and DEBUG shows detailed debug information.  The default value is INFO.
+                                Log level to use for console output.  Valid log levels include:
+                                NONE for no output, FATAL to only show fatal error messages,
+                                ERROR to show all error messages,  STATUS to show all state
+                                changes, INFO shows all JVM output and informative messages, and
+                                DEBUG shows detailed debug information.  The default value is INFO.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.console.loglevel=INFO</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.console.loglevel=INFO]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -409,10 +467,14 @@ wrapper.console.format=
                         <glossterm>wrapper.logfile</glossterm>
                         <glossdef>
                             <para>
-                                Log file to which all output to the console will be logged.  If the logfile is not specified, then file logging will be written to a file called "wrapper.log" in the same directory as the Wrapper executable.  Providing a blank value will cause file logging to be disabled.
+                                Log file to which all output to the console will be logged.  If the
+                                logfile is not specified, then file logging will be written to a
+                                file called "wrapper.log" in the same directory as the Wrapper
+                                executable.  Providing a blank value will cause file logging to
+                                be disabled.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.logfile=../logs/wrapper.log</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.logfile=../logs/wrapper.log]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -421,7 +483,16 @@ wrapper.console.format=
                         <glossterm>wrapper.logfile.format</glossterm>
                         <glossdef>
                             <para>
-                                Format to use for logging to the log file.  Logging was intentionally kept simple.  The format consists of the tokens 'L' for log level, 'P' for prefix, 'T' for time, and 'M' for message.  If the format contains these values then it will be included in the format.  The order of the tokens does not affect the way the log appears, but the M token should usually be placed last as it is the only column without a uniform width.  If the property is missing or commented out, then the default value 'LPTM' will be used.  Setting the property to a blank value will cause file logging to be disabled.
+                                Format to use for logging to the log file.  Logging was
+                                intentionally kept simple.  The format consists of the tokens 'L'
+                                for log level, 'P' for prefix, 'T' for time, and 'M' for message.
+                                If the format contains these values then it will be included in the
+                                format.  The order of the tokens does not affect the way the log
+                                appears, but the M token should usually be placed last as it is the
+                                only column without a uniform width.  If the property is missing or
+                                commented out, then the default value 'LPTM' will be used.  Setting
+                                the property to a blank value will cause file logging to be
+                                disabled.
                                 <informalexample>
                                     <simpara><emphasis>Examples with sample log entries:</emphasis></simpara>
                                     <screen format="linespecific"><![CDATA[wrapper.logfile.format=LPTM
@@ -449,10 +520,15 @@ wrapper.logfile.format=
                         <glossterm>wrapper.logfile.loglevel</glossterm>
                         <glossdef>
                             <para>
-                                Log level to use for logging to the log file.  Valid log levels include: NONE for no log output, FATAL to only log fatal error messages,  ERROR to log all error messages,  STATUS to log all state changes, INFO logs all JVM output and informative messages, and DEBUG logs detailed debug information.  The default value is INFO.
+                                Log level to use for logging to the log file.  Valid log levels
+                                include: NONE for no log output, FATAL to only log fatal error
+                                messages,  ERROR to log all error messages,  STATUS to log all
+                                state changes, INFO logs all JVM output and informative messages,
+                                and DEBUG logs detailed debug information.  The default value is
+                                INFO.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.console.loglevel=INFO</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.console.loglevel=INFO]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -469,7 +545,7 @@ wrapper.logfile.format=
                                 rolled when it reaches a size of 10 megabytes.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.logfile.maxsize=10m</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.logfile.maxsize=10m]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -487,7 +563,7 @@ wrapper.logfile.format=
                                 indices.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.logfile.maxfiles=10</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.logfile.maxfiles=10]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -496,10 +572,17 @@ wrapper.logfile.format=
                         <glossterm>wrapper.syslog.loglevel</glossterm>
                         <glossdef>
                             <para>
-                                Log level to use for logging to the Event Log on Windows systems, or the syslog on unix systems.  Valid log levels include: NONE for no log output, FATAL to only log fatal error messages,  ERROR to log all error messages,  STATUS to log all state changes, INFO logs all JVM output and informative messages, and DEBUG logs detailed debug information.  The default value is NONE.  Be careful setting log which are too low.  DEBUG for example will very quickly fill up your syslog.
+                                Log level to use for logging to the Event Log on Windows systems,
+                                or the syslog on unix systems.  Valid log levels include: NONE for
+                                no log output, FATAL to only log fatal error messages,  ERROR to
+                                log all error messages,  STATUS to log all state changes, INFO logs
+                                all JVM output and informative messages, and DEBUG logs detailed
+                                debug information.  The default value is NONE.  Be careful setting
+                                log which are too low.  DEBUG for example will very quickly fill up
+                                your syslog.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.syslog.loglevel=NONE</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.syslog.loglevel=NONE]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -516,7 +599,7 @@ wrapper.logfile.format=
                                 File to write process ID to
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.pidfile=/var/run/myapp.pid</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.pidfile=/var/run/myapp.pid]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -530,7 +613,10 @@ wrapper.logfile.format=
                 </para>
                 <warning>
                     <simpara>
-                        WARNING - Do not modify any of these parameters when an application using this configuration file has been installed as a service.  Please uninstall the service before modifying this section.  The service can then be reinstalled.
+                        WARNING - Do not modify any of these parameters when an application using
+                        this configuration file has been installed as a service.  Please uninstall
+                        the service before modifying this section.  The service can then be
+                        reinstalled.
                     </simpara>
                 </warning>
                 <glosslist>
@@ -541,7 +627,7 @@ wrapper.logfile.format=
                                 Name of the NT service when installed
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.ntservice.name=MyApp</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.ntservice.name=MyApp]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -553,7 +639,7 @@ wrapper.logfile.format=
                                 Display name of the NT service when installed
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.ntservice.displayname=My Application</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.ntservice.displayname=My Application]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -562,10 +648,11 @@ wrapper.logfile.format=
                         <glossterm>wrapper.ntservice.description</glossterm>
                         <glossdef>
                             <para>
-                                Description of the NT service when installed.  (Only used in Windows 2000 and XP, not in NT.)
+                                Description of the NT service when installed.
+                                (Only used in Windows 2000 and XP, not in NT.)
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.ntservice.description=Description of My Application</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.ntservice.description=Description of My Application]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -574,10 +661,12 @@ wrapper.logfile.format=
                         <glossterm>wrapper.ntservice.dependency.&lt;n&gt;</glossterm>
                         <glossdef>
                             <para>
-                                Names of any other Services which must be running before this service can be started.  Stopping any of the listed services will also stop this service.  Add dependencies as needed starting from 1.
+                                Names of any other Services which must be running before this
+                                service can be started.  Stopping any of the listed services will
+                                also stop this service.  Add dependencies as needed starting from 1.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.ntservice.dependency.1=MySQL</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.ntservice.dependency.1=MySQL]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -586,10 +675,12 @@ wrapper.logfile.format=
                         <glossterm>wrapper.ntservice.starttype</glossterm>
                         <glossdef>
                             <para>
-                                Mode in which the service is installed.  AUTO_START starts the service automatically when the system is rebooted. Or DEMAND_START which requires that the service me started manually.
+                                Mode in which the service is installed.  AUTO_START starts the
+                                service automatically when the system is rebooted. Or DEMAND_START
+                                which requires that the service me started manually.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.ntservice.starttype=AUTO_START</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.ntservice.starttype=AUTO_START]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -598,21 +689,25 @@ wrapper.logfile.format=
                         <glossterm>wrapper.ntservice.process_priority</glossterm>
                         <glossdef>
                             <para>
-                                Specifies the priority at which the Wrapper and its JVM will be run at when run as an NT service or as a console application.  Possible values are NORMAL, LOW, HIGH, and REALTIME.  Defaults to NORMAL.
+                                Specifies the priority at which the Wrapper and its JVM will be run
+                                at when run as an NT service or as a console application.  Possible
+                                values are NORMAL, LOW, HIGH, and REALTIME.  Defaults to NORMAL.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.ntservice.process_priority=NORMAL</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.ntservice.process_priority=NORMAL]]></screen>
                                 </informalexample>
                             </para>
                             <warning>
                                 <simpara>
-                                    From the Windows API, each priority level is described as follows:
+                                    From the Windows API, each priority level is described as
+                                    follows:
                                     <glosslist>
                                         <glossentry>
                                             <glossterm>NORMAL</glossterm>
                                             <glossdef>
                                                 <para>
-                                                    Specify this class for a process with no special scheduling needs.
+                                                    Specify this class for a process with no
+                                                    special scheduling needs.
                                                 </para>
                                             </glossdef>
                                         </glossentry>
@@ -620,7 +715,12 @@ wrapper.logfile.format=
                                             <glossterm>LOW</glossterm>
                                             <glossdef>
                                                 <para>
-                                                    Specify this class for a process whose threads run only when the system is idle. The threads of the process are preempted by the threads of any process running in a higher priority class. An example is a screen saver. The idle-priority class is inherited by child processes.
+                                                    Specify this class for a process whose threads
+                                                    run only when the system is idle. The threads
+                                                    of the process are preempted by the threads of
+                                                    any process running in a higher priority class.
+                                                    An example is a screen saver. The idle-priority
+                                                    class is inherited by child processes.
                                                 </para>
                                             </glossdef>
                                         </glossentry>
@@ -628,7 +728,17 @@ wrapper.logfile.format=
                                             <glossterm>HIGH</glossterm>
                                             <glossdef>
                                                 <para>
-                                                    Specify this class for a process that performs time-critical tasks that must be executed immediately. The threads of the process preempt the threads of normal or idle priority class processes. An example is the Task List, which must respond quickly when called by the user, regardless of the load on the operating system. Use extreme care when using the high-priority class, because a high-priority class application can use nearly all available CPU time.
+                                                    Specify this class for a process that performs
+                                                    time-critical tasks that must be executed
+                                                    immediately. The threads of the process preempt
+                                                    the threads of normal or idle priority class
+                                                    processes. An example is the Task List, which
+                                                    must respond quickly when called by the user,
+                                                    regardless of the load on the operating system.
+                                                    Use extreme care when using the high-priority
+                                                    class, because a high-priority class
+                                                    application can use nearly all available CPU
+                                                    time.
                                                 </para>
                                             </glossdef>
                                         </glossentry>
@@ -636,7 +746,14 @@ wrapper.logfile.format=
                                             <glossterm>REALTIME</glossterm>
                                             <glossdef>
                                                 <para>
-                                                    Specify this class for a process that has the highest possible priority. The threads of the process preempt the threads of all other processes, including operating system processes performing important tasks. For example, a real-time process that executes for more than a very brief interval can cause disk caches not to flush or cause the mouse to be unresponsive.
+                                                    Specify this class for a process that has the
+                                                    highest possible priority. The threads of the
+                                                    process preempt the threads of all other
+                                                    processes, including operating system processes
+                                                    performing important tasks. For example, a
+                                                    real-time process that executes for more than
+                                                    a very brief interval can cause disk caches not
+                                                    to flush or cause the mouse to be unresponsive.
                                                 </para>
                                             </glossdef>
                                         </glossentry>
@@ -658,10 +775,15 @@ wrapper.logfile.format=
                     In most cases, they should not be changed.
                 </para>
                 <para>
-                    There are cases where they may need to be changed to suit the needs of a particular application.  When doing so however, please take the time to read the documentation of the property carefully and make sure that changing it is really what you want to do.
+                    There are cases where they may need to be changed to suit the needs of a
+                    particular application.  When doing so however, please take the time to read
+                    the documentation of the property carefully and make sure that changing it is
+                    really what you want to do.
                     <warning>
                         <simpara>
-                            WARNING - Do not modify any of these parameters unless you have read the description of the property below.  Incorrect settings can cause the Wrapper to fail to operate as expected.
+                            WARNING - Do not modify any of these parameters unless you have read
+                            the description of the property below.  Incorrect settings can cause
+                            the Wrapper to fail to operate as expected.
                         </simpara>
                     </warning>
                 </para>
@@ -682,7 +804,7 @@ wrapper.logfile.format=
                             <para>
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.restart.delay=5</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.restart.delay=5]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -744,7 +866,7 @@ jvm 1    | Wrapper (Version 2.x.x)]]></screen>
                             <para>
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.startup.timeout=30</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.startup.timeout=30]]></screen>
                                 </informalexample>
                                 <warning>
                                     <simpara>
@@ -780,7 +902,7 @@ jvm 1    | Wrapper (Version 2.x.x)]]></screen>
                                 with CPU.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.ping.timeout=30</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.ping.timeout=30]]></screen>
                                 </informalexample>
                                 <warning>
                                     <simpara>
@@ -841,7 +963,7 @@ jvm 1    | Wrapper (Version 2.x.x)]]></screen>
                             <para>								
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.shutdown.timeout=30</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.shutdown.timeout=30]]></screen>
                                 </informalexample>
                                 <warning>
                                     <simpara>
@@ -868,8 +990,8 @@ jvm 1    | Wrapper (Version 2.x.x)]]></screen>
                                 ready to exit.  When this timeout is triggered, a message like
                                 the following will be logged.
                                 <informalexample>
-                                    <screen format="linespecific">wrapper  | Shutdown failed: Timed out waiting for the JVM to terminate.
-wrapper  | Java Virtual Machine did not exit on request, terminated</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper  | Shutdown failed: Timed out waiting for the JVM to terminate.
+wrapper  | Java Virtual Machine did not exit on request, terminated]]></screen>
                                 </informalexample>
                             </para>
                             <para>
@@ -883,7 +1005,7 @@ wrapper  | Java Virtual Machine did not exit on request, terminated</screen>
                             <para>								
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.jvm_exit.timeout=5</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.jvm_exit.timeout=5]]></screen>
                                 </informalexample>
                                 <warning>
                                     <simpara>
@@ -968,7 +1090,7 @@ INFO   | jvm 1    | JVM Process has not received any CPU time for 27 seconds.
                             <para>
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.cpu.timeout=10</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.cpu.timeout=10]]></screen>
                                 </informalexample>
                                 <warning>
                                     <simpara>
@@ -1028,7 +1150,7 @@ INFO   | jvm 1    | JVM Process has not received any CPU time for 27 seconds.
                                 <literal moreinfo="none">WrapperManager.restart()</literal> method.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.max_failed_invocations=5</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.max_failed_invocations=5]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -1047,7 +1169,7 @@ INFO   | jvm 1    | JVM Process has not received any CPU time for 27 seconds.
                             <para>
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.successful_invocation_time=300</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.successful_invocation_time=300]]></screen>
                                 </informalexample>
                                 <warning>
                                     <simpara>
@@ -1079,7 +1201,7 @@ INFO   | jvm 1    | JVM Process has not received any CPU time for 27 seconds.
                                 including security.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.disable_shutdown_hook=TRUE</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.disable_shutdown_hook=TRUE]]></screen>
                                 </informalexample>
                                 <warning>
                                     <simpara>
@@ -1121,7 +1243,7 @@ INFO   | jvm 1    | JVM Process has not received any CPU time for 27 seconds.
                                 thread dump request.  Defaults to FALSE.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific">wrapper.request_thread_dump_on_failed_jvm_exit=TRUE</screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.request_thread_dump_on_failed_jvm_exit=TRUE]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>

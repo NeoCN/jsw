@@ -254,11 +254,18 @@
 </p>
             
 <p align="justify">
-                These commands should normally be placed in batch files in the application's bin directory to make them easier to use.
+                These commands should normally be placed in batch files in the application's bin
+                directory to make them easier to use.
             </p>
             
 <p align="justify">
-                A typical application would have the following three batch files in the bin directory with the Wrapper.exe file.  The scripts will look for a wrapper.conf file passed in as an argument and then use a default if one is not specified.  These examples assume that the '@app.home@' token will be replaced with your application's home directory on installation.  Something like 'C:\MyApp'.  The quotes around the paths in the scripts make it possible for the path to contain spaces.
+                A typical application would have the following three batch files in the bin
+                directory with the Wrapper.exe file.  The scripts will look for a wrapper.conf
+                file passed in as an argument and then use a default if one is not specified.
+                These examples assume that the '@app.home@' token will be replaced with your
+                application's home directory on installation.  Something like 'C:\MyApp'.  The
+                quotes around the paths in the scripts make it possible for the path to contain
+                spaces.
                 <p align="justify">
                     
 <i>MyApp.bat</i>
@@ -352,7 +359,12 @@ set _WRAPPER_CONF=
 </p>
             
 <p align="justify">
-                It is also possible to make batch scripts which use only relative paths.  This has the benefit of allowing you to unzip an application and run it in any location, but it has the drawback that the script will not work correctly on older version of windows.  Template batch files can be found in the src/bin directory, named App.bat.in, InstallApp-NT.bat.in and UninstallApp-NT.bat.in.  They should be renamed to match the name of your application.
+                It is also possible to make batch scripts which use only relative paths.  This has
+                the benefit of allowing you to unzip an application and run it in any location, but
+                it has the drawback that the script will not work correctly on older version of
+                windows.  Template batch files can be found in the src/bin directory, named
+                App.bat.in, InstallApp-NT.bat.in and UninstallApp-NT.bat.in.  They should be
+                renamed to match the name of your application.
                 <p align="justify">
                     
 <i>MyApp.bat</i>
@@ -413,7 +425,9 @@ set _WRAPPER_CONF=
 </p>
             
 <p align="justify">
-                Starting in version 2.2.3, it is possible to specify paths in your wrapper.conf file which are relative to the Wrapper.exe file.  Older versions did not work correctly with relative paths when the application was run as an NT service.
+                Starting in version 2.2.3, it is possible to specify paths in your wrapper.conf
+                file which are relative to the Wrapper.exe file.  Older versions did not work
+                correctly with relative paths when the application was run as an NT service.
             </p>
         
 </font></td>
@@ -452,15 +466,29 @@ set _WRAPPER_CONF=
 </p>
             
 <p align="justify">
-                In the src/bin subdirectory you will find some shell (bash and sh)script templates for starting and stopping wrapped applications cleanly in. These examples assume that the '@app.name@' and '@app.long.name@' tokens will be replaced with the name of your application on installation.  Good values are 'testwrapper' for '@app.name@' and 'Test Wrapper Application' for '@app.long.name@'.  These scripts also make some assumtions about your project's directory structure.  Template scripts can be found in the src/bin directory, named bash.script.in and sh.script.in respectively.
+                In the src/bin subdirectory you will find some shell (bash and sh)script templates
+                for starting and stopping wrapped applications cleanly in. These examples assume
+                that the '@app.name@' and '@app.long.name@' tokens will be replaced with the name
+                of your application on installation.  Good values are 'testwrapper' for '@app.name@'
+                and 'Test Wrapper Application' for '@app.long.name@'.  These scripts also make some
+                assumtions about your project's directory structure.  Template scripts can be found
+                in the src/bin directory, named bash.script.in and sh.script.in respectively.
             </p>
             
 <p align="justify">
-                You may need to tweak some of the other values (like PIDDIR in the sh script) to get them to fit your environment.
+                You may need to tweak some of the other values (like PIDDIR in the sh script) to
+                get them to fit your environment.
             </p>
             
 <p align="justify">
-                These scripts are used by passing them a command.  Valid commands are <tt>start</tt>, <tt>stop</tt>, <tt>restart</tt>, and <tt>dump</tt>. <tt>start</tt> is used to launch the application and <tt>stop</tt> is used to stop it.  <tt>restart</tt> will start and then stop the application in a single command.  The <tt>dump</tt> command is used to invoke a thread dump in the JVM.  See the <a href="debugging.html">Debugging</a> section for more information on <tt>dump</tt>.
+                These scripts are used by passing them a command.  Valid commands are
+                <tt>start</tt>, <tt>stop</tt>, <tt>restart</tt>, and
+                <tt>dump</tt>. <tt>start</tt> is used to launch the application
+                and <tt>stop</tt> is used to stop it.  <tt>restart</tt> will
+                start and then stop the application in a single command.  The
+                <tt>dump</tt> command is used to invoke a thread dump in the JVM.  See
+                the <a href="debugging.html">Debugging</a> section for more information on
+                <tt>dump</tt>.
             </p>
             
 <p align="justify">
