@@ -81,8 +81,6 @@
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
 jvm 1    | Wrapper (Version 2.x.x)
-jvm 1    | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 1    | All rights reserved.
 jvm 1    |
 jvm 1    | start()]]></screen>
                 </informalexample>
@@ -97,8 +95,6 @@ jvm 1    | start()]]></screen>
 wrapper  | 2001/12/06 16:18:28 | Launching a JVM...
 jvm 1    | 2001/12/06 16:18:29 | Initializing...
 jvm 1    | 2001/12/06 16:18:30 | Wrapper (Version 2.x.x)
-jvm 1    | 2001/12/06 16:18:30 | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 1    | 2001/12/06 16:18:30 | All rights reserved.
 jvm 1    | 2001/12/06 16:18:30 | 
 jvm 1    | 2001/12/06 16:18:30 | start()]]></screen>
                 </informalexample>
@@ -117,8 +113,6 @@ jvm 1    | 2001/12/06 16:18:30 | start()]]></screen>
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
 jvm 1    | Wrapper (Version 2.x.x)
-jvm 1    | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 1    | All rights reserved.
 jvm 1    |
 jvm 1    | start()
 jvm 1    | stop(0)
@@ -141,8 +135,6 @@ wrapper  | <-- Wrapper Stopped]]></screen>
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
 jvm 1    | Wrapper (Version 2.x.x)
-jvm 1    | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 1    | All rights reserved.
 jvm 1    |
 jvm 1    | start()
 jvm 1    | WARNING: Attempting to cause an access violation...
@@ -159,8 +151,6 @@ wrapper  | JVM exited unexpectedly.
 wrapper  | Launching a JVM...
 jvm 2    | Initializing...
 jvm 2    | Wrapper (Version 2.x.x)
-jvm 2    | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 2    | All rights reserved.
 jvm 2    |
 jvm 2    | start()]]></screen>
                                 </informalexample>
@@ -181,8 +171,6 @@ jvm 2    | start()]]></screen>
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
 jvm 1    | Wrapper (Version 2.x.x)
-jvm 1    | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 1    | All rights reserved.
 jvm 1    |
 jvm 1    | start()
 jvm 1    | WARNING: Attempting to cause an access violation...
@@ -195,8 +183,6 @@ wrapper  | Java Virtual Machine did not exit on request, terminated
 wrapper  | Launching a JVM...
 jvm 2    | Initializing...
 jvm 2    | Wrapper (Version 2.x.x)
-jvm 2    | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 2    | All rights reserved.
 jvm 2    |
 jvm 2    | start()]]></screen>
                                 </informalexample>
@@ -217,8 +203,6 @@ jvm 2    | start()]]></screen>
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
 jvm 1    | Wrapper (Version 2.x.x)
-jvm 1    | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 1    | All rights reserved.
 jvm 1    |
 jvm 1    | start()
 jvm 1    | WARNING: Attempting to cause an access violation...
@@ -227,8 +211,6 @@ wrapper  | Java Virtual Machine did not exit on request, terminated
 wrapper  | Launching a JVM...
 jvm 2    | Initializing...
 jvm 2    | Wrapper (Version 2.x.x)
-jvm 2    | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 2    | All rights reserved.
 jvm 2    |
 jvm 2    | start()]]></screen>
                                 </informalexample>
@@ -246,8 +228,6 @@ jvm 2    | start()]]></screen>
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
 jvm 1    | Wrapper (Version 2.x.x)
-jvm 1    | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 1    | All rights reserved.
 jvm 1    |
 jvm 1    | start()
 jvm 1    | stop(0)
@@ -263,16 +243,12 @@ wrapper  | <-- Wrapper Stopped]]></screen>
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
 jvm 1    | Wrapper (Version 2.x.x)
-jvm 1    | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 1    | All rights reserved.
 jvm 1    |
 jvm 1    | start()
 wrapper  | JVM exited unexpectedly.
 wrapper  | Launching a JVM...
 jvm 2    | Initializing...
 jvm 2    | Wrapper (Version 2.x.x)
-jvm 2    | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 2    | All rights reserved.
 jvm 2    |
 jvm 2    | start()]]></screen>
                                 </informalexample>
@@ -293,16 +269,12 @@ jvm 2    | start()]]></screen>
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
 jvm 1    | Wrapper (Version 2.x.x)
-jvm 1    | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 1    | All rights reserved.
 jvm 1    |
 jvm 1    | start()
 wrapper  | JVM exited unexpectedly.
 wrapper  | Launching a JVM...
 jvm 2    | Initializing...
 jvm 2    | Wrapper (Version 2.x.x)
-jvm 2    | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 2    | All rights reserved.
 jvm 2    |
 jvm 2    | start()]]></screen>
                                 </informalexample>
@@ -323,8 +295,6 @@ jvm 2    | start()]]></screen>
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
 jvm 1    | Wrapper (Version 2.x.x)
-jvm 1    | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 1    | All rights reserved.
 jvm 1    |
 jvm 1    | start()
 wrapper  | JVM requested a restart.
@@ -332,8 +302,6 @@ jvm 1    | stop(0)
 wrapper  | Launching a JVM...
 jvm 2    | Initializing...
 jvm 2    | Wrapper (Version 2.x.x)
-jvm 2    | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 2    | All rights reserved.
 jvm 2    |
 jvm 2    | start()]]></screen>
                                 </informalexample>
@@ -362,8 +330,6 @@ jvm 2    | start()]]></screen>
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
 jvm 1    | Wrapper (Version 2.x.x)
-jvm 1    | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 1    | All rights reserved.
 jvm 1    |
 jvm 1    | start()
 wrapper  | CTRL-C trapped.  Shutting down.
@@ -378,8 +344,6 @@ wrapper  | <-- Wrapper Stopped]]></screen>
                                     <screen format="linespecific"><![CDATA[wrapper  | Launching a JVM...
 jvm 1    | Initializing...
 jvm 1    | Wrapper (Version 2.x.x)
-jvm 1    | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 1    | All rights reserved.
 jvm 1    | 
 jvm 1    | start()
 wrapper  | User logged out.  Shutting down.
@@ -395,8 +359,6 @@ wrapper  | <-- Wrapper Stopped]]></screen>
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
 jvm 1    | Wrapper (Version 2.x.x)
-jvm 1    | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 1    | All rights reserved.
 jvm 1    |
 jvm 1    | start()
 wrapper  | Shutting down.
@@ -417,16 +379,12 @@ wrapper  | <-- Wrapper Stopped]]></screen>
 wrapper  | Launching a JVM...
 jvm 1    | Initializing...
 jvm 1    | Wrapper (Version 2.x.x)
-jvm 1    | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 1    | All rights reserved.
 jvm 1    |
 jvm 1    | start()
 wrapper  | JVM exited unexpectedly.
 wrapper  | Launching a JVM...
 jvm 2    | Initializing...
 jvm 2    | Wrapper (Version 2.x.x)
-jvm 2    | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 2    | All rights reserved.
 jvm 2    |
 jvm 2    | start()]]></screen>
                                 </informalexample>
@@ -486,8 +444,6 @@ wrapper  | Test Wrapper Application removed.]]></screen>
 wrapper  | 2001/12/06 17:34:21 | Launching a JVM...
 jvm 1    | 2001/12/06 17:34:22 | Initializing...
 jvm 1    | 2001/12/06 17:34:22 | Wrapper (Version 2.x.x)
-jvm 1    | 2001/12/06 17:34:22 | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 1    | 2001/12/06 17:34:22 | All rights reserved.
 jvm 1    | 2001/12/06 17:34:22 |
 jvm 1    | 2001/12/06 17:34:22 | start()]]></screen>
                 </informalexample>
@@ -506,8 +462,6 @@ jvm 1    | 2001/12/06 17:34:22 | start()]]></screen>
 wrapper  | 2001/12/06 17:39:40 | Launching a JVM...
 jvm 1    | 2001/12/06 17:39:40 | Initializing...
 jvm 1    | 2001/12/06 17:39:40 | Wrapper (Version 2.x.x)
-jvm 1    | 2001/12/06 17:39:40 | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 1    | 2001/12/06 17:39:40 | All rights reserved.
 jvm 1    | 2001/12/06 17:39:40 |
 jvm 1    | 2001/12/06 17:39:41 | start()
 wrapper  | 2001/12/06 17:40:07 | User logged out.  Ignored.
@@ -527,8 +481,6 @@ jvm 1    | 2001/12/06 17:40:07 | controlEvent(202)]]></screen>
 wrapper  | 2001/12/06 17:41:05 | Launching a JVM...
 jvm 1    | 2001/12/06 17:41:05 | Initializing...
 jvm 1    | 2001/12/06 17:41:05 | Wrapper (Version 2.x.x)
-jvm 1    | 2001/12/06 17:41:05 | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 1    | 2001/12/06 17:41:05 | All rights reserved.
 jvm 1    | 2001/12/06 17:41:05 |
 jvm 1    | 2001/12/06 17:41:05 | start()
 wrapper  | 2001/12/06 17:41:25 | User logged out.  Ignored.
@@ -541,8 +493,6 @@ wrapper  | 2001/12/06 17:44:12 | --> Wrapper Started as Service
 wrapper  | 2001/12/06 17:44:12 | Launching a JVM...
 jvm 1    | 2001/12/06 17:44:17 | Initializing...
 jvm 1    | 2001/12/06 17:44:21 | Wrapper (Version 2.x.x)
-jvm 1    | 2001/12/06 17:44:21 | Copyright 2000, 2001 Silver Egg Technology, Inc.
-jvm 1    | 2001/12/06 17:44:21 | All rights reserved.
 jvm 1    | 2001/12/06 17:44:21 |
 jvm 1    | 2001/12/06 17:44:23 | start()]]></screen>
                                 </informalexample>
