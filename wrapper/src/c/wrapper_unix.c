@@ -24,8 +24,11 @@
  */
 
 // $Log$
-// Revision 1.1  2001/11/07 08:54:20  mortenson
-// Initial revision
+// Revision 1.2  2001/12/07 01:48:28  rybesh
+// updated unix scripts + code to make paths relative, more easily relocatable
+//
+// Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
+// no message
 //
 
 #ifndef WIN32
@@ -207,7 +210,7 @@ void wrapperExecute() {
             (void)close(pipedes[STDOUT_FILENO]);
             
             // Child process: execute the JVM.
-            execv(wrapperData->jvmCommand[0], wrapperData->jvmCommand);
+            execvp(wrapperData->jvmCommand[0], wrapperData->jvmCommand);
             
             // We reached this point...meaning we were unable to start.
             wrapperLogSI(WRAPPER_SOURCE_WRAPPER, "Unable to start JVM: %s (%d)", (char *)strerror(errno), errno);
@@ -328,10 +331,6 @@ void wrapperKillProcess() {
     wrapperProtocolClose();
 }
 
-/*******************************************************************************
- * Main function                                                               *
- *******************************************************************************/
-
 /**
  * Show usage.
  */
@@ -363,6 +362,53 @@ int writePidFile() {
 }
 #endif
 
+/**
+ * Sets the working directory to that of the current executable
+ */
+int setWorkingDir(char* path) {
+    char* realpath;
+    char* pos;
+    
+    realpath = malloc(PATH_MAX * sizeof(char));
+
+    // Get the full path and filename of this program
+    if (realpath(path, realpath) == NULL) {
+        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to get the path: %s", (char *)strerror(errno));
+        return 1;
+    }
+    
+    // The wrapperData->isDebugging flag will never be set here, so we can't really use it.
+#ifdef _DEBUG
+    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Path to executable: %s", realpath);
+#endif
+    
+    // To get the path, strip everything off after the last '\'
+    pos = strrchr(realpath, '/');
+    if (pos == NULL) {
+        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to extract dirname from: %s", realpath);
+        return 1;
+    } else {
+        // Clip the path at the position of the last slash
+        pos[0] = (char)0;
+    }
+    
+    if (chdir(realpath)) {
+        wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Unable to change working directory: %s", (char *)strerror(errno));
+        return 1;
+    }
+    
+    // The wrapperData->isDebugging flag will never be set here, so we can't really use it.
+#ifdef _DEBUG
+    wrapperLogS(WRAPPER_SOURCE_WRAPPER, "Working directory set to: %s", realpath);
+#endif
+    
+    return 0;
+}
+
+/*******************************************************************************
+ * Main function                                                               *
+ *******************************************************************************/
+
 int main(int argc, char **argv) {
     int exitStatus;
 
@@ -378,15 +424,19 @@ int main(int argc, char **argv) {
     wrapperData->exitCode = 0;
     wrapperData->restartRequested = FALSE;
     wrapperData->jvmRestarts = 0;
-           
+        
+    if (setWorkingDir()) {
+        exit(1);
+    }
+    
     if (argc != 2) {
         wrapperUsage(argv[0]);
         exit(1);
-
+        
     } else if (strcmp(argv[1],"--help") == 0) {
         wrapperUsage(argv[0]);
         exit(0);
-    
+        
     } else {
         properties = loadProperties(argv[1]);
         if (properties == NULL) {
