@@ -96,7 +96,7 @@ start() {
     fi
 }
  
-stop() {
+stopit() {
     echo "Stopping $APP_LONG_NAME..."
     getpid
     if [ "X$pid" = "X" ]
@@ -159,11 +159,11 @@ case "$1" in
         ;;
 
     'stop')
-        stop
+        stopit
         ;;
 
     'restart')
-        stop
+        stopit
         start
         ;;
 
