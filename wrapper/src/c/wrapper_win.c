@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.24  2002/11/25 08:45:36  mortenson
+ * Fix a problem where an access violation was leading to an infinite loop in the
+ * try except block.
+ *
  * Revision 1.23  2002/09/18 10:37:15  mortenson
  * Fix Bug #611024. The Wrapper would sometimes fail to start if
  * wrapper.max_failed_invocations is set to 1.
@@ -1222,7 +1226,7 @@ int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
         }
     }
 
-    return TRUE;
+    return EXCEPTION_EXECUTE_HANDLER;
 }
 
 /**
@@ -1232,7 +1236,7 @@ void wrapperUsage(char *appName) {
     printf("Usage:\n");
     printf("  %s <command> <config file> [config properties] [...]\n", appName);
     printf("\n");
-    printf("where <command> canbe one of:\n");
+    printf("where <command> can be one of:\n");
     printf("  -c   run as a console application\n");
     printf("  -i   install as an NT service\n");
     printf("  -r   remove as an NT service\n");
