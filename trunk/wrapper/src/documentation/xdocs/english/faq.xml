@@ -10,6 +10,24 @@ $Id$
     <title>FAQ</title>
     <section>
         <title>
+            The JVM exits unexpectedly when requesting a thread dump.
+        </title>
+        <para>
+            When I request a thread dump by hitting CTRL-BREAK, CTRL-\, or via the
+            API, I get the following message in the log and the JVM is restarted:
+        </para>
+        <informalexample>
+            <screen format="linespecific"><![CDATA[wrapper  | JVM exited unexpectedly.]]></screen>
+        </informalexample>
+        <para>
+            Please make sure that you have not specified the -Xrs flag when launching
+            the JVM.  This flag is useful in some environments when using Java without
+            the Wrapper.  But it compromises the Wrapper's ability to respond to the
+            the various system signals.
+        </para>
+    </section>
+    <section>
+        <title>
             My is throwing security exceptions when I run with the Wrapper.
         </title>
         <para>

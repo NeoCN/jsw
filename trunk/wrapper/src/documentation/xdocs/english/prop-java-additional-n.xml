@@ -48,5 +48,13 @@ wrapper.java.additional.2=-Dprop=TRUE
 wrapper.java.additional.3=-Dmyapp.data="../data"
 wrapper.java.additional.3.stripquotes=TRUE]]></screen>
         </informalexample>
+        <note>
+            <simpara>
+                If you specify -Xrs as an additional java parameter, the Wrapper's
+                ability to handle all system signals will be compromised.  Requesting
+                a thread dump will cause the JVM to halt suddenly and be restarted by
+                the Wrapper for example.
+            </simpara>
+        </note>
     </section>
 </chapter>
