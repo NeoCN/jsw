@@ -12,15 +12,23 @@
 
     <section>
         <title>Running the TestWrapper example application</title>
-        <para>
-            <ulink url="example.html#testwrapper-console">Running in a Console</ulink>
-        </para>
-        <para>
-            <ulink url="example.html#testwrapper-nt">Running as an NT Service</ulink>
-        </para>
-        <para>
-            <ulink url="example.html#testwrapper-unix">Running as a Linux / Solaris Service</ulink>
-        </para>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    <ulink url="example.html#testwrapper-console">Running in a Console</ulink>
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <ulink url="example.html#testwrapper-nt">Running as an NT Service</ulink>
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <ulink url="example.html#testwrapper-unix">Running as a Linux / Solaris Service</ulink>
+                </para>
+            </listitem>
+        </itemizedlist>
         <section id="testwrapper-console">
             <title>Running in a Console</title>
             <para>

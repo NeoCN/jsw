@@ -13,6 +13,11 @@
         <itemizedlist>
             <listitem>
                 <para>
+                    Added the ability to specify configuration properties from the command line.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
                     Changed the way NT services are installed so that a patched version of the Wrapper.exe file no longer needs to be created to reference the wrapper.conf file.
                 </para>
             </listitem>

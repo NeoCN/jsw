@@ -1,6 +1,7 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 2.2.5
+* Added the ability to specify configuration properties from the command line.
 * Changed the way NT services are installed so that a patched version of the
   Wrapper.exe file no longer needs to be created to reference the
   wrapper.conf file.
@@ -33,8 +34,9 @@ Java Service Wrapper Revision History.
 * Enable relative paths for Windows version.  In previous versions of Wrapper,
   it was necessary to always use absolute paths because the working directory 
   of the wrapper would be then NT System32 directory when run as a service.
-* On the windows version, the wrapper always sets the current working directory
-  to the location of the wrapper executable immediately after startup.
+* On the windows version, the wrapper always sets the current working
+  directory to the location of the wrapper executable immediately after
+  startup.
 * Improvements to the documentation / web page.
 
 2.2.2
