@@ -156,9 +156,9 @@
     </target>
     
     <!-- =================================================================== -->
-    <!-- Test Setup target (Linux)                       if="is.Linux"                     -->
+    <!-- Test Setup target (Linux)                                           -->
     <!-- =================================================================== -->
-    <target name="test-setup-linux" depends="test-setup-common">
+    <target name="test-setup-linux" depends="test-setup-common" if="is.Linux">
         <!-- Create the test specific script files -->
         
         <!-- Create a template script to make this easier -->
@@ -173,7 +173,7 @@
     </target>
     
     <!-- =================================================================== -->
-    <!-- Test Setup target (Solaris)                                                -->
+    <!-- Test Setup target (Solaris)                                         -->
     <!-- =================================================================== -->
     <target name="test-setup-solaris" depends="test-setup-common" if="is.SunOS">
         <!-- Create the test specific script files -->
