@@ -43,6 +43,12 @@ $Id$
                     to other environment variables.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a buffer overflow problem if configuration properties referenced
+                    extremely large environment variables.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

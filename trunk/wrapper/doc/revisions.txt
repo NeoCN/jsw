@@ -17,6 +17,8 @@ Java Service Wrapper Revision History.
 * Fix a problem where the values of environment variables set in the
   configuration file were not correct when those values included references
   to other environment variables.
+* Fix a buffer overflow problem if configuration properties referenced
+  extremely large environment variables.
 
 3.0.1
 * Fix a problem with the wrapper.disable_shutdown_hook.  Due to a typo in the

@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.17  2003/04/09 03:56:53  mortenson
+ * Fix a buffer overflow problem if configuration properties referenced
+ * extremely large environment variables.
+ *
  * Revision 1.16  2003/04/03 16:27:13  mortenson
  * Tabs to spaces.  No other changes.
  *
@@ -59,12 +63,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "property.h"
 
 #ifdef WIN32
 #else
 #include <strings.h>
 #endif
+
+#include "logger.h"
+#include "property.h"
 
 #define MAX_INCLUDE_DEPTH 10
 
@@ -157,9 +163,11 @@ void disposeInnerProperty(Property *property) {
 }
 
 /**
- * Parses a property value and populates any environment variables.
+ * Parses a property value and populates any environment variables.  If the expanded
+ *  environment variable would result in a string that is longer than bufferLength
+ *  the value is truncated.
  */
-void evaluateEnvironmentVariables(const char *propertyValue, char *buffer) {
+void evaluateEnvironmentVariables(const char *propertyValue, char *buffer, int bufferLength) {
     const char *in;
     char *out;
     char envName[256];
@@ -167,19 +175,23 @@ void evaluateEnvironmentVariables(const char *propertyValue, char *buffer) {
     char *start;
     char *end;
     int len;
+    int outLen;
+    int bufferAvailable;
 
 #ifdef _DEBUG
-    printf("evaluateEnvironmentVariables('%s', buffer)\n", propertyValue);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "evaluateEnvironmentVariables('%s', buffer, %d)",
+        propertyValue, bufferLength);
 #endif
 
     buffer[0] = '\0';
     in = propertyValue;
     out = buffer;
+    bufferAvailable = bufferLength - 1; /* Reserver room for the null terminator */
 
     /* Loop until we hit the end of string. */
     while (in[0] != '\0') {
 #ifdef _DEBUG
-        printf("  in='%s', out='%s'\n", in, out);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    initial='%s', buffer='%s'", propertyValue, buffer);
 #endif
 
         start = strchr(in, '%');
@@ -197,39 +209,85 @@ void evaluateEnvironmentVariables(const char *propertyValue, char *buffer) {
                 if (envValue != NULL) {
                     /* An envvar value was found. */
                     /* Copy over any text before the envvar */
-                    len = start - in;
-                    memcpy(out, in, len);
-                    out += len;
+                    outLen = start - in;
+                    if (bufferAvailable < outLen) {
+                        outLen = bufferAvailable;
+                    }
+                    if (outLen > 0) {
+                        memcpy(out, in, outLen);
+                        out += outLen;
+                        bufferAvailable -= outLen;
+                    }
+
                     /* Copy over the env value */
-                    strcpy(out, envValue);
-                    out += strlen(out);
+                    outLen = strlen(envValue);
+                    if (bufferAvailable < outLen) {
+                        outLen = bufferAvailable;
+                    }
+                    if (outLen > 0) {
+                        memcpy(out, envValue, outLen);
+                        out += outLen;
+                        bufferAvailable -= outLen;
+                    }
+
+                    /* Terminate the string */
+                    out[0] = '\0';
+
                     /* Set the new in pointer */
                     in = end + 1;
                 } else {
                     /* Not found.  So copy over the input up until the */
                     /*  second '%'.  Leave it in case it is actually the */
                     /*  start of an environment variable name */
-                    len = end - in;
-                    memcpy(out, in, len);
-                    out += len;
-                    out[0] = '\0';
+                    outLen = len = end - in;
+                    if (bufferAvailable < outLen) {
+                        outLen = bufferAvailable;
+                    }
+                    if (outLen > 0) {
+                     memcpy(out, in, outLen);
+                      out += outLen;
+                        bufferAvailable -= outLen;
+                    }
                     in += len;
+
+                    /* Terminate the string */
+                    out[0] = '\0';
                 }
             } else {
                 /* Only a single '%' char was found. Leave it as is. */
-                strcpy(out, in);
-                in += strlen(in);
-                out += strlen(out);
+                outLen = len = strlen(in);
+                if (bufferAvailable < outLen) {
+                    outLen = bufferAvailable;
+                }
+                if (outLen > 0) {
+                 memcpy(out, in, outLen);
+                  out += outLen;
+                    bufferAvailable -= outLen;
+                }
+                in += len;
+
+                /* Terminate the string */
+                out[0] = '\0';
             }
         } else {
             /* No more '%' chars in the string. Copy over the rest. */
-            strcpy(out, in);
-            in += strlen(in);
-            out += strlen(out);
+            outLen = len = strlen(in);
+            if (bufferAvailable < outLen) {
+                outLen = bufferAvailable;
+            }
+            if (outLen > 0) {
+             memcpy(out, in, outLen);
+              out += outLen;
+                bufferAvailable -= outLen;
+            }
+            in += len;
+
+            /* Terminate the string */
+            out[0] = '\0';
         }
     }
 #ifdef _DEBUG
-    printf("  final buffer='%s'\n", buffer);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  final buffer='%s'", buffer);
 #endif
 }
 
@@ -246,7 +304,7 @@ void setInnerProperty(Property *property, const char *propertyValue) {
     if (propertyValue == NULL) {
         property->value = NULL;
     } else {
-        evaluateEnvironmentVariables(propertyValue, buffer);
+        evaluateEnvironmentVariables(propertyValue, buffer, 2048);
 
         property->value = (char *)malloc(sizeof(char) * (strlen(buffer) + 1));
 
@@ -277,14 +335,14 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
     char *d;
 
 #ifdef _DEBUG
-    printf("loadPropertiesInner(props, '%s', %d)\n", filename, depth);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "loadPropertiesInner(props, '%s', %d)", filename, depth);
 #endif
 
     /* Look for the specified file. */
     if ((stream = fopen(filename, "rt")) == NULL) {
         /* Unable to open the file. */
 #ifdef _DEBUG
-        printf("Properties file not found: %s\n", filename);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Properties file not found: %s", filename);
 #endif
         return 1;
     }
@@ -334,7 +392,7 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
 
                     if (depth < MAX_INCLUDE_DEPTH) {
                         /* The filename may contain environment variables, so expand them. */
-                        evaluateEnvironmentVariables(c, expBuffer);
+                        evaluateEnvironmentVariables(c, expBuffer, 2048);
 
                         loadPropertiesInner(properties, expBuffer, depth + 1);
                     }
@@ -439,7 +497,8 @@ void addProperty(Properties *properties, const char *propertyName, const char *p
     Property *property;
 
 #ifdef _DEBUG
-    printf("addProperty(%p, '%s', '%s', %d)\n", properties, propertyName, propertyValue, finalValue);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "addProperty(%p, '%s', '%s', %d)",
+        properties, propertyName, propertyValue, finalValue);
 #endif
 
     /* See if the property already exists */
@@ -475,7 +534,8 @@ void addProperty(Properties *properties, const char *propertyName, const char *p
              *  value back out of the property as it may have had environment
              *  replacements. */
 #ifdef _DEBUG
-            printf("setEnv('%s', '%s')\n", propertyName + 4, property->value);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "setEnv('%s', '%s')",
+                propertyName + 4, property->value);
 #endif
             setEnv(propertyName + 4, property->value);
         }
@@ -551,7 +611,7 @@ void dumpProperties(Properties *properties) {
     Property *property;
     property = properties->first;
     while (property != NULL) {
-        printf("    name:%s value:%s\n", property->name, property->value);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    name:%s value:%s", property->name, property->value);
         property = property->next;
     }
 }
