@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.10  2003/02/08 15:49:59  mortenson
+ * Implemented cascading configuration files.
+ *
  * Revision 1.9  2003/02/03 06:55:26  mortenson
  * License transfer to TanukiSoftware.org
  *
@@ -38,6 +41,8 @@
 #else
 #include <strings.h>
 #endif
+
+#define MAX_INCLUDE_DEPTH 10
 
 /**
  * Private function to find a Property structure.
@@ -232,21 +237,30 @@ void setInnerProperty(Property *property, const char *propertyValue) {
     }
 }
 
-Properties* loadProperties(const char* filename) {
-    Properties *properties;
+/**
+ * Loads the contents of a file into the specified properties.
+ *  Whenever a line which starts with #include is encountered, then the rest
+ *  the line will be interpreted as a cascading include file.  If the file
+ *  does not exist, the include definition is ignored.
+ */
+int loadPropertiesInner(const char* filename, Properties* properties, int depth) {
     FILE *stream;
     char buffer[1024];
     char *c;
     char *d;
 
+#ifdef _DEBUG
+    printf("loadPropertiesInner('%s', props, %d)\n", filename, depth);
+#endif
+
     /* Look for the specified file. */
     if ((stream = fopen(filename, "rt")) == NULL) {
         /* Unable to open the file. */
-        return NULL;
+#ifdef _DEBUG
+        printf("Properties file not found: %s\n", filename);
+#endif
+        return 1;
     }
-
-    /* Create a Properties structure. */
-    properties = createProperties();
 
     /* Load in all of the properties */
     do {
@@ -257,16 +271,30 @@ Properties* loadProperties(const char* filename) {
                 *d = '\0';
             }
 
-            /* Only look at lines which contain data and do not start with a '#' */
-            if ((strlen(buffer) > 0) && (buffer[0] != '#')) {
-                /* printf("%s\n", buffer); */
+            /* Only look at lines which contain data and do not start with a '#'
+             *  If the line starts with '#include' then recurse to the include file */
+            if (strlen(buffer) > 0) {
+                if (strstr(buffer, "#include") == buffer) {
+                    /* Include file, if the file does not exist, then ignore it */
+                    /* Strip any leading whitespace */
+                    c = buffer + 8;
+                    while ((c[0] != '\0') && (c[0] == ' ')) {
+                        c++;
+                    }
 
-                /* Locate the first '=' in the line */
-                if ((d = strchr(buffer, '=')) != NULL) {
-                    /* Null terminate the first half of the line. */
-                    *d = '\0';
-                    d++;
-                    addProperty(properties, buffer, d);
+                    if (depth < MAX_INCLUDE_DEPTH) {
+                        loadPropertiesInner(c, properties, depth + 1);
+                    }
+                } else if (buffer[0] != '#') {
+                    /* printf("%s\n", buffer); */
+
+                    /* Locate the first '=' in the line */
+                    if ((d = strchr(buffer, '=')) != NULL) {
+                        /* Null terminate the first half of the line. */
+                        *d = '\0';
+                        d++;
+                        addProperty(properties, buffer, d);
+                    }
                 }
             }
         }
@@ -274,6 +302,21 @@ Properties* loadProperties(const char* filename) {
 
     /* Close the file */
     fclose(stream);
+
+    return 0;
+}
+
+Properties* loadProperties(const char* filename) {
+    Properties *properties;
+
+    /* Create a Properties structure. */
+    properties = createProperties();
+
+    if (loadPropertiesInner(filename, properties, 0)) {
+        /* The base config file could not be found so we want to return null. */
+        disposeProperties(properties);
+        return NULL;
+    }
 
     return properties;
 }

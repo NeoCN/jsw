@@ -55,6 +55,7 @@ Java Service Wrapper Revision History.
   By doing this, it makes it possible to change or add the system environment
   variables and have them take effect without having to first reboot the
   machine.
+* Implemented cascading configuration files.
 
 2.2.9
 * Added a new property, wrapperper.restart.delay, which allows the user to control
