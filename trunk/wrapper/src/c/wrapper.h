@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.51  2004/07/05 07:43:54  mortenson
+ * Fix a deadlock on solaris by being very careful that we never perform any direct
+ * logging from within a signal handler.
+ *
  * Revision 1.50  2004/06/16 15:56:29  mortenson
  * Added a new property, wrapper.anchorfile, which makes it possible to
  * cause the Wrapper to shutdown by deleting an anchor file.
@@ -219,7 +223,11 @@
                                      *  responded.  Must enter the STOPPED state
                                      *  and exit before <t> or the JVM will be killed. */
 #define WRAPPER_JSTATE_STOPPED   78 /* JVM has responed that it is stopped. */
-
+#define WRAPPER_JSTATE_KILLING   79 /* The Wrapper is about ready to kill the JVM
+                                     *  process but it must wait a few moments before
+                                     *  actually doing so.  After <t> has expired, the
+                                     *  JVM will be killed and we will enter the STOPPED
+                                     *  state. */
 
 #define FILTER_ACTION_NONE       90
 #define FILTER_ACTION_RESTART    91
@@ -402,7 +410,7 @@ extern void wrapperCleanup();
  *   WRAPPER_WSTATE_STOPPING
  *   WRAPPER_WSTATE_STOPPED
  */
-extern void wrapperReportStatus(int status, int errorCode, int waitHint);
+extern void wrapperReportStatus(int useLoggerQueue, int status, int errorCode, int waitHint);
 
 /**
  * Read and process any output from the child JVM Process.
@@ -417,10 +425,18 @@ extern int wrapperReadChildOutput();
 extern int wrapperGetProcessStatus();
 
 /**
- * Kill the JVM Process immediately and set the JVM State to
- *  WRAPPER_JSTATE_DOWN
+ * Immediately kill the JVM process and set the JVM state to
+ *  WRAPPER_JSTATE_DOWN.
  */
-extern void wrapperKillProcess();
+extern void wrapperKillProcessNow();
+
+/**
+ * Puts the Wrapper into a state where the JVM will be killed at the soonest
+ *  possible oportunity.  It is necessary to wait a moment if a final thread
+ *  dump is to be requested.  This call wll always set the JVM state to
+ *  WRAPPER_JSTATE_KILLING.
+ */
+extern void wrapperKillProcess(int useLoggerQueue);
 
 /**
  * Pauses before launching a new JVM if necessary.
@@ -454,7 +470,7 @@ extern int wrapperRunService();
 /**
  * Used to ask the state engine to shut down the JVM and Wrapper
  */
-extern void wrapperStopProcess(int exitCode);
+extern void wrapperStopProcess(int useLoggerQueue, int exitCode);
 
 /**
  * Used to ask the state engine to shut down the JVM.

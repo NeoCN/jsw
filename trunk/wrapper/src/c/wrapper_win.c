@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.78  2004/07/05 07:43:54  mortenson
+ * Fix a deadlock on solaris by being very careful that we never perform any direct
+ * logging from within a signal handler.
+ *
  * Revision 1.77  2004/07/02 08:56:14  mortenson
  * Display a propper error message if an error is encountered while killing the JVM.
  *
@@ -464,19 +468,23 @@ int wrapperConsoleHandler(int key) {
     case CTRL_CLOSE_EVENT:
         /* The user hit CTRL-C.  Can only happen when run as a console. */
         if (wrapperData->ignoreSignals) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "CTRL-C trapped, but ignored.");
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                "CTRL-C trapped, but ignored.");
         } else {
             /*  Always quit. */
             if (wrapperData->exitRequested || wrapperData->restartRequested ||
                 (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
                 (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
+                (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
                 (wrapperData->jState == WRAPPER_JSTATE_DOWN)) {
 
                 /* Pressed CTRL-C while we were already shutting down. */
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "CTRL-C trapped.  Forcing immediate shutdown.");
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    "CTRL-C trapped.  Forcing immediate shutdown.");
                 halt = TRUE;
             } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "CTRL-C trapped.  Shutting down.");
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    "CTRL-C trapped.  Shutting down.");
             }
             quit = TRUE;
         }
@@ -484,12 +492,14 @@ int wrapperConsoleHandler(int key) {
 
     case CTRL_BREAK_EVENT:
         /* The user hit CTRL-BREAK */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "CTRL-BREAK/PAUSE trapped.  Asking the JVM to dump its state.");
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            "CTRL-BREAK/PAUSE trapped.  Asking the JVM to dump its state.");
 
-        /* If the java process was launched using the same console, ie where processflags=CREATE_NEW_PROCESS_GROUP; */
-        /* then the java process will also get this message, so it can be ignored here.                             */
+        /* If the java process was launched using the same console, ie where
+         *  processflags=CREATE_NEW_PROCESS_GROUP; then the java process will
+         *  also get this message, so it can be ignored here. */
         /*
-        requestDumpJVMState();
+        requestDumpJVMState(TRUE);
         */
 
         quit = FALSE;
@@ -499,21 +509,25 @@ int wrapperConsoleHandler(int key) {
         /* Happens when the user logs off.  We should quit when run as a */
         /*  console, but stay up when run as a service. */
         if (wrapperData->isConsole) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "User logged out.  Shutting down.");
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                "User logged out.  Shutting down.");
             quit = TRUE;
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "User logged out.  Ignored.");
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
+                "User logged out.  Ignored.");
             quit = FALSE;
         }
         break;
     case CTRL_SHUTDOWN_EVENT:
         /* Happens when the machine is shutdown or rebooted.  Always quit. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Machine is shutting down.");
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            "Machine is shutting down.");
         quit = TRUE;
         break;
     default:
         /* Unknown.  Don't quit here. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Trapped unexpected console signal (%d).  Ignored.", key);
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            "Trapped unexpected console signal (%d).  Ignored.", key);
         quit = FALSE;
     }
 
@@ -522,9 +536,9 @@ int wrapperConsoleHandler(int key) {
             /* Disable the thread dump on exit feature if it is set because it
              *  should not be displayed when the user requested the immediate exit. */
             wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
-            wrapperKillProcess();
+            wrapperKillProcess(TRUE);
         } else {
-            wrapperStopProcess(0);
+            wrapperStopProcess(TRUE, 0);
         }
         /* Don't actually kill the process here.  Let the application shut itself down */
 
@@ -550,12 +564,15 @@ int wrapperConsoleHandler(int key) {
 /**
  * Send a signal to the JVM process asking it to dump its JVM state.
  */
-void requestDumpJVMState() {
+void requestDumpJVMState(int useLoggerQueue) {
     if (wrapperProcess != NULL) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Dumping JVM state.");
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Sending BREAK event to process group %ld.", wrapperProcessId);
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            "Dumping JVM state.");
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+            "Sending BREAK event to process group %ld.", wrapperProcessId);
         if ( GenerateConsoleCtrlEvent( CTRL_BREAK_EVENT, wrapperProcessId ) == 0 ) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to send BREAK event to JVM process.  Err(%ld : %s)",
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                "Unable to send BREAK event to JVM process.  Err(%ld : %s)",
                 GetLastError(), getLastErrorText());
         }
     }
@@ -870,7 +887,7 @@ void wrapperCleanup() {
  *   WRAPPER_WSTATE_STOPPING
  *   WRAPPER_WSTATE_STOPPED
  */
-void wrapperReportStatus(int status, int errorCode, int waitHint) {
+void wrapperReportStatus(int useLoggerQueue, int status, int errorCode, int waitHint) {
     int natState;
     char *natStateName;
     static DWORD dwCheckPoint = 1;
@@ -894,7 +911,7 @@ void wrapperReportStatus(int status, int errorCode, int waitHint) {
         natStateName = "SERVICE_STOPPED";
         break;
     default:
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unknown status: %d", status);
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unknown status: %d", status);
         return;
     }
 
@@ -922,13 +939,13 @@ void wrapperReportStatus(int status, int errorCode, int waitHint) {
         }
 
         if (wrapperData->isStateOutputEnabled) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                 "calling SetServiceStatus with status=%s, waitHint=%d, checkPoint=%u, errorCode=%d",
                 natStateName, waitHint, dwCheckPoint, errorCode);
         }
 
         if (!(bResult = SetServiceStatus(sshStatusHandle, &ssStatus))) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "SetServiceStatus failed");
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "SetServiceStatus failed");
         }
     }
 }
@@ -1000,7 +1017,7 @@ int wrapperReadChildOutput() {
         if (maxRead <= 0 ) {
             /* We are out of buffer space.  The buffer needs to be expanded. */
             /*
-         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                 "Expanding wrapperChildStdoutRdBuffer size from %d to %d bytes.",
                 wrapperChildStdoutRdBufferSize, wrapperChildStdoutRdBufferSize + READ_BUFFER_BLOCK_SIZE);
             */
@@ -1163,34 +1180,16 @@ int wrapperGetProcessStatus() {
 }
 
 /**
- * Kill the JVM Process immediately and set the JVM State to
- *  WRAPPER_JSTATE_DOWN
+ * Immediately kill the JVM process and set the JVM state to
+ *  WRAPPER_JSTATE_DOWN.
  */
-void wrapperKillProcess() {
+void wrapperKillProcessNow() {
     int ret;
-    DWORD startTicks;
-    DWORD nowTicks;
 
     /* Check to make sure that the JVM process is still running */
     ret = WaitForSingleObject(wrapperProcess, 0);
     if (ret == WAIT_TIMEOUT) {
         /* JVM is still up when it should have already stopped itself. */
-        if (wrapperData->requestThreadDumpOnFailedJVMExit) {
-            requestDumpJVMState();
-
-            /* Loop for 5 seconds reading all available input before actually killing
-             *  the JVM process.  This is to make sure that the JVM is given enough
-             *  time to perform the full thread dump. */
-            nowTicks = startTicks = wrapperGetTicks();
-            do {
-                if ( !wrapperReadChildOutput() )
-                {
-                    /* Sleep a moment so this loop does not eat too much CPU. */
-                    Sleep(250); /* milliseconds */
-                }
-                nowTicks = wrapperGetTicks();
-            } while ( wrapperGetTickAge( startTicks, nowTicks ) < 5 );
-        }
 
         /* The JVM process is not responding so the only choice we have is to
          *  kill it.  The TerminateProcess funtion will kill the process, but it
@@ -1224,6 +1223,32 @@ void wrapperKillProcess() {
 
     /* Close any open socket to the JVM */
     wrapperProtocolClose();
+}
+
+/**
+ * Puts the Wrapper into a state where the JVM will be killed at the soonest
+ *  possible oportunity.  It is necessary to wait a moment if a final thread
+ *  dump is to be requested.  This call wll always set the JVM state to
+ *  WRAPPER_JSTATE_KILLING.
+ */
+void wrapperKillProcess(int useLoggerQueue) {
+    int ret;
+    DWORD timeout = wrapperGetTicks();
+
+    /* Check to make sure that the JVM process is still running */
+    ret = WaitForSingleObject(wrapperProcess, 0);
+    if (ret == WAIT_TIMEOUT) {
+        /* JVM is still up when it should have already stopped itself. */
+        if (wrapperData->requestThreadDumpOnFailedJVMExit) {
+            requestDumpJVMState(useLoggerQueue);
+
+            timeout = wrapperAddToTicks(wrapperGetTicks(), 5);
+        }
+    }
+
+    wrapperData->jState = WRAPPER_JSTATE_KILLING;
+    wrapperData->jStateTimeoutTicks = timeout;
+    wrapperData->jStateTimeoutTicksSet = 1;
 }
 
 /**
@@ -1457,7 +1482,7 @@ DWORD wrapperGetTicks() {
  */
 VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
     if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "ServiceControlHandler(%d)", dwCtrlCode);
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "ServiceControlHandler(%d)", dwCtrlCode);
     }
 
     /* This thread appears to always be the same as the main thread.
@@ -1467,16 +1492,16 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
     switch(dwCtrlCode) {
     case SERVICE_CONTROL_STOP:
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_STOP");
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_STOP");
         }
 
         /* Request to stop the service. Report SERVICE_STOP_PENDING */
         /* to the service control manager before calling ServiceStop() */
         /* to avoid a "Service did not respond" error. */
-        wrapperReportStatus(WRAPPER_WSTATE_STOPPING, 0, 0);
+        wrapperReportStatus(TRUE, WRAPPER_WSTATE_STOPPING, 0, 0);
 
         /* Tell the wrapper to shutdown normally */
-        wrapperStopProcess(0);
+        wrapperStopProcess(TRUE, 0);
 
         /* To make sure that the JVM will not be restarted for any reason,
          *  start the Wrapper shutdown process as well. */
@@ -1491,7 +1516,7 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
         
     case SERVICE_CONTROL_INTERROGATE:
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_INTERROGATE");
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_INTERROGATE");
         }
 
         /* This case MUST be processed, even though we are not */
@@ -1500,13 +1525,13 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
 
     case SERVICE_CONTROL_SHUTDOWN:
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_SHUTDOWN");
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_SHUTDOWN");
         }
 
-        wrapperReportStatus(WRAPPER_WSTATE_STOPPING, 0, 0);
+        wrapperReportStatus(TRUE, WRAPPER_WSTATE_STOPPING, 0, 0);
 
         /* Tell the wrapper to shutdown normally */
-        wrapperStopProcess(0);
+        wrapperStopProcess(TRUE, 0);
 
         /* To make sure that the JVM will not be restarted for any reason,
          *  start the Wrapper shutdown process as well. */
@@ -1527,7 +1552,7 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
     /* After invocation of this function, we MUST call the SetServiceStatus */
     /* function, which is accomplished through our ReportStatus function. We */
     /* must do this even if the current status has not changed. */
-    wrapperReportStatus(wrapperData->wState, 0, 0);
+    wrapperReportStatus(TRUE, wrapperData->wState, 0, 0);
 }
 
 /**
@@ -1560,7 +1585,7 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
     /* second, we would not have to report our status to the service control manager. */
     /* For good measure, we will assign SERVICE_START_PENDING to the current service */
     /* state and inform the service control manager through our ReportStatus function. */
-    wrapperReportStatus(WRAPPER_WSTATE_STARTING, 0, 3000);
+    wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTING, 0, 3000);
 
     /* Now actually start the service */
     wrapperRunService();
@@ -1576,7 +1601,7 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
         /* Report to the service manager that the application is about to exit. */
         if (sshStatusHandle) {
             /* This will continue on an be exited normally below. */
-            wrapperReportStatus(WRAPPER_WSTATE_STOPPED, wrapperData->exitCode, 1000);
+            wrapperReportStatus(FALSE, WRAPPER_WSTATE_STOPPED, wrapperData->exitCode, 1000);
         }
     }
 

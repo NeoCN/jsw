@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.18  2004/07/05 07:43:53  mortenson
+ * Fix a deadlock on solaris by being very careful that we never perform any direct
+ * logging from within a signal handler.
+ *
  * Revision 1.17  2004/06/06 15:28:05  mortenson
  * Fix a synchronization problem in the logging code which would
  * occassionally cause the Wrapper to crash with an Access Violation.
@@ -189,7 +193,9 @@ extern int getLowLogLevel();
 extern int initLogging();
 extern void logRegisterThread( int thread_id );
 extern void log_printf( int source_id, int level, char *lpszFmt, ... );
+extern void log_printf_queue( int useQueue, int source_id, int level, char *lpszFmt, ... );
 
 extern char* getLastErrorText();
+extern void maintainLogger();
 
 #endif

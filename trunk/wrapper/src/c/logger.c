@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.44  2004/07/05 07:43:53  mortenson
+ * Fix a deadlock on solaris by being very careful that we never perform any direct
+ * logging from within a signal handler.
+ *
  * Revision 1.43  2004/06/22 03:21:47  mortenson
  * Fix a problem where is was not possible disable the wrapper log file as
  * documented in the wrapper.logfile property.  Most likely broken way back
@@ -186,6 +190,23 @@ void sendLoginfoMessage( int source_id, int level, char *szBuff );
 void writeToConsole( char *lpszFmt, ... );
 #endif
 void checkAndRollLogs( );
+
+/* Any log messages generated within signal handlers must be stored until we
+ *  have left the signal handler to avoid deadlocks in the logging code.
+ *  Messages are stored in a round robin buffer of log messages until
+ *  maintainLogger is next called.
+ * When we are inside of a signal, and thus when calling log_printf_queue,
+ *  we know that it is safe to modify the queue as needed.  But it is possible
+ *  that a signal could be fired while we are in maintainLogger, so case is
+ *  taken to make sure that volatile changes are only made in log_printf_queue.
+ */
+#define QUEUE_SIZE 10
+int queueWrapped = 0;
+int queueWriteIndex = 0;
+int queueReadIndex = 0;
+char *queueMessages[QUEUE_SIZE];
+int queueSourceIds[QUEUE_SIZE];
+int queueLevels[QUEUE_SIZE];
 
 /* Thread specific work buffers. */
 #ifdef WIN32
@@ -1118,6 +1139,134 @@ void checkAndRollLogs() {
                 free((void *)tmpLogFilePathNew);
                 tmpLogFilePathNew = NULL;
             }
+        }
+    }
+}
+
+/*
+ * Because of synchronization issues, it is not safe to immediately log messages
+ *  that are logged from within signal handlers.  This is because it is possible
+ *  that the signal was thrown while we were logging another message.
+ *
+ * To work around this, it is nessary to store such messages into a queue and
+ *  then log them later when it is safe.
+ *
+ * Messages logged from signal handlers are relatively rare so this does not
+ *  need to be all that efficient.
+ */
+void log_printf_queueInner( int source_id, int level, char *buffer ) {
+#ifdef _DEBUG
+    printf( "LOG ENQUEUE[%d]: %s\n", queueWriteIndex, buffer );
+    fflush( NULL );
+#endif
+
+    /* Clear any old buffer, only necessary starting on the second time through the queue buffers. */
+    if ( queueWrapped ) {
+        free( queueMessages[queueWriteIndex] );
+        queueMessages[queueWriteIndex] = NULL;
+    }
+
+    /* Store a reference to the buffer in the queue.  It will be freed later. */
+    queueMessages[queueWriteIndex] = buffer;
+
+    /* Store additional information about the call. */
+    queueSourceIds[queueWriteIndex] = source_id;
+    queueLevels[queueWriteIndex] = level;
+
+    /* Lastly increment and wrap the write index. */
+    queueWriteIndex++;
+    if ( queueWriteIndex >= QUEUE_SIZE ) {
+        queueWriteIndex = 0;
+        queueWrapped = 1;
+    }
+}
+
+void log_printf_queue( int useQueue, int source_id, int level, char *lpszFmt, ... ) {
+    va_list     vargs;
+    int         count;
+    char        *buffer;
+    int         bufferSize = 100;
+    int         itFit = 0;
+
+    /* Start by processing any arguments so that we can store a simple string. */
+
+    /* This is a pain to do efficiently without using a static buffer.  But
+     *  this call is only used in cases where we can not safely use such buffers.
+     *  We do not know how big a buffer we need, so loop, growing it until we get
+     *  a size that works.  The initial size will be big enough for most messages
+     *  that this function is called with, but not so big as to be any less
+     *  efficient than necessary. */
+    do {
+        buffer = malloc( sizeof( char ) * bufferSize );
+
+        /* Before we can store the string, we need to know how much space is required to do so. */
+        va_start( vargs, lpszFmt );
+#ifdef WIN32
+        count = _vsnprintf( buffer, bufferSize, lpszFmt, vargs );
+#else
+        count = vsnprintf( buffer, bufferSize, lpszFmt, vargs );
+#endif
+        va_end( vargs );
+
+        /*
+        printf( "count: %d bufferSize=%d\n", count, bufferSize );
+        fflush(NULL);
+        */
+
+        /* On UNIX, the required size will be returned if it is too small.
+         *  On Windows however, we always get -1.  Even worse, if the size
+         *  is exactly correct then the buffer will not be null terminated.
+         *  In either case, resize the buffer as best we can and retry. */
+        if ( count < 0 ) {
+            /* Not big enough, expand the buffer size and try again. */
+            bufferSize += 100;
+        } else if ( count >= bufferSize ) {
+            /* Not big enough, but we know how big it will need to be. */
+            bufferSize = count + 1;
+        } else {
+            itFit = 1;
+        }
+
+        if ( !itFit ) {
+            /* Will need to try again, so free the buffer. */
+            free( buffer );
+            buffer = NULL;
+        }
+    } while ( !itFit );
+
+    /* Now decide what to actually do with the message. */
+    if ( useQueue ) {
+        log_printf_queueInner( source_id, level, buffer );
+        /* The buffer will be freed by the queue at a later point. */
+    } else {
+        /* Use the normal logging function.  There is some extra overhead
+         *  here because the message is expanded twice, but this greatly
+         *  simplifies the code over other options and makes it much less
+         *  error prone. */
+        log_printf( source_id, level, "%s", buffer );
+        free( buffer );
+    }
+}
+
+/**
+ * Perform any required logger maintenance at regular intervals.
+ *
+ * One operation is to log any queued messages.  This must be done very
+ *  carefully as it is possible that a signal handler could be thrown at
+ *  any time as this function is being executed.
+ */
+void maintainLogger() {
+    /* Empty the queue of any logged messages. */
+    while ( queueReadIndex != queueWriteIndex ) {
+#ifdef _DEBUG
+        printf( "LOG QUEUED[%d]: %s\n", queueReadIndex, queueMessages[queueReadIndex] );
+        fflush( NULL );
+#endif
+        log_printf( queueSourceIds[queueReadIndex], queueLevels[queueReadIndex],
+            "%s", queueMessages[queueReadIndex] );
+        queueReadIndex++;
+        if ( queueReadIndex >= QUEUE_SIZE ) {
+            queueReadIndex = 0;
         }
     }
 }
