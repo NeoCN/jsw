@@ -11,6 +11,36 @@
     <title>What is the Java Service Wrapper?</title> 
 
     <section>
+        <title>Note from the Wrapper team.</title>
+        <note>
+            <para>
+                Over the past year, the Java Service Wrapper has seen a huge jump in
+                its install base.  From our logs, we see that an increasing number
+                of both large and small companies are showing interest in the Wrapper.
+            </para>
+            <para>
+                We would like to thank all of our users for the great feedback which
+                has helped us to continuously improve the Wrapper over time.
+            </para>
+            <para>
+                A large percentage of our user base is using the Wrapper to support
+                commercial applications and or commercial infrastructure.  We urge
+                all of our users to please look at the value that the Wrapper is
+                providing to your organization.  The Wrapper team develops and
+                maintains the Wrapper on a volunteer basis.  But the time and effort
+                involved is real.  Please help us to keep the Wrapper project alive,
+                free, and growing, by showing your appreciation and support for the
+                project with a <ulink url="donate.html">donation</ulink> to the team.
+            </para>
+            <para>
+                Sincerely,
+            </para>
+            <para>
+                The Java Service Wrapper team.
+            </para>
+        </note>
+    </section>
+    <section>
         <title>Introduction</title>
         <para>
             The Java Service Wrapper is an application which has evolved out of a
