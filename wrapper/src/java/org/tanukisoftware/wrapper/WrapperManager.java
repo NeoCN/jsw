@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.25  2003/11/02 20:55:05  mortenson
+// Add some javadocs.
+// Remove code that was just checked in so it can be used later if ever needed.
+//
 // Revision 1.24  2003/11/02 20:29:30  mortenson
 // Add the ability to get information about the user account which is running the
 // Wrapper as well as the user account with which the Wrapper is interacting.
@@ -566,7 +570,6 @@ public final class WrapperManager
     private static native void nativeSetConsoleTitle( byte[] titleBytes );
     private static native WrapperUser nativeGetUser();
     private static native WrapperUser nativeGetInteractiveUser();
-    private static native byte[] nativeGetLoggedOnUser();
     
     /*---------------------------------------------------------------
      * Methods
@@ -817,6 +820,17 @@ public final class WrapperManager
         }
     }
     
+    /**
+     * Returns a WrapperUser object which describes the user under which the
+     *  Wrapper is currently running.  Additional platform specific information
+     *  can be obtained by casting the object to a platform specific subclass.
+     *  WrapperWin32User, for example.
+     * <p>
+     * Currently this method will always return null on non-Windows platforms.
+     *
+     * @return An object describing the current user, or null on non-Windows
+     *         platforms.
+     */
     public static WrapperUser getUser()
     {
         WrapperUser user = null;
@@ -827,6 +841,34 @@ public final class WrapperManager
         return user;
     }
     
+    /**
+     * Returns a WrapperUser object which describes the interactive user whose
+     *  desktop is being interacted with.  When a service running on a Windows
+     *  platform has its interactive flag set, this method will return the user
+     *  who is currently logged in.  Additional platform specific information
+     *  can be obtained by casting the object to a platform specific subclass.
+     *  WrapperWin32User, for example.
+     * <p>
+     * If a user is not currently logged on then this method will return null.
+     *  User code can repeatedly call this method to detect when a user has
+     *  logged in.  To detect when a user has logged out, there are two options.
+     *  1) The user code can continue to call this method until it returns null.
+     *  2) Or if the WrapperListener method is being implemented, the
+     *     WrapperListener.controlEvent method will receive a WRAPPER_CTRL_LOGOFF_EVENT
+     *     event when the user logs out.
+     * <p>
+     * On XP systems, it is possible to switch to another account rather than
+     *  actually logging out.  In such a case, the interactive user will be
+     *  the first user that logged in.  This will also be the only user with
+     *  which the service will interact.  If other users are logged in when the
+     *  interactive user logs out, the service will not automatically switch to
+     *  another logged in user.  Rather, the next user to log in will become
+     *  the new user which the service will interact with.
+     * <p>
+     * Currently this method will always return null on non-Windows platforms.
+     *
+     * @return The current interactive user, or null.
+     */
     public static WrapperUser getInteractiveUser()
     {
         WrapperUser user = null;
@@ -835,26 +877,6 @@ public final class WrapperManager
             user = nativeGetInteractiveUser();
         }
         return user;
-    }
-    
-    public static String getLoggedOnUser()
-    {
-        if ( m_libraryOK )
-        {
-            byte[] bytes = nativeGetLoggedOnUser();
-            if ( bytes == null )
-            {
-                return null;
-            }
-            else
-            {
-                return new String( bytes );
-            }
-        }
-        else
-        {
-            return null;
-        }
     }
     
     /**
