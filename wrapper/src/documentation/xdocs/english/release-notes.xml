@@ -121,6 +121,12 @@ $Id$
                     installed.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Added a new <ulink url="prop-ping-interval.html">wrapper.ping.interval</ulink>
+                    property which lets users control the frequency that the Wrapper pings the JVM.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

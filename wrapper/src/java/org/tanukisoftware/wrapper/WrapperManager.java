@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.16  2003/09/04 05:40:08  mortenson
+// Added a new wrapper.ping.interval property which lets users control the
+// frequency that the Wrapper pings the JVM.
+//
 // Revision 1.15  2003/09/03 14:39:58  mortenson
 // Added a pair of MBean interfaces which allow the Wrapper to be controlled
 // using JMX.  See the new JMX section in the documentation for details.
@@ -1761,6 +1765,13 @@ public final class WrapperManager
                                 System.out.println( "Encountered an Illegal PingTimeout from the "
                                     + "Wrapper: " + msg );
                             }
+                            
+                            // Make sure that the so timeout is longer than the ping timeout
+                            if ( m_soTimeout < m_pingTimeout )
+                            {
+                                m_socket.setSoTimeout( m_pingTimeout );
+                            }
+                            
                             break;
                             
                         default:
