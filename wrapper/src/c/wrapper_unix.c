@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.12  2002/05/16 04:51:18  mortenson
+ * Add a debug message stating which thread lead to System.exit being called
+ *   via a call to shutdown.
+ *
  * Revision 1.11  2002/03/07 09:23:25  mortenson
  * Go through and change the style of comments that we use so that they will not
  * cause compiler errors on older unix compilers.
@@ -106,6 +110,17 @@ int wrapperGetLastError() {
 }
 
 /**
+ * Send a signal to the JVM process asking it to dump its JVM state.
+ */
+void requestDumpJVMState() {
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Dumping JVM state.");
+    if (kill(jvmPid, SIGQUIT) < 0) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                   "Could not dump JVM state: %s", (char *)strerror(errno));
+    }
+}
+
+/**
  * Handle interrupt signals (i.e. Crtl-C).
  */
 void handleInterrupt(int sig_num) {
@@ -119,11 +134,7 @@ void handleInterrupt(int sig_num) {
  */
 void handleQuit(int sig_num) {
     signal(SIGQUIT, handleInterrupt); 
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Dumping JVM state.");
-    if (kill(jvmPid, SIGQUIT) < 0) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                   "Could not dump JVM state: %s", (char *)strerror(errno));
-    }
+	requestDumpJVMState();
 }
 
 /**
@@ -371,7 +382,14 @@ void wrapperKillProcess() {
 
     /* Check to make sure that the JVM process is still running */
     if (waitpid(jvmPid, NULL, WNOHANG) == 0) {
-        /* JVM is still up.  Kill it immediately. */
+		/* JVM is still up when it should have already stopped itself. */
+		if (wrapperData->requestThreadDumpOnFailedJVMExit) {
+			requestDumpJVMState();
+
+		    usleep(1000000); /* 1 second in microseconds */
+		}
+
+        /* Kill it immediately. */
         kill(jvmPid, SIGKILL);
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM did not exit on request, terminated");
     }

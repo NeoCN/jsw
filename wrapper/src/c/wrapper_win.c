@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.17  2002/05/16 04:51:18  mortenson
+ * Add a debug message stating which thread lead to System.exit being called
+ *   via a call to shutdown.
+ *
  * Revision 1.16  2002/05/07 16:32:24  mortenson
  * the return value of setWorkingDir was not being handled correctly. (Bug #553220)
  *
@@ -293,12 +297,7 @@ int wrapperConsoleHandler(int key) {
         /* If the java process was launched using the same console, ie where processflags=CREATE_NEW_PROCESS_GROUP; */
         /* then the java process will also get this message, so it can be ignored here.                             */
         /*
-        if (wrapperProcess != NULL) {
-         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Sending BREAK event to process group %ld.", wrapperProcessId);
-            if ( GenerateConsoleCtrlEvent( CTRL_BREAK_EVENT, wrapperProcessId ) != 0 ) {
-              log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to send BREAK event to JVM process.  Err(%ld)", GetLastError());
-            }
-        }
+		requestDumpJVMState();
         */
 
         quit = FALSE;
@@ -339,6 +338,20 @@ int wrapperConsoleHandler(int key) {
 /******************************************************************************
  * Platform specific methods
  *****************************************************************************/
+
+/**
+ * Send a signal to the JVM process asking it to dump its JVM state.
+ */
+void requestDumpJVMState() {
+    if (wrapperProcess != NULL) {
+		log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Dumping JVM state.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Sending BREAK event to process group %ld.", wrapperProcessId);
+		if ( GenerateConsoleCtrlEvent( CTRL_BREAK_EVENT, wrapperProcessId ) == 0 ) {
+			log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to send BREAK event to JVM process.  Err(%ld : %s)",
+				GetLastError(), getLastErrorText(szErr, 256));
+		}
+	}
+}
 
 void wrapperBuildJavaCommand() {
     int commandLen;
@@ -592,7 +605,14 @@ void wrapperKillProcess() {
     /* Check to make sure that the JVM process is still running */
     ret = WaitForSingleObject(wrapperProcess, 0);
     if (ret == WAIT_TIMEOUT) {
-        /* JVM is still up.  Kill it immediately. */
+		/* JVM is still up when it should have already stopped itself. */
+		if (wrapperData->requestThreadDumpOnFailedJVMExit) {
+			requestDumpJVMState();
+
+	        Sleep(1000);     /* 1 second in milliseconds */
+		}
+
+        /* Kill it immediately. */
         if (TerminateProcess(wrapperProcess, 0)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Java Virtual Machine did not exit on request, terminated");
         } else {

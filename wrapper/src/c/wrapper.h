@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.11  2002/05/16 04:51:18  mortenson
+ * Add a debug message stating which thread lead to System.exit being called
+ *   via a call to shutdown.
+ *
  * Revision 1.10  2002/05/07 05:46:36  mortenson
  * Add the ability to set the priority at which the wrapper is run under NT systems.
  *
@@ -136,6 +140,7 @@ struct WrapperConfig {
     int     exitAcknowledged;       /* Non-zero if the main thread has acknowledged the exit request */
     int     restartRequested;       /* Non-zero if another thread has requested that the JVM be restarted */
     int     jvmRestarts;            /* Number of times that a JVM has been launched since the wrapper was started. */
+	int     requestThreadDumpOnFailedJVMExit; /* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
 
 #ifdef WIN32
     char    *ntServiceName;         /* Name of the NT Service */

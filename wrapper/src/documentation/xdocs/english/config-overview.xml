@@ -339,6 +339,18 @@ wrapper.app.parameter.2=conf/myconffile.conf</screen>
                             </para>
                         </glossdef>
                     </glossentry>
+                    <glossentry>
+                        <glossterm>wrapper.request_thread_dump_on_failed_jvm_exit</glossterm>
+                        <glossdef>
+                            <para>
+                                Enabling this property will tell the Wrapper to attempt to request a Thread Dump in the JVM before it is terminated in the event that the JVM does not exit when requested.  This can be useful in tracking down the reason why the JVM is not exiting.  Defaults to FALSE.
+                                <informalexample>
+                                    <simpara><emphasis>Example:</emphasis></simpara>
+                                    <screen format="linespecific">wrapper.request_thread_dump_on_failed_jvm_exit=TRUE</screen>
+                                </informalexample>
+                            </para>
+                        </glossdef>
+                    </glossentry>
                 </glosslist>
             </section>
             <section id="logging-properties">

@@ -12,6 +12,10 @@ Java Service Wrapper Revision History.
   as an NT service or console application.  The same thing can be better
   achieved on Unix systems by using "nice" in the shell script used to launch
   the Wrapper.  See the documentation for for details.
+* JVM information was not being displayed correctly when the Wrapper vative
+  library could not be loaded.
+* Added a new property to cause the wrapper to attempt to request a thread dump
+  when the JVM does not exit on request.
 
 2.2.6
 * Fix a problem where '%' characters in Java output would sometimes cause the
