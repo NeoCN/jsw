@@ -50,32 +50,27 @@
                 This method will explain how the TestWrapper application which ships
                 with the Wrapper works.
             </para>
-            <para>
-                This document will not cover the installation of the Wrapper files
-                or scripts which will be used to launch the application.  Both of
-                these subjects are covered in detail in the descriptions of the
-                first two integration methods.
-            </para>
+            <note>
+                <para>
+                    This document will not cover the installation of the Wrapper files
+                    or scripts which will be used to launch the application.  Both of
+                    these subjects are covered in detail in the descriptions of the
+                    first two integration methods.
+                </para>
+            </note>
         </section>
         <section id="detailed">
             <title>Detailed Instructions</title>
             <section>
                 <title>The Application Main Class</title>
                 <para>
-                    There are really no restrictions on what the main class of an
-                    application will look like.  The main class must register an
-                    instance of the <literal moreinfo="none">WrapperListener</literal>
-                    interface with the <literal moreinfo="none">WrapperManager</literal>
-                    class using the <literal moreinfo="none">start</literal> method as
-                    soon after the JVM has been launched as possible.
-                </para>
-                <para>
                     Before explaining the process in too much detail, we will start with
                     an example main class and then explain each of its components.  The
                     code below is a simple class which implements the
                     <literal moreinfo="none">WrapperListener</literal> interface and
                     contains a main method which instantiates the class and calls
-                    start on the <literal moreinfo="none">WrapperManager</literal>.
+                    start on the <literal moreinfo="none">WrapperManager</literal>.  Give
+                    it a brief once over, we go through it step by step below.
                 </para>
                 <informalexample>
                     <screen format="linespecific"><![CDATA[import org.tanukisoftware.wrapper.WrapperManager;
@@ -135,6 +130,8 @@ public class Main
     public int stop( int exitCode )
     {
         m_app.stop();
+        
+        return exitCode;
     }
     
     /**
@@ -148,6 +145,17 @@ public class Main
      */
     public void controlEvent( int event )
     {
+        if (WrapperManager.isControlledByNativeWrapper()) {
+            // The Wrapper will take care of this event
+        } else {
+            // We are not being controlled by the Wrapper, so
+            //  handle the event ourselves.
+            if ((event == WrapperManager.WRAPPER_CTRL_C_EVENT) ||
+                (event == WrapperManager.WRAPPER_CTRL_CLOSE_EVENT) ||
+                (event == WrapperManager.WRAPPER_CTRL_SHUTDOWN_EVENT)){
+                WrapperManager.stop(0);
+            }
+        }
     }
     
     /*---------------------------------------------------------------
@@ -177,30 +185,234 @@ public class Main
                     do nothing else.  All application initialization should be
                     performed from within the start method.
                 </para>
+                <informalexample>
+                    <screen format="linespecific"><![CDATA[    public static void main( String[] args )
+    {
+        // Start the application.  If the JVM was launched from the native
+        //  Wrapper then the application will wait for the native Wrapper to
+        //  call the application's start method.  Otherwise the start method
+        //  will be called immediately.
+        WrapperManager.start( new Main(), args );
+    }]]></screen>
+                </informalexample>
             </section>
             <section>
                 <title>Constructor</title>
                 <para>
-                    
+                    The constructor should usually be empty as it has to complete within
+                    the scope of the main method above.  In general, the rule of doing
+                    nothing until the start method has been called should be followed.
                 </para>
+                <informalexample>
+                    <screen format="linespecific"><![CDATA[    private Main()
+    {
+    }]]></screen>
+                </informalexample>
             </section>
             <section>
                 <title>WrapperListener start Method</title>
                 <para>
-                    
+                    The start method is where things start to happen.  This is called by
+                    the WrapperManager after it has established a connection with the
+                    Wrapper process.  Once the Wrapper has confirmed that the Java
+                    process has been successfully launched and that the WrapperManager
+                    class has been loaded, it will request that the user application be
+                    started by calling the WrapperListener.start method.
                 </para>
+                <para>
+                    In many ways, the start method can be thought of as replacing an
+                    application's main method.  There are some differences that you will
+                    have to keep in mind however.  The start method is called while the
+                    application is in its startup phase and the application will not be
+                    concidered to have started until the start method has returned.
+                </para>
+                <para>
+                    The Wrapper needs to be able to tell when an application has actually
+                    completed its startup in order to defer the launching of other
+                    processes which depend on the application being controlled by the
+                    Wrapper.  This is currently only an issue with the Windows version,
+                    in cases where another NT Service has the Wrapper on its list of
+                    service dependencies.   Those dependencies state that the Wrapper
+                    must be started before and stopped after the dependent service.
+                </para>
+                <para>
+                    In this first example, the start method simply calls the main method
+                    of another class.  Remember, this will only work if we know for sure
+                    that the main method will return within a few seconds.
+                </para>
+                <informalexample>
+                    <screen format="linespecific"><![CDATA[    public Integer start( String[] args )
+    {
+        MyApp.main( args );
+        
+        return null;
+    }]]></screen>
+                </informalexample>
+                <para>
+                    This next example instantiates an application's main class and then
+                    tells it to start up.
+                </para>
+                <informalexample>
+                    <screen format="linespecific"><![CDATA[    public Integer start( String[] args )
+    {
+        m_app = new MyApp( args );
+        m_app.start();
+
+        return null;
+    }]]></screen>
+                </informalexample>
+                <para>
+                    The return value of the start method gives the application a chance
+                    to abort the startup process before the application has actually
+                    been officially started.   This can be important where dependent
+                    services are concered.  If you have such concerns then you must
+                    use this integration method.  Both the WrapperSimpleApp and
+                    WrapperStartStopApp helper classes both call the application's
+                    main method in a background thread and report that the application
+                    has successfully started within a few seconds.
+                </para>
+                <para>
+                    A return value of null indicates a successful startup, where as any
+                    Integer object is used to indicate the exit code which the Wrapper
+                    should return when it quits.
+                </para>
+                <informalexample>
+                    <screen format="linespecific"><![CDATA[    public Integer start( String[] args )
+    {
+        m_app = new MyApp( args );
+        m_app.start();
+        if ( m_app.isOk() )
+        {
+            return null;
+        }
+        else
+        {
+            System.out.println( "MyApp startup failed." );
+            return new Integer( 1 );
+        }
+    }]]></screen>
+                </informalexample>
+                <para>
+                    As stated above, the Wrapper assumes that the start method returns
+                    after the application has started.  By default, the Wrapper will
+                    wait for 30 seconds for the start method to complete.  This timeout
+                    can be set using the
+                    <ulink url="prop-startup-timeout.html">wrapper.startup.timeout</ulink>
+                    property, but it is not always desirable to set that property to a
+                    large value.
+                </para>
+                <para>
+                    For applications which take a variable amount of time to start up,
+                    the Wrapper provides a way for the application to report on its
+                    progress.  At various points during the startup phase, user code
+                    can call WrapperManager.signalStarting(waitHint).  This method
+                    tells the Wrapper that startup is going well, but that additional
+                    time is required.  It can be called as many times as needed.
+                </para>
+                <informalexample>
+                    <screen format="linespecific"><![CDATA[    public Integer start( String[] args )
+    {
+        m_app = new MyApp( args );
+        
+        WrapperManager.signalStarting( 60000 );
+        // Do something that takes a while
+        
+        WrapperManager.signalStarting( 60000 );
+        // Do something else that also may take a while
+        
+        return null;
+    }]]></screen>
+                </informalexample>
             </section>
             <section>
                 <title>WrapperListener stop Method</title>
                 <para>
-                    
+                    The stop method is called by the Wrapper whenever the JVM needs
+                    to be shutdown.  It will always be called, whether a user presses
+                    CTRL-C, the application is stopped via the NT service manager or
+                    from a script, or user code calls System.exit or WrapperManager.stop.
                 </para>
+                <para>
+                    If there is some code in your application to perform a clean shutdown,
+                    it should be called from within this method, rather than having your
+                    shutdown code call WrapperManager.stop.   This will guarantee that
+                    the shutdown code is always called at the correct time.   Be aware
+                    that existing shutdown hooks will continue to work as always.
+                </para>
+                <para>
+                    The stop method is called with the exit code that the Wrapper is
+                    planning on exiting with.  You have the choice of returning this
+                    same exit code, or changing the exit code to reflect a problem
+                    while stopping the application.
+                </para>
+                <informalexample>
+                    <screen format="linespecific"><![CDATA[    public int stop( int exitCode )
+    {
+        m_app.stop();
+        
+        return exitCode;
+    }]]></screen>
+                </informalexample>
+                <para>
+                    As with the start method.  There are times when the act of stopping
+                    an application may take longer than the time available in the default
+                    stop timeout.  In such a case, you have the option of extending the
+                    stop timeout using the
+                    <ulink url="prop-shutdown-timeout.html">wrapper.shutdown.timeout</ulink>
+                    property.  Rather than changing this property, it is also possible
+                    to inform the Wrapper that more time is needed by calling the
+                    WrapperManager.signalStopping(waitHint) method.
+                </para>
+                <informalexample>
+                    <screen format="linespecific"><![CDATA[    public int stop( int exitCode )
+    {
+        WrapperManager.signalStopping( 60000 );
+        // Do some cleanup that takes a while
+                    
+        WrapperManager.signalStopping( 60000 );
+        // Do some more cleanup that takes a while
+        
+        return exitCode;
+    }]]></screen>
+                </informalexample>
             </section>
             <section>
                 <title>WrapperListener controlEvent Method</title>
                 <para>
-                    
+                    The controlEvent method is used to receive control events from the
+                    system.  These include CTRL-C on all platforms, as well as events
+                    for when the user logs off or the machine wants to shutdown, under
+                    windows.
                 </para>
+                <para>
+                    If most cases, the Wrapper will correctly handle all of these events
+                    and trigger the shutdown process.  However, it is also possible to
+                    run the Java application directly without using the Wrapper.  This
+                    can be done for testing or any number of reasons.  In this case, it
+                    is the responsibility of the Java application to handle its own
+                    lifecycle.
+                </para>
+                <para>
+                    The following example will trigger a shutdown of the JVM if the user
+                    presses CTRL-C, hits the close box, logs out, or shutsdown the machine.  But
+                    only if not controlled by the Wrapper.
+                </para>
+                <informalexample>
+                    <screen format="linespecific"><![CDATA[    public void controlEvent( int event )
+    {
+        if (WrapperManager.isControlledByNativeWrapper()) {
+            // The Wrapper will take care of this event
+        } else {
+            // We are not being controlled by the Wrapper, so
+            //  handle the event ourselves.
+            if ((event == WrapperManager.WRAPPER_CTRL_C_EVENT) ||
+                (event == WrapperManager.WRAPPER_CTRL_CLOSE_EVENT) ||
+                (event == WrapperManager.WRAPPER_CTRL_SHUTDOWN_EVENT)){
+                WrapperManager.stop(0);
+            }
+        }
+    }]]></screen>
+                </informalexample>
             </section>
         </section>
     </section>
