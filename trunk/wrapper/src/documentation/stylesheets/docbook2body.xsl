@@ -98,7 +98,7 @@
                         <td>
                             <table bgcolor="#c7d9e2" border="0" cellspacing="0" cellpadding="8">
                                 <tr valign="top">
-                                    <td align="right">
+                                    <td>
                                         <p>
                                             <b>Anonymity</b>:<br/>
                                             <font size="-2">choose whether to<br/>donate anonymously</font>
@@ -119,14 +119,14 @@
                                                     <input type="radio" name="item_number" value="102" />
                                                 </td>
                                                 <td>
-                                                    <p><i>Named on future<br/>sponsor's page</i></p>
+                                                    <p><i>Named on our <br/><a href="sponsors.html">sponsor's page</a></i></p>
                                                 </td>
                                             </tr>
                                         </table>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td align="right">
+                                    <td>
                                         <p>
                                             <b>Amount (US$)</b>:<br/>
                                             <font size="-2">enter the amount you<br/>wish to donate</font>
@@ -137,7 +137,7 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td align="right">
+                                    <td>
                                         <p>
                                             <b>Submit</b>:<br/>
                                             <font size="-2">click the image to donate</font>
@@ -151,6 +151,7 @@
                                         <input type="hidden" name="item_name" value="Java Service Wrapper"/>
                                         <input type="hidden" name="image_url" value="http://wrapper.tanukisoftware.org/paypal/WrapperLogoWhite.png"/>
                                         <input type="hidden" name="no_shipping" value="1"/>
+                                        <input type="hidden" name="cn" value="Sponsor page message."/>
                                         <input type="hidden" name="return" value="http://wrapper.tanukisoftware.org/doc/english/donate-thanks.html"/>
                                         <input type="hidden" name="cancel_return" value="http://wrapper.tanukisoftware.org/doc/english/donate.html"/>
                                         <input type="hidden" name="currency_code" value="USD"/>
@@ -164,6 +165,45 @@
             </center>
         </form>
     </xsl:template>
+    
+    <xsl:template match="donation-duke">
+        <img src="images/DonationDuke.png" width="250" height="223" align="right" hspace="5" vspace="5"/>
+    </xsl:template>
+    
+    <xsl:template match="donorlist">
+        <table border="0" cellpadding="4" cellspacing="0">
+            <tr class="donorheader">
+                <td><b>Date</b></td>
+                <td><b>Amount (US$)</b></td>
+                <td><b>Donor</b></td>
+                <td><b>Message</b></td>
+            </tr>
+            <xsl:apply-templates/>
+        </table>
+    </xsl:template>
+    
+    <xsl:template match="donorlist/donor">
+        <tr class="donor">
+            <xsl:apply-templates/>
+        </tr>
+    </xsl:template>
+    
+    <xsl:template match="donorlist/donor/date">
+        <td valign="top"><xsl:apply-templates/></td>
+    </xsl:template>
+    
+    <xsl:template match="donorlist/donor/amount">
+        <td valign="top">$<xsl:apply-templates/></td>
+    </xsl:template>
+    
+    <xsl:template match="donorlist/donor/name">
+        <td valign="top"><xsl:apply-templates/></td>
+    </xsl:template>
+    
+    <xsl:template match="donorlist/donor/message">
+        <td valign="top"><xsl:apply-templates/></td>
+    </xsl:template>
+        
     
     <xsl:template match="glossary">
         <body>
@@ -601,10 +641,6 @@
                 </tr>
             </table>
         </div>
-    </xsl:template>
-    
-    <xsl:template match="donation-duke">
-        <img src="images/DonationDuke.png" width="250" height="223" align="right" hspace="5" vspace="5"/>
     </xsl:template>
     
     <xsl:template match="link">
