@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.117  2004/10/01 02:03:06  mortenson
+ * Fix a compiler warning on Linux.
+ *
  * Revision 1.116  2004/09/30 10:24:14  mortenson
  * Change the message displayed in an invalid java argument is specified.
  *
@@ -1301,7 +1304,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                             "The value of property '%s', '%s' is not a valid argument to the jvm.  Skipping.",
                             paramBuffer, prop );
                         strings[index] = malloc(sizeof(char) * 1);
-                        sprintf(strings[index], "", propStripped);
+                        strings[index][0] = '\0';
                     } else {
                         quotable = isQuotableProperty(properties, paramBuffer);
                         sprintf(paramBuffer, "wrapper.java.additional.%d.stripquotes", i + 1);
