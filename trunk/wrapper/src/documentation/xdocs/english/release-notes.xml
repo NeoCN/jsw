@@ -92,6 +92,14 @@ $Id$
                     used.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    A Windows user reported that using forward slashes in the path the log
+                    file was failing.  Avoid this problem by always converting '/' to '\'
+                    in the <ulink url="prop-logfile.html">wrapper.logfile</ulink> property
+                    on Windows.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.0">
