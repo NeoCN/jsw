@@ -33,6 +33,9 @@
                 <listitem>
                     <ulink url="prop-console-title.html">wrapper.console.title</ulink>
                 </listitem>
+                <listitem>
+                    <ulink url="prop-single-invocation.html">wrapper.single_invocation</ulink>
+                </listitem>
             </itemizedlist>
         </section>
         <section>
