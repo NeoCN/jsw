@@ -17,6 +17,12 @@ $Id$
                     patch.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a segmentation fault on UNIX systems when the first console output
+                    from the JVM was an empty line.  Thanks to Mike Castle for finding this.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
