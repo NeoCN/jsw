@@ -60,6 +60,11 @@ Main-Class: com.myco.myapp.Main]]></screen>
             the Wrapper.  But it compromises the Wrapper's ability to respond to the
             the various system signals.
         </para>
+        <para>
+            To tell the Wrapper and thus it's JVM to ignore system signals, use the
+            <ulink url="prop-ignore-signals.html">wrapper.ignore_signals</ulink>
+            instead.  Make sure you have read the docs first.
+        </para>
     </section>
     <section>
         <title>
