@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.32  2003/03/13 15:40:42  mortenson
+ * Add the ability to set environment variables from within the configuration
+ * file or from the command line.
+ *
  * Revision 1.31  2003/02/08 14:35:40  mortenson
  * Modify the Win32 version of the Wrapper so that Environment Variables are
  * always read from the system registry when the Wrapper is run as a service.
@@ -1356,24 +1360,28 @@ void _CRTAPI1 main(int argc, char **argv) {
                 }
 
                 if (!result) {
-                    /* All 4 valid commands use the config file, so start by getting it loaded. */
-                    properties = loadProperties(argv[2]);
-                    if (properties == NULL) {
+                    /* Create a Properties structure. */
+                    properties = createProperties();
+
+                    /* All 4 valid commands accept a config file, followed by 0 or more
+                     *  command line properties.  The command line properties need to be
+                     *  loaded first, followed by the config file. */
+                    for (i = 3; i < argc; i++) {
+                        if (addPropertyPair(properties, argv[i], TRUE)) {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, 
+                                "The argument '%s' is not a valid property name-value pair.", argv[i]);
+                            result = 1;
+                        }
+                    }
+
+                    /* Now load the config file. */
+                    if (loadProperties(properties, argv[2])) {
                         /* File not found. */
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "unable to open config file. %s", argv[2]);
                         result = 1;
                     } else {
                         /* Store the config file name */
                         wrapperData->configFile = argv[2];
-
-                        /* Loop over the additional arguments and try to parse them as properties */
-                        for (i = 3; i < argc; i++) {
-                            if (addPropertyPair(properties, argv[i])) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, 
-                                    "The argument '%s' is not a valid property name-value pair.", argv[i]);
-                                result = 1;
-                            }
-                        }
 
                         if (result) {
                             /* There was a problem with the arguments */

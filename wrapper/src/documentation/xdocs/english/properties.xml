@@ -37,7 +37,7 @@
                 <ulink url="props-paths.html">Paths in Configuration Properties</ulink>
             </listitem>
             <listitem>
-                <ulink url="props-envvars.html">Environment Variable Expansion</ulink>
+                <ulink url="props-envvars.html">Environment Variables</ulink>
             </listitem>
             <listitem>
                 <ulink url="props-cascading.html">Cascading Configuration Files</ulink>

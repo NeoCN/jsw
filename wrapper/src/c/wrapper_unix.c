@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.25  2003/03/13 15:40:41  mortenson
+ * Add the ability to set environment variables from within the configuration
+ * file or from the command line.
+ *
  * Revision 1.24  2003/02/07 16:05:28  mortenson
  * Implemented feature request #676599 to enable the filtering of JVM output to
  * trigger JVM restarts or Wrapper shutdowns.
@@ -490,8 +494,22 @@ int main(int argc, char **argv) {
         exit(0);
         
     } else {
-        properties = loadProperties(argv[1]);
-        if (properties == NULL) {
+        /* Create a Properties structure. */
+        properties = createProperties();
+
+        /* The first argument is the config file, followed by 0 or more
+         *  command line properties.  The command line properties need to be
+         *  loaded first, followed by the config file. */
+        for (i = 2; i < argc; i++) {
+            if (addPropertyPair(properties, argv[i], TRUE)) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, 
+                    "The argument '%s' is not a valid property name-value pair.", argv[i]);
+                exit(1);
+            }
+        }
+
+        /* Now load the config file. */
+        if (loadProperties(properties, argv[1])) {
             /* File not found. */
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to open wrapper config file: %s", argv[1]);
             exit(1);
@@ -500,15 +518,6 @@ int main(int argc, char **argv) {
             /* Store the config file name. */
             wrapperData->configFile = argv[1];
             
-            /* Loop over the additional arguments and try to parse them as properties */
-            for (i = 2; i < argc; i++) {
-                if (addPropertyPair(properties, argv[i])) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, 
-                        "The argument '%s' is not a valid property name-value pair.", argv[i]);
-                    exit(1);
-                }
-            }
-
             /* Display the active properties */
             /*
             printf("Debug Config Properties:\n");

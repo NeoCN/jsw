@@ -23,6 +23,14 @@ $Id$
                     Fix a problem with the HP-UX release build reported by Ashish Gawarikar.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add the ability to set environment variables from within the configuration
+                    file or from the command line.  See the
+                    <ulink url="props-envvars.html">Environment Variables</ulink> section for
+                    details.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
