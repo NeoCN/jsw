@@ -751,11 +751,13 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
             <tarfileset dir="${basedir}" mode="755">
                 <include name="${releasefile}/bin/${wrapper.bin.name}"/>
                 <include name="${releasefile}/bin/${app.name}"/>
+                <include name="${releasefile}/lib/${wrapper.lib.name}"/>
             </tarfileset>
             <tarfileset dir="${basedir}">
                 <include name="${releasefile}/**"/>
                 <exclude name="${releasefile}/bin/${wrapper.bin.name}"/>
                 <exclude name="${releasefile}/bin/${app.name}"/>
+                <exclude name="${releasefile}/lib/${wrapper.lib.name}"/>
             </tarfileset>
         </tar>
         <gzip zipfile="${releasedir}.tar.gz" src="${releasedir}.tar" />
