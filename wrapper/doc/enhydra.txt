@@ -1,0 +1,194 @@
+Running the Enhydra Multiserver under Wrapper.
+
+Enhydra's has several places in the code where System.exit() is called
+so it is not completely possible to treat the Enhydra multiserver as
+a service application.
+
+The Wrapper expects that the JVM will only exit when it is asked to exit
+by the Wrapper or when the JVM has notifies the Wrapper that it is going
+to quit by calling WrapperManager.stop(exitCode).  If the JVM exits for
+any other reason, then the Wrapper will assume that it crashed and will
+this relaunch it.
+
+That being said, the first step in getting Enhydra running under Wrapper
+is to create a class which implements WrapperLister as follows.  Place this
+class in the same package as your Application class.
+
+Main.java:
+------------------------------------------------------------------------------
+package com.myco.myapp;
+import com.lutris.multiServer.MultiServer;
+import com.silveregg.wrapper.WrapperListener;
+import com.silveregg.wrapper.WrapperManager;
+
+public class Main implements WrapperListener {
+    private static Main _instance;
+    
+    /*---------------------------------------------------------------
+     * Constructors
+     *-------------------------------------------------------------*/
+    private Main() {
+    }
+    
+    /*---------------------------------------------------------------
+     * WrapperListener Methods
+     *-------------------------------------------------------------*/
+    public Integer start(String[] args) {
+        //System.out.println("Web-Based Administration Tool...");
+
+        // This startup could take a while, so tell the wrapper to be patient.
+        WrapperManager.signalStarting(45000);
+        
+        MultiServer.main(args);
+        
+        // We are almost up now, so reset the wait time
+        WrapperManager.signalStarting(2000);
+        
+        return null;
+    }
+    
+    public int stop(int exitCode) {
+        // The Multiserver does not work the way Wrapper is expecting.
+        //  As a result, we need to send a message to the native Wrapper
+        //  code so that it is not surprised when the JVM shutsdown.
+        WrapperManager.signalStopped(exitCode);
+            
+        MultiServer.shutdown();
+        // Will not get back here.
+        
+        return exitCode;
+    }
+
+    /**
+     * Called whenever the native wrapper code traps a system control signal
+     *  against the Java process.  It is up to the callback to take any 
+     *  actions necessary.  Possible values are: 
+     *    WrapperManager.WRAPPER_CTRL_C_EVENT, WRAPPER_CTRL_CLOSE_EVENT, 
+     *    WRAPPER_CTRL_LOGOFF_EVENT, or WRAPPER_CTRL_SHUTDOWN_EVENT
+     */
+    public void controlEvent(int event) {
+        if (WrapperManager.isControlledByNativeWrapper()) {
+            // This application ignores all incoming control events.  
+            //  It relies on the wrapper code to handle them.
+        } else {
+            WrapperManager.stop(0);
+        }
+    }
+
+
+    /*---------------------------------------------------------------
+     * Main Method
+     *-------------------------------------------------------------*/
+    public static void main(String[] args) {
+        WrapperManager.start(new Main(), args);
+    }
+}
+------------------------------------------------------------------------------
+
+The next step is to set up your wrapper.conf file so that the Wrapper will
+know how to launch the JVM correctly.  Please update the paths to the java
+application and your Enhydra application as appropriate.  Note that the
+Wrapper.DLL, for Windows, and libwrapper.so file, for Linix and Solaris
+platforms must be in the directory specified as the wrapper.java.library.path
+
+Normally when you launch the Multiserver, you specify a servlet.conf as a
+parameter.  That servlet.conf file is still required, however, when using
+Wrapper, you specify the conf file using the wrapper.app.parameter
+properties below.
+
+See the readme.txt file for more details.
+
+wrapper.conf:
+------------------------------------------------------------------------------
+#********************************************************************
+# Wrapper parameters
+#********************************************************************
+# Java Application
+wrapper.java.command=C:/jdk1.3/jre/bin/java
+
+# Java Main class
+wrapper.java.mainclass=com.silveregg.admintool.Main
+
+# Java Classpath (include wrapper.jar)  Add class path elements as 
+$  needed starting from 1
+wrapper.java.classpath.1=C:/FullPath/MyApp/lib/myapp.jar
+wrapper.java.classpath.2=C:/FullPath/MyApp/lib/wrapper.jar
+wrapper.java.classpath.3=C:/FullPath/MyApp/lib/enhydra.jar
+wrapper.java.classpath.4=C:/FullPath/MyApp/lib/mysql.jar
+
+# Java Library Path (location of wrapper.lib)
+wrapper.java.library.path=C:/FullPath/MyApp/lib/native/windows
+
+# Java Additional Parameters
+wrapper.java.additional.1=
+
+# Initial Java Heap Size (in MB)
+wrapper.java.initmemory=16
+
+# Maximum Java Heap Size (in MB)
+wrapper.java.maxmemory=64
+
+# Application parameters.  Add parameters as needed starting from 1
+wrapper.app.parameter.1="C:/FullPath/MyApp/conf/myappservlet.conf"
+wrapper.app.parameter.1.stripquotes=TRUE
+
+# Port which the native wrapper code will attempt to connect to
+wrapper.port=15012
+
+# Log file to use for wrapper output logging.
+wrapper.logfile=C:/FullPath/MyApp/logs/myappwrapper.log
+
+# Number of seconds to allow for the JVM to be launched and contact the 
+#  wrapper before the wrapper should assume that the JVM is hung and 
+#  terminate the JVM process.  0 means never time out.  Defaults to 
+#  30 seconds.
+wrapper.startup.timeout=30
+
+# Number of seconds to allow between the wrapper pinging the JVM and the 
+#  response.  0 means never time out.  Defaults to 30 seconds.
+wrapper.ping.timeout=30
+
+#********************************************************************
+# Wrapper Unix daemon parameters
+#********************************************************************
+# File to write process ID to
+wrapper.pidfile=/var/run/myapp.pid
+
+#********************************************************************
+# Wrapper NT Service parameters
+#********************************************************************
+# WARNING - Do not modify any of these parameters when an application
+#  using this configuration file has been installed as a service.
+#  Please uninstall the service before modifing this section.  The
+#  service can then be reinstalled.
+
+# Name of the service
+wrapper.ntservice.name=MyApp
+
+# Display name of the service
+wrapper.ntservice.displayname=My Application
+
+# Service dependencies.  Add dependencies as needed starting from 1
+wrapper.ntservice.dependency.1=
+
+# Mode in which the service is installed.  AUTO_START or DEMAND_START
+wrapper.ntservice.starttype=AUTO_START
+------------------------------------------------------------------------------
+
+You can now launch your Enhydra Application under the Wrapper by executing the
+following command:
+
+On Windows:
+    C:\FullPath\MyApp\bin\windows\Wrapper.exe -c C:\FullPath\MyApp\conf\wrapper.conf
+
+On Linux:
+    wrapper /apphome/bin/linux/wrapper /apphome/conf/wrapper/conf
+
+On Solaris:
+    wrapper /apphome/bin/solaris/wrapper /apphome/conf/wrapper/conf
+
+On Windows, you can also install or uninstall the application as an NT service
+with the following commands:
+    C:\FullPath\MyApp\bin\windows\Wrapper.exe -i C:\FullPath\MyApp\conf\wrapper.conf
+    C:\FullPath\MyApp\bin\windows\Wrapper.exe -r C:\FullPath\MyApp\conf\wrapper.conf
+
