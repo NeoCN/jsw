@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.54  2003/04/15 23:06:49  mortenson
+ * Fix a compile bug I introduced last night.
+ *
  * Revision 1.53  2003/04/15 14:17:45  mortenson
  * Clean up the code by setting all malloced variables to NULL after they are freed,
  *
@@ -1123,7 +1126,6 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         }
 
                         globfree(&g);
-                        g = NULL;
 #endif
                     } else {
                         /* Is there room for the entry? */
