@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.48  2003/09/03 02:33:38  mortenson
+ * Requested restarts no longer reset the restart count.
+ * Add new wrapper.ignore_signals property.
+ *
  * Revision 1.47  2003/08/17 08:51:35  mortenson
  * Save a little CPU by disabling console log output when the wrapper is
  * daemonized.
@@ -193,12 +197,16 @@ void requestDumpJVMState() {
 void handleInterrupt(int sig_num) {
     signal(SIGINT, handleInterrupt);
 
-    if (wrapperData->exitRequested) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Forcing immediate shutdown.");
-        wrapperKillProcess();
+    if (wrapperData->ignoreSignals) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "INT trapped, but ignored.");
     } else {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Shutting down.");
-        wrapperStopProcess(0);
+        if (wrapperData->exitRequested) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "INT trapped.  Forcing immediate shutdown.");
+            wrapperKillProcess();
+        } else {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "INT trapped.  Shutting down.");
+            wrapperStopProcess(0);
+        }
     }
 }
 
@@ -216,12 +224,16 @@ void handleQuit(int sig_num) {
 void handleTermination(int sig_num) {
     signal(SIGTERM, handleTermination); 
 
-    if (wrapperData->exitRequested) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Forcing immediate shutdown.");
-        wrapperKillProcess();
+    if (wrapperData->ignoreSignals) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "TERM trapped, but ignored.");
     } else {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Shutting down.");
-        wrapperStopProcess(0);
+        if (wrapperData->exitRequested) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "TERM trapped.  Forcing immediate shutdown.");
+            wrapperKillProcess();
+        } else {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "TERM trapped.  Shutting down.");
+            wrapperStopProcess(0);
+        }
     }
 }
 

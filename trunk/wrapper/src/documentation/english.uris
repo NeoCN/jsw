@@ -43,6 +43,7 @@ english/prop-cpu-timeout.html
 english/prop-daemonize.html
 english/prop-disable-shutdown-hook.html
 english/prop-filter-x-n.html
+english/prop-ignore-signals.html
 english/prop-java-additional-n.html
 english/prop-java-classpath-n.html
 english/prop-java-command.html

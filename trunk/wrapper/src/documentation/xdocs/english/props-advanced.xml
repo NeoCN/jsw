@@ -53,6 +53,9 @@
                 <ulink url="prop-disable-shutdown-hook.html">wrapper.disable_shutdown_hook</ulink>
             </listitem>
             <listitem>
+                <ulink url="prop-ignore-signals.html">wrapper.ignore_signals</ulink>
+            </listitem>
+            <listitem>
                 <ulink url="prop-java-pidfile.html">wrapper.java.pidfile</ulink>
             </listitem>
             <listitem>

@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.13  2003/09/03 02:33:38  mortenson
+// Requested restarts no longer reset the restart count.
+// Add new wrapper.ignore_signals property.
+//
 // Revision 1.12  2003/08/28 07:21:54  mortenson
 // Remove output to System.out in the WrapperManager.requestThreadDump()
 // method to avoid hang problems if the JVM is already hung while accessing
@@ -186,6 +190,10 @@ public final class WrapperManager
      *   pinging the server before the JVM is terminated to allow a resynch. */
     private static int m_pingTimeout = 30000;
     
+    /** Flag, set when the JVM is launched that is used to remember whether
+     *   or not system signals are supposed to be ignored. */
+    private static boolean m_ignoreSignals = false;
+    
     /** Thread which processes all communications with the native code. */
     private static Thread m_commRunner;
     private static boolean m_commRunnerStarted = false;
@@ -232,14 +240,7 @@ public final class WrapperManager
     static
     {
         // Check for the debug flag
-        if ( System.getProperty( "wrapper.debug" ) == null )
-        {
-            m_debug = false;
-        }
-        else
-        {
-            m_debug = true;
-        }
+        m_debug = getBooleanProperty( "wrapper.debug" );
         
         // Check for the jvmID
         String jvmId = System.getProperty( "wrapper.jvmid" );
@@ -381,15 +382,11 @@ public final class WrapperManager
                 throw new ExceptionInInitializerError( msg );
             }
             
+            // Check for the ignore signals flag
+            m_ignoreSignals = getBooleanProperty( "wrapper.ignore_signals" );
+            
             // If this is being run as a headless server, then a flag would have been set
-            if ( System.getProperty( "wrapper.service" ) == null )
-            {
-                m_service = false;
-            }
-            else
-            {
-                m_service = true;
-            }
+            m_service = getBooleanProperty( "wrapper.service" );
             
             // Get the cpuTimeout
             String sCPUTimeout = System.getProperty( "wrapper.cpu.timeout" );
@@ -609,8 +606,18 @@ public final class WrapperManager
     private static native void accessViolationInner();
     
     /*---------------------------------------------------------------
-     * Public Methods
+     * Methods
      *-------------------------------------------------------------*/
+    /**
+     * Returns true if the specified system property is set.
+     *
+     * @return True if the specified system property is set.
+     */
+    private static boolean getBooleanProperty( String name )
+    {
+        return ( System.getProperty( name ) != null );
+    }
+    
     /**
      * Obtain the current version of Wrapper.
      */
@@ -1304,41 +1311,58 @@ public final class WrapperManager
      */
     private static void controlEvent( int event )
     {
-        if ( m_debug )
+        String eventName;
+        boolean ignore;
+        switch( event )
         {
-            String eventName;
-            switch( event )
-            {
-            case WRAPPER_CTRL_C_EVENT:
-                eventName = "WRAPPER_CTRL_C_EVENT";
-                break;
-            case WRAPPER_CTRL_CLOSE_EVENT:
-                eventName = "WRAPPER_CTRL_CLOSE_EVENT";
-                break;
-            case WRAPPER_CTRL_LOGOFF_EVENT:
-                eventName = "WRAPPER_CTRL_LOGOFF_EVENT";
-                break;
-            case WRAPPER_CTRL_SHUTDOWN_EVENT:
-                eventName = "WRAPPER_CTRL_SHUTDOWN_EVENT";
-                break;
-            default:
-                eventName = "Unexpected event: " + event;
-                break;
-            }
-            System.out.println( "Processing control event(" + eventName + ")" );
+        case WRAPPER_CTRL_C_EVENT:
+            eventName = "WRAPPER_CTRL_C_EVENT";
+            ignore = m_ignoreSignals;
+            break;
+        case WRAPPER_CTRL_CLOSE_EVENT:
+            eventName = "WRAPPER_CTRL_CLOSE_EVENT";
+            ignore = m_ignoreSignals;
+            break;
+        case WRAPPER_CTRL_LOGOFF_EVENT:
+            eventName = "WRAPPER_CTRL_LOGOFF_EVENT";
+            ignore = false;
+            break;
+        case WRAPPER_CTRL_SHUTDOWN_EVENT:
+            eventName = "WRAPPER_CTRL_SHUTDOWN_EVENT";
+            ignore = false;
+            break;
+        default:
+            eventName = "Unexpected event: " + event;
+            ignore = false;
+            break;
         }
         
-        // This is user code, so don't trust it.
-        if ( m_listener != null )
+        if ( ignore )
         {
-            try
+            if ( m_debug )
             {
-                m_listener.controlEvent( event );
+                System.out.println( "Ignoring control event(" + eventName + ")" );
             }
-            catch ( Throwable t )
+        }
+        else
+        {
+            if ( m_debug )
             {
-                System.out.println( "Error in WrapperListener.controlEvent callback.  " + t );
-                t.printStackTrace();
+                System.out.println( "Processing control event(" + eventName + ")" );
+            }
+            
+            // This is user code, so don't trust it.
+            if ( m_listener != null )
+            {
+                try
+                {
+                    m_listener.controlEvent( event );
+                }
+                catch ( Throwable t )
+                {
+                    System.out.println( "Error in WrapperListener.controlEvent callback.  " + t );
+                    t.printStackTrace();
+                }
             }
         }
     }
