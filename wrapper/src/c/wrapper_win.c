@@ -24,6 +24,10 @@
  */
 
 // $Log$
+// Revision 1.9  2002/02/02 16:02:26  spocke
+// re-enabled the unregisterSyslogMessageFile it's now executed when
+// a service is removed.
+//
 // Revision 1.8  2002/01/28 19:08:08  spocke
 // Modified the NT Service Description support so that it doesn't insert
 // registry value when the string is empty (default value).
@@ -103,7 +107,6 @@ char wrapperClasspathSeparator = ';';
  * exits the application after running shutdown code.
  */
 void appExit(int exitCode) {
-	unregisterSyslogMessageFile();
 	exit(exitCode);
 }
 
@@ -904,6 +907,10 @@ int wrapperRemove(char *appName, char *configFile) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenSCManager failed - %s", getLastErrorText(szErr,256));
         result = 1;
     }
+
+	// Remove message file registration on service remove
+	if( result == 0 )
+		unregisterSyslogMessageFile( );
 
     return result;
 }
