@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.57  2004/01/09 18:32:48  mortenson
+ * Fix some code that had not yet been converted to using ticks.
+ *
  * Revision 1.56  2004/01/09 18:22:41  mortenson
  * The code timing the thread dump before a shutdown was still based on the system
  * time, changed over to ticks.  Also extended the time from 3 to 5 seconds.
@@ -631,7 +634,8 @@ void wrapperKillProcess() {
     }
 
     wrapperData->jState = WRAPPER_JSTATE_DOWN;
-    wrapperData->jStateTimeout = 0;
+    wrapperData->jStateTimeoutTicks = 0;
+    wrapperData->jStateTimeoutTicksSet = 0;
     jvmPid = -1;
 
     /* Remove java pid file if it was registered and created by this process. */
@@ -769,15 +773,16 @@ int main(int argc, char **argv) {
     wrapperData->isConsole = TRUE;
     wrapperData->wState = WRAPPER_WSTATE_STARTING;
     wrapperData->jState = WRAPPER_JSTATE_DOWN;
-    wrapperData->jStateTimeout = 0;
-    wrapperData->lastPingTime = 0;
+    wrapperData->jStateTimeoutTicks = 0;
+    wrapperData->jStateTimeoutTicksSet = 0;
+    wrapperData->lastPingTicks = wrapperGetTicks();
     wrapperData->jvmCommand = NULL;
     wrapperData->exitRequested = FALSE;
     wrapperData->exitAcknowledged = FALSE;
     wrapperData->exitCode = 0;
     wrapperData->restartRequested = FALSE;
     wrapperData->jvmRestarts = 0;
-    wrapperData->jvmLaunchTime = time(NULL);
+    wrapperData->jvmLaunchTicks = wrapperGetTicks();
     wrapperData->failedInvocationCount = 0;
         
     wrapperInitializeLogging();
