@@ -1,7 +1,7 @@
-package com.silveregg.wrapper.resources;
+package org.tanukisoftware.wrapper.resources;
 
 /*
- * Copyright (c) 2001 Silver Egg Technology
+ * Copyright (c) 1999, 2003 TanukiSoftware.org
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -26,11 +26,13 @@ package com.silveregg.wrapper.resources;
  */
 
 // $Log$
-// Revision 1.1  2001/11/07 08:54:20  mortenson
-// Initial revision
+// Revision 1.1  2003/02/03 06:55:29  mortenson
+// License transfer to TanukiSoftware.org
 //
 
-import java.util.*;
+import java.util.Hashtable;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
 import java.text.MessageFormat;
 import com.sun.image.codec.jpeg.JPEGCodec;
 import com.sun.image.codec.jpeg.JPEGImageDecoder;
@@ -39,7 +41,6 @@ import java.io.InputStream;
 import java.io.IOException;
 
 /**
- *
  * Some helper functions for handling i18n issues. One instance of this class
  * should be created for each resource.<P>
  *
@@ -63,53 +64,62 @@ import java.io.IOException;
  * message is logged to the debug channel for this class.
  *
  */
-public class ResourceManager {
-    private static Hashtable _resources = new Hashtable();
+public class ResourceManager
+{
+    private static Hashtable m_resources = new Hashtable();
     
     /**
      * Whenever the Default Locale of the JVM is changed, then any existing
      *	resource bundles will need to update their values.  The
      *	_classRefreshCounter static variable gets updated whenever a refresh
-     *	is done.  The _refreshCounter variable then is used to tell whether
+     *	is done.  The m_refreshCounter variable then is used to tell whether
      *	an individual ResourceManager is up to date or not.
      */
-    private int _refreshCounter;
-    private static int _staticRefreshCounter = 0;
+    private int m_refreshCounter;
+    private static int m_staticRefreshCounter = 0;
     
     /**
      * The ResourceBundle for this locale.
      */
-    private ResourceBundle _bundle;
-    private String         _bundleName;
+    private ResourceBundle m_bundle;
+    private String         m_bundleName;
     
     /**
      * Private Constructor.
      */
-    private ResourceManager(String resourceName) {
+    private ResourceManager( String resourceName )
+    {
         // Resolve the bundle name based on this class so that it will work correctly with obfuscators.
         String className = this.getClass().getName();
         // Strip off the class name at the end, keeping the ending '.'
-        int pos = className.lastIndexOf('.');
-        if (pos > 0) {
-            _bundleName = className.substring(0, pos + 1);
-        } else {
-            _bundleName = "";
+        int pos = className.lastIndexOf( '.' );
+        if ( pos > 0 )
+        {
+            m_bundleName = className.substring( 0, pos + 1 );
+        }
+        else
+        {
+            m_bundleName = "";
         }
         
-        _bundleName += resourceName;
+        m_bundleName += resourceName;
         
         // Now load the bundle for the current Locale
         refreshBundle();
     }
     
-    private void refreshBundle() {
-        try {
-            _bundle = ResourceBundle.getBundle(_bundleName);
-        } catch (MissingResourceException e) {
-            System.out.println(e);
+    private void refreshBundle()
+    {
+        try
+        {
+            m_bundle = ResourceBundle.getBundle( m_bundleName );
+        }
+        catch ( MissingResourceException e )
+        {
+            System.out.println( e );
         }
         
-        _refreshCounter = _staticRefreshCounter;
+        m_refreshCounter = m_staticRefreshCounter;
     }
     
     /**
@@ -117,8 +127,9 @@ public class ResourceManager {
      * An instance of the ResourceManager class is created the first 
      * time the method is called.
      */
-    public static ResourceManager getResourceManager() {
-        return getResourceManager(null);
+    public static ResourceManager getResourceManager()
+    {
+        return getResourceManager( null );
     }
     
     /**
@@ -128,14 +139,17 @@ public class ResourceManager {
      *
      * @param resourceName  The name of the desired resource
      */
-    public static synchronized ResourceManager getResourceManager(String resourceName) {
-        if (resourceName == null) {
+    public static synchronized ResourceManager getResourceManager( String resourceName )
+    {
+        if ( resourceName == null )
+        {
             resourceName = "resource";
         }
-        ResourceManager resource = (ResourceManager)_resources.get(resourceName);
-        if (resource == null) {
-            resource = new ResourceManager(resourceName);
-            _resources.put(resourceName, resource);
+        ResourceManager resource = (ResourceManager)m_resources.get( resourceName );
+        if ( resource == null )
+        {
+            resource = new ResourceManager( resourceName );
+            m_resources.put( resourceName, resource );
         }
         return resource;
     }
@@ -144,30 +158,42 @@ public class ResourceManager {
      * Clears the resource manager's cache of bundles (this should be called 
      * if the default locale for the application changes).
      */
-    public static synchronized void refresh() {
-        _resources = new Hashtable();
-        _staticRefreshCounter++;
+    public static synchronized void refresh()
+    {
+        m_resources = new Hashtable();
+        m_staticRefreshCounter++;
     }
     
-    private String getString(String key) {
+    private String getString( String key )
+    {
         // Make sure that the ResourceManager is up to date in a thread safe way
-        synchronized(this) {
-            if (_refreshCounter != _staticRefreshCounter) {
+        synchronized(this)
+        {
+            if ( m_refreshCounter != m_staticRefreshCounter )
+            {
                 refreshBundle();
             }
         }
         
         String msg;
-        if (_bundle == null) {
+        if ( m_bundle == null )
+        {
             msg = key;
-        } else {
-            try {
-                msg = _bundle.getString(key);
-            } catch (MissingResourceException ex) {
+        }
+        else
+        {
+            try
+            {
+                msg = m_bundle.getString( key );
+            }
+            catch ( MissingResourceException ex )
+            {
                 msg = key;
-                System.out.println(key + " is missing from resource bundle \"" + _bundleName+"\"");
+                System.out.println( key + " is missing from resource bundle \"" + m_bundleName
+                    + "\"" );
             }
         }
+        
         return msg;
     }
 
@@ -176,14 +202,20 @@ public class ResourceManager {
      *
      * @param filename The name of the file containing the desired image
      */
-    public BufferedImage getBufferedImage(String filename) {
+    public BufferedImage getBufferedImage( String filename )
+    {
         BufferedImage image = null;
-        InputStream is = getClass().getResourceAsStream(filename);
-        if (is != null) {
-            try {
-                JPEGImageDecoder decoder = JPEGCodec.createJPEGDecoder(is);
+        InputStream is = getClass().getResourceAsStream( filename );
+        if ( is != null )
+        {
+            try
+            {
+                JPEGImageDecoder decoder = JPEGCodec.createJPEGDecoder( is );
                 image = decoder.decodeAsBufferedImage();
-            } catch (IOException e) {}
+            }
+            catch ( IOException e )
+            {
+            }
         }
         return image;
     }
@@ -194,8 +226,9 @@ public class ResourceManager {
      * @param key           The string that is the key to the translated message
      *
      */
-    public String format(String key) {
-        return getString(key);
+    public String format( String key )
+    {
+        return getString( key );
     }
     
     /**
@@ -206,8 +239,9 @@ public class ResourceManager {
      * @param o0            The param passed to format replaces {0}
      *
      */
-    public String format(String pattern, Object o0) {
-        return MessageFormat.format(getString(pattern), new Object[] {o0});
+    public String format( String pattern, Object o0 )
+    {
+        return MessageFormat.format( getString( pattern ), new Object[] { o0 } );
     }
 
    /**
@@ -219,8 +253,9 @@ public class ResourceManager {
      * @param o1            The param passed to format replaces {1}
      *
      */
-    public String format(String pattern, Object o0, Object o1) {
-        return MessageFormat.format(getString(pattern), new Object[] {o0,o1});
+    public String format( String pattern, Object o0, Object o1 )
+    {
+        return MessageFormat.format( getString( pattern ), new Object[] { o0,o1 } );
     }
 
    /**
@@ -233,8 +268,9 @@ public class ResourceManager {
      * @param o2            The param passed to format replaces {2}
      *
      */
-    public String format(String pattern, Object o0, Object o1, Object o2) {
-        return MessageFormat.format(getString(pattern), new Object[] {o0,o1,o2});
+    public String format( String pattern, Object o0, Object o1, Object o2 )
+    {
+        return MessageFormat.format( getString( pattern ), new Object[] { o0,o1,o2 } );
     }
 
    /**
@@ -248,8 +284,9 @@ public class ResourceManager {
      * @param o3            The param passed to format replaces {3}
      *
      */
-    public String format(String pattern, Object o0, Object o1, Object o2, Object o3) {
-        return MessageFormat.format(getString(pattern), new Object[] {o0,o1,o2,o3});
+    public String format( String pattern, Object o0, Object o1, Object o2, Object o3 )
+    {
+        return MessageFormat.format( getString( pattern ), new Object[] { o0,o1,o2,o3 } );
     }
 
     // add more if you need them...

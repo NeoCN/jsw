@@ -18,8 +18,8 @@ Main.java:
 ------------------------------------------------------------------------------
 package com.myco.myapp;
 import com.lutris.multiServer.MultiServer;
-import com.silveregg.wrapper.WrapperListener;
-import com.silveregg.wrapper.WrapperManager;
+import org.tanukisoftware.wrapper.WrapperListener;
+import org.tanukisoftware.wrapper.WrapperManager;
 
 public class Main implements WrapperListener {
     private static Main _instance;
@@ -107,7 +107,7 @@ wrapper.conf:
 wrapper.java.command=C:/jdk1.3/jre/bin/java
 
 # Java Main class
-wrapper.java.mainclass=com.silveregg.admintool.Main
+wrapper.java.mainclass=org.tanukisoftware.admintool.Main
 
 # Java Classpath (include wrapper.jar)  Add class path elements as 
 $  needed starting from 1

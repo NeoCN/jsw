@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001 Silver Egg Technology
+ * Copyright (c) 1999, 2003 TanukiSoftware.org
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -23,33 +23,8 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
- * Revision 1.8  2003/01/28 09:25:47  mortenson
- * Added support for building the wrapper on AIX and HPUX systems.  Thanks for
- * the patches involved go out to Ashish Gawarikar and William Lee.
- *
- * Revision 1.7  2002/10/24 04:48:43  mortenson
- * Fixed a problem where the wrapper.conf was being open with both read and
- * write locks when a read lock is all that is needed.
- *
- * Revision 1.6  2002/10/16 14:47:32  mortenson
- * Add support for environment variable evaluation in configuration file.
- *
- * Revision 1.5  2002/03/07 09:23:25  mortenson
- * Go through and change the style of comments that we use so that they will not
- * cause compiler errors on older unix compilers.
- *
- * Revision 1.4  2002/01/27 16:57:29  mortenson
- * Fixed a compiler warning.
- *
- * Revision 1.3  2002/01/27 14:58:27  spocke
- * Fixed bug issue when reading Windows config files in Unix.
- * Control characters like CR was not handled.
- *
- * Revision 1.2  2002/01/10 08:19:37  mortenson
- * Added the ability to override properties from the command line.
- *
- * Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
- * no message
+ * Revision 1.9  2003/02/03 06:55:26  mortenson
+ * License transfer to TanukiSoftware.org
  *
  */
 

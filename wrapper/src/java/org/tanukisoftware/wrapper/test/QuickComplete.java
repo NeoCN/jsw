@@ -1,7 +1,7 @@
-package com.silveregg.wrapper.test;
+package org.tanukisoftware.wrapper.test;
 
 /*
- * Copyright (c) 2001 Silver Egg Technology
+ * Copyright (c) 1999, 2003 TanukiSoftware.org
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -25,43 +25,25 @@ package com.silveregg.wrapper.test;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import java.io.FileWriter;
-import java.io.IOException;
-
 // $Log$
-// Revision 1.1  2002/08/22 13:38:56  mortenson
-// Add a test to enable performace testing of Java output logging.
-//
-// Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
-// no message
+// Revision 1.1  2003/02/03 06:55:29  mortenson
+// License transfer to TanukiSoftware.org
 //
 
-public class OutputLoader {
+/**
+ *
+ *
+ * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @version $Revision$
+ */
+public class QuickComplete {
     /*---------------------------------------------------------------
      * Main Method
      *-------------------------------------------------------------*/
     public static void main(String[] args) {
-        System.out.println("Start outputting lots of data.");
+        System.out.println("Quick Complete Running...");
         
-        long start = System.currentTimeMillis();
-        long now;
-        int count = 0;
-        while ((now = System.currentTimeMillis()) < start + 20000) {
-            System.out.println("Testing line Out #" + (++count));
-            System.err.println("Testing line Err #" + (++count));
-        }
-        
-        System.out.println("Printed " + count + " lines of output in 20 seconds");
-        
-        // Write the output to a file as well, so we can see the results
-        //  when output is disabled.
-        try {
-            FileWriter fw = new FileWriter("OutputLoader.log", true);
-            fw.write("Printed " + count + " lines of output in 20 seconds\n");
-            fw.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        System.out.println("Quick Complete Done...");
     }
 }
 

@@ -1,7 +1,7 @@
-package com.silveregg.wrapper.test;
+package org.tanukisoftware.wrapper.test;
 
 /*
- * Copyright (c) 2001 Silver Egg Technology
+ * Copyright (c) 1999, 2003 TanukiSoftware.org
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -26,29 +26,30 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
-// Revision 1.1  2002/03/29 06:50:24  mortenson
-// Fix Bug #531880 involving percent characters in JVM output.
-//
-// Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
-// no message
+// Revision 1.1  2003/02/03 06:55:29  mortenson
+// License transfer to TanukiSoftware.org
 //
 
 /**
- * Tests Bug #531880 where % characters in the text output were causing
- *  the wrapper to crash.
+ *
+ *
+ * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @version $Revision$
  */
-public class PercentOutput {
+public class NoReturn {
     /*---------------------------------------------------------------
      * Main Method
      *-------------------------------------------------------------*/
     public static void main(String[] args) {
-        System.out.println("Starting Test...");
-        System.out.println("%");
-        System.out.println("%%");
-        System.out.println("%s");
-        System.out.println("%d");
-        System.out.println("\\%s%%");
-        System.out.println("Test Complete...");
+        System.out.println("Main starting loop that will not return");
+        
+        while(true) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+            }
+            System.out.println("NoReturn.main() running...");
+        }
     }
 }
 

@@ -149,7 +149,7 @@ wrapper.java.additional.4=-Djava.io.tmpdir="../temp"]]></programlisting>
                 above, this is org.apache.catalina.startup.Bootstrap.  However we will
                 be relying on a helper class to control the life cycle of Tomcat.  Set
                 the main class as follows:
-                <programlisting format="linespecific"><![CDATA[wrapper.java.mainclass=com.silveregg.wrapper.WrapperStartStopApp]]></programlisting>
+                <programlisting format="linespecific"><![CDATA[wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperStartStopApp]]></programlisting>
                 The WrapperStartStopApp still needs to be told how to start and stop
                 Tomcat.  This is done by passing parameters to the class when it is
                 started.  Set the application parameters as follows:

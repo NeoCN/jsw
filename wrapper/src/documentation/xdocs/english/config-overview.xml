@@ -201,7 +201,7 @@
                             <para>
                                 Class to execute when the wrapper starts the application.  If your
                                 application implements WrapperListener, then this will be that main
-                                class.  Otherwise, this should be com.silveregg.wrapper.WrapperSimpleApp
+                                class.  Otherwise, this should be org.tanukisoftware.wrapper.WrapperSimpleApp
                                 Then your main class will be listed as the first application
                                 parameter below.
                                 <informalexample>
@@ -210,7 +210,7 @@
                                 </informalexample>
                                 <informalexample>
                                     <simpara><emphasis>Example (WrapperSimpleApp case):</emphasis></simpara>
-                                    <screen format="linespecific"><![CDATA[wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp]]></screen>
+                                    <screen format="linespecific"><![CDATA[wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp]]></screen>
                                 </informalexample>
                             </para>
                         </glossdef>
@@ -335,7 +335,7 @@ wrapper.java.additional.3.stripquotes=TRUE]]></screen>
                                 up from 1.  There can be no missing numbers.
                             </para>
                             <para>
-                                When the value of wrapper.java.mainclass is com.silveregg.wrapper.WrapperSimpleApp,
+                                When the value of wrapper.java.mainclass is org.tanukisoftware.wrapper.WrapperSimpleApp,
                                 the first parameter to the application must be the name of the
                                 class which contains your main method.  All other parameters are
                                 then passed to your application's main method in order.
@@ -349,7 +349,7 @@ wrapper.java.additional.3.stripquotes=TRUE]]></screen>
                                 to leave them alone.
                                 <informalexample>
                                     <simpara><emphasis>Example:</emphasis></simpara>
-                                    <screen format="linespecific"><![CDATA[wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp
+                                    <screen format="linespecific"><![CDATA[wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp
 wrapper.app.parameter.1=com.widgetsrus.MyAppMain
 wrapper.app.parameter.2=-d
 wrapper.app.parameter.3=-c"../conf/myapp.conf"

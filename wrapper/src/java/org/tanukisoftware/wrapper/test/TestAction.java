@@ -1,7 +1,7 @@
-package com.silveregg.wrapper.test;
+package org.tanukisoftware.wrapper.test;
 
 /*
- * Copyright (c) 2001 Silver Egg Technology
+ * Copyright (c) 1999, 2003 TanukiSoftware.org
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -26,29 +26,22 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
-// Revision 1.4  2003/01/20 03:21:08  mortenson
-// Add limited support for java 1.2.x
+// Revision 1.1  2003/02/03 06:55:29  mortenson
+// License transfer to TanukiSoftware.org
 //
-// Revision 1.3  2002/11/06 05:44:51  mortenson
-// Add support for invoking a thread dump from a method call within the JVM.
-//
-// Revision 1.2  2002/05/24 00:44:47  mortenson
-// Show an error message if an unknown action is passed to the test.
-//
-// Revision 1.1  2002/05/22 02:39:03  mortenson
-// Rename MainConsole.java to TestAction.java.
-// Added Windows/Unix scripts to run the test in the test directory.
-// Fixed actions that were not working.
-//
-// Revision 1.1  2002/05/21 18:39:41  spocke
-// Initial commit of console version of the AWT Test Application.
-
-import com.silveregg.wrapper.WrapperManager;
-import com.silveregg.wrapper.WrapperListener;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+import org.tanukisoftware.wrapper.WrapperManager;
+import org.tanukisoftware.wrapper.WrapperListener;
+
+/**
+ *
+ *
+ * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @version $Revision$
+ */
 public class TestAction implements WrapperListener {
     /**************************************************************************
      * Constructors

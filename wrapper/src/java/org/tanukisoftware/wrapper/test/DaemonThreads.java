@@ -1,7 +1,7 @@
-package com.silveregg.wrapper.test;
+package org.tanukisoftware.wrapper.test;
 
 /*
- * Copyright (c) 2001 Silver Egg Technology
+ * Copyright (c) 1999, 2003 TanukiSoftware.org
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -26,10 +26,16 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
-// Revision 1.1  2001/11/07 08:54:20  mortenson
-// Initial revision
+// Revision 1.1  2003/02/03 06:55:29  mortenson
+// License transfer to TanukiSoftware.org
 //
 
+/**
+ *
+ *
+ * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @version $Revision$
+ */
 public class DaemonThreads implements Runnable {
     /*---------------------------------------------------------------
      * Runnable Method

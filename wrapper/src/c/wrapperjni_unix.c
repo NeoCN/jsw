@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001 Silver Egg Technology
+ * Copyright (c) 1999, 2003 TanukiSoftware.org
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -22,24 +22,9 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  *
- *
  * $Log$
- * Revision 1.4  2002/11/06 09:03:54  mortenson
- * Add support for invoking a thread dump from a method call within the JVM.
- *
- * Revision 1.3  2002/03/07 09:23:25  mortenson
- * Go through and change the style of comments that we use so that they will not
- * cause compiler errors on older unix compilers.
- *
- * Revision 1.2  2001/11/08 04:22:28  mortenson
- * Had been having a problem with the windows build where the WIN32
- * symbol was not defined sometimes.  Figured out that that was the
- * cause of a strange build problem enabling me to remove the
- * workaround code.  wrapperjni_win.c will now fail to build if the symbol
- * is not defined.
- *
- * Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
- * no message
+ * Revision 1.5  2003/02/03 06:55:27  mortenson
+ * License transfer to TanukiSoftware.org
  *
  */
 
@@ -60,7 +45,7 @@ static pid_t wrapperProcessId = -1;
  */
 void handleInterrupt(int sig_num) {
     signal(SIGINT, handleInterrupt);
-    wrapperJNIHandleSignal(com_silveregg_wrapper_WrapperManager_WRAPPER_CTRL_C_EVENT);
+    wrapperJNIHandleSignal(org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_C_EVENT);
 }
 
 /**
@@ -68,16 +53,16 @@ void handleInterrupt(int sig_num) {
  */
 void handleTermination(int sig_num) {
     signal(SIGTERM, handleTermination); 
-    wrapperJNIHandleSignal(com_silveregg_wrapper_WrapperManager_WRAPPER_CTRL_SHUTDOWN_EVENT);
+    wrapperJNIHandleSignal(org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_SHUTDOWN_EVENT);
 }
 
 /*
- * Class:     com_silveregg_wrapper_WrapperManager
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeInit
  * Signature: (Z)V
  */
 JNIEXPORT void JNICALL
-Java_com_silveregg_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass clazz, jboolean debugging) {
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass clazz, jboolean debugging) {
     wrapperJNIDebugging = debugging;
 
     if (wrapperJNIDebugging) {
@@ -95,12 +80,12 @@ Java_com_silveregg_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass clazz, 
 }
 
 /*
- * Class:     com_silveregg_wrapper_WrapperManager
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeRequestThreadGroup
  * Signature: ()V
  */
 JNIEXPORT void JNICALL
-Java_com_silveregg_wrapper_WrapperManager_nativeRequestThreadDump(JNIEnv *env, jclass clazz) {
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump(JNIEnv *env, jclass clazz) {
     if (wrapperJNIDebugging) {
         printf("Sending SIGQUIT event to process group %d.\n", wrapperProcessId);
         fflush(NULL);

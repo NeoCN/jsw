@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001 Silver Egg Technology
+ * Copyright (c) 1999, 2003 TanukiSoftware.org
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -22,93 +22,9 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  *
- *
  * $Log$
- * Revision 1.23  2003/01/20 09:35:50  mortenson
- * Added a new wrapper.daemonize property which, when set, will form the wrapper
- * process to be a detached non-session group leader.
- * Patch by Rajiv Subrahmanyam
- *
- * Revision 1.22  2003/01/20 06:26:33  mortenson
- * Make it possible to create a pid file on all unix platforms.
- * By default they are only used by sh files however.
- *
- * Revision 1.21  2002/12/06 18:48:39  mortenson
- * Add a property, wrapper.ntservice.interactive, which makes it possible to
- * control whether or not the Java process can gain access to the desktop while
- * it is running as an NT service.
- *
- * Revision 1.20  2002/12/04 06:28:38  mortenson
- * Add the ability to specify an account name and password when installing an
- * NT service.
- *
- * Revision 1.19  2002/10/10 03:20:09  mortenson
- * Fix a problem where the Wrapper would not respond to exit requests while
- * pausing between JVM invocations.
- *
- * Revision 1.18  2002/09/17 13:16:22  mortenson
- * Added a property to control the delay between JVM invocations.
- *
- * Revision 1.17  2002/09/10 16:17:26  mortenson
- * Get rid of tabs in files.  No other changes.
- *
- * Revision 1.16  2002/09/09 17:19:46  mortenson
- * Add ability to log to specific log levels from within the Wrapper.
- *
- * Revision 1.15  2002/08/11 05:32:44  mortenson
- * Make it possible for the user to configure the restart count and time via
- * the wrapper.max_failed_invocations and wrapper.successful_invocation_time
- * properties.  It was always 5 restarts within 30 seconds.
- * Added the ability to configure the JVM exit timeout via the
- * wrapper.jvm_exit.timeout property.  It was always 5.
- *
- * Revision 1.14  2002/07/19 02:06:12  mortenson
- * Added a new property: wrapper.cpu.timeout to control the cpu timeout added in
- * v2.2.7
- *
- * Revision 1.13  2002/05/23 12:42:41  rybesh
- * fixed logger initialization on unix
- *
- * Revision 1.12  2002/05/17 09:10:16  mortenson
- * Add a wrapper.shutdown.timeout property.
- *
- * Revision 1.11  2002/05/16 04:51:18  mortenson
- * Add a debug message stating which thread lead to System.exit being called
- *   via a call to shutdown.
- *
- * Revision 1.10  2002/05/07 05:46:36  mortenson
- * Add the ability to set the priority at which the wrapper is run under NT systems.
- *
- * Revision 1.9  2002/03/07 10:05:48  rybesh
- * fixed some miscellaneous unix compile errors
- *
- * Revision 1.8  2002/03/07 09:23:25  mortenson
- * Go through and change the style of comments that we use so that they will not
- * cause compiler errors on older unix compilers.
- *
- * Revision 1.7  2002/03/07 08:10:13  mortenson
- * Add support for Thread Dumping
- * Fix a problem locating java on the path.
- *
- * Revision 1.6  2002/01/27 19:33:55  spocke
- * Added support for the service description property.
- *
- * Revision 1.5  2002/01/24 09:43:56  mortenson
- * Added new Logger code which allows log levels.
- *
- * Revision 1.4  2002/01/24 05:48:48  mortenson
- * Remove old commented code.
- *
- * Revision 1.3  2001/12/11 05:19:39  mortenson
- * Added the ablility to format and/or disable file logging and output to
- * the console.
- *
- * Revision 1.2  2001/12/06 09:36:24  mortenson
- * Docs changes, Added sample apps, Fixed some problems with
- * relative paths  (See revisions.txt)
- *
- * Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
- * no message
+ * Revision 1.24  2003/02/03 06:55:27  mortenson
+ * License transfer to TanukiSoftware.org
  *
  */
 

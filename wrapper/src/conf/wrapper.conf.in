@@ -5,7 +5,7 @@
 wrapper.java.command=java
 
 # Java Main class
-wrapper.java.mainclass=com.silveregg.wrapper.test.Main
+wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main
 
 # Java Classpath (include wrapper.jar)  Add class path elements as
 #  needed starting from 1

@@ -22,8 +22,8 @@
     <property name="app.desc"      value="Test Wrapper Sample Application Description"/>
     
     <!-- product version -->
-    <property name="major.version" value="2" />
-    <property name="version"       value="${major.version}.3.0d" />
+    <property name="major.version" value="3" />
+    <property name="version"       value="${major.version}.0.0a" />
     
     <property name="bin.dir"       value="bin"/>
     <property name="conf.dir"      value="conf"/>
@@ -121,11 +121,11 @@
     <target name="update-info" depends="init">
         
         <!-- nuke server info source file to make sure it gets rewritten every build -->
-        <delete file="${src.dir}/java/com/silveregg/wrapper/WrapperInfo.java" />
+        <delete file="${src.dir}/java/org/tanukisoftware/wrapper/WrapperInfo.java" />
         
         <!-- copy server info source, using filtering to update version and build time -->
-        <copy file="${src.dir}/java/com/silveregg/wrapper/WrapperInfo.java.in"
-              tofile="${src.dir}/java/com/silveregg/wrapper/WrapperInfo.java" 
+        <copy file="${src.dir}/java/org/tanukisoftware/wrapper/WrapperInfo.java.in"
+              tofile="${src.dir}/java/org/tanukisoftware/wrapper/WrapperInfo.java" 
               filtering="on"/>
     </target>
     
@@ -146,16 +146,14 @@
                deprecation="on"
                debug="on"
                optimize="on">
-            <include name="com/**" />
-            <classpath id="compile.classpath"> 
-            </classpath>
+            <classpath id="compile.classpath"/>
         </javac>
 
         <!-- copy resource files to build directory -->
         <copy todir="${build.classes}" > 
             <fileset dir="${src.dir}/java" > 
-                <include name="com/**/*.properties" /> 
-                <include name="com/**/*.jpg" />
+                <include name="**/*.properties" /> 
+                <include name="**/*.jpg" />
             </fileset> 
         </copy>
 
@@ -225,11 +223,12 @@
     <target name="jar" depends="compile-windows-check">
         <jar jarfile="${lib.dir}/wrapper.jar"
              basedir="${build.classes}"
-             includes="com/silveregg/wrapper/*.class,com/silveregg/wrapper/resources/*.class,**/*.properties"
+             includes="**/*.class,**/*.properties"
+             excludes="**/test/*"
              />
         <jar jarfile="${lib.dir}/wrappertest.jar"
              basedir="${build.classes}"
-             includes="com/silveregg/wrapper/test/*.class"
+             includes="**/test/*"
              />
     </target>
     
@@ -240,7 +239,7 @@
         <mkdir dir="${jdoc.dir}"/>
         
         <!-- Locale must be before any doclet parameters -->
-        <javadoc packagenames="com.silveregg.wrapper"
+        <javadoc packagenames="org.tanukisoftware.wrapper"
             Locale="en_US"
             sourcepath="${src.dir}/java"
             destdir="${jdoc.dir}"
@@ -248,9 +247,9 @@
             version="true"
             private="false"
             use="true"
-            windowtitle="SilverEgg Wrapper API"
-            doctitle="SilverEgg Wrapper"
-            bottom="Copyright 2000, 2001 SilverEgg Technology Corp. All Rights Reserved."
+            windowtitle="Java Service Wrapper API"
+            doctitle="Java Service Wrapper"
+            bottom="Copyright 1999, 2003 TanukiSoftware.org.  All Rights Reserved."
         />
     </target>
     

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001 Silver Egg Technology
+ * Copyright (c) 1999, 2003 TanukiSoftware.org
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -22,31 +22,9 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  *
- *
  * $Log$
- * Revision 1.6  2002/11/06 05:44:51  mortenson
- * Add support for invoking a thread dump from a method call within the JVM.
- *
- * Revision 1.5  2002/03/07 09:23:25  mortenson
- * Go through and change the style of comments that we use so that they will not
- * cause compiler errors on older unix compilers.
- *
- * Revision 1.4  2002/03/07 08:24:20  mortenson
- * Remove a forgotten debug message.
- *
- * Revision 1.3  2002/03/07 08:10:13  mortenson
- * Add support for Thread Dumping
- * Fix a problem locating java on the path.
- *
- * Revision 1.2  2001/11/08 04:22:28  mortenson
- * Had been having a problem with the windows build where the WIN32
- * symbol was not defined sometimes.  Figured out that that was the
- * cause of a strange build problem enabling me to remove the
- * workaround code.  wrapperjni_win.c will now fail to build if the symbol
- * is not defined.
- *
- * Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
- * no message
+ * Revision 1.7  2003/02/03 06:55:27  mortenson
+ * License transfer to TanukiSoftware.org
  *
  */
 
@@ -76,19 +54,19 @@ int wrapperConsoleHandler(int key) {
     /* Call the control callback in the java code */
     switch(key) {
     case CTRL_C_EVENT:
-        event = com_silveregg_wrapper_WrapperManager_WRAPPER_CTRL_C_EVENT;
+        event = org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_C_EVENT;
         break;
     case CTRL_BREAK_EVENT:
         /* This is a request to do a thread dump. Let the JVM handle this. */
         return FALSE;
     case CTRL_CLOSE_EVENT:
-        event = com_silveregg_wrapper_WrapperManager_WRAPPER_CTRL_CLOSE_EVENT;
+        event = org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_CLOSE_EVENT;
         break;
     case CTRL_LOGOFF_EVENT:
-        event = com_silveregg_wrapper_WrapperManager_WRAPPER_CTRL_LOGOFF_EVENT;
+        event = org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_LOGOFF_EVENT;
         break;
     case CTRL_SHUTDOWN_EVENT:
-        event = com_silveregg_wrapper_WrapperManager_WRAPPER_CTRL_SHUTDOWN_EVENT;
+        event = org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_SHUTDOWN_EVENT;
         break;
     default:
         event = key;
@@ -109,12 +87,12 @@ int wrapperConsoleHandler(int key) {
 }
 
 /*
- * Class:     com_silveregg_wrapper_WrapperManager
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeInit
  * Signature: (Z)V
  */
 JNIEXPORT void JNICALL
-Java_com_silveregg_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass clazz, jboolean debugging) {
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass clazz, jboolean debugging) {
     char szPath[512];
 
     wrapperJNIDebugging = debugging;
@@ -136,24 +114,24 @@ Java_com_silveregg_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass clazz, 
     /* Initialize the CTRL-C handler */
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)wrapperConsoleHandler, TRUE);
 
-	/* Store the current process Id */
-	wrapperProcessId = GetCurrentProcessId();
+    /* Store the current process Id */
+    wrapperProcessId = GetCurrentProcessId();
 }
 
 /*
- * Class:     com_silveregg_wrapper_WrapperManager
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeRequestThreadDump
  * Signature: ()V
  */
 JNIEXPORT void JNICALL
-Java_com_silveregg_wrapper_WrapperManager_nativeRequestThreadDump(JNIEnv *env, jclass clazz) {
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump(JNIEnv *env, jclass clazz) {
     if (wrapperJNIDebugging) {
-	    printf("Sending BREAK event to process group %ld.\n", wrapperProcessId);
-	    flushall();
-	}
+        printf("Sending BREAK event to process group %ld.\n", wrapperProcessId);
+        flushall();
+    }
     if ( GenerateConsoleCtrlEvent( CTRL_BREAK_EVENT, wrapperProcessId ) == 0 ) {
         printf("Unable to send BREAK event to JVM process.  Err(%ld)\n", GetLastError());
-	    flushall();
+        flushall();
     }
 }
 

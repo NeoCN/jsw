@@ -1,7 +1,7 @@
-package com.silveregg.wrapper.test;
+package org.tanukisoftware.wrapper.test;
 
 /*
- * Copyright (c) 2001 Silver Egg Technology
+ * Copyright (c) 1999, 2003 TanukiSoftware.org
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -26,37 +26,9 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
-// Revision 1.9  2003/01/20 03:21:07  mortenson
-// Add limited support for java 1.2.x
+// Revision 1.1  2003/02/03 06:55:29  mortenson
+// License transfer to TanukiSoftware.org
 //
-// Revision 1.8  2002/11/06 05:44:51  mortenson
-// Add support for invoking a thread dump from a method call within the JVM.
-//
-// Revision 1.7  2002/06/02 11:38:42  mortenson
-// Increase window size so that the window displays on XP correctly.
-//
-// Revision 1.6  2002/05/22 11:43:10  rybesh
-// fixed some spelling errors
-//
-// Revision 1.5  2002/05/17 09:52:42  mortenson
-// Add a Restart button to the TestWrapper application.
-//
-// Revision 1.4  2002/05/17 09:08:45  mortenson
-// Make the test shutdown correctly when shutdown from a shutdown hook.
-//
-// Revision 1.3  2002/05/16 03:34:32  mortenson
-// Added comments to the buttons that had no comments to make their use clear.
-//
-// Revision 1.2  2001/12/06 09:36:24  mortenson
-// Docs changes, Added sample apps, Fixed some problems with
-// relative paths  (See revisions.txt)
-//
-// Revision 1.1.1.1  2001/11/07 08:54:20  mortenson
-// no message
-//
-
-import com.silveregg.wrapper.WrapperManager;
-import com.silveregg.wrapper.WrapperListener;
 
 import java.awt.Button;
 import java.awt.Dimension;
@@ -68,6 +40,15 @@ import java.awt.event.ActionListener;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+import org.tanukisoftware.wrapper.WrapperManager;
+import org.tanukisoftware.wrapper.WrapperListener;
+
+/**
+ *
+ *
+ * @author Leif Mortenson <leif@tanukisoftware.com>
+ * @version $Revision$
+ */
 public class Main implements WrapperListener {
     private MainFrame _frame;
     

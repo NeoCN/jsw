@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001 Silver Egg Technology
+ * Copyright (c) 1999, 2003 TanukiSoftware.org
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -22,33 +22,16 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  *
- *
  * $Log$
- * Revision 1.6  2002/09/09 17:19:44  mortenson
- * Add ability to log to specific log levels from within the Wrapper.
- *
- * Revision 1.5  2002/08/11 05:21:28  mortenson
- * Add a Warning level to the logger
- *
- * Revision 1.4  2002/03/07 09:23:25  mortenson
- * Go through and change the style of comments that we use so that they will not
- * cause compiler errors on older unix compilers.
- *
- * Revision 1.3  2002/02/08 05:55:55  mortenson
- * Make the syslog never unregister to avoid EventLog errors.
- *
- * Revision 1.2  2002/01/26 23:31:03  spocke
- * Added rolling file support to logger.
- *
- * Revision 1.1  2002/01/24 09:38:56  mortenson
- * Added new Logger code contributed by Johan Sorlin
+ * Revision 1.7  2003/02/03 06:55:26  mortenson
+ * License transfer to TanukiSoftware.org
  *
  */
 
 /**
  * Author:
  *   Johan Sorlin   <Johan.Sorlin@Paregos.se>
- *   Leif Mortenson <leif@silveregg.co.jp>
+ *   Leif Mortenson <leif@tanukisoftware.com>
  *
  * Version CVS $Revision$ $Date$
  */
