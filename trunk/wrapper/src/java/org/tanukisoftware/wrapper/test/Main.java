@@ -26,10 +26,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
-// Revision 1.6  2003/10/18 06:44:06  mortenson
-// Add some javadocs.
-// Make the application fail cleanly when a UNIX user attempts to run the demo
-// when an X display is not available.
+// Revision 1.7  2003/10/18 07:35:30  mortenson
+// Add test cases to test how the wrapper handles it when the System.out stream
+// becomes deadlocked.  This can happen if buggy usercode overrides those streams.
 //
 // Revision 1.5  2003/06/19 05:45:00  mortenson
 // Modified the suggested behavior of the WrapperListener.controlEvent() method.
@@ -81,10 +80,17 @@ import org.tanukisoftware.wrapper.WrapperListener;
 public class Main implements WrapperListener {
     private MainFrame _frame;
     
+    private DeadlockPrintStream m_out;
+    private DeadlockPrintStream m_err;
+    
     /**************************************************************************
      * Constructors
      *************************************************************************/
     private Main() {
+        m_out = new DeadlockPrintStream( System.out );
+        System.setOut( m_out );
+        m_err = new DeadlockPrintStream( System.err );
+        System.setErr( m_err );
     }
     
     private class MainFrame extends Frame implements ActionListener {
@@ -125,6 +131,10 @@ public class Main implements WrapperListener {
             add(tdButton);
             tdButton.addActionListener(this);
             
+            Button odButton = new Button("System.out Deadlock");
+            add(odButton);
+            odButton.addActionListener(this);
+            
             add(new Label("The Access Violation button only works with Sun JVMs."));
             add(new Label("Also try killing the JVM process or pressing CTRL-C in the console window."));
             add(new Label("Simulate JVM Hang only has an effect when controlled by native Wrapper."));
@@ -132,8 +142,9 @@ public class Main implements WrapperListener {
             add(new Label("Runtime.getRuntime().halt(0) should result in the JVM restarting."));
             add(new Label("Request Restart should cause the JVM to stop and be restarted cleanly."));
             add(new Label("Request Thread Dump should cause the JVM dump its thread states."));
+            add(new Label("System.out Deadlock will cause calls to System.out and System.err to deadlock."));
             
-            setSize(new Dimension(550, 290));
+            setSize(new Dimension(600, 315));
         }
         
         public void actionPerformed(ActionEvent event) {
@@ -173,6 +184,10 @@ public class Main implements WrapperListener {
                 WrapperManager.restart();
             } else if (command.equals("Request Thread Dump")) {
                 WrapperManager.requestThreadDump();
+            } else if (command.equals("System.out Deadlock")) {
+                System.out.println("Deadlocking System.out and System.err ...");
+                m_out.setDeadlock(true);
+                m_err.setDeadlock(true);
             }
         }
     }

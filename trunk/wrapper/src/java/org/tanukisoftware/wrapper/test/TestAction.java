@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.3  2003/10/18 07:35:30  mortenson
+// Add test cases to test how the wrapper handles it when the System.out stream
+// becomes deadlocked.  This can happen if buggy usercode overrides those streams.
+//
 // Revision 1.2  2003/04/03 04:05:22  mortenson
 // Fix several typos in the docs.  Thanks to Mike Castle.
 //
@@ -46,10 +50,17 @@ import org.tanukisoftware.wrapper.WrapperListener;
  * @version $Revision$
  */
 public class TestAction implements WrapperListener {
+    private DeadlockPrintStream m_out;
+    private DeadlockPrintStream m_err;
+    
     /**************************************************************************
      * Constructors
      *************************************************************************/
     private TestAction() {
+        m_out = new DeadlockPrintStream( System.out );
+        System.setOut( m_out );
+        m_err = new DeadlockPrintStream( System.err );
+        System.setErr( m_err );
     }
 
     /**************************************************************************
@@ -130,6 +141,10 @@ public class TestAction implements WrapperListener {
                 WrapperManager.restart();
             } else if (_action.equals("dump")) {
                 WrapperManager.requestThreadDump();
+            } else if (_action.equals("deadlock_out")) {
+                System.out.println("Deadlocking System.out and System.err ...");
+                m_out.setDeadlock(true);
+                m_err.setDeadlock(true);
             } else {
                 printHelp("\"" + _action + "\" is an unknown action.");
                 WrapperManager.stop(0);
@@ -183,6 +198,7 @@ public class TestAction implements WrapperListener {
         System.err.println( "   halt                     : Calls Runtime.getRuntime().halt(0)" );
         System.err.println( "   restart                  : Calls WrapperManager.restart()" );
         System.err.println( "   dump                     : Calls WrapperManager.requestThreadDump()" );
+        System.err.println( "   deadlock_out             : Deadlocks the JVM's System.out and err streams." );
         System.err.println( "" );
         System.err.println( "[EXAMPLE]" );
         System.err.println( "   TestAction access_violation_native " );
