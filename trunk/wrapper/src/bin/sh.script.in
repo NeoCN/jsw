@@ -13,7 +13,7 @@
 # These settings can be modified to fit the needs of your application
 
 # Application
-WRAPPER_HOME=".."
+WRAPPER_HOME="$PWD/`dirname $0`/.."
 WRAPPER_NAME="testwrapper"
 WRAPPER_LONG_NAME="Wrapper Test Application"
 
