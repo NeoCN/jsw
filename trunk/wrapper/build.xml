@@ -54,9 +54,25 @@
     <target name="help" depends="usage"/>
     
     <!-- =================================================================== -->
+    <!-- Resolve Platform properties                                         -->
+    <!-- =================================================================== -->
+    <target name="init-windows-nt" if="is.Windows NT">
+        <property name="is.Windows" value="true"/>
+    </target>
+    <target name="init-windows-2000" if="is.Windows 2000">
+        <property name="is.Windows" value="true"/>
+    </target>
+    <target name="init-linux" if="is.Linux">
+        <property name="is.Unix" value="true"/>
+    </target>
+    <target name="init-solaris" if="is.SunOS">
+        <property name="is.Unix" value="true"/>
+    </target>
+    
+    <!-- =================================================================== -->
     <!-- Initialize build.                                                   -->
     <!-- =================================================================== -->
-    <target name="init">
+    <target name="init" depends="init-windows-nt, init-windows-2000, init-linux, init-solaris">
         <tstamp/>
         <filter token="version"           value="${version}"       />
         <filter token="build.date"        value="${DSTAMP}"        />
@@ -150,13 +166,13 @@
     <!-- Creates the jar archive                                             -->
     <!-- =================================================================== -->
     <target name="jar" depends="compile">
-        <jar jarfile="${lib.dir}/wrapper.jar"
+        <jar file="${lib.dir}/wrapper.jar"
              basedir="${build.classes}"
              includes="com/silveregg/wrapper/*.class,com/silveregg/wrapper/resources/*.class,**/*.properties"
              />
-        <jar jarfile="${lib.dir}/wrappertest.jar"
+        <jar file="${lib.dir}/wrappertest.jar"
              basedir="${build.classes}"
-             includes="com/silveregg/wrapper/*.class,com/silveregg/wrapper/resources/*.class,com/silveregg/wrapper/test/*.class,**/*.properties"
+             includes="com/silveregg/wrapper/test/*.class"
              />
     </target>
     
@@ -184,7 +200,7 @@
     <!-- =================================================================== -->
     <!-- Bin target (Windows)                                                -->
     <!-- =================================================================== -->
-    <target name="bin-windows" depends="compile">
+    <target name="bin-windows" depends="compile" if="is.Windows">
         <!-- Create batch files for the TestWrapper Sample Application -->
         <copy file="${src.dir}/bin/App.bat.in"
               tofile="${bin.dir}/${app.caps.name}.bat"
@@ -198,10 +214,6 @@
         <copy file="${src.dir}/bin/UninstallApp-NT.bat.in"
               tofile="${bin.dir}/Uninstall${app.caps.name}-NT.bat"
               filtering="on"/>
-    </target>
-    <target name="bin-windows-nt" depends="bin-windows" if="is.Windows NT">
-    </target>
-    <target name="bin-windows-2000" depends="bin-windows" if="is.Windows 2000">
     </target>
     
     <!-- =================================================================== -->
@@ -228,7 +240,7 @@
     <!-- =================================================================== -->
     <!-- Bin target                                                          -->
     <!-- =================================================================== -->
-    <target name="bin" depends="bin-windows-nt, bin-windows-2000, bin-linux, bin-solaris">
+    <target name="bin" depends="bin-windows, bin-linux, bin-solaris">
     </target>
     
     <!-- =================================================================== -->
@@ -316,16 +328,16 @@
         </copy>
         
         <!-- Source archives with documentation source -->
-        <zip zipfile="${releasesrcdir}_with_doc_src.zip"
+        <zip file="${releasesrcdir}_with_doc_src.zip"
             basedir="${basedir}"
             compress="true">
             <include name="${releasesrcfile}/**/*" />
         </zip>
-        <tar tarfile="${releasesrcdir}_with_doc_src.tar"
+        <tar file="${releasesrcdir}_with_doc_src.tar"
              basedir="${basedir}">
             <include name="${releasesrcfile}/**/*" />
         </tar>
-        <gzip zipfile="${releasesrcdir}_with_doc_src.tar.gz" src="${releasesrcdir}_with_doc_src.tar" />
+        <gzip file="${releasesrcdir}_with_doc_src.tar.gz" src="${releasesrcdir}_with_doc_src.tar" />
         
         <!-- Source archives without documentation source -->
         <zip zipfile="${releasesrcdir}.zip"
@@ -343,7 +355,7 @@
             <exclude name="${releasesrcfile}/tools/lib/resolver.jar" />
             <exclude name="${releasesrcfile}/tools/lib/xalan-2.2.0-D8.jar" />
         </zip>
-        <tar tarfile="${releasesrcdir}.tar"
+        <tar file="${releasesrcdir}.tar"
              basedir="${basedir}">
             <include name="${releasesrcfile}/**/*" />
             <exclude name="${releasesrcfile}/src/documentation/**/*" />
@@ -357,13 +369,13 @@
             <exclude name="${releasesrcfile}/tools/lib/resolver.jar" />
             <exclude name="${releasesrcfile}/tools/lib/xalan-2.2.0-D8.jar" />
         </tar>
-        <gzip zipfile="${releasesrcdir}.tar.gz" src="${releasesrcdir}.tar" />
+        <gzip file="${releasesrcdir}.tar.gz" src="${releasesrcdir}.tar" />
     </target>
     
     <!-- =================================================================== -->
     <!-- Release (Windows)                                                   -->
     <!-- =================================================================== -->
-    <target name="release-windows" depends="release-common">
+    <target name="release-windows" depends="release-common" if="is.Windows">
         <property name="releasefile" value="wrapper_win32_${version}"/>
         <property name="releasedir" value="${basedir}/${releasefile}"/>
         <delete dir="${releasedir}"/>
@@ -384,15 +396,11 @@
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
-        <zip zipfile="${releasedir}.zip"
+        <zip file="${releasedir}.zip"
             basedir="${basedir}"
             compress="true">
             <include name="${releasefile}/**/*" />
         </zip>
-    </target>
-    <target name="release-windows-nt" depends="release-windows" if="is.Windows NT">
-    </target>
-    <target name="release-windows-2000" depends="release-windows" if="is.Windows 2000">
     </target>
     
     <!-- =================================================================== -->
@@ -420,11 +428,11 @@
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
-        <tar tarfile="${releasedir}.tar"
+        <tar file="${releasedir}.tar"
              basedir="${basedir}">
             <include name="${releasefile}/**/*" />
         </tar>
-        <gzip zipfile="${releasedir}.tar.gz" src="${releasedir}.tar" />
+        <gzip file="${releasedir}.tar.gz" src="${releasedir}.tar" />
     </target>
     
     <!-- =================================================================== -->
@@ -452,18 +460,18 @@
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
-        <tar tarfile="${releasedir}.tar"
+        <tar file="${releasedir}.tar"
              basedir="${basedir}">
             <include name="${releasefile}/**/*" />
         </tar>
-        <gzip zipfile="${releasedir}.tar.gz" src="${releasedir}.tar" />
+        <gzip file="${releasedir}.tar.gz" src="${releasedir}.tar" />
     </target>
     
     <!-- =================================================================== -->
     <!-- Release                                                             -->
     <!-- =================================================================== -->
     <target name="release" 
-        depends="release-windows-nt, release-windows-2000, release-linux, release-solaris"
+        depends="release-windows, release-linux, release-solaris"
         description="Builds all release files for the current platform">
     </target>
     
