@@ -17,6 +17,12 @@ $Id$
                     no longer statically links its required libraries.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a file handle leak when calling WrapperManager.getUser or
+                    WrapperManager.getInteractiveUser on Windows platforms.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.0">
