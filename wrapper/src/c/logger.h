@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.11  2003/08/02 15:50:03  mortenson
+ * Implement getLastErrorText on UNIX versions.
+ *
  * Revision 1.10  2003/07/04 03:18:36  mortenson
  * Improve the error message displayed when the NT EventLog is full in response
  * to feature request #643617.
@@ -116,8 +119,6 @@ extern int getLowLogLevel();
 /* * General log functions * */
 extern void log_printf( int source_id, int level, char *lpszFmt, ... );
 
-#ifdef WIN32
 extern char* getLastErrorText();
-#endif
 
 #endif
