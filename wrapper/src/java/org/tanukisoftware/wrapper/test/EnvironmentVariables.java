@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.3  2003/04/14 14:11:51  mortenson
+// Add support for Mac OS X.
+// (Patch from Andy Barnett)
+//
 // Revision 1.2  2003/04/03 04:05:22  mortenson
 // Fix several typos in the docs.  Thanks to Mike Castle.
 //
@@ -129,7 +133,7 @@ public class EnvironmentVariables {
             p = Runtime.getRuntime().exec("/bin/env");
         }
         
-        else if  (os.indexOf("linux") > -1) {  
+        else if  ((os.indexOf("linux") > -1) || (os.indexOf("mac os x") > -1)) {  
             
             p = Runtime.getRuntime().exec("/usr/bin/env");
         }
