@@ -14,6 +14,9 @@ Java Service Wrapper Revision History.
 * Added support for the wrapper.pidfile property on the Windows platform.
 * Added the wrapper.java.pidfile property which will cause the pid of the
   java process to be written to a specified file.
+* Stop clearing the file creation mask when the Unix version of the Wrapper is
+  run as a daemon process.  The file creation mask will not be inherited from
+  the process which launches the Wrapper.  Bug #788849.
 
 3.0.4
 * Fix a problem on UNIX systems where requesting a second thread dump any time
