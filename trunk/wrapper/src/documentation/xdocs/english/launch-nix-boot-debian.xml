@@ -28,6 +28,9 @@
             <listitem>
                 <ulink url="#rc">Registering the Run Levels</ulink>
             </listitem>
+            <listitem>
+                <ulink url="#urc">Unregistering the Run Levels</ulink>
+            </listitem>
         </itemizedlist>
         <section id="slink">
             <title>Create Symbolic Link in <literal moreinfo="none">/etc/init.d</literal></title>
@@ -128,6 +131,16 @@
             </para>
             <informalexample>
                 <screen format="linespecific"><![CDATA[update-rc.d myapp start 21 2 3 4 5 . stop 19 0 1 6 .]]></screen>
+            </informalexample>
+        </section>
+        <section id="urc">
+            <title>Unregistering the Run Levels</title>
+            <para>
+                To unregister the run levels registered in the previous section,
+                execute the following command.
+            </para>
+            <informalexample>
+                <screen format="linespecific"><![CDATA[update-rc.d -f myapp remove]]></screen>
             </informalexample>
         </section>
     </section>
