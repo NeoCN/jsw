@@ -9,10 +9,10 @@ extern "C" {
 #endif
 #undef org_tanukisoftware_wrapper_WrapperManager_DEFAULT_PORT
 #define org_tanukisoftware_wrapper_WrapperManager_DEFAULT_PORT 15003L
-#undef org_tanukisoftware_wrapper_WrapperManager_DEFAULT_BACKLOG
-#define org_tanukisoftware_wrapper_WrapperManager_DEFAULT_BACKLOG 50L
-#undef org_tanukisoftware_wrapper_WrapperManager_DEFAULT_TIMEOUT
-#define org_tanukisoftware_wrapper_WrapperManager_DEFAULT_TIMEOUT 10L
+#undef org_tanukisoftware_wrapper_WrapperManager_DEFAULT_SO_TIMEOUT
+#define org_tanukisoftware_wrapper_WrapperManager_DEFAULT_SO_TIMEOUT 10000L
+#undef org_tanukisoftware_wrapper_WrapperManager_DEFAULT_CPU_TIMEOUT
+#define org_tanukisoftware_wrapper_WrapperManager_DEFAULT_CPU_TIMEOUT 10000LL
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_START
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_START 100L
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_STOP
@@ -33,6 +33,12 @@ extern "C" {
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_KEY 110L
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_BADKEY
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_BADKEY 111L
+#undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_LOW_LOG_LEVEL
+#define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_LOW_LOG_LEVEL 112L
+#undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_PING_TIMEOUT
+#define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_PING_TIMEOUT 113L
+#undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_LOG
+#define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_LOG 116L
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_C_EVENT
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_C_EVENT 200L
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_CLOSE_EVENT
@@ -41,41 +47,66 @@ extern "C" {
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_LOGOFF_EVENT 202L
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_SHUTDOWN_EVENT
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_SHUTDOWN_EVENT 203L
-/* Inaccessible static: _disposed */
-/* Inaccessible static: _started */
-/* Inaccessible static: _instance */
-/* Inaccessible static: _hook */
-/* Inaccessible static: _hookTriggered */
-/* Inaccessible static: _args */
-/* Inaccessible static: _port */
-/* Inaccessible static: _key */
-/* Inaccessible static: _timeout */
-/* Inaccessible static: _backlog */
-/* Inaccessible static: _runner */
-/* Inaccessible static: _eventRunner */
-/* Inaccessible static: _listener */
-/* Inaccessible static: _lastPing */
-/* Inaccessible static: _serverSocket */
-/* Inaccessible static: _socket */
-/* Inaccessible static: _shuttingDown */
-/* Inaccessible static: _appearHung */
-/* Inaccessible static: _service */
-/* Inaccessible static: _debug */
-/* Inaccessible static: _jvmId */
-/* Inaccessible static: _stopping */
-/* Inaccessible static: _libraryOK */
-/* Inaccessible static: _commandBuffer */
-/* Inaccessible static: _res */
-/* Inaccessible static: _error */
-/* Inaccessible static: _warning */
-/* Inaccessible static: _info */
+#undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_DEBUG
+#define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_DEBUG 1L
+#undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_INFO
+#define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_INFO 2L
+#undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_STATUS
+#define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_STATUS 3L
+#undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_WARN
+#define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_WARN 4L
+#undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_ERROR
+#define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_ERROR 5L
+#undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_FATAL
+#define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_LOG_LEVEL_FATAL 6L
+/* Inaccessible static: m_out */
+/* Inaccessible static: m_err */
+/* Inaccessible static: m_disposed */
+/* Inaccessible static: m_started */
+/* Inaccessible static: m_instance */
+/* Inaccessible static: m_hook */
+/* Inaccessible static: m_hookTriggered */
+/* Inaccessible static: m_args */
+/* Inaccessible static: m_port */
+/* Inaccessible static: m_key */
+/* Inaccessible static: m_soTimeout */
+/* Inaccessible static: m_cpuTimeout */
+/* Inaccessible static: m_systemThreadCount */
+/* Inaccessible static: m_lowLogLevel */
+/* Inaccessible static: m_pingTimeout */
+/* Inaccessible static: m_ignoreSignals */
+/* Inaccessible static: m_commRunner */
+/* Inaccessible static: m_commRunnerStarted */
+/* Inaccessible static: m_eventRunner */
+/* Inaccessible static: m_eventRunnerTime */
+/* Inaccessible static: m_listener */
+/* Inaccessible static: m_lastPing */
+/* Inaccessible static: m_serverSocket */
+/* Inaccessible static: m_socket */
+/* Inaccessible static: m_shuttingDown */
+/* Inaccessible static: m_appearHung */
+/* Inaccessible static: m_addShutdownHookMethod */
+/* Inaccessible static: m_removeShutdownHookMethod */
+/* Inaccessible static: m_service */
+/* Inaccessible static: m_debug */
+/* Inaccessible static: m_jvmId */
+/* Inaccessible static: m_stopping */
+/* Inaccessible static: m_stoppingThread */
+/* Inaccessible static: m_libraryOK */
+/* Inaccessible static: m_commandBuffer */
+/* Inaccessible static: m_res */
+/* Inaccessible static: m_error */
+/* Inaccessible static: m_warning */
+/* Inaccessible static: m_info */
+/* Inaccessible static: class_00024java_00024lang_00024Runtime */
+/* Inaccessible static: class_00024java_00024lang_00024Thread */
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
- * Method:    nativeInit
- * Signature: (Z)V
+ * Method:    accessViolationInner
+ * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit
-  (JNIEnv *, jclass, jboolean);
+JNIEXPORT void JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_accessViolationInner
+  (JNIEnv *, jclass);
 
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
@@ -87,11 +118,11 @@ JNIEXPORT jint JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetC
 
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
- * Method:    accessViolationInner
- * Signature: ()V
+ * Method:    nativeInit
+ * Signature: (Z)V
  */
-JNIEXPORT void JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_accessViolationInner
-  (JNIEnv *, jclass);
+JNIEXPORT void JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit
+  (JNIEnv *, jclass, jboolean);
 
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager

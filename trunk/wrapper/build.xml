@@ -225,7 +225,14 @@
         <echo message="  mvs.home = ${msvc.home}"/>
         <echo message="**********************************************************************"/>
     </target>
-    <target name="compile-c-windows" depends="msvc-missing" if="msvc.present">
+    <target name="compile-jni" depends="compile-java">
+        <javah
+            destdir="${src.dir}/c"
+            classpath="${build.classes}">
+            <class name="org.tanukisoftware.wrapper.WrapperManager"/>
+        </javah>
+    </target>
+    <target name="compile-c-windows" depends="compile-jni, msvc-missing" if="msvc.present">
         <mkdir dir="${bin.dir}"/>        
         <mkdir dir="${lib.dir}"/>
         
@@ -282,7 +289,7 @@
         <echo message="**********************************************************************"/>
         <fail message="bin/${wrapper.bin.name} or lib/${wrapper.lib.name} are missing."/>
     </target>
-    <target name="compile-c-unix" depends="convert,update-info" if="is.Unix">
+    <target name="compile-c-unix" depends="convert,update-info,compile-jni" if="is.Unix">
         <mkdir dir="${bin.dir}"/>        
         <mkdir dir="${lib.dir}"/>
         
