@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.37  2003/04/09 09:17:58  mortenson
+ * Fix a problem where environment variables in the registry which had no value
+ * were causing the Wrapper to crash with an access violation.
+ *
  * Revision 1.36  2003/04/09 04:03:19  mortenson
  * Fix a problem where the inability to expand very large environment variables
  * was causing an access violation when run as an NT service.
@@ -1110,36 +1114,42 @@ int wrapperLoadEnvFromRegistry() {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Get the current local value of variable \"%s\"", name);
 #endif
                         envVal = getenv(name);
+						if (envVal == NULL) {
 #ifdef DEBUG
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "     \"%s\"=\"%s\"", name, envVal);
+							log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  The current local value of variable \"%s\" is null, meaning it was \"\" in the registry.  Skipping.", name);
 #endif
-                        if (strchr(envVal, '%')) {
-                            /* This variable contains tokens which need to be expanded. */
-                            ret = ExpandEnvironmentStrings(envVal, data, dataLen);
-                            if (ret == 0) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to expand environment variable, %s - %s", name, getLastErrorText(szErr,256));
-                                err = ERROR_NO_MORE_ITEMS;
-                                result = 1;
-                            } else if (ret >= dataLen) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Unable to expand environment variable, %s as it would be longer than the %d byte buffer size.", name, dataLen);
-                            } else if (strcmp(envVal, data) == 0) {
+						} else {
 #ifdef DEBUG
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "       Value unchanged.  Referenced environment variable not set.");
+							log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "     \"%s\"=\"%s\"", name, envVal);
 #endif
-                            } else {
-                                /* Set the expanded environment variable */
-                                expanded = TRUE;
+							if (strchr(envVal, '%')) {
+								/* This variable contains tokens which need to be expanded. */
+								ret = ExpandEnvironmentStrings(envVal, data, dataLen);
+								if (ret == 0) {
+									log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to expand environment variable, %s - %s", name, getLastErrorText(szErr,256));
+									err = ERROR_NO_MORE_ITEMS;
+									result = 1;
+								} else if (ret >= dataLen) {
+									log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Unable to expand environment variable, %s as it would be longer than the %d byte buffer size.", name, dataLen);
+								} else if (strcmp(envVal, data) == 0) {
 #ifdef DEBUG
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Update local environment variable.  \"%s\"=\"%s\"", name, data);
+									log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "       Value unchanged.  Referenced environment variable not set.");
 #endif
-                                sprintf(env, "%s=%s", name, data);
-                                if (putenv(env)) {
-                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to set environment variable from the registry - %s", getLastErrorText(szErr,256));
-                                    err = ERROR_NO_MORE_ITEMS;
-                                    result = 1;
-                                }
-                            }
-                        }
+								} else {
+									/* Set the expanded environment variable */
+									expanded = TRUE;
+#ifdef DEBUG
+									log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Update local environment variable.  \"%s\"=\"%s\"", name, data);
+#endif
+									sprintf(env, "%s=%s", name, data);
+									if (putenv(env)) {
+										log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to set environment variable from the registry - %s", getLastErrorText(szErr,256));
+										err = ERROR_NO_MORE_ITEMS;
+										result = 1;
+									}
+								}
+							}
+						}
                     } else if (err == ERROR_NO_MORE_ITEMS) {
                         /* No more environment variables. */
                     } else {

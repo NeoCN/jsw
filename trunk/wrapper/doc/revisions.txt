@@ -17,13 +17,21 @@ Java Service Wrapper Revision History.
 * Fix a problem where the values of environment variables set in the
   configuration file were not correct when those values included references
   to other environment variables.
-* Fix a buffer overflow problem if configuration properties referenced
-  extremely large environment variables.
-* Fix a problem where the inability to expand very large environment variables
-  was causing an access violation when run as an NT service.
+* Fix a potential buffer overflow problem if configuration properties
+  referenced extremely large environment variables.
+* Fix a potential problem where the inability to expand very large environment
+  variables would have led to an access violation when run as an NT service.
 * Add some extra checks in the event where the native library can not be loaded
   so that the WrapperManager can differentiate between the library missing and
   not being readable due to permission problems.
+* Remove the wrapper.ntservice.process_priority from the default wrapper.conf
+  because its use can produce unexpected results if used improperly.  Please
+  see the property documentation for details.
+* Fix a problem where environment variables in the registry which had no value
+  were causing the Wrapper to crash with an access violation.  This was
+  introduced in version 3.0.0 with the feature to load environment variables
+  from the registry.  The offending registry entry was WV_GATEWAY_CFG which
+  appears to be related to Oracle.
 
 3.0.1
 * Fix a problem with the wrapper.disable_shutdown_hook.  Due to a typo in the
