@@ -126,6 +126,9 @@ Java Service Wrapper Revision History.
 * Modify the way calls to System.in.read() are handled so that they now block
   rather than throwing an exception.  Currently, System.in can not be used with
   the Wrapper because of the way I/O is passed between the Wrapper and JVM.
+* Modified the Windows batch files to fix a problem where the path to the
+  Wrapper.exe contained more than one "/bin".  The new batch files are much
+  simpler and should be easier to customize if needed.  Bug #925308.
 
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the
