@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.resources;
  */
 
 // $Log$
+// Revision 1.4  2004/11/29 13:15:38  mortenson
+// Fix some javadocs problems.
+//
 // Revision 1.3  2004/01/16 04:42:00  mortenson
 // The license was revised for this version to include a copyright omission.
 // This change is to be retroactively applied to all versions of the Java
@@ -261,7 +264,7 @@ public class ResourceManager
      * Returns a string that has been obtained from the resource manager then
      * formatted using the passed parameters.
      *
-     * @param key           The string that is the key to the translated message
+     * @param pattern       The string that is the key to the translated message
      * @param o0            The param passed to format replaces {0}
      *
      */
@@ -274,7 +277,7 @@ public class ResourceManager
      * Returns a string that has been obtained from the resource manager then
      * formatted using the passed parameters.
      *
-     * @param key           The string that is the key to the translated message
+     * @param pattern       The string that is the key to the translated message
      * @param o0            The param passed to format replaces {0}
      * @param o1            The param passed to format replaces {1}
      *
@@ -288,7 +291,7 @@ public class ResourceManager
      * Returns a string that has been obtained from the resource manager then
      * formatted using the passed parameters.
      *
-     * @param key           The string that is the key to the translated message
+     * @param pattern       The string that is the key to the translated message
      * @param o0            The param passed to format replaces {0}
      * @param o1            The param passed to format replaces {1}
      * @param o2            The param passed to format replaces {2}
@@ -303,7 +306,7 @@ public class ResourceManager
      * Returns a string that has been obtained from the resource manager then
      * formatted using the passed parameters.
      *
-     * @param key           The string that is the key to the translated message
+     * @param pattern       The string that is the key to the translated message
      * @param o0            The param passed to format replaces {0}
      * @param o1            The param passed to format replaces {1}
      * @param o2            The param passed to format replaces {2}

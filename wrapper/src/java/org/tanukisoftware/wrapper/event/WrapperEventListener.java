@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.event;
  */
 
 // $Log$
+// Revision 1.2  2004/11/29 13:15:38  mortenson
+// Fix some javadocs problems.
+//
 // Revision 1.1  2004/11/22 04:06:43  mortenson
 // Add an event model to make it possible to communicate with user applications in
 // a more flexible way.
@@ -51,7 +54,7 @@ public interface WrapperEventListener
      * Enabling core events will cause the listener to receive
      *  WrapperCoreEvents. These events provide information on the internal
      *  timing of the Wrapper.
-     *
+     * <p>
      * WARNING - Great care should be taken when receiving events of this type.
      *  They are sent from within the Wrapper's internal timing thread.  If the
      *  listner takes too much time working with the event, Wrapper performance
@@ -65,7 +68,7 @@ public interface WrapperEventListener
      *  listener will receive will depend on the mask supplied when
      *  WrapperManager.addWrapperEventListener was called to register the
      *  listener.
-     *
+     * <p>
      * Listener implementations should never assume that they will only receive
      *  events of a particular type.   To assure that events added to future
      *  versions of the Wrapper do not cause problems with user code, events

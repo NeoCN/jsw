@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.48  2004/11/29 13:15:39  mortenson
+// Fix some javadocs problems.
+//
 // Revision 1.47  2004/11/26 08:41:25  mortenson
 // Implement reading from System.in
 //
@@ -251,6 +254,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 import java.util.StringTokenizer;
 
 import org.tanukisoftware.wrapper.event.WrapperEvent;
@@ -309,6 +313,7 @@ public final class WrapperManager
     private static final byte WRAPPER_MSG_LOW_LOG_LEVEL  = (byte)112;
     private static final byte WRAPPER_MSG_PING_TIMEOUT   = (byte)113;
     private static final byte WRAPPER_MSG_SERVICE_CONTROL_CODE = (byte)114;
+    private static final byte WRAPPER_MSG_PROPERTIES     = (byte)115;
     
     /** Log commands are actually 116 + the LOG LEVEL. */
     private static final byte WRAPPER_MSG_LOG            = (byte)116;
@@ -419,6 +424,9 @@ public final class WrapperManager
     private static boolean m_libraryOK = false;
     private static byte[] m_commandBuffer = new byte[512];
     
+    /** The contents of the wrapper configuration. */
+    private static WrapperProperties m_properties;
+    
     /** List of registered WrapperEventListeners and their registered masks. */
     private static List m_wrapperEventListenerMaskList = new ArrayList();
     
@@ -459,6 +467,11 @@ public final class WrapperManager
         //  from the case where the user PrintStream enters a deadlock state.
         m_out = System.out;
         m_err = System.err;
+        
+        // Always create an empty properties object in case we are not running
+        //  in the Wrapper or the properties are never sent.
+        m_properties = new WrapperProperties();
+        m_properties.lock();
         
         // Check for the debug flag
         m_debug = getBooleanProperty( "wrapper.debug", false );
@@ -1319,6 +1332,21 @@ public final class WrapperManager
             user = nativeGetInteractiveUser( groups );
         }
         return user;
+    }
+    
+    /**
+     * Returns a Properties object containing expanded the contents of the
+     *  configuration file used to launch the Wrapper.
+     *
+     * All properties are included so it is possible to define properties
+     *  not used by the Wrapper in the configuration file and have then
+     *  be available in this Properties object.
+     *
+     * @return The contents of the Wrapper configuration file.
+     */
+    public static Properties getProperties()
+    {
+        return m_properties;
     }
     
     /**
@@ -2355,6 +2383,86 @@ public final class WrapperManager
             }
         }
     }
+    
+    /**
+     * Parses a long tab separated string of properties into an internal
+     *  properties object.  Actual tabs are escaped by real tabs.
+     */
+    private static char PROPERTY_SEPARATOR = (char)0x08;
+    private static void readProperties( String rawProps )
+    {
+        WrapperProperties properties = new WrapperProperties();
+        
+        int len = rawProps.length();
+        int first = 0;
+        while ( first < len )
+        {
+            StringBuffer sb = new StringBuffer();
+            boolean foundEnd = false;
+            do
+            {
+                int pos = rawProps.indexOf( PROPERTY_SEPARATOR );
+                if ( pos >= 0 )
+                {
+                    if ( pos > 0 )
+                    {
+                        sb.append( rawProps.substring( first, pos ) );
+                    }
+                    if ( pos < len - 1 )
+                    {
+                        if ( rawProps.charAt( pos + 1 ) == PROPERTY_SEPARATOR )
+                        {
+                            // Two separators in a row, it was escaped.
+                            sb.append( PROPERTY_SEPARATOR );
+                            first = pos + 2;
+                        }
+                        else
+                        {
+                            foundEnd = true;
+                            first = pos + 1;
+                        }
+                    }
+                    else
+                    {
+                        foundEnd = true;
+                        first = pos + 1;
+                    }
+                }
+                else
+                {
+                    // No more separators.  The rest is the last property.
+                    sb.append( rawProps.substring( first ) );
+                    foundEnd = true;
+                    first = len;
+                }
+            }
+            while ( !foundEnd );
+            
+            String property = sb.toString();
+            
+            // Parse the property.
+            int pos = property.indexOf( '=' );
+            if ( pos > 0 )
+            {
+                String key = property.substring( 0, pos );
+                String value;
+                if ( pos < property.length() - 2 )
+                {
+                    value = property.substring( pos + 1 );
+                }
+                else
+                {
+                    value = "";
+                }
+                
+                properties.setProperty( key, value );
+            }
+        }
+        
+        // Lock the properties object and store it.
+        properties.lock();
+        m_properties = properties;
+    }
 
     private static synchronized Socket openSocket()
     {
@@ -2508,6 +2616,10 @@ public final class WrapperManager
     
         case WRAPPER_MSG_SERVICE_CONTROL_CODE:
             name ="SERVICE_CONTROL_CODE";
+            break;
+    
+        case WRAPPER_MSG_PROPERTIES:
+            name ="PROPERTIES";
             break;
     
         case WRAPPER_MSG_LOG + WRAPPER_LOG_LEVEL_DEBUG:
@@ -2762,6 +2874,10 @@ public final class WrapperManager
                                 m_out.println( "Encountered an Illegal ServiceControlCode from "
                                     + "the Wrapper: " + msg );
                             }
+                            break;
+                            
+                        case WRAPPER_MSG_PROPERTIES:
+                            readProperties( msg );
                             break;
                             
                         default:
