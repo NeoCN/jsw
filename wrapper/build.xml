@@ -96,7 +96,7 @@
         <property name="is.shell.sh" value="true"/>
         <property name="wrapper.bin.name" value="wrapper"/>
         <property name="wrapper.lib.name" value="libwrapper.sl"/>
-        <property name="make.name" value="gmake"/>
+        <property name="make.name" value="make"/>
         <property name="makefile.name" value="Makefile.hpux64"/>
         <property name="releasefile" value="wrapper_hpux64_${version}"/>
     </target>
