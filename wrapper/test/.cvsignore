@@ -26,6 +26,8 @@ outputloader
 outputloader.conf
 systemin
 systemin.conf
+filter
+filter.conf
 memory
 memory.conf
 testwrapper.log
@@ -45,5 +47,6 @@ TestShutdownHook.bat
 TestOutputLoader.bat
 TestMemory.bat
 TestSystemIn.bat
+TestFilter.bat
 OutputLoader.log
 
