@@ -74,6 +74,7 @@ extern "C" {
 /* Inaccessible static: m_instance */
 /* Inaccessible static: m_hook */
 /* Inaccessible static: m_hookTriggered */
+/* Inaccessible static: m_shutdownJVMComplete */
 /* Inaccessible static: m_args */
 /* Inaccessible static: m_port */
 /* Inaccessible static: m_key */
