@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.26  2003/03/21 21:25:32  mortenson
+ * Fix a problem where very heavy output from the JVM can cause the Wrapper to
+ * give a false timeout.  The Wrapper now only ready 50 lines of input at a time
+ * to guarantee that the Wrapper's event loop always gets cycles.
+ *
  * Revision 1.25  2003/03/13 15:40:41  mortenson
  * Add the ability to set environment variables from within the configuration
  * file or from the command line.
@@ -299,47 +304,85 @@ void wrapperReportStatus(int status, int errorCode, int waitHint) {
 /**
  * Read and process any output from the child JVM Process.
  * Most output should be logged to the wrapper log file.
+ *
+ * This function will only read up to 50 lines of data before returning this is to
+ *  make sure that the main loop gets CPU.  If there is more data in the pipe then
+ *  the function returns -1, otherwise 0.  This is a hint to the mail loop not to
+ *  sleep.
  */
-void wrapperReadChildOutput() {
+int wrapperReadChildOutput() {
+	int readSize;
     ssize_t bytesRead;
     char readBuf [1025];
     char writeBuf[1025];
     int r, w; /* readBufPos, writeBufPos */
+    int count;
+    int retCode;
     
+	retCode = -1;
     if (jvmOut != -1) {
-        while (1) {
-            
-            /* Fill read buffer. */
-            bytesRead = read(jvmOut, readBuf, 1024);
-            
-            if (bytesRead <= 0) {
-                break;
-            }
-            /* Terminate the read buffer. */
-            readBuf[bytesRead] = '\0';
-            
-            /* Step through chars in read buffer. */
-            w = 0;
-            for (r = 0; r < bytesRead; r++) {
-                if (readBuf[r] == (char)0x0a) {
-                    /* Line feed; write out buffer and reset it. */
-                    writeBuf[w] = '\0';
-                    wrapperLogChildOutput(writeBuf);
-                    w = 0;
-                } else {
-                    /* Add character to write buffer. */
-                    writeBuf[w++] = readBuf[r];
-                }
-            }
-            
-            /* Write out the rest of the buffer. */
-            if (w > 0) {
-                writeBuf[w] = '\0';
-                wrapperLogChildOutput(writeBuf);
-                w = 0;
-            }
+		/* Loop and read as much input as is available.  When a large amount of output is
+		 *  being piped from the JVM this can lead to the main event loop not getting any
+		 *  CPU for an extended period of time.  To avoid that problem, this loop is only
+		 *  allowed to cycle 50 times before returning.  After 50 times, switch to a less
+		 *  efficient method of reading data because we need to make sure that we have
+		 *  not read past a line break before returning. */
+		count = 0;
+		while(1) {
+			if ( count < 50 ) {
+				readSize = 1024;
+			} else {
+				readSize = 1;
+			}
+
+			/* Fill read buffer. */
+			bytesRead = read(jvmOut, readBuf, readSize);
+        
+			if (bytesRead <= 0) {
+				retCode = 0;
+				break;
+			}
+			/* Terminate the read buffer. */
+			readBuf[bytesRead] = '\0';
+        
+			/* Step through chars in read buffer. */
+			w = 0;
+			for (r = 0; r < bytesRead; r++) {
+				if (readBuf[r] == (char)0x0a) {
+					/* Line feed; write out buffer and reset it. */
+					writeBuf[w] = '\0';
+					wrapperLogChildOutput(writeBuf);
+					w = 0;
+
+					if ( count >= 50 ) {
+						// This last line was read byte by byte, now exit.
+						break;
+					}
+
+					count++;
+				} else {
+					/* Add character to write buffer. */
+					writeBuf[w++] = readBuf[r];
+				}
+			}
+        
+			/* Write out the rest of the buffer. */
+			if (w > 0) {
+				writeBuf[w] = '\0';
+				wrapperLogChildOutput(writeBuf);
+				w = 0;
+
+				if ( count >= 50 ) {
+					// This last line was read byte by byte, now exit.
+					break;
+				}
+
+				count++;
+			}
         }
     }
+    
+    return retCode;
 }
 
 /**

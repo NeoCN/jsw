@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.26  2003/03/21 21:25:31  mortenson
+ * Fix a problem where very heavy output from the JVM can cause the Wrapper to
+ * give a false timeout.  The Wrapper now only ready 50 lines of input at a time
+ * to guarantee that the Wrapper's event loop always gets cycles.
+ *
  * Revision 1.25  2003/02/07 16:05:28  mortenson
  * Implemented feature request #676599 to enable the filtering of JVM output to
  * trigger JVM restarts or Wrapper shutdowns.
@@ -234,7 +239,7 @@ extern void wrapperReportStatus(int status, int errorCode, int waitHint);
  * Read and process any output from the child JVM Process.
  * Most output should be logged to the wrapper log file.
  */
-extern void wrapperReadChildOutput();
+extern int wrapperReadChildOutput();
 
 /**
  * Checks on the status of the JVM Process.

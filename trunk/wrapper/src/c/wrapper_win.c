@@ -23,6 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.33  2003/03/21 21:25:33  mortenson
+ * Fix a problem where very heavy output from the JVM can cause the Wrapper to
+ * give a false timeout.  The Wrapper now only ready 50 lines of input at a time
+ * to guarantee that the Wrapper's event loop always gets cycles.
+ *
  * Revision 1.32  2003/03/13 15:40:42  mortenson
  * Add the ability to set environment variables from within the configuration
  * file or from the command line.
@@ -461,18 +466,31 @@ void wrapperReportStatus(int status, int errorCode, int waitHint) {
 /**
  * Read and process any output from the child JVM Process.
  * Most output should be logged to the wrapper log file.
+ *
+ * This function will only read up to 50 lines of data before returning this is to
+ *  make sure that the main loop gets CPU.  If there is more data in the pipe then
+ *  the function returns -1, otherwise 0.  This is a hint to the mail loop not to
+ *  sleep.
  */
-void wrapperReadChildOutput() {
+int wrapperReadChildOutput() {
     DWORD dwRead, dwAvail;
     int lfPos;
     char chBuf[1025];
     char *c;
     int thisLF;
+    int count;
+    int retCode;
 
-    for (;;) {
+    /* Loop and read as much input as is available.  When a large amount of output is
+     *  being piped from the JVM this can lead to the main event loop not getting any
+     *  CPU for an extended period of time.  To avoid that problem, this loop is only
+     *  allowed to cycle 50 times before returning. */
+    retCode = -1;
+    for (count = 0; count < 50; count++) {
         /* Find out how much data there is in the pipe before we try to read it. */
         if (!PeekNamedPipe(wrapperChildStdoutRd, chBuf, 1024, &dwRead, &dwAvail, NULL) || dwRead == 0 || dwAvail == 0) {
             /*printf("stdout avail %d.", dwAvail); */
+            retCode = 0;
             break;
         }
         /*printf("stdout avail %d.", dwAvail); */
@@ -521,6 +539,7 @@ void wrapperReadChildOutput() {
 
         if (!ReadFile(wrapperChildStdoutRd, chBuf, dwAvail, &dwRead, NULL) || dwRead == 0) {
             /*printf("stdout read %d.\n", dwRead); */
+            retCode = 0;
             break;
         }
         /* Write over the lf */
@@ -535,6 +554,8 @@ void wrapperReadChildOutput() {
 
         wrapperChildStdoutRdLastLF = thisLF;
     }
+    
+    return retCode;
 }
 
 /**
