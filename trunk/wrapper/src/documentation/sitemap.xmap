@@ -49,8 +49,6 @@
                             name="fo2pdf" 
                             mime-type="application/pdf"  
                             src="org.apache.cocoon.serialization.FOPSerializer">
-                <user-config 
-                             src="src/documentation/fonts/config.xml"/>
             </map:serializer>
         </map:serializers>
         
