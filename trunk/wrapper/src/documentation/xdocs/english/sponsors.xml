@@ -31,6 +31,12 @@
             -->
         <donorlist>
             <donor>
+                <date>Jul 12, 2004</date>
+                <amount>250.00</amount>
+                <name>WB Doeksen</name>
+                <message>Great software!  Very well documented and easy to use.  Well done!</message>
+            </donor>
+            <donor>
                 <date>Jun 6, 2004</date>
                 <amount>75.00</amount>
                 <name><ulink url="http://www.tomotherapy.com">TomoTherapy Incorporated</ulink></name>
