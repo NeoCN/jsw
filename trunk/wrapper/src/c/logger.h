@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.10  2003/07/04 03:18:36  mortenson
+ * Improve the error message displayed when the NT EventLog is full in response
+ * to feature request #643617.
+ *
  * Revision 1.9  2003/04/03 04:05:22  mortenson
  * Fix several typos in the docs.  Thanks to Mike Castle.
  *
@@ -111,5 +115,9 @@ extern int getLowLogLevel();
 
 /* * General log functions * */
 extern void log_printf( int source_id, int level, char *lpszFmt, ... );
+
+#ifdef WIN32
+extern char* getLastErrorText();
+#endif
 
 #endif

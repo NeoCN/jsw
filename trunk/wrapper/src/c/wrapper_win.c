@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.46  2003/07/04 03:18:36  mortenson
+ * Improve the error message displayed when the NT EventLog is full in response
+ * to feature request #643617.
+ *
  * Revision 1.45  2003/07/02 04:01:52  mortenson
  * Implement the ability to specify an NT service's load order group in response
  * to feature request #764143.
@@ -124,7 +128,6 @@ barf
 #include <process.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <tchar.h>
 #include <windows.h>
 #include <time.h>
 #include <sys/timeb.h>
@@ -138,7 +141,6 @@ barf
  *****************************************************************************/
 SERVICE_STATUS          ssStatus;       
 SERVICE_STATUS_HANDLE   sshStatusHandle;
-TCHAR                   szErr[1024];
 
 static char *systemPath[256];
 static HANDLE wrapperProcess = NULL;
@@ -229,38 +231,6 @@ void appExit(int exitCode) {
  */
 int wrapperGetLastError() {
     return WSAGetLastError();
-}
-
-/**
- * Create an error message from GetLastError() using the
- *  FormatMessage API Call...
- */
-LPTSTR getLastErrorText(LPTSTR lpszBuf, DWORD dwSize) {
-    DWORD dwRet;
-    LPTSTR lpszTemp = NULL;
-
-    dwRet = FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-                           FORMAT_MESSAGE_FROM_SYSTEM |FORMAT_MESSAGE_ARGUMENT_ARRAY,
-                           NULL,
-                           GetLastError(),
-                           LANG_NEUTRAL,
-                           (LPTSTR)&lpszTemp,
-                           0,
-                           NULL);
-
-    /* supplied buffer is not long enough */
-    if (!dwRet || ((long)dwSize < (long)dwRet+14)) {
-        lpszBuf[0] = TEXT('\0');
-    } else {
-        lpszTemp[lstrlen(lpszTemp)-2] = TEXT('\0');  /*remove cr and newline character */
-        _stprintf( lpszBuf, TEXT("%s (0x%x)"), lpszTemp, GetLastError());
-    }
-
-    if (lpszTemp) {
-        GlobalFree((HGLOBAL) lpszTemp);
-    }
-
-    return lpszBuf;
 }
 
 /**
@@ -377,7 +347,7 @@ void requestDumpJVMState() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Sending BREAK event to process group %ld.", wrapperProcessId);
         if ( GenerateConsoleCtrlEvent( CTRL_BREAK_EVENT, wrapperProcessId ) == 0 ) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to send BREAK event to JVM process.  Err(%ld : %s)",
-                GetLastError(), getLastErrorText(szErr, 256));
+                GetLastError(), getLastErrorText());
         }
     }
 }
@@ -813,7 +783,7 @@ void wrapperExecute() {
     /* Get the full path and filename of this program */
     if (GetModuleFileName(NULL, szPath, 512) == 0){
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to launch %s -%s",
-                     wrapperData->ntServiceDisplayName, getLastErrorText(szErr, 256));
+                     wrapperData->ntServiceDisplayName, getLastErrorText());
         wrapperProcess = NULL;
         return;
     }
@@ -879,11 +849,11 @@ void wrapperExecute() {
 
                 if (!SetWindowPlacement(consoleHandle, &consolePlacement)) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                        "Unable to set window placement information: %s", getLastErrorText(szErr, 256));
+                        "Unable to set window placement information: %s", getLastErrorText());
                 }
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                    "Unable to obtain window placement information: %s", getLastErrorText(szErr, 256));
+                    "Unable to obtain window placement information: %s", getLastErrorText());
             }
         }
     }
@@ -1023,7 +993,7 @@ int wrapperInstall(int argc, char **argv) {
     /* Get the full path and filename of this program */
     if (GetModuleFileName(NULL, szPath, 512) == 0){
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to install %s -%s",
-                     wrapperData->ntServiceDisplayName, getLastErrorText(szErr, 256));
+                     wrapperData->ntServiceDisplayName, getLastErrorText());
         return 1;
     }
     
@@ -1117,14 +1087,14 @@ int wrapperInstall(int argc, char **argv) {
             CloseServiceHandle(schService);
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "CreateService failed - %s",
-                getLastErrorText(szErr, 256));
+                getLastErrorText());
             result = 1;
         }
 
         /* Close the handle to the service control manager database */
         CloseServiceHandle(schSCManager);
     } else {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenSCManager failed - %s", getLastErrorText(szErr,256));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenSCManager failed - %s", getLastErrorText());
         result = 1;
     }
 
@@ -1184,7 +1154,7 @@ int wrapperLoadEnvFromRegistry() {
                 /* Found an environment variable in the registry.  Set it to the current environment. */
                 sprintf(env, "%s=%s", name, data);
                 if (putenv(env)) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to set environment variable from the registry - %s", getLastErrorText(szErr,256));
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to set environment variable from the registry - %s", getLastErrorText());
                     err = ERROR_NO_MORE_ITEMS;
                     result = 1;
                 }
@@ -1194,7 +1164,7 @@ int wrapperLoadEnvFromRegistry() {
             } else if (err == ERROR_NO_MORE_ITEMS) {
                 /* No more environment variables. */
             } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to read registry - %s", getLastErrorText(szErr,256));
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to read registry - %s", getLastErrorText());
                 err = ERROR_NO_MORE_ITEMS;
                 result = 1;
             }
@@ -1234,7 +1204,7 @@ int wrapperLoadEnvFromRegistry() {
                                 /* This variable contains tokens which need to be expanded. */
                                 ret = ExpandEnvironmentStrings(envVal, data, dataLen);
                                 if (ret == 0) {
-                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to expand environment variable, %s - %s", name, getLastErrorText(szErr,256));
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to expand environment variable, %s - %s", name, getLastErrorText());
                                     err = ERROR_NO_MORE_ITEMS;
                                     result = 1;
                                 } else if (ret >= dataLen) {
@@ -1251,7 +1221,7 @@ int wrapperLoadEnvFromRegistry() {
 #endif
                                     sprintf(env, "%s=%s", name, data);
                                     if (putenv(env)) {
-                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to set environment variable from the registry - %s", getLastErrorText(szErr,256));
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to set environment variable from the registry - %s", getLastErrorText());
                                         err = ERROR_NO_MORE_ITEMS;
                                         result = 1;
                                     }
@@ -1261,7 +1231,7 @@ int wrapperLoadEnvFromRegistry() {
                     } else if (err == ERROR_NO_MORE_ITEMS) {
                         /* No more environment variables. */
                     } else {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to read registry - %s", getLastErrorText(szErr,256));
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to read registry - %s", getLastErrorText());
                         err = ERROR_NO_MORE_ITEMS;
                         result = 1;
                     }
@@ -1283,7 +1253,7 @@ int wrapperLoadEnvFromRegistry() {
         /* Close the registry entry */
         RegCloseKey(hKey);
     } else {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to access registry to obtain environment variables - %s", getLastErrorText(szErr,256));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to access registry to obtain environment variables - %s", getLastErrorText());
         result = 1;
     }
 
@@ -1377,7 +1347,7 @@ int wrapperStartService() {
                             } else {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                                     "Unable to query the status of the %s service - %s",
-                                    wrapperData->ntServiceDisplayName, getLastErrorText(szErr,256));
+                                    wrapperData->ntServiceDisplayName, getLastErrorText());
                                 result = 1;
                                 break;
                             }
@@ -1394,7 +1364,7 @@ int wrapperStartService() {
                         }
                     } else {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to start the service - %s",
-                            getLastErrorText(szErr,256));
+                            getLastErrorText());
                         result = 1;
                     }
                 } else {
@@ -1405,21 +1375,21 @@ int wrapperStartService() {
                 }
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to query the status of the %s service - %s",
-                    wrapperData->ntServiceDisplayName, getLastErrorText(szErr,256));
+                    wrapperData->ntServiceDisplayName, getLastErrorText());
                 result = 1;
             }
             
             /* Close this service object's handle to the service control manager */
             CloseServiceHandle(schService);
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText(szErr,256));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
             result = 1;
         }
         
         /* Finally, close the handle to the service control manager's database */
         CloseServiceHandle(schSCManager);
     } else {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenSCManager failed - %s", getLastErrorText(szErr,256));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenSCManager failed - %s", getLastErrorText());
         result = 1;
     }
 
@@ -1496,7 +1466,7 @@ int wrapperStopService(int command) {
                             } else {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                                     "Unable to query the status of the %s service - %s",
-                                    wrapperData->ntServiceDisplayName, getLastErrorText(szErr,256));
+                                    wrapperData->ntServiceDisplayName, getLastErrorText());
                                 result = 1;
                                 break;
                             }
@@ -1512,21 +1482,21 @@ int wrapperStopService(int command) {
                 }
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to query the status of the %s service - %s",
-                    wrapperData->ntServiceDisplayName, getLastErrorText(szErr,256));
+                    wrapperData->ntServiceDisplayName, getLastErrorText());
                 result = 1;
             }
             
             /* Close this service object's handle to the service control manager */
             CloseServiceHandle(schService);
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText(szErr,256));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
             result = 1;
         }
         
         /* Finally, close the handle to the service control manager's database */
         CloseServiceHandle(schSCManager);
     } else {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenSCManager failed - %s", getLastErrorText(szErr,256));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenSCManager failed - %s", getLastErrorText());
         result = 1;
     }
 
@@ -1566,21 +1536,21 @@ int wrapperRemove() {
             if (DeleteService(schService)) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s removed.", wrapperData->ntServiceDisplayName);
             } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "DeleteService failed - %s", getLastErrorText(szErr,256));
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "DeleteService failed - %s", getLastErrorText());
                 result = 1;
             }
             
             /* Close this service object's handle to the service control manager */
             CloseServiceHandle(schService);
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText(szErr,256));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
             result = 1;
         }
         
         /* Finally, close the handle to the service control manager's database */
         CloseServiceHandle(schSCManager);
     } else {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenSCManager failed - %s", getLastErrorText(szErr,256));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenSCManager failed - %s", getLastErrorText());
         result = 1;
     }
 
@@ -1602,7 +1572,7 @@ int setWorkingDir() {
     
     /* Get the full path and filename of this program */
     if (GetModuleFileName(NULL, szPath, 512) == 0){
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to get the path-%s", getLastErrorText(szErr, 256));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to get the path-%s", getLastErrorText());
         return 1;
     }
 
