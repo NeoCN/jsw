@@ -28,7 +28,7 @@
             <donor>
                 <date>Oct 7, 2003</date>
                 <amount>150.00</amount>
-                <name>Starlasoft</name>
+                <name><ulink url="http://www.starlasoft.com">Starlasoft</ulink></name>
                 <message>Excellent work</message>
             </donor>
             <donor>
@@ -46,7 +46,7 @@
             <donor>
                 <date>Jun 18, 2003</date>
                 <amount>250.00</amount>
-                <name>Yamatake Corporation</name>
+                <name><ulink url="http://jp.yamatake.com/">Yamatake Corporation</ulink></name>
                 <message></message>
             </donor>
             <donor>
