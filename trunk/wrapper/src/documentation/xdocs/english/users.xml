@@ -28,10 +28,24 @@
                         Silver Egg Aigent Server is one-to-one marketing for the Internet.  Aigent helps web sites sell.  It observes the behavior of site visitors and uses artificial intelligence to learn their preferences.  Aigent uses this customer preference knowledge to dynamically adapt and target content that will optimize the visitor's response, increase their click-rate, and net more sales. 
                     </para>
                     <para>
-                        Company: <ulink url="http://www.silveregg.co.jp">Silver Egg Technology</ulink>
+                        <ulink url="http://www.silveregg.co.jp">Silver Egg Technology</ulink>
                     </para>
                     <para>
                         URL: <ulink url="http://www.silveregg.co.jp/silveregg/dev_and_services/products/products_en.html">http://www.silveregg.co.jp/silveregg/dev_and_services/products/products_en.html</ulink>
+                    </para>
+                </glossdef>
+            </glossentry>
+            <glossentry>
+                <glossterm>Avalon Phoenix</glossterm>
+                <glossdef>
+                    <para>
+                        Phoenix is an application server designed to host server orientated applications. The Phoenix container provides several facilities such as log management, lifecycle management, classloader management, JMX interfaces etc.  This allows application writers to get on with the job of writing applications instead of iplementing the common infrastructure time and time again.
+                    </para>
+                    <para>
+                        <ulink url="http://www.apache.org">Apache Software Foundation.</ulink>
+                    </para>
+                    <para>
+                        URL: <ulink url="http://jakarta.apache.org/avalon/phoenix/index.html">http://jakarta.apache.org/avalon/phoenix/index.html</ulink>
                     </para>
                 </glossdef>
             </glossentry>
