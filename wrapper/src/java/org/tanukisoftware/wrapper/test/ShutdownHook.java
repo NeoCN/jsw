@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.3  2003/05/30 09:11:51  mortenson
+// Avoid using 100% CPU while running the test.
+//
 // Revision 1.2  2003/04/03 04:05:22  mortenson
 // Fix several typos in the docs.  Thanks to Mike Castle.
 //
@@ -72,7 +75,14 @@ public class ShutdownHook {
                     long start = System.currentTimeMillis();
                     while(System.currentTimeMillis() - start < 20000)
                     {
-                        Thread.yield();
+                        try
+                        {
+                            Thread.sleep( 250 );
+                        }
+                        catch ( InterruptedException e )
+                        {
+                            // Ignore
+                        }
                     }
                     System.out.println("Shutdown look complete. Should exit now.");
                 }
