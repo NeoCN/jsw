@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.77  2004/07/02 08:56:14  mortenson
+ * Display a propper error message if an error is encountered while killing the JVM.
+ *
  * Revision 1.76  2004/07/01 17:03:46  mortenson
  * Rewrote the routine which reads and logs console output from the JVM
  * for Windows versions.  Internal buffers are now scaled dynamically,
@@ -1198,7 +1201,8 @@ void wrapperKillProcess() {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM did not exit on request, terminated");
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM did not exit on request.");
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "  Attempt to terminate process failed.  Error=%d", GetLastError());
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                "  Attempt to terminate process failed: %s", getLastErrorText());
         }
 
         /* Give the JVM a chance to be killed so that the state will be correct. */
