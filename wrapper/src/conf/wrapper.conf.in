@@ -65,10 +65,10 @@ wrapper.pidfile=/var/run/aigent.pid
 #  service can then be reinstalled.
 
 # Name of the service
-wrapper.ntservice.name=TestWrapper
+wrapper.ntservice.name=@app.name@
 
 # Display name of the service
-wrapper.ntservice.displayname=Test Wrapper Application
+wrapper.ntservice.displayname=@app.long.name@
 
 # Service dependencies.  Add dependencies as needed starting from 1
 wrapper.ntservice.dependency.1=
