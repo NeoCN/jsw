@@ -160,7 +160,17 @@ $Id$
                     Add getUser and getInteractiveUser methods to the <ulink url="javadocs.html">WrapperManager</ulink>
                     class to make it possible for user code to query information about the user
                     running Wrapper or the user who is interacting with the Wrapper and its JVM.
-                    <ulink url="http://sourceforge.net/tracker/index.php?func=detail&aid=812175&group_id=39428&atid=425190">Feature Request #812175</ulink>.
+                    <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=812175&amp;group_id=39428&amp;atid=425190">Feature Request #812175</ulink>.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    The Wrapper will now always exit with the exit code used to terminate the JVM
+                    whether System.exit is used or <ulink url="javadocs.html">WrapperManager.stop</ulink>.
+                    When running as an NT service the Wrapper now correctly returns the correct
+                    exit code to the service manager so failure recovery tools should now work
+                    correctly.
+                    <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=852491&amp;group_id=39428&amp;atid=425190">Feature Request #852491</ulink>.
                 </para>
             </listitem>
         </itemizedlist>
