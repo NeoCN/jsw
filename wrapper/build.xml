@@ -645,11 +645,15 @@
     <!-- =================================================================== -->
     <target name="clean" description="Clean up any files from the build">
         <delete dir="${build.dir}"/>
-        <delete>
+        <delete includeEmptyDirs="true">
+            <fileset dir="${basedir}">
+                <include name="wrapper_*/**/*"/>
+            </fileset>
             <fileset dir="${basedir}">
                 <include name="wrapper_*"/>
             </fileset>
         </delete>
+
         <exec executable="make"
               dir="${src.dir}/c"
               os="Linux">
