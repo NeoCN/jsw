@@ -108,7 +108,7 @@
                 <td align="left" id="copyright">
                     <font face="arial,helvetica,sanserif" size="-1" color="#525D76">
                         <i>
-                            Copyright &#169;1999-2003 by <a href="http://www.tanukisoftware.com">Tanuki Software</a>.
+                            Copyright &#169;1999-2004 by <a href="http://www.tanukisoftware.com">Tanuki Software</a>.
                             All Rights Reserved.
                         </i>
                     </font>
