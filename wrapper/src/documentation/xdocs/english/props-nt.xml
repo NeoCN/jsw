@@ -79,6 +79,12 @@
                 <listproperty version="3.0.0">
                     <ulink url="prop-ntservice-password.html">wrapper.ntservice.password</ulink>
                 </listproperty>
+                <listproperty version="3.2.0">
+                    <ulink url="prop-ntservice-password.html#prompt">wrapper.ntservice.password.prompt</ulink>
+                </listproperty>
+                <listproperty version="3.2.0">
+                    <ulink url="prop-ntservice-password.html#mask">wrapper.ntservice.password.prompt.mask</ulink>
+                </listproperty>
                 <listproperty version="2.2.7">
                     <ulink url="prop-ntservice-process-priority.html">wrapper.ntservice.process_priority</ulink>
                 </listproperty>

@@ -85,6 +85,10 @@ Java Service Wrapper Revision History.
   and wrapper.ntservice.password properties were being stored in plain text
   within the registry if they were specified on the command line when
   installing the Wrapper as a Windows service.  Bug #1110183.
+* Add a pair of properties wrapper.ntservice.password.prompt and
+  wrapper.ntservice.password.prompt.mask which which will cause the Wrapper
+  to prompt the user for an account password when it is being installed as
+  an NT service.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
