@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.32  2004/03/10 14:06:52  mortenson
+// Add some additional debug output to make it easier to debug startup,
+// shutdown and restart problems.
+//
 // Revision 1.31  2004/01/24 17:46:30  mortenson
 // The addition of the getInteractiveUser placed a dependency on Windows NT
 // version 5.0.  Work around this so the Wrapper can still be used on NT 4.0.
@@ -372,6 +376,13 @@ public final class WrapperManager
         
         // Check for the debug flag
         m_debug = getBooleanProperty( "wrapper.debug" );
+        
+        if ( m_debug )
+        {
+            m_out.println( "WrapperManager class initialized by thread: "
+                + Thread.currentThread().getName()
+                + "  Using classloader: " + WrapperManager.class.getClassLoader() );
+        }
         
         // Check for the jvmID
         m_jvmId = getIntProperty( "wrapper.jvmid", 1 );
@@ -1319,8 +1330,28 @@ public final class WrapperManager
      */
     public static synchronized void start( WrapperListener listener, String[] args )
     {
-        m_out.println( "Wrapper (Version " + getVersion() + ")" );
+        m_out.println( "Wrapper (Version " + getVersion() + ") http://wrapper.tanukisoftware.org" );
         m_out.println();
+        
+        if ( m_debug )
+        {
+            StringBuffer sb = new StringBuffer();
+            sb.append( "args[" );
+            for ( int i = 0; i < args.length; i++ )
+            {
+                if ( i > 0 )
+                {
+                    sb.append( ", " );
+                }
+                sb.append( "\"" );
+                sb.append( args[i] );
+                sb.append( "\"" );
+            }
+            sb.append( "]" );
+            
+            m_out.println( "WrapperManager.start(" + listener + ", " + sb.toString() + ") "
+                + "called by thread: " + Thread.currentThread().getName() );
+        }
         
         // Make sure that the class has not already been disposed.
         if ( m_disposed)
@@ -1358,6 +1389,12 @@ public final class WrapperManager
      */
     public static void restart()
     {
+        if ( m_debug )
+        {
+            m_out.println( "WrapperManager.restart() called by thread: "
+                + Thread.currentThread().getName() );
+        }
+        
         boolean stopping;
         synchronized(m_instance)
         {
@@ -1409,6 +1446,12 @@ public final class WrapperManager
      */
     public static void stop( int exitCode )
     {
+        if ( m_debug )
+        {
+            m_out.println( "WrapperManager.stop(" + exitCode + ") called by thread: "
+                + Thread.currentThread().getName() );
+        }
+        
         stopCommon( exitCode, 1000 );
         
         stopInner( exitCode );
@@ -1423,6 +1466,12 @@ public final class WrapperManager
      */
     public static void stopImmediate( int exitCode )
     {
+        if ( m_debug )
+        {
+            m_out.println( "WrapperManager.stopImmediate(" + exitCode + ") called by thread: "
+                + Thread.currentThread().getName() );
+        }
+        
         stopCommon( exitCode, 250 );
         
         signalStopped( exitCode );
