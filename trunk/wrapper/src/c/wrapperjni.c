@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.10  2004/07/15 14:16:37  mortenson
+ * Make variables used by the signal polling code to remove a compiler warning
+ * on 64-bit HP-UX systems.
+ *
  * Revision 1.9  2004/01/16 04:42:00  mortenson
  * The license was revised for this version to include a copyright omission.
  * This change is to be retroactively applied to all versions of the Java
@@ -78,8 +82,8 @@
 
 int wrapperJNIDebugging = JNI_FALSE;
 
-int lastControlEvent = 0;
-int checkingControlEvent = 0;
+volatile int lastControlEvent = 0;
+volatile int checkingControlEvent = 0;
 
 /**
  * Create an error message from GetLastError() using the
