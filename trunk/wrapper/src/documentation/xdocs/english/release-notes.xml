@@ -36,6 +36,16 @@ $Id$
                     loaded by the WrapperManager class.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Modify the WrapperManager class so it now stores references to System.out
+                    and System.err on initialization and always writes to those stored streams.
+                    This makes sure that all Wrapper console output always goes to the
+                    wrapper.log file even if user code overrides those streams with calls to
+                    System.setOut and System.setErr.  This was necessary to prevent deadlocks
+                    in such user code from affecting the functionality of the Wrapper.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
