@@ -7,7 +7,7 @@ LINK = ld
 
 SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c wrapperjni_unix.c wrapperjni.c
 WRAPPER_OBJECTS = wrapper.o wrapperinfo.o wrappereventloop.o wrapper_unix.o property.o logger.o
-libwrapper_sl_OBJECTS = wrapperjni_unix.o wrapperjni.o wrapperinfo.o
+LIBWRAPPER_SL_OBJECTS = wrapperjni_unix.o wrapperjni.o wrapperinfo.o 
 
 BIN = ../../bin
 LIB = ../../lib
@@ -24,12 +24,12 @@ cleanall:clean
 init:
 	if test ! -d .deps; then mkdir .deps; fi
  
-compile:
+compile:$(SOURCE)
 	${COMPILE} -c $(SOURCE)
 
-wrapper:$(SOURCE) 
+wrapper:$(WRAPPER_OBJECTS)
 	${COMPILE} $(WRAPPER_OBJECTS) -lm -o $(BIN)/wrapper
 
-libwrapper.sl:$(SOURCE) 
-	${LINK} $(libwrapper_sl_OBJECTS) -b -o $(LIB)/libwrapper.sl
+libwrapper.sl:$(LIBWRAPPER_SL_OBJECTS)
+	${LINK} $(LIBWRAPPER_SL_OBJECTS) -b -o $(LIB)/libwrapper.sl
 
