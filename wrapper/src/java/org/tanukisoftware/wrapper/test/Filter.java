@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.2  2003/04/16 04:51:53  mortenson
+// On fast machines the Wrapper was detecting that the main thread was exiting
+// and causing the application to exit even though
+//
 // Revision 1.1  2003/04/16 04:37:49  mortenson
 // Add a test case to make it easier to test the output filter feature.
 //
@@ -64,7 +68,18 @@ public class Filter {
         }
         System.out.println();
         System.out.println("The above message should be caught before this line, but this line");
-        System.out.println("  will still be visible.");
+        System.out.println("  will still be visible.  Wait for 5 seconds before this thread is");
+        System.out.println("  allowed to complete.  This prevents the Wrapper from detecting");
+        System.out.println("  that the application has completed and exiting normally.  The");
+        System.out.println("  Wrapper will try to shutdown the JVM cleanly, so it will not exit");
+        System.out.println("  until this thread has completed.");
+
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+        }
+
+        System.out.println("Main complete.");
     }
 }
 
