@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.53  2003/04/15 14:17:45  mortenson
+ * Clean up the code by setting all malloced variables to NULL after they are freed,
+ *
  * Revision 1.52  2003/04/14 14:11:53  mortenson
  * Add support for Mac OS X.
  * (Patch from Andy Barnett)
@@ -968,6 +971,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                             strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
                             sprintf(strings[index], "%s", tmpString);
                             free(tmpString);
+                            tmpString = NULL;
                         }
                         
                         if (j > 0) {
@@ -1052,6 +1056,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                                 strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
                                 sprintf(strings[index], "%s", tmpString);
                                 free(tmpString);
+                                tmpString = NULL;
                             }
 
                             if (j > 0) {
@@ -1073,6 +1078,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                                     strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
                                     sprintf(strings[index], "%s", tmpString);
                                     free(tmpString);
+                                    tmpString = NULL;
                                 }
 
                                 if (j > 0) {
@@ -1102,6 +1108,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                                     strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
                                     sprintf(strings[index], "%s", tmpString);
                                     free(tmpString);
+                                    tmpString = NULL;
                                 }
 
                                 if (j > 0) {
@@ -1116,6 +1123,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         }
 
                         globfree(&g);
+                        g = NULL;
 #endif
                     } else {
                         /* Is there room for the entry? */
@@ -1126,6 +1134,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                             strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
                             sprintf(strings[index], "%s", tmpString);
                             free(tmpString);
+                            tmpString = NULL;
                         }
 
                         if (j > 0) {
