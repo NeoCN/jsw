@@ -505,6 +505,7 @@
                 <include name="${releasefile}/bin/${app.name}"/>
             </tarfileset>
             <tarfileset dir="${basedir}">
+                <include name="${releasefile}/**"/>
                 <exclude name="${releasefile}/bin/wrapper"/>
                 <exclude name="${releasefile}/bin/${app.name}"/>
             </tarfileset>
@@ -554,6 +555,7 @@
                 <include name="${releasefile}/bin/${app.name}"/>
             </tarfileset>
             <tarfileset dir="${basedir}">
+                <include name="${releasefile}/**"/>
                 <exclude name="${releasefile}/bin/wrapper"/>
                 <exclude name="${releasefile}/bin/${app.name}"/>
             </tarfileset>
