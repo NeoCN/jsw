@@ -3,8 +3,8 @@
 <!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "../dtd/docbook/4.1.2/docbookx.dtd">
 
 <!-- ********************************************************************
-     $Id$
-     ******************************************************************** -->
+$Id$
+******************************************************************** -->
 
 <article id="index">
     <title>Java Service Wrapper Release Notes</title>
@@ -36,6 +36,13 @@
                     wrapper.conf file will now be evaluated as the file is loaded.  The windows
                     syntax for environment variables is used on all platforms to make them
                     platform independent.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Fixed a problem where the wrapper.conf was being open with both read and
+                    write locks when a read lock is all that is needed.  Made the wrapper fail
+                    on startup if another application held a read lock on the conf file.
                 </para>
             </listitem>
         </itemizedlist>
