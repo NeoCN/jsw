@@ -85,7 +85,7 @@
     </xsl:template>
 
     <xsl:template match="javadocs">
-        <iframe src="../../jdoc/index.html" width="100%" height="6000" align="center" frameborder="1" marginwidth="0" marginheight="0" scrolling="yes">
+        <iframe src="../../jdoc/index.html" width="100%" height="480" align="center" frameborder="1" marginwidth="0" marginheight="0" scrolling="yes">
             <xsl:apply-templates/>
         </iframe>				
     </xsl:template>
