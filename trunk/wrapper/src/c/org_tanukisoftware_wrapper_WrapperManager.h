@@ -132,6 +132,14 @@ JNIEXPORT jstring JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeG
 
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeGetJavaPID
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetJavaPID
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeGetControlEvent
  * Signature: ()I
  */

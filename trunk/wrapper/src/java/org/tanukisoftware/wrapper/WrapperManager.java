@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.43  2004/11/15 08:15:50  mortenson
+// Make it possible for users to access the Wrapper and JVM PIDs from within the JVM.
+//
 // Revision 1.42  2004/08/31 14:34:28  mortenson
 // Fix a problem where the JVM would restart at certain times when using the
 // system time based timer due to an overflow error.
@@ -602,8 +605,25 @@ public final class WrapperManager
         // Initialize the native code to trap system signals
         initializeNativeLibrary();
         
-        // Make sure that the native library's version is correct.
-        verifyNativeLibraryVersion();
+        if ( m_libraryOK )
+        {
+            // Make sure that the native library's version is correct.
+            verifyNativeLibraryVersion();
+            
+            // Get the PID of the current JVM from the native library.  Be careful as the method
+            //  will not exist if the library is old.
+            try
+            {
+                System.setProperty( "wrapper.java.pid", Integer.toString( nativeGetJavaPID() ) );
+            }
+            catch ( Throwable e )
+            {
+                if ( m_debug )
+                {
+                    m_out.println( "Call to nativeGetJavaPID() failed: " + e );
+                }
+            }
+        }
         
         // Start a thread which looks for control events sent to the
         //  process.  The thread is also used to keep track of whether
@@ -749,6 +769,7 @@ public final class WrapperManager
      *-------------------------------------------------------------*/
     private static native void nativeInit( boolean debug );
     private static native String nativeGetLibraryVersion();
+    private static native int nativeGetJavaPID();
     private static native int nativeGetControlEvent();
     private static native void nativeRequestThreadDump();
     private static native void accessViolationInner();
@@ -1089,12 +1110,6 @@ public final class WrapperManager
      */
     private static void verifyNativeLibraryVersion()
     {
-        // If the library was not loaded then return
-        if ( !m_libraryOK )
-        {
-            return;
-        }
-        
         // Request the version from the native library.  Be careful as the method
         //  will not exist if the library is old.
         String jniVersion;
@@ -1251,6 +1266,34 @@ public final class WrapperManager
             user = nativeGetInteractiveUser( groups );
         }
         return user;
+    }
+    
+    /**
+     * Returns the PID of the Wrapper process.
+     *
+     * A PID of 0 will be returned if the JVM was launched standalone.
+     *
+     * This value can also be obtained using the 'wrapper.pid' system property.
+     *
+     * @return The PID of the Wrpper process.
+     */
+    public static int getWrapperPID()
+    {
+        return getIntProperty( "wrapper.pid", 0 );
+    }
+    
+    /**
+     * Returns the PID of the Java process.
+     *
+     * A PID of 0 will be returned if the native library has not been initialized.
+     *
+     * This value can also be obtained using the 'wrapper.java.pid' system property.
+     *
+     * @return The PID of the Java process.
+     */
+    public static int getJavaPID()
+    {
+        return getIntProperty( "wrapper.java.pid", 0 );
     }
     
     /**

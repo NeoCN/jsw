@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.94  2004/11/15 08:15:48  mortenson
+ * Make it possible for users to access the Wrapper and JVM PIDs from within the JVM.
+ *
  * Revision 1.93  2004/10/19 11:48:20  mortenson
  * Rework logging so that the logfile is kept open.  Results in a 4 fold speed increase.
  *
@@ -1726,6 +1729,13 @@ DWORD wrapperGetTicks() {
         /* Return a snapshot of the current tick count. */
         return timerTicks;
     }
+}
+
+/**
+ * Returns the PID of the Wrapper process.
+ */
+int wrapperGetPID() {
+    return GetCurrentProcessId();
 }
 
 /**
