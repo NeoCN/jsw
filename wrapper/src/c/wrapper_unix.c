@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.33  2003/04/03 08:10:19  mortenson
+ * Fix the imports so the file compiles.  Had edited on a win32 machine.
+ *
  * Revision 1.32  2003/04/03 07:39:56  mortenson
  * Convert tabs to spaces.  No other changes.
  *
@@ -84,6 +87,8 @@
 #include <errno.h>
 #include <signal.h>
 #include <limits.h>
+#include <time.h>
+#include <sys/timeb.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
