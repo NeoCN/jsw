@@ -16,10 +16,11 @@ LIB = ../../lib
 all: init realpath wrapper libwrapper.so
 
 clean:
-	rm -f *.o $(BIN)/realpath $(BIN)/wrapper $(LIB)/libwrapper.so
+	rm -f *.o
 
 cleanall: clean
 	rm -rf *~ .deps
+	rm -f $(BIN)/realpath $(BIN)/wrapper $(LIB)/libwrapper.so
 
 init:
 	if test ! -d .deps; then mkdir .deps; fi
