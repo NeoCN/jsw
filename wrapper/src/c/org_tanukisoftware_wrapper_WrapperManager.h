@@ -118,6 +118,30 @@ JNIEXPORT jint JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetC
 
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeGetInteractiveUser
+ * Signature: ()Lorg/tanukisoftware/wrapper/WrapperUser;
+ */
+JNIEXPORT jobject JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeGetLoggedOnUser
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetLoggedOnUser
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeGetUser
+ * Signature: ()Lorg/tanukisoftware/wrapper/WrapperUser;
+ */
+JNIEXPORT jobject JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeInit
  * Signature: (Z)V
  */
