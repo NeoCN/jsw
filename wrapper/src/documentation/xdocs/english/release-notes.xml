@@ -13,6 +13,11 @@
         <itemizedlist>
             <listitem>
                 <para>
+                    The value of APP_NAME in the bash or sh scripts no longer needs to be the same as the script.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
                     Added the ablility to format and/or disable file logging and output to the console.
                 </para>
             </listitem>
