@@ -192,6 +192,16 @@
                         
 <p align="justify">
                             
+<a href="config-overview.html#envvar">Environment variable expansion</a>
+                        
+</p>
+                    
+</li>
+                    
+<li>
+                        
+<p align="justify">
+                            
 <a href="config-overview.html#independant-properties">Platform independent properties</a>
                         
 </p>
@@ -535,6 +545,80 @@ wrapper.ntservice.process_priority=NORMAL
 <br>
             
 <div>
+<a name="envvar"></a>
+<table cellspacing="0" cellpadding="2" border="0" width="98%">
+<tr>
+<td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="-1"><b>Environment variable expansion</b></font></td>
+</tr>
+<tr>
+<td><font face="arial,helvetica,sanserif" color="#000000">
+<br>
+                
+                
+<p align="justify">
+                    Starting with version 2.2.9, the Wrapper supports environment variable expansion
+                    at run time within the values of any of the properties listed on this page.
+                    To maintain the platform independent nature of the wrapper.conf file, the
+                    windows syntax is used for all platforms.
+                    <p align="justify">
+                        
+<i>Example referencing the JAVA_HOME environment variable:</i>
+                        
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.java.command=%JAVA_HOME%/bin/java</pre>
+</td>
+</tr>
+</table>
+</div>
+                    
+</p>
+                    This will expand at runtime to a fully qualified path on any system which
+                    defines the JAVA_HOME environment variable.
+                    <p align="justify">
+                        
+<i>Windows:</i>
+                        
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.java.command=C:\Sun\jdk1.3/bin/java</pre>
+</td>
+</tr>
+</table>
+</div>
+                    
+</p>
+                    
+<p align="justify">
+                        
+<i>Unix:</i>
+                        
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.java.command=/opt/IBMJava2-131/bin/java</pre>
+</td>
+</tr>
+</table>
+</div>
+                    
+</p>
+                    If a referenced environment variable is not defined, then it will be left
+                    unchanged in the property value.
+                </p>
+            
+</font></td>
+</tr>
+</table>
+</div>
+<br>
+            
+<div>
 <a name="independant-properties"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="98%">
 <tr>
@@ -546,7 +630,7 @@ wrapper.ntservice.process_priority=NORMAL
                 
                 
 <div class="glosslist">
-<a name="N400B00"></a>
+<a name="N400B35"></a>
 <dl>
                     
                         
@@ -978,7 +1062,7 @@ wrapper.app.parameter.2=conf/myconffile.conf</pre>
                 
                 
 <div class="glosslist">
-<a name="N400C23"></a>
+<a name="N400C58"></a>
 <dl>
                     
                         
@@ -1293,7 +1377,7 @@ wrapper.logfile.format=
                 
                 
 <div class="glosslist">
-<a name="N400CE5"></a>
+<a name="N400D1A"></a>
 <dl>
                     
                         
@@ -1366,7 +1450,7 @@ wrapper.logfile.format=
 </div>
                 
 <div class="glosslist">
-<a name="N400D0F"></a>
+<a name="N400D44"></a>
 <dl>
                     
                         
@@ -1559,7 +1643,7 @@ wrapper.logfile.format=
 <p align="justify">
                                     From the Windows API, each priority level is described as follows:
                                     <div class="glosslist">
-<a name="N400D9D"></a>
+<a name="N400DD2"></a>
 <dl>
                                         
                                             
@@ -1684,7 +1768,7 @@ wrapper.logfile.format=
 </p>
                 
 <div class="glosslist">
-<a name="N400DEC"></a>
+<a name="N400E21"></a>
 <dl>
                     
                         

@@ -37,6 +37,11 @@
                     </listitem>
                     <listitem>
                         <para>
+                            <ulink url="config-overview.html#envvar">Environment variable expansion</ulink>
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
                             <ulink url="config-overview.html#independant-properties">Platform independent properties</ulink>
                         </para>
                     </listitem>
@@ -139,6 +144,31 @@
                     directory is always the same when the application is started.  (i.e. You always
                     start the application like ./myapp, as opposed to other locations like,
                     bin/myapp)
+                </para>
+            </section>
+            <section id="envvar">
+                <title>Environment variable expansion</title>
+                <para>
+                    Starting with version 2.2.9, the Wrapper supports environment variable expansion
+                    at run time within the values of any of the properties listed on this page.
+                    To maintain the platform independent nature of the wrapper.conf file, the
+                    windows syntax is used for all platforms.
+                    <informalexample>
+                        <simpara><emphasis>Example referencing the JAVA_HOME environment variable:</emphasis></simpara>
+                        <screen format="linespecific">wrapper.java.command=%JAVA_HOME%/bin/java</screen>
+                    </informalexample>
+                    This will expand at runtime to a fully qualified path on any system which
+                    defines the JAVA_HOME environment variable.
+                    <informalexample>
+                        <simpara><emphasis>Windows:</emphasis></simpara>
+                        <screen format="linespecific">wrapper.java.command=C:\Sun\jdk1.3/bin/java</screen>
+                    </informalexample>
+                    <informalexample>
+                        <simpara><emphasis>Unix:</emphasis></simpara>
+                        <screen format="linespecific">wrapper.java.command=/opt/IBMJava2-131/bin/java</screen>
+                    </informalexample>
+                    If a referenced environment variable is not defined, then it will be left
+                    unchanged in the property value.
                 </para>
             </section>
             <section id="independant-properties">
