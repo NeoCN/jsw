@@ -26,6 +26,9 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.21  2002/09/11 02:56:00  mortenson
+// A debug message was always being displayed.
+//
 // Revision 1.20  2002/09/10 16:03:35  mortenson
 // Add some more documentation to the log method.
 //
@@ -1132,9 +1135,9 @@ public final class WrapperManager implements Runnable {
                         case WRAPPER_MSG_LOW_LOG_LEVEL:
                             try {
                                 _lowLogLevel = Integer.parseInt( msg );
-                                //if (_debug) {
+                                if (_debug) {
                                     System.out.println("Wrapper Manager: LowLogLevel from Wrapper is " + _lowLogLevel);
-                                //}
+                                }
                             } catch (NumberFormatException e) {
                                 System.out.println("Encountered an Illegal LowLogLevel from the Wrapper: " + msg);
                             }
