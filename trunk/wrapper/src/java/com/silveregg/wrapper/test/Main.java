@@ -26,6 +26,9 @@ package com.silveregg.wrapper.test;
  */
 
 // $Log$
+// Revision 1.7  2002/06/02 11:38:42  mortenson
+// Increase window size so that the window displays on XP correctly.
+//
 // Revision 1.6  2002/05/22 11:43:10  rybesh
 // fixed some spelling errors
 //
@@ -106,7 +109,7 @@ public class Main implements WrapperListener {
             add(new Label("Runtime.getRuntime().halt(0) should result in the JVM restarting."));
             add(new Label("Request Restart should cause the JVM to stop and be restarted cleanly."));
             
-            setSize(new Dimension(512, 250));
+            setSize(new Dimension(512, 260));
         }
         
         public void actionPerformed(ActionEvent event) {
