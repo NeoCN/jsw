@@ -14,6 +14,9 @@ if [ "$WRAPPER_TOOLS" = "" ] ; then
     fi
 fi
 
+# Make sure our own copy of Ant is used even if the user has defined their own.
+ANT_HOME=$WRAPPER_TOOLS
+
 chmod u+x $WRAPPER_TOOLS/bin/antRun
 chmod u+x $WRAPPER_TOOLS/bin/ant
 
