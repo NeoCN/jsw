@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.62  2004/01/09 18:22:41  mortenson
+ * The code timing the thread dump before a shutdown was still based on the system
+ * time, changed over to ticks.  Also extended the time from 3 to 5 seconds.
+ *
  * Revision 1.61  2004/01/09 17:49:00  mortenson
  * Rework the logging so it is now threadsafe.
  *
@@ -190,7 +194,6 @@ barf
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
-#include <time.h>
 #include <sys/timeb.h>
 #include <conio.h>
 
@@ -947,8 +950,8 @@ int wrapperGetProcessStatus() {
  */
 void wrapperKillProcess() {
     int ret;
-    time_t start;
-    time_t now;
+    DWORD startTicks;
+    DWORD nowTicks;
 
     /* Check to make sure that the JVM process is still running */
     ret = WaitForSingleObject(wrapperProcess, 0);
@@ -957,18 +960,18 @@ void wrapperKillProcess() {
         if (wrapperData->requestThreadDumpOnFailedJVMExit) {
             requestDumpJVMState();
 
-            /* Loop for 3 seconds reading all available input before actually killing
+            /* Loop for 5 seconds reading all available input before actually killing
              *  the JVM process.  This is to make sure that the JVM is given enough
              *  time to perform the full thread dump. */
-            now = start = time(NULL);
+            nowTicks = startTicks = wrapperGetTicks();
             do {
                 if ( !wrapperReadChildOutput() )
                 {
                     /* Sleep a moment so this loop does not eat too much CPU. */
                     Sleep(250); /* milliseconds */
                 }
-                now = time(NULL);
-            } while ( now - start < 3 );
+                nowTicks = wrapperGetTicks();
+            } while ( wrapperGetTickAge( startTicks, nowTicks ) < 5 );
         }
 
         /* Kill it immediately. */

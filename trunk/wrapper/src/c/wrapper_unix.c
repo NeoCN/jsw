@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.56  2004/01/09 18:22:41  mortenson
+ * The code timing the thread dump before a shutdown was still based on the system
+ * time, changed over to ticks.  Also extended the time from 3 to 5 seconds.
+ *
  * Revision 1.55  2004/01/09 17:49:00  mortenson
  * Rework the logging so it is now threadsafe.
  *
@@ -168,7 +172,6 @@
 #include <errno.h>
 #include <signal.h>
 #include <limits.h>
-#include <time.h>
 #include <sys/timeb.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -596,8 +599,8 @@ int wrapperReadChildOutput() {
  * Kill the JVM Process immediately and set the JVM State to WRAPPER_JSTATE_DOWN
  */
 void wrapperKillProcess() {
-    time_t start;
-    time_t now;
+    DWORD startTicks;
+    DWORD nowTicks;
 
     /* Check to make sure that the JVM process is still running */
     if (waitpid(jvmPid, NULL, WNOHANG) == 0) {
@@ -605,18 +608,18 @@ void wrapperKillProcess() {
         if (wrapperData->requestThreadDumpOnFailedJVMExit) {
             requestDumpJVMState();
 
-            /* Loop for 3 seconds reading all available input before actually killing
+            /* Loop for 5 seconds reading all available input before actually killing
              *  the JVM process.  This is to make sure that the JVM is given enough
              *  time to perform the full thread dump. */
-            now = start = time(NULL);
+            nowTicks = startTicks = wrapperGetTicks();
             do {
                 if ( !wrapperReadChildOutput() )
                 {
                     /* Sleep a moment so this loop does not eat too much CPU. */
                     usleep(250000); /* microseconds */
                 }
-                now = time(NULL);
-            } while ( now - start < 3 );
+                nowTicks = wrapperGetTicks();
+            } while ( wrapperGetTickAge( startTicks, nowTicks ) < 5 );
         }
 
         /* Kill it immediately. */
