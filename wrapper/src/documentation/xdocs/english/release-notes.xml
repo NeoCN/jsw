@@ -114,6 +114,13 @@ $Id$
                     documentation for details.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Modify the Windows build so the Wrapper.exe and Wrapper.dll files can now
+                    be built from <ulink url="http://ant.apache.org">Ant</ulink> if MSVC is
+                    installed.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
