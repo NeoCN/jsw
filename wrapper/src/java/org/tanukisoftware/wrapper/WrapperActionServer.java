@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.4  2003/09/03 08:55:48  mortenson
+// Add some more javadocs describing how to use the class.
+//
 // Revision 1.3  2003/08/20 17:42:03  mortenson
 // Got rid of some old messages.
 //
@@ -81,6 +84,24 @@ import org.tanukisoftware.wrapper.WrapperManager;
  *  thread is in issolation from the rest of the application.  If the JVM
  *  is truely hung, this class will fail to accept connections but the
  *  Wrapper itself will detect the hang and restart the JVM externally.
+ * <p>
+ * The following code can be used in your application to start up the
+ *  WrapperActionServer with all default actions enabled:
+ * <pre>
+ *  int port = 9999;
+ *  WrapperActionServer server = new WrapperActionServer( port );
+ *  server.enableShutdownAction( true );
+ *  server.enableHaltExpectedAction( true );
+ *  server.enableRestartAction( true );
+ *  server.enableThreadDumpAction( true );
+ *  server.enableHaltUnexpectedAction( true );
+ *  server.enableAccessViolationAction( true );
+ *  server.start();
+ * </pre>
+ * Then remember to stop the server when your application shuts down:
+ * <pre>
+ *  server.stop();
+ * </pre>
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
  * @version $Revision$
