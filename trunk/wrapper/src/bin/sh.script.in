@@ -29,21 +29,33 @@ PRIORITY=
 # Do not modify anything beyond this point
 #-----------------------------------------------------------------------------
 
-# Get the actual location of this script.  Need realpath if symlinked
-if [ ! -z "`find $0 -type l`" ]; then
-    REALPATH="`realpath $0`"
-    if [ "$REALPATH" = "" ]; then
-        echo "The realpath command is required when $0 is a symbolic link!"
-        echo "Please copy the realpath executable from the target directory"
-        echo "to /usr/bin"
-        exit 1
-    else
-        SCRIPT="`dirname $REALPATH`"
-    fi
+# Get the fully qualified path to the script
+C=`expr substr $0 1 1`
+if [ "$C" = "/" ]; then
+    SCRIPT="$0"
 else
-    SCRIPT="`dirname $0`"
+    PWD=`pwd`
+    SCRIPT="$PWD/$0"
 fi
-cd `dirname $SCRIPT`
+
+# Get the real path to this script, resolving any symbolic links
+TOKENS=`echo $SCRIPT | sed -e 's;/; ;g'`
+REALPATH=
+for C in $TOKENS; do
+    REALPATH=$REALPATH/$C
+    while [ -h "$REALPATH" ] ; do
+        LS=`ls -ld "$REALPATH"`
+        LINK=`expr "$LS" : '.*-> \(.*\)$'`
+        if expr "$LINK" : '/.*' > /dev/null; then
+            REALPATH="$LINK"
+        else
+            REALPATH=`dirname "$REALPATH"`"/$LINK"
+        fi
+    done
+done
+
+# Change the current directory to the location of the script
+cd `dirname $REALPATH`
 
 # Process ID
 PIDDIR="/var/run"
@@ -113,7 +125,6 @@ stopit() {
     if [ "X$pid" = "X" ]
     then
         echo "$APP_LONG_NAME was not running."
-
     else
         kill $pid
         sleep 6

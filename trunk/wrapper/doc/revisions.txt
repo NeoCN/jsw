@@ -9,7 +9,10 @@ Java Service Wrapper Revision History.
   configured filters.  This was fine on most platforms but caused a crash
   on MAC OS X.
 * Rework the initialization of the bash and sh scripts so that they will
-  work correctly when referenced as symbolic links.
+  work correctly when referenced as symbolic links.  Thanks go out to Richard
+  Emberson for the code to resolve symbolic links.
+* Removed the realpath binary from the *NIX distributions as it is no longer
+  used by the bash or sh scripts.
 
 3.0.2
 * Modified the sh and bash scripts so that console log output is disabled by

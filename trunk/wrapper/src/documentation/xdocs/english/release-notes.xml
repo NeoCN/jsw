@@ -33,7 +33,14 @@ $Id$
             <listitem>
                 <para>
                     Rework the initialization of the bash and sh scripts so that they will
-                    work correctly when referenced as symbolic links.
+                    work correctly when referenced as symbolic links.  Thanks go out to Richard
+                    Emberson for the code to resolve symbolic links.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Removed the realpath binary from the *NIX distributions as it is no longer
+                    used by the bash or sh scripts.
                 </para>
             </listitem>
         </itemizedlist>
