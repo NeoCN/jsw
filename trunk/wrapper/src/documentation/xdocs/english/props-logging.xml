@@ -42,6 +42,9 @@
                 <ulink url="prop-console-loglevel.html">wrapper.console.loglevel</ulink>
             </listitem>
             <listitem>
+                <ulink url="prop-debug.html">wrapper.debug</ulink>
+            </listitem>
+            <listitem>
                 <ulink url="prop-logfile.html">wrapper.logfile</ulink>
             </listitem>
             <listitem>

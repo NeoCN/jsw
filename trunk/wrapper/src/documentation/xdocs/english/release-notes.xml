@@ -276,6 +276,13 @@ $Id$
                     first JVM being launched.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Promote the <ulink url="prop-debug.html">wrapper.debug</ulink> property back
+                    from being "deprecated".  It has continued to be useful and deserved
+                    documentation and official status.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
