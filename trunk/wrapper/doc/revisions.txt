@@ -105,6 +105,9 @@ Java Service Wrapper Revision History.
 * Fix a problem where the first ping timeout after the JVM was started was
   still hard coded at 30 seconds.  This was causing a combination of large
   values of wrapper.ping.interval and wrapper.ping.timeout to fail.
+* Fix a problem where the JVM would fail to shutdown cleanly if the Wrapper
+  was asked to stop too soon after launching a JVM.  This was leading to the
+  JVM being killed after the shutdown timeout expired.
 
 3.0.5
 * Added support for SGI Irix.  Big thanks to Andreas Wendt for supplying the
