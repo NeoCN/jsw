@@ -4,3 +4,4 @@ WrapperJNI___Win32_Debug
 WrapperJNI___Win32_Release
 Wrapper.ncb
 Wrapper.opt
+.deps
