@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.4  2003/10/18 07:51:10  mortenson
+// The DeadlockPrintStream should not be set until after the WrapperManager class
+// has been initialized.
+//
 // Revision 1.3  2003/10/18 07:35:30  mortenson
 // Add test cases to test how the wrapper handles it when the System.out stream
 // becomes deadlocked.  This can happen if buggy usercode overrides those streams.
@@ -52,15 +56,13 @@ import org.tanukisoftware.wrapper.WrapperListener;
 public class TestAction implements WrapperListener {
     private DeadlockPrintStream m_out;
     private DeadlockPrintStream m_err;
+
+    private ActionRunner m_actionRunner;
     
     /**************************************************************************
      * Constructors
      *************************************************************************/
     private TestAction() {
-        m_out = new DeadlockPrintStream( System.out );
-        System.setOut( m_out );
-        m_err = new DeadlockPrintStream( System.err );
-        System.setErr( m_err );
     }
 
     /**************************************************************************
@@ -71,12 +73,17 @@ public class TestAction implements WrapperListener {
 
         System.out.println("start()");
 
+        m_out = new DeadlockPrintStream( System.out );
+        System.setOut( m_out );
+        m_err = new DeadlockPrintStream( System.err );
+        System.setErr( m_err );
+        
         if (args.length <= 0)
             printHelp("Missing action parameter.");
 
         // * * Start the action thread
-        _actionRunner = new ActionRunner(args[0]);
-        actionThread = new Thread(_actionRunner);
+        m_actionRunner = new ActionRunner(args[0]);
+        actionThread = new Thread(m_actionRunner);
         actionThread.start();
 
         return null;
@@ -92,7 +99,7 @@ public class TestAction implements WrapperListener {
         System.out.println("controlEvent(" + event + ")");
         if (event == WrapperManager.WRAPPER_CTRL_C_EVENT) {
             //WrapperManager.stop(0);
-            _actionRunner.endThread();
+            m_actionRunner.endThread();
         }
     }
 
@@ -100,23 +107,26 @@ public class TestAction implements WrapperListener {
      * Inner Classes
      *************************************************************************/
     private class ActionRunner implements Runnable {
+        private String m_action;
+        private boolean m_alive;
+        
         public ActionRunner(String action) {
-            _action = action;
-            _alive = true;
+            m_action = action;
+            m_alive = true;
         }
     
         public void performAction( ) {
-            if (_action.equals("stop")) {
+            if (m_action.equals("stop")) {
                 WrapperManager.stop(0);
-            } else if (_action.equals("access_violation")) {
+            } else if (m_action.equals("access_violation")) {
                 WrapperManager.accessViolation();
-            } else if (_action.equals("access_violation_native")) {
+            } else if (m_action.equals("access_violation_native")) {
                 WrapperManager.accessViolationNative();
-            } else if (_action.equals("appear_hung")) {
+            } else if (m_action.equals("appear_hung")) {
                 WrapperManager.appearHung();
-            } else if (_action.equals("exit")) {
+            } else if (m_action.equals("exit")) {
                 System.exit(0);
-            } else if (_action.equals("halt")) {
+            } else if (m_action.equals("halt")) {
                 // Execute runtime.halt(0) using reflection so this class will
                 //  compile on 1.2.x versions of Java.
                 Method haltMethod;
@@ -137,16 +147,16 @@ public class TestAction implements WrapperListener {
                         System.out.println("Unable to call runitme.halt: " + e.getMessage());
                     }
                 }
-            } else if (_action.equals("restart")) {
+            } else if (m_action.equals("restart")) {
                 WrapperManager.restart();
-            } else if (_action.equals("dump")) {
+            } else if (m_action.equals("dump")) {
                 WrapperManager.requestThreadDump();
-            } else if (_action.equals("deadlock_out")) {
+            } else if (m_action.equals("deadlock_out")) {
                 System.out.println("Deadlocking System.out and System.err ...");
                 m_out.setDeadlock(true);
                 m_err.setDeadlock(true);
             } else {
-                printHelp("\"" + _action + "\" is an unknown action.");
+                printHelp("\"" + m_action + "\" is an unknown action.");
                 WrapperManager.stop(0);
             }
         }
@@ -159,7 +169,7 @@ public class TestAction implements WrapperListener {
             
             performAction();
     
-            while (_alive) {
+            while (m_alive) {
                 // Idle some
                 try {
                     Thread.currentThread().sleep(500);
@@ -170,11 +180,8 @@ public class TestAction implements WrapperListener {
         }
     
         public void endThread( ) {
-            _alive = false;
+            m_alive = false;
         }
-    
-        private String _action;
-        private boolean _alive;
     }
     
     /**
@@ -221,7 +228,5 @@ public class TestAction implements WrapperListener {
         //  will be called immediately.
         WrapperManager.start(new TestAction(), args);
     }
-
-    private ActionRunner _actionRunner;
 }
 

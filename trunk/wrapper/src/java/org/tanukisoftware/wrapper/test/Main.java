@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.8  2003/10/18 07:51:10  mortenson
+// The DeadlockPrintStream should not be set until after the WrapperManager class
+// has been initialized.
+//
 // Revision 1.7  2003/10/18 07:35:30  mortenson
 // Add test cases to test how the wrapper handles it when the System.out stream
 // becomes deadlocked.  This can happen if buggy usercode overrides those streams.
@@ -87,10 +91,6 @@ public class Main implements WrapperListener {
      * Constructors
      *************************************************************************/
     private Main() {
-        m_out = new DeadlockPrintStream( System.out );
-        System.setOut( m_out );
-        m_err = new DeadlockPrintStream( System.err );
-        System.setErr( m_err );
     }
     
     private class MainFrame extends Frame implements ActionListener {
@@ -197,6 +197,11 @@ public class Main implements WrapperListener {
      *************************************************************************/
     public Integer start(String[] args) {
         System.out.println("start()");
+
+        m_out = new DeadlockPrintStream( System.out );
+        System.setOut( m_out );
+        m_err = new DeadlockPrintStream( System.err );
+        System.setErr( m_err );
         
         try
         {
