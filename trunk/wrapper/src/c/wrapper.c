@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.8  2002/01/27 19:35:00  spocke
+// Added support for wildcards on Unix classpaths and service description property.
+//
 // Revision 1.7  2002/01/27 16:58:32  mortenson
 // Changed the log rolling defaults from -1 to 0
 //
@@ -57,7 +60,6 @@
  */
 
 #include <errno.h>
-#include <io.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,6 +69,7 @@
 #include "logger.h"
 
 #ifdef WIN32
+#include <io.h>
 #include <winsock.h>
 #define EADDRINUSE  WSAEADDRINUSE
 #define EWOULDBLOCK WSAEWOULDBLOCK
@@ -74,6 +77,7 @@
 #define ECONNRESET  WSAECONNRESET
 
 #else /* UNIX */
+#include <glob.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -663,12 +667,19 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     int stripQuote;
     int initMemory = 0, maxMemory;
     char paramBuffer[128];
-    int i, j, len, len2;
+    int i, j, len2;
 	int cpLen, cpLenAlloc;
-	char *tmpString, *c;
+	char *tmpString;
+#ifdef WIN32
 	char cpPath[512];
-	struct _finddata_t fblock;
+	char *c;
 	long handle;
+	int len;
+	struct _finddata_t fblock;
+#else
+	glob_t g;
+	int findex;
+#endif
 
     index = 0;
 
@@ -777,7 +788,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 					// Does this contain wildcards?
 				    if ((strchr(prop, '*') != NULL) || (strchr(prop, '?') != NULL)) {
 						// Need to do a wildcard search
-
+#ifdef WIN32
 						// Extract any path information of the beginning of the file
 						strcpy(cpPath, prop);
 						c = max(strrchr(cpPath, '\\'), strrchr(cpPath, '/'));
@@ -841,6 +852,36 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 							// Close the file search
 							_findclose(handle);
 						}
+#else
+						// * * Wildcard support for unix
+						glob(prop, GLOB_MARK | GLOB_NOSORT, NULL, &g);
+
+						if( g.gl_pathc > 0 ) {
+							for( findex=0; findex<g.gl_pathc; findex++ ) {
+								// Is there room for the entry?
+								len2 = strlen(g.gl_pathv[findex]);
+								if (cpLen + len2 + 3 > cpLenAlloc) {
+									// Resize the buffer
+									tmpString = strings[index];
+									cpLenAlloc += 1024;
+									strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
+									sprintf(strings[index], tmpString);
+									free(tmpString);
+								}
+
+								if (j > 0) {
+									strings[index][cpLen++] = wrapperClasspathSeparator; // separator
+								}
+								sprintf(&(strings[index][cpLen]), "%s", g.gl_pathv[findex]);
+								cpLen += len2;
+								j++;
+							}
+						} else {
+							log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Warning no matching files for classpath element: %s", prop);
+						}
+
+						globfree(&g);
+#endif
 					} else {
 						// Is there room for the entry?
 						if (cpLen + len2 + 3 > cpLenAlloc) {
@@ -1384,6 +1425,9 @@ void wrapperBuildNTServiceInfo() {
 
     // Load the service display name
     wrapperData->ntServiceDisplayName = (char *)getStringProperty(properties, "wrapper.ntservice.displayname", "Wrapper");
+
+    // Load the service description
+    wrapperData->ntServiceDescription = (char *)getStringProperty(properties, "wrapper.ntservice.description", "Java Wrapper Service");
 
     // *** Build the dependency list ***
     len = 0;
