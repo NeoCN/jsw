@@ -1,0 +1,41 @@
+COMPILE = gcc -Wall -O -DSOLARIS
+
+INCLUDE=/usr/java1.3/include
+
+DEFS = -I$(INCLUDE) -I$(INCLUDE)/solaris
+
+wrapper_SOURCE = wrapper.c wrapper_unix.c property.c
+
+libwrapper_so_OBJECTS = wrapperjni_unix.o wrapperjni.o
+
+BIN = ../../bin/solaris
+LIB = ../../lib/solaris
+
+#Flags tried while solving "-fPIC" shared library problem
+#-DBSD_COMP -L/usr/java1.3/jre/lib/sparc -ljava -ljvm -lpthread -lc 
+
+all: init wrapper libwrapper.so
+
+clean:
+	rm -f *.o $(BIN)/wrapper $(LIB)/libwrapper.so
+
+cleanall: clean
+	rm -f *~
+
+init:
+	if test ! -d .deps; then mkdir .deps; fi
+
+wrapper: $(wrapper_SOURCE)
+	$(COMPILE) -lsocket -lpthread -lnsl -lm $(wrapper_SOURCE) -o $(BIN)/wrapper
+
+libwrapper.so: $(libwrapper_so_OBJECTS)
+	ld -G -fPIC $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
+
+%.o: %.c
+	@echo '$(COMPILE) -c $<'; \
+	$(COMPILE) $(DEFS) -Wp,-MD,.deps/$(*F).pp -c $<
+	@-cp .deps/$(*F).pp .deps/$(*F).P; \
+	tr ' ' '\012' < .deps/$(*F).pp \
+	  | sed -e 's/^\\$$//' -e '/^$$/ d' -e '/:$$/ d' -e 's/$$/ :/' \
+	    >> .deps/$(*F).P; \
+	rm .deps/$(*F).pp
