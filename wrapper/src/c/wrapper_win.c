@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.86  2004/09/22 11:06:28  mortenson
+ * Start using nanosleep in place of usleep on UNIX platforms to work around usleep
+ * problems with alarm signals on Solaris.
+ *
  * Revision 1.85  2004/09/17 01:27:46  mortenson
  * Fix an access violation on shutdown when the Wrapper was started without any
  * arguments.  Caused by uninitialized pointers.
@@ -731,7 +735,7 @@ void hideConsoleWindow(HWND consoleHandle) {
         consolePlacement.showCmd = SW_HIDE;
 
         /* If we hide the window too soon after it is shown, it sometimes sticks, so wait a moment. */
-        Sleep(10);
+        wrapperSleep(10);
 
         if (!SetWindowPlacement(consoleHandle, &consolePlacement)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
@@ -751,7 +755,7 @@ HWND findAndHideConsoleWindow( char *title ) {
      *  up if it doesn't */
     consoleHandle = NULL;
     while ((!consoleHandle) && (i < 200)) {
-        Sleep(10);
+        wrapperSleep(10);
         consoleHandle = FindWindow("ConsoleWindowClass", title);
         i++;
     }
@@ -804,7 +808,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
         }
 
         while(TRUE) {
-            Sleep(WRAPPER_TICK_MS);
+            wrapperSleep(WRAPPER_TICK_MS);
 
             /* Get the tick count based on the system time. */
             sysTicks = wrapperGetSystemTicks();
@@ -965,9 +969,19 @@ int wrapperInitialize() {
 }
 
 /**
- * Execute clean up code in preparation for shutdown
+ * Cause the current thread to sleep for the specified number of milliseconds.
+ *  Sleeps over one second are not allowed.
  */
-void wrapperCleanup() {
+void wrapperSleep(int ms) {
+    if (wrapperData->isSleepOutputEnabled) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Sleep: sleep %dms", ms);
+    }
+    
+    Sleep(ms);
+    
+    if (wrapperData->isSleepOutputEnabled) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Sleep: awake");
+    }
 }
 
 /**
@@ -1316,7 +1330,7 @@ void wrapperKillProcessNow() {
         }
 
         /* Give the JVM a chance to be killed so that the state will be correct. */
-        Sleep(500); /* 0.5 seconds in milliseconds */
+        wrapperSleep(500); /* 0.5 seconds */
 
         /* Set the exit code since we were forced to kill the JVM. */
         wrapperData->exitCode = 1;
@@ -2150,7 +2164,7 @@ int wrapperStartService() {
                                         msgCntr = 0;
                                     }
                                 }
-                                Sleep( 1000 );
+                                wrapperSleep(1000);
                               msgCntr++;
                             } else {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
@@ -2269,7 +2283,7 @@ int wrapperStopService(int command) {
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Waiting to stop...");
                                     msgCntr = 0;
                                 }
-                                Sleep( 1000 );
+                                wrapperSleep(1000);
                               msgCntr++;
                             } else {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,

@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.56  2004/09/22 11:06:28  mortenson
+ * Start using nanosleep in place of usleep on UNIX platforms to work around usleep
+ * problems with alarm signals on Solaris.
+ *
  * Revision 1.55  2004/09/16 07:11:26  mortenson
  * Add a new wrapper.single_invocation property which will prevent multiple
  * invocations of an application from being started on Windows platforms.
@@ -293,6 +297,7 @@ struct WrapperConfig {
     int     isStateOutputEnabled;   /* TRUE if set in the configuration file.  Shows output on the state of the state engine. */
     int     isTimerOutputEnabled;   /* TRUE if detailed timer output should be included in debug output. */
     int     isLoopOutputEnabled;    /* TRUE if very detailed output from the main loop should be output. */
+    int     isSleepOutputEnabled;   /* TRUE if detailed sleep output should be included in debug output. */
     int     isShutdownHookDisabled; /* TRUE if set in the configuration file */
     int     startupDelayConsole;    /* Delay in seconds before starting the first JVM in console mode. */
     int     startupDelayService;    /* Delay in seconds before starting the first JVM in service mode. */
@@ -419,9 +424,10 @@ extern int wrapperGetLastError();
 extern int wrapperInitialize();
 
 /**
- * Execute clean up code in preparation for shutdown
+ * Cause the current thread to sleep for the specified number of milliseconds.
+ *  Sleeps over one second are not allowed.
  */
-extern void wrapperCleanup();
+extern void wrapperSleep(int ms);
 
 /**
  * Reports the status of the wrapper to the service manager

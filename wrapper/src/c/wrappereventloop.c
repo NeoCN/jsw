@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.12  2004/09/22 11:06:28  mortenson
+ * Start using nanosleep in place of usleep on UNIX platforms to work around usleep
+ * problems with alarm signals on Solaris.
+ *
  * Revision 1.11  2004/09/09 13:20:28  mortenson
  * Add more low level loop debug output.
  *
@@ -909,12 +913,8 @@ void wrapperEventLoop() {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Loop: %ssleep", (nextSleep ? "" : "no "));
         }
         if (nextSleep) {
-            /* Sleep for a quarter second. */
-#ifdef WIN32
-            Sleep(100);     /* milliseconds */
-#else /* UNIX */
-            usleep(100000); /* microseconds */
-#endif
+            /* Sleep for a tenth of a second. */
+            wrapperSleep(100);
         }
         nextSleep = TRUE;
 
