@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.62  2004/03/14 14:02:37  mortenson
+ * Modify the way the Wrapper forcibly kills a frozen JVM on UNIX platforms so
+ * that it now sends a SIGTERM, waits up to 5 seconds, then sends a SIGKILL.
+ *
  * Revision 1.61  2004/01/16 04:41:59  mortenson
  * The license was revised for this version to include a copyright omission.
  * This change is to be retroactively applied to all versions of the Java
@@ -763,21 +767,46 @@ void wrapperKillProcess() {
              *  time to perform the full thread dump. */
             nowTicks = startTicks = wrapperGetTicks();
             do {
-                if ( !wrapperReadChildOutput() )
+                if (!wrapperReadChildOutput())
                 {
                     /* Sleep a moment so this loop does not eat too much CPU. */
                     usleep(250000); /* microseconds */
                 }
                 nowTicks = wrapperGetTicks();
-            } while ( wrapperGetTickAge( startTicks, nowTicks ) < 5 );
+            } while (wrapperGetTickAge(startTicks, nowTicks) < 5);
         }
 
-        /* Kill it immediately. */
-        kill(jvmPid, SIGKILL);
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM did not exit on request, terminated");
+        /* Give the JVM one last chance to shutdown on its own by sending it a SIGTERM */
+        if (wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Sending the JVM process a SIGTERM");
+        }
+        kill(jvmPid, SIGTERM);
 
-        /* Give the JVM a chance to be killed so that the state will be correct. */
-        usleep(500000); /* 0.5 seconds in microseconds */
+        /* Wait up to 3 seconds for the JVM to respond to the SIGTERM.  Handle any JVM output. */
+        nowTicks = startTicks = wrapperGetTicks();
+        do {
+            if ( !wrapperReadChildOutput() )
+            {
+                /* Sleep a moment so this loop does not eat too much CPU. */
+                usleep(250000); /* microseconds */
+            }
+            nowTicks = wrapperGetTicks();
+        } while ((wrapperGetTickAge( startTicks, nowTicks ) < 5 ) && (waitpid(jvmPid, NULL, WNOHANG) == 0));
+
+        /* Is the JVM still alive? */
+        if (waitpid(jvmPid, NULL, WNOHANG) == 0) {
+            /* Kill it immediately. */
+            if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM did not exit with a SIGTERM, send a SIGKILL");
+            }
+            kill(jvmPid, SIGKILL);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM did not exit on request, terminated with SIGKILL");
+
+            /* Give the JVM a chance to be killed so that the state will be correct. */
+            usleep(500000); /* 0.5 seconds in microseconds */
+        } else {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM did not exit on request, terminated with SIGTERM.");
+        }
 
         /* Set the exit code since we were forced to kill the JVM. */
         wrapperData->exitCode = 1;
