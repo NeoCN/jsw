@@ -1,18 +1,18 @@
 /*
- * Copyright (c) 1999, 2003 TanukiSoftware.org
- *
+ * Copyright (c) 1999, 2004 Tanuki Software
+ * 
  * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without 
- * restriction, including without limitation the rights to use, 
- * copy, modify, merge, publish, distribute, sub-license , and/or 
- * sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following 
- * conditions:
- *
+ * obtaining a copy of the Java Service Wrapper and associated
+ * documentation files (the "Software"), to deal in the Software
+ * without  restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sub-license,
+ * and/or sell copies of the Software, and to permit persons to
+ * whom the Software is furnished to do so, subject to the
+ * following conditions:
+ * 
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
@@ -21,8 +21,32 @@
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
+ * 
+ * 
+ * Portions of the Software have been derived from source code
+ * developed by Silver Egg Technology under the following license:
+ * 
+ * Copyright (c) 2001 Silver Egg Technology
+ * 
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without 
+ * restriction, including without limitation the rights to use, 
+ * copy, modify, merge, publish, distribute, sub-license, and/or 
+ * sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following 
+ * conditions:
+ * 
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * 
  *
  * $Log$
+ * Revision 1.65  2004/01/16 04:42:00  mortenson
+ * The license was revised for this version to include a copyright omission.
+ * This change is to be retroactively applied to all versions of the Java
+ * Service Wrapper starting with version 3.0.0.
+ *
  * Revision 1.64  2004/01/14 09:35:14  mortenson
  * Modify so that the exit code returned by the last JVM is always used when
  * exiting the Wrapper.
@@ -1035,8 +1059,8 @@ void wrapperKillProcess() {
         /* Give the JVM a chance to be killed so that the state will be correct. */
         Sleep(500); /* 0.5 seconds in milliseconds */
 
-		/* Set the exit code since we were forced to kill the JVM. */
-		wrapperData->exitCode = 1;
+        /* Set the exit code since we were forced to kill the JVM. */
+        wrapperData->exitCode = 1;
     }
 
     wrapperData->jState = WRAPPER_JSTATE_DOWN;
@@ -1089,8 +1113,8 @@ void wrapperExecute() {
     FILE *pid_fp = NULL;
     int old_umask;
 
-	/* Reset the exit code when we launch a new JVM. */
-	wrapperData->exitCode = 0;
+    /* Reset the exit code when we launch a new JVM. */
+    wrapperData->exitCode = 0;
 
     /* Increment the process ID for Log sourcing */
     wrapperData->jvmRestarts++;

@@ -14,6 +14,18 @@
         <title>Note from the Wrapper team.</title>
         <note>
             <para>
+                2004-01-16 - There has been an update to the
+                <ulink url="license.html">Java Service Wrapper's license</ulink>
+                so that it now includes all required copyright information.   The license
+                changes should not affect users in any way however the changes need to be
+                applied retractively to all versions of the Java Service Wrapper between
+                3.0.0 and 3.0.5 as the license they were released under was incomplete.
+                If you have one of these versions please update your license.   A full
+                explanation has been included on the license page.
+            </para>
+        </note>
+        <note>
+            <para>
                 Over the past year, the Java Service Wrapper has seen a huge jump in
                 its install base.  From our logs, we see that an increasing number
                 of both large and small companies are showing interest in the Wrapper.

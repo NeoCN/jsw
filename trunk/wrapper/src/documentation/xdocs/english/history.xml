@@ -29,15 +29,16 @@
     <section>
         <title>Version 2.0.x</title>
         <para>
-            In October 1999, Leif joined a startup company called SilverEgg.  Over the
-            next year, SilverEgg developed a recommendation engine, called Aigent,
+            In October 1999, Leif joined a startup company called
+            <ulink url="http://www.silveregg.co.jp">Silver Egg Technology</ulink>.  Over
+            the next year, Silver Egg developed a recommendation engine, called Aigent,
             for use in web site personalization.  As Aigent was built in Java, it had
             the same problem with being installed as an NT service as some of Leif's
             previous projects.  The Wrapper code was brought in from home and used as
             part of the Aigent product to provide that functionality.
         </para>
         <para>
-            In March 2000, Ryan Shaw joined SilverEgg and brought with him a wealth
+            In March 2000, Ryan Shaw joined Silver Egg and brought with him a wealth
             of knowledge of the Linux OS.  All platform specific portions of the Aigent
             product, including the Wrapper, were ported over to Linux.  At this point
             was still a very simple tool for running installing a JVM as a service.
@@ -102,7 +103,7 @@
             log to the Windows event log and Unix syslog.
         </para>
         <para>
-            Being a company which provides middleware software and services to other
+            Being a company which provides middle ware software and services to other
             internet companies, Silver Egg felt the full brunt of the downward spiral
             in the post bubble internet market, and in April 2002 were forced to do
             a reorganization.  They have since come back strong, but Ryan and Leif
@@ -113,16 +114,18 @@
     <section>
         <title>Version 3.0.0</title>
         <para>
-            In January of 2003, the decision was made to rework the documentation and
-            web site.  The project was transferred back to TanukiSoftware.org, which is
-            owned by Leif.  This was to guarantee the open source future of the Wrapper
-            project and help disassociate it from SilverEgg, which no longer had any
-            involvement in the project.  Thanks to the management for making this
-            transfer possible.
+            In January of 2003, to reflect the fact that continuing development of the
+            Wrapper was being done almost entirely by Leif, the decision was made to
+            branch and then sub-license the Java Service Wrapper code base.  The new
+            <ulink url="license.html">license</ulink> was placed under the copyright
+            of Tanuki Software, owned by Leif.  In addition to simply giving credit
+            where credit is due, this move was made to maintain control over the
+            future availability and development of the Wrapper along with the code
+            and ideas added after the branch. 
         </para>
         <para>
             Packages were changed from com.silveregg.wrapper to
-            org.tanukisoftware.wrapper.  While the silveregg packages were deprecated,
+            org.tanukisoftware.wrapper.  While the Silver Egg packages were deprecated,
             they were maintained as wrappers around the classes in the new packages
             to maintain forward compatibility for the user base.
         </para>
