@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.22  2002/09/17 13:16:22  mortenson
+ * Added a property to control the delay between JVM invocations.
+ *
  * Revision 1.21  2002/09/13 10:29:17  mortenson
  * Fix a problem where the Wrapper would sometimes die on startup due to an
  * uninitialized variable.  This was new to 2.2.8 and not released.  Worked on most
@@ -646,22 +649,6 @@ void wrapperKillProcess() {
 
     /* Close any open socket to the JVM */
     wrapperProtocolClose();
-}
-
-/**
- * Pauses before launching a new JVM if necessary.
- */
-void wrapperPauseBeforeExecute() {
-    /* If this is not the first time that we are launching a JVM, */
-    /*  then pause for 5 seconds to give the previously crashed? */
-    /*  instance of the JVM a chance to be cleaned up correctly */
-    /*  by the system. */
-    if (wrapperData->jvmRestarts > 0) {
-        if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Pausing for 5 seconds...");
-        }
-        Sleep(5000);
-    }
 }
 
 /**

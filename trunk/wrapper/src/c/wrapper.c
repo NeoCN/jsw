@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.28  2002/09/17 13:16:22  mortenson
+ * Added a property to control the delay between JVM invocations.
+ *
  * Revision 1.27  2002/09/10 16:19:19  mortenson
  * Fix a compilation problem on Linix platforms.
  *
@@ -1251,6 +1254,26 @@ void wrapperFreeJavaCommandArray(char **strings, int length) {
 }
 
 /**
+ * Pauses before launching a new JVM if necessary.
+ */
+void wrapperPauseBeforeExecute() {
+    /* If this is not the first time that we are launching a JVM, */
+    /*  then pause for {restartDelay} seconds to give the previously */
+	/*  crashed? instance of the JVM a chance to be cleaned up */
+	/*  correctly by the system. */
+    if (wrapperData->jvmRestarts > 0) {
+        if (wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Pausing for %d seconds...", wrapperData->restartDelay);
+        }
+#ifdef WIN32
+        Sleep(wrapperData->restartDelay * 1000);     /* milliseconds */
+#else /* UNIX */
+        usleep(wrapperData->restartDelay * 1000000); /* microseconds */
+#endif
+    }
+}
+
+/**
  * The main event loop for the wrapper.  Handles all state changes and events.
  */
 void wrapperEventLoop() {
@@ -1788,6 +1811,12 @@ int wrapperLoadConfiguration() {
     /* Get the shutdown hook status */
     wrapperData->isShutdownHookDisabled = getBooleanProperty(properties, "wrapper.disable_shutdown_hook", FALSE);
     
+	/* Get the restart delay. */
+	wrapperData->restartDelay = getIntProperty(properties, "wrapper.restart.delay", 5);
+	if (wrapperData->restartDelay < 0) {
+		wrapperData->restartDelay = 0;
+	}
+
     /* Get the timeout settings */
     wrapperData->cpuTimeout = getIntProperty(properties, "wrapper.cpu.timeout", 10);
     wrapperData->startupTimeout = getIntProperty(properties, "wrapper.startup.timeout", 30);

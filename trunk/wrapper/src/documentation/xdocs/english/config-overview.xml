@@ -621,6 +621,27 @@ wrapper.logfile.format=
                 </para>
                 <glosslist>
                     <glossentry>
+                        <glossterm>wrapper.restart.delay</glossterm>
+                        <glossdef>
+                            <para>
+                                Controls the number of seconds to pause between a JVM exiting for
+                                any reason, and a new JVM being launched.  Defaults to 5 seconds.
+                            </para>
+                            <para>
+                                Setting this restart delay to a very low value or even 0 could
+                                cause problems as the new JVM could may be launched before all
+                                resources from the previous invocation have been reclaimed from
+                                the operating system.
+                            </para>
+                            <para>
+                                <informalexample>
+                                    <simpara><emphasis>Example:</emphasis></simpara>
+                                    <screen format="linespecific">wrapper.restart.delay=5</screen>
+                                </informalexample>
+                            </para>
+                        </glossdef>
+                    </glossentry>
+                    <glossentry>
                         <glossterm>wrapper.startup.timeout</glossterm>
                         <glossdef>
                             <para>
