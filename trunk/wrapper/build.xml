@@ -483,7 +483,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
     <!-- Documentation target                                                -->
     <!-- =================================================================== -->
     <target name="doc-src-test" depends="init">
-       <available file="${src.dir}/documentation/english.uris" property="doc-src.presentx"/>
+       <available file="${src.dir}/documentation/english.uris" property="doc-src.present"/>
     </target>
     <target name="doc" depends="doc-src-test" if="doc-src.present"
        description="generates the Wrapper documentation">
