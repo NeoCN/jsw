@@ -22,6 +22,8 @@ shutdownhook
 shutdownhook.conf
 outputloader
 outputloader.conf
+systemin
+systemin.conf
 memory
 memory.conf
 testwrapper.log
@@ -39,5 +41,6 @@ TestRestarter.bat
 TestShutdownHook.bat
 TestOutputLoader.bat
 TestMemory.bat
+TestSystemIn.bat
 OutputLoader.log
 

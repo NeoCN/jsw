@@ -269,6 +269,23 @@
         <replace file="${test.dir}/memory.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
+
+        <!-- System.in Test -->
+        <delete file="${test.dir}/systemin.conf"/>
+        <filter token="app.name"          value="systemin"/>
+        <filter token="app.long.name"     value="System.in Case" />
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${test.dir}/systemin.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/systemin.conf"
+                 token="wrapper.java.mainclass=com.silveregg.wrapper.test.Main"
+                 value="wrapper.java.mainclass=com.silveregg.wrapper.WrapperSimpleApp" />
+        <replace file="${test.dir}/systemin.conf"
+                 token="#wrapper.app.parameter.1="
+                 value="wrapper.app.parameter.1=com.silveregg.wrapper.test.SystemIn" />
+        <replace file="${test.dir}/systemin.conf"
+                 token="wrapper.logfile=../logs/wrapper.log"
+                 value="wrapper.logfile=../test/testwrapper.log" />
     </target>
     
     <!-- =================================================================== -->
@@ -450,6 +467,18 @@ set ENV_VAR_4=d]]></replacevalue>
         <replace file="${test.dir}/TestMemory.bat"
                  token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
                  value='set _WRAPPER_CONF="%_APP_HOME%\test\memory.conf"' />
+        
+        <!-- System.in Test -->
+        <delete file="${test.dir}/TestSystemIn.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestSystemIn.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestSystemIn.bat"
+                 token='set _APP_HOME=%_APP_HOME:\bin\=%'
+                 value='set _APP_HOME=%_APP_HOME:\test\=%' />
+        <replace file="${test.dir}/TestSystemIn.bat"
+                 token='set _WRAPPER_CONF="%_APP_HOME%\conf\wrapper.conf"'
+                 value='set _WRAPPER_CONF="%_APP_HOME%\test\systemin.conf"' />
     </target>
     
     <!-- =================================================================== -->
@@ -634,6 +663,14 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/memory"
               filtering="on"/>
         <chmod file="${test.dir}/memory" perm="+x"/> 
+        
+        <!-- System.in Test -->
+        <filter token="app.name"          value="systemin"/>
+        <filter token="app.long.name"     value="System.in Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/systemin"
+              filtering="on"/>
+        <chmod file="${test.dir}/systemin" perm="+x"/> 
         
         <!-- Get rid of the temp script file -->
         <delete file="${test.dir}/temp.script.in"/>

@@ -26,6 +26,11 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.28  2002/11/02 04:41:45  mortenson
+// Improve the message thrown when user code attempts to access System.in from
+// within a JVM being controlled by the Wrapper.  System.in will not work
+// because the JVM is a spawned process.
+//
 // Revision 1.27  2002/11/02 03:27:14  mortenson
 // Fix Bug #632215.  The WrapperManager.isLaunchedAsService() method was
 // always returning false.
@@ -128,6 +133,7 @@ package com.silveregg.wrapper;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -325,6 +331,9 @@ public final class WrapperManager implements Runnable {
             if (_debug) {
                 System.out.println("Wrapper Manager: Using wrapper");
             }
+            
+            // Replace the System.in stream with one of our own to disable it.
+            System.setIn( new WrapperInputStream() );
             
             // A port must have been specified.
             String sPort;
@@ -1389,6 +1398,22 @@ public final class WrapperManager implements Runnable {
         }
         if (_debug) {
             System.out.println(_info.format("SERVER_DAEMON_SHUT_DOWN"));
+        }
+    }
+    
+    /**
+     * When the JVM is being controlled by the Wrapper, stdin can not be used
+     *  as it is undefined.  This class makes it possible to provide the user
+     *  application with a descriptive error message if System.in is accessed.
+     */
+    private static class WrapperInputStream extends InputStream {
+        /**
+         * This method will always throw an IOException as the read method is
+         *  not valid.
+         */
+        public int read() throws IOException {
+            throw new IOException("System.in can not be used when the JVM is being "
+                + "controlled by the Java Service Manager.");
         }
     }
 }

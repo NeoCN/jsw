@@ -26,6 +26,9 @@ Java Service Wrapper Revision History.
   returning false, even when run as a service under Windows.  On linux, the
   Wrapper is always run as a console app, so this method will always return
   false.
+* Improve the message thrown when user code attempts to access System.in from
+  within a JVM being controlled by the Wrapper.  System.in will not work
+  because the JVM is a spawned process.
 
 2.2.8
 * Fixed a compiler problem on Solaris some systems.
