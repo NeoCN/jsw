@@ -18,6 +18,12 @@ $Id$
                     are true if set.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where some localized error messages were not having their
+                    tokens replaced correctly.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.1">

@@ -4,6 +4,8 @@ Java Service Wrapper Revision History.
 * Modify the way boolean system properties are resolved by the WrapperManager
   so it is now possible to set them to true or false rather than assuming they
   are true if set.
+* Fix a problem where some localized error messages were not having their
+  tokens replaced correctly.
 
 3.1.1
 * Modified the way libwrapper.so is built on Solaris and Linux so that it
