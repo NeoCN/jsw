@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.47  2003/08/17 08:51:35  mortenson
+ * Save a little CPU by disabling console log output when the wrapper is
+ * daemonized.
+ *
  * Revision 1.46  2003/08/15 17:40:26  mortenson
  * Stop clearing the file creation mask when the Unix version of the Wrapper is
  * run as a daemon process.
@@ -663,6 +667,9 @@ void daemonize() {
             close(fd);
         }
     }
+    /* Console output was disabled above, so make sure the console log output is disabled
+     *  so we don't waste any CPU formatting and sending output to '/dev/null'/ */
+    setConsoleLogLevelInt(LEVEL_NONE);
     
     /* second fork */
     if (wrapperData->isDebugging) {
