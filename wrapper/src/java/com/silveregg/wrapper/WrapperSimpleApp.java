@@ -26,6 +26,9 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.4  2002/03/29 06:10:04  rybesh
+// added some better error reporting
+//
 // Revision 1.3  2001/12/07 06:52:06  mortenson
 // Fix a problem just added with the synchronization of the startup process.
 //
@@ -145,10 +148,17 @@ public class WrapperSimpleApp implements WrapperListener, Runnable {
             t = e;
         }
         
-        // If we get here, then an error was thrown.  If this happened quickly enough, the
-        //  start method should be allowed to shut things down.
+        // If we get here, then an error was thrown.  If this happened quickly 
+        // enough, the start method should be allowed to shut things down.
         System.out.println("Encountered an error running main: " + t);
+
+        // We should print a stack trace here, because in the case of an 
+        // InvocationTargetException, the user needs to know what exception
+        // their app threw.
+        t.printStackTrace();
+
         showUsage();
+
         synchronized(this) {
             if (_waitTimedOut) {
                 // Shut down here.
