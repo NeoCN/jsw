@@ -33,6 +33,12 @@ $Id$
                     launch the Wrapper.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Added support for the <ulink url="prop-pidfile.html">wrapper.pidfile</ulink>
+                    property on the Windows platform.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

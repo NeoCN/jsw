@@ -29,9 +29,6 @@
         </para>
         <itemizedlist>
             <listitem>
-                <ulink url="prop-pidfile.html">wrapper.pidfile</ulink>
-            </listitem>
-            <listitem>
                 <ulink url="prop-daemonize.html">wrapper.daemonize</ulink>
             </listitem>
         </itemizedlist>

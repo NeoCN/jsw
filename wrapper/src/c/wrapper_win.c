@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.49  2003/08/15 16:30:52  mortenson
+ * Added support for the wrapper.pidfile property on the Windows platform.
+ *
  * Revision 1.48  2003/08/02 06:49:13  mortenson
  * Changed the way environment variables are loaded from the registry on Windows
  * platforms so users will no longer get warning messages about not being able
@@ -133,6 +136,7 @@ barf
 #ifdef WIN32
 
 #include <direct.h>
+#include <io.h>
 #include <math.h>
 #include <process.h>
 #include <stdio.h>
@@ -159,6 +163,9 @@ static HANDLE wrapperChildStdoutRd = NULL;
 static int    wrapperChildStdoutRdLastLF = 0;
 
 char wrapperClasspathSeparator = ';';
+
+/* Flag which is set if this process creates a pid file. */
+int ownPidFile = 0;
 
 /******************************************************************************
  * Windows specific code
@@ -230,6 +237,12 @@ char** wrapperGetSystemPath() {
  * exits the application after running shutdown code.
  */
 void appExit(int exitCode) {
+    /* Remove pid file if it was registered and created by this process. */
+    if ((ownPidFile) && (wrapperData->pidFilename)) {
+        unlink(wrapperData->pidFilename);
+		ownPidFile = 0;
+    }
+
     /* Do this here to unregister the syslog resources on exit.*/
     /*unregisterSyslogMessageFile(); */
     exit(exitCode);
@@ -1612,8 +1625,27 @@ int setWorkingDir() {
     return 0;
 }
 
+int writePidFile() {
+    FILE *pid_fp = NULL;
+    int old_umask;
 
+    /*enter_suid(); */
+    old_umask = _umask(022);
+    pid_fp = fopen(wrapperData->pidFilename, "w");
+    _umask(old_umask);
+    /*leave_suid(); */
+    
+    if (pid_fp != NULL) {
+        fprintf(pid_fp, "%d\n", (int)getpid());
+        fclose(pid_fp);
 
+		/* Remember that we created the pid file. */
+		ownPidFile = 1;
+    } else {
+        return 1;
+    }
+    return 0;
+}
 
 /******************************************************************************
  * Main function
@@ -1858,25 +1890,53 @@ void _CRTAPI1 main(int argc, char **argv) {
                                 result = wrapperStopService(TRUE);
                             } else if(!_stricmp(argv[1],"-c") || !_stricmp(argv[1],"/c")) {
                                 /* Run as a console application */
-                                result = wrapperRunConsole();
+
+								/* Write pid file. */
+								if (wrapperData->pidFilename) {
+									if (writePidFile()) {
+										log_printf
+											(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+											 "ERROR: Could not write pid file %s: %s",
+											 wrapperData->pidFilename, getLastErrorText());
+										exit(1);
+									}
+								}
+
+								if (!result) {
+									result = wrapperRunConsole();
+								}
                             } else if(!_stricmp(argv[1],"-s") || !_stricmp(argv[1],"/s")) {
                                 /* Run as a service */
-                                /* Prepare the service table */
-                                serviceTable[0].lpServiceName = wrapperData->ntServiceName;
-                                serviceTable[0].lpServiceProc = (LPSERVICE_MAIN_FUNCTION)wrapperServiceMain;
-                                serviceTable[1].lpServiceName = NULL;
-                                serviceTable[1].lpServiceProc = NULL;
+
+								/* Write pid file. */
+								if (wrapperData->pidFilename) {
+									if (writePidFile()) {
+										log_printf
+											(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+											 "ERROR: Could not write pid file %s: %s",
+											 wrapperData->pidFilename, getLastErrorText());
+										exit(1);
+									}
+								}
+
+								if (!result) {
+									/* Prepare the service table */
+									serviceTable[0].lpServiceName = wrapperData->ntServiceName;
+									serviceTable[0].lpServiceProc = (LPSERVICE_MAIN_FUNCTION)wrapperServiceMain;
+									serviceTable[1].lpServiceName = NULL;
+									serviceTable[1].lpServiceProc = NULL;
                     
-                                printf("Attempting to start %s as an NT service.\n", wrapperData->ntServiceDisplayName);
-                                printf("\nCalling StartServiceCtrlDispatcher...please wait.\n");
+									printf("Attempting to start %s as an NT service.\n", wrapperData->ntServiceDisplayName);
+									printf("\nCalling StartServiceCtrlDispatcher...please wait.\n");
                     
-                                /* Start the service control dispatcher.  This will not return */
-                                /*  if the service is started without problems */
-                                if (!StartServiceCtrlDispatcher(serviceTable)){
-                                    printf("\nStartServiceControlDispatcher failed!\n");
-                                    printf("\nFor help, type\n\n%s /?\n\n", argv[0]);
-                                    result = 1;
-                                }
+									/* Start the service control dispatcher.  This will not return */
+									/*  if the service is started without problems */
+									if (!StartServiceCtrlDispatcher(serviceTable)){
+										printf("\nStartServiceControlDispatcher failed!\n");
+										printf("\nFor help, type\n\n%s /?\n\n", argv[0]);
+										result = 1;
+									}
+								}
                             } else {
                                 printf("\nUnrecognized option: %s\n", argv[1]);
                                 wrapperUsage(argv[0]);

@@ -59,6 +59,9 @@
                 <ulink url="prop-max-failed-invocations.html">wrapper.max_failed_invocations</ulink>
             </listitem>
             <listitem>
+                <ulink url="prop-pidfile.html">wrapper.pidfile</ulink>
+            </listitem>
+            <listitem>
                 <ulink url="prop-ping-timeout.html">wrapper.ping.timeout</ulink>
             </listitem>
             <listitem>

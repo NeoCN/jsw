@@ -27,20 +27,41 @@
         <para>
             File to write process ID to.  If set, a pid file will be written
             to the specified location when the Wrapper process is started.  The
-            file will be deleted when the Wrapper process has terminated.
+            file will be deleted when the Wrapper process has terminated.  This
+            property is not set by default.  Common values are
+            <literal moreinfo="none">./myapp.pid</literal> or
+            <literal moreinfo="none">/var/run/myapp.pid</literal>.
+        </para>
+        <note>
+            <para>
+                If a second instance of the Wrapper is started, the pid file of the
+                first instance will be overwritten by the second instance.  This is
+                done to avoid problems with stale pid files preventing the wrapper
+                from starting.
+            </para>
+            <para>
+                On Unix/Linux platforms, the sh and bash scripts which ship with
+                the Wrapper will prevent multiple copies of the Wrapper from running
+                for the same application.  It is possible to run multiple copies of
+                the Wrapper on the same machine if they are each being used to launch
+                a different application.
+            </para>
+        </note>
+        <para>
+            In most cases, users will not need to set this property themselves.  The
+            Unix sh script which ship with the Wrapper sets this property from the
+            command line and then makes use of the pid in future invocations of the
+            script.  See the <literal moreinfo="none">sh.script.in</literal> file
+            in the <literal moreinfo="none">src/bin</literal> directory for an
+            example.
         </para>
         <para>
-            In most cases, this property will not be set from within the
-            <literal moreinfo="none">wrapper.conf</literal> file.  It can be
-            passed to the wrapper process by shell scripts which require a
-            specific pid file to control the shutdown of the Wrapper and its
-            Java process.  An example can be found in the
-            <literal moreinfo="none">sh.script.in</literal> file in the
-            <literal moreinfo="none">src/bin</literal> directory.
+            The property is also available in the Windows version as some users have
+            requested easy access to the pid for use by profiling tools.
         </para>
         <informalexample>
             <simpara><emphasis>Example:</emphasis></simpara>
-            <screen format="linespecific"><![CDATA[wrapper.pidfile=/var/run/myapp.pid]]></screen>
+            <screen format="linespecific"><![CDATA[wrapper.pidfile=./myapp.pid]]></screen>
         </informalexample>
     </section>
 </chapter>
