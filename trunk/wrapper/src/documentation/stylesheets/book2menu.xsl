@@ -15,7 +15,7 @@
     <xsl:template match="book">
         <menu>
             <div id="menu">
-                <script language="JavaScript"><![CDATA[ //@@MENU_SECTION@@ ]]></script>
+                <script language="JavaScript">//@@MENU_TOP@@</script>
                 <xsl:apply-templates/>
             </div>
         </menu>

@@ -5,11 +5,6 @@
     
     <!-- ********************************************************************
     $Id$
-    ********************************************************************
-    
-    Based on Jakarta Avalon Documentation Style sheets.
-    See http://jakarta.apache.org/avalon
-    
     ******************************************************************** -->
     
     <head>
@@ -21,120 +16,110 @@
     
     <body text="#000000" link="#525D76" vlink="#023264" alink="#023264"
         topmargin="0" leftmargin="0" marginwidth="0" marginheight="0"
-        bgcolor="#ffffff">
+        bgcolor="#eeeeff">
         
+        <map name="wrapperLogo">
+            <area shape="circle" coords="90,90,88" href="http://wrapper.tanukisoftware.org"/>
+        </map>
+        <map name="wrapperTitle">
+            <area shape="rect" coords="28,32,176,48" href="http://www.tanukisoftware.com"/>
+        </map>
+            
         <table border="0" width="100%" cellspacing="0" cellpadding="0">
             <tr>
-                <td rowspan="6" bgcolor="#7fc1e6" width="282" height="115"><a href="http://wrapper.tanukisoftware.org"><img src="images/WrapperLogo.png" width="282" height="115" border="0"/></a></td>
-                <td bgcolor="#7fc1e6" width="67" height="50"><img src="images/spacer.gif"/></td>
-                <td bgcolor="#7fc1e6" align="right" width="*" height="50"><a href="http://www.tanukisoftware.org"><img src="images/TanukiSoftwareOrgLogo.png" width="259" height="33" border="0"/></a></td>
-            </tr>
-            <tr>
-                <td rowspan="7" width="67" height="70" align="right" valign="top" background="images/BannerBackground.png"><img src="images/BannerAngle.png" width="67" height="70"/></td>
-                <td width="*" height="3"><img src="images/spacer.gif"/></td>
-            </tr>
-            <tr>
-                <td bgcolor="#000000" width="*" height="2"><img src="images/spacer.gif"/></td>
-            </tr>
-            <tr>
-                <td bgcolor="#c7d9e2" align="right" width="*" height="12"><a href="donate.html"><img src="images/DonationRequest.png" width="201" height="12" border="0"/></a></td>
-            </tr>
-            <tr>
-                <td bgcolor="#115b77" width="*" height="1"><img src="images/spacer.gif"/></td>
-            </tr>
-            <tr>
-                <td width="*" height="46" nowrap="true"><font size="5" color="#115b77"><b><xsl:value-of select="/site/body/title"/></b></font><img src="images/TitleDefinition.png" align="center"/></td>
-            </tr>
-            <tr>
-                <td width="282" height="3"><img src="images/spacer.gif"/></td>
-                <td width="*" height="3"><img src="images/spacer.gif"/></td>
-            </tr>
-            <tr>
-                <td bgcolor="#000000" width="282" height="2"><img src="images/spacer.gif"/></td>
-                <td width="*" height="2"><img src="images/spacer.gif"/></td>
-            </tr>
-        </table>
-        
-        <table border="0" width="100%" cellspacing="0" cellpadding="0">
-            <tr>
-                <td bgcolor="#c7d9e2" width="180" valign="top">
-                    <img src="images/spacer.gif" width="180" height="1"/>
-                    <table border="0" width="100%" cellspacing="0" cellpadding="4">
+                <td width="180" valign="top">
+                    <table border="0" width="100%" cellspacing="0" cellpadding="0">
                         <tr>
-                            <td nowrap="true">
-                                <xsl:copy-of select="/site/menu/node()|@*"/>
-                                <form action="http://www.google.com/search" method="get">
-                                    <p>
-                                        <b>Search This Site:</b><br/>
-                                        <input type="text" name="q" size="20" value="" style="width:175"/>
-                                        <br/>
-                                        <input type="submit" value="Search"/>
-                                        <input type="hidden" name="sitesearch" value="wrapper.tanukisoftware.org"/>
-                                    </p>
-                                </form>
-                                <p>
-                                    <b>Hosted by:</b><br/>
-                                    <a href="http://sourceforge.net/projects/wrapper/">
-                                        <img src="http://sourceforge.net/sflogo.php?group_id=39428" width="88" height="31" border="0" alt="SourceForge"/>
-                                    </a>
-                                </p>
-                                <p>
-                                    <script language="JavaScript1.2">
-                                        <![CDATA[<!-- 
-                                        var URL = location.href;
-                                        if (URL.indexOf("http://") == 0) {
-                                            if (location.href.indexOf ("babelfish.altavista.com")==-1) {
-                                                document.write( "<Map name=translate_eng >");
-                                                document.write( "<AREA COORDS=100,130,125,146 SHAPE=rect    href=http://jump.altavista.com/translate_english.go?http://babelfish.altavista.com/babelfish/tr?doit=done&urltext="+URL+"&lp=en_es  target=translate>");
-                                                document.write( "<AREA COORDS=70,130,93,146 SHAPE=rect    href=http://jump.altavista.com/translate_english.go?http://babelfish.altavista.com/babelfish/tr?doit=done&urltext="+URL+"&lp=en_pt  target=translate>");
-                                                document.write( "<AREA COORDS=39,130,65,146 SHAPE=rect    href=http://jump.altavista.com/translate_english.go?http://babelfish.altavista.com/babelfish/tr?doit=done&urltext="+URL+"&lp=en_it  target=translate>");
-                                                document.write( "<AREA COORDS=8,130,31,146 SHAPE=rect    href=http://jump.altavista.com/translate_english.go?http://babelfish.altavista.com/babelfish/tr?doit=done&urltext="+URL+"&lp=en_fr  target=translate>");
-                                                document.write( "<AREA COORDS=99,110,123,126 SHAPE=rect    href=http://jump.altavista.com/translate_english.go?http://babelfish.altavista.com/babelfish/tr?doit=done&urltext="+URL+"&lp=en_ko  target=translate>");
-                                                document.write( "<AREA COORDS=70,110,95,126  SHAPE=rect    href=http://jump.altavista.com/translate_english.go?http://babelfish.altavista.com/babelfish/tr?doit=done&urltext="+URL+"&lp=en_ja  target=translate>");
-                                                document.write( "<AREA COORDS=38,110,65,126 SHAPE=rect    href=http://jump.altavista.com/translate_english.go?http://babelfish.altavista.com/babelfish/tr?doit=done&urltext="+URL+"&lp=en_de  target=translate>");
-                                                document.write( "<AREA COORDS=5,110,32,126 SHAPE=rect    href=http://jump.altavista.com/translate_english.go?http://babelfish.altavista.com/babelfish/tr?doit=done&urltext="+URL+"&lp=en_zh   target=translate>");
-                                                document.write( "<AREA COORDS=0,1,129,38 SHAPE=rect    href=http://jump.altavista.com/translate_english.go?http://babelfish.altavista.com target=translate>");
-                                                document.write( "</Map>");
-                                                document.write( "<img  src=http://a12.g.akamai.net/7/12/282/12/av.com/static/i/af/trans_en.gif  width=131 height=156  usemap=#translate_eng   border=0>")
-                                            } else {
-                                                document.write( "<img  src=http://a12.g.akamai.net/7/12/282/12/av.com/static/i/af/trans_en_off.gif  width=131 height=156  border=0>")
-                                            }
-                                        }
-                                        //  -->]]>
-                                    </script>
-                                </p>
-                            </td>
+                            <td width="180"><img src="images/WrapperLogo.png" width="180" height="180" border="0" usemap="#wrapperLogo"/></td>
                         </tr>
-                    </table>
-                </td>
-                <td bgcolor="#115b77" width="1"><img src="images/spacer.gif" width="1" height="300"/></td>
-                <td valign="top" width="*">
-                    <table border="0" width="100%" cellspacing="0" cellpadding="4">
                         <tr>
                             <td>
-                                <xsl:copy-of select="/site/body/node()|@*"/>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td id="author" align="right">
-                                <p><i>by Leif Mortenson</i></p>
+                                <table border="0" width="100%" cellspacing="0" cellpadding="4">
+                                    <tr>
+                                        <td nowrap="true">
+                                            <xsl:copy-of select="/site/menu/node()|@*"/>
+                                            <form action="http://www.google.com/search" method="get">
+                                                <p>
+                                                    <b>Search This Site:</b><br/>
+                                                    <input type="text" name="q" size="20" value="" style="width:175"/>
+                                                    <br/>
+                                                    <input type="submit" value="Search"/>
+                                                    <input type="hidden" name="sitesearch" value="wrapper.tanukisoftware.org"/>
+                                                </p>
+                                            </form>
+                                            <p>
+                                                <b>Hosted by:</b><br/>
+                                                <a href="http://sourceforge.net/projects/wrapper/">
+                                                    <img src="http://sourceforge.net/sflogo.php?group_id=39428" width="88" height="31" border="0" alt="SourceForge"/>
+                                                </a>
+                                            </p>
+                                            <p>
+                                                <script language="JavaScript">//@@MENU_BOTTOM@@</script>
+                                            </p>
+                                        </td>
+                                    </tr>
+                                </table>
                             </td>
                         </tr>
                     </table>
-                    <script language="JavaScript"><![CDATA[ //@@BODY_SECTION@@ ]]></script>
+                </td>
+                <td width="*" valign="top">
+                    <table border="0" width="100%" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td colspan="3"><img src="images/spacer.gif" height="4"/></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" height="90" align="center"><a href="http://wrapper.tanukisoftware.org"><img src="images/OfflineAd728x90.png" width="728" height="90" border="0"/></a></td>
+                            <td rowspan="5"><img src="images/spacer.gif" width="4"/></td>
+                        </tr>
+                        <tr>
+                            <td width="435" height="49"><img src="images/WrapperTitle.png" width="435" height="49" border="0" usemap="#wrapperTitle"/></td>
+                            <td width="*" align="right" valign="bottom"><a href="donate.html"><img src="images/DonationRequest.png" width="300" height="16" border="0"/></a></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" height="4"><img src="images/BorderTop.png" width="500" height="4"/></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                <table border="0" width="100%" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td width="4" valign="top"><img src="images/BorderLeft.png" width="4" height="496"/></td>
+                                        <td colspan="2" width="*" valign="top" bgcolor="#ffffff">
+                                            <table border="0" width="100%" cellspacing="0" cellpadding="4">
+                                                <tr>
+                                                    <td align="center" nowrap="true"><font size="5" color="#8888aa" zcolor="#115b77"><b><xsl:value-of select="/site/body/title"/></b></font></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <xsl:copy-of select="/site/body/node()|@*"/>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td id="author" align="right">
+                                                        <p><i>by Leif Mortenson</i></p>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            <script language="JavaScript">//@@BODY_SECTION@@</script>
+                                        </td>
+                                        <td width="4" valign="bottom"><img src="images/BorderRight.png" width="4" height="496"/></td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" height="4" align="right"><img src="images/BorderBottom.png" width="500" height="4"/></td>
+                        </tr>
+                    </table>
                 </td>
             </tr>
         </table>
-        
-        <table width="100%" border="0" cellspacing="0" cellpadding="0">
-            <tr>
-                <td colspan="2" bgcolor="#115b77"><img src="images/spacer.gif"/></td>
-            </tr>
+        <table width="100%" border="0" cellspacing="0" cellpadding="2">
             <tr>
                 <td align="left" id="copyright">
                     <font face="arial,helvetica,sanserif" size="-1" color="#525D76">
                         <i>
-                            Copyright &#169;1999-2003 by <a href="http://www.tanukisoftware.org">TanukiSoftware.org</a>.
+                            Copyright &#169;1999-2003 by <a href="http://www.tanukisoftware.com">Tanuki Software</a>.
                             All Rights Reserved.
                         </i>
                     </font>

@@ -93,10 +93,10 @@
     <xsl:template match="paypal-form">
         <form action="https://www.paypal.com/cgi-bin/webscr" method="post">
             <center>
-                <table bgcolor="#115b77" border="0" cellspacing="0" cellpadding="2">
+                <table bgcolor="#8888aa" border="0" cellspacing="0" cellpadding="2">
                     <tr>
                         <td>
-                            <table bgcolor="#c7d9e2" border="0" cellspacing="0" cellpadding="8">
+                            <table bgcolor="#bbbbee" border="0" cellspacing="0" cellpadding="8">
                                 <tr valign="top">
                                     <td>
                                         <p>
@@ -423,16 +423,16 @@
                 </xsl:choose>
                 <xsl:choose>
                     <xsl:when test="$level=1">
-                        <td width="*" class="sectionheader1" bgcolor="#1c718d"><font size="4" color="#eeeeee"><b><xsl:value-of select="title"/></b></font></td>
+                        <td width="*" class="sectionheader1" bgcolor="#8888aa"><font size="4" color="#eeeeee"><b><xsl:value-of select="title"/></b></font></td>
                     </xsl:when>
                     <xsl:when test="$level=2">
-                        <td width="*" class="sectionheader2" bgcolor="#408ba0"><font size="3" color="#eeeeee"><b><xsl:value-of select="title"/></b></font></td>
+                        <td width="*" class="sectionheader2" bgcolor="#9999bb"><font size="3" color="#eeeeee"><b><xsl:value-of select="title"/></b></font></td>
                     </xsl:when>
                     <xsl:when test="$level=3">
-                        <td width="*" class="sectionheader3" bgcolor="#6fa8b7"><font size="2" color="#eeeeee"><b><xsl:value-of select="title"/></b></font></td>
+                        <td width="*" class="sectionheader3" bgcolor="#aaaacc"><font size="2" color="#eeeeee"><b><xsl:value-of select="title"/></b></font></td>
                     </xsl:when>
                     <xsl:otherwise>
-                        <td width="*" class="sectionheader3" bgcolor="#7fc1e6"><font size="2" color="#eeeeee"><b><xsl:value-of select="title"/></b></font></td>
+                        <td width="*" class="sectionheader3" bgcolor="#bbbbdd"><font size="2" color="#eeeeee"><b><xsl:value-of select="title"/></b></font></td>
                     </xsl:otherwise>
                 </xsl:choose>
             </tr>
@@ -633,7 +633,7 @@
                 <tr>
                     <td valign="top"><p class="notelabel"><font color="#0000a0"><b>NOTE</b></font></p></td>
                     <td><img src="images/spacer.gif" width="10"/></td>
-                    <td class="notebody" bgcolor="#a0a0ff">
+                    <td class="notebody" bgcolor="#bbbbdd">
                         <font color="#222260">
                             <xsl:apply-templates/>
                         </font>

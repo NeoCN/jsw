@@ -21,6 +21,14 @@ $Id$
             </listitem>
             <listitem>
                 <para>
+                    The Online documentation and web site were both reworked.  The logo has
+                    been updated so that Duke is no longer used.  The new online
+                    <ulink url="http://wrapper.tanukisoftware.org">site</ulink> now
+                    has the ability for users to append comments to any page.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
                     Added a new batch file which accepts commands like the UNIX shell script.
                     The new file is offered as an alternative to the default batch files, and
                     can be found at <literal moreinfo="none">src/bin/AppCommand.bat.in</literal>.
