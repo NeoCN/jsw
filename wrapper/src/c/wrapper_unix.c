@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.10  2002/03/07 03:22:22  rybesh
+// added signal handling for SIGQUIT (dumps JVM state)
+//
 // Revision 1.9  2002/02/20 14:05:29  spocke
 // Fixed cmdline property change bug.
 //
@@ -107,6 +110,18 @@ void handleInterrupt(int sig_num) {
 }
 
 /**
+ * Handle quit signals (i.e. Crtl-\).
+ */
+void handleQuit(int sig_num) {
+    signal(SIGQUIT, handleInterrupt); 
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Dumping JVM state.");
+    if (kill(jvmPid, SIGQUIT) < 0) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                   "Could not dump JVM state: %s", (char *)strerror(errno));
+    }
+}
+
+/**
  * Handle termination signals (i.e. machine is shutting down).
  */
 void handleTermination(int sig_num) {
@@ -123,6 +138,7 @@ int wrapperInitialize() {
 
     // Set handlers for signals
     if (signal(SIGINT,  handleInterrupt)   == SIG_ERR ||
+        signal(SIGQUIT, handleQuit)        == SIG_ERR ||
         signal(SIGTERM, handleTermination) == SIG_ERR) {
         retval = -1;
     }
