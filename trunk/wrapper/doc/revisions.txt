@@ -2,7 +2,7 @@ Java Service Wrapper Revision History.
 --------------------------------------
 3.0.0
 * Deprecated the com.silveregg.wrapper package in favor of
-  org.tanukisoftware.wrapper.  The classes and insterfaces in the silveregg
+  org.tanukisoftware.wrapper.  The classes and interfaces in the silveregg
   package will continue to function, but migration to the new package should
   be done when possible. See the project history for details.
 * On Windows systems change any forward slashes in the wrapper.java.command
@@ -42,6 +42,9 @@ Java Service Wrapper Revision History.
   the patches involved go out to Ashish Gawarikar and William Lee.
 * Implement feature request #653131 to force the JVM to immediately exit when
   the user presses CTRL-C multiple times.
+* Added a 'console' action to the bash and sh scripts to make it possible to
+  launch the Wrapper in the current shell process.  The 'start' task will launch
+  the Wrapper as a spawned daemon process.
 
 2.2.9
 * Added a new property, wrapperper.restart.delay, which allows the user to control
