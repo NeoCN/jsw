@@ -138,6 +138,14 @@ $Id$
                     property for details.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Improve the error message displayed when the NT EventLog is full in response
+                    to feature request #643617.  The EventLog output will now be disabled if any
+                    errors are encountered while logging events.  This prevents the error from
+                    repeating.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>

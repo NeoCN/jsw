@@ -57,6 +57,10 @@ Java Service Wrapper Revision History.
 * Implement the ability to specify an NT service's load order group in response
   to feature request #764143.  See the javadocs for the new
   wrapper.ntservice.load_order_group property for details.
+* Improve the error message displayed when the NT EventLog is full in response
+  to feature request #643617.  The EventLog output will now be disabled if any
+  errors are encountered while logging events.  This prevents the error from
+  repeating.
 
 3.0.3
 * Added support for Mac OS X.  Big thanks to Andy Barnett for supplying the

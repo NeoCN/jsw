@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.26  2003/07/04 03:18:36  mortenson
+ * Improve the error message displayed when the NT EventLog is full in response
+ * to feature request #643617.
+ *
  * Revision 1.25  2003/04/16 04:13:10  mortenson
  * Go through and clean up the computation of the number of bytes allocated in
  * malloc statements to make sure that string sizes are always multiplied by
@@ -64,6 +68,7 @@
 
 #ifdef WIN32
 #include <windows.h>
+#include <tchar.h>
 #else
 #include <syslog.h>
 #include <strings.h>
@@ -387,6 +392,41 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
 
 /* Internal functions */
 
+#ifdef WIN32
+/**
+ * Create an error message from GetLastError() using the
+ *  FormatMessage API Call...
+ */
+TCHAR lastErrBuf[1024];
+char* getLastErrorText() {
+    DWORD dwRet;
+    LPTSTR lpszTemp = NULL;
+
+    dwRet = FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | 
+                           FORMAT_MESSAGE_FROM_SYSTEM |FORMAT_MESSAGE_ARGUMENT_ARRAY,
+                           NULL,
+                           GetLastError(),
+                           LANG_NEUTRAL,
+                           (LPTSTR)&lpszTemp,
+                           0,
+                           NULL);
+
+    /* supplied buffer is not long enough */
+    if (!dwRet || ((long)1023 < (long)dwRet+14)) {
+        lastErrBuf[0] = TEXT('\0');
+    } else {
+        lpszTemp[lstrlen(lpszTemp)-2] = TEXT('\0');  /*remove cr and newline character */
+        _stprintf( lastErrBuf, TEXT("%s (0x%x)"), lpszTemp, GetLastError());
+    }
+
+    if (lpszTemp) {
+        GlobalFree((HGLOBAL) lpszTemp);
+    }
+
+    return lastErrBuf;
+}
+#endif
+
 int registerSyslogMessageFile( ) {
 #ifdef WIN32
     char buffer[ 1024 ];
@@ -460,12 +500,12 @@ int unregisterSyslogMessageFile( ) {
 
 void sendEventlogMessage( int source_id, int level, char *szBuff ) {
 #ifdef WIN32
-    char header[16];
-    char **strings = (char **) malloc( 3 * sizeof( char * ) );
+    char   header[16];
+    char   **strings = (char **) malloc( 3 * sizeof( char * ) );
     WORD   eventType;
     HANDLE handle;
     WORD   eventID, categoryID;
-    int result;
+    int    result;
 
     /* Build the source header */
     switch( source_id ) {
@@ -531,7 +571,14 @@ void sendEventlogMessage( int source_id, int level, char *szBuff ) {
         0                         /* binary data buffer */
     );
     if (result == 0) {
-        printf("ReportEvent failed errno(%d)\n", GetLastError());
+		// If there are any errors accessing the event log, like it is full, then disable its output.
+		setSyslogLevelInt(LEVEL_NONE);
+
+		// Recurse so this error gets set in the log file and console.  The syslog
+		//  output has been disabled so we will not get back here.
+		log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to write to the EventLog due to: %s (err %d)",
+			getLastErrorText(), GetLastError());
+		log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Internally setting wrapper.syslog.loglevel=NONE to prevent further messages.");
     }
 
     DeregisterEventSource( handle );
