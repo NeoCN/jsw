@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.94  2004/04/08 03:21:57  mortenson
+ * Added an environment variable, WRAPPER_PATH_SEPARATOR, whose value is set
+ * to either ':' or ';' on startup.
+ *
  * Revision 1.93  2004/04/01 10:08:40  mortenson
  * Make the initial and max memory properties optional so they do not always set
  * memory values when launching the JVM.
@@ -337,6 +341,14 @@ Properties              *properties;
 SOCKET ssd = INVALID_SOCKET;
 /* Client Socket. */
 SOCKET sd = INVALID_SOCKET;
+
+void wrapperAddDefaultProperties() {
+#ifdef WIN32
+    addPropertyPair(properties, "set.WRAPPER_PATH_SEPARATOR=;", FALSE, FALSE);
+#else
+    addPropertyPair(properties, "set.WRAPPER_PATH_SEPARATOR=:", FALSE, FALSE);
+#endif
+}
 
 void wrapperProtocolStartServer() {
     struct sockaddr_in addr_srv;
@@ -1172,29 +1184,29 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     } while (prop);
 
     /* Initial JVM memory */
-	initMemory = getIntProperty(properties, "wrapper.java.initmemory", 0);
-	if (initMemory > 0 ) {
-		initMemory = __min(__max(initMemory, 1), 4096); /* 1 <= n <= 4096 */
-	    if (strings) {
-			strings[index] = malloc(sizeof(char) * (5 + 4 + 1));  /* Allow up to 4 digits. */
-			sprintf(strings[index], "-Xms%dm", initMemory);
-		}
-		index++;
-	} else {
-		/* Set the initMemory so the checks in the maxMemory section below will work correctly. */
-		initMemory = 3;
-	}
+    initMemory = getIntProperty(properties, "wrapper.java.initmemory", 0);
+    if (initMemory > 0 ) {
+        initMemory = __min(__max(initMemory, 1), 4096); /* 1 <= n <= 4096 */
+        if (strings) {
+            strings[index] = malloc(sizeof(char) * (5 + 4 + 1));  /* Allow up to 4 digits. */
+            sprintf(strings[index], "-Xms%dm", initMemory);
+        }
+        index++;
+    } else {
+        /* Set the initMemory so the checks in the maxMemory section below will work correctly. */
+        initMemory = 3;
+    }
 
     /* Maximum JVM memory */
-	maxMemory = getIntProperty(properties, "wrapper.java.maxmemory", 0);
-	if (maxMemory > 0) {
-		maxMemory = __min(__max(maxMemory, initMemory), 4096);  /* initMemory <= n <= 4096 */
-	    if (strings) {
-			strings[index] = malloc(sizeof(char) * (5 + 4 + 1));  /* Allow up to 4 digits. */
-			sprintf(strings[index], "-Xmx%dm", maxMemory);
-		}
-		index++;
-	}
+    maxMemory = getIntProperty(properties, "wrapper.java.maxmemory", 0);
+    if (maxMemory > 0) {
+        maxMemory = __min(__max(maxMemory, initMemory), 4096);  /* initMemory <= n <= 4096 */
+        if (strings) {
+            strings[index] = malloc(sizeof(char) * (5 + 4 + 1));  /* Allow up to 4 digits. */
+            sprintf(strings[index], "-Xmx%dm", maxMemory);
+        }
+        index++;
+    }
 
     /* Library Path */
     if (strings) {

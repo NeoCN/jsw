@@ -325,6 +325,13 @@ $Id$
                     properties.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Added an environment variable, WRAPPER_PATH_SEPARATOR, whose value is set
+                    to either ':' or ';' on startup.  It can be used in the wrapper.conf file
+                    to construct platform independent property values.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.0.5">
