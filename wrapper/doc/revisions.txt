@@ -1,0 +1,5 @@
+Java Service Wrapper Revision History.
+--------------------------------------
+2.2.0
+* Initial Public Release
+
