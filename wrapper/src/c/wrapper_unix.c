@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.60  2004/01/14 09:34:29  mortenson
+ * Set the exit code when a jvm needs to be killed to get it to exit, also reset the
+ * exit code whenever a new JVM is launched.
+ *
  * Revision 1.59  2004/01/10 15:51:31  mortenson
  * Fix a problem where a thread dump would be invoked if the request thread
  * dump on failed JVM exit was enabled and the user forced an immediate
@@ -252,9 +256,9 @@ void handleInterrupt(int sig_num) {
         if (wrapperData->exitRequested) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "INT trapped.  Forcing immediate shutdown.");
 
-			/* Disable the thread dump on exit feature if it is set because it
-			 *  should not be displayed when the user requested the immediate exit. */
-			wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
+            /* Disable the thread dump on exit feature if it is set because it
+             *  should not be displayed when the user requested the immediate exit. */
+            wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
             wrapperKillProcess();
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "INT trapped.  Shutting down.");
@@ -289,9 +293,9 @@ void handleTermination(int sig_num) {
         if (wrapperData->exitRequested) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "TERM trapped.  Forcing immediate shutdown.");
 
-			/* Disable the thread dump on exit feature if it is set because it
-			 *  should not be displayed when the user requested the immediate exit. */
-			wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
+            /* Disable the thread dump on exit feature if it is set because it
+             *  should not be displayed when the user requested the immediate exit. */
+            wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
             wrapperKillProcess();
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "TERM trapped.  Shutting down.");
@@ -340,7 +344,7 @@ void *timerRunner(void *arg) {
                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The timer fell behind the system clock by %ldms.", offsetDiff * WRAPPER_TICK_MS);
            } else if (offsetDiff < -1 * wrapperData->timerFastThreshold) {
                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The system clock fell behind the timer by %ldms.", -1 * offsetDiff * WRAPPER_TICK_MS);
-	   }
+       }
            /*
            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Timer running: %lu, %lu, %lu, %ld", timerTicks, sysTicks, tickOffset, offsetDiff);
            */
@@ -477,6 +481,9 @@ void wrapperExecute() {
         /* The pipedes array is global so do not close the pipes. */
 
     } else {
+        /* Reset the exit code when we launch a new JVM. */
+        wrapperData->exitCode = 0;
+        
         /* Fork succeeded: increment the process ID for logging. */
         wrapperData->jvmRestarts++;
 
@@ -747,6 +754,9 @@ void wrapperKillProcess() {
 
         /* Give the JVM a chance to be killed so that the state will be correct. */
         usleep(500000); /* 0.5 seconds in microseconds */
+
+        /* Set the exit code since we were forced to kill the JVM. */
+        wrapperData->exitCode = 1;
     }
 
     wrapperData->jState = WRAPPER_JSTATE_DOWN;
