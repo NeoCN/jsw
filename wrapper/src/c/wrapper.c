@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.42  2003/02/07 02:48:17  mortenson
+ * Fixed a problem where missing environment variables specified in classpath
+ * or library path properties were not being handled correctly.
+ *
  * Revision 1.41  2003/02/03 06:55:26  mortenson
  * License transfer to TanukiSoftware.org
  *
@@ -863,19 +867,19 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                     len2 = strlen(prop);
                     if (len2 > 0) {
                         /* Is there room for the entry? */
-                        if (cpLen + len2 + 3 > cpLenAlloc) {
+                        while (cpLen + len2 + 3 > cpLenAlloc) {
                             /* Resize the buffer */
                             tmpString = strings[index];
                             cpLenAlloc += 1024;
                             strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
-                            sprintf(strings[index], tmpString);
+                            sprintf(strings[index], "%s", tmpString);
                             free(tmpString);
                         }
                         
                         if (j > 0) {
                             strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
                         }
-                        sprintf(&(strings[index][cpLen]), prop);
+                        sprintf(&(strings[index][cpLen]), "%s", prop);
                         cpLen += len2;
                         j++;
                     }
@@ -947,12 +951,12 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                             len2 = strlen(fblock.name);
 
                             /* Is there room for the entry? */
-                            if (cpLen + len + len2 + 3 > cpLenAlloc) {
+                            while (cpLen + len + len2 + 3 > cpLenAlloc) {
                                 /* Resize the buffer */
                                 tmpString = strings[index];
                                 cpLenAlloc += 1024;
                                 strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
-                                sprintf(strings[index], tmpString);
+                                sprintf(strings[index], "%s", tmpString);
                                 free(tmpString);
                             }
 
@@ -968,12 +972,12 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                                 len2 = strlen(fblock.name);
 
                                 /* Is there room for the entry? */
-                                if (cpLen + len + len2 + 3 > cpLenAlloc) {
+                                while (cpLen + len + len2 + 3 > cpLenAlloc) {
                                     /* Resize the buffer */
                                     tmpString = strings[index];
                                     cpLenAlloc += 1024;
                                     strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
-                                    sprintf(strings[index], tmpString);
+                                    sprintf(strings[index], "%s", tmpString);
                                     free(tmpString);
                                 }
 
@@ -994,14 +998,15 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 
                         if( g.gl_pathc > 0 ) {
                             for( findex=0; findex<g.gl_pathc; findex++ ) {
-                                /* Is there room for the entry? */
                                 len2 = strlen(g.gl_pathv[findex]);
-                                if (cpLen + len2 + 3 > cpLenAlloc) {
+
+                                /* Is there room for the entry? */
+                                while (cpLen + len2 + 3 > cpLenAlloc) {
                                     /* Resize the buffer */
                                     tmpString = strings[index];
                                     cpLenAlloc += 1024;
                                     strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
-                                    sprintf(strings[index], tmpString);
+                                    sprintf(strings[index], "%s", tmpString);
                                     free(tmpString);
                                 }
 
@@ -1020,19 +1025,19 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 #endif
                     } else {
                         /* Is there room for the entry? */
-                        if (cpLen + len2 + 3 > cpLenAlloc) {
+                        while (cpLen + len2 + 3 > cpLenAlloc) {
                             /* Resize the buffer */
                             tmpString = strings[index];
                             cpLenAlloc += 1024;
                             strings[index] = (char *)malloc(sizeof(char) * cpLenAlloc);
-                            sprintf(strings[index], tmpString);
+                            sprintf(strings[index], "%s", tmpString);
                             free(tmpString);
                         }
 
                         if (j > 0) {
                             strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
                         }
-                        sprintf(&(strings[index][cpLen]), prop);
+                        sprintf(&(strings[index][cpLen]), "%s", prop);
                         cpLen += len2;
                         j++;
                     }
