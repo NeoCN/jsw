@@ -42,6 +42,9 @@ Java Service Wrapper Revision History.
   documentation set.
 * Added a new method to the WrapperManager which enables user code to
   log at any log level.
+* Added a new Helper class WrapperStartStopApp which allows users to easily
+  integrate applications like Tomcat which use a separate class to stop
+  the application.
 
 2.2.7
 * Fix a problem where the JVM was trying to reconnect the Wrapper as it was

@@ -78,6 +78,19 @@
                     documentation set.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Added a new method to the WrapperManager which enables user code to
+                    log at any log level.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Added a new Helper class WrapperStartStopApp which allows users to easily
+                    integrate applications like Tomcat which use a separate class to stop
+                    the application.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
