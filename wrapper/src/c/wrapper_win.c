@@ -42,6 +42,13 @@
  * 
  *
  * $Log$
+ * Revision 1.76  2004/07/01 17:03:46  mortenson
+ * Rewrote the routine which reads and logs console output from the JVM
+ * for Windows versions.  Internal buffers are now scaled dynamically,
+ * fixing a problem where long lines were being wrapped at 1024 characters.
+ * This rewrite also resulted in a 4 fold increase in speed when the JVM is
+ * sending large quantities of output to the console.
+ *
  * Revision 1.75  2004/06/16 15:56:29  mortenson
  * Added a new property, wrapper.anchorfile, which makes it possible to
  * cause the Wrapper to shutdown by deleting an anchor file.
@@ -287,7 +294,22 @@ static HANDLE wrapperProcess = NULL;
 static DWORD  wrapperProcessId = 0;
 static HANDLE wrapperChildStdoutWr = NULL;
 static HANDLE wrapperChildStdoutRd = NULL;
+
+/* Each time wrapperReadChildOutput() is called, there is a chance the we are
+ *  forced to log a line of output before receiving the LF.  This flag remembers
+ *  when that happens so we can avoid logging that extra LF when it is read. */
 static int    wrapperChildStdoutRdLastLF = 0;
+
+/* The block size that data is peeked from the JVM pipe in wrapperReadChildOutput()
+ *  If this is too large then we waste time when reading in lots of short lines.
+ *  But if it is too short then we have to read in many blocks for each line.
+ *  This value assumes that really long lines are relatively rare. */
+#define READ_BUFFER_BLOCK_SIZE 100
+
+/* The buffer used to store piped output lines from the JVM.  This buffer will
+ *  grow as needed to store the largest line output by the application. */
+char *wrapperChildStdoutRdBuffer = NULL;
+int wrapperChildStdoutRdBufferSize = 0;
 
 char wrapperClasspathSeparator = ';';
 
@@ -918,10 +940,13 @@ void wrapperReportStatus(int status, int errorCode, int waitHint) {
  *  sleep.
  */
 int wrapperReadChildOutput() {
-    DWORD dwRead, dwAvail;
-    int lfPos;
-    char chBuf[1025];
+    DWORD dwRead;
+    char *bufferP;
     char *c;
+    char *newBuffer;
+    DWORD lineLength;
+    DWORD maxRead;
+    DWORD keepCnt;
     int thisLF;
     struct timeb timeBuffer;
     long startTime;
@@ -930,6 +955,18 @@ int wrapperReadChildOutput() {
     int nowMillis;
     long durr;
 
+
+    if (!wrapperChildStdoutRdBuffer) {
+        /* Initialize the wrapperChildStdoutRdBuffer.  Set its initial size to the block size + 1.
+         *  This is so that we can always add a \0 to the end of it. */
+        wrapperChildStdoutRdBuffer = malloc(sizeof(CHAR) * (READ_BUFFER_BLOCK_SIZE + 1));
+        if (!wrapperChildStdoutRdBuffer) {
+         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Out of memory allocating child read buffer.");
+            return 0;
+        }
+        wrapperChildStdoutRdBufferSize = READ_BUFFER_BLOCK_SIZE + 1;
+    }
+
     ftime( &timeBuffer );
     startTime = now = timeBuffer.time;
     startTimeMillis = nowMillis = timeBuffer.millitm;
@@ -937,94 +974,148 @@ int wrapperReadChildOutput() {
     /*
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "now=%ld, nowMillis=%d", now, nowMillis);
     */
+    
+    bufferP = wrapperChildStdoutRdBuffer;
+    lineLength = 0;
 
     /* Loop and read as much input as is available.  When a large amount of output is
      *  being piped from the JVM this can lead to the main event loop not getting any
      *  CPU for an extended period of time.  To avoid that problem, this loop is only
-     *  allowed to cycle for 250ms before returning. */
-    while((durr = (now - startTime) * 1000 + (nowMillis - startTimeMillis)) < 250) {
+     *  allowed to cycle for 250ms before returning.   Allow a full second if an
+     *  incomplete line is being read.  This makes it much less likely that we will
+     *  accidentally break a line of output. */
+    while((durr = (now - startTime) * 1000 + (nowMillis - startTimeMillis)) < (lineLength > 0 ? 1000 : 250)) {
         /*
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "durr=%ld", durr);
         */
-
-        /* Find out how much data there is in the pipe before we try to read it. */
-        if (!PeekNamedPipe(wrapperChildStdoutRd, chBuf, 1024, &dwRead, &dwAvail, NULL) || dwRead == 0 || dwAvail == 0) {
-            /*printf("stdout avail %d.", dwAvail); */
-            break;
+        
+        /* Decide how much we are able to read.   We can read up to the end of the
+         *  full buffer, but not more than the READ_BUFFER_BLOCK_SIZE at a time.
+         *  Always peeking the max will just waste CPU as most lines will be much
+         *  shorter. */
+        maxRead = wrapperChildStdoutRdBufferSize - (bufferP - wrapperChildStdoutRdBuffer) - 1;
+        if (maxRead <= 0 ) {
+            /* We are out of buffer space.  The buffer needs to be expanded. */
+            /*
+         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                "Expanding wrapperChildStdoutRdBuffer size from %d to %d bytes.",
+                wrapperChildStdoutRdBufferSize, wrapperChildStdoutRdBufferSize + READ_BUFFER_BLOCK_SIZE);
+            */
+            newBuffer = malloc(sizeof(char) * (wrapperChildStdoutRdBufferSize + READ_BUFFER_BLOCK_SIZE));
+            strcpy(newBuffer, wrapperChildStdoutRdBuffer);
+            bufferP = newBuffer + (bufferP - wrapperChildStdoutRdBuffer);
+            free(wrapperChildStdoutRdBuffer);
+            wrapperChildStdoutRdBuffer = newBuffer;
+            wrapperChildStdoutRdBufferSize += READ_BUFFER_BLOCK_SIZE;
+            maxRead = READ_BUFFER_BLOCK_SIZE;
         }
-        /*printf("stdout avail %d.", dwAvail); */
-
-        /* We only want to read in a line at a time.  We want to read in a line */
-        /*	feed if it exists, but we want to remove it from the buffer to be logged. */
-        if (dwAvail > 1024) {
-            dwAvail = 1024;
+        if (maxRead > READ_BUFFER_BLOCK_SIZE) {
+            maxRead = READ_BUFFER_BLOCK_SIZE;
+        }
+        
+        /* Peek at a block of data from the JVM then look for a CR+LF or LF before
+         *  actually reading the bytes that make up the line. */
+        if (!PeekNamedPipe(wrapperChildStdoutRd, bufferP, maxRead, &dwRead, NULL, NULL)) {
+         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                "Failed to peek at output from the JVM: %s", getLastErrorText());
+            return 0;
         }
 
-        /* Terminate the read buffer */
-        chBuf[dwRead] = '\0';
-
-        lfPos = dwRead;
-
+        /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "dwRead=%d", dwRead);*/
         thisLF = 0;
+        if (dwRead > 0) {
+            /* Additional data was peeked. Terminate it. */
+            bufferP[dwRead] = '\0';
 
-        /* Look for a CR */
-        if ((c = strchr(chBuf, (char)0x0d)) != NULL) {
-            if (c - chBuf < lfPos) {
-                lfPos = c - chBuf;
-                if (chBuf[lfPos + 1] == (char)0x0a) {
-                    /* Also read in the CR+LF */
-                    dwAvail = lfPos + 2;
-                    /*printf("CR+LF"); */
+            /* Look for a CR+LF in the data. */
+         if ((c = strchr(bufferP, (char)0x0d)) != NULL) {
+                /* CR found. The read count should just include it. */
+                keepCnt = c - bufferP + 1;
+                if (c[1] == (char)0x0a) {
+                    /* CR+LF found. Read count should include it as well. */
+                    keepCnt++;
                     thisLF = 1;
+                } else if (c[1] == '\0') {
+                    /* End of buffer, the LF is probably coming later. */
                 } else {
-                    /* Also read in the CR */
-                    dwAvail = lfPos + 1;
-                    /*printf("CR"); */
+                    /* Only found a CR.  Is this possible? */
                     thisLF = 1;
                 }
-            }
-        }
 
-        /* Look for a LF */
-        if ((c = strchr(chBuf, (char)0x0a)) != NULL) {
-            if (c - chBuf < lfPos) {
-                lfPos = c - chBuf;
-                /* Also read in the LF */
-                dwAvail = lfPos + 1;
-                /*printf("LF"); */
+                /* Terminate the buffer to just before the CR. */
+                c[0] = '\0';
+                lineLength = c - wrapperChildStdoutRdBuffer;
+            } else if ((c = strchr(bufferP, (char)0x0a)) != NULL) {
+                /* LF found. The read count should just include it. */
+                keepCnt = c - bufferP + 1;
+
+                /* Terminate the buffer to just before the LF. */
+                c[0] = '\0';
+                lineLength = c - wrapperChildStdoutRdBuffer;
                 thisLF = 1;
+            } else {
+                /* Neither CR+LF or LF was found so we need to read another
+                 *  block and keep looking. */
+                keepCnt = dwRead;
+                lineLength += dwRead;
             }
+
+            /* Now that we know how much of this block is wanted, actually read it in. */
+            if (!ReadFile(wrapperChildStdoutRd, bufferP, keepCnt, &dwRead, NULL)) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                    "Failed to read output from the JVM: %s", getLastErrorText());
+                return 0;
+            }
+            if (dwRead != keepCnt) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                    "Read %d bytes rather than requested %d bytes from JVM output.",
+                    dwRead, keepCnt);
+                return 0;
+            }
+            /* Reterminate the string as we have read the LF back in. */
+            wrapperChildStdoutRdBuffer[lineLength] = '\0';
+        } else {
+            /* Nothing was read, but there is no more data available. */
+            if (lineLength > 0) {
+                /* We never found the LF, but log the output and remember that fact. */
+                wrapperLogChildOutput(wrapperChildStdoutRdBuffer);
+                wrapperChildStdoutRdLastLF = 0;
+            }
+            return 0;
         }
 
-        if (!ReadFile(wrapperChildStdoutRd, chBuf, dwAvail, &dwRead, NULL) || dwRead == 0) {
-            /*printf("stdout read %d.\n", dwRead); */
-            break;
-        }
-        /* Write over the lf */
-        chBuf[lfPos] = '\0';
-        /* Also set the a '\0' at the dwRead location just to be safe. */
-        chBuf[dwRead] = '\0';
+        if (thisLF) {
+            /* The line feed was found. */
+            if ((lineLength == 0) && (!wrapperChildStdoutRdLastLF)) {
+                /* This is just an unread LF from a previous call, so skip it. */
+            } else {
+                /* Log the line. */
+                wrapperLogChildOutput(wrapperChildStdoutRdBuffer);
+            }
 
-        /* Make sure that this is just another LF if the last line was missing it's LF */
-        if ((lfPos > 0) || (wrapperChildStdoutRdLastLF)) {
-            wrapperLogChildOutput(chBuf);
-        }
+            /* Reset things to read the next line. */
+            bufferP = wrapperChildStdoutRdBuffer;
+            lineLength = 0;
 
-        wrapperChildStdoutRdLastLF = thisLF;
+            /* Remember that a LF was found. */
+            wrapperChildStdoutRdLastLF = 1;
+        } else {
+            /* Not at the end of the line yet, so prepare to read another block. */
+            bufferP = wrapperChildStdoutRdBuffer + lineLength;
+        }
 
         /* Get the time again */
         ftime( &timeBuffer );
         now = timeBuffer.time;
         nowMillis = timeBuffer.millitm;
     }
-    /*
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "done durr=%ld", durr);
-    */
-    if ((durr = (now - startTime) * 1000 + (nowMillis - startTimeMillis)) < 250) {
-        return 0;
-    } else {
-        return 1;
+
+    /* If we get here then we timed out. */
+    if (lineLength > 0) {
+        /* We had a partially read line. */
+        wrapperLogChildOutput(wrapperChildStdoutRdBuffer);
     }
+    return 1;
 }
 
 /**

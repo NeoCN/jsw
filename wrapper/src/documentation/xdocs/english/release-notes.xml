@@ -126,6 +126,15 @@ $Id$
                     ships with the Wrapper to avoid confusion with new users.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Rewrote the routine which reads and logs console output from the JVM
+                    for Windows versions.  Internal buffers are now scaled dynamically,
+                    fixing a problem where long lines were being wrapped at 1024 characters.
+                    This rewrite also resulted in a 4 fold increase in speed when the JVM is
+                    sending large quantities of output to the console.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.0">
