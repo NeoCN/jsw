@@ -84,6 +84,12 @@
         </body>
     </xsl:template>
 
+    <xsl:template match="javadocs">
+        <iframe src="../../jdoc/index.html" width="100%" height="6000" align="center" frameborder="1" marginwidth="0" marginheight="0" scrolling="yes">
+            <xsl:apply-templates/>
+        </iframe>				
+    </xsl:template>
+    
     <xsl:template match="glossary">
         <body>
             <xsl:call-template name="header"/>
@@ -608,7 +614,7 @@
   
   <xsl:template match="glossentry/glossterm">
       <dt> <!-- style="font-weight: bold" -->
-          <xsl:apply-templates/>
+          <b><xsl:apply-templates/></b>
       </dt>
   </xsl:template>
 
