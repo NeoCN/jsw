@@ -1,0 +1,277 @@
+Java Service Wrapper Revision History.
+--------------------------------------
+3.0.1
+* Fix a problem with the wrapper.disable_shutdown_hook.  Due to a typo in the
+  source, the property was being ignored.  This was broken in the 3.0.0
+  release.
+* Fix a problem with the HP-UX release build reported by Ashish Gawarikar.
+* Add the ability to set environment variables from within the configuration
+  file or from the command line.
+* Fix a problem on HP-UX and AIX machines where the stop() function in the
+  shell scripts was causing a syntax error due to a conflict with a like named
+  shell command on those platforms.  This appears to be an issue with the
+  Korn shell on all platforms.
+* Fix a problem where very heavy output from the JVM can cause the Wrapper to
+  give a false timeout.  The Wrapper now only ready 50 lines of input at a time
+  to guarantee that the Wrapper's event loop always gets cycles.
+* Fix a problem on UNIX versions where extra line breaks would sometimes be
+  added to the logged output when there was large amounts of output being
+  sent from the JVM.
+* Fix a problem where a large number of calls to WrapperManager.log()
+  immediately before the JVM exits could lead to the Wrapper incorrectly
+  reporting that the JVM exited unexpectedly.
+
+3.0.0
+* Deprecated the com.silveregg.wrapper package in favor of
+  org.tanukisoftware.wrapper.  The classes and interfaces in the silveregg
+  package will continue to function, but migration to the new package should
+  be done when possible. See the project history for details.
+* On Windows systems change any forward slashes in the wrapper.java.command
+  property to back slashes.  Some users had reported having problems on
+  Windows XP.
+* Implemented feature request #633178.  Added WrapperManager.requestThreadDump()
+  to force the current JVM to immediately perform a thread dump.
+* Fixed bug where wrapper.logfile.maxsize was being set to 0 if the 'k' or 'm'
+  unit was omitted.
+* Add the ability to specify an account name and password when installing an
+  NT service.
+* Add a property, wrapper.ntservice.interactive, which makes it possible to
+  control whether or not the Java process can gain access to the desktop while
+  it is running as an NT service.
+* Add limited support for 1.2.x versions of Java.  Shutdown hooks are
+  supported until Java 1.3 so those functions will be disabled.  If the
+  application displays a GUI then Java 1.3 should be used as the GUI can not
+  currently be displayed when using Java 1.2.x.
+* Made it possible to use the wrapper.pidfile property on all *nix platforms.
+  Please notice that the property has been removed from the default
+  wrapper.conf file.  The property is not needed when the wrapper is launched
+  with the bash shell script.  The sh shell script will set the wrapper.pidfile
+  when the wrapper is launched.  If either of the scripts provided with the
+  Wrapper distribution are used then the wrapper.pidfile should always be
+  removed from your wrapper.conf file.
+* Added a new wrapper.daemonize property which, when set, will form the wrapper
+  process to be a detached non-session group leader.  This makes it possible to
+  launch the wrapper in such a way that it will not be terminated when the user
+  launching the process logs out.  This had been a problem on Solaris systems
+  when using the sh shell.  The default sh and bash scripts both make use of
+  this in the default.  Please update your scripts for use with this version.
+  Thanks to Rajiv Subrahmanyam for the patch.
+* Fix a problem where the Wrapper was incorrectly counting the number of
+  non-daemon threads in BEA's JRockit Virtual Machine.  This was causing the
+  application to shutdown when the non-daemon thread count dropped to 1.
+* Added support for building the wrapper on AIX and HPUX systems.  Thanks for
+  the patches involved go out to Ashish Gawarikar and William Lee.
+* Implement feature request #653131 to force the JVM to immediately exit when
+  the user presses CTRL-C multiple times.
+* Added a 'console' action to the bash and sh scripts to make it possible to
+  launch the Wrapper in the current shell process.  The 'start' task will launch
+  the Wrapper as a spawned daemon process.
+* Fixed a problem where missing environment variables specified in classpath
+  or library path properties were not being handled correctly.
+* Implemented feature request #676599 to enable the filtering of JVM output to
+  trigger JVM restarts or Wrapper shutdowns.  See the new
+  wrapper.filter.trigger.n and wrapper.filter.action.n properties.
+* Modify the Win32 version of the Wrapper so that Environment Variables are
+  always read from the system registry when the Wrapper is run as a service.
+  By doing this, it makes it possible to change or add the system environment
+  variables and have them take effect without having to first reboot the
+  machine.
+* Implemented cascading configuration files.
+* Changed the default value for the wrapper.java.initmemory property to be 3Mb.
+  The default on Windows and Linux JVMs is 2Mb, but the Solaris JVM requires
+  a minimum of 3Mb.  The minimum value accepted by the Wrapper was changed
+  from 8Mb to 1Mb to make it possible to reduce the footprint of applications
+  to what is possible without using the wrapper.
+* Improve the parsing of config files so that leading and trailing white space
+  is now correctly trimmed.  It is also now possible to have comments at the
+  end of a line containing a property.
+* Modify the way exceptions thrown by an application's main method are
+  presented to the user by the WrapperSimpleApp and WrapperStartStopApp so
+  they no longer look like a problem with Wrapper configuration.
+
+2.2.9
+* Added a new property, wrapperper.restart.delay, which allows the user to control
+  the amount of time to pause between a JVM exiting and a new JVM being
+  launched.
+* Fixed bug #611024. The Wrapper would sometimes fail to start if
+  wrapper.max_failed_invocations is set to 1.
+* Fix a problem where the number of non-daemon threads was not being calculated
+  in some cases.
+* Implemented feature request #491443.  Environment variables referenced in the
+  wrapper.conf file will now be evaluated as the file is loaded.  The windows
+  syntax for environment variables is used on all platforms to make them
+  platform independent.
+* Fixed a problem where the wrapper.conf was being open with both read and
+  write locks when a read lock is all that is needed.  Made the wrapper fail
+  on startup if another application held a read lock on the conf file.
+* Modified the message displayed when the native library could not be found,
+  so that it is much more descriptive.  Hopefully it will cut down on questions
+  caused by configuration problems.
+* Implemented feature request #613539. Modified the wrapper.java.library.path
+  to function like the wrapper.java.classpath.n properties so that multiple
+  directories can be specified in the library path in a platform independent
+  way.  The old property is still supported, but deprecated.
+* Fix Bug #632215.  The WrapperManager.isLaunchedAsService() method was always
+  returning false, even when run as a service under Windows.  On linux, the
+  Wrapper is always run as a console app, so this method will always return
+  false.
+* Improve the message thrown when user code attempts to access System.in from
+  within a JVM being controlled by the Wrapper.  System.in will not work
+  because the JVM is a spawned process.
+
+2.2.8
+* Fixed a compiler problem on Solaris some systems.
+* Added a new property, wrapper.cpu.timeout, which allows the user to control
+  how much time without receiving any CPU the Wrapper will tolerate before
+  displaying a warning message.  The CPU timeout feature was added in 2.2.7
+  but the default timeout of 10 seconds was not configurable.
+* The Wrapper was only allowing 5 seconds between the JVM informing the
+  Wrapper that it was going to exit and the JVM process actually exiting.
+  This would cause the Wrapper to terminate the process prematurely in
+  cases where an application shutdown thread took longer than 5 seconds to
+  complete.  The Wrapper not allows wrapper.jvm_exit.timeout seconds for
+  the JVM process to exit on its own before being forcibly terminated.
+* When there is a configuration problem or a resource is unavailable, a JVM
+  will sometimes exit abnormally very shortly after being launched.  This
+  can lead the the JVM being infinitely restarted due to a simple class
+  path misconfiguration.  To work around this, the Wrapper has always had
+  a hard limit of 5 restarts within a short period of time.  If the JVM
+  has been running for more than a few minutes, then the count was reset.
+  In this version, a new property. wrapper.max_failed_invocations was added
+  to allow the max value to be set.   The time period which the JVM must
+  now be running for the JVM launch to have been considered a success for
+  restart purposes is set using the new wrapper.successful_invocation_time
+  property.
+* The number of advanced properties which most users do not need has been
+  increasing as the Wrapper has been made more and more flexible.  This
+  has been causing confusion in their usage by people who play with them
+  without first reading the documentation.  To solve this, the advanced
+  properties were removed from the default configuration file.  They still
+  function.  But users must now read to the advanced configuration
+  documentation to learn about their existence.  Added quite about to the
+  descriptions of these properties to hopefully clear up any confusion
+  about thier usage.
+* When the JVM exits abnormally, the Wrapper will pause for a few seconds
+  before starting another JVM.  If the user pressed CTRL-C during this
+  pause, a new JVM would still be launched.  The new JVM was exiting
+  immediately but it was a waste of time.  The Wrapper now recognizes the
+  event and aborts launching the new JVM.
+* Added a page to the documentation which shows inline javadocs.  This
+  will hopefully make it easier to navigate them as part of the full
+  documentation set.
+* Added a new method to the WrapperManager which enables user code to
+  log at any log level.
+* Added a new Helper class WrapperStartStopApp which allows users to easily
+  integrate applications like Tomcat which use a separate class to stop
+  the application.
+* Added a samples section to the documentation.  Just includes Tomcat 4
+  for now.
+
+2.2.7
+* Fix a problem where the JVM was trying to reconnect the Wrapper as it was
+  being shutdown.  This was causing problems if the JVM was being restarted.
+* Added support for the system being suspended to RAM or disk.  Also improved
+  wrapper performance when a system is under 100% load.  See the new example
+  output in the example section. 
+* Fix a problem where the log output was not being directed to a file called
+  wrapper.log in the same directory as the Wrapper binary in the event that the
+  configured wrapper log file could not be accessed.
+* Fix a problem where the Wrapper was not shutting down the JVM correctly when
+  all non daemon threads completed.   Normally a JVM will exit when all of its
+  non daemon threads have completed so this was causing some problems.
+  (Thanks to Jung Tamas)
+* Added the ability to set the priority of the Wrapper and its JVM when run
+  as an NT service or console application.  The same thing can be better
+  achieved on Unix systems by using "nice" in the shell script used to launch
+  the Wrapper.  See the documentation for for details.
+* JVM information was not being displayed correctly when the Wrapper native
+  library could not be loaded.
+* Added a new property to cause the wrapper to attempt to request a thread dump
+  when the JVM does not exit on request.
+* Improved the documentation of the WrapperSimpleApp and WrapperListener
+  classes.
+* Adding a new property wrapper.shutdown.timeout to allow the user to extend
+  the length of time that an application is allowed to take shutting down.
+* Rework the way the shutdown process works so that System.exit will never be
+  called before the stop method in WrapperListener has had a chance to complete.
+* Add a Restart button to the TestWrapper application.
+* Fix a problem on Unix versions where '%' characters in Java output would
+  sometimes cause the wrapper to crash.  Somehow missed getting this into the
+  last release.
+* Added a test to make sure that WrapperManager.stop is not called recursively.
+* Added support for building under Windows XP.  Prebuilt installations had
+  already been working. 
+
+2.2.6
+* Fix a problem where '%' characters in Java output would sometimes cause the
+  wrapper to crash.  (Thanks to Frode Moe)
+* Added support for requesting a Java thread dump without shutting down the
+  Java process.
+* Fixed a problem on windows where the java command was looking in the windows
+  system and system32 directories for the java executable before checking the
+  path when the full path to the java executable was not specified in the
+  configuration file.  This could lead to different JVM being run from the
+  Wrapper than was run if java -version was run from the command line.  The
+  Wrapper will now attempt to resolve the full java path using the PATH
+  environment variable.
+* Added debug output showing Java version information when the JVM first
+  starts.
+* Modified c source to use /* */ style comments rather than // style comments.
+  Some people were having problems with some compilers.
+
+2.2.5
+* Added support for service descriptions for Win2k and XP.
+* Fixed bug issue when reading config files from Windows on Unix.
+* Deprecated the wrapper.debug property in favor of loglevels.
+* Added new logger functionality includes the following features:
+  Loglevels like Log4j, NT Eventlog support, UNIX syslog support and rolling
+  log files.
+* Added wildcard support for classpath entries in wrapper.conf.
+* Added the ability to specify configuration properties from the command line.
+* Changed the way NT services are installed so that a patched version of the
+  Wrapper.exe file no longer needs to be created to reference the
+  wrapper.conf file.
+
+2.2.4
+* The value of APP_NAME in the bash or sh scripts no longer needs to be the
+  same as the script.
+* Added the ablility to format and/or disable file logging and output to the
+  console.
+* Set mode of executables in binary release tar files so that they can be run
+  without modification after being extracted.
+* Fixed line feeds in release so that bat files are always CRLF, unix scripts
+  are always LF.  Other source files are always CRLF in ZIP archives and LF
+  in tar.gz archives.
+* Make the build fail if Wrapper.exe or Wrapper.dll do not exist for Windows
+  builds.
+* Added an empty wrapper.log to the releases so that the TestWrapper example
+  program runs out of the box.
+
+2.2.3
+* Added template scripts and conf files for ease of integration with other
+  applications.
+* Cleaned up the build.
+* The WrapperSimpleApp method of launchine applications was not working 
+  correctly with applications whose main method did not return.
+* Add sample scripts and wrapper.conf files in the bin and lib directories.
+  These scripts are used to start a sample application which runs out of the
+  box.  See the new example.html page in the documentation for more details.
+* Get rid of the platform specific directories in the bin and lib directories.
+* Enable relative paths for Windows version.  In previous versions of Wrapper,
+  it was necessary to always use absolute paths because the working directory 
+  of the wrapper would be then NT System32 directory when run as a service.
+* On the windows version, the wrapper always sets the current working
+  directory to the location of the wrapper executable immediately after
+  startup.
+* Improvements to the documentation / web page.
+
+2.2.2
+* Added HTML based documentation.
+
+2.2.1
+* Added Linux and Solaris build files.
+* Added Linux and Solaris documentation.
+
+2.2.0
+* Initial Public Release.
+

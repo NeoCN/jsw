@@ -1,0 +1,8 @@
+App.bat.in
+bash.script.in
+sh.script.in
+SimpleApp.bat.in
+SimpleInstallApp-NT.bat.in
+SimpleUninstallApp-NT.bat.in
+wrapper.conf.in
+
