@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.15  2003/09/03 14:39:58  mortenson
+// Added a pair of MBean interfaces which allow the Wrapper to be controlled
+// using JMX.  See the new JMX section in the documentation for details.
+//
 // Revision 1.14  2003/09/03 09:26:26  mortenson
 // Modify the WrapperManager.isLaunchedAsService() method on UNIX systems so it
 // now returns true if the Wrapper was launched with the wrapper.daemonize flag
@@ -769,7 +773,12 @@ public final class WrapperManager
     }
     
     /**
-     * Returns true if the wrapper.debug property is set the wrapper configuration file.
+     * Returns true if the wrapper.debug property, or any of the logging
+     *  channels are set to DEBUG in the wrapper configuration file.  Useful
+     *  for deciding whether or not to output certain information to the
+     *  console.
+     *
+     * @return True if the Wrapper is logging any Debug level output.
      */
     public static boolean isDebugEnabled()
     {
@@ -866,54 +875,10 @@ public final class WrapperManager
     }
     
     /**
-     * Executed code common to the stop and stopImmediate methods.
-     */
-    private static void stopCommon( int exitCode, int delay )
-    {
-        boolean stopping;
-        synchronized( m_instance )
-        {
-            stopping = m_stopping;
-            if ( !stopping )
-            {
-                m_stopping = true;
-            }
-        }
-        
-        if ( !stopping )
-        {
-            if ( !m_commRunnerStarted )
-            {
-                startRunner();
-                // Wait to give the runner a chance to connect.
-                try
-                {
-                    Thread.sleep( 500 );
-                }
-                catch ( InterruptedException e )
-                {
-                }
-            }
-            
-            // Always send the stop command
-            sendCommand( WRAPPER_MSG_STOP, Integer.toString( exitCode ) );
-        }
-        
-        // Give the Wrapper a chance to register the stop command before stopping.
-        // This avoids any errors thrown by the Wrapper because the JVM died before
-        //  it was expected to.
-        try
-        {
-            Thread.sleep( delay );
-        }
-        catch ( InterruptedException e )
-        {
-        }
-    }
-    
-    /**
      * Tells the native wrapper that the JVM wants to shut down, then informs
      *	all listeners that the JVM is about to shutdown before killing the JVM.
+     *
+     * @param exitCode The exit code that the Wrapper will return when it exits.
      */
     public static void stop( int exitCode )
     {
@@ -926,6 +891,8 @@ public final class WrapperManager
      * Tells the native wrapper that the JVM wants to shut down and then
      *  promptly halts.  Be careful when using this method as an application
      *  will not be given a chance to shutdown cleanly.
+     *
+     * @param exitCode The exit code that the Wrapper will return when it exits.
      */
     public static void stopImmediate( int exitCode )
     {
@@ -1022,6 +989,9 @@ public final class WrapperManager
     
     /**
      * Returns true if the ShutdownHook for the JVM has already been triggered.
+     *  Some code needs to know whether or not the system is shutting down.
+     *
+     * @return True if the ShutdownHook for the JVM has already been triggered.
      */
     public static boolean hasShutdownHookBeenTriggered()
     {
@@ -1086,6 +1056,52 @@ public final class WrapperManager
     /*---------------------------------------------------------------
      * Private methods
      *-------------------------------------------------------------*/
+    /**
+     * Executed code common to the stop and stopImmediate methods.
+     */
+    private static void stopCommon( int exitCode, int delay )
+    {
+        boolean stopping;
+        synchronized( m_instance )
+        {
+            stopping = m_stopping;
+            if ( !stopping )
+            {
+                m_stopping = true;
+            }
+        }
+        
+        if ( !stopping )
+        {
+            if ( !m_commRunnerStarted )
+            {
+                startRunner();
+                // Wait to give the runner a chance to connect.
+                try
+                {
+                    Thread.sleep( 500 );
+                }
+                catch ( InterruptedException e )
+                {
+                }
+            }
+            
+            // Always send the stop command
+            sendCommand( WRAPPER_MSG_STOP, Integer.toString( exitCode ) );
+        }
+        
+        // Give the Wrapper a chance to register the stop command before stopping.
+        // This avoids any errors thrown by the Wrapper because the JVM died before
+        //  it was expected to.
+        try
+        {
+            Thread.sleep( delay );
+        }
+        catch ( InterruptedException e )
+        {
+        }
+    }
+    
     /**
      * Dispose of all resources used by the WrapperManager.  Closes the server
      *	socket which is used to listen for events from the 
@@ -1948,6 +1964,13 @@ public final class WrapperManager
      *-------------------------------------------------------------*/
     public void run()
     {
+        // Make sure that no other threads call this method.
+        if ( Thread.currentThread() != m_commRunner )
+        {
+            throw new IllegalStateException(
+                "Only the comm runner thread is allowed to call this method." );
+        }
+        
         m_commRunnerStarted = true;
         
         // This thread needs to have a very high priority so that it never
@@ -2007,6 +2030,9 @@ public final class WrapperManager
         }
     }
     
+    /*---------------------------------------------------------------
+     * Inner Classes
+     *-------------------------------------------------------------*/
     /**
      * When the JVM is being controlled by the Wrapper, stdin can not be used
      *  as it is undefined.  This class makes it possible to provide the user

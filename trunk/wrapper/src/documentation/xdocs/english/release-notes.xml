@@ -100,6 +100,20 @@ $Id$
                     CTRL-C, HALT and INT signals.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Modify the WrapperManager.isLaunchedAsService() method on UNIX systems so it
+                    now returns true if the Wrapper was launched with the
+                    <ulink url="prop-daemonize.html">wrapper.daemonize</ulink> flag set.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Added a pair of MBean interfaces which allow the Wrapper to be controlled
+                    using JMX.  See the new <ulink url="jmx.html">JMX</ulink> section in the
+                    documentation for details.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
