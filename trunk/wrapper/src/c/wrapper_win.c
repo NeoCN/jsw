@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.79  2004/07/05 09:41:29  mortenson
+ * Fix a problem where we were getting an extra line feed in the output just after a
+ * thread dump.  Caused by a LF+CR+LF in the output from the JVM.
+ *
  * Revision 1.78  2004/07/05 07:43:54  mortenson
  * Fix a deadlock on solaris by being very careful that we never perform any direct
  * logging from within a signal handler.
@@ -962,7 +966,8 @@ void wrapperReportStatus(int useLoggerQueue, int status, int errorCode, int wait
 int wrapperReadChildOutput() {
     DWORD dwRead;
     char *bufferP;
-    char *c;
+    char *cCR;
+    char *cLF;
     char *newBuffer;
     DWORD lineLength;
     DWORD maxRead;
@@ -1036,7 +1041,7 @@ int wrapperReadChildOutput() {
         /* Peek at a block of data from the JVM then look for a CR+LF or LF before
          *  actually reading the bytes that make up the line. */
         if (!PeekNamedPipe(wrapperChildStdoutRd, bufferP, maxRead, &dwRead, NULL, NULL)) {
-         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+			log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 "Failed to peek at output from the JVM: %s", getLastErrorText());
             return 0;
         }
@@ -1047,37 +1052,50 @@ int wrapperReadChildOutput() {
             /* Additional data was peeked. Terminate it. */
             bufferP[dwRead] = '\0';
 
-            /* Look for a CR+LF in the data. */
-         if ((c = strchr(bufferP, (char)0x0d)) != NULL) {
-                /* CR found. The read count should just include it. */
-                keepCnt = c - bufferP + 1;
-                if (c[1] == (char)0x0a) {
+            /* Look for a CR and LF in the data.  Normally on Windows, all lines
+			 *  will end with CR+LF.  Thread dumps and other JVM messages are the
+			 *  exception.  They end only with LF.  We have to be careful about
+			 *  how we check blocks of text becase of cases like
+			 *  "<text>LF<text>CRLF" */
+			cCR = strchr(bufferP, (char)0x0d);
+			cLF = strchr(bufferP, (char)0x0a);
+
+			if ((cCR != NULL) && ((cLF == NULL) || (cLF > cCR))) {
+				/* CR was found.  If both were found then the CR was first. */
+                keepCnt = cCR - bufferP + 1;
+                if (cCR[1] == (char)0x0a) {
                     /* CR+LF found. Read count should include it as well. */
                     keepCnt++;
                     thisLF = 1;
-                } else if (c[1] == '\0') {
+			        /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  CR+LF");*/
+                } else if (cCR[1] == '\0') {
                     /* End of buffer, the LF is probably coming later. */
+			        /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  CR !");*/
                 } else {
                     /* Only found a CR.  Is this possible? */
                     thisLF = 1;
+			        /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  CR");*/
                 }
 
                 /* Terminate the buffer to just before the CR. */
-                c[0] = '\0';
-                lineLength = c - wrapperChildStdoutRdBuffer;
-            } else if ((c = strchr(bufferP, (char)0x0a)) != NULL) {
-                /* LF found. The read count should just include it. */
-                keepCnt = c - bufferP + 1;
+                cCR[0] = '\0';
+                lineLength = cCR - wrapperChildStdoutRdBuffer;
+
+			} else if (cLF != NULL) {
+				/* LF found. */
+                keepCnt = cLF - bufferP + 1;
 
                 /* Terminate the buffer to just before the LF. */
-                c[0] = '\0';
-                lineLength = c - wrapperChildStdoutRdBuffer;
+                cLF[0] = '\0';
+                lineLength = cLF - wrapperChildStdoutRdBuffer;
                 thisLF = 1;
+		        /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  LF");*/
             } else {
                 /* Neither CR+LF or LF was found so we need to read another
                  *  block and keep looking. */
                 keepCnt = dwRead;
                 lineLength += dwRead;
+		        /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  No LF");*/
             }
 
             /* Now that we know how much of this block is wanted, actually read it in. */
@@ -1092,8 +1110,13 @@ int wrapperReadChildOutput() {
                     dwRead, keepCnt);
                 return 0;
             }
+
             /* Reterminate the string as we have read the LF back in. */
             wrapperChildStdoutRdBuffer[lineLength] = '\0';
+			/*
+	        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "lineLength=%d, keepCnt=%d, thisLF=%d", lineLength, keepCnt, thisLF);
+	        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "buffer='%s'", wrapperChildStdoutRdBuffer);
+			*/
         } else {
             /* Nothing was read, but there is no more data available. */
             if (lineLength > 0) {
@@ -1110,6 +1133,7 @@ int wrapperReadChildOutput() {
                 /* This is just an unread LF from a previous call, so skip it. */
             } else {
                 /* Log the line. */
+		        /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "log '%s'", wrapperChildStdoutRdBuffer);*/
                 wrapperLogChildOutput(wrapperChildStdoutRdBuffer);
             }
 
