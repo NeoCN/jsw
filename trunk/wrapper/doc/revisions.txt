@@ -34,6 +34,10 @@ Java Service Wrapper Revision History.
   1.3.x versions of Java.  To use interactive services with 1.2.x or 1.3.x
   versions of java, please review the documentation for the
   wrapper.ntservice.interactive property.
+* Fix a problem where the JVM was not receiving CTRL-C and CTRL-CLOSE events
+  when running under the Wrapper on Windows.  This was not a problem in most
+  cases as the Wrapper was taking care of the processing of the events.  But
+  the WrapperListener.controlEvent() method was not being called as documented.
 
 3.0.3
 * Added support for Mac OS X.  Big thanks to Andy Barnett for supplying the
