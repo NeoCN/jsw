@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.16  2003/04/03 16:27:13  mortenson
+ * Tabs to spaces.  No other changes.
+ *
  * Revision 1.15  2003/04/03 16:13:35  mortenson
  * Fix a problem where the values of environment variables set in the
  * configuration file were not correct when those values included references
@@ -469,10 +472,10 @@ void addProperty(Properties *properties, const char *propertyName, const char *p
         /* See if this is a special property */
         if ((strlen(propertyName) > 4) && (strstr(propertyName, "set.") == propertyName)) {
             /* This property is an environment variable definition.  Get the
-			 *  value back out of the property as it may have had environment
-			 *  replacements. */
+             *  value back out of the property as it may have had environment
+             *  replacements. */
 #ifdef _DEBUG
-		    printf("setEnv('%s', '%s')\n", propertyName + 4, property->value);
+            printf("setEnv('%s', '%s')\n", propertyName + 4, property->value);
 #endif
             setEnv(propertyName + 4, property->value);
         }
