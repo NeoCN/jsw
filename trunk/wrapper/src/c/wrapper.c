@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.20  2002/06/02 13:38:58  mortenson
+ * Added support for System Suspend and made the Wrapper handle heavy loads
+ * better by avoiding unwanted timeouts.
+ *
  * Revision 1.19  2002/05/23 12:42:41  rybesh
  * fixed logger initialization on unix
  *
@@ -1153,6 +1157,8 @@ void wrapperFreeJavaCommandArray(char **strings, int length) {
  */
 void wrapperEventLoop() {
     int ret;
+	time_t now;
+	time_t lastCycleTime = time(NULL);
 
     do {
         /* Sleep for a quarter second. */
@@ -1168,6 +1174,21 @@ void wrapperEventLoop() {
         /* Check for incoming data packets. */
         wrapperProtocolRead();
         
+		/* Get the current time for use in this cycle. */
+		now = time(NULL);
+
+		/* Has the process been getting CPU? */
+		if (now - lastCycleTime > 10 ) {
+			log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
+				"Wrapper Process has not received any CPU time for %d seconds.  Extending timeouts.",
+				now - lastCycleTime);
+
+			if (wrapperData->jStateTimeout > 0) {
+				wrapperData->jStateTimeout = wrapperData->jStateTimeout + (now - lastCycleTime);
+			}
+		}
+		lastCycleTime = now;
+
         /* Useful for development debugging, but not runtime debugging */
         /*
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
@@ -1175,7 +1196,7 @@ void wrapperEventLoop() {
                    wrapperGetWState(wrapperData->wState),
                    wrapperGetJState(wrapperData->jState),
                    (wrapperData->jStateTimeout == 0 ? 
-                    0 : wrapperData->jStateTimeout - time(NULL)));
+                    0 : wrapperData->jStateTimeout - now));
         */
         
         if ((wrapperData->exitRequested && (! wrapperData->exitAcknowledged))
@@ -1212,7 +1233,7 @@ void wrapperEventLoop() {
                 
                 /* Allow up to 5 + <shutdownTimeout> seconds for the application to stop itself. */
                 wrapperData->jState = WRAPPER_JSTATE_STOPPING;
-                wrapperData->jStateTimeout = time(NULL) + 5 + wrapperData->shutdownTimeout;
+                wrapperData->jStateTimeout = now + 5 + wrapperData->shutdownTimeout;
             }
             wrapperData->restartRequested = FALSE;
         }
@@ -1302,7 +1323,7 @@ void wrapperEventLoop() {
                          *  This can take quite a while if the system is heavily loaded.
                          *  (At startup for example) */
                         wrapperData->jState = WRAPPER_JSTATE_LAUNCHING;
-                        wrapperData->jStateTimeout = time(NULL) + wrapperData->startupTimeout;
+                        wrapperData->jStateTimeout = now + wrapperData->startupTimeout;
                     }
                 } else {
                     /* Unable to launch another JVM. */
@@ -1317,7 +1338,7 @@ void wrapperEventLoop() {
             }
 
             /* Reset the last ping time */
-            wrapperData->lastPingTime = time(NULL);
+            wrapperData->lastPingTime = now;
             break;
             
         case WRAPPER_JSTATE_LAUNCHING:
@@ -1337,7 +1358,7 @@ void wrapperEventLoop() {
                  * We are waiting in this state until we receive a KEY packet
                  *  from the JVM attempting to register.
                  * Have we waited too long already */
-                if (time(NULL) > wrapperData->jStateTimeout) {
+                if (now > wrapperData->jStateTimeout) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                                "Startup failed: Timed out waiting for signal from JVM.");
 
@@ -1365,7 +1386,7 @@ void wrapperEventLoop() {
                  *  giving up.  A good application will send starting signals back
                  *  much sooner than this as a way to extend this time if necessary. */
                 wrapperData->jState = WRAPPER_JSTATE_STARTING;
-                wrapperData->jStateTimeout = time(NULL) + wrapperData->startupTimeout;
+                wrapperData->jStateTimeout = now + wrapperData->startupTimeout;
             }
             break;
 
@@ -1383,7 +1404,7 @@ void wrapperEventLoop() {
                 wrapperProtocolClose();
             } else {
                 /* Have we waited too long already */
-                if (time(NULL) > wrapperData->jStateTimeout) {
+                if (now > wrapperData->jStateTimeout) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                                "Startup failed: Timed out waiting for signal from JVM.");
 
@@ -1412,13 +1433,13 @@ void wrapperEventLoop() {
                 wrapperProtocolClose();
             } else {
                 /* Have we waited too long already */
-                if (time(NULL) > wrapperData->jStateTimeout) {
+                if (now > wrapperData->jStateTimeout) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                                "JVM appears hung: Timed out waiting for signal from JVM.");
 
                     /* Give up on the JVM and start trying to kill it. */
                     wrapperKillProcess();
-                } else if (time(NULL) > wrapperData->lastPingTime + 5) {
+                } else if (now > wrapperData->lastPingTime + 5) {
                     /* It is time to send another ping to the JVM */
                     ret = wrapperProtocolFunction(WRAPPER_MSG_PING, "ping");
                     if (ret < 0) {
@@ -1427,7 +1448,7 @@ void wrapperEventLoop() {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM Ping Failed.");
                         }
                     }
-                    wrapperData->lastPingTime = time(NULL);
+                    wrapperData->lastPingTime = now;
                 } else {
                     /* Do nothing.  Keep waiting. */
                 }
@@ -1448,7 +1469,7 @@ void wrapperEventLoop() {
                 wrapperProtocolClose();
             } else {
                 /* Have we waited too long already */
-                if (time(NULL) > wrapperData->jStateTimeout) {
+                if (now > wrapperData->jStateTimeout) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                                "Shutdown failed: Timed out waiting for signal from JVM.");
 
@@ -1474,7 +1495,7 @@ void wrapperEventLoop() {
                 wrapperProtocolClose();
             } else {
                 /* Have we waited too long already */
-                if (time(NULL) > wrapperData->jStateTimeout) {
+                if (now > wrapperData->jStateTimeout) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                                "Shutdown failed: Timed out waiting for the JVM to terminate.");
 

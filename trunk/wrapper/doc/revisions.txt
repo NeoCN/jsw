@@ -1,18 +1,21 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 2.2.7
+* Added support for the system being suspended to RAM or disk.  Also improved
+  wrapper performance when a system is under 100% load.  See the new example
+  output in the example section. 
 * Fix a problem where the log output was not being directed to a file called
   wrapper.log in the same directory as the Wrapper binary in the event that the
   configured wrapper log file could not be accessed.
 * Fix a problem where the Wrapper was not shutting down the JVM correctly when
-  all non-daemon threads completed.   Normally a JVM will exit when all of its
-  non-daemon threads have completed so this was causing some problems.
+  all non daemon threads completed.   Normally a JVM will exit when all of its
+  non daemon threads have completed so this was causing some problems.
   (Thanks to Jung Tamas)
 * Added the ability to set the priority of the Wrapper and its JVM when run
   as an NT service or console application.  The same thing can be better
   achieved on Unix systems by using "nice" in the shell script used to launch
   the Wrapper.  See the documentation for for details.
-* JVM information was not being displayed correctly when the Wrapper vative
+* JVM information was not being displayed correctly when the Wrapper native
   library could not be loaded.
 * Added a new property to cause the wrapper to attempt to request a thread dump
   when the JVM does not exit on request.

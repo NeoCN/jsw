@@ -394,6 +394,25 @@ jvm 2    | start()]]></screen>
                             </para>
                         </glossdef>
                     </glossentry>
+                    <glossentry>
+                        <glossterm>System Under High Load or System Suspend</glossterm>
+                        <glossdef>
+                            <para>
+                                There are cases where either the Wrapper, the JVM or both will be denied CPU cycles for an extended period of time.  This can happen if a resource unfriendly process starts taking 100% of the CPU for a period of time.   It is also possible if the user Suspends the system to RAM or disk.  When the system is resumed, all running applications will have experienced some missing time.  The Wrapper is capable of recognizing that this has happened making it possible to avoid unneeded restarts of the JVM process.  The following output shows what happens when the System is suspended to RAM for 255 seconds before being resumed.
+                                <informalexample>
+                                    <simpara><emphasis>Console Output:</emphasis></simpara>
+                                    <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
+wrapper  | Launching a JVM...
+jvm 1    | Initializing...
+jvm 1    | Wrapper (Version 2.x.x)
+jvm 1    |
+jvm 1    | start()
+jvm 1    | JVM Process has not received any CPU time for 255 seconds.  Extending timeouts.
+wrapper  | Wrapper Process has not received any CPU time for 255 seconds.  Extending timeouts.]]></screen>
+                                </informalexample>
+                            </para>
+                        </glossdef>
+                    </glossentry>
                 </glosslist>
             </para>
         </section>

@@ -13,12 +13,17 @@
         <itemizedlist>
             <listitem>
                 <para>
+                    Added support for the system being suspended to RAM or disk.  Also improved wrapper performance when a system is under 100% load.  See the new example output in the <ulink url="example.html">example</ulink> section. 
+                </para>
+            </listitem>
+            <listitem>
+                <para>
                     Fix a problem where the log output was not being directed to a file called wrapper.log in the same directory as the Wrapper binary in the event that the configured wrapper log file could not be accessed.
                 </para>
             </listitem>
             <listitem>
                 <para>
-                    Fix a problem where the Wrapper was not shutting down the JVM correctly when all non-daemon threads completed.   Normally a JVM will exit when all of its non-daemon threads have completed so this was causing some problems.  (Thanks to Jung Tamas)
+                    Fix a problem where the Wrapper was not shutting down the JVM correctly when all non daemon threads completed.   Normally a JVM will exit when all of its non daemon threads have completed so this was causing some problems.  (Thanks to Jung Tamas)
                 </para>
             </listitem>
             <listitem>
@@ -28,7 +33,7 @@
             </listitem>
             <listitem>
                 <para>
-                    JVM information was not being displayed correctly when the Wrapper vative library could not be loaded.
+                    JVM information was not being displayed correctly when the Wrapper native library could not be loaded.
                 </para>
             </listitem>
             <listitem>
@@ -66,12 +71,12 @@
                     Added a test to make sure that WrapperManager.stop is not called recursively.
                 </para>
             </listitem>
-			<listitem>
-				<para>
-					Added support for building under Windows XP.  Prebuilt installations had already been working.
-				</para>
-			</listitem>
-		</itemizedlist>
+            <listitem>
+                <para>
+                    Added support for building under Windows XP.  Prebuilt installations had already been working.
+                </para>
+            </listitem>
+        </itemizedlist>
     </section>
     <section>
         <title>Version 2.2.6: Changes and bugfixes</title>
