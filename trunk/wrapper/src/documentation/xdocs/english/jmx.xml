@@ -53,7 +53,7 @@
                 providing other information about the Java Service Wrapper.  The
                 second class exposes a few methods which can be useful in the testing
                 cycle.  They are broken out in case you wish to not include them in
-                a final product release.  See the <ulink url="javadocs.hmtl">javadocs</ulink>
+                a final product release.  See the <ulink url="javadocs.html">javadocs</ulink>
                 for more details.
             </para>
             <para>
