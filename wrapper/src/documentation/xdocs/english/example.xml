@@ -84,7 +84,7 @@
                 When the application starts, you should see the following dialog:
             </para>
             <screenshot>
-                <screeninfo>550x290x256</screeninfo>
+                <screeninfo>767x287x256</screeninfo>
                 <graphic fileref="images/TestWrapper"/>
             </screenshot>
             <para>
@@ -135,7 +135,7 @@ jvm 1    | 2001/12/06 16:18:30 | start()]]></screen>
                 sample application's dialog.
             </para>
             <section>
-                <title>Exit</title>
+                <title>Stop</title>
                 <para>
                     Exits the JVM cleanly by calling WrapperManager.stop(0).
                 </para>
@@ -153,6 +153,112 @@ wrapper  | <-- Wrapper Stopped]]></screen>
                 <para>
                     As you can see, the application had its stop() method called and
                     was stopped cleanly.
+                </para>
+            </section>
+            <section>
+                <title>Exit</title>
+                <para>
+                    This button tests the Wrapper's ability to trap an unexpected call
+                    to System.exit() and stop the application gracefully.
+                </para>
+                <informalexample>
+                    <simpara><emphasis>Console Output:</emphasis></simpara>
+                    <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
+wrapper  | Launching a JVM...
+jvm 1    | Initializing...
+jvm 1    | Wrapper (Version 3.x.x)
+jvm 1    |
+jvm 1    | start()
+jvm 1    | stop(0)
+jvm 1    | here
+wrapper  | <-- Wrapper Stopped]]></screen>
+                </informalexample>
+                <para>
+                    As an exercise, edit your <literal moreinfo="none">conf/wrapper.conf</literal>
+                    file and uncomment the property,
+                    <literal moreinfo="none">wrapper.disable_shutdown_hook=TRUE</literal>.
+                    (Make sure to comment it back out when you are done)  Now rerun the
+                    test.
+                </para>
+                <informalexample>
+                    <simpara><emphasis>Console Output:</emphasis></simpara>
+                    <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
+wrapper  | Launching a JVM...
+jvm 1    | Initializing...
+jvm 1    | Wrapper (Version 3.x.x)
+jvm 1    |
+jvm 1    | start()
+wrapper  | JVM exited unexpectedly.
+wrapper  | Launching a JVM...
+jvm 2    | Initializing...
+jvm 2    | Wrapper (Version 3.x.x)
+jvm 2    |
+jvm 2    | start()]]></screen>
+                </informalexample>
+                <para>
+                    You will notice that the Wrapper no longer catches the call to
+                    System.exit() and so the it thinks that the JVM crashed and
+                    restarts it.
+                </para>
+                <note>
+                    <para>
+                        Because Shutdown hooks are not supported in 1.2 versions of
+                        Java, calls to System.exit will always result in the JVM being
+                        restarted.  To shutdown the JVM using Java 1.2, it is necessary
+                        to call WrapperManager.stop(exitCode).
+                    </para>
+                </note>
+            </section>
+            <section>
+                <title>Halt</title>
+                <para>
+                    This button calls a very low-level method to stop the JVM very
+                    forcibly.  In this case, Shutdown Hooks are not executed and the
+                    Wrapper has no way to catch it.
+                </para>
+                <informalexample>
+                    <simpara><emphasis>Console Output:</emphasis></simpara>
+                    <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
+wrapper  | Launching a JVM...
+jvm 1    | Initializing...
+jvm 1    | Wrapper (Version 3.x.x)
+jvm 1    |
+jvm 1    | start()
+wrapper  | JVM exited unexpectedly.
+wrapper  | Launching a JVM...
+jvm 2    | Initializing...
+jvm 2    | Wrapper (Version 3.x.x)
+jvm 2    |
+jvm 2    | start()]]></screen>
+                </informalexample>
+                <para>
+                    Notice that the Wrapper thinks that the JVM crashed and restarts it.
+                </para>
+            </section>
+            <section>
+                <title>Request Restart</title>
+                <para>
+                    Restarts the JVM cleanly by calling WrapperManager.restart()
+                </para>
+                <informalexample>
+                    <simpara><emphasis>Console Output:</emphasis></simpara>
+                    <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
+wrapper  | Launching a JVM...
+jvm 1    | Initializing...
+jvm 1    | Wrapper (Version 3.x.x)
+jvm 1    |
+jvm 1    | start()
+wrapper  | JVM requested a restart.
+jvm 1    | stop(0)
+wrapper  | Launching a JVM...
+jvm 2    | Initializing...
+jvm 2    | Wrapper (Version 3.x.x)
+jvm 2    |
+jvm 2    | start()]]></screen>
+                </informalexample>
+                <para>
+                    As you can see, the application had its stop() method called and
+                    was restarted cleanly. 
                 </para>
             </section>
             <section>
@@ -256,112 +362,6 @@ jvm 2    | Wrapper (Version 3.x.x)
 jvm 2    |
 jvm 2    | start()]]></screen>
                 </informalexample>
-            </section>
-            <section>
-                <title>System.exit(0)</title>
-                <para>
-                    This button tests the Wrapper's ability to trap an unexpected call
-                    to System.exit() and stop the application gracefully.
-                </para>
-                <informalexample>
-                    <simpara><emphasis>Console Output:</emphasis></simpara>
-                    <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
-wrapper  | Launching a JVM...
-jvm 1    | Initializing...
-jvm 1    | Wrapper (Version 3.x.x)
-jvm 1    |
-jvm 1    | start()
-jvm 1    | stop(0)
-jvm 1    | here
-wrapper  | <-- Wrapper Stopped]]></screen>
-                </informalexample>
-                <para>
-                    As an exercise, edit your <literal moreinfo="none">conf/wrapper.conf</literal>
-                    file and uncomment the property,
-                    <literal moreinfo="none">wrapper.disable_shutdown_hook=TRUE</literal>.
-                    (Make sure to comment it back out when you are done)  Now rerun the
-                    test.
-                </para>
-                <informalexample>
-                    <simpara><emphasis>Console Output:</emphasis></simpara>
-                    <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
-wrapper  | Launching a JVM...
-jvm 1    | Initializing...
-jvm 1    | Wrapper (Version 3.x.x)
-jvm 1    |
-jvm 1    | start()
-wrapper  | JVM exited unexpectedly.
-wrapper  | Launching a JVM...
-jvm 2    | Initializing...
-jvm 2    | Wrapper (Version 3.x.x)
-jvm 2    |
-jvm 2    | start()]]></screen>
-                </informalexample>
-                <para>
-                    You will notice that the Wrapper no longer catches the call to
-                    System.exit() and so the it thinks that the JVM crashed and
-                    restarts it.
-                </para>
-                <note>
-                    <para>
-                        Because Shutdown hooks are not supported in 1.2 versions of
-                        Java, calls to System.exit will always result in the JVM being
-                        restarted.  To shutdown the JVM using Java 1.2, it is necessary
-                        to call WrapperManager.stop(exitCode).
-                    </para>
-                </note>
-            </section>
-            <section>
-                <title>Runtime.getRuntime().halt(0)</title>
-                <para>
-                    This button calls a very low-level method to stop the JVM very
-                    forcibly.  In this case, Shutdown Hooks are not executed and the
-                    Wrapper has no way to catch it.
-                </para>
-                <informalexample>
-                    <simpara><emphasis>Console Output:</emphasis></simpara>
-                    <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
-wrapper  | Launching a JVM...
-jvm 1    | Initializing...
-jvm 1    | Wrapper (Version 3.x.x)
-jvm 1    |
-jvm 1    | start()
-wrapper  | JVM exited unexpectedly.
-wrapper  | Launching a JVM...
-jvm 2    | Initializing...
-jvm 2    | Wrapper (Version 3.x.x)
-jvm 2    |
-jvm 2    | start()]]></screen>
-                </informalexample>
-                <para>
-                    Notice that the Wrapper thinks that the JVM crashed and restarts it.
-                </para>
-            </section>
-            <section>
-                <title>Request Restart</title>
-                <para>
-                    Restarts the JVM cleanly by calling WrapperManager.restart()
-                </para>
-                <informalexample>
-                    <simpara><emphasis>Console Output:</emphasis></simpara>
-                    <screen format="linespecific"><![CDATA[wrapper  | --> Wrapper Started as Console
-wrapper  | Launching a JVM...
-jvm 1    | Initializing...
-jvm 1    | Wrapper (Version 3.x.x)
-jvm 1    |
-jvm 1    | start()
-wrapper  | JVM requested a restart.
-jvm 1    | stop(0)
-wrapper  | Launching a JVM...
-jvm 2    | Initializing...
-jvm 2    | Wrapper (Version 3.x.x)
-jvm 2    |
-jvm 2    | start()]]></screen>
-                </informalexample>
-                <para>
-                    As you can see, the application had its stop() method called and
-                    was restarted cleanly. 
-                </para>
             </section>
         </section>
         <section id="testwrapper-external">

@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.12  2004/01/10 15:44:15  mortenson
+// Rework the test wrapper app so there is less code duplication.
+//
 // Revision 1.11  2004/01/10 13:59:14  mortenson
 // Add a command button to test the user functions.
 //
@@ -67,11 +70,11 @@ import java.awt.Button;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Frame;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.Label;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 
 import org.tanukisoftware.wrapper.WrapperActionServer;
 import org.tanukisoftware.wrapper.WrapperManager;
@@ -92,8 +95,11 @@ import org.tanukisoftware.wrapper.WrapperListener;
  * @author Leif Mortenson <leif@tanukisoftware.com>
  * @version $Revision$
  */
-public class Main implements WrapperListener {
-    private MainFrame _frame;
+public class Main
+    extends AbstractActionApp
+    implements WrapperListener
+{
+    private MainFrame m_frame;
     
     private DeadlockPrintStream m_out;
     private DeadlockPrintStream m_err;
@@ -106,154 +112,99 @@ public class Main implements WrapperListener {
     private Main() {
     }
     
-    private class MainFrame extends Frame implements ActionListener {
-        MainFrame() {
-            super("Wrapper Test Application");
+    private class MainFrame extends Frame implements ActionListener
+    {
+        MainFrame()
+        {
+            super( "Wrapper Test Application" );
             
             WrapperManager.setConsoleTitle( getTitle() );
-        
-            setLayout(new FlowLayout());
             
-            Button exitButton = new Button("Exit");
-            add(exitButton);
-            exitButton.addActionListener(this);
-            
-            Button avButton = new Button("Access Violation");
-            add(avButton);
-            avButton.addActionListener(this);
-            
-            Button navButton = new Button("Native Access Violation");
-            add(navButton);
-            navButton.addActionListener(this);
-            
-            Button ahButton = new Button("Simulate JVM Hang");
-            add(ahButton);
-            ahButton.addActionListener(this);
-            
-            Button seButton = new Button("System.exit(0)");
-            add(seButton);
-            seButton.addActionListener(this);
-            
-            Button rhButton = new Button("Runtime.getRuntime().halt(0)");
-            add(rhButton);
-            rhButton.addActionListener(this);
-            
-            Button rsButton = new Button("Request Restart");
-            add(rsButton);
-            rsButton.addActionListener(this);
-            
-            Button tdButton = new Button("Request Thread Dump");
-            add(tdButton);
-            tdButton.addActionListener(this);
-            
-            Button odButton = new Button("System.out Deadlock");
-            add(odButton);
-            odButton.addActionListener(this);
-            
-            Button puButton = new Button("Poll Users");
-            add(puButton);
-            puButton.addActionListener(this);
-            
-            add(new Label("The Access Violation button only works with Sun JVMs."));
-            add(new Label("Also try killing the JVM process or pressing CTRL-C in the console window."));
-            add(new Label("Simulate JVM Hang only has an effect when controlled by native Wrapper."));
-            add(new Label("System.exit(0) should cause the Wrapper to exit."));
-            add(new Label("Runtime.getRuntime().halt(0) should result in the JVM restarting."));
-            add(new Label("Request Restart should cause the JVM to stop and be restarted cleanly."));
-            add(new Label("Request Thread Dump should cause the JVM dump its thread states."));
-            add(new Label("System.out Deadlock will cause calls to System.out and System.err to deadlock."));
-            add(new Label("Poll Users will begin polling the current and interactive user, displaying them to the console."));
-            
-            setSize(new Dimension(600, 315));
+            init();
+            pack();
+            setResizable( false );
         }
         
-        public void actionPerformed(ActionEvent event) {
-            String command = event.getActionCommand();
-            if (command.equals("Exit")) {
-                WrapperManager.stop(0);
-            } else if (command.equals("Access Violation")) {
-                WrapperManager.accessViolation();
-            } else if (command.equals("Native Access Violation")) {
-                WrapperManager.accessViolationNative();
-            } else if (command.equals("Simulate JVM Hang")) {
-                WrapperManager.appearHung();
-            } else if (command.equals("System.exit(0)")) {
-                System.exit(0);
-            } else if (command.equals("Runtime.getRuntime().halt(0)")) {
-                // Execute runtime.halt(0) using reflection so this class will
-                //  compile on 1.2.x versions of Java.
-                Method haltMethod;
-                try {
-                    haltMethod = Runtime.class.getMethod("halt", new Class[] {Integer.TYPE});
-                } catch (NoSuchMethodException e) {
-                    System.out.println("halt not supported by current JVM.");
-                    haltMethod = null;
-                }
-                
-                if (haltMethod != null) {
-                    Runtime runtime = Runtime.getRuntime();
-                    try {
-                        haltMethod.invoke(runtime, new Object[] {new Integer(0)});
-                    } catch (IllegalAccessException e) {
-                        System.out.println("Unable to call runitme.halt: " + e.getMessage());
-                    } catch (InvocationTargetException e) {
-                        System.out.println("Unable to call runitme.halt: " + e.getMessage());
-                    }
-                }
-            } else if (command.equals("Request Restart")) {
-                WrapperManager.restart();
-            } else if (command.equals("Request Thread Dump")) {
-                WrapperManager.requestThreadDump();
-            } else if (command.equals("System.out Deadlock")) {
-                System.out.println("Deadlocking System.out and System.err ...");
-                m_out.setDeadlock(true);
-                m_err.setDeadlock(true);
-            } else if (command.equals("Poll Users")) {
-                System.out.println("Begin polling the current and interactive users.");
-                if (m_userRunner == null) {
-                    Thread m_userRunner = new Thread()
-                    {
-                        public void run()
-                        {
-                            while (true)
-                            {
-                                System.out.println( "The current user is: " + WrapperManager.getUser( false ) );
-                                System.out.println( "The current interactive user is: " + WrapperManager.getInteractiveUser( false ) );
-                                System.out.println( "The current user with groups is: " + WrapperManager.getUser( true ) );
-                                System.out.println( "The current interactive user with groups is: " + WrapperManager.getInteractiveUser( true ) );
-                                try
-                                {
-                                    Thread.sleep( 10000 );
-                                }
-                                catch ( InterruptedException e )
-                                {
-                                }
-                                System.gc();
-                            }
-                        }
-                    };
-                    m_userRunner.setDaemon( true );
-                    m_userRunner.start();
-                }
-            }
+        private void init()
+        {
+            GridBagLayout gridBag = new GridBagLayout();
+            GridBagConstraints c = new GridBagConstraints();
+            setLayout( gridBag );
+            
+            buildCommand( gridBag, c, "Stop", "stop",
+                "Calls WrapperManager.stop() to shutdown the JVM and Wrapper." );
+            
+            buildCommand( gridBag, c, "Exit", "exit",
+                "Calls System.exit(0) to shutdown the JVM and Wrapper." );
+            
+            buildCommand( gridBag, c, "Halt", "halt",
+                "Calls Runtime.getRuntime().halt(0) to kill the JVM, the Wrapper will restart it." );
+            
+            buildCommand( gridBag, c, "Request Restart", "restart",
+                "Calls WrapperManager.restart() to shutdown the current JVM and start a new one." );
+            
+            buildCommand( gridBag, c, "Access Violation", "access_violation",
+                "Attempts to cause an access violation within the JVM, relies on a JVM bug and may not work." );
+            
+            buildCommand( gridBag, c, "Native Access Violation", "native_access_violation",
+                "Causes an access violation using native code, the JVM will crash and be restarted." );
+            
+            buildCommand( gridBag, c, "Simulate JVM Hang", "appear_hung",
+                "Makes the JVM appear to be hung as viewed from the Wrapper, it will be killed and restarted." );
+            
+            buildCommand( gridBag, c, "Request Thread Dump", "dump",
+                "Calls WrapperManager.requestThreadDump() to cause the JVM to dump its current thread state." );
+            
+            buildCommand( gridBag, c, "System.out Deadlock", "deadlock_out",
+                "Simulates a failure mode where the System.out object has become deadlocked." );
+            
+            buildCommand( gridBag, c, "Poll Users", "users",
+                "Begins calling WrapperManager.getUser() and getInteractiveUser() to monitor the current and interactive users." );
+            
+            buildCommand( gridBag, c, "Poll Users with Groups", "groups",
+                "Same as above, but includes information about the user's groups." );
+        }
+        
+        private void buildCommand( GridBagLayout gridBag,
+                                   GridBagConstraints c,
+                                   String label,
+                                   String command,
+                                   String description )
+        {
+            Button button = new Button( label );
+            button.setActionCommand( command );
+            
+            c.fill = GridBagConstraints.BOTH;
+            c.gridwidth = 1;
+            gridBag.setConstraints( button, c );
+            add( button );
+            button.addActionListener(this);
+            
+            c.gridwidth = GridBagConstraints.REMAINDER;
+            Label desc = new Label( description );
+            gridBag.setConstraints( desc, c );
+            add( desc );
+        }
+        
+        public void actionPerformed( ActionEvent event )
+        {
+            Main.this.doAction( event.getActionCommand() );
         }
     }
     
     /**************************************************************************
      * WrapperListener Methods
      *************************************************************************/
-    public Integer start(String[] args) {
-        System.out.println("start()");
+    public Integer start( String[] args )
+    {
+        System.out.println( "start()" );
 
-        m_out = new DeadlockPrintStream( System.out );
-        System.setOut( m_out );
-        m_err = new DeadlockPrintStream( System.err );
-        System.setErr( m_err );
+        prepareSystemOutErr();
         
         try
         {
-            _frame = new MainFrame();
-            _frame.setVisible(true);
+            m_frame = new MainFrame();
+            m_frame.setVisible( true );
         }
         catch ( java.lang.InternalError e )
         {
@@ -297,43 +248,56 @@ public class Main implements WrapperListener {
         return null;
     }
     
-    public int stop(int exitCode) {
-        System.out.println("stop(" + exitCode + ")");
+    public int stop( int exitCode )
+    {
+        System.out.println( "stop(" + exitCode + ")" );
         
-        if (_frame != null) {
-            if (!WrapperManager.hasShutdownHookBeenTriggered()) {
-                _frame.setVisible(false);
-                _frame.dispose();
+        if ( m_frame != null )
+        {
+            if ( !WrapperManager.hasShutdownHookBeenTriggered() )
+            {
+                m_frame.setVisible( false );
+                m_frame.dispose();
             }
-            _frame = null;
+            m_frame = null;
         }
         
         return exitCode;
     }
     
-    public void controlEvent(int event) {
-        System.out.println("controlEvent(" + event + ")");
+    public void controlEvent( int event )
+    {
+        System.out.println( "controlEvent(" + event + ")" );
         
-        if ((event == WrapperManager.WRAPPER_CTRL_LOGOFF_EVENT)
-            && WrapperManager.isLaunchedAsService()) {
-            System.out.println("  Ignoring logoff event");
+        if ( ( event == WrapperManager.WRAPPER_CTRL_LOGOFF_EVENT )
+            && WrapperManager.isLaunchedAsService() )
+        {
+            System.out.println( "  Ignoring logoff event" );
             // Ignore
-        } else {
-            WrapperManager.stop(0);
+        }
+        else
+        {
+            WrapperManager.stop( 0 );
         }
     }
     
     /**************************************************************************
      * Main Method
      *************************************************************************/
-    public static void main(String[] args) {
-        System.out.println("Initializing...");
+    /**
+     * IMPORTANT: Please read the Javadocs for this class at the top of the
+     *  page before you start to use this class as a template for integrating
+     *  your own application.  This will save you a lot of time.
+     */
+    public static void main( String[] args )
+    {
+        System.out.println( "Initializing..." );
         
         // Start the application.  If the JVM was launched from the native
         //  Wrapper then the application will wait for the native Wrapper to
         //  call the application's start method.  Otherwise the start method
         //  will be called immediately.
-        WrapperManager.start(new Main(), args);
+        WrapperManager.start( new Main(), args );
     }
 }
 
