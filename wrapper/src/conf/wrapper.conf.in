@@ -29,6 +29,11 @@ wrapper.java.maxmemory=64
 # Port which the native wrapper code will attempt to connect to
 wrapper.port=1777
 
+# Number of seconds without CPU before the JVM will issue a warning and extend
+#  timeouts.  This value must be less than the values set for the other
+#  timeouts.  0 means never extend time outs.  Defaults to 10 seconds.
+wrapper.cpu.timeout=10
+
 # Number of seconds to allow for the JVM to be launched and contact the wrapper before the
 #  wrapper should assume that the JVM is hung and terminate the JVM process.  0 means never
 #  time out.  Defaults to 30 seconds.

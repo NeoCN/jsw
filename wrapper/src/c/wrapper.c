@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.22  2002/07/19 02:06:11  mortenson
+ * Added a new property: wrapper.cpu.timeout to control the cpu timeout added in
+ * v2.2.7
+ *
  * Revision 1.21  2002/06/06 00:52:21  mortenson
  * If a JVM tries to reconnect to the Wrapper after it has started shutting down, the
  * Wrapper was getting confused in some cases.  I think that this was just a problem
@@ -1075,6 +1079,18 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         index++;
     }
 
+    /* Store the CPU Timeout value */
+    if (strings) {
+		// Just to be safe, allow 20 characters for the timeout value
+        strings[index] = (char *)malloc(sizeof(char) * (24 + 20 + 1));
+        if (addQuotes) {
+            sprintf(strings[index], "-Dwrapper.cpu.timeout=\"%d\"", wrapperData->cpuTimeout);
+        } else {
+            sprintf(strings[index], "-Dwrapper.cpu.timeout=%d", wrapperData->cpuTimeout);
+        }
+    }
+    index++;
+
     /* Store the Wrapper JVM ID.  (Get here before incremented) */
     if (strings) {
         strings[index] = (char *)malloc(sizeof(char) * (16 + 5 + 1));  /* jvmid up to 5 characters */
@@ -1185,7 +1201,7 @@ void wrapperEventLoop() {
 		now = time(NULL);
 
 		/* Has the process been getting CPU? */
-		if (now - lastCycleTime > 10 ) {
+		if (now - lastCycleTime > wrapperData->cpuTimeout ) {
 			log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
 				"Wrapper Process has not received any CPU time for %d seconds.  Extending timeouts.",
 				now - lastCycleTime);
@@ -1685,6 +1701,7 @@ int wrapperLoadConfiguration() {
     wrapperData->isShutdownHookDisabled = getBooleanProperty(properties, "wrapper.disable_shutdown_hook", FALSE);
     
     /* Get the timeout settings */
+    wrapperData->cpuTimeout = getIntProperty(properties, "wrapper.cpu.timeout", 10);
     wrapperData->startupTimeout = getIntProperty(properties, "wrapper.startup.timeout", 30);
     wrapperData->pingTimeout = getIntProperty(properties, "wrapper.ping.timeout", 30);
     wrapperData->shutdownTimeout = getIntProperty(properties, "wrapper.shutdown.timeout", 30);
@@ -1697,6 +1714,29 @@ int wrapperLoadConfiguration() {
     if (wrapperData->shutdownTimeout <= 0) {
         wrapperData->shutdownTimeout = 31557600;  /* One Year.  Effectively never */
     }
+	if (wrapperData->cpuTimeout <= 0) {
+        wrapperData->cpuTimeout = 31557600;  /* One Year.  Effectively never */
+	} else {
+		// Make sure that the timeouts are all longer than the cpu timeout.
+		if ( wrapperData->startupTimeout < wrapperData->cpuTimeout ) {
+			log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+				"The value of wrapper.startup.timeout must not be smaller than wrapper.cpu.timeout.  Changing to %d",
+				wrapperData->cpuTimeout);
+			wrapperData->startupTimeout = wrapperData->cpuTimeout;
+		}
+		if ( wrapperData->pingTimeout < wrapperData->cpuTimeout ) {
+			log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+				"The value of wrapper.ping.timeout must not be smaller than wrapper.cpu.timeout.  Changing to %d",
+				wrapperData->cpuTimeout);
+			wrapperData->pingTimeout = wrapperData->cpuTimeout;
+		}
+		if ( wrapperData->shutdownTimeout < wrapperData->cpuTimeout ) {
+			log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+				"The value of wrapper.shutdown.timeout must not be smaller than wrapper.cpu.timeout.  Changing to %d",
+				wrapperData->cpuTimeout);
+			wrapperData->shutdownTimeout = wrapperData->cpuTimeout;
+		}
+	}
 
 	/* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
 	wrapperData->requestThreadDumpOnFailedJVMExit = getBooleanProperty(properties, "wrapper.request_thread_dump_on_failed_jvm_exit", FALSE);

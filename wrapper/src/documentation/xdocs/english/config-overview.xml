@@ -288,6 +288,18 @@ wrapper.app.parameter.2=conf/myconffile.conf</screen>
                         </glossdef>
                     </glossentry>
                     <glossentry>
+                        <glossterm>wrapper.cpu.timeout</glossterm>
+                        <glossdef>
+                            <para>
+                                Number of seconds without CPU before the JVM will issue a warning and extend timeouts.  This value must be less than the values set for the other timeouts (wrapper.startup.timeout, wrapper.ping.timeout, and wrapper.shutdown.timeout).  0 means never extend time outs.  Defaults to 10 seconds.  In most cases, this property should be left as its default value.  However if the system running the Wrapper is also running other applications which are taking up 100% of the CPU for long periods of time, it may be necessary to extend this timeout to avoid warning messages being logged.
+                                <informalexample>
+                                    <simpara><emphasis>Example:</emphasis></simpara>
+                                    <screen format="linespecific">wrapper.cpu.timeout=10</screen>
+                                </informalexample>
+                            </para>
+                        </glossdef>
+                    </glossentry>
+                    <glossentry>
                         <glossterm>wrapper.startup.timeout</glossterm>
                         <glossdef>
                             <para>

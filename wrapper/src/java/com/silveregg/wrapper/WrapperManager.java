@@ -26,6 +26,10 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.17  2002/07/19 02:06:12  mortenson
+// Added a new property: wrapper.cpu.timeout to control the cpu timeout added in
+// v2.2.7
+//
 // Revision 1.16  2002/07/06 00:50:08  mortenson
 // Modified to show a stack trace when the Server Daemon Dies.  Needed for
 // tracking down problems.
@@ -125,8 +129,9 @@ import com.silveregg.wrapper.resources.ResourceManager;
 public final class WrapperManager implements Runnable {
     private static final String  WRAPPER_CONNECTION_THREAD_NAME = "Wrapper-Connection";
     
-    private static final int DEFAULT_PORT    = 15003;
-    private static final int DEFAULT_TIMEOUT = 10000;
+    private static final int DEFAULT_PORT                = 15003;
+    private static final int DEFAULT_SO_TIMEOUT          = 10000;
+    private static final long DEFAULT_CPU_TIMEOUT        = 10000L;
     
     private static final byte WRAPPER_MSG_START          = (byte)100;
     private static final byte WRAPPER_MSG_STOP           = (byte)101;
@@ -153,7 +158,8 @@ public final class WrapperManager implements Runnable {
     private static String[] _args;
     private static int _port    = DEFAULT_PORT;
     private static String _key;
-    private static int _timeout = DEFAULT_TIMEOUT;
+    private static int _soTimeout = DEFAULT_SO_TIMEOUT;
+    private static long _cpuTimeout = DEFAULT_CPU_TIMEOUT;
     
     /** Thread which processes all communications with the native code. */
     private static Thread _commRunner;
@@ -257,6 +263,7 @@ public final class WrapperManager implements Runnable {
             // The wrapper will not be used, so other values will not be used.
             _port = 0;
             _service = false;
+            _cpuTimeout = 31557600000L; // One Year.  Effectively never.
         } else {
             if (_debug) {
                 System.out.println("Wrapper Manager: Using wrapper");
@@ -282,6 +289,20 @@ public final class WrapperManager implements Runnable {
                 _service = false;
             } else {
                 _service = true;
+            }
+            
+            // Get the cpuTimeout
+            String sCPUTimeout = System.getProperty("wrapper.cpu.timeout");
+            if ( sCPUTimeout == null ) {
+                _cpuTimeout = DEFAULT_CPU_TIMEOUT;
+            } else {
+                try {
+                    _cpuTimeout = Integer.parseInt( sCPUTimeout ) * 1000L;
+                } catch (NumberFormatException e) {
+                    String msg = _res.format("BAD_CPU_TIMEOUT", sCPUTimeout);
+                    System.out.println(msg);
+                    throw new ExceptionInInitializerError(msg);
+                }
             }
         }
         // Initialize the native code to trap system signals
@@ -312,7 +333,7 @@ public final class WrapperManager implements Runnable {
                 while (!_shuttingDown) {
                     long now = System.currentTimeMillis();
                     long age = now - _eventRunnerTime;
-                    if (age > 10000) {
+                    if (age > _cpuTimeout) {
                         System.out.println("JVM Process has not received any CPU time for " +
                             (age / 1000) + " seconds.  Extending timeouts.");
                         
@@ -889,8 +910,8 @@ public final class WrapperManager implements Runnable {
             _socket.setTcpNoDelay(true);
             
             // Set the SO_TIMEOUT for the socket (max block time)
-            if (_timeout > 0) {
-                _socket.setSoTimeout(_timeout);
+            if (_soTimeout > 0) {
+                _socket.setSoTimeout(_soTimeout);
             }
         } catch (IOException e) {
             System.out.println(e);

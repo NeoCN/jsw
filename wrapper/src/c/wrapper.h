@@ -24,6 +24,10 @@
  *
  *
  * $Log$
+ * Revision 1.14  2002/07/19 02:06:12  mortenson
+ * Added a new property: wrapper.cpu.timeout to control the cpu timeout added in
+ * v2.2.7
+ *
  * Revision 1.13  2002/05/23 12:42:41  rybesh
  * fixed logger initialization on unix
  *
@@ -133,6 +137,7 @@ struct WrapperConfig {
 #endif
     char    key[17];                /* Key which the JVM uses to authorize connections. (16 digits + \0) */
     int     isConsole;              /* TRUE if the wrapper was launched as a console. */
+	int     cpuTimeout;             /* Number of seconds without CPU before the JVM will issue a warning and extend timeouts */
     int     startupTimeout;         /* Number of seconds the wrapper will wait for a JVM to startup */
     int     pingTimeout;            /* Number of seconds the wrapper will wait for a JVM to reply to a ping */
     int     shutdownTimeout;        /* Number of seconds the wrapper will wait for a JVM to shutdown */
