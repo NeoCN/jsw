@@ -26,6 +26,7 @@ Java Service Wrapper Revision History.
 * Fix a problem on Unix versions where '%' characters in Java output would
   sometimes cause the wrapper to crash.  Somehow missed getting this into the
   last release.
+* Added a test to make sure that WrapperManager.stop is not called recursively.
 
 2.2.6
 * Fix a problem where '%' characters in Java output would sometimes cause the

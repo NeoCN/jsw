@@ -26,6 +26,9 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.13  2002/05/28 11:54:06  mortenson
+// Add a check for the stop method being called recursively by user code.
+//
 // Revision 1.12  2002/05/24 00:45:12  mortenson
 // Add some comments to the code.
 //
@@ -705,6 +708,10 @@ public final class WrapperManager implements Runnable {
                 _stoppingThread = Thread.currentThread();
                 block = false;
             } else {
+                if (Thread.currentThread() == _stoppingThread) {
+                    throw new IllegalStateException("WrapperManager.stop() can not be called recursively.");
+                }
+                
                 if (Thread.currentThread() == _hook) {
                     // The hook should be allowed to fall through.
                     return;
