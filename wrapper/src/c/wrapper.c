@@ -23,6 +23,13 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.48  2003/03/26 06:21:35  mortenson
+ * Fix a problem where the Wrapper would detect that the JVM process had
+ * terminated while there was still unread socket information.  This was leading to
+ * the Wrapper thinking the JVM exited unexpectedly when the JVM output lots
+ * of logging output with the WrapperManager.log() method immediately before
+ * exiting.
+ *
  * Revision 1.47  2003/03/26 05:14:23  mortenson
  * Improve the way the Wrapper handles large quantities of log output received
  * across its socket.
@@ -1359,7 +1366,7 @@ void wrapperEventLoop() {
                 /** A JVM is not currently running. Nothing to do.*/
             } else {
                 /* The JVM should be running, so it needs to be stopped. */
-                if (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN) {
+                if (nextSleep && (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN)) {
                     /* JVM Process is gone */
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM shut down unexpectedly.");
                     wrapperData->jState = WRAPPER_JSTATE_DOWN;
@@ -1523,7 +1530,7 @@ void wrapperEventLoop() {
                     wrapperExecute();
                 
                     /* Check if the start was successful. */
-                    if (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN) {
+                    if (nextSleep && (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN)) {
                         /* Failed to start the JVM.  Tell the wrapper to shutdown. */
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to start a JVM");
                         wrapperData->wState = WRAPPER_WSTATE_STOPPING;
@@ -1547,7 +1554,7 @@ void wrapperEventLoop() {
             /*  response to a ping. */
 
             /* Make sure that the JVM process is still up and running */
-            if (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN) {
+            if (nextSleep && (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN)) {
                 /* The process is gone. */
                 wrapperData->jState = WRAPPER_JSTATE_DOWN;
                 wrapperData->jStateTimeout = 0;
@@ -1596,7 +1603,7 @@ void wrapperEventLoop() {
              *  received a started signal. */
 
             /* Make sure that the JVM process is still up and running */
-            if (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN) {
+            if (nextSleep && (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN)) {
                 /* The process is gone. */
                 wrapperData->jState = WRAPPER_JSTATE_DOWN;
                 wrapperData->jStateTimeout = 0;
@@ -1625,7 +1632,7 @@ void wrapperEventLoop() {
              *  5 seconds and allows for lost pings and responses. */
 
             /* Make sure that the JVM process is still up and running */
-            if (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN) {
+            if (nextSleep && (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN)) {
                 /* The process is gone. */
                 wrapperData->jState = WRAPPER_JSTATE_DOWN;
                 wrapperData->jStateTimeout = 0;
@@ -1661,7 +1668,7 @@ void wrapperEventLoop() {
              *  received a stopped signal. */
 
             /* Make sure that the JVM process is still up and running */
-            if (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN) {
+            if (nextSleep && (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN)) {
                 /* The process is gone. */
                 wrapperData->jState = WRAPPER_JSTATE_DOWN;
                 wrapperData->jStateTimeout = 0;
@@ -1686,7 +1693,7 @@ void wrapperEventLoop() {
             /* A stopped signal was received from the JVM.  A good application
              *  should exit on its own.  So wait until the timeout before
              *  killing the JVM process. */
-            if (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN) {
+            if (nextSleep && (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN)) {
                 /* The process is gone. */
                 wrapperData->jState = WRAPPER_JSTATE_DOWN;
                 wrapperData->jStateTimeout = 0;
