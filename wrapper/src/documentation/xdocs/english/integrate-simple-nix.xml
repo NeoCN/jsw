@@ -6,8 +6,8 @@
      $Id$
      ******************************************************************** -->
 
-<chapter id="integrate-simple-win">
-    <title>WrapperSimpleApp Integration (Win32)</title>
+<chapter id="integrate-simple-nix">
+    <title>WrapperSimpleApp Integration (Linux / UNIX)</title>
     <section>
         <title>Integration Methods</title>
         <itemizedlist>
@@ -17,7 +17,7 @@
         </itemizedlist>
     </section>
     <section>
-        <title>Method 1 - WrapperSimpleApp Integration (Win32)</title>
+        <title>Method 1 - WrapperSimpleApp Integration (Linux / UNIX)</title>
         <itemizedlist>
             <listitem>
                 <ulink url="#overview">Overview</ulink>
@@ -78,57 +78,90 @@
                     This tutorial will start with a clean install of
                     <ulink url="http://www.jboss.org">JBoss</ulink>.  We used version
                     3.0.4 so the exact steps may be slightly different depending
-                    on the exact version installed.  JBoss was installed in the root
-                    directory, <literal moreinfo="none">D:\</literal>, resulting in a
-                    JBoss Home directory of <literal moreinfo="none">D:\jboss-3.0.4</literal>.
+                    on the exact version installed.  JBoss was installed in
+                    <literal moreinfo="none">/usr/lib</literal> directory, resulting
+                    in a JBoss Home directory of
+                    <literal moreinfo="none">/usr/lib/jboss-3.0.4</literal>.
                 </para>
             </section>
             <section>
                 <title>Installing Wrapper Files</title>
                 <para>
                     There are four files which are required to be able to use the
-                    Wrapper.  We will also copy over three additional batch files
-                    which can be used to launch JBoss as well as install and
-                    uninstall it as an NT Service.
+                    Wrapper.  We will also copy over script used to launch the
+                    Wrapper as well as a utility,
+                    <literal moreinfo="none">realpath</literal>, which is used by the
+                    scripts to guarantee that relative paths always work
+                    correctly when symbolic links are involved.
                 </para>
+                <note>
+                    <para>
+                        Please make sure that you are using the
+                        <literal moreinfo="none">realpath</literal>,
+                        <literal moreinfo="none">wrapper</literal>, and
+                        <literal moreinfo="none">libwrapper.so</literal> files which
+                        were built for the platform being run.   It sounds obvious,
+                        but the Linux version will not work on Solaris for example.
+                    </para>
+                </note>
                 <section>
                     <title>bin directory</title>
+                    <para>
+                        The Wrapper is shipped with both
+                        <literal moreinfo="none">bash</literal> and
+                        <literal moreinfo="none">sh</literal> scripts.  Typically
+                        <literal moreinfo="none">bash</literal> scripts are used on
+                        Linux and <literal moreinfo="none">sh</literal> scripts on
+                        Solaris.  This tutorial will assume that the
+                        <literal moreinfo="none">bash</literal> shell is being used.
+                    </para>
                     <para>
                         First we will copy the following files into the JBoss bin
                         directory:  
                     </para>
                     <informalexample>
-                        <screen format="linespecific"><![CDATA[{WRAPPER_HOME}\bin\Wrapper.exe
-{WRAPPER_HOME}\src\bin\App.bat.in
-{WRAPPER_HOME}\src\bin\InstallApp-NT.bat.in
-{WRAPPER_HOME}\src\bin\UninstallApp-NT.bat.in]]></screen>
+                        <screen format="linespecific"><![CDATA[{WRAPPER_HOME}/bin/wrapper
+{WRAPPER_HOME}/bin/realpath
+{WRAPPER_HOME}/src/bin/bash.script.in]]></screen>
                     </informalexample>
                     <para>
-                        Rename the three batch files as follows.
-                        Be sure to remove the <literal moreinfo="none">.in</literal>
-                        extensions so that the files all end in
-                        <literal moreinfo="none">.bat</literal>.  Depending on how
-                        your file explorer is configured, you may not be able to see
-                        the extensions.
+                        Rename the script file to reflect the name of the application.
                     </para>
                     <informalexample>
-                        <screen format="linespecific"><![CDATA[{JBOSS_HOME}\bin\JBoss.bat
-{JBOSS_HOME}\bin\InstallJBoss-NT.bat
-{JBOSS_HOME}\bin\UninstallJBoss-NT.bat]]></screen>
+                        <screen format="linespecific"><![CDATA[{JBOSS_HOME}/bin/jboss]]></screen>
                     </informalexample>
                     <para>
-                        The <literal moreinfo="none">Wrapper.exe</literal> file is the
-                        actual Wrapper executable.  The three batch files are used to
-                        run JBoss in a console, and to install and remove it as an NT
-                        Service.  These scripts should not require any modification.
-                        They do assume that the
-                        <literal moreinfo="none">wrapper.conf</literal> file will be
-                        located within a <literal moreinfo="none">conf</literal>
-                        directory one level up, 
-                        <literal moreinfo="none">../conf/wrapper.conf</literal>.  If
-                        you wish to locate this file someplace else, then the three
-                        batch files will require that small modification.
+                        Now open the script into an editor.  We need to set the long and
+                        short names to reflect that the script is being used to launch
+                        JBoss.  You will see two variables immediately after the header
+                        of the script.  <literal moreinfo="none">APP_NAME</literal>
+                        and <literal moreinfo="none">APP_LONG_NAME</literal>.  Note that
+                        the default values of both of these variables are
+                        <ulink url="http://jakarta.apache.org/ant/">Ant</ulink> friendly
+                        tokens which can easily be replaced as part of a build.
+                        Suggested values for these variables are shown below.
                     </para>
+                    <informalexample>
+                        <screen format="linespecific"><![CDATA[APP_NAME="jboss"
+APP_LONG_NAME="JBoss Application Server"]]></screen>
+                    </informalexample>
+                    <para>
+                        These script should not require any additional modification.
+                        It does assume that the <literal moreinfo="none">wrapper.conf</literal>
+                        file will be located within a
+                        <literal moreinfo="none">conf</literal> directory one level up,
+                        <literal moreinfo="none">../conf/wrapper.conf</literal>.  If
+                        you wish to locate this file someplace else, then that can also
+                        be set using the <literal moreinfo="none">WRAPPER_CONF</literal>
+                        variable in the script.
+                    </para>
+                    <note>
+                        <para>
+                            Important!  Before proceeding, please make sure that all
+                            three files copied into the <literal moreinfo="none">bin</literal>
+                            directory have their executable bit set.
+                        </para>
+                    </note>
                 </section>
                 <section>
                     <title>lib directory</title>
@@ -136,11 +169,11 @@
                         Copy the following two files into the JBoss lib directory:
                     </para>
                     <informalexample>
-                        <screen format="linespecific"><![CDATA[{WRAPPER_HOME}\lib\Wrapper.DLL
-{WRAPPER_HOME}\lib\wrapper.jar]]></screen>
+                        <screen format="linespecific"><![CDATA[{WRAPPER_HOME}/lib/libwrapper.so
+{WRAPPER_HOME}/lib/wrapper.jar]]></screen>
                     </informalexample>
                     <para>
-                        The <literal moreinfo="none">Wrapper.DLL</literal> file is a
+                        The <literal moreinfo="none">libwrapper.so</literal> file is a
                         native library required by the portion of the Wrapper which
                         runs within the JVM.  The <literal moreinfo="none">wrapper.jar</literal>
                         file contains all of the Wrapper classes.
@@ -157,7 +190,7 @@
                         that location:
                     </para>
                     <informalexample>
-                        <screen format="linespecific"><![CDATA[{WRAPPER_HOME}\src\conf\wrapper.conf.in]]></screen>
+                        <screen format="linespecific"><![CDATA[{WRAPPER_HOME}/src/conf/wrapper.conf.in]]></screen>
                     </informalexample>
                     <para>
                         Be sure to remove the <literal moreinfo="none">.in</literal>
@@ -167,7 +200,7 @@
                         to see the extension.  You should now have:
                     </para>
                     <informalexample>
-                        <screen format="linespecific"><![CDATA[{JBOSS_HOME}\conf\wrapper.conf]]></screen>
+                        <screen format="linespecific"><![CDATA[{JBOSS_HOME}/conf/wrapper.conf]]></screen>
                     </informalexample>
                     <para>
                         If you wish to relocate the configuration file, you are free
@@ -186,7 +219,7 @@
                         directory:
                     </para>
                     <informalexample>
-                        <screen format="linespecific"><![CDATA[{JBOSS_HOME}\logs]]></screen>
+                        <screen format="linespecific"><![CDATA[{JBOSS_HOME}/logs]]></screen>
                     </informalexample>
                     <para>
                         If you wish to place the log file in another location, you will
@@ -204,29 +237,31 @@
                     used.
                 </para>
                 <para>
-                    Most applications make use of a batch file to build up the actual
-                    command line.  These batch files tend to get quite unwieldy and
+                    Most applications make use of a script to build up the actual
+                    command line.  These scripts tend to get quite unwieldy and
                     in fact, the ability to avoid having to work with them is one of
                     the benefits of working with the Wrapper.
                 </para>
                 <para>
-                    JBoss is launched by using a batch file called 
-                    <literal moreinfo="none">run.bat</literal>.  It is
+                    JBoss is launched by using a script called 
+                    <literal moreinfo="none">run.sh</literal>.  It is
                     launched by first changing the current directory to the
                     <literal moreinfo="none">bin</literal> directory and then
                     run from there.  If you open
-                    <literal moreinfo="none">run.bat</literal> into an editor, you
-                    will notice the following line towards the end of the file:
+                    <literal moreinfo="none">run.sh</literal> into an editor, you
+                    will notice the following lines towards the end of the file:
                 </para>
                 <informalexample>
-                    <screen format="linespecific"><![CDATA[%JAVA% %JAVA_OPTS% -classpath "%JBOSS_CLASSPATH%" org.jboss.Main %ARGS%]]></screen>
+                    <screen format="linespecific"><![CDATA[    exec $JAVA $JAVA_OPTS \
+            -classpath "$JBOSS_CLASSPATH" \
+            org.jboss.Main "$@"]]></screen>
                 </informalexample>
                 <para>
-                    The majority of the batch file has the task of collecting system
+                    The majority of the script has the task of collecting system
                     specific information and storing that information into environment
-                    variables.  The line above then expands all of the collected
+                    variables.  The lines above then expands all of the collected
                     information into the final Java command which launches the
-                    application.  From looking at the source of the batch file,
+                    application.  From looking at the source of the script,
                     we hope you appreciate the complexity and the desire to have to
                     avoid completely writing such scripts yourself.
                 </para>
@@ -235,19 +270,22 @@
                     the final expanded command line.  Rather than reading through the
                     entire script and attempting to understand it, we will use a
                     simple trick to display the final command line in the console.
-                    Edit the batch file by inserting "ECHO " at the beginning of the
-                    above line.  After doing so, you should have:
+                    Edit the script by changing it as follows:
                 </para>
                 <informalexample>
-                    <screen format="linespecific"><![CDATA[ECHO %JAVA% %JAVA_OPTS% -classpath "%JBOSS_CLASSPATH%" org.jboss.Main %ARGS%]]></screen>
+                    <screen format="linespecific"><![CDATA[    #exec $JAVA $JAVA_OPTS \
+    #        -classpath "$JBOSS_CLASSPATH" \
+    #        org.jboss.Main "$@"
+    echo "exec $JAVA $JAVA_OPTS -classpath $JBOSS_CLASSPATH org.jboss.Main $@"
+]]></screen>
                 </informalexample>
                 <para>
                     If you now rerun the script, you will see something like the
                     following in the console (Your output will all be on one line):
                 </para>
                 <informalexample>
-                    <screen format="linespecific"><![CDATA[D:\Sun\j2sdk1.4.0_03\bin\java  -Dprogram.name=run.bat
-  -classpath ";D:\Sun\j2sdk1.4.0_03\lib\tools.jar;D:\jboss-3.0.4\bin\run.jar" org.jboss.Main]]></screen>
+                    <screen format="linespecific"><![CDATA[exec /opt/IBMJava2-131/bin/java  -Dprogram.name=run.sh
+  -classpath /usr/lib/jboss-3.0.4/bin/run.jar:/opt/IBMJava2-131/lib/tools.jar org.jboss.Main]]></screen>
                 </informalexample>
             </section>
             <section>
@@ -274,7 +312,7 @@
                         property:
                     </para>
                     <informalexample>
-                        <screen format="linespecific"><![CDATA[wrapper.java.command=D:\Sun\j2sdk1.4.0_03\bin\java]]></screen>
+                        <screen format="linespecific"><![CDATA[wrapper.java.command=/opt/IBMJava2-131/bin/java]]></screen>
                     </informalexample>
                 </section>
                 <section>
@@ -291,11 +329,11 @@
                     <para>
                         The JBoss command line only has one such property.  In this
                         case, we have changed the name of the script used to launch
-                        JBoss from <literal moreinfo="none">run.bat</literal>, but
+                        JBoss from <literal moreinfo="none">run.sh</literal>, but
                         for consistency we will leave it as is.:
                     </para>
                     <informalexample>
-                        <screen format="linespecific"><![CDATA[wrapper.java.additional.1=-Dprogram.name=run.bat]]></screen>
+                        <screen format="linespecific"><![CDATA[wrapper.java.additional.1=-Dprogram.name=run.sh]]></screen>
                     </informalexample>
                     <para>
                         Notice that the full property was copied directly from the
@@ -316,9 +354,9 @@
                         file as well:
                     </para>
                     <informalexample>
-                        <screen format="linespecific"><![CDATA[wrapper.java.classpath.1=D:\jboss-3.0.4\lib\wrapper.jar
-wrapper.java.classpath.2=D:\Sun\j2sdk1.4.0_03\lib\tools.jar
-wrapper.java.classpath.3=D:\jboss-3.0.4\bin\run.jar]]></screen>
+                        <screen format="linespecific"><![CDATA[wrapper.java.classpath.1=/usr/lib/jboss-3.0.4/libwrapper.jar
+wrapper.java.classpath.2=/usr/lib/jboss-3.0.4/bin/run.jar
+wrapper.java.classpath.3=/opt/IBMJava2-131/lib/tools.jar]]></screen>
                     </informalexample>
                 </section>
                 <section>
@@ -364,7 +402,7 @@ wrapper.java.classpath.3=D:\jboss-3.0.4\bin\run.jar]]></screen>
                         In order to use the Wrapper, there is one more property which
                         much be set.  The Wrapper makes use of a native library to
                         control interactions with the system.  This file
-                        <literal moreinfo="none">Wrapper.DLL</literal> needs to be
+                        <literal moreinfo="none">libwrapper.so</literal> needs to be
                         specified on the library path supplied to the JVM.  JBoss
                         does not have any native libraries of its own, but if it did,
                         the directories where they were located would also need to be
@@ -373,7 +411,7 @@ wrapper.java.classpath.3=D:\jboss-3.0.4\bin\run.jar]]></screen>
                         properties.
                     </para>
                     <informalexample>
-                        <screen format="linespecific"><![CDATA[wrapper.java.library.path.1=D:\jboss-3.0.4\lib]]></screen>
+                        <screen format="linespecific"><![CDATA[wrapper.java.library.path.1=/usr/lib/jboss-3.0.4/lib]]></screen>
                     </informalexample>
                 </section>
                 <section>
@@ -382,15 +420,15 @@ wrapper.java.classpath.3=D:\jboss-3.0.4\bin\run.jar]]></screen>
                         Putting it all together, we get the following:
                     </para>
                     <informalexample>
-                        <screen format="linespecific"><![CDATA[wrapper.java.command=D:\Sun\j2sdk1.4.0_03\bin\java
+                        <screen format="linespecific"><![CDATA[wrapper.java.command=/opt/IBMJava2-131/bin/java
 
-wrapper.java.additional.1=-Dprogram.name=run.bat
+wrapper.java.additional.1=-Dprogram.name=run.sh
 
-wrapper.java.classpath.1=D:\jboss-3.0.4\lib\wrapper.jar
-wrapper.java.classpath.2=D:\Sun\j2sdk1.4.0_03\lib\tools.jar
-wrapper.java.classpath.3=D:\jboss-3.0.4\bin\run.jar
+wrapper.java.classpath.1=/usr/lib/jboss-3.0.4/libwrapper.jar
+wrapper.java.classpath.2=/usr/lib/jboss-3.0.4/bin/run.jar
+wrapper.java.classpath.3=/opt/IBMJava2-131/lib/tools.jar
 
-wrapper.java.library.path.1=D:\jboss-3.0.4\lib
+wrapper.java.library.path.1=/usr/lib/jboss-3.0.4/lib
 
 wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp
 
@@ -409,11 +447,11 @@ wrapper.app.parameter.1=org.jboss.Main]]></screen>
                     <informalexample>
                         <screen format="linespecific"><![CDATA[wrapper.java.command=%JAVA_HOME%/bin/java
 
-wrapper.java.additional.1=-Dprogram.name=run.bat
+wrapper.java.additional.1=-Dprogram.name=run.sh
 
 wrapper.java.classpath.1=../lib/wrapper.jar
-wrapper.java.classpath.2=%JAVA_HOME%/lib/tools.jar
-wrapper.java.classpath.3=./run.jar
+wrapper.java.classpath.2=./run.jar
+wrapper.java.classpath.3=%JAVA_HOME%/lib/tools.jar
 
 wrapper.java.library.path.1=../lib
 
@@ -422,36 +460,35 @@ wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp
 wrapper.app.parameter.1=org.jboss.Main]]></screen>
                     </informalexample>
                 </section>
-                <section>
-                    <title>Wrapper NT/2000/XP Service Properties</title>
-                    <para>
-                        The final step is to set the Windows specific
-                        <literal moreinfo="none"><ulink url="prop-java-library-path-n.html">NT/2000/XP Service Properties</ulink></literal>
-                        properties.  We will just set the properties which should be
-                        changed.  But there are several others available.  See the
-                        documentation for details on their usage.  Note that
-                        the default values of both of these variables are
-                        <ulink url="http://jakarta.apache.org/ant/">Ant</ulink> friendly
-                        tokens which can easily be replaced as part of a build.
-                    </para>
-                    <informalexample>
-                        <screen format="linespecific"><![CDATA[wrapper.ntservice.name=JBoss
-wrapper.ntservice.displayname=JBoss Application Server
-wrapper.ntservice.description=JBoss Application Server]]></screen>
-                    </informalexample>
-                </section>
             </section>
             <section>
                 <title>Trying It Out</title>
                 <para>
-                    JBoss can now be run by simply executing the
-                    <literal moreinfo="none">bin\JBoss.bat</literal> script.
+                    JBoss can now be run by simply executing
+                    <literal moreinfo="none">bin/jboss console</literal>.
                     Because of the way the Wrapper sets its current directory, it
                     is not necessary to run this script from within the
                     <literal moreinfo="none">bin</literal> directory.
-                    Please try running the application once as a console application
-                    to verify the configuration before attempting to run it as a
-                    service.
+                </para>
+                <para>
+                    As you will see if you omit a command, the scripts shipped
+                    with the wrapper are fairly standard daemon scripts.  They
+                    accept <literal moreinfo="none">console</literal>,
+                    <literal moreinfo="none">start</literal>,
+                    <literal moreinfo="none">stop</literal>,
+                    <literal moreinfo="none">restart</literal>, and
+                    <literal moreinfo="none">dump</literal> commands.
+                    The <literal moreinfo="none">start</literal>,
+                    <literal moreinfo="none">stop</literal>, and
+                    <literal moreinfo="none">restart</literal> commands are common
+                    to most daemon scripts and are used to control the wrapper and 
+                    its application as a daemon process.  The
+                    <literal moreinfo="none">console</literal> command
+                    will launch the wrapper in the current shell, making it
+                    possible to kill the application with CTRL-C.  The final
+                    command, <literal moreinfo="none">dum</literal>p, will send a
+                    <literal moreinfo="none">kill -3</literal> signal to the wrapper
+                    causing the its JVM to do a full thread dump.
                 </para>
                 <para>
                     Congratulations.  Your application should now be up and running.
