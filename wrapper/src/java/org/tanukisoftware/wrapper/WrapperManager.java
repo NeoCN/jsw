@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.27  2004/01/01 12:51:54  mortenson
+// Requesting the groups of a user is a fairly heavy operation on Windows, so make
+// the requesting of a users groups optional.
+//
 // Revision 1.26  2003/11/05 16:45:43  mortenson
 // The WrapperManager class now checks to make sure that its current version
 // matches the version of the native library and Wrapper.
@@ -579,8 +583,8 @@ public final class WrapperManager
     private static native void nativeRequestThreadDump();
     private static native void accessViolationInner();
     private static native void nativeSetConsoleTitle( byte[] titleBytes );
-    private static native WrapperUser nativeGetUser();
-    private static native WrapperUser nativeGetInteractiveUser();
+    private static native WrapperUser nativeGetUser( boolean groups );
+    private static native WrapperUser nativeGetInteractiveUser( boolean groups );
     
     /*---------------------------------------------------------------
      * Methods
@@ -925,15 +929,19 @@ public final class WrapperManager
      * <p>
      * Currently this method will always return null on non-Windows platforms.
      *
+     * @param groups True if the user's groups should be returned as well.
+     *               Requesting the groups that a user belongs to increases
+     *               the CPU load required to complete the call.
+     *
      * @return An object describing the current user, or null on non-Windows
      *         platforms.
      */
-    public static WrapperUser getUser()
+    public static WrapperUser getUser( boolean groups )
     {
         WrapperUser user = null;
         if ( m_libraryOK )
         {
-            user = nativeGetUser();
+            user = nativeGetUser( groups );
         }
         return user;
     }
@@ -964,14 +972,18 @@ public final class WrapperManager
      * <p>
      * Currently this method will always return null on non-Windows platforms.
      *
+     * @param groups True if the user's groups should be returned as well.
+     *               Requesting the groups that a user belongs to increases
+     *               the CPU load required to complete the call.
+     *
      * @return The current interactive user, or null.
      */
-    public static WrapperUser getInteractiveUser()
+    public static WrapperUser getInteractiveUser( boolean groups )
     {
         WrapperUser user = null;
         if ( m_libraryOK )
         {
-            user = nativeGetInteractiveUser();
+            user = nativeGetInteractiveUser( groups );
         }
         return user;
     }
