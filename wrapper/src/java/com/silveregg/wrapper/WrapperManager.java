@@ -26,6 +26,9 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.25  2002/10/01 09:04:26  mortenson
+// Add the rest of the patch to correctly count threads.
+//
 // Revision 1.24  2002/09/30 03:29:48  mortenson
 // Forgot to comment out some low level debug output again after testing.
 //
@@ -1237,7 +1240,7 @@ public final class WrapperManager implements Runnable {
         // Get a list of all threads.  Use an array that is twice the total number of
         //  threads as the number of running threads may be increasing as this runs.
         Thread[] threads = new Thread[topGroup.activeCount() * 2];
-        Thread.enumerate(threads);
+        topGroup.enumerate(threads, true);
         
         // Only count any non daemon threads which are 
         //  still alive other than this thread.
