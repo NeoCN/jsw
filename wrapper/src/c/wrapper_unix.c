@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.95  2004/11/15 08:15:48  mortenson
+ * Make it possible for users to access the Wrapper and JVM PIDs from within the JVM.
+ *
  * Revision 1.94  2004/10/20 07:55:35  mortenson
  * Make sure that the logfile is flushed in a timely manner rather than leaving
  * it entirely up to the OS.
@@ -1075,6 +1078,13 @@ DWORD wrapperGetTicks() {
         /* Return a snapshot of the current tick count. */
         return timerTicks;
     }
+}
+
+/**
+ * Returns the PID of the Wrapper process.
+ */
+int wrapperGetPID() {
+    return (int)getpid();
 }
 
 /**

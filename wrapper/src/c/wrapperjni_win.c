@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.20  2004/11/15 08:15:49  mortenson
+ * Make it possible for users to access the Wrapper and JVM PIDs from within the JVM.
+ *
  * Revision 1.19  2004/05/13 16:57:57  mortenson
  * Fix a file handle leak when calling WrapperManager.getUser or
  * WrapperManager.getInteractiveUser on Windows platforms.
@@ -605,6 +608,16 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass cl
 
     /* Initialize the explorer.exe name. */
     initExplorerExeName();
+}
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeGetJavaPID
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetJavaPID(JNIEnv *env, jclass clazz) {
+    return GetCurrentProcessId();
 }
 
 /*

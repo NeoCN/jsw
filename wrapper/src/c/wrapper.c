@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.125  2004/11/15 08:15:48  mortenson
+ * Make it possible for users to access the Wrapper and JVM PIDs from within the JVM.
+ *
  * Revision 1.124  2004/11/12 06:51:44  mortenson
  * Add a pair of properties which make it possible to control the range of ports
  * allocated by the Wrapper.
@@ -1773,6 +1776,13 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         }
         index++;
     }
+    
+    /* Store the Wrapper PID */
+    if (strings) {
+        strings[index] = malloc(sizeof(char) * (24 + 1)); /* Pid up to 10 characters */
+        sprintf(strings[index], "-Dwrapper.pid=%d", wrapperGetPID());
+    }
+    index++;
 
     /* Store a flag telling the JVM to use the system clock. */
     if (wrapperData->useSystemTime ) {

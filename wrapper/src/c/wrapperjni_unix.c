@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.16  2004/11/15 08:15:49  mortenson
+ * Make it possible for users to access the Wrapper and JVM PIDs from within the JVM.
+ *
  * Revision 1.15  2004/01/16 04:42:00  mortenson
  * The license was revised for this version to include a copyright omission.
  * This change is to be retroactively applied to all versions of the Java
@@ -133,6 +136,16 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass cl
 
     /* Store the current process Id */
     wrapperProcessId = getpid();
+}
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeGetJavaPID
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetJavaPID(JNIEnv *env, jclass clazz) {
+    return (int)getpid();
 }
 
 /*

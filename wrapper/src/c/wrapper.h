@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.63  2004/11/15 08:15:48  mortenson
+ * Make it possible for users to access the Wrapper and JVM PIDs from within the JVM.
+ *
  * Revision 1.62  2004/11/12 06:51:44  mortenson
  * Add a pair of properties which make it possible to control the range of ports
  * allocated by the Wrapper.
@@ -514,6 +517,11 @@ extern void wrapperExecute();
  *  wrapperGetTickAge() function to perform time keeping.
  */
 extern DWORD wrapperGetTicks();
+
+/**
+ * Returns the PID of the Wrapper process.
+ */
+extern int wrapperGetPID();
 
 /**
  * Outputs a log entry at regular intervals to track the memory usage of the
