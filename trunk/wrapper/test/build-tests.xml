@@ -588,21 +588,21 @@ export ENV_VAR_4=d]]></replacevalue>
               filtering="on"/>
         <replace file="${test.dir}/action">
             <replacetoken><![CDATA['start')
-            start
-            ;;]]></replacetoken>
+        start
+        ;;]]></replacetoken>
             <replacevalue><![CDATA['start')
-            start $2
-            ;;]]></replacevalue>
+        start $2
+        ;;]]></replacevalue>
         </replace>
         <replace file="${test.dir}/action">
             <replacetoken><![CDATA['restart')
-            stop
-            start
-            ;;]]></replacetoken>
+        stop
+        start
+        ;;]]></replacetoken>
             <replacevalue><![CDATA['restart')
-            stop
-            start $2
-            ;;]]></replacevalue>
+        stop
+        start $2
+        ;;]]></replacevalue>
         </replace>
         <replace file="${test.dir}/action">
             <replacetoken><![CDATA[exec -a $APP_NAME $WRAPPER_CMD $WRAPPER_CONF &]]></replacetoken>
