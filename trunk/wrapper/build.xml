@@ -497,16 +497,17 @@
         <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat.in" eol="crlf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="bin/${app.name}" eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="**/*.script.in" eol="lf" />
-        
-        <tar tarfile="${releasedir}.tar"
-             basedir="${basedir}">
+
+        <tar tarfile="${releasedir}.tar">
             <tarfileset dir="${basedir}" mode="755">
                 <include name="${releasefile}/bin/wrapper"/>
+                <include name="${releasefile}/bin/realpath"/>
                 <include name="${releasefile}/bin/${app.name}"/>
             </tarfileset>
             <tarfileset dir="${basedir}">
                 <include name="${releasefile}/**"/>
                 <exclude name="${releasefile}/bin/wrapper"/>
+                <exclude name="${releasefile}/bin/realpath"/>
                 <exclude name="${releasefile}/bin/${app.name}"/>
             </tarfileset>
         </tar>
@@ -548,15 +549,16 @@
         <fixcrlf srcdir="${releasesrcdir}" includes="bin/${app.name}" eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="**/*.script.in" eol="lf" />
         
-        <tar tarfile="${releasedir}.tar"
-            basedir="${basedir}">
+        <tar tarfile="${releasedir}.tar">
             <tarfileset dir="${basedir}" mode="755">
                 <include name="${releasefile}/bin/wrapper"/>
+                <include name="${releasefile}/bin/realpath"/>
                 <include name="${releasefile}/bin/${app.name}"/>
             </tarfileset>
             <tarfileset dir="${basedir}">
                 <include name="${releasefile}/**"/>
                 <exclude name="${releasefile}/bin/wrapper"/>
+                <exclude name="${releasefile}/bin/realpath"/>
                 <exclude name="${releasefile}/bin/${app.name}"/>
             </tarfileset>
         </tar>
@@ -595,6 +597,11 @@
     <target name="clean" description="Clean up any files from the build">
         <delete dir="${build.dir}"/>
         <delete dir="${jdoc.dir}"/>
+        <delete>
+            <fileset dir="${basedir}">
+                <include name="wrapper_*"/>
+            </fileset>
+        </delete>
         <exec executable="make"
               dir="${src.dir}/c"
               os="Linux">
