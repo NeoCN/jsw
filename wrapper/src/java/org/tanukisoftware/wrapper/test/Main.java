@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.15  2004/03/27 14:39:20  mortenson
+// Add actions for the stopImmediate method.
+//
 // Revision 1.14  2004/01/16 04:41:55  mortenson
 // The license was revised for this version to include a copyright omission.
 // This change is to be retroactively applied to all versions of the Java
@@ -168,6 +171,12 @@ public class Main
             
             buildCommand( gridBag, c, "Exit(1)", "exit1",
                 "Calls System.exit( 1 ) to shutdown the JVM and Wrapper with a failure exit code." );
+            
+            buildCommand( gridBag, c, "StopImmediate(0)", "stopimmediate0",
+                "Calls WrapperManager.stopImmediate( 0 ) to immediately shutdown the JVM and Wrapper with a success exit code." );
+            
+            buildCommand( gridBag, c, "StopImmediate(1)", "stopimmediate1",
+                "Calls WrapperManager.stopImmediate( 1 ) to immediately shutdown the JVM and Wrapper with a failure exir code." );
             
             buildCommand( gridBag, c, "Halt", "halt",
                 "Calls Runtime.getRuntime().halt(0) to kill the JVM, the Wrapper will restart it." );

@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.4  2004/03/27 14:39:20  mortenson
+// Add actions for the stopImmediate method.
+//
 // Revision 1.3  2004/01/16 04:41:55  mortenson
 // The license was revised for this version to include a copyright omission.
 // This change is to be retroactively applied to all versions of the Java
@@ -109,6 +112,14 @@ public abstract class AbstractActionApp {
         {
             System.exit( 1 );
             
+        }
+        else if ( action.equals( "stopimmediate0" ) )
+        {
+            WrapperManager.stopImmediate( 0 );
+        }
+        else if ( action.equals( "stopimmediate1" ) )
+        {
+            WrapperManager.stopImmediate( 1 );
         }
         else if ( action.equals( "halt" ) )
         {
