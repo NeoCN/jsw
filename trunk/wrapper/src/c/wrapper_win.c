@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.16  2002/05/07 16:32:24  mortenson
+ * the return value of setWorkingDir was not being handled correctly. (Bug #553220)
+ *
  * Revision 1.15  2002/05/07 05:46:36  mortenson
  * Add the ability to set the priority at which the wrapper is run under NT systems.
  *
@@ -394,9 +397,9 @@ int wrapperInitialize() {
 
     int res;
 
-	/* Set the process priority. */
-	HANDLE process = GetCurrentProcess();
-	SetPriorityClass(process, wrapperData->ntServicePriorityClass);
+    /* Set the process priority. */
+    HANDLE process = GetCurrentProcess();
+    SetPriorityClass(process, wrapperData->ntServicePriorityClass);
 
     /* Set the handler to trap console signals */
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)wrapperConsoleHandler, TRUE);
@@ -655,8 +658,8 @@ void wrapperExecute() {
     /* Increment the process ID for Log sourcing */
     wrapperData->jvmRestarts++;
 
-	/* Add the priority class of the new process to the processflags */
-	processflags = processflags | wrapperData->ntServicePriorityClass;
+    /* Add the priority class of the new process to the processflags */
+    processflags = processflags | wrapperData->ntServicePriorityClass;
 
     /* Setup the command line */
     commandline = wrapperData->jvmCommand;
@@ -1249,7 +1252,9 @@ void _CRTAPI1 main(int argc, char **argv) {
         setConsoleLogLevelInt(LEVEL_DEBUG);
         setSyslogLevelInt(LEVEL_NONE);
 
-        setWorkingDir();
+        if (setWorkingDir()) {
+            appExit(1);
+        }
         
         if (argc >= 3) {
             /* argv[1] should be the command */
