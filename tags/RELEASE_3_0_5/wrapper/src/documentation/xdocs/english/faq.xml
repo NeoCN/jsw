@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="euc-jp"?>
+
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "../dtd/docbook/4.1.2/docbookx.dtd">
+
+<!-- ********************************************************************
+$Id$
+******************************************************************** -->
+
+<article id="index">
+    <title>FAQ</title>
+    <section>
+        <title>
+            My is throwing security exceptions when I run with the Wrapper.
+        </title>
+        <para>
+            The only difference between the way your application is running
+            under the Wrapper and the way is was running before being integrated
+            is that before your application's main method was being called directly
+            by the JVM on startup.  Now, assuming that you are using the
+            WrapperSimpleApp or WrapperStartStopApp helper classes, the JVM first
+            calls that class's main method, then after the Wrapper has initialized,
+            it calls your application's main method.
+        </para>
+        <para>
+            This can cause some problems when a security manager is in use.  The
+            reason is that the Java security manager searches up the call stack to
+            make sure that every class and method is authorized to call the protected
+            code before granting access.  If the Wrapper's classes exist in your call
+            stack and they are not given privileges then you will get a security
+            exception.
+        </para>
+        <para>
+            Try giving wrapper.jar permissions by adding the following to your policy
+            file:
+        </para>
+        <informalexample>
+            <screen format="linespecific"><![CDATA[// Give Wrapper classes full permissions
+grant codeBase "file:../lib/wrapper.jar" {
+    permission java.security.AllPermission;
+};]]></screen>
+        </informalexample>
+        <para>
+            This usually fixes this kind of problem.
+        </para>
+    </section>
+    <section>
+        <title>
+            Does the Wrapper handle the problem of JVMs exiting when a user logs out under Windows?
+        </title>
+        <para>
+            Some Java Service application have a problem with the Java process exiting whenever a
+            user logs out under Windows.  Several people have asked about whether or not the
+            Wrapper handles this.  The answer is that the Wrapper has handled this correctly since
+            its first release.
+        </para>
+        <para>
+            The Java side of the Wrapper requires a native library to make this work.  (Wrapper.DLL
+            on Windows and libwrapper.so on Unix systems.)  The native library is responsible for
+            trapping all system signals sent to the JVM process and handling them correctly.
+            A Java Application may handle these signals by implementing the
+            <literal moreinfo="none">controlEvent</literal> method in the
+            <literal moreinfo="none">WrapperListener</literal> interface.
+        </para>
+        <para>
+            If you are experiencing any problems with your JVM being restarted by the Wrapper when
+            a user logs out, please verify that the library is being loaded.  If it is not, then a
+            warning message will be displayed in the JVM output during the WrapperManager
+            initialization.
+        </para>
+        <para>
+            You can find examples of what happens the user logs out while Wrapper is being run as
+            a console application and as a service in the <ulink url="example.html">Examples</ulink>
+            section of the documentation.
+        </para>
+    </section>
+    <section>
+        <title>How can I change the priority at which my application runs on the system?</title>
+        <para>
+            On Windows systems, the priority can be set by setting the
+            wrapper.ntservice.process_priority property in the wrapper.conf file.  Please the
+            configuration overview for more details.
+        </para>
+        <para>
+            On Unix systems, the suggested method for setting the priority is to use the
+            <literal moreinfo="none">nice</literal> command in your shell scripts when launching
+            the Wrapper. The example scripts provided with the Wrapper distribution show how to do
+            this. See <literal moreinfo="none">man nice</literal> or
+            <literal moreinfo="none">info nice</literal> for details about how to use
+            <literal moreinfo="none">nice</literal>.
+        </para>
+    </section>
+</article>
