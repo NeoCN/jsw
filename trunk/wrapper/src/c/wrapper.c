@@ -24,6 +24,9 @@
  */
 
 // $Log$
+// Revision 1.7  2002/01/27 16:58:32  mortenson
+// Changed the log rolling defaults from -1 to 0
+//
 // Revision 1.6  2002/01/26 23:30:35  spocke
 // Added rolling file support to logger.
 //
@@ -1447,10 +1450,10 @@ int wrapperLoadConfiguration() {
 	setLogfileLevel((char *)getStringProperty(properties, "wrapper.logfile.loglevel", "INFO"));
 
     // Load max log filesize log level
-	setLogfileMaxFileSize((char *)getStringProperty(properties, "wrapper.logfile.maxsize", "-1"));
+	setLogfileMaxFileSize((char *)getStringProperty(properties, "wrapper.logfile.maxsize", "0"));
 
     // Load log files level
-	setLogfileMaxLogFiles((char *)getStringProperty(properties, "wrapper.logfile.maxfiles", "-1"));
+	setLogfileMaxLogFiles((char *)getStringProperty(properties, "wrapper.logfile.maxfiles", "0"));
 
     // Load console format
 	setConsoleLogFormat((char *)getStringProperty(properties, "wrapper.console.format", "PM"));
