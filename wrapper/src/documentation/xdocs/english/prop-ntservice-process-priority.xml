@@ -37,6 +37,21 @@
             <simpara><emphasis>Example:</emphasis></simpara>
             <screen format="linespecific"><![CDATA[wrapper.ntservice.process_priority=NORMAL]]></screen>
         </informalexample>
+        <warning>
+            <para>
+                Changing this property to HIGH or REALTIME makes the Wrapper and its JVM consume
+                all available CPU first.  It will only yield CPU to other processes when it does
+                not need the cycles itself.  This will cause a number of problems including an
+                unresponsive UI.
+            </para>
+            <para>
+                We have seen problems with time-outs, between the Wrapper and its JVM, when the
+                JVM is outputting large quantities of console output and consuming 100%, for
+                long periods of time.  If you change this default value and are experiencing
+                such time-outs, please return the property to the default NORMAL priority
+                before contacting support.
+            </para>
+        </warning>
         <note>
             <para>
                 Changes to this property will not take effect until the
