@@ -36,7 +36,7 @@ $Id$
             <listitem>
                 <para>
                     Fixed bug where wrapper.logfile.maxsize was being set to 0 if the 'k' or 'm'
-                    unit was ommitted.
+                    unit was omitted.
                 </para>
             </listitem>
             <listitem>
