@@ -43,6 +43,10 @@ Java Service Wrapper Revision History.
 * Add a new wrapper.single_invocation property which will prevent multiple
   invocations of an application from being started on Windows platforms.
   The shell script handles this on UNIX platforms.  Feature Request #889123.
+* Fix a crash problem introduced in 3.1.1, caused by a pair of uninitialized
+  pointers.  The crash was possible on all platforms but would only happen
+  if the Wrapper was started without any arguments.  It would not affect
+  users running the Wrapper normally.  Bug #1018481.
 
 3.1.1
 * Modified the way libwrapper.so is built on Solaris and Linux so that it

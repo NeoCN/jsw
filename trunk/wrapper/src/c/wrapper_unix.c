@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.89  2004/09/17 01:27:46  mortenson
+ * Fix an access violation on shutdown when the Wrapper was started without any
+ * arguments.  Caused by uninitialized pointers.
+ *
  * Revision 1.88  2004/09/16 04:07:20  mortenson
  * Centralize shutdown code on UNIX version in an appExit method as was already
  * being done for Windows versions.
@@ -1386,8 +1390,12 @@ int main(int argc, char **argv) {
     int exitStatus;
     int i;
 
-    /* Initialize the WrapperConfig structure. */
+    /* Make sure all values are reliably set to 0. All required values should also be
+     *  set below, but this extra step will protect against future changes.  Some
+     *  platforms appear to initialize maloc'd memory to 0 while others do not. */
     wrapperData = malloc(sizeof(WrapperConfig));
+    memset(wrapperData, 0, sizeof(WrapperConfig));
+    /* Setup the initial values of required properties. */
     wrapperData->configured = FALSE;
     wrapperData->isConsole = TRUE;
     wrapperData->wState = WRAPPER_WSTATE_STARTING;

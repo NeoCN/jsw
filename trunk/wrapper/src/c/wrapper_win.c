@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.85  2004/09/17 01:27:46  mortenson
+ * Fix an access violation on shutdown when the Wrapper was started without any
+ * arguments.  Caused by uninitialized pointers.
+ *
  * Revision 1.84  2004/09/16 07:11:26  mortenson
  * Add a new wrapper.single_invocation property which will prevent multiple
  * invocations of an application from being started on Windows platforms.
@@ -463,21 +467,28 @@ int initInvocationMutex() {
  * exits the application after running shutdown code.
  */
 void appExit(int exitCode) {
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "appExit(%d)", exitCode);
+    
     /* Remove pid file.  It may no longer exist. */
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "appExit 1 %p", wrapperData->pidFilename);
     if (wrapperData->pidFilename) {
         unlink(wrapperData->pidFilename);
     }
 
     /* Remove anchor file.  It may no longer exist. */
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "appExit 2 %p", wrapperData->anchorFilename);
     if (wrapperData->anchorFilename) {
         unlink(wrapperData->anchorFilename);
     }
     
     /* Close the invocation mutex if we created or looked it up. */
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "appExit 3 %p", invocationMutexHandle);
     if (invocationMutexHandle) {
         CloseHandle(invocationMutexHandle);
         invocationMutexHandle = NULL;
     }
+    
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "appExit 4");
     
     /* Clean up the logging system. */
     disposeLogging();
@@ -2546,8 +2557,12 @@ void _CRTAPI1 main(int argc, char **argv) {
 
     buildSystemPath();
 
-    /* Initialize the WrapperConfig structure */
+    /* Make sure all values are reliably set to 0. All required values should also be
+     *  set below, but this extra step will protect against future changes.  Some
+     *  platforms appear to initialize maloc'd memory to 0 while others do not. */
     wrapperData = malloc(sizeof(WrapperConfig));
+    memset(wrapperData, 0, sizeof(WrapperConfig));
+    /* Setup the initial values of required properties. */
     wrapperData->configured = FALSE;
     wrapperData->isConsole = TRUE;
     wrapperData->wState = WRAPPER_WSTATE_STARTING;
