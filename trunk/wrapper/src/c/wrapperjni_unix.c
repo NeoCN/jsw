@@ -24,6 +24,9 @@
  *
  *
  * $Log$
+ * Revision 1.4  2002/11/06 09:03:54  mortenson
+ * Add support for invoking a thread dump from a method call within the JVM.
+ *
  * Revision 1.3  2002/03/07 09:23:25  mortenson
  * Go through and change the style of comments that we use so that they will not
  * cause compiler errors on older unix compilers.
@@ -43,8 +46,14 @@
 #ifndef WIN32
 
 #include <stdio.h>
+#include <errno.h>
 #include <signal.h>
+#include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include "wrapperjni.h"
+
+static pid_t wrapperProcessId = -1;
 
 /**
  * Handle interrupt signals (i.e. Crtl-C).
@@ -80,5 +89,26 @@ Java_com_silveregg_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass clazz, 
     /* Set handlers for signals */
     signal(SIGINT,  handleInterrupt);
     signal(SIGTERM, handleTermination);
+
+    /* Store the current process Id */
+    wrapperProcessId = getpid();
 }
+
+/*
+ * Class:     com_silveregg_wrapper_WrapperManager
+ * Method:    nativeRequestThreadGroup
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL
+Java_com_silveregg_wrapper_WrapperManager_nativeRequestThreadDump(JNIEnv *env, jclass clazz) {
+    if (wrapperJNIDebugging) {
+        printf("Sending SIGQUIT event to process group %d.\n", wrapperProcessId);
+        fflush(NULL);
+    }
+    if (kill(wrapperProcessId, SIGQUIT) < 0) {
+        printf("Unable to send SIGQUIT to JVM process.  Err(%s)\n", (char *)strerror(errno));
+        fflush(NULL);
+    }
+}
+
 #endif
