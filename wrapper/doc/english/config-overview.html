@@ -574,6 +574,57 @@ wrapper.app.parameter.4=-p4</pre>
 </p>
                         
 </p>
+                        
+<div align="center">
+<table cellspacing="2" cellpadding="2" border="1">
+<tr>
+<td bgcolor="#c0c0c0"><font size="-1" color="#023264">
+                            
+<p align="justify">
+                                Application parameters are designed to be individual parameters.  If you specify a parameter like '-c conf/myconffile.conf', it will work correctly on windows because the '-c' and 'conf/myconffile.conf' parameters will be correctly parsed when Java is launched.  But on Unix systems, the parameters will incorrectly be interpreted as a single parameter '-c conf/myconffile.conf'.
+                            </p>
+                            
+<p align="justify">
+                                
+<p align="justify">
+                                    
+<i>Incorrect:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.app.parameter.1=-c conf/myconffile.conf</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                                
+<p align="justify">
+                                    
+<i>Correct:</i>
+                                    
+<div align="left">
+<table cellspacing="2" cellpadding="2" border="0" width="100%" bgcolor="#eeeeee">
+<tr>
+<td>
+<pre>wrapper.app.parameter.1=-c
+wrapper.app.parameter.2=conf/myconffile.conf</pre>
+</td>
+</tr>
+</table>
+</div>
+                                
+</p>
+                            
+</p>
+                        
+</font></td>
+</tr>
+</table>
+</div>
                     
 </dd>
                 
@@ -731,7 +782,7 @@ wrapper.app.parameter.4=-p4</pre>
 <br>
         
 <div>
-<a name="NB92"></a>
+<a name="NBB1"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="99%">
 <tr>
 <td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+0"><b>Logging properties</b></font></td>
@@ -742,7 +793,7 @@ wrapper.app.parameter.4=-p4</pre>
             
             
 <div class="glosslist">
-<a name="NB97"></a>
+<a name="NBB6"></a>
 <dl>
                 
                     
@@ -903,7 +954,7 @@ wrapper.console.format=
 <br>
         
 <div>
-<a name="NBF7"></a>
+<a name="NC16"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="99%">
 <tr>
 <td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+0"><b>Unix specific properties</b></font></td>
@@ -914,7 +965,7 @@ wrapper.console.format=
             
             
 <div class="glosslist">
-<a name="NBFC"></a>
+<a name="NC1B"></a>
 <dl>
                 
                     
@@ -956,7 +1007,7 @@ wrapper.console.format=
 <br>
         
 <div>
-<a name="NC17"></a>
+<a name="NC36"></a>
 <table cellspacing="0" cellpadding="2" border="0" width="99%">
 <tr>
 <td bgcolor="#525D76"><font face="arial,helvetica,sanserif" color="#ffffff" size="+0"><b>Windows NT/2000 specific properties</b></font></td>
@@ -985,7 +1036,7 @@ wrapper.console.format=
 </div>
             
 <div class="glosslist">
-<a name="NC25"></a>
+<a name="NC44"></a>
 <dl>
                 
                     
