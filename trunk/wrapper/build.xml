@@ -65,6 +65,7 @@
         <filter token="java.home"         value="${java.home}" />
         <filter token="wrapper.home"      value="${basedir}" />
         <filter token="java.library.path" value="${basedir}/lib/${platform}" />
+        <filter token="platform"          value="${platform}" />
         
         <tstamp/>
         <filter token="version"           value="${version}"       />
@@ -187,15 +188,17 @@
     </target>
     
     <!-- =================================================================== -->
-    <!-- Creates the javadocs archive                                             -->
+    <!-- Creates the javadocs archive                                        -->
     <!-- =================================================================== -->
     <target name="jdoc" depends="prepare">
-        <javadoc packagenames="com.silveregg.wrapper.*"
+        <!-- Locale must be before any doclet parameters -->
+        <javadoc packagenames="com.silveregg.wrapper"
+            Locale="en_US"
             sourcepath="${src.dir}/java"
             destdir="${jdoc.dir}"
             author="true"
             version="true"
-            private="true"
+            private="false"
             use="true"
             windowtitle="SilverEgg Wrapper API"
             doctitle="SilverEgg Wrapper"
@@ -207,6 +210,18 @@
     <!-- Main target                                                         -->
     <!-- =================================================================== -->
     <target name="main" depends="jar">
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Release targets                                                     -->
+    <!-- =================================================================== -->
+    <target name="release-win" depends="main, jdoc">
+        <zip zipfile="${basedir}/wrapper_win32_${version}.zip"
+            basedir="${basedir}"
+            compress="true"
+            includes="bin/windows/Wrapper.exe,lib/wrapper.jar,lib/windows/Wrapper.dll,jdoc/**,doc/**"
+            excludes="**/CVS/*"
+            />
     </target>
     
     <!-- =================================================================== -->
