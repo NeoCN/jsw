@@ -19,6 +19,9 @@ Java Service Wrapper Revision History.
   to control the log level of the generated java command.
 * Add support for escaped quotes when stripping quotes on UNIX for the
   wrapper.java.additional.<n> and wrapper.app.parameter.<n> properties.
+* Change the default value of wrapper.jvm_exit.timeout from 5 to 15 seconds.
+  The old default was too fast for some applications which take a while to
+  exit.  Applications which were exiting promptly will not see any difference.
 
 3.1.1
 * Modified the way libwrapper.so is built on Solaris and Linux so that it

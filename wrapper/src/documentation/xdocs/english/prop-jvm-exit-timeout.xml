@@ -27,7 +27,7 @@
         <para>
             Number of seconds to allow between the time that the JVM reports
             that it is stopped and the time that the JVM process actually
-            terminates.  0 means never time out.  Defaults to 5 seconds.
+            terminates.  0 means never time out.  Defaults to 15 seconds.
         </para>
         <para>
             In normal operation, the Java side of the Wrapper will execute

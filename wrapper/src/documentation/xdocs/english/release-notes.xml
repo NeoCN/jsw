@@ -56,6 +56,14 @@ $Id$
                     properties.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Change the default value of <ulink url="prop-jvm-exit-timeout.html">wrapper.jvm_exit.timeout</ulink>
+                    from 5 to 15 seconds.  The old default was too fast for some applications
+                    which take a while to exit.  Applications which were exiting promptly will
+                    not see any difference.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.1">
