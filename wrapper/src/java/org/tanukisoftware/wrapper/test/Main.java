@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.16  2004/04/15 06:42:11  mortenson
+// Fix a typo in the access_violation_native action.
+//
 // Revision 1.15  2004/03/27 14:39:20  mortenson
 // Add actions for the stopImmediate method.
 //
@@ -187,7 +190,7 @@ public class Main
             buildCommand( gridBag, c, "Access Violation", "access_violation",
                 "Attempts to cause an access violation within the JVM, relies on a JVM bug and may not work." );
             
-            buildCommand( gridBag, c, "Native Access Violation", "native_access_violation",
+            buildCommand( gridBag, c, "Native Access Violation", "access_violation_native",
                 "Causes an access violation using native code, the JVM will crash and be restarted." );
             
             buildCommand( gridBag, c, "Simulate JVM Hang", "appear_hung",

@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.5  2004/04/15 06:42:11  mortenson
+// Fix a typo in the access_violation_native action.
+//
 // Revision 1.4  2004/03/27 14:39:20  mortenson
 // Add actions for the stopImmediate method.
 //
@@ -163,7 +166,7 @@ public abstract class AbstractActionApp {
             WrapperManager.accessViolation();
             
         }
-        else if ( action.equals( "native_access_violation" ) )
+        else if ( action.equals( "access_violation_native" ) )
         {
             WrapperManager.accessViolationNative();
             
