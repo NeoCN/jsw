@@ -22,6 +22,9 @@
                 <ulink url="#jboss">JBoss</ulink>
             </listitem>
             <listitem>
+                <ulink url="#mx4j">MX4J</ulink>
+            </listitem>
+            <listitem>
                 <ulink url="#sun">Sun JMX Reference Implementation</ulink>
             </listitem>
         </itemizedlist>
@@ -74,7 +77,7 @@
             <para>
                 Now, to actually use the new MBeans, simply point your browser to
                 JBoss's JMX interface at:
-                <ulink url="http://localhost:8080">http://localhost:8080</ulink>
+                <ulink url="http://localhost:8080/jmx-console/">http://localhost:8080/jmx-console/</ulink>
                 You should notice a <literal moreinfo="none">JavaServiceWrapper</literal>
                 Agent with two MBeans, <literal moreinfo="none">WrapperManager</literal>
                 and <literal moreinfo="none">WrapperManagerTesting</literal>.
@@ -82,10 +85,49 @@
                 and actions provided by the MBean.
             </para>
         </section>
+        <section id="mx4j">
+            <title>Sun JMX Reference Implementation</title>
+            <para>
+                To do.  (This section is incomplete and just a jumble of my notes at this point.
+                Feel free to send in any suggestions for this section)
+            </para>
+            <para>
+                <ulink url="http://mx4j.sourceforge.net/">MX4J</ulink>
+            </para>
+        </section>
         <section id="sun">
             <title>Sun JMX Reference Implementation</title>
             <para>
-                To do.
+                To do.  (This section is incomplete and just a jumble of my notes at this point.
+                Feel free to send in any suggestions for this section)
+            </para>
+            <para>
+                Sun's reference implementation is just that, a reference implementation.
+                There are not a fixed set of steps that you can follow to register the
+                the Wrapper's MBeans.  Each application tends to have created their own
+                custom way of registering such beans.
+            </para>
+            <para>
+                Although many applications have defined their own syntax, Sun has defined
+                MLET tags, short for Management Applet, as a means for defining MBeans.
+                Their syntax is described in the javadocs for the 
+                <ulink url="http://java.sun.com/j2ee/1.4/docs/api/javax/management/loading/MLet.html">javax.management.loading.MLet</ulink>
+                class.  The following MLET tags can be used to register the MBeans provided
+                with the Wrapper.  Notice that they are not really XML.
+            </para>
+            <informalexample>
+                <screen format="linespecific"><![CDATA[<MLET
+    CODE = org.tanukisoftware.wrapper.jmx.WrapperManager
+    ARCHIVE = "../lib/wrapper.jar"
+    NAME = JavaServiceWrapper:service=WrapperManager>
+<MLET
+    CODE = org.tanukisoftware.wrapper.jmx.WrapperManagerTesting
+    ARCHIVE = "../lib/wrapper.jar"
+    NAME = JavaServiceWrapper:service=WrapperManagerTesting>]]></screen>
+            </informalexample>
+            <para>
+                More information is available on Sun's
+                <ulink url="http://java.sun.com/products/JavaManagement/index.html">Java Managagement Extensions (JMX) Home Page</ulink>.
             </para>
         </section>
     </section>
