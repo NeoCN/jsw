@@ -49,6 +49,12 @@ $Id$
                     extremely large environment variables.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where the inability to expand very large environment variables
+                    was causing an access violation when run as an NT service.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
