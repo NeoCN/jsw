@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.19  2003/04/15 14:17:45  mortenson
+ * Clean up the code by setting all malloced variables to NULL after they are freed,
+ *
  * Revision 1.18  2003/04/14 14:11:51  mortenson
  * Add support for Mac OS X.
  * (Patch from Andy Barnett)
@@ -165,8 +168,11 @@ Property* createInnerProperty() {
  */
 void disposeInnerProperty(Property *property) {
     free(property->name);
+    property->name = NULL;
     free(property->value);
+    property->value = NULL;
     free(property);
+    property = NULL;
 }
 
 /**
@@ -305,6 +311,7 @@ void setInnerProperty(Property *property, const char *propertyValue) {
     /* Free any existing value */
     if (property->value != NULL) {
         free(property->value);
+        property->value = NULL;
     }
 
     /* Set the new value using a copy of the provided value. */
@@ -447,6 +454,7 @@ void disposeProperties(Properties *properties) {
 
         /* Clean up the current property */
         disposeInnerProperty(property);
+        property = NULL;
 
         /* set the current property to the next. */
         property = tempProperty;
@@ -454,6 +462,7 @@ void disposeProperties(Properties *properties) {
 
     /* Dispose the Properties structure */
     free(properties);
+    properties = NULL;
 }
 
 void removeProperty(Properties *properties, const char *propertyName) {

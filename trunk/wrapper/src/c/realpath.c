@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.5  2003/04/15 14:17:45  mortenson
+ * Clean up the code by setting all malloced variables to NULL after they are freed,
+ *
  * Revision 1.4  2003/04/03 04:05:22  mortenson
  * Fix several typos in the docs.  Thanks to Mike Castle.
  *
@@ -56,6 +59,7 @@ int main(int argc, char **argv) {
     printf("%s", resolved);
     
     free(resolved);
+    resolved = NULL;
 
     return 0;
 }

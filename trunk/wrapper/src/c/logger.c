@@ -23,6 +23,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.23  2003/04/15 14:17:43  mortenson
+ * Clean up the code by setting all malloced variables to NULL after they are freed,
+ *
  * Revision 1.22  2003/04/03 04:05:22  mortenson
  * Fix several typos in the docs.  Thanks to Mike Castle.
  *
@@ -177,6 +180,7 @@ void setLogfileMaxFileSize( char *max_file_size ) {
 
         /* Free memory */
         free( tmpFileSizeBuff );
+        tmpFileSizeBuff = NULL;
     }
 }
 
@@ -525,6 +529,7 @@ void sendEventlogMessage( int source_id, int level, char *szBuff ) {
     DeregisterEventSource( handle );
 
     free( (void *) strings );
+    strings = NULL;
 #endif
 }
 
@@ -705,9 +710,11 @@ void checkAndRollLogs() {
             /* Free memory */
             if (tmpLogFilePathOld != NULL) {
                 free((void *)tmpLogFilePathOld);
+                tmpLogFilePathOld = NULL;
             }
             if (tmpLogFilePathNew != NULL) {
                 free((void *)tmpLogFilePathNew);
+                tmpLogFilePathNew = NULL;
             }
         }
     }
