@@ -15,21 +15,21 @@ LIB = ../../lib
 all: cleanall init compile wrapper libwrapper.sl
 
 clean:
-    rm -f *.o
+	rm -f *.o
 
 cleanall:clean
-    rm -rf *~ .deps
-    rm -f $(BIN)/wrapper $(LIB)/libwrapper.sl
-    
+	rm -rf *~ .deps
+	rm -f $(BIN)/wrapper $(LIB)/libwrapper.sl
+	
 init:
-    if test ! -d .deps; then mkdir .deps; fi
+	if test ! -d .deps; then mkdir .deps; fi
  
 compile:$(SOURCE)
-    ${COMPILE} -c $(SOURCE)
+	${COMPILE} -c $(SOURCE)
 
 wrapper:$(WRAPPER_OBJECTS)
-    ${COMPILE} $(WRAPPER_OBJECTS) -lm -o $(BIN)/wrapper
+	${COMPILE} $(WRAPPER_OBJECTS) -lm -o $(BIN)/wrapper
 
 libwrapper.sl:$(LIBWRAPPER_SL_OBJECTS)
-    ${LINK} $(LIBWRAPPER_SL_OBJECTS) -b -o $(LIB)/libwrapper.sl
+	${LINK} $(LIBWRAPPER_SL_OBJECTS) -b -o $(LIB)/libwrapper.sl
 
