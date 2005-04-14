@@ -210,6 +210,13 @@ $Id$
                     for these classes for more details.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Modify the HP-UX build so that it now dynamically links with the pthread
+                    library.  This was to make the binaries work with HP-UX 11.00.  Thanks to
+                    Sun Kun Choi for the patch.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
