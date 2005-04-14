@@ -94,6 +94,9 @@ Java Service Wrapper Revision History.
   for the configured main methods to complete before reporting that the
   application has started.  See the javadocs for these classes for more
   details.
+* Modify the HP-UX build so that it now dynamically links with the pthread
+  library.  This was to make the binaries work with HP-UX 11.00.  Thanks to
+  Sun Kun Choi for the patch.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
