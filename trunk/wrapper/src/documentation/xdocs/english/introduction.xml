@@ -319,7 +319,7 @@
             </listitem>
             <listitem>
                 <para>
-                    <literal moreinfo="none">solaris</literal> - Sun OS, Solaris 7, 8.
+                    <literal moreinfo="none">solaris</literal> - Sun OS, Solaris 7, 8, 9 and 10.
                 </para>
             </listitem>
             <listitem>
