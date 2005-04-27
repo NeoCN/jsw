@@ -40,8 +40,14 @@
             server.
         </para>
         <para>
-            You may wish to disable the shutdown hook for a number of reasons,
-            including security.
+            You may wish to disable the shutdown hook for a number of reasons.
+        </para>
+        <para>
+            If an application contains code which sometimes fails and calls
+            System.exit(), this property can be useful to make sure that the
+            server comes back up.   In most cases however, the
+            <ulink url="prop-on-exit-n.html">wrapper.on_exit.&lt;n&gt;</ulink>
+            is better suited for resolving this problem.
         </para>
         <informalexample>
             <simpara><emphasis>Example:</emphasis></simpara>
