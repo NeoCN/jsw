@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.52  2005/05/02 15:12:02  mortenson
+ * Fix a problem where a file not found error was showing up in the logs if the Wrapper
+ * was started when a wrapper.log file did not yet exist. (Unreleased)
+ *
  * Revision 1.51  2004/10/20 07:55:35  mortenson
  * Make sure that the logfile is flushed in a timely manner rather than leaving
  * it entirely up to the OS.
@@ -1275,11 +1279,16 @@ void checkAndRollLogs() {
         }
     } else {
         if (stat(logFilePath, &fileStat) != 0) {
-            printf("Unable to get the current logfile size with stat: %s\n", getLastErrorText());
-            return;
+            if ( getLastError() == 2 ) {
+                /* File does not yet exist. */
+                position = 0;
+            } else {
+                printf("Unable to get the current logfile size with stat: %s\n", getLastErrorText());
+                return;
+            }
+        } else {
+            position = fileStat.st_size;
         }
-        
-        position = fileStat.st_size;
     }
     
     /* Does the log file need to rotated? */
