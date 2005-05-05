@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.68  2005/05/05 16:05:45  mortenson
+ * Add new wrapper.statusfile and wrapper.java.statusfile properties which can
+ *  be used by external applications to monitor the internal state of the Wrapper
+ *  or JVM at any given time.
+ *
  * Revision 1.67  2005/03/24 06:23:57  mortenson
  * Add a pair of properties to make the Wrapper prompt the user for a password
  * when installing as a service.
@@ -373,6 +378,11 @@ struct WrapperConfig {
     int*    outputFilterActions;    /* Array of output filter actions. */
     char    *pidFilename;           /* Name of file to store wrapper pid in */
     char    *javaPidFilename;       /* Name of file to store jvm pid in */
+    char    *statusFilename;        /* Name of file to store wrapper status in */
+    char    *javaStatusFilename;    /* Name of file to store jvm status in */
+    char    *commandFilename;       /* Name of a command file used to send commands to the Wrapper. */
+    int     commandPollInterval;    /* Interval in seconds at which the existence of the command file is polled. */
+    DWORD   commandTimeoutTicks;    /* Tick count at which the command file will be checked next. */
     char    *anchorFilename;        /* Name of an anchor file used to control when the Wrapper should quit. */
     int     anchorPollInterval;     /* Interval in seconds at which the existence of the anchor file is polled. */
     DWORD   anchorTimeoutTicks;     /* Tick count at which the anchor file will be checked next. */
@@ -471,6 +481,34 @@ extern void wrapperJVMProcessExited(int exitCode);
  *  to be done in a common location.
  */
 extern void wrapperLogChildOutput(const char* log);
+
+/**
+ * Changes the current Wrapper state.
+ *
+ * wState - The new Wrapper state.
+ */
+extern void wrapperSetWrapperState(int wState);
+
+/**
+ * Updates the current state time out.
+ *
+ * nowTicks - The current tick count at the time of the call, may be -1 if
+ *            delay is negative.
+ * delay - The delay in seconds, added to the nowTicks after which the state
+ *         will time out, if negative will never time out.
+ */
+extern void wrapperUpdateJavaStateTimeout(DWORD nowTicks, int delay);
+
+/**
+ * Changes the current Java state.
+ *
+ * jState - The new Java state.
+ * nowTicks - The current tick count at the time of the call, may be -1 if
+ *            delay is negative.
+ * delay - The delay in seconds, added to the nowTicks after which the state
+ *         will time out, if negative will never time out.
+ */
+extern void wrapperSetJavaState(int jState, DWORD nowTicks, int delay);
 
 /******************************************************************************
  * Platform specific methods

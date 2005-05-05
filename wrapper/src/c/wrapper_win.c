@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.102  2005/05/05 16:05:45  mortenson
+ * Add new wrapper.statusfile and wrapper.java.statusfile properties which can
+ *  be used by external applications to monitor the internal state of the Wrapper
+ *  or JVM at any given time.
+ *
  * Revision 1.101  2005/03/24 06:23:57  mortenson
  * Add a pair of properties to make the Wrapper prompt the user for a password
  * when installing as a service.
@@ -577,7 +582,17 @@ void appExit(int exitCode) {
         if (wrapperData->pidFilename) {
             unlink(wrapperData->pidFilename);
         }
-    
+        
+        /* Remove status file.  It may no longer exist. */
+        if (wrapperData->statusFilename) {
+            unlink(wrapperData->statusFilename);
+        }
+        
+        /* Remove java status file if it was registered and created by this process. */
+        if (wrapperData->javaStatusFilename) {
+            unlink(wrapperData->javaStatusFilename);
+        }
+        
         /* Remove anchor file.  It may no longer exist. */
         if (wrapperData->anchorFilename) {
             unlink(wrapperData->anchorFilename);
@@ -747,7 +762,7 @@ int wrapperConsoleHandler(int key) {
                 (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
                 /* Already stopping. */
             } else {
-                wrapperData->wState = WRAPPER_WSTATE_STOPPING;
+                wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
             }
         }
         
@@ -1416,6 +1431,7 @@ int wrapperGetProcessStatus() {
         if (wrapperData->javaPidFilename) {
             unlink(wrapperData->javaPidFilename);
         }
+        
         if (!CloseHandle(javaProcess)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 "Failed to close the Java process handle: %s", getLastErrorText());
@@ -1469,14 +1485,13 @@ void wrapperKillProcessNow() {
         wrapperData->exitCode = 1;
     }
 
-    wrapperData->jState = WRAPPER_JSTATE_DOWN;
-    wrapperData->jStateTimeoutTicks = 0;
-    wrapperData->jStateTimeoutTicksSet = 0;
+    wrapperSetJavaState(WRAPPER_JSTATE_DOWN, -1, -1);
 
     /* Remove java pid file if it was registered and created by this process. */
     if (wrapperData->javaPidFilename) {
         unlink(wrapperData->javaPidFilename);
     }
+    
     if (!CloseHandle(javaProcess)) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
             "Failed to close the Java process handle: %s", getLastErrorText());
@@ -1496,7 +1511,7 @@ void wrapperKillProcessNow() {
  */
 void wrapperKillProcess(int useLoggerQueue) {
     int ret;
-    DWORD timeout = wrapperGetTicks();
+    int delay = 0;
 
     /* Check to make sure that the JVM process is still running */
     ret = WaitForSingleObject(javaProcess, 0);
@@ -1505,13 +1520,11 @@ void wrapperKillProcess(int useLoggerQueue) {
         if (wrapperData->requestThreadDumpOnFailedJVMExit) {
             requestDumpJVMState(useLoggerQueue);
 
-            timeout = wrapperAddToTicks(wrapperGetTicks(), 5);
+            delay = 5;
         }
     }
 
-    wrapperData->jState = WRAPPER_JSTATE_KILLING;
-    wrapperData->jStateTimeoutTicks = timeout;
-    wrapperData->jStateTimeoutTicksSet = 1;
+    wrapperSetJavaState(WRAPPER_JSTATE_KILLING, wrapperGetTicks(), delay);
 }
 
 /**
@@ -1994,7 +2007,7 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
                 (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
                 /* Already stopping. */
             } else {
-                wrapperData->wState = WRAPPER_WSTATE_STOPPING;
+                wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
             }
     
             return;
@@ -2024,7 +2037,7 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
                 (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
                 /* Already stopping. */
             } else {
-                wrapperData->wState = WRAPPER_WSTATE_STOPPING;
+                wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
             }
     
             break;
@@ -2987,6 +3000,9 @@ void wrapperUsage(char *appName) {
 }
 void _CRTAPI1 main(int argc, char **argv) {
     int result = 0;
+#ifdef _DEBUG
+    int i;
+#endif
 
     /* The StartServiceCtrlDispatcher requires this table to specify
      * the ServiceMain function to run in the calling process. The first
@@ -3009,10 +3025,8 @@ void _CRTAPI1 main(int argc, char **argv) {
     /* Setup the initial values of required properties. */
     wrapperData->configured = FALSE;
     wrapperData->isConsole = TRUE;
-    wrapperData->wState = WRAPPER_WSTATE_STARTING;
-    wrapperData->jState = WRAPPER_JSTATE_DOWN;
-    wrapperData->jStateTimeoutTicks = 0;
-    wrapperData->jStateTimeoutTicksSet = 0;
+    wrapperSetWrapperState(WRAPPER_WSTATE_STARTING);
+    wrapperSetJavaState(WRAPPER_JSTATE_DOWN, 0, -1);
     wrapperData->lastPingTicks = wrapperGetTicks();
     wrapperData->jvmCommand = NULL;
     wrapperData->exitRequested = FALSE;

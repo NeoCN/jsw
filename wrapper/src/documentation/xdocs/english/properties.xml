@@ -142,6 +142,9 @@
                 <listproperty version="3.0.5">
                     <ulink url="prop-java-pidfile.html">wrapper.java.pidfile</ulink>
                 </listproperty>
+                <listproperty version="3.2.0">
+                    <ulink url="prop-java-statusfile.html">wrapper.java.statusfile</ulink>
+                </listproperty>
                 <listproperty version="2.2.8">
                     <ulink url="prop-jvm-exit-timeout.html">wrapper.jvm_exit.timeout</ulink>
                 </listproperty>
@@ -249,6 +252,9 @@
                 </listproperty>
                 <listproperty>
                     <ulink url="prop-startup-timeout.html">wrapper.startup.timeout</ulink>
+                </listproperty>
+                <listproperty version="3.2.0">
+                    <ulink url="prop-statusfile.html">wrapper.statusfile</ulink>
                 </listproperty>
                 <listproperty version="2.2.8">
                     <ulink url="prop-successful-invocation-time.html">wrapper.successful_invocation_time</ulink>

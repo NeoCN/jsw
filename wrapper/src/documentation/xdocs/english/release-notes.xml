@@ -217,6 +217,15 @@ $Id$
                     Sun Kun Choi for the patch.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add new <ulink url="prop-statusfile.html">wrapper.statusfile</ulink> and
+                    <ulink url="prop-java-statusfile.html">wrapper.java.statusfile</ulink>
+                    properties which can be used by external applications to monitor the
+                    internal state of the Wrapper or JVM at any given time.  These will not
+                    be useful to most users.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
