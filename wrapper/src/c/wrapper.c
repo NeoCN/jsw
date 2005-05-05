@@ -42,6 +42,13 @@
  * 
  *
  * $Log$
+ * Revision 1.134  2005/05/05 16:03:38  mortenson
+ * Fix a problem where string valued properties were getting corrupted if the config
+ *  file was reloaded. (Not a released problem)
+ * Add new wrapper.statusfile and wrapper.java.statusfile properties which can
+ *  be used by external applications to monitor the internal state of the Wrapper
+ *  or JVM at any given time.
+ *
  * Revision 1.133  2005/03/24 06:24:58  mortenson
  * Avoid displaying the packets used to transmit the wrapper properties in the log
  * file as it is very large and distracting.
@@ -1225,8 +1232,8 @@ int wrapperRunConsole() {
     int res;
 
     /* Setup the wrapperData structure. */
-    wrapperData->wState = WRAPPER_WSTATE_STARTING;
-    wrapperData->jState = WRAPPER_JSTATE_DOWN;
+    wrapperSetWrapperState(WRAPPER_WSTATE_STARTING);
+    wrapperSetJavaState(WRAPPER_JSTATE_DOWN, -1, -1);
     wrapperData->isConsole = TRUE;
 
     /* Initialize the wrapper */
@@ -1272,8 +1279,8 @@ int wrapperRunService() {
     int res;
 
     /* Setup the wrapperData structure. */
-    wrapperData->wState = WRAPPER_WSTATE_STARTING;
-    wrapperData->jState = WRAPPER_JSTATE_DOWN;
+    wrapperSetWrapperState(WRAPPER_WSTATE_STARTING);
+    wrapperSetJavaState(WRAPPER_JSTATE_DOWN, -1, -1);
     wrapperData->isConsole = FALSE;
 
     /* Initialize the wrapper */
@@ -2192,6 +2199,22 @@ void wrapperBuildKey() {
     /*printf("Key=%s\n", wrapperData->key); */
 }
 
+/**
+ * Updates a string value by making a copy of the original.  Any old value is
+ *  first freed.
+ */
+void updateStringValue(char **ptr, char *value) {
+    if (*ptr != NULL) {
+        free(*ptr);
+        *ptr = NULL;
+    }
+
+    if (value != NULL) {
+        *ptr = malloc(sizeof(char) * (strlen(value) + 1));
+        strcpy(*ptr, value);
+    }
+}
+
 #ifdef WIN32
 void wrapperBuildNTServiceInfo() {
     char dependencyKey[32]; /* Length of "wrapper.ntservice.dependency.nn" + '\0' */
@@ -2200,116 +2223,118 @@ void wrapperBuildNTServiceInfo() {
     int len;
     int i;
 
-    /* Load the service name */
-    wrapperData->ntServiceName = (char *)getStringProperty(properties, "wrapper.ntservice.name", "Wrapper");
+    if (!wrapperData->configured) {
+        /* Load the service name */
+        updateStringValue(&wrapperData->ntServiceName, (char *)getStringProperty(properties, "wrapper.ntservice.name", "Wrapper"));
 
-    /* Load the service display name */
-    wrapperData->ntServiceDisplayName = (char *)getStringProperty(properties, "wrapper.ntservice.displayname", "Wrapper");
+        /* Load the service display name */
+        updateStringValue(&wrapperData->ntServiceDisplayName, (char *)getStringProperty(properties, "wrapper.ntservice.displayname", "Wrapper"));
 
-    /* Load the service description, default to nothing */
-    wrapperData->ntServiceDescription = (char *)getStringProperty(properties, "wrapper.ntservice.description", "");
+        /* Load the service description, default to nothing */
+        updateStringValue(&wrapperData->ntServiceDescription, (char *)getStringProperty(properties, "wrapper.ntservice.description", ""));
 
-    /* Load the service load order group */
-    wrapperData->ntServiceLoadOrderGroup = (char *)getStringProperty(properties, "wrapper.ntservice.load_order_group", "");
+        /* Load the service load order group */
+        updateStringValue(&wrapperData->ntServiceLoadOrderGroup, (char *)getStringProperty(properties, "wrapper.ntservice.load_order_group", ""));
 
-    /* *** Build the dependency list *** */
-    len = 0;
-    for (i = 0; i < 10; i++) {
-        sprintf(dependencyKey, "wrapper.ntservice.dependency.%d", i + 1);
-        dependencies[i] = getStringProperty(properties, dependencyKey, NULL);
-        if (dependencies[i] != NULL) {
-            if (strlen(dependencies[i]) > 0) {
-                len += strlen(dependencies[i]) + 1;
-            } else {
-                /* Ignore empty values. */
-                dependencies[i] = NULL;
+        /* *** Build the dependency list *** */
+        len = 0;
+        for (i = 0; i < 10; i++) {
+            sprintf(dependencyKey, "wrapper.ntservice.dependency.%d", i + 1);
+            dependencies[i] = getStringProperty(properties, dependencyKey, NULL);
+            if (dependencies[i] != NULL) {
+                if (strlen(dependencies[i]) > 0) {
+                    len += strlen(dependencies[i]) + 1;
+                } else {
+                    /* Ignore empty values. */
+                    dependencies[i] = NULL;
+                }
             }
         }
-    }
-    /* List must end with a double '\0'.  If the list is not empty then it will end with 3.  But that is fine. */
-    len += 2;
+        /* List must end with a double '\0'.  If the list is not empty then it will end with 3.  But that is fine. */
+        len += 2;
 
-    /* Actually build the buffer */
-    if (wrapperData->ntServiceDependencies) {
-        /** This is a reload, so free up the old data. */
-        free(wrapperData->ntServiceDependencies);
-        wrapperData->ntServiceDependencies = NULL;
-    }
-    work = wrapperData->ntServiceDependencies = malloc(sizeof(char) * len);
-    for (i = 0; i < 10; i++) {
-        if (dependencies[i] != NULL) {
-            strcpy(work, dependencies[i]);
-            work += strlen(dependencies[i]) + 1;
+        /* Actually build the buffer */
+        if (wrapperData->ntServiceDependencies) {
+            /** This is a reload, so free up the old data. */
+            free(wrapperData->ntServiceDependencies);
+            wrapperData->ntServiceDependencies = NULL;
         }
+        work = wrapperData->ntServiceDependencies = malloc(sizeof(char) * len);
+        for (i = 0; i < 10; i++) {
+            if (dependencies[i] != NULL) {
+                strcpy(work, dependencies[i]);
+                work += strlen(dependencies[i]) + 1;
+            }
+        }
+        /* Add two more nulls to the end of the list. */
+        work[0] = '\0';
+        work[1] = '\0';
+        /* *** Dependency list completed *** */
+        /* Memory allocated in work is stored in wrapperData.  The memory should not be released here. */
+        work = NULL;
+
+
+        /* Set the service start type */
+        if (strcmp(_strupr((char *)getStringProperty(properties, "wrapper.ntservice.starttype", "DEMAND_START")), "AUTO_START") == 0) {
+            wrapperData->ntServiceStartType = SERVICE_AUTO_START;
+        } else {
+            wrapperData->ntServiceStartType = SERVICE_DEMAND_START;
+        }
+
+
+        /* Set the service priority class */
+        work = _strupr((char *)getStringProperty(properties, "wrapper.ntservice.process_priority", "NORMAL"));
+        if ( (strcmp(work, "LOW") == 0) || (strcmp(work, "IDLE") == 0) ) {
+            wrapperData->ntServicePriorityClass = IDLE_PRIORITY_CLASS;
+        } else if (strcmp(work, "HIGH") == 0) {
+            wrapperData->ntServicePriorityClass = HIGH_PRIORITY_CLASS;
+        } else if (strcmp(work, "REALTIME") == 0) {
+            wrapperData->ntServicePriorityClass = REALTIME_PRIORITY_CLASS;
+        } else {
+            wrapperData->ntServicePriorityClass = NORMAL_PRIORITY_CLASS;
+        }
+
+        /* Account name */
+        updateStringValue(&wrapperData->ntServiceAccount, (char *)getStringProperty(properties, "wrapper.ntservice.account", NULL));
+        if ( wrapperData->ntServiceAccount && ( strlen( wrapperData->ntServiceAccount ) <= 0 ) )
+        {
+            wrapperData->ntServiceAccount = NULL;
+        }
+
+        /* Acount password */
+        wrapperData->ntServicePasswordPrompt = getBooleanProperty( properties, "wrapper.ntservice.password.prompt", FALSE );
+        wrapperData->ntServicePasswordPromptMask = getBooleanProperty( properties, "wrapper.ntservice.password.prompt.mask", TRUE );
+        updateStringValue(&wrapperData->ntServicePassword, (char *)getStringProperty(properties, "wrapper.ntservice.password", NULL));
+        if ( wrapperData->ntServicePassword && ( strlen( wrapperData->ntServicePassword ) <= 0 ) )
+        {
+            wrapperData->ntServicePassword = NULL;
+        }
+        if ( !wrapperData->ntServiceAccount )
+        {
+            /* If there is not account name, then the password must not be set. */
+            wrapperData->ntServicePassword = NULL;
+        }
+
+        /* Interactive */
+        wrapperData->ntServiceInteractive = getBooleanProperty( properties, "wrapper.ntservice.interactive", FALSE );
+        /* The interactive flag can not be set if an account is also set. */
+        if ( wrapperData->ntServiceAccount && wrapperData->ntServiceInteractive ) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                "Ignoring the wrapper.ntservice.interactive property because it can not be set when wrapper.ntservice.account is also set.");
+            wrapperData->ntServiceInteractive = FALSE;
+        }
+
+        /* Display a Console Window. */
+        wrapperData->ntAllocConsole = getBooleanProperty( properties, "wrapper.ntservice.console", FALSE );
+        /* Set the default hide wrapper console flag to the inverse of the alloc console flag. */
+        wrapperData->ntHideWrapperConsole = !wrapperData->ntAllocConsole;
+
+        /* Hide the JVM Console Window. */
+        wrapperData->ntHideJVMConsole = getBooleanProperty( properties, "wrapper.ntservice.hide_console", TRUE );
     }
-    /* Add two more nulls to the end of the list. */
-    work[0] = '\0';
-    work[1] = '\0';
-    /* *** Dependency list completed *** */
-    /* Memory allocated in work is stored in wrapperData.  The memory should not be released here. */
-    work = NULL;
-
-
-    /* Set the service start type */
-    if (strcmp(_strupr((char *)getStringProperty(properties, "wrapper.ntservice.starttype", "DEMAND_START")), "AUTO_START") == 0) {
-        wrapperData->ntServiceStartType = SERVICE_AUTO_START;
-    } else {
-        wrapperData->ntServiceStartType = SERVICE_DEMAND_START;
-    }
-
-
-    /* Set the service priority class */
-    work = _strupr((char *)getStringProperty(properties, "wrapper.ntservice.process_priority", "NORMAL"));
-    if ( (strcmp(work, "LOW") == 0) || (strcmp(work, "IDLE") == 0) ) {
-        wrapperData->ntServicePriorityClass = IDLE_PRIORITY_CLASS;
-    } else if (strcmp(work, "HIGH") == 0) {
-        wrapperData->ntServicePriorityClass = HIGH_PRIORITY_CLASS;
-    } else if (strcmp(work, "REALTIME") == 0) {
-        wrapperData->ntServicePriorityClass = REALTIME_PRIORITY_CLASS;
-    } else {
-        wrapperData->ntServicePriorityClass = NORMAL_PRIORITY_CLASS;
-    }
-
-    /* Account name */
-    wrapperData->ntServiceAccount = (char *)getStringProperty(properties, "wrapper.ntservice.account", NULL);
-    if ( wrapperData->ntServiceAccount && ( strlen( wrapperData->ntServiceAccount ) <= 0 ) )
-    {
-        wrapperData->ntServiceAccount = NULL;
-    }
-
-    /* Acount password */
-    wrapperData->ntServicePasswordPrompt = getBooleanProperty( properties, "wrapper.ntservice.password.prompt", FALSE );
-    wrapperData->ntServicePasswordPromptMask = getBooleanProperty( properties, "wrapper.ntservice.password.prompt.mask", TRUE );
-    wrapperData->ntServicePassword = (char *)getStringProperty(properties, "wrapper.ntservice.password", NULL);
-    if ( wrapperData->ntServicePassword && ( strlen( wrapperData->ntServicePassword ) <= 0 ) )
-    {
-        wrapperData->ntServicePassword = NULL;
-    }
-    if ( !wrapperData->ntServiceAccount )
-    {
-        /* If there is not account name, then the password must not be set. */
-        wrapperData->ntServicePassword = NULL;
-    }
-
-    /* Interactive */
-    wrapperData->ntServiceInteractive = getBooleanProperty( properties, "wrapper.ntservice.interactive", FALSE );
-    /* The interactive flag can not be set if an account is also set. */
-    if ( wrapperData->ntServiceAccount && wrapperData->ntServiceInteractive ) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-            "Ignoring the wrapper.ntservice.interactive property because it can not be set when wrapper.ntservice.account is also set.");
-        wrapperData->ntServiceInteractive = FALSE;
-    }
-
-    /* Display a Console Window. */
-    wrapperData->ntAllocConsole = getBooleanProperty( properties, "wrapper.ntservice.console", FALSE );
-    /* Set the default hide wrapper console flag to the inverse of the alloc console flag. */
-    wrapperData->ntHideWrapperConsole = !wrapperData->ntAllocConsole;
-
-    /* Hide the JVM Console Window. */
-    wrapperData->ntHideJVMConsole = getBooleanProperty( properties, "wrapper.ntservice.hide_console", TRUE );
 
     /* Obtain the Console Title. */
-    wrapperData->consoleTitle = (char *)getStringProperty(properties, "wrapper.console.title", NULL);
+    updateStringValue(&wrapperData->consoleTitle, (char *)getStringProperty(properties, "wrapper.console.title", NULL));
 
     /* Set the single invocation flag. */
     wrapperData->isSingleInvocation = getBooleanProperty( properties, "wrapper.single_invocation", FALSE );
@@ -2589,13 +2614,25 @@ int loadConfiguration() {
 
     /** Get the pid files if any.  May be NULL */
     if (!wrapperData->configured) {
-        wrapperData->pidFilename = (char *)getStringProperty(properties, "wrapper.pidfile", NULL);
+        updateStringValue(&wrapperData->pidFilename, (char *)getStringProperty(properties, "wrapper.pidfile", NULL));
     }
-    wrapperData->javaPidFilename = (char *)getStringProperty(properties, "wrapper.java.pidfile", NULL);
+    updateStringValue(&wrapperData->javaPidFilename, (char *)getStringProperty(properties, "wrapper.java.pidfile", NULL));
+    
+    /** Get the status files if any.  May be NULL */
+    if (!wrapperData->configured) {
+        updateStringValue(&wrapperData->statusFilename, (char *)getStringProperty(properties, "wrapper.statusfile", NULL));
+    }
+    updateStringValue(&wrapperData->javaStatusFilename, (char *)getStringProperty(properties, "wrapper.java.statusfile", NULL));
+    
+    /** Get the command file if any. May be NULL */
+    updateStringValue(&wrapperData->commandFilename, (char *)getStringProperty(properties, "wrapper.commandfile", NULL));
+
+    /** Get the interval at which the command file will be polled. */
+    wrapperData->commandPollInterval = __min(__max(getIntProperty(properties, "wrapper.command.poll_interval", 5), 1), 3600);
 
     /** Get the anchor file if any.  May be NULL */
     if (!wrapperData->configured) {
-        wrapperData->anchorFilename = (char *)getStringProperty(properties, "wrapper.anchorfile", NULL);
+        updateStringValue(&wrapperData->anchorFilename, (char *)getStringProperty(properties, "wrapper.anchorfile", NULL));
     }
 
     /** Get the interval at which the anchor file will be polled. */
@@ -2783,9 +2820,7 @@ void wrapperKeyRegistered(char *key) {
         if (strcmp(key, wrapperData->key) == 0) {
             /* This is the correct key. */
             /* We now know that the Java side wrapper code has started. */
-            wrapperData->jState = WRAPPER_JSTATE_LAUNCHED;
-            wrapperData->jStateTimeoutTicks = 0;
-            wrapperData->jStateTimeoutTicksSet = 0;
+            wrapperSetJavaState(WRAPPER_JSTATE_LAUNCHED, -1, -1);
 
             /* Send the low log level to the JVM so that it can control output via the log method. */
             sprintf(buffer, "%d", getLowLogLevel());
@@ -2825,9 +2860,8 @@ void wrapperKeyRegistered(char *key) {
         wrapperProtocolFunction(WRAPPER_MSG_STOP, NULL);
         
         /* Allow up to 5 + <shutdownTimeout> seconds for the application to stop itself. */
-        wrapperData->jState = WRAPPER_JSTATE_STOPPING; /* Already in this state. */
-        wrapperData->jStateTimeoutTicks = wrapperAddToTicks(wrapperGetTicks(), 5 + wrapperData->shutdownTimeout);
-        wrapperData->jStateTimeoutTicksSet = 1;
+        /* Already in this state. */
+        wrapperSetJavaState(WRAPPER_JSTATE_STOPPING, wrapperGetTicks(), 5 + wrapperData->shutdownTimeout);
         break;
 
     default:
@@ -2846,8 +2880,7 @@ void wrapperPingResponded() {
     case WRAPPER_JSTATE_STARTED:
         /* We got a response to a ping.  Allow 5 + <pingTimeout> more seconds before the JVM
          *  is considered to be dead. */
-        wrapperData->jStateTimeoutTicks = wrapperAddToTicks(wrapperGetTicks(), 5 + wrapperData->pingTimeout);
-        wrapperData->jStateTimeoutTicksSet = 1;
+        wrapperUpdateJavaStateTimeout(wrapperGetTicks(), 5 + wrapperData->pingTimeout);
         break;
     default:
         /* We got a ping response that we were not expecting.  Ignore it. */
@@ -2883,7 +2916,7 @@ void wrapperStopPendingSignalled(int waitHint) {
 
     if (wrapperData->jState == WRAPPER_JSTATE_STARTED) {
         /* Change the state to STOPPING */
-        wrapperData->jState = WRAPPER_JSTATE_STOPPING;
+        wrapperSetJavaState(WRAPPER_JSTATE_STOPPING, -1, -1);
         /* Don't need to set the timeout here because it will be set below. */
     }
 
@@ -2892,8 +2925,7 @@ void wrapperStopPendingSignalled(int waitHint) {
             waitHint = 0;
         }
 
-        wrapperData->jStateTimeoutTicks = wrapperAddToTicks(wrapperGetTicks(), (int)ceil(waitHint / 1000.0));
-        wrapperData->jStateTimeoutTicksSet = 1;
+        wrapperUpdateJavaStateTimeout(wrapperGetTicks(), (int)ceil(waitHint / 1000.0));
     }
 }
 
@@ -2908,12 +2940,9 @@ void wrapperStoppedSignalled() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM signalled that it was stopped.");
     }
 
-    wrapperData->jState = WRAPPER_JSTATE_STOPPED;
-
     /* The Java side of the wrapper signalled that it stopped
      *  allow 5 + jvmExitTimeout seconds for the JVM to exit. */
-    wrapperData->jStateTimeoutTicks = wrapperAddToTicks(wrapperGetTicks(), 5 + wrapperData->jvmExitTimeout);
-    wrapperData->jStateTimeoutTicksSet = 1;
+    wrapperSetJavaState(WRAPPER_JSTATE_STOPPED, wrapperGetTicks(), 5 + wrapperData->jvmExitTimeout);
 }
 
 /**
@@ -2936,8 +2965,7 @@ void wrapperStartPendingSignalled(int waitHint) {
             waitHint = 0;
         }
 
-        wrapperData->jStateTimeoutTicks = wrapperAddToTicks(wrapperGetTicks(), (int)ceil(waitHint / 1000.0));
-        wrapperData->jStateTimeoutTicksSet = 1;
+        wrapperUpdateJavaStateTimeout(wrapperGetTicks(), (int)ceil(waitHint / 1000.0));
     }
 }
 
@@ -2953,16 +2981,13 @@ void wrapperStartedSignalled() {
     }
 
     if (wrapperData->jState == WRAPPER_JSTATE_STARTING) {
-        wrapperData->jState = WRAPPER_JSTATE_STARTED;
-
         /* We got a response to a ping.  Allow 5 + <pingTimeout> more seconds before the JVM
          *  is considered to be dead. */
-        wrapperData->jStateTimeoutTicks = wrapperAddToTicks(wrapperGetTicks(), 5 + wrapperData->pingTimeout);
-        wrapperData->jStateTimeoutTicksSet = 1;
+        wrapperSetJavaState(WRAPPER_JSTATE_STARTED, wrapperGetTicks(), 5 + wrapperData->pingTimeout);
 
         /* Is the wrapper state STARTING? */
         if (wrapperData->wState == WRAPPER_WSTATE_STARTING) {
-            wrapperData->wState = WRAPPER_WSTATE_STARTED;
+            wrapperSetWrapperState(WRAPPER_WSTATE_STARTED);
 
             if (!wrapperData->isConsole) {
                 /* Tell the service manager that we started */
@@ -2975,8 +3000,7 @@ void wrapperStartedSignalled() {
         wrapperProtocolFunction(WRAPPER_MSG_STOP, NULL);
         
         /* Allow up to 5 + <shutdownTimeout> seconds for the application to stop itself. */
-        wrapperData->jState = WRAPPER_JSTATE_STOPPING; /* Already in this state. */
-        wrapperData->jStateTimeoutTicks = wrapperAddToTicks(wrapperGetTicks(), 5 + wrapperData->shutdownTimeout);
-        wrapperData->jStateTimeoutTicksSet = 1;
+        /* Already in this state. */
+        wrapperSetJavaState(WRAPPER_JSTATE_STOPPING, wrapperGetTicks(), 5 + wrapperData->shutdownTimeout);
     }
 }
