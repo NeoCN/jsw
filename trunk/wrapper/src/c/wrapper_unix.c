@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.100  2005/05/05 16:05:45  mortenson
+ * Add new wrapper.statusfile and wrapper.java.statusfile properties which can
+ *  be used by external applications to monitor the internal state of the Wrapper
+ *  or JVM at any given time.
+ *
  * Revision 1.99  2005/03/24 06:09:14  mortenson
  * Fix some compiler warnings on A64 linux platforms.
  *
@@ -577,7 +582,7 @@ void handleCommon(const char* sigName) {
                 (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
                 /* Already stopping. */
             } else {
-                wrapperData->wState = WRAPPER_WSTATE_STOPPING;
+                wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
             }
         }
     }
@@ -1363,9 +1368,7 @@ void wrapperKillProcessNow() {
         wrapperData->exitCode = 1;
     }
 
-    wrapperData->jState = WRAPPER_JSTATE_DOWN;
-    wrapperData->jStateTimeoutTicks = 0;
-    wrapperData->jStateTimeoutTicksSet = 0;
+    wrapperSetJavaState(WRAPPER_JSTATE_DOWN, -1, -1);
     jvmPid = -1;
 
     /* Remove java pid file if it was registered and created by this process. */
@@ -1385,21 +1388,19 @@ void wrapperKillProcessNow() {
  *  WRAPPER_JSTATE_KILLING.
  */
 void wrapperKillProcess(int useLoggerQueue) {
-    DWORD timeout = wrapperGetTicks();
+    int delay = 0;
 
     /* Check to make sure that the JVM process is still running */
     if (waitpid(jvmPid, NULL, WNOHANG) == 0) {
         /* JVM is still up when it should have already stopped itself. */
         if (wrapperData->requestThreadDumpOnFailedJVMExit) {
             requestDumpJVMState(useLoggerQueue);
-
-            timeout = wrapperAddToTicks(timeout, 5);
+            
+            delay = 5;
         }
     }
 
-    wrapperData->jState = WRAPPER_JSTATE_KILLING;
-    wrapperData->jStateTimeoutTicks = timeout;
-    wrapperData->jStateTimeoutTicksSet = 1;
+    wrapperSetJavaState(WRAPPER_JSTATE_KILLING, wrapperGetTicks(), delay);
 }
 
 /**
@@ -1567,6 +1568,9 @@ int setWorkingDir(char *app) {
 
 int main(int argc, char **argv) {
     int exitStatus;
+#ifdef _DEBUG
+    int i;
+#endif
 
     /* Initialize the properties variable. */
     properties = NULL;
@@ -1579,10 +1583,8 @@ int main(int argc, char **argv) {
     /* Setup the initial values of required properties. */
     wrapperData->configured = FALSE;
     wrapperData->isConsole = TRUE;
-    wrapperData->wState = WRAPPER_WSTATE_STARTING;
-    wrapperData->jState = WRAPPER_JSTATE_DOWN;
-    wrapperData->jStateTimeoutTicks = 0;
-    wrapperData->jStateTimeoutTicksSet = 0;
+    wrapperSetWrapperState(WRAPPER_WSTATE_STARTING);
+    wrapperSetJavaState(WRAPPER_JSTATE_DOWN, 0, -1);
     wrapperData->lastPingTicks = wrapperGetTicks();
     wrapperData->jvmCommand = NULL;
     wrapperData->exitRequested = FALSE;

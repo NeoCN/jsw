@@ -64,6 +64,7 @@ english/prop-java-library-path-append-system-path.html
 english/prop-java-mainclass.html
 english/prop-java-maxmemory.html
 english/prop-java-pidfile.html
+english/prop-java-statusfile.html
 english/prop-jvm-exit-timeout.html
 english/prop-logfile.html
 english/prop-logfile-format.html
@@ -96,6 +97,7 @@ english/prop-shutdown-timeout.html
 english/prop-single-invocation.html
 english/prop-startup-delay.html
 english/prop-startup-timeout.html
+english/prop-statusfile.html
 english/prop-successful-invocation-time.html
 english/prop-syslog-loglevel.html
 english/prop-use-system-time.html

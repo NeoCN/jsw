@@ -97,6 +97,9 @@ Java Service Wrapper Revision History.
 * Modify the HP-UX build so that it now dynamically links with the pthread
   library.  This was to make the binaries work with HP-UX 11.00.  Thanks to
   Sun Kun Choi for the patch.
+* Add new wrapper.statusfile and wrapper.java.statusfile properties which can
+  be used by external applications to monitor the internal state of the Wrapper
+  or JVM at any given time.  These will not be useful to most users.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
