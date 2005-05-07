@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.53  2005/05/07 01:34:42  mortenson
+// Add a new wrapper.commandfile property which can be used by external
+// applications to control the Wrapper and its JVM.
+//
 // Revision 1.52  2005/03/24 06:26:52  mortenson
 // Avoid displaying the packets used to transmit the wrapper properties in the log
 // file as it is very large and distracting.
@@ -2836,6 +2840,7 @@ public final class WrapperManager
                             try
                             {
                                 m_lowLogLevel = Integer.parseInt( msg );
+                                m_debug = ( m_lowLogLevel <= WRAPPER_LOG_LEVEL_DEBUG );
                                 if ( m_debug )
                                 {
                                     m_out.println( "Wrapper Manager: LowLogLevel from Wrapper "

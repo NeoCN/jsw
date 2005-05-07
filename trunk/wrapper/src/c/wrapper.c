@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.135  2005/05/07 01:34:41  mortenson
+ * Add a new wrapper.commandfile property which can be used by external
+ * applications to control the Wrapper and its JVM.
+ *
  * Revision 1.134  2005/05/05 16:03:38  mortenson
  * Fix a problem where string valued properties were getting corrupted if the config
  *  file was reloaded. (Not a released problem)
@@ -1315,13 +1319,9 @@ int wrapperRunService() {
  * Used to ask the state engine to shut down the JVM and Wrapper
  */
 void wrapperStopProcess(int useLoggerQueue, int exitCode) {
-    /* If it has not already been set, set the exit request flag in the wrapper data. */
-    if (wrapperData->exitRequested || wrapperData->restartRequested ||
-        (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
-        (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
-        (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
-        (wrapperData->jState == WRAPPER_JSTATE_DOWN)) {
-
+    /* If we are are not aready shutting down, then do so. */
+    if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
+        (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
         if (wrapperData->isDebugging) {
             log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                 "wrapperStopProcess(%d) called.  (IGNORED)", exitCode);
@@ -1331,9 +1331,21 @@ void wrapperStopProcess(int useLoggerQueue, int exitCode) {
             log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                 "wrapperStopProcess(%d) called.", exitCode);
         }
+        
+        /* If it has not already been set, set the exit request flag. */
+        if (wrapperData->exitRequested ||
+            (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
+            (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
+            (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
+            (wrapperData->jState == WRAPPER_JSTATE_DOWN)) {
+            /* JVM is already down or going down. */
+        } else {
+            wrapperData->exitRequested = TRUE;
+        }
 
         wrapperData->exitCode = exitCode;
-        wrapperData->exitRequested = TRUE;
+        wrapperData->restartRequested = FALSE;
+        wrapperData->wState = WRAPPER_WSTATE_STOPPING;
     }
 }
 

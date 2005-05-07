@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.21  2005/05/07 01:34:41  mortenson
+ * Add a new wrapper.commandfile property which can be used by external
+ * applications to control the Wrapper and its JVM.
+ *
  * Revision 1.20  2005/05/05 16:05:46  mortenson
  * Add new wrapper.statusfile and wrapper.java.statusfile properties which can
  *  be used by external applications to monitor the internal state of the Wrapper
@@ -378,11 +382,11 @@ void anchorPoll(DWORD nowTicks) {
 #endif
 
     if (wrapperData->anchorFilename) {
-        if (wrapperData->isLoopOutputEnabled) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Loop: check anchor file");
-        }
-        
         if (wrapperTickExpired(nowTicks, wrapperData->anchorTimeoutTicks)) {
+            if (wrapperData->isLoopOutputEnabled) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Loop: check anchor file");
+            }
+            
             result = stat(wrapperData->anchorFilename, &fileStat);
             if (result == 0) {
                 /* Anchor file exists.  Do nothing. */
@@ -422,6 +426,198 @@ void anchorPoll(DWORD nowTicks) {
             }
 
             wrapperData->anchorTimeoutTicks = wrapperAddToTicks(nowTicks, wrapperData->anchorPollInterval);
+        }
+    }
+}
+
+/**
+ * Tests for the existence of the command file.  If it exists then it will be
+ *  opened and any included commands will be processed.  On completion, the
+ *  file will be deleted.
+ *
+ * nowTicks: The tick counter value this time through the event loop.
+ */
+#define MAX_COMMAND_LENGTH 80
+void commandPoll(DWORD nowTicks) {
+    struct stat fileStat;
+    int result;
+    FILE *stream;
+    int cnt;
+    char buffer[MAX_COMMAND_LENGTH];
+    char *c;
+    char *d;
+    char *command;
+    char *params;
+    int exitCode;
+    int logLevel;
+    int oldLowLogLevel;
+    int newLowLogLevel;
+    int flag;
+
+
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, 
+        "Command timeout=%d, now=%d", wrapperData->commandTimeoutTicks, nowTicks);
+#endif
+
+    if (wrapperData->commandFilename) {
+        if (wrapperTickExpired(nowTicks, wrapperData->commandTimeoutTicks)) {
+            if (wrapperData->isLoopOutputEnabled) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Loop: check command file");
+            }
+            
+            result = stat(wrapperData->commandFilename, &fileStat);
+            if (result == 0) {
+                /* Command file exists. */
+#ifdef _DEBUG
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
+                    "The command file %s exists.", wrapperData->commandFilename);
+#endif
+                /* We need to be able to lock and then read the command file.  Other
+                 *  applications will be creating this file so we need to handle the
+                 *  case where it is locked for a few moments. */
+                cnt = 0;
+                do {
+                    stream = fopen(wrapperData->commandFilename, "r+t");
+                    if (stream == NULL) {
+                        /* Sleep for a tenth of a second. */
+                        wrapperSleep(100);
+                    }
+
+                    cnt++;
+                } while ((cnt < 10) && (stream == NULL));
+
+                if (stream == NULL) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                        "Unable to read the command file: %s", wrapperData->commandFilename);
+                } else {
+                    /* Read in each of the commands line by line. */
+                    do {
+                        c = fgets(buffer, MAX_COMMAND_LENGTH, stream);
+                        if (c != NULL) {
+                            /* Always strip both ^M and ^J off the end of the line, this is done rather
+                             *  than simply checking for \n so that files will work on all platforms
+                             *  even if their line feeds are incorrect. */
+                            if ((d = strchr(buffer, 13 /* ^M */)) != NULL) { 
+                                d[0] = '\0';
+                            }
+                            if ((d = strchr(buffer, 10 /* ^J */)) != NULL) { 
+                                d[0] = '\0';
+                            }
+
+                            command = buffer;
+
+                            /** Look for the first space, everything after it will be the parameter. */
+                            if ((params = strchr(buffer, ' ')) != NULL ) {
+                                params[0] = '\0';
+
+                                /* Find the first non-space character. */
+                                do {
+                                    params++;
+                                } while (params[0] == ' ');
+                            }
+
+                            /* Process the command. */
+                            if (strcmpIgnoreCase(command, "RESTART") == 0) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Command '%s'. Restarting JVM.", command);
+                                wrapperRestartProcess();
+                            } else if (strcmpIgnoreCase(command, "STOP") == 0) {
+                                if (params == NULL) {
+                                    exitCode = 0;
+                                } else {
+                                    exitCode = atoi(params);
+                                }
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Command '%s'. Shutting down with exit code %d.", command, exitCode);
+
+                                wrapperStopProcess(FALSE, exitCode);
+                            } else if (strcmpIgnoreCase(command, "DUMP") == 0) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Command '%s'. Requesting a Thread Dump.", command);
+                                requestDumpJVMState(FALSE);
+                            } else if ((strcmpIgnoreCase(command, "CONSOLE_LOGLEVEL") == 0) ||
+                                    (strcmpIgnoreCase(command, "LOGFILE_LOGLEVEL") == 0) ||
+                                    (strcmpIgnoreCase(command, "SYSLOG_LOGLEVEL") == 0)) {
+                                if (params == NULL) {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Command '%s' is missing its log level.", command);
+                                } else {
+                                    logLevel = getLogLevelForName(params);
+                                    if (logLevel == LEVEL_UNKNOWN) {
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Command '%s' specified an unknown log level: '%'", command, params);
+                                    } else {
+                                        oldLowLogLevel = getLowLogLevel();
+                                        
+                                        if (strcmpIgnoreCase(command, "CONSOLE_LOGLEVEL") == 0) {
+                                            setConsoleLogLevelInt(logLevel);
+                                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Command '%s'. Set console log level to '%s'.", command, params);
+                                        } else if (strcmpIgnoreCase(command, "LOGFILE_LOGLEVEL") == 0) {
+                                            setLogfileLevelInt(logLevel);
+                                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Command '%s'. Set log file log level to '%s'.", command, params);
+                                        } else if (strcmpIgnoreCase(command, "SYSLOG_LOGLEVEL") == 0) {
+                                            setSyslogLevelInt(logLevel);
+                                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Command '%s'. Set syslog log level to '%s'.", command, params);
+                                        } else {
+                                            /* Shouldn't get here. */
+                                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Command '%s' lead to an unexpected state.", command);
+                                        }
+                                        
+                                        newLowLogLevel = getLowLogLevel();
+                                        if (oldLowLogLevel != newLowLogLevel) {
+                                            wrapperData->isDebugging = (newLowLogLevel <= LEVEL_DEBUG);
+                                            
+                                            sprintf(buffer, "%d", getLowLogLevel());
+                                            wrapperProtocolFunction(WRAPPER_MSG_LOW_LOG_LEVEL, buffer);
+                                        }
+                                    }
+                                }
+                            } else if ((strcmpIgnoreCase(command, "LOOP_OUTPUT") == 0) ||
+                                    (strcmpIgnoreCase(command, "STATE_OUTPUT") == 0) ||
+                                    (strcmpIgnoreCase(command, "MEMORY_OUTPUT") == 0) ||
+                                    (strcmpIgnoreCase(command, "CPU_OUTPUT") == 0) ||
+                                    (strcmpIgnoreCase(command, "TIMER_OUTPUT") == 0) ||
+                                    (strcmpIgnoreCase(command, "SLEEP_OUTPUT") == 0)) {
+                                flag = ((params != NULL) && (strcmpIgnoreCase(params, "TRUE") == 0));
+                                if (strcmpIgnoreCase(command, "LOOP_OUTPUT") == 0) {
+                                    wrapperData->isLoopOutputEnabled = flag;
+                                } else if (strcmpIgnoreCase(command, "STATE_OUTPUT") == 0) {
+                                    wrapperData->isStateOutputEnabled = flag;
+                                } else if (strcmpIgnoreCase(command, "MEMORY_OUTPUT") == 0) {
+                                    wrapperData->isMemoryOutputEnabled = flag;
+                                } else if (strcmpIgnoreCase(command, "CPU_OUTPUT") == 0) {
+                                    wrapperData->isCPUOutputEnabled = flag;
+                                } else if (strcmpIgnoreCase(command, "TIMER_OUTPUT") == 0) {
+                                    wrapperData->isTimerOutputEnabled = flag;
+                                } else if (strcmpIgnoreCase(command, "SLEEP_OUTPUT") == 0) {
+                                    wrapperData->isSleepOutputEnabled = flag;
+                                }
+                                if (flag) {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Command '%s'. Enable %s.", command, command);
+                                } else {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Command '%s'. Disable %s.", command, command);
+                                }
+                            } else {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Command '%s' is unknown, ignoring.", command);
+                            }
+                        }
+                    } while (c != NULL);
+
+                    /* Close the file. */
+                    fclose(stream);
+
+                    /* Delete the file. */
+                    if (remove(wrapperData->commandFilename) == -1) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                            "Unable to delete the command file, %s: %s",
+                            wrapperData->commandFilename, getLastErrorText());
+                    }
+                }
+            } else {
+                /* Command file does not exist. */
+#ifdef _DEBUG
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
+                    "The command file %s does not exist.", wrapperData->commandFilename);
+#endif
+            }
+
+            wrapperData->commandTimeoutTicks = wrapperAddToTicks(nowTicks, wrapperData->commandPollInterval);
         }
     }
 }
@@ -1034,7 +1230,9 @@ void wrapperEventLoop() {
     int nextSleep;
     DWORD activity;
 
+    /* Initialize the tick timeouts. */
     wrapperData->anchorTimeoutTicks = lastCycleTicks;
+    wrapperData->commandTimeoutTicks = lastCycleTicks;
     wrapperData->memoryOutputTimeoutTicks = lastCycleTicks;
     wrapperData->cpuOutputTimeoutTicks = lastCycleTicks;
     wrapperData->logfileInactivityTimeoutTicks = lastCycleTicks;
@@ -1167,6 +1365,10 @@ void wrapperEventLoop() {
 
         /* If we are configured to do so, confirm that the anchor file still exists. */
         anchorPoll(nowTicks);
+        
+        /* If we are configured to do so, look for a command file and perform any
+         *  requested operations. */
+        commandPoll(nowTicks);
         
         if (wrapperData->exitRequested) {
             /* A new request for the JVM to be stopped has been made. */
