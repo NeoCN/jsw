@@ -49,6 +49,9 @@
             <listproperty version="3.1.1">
                 <ulink url="prop-anchorfile.html">wrapper.anchorfile</ulink>
             </listproperty>
+            <listproperty version="3.2.0">
+                <ulink url="prop-commandfile.html">wrapper.commandfile</ulink>
+            </listproperty>
             <listproperty version="2.2.8">
                 <ulink url="prop-cpu-timeout.html">wrapper.cpu.timeout</ulink>
             </listproperty>
