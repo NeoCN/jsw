@@ -100,6 +100,8 @@ Java Service Wrapper Revision History.
 * Add new wrapper.statusfile and wrapper.java.statusfile properties which can
   be used by external applications to monitor the internal state of the Wrapper
   or JVM at any given time.  These will not be useful to most users.
+* Add a new wrapper.commandfile property which can be used by external
+  applications to control the Wrapper and its JVM.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
