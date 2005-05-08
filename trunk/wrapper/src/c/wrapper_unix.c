@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.103  2005/05/08 10:33:57  mortenson
+ * Fix some compiler problems.
+ *
  * Revision 1.102  2005/05/08 10:11:15  mortenson
  * Fix some unix linking problems.
  *
@@ -481,7 +484,7 @@ int writePidFile(const char *filename, DWORD pid) {
     umask(old_umask);
     
     if (pid_fp != NULL) {
-        fprintf(pid_fp, "%d\n", pid);
+        fprintf(pid_fp, "%d\n", (int)pid);
         fclose(pid_fp);
     } else {
         return 1;
@@ -1104,7 +1107,7 @@ void wrapperExecute() {
 
             /* If a java pid filename is specified then write the pid of the java process. */
             if (wrapperData->javaPidFilename) {
-                if (writePidFile(wrapperData->javaPidFilename, javaProcessId)) {
+                if (writePidFile(wrapperData->javaPidFilename, getpid())) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                         "Unable to write the Java PID file: %s", wrapperData->javaPidFilename);
                 }
