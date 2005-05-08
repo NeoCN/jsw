@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.70  2005/05/08 10:11:15  mortenson
+ * Fix some unix linking problems.
+ *
  * Revision 1.69  2005/05/08 09:43:33  mortenson
  * Add a new wrapper.java.idfile property which can be used by external
  * applications to monitor the internal state of the JVM at any given time.
@@ -633,6 +636,12 @@ extern void wrapperRestartProcess();
 extern void wrapperEventLoop();
 
 extern void wrapperBuildKey();
+
+/**
+ * Send a signal to the JVM process asking it to dump its JVM state.
+ */
+extern void wrapperRequestDumpJVMState(int useLoggerQueue);
+
 extern void wrapperBuildJavaCommand();
 
 /**

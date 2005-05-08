@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.104  2005/05/08 10:11:16  mortenson
+ * Fix some unix linking problems.
+ *
  * Revision 1.103  2005/05/08 09:43:33  mortenson
  * Add a new wrapper.java.idfile property which can be used by external
  * applications to monitor the internal state of the JVM at any given time.
@@ -728,7 +731,7 @@ int wrapperConsoleHandler(int key) {
              *  processflags=CREATE_NEW_PROCESS_GROUP; then the java process will
              *  also get this message, so it can be ignored here. */
             /*
-            requestDumpJVMState(TRUE);
+            wrapperRequestDumpJVMState(TRUE);
             */
     
             quit = FALSE;
@@ -799,7 +802,7 @@ int wrapperConsoleHandler(int key) {
 /**
  * Send a signal to the JVM process asking it to dump its JVM state.
  */
-void requestDumpJVMState(int useLoggerQueue) {
+void wrapperRequestDumpJVMState(int useLoggerQueue) {
     if (javaProcess != NULL) {
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
             "Dumping JVM state.");
@@ -1533,7 +1536,7 @@ void wrapperKillProcess(int useLoggerQueue) {
     if (ret == WAIT_TIMEOUT) {
         /* JVM is still up when it should have already stopped itself. */
         if (wrapperData->requestThreadDumpOnFailedJVMExit) {
-            requestDumpJVMState(useLoggerQueue);
+            wrapperRequestDumpJVMState(useLoggerQueue);
 
             delay = 5;
         }
@@ -1781,7 +1784,7 @@ void wrapperExecute() {
 
     /* If a java id filename is specified then write the id of the java process. */
     if (wrapperData->javaIdFilename) {
-        if (writePidFile(wrapperData->javaIdFilename, wrapperData->jvmRestarts + 1)) {
+        if (writePidFile(wrapperData->javaIdFilename, wrapperData->jvmRestarts)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 "Unable to write the Java ID file: %s", wrapperData->javaIdFilename);
         }
