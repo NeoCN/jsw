@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.102  2005/05/08 10:11:15  mortenson
+ * Fix some unix linking problems.
+ *
  * Revision 1.101  2005/05/08 09:43:33  mortenson
  * Add a new wrapper.java.idfile property which can be used by external
  * applications to monitor the internal state of the JVM at any given time.
@@ -473,9 +476,9 @@ int writePidFile(const char *filename, DWORD pid) {
     FILE *pid_fp = NULL;
     int old_umask;
 
-    old_umask = _umask(022);
+    old_umask = umask(022);
     pid_fp = fopen(filename, "w");
-    _umask(old_umask);
+    umask(old_umask);
     
     if (pid_fp != NULL) {
         fprintf(pid_fp, "%d\n", pid);
@@ -489,7 +492,7 @@ int writePidFile(const char *filename, DWORD pid) {
 /**
  * Send a signal to the JVM process asking it to dump its JVM state.
  */
-void requestDumpJVMState(int useLoggerQueue) {
+void wrapperRequestDumpJVMState(int useLoggerQueue) {
     log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
         "Dumping JVM state.");
     if (kill(jvmPid, SIGQUIT) < 0) {
@@ -682,7 +685,7 @@ void sigActionQuit(int sigNum, siginfo_t *sigInfo, void *na) {
         log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
             "Timer thread received an Quit signal.  Ignoring.");
     } else {
-        requestDumpJVMState(TRUE);
+        wrapperRequestDumpJVMState(TRUE);
     }
 }
 
@@ -777,7 +780,7 @@ void handleQuit(int sig_num) {
         log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
             "Timer thread received an Quit signal.  Ignoring.");
     } else {
-        requestDumpJVMState(TRUE);
+        wrapperRequestDumpJVMState(TRUE);
     }
 
     signal(SIGQUIT, handleQuit); 
@@ -1109,7 +1112,7 @@ void wrapperExecute() {
 
             /* If a java id filename is specified then write the pid of the java process. */
             if (wrapperData->javaIdFilename) {
-                if (writePidFile(wrapperData->javaIdFilename, wrapperData->jvmRestarts + 1)) {
+                if (writePidFile(wrapperData->javaIdFilename, wrapperData->jvmRestarts)) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                         "Unable to write the Java ID file: %s", wrapperData->javaIdFilename);
                 }
@@ -1426,7 +1429,7 @@ void wrapperKillProcess(int useLoggerQueue) {
     if (waitpid(jvmPid, NULL, WNOHANG) == 0) {
         /* JVM is still up when it should have already stopped itself. */
         if (wrapperData->requestThreadDumpOnFailedJVMExit) {
-            requestDumpJVMState(useLoggerQueue);
+            wrapperRequestDumpJVMState(useLoggerQueue);
             
             delay = 5;
         }

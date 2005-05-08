@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.22  2005/05/08 10:11:16  mortenson
+ * Fix some unix linking problems.
+ *
  * Revision 1.21  2005/05/07 01:34:41  mortenson
  * Add a new wrapper.commandfile property which can be used by external
  * applications to control the Wrapper and its JVM.
@@ -135,13 +138,13 @@
  * Version CVS $Revision$ $Date$
  */
 
-#include <io.h>
 #include <stdio.h>
 #include <time.h>
 #include <sys/stat.h>
 #include <string.h>
 
 #ifdef WIN32
+#include <io.h>
 #else /* UNIX */
 #include <unistd.h>
 #endif
@@ -217,9 +220,15 @@ void writeStateFile(const char *filename, const char *state) {
     /* If other processes are reading the state file it may be locked for a moment.
      *  Avoid problems by trying a few times before giving up. */
     while (cnt < 10) {
+#ifdef WIN32
         old_umask = _umask(022);
         fp = fopen(filename, "w");
         _umask(old_umask);
+#else
+        old_umask = umask(022);
+        fp = fopen(filename, "w");
+        umask(old_umask);
+#endif
         
         if (fp != NULL) {
             fprintf(fp, "%s\n", state);
@@ -532,7 +541,7 @@ void commandPoll(DWORD nowTicks) {
                                 wrapperStopProcess(FALSE, exitCode);
                             } else if (strcmpIgnoreCase(command, "DUMP") == 0) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Command '%s'. Requesting a Thread Dump.", command);
-                                requestDumpJVMState(FALSE);
+                                wrapperRequestDumpJVMState(FALSE);
                             } else if ((strcmpIgnoreCase(command, "CONSOLE_LOGLEVEL") == 0) ||
                                     (strcmpIgnoreCase(command, "LOGFILE_LOGLEVEL") == 0) ||
                                     (strcmpIgnoreCase(command, "SYSLOG_LOGLEVEL") == 0)) {
