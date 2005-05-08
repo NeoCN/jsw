@@ -127,6 +127,9 @@
                 <listproperty version="3.1.2">
                     <ulink url="prop-java-command-loglevel.html">wrapper.java.command.loglevel</ulink>
                 </listproperty>
+                <listproperty version="3.2.0">
+                    <ulink url="prop-java-idfile.html">wrapper.java.idfile</ulink>
+                </listproperty>
                 <listproperty>
                     <ulink url="prop-java-initmemory.html">wrapper.java.initmemory</ulink>
                 </listproperty>
