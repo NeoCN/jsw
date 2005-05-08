@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.23  2005/05/08 10:33:57  mortenson
+ * Fix some compiler problems.
+ *
  * Revision 1.22  2005/05/08 10:11:16  mortenson
  * Fix some unix linking problems.
  *
@@ -147,6 +150,7 @@
 #include <io.h>
 #else /* UNIX */
 #include <unistd.h>
+#include <stdlib.h>
 #endif
 
 #include "wrapper.h"
