@@ -64,6 +64,9 @@
             <listproperty version="3.0.5">
                 <ulink url="prop-ignore-signals.html">wrapper.ignore_signals</ulink>
             </listproperty>
+            <listproperty version="3.2.0">
+                <ulink url="prop-java-idfile.html">wrapper.java.idfile</ulink>
+            </listproperty>
             <listproperty version="3.0.5">
                 <ulink url="prop-java-pidfile.html">wrapper.java.pidfile</ulink>
             </listproperty>

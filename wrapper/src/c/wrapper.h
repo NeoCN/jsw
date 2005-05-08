@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.69  2005/05/08 09:43:33  mortenson
+ * Add a new wrapper.java.idfile property which can be used by external
+ * applications to monitor the internal state of the JVM at any given time.
+ *
  * Revision 1.68  2005/05/05 16:05:45  mortenson
  * Add new wrapper.statusfile and wrapper.java.statusfile properties which can
  *  be used by external applications to monitor the internal state of the Wrapper
@@ -378,6 +382,7 @@ struct WrapperConfig {
     int*    outputFilterActions;    /* Array of output filter actions. */
     char    *pidFilename;           /* Name of file to store wrapper pid in */
     char    *javaPidFilename;       /* Name of file to store jvm pid in */
+    char    *javaIdFilename;        /* Name of file to store jvm id in */
     char    *statusFilename;        /* Name of file to store wrapper status in */
     char    *javaStatusFilename;    /* Name of file to store jvm status in */
     char    *commandFilename;       /* Name of a command file used to send commands to the Wrapper. */

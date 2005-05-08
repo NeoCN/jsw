@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.101  2005/05/08 09:43:33  mortenson
+ * Add a new wrapper.java.idfile property which can be used by external
+ * applications to monitor the internal state of the JVM at any given time.
+ *
  * Revision 1.100  2005/05/05 16:05:45  mortenson
  * Add new wrapper.statusfile and wrapper.java.statusfile properties which can
  *  be used by external applications to monitor the internal state of the Wrapper
@@ -406,9 +410,6 @@ int pipeInitialized = 0;
 
 char wrapperClasspathSeparator = ':';
 
-/* Flag which is set if this process creates a pid file. */
-int ownJavaPidFile = 0;
-
 pthread_t timerThreadId;
 /* Initialize the timerTicks to a very high value.  This means that we will
  *  always encounter the first rollover (256 * WRAPPER_MS / 1000) seconds
@@ -428,6 +429,21 @@ void appExit(int exitCode) {
     if (wrapperData->pidFilename) {
         unlink(wrapperData->pidFilename);
     }
+    
+    /* Remove status file.  It may no longer exist. */
+    if (wrapperData->statusFilename) {
+        unlink(wrapperData->statusFilename);
+    }
+    
+    /* Remove java status file if it was registered and created by this process. */
+    if (wrapperData->javaStatusFilename) {
+        unlink(wrapperData->javaStatusFilename);
+    }
+
+    /* Remove java id file if it was registered and created by this process. */
+    if (wrapperData->javaIdFilename) {
+        unlink(wrapperData->javaIdFilename);
+    }
 
     /* Remove anchor file.  It may no longer exist. */
     if (wrapperData->anchorFilename) {
@@ -445,6 +461,29 @@ void appExit(int exitCode) {
  */
 int wrapperGetLastError() {
     return errno;
+}
+
+/**
+ * Writes a PID to disk.
+ *
+ * filename: File to write to.
+ * pid: pid to write in the file.
+ */
+int writePidFile(const char *filename, DWORD pid) {
+    FILE *pid_fp = NULL;
+    int old_umask;
+
+    old_umask = _umask(022);
+    pid_fp = fopen(filename, "w");
+    _umask(old_umask);
+    
+    if (pid_fp != NULL) {
+        fprintf(pid_fp, "%d\n", pid);
+        fclose(pid_fp);
+    } else {
+        return 1;
+    }
+    return 0;
 }
 
 /**
@@ -966,9 +1005,6 @@ void wrapperBuildJavaCommand() {
 void wrapperExecute() {
     pid_t proc;
 
-    FILE *pid_fp = NULL;
-    mode_t old_umask;
-
     /* Only allocate a pipe if we have not already done so. */
     if (!pipeInitialized) {
         /* Create the pipe. */
@@ -1065,19 +1101,17 @@ void wrapperExecute() {
 
             /* If a java pid filename is specified then write the pid of the java process. */
             if (wrapperData->javaPidFilename) {
-                old_umask = umask(022);
-                pid_fp = fopen(wrapperData->javaPidFilename, "w");
-                umask(old_umask);
-
-                if (pid_fp != NULL) {
-                    fprintf(pid_fp, "%d\n", (int)jvmPid);
-                    fclose(pid_fp);
-
-                    /* Remember that we created the pid file. */
-                    ownJavaPidFile = 1;
-                } else {
+                if (writePidFile(wrapperData->javaPidFilename, javaProcessId)) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                         "Unable to write the Java PID file: %s", wrapperData->javaPidFilename);
+                }
+            }
+
+            /* If a java id filename is specified then write the pid of the java process. */
+            if (wrapperData->javaIdFilename) {
+                if (writePidFile(wrapperData->javaIdFilename, wrapperData->jvmRestarts + 1)) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                        "Unable to write the Java ID file: %s", wrapperData->javaIdFilename);
                 }
             }
         }
@@ -1177,9 +1211,8 @@ int wrapperGetProcessStatus() {
         wrapperJVMProcessExited(exitCode);
 
         /* Remove java pid file if it was registered and created by this process. */
-        if ((ownJavaPidFile) && (wrapperData->javaPidFilename)) {
+        if (wrapperData->javaPidFilename) {
             unlink(wrapperData->javaPidFilename);
-            ownJavaPidFile = 0;
         }
     } else {
         res = WRAPPER_PROCESS_UP;
@@ -1372,9 +1405,8 @@ void wrapperKillProcessNow() {
     jvmPid = -1;
 
     /* Remove java pid file if it was registered and created by this process. */
-    if ((ownJavaPidFile) && (wrapperData->javaPidFilename)) {
+    if (wrapperData->javaPidFilename) {
         unlink(wrapperData->javaPidFilename);
-        ownJavaPidFile = 0;
     }
 
     /* Close any open socket to the JVM */
@@ -1415,25 +1447,6 @@ void wrapperUsage(char *appName) {
     printf("  wrapper.debug=true\n");
     printf("\n");
     printf("Options:  --help\n");
-}
-
-int writePidFile(const char* filename) {
-    FILE *pid_fp = NULL;
-    mode_t old_umask;
-
-    /*enter_suid(); */
-    old_umask = umask(022);
-    pid_fp = fopen(filename, "w");
-    umask(old_umask);
-    /*leave_suid(); */
-    
-    if (pid_fp != NULL) {
-        fprintf(pid_fp, "%d\n", (int)getpid());
-        fclose(pid_fp);
-    } else {
-        return 1;
-    }
-    return 0;
 }
 
 /**
@@ -1657,7 +1670,7 @@ int main(int argc, char **argv) {
             /* Write pid and anchor files as requested.  If they are the same file the file is
              *  simply overwritten. */
             if (wrapperData->anchorFilename) {
-                if (writePidFile(wrapperData->anchorFilename)) {
+                if (writePidFile(wrapperData->anchorFilename, (int)getpid())) {
                     log_printf
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                          "ERROR: Could not write anchor file %s: %s",
@@ -1667,7 +1680,7 @@ int main(int argc, char **argv) {
                 }
             }
             if (wrapperData->pidFilename) {
-                if (writePidFile(wrapperData->pidFilename)) {
+                if (writePidFile(wrapperData->pidFilename, (int)getpid())) {
                     log_printf
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                          "ERROR: Could not write pid file %s: %s",

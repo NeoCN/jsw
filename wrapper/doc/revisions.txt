@@ -102,6 +102,8 @@ Java Service Wrapper Revision History.
   or JVM at any given time.  These will not be useful to most users.
 * Add a new wrapper.commandfile property which can be used by external
   applications to control the Wrapper and its JVM.
+* Add a new wrapper.java.idfile property which can be used by external
+  applications to monitor the internal state of the JVM at any given time.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager

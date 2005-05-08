@@ -233,6 +233,13 @@ $Id$
                     Wrapper and its JVM.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add a new <ulink url="prop-java-idfile.html">wrapper.java.idfile</ulink>
+                    property which can be used by external applications to monitor the
+                    internal state of the JVM at any given time.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">

@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.103  2005/05/08 09:43:33  mortenson
+ * Add a new wrapper.java.idfile property which can be used by external
+ * applications to monitor the internal state of the JVM at any given time.
+ *
  * Revision 1.102  2005/05/05 16:05:45  mortenson
  * Add new wrapper.statusfile and wrapper.java.statusfile properties which can
  *  be used by external applications to monitor the internal state of the Wrapper
@@ -593,6 +597,11 @@ void appExit(int exitCode) {
             unlink(wrapperData->javaStatusFilename);
         }
         
+        /* Remove java id file if it was registered and created by this process. */
+        if (wrapperData->javaIdFilename) {
+            unlink(wrapperData->javaIdFilename);
+        }
+        
         /* Remove anchor file.  It may no longer exist. */
         if (wrapperData->anchorFilename) {
             unlink(wrapperData->anchorFilename);
@@ -620,6 +629,12 @@ int wrapperGetLastError() {
     return WSAGetLastError();
 }
 
+/**
+ * Writes a PID to disk.
+ *
+ * filename: File to write to.
+ * pid: pid to write in the file.
+ */
 int writePidFile(const char *filename, DWORD pid) {
     FILE *pid_fp = NULL;
     int old_umask;
@@ -1761,6 +1776,14 @@ void wrapperExecute() {
         if (writePidFile(wrapperData->javaPidFilename, javaProcessId)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 "Unable to write the Java PID file: %s", wrapperData->javaPidFilename);
+        }
+    }
+
+    /* If a java id filename is specified then write the id of the java process. */
+    if (wrapperData->javaIdFilename) {
+        if (writePidFile(wrapperData->javaIdFilename, wrapperData->jvmRestarts + 1)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                "Unable to write the Java ID file: %s", wrapperData->javaIdFilename);
         }
     }
 }

@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.136  2005/05/08 09:43:33  mortenson
+ * Add a new wrapper.java.idfile property which can be used by external
+ * applications to monitor the internal state of the JVM at any given time.
+ *
  * Revision 1.135  2005/05/07 01:34:41  mortenson
  * Add a new wrapper.commandfile property which can be used by external
  * applications to control the Wrapper and its JVM.
@@ -2629,6 +2633,9 @@ int loadConfiguration() {
         updateStringValue(&wrapperData->pidFilename, (char *)getStringProperty(properties, "wrapper.pidfile", NULL));
     }
     updateStringValue(&wrapperData->javaPidFilename, (char *)getStringProperty(properties, "wrapper.java.pidfile", NULL));
+    
+    /** Get the java id file.  May be NULL */
+    updateStringValue(&wrapperData->javaIdFilename, (char *)getStringProperty(properties, "wrapper.java.idfile", NULL));
     
     /** Get the status files if any.  May be NULL */
     if (!wrapperData->configured) {
