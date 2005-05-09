@@ -31,6 +31,18 @@
             -->
         <donorlist>
             <donor>
+                <date>May 7, 2005</date>
+                <amount>50.00</amount>
+                <name>Olivier Lange</name>
+                <message>Very convenient and easy to use, I feel safe relying on JSwrapper.</message>
+            </donor>
+            <donor>
+                <date>May 6, 2005</date>
+                <amount>50.00</amount>
+                <name>David Amphlett</name>
+                <message>As complicated or simple as you need it to be. Very stable and well documented. Excellent software. Thank you</message>
+            </donor>
+            <donor>
                 <date>Apr 21, 2005</date>
                 <amount>200.00</amount>
                 <name>Peter Makki</name>
