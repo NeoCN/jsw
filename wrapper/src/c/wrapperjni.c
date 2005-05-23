@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2004 Tanuki Software
+ * Copyright (c) 1999, 2005 Tanuki Software Inc.
  * 
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of the Java Service Wrapper and associated
@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.11  2005/05/23 02:37:55  mortenson
+ * Update the copyright information.
+ *
  * Revision 1.10  2004/07/15 14:16:37  mortenson
  * Make variables used by the signal polling code to remove a compiler warning
  * on 64-bit HP-UX systems.
