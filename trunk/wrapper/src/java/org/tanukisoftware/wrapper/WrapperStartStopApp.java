@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper;
 
 /*
- * Copyright (c) 1999, 2004 Tanuki Software
+ * Copyright (c) 1999, 2005 Tanuki Software Inc.
  * 
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of the Java Service Wrapper and associated
@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.9  2005/05/23 02:41:12  mortenson
+// Update the copyright information.
+//
 // Revision 1.8  2005/03/24 07:23:51  mortenson
 // Make it possible to control whether or not the helper classes wait for the main
 // methods to complete before reporting that the application has been started.

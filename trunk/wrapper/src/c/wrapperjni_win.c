@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2004 Tanuki Software
+ * Copyright (c) 1999, 2005 Tanuki Software Inc.
  * 
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of the Java Service Wrapper and associated
@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.22  2005/05/23 02:37:55  mortenson
+ * Update the copyright information.
+ *
  * Revision 1.21  2004/11/22 09:35:47  mortenson
  * Add methods for controlling other services.
  *

@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-rem Copyright (c) 1999, 2004 Tanuki Software
+rem Copyright (c) 1999, 2005 Tanuki Software Inc.
 rem
 rem Java Service Wrapper general NT service uninstall script
 rem

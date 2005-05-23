@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper;
 
 /*
- * Copyright (c) 1999, 2004 Tanuki Software
+ * Copyright (c) 1999, 2005 Tanuki Software Inc.
  * 
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of the Java Service Wrapper and associated
@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.3  2005/05/23 02:43:13  mortenson
+// Update the copyright information.
+//
 // Revision 1.2  2004/08/31 14:21:22  mortenson
 // Mark long values.
 //

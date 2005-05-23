@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper.test;
 
 /*
- * Copyright (c) 1999, 2004 Tanuki Software
+ * Copyright (c) 1999, 2005 Tanuki Software Inc.
  * 
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of the Java Service Wrapper and associated
@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.5  2005/05/23 02:39:30  mortenson
+// Update the copyright information.
+//
 // Revision 1.4  2004/08/13 14:34:03  mortenson
 // Fix a typo in javadoc references to the signalStopping() method.
 //
