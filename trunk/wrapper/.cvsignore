@@ -1,16 +1,7 @@
+dist
 lib
 ChangeLog
 build
 jdoc
 logs
-wrapper_*_*.tar.gz
-wrapper_*_*.tar
-wrapper_*_*
-wrapper_*_src_with_doc_src.zip
-wrapper_*_src_with_doc_src.tar.gz
-wrapper_*_src_with_doc_src.tar
-wrapper_*_src.zip
-wrapper_*_src.tar.gz
-wrapper_*_src.tar
-wrapper_*_src
 
