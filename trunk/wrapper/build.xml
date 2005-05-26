@@ -827,7 +827,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <property name="intermfile" value="wrapper_tmp_${version}"/>
         <property name="intermdir" value="${build.dir}/${intermfile}"/>
         
-        <available property="pre-release.exists" value="true" file="${intermmarker}"/>
+        <available property="pre-release.exists" value="true" file="${build.dir}/${intermmarker}"/>
     </target>
     <target name="pre-release:check" depends="pre-release:check-init" unless="pre-release.exists">
         <echo/>
