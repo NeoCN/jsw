@@ -1015,14 +1015,6 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <delete dir="${src.dir}/c/Release"/>
         <delete dir="${src.dir}/c/WrapperJNI___Win32_Debug"/>
         <delete dir="${src.dir}/c/WrapperJNI___Win32_Release"/>
-        <delete includeEmptyDirs="true">
-            <fileset dir="${basedir}">
-                <include name="wrapper_*/**/*"/>
-            </fileset>
-            <fileset dir="${basedir}">
-                <include name="wrapper_*"/>
-            </fileset>
-        </delete>
     </target>
     
     <!-- =================================================================== -->
@@ -1038,6 +1030,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
     <target name="total-clean" depends="clean, total-clean-unix"
         description="Clean up all build and target files">
         
+        <delete dir="${dist.dir}"/>
         <delete dir="${jdoc.dir}"/>
         <delete dir="${doc.dir}/english"/>
 
