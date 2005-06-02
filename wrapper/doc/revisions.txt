@@ -1,6 +1,10 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 3.2.0
+* Rework the release cycle so that the wrapper.jar file released for all
+  platforms is now built on the same machine.  This resolves a few
+  incompatibility problems caused by jars built on very new JVMs but run
+  on old JVMs.
 * Add additional output when the JVM can not be launched due to security
   restrictions on Windows.
 * Greatly improved the performance of file logging.  On a windows test machine
@@ -104,6 +108,10 @@ Java Service Wrapper Revision History.
   applications to control the Wrapper and its JVM.
 * Add a new wrapper.java.idfile property which can be used by external
   applications to monitor the internal state of the JVM at any given time.
+* Add a warning on startup if the JVM has a SecurityManager set but the
+  wrapper.jar has not been granted the AllPermissions permission.  Failure
+  to do so will almost certainly lead to the Wrapper throwing a number of
+  errors and this helps to point out the cause.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
