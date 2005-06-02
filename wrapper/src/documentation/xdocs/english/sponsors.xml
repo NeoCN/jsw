@@ -31,6 +31,12 @@
             -->
         <donorlist>
             <donor>
+                <date>Jun 2, 2005</date>
+                <amount>50.00</amount>
+                <name>Anonymous</name>
+                <message>Great product.</message>
+            </donor>
+            <donor>
                 <date>May 7, 2005</date>
                 <amount>50.00</amount>
                 <name>Olivier Lange</name>
