@@ -13,6 +13,14 @@ $Id$
         <itemizedlist>
             <listitem>
                 <para>
+                    Rework the release cycle so that the wrapper.jar file released for all
+                    platforms is now built on the same machine.  This resolves a few
+                    incompatibility problems caused by jars built on very new JVMs but run
+                    on old JVMs.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
                     Add additional output when the JVM can not be launched due to security
                     restrictions on Windows.
                 </para>
@@ -238,6 +246,14 @@ $Id$
                     Add a new <ulink url="prop-java-idfile.html">wrapper.java.idfile</ulink>
                     property which can be used by external applications to monitor the
                     internal state of the JVM at any given time.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Add a warning on startup if the JVM has a SecurityManager set but the
+                    wrapper.jar has not been granted the AllPermissions permission.  Failure
+                    to do so will almost certainly lead to the Wrapper throwing a number of
+                    errors and this helps to point out the cause.
                 </para>
             </listitem>
         </itemizedlist>
