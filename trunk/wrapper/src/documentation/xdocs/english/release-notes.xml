@@ -258,6 +258,14 @@ $Id$
             </listitem>
             <listitem>
                 <para>
+                    Add a security model which protects most Wrapper method calls when a
+                    SecurityManager has been registered.  See the
+                    <ulink url="security-model.html">Security Model</ulink> section
+                    for more details.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
                     Add a new pair of batch files which can be used to start and stop the
                     Wrapper when installed as a service.
                 </para>
