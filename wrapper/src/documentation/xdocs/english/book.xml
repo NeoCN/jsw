@@ -19,6 +19,7 @@
         
     <menu label="Documentation">
         <menu-item label="JMX Control"                href="jmx.html"/>
+        <menu-item label="Security Model"             href="security-model.html"/>
         <menu-item label="Feature Examples"           href="example.html"/>
         <menu-item label="Debugging Your Application" href="debugging.html"/>
         <menu-item label="Troubleshooting"            href="troubleshooting.html"/>

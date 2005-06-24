@@ -112,6 +112,9 @@ Java Service Wrapper Revision History.
   wrapper.jar has not been granted the AllPermissions permission.  Failure
   to do so will almost certainly lead to the Wrapper throwing a number of
   errors and this helps to point out the cause.
+* Add a security model which protects most Wrapper method calls when a
+  SecurityManager has been registered.  See the Security Model section
+  for more details.
 * Add a new pair of batch files which can be used to start and stop the
   Wrapper when installed as a service.
 
