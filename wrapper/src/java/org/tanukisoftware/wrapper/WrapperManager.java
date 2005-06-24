@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper;
 
 /*
- * Copyright (c) 1999, 2004 Tanuki Software
+ * Copyright (c) 1999, 2005 Tanuki Software Inc.
  * 
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of the Java Service Wrapper and associated
@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.54  2005/06/24 16:00:39  mortenson
+// Add a security model to protect the Wrapper and many of its calls when a
+// ServiceManager has been registered with the JVM.
+//
 // Revision 1.53  2005/05/07 01:34:42  mortenson
 // Add a new wrapper.commandfile property which can be used by external
 // applications to control the Wrapper and its JVM.
@@ -271,6 +275,9 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.security.AccessControlException;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -283,6 +290,9 @@ import org.tanukisoftware.wrapper.event.WrapperPingEvent;
 import org.tanukisoftware.wrapper.event.WrapperServiceControlEvent;
 import org.tanukisoftware.wrapper.event.WrapperTickEvent;
 import org.tanukisoftware.wrapper.resources.ResourceManager;
+import org.tanukisoftware.wrapper.security.WrapperEventPermission;
+import org.tanukisoftware.wrapper.security.WrapperPermission;
+import org.tanukisoftware.wrapper.security.WrapperServicePermission;
 
 /**
  * Handles all communication with the native portion of the Wrapper code.
@@ -392,6 +402,9 @@ public final class WrapperManager
     /** Reference to the original value of System.err. */
     private static PrintStream m_err;
     
+    /** Flag that will be set to true once a SecurityManager has been detected and tested. */
+    private static boolean m_securityManagerChecked = false;
+    
     private static boolean m_disposed = false;
     private static boolean m_started = false;
     private static WrapperManager m_instance = null;
@@ -500,6 +513,32 @@ public final class WrapperManager
      */
     static
     {
+        // The wraper.jar must be given AllPermissions if a security manager
+        //  has been configured.  This is not a problem if one of the standard
+        //  Wrapper helper classes is used to launch the JVM.
+        // If however a custom WrapperListener is being implemented then this
+        //  class will most likely be loaded by code that is neither part of
+        //  the system, nor part of the Wrapper code base.  To avoid having
+        //  to also give those classes AllPermissions as well, we do all of
+        //  initialization in a Privileged block.  This means that the code
+        //  only requires that the wrapper.jar has been given the required
+        //  permissions.
+        AccessController.doPrivileged(
+            new PrivilegedAction() {
+                public Object run() {
+                    privilegedClassInit();
+                    return null;
+                }
+            }
+        );
+    }
+    
+    /**
+     * The body of the static initializer is moved into a seperate method so
+     *  it can be run as a PrivilegedAction.
+     */
+    private static void privilegedClassInit()
+    {
         // Store references to the original System.out and System.err
         //  PrintStreams.  The WrapperManager will always output to the
         //  original streams so its output will always end up in the
@@ -514,6 +553,10 @@ public final class WrapperManager
         //  in the Wrapper or the properties are never sent.
         m_properties = new WrapperProperties();
         m_properties.lock();
+        
+        // This must be done before attempting to access any System Properties
+        //  as that could cause a SecurityException if it is too strict.
+        checkSecurityManager();
         
         // Check for the debug flag
         m_debug = WrapperSystemPropertyUtil.getBooleanProperty( "wrapper.debug", false );
@@ -1248,6 +1291,12 @@ public final class WrapperManager
      */
     public static void setConsoleTitle( String title )
     {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "setConsoleTitle" ) );
+        }
+        
         if ( m_libraryOK )
         {
             // Convert the unicode string to a string of bytes using the default
@@ -1277,6 +1326,12 @@ public final class WrapperManager
      */
     public static WrapperUser getUser( boolean groups )
     {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "getUser" ) );
+        }
+        
         WrapperUser user = null;
         if ( m_libraryOK )
         {
@@ -1321,6 +1376,12 @@ public final class WrapperManager
      */
     public static WrapperUser getInteractiveUser( boolean groups )
     {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "getInteractiveUser" ) );
+        }
+        
         WrapperUser user = null;
         if ( m_libraryOK )
         {
@@ -1341,6 +1402,12 @@ public final class WrapperManager
      */
     public static Properties getProperties()
     {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "getProperties" ) );
+        }
+        
         return m_properties;
     }
     
@@ -1355,6 +1422,12 @@ public final class WrapperManager
      */
     public static int getWrapperPID()
     {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "getWrapperPID" ) );
+        }
+        
         return WrapperSystemPropertyUtil.getIntProperty( "wrapper.pid", 0 );
     }
     
@@ -1369,6 +1442,12 @@ public final class WrapperManager
      */
     public static int getJavaPID()
     {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "getJavaPID" ) );
+        }
+        
         return WrapperSystemPropertyUtil.getIntProperty( "wrapper.java.pid", 0 );
     }
     
@@ -1380,6 +1459,12 @@ public final class WrapperManager
      */
     public static void requestThreadDump()
     {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "requestThreadDump" ) );
+        }
+        
         if ( m_libraryOK )
         {
             nativeRequestThreadDump();
@@ -1398,6 +1483,12 @@ public final class WrapperManager
      */
     public static void appearHung()
     {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "test.appearHung" ) );
+        }
+        
         m_out.println( "WARNING: Making JVM appear to be hung..." );
         m_appearHung = true;
     }
@@ -1410,6 +1501,12 @@ public final class WrapperManager
      */
     public static void accessViolation()
     {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "test.accessViolation" ) );
+        }
+        
         m_out.println( "WARNING: Attempting to cause an access violation..." );
         
         try
@@ -1446,6 +1543,12 @@ public final class WrapperManager
      */
     public static void accessViolationNative()
     {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "test.accessViolationNative" ) );
+        }
+        
         m_out.println( "WARNING: Attempting to cause an access violation..." );
         if ( m_libraryOK )
         {
@@ -1503,11 +1606,45 @@ public final class WrapperManager
      * Start the Java side of the Wrapper code running.  This will make it
      *  possible for the native side of the Wrapper to detect that the Java
      *  Wrapper is up and running.
+     * <p>
+     * This method must be called on startup and then can only be called once
+     *  so there is no reason for any security permission checks on this call.
+     *
+     * @param listener The WrapperListener instance which represents the
+     *                 application being started.
+     * @param args The argument list passed to the JVM when it was launched.
      */
-    public static synchronized void start( WrapperListener listener, String[] args )
+    public static synchronized void start( final WrapperListener listener, final String[] args )
+    {
+        // As was done in the static initializer, we need to execute the following
+        //  code in a privileged action so it is not necessary for the calling code
+        //  to have the same privileges as the wrapper jar.
+        // This is safe because this method can only be called once and that one call
+        //  will presumably be made on JVM startup.
+        AccessController.doPrivileged(
+            new PrivilegedAction() {
+                public Object run() {
+                    privilegedStart( listener, args );
+                    return null;
+                }
+            }
+        );
+    }
+    
+    /**
+     * Called by the start method within a PrivilegedAction.
+     *
+     * @param WrapperListener The WrapperListener instance which represents
+     *                        the application being started.
+     * @param args The argument list passed to the JVM when it was launched.
+     */
+    private static void privilegedStart( WrapperListener listener, String[] args )
     {
         m_out.println( "Wrapper (Version " + getVersion() + ") http://wrapper.tanukisoftware.org" );
         m_out.println();
+        
+        // Check the SecurityManager here as it is possible that it was set before this call.
+        checkSecurityManager();
         
         if ( m_debug )
         {
@@ -1562,9 +1699,22 @@ public final class WrapperManager
     /**
      * Tells the native wrapper that the JVM wants to restart, then informs
      *	all listeners that the JVM is about to shutdown before killing the JVM.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("restart") permission.
+     *
+     * @see WrapperPermission
      */
     public static void restart()
+        throws SecurityException
     {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "restart" ) );
+        }
+        
         if ( m_debug )
         {
             m_out.println( "WrapperManager.restart() called by thread: "
@@ -1611,7 +1761,17 @@ public final class WrapperManager
         {
         }
         
-        stopInner( 0 );
+        // This is safe because we are already checking for the privilege to restart the JVM
+        //  above.  If we get this far then we want the Wrapper to be able to do everything
+        //  necessary to stop the JVM.
+        AccessController.doPrivileged(
+            new PrivilegedAction() {
+                public Object run() {
+                    privilegedStopInner( 0 );
+                    return null;
+                }
+            }
+        );
     }
     
     /**
@@ -1619,9 +1779,21 @@ public final class WrapperManager
      *	all listeners that the JVM is about to shutdown before killing the JVM.
      *
      * @param exitCode The exit code that the Wrapper will return when it exits.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("stop") permission.
+     *
+     * @see WrapperPermission
      */
-    public static void stop( int exitCode )
+    public static void stop( final int exitCode )
     {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "stop" ) );
+        }
+        
         if ( m_debug )
         {
             m_out.println( "WrapperManager.stop(" + exitCode + ") called by thread: "
@@ -1630,7 +1802,18 @@ public final class WrapperManager
         
         stopCommon( exitCode, 1000 );
         
-        stopInner( exitCode );
+        
+        // This is safe because we are already checking for the privilege to stop the JVM
+        //  above.  If we get this far then we want the Wrapper to be able to do everything
+        //  necessary to stop the JVM.
+        AccessController.doPrivileged(
+            new PrivilegedAction() {
+                public Object run() {
+                    privilegedStopInner( exitCode );
+                    return null;
+                }
+            }
+        );
     }
 
     /**
@@ -1639,9 +1822,21 @@ public final class WrapperManager
      *  will not be given a chance to shutdown cleanly.
      *
      * @param exitCode The exit code that the Wrapper will return when it exits.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("stopImmediate") permission.
+     *
+     * @see WrapperPermission
      */
-    public static void stopImmediate( int exitCode )
+    public static void stopImmediate( final int exitCode )
     {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "stopImmediate" ) );
+        }
+        
         if ( m_debug )
         {
             m_out.println( "WrapperManager.stopImmediate(" + exitCode + ") called by thread: "
@@ -1691,7 +1886,18 @@ public final class WrapperManager
         else
         {
             // Shutdown normally
-            stopInner( exitCode );
+            
+            // This is safe because we are already checking for the privilege to stop the JVM
+            //  above.  If we get this far then we want the Wrapper to be able to do everything
+            //  necessary to stop the JVM.
+            AccessController.doPrivileged(
+                new PrivilegedAction() {
+                    public Object run() {
+                        privilegedStopInner( exitCode );
+                        return null;
+                    }
+                }
+            );
         }
     }
     
@@ -1701,9 +1907,21 @@ public final class WrapperManager
      *  specified time.
      *
      * @param waitHint Additional time in milliseconds.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("signalStarting") permission.
+     *
+     * @see WrapperPermission
      */
     public static void signalStarting( int waitHint )
     {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "signalStarting" ) );
+        }
+        
         sendCommand( WRAPPER_MSG_START_PENDING, Integer.toString( waitHint ) );
     }
 
@@ -1713,9 +1931,21 @@ public final class WrapperManager
      *  specified time.
      *
      * @param waitHint Additional time in milliseconds.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("signalStopping") permission.
+     *
+     * @see WrapperPermission
      */
     public static void signalStopping( int waitHint )
     {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "signalStopping" ) );
+        }
+        
         m_stopping = true;
         sendCommand( WRAPPER_MSG_STOP_PENDING, Integer.toString( waitHint ) );
     }
@@ -1725,9 +1955,21 @@ public final class WrapperManager
      *  from within the stop and restart methods.  However certain applications
      *  which stop the JVM may need to call this method to let the wrapper code
      *  know that the shutdown was intentional.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("signalStopped") permission.
+     *
+     * @see WrapperPermission
      */
     public static void signalStopped( int exitCode )
     {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "signalStopped" ) );
+        }
+        
         m_stopping = true;
         sendCommand( WRAPPER_MSG_STOPPED, Integer.toString( exitCode ) );
         
@@ -1778,9 +2020,21 @@ public final class WrapperManager
      *                 WRAPPER_LOG_LEVEL_STATUS, WRAPPER_LOG_LEVEL_WARN,
      *                 WRAPPER_LOG_LEVEL_ERROR, or WRAPPER_LOG_LEVEL_FATAL.
      * @param message The message to be logged.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("log") permission.
+     *
+     * @see WrapperPermission
      */
     public static void log( int logLevel, String message )
     {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "log" ) );
+        }
+        
         // Make sure that the logLevel is valid to avoid problems with the
         //  command sent to the server.
         
@@ -1805,9 +2059,28 @@ public final class WrapperManager
      *  method on other platforms will result in null being returned.
      *
      * @return An array of services.
+     *
+     * @throws SecurityException If a SecurityManager has not been set in the
+     *                           JVM or if the calling code has not been
+     *                           granted the WrapperPermission "listServices"
+     *                           permission.  A SecurityManager is required
+     *                           for this operation because this method makes
+     *                           it possible to learn a great deal about the
+     *                           state of the system.
      */
     public static WrapperWin32Service[] listServices()
+        throws SecurityException
     {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm == null )
+        {
+            throw new SecurityException( "A SecurityManager has not yet been set." );
+        }
+        else
+        {
+            sm.checkPermission( new WrapperPermission( "listServices" ) );
+        }
+        
         if ( m_libraryOK )
         {
             return nativeListServices();
@@ -1843,10 +2116,56 @@ public final class WrapperManager
      *
      * @throws WrapperServiceException If there are any problems accessing the
      *                                 specified service.
+     * @throws SecurityException If a SecurityManager has not been set in the
+     *                           JVM or if the calling code has not been
+     *                           granted the WrapperServicePermission
+     *                           permission for the specified service and
+     *                           control code.  A SecurityManager is required
+     *                           for this operation because this method makes
+     *                           it possible to control any service on the
+     *                           system, which is of course rather dangerous.
      */
     public static WrapperWin32Service sendServiceControlCode( String serviceName, int controlCode )
-        throws WrapperServiceException
+        throws WrapperServiceException, SecurityException
     {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm == null )
+        {
+            throw new SecurityException( "A SecurityManager has not yet been set." );
+        }
+        else
+        {
+            String action;
+            switch( controlCode )
+            {
+            case SERVICE_CONTROL_CODE_START:
+                action = WrapperServicePermission.ACTION_START;
+                break;
+                
+            case SERVICE_CONTROL_CODE_STOP:
+                action = WrapperServicePermission.ACTION_STOP;
+                break;
+                
+            case SERVICE_CONTROL_CODE_PAUSE:
+                action = WrapperServicePermission.ACTION_PAUSE;
+                break;
+                
+            case SERVICE_CONTROL_CODE_CONTINUE:
+                action = WrapperServicePermission.ACTION_CONTINUE;
+                break;
+                
+            case SERVICE_CONTROL_CODE_INTERROGATE:
+                action = WrapperServicePermission.ACTION_INTERROGATE;
+                break;
+                
+            default:
+                action = WrapperServicePermission.ACTION_USER_CODE;
+                break;
+            }
+            
+            sm.checkPermission( new WrapperServicePermission( serviceName, action ) );
+        }
+        
         WrapperWin32Service service = null;
         if ( m_libraryOK )
         {
@@ -1876,6 +2195,31 @@ public final class WrapperManager
      */
     public static void addWrapperEventListener( WrapperEventListener listener, long mask )
     {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            StringBuffer sb = new StringBuffer();
+            boolean first = true;
+            if ( ( mask & WrapperEventListener.EVENT_FLAG_SERVICE ) != 0 )
+            {
+                first = false;
+                sb.append( WrapperEventPermission.EVENT_TYPE_SERVICE );
+            }
+            if ( ( mask & WrapperEventListener.EVENT_FLAG_CORE ) != 0 )
+            {
+                if ( first )
+                {
+                    first = false;
+                }
+                else
+                {
+                    sb.append( "," );
+                }
+                sb.append( WrapperEventPermission.EVENT_TYPE_CORE );
+            }
+            sm.checkPermission( new WrapperEventPermission( sb.toString() ) );
+        }
+        
         synchronized( WrapperManager.class )
         {
             WrapperEventListenerMask listenerMask = new WrapperEventListenerMask();
@@ -1896,6 +2240,12 @@ public final class WrapperManager
      */
     public static void removeWrapperEventListener( WrapperEventListener listener )
     {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "removeWrapperEventListener" ) );
+        }
+        
         synchronized( WrapperManager.class )
         {
             // Look for the first instance of a given listener in the list.
@@ -1927,6 +2277,56 @@ public final class WrapperManager
     /*---------------------------------------------------------------
      * Private methods
      *-------------------------------------------------------------*/
+    /**
+     * Checks for the existence of a SecurityManager and then makes sure that
+     *  the Wrapper jar has been granted AllPermissions.  If not then a warning
+     *  will be displayed as this will most likely result in the Wrapper
+     *  failing to function correctly.
+     *
+     * This method is called at various points in the startup as it is possible
+     *  and in fact likely that any SecurityManager will be set by user code
+     *  during or shortly after initialization.  Once a SecurityManager has
+     *  been located and tested then this method will become a noop.
+     */
+    private static void checkSecurityManager()
+    {
+        if ( m_securityManagerChecked )
+        {
+            return;
+        }
+        
+        SecurityManager securityManager = System.getSecurityManager();
+        if ( securityManager != null )
+        {
+            if ( m_debug )
+            {
+                m_out.println(
+                    "Detected a SecurityManager: " + securityManager.getClass().getName() );
+            }
+            
+            try
+            {
+                securityManager.checkPermission( new java.security.AllPermission() );
+            }
+            catch ( SecurityException e )
+            {
+                m_out.println();
+                m_out.println(
+                    "WARNING - Detected that a SecurityManager has been installed but the " );
+                m_out.println(
+                    "          wrapper.jar has not been granted the java.security.AllPermission" );
+                m_out.println(
+                    "          permission.  This will most likely result in SecurityExceptions" );
+                m_out.println(
+                    "          being thrown by the Wrapper." );
+                m_out.println();
+            }
+            
+            // Always set the flag.
+            m_securityManagerChecked = true;
+        }
+    }
+    
     /**
      * Returns an array of WrapperEventListenerMask instances which can
      *  be safely used outside of synchronization.
@@ -2111,7 +2511,7 @@ public final class WrapperManager
                 t.printStackTrace();
                 // Kill the JVM, but don't tell the wrapper that we want to stop.
                 //  This may be a problem with this instantiation only.
-                stopInner( 1 );
+                privilegedStopInner( 1 );
                 // Won't make it here.
                 return;
             }
@@ -2120,6 +2520,10 @@ public final class WrapperManager
         {
             m_out.println( "returned from listener.start()" );
         }
+        
+        // Check the SecurityManager here as it is possible that it was set in the
+        //  listener's start method.
+        checkSecurityManager();
         
         // Crank the priority back up.
         Thread.currentThread().setPriority( oldPriority );
@@ -2190,8 +2594,11 @@ public final class WrapperManager
     
     /**
      * Informs the listener that the JVM will be shut down.
+     *
+     * This should only be called from within a PrivilegedAction or in a
+     *  context that came from a PrivilegedAction.
      */
-    private static void stopInner( int exitCode )
+    private static void privilegedStopInner( int exitCode )
     {
         boolean block;
         synchronized( WrapperManager.class )
@@ -2739,7 +3146,6 @@ public final class WrapperManager
     private static void handleSocket()
     {
         WrapperPingEvent pingEvent = new WrapperPingEvent();
-        //byte[] buffer = new byte[256];
         try
         {
             if ( m_debug )
@@ -2812,7 +3218,7 @@ public final class WrapperManager
                             // Don't do anything if we are already stopping
                             if ( !m_stopping )
                             {
-                                stopInner( 0 );
+                                privilegedStopInner( 0 );
                                 // Should never get back here.
                             }
                             break;
@@ -2833,7 +3239,7 @@ public final class WrapperManager
                             m_out.println(
                                 "Authorization key rejected by Wrapper.  Exiting JVM." );
                             closeSocket();
-                            stopInner( 1 );
+                            privilegedStopInner( 1 );
                             break;
                             
                         case WRAPPER_MSG_LOW_LOG_LEVEL:
@@ -2977,7 +3383,7 @@ public final class WrapperManager
                                             {
                                             }
                                             
-                                            stopInner( 1 );
+                                            privilegedStopInner( 1 );
                                         }
                                     }
                                 }
