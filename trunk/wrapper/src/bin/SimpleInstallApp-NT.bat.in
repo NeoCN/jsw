@@ -7,7 +7,7 @@ if not %_WRAPPER_CONF%=="" goto startup
 set _WRAPPER_CONF="@app.home@\conf\wrapper.conf"
 
 :startup
-"@app.home@\bin\Wrapper.exe" -i %_WRAPPER_CONF%
+"@app.home@\bin\wrapper.exe" -i %_WRAPPER_CONF%
 if not errorlevel 1 goto end
 pause
 

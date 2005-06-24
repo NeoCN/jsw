@@ -7,7 +7,7 @@ rem Java Service Wrapper general startup script
 rem
 
 rem
-rem Resolve the real path of the Wrapper.exe
+rem Resolve the real path of the wrapper.exe
 rem  For non NT systems, the _REALPATH and _WRAPPER_CONF values
 rem  can be hard-coded below and the following test removed.
 rem
@@ -21,7 +21,7 @@ rem Find the application home.
 rem
 rem %~dp0 is location of current script under NT
 set _REALPATH=%~dp0
-set _WRAPPER_EXE=%_REALPATH%Wrapper.exe
+set _WRAPPER_EXE=%_REALPATH%wrapper.exe
 
 rem
 rem Find the wrapper.conf

@@ -16,7 +16,7 @@ rem Find the application home.
 rem
 rem %~dp0 is location of current script under NT
 set _REALPATH=%~dp0
-set _WRAPPER_EXE=%_REALPATH%Wrapper.exe
+set _WRAPPER_EXE=%_REALPATH%wrapper.exe
 
 rem Find the requested command.
 for /F %%v in ('echo %1^|findstr "^console$ ^start$ ^stop$ ^restart$ ^install$ ^remove"') do call :exec set COMMAND=%%v
@@ -37,7 +37,7 @@ set _WRAPPER_CONF="%_REALPATH%..\conf\wrapper.conf"
 
 rem
 rem Run the application.
-rem At runtime, the current directory will be that of Wrapper.exe
+rem At runtime, the current directory will be that of wrapper.exe
 rem
 call :%COMMAND%
 if errorlevel 1 pause
