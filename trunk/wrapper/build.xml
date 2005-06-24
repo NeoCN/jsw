@@ -460,6 +460,12 @@
         <copy file="${src.dir}/bin/UninstallApp-NT.bat.in"
               tofile="${bin.dir}/Uninstall${app.caps.name}-NT.bat"
               filtering="on"/>
+        <copy file="${src.dir}/bin/StartApp-NT.bat.in"
+              tofile="${bin.dir}/Start${app.caps.name}-NT.bat"
+              filtering="on"/>
+        <copy file="${src.dir}/bin/StopApp-NT.bat.in"
+              tofile="${bin.dir}/Stop${app.caps.name}-NT.bat"
+              filtering="on"/>
     </target>
     
     <!-- =================================================================== -->
