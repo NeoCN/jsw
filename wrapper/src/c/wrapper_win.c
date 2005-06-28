@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.106  2005/06/28 20:13:26  mortenson
+ * Added -q and -qs commands to the Windows version to make it possible to query
+ * the service status.
+ *
  * Revision 1.105  2005/05/23 02:37:55  mortenson
  * Update the copyright information.
  *
@@ -2801,6 +2805,128 @@ int wrapperStopService(int command) {
 }
 
 /**
+ * Obtains the current service status.
+ */
+int wrapperServiceStatus(int consoleOutput) {
+    SC_HANDLE   schService;
+    SC_HANDLE   schSCManager;
+    SERVICE_STATUS serviceStatus;
+    QUERY_SERVICE_CONFIG *pQueryServiceConfig;
+    DWORD reqSize;
+
+    int result = 0;
+    
+    schSCManager = OpenSCManager(
+                                 NULL,                   
+                                 NULL,                   
+                                 SC_MANAGER_ALL_ACCESS   
+                                 );
+    if (schSCManager){
+
+        /* Next get the handle to this service... */
+        schService = OpenService(schSCManager, wrapperData->ntServiceName, SERVICE_ALL_ACCESS);
+
+        if (schService){
+            /* Service is installed, so set that bit. */
+            if (consoleOutput) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    "The %s Service is installed.", wrapperData->ntServiceDisplayName);
+            }
+            result |= 1;
+            
+            /* Get the service configuration. */
+            QueryServiceConfig(schService, NULL, 0, &reqSize);
+            pQueryServiceConfig = malloc(reqSize);
+            if (QueryServiceConfig(schService, pQueryServiceConfig, reqSize, &reqSize)) {
+                switch (pQueryServiceConfig->dwStartType) {
+                case SERVICE_BOOT_START:   /* Possible? */
+                case SERVICE_SYSTEM_START: /* Possible? */
+                case SERVICE_AUTO_START:
+                    if (consoleOutput) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Start Type: Automatic");
+                    }
+                    result |= 8;
+                    break;
+                    
+                case SERVICE_DEMAND_START:
+                    if (consoleOutput) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Start Type: Manual");
+                    }
+                    result |= 16;
+                    break;
+                    
+                case SERVICE_DISABLED:
+                    if (consoleOutput) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Start Type: Disabled");
+                    }
+                    result |= 32;
+                    break;
+                    
+                default:
+                    if (consoleOutput) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "  Start Type: Unknown");
+                    }
+                    break;
+                }
+                
+                if (pQueryServiceConfig->dwServiceType & SERVICE_INTERACTIVE_PROCESS) {
+                    /* This is an interactive service, so set that bit. */
+                    if (consoleOutput) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Interactive: Yes");
+                    }
+                    result |= 4;
+                } else {
+                    if (consoleOutput) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Interactive: No");
+                    }
+                }
+                
+                free(pQueryServiceConfig);
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to query the configuration of the %s service - %s",
+                    wrapperData->ntServiceDisplayName, getLastErrorText());
+            }
+            
+            /* Find out what the current status of the service is so we can decide what to do. */
+            if (QueryServiceStatus(schService, &serviceStatus)) {
+                if (serviceStatus.dwCurrentState == SERVICE_STOPPED) {
+                    /* The service is stopped. */
+                    if (consoleOutput) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Running: No");
+                    }
+                } else {
+                    /* Any other state, it is running. Set that bit. */
+                    if (consoleOutput) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Running: Yes");
+                    }
+                    result |= 2;
+                }
+                
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to query the status of the %s service - %s",
+                    wrapperData->ntServiceDisplayName, getLastErrorText());
+            }
+            
+            /* Close this service object's handle to the service control manager */
+            CloseServiceHandle(schService);
+        } else {
+            /* Could not open the service.  This means that it is not installed. */
+            if (consoleOutput) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    "The %s Service is not installed.", wrapperData->ntServiceDisplayName);
+            }
+        }
+        
+        /* Finally, close the handle to the service control manager's database */
+        CloseServiceHandle(schSCManager);
+    } else {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenSCManager failed - %s", getLastErrorText());
+    }
+
+    return result;
+}
+
+/**
  * Uninstall the service and clean up
  */
 int wrapperRemove() {
@@ -3016,6 +3142,9 @@ void wrapperUsage(char *appName) {
     printf("  -p   stoP a running NT service\n");
     printf("  -i   Install as an NT service\n");
     printf("  -r   Remove as an NT service\n");
+    /** Return mask: installed:1 running:2 interactive:4 automatic:8 manual:16 disabled:32 */
+    printf("  -q   Query the current status of the service\n");
+    printf("  -qs  Silently Query the current status of the service\n");
     /* Omit '-s' option from help as it is only used by the service manager. */
     /*printf("  -s   used by service manager\n"); */
     printf("  -?   print this help message\n");
@@ -3143,6 +3272,12 @@ void _CRTAPI1 main(int argc, char **argv) {
                         } else if(!_stricmp(argv[1],"-p") || !_stricmp(argv[1],"/p")) {
                             /* Stop an NT service */
                             result = wrapperStopService(TRUE);
+                        } else if(!_stricmp(argv[1],"-q") || !_stricmp(argv[1],"/q")) {
+                            /* Return service status with console output. */
+                            result = wrapperServiceStatus(TRUE);
+                        } else if(!_stricmp(argv[1],"-qs") || !_stricmp(argv[1],"/qs")) {
+                            /* Return service status without console output. */
+                            result = wrapperServiceStatus(FALSE);
                         } else if(!_stricmp(argv[1],"-c") || !_stricmp(argv[1],"/c")) {
                             /* Run as a console application */
                             

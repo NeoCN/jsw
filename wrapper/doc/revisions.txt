@@ -117,6 +117,8 @@ Java Service Wrapper Revision History.
   for more details.
 * Add a new pair of batch files which can be used to start and stop the
   Wrapper when installed as a service.
+* Add new -q and -qs commands to the Windows version of the Wrapper which
+  make it possible to query the currently installed status of the service.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
