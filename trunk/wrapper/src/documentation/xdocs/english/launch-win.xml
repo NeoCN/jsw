@@ -29,7 +29,10 @@
                 <ulink url="#service">Installing and Running as an NT Service</ulink>
             </listitem>
             <listitem>
-                <ulink url="#exe">Using Wrapper.exe Directly</ulink>
+                <ulink url="#exe">Using wrapper.exe Directly</ulink>
+            </listitem>
+            <listitem>
+                <ulink url="#status">Query Service Status</ulink>
             </listitem>
             <listitem>
                 <ulink url="#command">UNIX-Style Command Based Script</ulink>
@@ -66,7 +69,7 @@ C:\MyApp\bin\UninstallMyApp-NT.bat]]></screen>
                 and to install and remove it as an NT Service.  These scripts
                 should not require any modification.  However, they do assume that
                 they are placed into the same directory as the
-                <literal moreinfo="none">Wrapper.exe</literal> executable.  They
+                <literal moreinfo="none">wrapper.exe</literal> executable.  They
                 also assume that the <literal moreinfo="none">wrapper.conf</literal>
                 file will be located within a <literal moreinfo="none">conf</literal>
                 directory one level up,
@@ -130,7 +133,7 @@ wrapper  | My Application installed.]]></screen>
                 The service can also be started and stopped from within a Command
                 Window by using the <literal moreinfo="none">net start MyApp</literal>
                 and <literal moreinfo="none">net stop MyApp</literal> commands, or
-                by passing commands to the <ulink url="#exe">Wrapper.exe</ulink>
+                by passing commands to the <ulink url="#exe">wrapper.exe</ulink>
                 executable.
             </para>
             <informalexample>
@@ -162,17 +165,17 @@ wrapper  | My Application removed.]]></screen>
             </informalexample>
         </section>
         <section id="exe">
-            <title>Using Wrapper.exe Directly</title>
+            <title>Using wrapper.exe Directly</title>
             <para>
                 As an alternative to using the scripts provided with the Java Service
                 Wrapper.  You may choose to launch the Wrapper directly.  If the
-                <literal moreinfo="none">Wrapper.exe</literal> executable is launched
+                <literal moreinfo="none">wrapper.exe</literal> executable is launched
                 without any parameters, the following usage output will be displayed.
             </para>
             <informalexample>
-                <screen format="linespecific"><![CDATA[C:\MyApp\bin>Wrapper.exe
+                <screen format="linespecific"><![CDATA[C:\MyApp\bin>wrapper.exe
 Usage:
-  Wrapper.exe <command> <configuration file> [configuration properties] [...]
+  wrapper.exe <command> <configuration file> [configuration properties] [...]
 
 where <command> can be one of:
   -c   run as a Console application
@@ -180,6 +183,8 @@ where <command> can be one of:
   -p   stoP a running NT service
   -i   Install as an NT service
   -r   Remove as an NT service
+  -q   Query the current status of the service
+  -qs  Silently Query the current status of the service
   -?   print this help message
 
 <configuration file> is the wrapper.conf to use
@@ -195,17 +200,17 @@ where <command> can be one of:
                 <literal moreinfo="none">wrapper.conf</literal> file can be an
                 absolute or relative location.  If a relative path is used, the path
                 is always relative to the location of the
-                <literal moreinfo="none">Wrapper.exe</literal> file, not the current
+                <literal moreinfo="none">wrapper.exe</literal> file, not the current
                 directory.
             </para>
             <informalexample>
-                <screen format="linespecific"><![CDATA[C:\MyApp\bin>Wrapper.exe -c ..\conf\wrapper.conf]]></screen>
+                <screen format="linespecific"><![CDATA[C:\MyApp\bin>wrapper.exe -c ..\conf\wrapper.conf]]></screen>
             </informalexample>
             <para>
                 To install the application as an NT service, execute:
             </para>
             <informalexample>
-                <screen format="linespecific"><![CDATA[C:\MyApp\bin>Wrapper.exe -i ..\conf\wrapper.conf]]></screen>
+                <screen format="linespecific"><![CDATA[C:\MyApp\bin>wrapper.exe -i ..\conf\wrapper.conf]]></screen>
             </informalexample>
             <para>
                 Once installed, the service can be started just like any other NT
@@ -218,7 +223,7 @@ where <command> can be one of:
             </para>
             <informalexample>
                 <screen format="linespecific"><![CDATA[C:\MyApp\bin>net start MyApp
-C:\MyApp\bin>Wrapper.exe -t ..\conf\wrapper.conf]]></screen>
+C:\MyApp\bin>wrapper.exe -t ..\conf\wrapper.conf]]></screen>
             </informalexample>
             <note>
                 <para>
@@ -248,17 +253,50 @@ C:\MyApp\bin>Wrapper.exe -t ..\conf\wrapper.conf]]></screen>
             </para>
             <informalexample>
                 <screen format="linespecific"><![CDATA[C:\MyApp\bin>net stop MyApp
-C:\MyApp\bin>Wrapper.exe -p ..\conf\wrapper.conf]]></screen>
+C:\MyApp\bin>wrapper.exe -p ..\conf\wrapper.conf]]></screen>
             </informalexample>
             <para>
                  To uninstall the application as an NT service, execute:
             </para>
             <informalexample>
-                <screen format="linespecific"><![CDATA[C:\MyApp\bin>Wrapper.exe -r ..\conf\wrapper.conf]]></screen>
+                <screen format="linespecific"><![CDATA[C:\MyApp\bin>wrapper.exe -r ..\conf\wrapper.conf]]></screen>
             </informalexample>
             <para>
                 If the service is running at the time that it is uninstalled, the service
                 will be cleanly stopped and then removed.
+            </para>
+        </section>
+        <section id="status">
+            <title>Query Service Status</title>
+            <para>
+                The wrapper can be used to query the state of the service manually or from within
+                a batch file.  This can be useful for install scripts which need to know the current
+                state of the service configuration.
+            </para>
+            <informalexample>
+                <screen format="linespecific"><![CDATA[C:\MyApp\bin>wrapper.exe -q ..\conf\wrapper.conf
+wrapper  | The My Application Service is installed.
+wrapper  |   Start Type: Automatic
+wrapper  |   Interactive: Yes
+wrapper  |   Running: No]]></screen>
+            </informalexample>
+            <para>
+                If run with the "-q" command, the Wrapper will display the current status to the
+                console, "-qs" will run silently.  The Wrapper will then exit an exit code that
+                is a combination of the following bits:
+            </para>
+            <informalexample>
+                <screen format="linespecific"><![CDATA[1  : Service is installed
+2  : Service is running
+4  : Service is interactive
+8  : Start type is automatic
+16 : Start type is manual
+32 : Start type is disabled]]></screen>
+            </informalexample>
+            <para>
+                An exit code of 15, for example, indicates that the service is installed, running,
+                interactive and configured to start automatically when the system is booted.  An
+                exit code of 0 means that the service is not currently installed.
             </para>
         </section>
         <section id="command">

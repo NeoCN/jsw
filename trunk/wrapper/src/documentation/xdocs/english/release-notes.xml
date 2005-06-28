@@ -270,6 +270,14 @@ $Id$
                     Wrapper when installed as a service.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add new -q and -qs commands to the Windows version of the Wrapper which
+                    make it possible to query the currently installed status of the service.
+                    See the <ulink url="launch-win.html#status">Query Service Status</ulink>
+                    section for more details.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
