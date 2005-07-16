@@ -65,6 +65,26 @@
             Properties can be specified from the command line when using any of the
             Wrapper commands, including the <literal moreinfo="none">-i</literal>
             command, used to install the application as a service on Windows systems.
-        </para>		
+        </para>
+        <para>
+            When running the wrapper and its JVM as a console application using the
+            <literal moreinfo="none">-c</literal> command, the specified properties will
+            override any values in the wrapper.conf file and be used when launching the
+            JVM.
+        </para>
+        <para>
+            Likewise, the <literal moreinfo="none">-i</literal> command, which is used
+            to install the wrapper as a service, will remember the specified properties
+            and then use them later when the service is actually started.  Likewise,
+            the specified properties will be used to override values in the wrapper.conf
+            file while installing the service.
+        </para>
+        <para>
+            All other commands will make use of command line properties to override values
+            in the configuration file.  These will effect logging or the way the service is
+            referenced.  They will have no effect on the running JVM.  It is not possible
+            for example to pass a property value to a service while starting it with the
+            <literal moreinfo="none">-t</literal> command for example.
+        </para>
     </section>
 </chapter>
