@@ -236,6 +236,7 @@
                deprecation="on"
                debug="on"
                optimize="on"
+               source="1.2"
                target="1.2"> <!-- The 1.2 target is done so we work with older JVMs -->
             <classpath refid="project.class.path"/>
         </javac>
@@ -245,6 +246,7 @@
                deprecation="on"
                debug="on"
                optimize="on"
+               source="1.2"
                target="1.2"> <!-- The 1.2 target is done so we work with older JVMs -->
             <classpath refid="test.class.path"/>
         </javac>
