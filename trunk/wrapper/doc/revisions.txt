@@ -119,6 +119,9 @@ Java Service Wrapper Revision History.
   Wrapper when installed as a service.
 * Add new -q and -qs commands to the Windows version of the Wrapper which
   make it possible to query the currently installed status of the service.
+* Fix a problem where the wrapper.java.library.path.append_system_path
+  property was not working correctly on Windows when the system PATH
+  contained quotes.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager

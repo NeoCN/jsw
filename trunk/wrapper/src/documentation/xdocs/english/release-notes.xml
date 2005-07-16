@@ -278,6 +278,14 @@ $Id$
                     section for more details.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where the
+                    <ulink url="prop-java-library-path-append-system-path.html">wrapper.java.library.path.append_system_path</ulink>
+                    property was not working correctly on Windows when the system PATH
+                    contained quotes.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
