@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.138  2005/07/16 01:44:22  mortenson
+ * Fix a problem where the wrapper.java.library.path.append_system_path
+ * property was not working correctly on Windows when the system PATH
+ * contained quotes.
+ *
  * Revision 1.137  2005/05/23 02:37:54  mortenson
  * Update the copyright information.
  *
@@ -1596,6 +1601,21 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             /* We are going to want to append the full system path to
              *  whatever library path is generated. */
             systemPath = getenv("PATH");
+            
+            /* If we are going to add our own quotes then we need to make sure that the system
+             *  PATH doesn't contain any of its own.  Windows allows users to do this... */
+            if (addQuotes) {
+                i = 0;
+                j = 0;
+                do {
+                    if (systemPath[i] != '"' )
+                    {
+                        systemPath[j] = systemPath[i];
+                        j++;
+                    }
+                    i++;
+                } while (systemPath[j] != '\0');
+            }
         } else {
             systemPath = NULL;
         }
