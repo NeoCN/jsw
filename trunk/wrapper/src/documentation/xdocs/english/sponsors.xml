@@ -31,6 +31,18 @@
             -->
         <donorlist>
             <donor>
+                <date>Aug 12, 2005</date>
+                <amount>50.00</amount>
+                <name><ulink url="http://www.javapipe.com">Java|Pipe</ulink></name>
+                <message>Your wrapper has been awesome!</message>
+            </donor>
+            <donor>
+                <date>Jul 30, 2005</date>
+                <amount>50.00</amount>
+                <name>Anonymous</name>
+                <message></message>
+            </donor>
+            <donor>
                 <date>Jun 10, 2005</date>
                 <amount>50.00</amount>
                 <name>Anonymous</name>
