@@ -121,7 +121,7 @@ Java Service Wrapper Revision History.
   make it possible to query the currently installed status of the service.
 * Fix a problem where the wrapper.java.library.path.append_system_path
   property was not working correctly on Windows when the system PATH
-  contained quotes.
+  contained quotes.  Bug #1238726.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
