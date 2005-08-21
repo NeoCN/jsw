@@ -122,6 +122,9 @@ Java Service Wrapper Revision History.
 * Fix a problem where the wrapper.java.library.path.append_system_path
   property was not working correctly on Windows when the system PATH
   contained quotes.  Bug #1238726.
+* Modify the usage output of the Wrapper on all platforms so the Wrapper's
+  version is now included.  It was not previously possible to get the version
+  of the Wrapper being used without launching a JVM.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager

@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.107  2005/08/21 14:22:14  mortenson
+ * Modify the usage output of the Wrapper on all platforms so the Wrapper's
+ * version is now included.  It was not previously possible to get the version
+ * of the Wrapper being used without launching a JVM.
+ *
  * Revision 1.106  2005/06/28 20:13:26  mortenson
  * Added -q and -qs commands to the Windows version to make it possible to query
  * the service status.
@@ -392,6 +397,7 @@ barf
 #include "psapi.h"
 
 #include "wrapper.h"
+#include "wrapperinfo.h"
 #include "property.h"
 #include "logger.h"
 
@@ -3133,6 +3139,8 @@ int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
  * Show usage
  */
 void wrapperUsage(char *appName) {
+    printf("Wrapper (Version %s) http://wrapper.tanukisoftware.org\n", wrapperVersion);
+    printf("\n");
     printf("Usage:\n");
     printf("  %s <command> <configuration file> [configuration properties] [...]\n", appName);
     printf("\n");

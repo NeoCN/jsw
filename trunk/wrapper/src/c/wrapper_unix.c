@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.105  2005/08/21 14:22:14  mortenson
+ * Modify the usage output of the Wrapper on all platforms so the Wrapper's
+ * version is now included.  It was not previously possible to get the version
+ * of the Wrapper being used without launching a JVM.
+ *
  * Revision 1.104  2005/05/23 02:37:55  mortenson
  * Update the copyright information.
  *
@@ -384,6 +389,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include "wrapper.h"
+#include "wrapperinfo.h"
 #include "property.h"
 #include "logger.h"
 
@@ -1448,6 +1454,8 @@ void wrapperKillProcess(int useLoggerQueue) {
  * Show usage.
  */
 void wrapperUsage(char *appName) {
+    printf("Wrapper (Version %s) http://wrapper.tanukisoftware.org\n", wrapperVersion);
+    printf("\n");
     printf("Usage: %s <file> [configuration properties] [...]\n", appName);
     printf("<file> is the application configuration file.\n");
     printf("\n");
