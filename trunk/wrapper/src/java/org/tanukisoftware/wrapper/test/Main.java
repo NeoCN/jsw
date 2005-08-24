@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.26  2005/08/24 06:53:39  mortenson
+// Add stopAndReturn and restartAndReturn methods.
+//
 // Revision 1.25  2005/05/23 02:39:30  mortenson
 // Update the copyright information.
 //
@@ -217,11 +220,17 @@ public class Main
             buildCommand( gridBag, c, "StopImmediate(1)", "stopimmediate1",
                 "Calls WrapperManager.stopImmediate( 1 ) to immediately shutdown the JVM and Wrapper with a failure exir code." );
             
+            buildCommand( gridBag, c, "StopAndReturn(0)", "stopandreturn0",
+                "Calls WrapperManager.stopAndReturn( 0 ) to shutdown the JVM and Wrapper with a success exit code." );
+            
             buildCommand( gridBag, c, "Halt", "halt",
                 "Calls Runtime.getRuntime().halt(0) to kill the JVM, the Wrapper will restart it." );
             
-            buildCommand( gridBag, c, "Request Restart", "restart",
+            buildCommand( gridBag, c, "Restart()", "restart",
                 "Calls WrapperManager.restart() to shutdown the current JVM and start a new one." );
+            
+            buildCommand( gridBag, c, "RestartAndReturn()", "restartandreturn",
+                "Calls WrapperManager.restartAndReturn() to shutdown the current JVM and start a new one." );
             
             buildCommand( gridBag, c, "Access Violation", "access_violation",
                 "Attempts to cause an access violation within the JVM, relies on a JVM bug and may not work." );

@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.14  2005/08/24 06:53:39  mortenson
+// Add stopAndReturn and restartAndReturn methods.
+//
 // Revision 1.13  2005/05/23 02:39:30  mortenson
 // Update the copyright information.
 //
@@ -228,6 +231,10 @@ public abstract class AbstractActionApp
         {
             WrapperManager.stopImmediate( 1 );
         }
+        else if ( action.equals( "stopandreturn0" ) )
+        {
+            WrapperManager.stopAndReturn( 0 );
+        }
         else if ( action.equals( "halt" ) )
         {
             // Execute runtime.halt(0) using reflection so this class will
@@ -263,6 +270,11 @@ public abstract class AbstractActionApp
         else if ( action.equals( "restart" ) )
         {
             WrapperManager.restart();
+            
+        }
+        else if ( action.equals( "restartandreturn" ) )
+        {
+            WrapperManager.restartAndReturn();
             
         }
         else if ( action.equals( "access_violation" ) )

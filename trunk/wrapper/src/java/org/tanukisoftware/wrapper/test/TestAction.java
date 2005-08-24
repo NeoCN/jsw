@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.15  2005/08/24 06:53:39  mortenson
+// Add stopAndReturn and restartAndReturn methods.
+//
 // Revision 1.14  2005/05/23 02:39:30  mortenson
 // Update the copyright information.
 //
@@ -202,6 +205,7 @@ public class TestAction
         System.err.println( "   stop0                    : Calls WrapperManager.stop(0)" );
         System.err.println( "   exit0                    : Calls System.exit(0)" );
         System.err.println( "   stopimmediate0           : Calls WrapperManager.stopImmediate(0)" );
+        System.err.println( "   stopandreturn0           : Calls WrapperManager.stopAndReturn(0)" );
         System.err.println( "  Actions which should cause the Wrapper to exit in an error state:" );
         System.err.println( "   stop1                    : Calls WrapperManager.stop(1)" );
         System.err.println( "   exit1                    : Calls System.exit(1)" );
@@ -212,6 +216,7 @@ public class TestAction
         System.err.println( "   appear_hung              : Calls WrapperManager.appearHung()" );
         System.err.println( "   halt                     : Calls Runtime.getRuntime().halt(0)" );
         System.err.println( "   restart                  : Calls WrapperManager.restart()" );
+        System.err.println( "   restartandreturn         : Calls WrapperManager.restartAndReturn()" );
         System.err.println( "  Additional Tests:" );
         System.err.println( "   dump                     : Calls WrapperManager.requestThreadDump()" );
         System.err.println( "   deadlock_out             : Deadlocks the JVM's System.out and err streams." );

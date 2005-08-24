@@ -294,6 +294,15 @@ $Id$
                     of the Wrapper being used without launching a JVM.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add a pair of new methods <ulink url="javadocs.html">WrapperManager.stopAndReturn()</ulink>
+                    and <ulink url="javadocs.html">WrapperManager.restartAndReturn()</ulink> which
+                    make it possible for code to stop or restart the JVM and then continue until
+                    the JVM is shutdown.  This can be useful for shutdowns initiated within
+                    places like servlets, whose operation is expected to complete.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
