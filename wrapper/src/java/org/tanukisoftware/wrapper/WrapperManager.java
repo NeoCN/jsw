@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.55  2005/08/24 06:53:39  mortenson
+// Add stopAndReturn and restartAndReturn methods.
+//
 // Revision 1.54  2005/06/24 16:00:39  mortenson
 // Add a security model to protect the Wrapper and many of its calls when a
 // ServiceManager has been registered with the JVM.
@@ -1699,6 +1702,8 @@ public final class WrapperManager
     /**
      * Tells the native wrapper that the JVM wants to restart, then informs
      *	all listeners that the JVM is about to shutdown before killing the JVM.
+     * <p>
+     * This method will not return.
      *
      * @throws SecurityException If a SecurityManager is present and the
      *                           calling thread does not have the
@@ -1721,6 +1726,73 @@ public final class WrapperManager
                 + Thread.currentThread().getName() );
         }
         
+        restartInner();
+    }
+    
+    /**
+     * Tells the native wrapper that the JVM wants to restart, then informs
+     *	all listeners that the JVM is about to shutdown before killing the JVM.
+     * <p>
+     * This method requests that the JVM be restarted but then returns.  This
+     *  allows components to initiate a JVM exit and then continue, allowing
+     *  a normal shutdown initiated by the JVM via shutdown hooks.  In
+     *  applications which are designed to be shutdown when the user presses
+     *  CTRL-C, this may result in a cleaner shutdown.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("restart") permission.
+     *
+     * @see WrapperPermission
+     */
+    public static void restartAndReturn()
+        throws SecurityException
+    {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "restart" ) );
+        }
+        
+        synchronized( WrapperManager.class )
+        {
+            if ( m_stopping )
+            {
+                if ( m_debug )
+                {
+                    m_out.println( "WrapperManager.restartAndReturn() called by thread: "
+                        + Thread.currentThread().getName() + " already stopping." );
+                }
+                return;
+            }
+            else
+            {
+                if ( m_debug )
+                {
+                    m_out.println( "WrapperManager.restartAndReturn() called by thread: "
+                        + Thread.currentThread().getName() );
+                }
+            }
+        }
+        
+        
+        // To make this possible, we have to create a new thread to actually do the shutdown.
+        Thread restarter = new Thread( "Wrapper-Restarter" )
+        {
+            public void run()
+            {
+                restartInner();
+            }
+        };
+        restarter.start();
+    }
+    
+    /**
+     * Common code used to restart the JVM.  It is assumed that the calling
+     *  thread has has passed security checks before this is called.
+     */
+    private static void restartInner()
+    {
         boolean stopping;
         synchronized( WrapperManager.class )
         {
@@ -1777,6 +1849,8 @@ public final class WrapperManager
     /**
      * Tells the native wrapper that the JVM wants to shut down, then informs
      *	all listeners that the JVM is about to shutdown before killing the JVM.
+     * <p>
+     * This method will not return.
      *
      * @param exitCode The exit code that the Wrapper will return when it exits.
      *
@@ -1802,7 +1876,6 @@ public final class WrapperManager
         
         stopCommon( exitCode, 1000 );
         
-        
         // This is safe because we are already checking for the privilege to stop the JVM
         //  above.  If we get this far then we want the Wrapper to be able to do everything
         //  necessary to stop the JVM.
@@ -1814,6 +1887,76 @@ public final class WrapperManager
                 }
             }
         );
+    }
+    
+    /**
+     * Tells the native wrapper that the JVM wants to shut down, then informs
+     *	all listeners that the JVM is about to shutdown before killing the JVM.
+     * <p>
+     * This method requests that the JVM be shutdown but then returns.  This
+     *  allows components to initiate a JVM exit and then continue, allowing
+     *  a normal shutdown initiated by the JVM via shutdown hooks.  In
+     *  applications which are designed to be shutdown when the user presses
+     *  CTRL-C, this may result in a cleaner shutdown.
+     *
+     * @param exitCode The exit code that the Wrapper will return when it exits.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("stop") permission.
+     *
+     * @see WrapperPermission
+     */
+    public static void stopAndReturn( final int exitCode )
+    {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "stop" ) );
+        }
+        
+        synchronized( WrapperManager.class )
+        {
+            if ( m_stopping )
+            {
+                if ( m_debug )
+                {
+                    m_out.println( "WrapperManager.stopAndReturn(" + exitCode + ") called by thread: "
+                        + Thread.currentThread().getName() + " already stopping." );
+                }
+                return;
+            }
+            else
+            {
+                if ( m_debug )
+                {
+                    m_out.println( "WrapperManager.stopAndReturn(" + exitCode + ") called by thread: "
+                        + Thread.currentThread().getName() );
+                }
+            }
+        }
+        
+        // To make this possible, we have to create a new thread to actually do the shutdown.
+        Thread stopper = new Thread( "Wrapper-Stopper" )
+        {
+            public void run()
+            {
+                stopCommon( exitCode, 1000 );
+                
+                // This is safe because we are already checking for the privilege to stop the JVM
+                //  above.  If we get this far then we want the Wrapper to be able to do everything
+                //  necessary to stop the JVM.
+                AccessController.doPrivileged(
+                    new PrivilegedAction() {
+                        public Object run() {
+                            privilegedStopInner( exitCode );
+                            return null;
+                        }
+                    }
+                );
+            }
+        };
+        stopper.start();
     }
 
     /**
