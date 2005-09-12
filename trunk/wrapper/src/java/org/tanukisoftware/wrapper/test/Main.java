@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.27  2005/09/12 03:54:42  mortenson
+// Fix some spelling.
+//
 // Revision 1.26  2005/08/24 06:53:39  mortenson
 // Add stopAndReturn and restartAndReturn methods.
 //
@@ -103,7 +106,7 @@ package org.tanukisoftware.wrapper.test;
 //
 // Revision 1.9  2003/10/30 17:13:24  mortenson
 // Add an action to the WrapperActionServer which makes it possible to test
-// simmulate a JVM hang for testing.
+// simulate a JVM hang for testing.
 //
 // Revision 1.8  2003/10/18 07:51:10  mortenson
 // The DeadlockPrintStream should not be set until after the WrapperManager class
@@ -410,7 +413,7 @@ public class Main
             System.out.println( "    H: Expected Halt" );
             System.out.println( "    R: Restart" );
             System.out.println( "    D: Thread Dump" );
-            System.out.println( "    U: Unexpected Halt (Simmulate crash)" );
+            System.out.println( "    U: Unexpected Halt (Simulate crash)" );
             System.out.println( "    V: Access Violation (Actual crash)" );
             System.out.println( "    G: Make the JVM appear to be hung." );
         }

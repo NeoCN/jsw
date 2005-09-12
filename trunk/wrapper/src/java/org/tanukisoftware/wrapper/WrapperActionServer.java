@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.9  2005/09/12 03:54:30  mortenson
+// Fix some spelling.
+//
 // Revision 1.8  2005/05/23 02:41:12  mortenson
 // Update the copyright information.
 //
@@ -39,7 +42,7 @@ package org.tanukisoftware.wrapper;
 //
 // Revision 1.5  2003/10/30 17:13:24  mortenson
 // Add an action to the WrapperActionServer which makes it possible to test
-// simmulate a JVM hang for testing.
+// simulate a JVM hang for testing.
 //
 // Revision 1.4  2003/09/03 08:55:48  mortenson
 // Add some more javadocs describing how to use the class.
@@ -85,7 +88,7 @@ import org.tanukisoftware.wrapper.WrapperManager;
  *   <li><b>H</b> : Immediate forced shutdown.</li>
  *   <li><b>R</b> : Restart</li>
  *   <li><b>D</b> : Perform a Thread Dump</li>
- *   <li><b>U</b> : Unexpected shutdown. (Simmulate a crash for testing)</li>
+ *   <li><b>U</b> : Unexpected shutdown. (Simulate a crash for testing)</li>
  *   <li><b>V</b> : Cause an access violation. (For testing)</li>
  *   <li><b>G</b> : Make the JVM appear to be hung. (For testing)</li>
  * </ul>
