@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.108  2005/09/29 03:09:19  mortenson
+ * Correct the usage of log_printf_queue
+ *
  * Revision 1.107  2005/09/29 03:04:48  mortenson
  * Fix a potential problem where some debug logging in signal handlers was not
  * correctly being queued.
@@ -738,9 +741,10 @@ void sigActionChildDeath(int sigNum, siginfo_t *sigInfo, void *na) {
 
     descSignal(sigInfo);
 
-    log_printf_queue(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Received SIGCHLD, calling wait().");
+    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+        "Received SIGCHLD, calling wait().");
     wait(NULL);
-    log_printf_queue(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
         "wait() returned, child process should be gone.");
 }
 
@@ -767,7 +771,7 @@ int registerSigAction(int sigNum, void (*sigAction)(int, siginfo_t *, void *)) {
     newAct.sa_flags = SA_SIGINFO;
 
     if (sigaction(sigNum, &newAct, NULL)) {
-        log_printf_queue(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
             "Unable to register signal handler for signal %d.  %s", sigNum, getLastErrorText());
         return 1;
     }
@@ -852,9 +856,10 @@ void handleChildDeath(int sig_num) {
     /* Ignore any other signals while in this handler. */
     signal(SIGTERM, SIG_IGN);
     
-    log_printf_queue(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Received SIGCHLD, calling wait().");
+    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+        "Received SIGCHLD, calling wait().");
     wait(NULL);
-    log_printf_queue(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
         "wait() returned, child process should be gone.");
     
     signal(SIGCHLD, handleChildDeath);
