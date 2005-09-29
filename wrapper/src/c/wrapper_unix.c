@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.109  2005/09/29 03:51:54  mortenson
+ * Fix a problem added in the last commit where the handling of the SIGCHLD signal
+ * was causing the JVM process to go missing.
+ *
  * Revision 1.108  2005/09/29 03:09:19  mortenson
  * Correct the usage of log_printf_queue
  *
@@ -1272,12 +1276,10 @@ int wrapperGetProcessStatus() {
     retval = waitpid(jvmPid, &status, WNOHANG);
 
     if (retval < 0) {
-        /* Wait failed. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                   "Critical error: wait for JVM process failed (%s)", getLastErrorText());
-        appExit(1);
+        /* Wait failed.  The child process is down an unknown.  Happens after a SIGCHLD is handled. */
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+            "JVM process is gone.");
         
-        /* For compiler, won't get here. */
         res = WRAPPER_PROCESS_DOWN;
     } else if (retval > 0) {
         /* JVM has exited. */
