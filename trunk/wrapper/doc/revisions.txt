@@ -130,6 +130,9 @@ Java Service Wrapper Revision History.
   stop or restart the JVM and then continue until the JVM is shutdown.
   This can be useful for shutdowns initiated within places like servlets,
   whose operation is expected to complete.
+* Fix a problem on UNIX where the child JVM was sometimes leaving around
+  zombie processes after a restart.  The SIGCHLD signal was not being handled
+  correctly.  Thanks to Traun Leyden for the patch.  Bug #1291201.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
