@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.107  2005/09/29 03:04:48  mortenson
+ * Fix a potential problem where some debug logging in signal handlers was not
+ * correctly being queued.
+ * Make the signal debug output a bit more descriptive.
+ *
  * Revision 1.106  2005/09/29 01:49:27  mortenson
  * Fix a problem on UNIX where the child JVM was sometimes leaving around
  * zombie processes after a restart.
@@ -518,6 +523,23 @@ void wrapperRequestDumpJVMState(int useLoggerQueue) {
 }
 
 #ifdef WRAPPER_USE_SIGACTION
+const char* getSignalName(int signo) {
+    switch (signo) {
+        case SIGALRM:
+            return "SIGALRM";
+        case SIGINT:
+            return "SIGINT";
+        case SIGQUIT:
+            return "SIGQUIT";
+        case SIGCHLD:
+            return "SIGCHLD";
+        case SIGTERM:
+            return "SIGTERM";
+        default:
+            return "UNKNOWN";
+    }
+}
+
 const char* getSignalCodeDesc(int code) {
     switch (code) {
     case SI_USER:
@@ -566,8 +588,9 @@ void descSignal(siginfo_t *sigInfo) {
             "Signal trapped.  Details:");
 
         log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-            "  signal number=%d, source=\"%s\"",
+            "  signal number=%d (%s), source=\"%s\"",
             sigInfo->si_signo,
+            getSignalName(sigInfo->si_signo),
             getSignalCodeDesc(sigInfo->si_code));
 
         if (sigInfo->si_errno != 0) {
@@ -715,9 +738,10 @@ void sigActionChildDeath(int sigNum, siginfo_t *sigInfo, void *na) {
 
     descSignal(sigInfo);
 
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Received SIGCHLD, calling wait().");
+    log_printf_queue(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Received SIGCHLD, calling wait().");
     wait(NULL);
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "wait() returned, zombie should be gone.");
+    log_printf_queue(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+        "wait() returned, child process should be gone.");
 }
 
 /**
@@ -743,7 +767,7 @@ int registerSigAction(int sigNum, void (*sigAction)(int, siginfo_t *, void *)) {
     newAct.sa_flags = SA_SIGINFO;
 
     if (sigaction(sigNum, &newAct, NULL)) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+        log_printf_queue(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
             "Unable to register signal handler for signal %d.  %s", sigNum, getLastErrorText());
         return 1;
     }
@@ -828,9 +852,10 @@ void handleChildDeath(int sig_num) {
     /* Ignore any other signals while in this handler. */
     signal(SIGTERM, SIG_IGN);
     
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Received SIGCHLD, calling wait().");
+    log_printf_queue(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Received SIGCHLD, calling wait().");
     wait(NULL);
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "wait() returned, zombie should be gone.");
+    log_printf_queue(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+        "wait() returned, child process should be gone.");
     
     signal(SIGCHLD, handleChildDeath);
 }
