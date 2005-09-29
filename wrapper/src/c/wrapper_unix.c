@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.106  2005/09/29 01:49:27  mortenson
+ * Fix a problem on UNIX where the child JVM was sometimes leaving around
+ * zombie processes after a restart.
+ *
  * Revision 1.105  2005/08/21 14:22:14  mortenson
  * Modify the usage output of the Wrapper on all platforms so the Wrapper's
  * version is now included.  It was not previously possible to get the version
@@ -704,6 +708,21 @@ void sigActionQuit(int sigNum, siginfo_t *sigInfo, void *na) {
 /**
  * Handle termination signals (i.e. machine is shutting down).
  */
+void sigActionChildDeath(int sigNum, siginfo_t *sigInfo, void *na) {
+    /* On UNIX, when a Child process changes state, a SIGCHLD signal is sent to the parent.
+     *  The parent should do a wait to make sure the child is cleaned up and doesn't become
+     *  a zombie process. */
+
+    descSignal(sigInfo);
+
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Received SIGCHLD, calling wait().");
+    wait(NULL);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "wait() returned, zombie should be gone.");
+}
+
+/**
+ * Handle termination signals (i.e. machine is shutting down).
+ */
 void sigActionTermination(int sigNum, siginfo_t *sigInfo, void *na) {
     /* On UNIX the calling thread is the actual thread being interrupted
      *  so it has already been registered with logRegisterThread. */
@@ -796,6 +815,24 @@ void handleQuit(int sig_num) {
     }
 
     signal(SIGQUIT, handleQuit); 
+}
+
+/**
+ * Handle child death
+ */
+void handleChildDeath(int sig_num) {
+    /* On UNIX, when a Child process changes state, a SIGCHLD signal is sent to the parent.
+     *  The parent should do a wait to make sure the child is cleaned up and doesn't become
+     *  a zombie process. */
+
+    /* Ignore any other signals while in this handler. */
+    signal(SIGTERM, SIG_IGN);
+    
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Received SIGCHLD, calling wait().");
+    wait(NULL);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "wait() returned, zombie should be gone.");
+    
+    signal(SIGCHLD, handleChildDeath);
 }
 
 /**
@@ -912,6 +949,7 @@ int wrapperInitialize() {
     if (registerSigAction(SIGALRM, sigActionAlarm) ||
         registerSigAction(SIGINT,  sigActionInterrupt) ||
         registerSigAction(SIGQUIT, sigActionQuit) ||
+        registerSigAction(SIGCHLD, sigActionChildDeath) ||
         registerSigAction(SIGTERM, sigActionTermination)) {
         retval = -1;
     }
@@ -920,6 +958,7 @@ int wrapperInitialize() {
     if (signal(SIGALRM, handleAlarm)       == SIG_ERR ||
         signal(SIGINT,  handleInterrupt)   == SIG_ERR ||
         signal(SIGQUIT, handleQuit)        == SIG_ERR ||
+        signal(SIGCHLD, handleChildDeath)  == SIG_ERR ||
         signal(SIGTERM, handleTermination) == SIG_ERR) {
         retval = -1;
     }

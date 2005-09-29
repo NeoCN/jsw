@@ -303,6 +303,14 @@ $Id$
                     places like servlets, whose operation is expected to complete.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem on UNIX where the child JVM was sometimes leaving around
+                    zombie processes after a restart.  The SIGCHLD signal was not being handled
+                    correctly.  Thanks to Traun Leyden for the patch.
+                    <ulink url="http://sourceforge.net/tracker/?func=detail&amp;atid=425187&amp;aid=1291201&amp;group_id=39428">Bug #1291201</ulink>.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
