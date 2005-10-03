@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.5  2005/10/03 01:57:18  mortenson
+// Modify the Filter test to make sure that filters containing spaces work correctly.
+//
 // Revision 1.4  2005/05/23 02:39:30  mortenson
 // Update the copyright information.
 //
@@ -56,20 +59,25 @@ public class Filter {
      *-------------------------------------------------------------*/
     public static void main(String[] args) {
         System.out.println("Test the handling of filters.");
-        System.out.println("The Wrapper should restart the JVM when it detects the string:");
-        System.out.println("  \"ERR OR\", without the space.  It should ignore the string:");
-        System.out.println("  \"NONERROR\".  Then it should exit when it detects the string:");
-        System.out.println("  \"ALL DONE\", once again without the space.");
+        System.out.println("The Wrapper should restart the JVM when it detects either the string:");
+        System.out.println("  \"ERR OR\" or \"N ice long restart message.\", both without the");
+        System.out.println("  extra space  It should ignore the string: \"NONERROR\".  Then");
+        System.out.println("  it should exit when it detects the string: \"ALL DONE\", once again");
+        System.out.println("  without the space.");
         System.out.println();
         
         System.out.println("The next line should be ignored:");
         System.out.println("  NONERROR");
         System.out.println();
         
-        if (WrapperManager.getJVMId() >= 3) {
+        if (WrapperManager.getJVMId() >= 4) {
             // Time to shutdown
             System.out.println("The next line should cause the Wrapper to exit:");
             System.out.println("  ALLDONE");
+        } else if (WrapperManager.getJVMId() == 3) {
+            // Try a restart with spaces.
+            System.out.println("The next line should cause the Wrapper to restart the JVM:");
+            System.out.println("  Nice long restart message.");
         } else {
             System.out.println("The next line should cause the Wrapper to restart the JVM:");
             System.out.println("  ERROR");
