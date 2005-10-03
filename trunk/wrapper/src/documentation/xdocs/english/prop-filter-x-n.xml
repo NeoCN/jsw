@@ -79,5 +79,15 @@ wrapper.filter.action.1=NONE
 wrapper.filter.trigger.2=Error
 wrapper.filter.action.2=RESTART]]></screen>
         </informalexample>
+        <para>
+            The string being filtered can contain spaces.  But due to the way the
+            configuration properties are loaded in general, any leading of trailing
+            spaces will be trimmed when the property is loaded.
+        </para>
+        <informalexample>
+            <simpara><emphasis>Example:</emphasis></simpara>
+            <screen format="linespecific"><![CDATA[wrapper.filter.trigger.1=Restart me now.
+wrapper.filter.action.1=RESTART]]></screen>
+        </informalexample>
     </section>
 </chapter>
