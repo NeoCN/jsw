@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.143  2005/10/13 07:33:55  mortenson
+ * Fix a compile problem on Linux.
+ *
  * Revision 1.142  2005/10/13 07:04:24  mortenson
  * Fix a compile problem on Windows.
  *
@@ -474,6 +477,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #define SOCKET         int
