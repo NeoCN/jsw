@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.26  2005/10/13 06:54:35  mortenson
+ * Remove c++ style comments.
+ *
  * Revision 1.25  2005/09/29 01:50:46  mortenson
  * Add a comment
  *
@@ -1310,7 +1313,7 @@ void wrapperEventLoop() {
         } else {
             if ( wrapperProtocolRead() )
             {
-                // There was more data waiting to be read, but we broke out.
+                /* There was more data waiting to be read, but we broke out. */
                 if (wrapperData->isDebugging) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                         "Pause reading socket data to share cycles.");
