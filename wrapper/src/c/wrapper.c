@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.141  2005/10/13 06:58:15  mortenson
+ * Fix a Mac OSX compiler error.
+ *
  * Revision 1.140  2005/10/13 06:47:50  mortenson
  * Replace calls to ftime with gettimeofday on UNIX platforms.
  *
@@ -767,7 +770,7 @@ void protocolStartServer() {
  */
 void protocolOpen() {
     struct sockaddr_in addr_srv;
-    int addr_srv_len;
+    socklen_t addr_srv_len;
     int rc;
 #ifdef WIN32
     u_long dwNoBlock = TRUE;
