@@ -72,7 +72,7 @@
             <informalexample>
                 <simpara><emphasis>Example:</emphasis></simpara>
                 <screen format="linespecific"><![CDATA[wrapper.port.min=32000
-wrapper.port.min=32999]]></screen>
+wrapper.port.max=32999]]></screen>
             </informalexample>
         </section>
     </section>
