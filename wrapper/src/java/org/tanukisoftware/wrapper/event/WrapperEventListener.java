@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.event;
  */
 
 // $Log$
+// Revision 1.4  2005/10/13 05:52:16  mortenson
+// Implement the ability to catch control events using the WrapperEventLisener.
+//
 // Revision 1.3  2005/05/23 02:39:59  mortenson
 // Update the copyright information.
 //
@@ -52,6 +55,14 @@ public interface WrapperEventListener
      *  service.
      */
     static long EVENT_FLAG_SERVICE = 0x1;
+    
+    /**
+     * Enabling control events will cause the listener to receive
+     *  WrapperControlEvents.  There events are thrown whenever the
+     *  Java process receives control events from the system.  These
+     *  include CTRL-C, HALT, TERM signals etc.
+     */
+    static long EVENT_FLAG_CONTROL = 0x2;
     
     /**
      * Enabling core events will cause the listener to receive

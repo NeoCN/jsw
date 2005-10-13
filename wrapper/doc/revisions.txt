@@ -133,6 +133,8 @@ Java Service Wrapper Revision History.
 * Fix a problem on UNIX where the child JVM was sometimes leaving around
   zombie processes after a restart.  The SIGCHLD signal was not being handled
   correctly.  Thanks to Traun Leyden for the patch.  Bug #1291201.
+* Implement the ability to catch control events using the WrapperEventLisener.
+  Feature Request #836975.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager

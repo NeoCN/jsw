@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.security;
  */
 
 // $Log$
+// Revision 1.2  2005/10/13 05:52:16  mortenson
+// Implement the ability to catch control events using the WrapperEventLisener.
+//
 // Revision 1.1  2005/06/24 16:00:38  mortenson
 // Add a security model to protect the Wrapper and many of its calls when a
 // ServiceManager has been registered with the JVM.
@@ -65,10 +68,17 @@ import java.util.StringTokenizer;
  *
  *   <tr>
  *     <td>service</td>
- *     <td>Register to obtain events whenever the Wrapper service receives and service events.</td>
- *     <td>Malicios code could receive this event and never return and thus cause performance
+ *     <td>Register to obtain events whenever the Wrapper service receives any service events.</td>
+ *     <td>Malicious code could receive this event and never return and thus cause performance
  *         and timeout problems with the Wrapper.  Normal use of these events are quite safe
  *         however.</td>
+ *   </tr>
+ *
+ *   <tr>
+ *     <td>control</td>
+ *     <td>Register to obtain events whenever the Wrapper receives any system control signals.</td>
+ *     <td>Malicious code could trap and consome control events, thus preventing an application
+ *         from being shut down cleanly.</td>
  *   </tr>
  *
  *   <tr>
@@ -90,11 +100,13 @@ public class WrapperEventPermission
     extends Permission
 {
     public static String EVENT_TYPE_SERVICE = "service";
+    public static String EVENT_TYPE_CONTROL = "control";
     public static String EVENT_TYPE_CORE = "core";
     
     private static int MASK_SERVICE = 1;
+    private static int MASK_CONTROL = 2;
     private static int MASK_CORE = 65536;
-    private static int MASK_ALL = MASK_SERVICE | MASK_CORE;
+    private static int MASK_ALL = MASK_SERVICE | MASK_CONTROL | MASK_CORE;
     
     private int m_eventTypeMask;
     
@@ -166,6 +178,18 @@ public class WrapperEventPermission
                 first = false;
             }
             sb.append( EVENT_TYPE_SERVICE );
+        }
+        if ( ( m_eventTypeMask & MASK_CONTROL ) != 0 )
+        {
+            if ( first )
+            {
+                sb.append( ',' );
+            }
+            else
+            {
+                first = false;
+            }
+            sb.append( EVENT_TYPE_CONTROL );
         }
         if ( ( m_eventTypeMask & MASK_CORE ) != 0 )
         {
@@ -276,6 +300,10 @@ public class WrapperEventPermission
         {
             return MASK_SERVICE;
         }
+        else if ( eventTypes == EVENT_TYPE_CONTROL )
+        {
+            return MASK_CONTROL;
+        }
         else if ( eventTypes == EVENT_TYPE_CORE )
         {
             return MASK_CORE;
@@ -293,6 +321,10 @@ public class WrapperEventPermission
             if ( eventType.equals( EVENT_TYPE_SERVICE ) )
             {
                 mask |= MASK_SERVICE;
+            }
+            else if ( eventType.equals( EVENT_TYPE_CONTROL ) )
+            {
+                mask |= MASK_CONTROL;
             }
             else if ( eventType.equals( EVENT_TYPE_CORE ) )
             {

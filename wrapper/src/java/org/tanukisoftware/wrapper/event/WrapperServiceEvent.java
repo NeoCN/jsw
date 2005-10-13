@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.event;
  */
 
 // $Log$
+// Revision 1.4  2005/10/13 05:52:16  mortenson
+// Implement the ability to catch control events using the WrapperEventLisener.
+//
 // Revision 1.3  2005/05/23 02:39:59  mortenson
 // Update the copyright information.
 //
@@ -58,7 +61,7 @@ public abstract class WrapperServiceEvent
     }
     
     /*---------------------------------------------------------------
-     * WrapperCoreEvent Methods
+     * WrapperEvent Methods
      *-------------------------------------------------------------*/
     /**
      * Returns a set of event flags for which the event should be fired.

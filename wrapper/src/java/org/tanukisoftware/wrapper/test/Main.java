@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.28  2005/10/13 05:52:16  mortenson
+// Implement the ability to catch control events using the WrapperEventLisener.
+//
 // Revision 1.27  2005/09/12 03:54:42  mortenson
 // Fix some spelling.
 //
@@ -269,6 +272,7 @@ public class Main
             
             m_listenerFlags = new List( 2, true );
             m_listenerFlags.add( "Service" );
+            m_listenerFlags.add( "Control" );
             m_listenerFlags.add( "Core" );
             
             Panel flagPanel = new Panel();
@@ -353,6 +357,10 @@ public class Main
                     if ( flag.equals( "Service" ) )
                     {
                         mask |= WrapperEventListener.EVENT_FLAG_SERVICE;
+                    }
+                    else if ( flag.equals( "Control" ) )
+                    {
+                        mask |= WrapperEventListener.EVENT_FLAG_CONTROL;
                     }
                     else if ( flag.equals( "Core" ) )
                     {

@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.15  2005/10/13 05:52:16  mortenson
+// Implement the ability to catch control events using the WrapperEventLisener.
+//
 // Revision 1.14  2005/08/24 06:53:39  mortenson
 // Add stopAndReturn and restartAndReturn methods.
 //
@@ -103,6 +106,7 @@ import java.util.Properties;
 import org.tanukisoftware.wrapper.WrapperManager;
 import org.tanukisoftware.wrapper.WrapperServiceException;
 import org.tanukisoftware.wrapper.WrapperWin32Service;
+import org.tanukisoftware.wrapper.event.WrapperControlEvent;
 import org.tanukisoftware.wrapper.event.WrapperEvent;
 import org.tanukisoftware.wrapper.event.WrapperEventListener;
 
@@ -179,6 +183,11 @@ public abstract class AbstractActionApp
     public void fired( WrapperEvent event )
     {
         System.out.println( "Received event: " + event );
+        if ( event instanceof WrapperControlEvent )
+        {
+            System.out.println( "  Consume and ignore." );
+            ((WrapperControlEvent)event).consume();
+        }
     }
     
     /*---------------------------------------------------------------
