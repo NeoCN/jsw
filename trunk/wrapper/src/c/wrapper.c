@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.142  2005/10/13 07:04:24  mortenson
+ * Fix a compile problem on Windows.
+ *
  * Revision 1.141  2005/10/13 06:58:15  mortenson
  * Fix a Mac OSX compiler error.
  *
@@ -770,10 +773,12 @@ void protocolStartServer() {
  */
 void protocolOpen() {
     struct sockaddr_in addr_srv;
-    socklen_t addr_srv_len;
     int rc;
 #ifdef WIN32
     u_long dwNoBlock = TRUE;
+    u_long addr_srv_len;
+#else
+    socklen_t addr_srv_len;
 #endif
 
     /* Is the server socket open? */
