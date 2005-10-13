@@ -96,6 +96,9 @@ extern "C" {
 /* Inaccessible static: m_shutdownJVMComplete */
 /* Inaccessible static: m_args */
 /* Inaccessible static: m_port */
+/* Inaccessible static: m_jvmPort */
+/* Inaccessible static: m_jvmPortMin */
+/* Inaccessible static: m_jvmPortMax */
 /* Inaccessible static: m_key */
 /* Inaccessible static: m_soTimeout */
 /* Inaccessible static: m_cpuTimeout */
