@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.110  2005/10/13 06:47:50  mortenson
+ * Replace calls to ftime with gettimeofday on UNIX platforms.
+ *
  * Revision 1.109  2005/09/29 03:51:54  mortenson
  * Fix a problem added in the last commit where the handling of the SIGCHLD signal
  * was causing the JVM process to go missing.
@@ -1358,7 +1361,7 @@ int wrapperReadChildOutput() {
     long durr;
     
     if (jvmOut != -1) {
-        ftime( &timeBuffer );
+        wrapperGetCurrentTime(&timeBuffer);
         startTime = now = timeBuffer.time;
         startTimeMillis = nowMillis = timeBuffer.millitm;
 
@@ -1453,7 +1456,7 @@ int wrapperReadChildOutput() {
             }
 
             /* Get the time again */
-            ftime( &timeBuffer );
+            wrapperGetCurrentTime(&timeBuffer);
             now = timeBuffer.time;
             nowMillis = timeBuffer.millitm;
         }

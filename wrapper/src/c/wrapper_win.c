@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.108  2005/10/13 06:47:50  mortenson
+ * Replace calls to ftime with gettimeofday on UNIX platforms.
+ *
  * Revision 1.107  2005/08/21 14:22:14  mortenson
  * Modify the usage output of the Wrapper on all platforms so the Wrapper's
  * version is now included.  It was not previously possible to get the version
@@ -1249,7 +1252,7 @@ int wrapperReadChildOutput() {
         wrapperChildStdoutRdBufferSize = READ_BUFFER_BLOCK_SIZE + 1;
     }
 
-    ftime( &timeBuffer );
+    wrapperGetCurrentTime(&timeBuffer);
     startTime = now = timeBuffer.time;
     startTimeMillis = nowMillis = timeBuffer.millitm;
 
@@ -1406,7 +1409,7 @@ int wrapperReadChildOutput() {
         }
 
         /* Get the time again */
-        ftime( &timeBuffer );
+        wrapperGetCurrentTime(&timeBuffer);
         now = timeBuffer.time;
         nowMillis = timeBuffer.millitm;
     }

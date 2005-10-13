@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.140  2005/10/13 06:47:50  mortenson
+ * Replace calls to ftime with gettimeofday on UNIX platforms.
+ *
  * Revision 1.139  2005/10/13 06:12:12  mortenson
  * Make it possible to configure the port used by the Java end of the back end
  * socket.
@@ -442,7 +445,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <sys/timeb.h>
 #include <sys/stat.h>
 #include "wrapperinfo.h"
 #include "wrapper.h"
@@ -607,6 +609,17 @@ int wrapperLoadConfigurationProperties() {
     }
 
     return 0;
+}
+
+void wrapperGetCurrentTime(struct timeb *timeBuffer) {
+#ifdef WIN32
+    ftime(timeBuffer);
+#else
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    timeBuffer->time = (time_t) tv.tv_sec;
+    timeBuffer->millitm = (unsigned short)(tv.tv_usec / 1000);
+#endif
 }
 
 void protocolStopServer() {
@@ -1024,7 +1037,7 @@ int wrapperProtocolRead() {
     int nowMillis;
     long durr;
     
-    ftime( &timeBuffer );
+    wrapperGetCurrentTime(&timeBuffer);
     startTime = now = timeBuffer.time;
     startTimeMillis = nowMillis = timeBuffer.millitm;
 
@@ -1157,7 +1170,7 @@ int wrapperProtocolRead() {
         }
 
         /* Get the time again */
-        ftime( &timeBuffer );
+        wrapperGetCurrentTime(&timeBuffer);
         now = timeBuffer.time;
         nowMillis = timeBuffer.millitm;
     }
@@ -2770,7 +2783,7 @@ DWORD wrapperGetSystemTicks() {
     DWORD assertSum;
 #endif
 
-    ftime( &timeBuffer );
+    wrapperGetCurrentTime(&timeBuffer);
 
     /* Break in half. */
     high = timeBuffer.time >> 16;

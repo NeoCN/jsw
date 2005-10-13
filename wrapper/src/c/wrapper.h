@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.73  2005/10/13 06:47:50  mortenson
+ * Replace calls to ftime with gettimeofday on UNIX platforms.
+ *
  * Revision 1.72  2005/10/13 06:12:12  mortenson
  * Make it possible to configure the port used by the Java end of the back end
  * socket.
@@ -240,6 +243,8 @@
 
 #ifndef _WRAPPER_H
 #define _WRAPPER_H
+
+#include <sys/timeb.h>
 
 #ifdef WIN32
 #include <winsock.h>
@@ -469,6 +474,8 @@ extern int wrapperProtocolRead();
 extern void wrapperAddDefaultProperties();
 
 extern int wrapperLoadConfigurationProperties();
+
+extern void wrapperGetCurrentTime(struct timeb *timeBuffer);
 
 #ifdef WIN32
 extern char** wrapperGetSystemPath();

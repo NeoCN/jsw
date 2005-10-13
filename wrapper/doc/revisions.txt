@@ -140,6 +140,10 @@ Java Service Wrapper Revision History.
   a connection back to the JVM.  The Wrapper uses to leave this up to the
   OS, but some users were having problems with the default conflicting with
   other ports.
+* Switch from using ftime() to gettimeofday() on UNIX platforms to work around
+  a problem where the Wrapper would not run on new versions of OSX because
+  they deprecated the ftime() function call.  Thanks for the patch by
+  Michael Macaluso.  Bug #1313162.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
