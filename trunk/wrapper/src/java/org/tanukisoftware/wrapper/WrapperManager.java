@@ -44,6 +44,11 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.56  2005/10/13 06:10:51  mortenson
+// Implement the ability to catch control events using the WrapperEventLisener.
+// Make it possible to configure the port used by the Java end of the back end
+// socket.
+//
 // Revision 1.55  2005/08/24 06:53:39  mortenson
 // Add stopAndReturn and restartAndReturn methods.
 //
@@ -287,6 +292,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
+import org.tanukisoftware.wrapper.event.WrapperControlEvent;
 import org.tanukisoftware.wrapper.event.WrapperEvent;
 import org.tanukisoftware.wrapper.event.WrapperEventListener;
 import org.tanukisoftware.wrapper.event.WrapperPingEvent;
@@ -419,6 +425,9 @@ public final class WrapperManager
     
     private static String[] m_args;
     private static int m_port    = DEFAULT_PORT;
+    private static int m_jvmPort;
+    private static int m_jvmPortMin;
+    private static int m_jvmPortMax;
     private static String m_key;
     private static int m_soTimeout = DEFAULT_SO_TIMEOUT;
     private static long m_cpuTimeout = DEFAULT_CPU_TIMEOUT;
@@ -681,6 +690,9 @@ public final class WrapperManager
             
             // The wrapper will not be used, so other values will not be used.
             m_port = 0;
+            m_jvmPort = 0;
+            m_jvmPortMin = 0;
+            m_jvmPortMax = 0;
             m_service = false;
             m_cpuTimeout = 31557600000L; // One Year.  Effectively never.
         }
@@ -709,6 +721,13 @@ public final class WrapperManager
                 m_out.println( msg );
                 throw new ExceptionInInitializerError( msg );
             }
+            
+            m_jvmPort =
+                WrapperSystemPropertyUtil.getIntProperty( "wrapper.jvm.port", 0 );
+            m_jvmPortMin =
+                WrapperSystemPropertyUtil.getIntProperty( "wrapper.jvm.port.min", 31000 );
+            m_jvmPortMax =
+                WrapperSystemPropertyUtil.getIntProperty( "wrapper.jvm.port.max", 31999 );
             
             // Check for the ignore signals flag
             m_ignoreSignals = WrapperSystemPropertyUtil.getBooleanProperty(
@@ -2348,6 +2367,18 @@ public final class WrapperManager
                 first = false;
                 sb.append( WrapperEventPermission.EVENT_TYPE_SERVICE );
             }
+            if ( ( mask & WrapperEventListener.EVENT_FLAG_CONTROL ) != 0 )
+            {
+                if ( first )
+                {
+                    first = false;
+                }
+                else
+                {
+                    sb.append( "," );
+                }
+                sb.append( WrapperEventPermission.EVENT_TYPE_CONTROL );
+            }
             if ( ( mask & WrapperEventListener.EVENT_FLAG_CORE ) != 0 )
             {
                 if ( first )
@@ -2906,37 +2937,50 @@ public final class WrapperManager
             break;
         }
         
+        WrapperControlEvent controlEvent = new WrapperControlEvent( event, eventName );
         if ( ignore )
         {
-            if ( m_debug )
-            {
-                m_out.println( "Ignoring control event(" + eventName + ")" );
-            }
+            // Preconsume the event if it is set to be ignored, but go ahead and fire it so
+            //  user can can still have the oportunity to recognize it.
+            controlEvent.consume();
         }
-        else
+        fireWrapperEvent( controlEvent );
+        
+        if ( !controlEvent.isConsumed() )
         {
-            if ( m_debug )
+            if ( ignore )
             {
-                m_out.println( "Processing control event(" + eventName + ")" );
-            }
-            
-            // This is user code, so don't trust it.
-            if ( m_listener != null )
-            {
-                try
+                if ( m_debug )
                 {
-                    m_listener.controlEvent( event );
-                }
-                catch ( Throwable t )
-                {
-                    m_out.println( "Error in WrapperListener.controlEvent callback.  " + t );
-                    t.printStackTrace();
+                    m_out.println( "Ignoring control event(" + eventName + ")" );
                 }
             }
             else
             {
-                // A listener was never registered.  Always respond by exiting.
-                stop( 0 );
+                if ( m_debug )
+                {
+                    m_out.println( "Processing control event(" + eventName + ")" );
+                }
+                
+                // This is user code, so don't trust it.
+                if ( m_listener != null )
+                {
+                    try
+                    {
+                        m_listener.controlEvent( event );
+                    }
+                    catch ( Throwable t )
+                    {
+                        m_out.println( "Error in WrapperListener.controlEvent callback.  " + t );
+                        t.printStackTrace();
+                    }
+                }
+                else
+                {
+                    // A listener was never registered.  Always respond by exiting.
+                    //  This can happen if the user does not initialize things correctly.
+                    stop( 0 );
+                }
             }
         }
     }
@@ -3041,36 +3085,99 @@ public final class WrapperManager
             return null; //please the compiler
         }
         
-        try
+        // If the user has specified a specific port to use then we want to try that first.
+        boolean connected = false;
+        int tryPort;
+        boolean fixedPort;
+        if ( m_jvmPort > 0 )
         {
-            m_socket = new Socket( iNetAddress, m_port );
-            if ( m_debug )
+            tryPort = m_jvmPort;
+            fixedPort = true;
+        }
+        else
+        {
+            tryPort = m_jvmPortMin;
+            fixedPort = false;
+        }
+        
+        // Loop until we find a port we can connect using.
+        do
+        {
+            try
             {
-                m_out.println( "Opened Socket" );
+                m_socket = new Socket( iNetAddress, m_port, iNetAddress, tryPort );
+                if ( m_debug )
+                {
+                    m_out.println( "Opened Socket from " + tryPort + " to " + m_port );
+                }
+                connected = true;
+                break;
+            }
+            catch ( BindException e )
+            {
+                // This happens if the local port is already in use.  In this case, we want
+                //  to loop and try again.
+                if ( m_debug )
+                {
+                    m_out.println( "Failed attempt to bind using local port " + tryPort );
+                }
+                
+                if ( fixedPort )
+                {
+                    // The last port checked was the fixed port, switch to the dynamic range.
+                    tryPort = m_jvmPortMin;
+                    fixedPort = false;
+                }
+                else
+                {
+                    tryPort++;
+                }
+            }
+            catch ( ConnectException e )
+            {
+                m_out.println( "Failed to connect to the Wrapper at port " + m_port + "." );
+                m_out.println( e );
+                // This is fatal because there is nobody listening.
+                m_out.println( "Exiting JVM..." );
+                stopImmediate( 1 );
+            }
+            catch ( IOException e )
+            {
+                m_out.println( e );
+                m_socket = null;
+                return null;
             }
         }
-        catch ( BindException e )
+        while ( tryPort <= m_jvmPortMax );
+        
+        if ( connected )
         {
-            m_out.println( "Failed to bind to the Wrapper port." );
-            m_out.println( e );
-            // This is fatal because the port was bad.
-            m_out.println( "Exiting JVM..." );
-            stopImmediate( 1 );
+            if ( ( m_jvmPort > 0 ) && ( m_jvmPort != tryPort ) )
+            {
+                m_out.println(
+                    "Port " + m_jvmPort + " already in use, using port " + tryPort + " instead." );
+            }
         }
-        catch ( ConnectException e )
+        else
         {
-            m_out.println( "Failed to connect to the Wrapper." );
-            m_out.println( e );
+            if ( m_jvmPortMax > m_jvmPortMin )
+            {
+                m_out.println(
+                    "Failed to connect to the Wrapper at port " + m_port + " by binding to any "
+                    + "ports in the range " + m_jvmPortMin + " to " + m_jvmPortMax + "." );
+            }
+            else
+            {
+                m_out.println(
+                    "Failed to connect to the Wrapper at port " + m_port + " by binding to port "
+                    + m_jvmPortMin + "." );
+            }
             // This is fatal because there is nobody listening.
             m_out.println( "Exiting JVM..." );
             stopImmediate( 1 );
         }
-        catch ( IOException e )
-        {
-            m_out.println( e );
-            m_socket = null;
-            return null;
-        }
+        
+        // Now that we have a connected socket, continue on to configure it.
         try
         {
             // Turn on the TCP_NODELAY flag.  This is very important for speed!!
