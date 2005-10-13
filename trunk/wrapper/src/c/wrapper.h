@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.72  2005/10/13 06:12:12  mortenson
+ * Make it possible to configure the port used by the Java end of the back end
+ * socket.
+ *
  * Revision 1.71  2005/05/23 02:37:55  mortenson
  * Update the copyright information.
  *
@@ -329,6 +333,9 @@ struct WrapperConfig {
     int     portMin;                /* Minimum port to use when looking for a port to bind to. */
     int     portMax;                /* Maximum port to use when looking for a port to bind to. */
     int     actualPort;             /* Port number which the Wrapper is actually listening on */
+    int     jvmPort;                /* The port which the JVM should bind to when connecting back to the wrapper. */
+    int     jvmPortMin;             /* Minimum port which the JVM should bind to when connecting back to the wrapper. */
+    int     jvmPortMax;             /* Maximum port which the JVM should bind to when connecting back to the wrapper. */
     int     sock;                   /* Socket number. if open. */
     char    *configFile;            /* Name of the configuration file */
     int     commandLogLevel;        /* The log level to use when logging the java command. */
@@ -452,9 +459,6 @@ extern Properties    *properties;
 extern char wrapperClasspathSeparator;
 
 /* Protocol Functions */
-extern void wrapperProtocolStartServer();
-extern void wrapperProtocolStopServer();
-extern void wrapperProtocolOpen();
 extern void wrapperProtocolClose();
 extern int wrapperProtocolFunction(char function, const char *message);
 extern int wrapperProtocolRead();

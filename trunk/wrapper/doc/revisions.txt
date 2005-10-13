@@ -135,6 +135,11 @@ Java Service Wrapper Revision History.
   correctly.  Thanks to Traun Leyden for the patch.  Bug #1291201.
 * Implement the ability to catch control events using the WrapperEventLisener.
   Feature Request #836975.
+* Add new wrapper.jvm.port, wrapper.jvm.port.min, and wrapper.jvm.port.max
+  properties which make it possible to control the port the JVM uses to open
+  a connection back to the JVM.  The Wrapper uses to leave this up to the
+  OS, but some users were having problems with the default conflicting with
+  other ports.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager

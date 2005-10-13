@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.139  2005/10/13 06:12:12  mortenson
+ * Make it possible to configure the port used by the Java end of the back end
+ * socket.
+ *
  * Revision 1.138  2005/07/16 01:44:22  mortenson
  * Fix a problem where the wrapper.java.library.path.append_system_path
  * property was not working correctly on Windows when the system PATH
@@ -605,7 +609,28 @@ int wrapperLoadConfigurationProperties() {
     return 0;
 }
 
-void wrapperProtocolStartServer() {
+void protocolStopServer() {
+    int rc;
+    
+    /* Close the socket. */
+    if (ssd != INVALID_SOCKET) {
+#ifdef WIN32
+        rc = closesocket(ssd);
+#else /* UNIX */
+        rc = close(ssd);
+#endif
+        if (rc == SOCKET_ERROR) {
+            if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "server socket close failed. (%d)", wrapperGetLastError());
+            }
+        }
+        ssd = INVALID_SOCKET;
+    }
+
+    wrapperData->actualPort = 0;
+}
+
+void protocolStartServer() {
     struct sockaddr_in addr_srv;
     int rc;
     int port;
@@ -633,7 +658,8 @@ void wrapperProtocolStartServer() {
     if (rc == SOCKET_ERROR) {
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR,
             "server socket ioctlsocket failed. (%s)", getLastErrorText());
-        wrapperProtocolStopServer();
+        wrapperProtocolClose();
+        protocolStopServer();
         return;
     }
 
@@ -696,7 +722,8 @@ void wrapperProtocolStartServer() {
         }
 
         wrapperStopProcess(FALSE, getLastError());
-        wrapperProtocolStopServer();
+        wrapperProtocolClose();
+        protocolStopServer();
         wrapperData->exitRequested = TRUE;
         wrapperData->restartRequested = FALSE;
         return;
@@ -713,45 +740,22 @@ void wrapperProtocolStartServer() {
     }
 
     /* Tell the socket to start listening. */
-    rc = listen(ssd, 1);
+    rc = listen(ssd, 0);
     if (rc == SOCKET_ERROR) {
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, "server socket listen failed. (%d)", wrapperGetLastError());
-        wrapperProtocolStopServer();
+        wrapperProtocolClose();
+        protocolStopServer();
         return;
     }
-}
-
-void wrapperProtocolStopServer() {
-    int rc;
-    /* Close the socket. */
-    if (ssd != INVALID_SOCKET) {
-#ifdef WIN32
-        rc = closesocket(ssd);
-#else /* UNIX */
-        rc = close(ssd);
-#endif
-        if (rc == SOCKET_ERROR) {
-         if (wrapperData->isDebugging) {
-             log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "server socket close failed. (%d)", wrapperGetLastError());
-            }
-        }
-        ssd = INVALID_SOCKET;
-    }
-
-    wrapperData->actualPort = 0;
-
-    /* Close any client connection that may be open */
-    wrapperProtocolClose();
 }
 
 /**
  * Attempt to accept a connection from a JVM client.
  */
-void wrapperProtocolOpen() {
+void protocolOpen() {
     struct sockaddr_in addr_srv;
     int addr_srv_len;
     int rc;
-
 #ifdef WIN32
     u_long dwNoBlock = TRUE;
 #endif
@@ -820,6 +824,9 @@ void wrapperProtocolOpen() {
         wrapperProtocolClose();
         return;
     }
+    
+    /* We got an incoming connection, so close down the listener for security reasons. */
+    protocolStopServer();
 }
 
 void wrapperProtocolClose() {
@@ -964,9 +971,6 @@ int wrapperProtocolFunction(char function, const char *message) {
         protocolSendBuffer = malloc(len);
     }
 
-    /* Open the socket if necessary */
-    wrapperProtocolOpen();
-
     if (sd == INVALID_SOCKET) {
         /* A socket was not opened */
         if (wrapperData->isDebugging) {
@@ -1039,7 +1043,7 @@ int wrapperProtocolRead() {
 
             /* Is the server socket open? */
             if (ssd == INVALID_SOCKET) {
-                wrapperProtocolStartServer();
+                protocolStartServer();
                 if (ssd == INVALID_SOCKET) {
                     /* Failed. */
                     return 0;
@@ -1047,7 +1051,7 @@ int wrapperProtocolRead() {
             }
 
             /* Try accepting a socket */
-            wrapperProtocolOpen();
+            protocolOpen();
             if (sd == INVALID_SOCKET) {
                 return 0;
             }
@@ -1280,8 +1284,8 @@ int wrapperRunConsole() {
     wrapperEventLoop();
 
     /* Clean up any open sockets. */
-    wrapperProtocolStopServer();
     wrapperProtocolClose();
+    protocolStopServer();
 
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "<-- Wrapper Stopped");
 
@@ -1319,8 +1323,8 @@ int wrapperRunService() {
     wrapperEventLoop();
 
     /* Clean up any open sockets. */
-    wrapperProtocolStopServer();
     wrapperProtocolClose();
+    protocolStopServer();
 
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "<-- Wrapper Stopped");
 
@@ -1963,6 +1967,26 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         sprintf(strings[index], "-Dwrapper.port=%d", (int)wrapperData->actualPort);
     }
     index++;
+    
+    /* Store the Wrapper jvm min and max ports. */
+    if (wrapperData->jvmPort > 0)
+    {
+        if (strings) {
+            strings[index] = malloc(sizeof(char) * (19 + 5 + 1));  /* Port up to 5 characters */
+            sprintf(strings[index], "-Dwrapper.jvm.port=%d", (int)wrapperData->jvmPort);
+        }
+        index++;
+    }
+    if (strings) {
+        strings[index] = malloc(sizeof(char) * (23 + 5 + 1));  /* Port up to 5 characters */
+        sprintf(strings[index], "-Dwrapper.jvm.port.min=%d", (int)wrapperData->jvmPortMin);
+    }
+    index++;
+    if (strings) {
+        strings[index] = malloc(sizeof(char) * (23 + 5 + 1));  /* Port up to 5 characters */
+        sprintf(strings[index], "-Dwrapper.jvm.port.max=%d", (int)wrapperData->jvmPortMax);
+    }
+    index++;
 
     /* Store the Wrapper debug flag */
     if (wrapperData->isDebugging) {
@@ -2459,6 +2483,32 @@ int loadConfiguration() {
         wrapperData->portMax = __min(wrapperData->portMin + 999, 65535);
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
             "wrapper.port.max must be greater than or equal to wrapper.port.min.  Changing to %d.", wrapperData->portMax);
+    }
+    
+    /* Get the port for the JVM side of the socket. */
+    wrapperData->jvmPort = getIntProperty(properties, "wrapper.jvm.port", 0);
+    if (wrapperData->jvmPort > 0) {
+        if (wrapperData->jvmPort == wrapperData->port) {
+            wrapperData->jvmPort = 0;
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                "wrapper.jvm.port must not equal wrapper.port.  Changing to the default.");
+        }
+    }
+    wrapperData->jvmPortMin = getIntProperty(properties, "wrapper.jvm.port.min", 31000);
+    if ((wrapperData->jvmPortMin < 1) || (wrapperData->jvmPortMin > 65535)) {
+        wrapperData->jvmPortMin = 31000;
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            "wrapper.jvm.port.min must be in the range 1-65535.  Changing to %d.", wrapperData->jvmPortMin);
+    }
+    wrapperData->jvmPortMax = getIntProperty(properties, "wrapper.jvm.port.max", 31999);
+    if ((wrapperData->jvmPortMax < 1) || (wrapperData->jvmPortMax > 65535)) {
+        wrapperData->jvmPortMax = __min(wrapperData->jvmPortMin + 999, 65535);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            "wrapper.jvm.port.min must be in the range 1-65535.  Changing to %d.", wrapperData->jvmPortMax);
+    } else if (wrapperData->jvmPortMax < wrapperData->jvmPortMin) {
+        wrapperData->jvmPortMax = __min(wrapperData->jvmPortMin + 999, 65535);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            "wrapper.jvm.port.max must be greater than or equal to wrapper.jvm.port.min.  Changing to %d.", wrapperData->jvmPortMax);
     }
 
     /* Get the debug status (Property is deprecated but flag is still used) */
