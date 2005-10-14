@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.security;
  */
 
 // $Log$
+// Revision 1.3  2005/10/14 02:08:54  mortenson
+// Fix javadocs.
+//
 // Revision 1.2  2005/10/13 05:52:16  mortenson
 // Implement the ability to catch control events using the WrapperEventLisener.
 //
@@ -42,7 +45,7 @@ import java.util.StringTokenizer;
 
 /**
  * WrapperEventPermissions are used to grant the right to register to start
- *  receiving events from the Wrapper
+ *  receiving events from the Wrapper.
  * <p>
  * Some of these permissions can result in performance degredations if used
  *  impropperly.
