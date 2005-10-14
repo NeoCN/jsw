@@ -37,6 +37,9 @@ $Id$
             <listitem>
                 <ulink url="#8">How can I change the user directory of my application?</ulink>
             </listitem>
+            <listitem>
+                <ulink url="#9">I have several Wrapper's and JVMs running, how can I tell which is which in the Windows Task Manager.</ulink>
+            </listitem>
         </itemizedlist>
     </section>
     <section>
@@ -270,6 +273,36 @@ grant codeBase "file:../lib/wrapper.jar" {
                 Important - Make sure that you have read over the documentation for the
                 working dir property before playing with it.  You will safe yourself some
                 headaches.
+            </para>
+        </section>
+        <section id="9">
+            <title>I have several Wrapper's and JVMs running, how can I tell which is which in the Windows Task Manager.</title>
+            <para>
+                When running several copies of the Wrapper under Windows, it is not easy to tell
+                which application is which in the Task Manager because they all show up as
+                wrapper.exe and java.exe.
+            </para>
+            <para>
+                If is not possible for the Wrpaper to implement a feature to change this name
+                because Windows does not allow that for security reasons.
+            </para>
+            <para>
+                The workaround is a bit of a hack.  But it works great.  Rename the wrapper.exe
+                file to wrapper-myapp.exe.   Then modify the batch files so they use this new
+                wrapper-myapp.exe.   For the java process, you have to do the same thing.  Go
+                into the %JAVA_HOME%/bin directory and simply copy java.exe to java-myapp.exe.
+                Then modify the wrapper.conf file so that new java-myapp.exe is used.
+            </para>
+            <para>
+                Now when you look at your Windows Task Manager, it will be easy to tell which
+                exe is which.
+            </para>
+            <para>
+                Note, you can also set the <ulink url="prop-pidfile.html">wrapper.pidfile</ulink>
+                and <ulink url="prop-java-pidfile.html">wrapper.java.pidfile</ulink> properties in
+                the wrapper.conf file.  These will create files containing the pids.  These pids
+                can then be compared with those shown in the Task Manager.  Note that you need to
+                configure the Task Manager to display process pids.
             </para>
         </section>
     </section>
