@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.109  2005/10/19 17:04:22  mortenson
+ * Fix a problem where an empty password could not be entered from a prompt.
+ * It could have caused a crash due to an unterminated string.
+ *
  * Revision 1.108  2005/10/13 06:47:50  mortenson
  * Replace calls to ftime with gettimeofday on UNIX platforms.
  *
@@ -2181,6 +2185,7 @@ char *readPassword() {
     int cnt = 0;
     
     buffer = malloc(sizeof(char) * 65);
+    buffer[0] = 0;
     
     do {
         c = _getch();
@@ -2249,6 +2254,7 @@ int wrapperInstall(int argc, char **argv) {
     int result = 0;
     HKEY hKey;
     char regPath[ 1024 ];
+    char *ntServicePassword;
 
     /* Get the full path and filename of this program */
     if (GetModuleFileName(NULL, szPath, 512) == 0){
@@ -2328,6 +2334,12 @@ int wrapperInstall(int argc, char **argv) {
                                  );
     
     if (schSCManager) {
+        // Make sure that an empty length password is null.
+        ntServicePassword = wrapperData->ntServicePassword;
+        if ((ntServicePassword != NULL) && (strlen(ntServicePassword) <= 0)) {
+            ntServicePassword = NULL;
+        }
+        
         schService = CreateService(
                                    schSCManager,                       /* SCManager database */
                                    wrapperData->ntServiceName,         /* name of service */
@@ -2341,7 +2353,7 @@ int wrapperInstall(int argc, char **argv) {
                                    NULL,                               /* tag identifier not used because they are used for driver level services. */
                                    wrapperData->ntServiceDependencies, /* dependencies */
                                    wrapperData->ntServiceAccount,      /* LocalSystem account if NULL */
-                                   wrapperData->ntServicePassword );   /* NULL for no password */
+                                   ntServicePassword );                /* NULL or empty for no password */
         
         if (schService) {
             /* Have the service, add a description to the registry. */
