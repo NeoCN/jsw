@@ -260,34 +260,20 @@ stopit() {
         TOTCNT=0
         while [ "X$pid" != "X" ]
         do
-            # Loop for up to 5 minutes
-            if [ "$TOTCNT" -lt "300" ]
+            # Show a waiting message every 5 seconds.
+            if [ "$CNT" -lt "5" ]
             then
-                if [ "$CNT" -lt "5" ]
-                then
-                    CNT=`expr $CNT + 1`
-                else
-                    echo "Waiting for $APP_LONG_NAME to exit..."
-                    CNT=0
-                fi
-                TOTCNT=`expr $TOTCNT + 1`
-
-                sleep 1
-
-                testpid
+                CNT=`expr $CNT + 1`
             else
-                pid=
+                echo "Waiting for $APP_LONG_NAME to exit..."
+                CNT=0
             fi
-        done
+            TOTCNT=`expr $TOTCNT + 1`
 
-        pid=$savepid
-        testpid
-        if [ "X$pid" != "X" ]
-        then
-            echo "Timed out waiting for $APP_LONG_NAME to exit."
-            echo "  Attempting a forced exit..."
-            kill -9 $pid
-        fi
+            sleep 1
+
+            testpid
+        done
 
         pid=$savepid
         testpid

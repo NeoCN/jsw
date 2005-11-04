@@ -144,6 +144,9 @@ Java Service Wrapper Revision History.
   a problem where the Wrapper would not run on new versions of OSX because
   they deprecated the ftime() function call.  Thanks for the patch by
   Michael Macaluso.  Bug #1313162.
+* Remove the shutdown timeout from the UNIX shell script.  It is not needed
+  and can cause a zombie JVM if the wrapper's internal shutdown timeout was
+  longer than that of the shell script.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
