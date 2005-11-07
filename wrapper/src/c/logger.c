@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.55  2005/11/07 07:23:36  mortenson
+ * The cmask should have been in octal.
+ *
  * Revision 1.54  2005/11/07 07:04:52  mortenson
  * Make it possible to configure the umask for all files created by the Wrapper and
  * that of the JVM.
@@ -211,7 +214,7 @@ int currentLogfileLevel = LEVEL_UNKNOWN;
 int currentLoginfoLevel = LEVEL_UNKNOWN;
 
 char logFilePath[ 1024 ];
-int logFileUmask = 0x022;
+int logFileUmask = 0022;
 char *logLevelNames[] = { "NONE  ", "DEBUG ", "INFO  ", "STATUS", "WARN  ", "ERROR ", "FATAL ", "ADVICE" };
 char loginfoSourceName[ 1024 ];
 int  logFileMaxSize = -1;

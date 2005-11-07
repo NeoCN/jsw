@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.145  2005/11/07 07:23:36  mortenson
+ * The cmask should have been in octal.
+ *
  * Revision 1.144  2005/11/07 07:04:52  mortenson
  * Make it possible to configure the umask for all files created by the Wrapper and
  * that of the JVM.
@@ -2760,7 +2763,7 @@ int loadConfiguration() {
     wrapperData->anchorPollInterval = __min(__max(getIntProperty(properties, "wrapper.anchor.poll_interval", 5), 1), 3600);
     
     /** Get the umask value for the various files. */
-    wrapperData->umask = getIntProperty(properties, "wrapper.umask", 0x022);
+    wrapperData->umask = getIntProperty(properties, "wrapper.umask", 0022);
     wrapperData->javaUmask = getIntProperty(properties, "wrapper.java.umask", wrapperData->umask);
     wrapperData->pidFileUmask = getIntProperty(properties, "wrapper.pidfile.umask", wrapperData->umask);
     wrapperData->javaPidFileUmask = getIntProperty(properties, "wrapper.java.pidfile.umask", wrapperData->umask);
