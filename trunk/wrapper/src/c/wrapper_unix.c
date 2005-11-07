@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.112  2005/11/07 07:23:36  mortenson
+ * The cmask should have been in octal.
+ *
  * Revision 1.111  2005/11/07 07:04:52  mortenson
  * Make it possible to configure the umask for all files created by the Wrapper and
  * that of the JVM.
@@ -1199,7 +1202,7 @@ void wrapperExecute() {
 
             /* If a java pid filename is specified then write the pid of the java process. */
             if (wrapperData->javaPidFilename) {
-                if (writePidFile(wrapperData->javaPidFilename, getpid(), wrapperData->javaPidFileUMask)) {
+                if (writePidFile(wrapperData->javaPidFilename, getpid(), wrapperData->javaPidFileUmask)) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                         "Unable to write the Java PID file: %s", wrapperData->javaPidFilename);
                 }
@@ -1207,7 +1210,7 @@ void wrapperExecute() {
 
             /* If a java id filename is specified then write the pid of the java process. */
             if (wrapperData->javaIdFilename) {
-                if (writePidFile(wrapperData->javaIdFilename, wrapperData->jvmRestarts, wrapperData->javaIdFileUMask)) {
+                if (writePidFile(wrapperData->javaIdFilename, wrapperData->jvmRestarts, wrapperData->javaIdFileUmask)) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                         "Unable to write the Java ID file: %s", wrapperData->javaIdFilename);
                 }
