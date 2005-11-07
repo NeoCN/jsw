@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.144  2005/11/07 07:04:52  mortenson
+ * Make it possible to configure the umask for all files created by the Wrapper and
+ * that of the JVM.
+ *
  * Revision 1.143  2005/10/13 07:33:55  mortenson
  * Fix a compile problem on Linux.
  *
@@ -2754,6 +2758,17 @@ int loadConfiguration() {
 
     /** Get the interval at which the anchor file will be polled. */
     wrapperData->anchorPollInterval = __min(__max(getIntProperty(properties, "wrapper.anchor.poll_interval", 5), 1), 3600);
+    
+    /** Get the umask value for the various files. */
+    wrapperData->umask = getIntProperty(properties, "wrapper.umask", 0x022);
+    wrapperData->javaUmask = getIntProperty(properties, "wrapper.java.umask", wrapperData->umask);
+    wrapperData->pidFileUmask = getIntProperty(properties, "wrapper.pidfile.umask", wrapperData->umask);
+    wrapperData->javaPidFileUmask = getIntProperty(properties, "wrapper.java.pidfile.umask", wrapperData->umask);
+    wrapperData->javaIdFileUmask = getIntProperty(properties, "wrapper.java.idfile.umask", wrapperData->umask);
+    wrapperData->statusFileUmask = getIntProperty(properties, "wrapper.statusfile.umask", wrapperData->umask);
+    wrapperData->javaStatusFileUmask = getIntProperty(properties, "wrapper.java.statusfile.umask", wrapperData->umask);
+    wrapperData->anchorFileUmask = getIntProperty(properties, "wrapper.anchorfile.umask", wrapperData->umask);
+    setLogfileUmask(getIntProperty(properties, "wrapper.logfile.umask", wrapperData->umask));
 
     /** Flag controlling whether or not system signals should be ignored. */
     wrapperData->ignoreSignals = getBooleanProperty(properties, "wrapper.ignore_signals", FALSE);

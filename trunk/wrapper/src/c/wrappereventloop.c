@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.27  2005/11/07 07:04:52  mortenson
+ * Make it possible to configure the umask for all files created by the Wrapper and
+ * that of the JVM.
+ *
  * Revision 1.26  2005/10/13 06:54:35  mortenson
  * Remove c++ style comments.
  *
@@ -225,7 +229,7 @@ const char *wrapperGetJState(int jState) {
 }
 
 
-void writeStateFile(const char *filename, const char *state) {
+void writeStateFile(const char *filename, const char *state, int newUmask) {
     FILE *fp = NULL;
     int old_umask;
     int cnt = 0;
@@ -234,11 +238,11 @@ void writeStateFile(const char *filename, const char *state) {
      *  Avoid problems by trying a few times before giving up. */
     while (cnt < 10) {
 #ifdef WIN32
-        old_umask = _umask(022);
+        old_umask = _umask(newUmask);
         fp = fopen(filename, "w");
         _umask(old_umask);
 #else
-        old_umask = umask(022);
+        old_umask = umask(newUmask);
         fp = fopen(filename, "w");
         umask(old_umask);
 #endif
@@ -275,7 +279,7 @@ void wrapperSetWrapperState(int wState) {
     wrapperData->wState = wState;
     
     if (wrapperData->statusFilename != NULL) {
-        writeStateFile(wrapperData->statusFilename, wrapperGetWState(wrapperData->wState));
+        writeStateFile(wrapperData->statusFilename, wrapperGetWState(wrapperData->wState), wrapperData->statusFileUmask);
     }
 }
 
@@ -330,7 +334,7 @@ void wrapperSetJavaState(int jState, DWORD nowTicks, int delay) {
     wrapperUpdateJavaStateTimeout(nowTicks, delay);
     
     if (wrapperData->javaStatusFilename != NULL) {
-        writeStateFile(wrapperData->javaStatusFilename, wrapperGetJState(wrapperData->jState));
+        writeStateFile(wrapperData->javaStatusFilename, wrapperGetJState(wrapperData->jState), wrapperData->javaStatusFileUmask);
     }
 }
 

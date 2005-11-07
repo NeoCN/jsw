@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.24  2005/11/07 07:04:52  mortenson
+ * Make it possible to configure the umask for all files created by the Wrapper and
+ * that of the JVM.
+ *
  * Revision 1.23  2005/05/23 02:37:54  mortenson
  * Update the copyright information.
  *
@@ -181,6 +185,7 @@ extern int strcmpIgnoreCase( const char *str1, const char *str2 );
 
 /* * Logfile functions * */
 extern void setLogfilePath( char *log_file_path );
+extern void setLogfileUmask( int log_file_umask );
 extern void setLogfileFormat( char *log_file_format );
 extern void setLogfileLevelInt( int log_file_level );
 extern int getLogfileLevelInt();

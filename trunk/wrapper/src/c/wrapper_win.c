@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.110  2005/11/07 07:04:52  mortenson
+ * Make it possible to configure the umask for all files created by the Wrapper and
+ * that of the JVM.
+ *
  * Revision 1.109  2005/10/19 17:04:22  mortenson
  * Fix a problem where an empty password could not be entered from a prompt.
  * It could have caused a crash due to an unterminated string.
@@ -658,11 +662,11 @@ int wrapperGetLastError() {
  * filename: File to write to.
  * pid: pid to write in the file.
  */
-int writePidFile(const char *filename, DWORD pid) {
+int writePidFile(const char *filename, DWORD pid, int newUmask) {
     FILE *pid_fp = NULL;
     int old_umask;
 
-    old_umask = _umask(022);
+    old_umask = _umask(newUmask);
     pid_fp = fopen(filename, "w");
     _umask(old_umask);
     
@@ -1596,6 +1600,7 @@ void wrapperExecute() {
     char *c;
     char titleBuffer[80];
     int hideConsole;
+    int old_umask;
 
     FILE *pid_fp = NULL;
 
@@ -1711,6 +1716,9 @@ void wrapperExecute() {
     setLogfileAutoClose(TRUE);
     closeLogfile();
 
+    /* Set the umask of the JVM */
+    old_umask = _umask(wrapperData->javaUmask);
+    
     /* Create the new process */
     ret=CreateProcess(NULL, 
                       commandline,    /* the command line to start */
@@ -1722,6 +1730,9 @@ void wrapperExecute() {
                       NULL,           /* use the Wrapper's current working directory */
                       &startup_info,  /* STARTUPINFO pointer */
                       &process_info); /* PROCESS_INFORMATION pointer */
+    
+    /* Restore the umask. */
+    _umask(old_umask);
     
     /* As soon as the new process is created, restore the auto close flag. */
     setLogfileAutoClose(wrapperData->logfileInactivityTimeout <= 0);
@@ -1796,7 +1807,7 @@ void wrapperExecute() {
 
     /* If a java pid filename is specified then write the pid of the java process. */
     if (wrapperData->javaPidFilename) {
-        if (writePidFile(wrapperData->javaPidFilename, javaProcessId)) {
+        if (writePidFile(wrapperData->javaPidFilename, javaProcessId, wrapperData->javaPidFileUmask)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 "Unable to write the Java PID file: %s", wrapperData->javaPidFilename);
         }
@@ -1804,7 +1815,7 @@ void wrapperExecute() {
 
     /* If a java id filename is specified then write the id of the java process. */
     if (wrapperData->javaIdFilename) {
-        if (writePidFile(wrapperData->javaIdFilename, wrapperData->jvmRestarts)) {
+        if (writePidFile(wrapperData->javaIdFilename, wrapperData->jvmRestarts, wrapperData->javaIdFileUmask)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 "Unable to write the Java ID file: %s", wrapperData->javaIdFilename);
         }
@@ -3282,6 +3293,9 @@ void _CRTAPI1 main(int argc, char **argv) {
                             appExit(1);
                         }
                         
+                        /* Set the default umask of the Wrapper process. */
+                        umask(wrapperData->umask);
+                        
                         /* Perform the specified command */
                         if(!_stricmp(argv[1],"-i") || !_stricmp(argv[1],"/i")) {
                             /* Install an NT service */
@@ -3320,7 +3334,7 @@ void _CRTAPI1 main(int argc, char **argv) {
                              *  simply overwritten. */
                             cleanUpPIDFilesOnExit = TRUE;
                             if (wrapperData->anchorFilename) {
-                                if (writePidFile(wrapperData->anchorFilename, wrapperProcessId)) {
+                                if (writePidFile(wrapperData->anchorFilename, wrapperProcessId, wrapperData->anchorFileUmask)) {
                                     log_printf
                                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                                          "ERROR: Could not write anchor file %s: %s",
@@ -3329,7 +3343,7 @@ void _CRTAPI1 main(int argc, char **argv) {
                                 }
                             }
                             if (wrapperData->pidFilename) {
-                                if (writePidFile(wrapperData->pidFilename, wrapperProcessId)) {
+                                if (writePidFile(wrapperData->pidFilename, wrapperProcessId, wrapperData->pidFileUmask)) {
                                     log_printf
                                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                                          "ERROR: Could not write pid file %s: %s",
@@ -3360,7 +3374,7 @@ void _CRTAPI1 main(int argc, char **argv) {
                              *  simply overwritten. */
                             cleanUpPIDFilesOnExit = TRUE;
                             if (wrapperData->anchorFilename) {
-                                if (writePidFile(wrapperData->anchorFilename, wrapperProcessId)) {
+                                if (writePidFile(wrapperData->anchorFilename, wrapperProcessId, wrapperData->anchorFileUmask)) {
                                     log_printf
                                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                                          "ERROR: Could not write anchor file %s: %s",
@@ -3369,7 +3383,7 @@ void _CRTAPI1 main(int argc, char **argv) {
                                 }
                             }
                             if (wrapperData->pidFilename) {
-                                if (writePidFile(wrapperData->pidFilename, wrapperProcessId)) {
+                                if (writePidFile(wrapperData->pidFilename, wrapperProcessId, wrapperData->pidFileUmask)) {
                                     log_printf
                                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                                          "ERROR: Could not write pid file %s: %s",
