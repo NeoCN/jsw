@@ -27,12 +27,18 @@
         <para>
             Sets the umask used when creating files.  The umask is used to disable
             certain permission bits for files.  Values can be entered in decimal
-            or hexadecimal formats.  Defaults to 0x022.
+            or hexadecimal or octal formats.  Defaults to 0022 which is an octal
+            number.
         </para>
         <para>
-            In hexadecimal format the umask is defined as a 3 digit number.  The
-            first, left-most, digit specifies the blocked permissions for the
-            user creating the file.   The second digit specifies the blocked
+            Values beginning with '0x' will be treated as hexadecimal (base 16).
+            The leading '0' causes the number to be parsed as octal (base 8)
+            otherwise it is treated as a decimal (base 10) number,
+        </para>
+        <para>
+            In octal format the umask is defined as a 3 digit number starting with
+            a 0.  The first, left-most, digit specifies the blocked permissions for
+            the user creating the file.   The second digit specifies the blocked
             permissions for other users who are members of the file's group.
             The third, right-most, digit specifies the blocked permissions for
             any other user.
@@ -43,14 +49,14 @@
             A value of 7 thus restricts read, write and execute access.
         </para>
         <para>
-            The default umask of 0x022 will thus restrict all users except the
-            creater from writing or modifying files.  To prevent other users
-            from being able to execute or even see the files a value of 0x077
+            The default umask of 0022 will thus restrict all users except the
+            creator from writing or modifying files.  To prevent other users
+            from being able to execute or even see the files a value of 0077
             should be used.
         </para>
         <informalexample>
             <simpara><emphasis>Example:</emphasis></simpara>
-            <screen format="linespecific"><![CDATA[wrapper.umask=0x022]]></screen>
+            <screen format="linespecific"><![CDATA[wrapper.umask=0022]]></screen>
         </informalexample>
     </section>
     <section>
