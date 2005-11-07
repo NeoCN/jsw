@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.74  2005/11/07 07:04:52  mortenson
+ * Make it possible to configure the umask for all files created by the Wrapper and
+ * that of the JVM.
+ *
  * Revision 1.73  2005/10/13 06:47:50  mortenson
  * Replace calls to ftime with gettimeofday on UNIX platforms.
  *
@@ -409,6 +413,14 @@ struct WrapperConfig {
     char    *anchorFilename;        /* Name of an anchor file used to control when the Wrapper should quit. */
     int     anchorPollInterval;     /* Interval in seconds at which the existence of the anchor file is polled. */
     DWORD   anchorTimeoutTicks;     /* Tick count at which the anchor file will be checked next. */
+    int     umask;                  /* Default umask for all files. */
+    int     javaUmask;              /* Default umask for the java process. */
+    int     pidFileUmask;           /* Umask to use when creating the pid file. */
+    int     javaPidFileUmask;       /* Umask to use when creating the java pid file. */
+    int     javaIdFileUmask;        /* Umask to use when creating the java id file. */
+    int     statusFileUmask;        /* Umask to use when creating the status file. */
+    int     javaStatusFileUmask;    /* Umask to use when creating the java status file. */
+    int     anchorFileUmask;        /* Umask to use when creating the anchor file. */
     int     ignoreSignals;          /* True if the Wrapper should ignore any catchable system signals and inform its JVM to do the same. */
 
 #ifdef WIN32

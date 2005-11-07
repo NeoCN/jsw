@@ -50,6 +50,9 @@
                 <ulink url="prop-anchorfile.html">wrapper.anchorfile</ulink>
             </listproperty>
             <listproperty version="3.2.0">
+                <ulink url="prop-umask.html">wrapper.anchorfile.umask</ulink>
+            </listproperty>
+            <listproperty version="3.2.0">
                 <ulink url="prop-commandfile.html">wrapper.commandfile</ulink>
             </listproperty>
             <listproperty version="2.2.8">
@@ -67,11 +70,23 @@
             <listproperty version="3.2.0">
                 <ulink url="prop-java-idfile.html">wrapper.java.idfile</ulink>
             </listproperty>
+            <listproperty version="3.2.0">
+                <ulink url="prop-umask.html">wrapper.java.idfile.umask</ulink>
+            </listproperty>
             <listproperty version="3.0.5">
                 <ulink url="prop-java-pidfile.html">wrapper.java.pidfile</ulink>
             </listproperty>
             <listproperty version="3.2.0">
+                <ulink url="prop-umask.html">wrapper.java.pidfile.umask</ulink>
+            </listproperty>
+            <listproperty version="3.2.0">
                 <ulink url="prop-java-statusfile.html">wrapper.java.statusfile</ulink>
+            </listproperty>
+            <listproperty version="3.2.0">
+                <ulink url="prop-umask.html">wrapper.java.statusfile.umask</ulink>
+            </listproperty>
+            <listproperty version="3.2.0">
+                <ulink url="prop-umask.html">wrapper.java.umask</ulink>
             </listproperty>
             <listproperty version="2.2.8">
                 <ulink url="prop-jvm-exit-timeout.html">wrapper.jvm_exit.timeout</ulink>
@@ -96,6 +111,9 @@
             </listproperty>
             <listproperty version="Usage changed in 3.0.5">
                 <ulink url="prop-pidfile.html">wrapper.pidfile</ulink>
+            </listproperty>
+            <listproperty version="3.2.0">
+                <ulink url="prop-umask.html">wrapper.pidfile.umask</ulink>
             </listproperty>
             <listproperty version="3.0.5">
                 <ulink url="prop-ping-interval.html">wrapper.ping.interval</ulink>
@@ -133,6 +151,9 @@
             <listproperty version="3.2.0">
                 <ulink url="prop-statusfile.html">wrapper.statusfile</ulink>
             </listproperty>
+            <listproperty version="3.2.0">
+                <ulink url="prop-umask.html">wrapper.statusfile.umask</ulink>
+            </listproperty>
             <listproperty version="2.2.8">
                 <ulink url="prop-successful-invocation-time.html">wrapper.successful_invocation_time</ulink>
             </listproperty>
@@ -141,6 +162,9 @@
             </listproperty>
             <listproperty version="3.1.0">
                 <ulink url="prop-use-system-time.html#prop-timer-slow-threshold">wrapper.timer_slow_threshold</ulink>
+            </listproperty>
+            <listproperty version="3.2.0">
+                <ulink url="prop-umask.html">wrapper.umask</ulink>
             </listproperty>
             <listproperty version="3.1.0">
                 <ulink url="prop-use-system-time.html">wrapper.use_system_time</ulink>

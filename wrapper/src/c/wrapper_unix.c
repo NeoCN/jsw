@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.111  2005/11/07 07:04:52  mortenson
+ * Make it possible to configure the umask for all files created by the Wrapper and
+ * that of the JVM.
+ *
  * Revision 1.110  2005/10/13 06:47:50  mortenson
  * Replace calls to ftime with gettimeofday on UNIX platforms.
  *
@@ -503,11 +507,11 @@ int wrapperGetLastError() {
  * filename: File to write to.
  * pid: pid to write in the file.
  */
-int writePidFile(const char *filename, DWORD pid) {
+int writePidFile(const char *filename, DWORD pid, int newUmask) {
     FILE *pid_fp = NULL;
     int old_umask;
 
-    old_umask = umask(022);
+    old_umask = umask(newUmask);
     pid_fp = fopen(filename, "w");
     umask(old_umask);
     
@@ -1139,6 +1143,9 @@ void wrapperExecute() {
         if (proc == 0) {
             /* We are the child side. */
             
+            /* Set the umask of the JVM */
+            umask(wrapperData->javaUmask);
+            
             /* The logging code causes some log corruption if logging is called from the
              *  child of a fork.  Not sure exactly why but most likely because the forked
              *  child receives a copy of the mutex and thus synchronization is not working.
@@ -1192,7 +1199,7 @@ void wrapperExecute() {
 
             /* If a java pid filename is specified then write the pid of the java process. */
             if (wrapperData->javaPidFilename) {
-                if (writePidFile(wrapperData->javaPidFilename, getpid())) {
+                if (writePidFile(wrapperData->javaPidFilename, getpid(), wrapperData->javaPidFileUMask)) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                         "Unable to write the Java PID file: %s", wrapperData->javaPidFilename);
                 }
@@ -1200,7 +1207,7 @@ void wrapperExecute() {
 
             /* If a java id filename is specified then write the pid of the java process. */
             if (wrapperData->javaIdFilename) {
-                if (writePidFile(wrapperData->javaIdFilename, wrapperData->jvmRestarts)) {
+                if (writePidFile(wrapperData->javaIdFilename, wrapperData->jvmRestarts, wrapperData->javaIdFileUMask)) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                         "Unable to write the Java ID file: %s", wrapperData->javaIdFilename);
                 }
@@ -1752,7 +1759,10 @@ int main(int argc, char **argv) {
                 appExit(1);
                 return 1; /* For compiler. */
             }
-
+            
+            /* Set the default umask of the Wrapper process. */
+            umask(wrapperData->umask);
+            
             /* fork to a Daemonized process if configured to do so. */
             if (wrapperData->daemonize) {
                 daemonize();
@@ -1761,7 +1771,7 @@ int main(int argc, char **argv) {
             /* Write pid and anchor files as requested.  If they are the same file the file is
              *  simply overwritten. */
             if (wrapperData->anchorFilename) {
-                if (writePidFile(wrapperData->anchorFilename, (int)getpid())) {
+                if (writePidFile(wrapperData->anchorFilename, (int)getpid(), wrapperData->anchorFileUmask)) {
                     log_printf
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                          "ERROR: Could not write anchor file %s: %s",
@@ -1771,7 +1781,7 @@ int main(int argc, char **argv) {
                 }
             }
             if (wrapperData->pidFilename) {
-                if (writePidFile(wrapperData->pidFilename, (int)getpid())) {
+                if (writePidFile(wrapperData->pidFilename, (int)getpid(), wrapperData->pidFileUmask)) {
                     log_printf
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                          "ERROR: Could not write pid file %s: %s",

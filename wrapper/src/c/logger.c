@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.54  2005/11/07 07:04:52  mortenson
+ * Make it possible to configure the umask for all files created by the Wrapper and
+ * that of the JVM.
+ *
  * Revision 1.53  2005/05/23 02:37:54  mortenson
  * Update the copyright information.
  *
@@ -186,6 +190,7 @@
 #include <errno.h>
 
 #ifdef WIN32
+#include <io.h>
 #include <windows.h>
 #include <tchar.h>
 #include <conio.h>
@@ -206,6 +211,7 @@ int currentLogfileLevel = LEVEL_UNKNOWN;
 int currentLoginfoLevel = LEVEL_UNKNOWN;
 
 char logFilePath[ 1024 ];
+int logFileUmask = 0x022;
 char *logLevelNames[] = { "NONE  ", "DEBUG ", "INFO  ", "STATUS", "WARN  ", "ERROR ", "FATAL ", "ADVICE" };
 char loginfoSourceName[ 1024 ];
 int  logFileMaxSize = -1;
@@ -398,6 +404,10 @@ void setLogfilePath( char *log_file_path ) {
         c[0] = '\\';
     }
 #endif
+}
+
+void setLogfileUmask( int log_file_umask ) {
+    logFileUmask = log_file_umask;
 }
 
 void setLogfileFormat( char *log_file_format ) {
@@ -775,6 +785,7 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
     va_list     vargs;
     int         count;
     char        *printBuffer;
+    int         old_umask;
 
     /* We need to be very careful that only one thread is allowed in here
      *  at a time.  On Windows this is done using a Mutex object that is
@@ -861,11 +872,13 @@ void log_printf( int source_id, int level, char *lpszFmt, ... ) {
             
             /* If the file needs to be opened then do so. */
             if (logfileFP == NULL) {
+                old_umask = umask( logFileUmask );
                 logfileFP = fopen( logFilePath, "a" );
                 if (logfileFP == NULL) {
                     /* The log file could not be opened.  Try the default file location. */
                     logfileFP = fopen( "wrapper.log", "a" );
                 }
+                umask(old_umask);
                 
 #ifdef _DEBUG				
                 if (logfileFP != NULL) {

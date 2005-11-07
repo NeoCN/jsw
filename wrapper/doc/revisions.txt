@@ -147,6 +147,15 @@ Java Service Wrapper Revision History.
 * Remove the shutdown timeout from the UNIX shell script.  It is not needed
   and can cause a zombie JVM if the wrapper's internal shutdown timeout was
   longer than that of the shell script.
+* Add the ability to specify integer property values in base 8 or 16 in
+  addition to base 10.  Base 8 values start with a '0' and base 16 values
+  start with a '0x'.
+* Make it possible to set the umask on all files created by the Wrapper
+  as well as the default umask of files created by the JVM.  Added new
+  wrapper.umask, wrapper.java.umask, wrapper.pidfile.umask,
+  wrapper.java.pidfile.umask, wrapper.java.idfile.umask,
+  wrapper.statusfile.umask, wrapper.java.statusfile.umask,
+  wrapper.anchorfile.umask, and wrapper.logfile.umask properties.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager

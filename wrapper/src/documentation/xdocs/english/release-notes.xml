@@ -344,6 +344,29 @@ $Id$
                     longer than that of the shell script.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add the ability to specify integer property values in base 8 or 16 in
+                    addition to base 10.  Base 8 values start with a '0' and base 16 values
+                    start with a '0x'.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Make it possible to set the umask on all files created by the Wrapper
+                    as well as the default umask of files created by the JVM.  Added new
+                    <ulink url="prop-java-umask.html">wrapper.umask</ulink>,
+                    <ulink url="prop-java-umask.html">wrapper.java.umask</ulink>,
+                    <ulink url="prop-java-umask.html">wrapper.pidfile.umask</ulink>,
+                    <ulink url="prop-java-umask.html">wrapper.java.pidfile.umask</ulink>,
+                    <ulink url="prop-java-umask.html">wrapper.java.idfile.umask</ulink>,
+                    <ulink url="prop-java-umask.html">wrapper.statusfile.umask</ulink>,
+                    <ulink url="prop-java-umask.html">wrapper.java.statusfile.umask</ulink>,
+                    <ulink url="prop-java-umask.html">wrapper.anchorfile.umask</ulink>,
+                    and <ulink url="prop-java-umask.html">wrapper.logfile.umask</ulink>
+                    properties.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">

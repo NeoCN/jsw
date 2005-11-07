@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.35  2005/11/07 07:04:52  mortenson
+ * Make it possible to configure the umask for all files created by the Wrapper and
+ * that of the JVM.
+ *
  * Revision 1.34  2005/05/23 02:37:54  mortenson
  * Update the copyright information.
  *
@@ -798,7 +802,7 @@ int getIntProperty(Properties *properties, const char *propertyName, int default
     if (property == NULL) {
         return defaultValue;
     } else {
-        return atoi(property->value);
+        return (int)strtol(property->value, NULL, 0);
     }
 }
 
