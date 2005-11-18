@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.57  2005/11/18 08:07:48  mortenson
+// Improve the message when the native library can not be loaded to make mention
+// of the possibility of a 32/64 bit mismatch.
+//
 // Revision 1.56  2005/10/13 06:10:51  mortenson
 // Implement the ability to catch control events using the WrapperEventLisener.
 // Make it possible to configure the port used by the Java end of the back end
@@ -1182,6 +1186,10 @@ public final class WrapperManager
                         "          Please verify that the file is readable by the current user" );
                     m_out.println(
                         "          and that the file has not been corrupted in any way." );
+                    m_out.println(
+                        "          One common cause of this problem is running a 32-bit version" );
+                    m_out.println(
+                        "          of the Wrapper with a 64-bit version of Java, or vica versa." );
                 }
             }
             m_out.println( "          System signals will not be handled correctly." );
