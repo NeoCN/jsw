@@ -156,6 +156,8 @@ Java Service Wrapper Revision History.
   wrapper.java.pidfile.umask, wrapper.java.idfile.umask,
   wrapper.statusfile.umask, wrapper.java.statusfile.umask,
   wrapper.anchorfile.umask, and wrapper.logfile.umask properties.
+* Improve the message when the native library can not be loaded to make mention
+  of the possibility of a 32/64 bit mismatch.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
