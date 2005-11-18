@@ -367,6 +367,12 @@ $Id$
                     properties.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Improve the message when the native library can not be loaded to make mention
+                    of the possibility of a 32/64 bit mismatch.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
