@@ -373,6 +373,14 @@ $Id$
                     of the possibility of a 32/64 bit mismatch.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add a new <ulink url="prop-monitor-thread-count.html">wrapper.monitor_thread_count</ulink>
+                    property which makes it possible to disable the Wrapper's counting of
+                    non-daemon threads and thus the shutting down of the JVM when they have all
+                    completed.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">

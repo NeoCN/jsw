@@ -44,6 +44,11 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.58  2005/11/24 03:22:03  mortenson
+// Add a new wrapper.monitor_thread_count property which makes it possible to
+// disable the Wrapper's counting of non-daemon threads and thus the shutting
+// down of the JVM when they have all completed.
+//
 // Revision 1.57  2005/11/18 08:07:48  mortenson
 // Improve the message when the native library can not be loaded to make mention
 // of the possibility of a 32/64 bit mismatch.
@@ -439,6 +444,10 @@ public final class WrapperManager
     /** The number of threads to ignore when deciding when all application
      *   threads have completed. */
     private static int m_systemThreadCount;
+    
+    /** True if the thread count should be monitored for application
+     *   completion. */
+    private static boolean m_monitorThreadCount = true;
     
     /** The lowest configured log level in the Wrapper's configuration.  This 
      *   is set to a high value by default to disable all logging if the
@@ -3070,6 +3079,19 @@ public final class WrapperManager
         
         // Lock the properties object and store it.
         properties.lock();
+        
+        // Initialize any internal values set by wrapper properties.
+        m_monitorThreadCount = properties.getProperty( "wrapper.monitor_thread_count", "true" ).
+            toLowerCase().equals( "true" );
+        
+        if ( m_debug )
+        {
+            if ( !m_monitorThreadCount )
+            {
+                System.out.println( "Monitoring of the JVM thread count is disabled." );
+            }
+        }
+        
         m_properties = properties;
     }
 
@@ -3651,7 +3673,7 @@ public final class WrapperManager
                 }
                 
                 // Check to see if all non-daemon threads have exited.
-                if ( m_started )
+                if ( m_started && m_monitorThreadCount )
                 {
                     checkThreads();
                 }
@@ -3764,6 +3786,10 @@ public final class WrapperManager
         else
         {
             // There are daemons running, let the JVM continue to run.
+            if ( m_debug )
+            {
+                m_out.println( "Non-daemon thread count: " + liveCount );
+            }
         }
     }
     

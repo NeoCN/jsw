@@ -103,6 +103,7 @@ extern "C" {
 /* Inaccessible static: m_soTimeout */
 /* Inaccessible static: m_cpuTimeout */
 /* Inaccessible static: m_systemThreadCount */
+/* Inaccessible static: m_monitorThreadCount */
 /* Inaccessible static: m_lowLogLevel */
 /* Inaccessible static: m_pingTimeout */
 /* Inaccessible static: m_ignoreSignals */
