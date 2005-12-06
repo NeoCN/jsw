@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.111  2005/12/06 05:19:00  mortenson
+ * Add support for BELOW_NORMAL and ABOVE_NORMAL options to the
+ * wrapper.ntservice.process_priority property.  Feature Request #1373922.
+ *
  * Revision 1.110  2005/11/07 07:04:52  mortenson
  * Make it possible to configure the umask for all files created by the Wrapper and
  * that of the JVM.
@@ -1054,7 +1058,10 @@ int wrapperInitialize() {
 
     /* Set the process priority. */
     HANDLE process = GetCurrentProcess();
-    SetPriorityClass(process, wrapperData->ntServicePriorityClass);
+    if (!SetPriorityClass(process, wrapperData->ntServicePriorityClass)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+			"Unable to set the process priority:  %s", getLastErrorText());
+	}
 
     /* Initialize Winsock */
     if ((res = WSAStartup(ws_version, &ws_data)) != 0) {

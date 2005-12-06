@@ -27,11 +27,17 @@
         <para>
             Specifies the priority at which the Wrapper and its JVM will be run
             at when run as an NT service or as a console application.  Possible
-            values are <literal moreinfo="none">NORMAL</literal>,
+            values are
             <literal moreinfo="none">LOW</literal>,
+            <literal moreinfo="none">BELOW_NORMAL</literal>,
+            <literal moreinfo="none">NORMAL</literal>,
+            <literal moreinfo="none">ABOVE_NORMAL</literal>,
             <literal moreinfo="none">HIGH</literal>, and
             <literal moreinfo="none">REALTIME</literal>.  Defaults to
             <literal moreinfo="none">NORMAL</literal>.
+            <literal moreinfo="none">BELOW_NORMAL</literal> and
+            <literal moreinfo="none">ABOVE_NORMAL</literal> are not supported on
+            Windows NT, 95 or 98.
         </para>
         <informalexample>
             <simpara><emphasis>Example:</emphasis></simpara>

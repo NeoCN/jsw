@@ -381,6 +381,13 @@ $Id$
                     completed.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add support for BELOW_NORMAL and ABOVE_NORMAL options to the
+                    <ulink url="prop-ntservice-process-priority.html">wrapper.ntservice.process_priority</ulink> property.
+                    <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=1373922&amp;group_id=39428&amp;atid=425190">Feature Request #1373922</ulink>.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
