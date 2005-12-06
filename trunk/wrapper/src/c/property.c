@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.36  2005/12/06 05:44:28  mortenson
+ * Ignore '#' characters which are included within double quotes in the value
+ * of a property in the configuration file.  Unquoted values must be escaped
+ * with a second '#' characters or it will be interpreted as a comment.
+ *
  * Revision 1.35  2005/11/07 07:04:52  mortenson
  * Make it possible to configure the umask for all files created by the Wrapper and
  * that of the JVM.
@@ -434,6 +439,7 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
     char *d;
     int i, j;
     int len;
+    int quoted;
 
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "loadPropertiesInner(props, '%s', %d)", filename, depth);
@@ -475,8 +481,11 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
             if (trimmedBuffer[0] != '#') {
                 len = strlen(trimmedBuffer);
                 i = 0;
+                quoted = 0;
                 while (i < len) {
-                    if (trimmedBuffer[i] == '#') {
+                    if (trimmedBuffer[i] == '"') {
+                        quoted = !quoted;
+                    } else if ((trimmedBuffer[i] == '#') && (!quoted)) {
                         /* Checking the next character will always be ok because it will be
                          *  '\0 at the end of the string. */
                         if (trimmedBuffer[i + 1] == '#') {

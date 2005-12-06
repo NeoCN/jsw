@@ -163,6 +163,9 @@ Java Service Wrapper Revision History.
   down of the JVM when they have all completed.
 * Add support for BELOW_NORMAL and ABOVE_NORMAL options to the
   wrapper.ntservice.process_priority property.  Feature Request #1373922.
+* Ignore '#' characters which are included within double quotes in the value
+  of a property in the configuration file.  Unquoted values must be escaped
+  with a second '#' characters or it will be interpreted as a comment.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager

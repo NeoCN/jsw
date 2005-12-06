@@ -388,6 +388,13 @@ $Id$
                     <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=1373922&amp;group_id=39428&amp;atid=425190">Feature Request #1373922</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Ignore '#' characters which are included within double quotes in the value
+                    of a property in the configuration file.  Unquoted values must be escaped
+                    with a second '#' characters or it will be interpreted as a comment.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
