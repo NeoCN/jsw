@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.146  2005/12/06 05:19:00  mortenson
+ * Add support for BELOW_NORMAL and ABOVE_NORMAL options to the
+ * wrapper.ntservice.process_priority property.  Feature Request #1373922.
+ *
  * Revision 1.145  2005/11/07 07:23:36  mortenson
  * The cmask should have been in octal.
  *
@@ -2311,6 +2315,15 @@ void updateStringValue(char **ptr, char *value) {
 }
 
 #ifdef WIN32
+
+/* The ABOVE and BELOW normal priority class constants are not defined in MFVC 6.0 headers. */
+#ifndef ABOVE_NORMAL_PRIORITY_CLASS
+#define ABOVE_NORMAL_PRIORITY_CLASS 0x00008000
+#endif
+#ifndef BELOW_NORMAL_PRIORITY_CLASS
+#define BELOW_NORMAL_PRIORITY_CLASS 0x00004000
+#endif
+
 void wrapperBuildNTServiceInfo() {
     char dependencyKey[32]; /* Length of "wrapper.ntservice.dependency.nn" + '\0' */
     const char *dependencies[10];
@@ -2385,6 +2398,10 @@ void wrapperBuildNTServiceInfo() {
             wrapperData->ntServicePriorityClass = HIGH_PRIORITY_CLASS;
         } else if (strcmp(work, "REALTIME") == 0) {
             wrapperData->ntServicePriorityClass = REALTIME_PRIORITY_CLASS;
+        } else if (strcmp(work, "ABOVE_NORMAL") == 0) {
+            wrapperData->ntServicePriorityClass = ABOVE_NORMAL_PRIORITY_CLASS;
+        } else if (strcmp(work, "BELOW_NORMAL") == 0) {
+            wrapperData->ntServicePriorityClass = BELOW_NORMAL_PRIORITY_CLASS;
         } else {
             wrapperData->ntServicePriorityClass = NORMAL_PRIORITY_CLASS;
         }

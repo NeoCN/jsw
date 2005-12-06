@@ -161,6 +161,8 @@ Java Service Wrapper Revision History.
 * Add a new wrapper.monitor_thread_count property which makes it possible to
   disable the Wrapper's counting of non-daemon threads and thus the shutting
   down of the JVM when they have all completed.
+* Add support for BELOW_NORMAL and ABOVE_NORMAL options to the
+  wrapper.ntservice.process_priority property.  Feature Request #1373922.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
