@@ -44,6 +44,11 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.60  2005/12/07 03:25:51  mortenson
+// Fix a problem where the Windows ServiceManager was not correctly reporting
+// a startup error if a service failed on startup.  The service was being
+// reported as having started even though it failed to start.
+//
 // Revision 1.59  2005/12/07 02:42:57  mortenson
 // Display the Wrapper banner in the JVM earlier so that it is displayed
 // even where there are startup errors.
@@ -1848,14 +1853,6 @@ public final class WrapperManager
             if ( !m_commRunnerStarted )
             {
                 startRunner();
-                // Wait to give the runner a chance to connect.
-                try
-                {
-                    Thread.sleep(500);
-                }
-                catch ( InterruptedException e )
-                {
-                }
             }
             
             // Always send the stop command
@@ -2621,14 +2618,6 @@ public final class WrapperManager
             if ( !m_commRunnerStarted )
             {
                 startRunner();
-                // Wait to give the runner a chance to connect.
-                try
-                {
-                    Thread.sleep( 500 );
-                }
-                catch ( InterruptedException e )
-                {
-                }
             }
             
             // Always send the stop command
@@ -3103,7 +3092,7 @@ public final class WrapperManager
     {
         if ( m_debug )
         {
-            m_out.println( "Open socket to wrapper..." );
+            m_out.println( "Open socket to wrapper..." + Thread.currentThread().getName() );
         }
 
         InetAddress iNetAddress;
@@ -3808,6 +3797,30 @@ public final class WrapperManager
                 // This thread can not be a daemon or the JVM will quit immediately
                 m_commRunner.start();
             }
+            
+            // Wait to give the runner a chance to connect.
+            synchronized( WrapperManager.class )
+            {
+                while ( !m_commRunnerStarted )
+                {
+                    try
+                    {
+                        WrapperManager.class.wait( 100 );
+                    }
+                    catch ( InterruptedException e )
+                    {
+                    }
+                }
+            }
+        }
+        else
+        {
+            // Immediately mark the runner as started as it will never be used.
+            synchronized( WrapperManager.class )
+            {
+                m_commRunnerStarted = true;
+                WrapperManager.class.notifyAll();
+            }
         }
     }
     
@@ -3822,8 +3835,6 @@ public final class WrapperManager
             throw new IllegalStateException(
                 "Only the comm runner thread is allowed to call this method." );
         }
-        
-        m_commRunnerStarted = true;
         
         // This thread needs to have a very high priority so that it never
         //	gets put behind other threads.
@@ -3840,6 +3851,19 @@ public final class WrapperManager
                 try
                 {
                     openSocket();
+                    
+                    // After the socket has been opened the first time, mark the thread as
+                    //  started.  This must be done here to make sure that exits work correctly
+                    //  when called on startup.
+                    if ( !m_commRunnerStarted )
+                    {
+                        synchronized( WrapperManager.class )
+                        {
+                            m_commRunnerStarted = true;
+                            WrapperManager.class.notifyAll();
+                        }
+                    }
+                    
                     if ( m_socket != null )
                     {
                         handleSocket();
@@ -3876,6 +3900,17 @@ public final class WrapperManager
                 }
             }
         }
+        
+        // Make sure that noone is ever left waiting for this thread to start.
+        synchronized( WrapperManager.class )
+        {
+            if ( !m_commRunnerStarted )
+            {
+                m_commRunnerStarted = true;
+                WrapperManager.class.notifyAll();
+            }
+        }
+        
         if ( m_debug )
         {
             m_out.println( m_info.format( "SERVER_DAEMON_SHUT_DOWN" ) );
