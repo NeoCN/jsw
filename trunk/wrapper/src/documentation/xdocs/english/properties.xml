@@ -195,6 +195,9 @@
                 <listproperty version="2.2.5">
                     <ulink url="prop-logfile-format.html">wrapper.logfile.format</ulink>
                 </listproperty>
+                <listproperty version="3.2.0">
+                    <ulink url="prop-logfile-inactivity-timeout.html">wrapper.logfile.inactivity.timeout</ulink>
+                </listproperty>
                 <listproperty version="2.2.5">
                     <ulink url="prop-logfile-loglevel.html">wrapper.logfile.loglevel</ulink>
                 </listproperty>

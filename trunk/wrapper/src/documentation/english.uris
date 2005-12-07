@@ -71,6 +71,7 @@ english/prop-jvm-exit-timeout.html
 english/prop-jvm-port.html
 english/prop-logfile.html
 english/prop-logfile-format.html
+english/prop-logfile-inactivity-timeout.html
 english/prop-logfile-loglevel.html
 english/prop-logfile-maxfiles.html
 english/prop-logfile-maxsize.html
