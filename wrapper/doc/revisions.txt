@@ -167,6 +167,8 @@ Java Service Wrapper Revision History.
 * Ignore '#' characters which are included within double quotes in the value
   of a property in the configuration file.  Unquoted values must be escaped
   with a second '#' characters or it will be interpreted as a comment.
+* Display the Wrapper banner in the JVM earlier so that it is displayed
+  even where there are startup errors.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
