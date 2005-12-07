@@ -44,6 +44,11 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.10  2005/12/07 02:45:18  mortenson
+// Modify the WrapperSimpleApp and WrapperStartStopApp classes so that the
+// WrapperManager is always initialized immediately.  This makes the output
+// clearer in the event of startup errors.
+//
 // Revision 1.9  2005/05/23 02:41:12  mortenson
 // Update the copyright information.
 //
@@ -609,6 +614,9 @@ public class WrapperStartStopApp
      */
     public static void main( String args[] )
     {
+        // Initialize the WrapperManager class on startup by referencing it.
+        Class wmClass = WrapperManager.class;
+        
         // Get the class name of the application
         if ( args.length < 5 )
         {

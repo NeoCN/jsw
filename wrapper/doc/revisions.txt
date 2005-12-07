@@ -169,6 +169,9 @@ Java Service Wrapper Revision History.
   with a second '#' characters or it will be interpreted as a comment.
 * Display the Wrapper banner in the JVM earlier so that it is displayed
   even where there are startup errors.
+* Modify the WrapperSimpleApp and WrapperStartStopApp classes so that the
+  WrapperManager is always initialized immediately.  This makes the output
+  clearer in the event of startup errors.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
