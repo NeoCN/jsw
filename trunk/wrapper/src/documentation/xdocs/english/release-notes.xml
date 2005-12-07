@@ -402,6 +402,13 @@ $Id$
                     even where there are startup errors.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Modify the WrapperSimpleApp and WrapperStartStopApp classes so that the
+                    WrapperManager is always initialized immediately.  This makes the output
+                    clearer in the event of startup errors.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
