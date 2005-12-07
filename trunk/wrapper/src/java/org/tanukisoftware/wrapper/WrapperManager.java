@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.59  2005/12/07 02:42:57  mortenson
+// Display the Wrapper banner in the JVM earlier so that it is displayed
+// even where there are startup errors.
+//
 // Revision 1.58  2005/11/24 03:22:03  mortenson
 // Add a new wrapper.monitor_thread_count property which makes it possible to
 // disable the Wrapper's counting of non-daemon threads and thus the shutting
@@ -592,6 +596,9 @@ public final class WrapperManager
                 + Thread.currentThread().getName()
                 + "  Using classloader: " + WrapperManager.class.getClassLoader() );
         }
+        
+        m_out.println( "Wrapper (Version " + getVersion() + ") http://wrapper.tanukisoftware.org" );
+        m_out.println();
         
         // Check for the jvmID
         m_jvmId = WrapperSystemPropertyUtil.getIntProperty( "wrapper.jvmid", 1 );
@@ -1679,9 +1686,6 @@ public final class WrapperManager
      */
     private static void privilegedStart( WrapperListener listener, String[] args )
     {
-        m_out.println( "Wrapper (Version " + getVersion() + ") http://wrapper.tanukisoftware.org" );
-        m_out.println();
-        
         // Check the SecurityManager here as it is possible that it was set before this call.
         checkSecurityManager();
         

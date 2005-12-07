@@ -396,6 +396,12 @@ $Id$
                     with a second '#' characters or it will be interpreted as a comment.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Display the Wrapper banner in the JVM earlier so that it is displayed
+                    even where there are startup errors.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
