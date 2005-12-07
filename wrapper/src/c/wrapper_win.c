@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.113  2005/12/07 03:26:09  mortenson
+ * Remove some debug output.
+ *
  * Revision 1.112  2005/12/07 02:25:26  mortenson
  * When running a command, the log file should always be auto flushed.
  *
@@ -2670,7 +2673,6 @@ int wrapperStartService() {
                         stopping = FALSE;
                         do {
                             if ( QueryServiceStatus(schService, &serviceStatus)) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "State %d", serviceStatus.dwCurrentState );
                                 if (serviceStatus.dwCurrentState == SERVICE_STOP_PENDING) {
                                     if (!stopping) {
                                         stopping = TRUE;
@@ -2697,7 +2699,6 @@ int wrapperStartService() {
                             }
                         } while ((serviceStatus.dwCurrentState != SERVICE_STOPPED)
                             && (serviceStatus.dwCurrentState != SERVICE_RUNNING));
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Final state %d", serviceStatus.dwCurrentState );
 
                         /* Was the service started? */
                         if (serviceStatus.dwCurrentState == SERVICE_RUNNING) {
