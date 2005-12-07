@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.112  2005/12/07 02:25:26  mortenson
+ * When running a command, the log file should always be auto flushed.
+ *
  * Revision 1.111  2005/12/06 05:19:00  mortenson
  * Add support for BELOW_NORMAL and ABOVE_NORMAL options to the
  * wrapper.ntservice.process_priority property.  Feature Request #1373922.
@@ -1060,8 +1063,8 @@ int wrapperInitialize() {
     HANDLE process = GetCurrentProcess();
     if (!SetPriorityClass(process, wrapperData->ntServicePriorityClass)) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-			"Unable to set the process priority:  %s", getLastErrorText());
-	}
+            "Unable to set the process priority:  %s", getLastErrorText());
+    }
 
     /* Initialize Winsock */
     if ((res = WSAStartup(ws_version, &ws_data)) != 0) {
@@ -2663,10 +2666,11 @@ int wrapperStartService() {
                     if (StartService( schService, 0, NULL )) {
                         /* We will get here immediately if the service process was launched.
                          *  We still need to wait for it to actually start. */
-                      msgCntr = 0;
+                        msgCntr = 0;
                         stopping = FALSE;
                         do {
                             if ( QueryServiceStatus(schService, &serviceStatus)) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "State %d", serviceStatus.dwCurrentState );
                                 if (serviceStatus.dwCurrentState == SERVICE_STOP_PENDING) {
                                     if (!stopping) {
                                         stopping = TRUE;
@@ -2683,7 +2687,7 @@ int wrapperStartService() {
                                     }
                                 }
                                 wrapperSleep(1000);
-                              msgCntr++;
+                                msgCntr++;
                             } else {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                                     "Unable to query the status of the %s service - %s",
@@ -2693,6 +2697,7 @@ int wrapperStartService() {
                             }
                         } while ((serviceStatus.dwCurrentState != SERVICE_STOPPED)
                             && (serviceStatus.dwCurrentState != SERVICE_RUNNING));
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Final state %d", serviceStatus.dwCurrentState );
 
                         /* Was the service started? */
                         if (serviceStatus.dwCurrentState == SERVICE_RUNNING) {
@@ -3306,21 +3311,33 @@ void _CRTAPI1 main(int argc, char **argv) {
                         /* Perform the specified command */
                         if(!_stricmp(argv[1],"-i") || !_stricmp(argv[1],"/i")) {
                             /* Install an NT service */
+                            /* Always auto close the log file to keep the output in synch. */
+                            setLogfileAutoClose(TRUE);
                             result = wrapperInstall(argc, argv);
                         } else if(!_stricmp(argv[1],"-r") || !_stricmp(argv[1],"/r")) {
                             /* Remove an NT service */
+                            /* Always auto close the log file to keep the output in synch. */
+                            setLogfileAutoClose(TRUE);
                             result = wrapperRemove();
                         } else if(!_stricmp(argv[1],"-t") || !_stricmp(argv[1],"/t")) {
                             /* Start an NT service */
+                            /* Always auto close the log file to keep the output in synch. */
+                            setLogfileAutoClose(TRUE);
                             result = wrapperStartService();
                         } else if(!_stricmp(argv[1],"-p") || !_stricmp(argv[1],"/p")) {
                             /* Stop an NT service */
+                            /* Always auto close the log file to keep the output in synch. */
+                            setLogfileAutoClose(TRUE);
                             result = wrapperStopService(TRUE);
                         } else if(!_stricmp(argv[1],"-q") || !_stricmp(argv[1],"/q")) {
                             /* Return service status with console output. */
+                            /* Always auto close the log file to keep the output in synch. */
+                            setLogfileAutoClose(TRUE);
                             result = wrapperServiceStatus(TRUE);
                         } else if(!_stricmp(argv[1],"-qs") || !_stricmp(argv[1],"/qs")) {
                             /* Return service status without console output. */
+                            /* Always auto close the log file to keep the output in synch. */
+                            setLogfileAutoClose(TRUE);
                             result = wrapperServiceStatus(FALSE);
                         } else if(!_stricmp(argv[1],"-c") || !_stricmp(argv[1],"/c")) {
                             /* Run as a console application */
