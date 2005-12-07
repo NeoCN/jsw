@@ -409,6 +409,13 @@ $Id$
                     clearer in the event of startup errors.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where the Windows ServiceManager was not correctly reporting
+                    a startup error if a service failed on startup.  The service was being
+                    reported as having started even though it failed to start.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
