@@ -646,6 +646,10 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/action"
               filtering="on"/>
         <replace file="${test.dir}/action">
+            <replacetoken><![CDATA[$REALPATH $1]]></replacetoken>
+            <replacevalue><![CDATA[$REALPATH $1 $2]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/action">
             <replacetoken><![CDATA['console')
         console
         ;;]]></replacetoken>
