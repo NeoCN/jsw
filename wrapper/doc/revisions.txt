@@ -178,6 +178,11 @@ Java Service Wrapper Revision History.
 * Fix a problem on UNIX versions where the Wrapper would go into a recursive
   state of attempting to launch the JVM from failed child processes if there
   was any problems executing the configured java process.
+* Rework the way the RUN_AS_USER setting in the UNIX shell script works so
+  the specified user is now set regardless of the command being executed.
+  To make sure the user never has to enter the password twice when running
+  the script, it now recurses after changing the user.  The script then
+  runs entirely as the configured user.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager

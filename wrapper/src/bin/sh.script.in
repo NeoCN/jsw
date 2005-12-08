@@ -30,9 +30,7 @@ PIDDIR="."
 #  TERM signals.
 #IGNORE_SIGNALS=true
 
-# If specified, the Wrapper will be run as the specified user when the 'start'
-#  command is passed to this script.  When running with the 'console' command
-#  the current user will be used.
+# If specified, the Wrapper will be run as the specified user.
 # IMPORTANT - Make sure that the user has the required privileges to write
 #  the PID file and wrapper.log files.  Failure to be able to write the log
 #  file will cause the Wrapper to exit without any way to write out an error
@@ -85,6 +83,37 @@ REALPATH=`echo $REALPATH | sed -e 's;:; ;g'`
 cd "`dirname "$REALPATH"`"
 REALDIR=`pwd`
 
+
+# Check the configured user.  If necessary rerun this script as the desired user.
+if [ "X$RUN_AS_USER" != "X" ]
+then
+    # Resolve the location of the 'id' command
+    IDEXE="/usr/xpg4/bin/id"
+    if [ ! -x $IDEXE ]
+    then
+        IDEXE="/usr/bin/id"
+        if [ ! -x $IDEXE ]
+        then
+            echo "Unable to locate 'id'."
+            echo "Please report this message along with the location of the command on your system."
+            exit 1
+        fi
+    fi
+
+    if [ "`$IDEXE -u -n`" = "$RUN_AS_USER" ]
+    then
+        # Already running as the configured user.  Avoid password prompts by not calling su.
+        RUN_AS_USER=""
+    fi
+fi
+if [ "X$RUN_AS_USER" != "X" ]
+then
+    # Still want to change users, recurse.  This means that the user will only be
+    #  prompted for a password once.
+    su -m $RUN_AS_USER -c "$REALPATH $1"
+    exit 0
+fi
+
 # If the PIDDIR is relative, set its value relative to the full REALPATH to avoid problems if
 #  the working directory is later changed.
 FIRST_CHAR=`echo $PIDDIR | cut -c1,1`
@@ -123,29 +152,6 @@ then
     CMDNICE=""
 else
     CMDNICE="nice -$PRIORITY"
-fi
-
-# Check the configured user
-if [ "X$RUN_AS_USER" != "X" ]
-then
-    # Resolve the location of the 'id' command
-    IDEXE="/usr/xpg4/bin/id"
-    if [ ! -x $IDEXE ]
-    then
-        IDEXE="/usr/bin/id"
-        if [ ! -x $IDEXE ]
-        then
-            echo "Unable to locate 'id'."
-            echo "Please report this message along with the location of the command on your system."
-            exit 1
-        fi
-    fi
-
-    if [ "`$IDEXE -u -n`" = "$RUN_AS_USER" ]
-    then
-        # Already running as the configured user.  Avoid password prompts by not calling su.
-        RUN_AS_USER=""
-    fi
 fi
 
 getpid() {
@@ -205,19 +211,9 @@ start() {
     then
         if [ "X$IGNORE_SIGNALS" = "X" ]
         then
-            if [ "X$RUN_AS_USER" = "X" ]
-            then
-                exec $CMDNICE $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$PIDFILE wrapper.daemonize=TRUE
-            else
-                su -m $RUN_AS_USER -c "exec $CMDNICE $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$PIDFILE wrapper.daemonize=TRUE"
-            fi
+            exec $CMDNICE $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$PIDFILE wrapper.daemonize=TRUE
         else
-            if [ "X$RUN_AS_USER" = "X" ]
-            then
-                exec $CMDNICE $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$PIDFILE wrapper.anchorfile=$ANCHORFILE wrapper.ignore_signals=TRUE wrapper.daemonize=TRUE
-            else
-                su -m $RUN_AS_USER -c "exec $CMDNICE $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$PIDFILE wrapper.anchorfile=$ANCHORFILE wrapper.ignore_signals=TRUE wrapper.daemonize=TRUE"
-            fi
+            exec $CMDNICE $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$PIDFILE wrapper.anchorfile=$ANCHORFILE wrapper.ignore_signals=TRUE wrapper.daemonize=TRUE
         fi
     else
         echo "$APP_LONG_NAME is already running."

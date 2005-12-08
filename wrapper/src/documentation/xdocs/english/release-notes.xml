@@ -423,6 +423,15 @@ $Id$
                     was any problems executing the configured java process.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Rework the way the RUN_AS_USER setting in the UNIX shell script works so
+                    the specified user is now set regardless of the command being executed.
+                    To make sure the user never has to enter the password twice when running
+                    the script, it now recurses after changing the user.  The script then
+                    runs entirely as the configured user.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
