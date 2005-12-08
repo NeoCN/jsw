@@ -183,6 +183,8 @@ Java Service Wrapper Revision History.
   To make sure the user never has to enter the password twice when running
   the script, it now recurses after changing the user.  The script then
   runs entirely as the configured user.
+* Improve the message that is displayed when attempting to start, stop, or
+  remove a windows service which is not installed.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
