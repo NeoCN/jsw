@@ -182,7 +182,7 @@
     <!-- =================================================================== -->
     <target name="init"
         depends="init-windows, init-linux, init-solaris, init-aix, init-hpux, init-hpux64, init-macosx, init-osf1, init-freebsd, init-irix">
-        <echo message="OS='${os.name}'"/>
+        <echo message="os.name='${os.name}' os.arch='${os.arch}' dist.arch='${dist.arch}'"/>
         <tstamp/>
         <filter token="version"           value="${version}"       />
         <filter token="build.date"        value="${DSTAMP}"        />
