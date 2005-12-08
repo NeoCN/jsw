@@ -432,6 +432,12 @@ $Id$
                     runs entirely as the configured user.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Improve the message that is displayed when attempting to start, stop, or
+                    remove a windows service which is not installed.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">

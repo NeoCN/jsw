@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.114  2005/12/08 08:10:59  mortenson
+ * Improve the message that is displayed when attempting to start, stop, or
+ * remove a windows service which is not installed.
+ *
  * Revision 1.113  2005/12/07 03:26:09  mortenson
  * Remove some debug output.
  *
@@ -2728,7 +2732,8 @@ int wrapperStartService() {
             /* Close this service object's handle to the service control manager */
             CloseServiceHandle(schService);
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
+                wrapperData->ntServiceName, getLastErrorText());
             result = 1;
         }
         
@@ -2835,7 +2840,8 @@ int wrapperStopService(int command) {
             /* Close this service object's handle to the service control manager */
             CloseServiceHandle(schService);
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
+                wrapperData->ntServiceName, getLastErrorText());
             result = 1;
         }
         
@@ -3011,7 +3017,8 @@ int wrapperRemove() {
             /* Close this service object's handle to the service control manager */
             CloseServiceHandle(schService);
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
+                wrapperData->ntServiceName, getLastErrorText());
             result = 1;
         }
         
