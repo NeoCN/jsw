@@ -121,11 +121,17 @@ if [ "$FIRST_CHAR" != "/" ]
 then
         PIDDIR=$REALDIR/$PIDDIR
 fi
+# Same test for WRAPPER_CMD
+FIRST_CHAR=`echo $WRAPPER_CMD | cut -c1,1`
+if [ "$FIRST_CHAR" != "/" ]
+then
+    WRAPPER_CMD=$REALDIR/$WRAPPER_CMD
+fi
 # Same test for WRAPPER_CONF
 FIRST_CHAR=`echo $WRAPPER_CONF | cut -c1,1`
 if [ "$FIRST_CHAR" != "/" ]
 then
-        WRAPPER_CONF=$REALDIR/$WRAPPER_CONF
+    WRAPPER_CONF=$REALDIR/$WRAPPER_CONF
 fi
 
 # Process ID
