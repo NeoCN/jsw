@@ -416,6 +416,13 @@ $Id$
                     reported as having started even though it failed to start.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem on UNIX versions where the Wrapper would go into a recursive
+                    state of attempting to launch the JVM from failed child processes if there
+                    was any problems executing the configured java process.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">

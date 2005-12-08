@@ -175,6 +175,9 @@ Java Service Wrapper Revision History.
 * Fix a problem where the Windows ServiceManager was not correctly reporting
   a startup error if a service failed on startup.  The service was being
   reported as having started even though it failed to start.
+* Fix a problem on UNIX versions where the Wrapper would go into a recursive
+  state of attempting to launch the JVM from failed child processes if there
+  was any problems executing the configured java process.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager

@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.113  2005/12/08 04:25:44  mortenson
+ * Fix a problem on UNIX versions where the Wrapper would go into a recursive
+ * state of attempting to launch the JVM from failed child processes if there
+ * was any problems executing the configured java process.
+ *
  * Revision 1.112  2005/11/07 07:23:36  mortenson
  * The cmask should have been in octal.
  *
@@ -1176,7 +1181,9 @@ void wrapperExecute() {
             /* We reached this point...meaning we were unable to start. */
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 "Unable to start JVM: %s (%d)", getLastErrorText(), errno);
-        
+            
+            /* This process needs to end. */
+            exit(1);
         } else {
             /* We are the parent side. */
             jvmPid = proc;
