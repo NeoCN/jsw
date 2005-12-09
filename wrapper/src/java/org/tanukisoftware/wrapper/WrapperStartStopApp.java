@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.11  2005/12/09 07:38:00  mortenson
+// Remove some unwanted debug output.
+//
 // Revision 1.10  2005/12/07 02:45:18  mortenson
 // Modify the WrapperSimpleApp and WrapperStartStopApp classes so that the
 // WrapperManager is always initialized immediately.  This makes the output
@@ -548,7 +551,6 @@ public class WrapperStartStopApp
         {
             System.out.println( "WrapperStartStopApp: Not enough argments.  Argument count of "
                 + argCount + " was specified." );
-            System.out.println( "( " + args.length + " < " + argBase + " + 2 + " + argCount + ")" );
             showUsage();
             WrapperManager.stop( 1 );
             return null;  // Will not get here
