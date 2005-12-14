@@ -651,27 +651,33 @@ export ENV_VAR_4=d]]></replacevalue>
         </replace>
         <replace file="${test.dir}/action">
             <replacetoken><![CDATA['console')
+        checkUser
         console
         ;;]]></replacetoken>
             <replacevalue><![CDATA['console')
+        checkUser
         console $2
         ;;]]></replacevalue>
         </replace>
         <replace file="${test.dir}/action">
             <replacetoken><![CDATA['start')
+        checkUser
         start
         ;;]]></replacetoken>
             <replacevalue><![CDATA['start')
+        checkUser
         start $2
         ;;]]></replacevalue>
         </replace>
         <replace file="${test.dir}/action">
             <replacetoken><![CDATA['restart')
-        stop
+        checkUser
+        stopit
         start
         ;;]]></replacetoken>
             <replacevalue><![CDATA['restart')
-        stop
+        checkUser
+        stopit
         start $2
         ;;]]></replacevalue>
         </replace>
@@ -689,7 +695,7 @@ export ENV_VAR_4=d]]></replacevalue>
         </replace>
         <replace file="${test.dir}/action">
             <replacetoken><![CDATA[Usage: $0 { console | start | stop | restart | dump }]]></replacetoken>
-            <replacevalue><![CDATA[Usage: $0 { console <action> | start <action> | stop | restart | dump }]]></replacevalue>
+            <replacevalue><![CDATA[Usage: $0 { console <action> | start <action> | stop | restart <action> | dump }]]></replacevalue>
         </replace>
         <chmod file="${test.dir}/action" perm="+x"/> 
         
