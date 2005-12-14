@@ -205,6 +205,7 @@ console() {
         else
             exec $CMDNICE $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$PIDFILE wrapper.anchorfile=$ANCHORFILE
         fi
+        touch /var/lock/subsys/$APP_NAME
     else
         echo "$APP_LONG_NAME is already running."
         exit 1
@@ -222,6 +223,7 @@ start() {
         else
             exec $CMDNICE $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$PIDFILE wrapper.anchorfile=$ANCHORFILE wrapper.ignore_signals=TRUE wrapper.daemonize=TRUE
         fi
+        touch /var/lock/subsys/$APP_NAME
     else
         echo "$APP_LONG_NAME is already running."
         exit 1
@@ -288,6 +290,7 @@ stopit() {
             echo "Stopped $APP_LONG_NAME."
         fi
     fi
+    rm -f /var/lock/subsys/$APP_NAME
 }
 
 status() {
