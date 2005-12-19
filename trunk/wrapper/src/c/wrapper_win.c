@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.115  2005/12/19 05:57:32  mortenson
+ * Add new wrapper.lockfile property.
+ *
  * Revision 1.114  2005/12/08 08:10:59  mortenson
  * Improve the message that is displayed when attempting to start, stop, or
  * remove a windows service which is not installed.
@@ -626,6 +629,11 @@ void appExit(int exitCode) {
         /* Remove pid file.  It may no longer exist. */
         if (wrapperData->pidFilename) {
             unlink(wrapperData->pidFilename);
+        }
+        
+        /* Remove lock file.  It may no longer exist. */
+        if (wrapperData->lockFilename) {
+            unlink(wrapperData->lockFilename);
         }
         
         /* Remove status file.  It may no longer exist. */
@@ -3380,6 +3388,15 @@ void _CRTAPI1 main(int argc, char **argv) {
                                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                                          "ERROR: Could not write pid file %s: %s",
                                          wrapperData->pidFilename, getLastErrorText());
+                                    appExit(1);
+                                }
+                            }
+                            if (wrapperData->lockFilename) {
+                                if (writePidFile(wrapperData->lockFilename, wrapperProcessId, wrapperData->lockFileUmask)) {
+                                    log_printf
+                                        (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                                         "ERROR: Could not write lock file %s: %s",
+                                         wrapperData->lockFilename, getLastErrorText());
                                     appExit(1);
                                 }
                             }

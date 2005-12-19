@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.75  2005/12/19 05:57:32  mortenson
+ * Add new wrapper.lockfile property.
+ *
  * Revision 1.74  2005/11/07 07:04:52  mortenson
  * Make it possible to configure the umask for all files created by the Wrapper and
  * that of the JVM.
@@ -403,6 +406,7 @@ struct WrapperConfig {
     char**  outputFilters;          /* Array of output filters. */
     int*    outputFilterActions;    /* Array of output filter actions. */
     char    *pidFilename;           /* Name of file to store wrapper pid in */
+    char    *lockFilename;          /* Name of file to store wrapper lock in */
     char    *javaPidFilename;       /* Name of file to store jvm pid in */
     char    *javaIdFilename;        /* Name of file to store jvm id in */
     char    *statusFilename;        /* Name of file to store wrapper status in */
@@ -416,6 +420,7 @@ struct WrapperConfig {
     int     umask;                  /* Default umask for all files. */
     int     javaUmask;              /* Default umask for the java process. */
     int     pidFileUmask;           /* Umask to use when creating the pid file. */
+    int     lockFileUmask;          /* Umask to use when creating the lock file. */
     int     javaPidFileUmask;       /* Umask to use when creating the java pid file. */
     int     javaIdFileUmask;        /* Umask to use when creating the java id file. */
     int     statusFileUmask;        /* Umask to use when creating the status file. */

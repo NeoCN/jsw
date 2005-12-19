@@ -154,9 +154,10 @@ Java Service Wrapper Revision History.
 * Make it possible to set the umask on all files created by the Wrapper
   as well as the default umask of files created by the JVM.  Added new
   wrapper.umask, wrapper.java.umask, wrapper.pidfile.umask,
-  wrapper.java.pidfile.umask, wrapper.java.idfile.umask,
-  wrapper.statusfile.umask, wrapper.java.statusfile.umask,
-  wrapper.anchorfile.umask, and wrapper.logfile.umask properties.
+  wrapper.lockfile.umask, wrapper.java.pidfile.umask,
+  wrapper.java.idfile.umask, wrapper.statusfile.umask,
+  wrapper.java.statusfile.umask, wrapper.anchorfile.umask, and
+  wrapper.logfile.umask properties.
 * Improve the message when the native library can not be loaded to make mention
   of the possibility of a 32/64 bit mismatch.
 * Add a new wrapper.monitor_thread_count property which makes it possible to
@@ -185,9 +186,11 @@ Java Service Wrapper Revision History.
   runs entirely as the configured user.
 * Improve the message that is displayed when attempting to start, stop, or
   remove a windows service which is not installed.
+* Add new wrapper.lockfile property which makes it possible to specify a
+  lock file containing a pid.
 * Modified the sh script so it now creates a lock file on startup in the
-  /var/lock/subsys directory if it exists.  The lock file is then deleted
-  when the script is stopped.   This is needed by fedora systems on shutdown.
+  /var/lock/subsys directory if it exists.  This is needed by fedora systems
+  on shutdown.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
