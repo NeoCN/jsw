@@ -88,7 +88,7 @@ REALDIR=`pwd`
 FIRST_CHAR=`echo $PIDDIR | cut -c1,1`
 if [ "$FIRST_CHAR" != "/" ]
 then
-        PIDDIR=$REALDIR/$PIDDIR
+    PIDDIR=$REALDIR/$PIDDIR
 fi
 # Same test for WRAPPER_CMD
 FIRST_CHAR=`echo $WRAPPER_CMD | cut -c1,1`
@@ -106,6 +106,8 @@ fi
 # Process ID
 ANCHORFILE="$PIDDIR/$APP_NAME.anchor"
 PIDFILE="$PIDDIR/$APP_NAME.pid"
+LOCKDIR="/var/lock/subsys"
+LOCKFILE="$LOCKDIR/$APP_NAME"
 pid=""
 
 # Resolve the location of the 'ps' command
@@ -127,6 +129,24 @@ then
     CMDNICE=""
 else
     CMDNICE="nice -$PRIORITY"
+fi
+
+# Build the anchor file clause.
+if [ "X$IGNORE_SIGNALS" = "X" ]
+then
+   ANCHORPROP=
+   IGNOREPROP=
+else
+   ANCHORPROP=wrapper.anchorfile=$ANCHORFILE
+   IGNOREPROP=wrapper.ignore_signals=TRUE
+fi
+
+# Build the lock file clause.  Only create a lock file if the lock directory exists on this platform.
+if [ -d $LOCKDIR ]
+then
+    LOCKPROP=wrapper.lockfile=$LOCKFILE
+else
+    LOCKPROP=
 fi
 
 checkUser() {
@@ -199,13 +219,7 @@ console() {
     getpid
     if [ "X$pid" = "X" ]
     then
-        if [ "X$IGNORE_SIGNALS" = "X" ]
-        then
-            exec $CMDNICE $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$PIDFILE
-        else
-            exec $CMDNICE $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$PIDFILE wrapper.anchorfile=$ANCHORFILE
-        fi
-        touch /var/lock/subsys/$APP_NAME
+        exec $CMDNICE $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$PIDFILE $ANCHORPROP $LOCKPROP
     else
         echo "$APP_LONG_NAME is already running."
         exit 1
@@ -217,13 +231,7 @@ start() {
     getpid
     if [ "X$pid" = "X" ]
     then
-        if [ "X$IGNORE_SIGNALS" = "X" ]
-        then
-            exec $CMDNICE $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$PIDFILE wrapper.daemonize=TRUE
-        else
-            exec $CMDNICE $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$PIDFILE wrapper.anchorfile=$ANCHORFILE wrapper.ignore_signals=TRUE wrapper.daemonize=TRUE
-        fi
-        touch /var/lock/subsys/$APP_NAME
+        exec $CMDNICE $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$PIDFILE wrapper.daemonize=TRUE $ANCHORPROP $IGNOREPROP $LOCKPROP
     else
         echo "$APP_LONG_NAME is already running."
         exit 1
@@ -290,7 +298,6 @@ stopit() {
             echo "Stopped $APP_LONG_NAME."
         fi
     fi
-    rm -f /var/lock/subsys/$APP_NAME
 }
 
 status() {
