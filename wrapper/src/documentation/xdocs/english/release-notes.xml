@@ -359,6 +359,7 @@ $Id$
                     <ulink url="prop-java-umask.html">wrapper.umask</ulink>,
                     <ulink url="prop-java-umask.html">wrapper.java.umask</ulink>,
                     <ulink url="prop-java-umask.html">wrapper.pidfile.umask</ulink>,
+                    <ulink url="prop-java-umask.html">wrapper.lockfile.umask</ulink>,
                     <ulink url="prop-java-umask.html">wrapper.java.pidfile.umask</ulink>,
                     <ulink url="prop-java-umask.html">wrapper.java.idfile.umask</ulink>,
                     <ulink url="prop-java-umask.html">wrapper.statusfile.umask</ulink>,
@@ -440,9 +441,15 @@ $Id$
             </listitem>
             <listitem>
                 <para>
+                    Add new <ulink url="prop-lockfile.html">wrapper.lockfile</ulink> property
+                    which makes it possible to specify a lock file containing a pid.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
                     Modified the sh script so it now creates a lock file on startup in the
-                    /var/lock/subsys directory if it exists.  The lock file is then deleted
-                    when the script is stopped.   This is needed by fedora systems on shutdown.
+                    /var/lock/subsys directory if it exists.  This is needed by fedora systems
+                    on shutdown.
                 </para>
             </listitem>
         </itemizedlist>

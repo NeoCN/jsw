@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.114  2005/12/19 05:57:32  mortenson
+ * Add new wrapper.lockfile property.
+ *
  * Revision 1.113  2005/12/08 04:25:44  mortenson
  * Fix a problem on UNIX versions where the Wrapper would go into a recursive
  * state of attempting to launch the JVM from failed child processes if there
@@ -474,6 +477,11 @@ void appExit(int exitCode) {
     /* Remove pid file.  It may no longer exist. */
     if (wrapperData->pidFilename) {
         unlink(wrapperData->pidFilename);
+    }
+    
+    /* Remove lock file.  It may no longer exist. */
+    if (wrapperData->lockFilename) {
+        unlink(wrapperData->lockFilename);
     }
     
     /* Remove status file.  It may no longer exist. */
@@ -1796,6 +1804,16 @@ int main(int argc, char **argv) {
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                          "ERROR: Could not write pid file %s: %s",
                          wrapperData->pidFilename, getLastErrorText());
+                    appExit(1);
+                    return 1; /* For compiler. */
+                }
+            }
+            if (wrapperData->lockFilename) {
+                if (writePidFile(wrapperData->lockFilename, (int)getpid(), wrapperData->lockFileUmask)) {
+                    log_printf
+                        (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                         "ERROR: Could not write lock file %s: %s",
+                         wrapperData->lockFilename, getLastErrorText());
                     appExit(1);
                     return 1; /* For compiler. */
                 }

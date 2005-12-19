@@ -83,6 +83,11 @@
                 <ulink url="prop-pidfile.html">wrapper.pidfile</ulink> property.
             </listitem>
             <listitem>
+                <literal moreinfo="none">wrapper.lockfile.umask</literal> Specifies the
+                umask to use when creating the lock file.  See the
+                <ulink url="prop-lockfile.html">wrapper.lockfile</ulink> property.
+            </listitem>
+            <listitem>
                 <literal moreinfo="none">wrapper.java.pidfile.umask</literal> Specifies the
                 umask to use when creating the Java pid file.  See the
                 <ulink url="prop-java-pidfile.html">wrapper.java.pidfile</ulink> property.

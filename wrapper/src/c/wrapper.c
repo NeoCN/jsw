@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.147  2005/12/19 05:57:32  mortenson
+ * Add new wrapper.lockfile property.
+ *
  * Revision 1.146  2005/12/06 05:19:00  mortenson
  * Add support for BELOW_NORMAL and ABOVE_NORMAL options to the
  * wrapper.ntservice.process_priority property.  Feature Request #1373922.
@@ -2756,6 +2759,11 @@ int loadConfiguration() {
     }
     updateStringValue(&wrapperData->javaPidFilename, (char *)getStringProperty(properties, "wrapper.java.pidfile", NULL));
     
+    /** Get the lock file if any.  May be NULL */
+    if (!wrapperData->configured) {
+        updateStringValue(&wrapperData->lockFilename, (char *)getStringProperty(properties, "wrapper.lockfile", NULL));
+    }
+    
     /** Get the java id file.  May be NULL */
     updateStringValue(&wrapperData->javaIdFilename, (char *)getStringProperty(properties, "wrapper.java.idfile", NULL));
     
@@ -2783,6 +2791,7 @@ int loadConfiguration() {
     wrapperData->umask = getIntProperty(properties, "wrapper.umask", 0022);
     wrapperData->javaUmask = getIntProperty(properties, "wrapper.java.umask", wrapperData->umask);
     wrapperData->pidFileUmask = getIntProperty(properties, "wrapper.pidfile.umask", wrapperData->umask);
+    wrapperData->lockFileUmask = getIntProperty(properties, "wrapper.lockfile.umask", wrapperData->umask);
     wrapperData->javaPidFileUmask = getIntProperty(properties, "wrapper.java.pidfile.umask", wrapperData->umask);
     wrapperData->javaIdFileUmask = getIntProperty(properties, "wrapper.java.idfile.umask", wrapperData->umask);
     wrapperData->statusFileUmask = getIntProperty(properties, "wrapper.statusfile.umask", wrapperData->umask);
