@@ -114,6 +114,7 @@ extern "C" {
 /* Inaccessible static: m_useSystemTime */
 /* Inaccessible static: m_timerFastThreshold */
 /* Inaccessible static: m_timerSlowThreshold */
+/* Inaccessible static: m_jvmBits */
 /* Inaccessible static: m_ticks */
 /* Inaccessible static: m_listener */
 /* Inaccessible static: m_lastPingTicks */
