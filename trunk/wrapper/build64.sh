@@ -14,4 +14,4 @@ ANT_HOME=$WRAPPER_TOOLS
 chmod u+x $WRAPPER_TOOLS/bin/antRun
 chmod u+x $WRAPPER_TOOLS/bin/ant
 
-$WRAPPER_TOOLS/bin/ant -logger org.apache.tools.ant.NoBannerLogger -emacs -Dtools.dir=$WRAPPER_TOOLS $@ 
+$WRAPPER_TOOLS/bin/ant -logger org.apache.tools.ant.NoBannerLogger -emacs -Dtools.dir=$WRAPPER_TOOLS -Dbits=64 $@ 

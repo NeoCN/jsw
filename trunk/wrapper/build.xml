@@ -11,10 +11,6 @@
     <property file="${user.home}/.ant.properties" />
     <property file="${basedir}/ant.properties"/>
     <property file="${basedir}/default.properties"/>
-    
-    <!-- platform -->
-    <property name="is.${os.name}" value="true"/>
-    <property name="is.${os.arch}" value="true"/>
 
     <!-- property name="classpath"     value=""/ -->
     
@@ -52,137 +48,177 @@
     <!-- =================================================================== -->
     <!-- Resolve Platform properties                                         -->
     <!-- =================================================================== -->
-    <target name="init-arch">
+    <target name="init-setup">
         <!-- Resolve an architecture to use in release names. -->
         <condition property="dist.arch" value="x86">
             <or>
-                <equals arg1="${os.arch}" arg2="x86"/> 
-                <equals arg1="${os.arch}" arg2="i686"/> 
-                <equals arg1="${os.arch}" arg2="i586"/> 
-                <equals arg1="${os.arch}" arg2="i486"/> 
-                <equals arg1="${os.arch}" arg2="i386"/> 
+                <equals arg1="${os.arch}" arg2="amd64"/>
+                <equals arg1="${os.arch}" arg2="ia32"/>
+                <equals arg1="${os.arch}" arg2="IA32"/>
+                <equals arg1="${os.arch}" arg2="ia64"/>
+                <equals arg1="${os.arch}" arg2="x86"/>
+                <equals arg1="${os.arch}" arg2="i686"/>
+                <equals arg1="${os.arch}" arg2="i586"/>
+                <equals arg1="${os.arch}" arg2="i486"/>
+                <equals arg1="${os.arch}" arg2="i386"/>
             </or>
         </condition>
         <condition property="dist.arch" value="ppc">
             <or>
-                <equals arg1="${os.arch}" arg2="ppc"/> 
-                <equals arg1="${os.arch}" arg2="Power"/> 
-                <equals arg1="${os.arch}" arg2="PowerPC"/> 
+                <equals arg1="${os.arch}" arg2="ppc"/>
+                <equals arg1="${os.arch}" arg2="Power"/>
+                <equals arg1="${os.arch}" arg2="PowerPC"/>
             </or>
         </condition>
         <condition property="dist.arch" value="parisc">
             <or>
-                <equals arg1="${os.arch}" arg2="PA_RISC"/> 
-                <equals arg1="${os.arch}" arg2="PA-RISC"/> 
+                <equals arg1="${os.arch}" arg2="PA_RISC"/>
+                <equals arg1="${os.arch}" arg2="PA-RISC"/>
+            </or>
+        </condition>
+        <condition property="dist.arch" value="sparc">
+            <or>
+                <equals arg1="${os.arch}" arg2="sparc"/>
+                <equals arg1="${os.arch}" arg2="sparcv9"/>
             </or>
         </condition>
         <property name="dist.arch" value="${os.arch}"/>
+        
+        <!-- Resolve an OS name to use in release names. -->
+        <condition property="dist.os" value="windows">
+            <or>
+                <equals arg1="${os.name}" arg2="Windows NT"/>
+                <equals arg1="${os.name}" arg2="Windows 2000"/>
+                <equals arg1="${os.name}" arg2="Windows XP"/>
+                <equals arg1="${os.name}" arg2="Windows 2003"/>
+            </or>
+        </condition>
+        <condition property="dist.os" value="linux">
+            <equals arg1="${os.name}" arg2="Linux"/>
+        </condition>
+        <condition property="dist.os" value="solaris">
+            <or>
+                <equals arg1="${os.name}" arg2="Solaris"/>
+                <equals arg1="${os.name}" arg2="SunOS"/>
+            </or>
+        </condition>
+        <condition property="dist.os" value="aix">
+            <equals arg1="${os.name}" arg2="AIX"/>
+        </condition>
+        <condition property="dist.os" value="hpux">
+            <or>
+                <equals arg1="${os.name}" arg2="HP-UX"/>
+                <equals arg1="${os.name}" arg2="HP-UX64"/>
+            </or>
+        </condition>
+        <condition property="dist.os" value="macosx">
+            <equals arg1="${os.name}" arg2="Mac OS X"/>
+        </condition>
+        <condition property="dist.os" value="osf1">
+            <equals arg1="${os.name}" arg2="OSF1"/>
+        </condition>
+        <condition property="dist.os" value="freebsd">
+            <equals arg1="${os.name}" arg2="FreeBSD"/>
+        </condition>
+        <condition property="dist.os" value="irix">
+            <equals arg1="${os.name}" arg2="Irix"/>
+        </condition>
+        <condition property="dist.os" value="unixware">
+            <equals arg1="${os.name}" arg2="UNIX_SV"/>
+        </condition>
+        <property name="dist.os" value="${os.name}"/>
+        
+        <!-- platform -->
+        <property name="is.${dist.os}" value="true"/>
+        <!--<property name="is.${dist.arch}" value="true"/>-->
+        <condition property="is.unix" value="true">
+            <not>
+                <isset property="is.windows"/>
+            </not>
+        </condition>
+        
+        <!-- Generate the release-file base. -->
+        <property name="releasefile" value="wrapper-${dist.os}-${dist.arch}-${bits}-${version}"/>
     </target>
-    <target name="init-windows-nt" if="is.Windows NT">
-        <property name="is.Windows" value="true"/>
-    </target>
-    <target name="init-windows-2000" if="is.Windows 2000">
-        <property name="is.Windows" value="true"/>
-    </target>
-    <target name="init-windows-xp" if="is.Windows XP">
-        <property name="is.Windows" value="true"/>
-    </target>
-    <target name="init-windows"
-        depends="init-arch, init-windows-nt, init-windows-2000, init-windows-xp"
-        if="is.Windows">
+    <target name="init-windows" depends="init-setup" if="is.windows">
+        <!-- Decide on the type of script to generate. -->
         <property name="is.shell.bat" value="true"/>
+        
+        <!-- Decide on binary names -->
         <property name="wrapper.bin.name" value="wrapper.exe"/>
+        <property name="wrapper.bin.long.name" value="wrapper-${dist.os}-${dist.arch}-${bits}.exe"/>
+        
+        <!-- Decide on library names -->
         <property name="wrapper.lib.name" value="wrapper.dll"/>
-        <property name="releasefile" value="wrapper_win32_${dist.arch}_${version}"/>
+        <property name="wrapper.lib.long.name" value="wrapper-${dist.os}-${dist.arch}-${bits}.dll"/>
     </target>
-    <target name="init-linux" depends="init-arch" if="is.Linux">
-        <property name="is.Unix" value="true"/>
+    <target name="init-unix" depends="init-setup" if="is.unix">
+        <!-- Decide on the type of script to generate. -->
         <property name="is.shell.sh" value="true"/>
+        
+        <!-- Decide on binary names -->
         <property name="wrapper.bin.name" value="wrapper"/>
-        <property name="wrapper.lib.name" value="libwrapper.so"/>
+        <property name="wrapper.bin.long.name" value="wrapper-${dist.os}-${dist.arch}-${bits}"/>
+        
+        <!-- Decide on library names -->
+        <condition name="wrapper.lib.extension" value="sl">
+            <and>
+                <isset property="is.hpux"/>
+                <equals arg1="${bits}" arg2="64"/>
+            </and>
+        </condition>
+        <condition name="wrapper.lib.extension" value="jnilib">
+            <isset property="is.macosx"/>
+        </condition>
+        <property name="wrapper.lib.extension" value="so"/>
+        <property name="wrapper.lib.name" value="libwrapper.${wrapper.lib.extension}"/>
+        <property name="wrapper.lib.long.name" value="libwrapper-${dist.os}-${dist.arch}-${bits}.${wrapper.lib.extension}"/>
+        
+        <!-- Decide on the tool used to run make -->
+        <condition property="make.name" value="gmake">
+            <or>
+                <isset property="is.aix"/>
+                <and> <!-- 32-bit HPUX uses gmake, 64-bit uses make. -->
+                    <isset property="is.hpux"/>
+                    <equals arg1="${bits}" arg2="32"/>
+                </and>
+            </or>
+            <isset property="is.osf1"/>
+            <isset property="is.freebsd"/>
+            <isset property="is.irix"/>
+        </condition>
         <property name="make.name" value="make"/>
-        <property name="makefile.name" value="Makefile.linux"/>
-        <property name="releasefile" value="wrapper_linux_${dist.arch}_${version}"/>
+        
+        <!-- Generate the makefile name -->
+        <property name="makefile.name" value="MakeFile-${dist.os}-${dist.arch}-${bits}"/>
+        
+        <condition property="isUnixMakefileMissing" value="true">
+            <not>
+                <available file="${src.dir}/c/${makefile.name}"/>
+            </not>
+        </condition>
     </target>
-    <target name="init-solaris" depends="init-arch" if="is.SunOS">
-        <property name="is.Unix" value="true"/>
-        <property name="is.shell.sh" value="true"/>
-        <property name="wrapper.bin.name" value="wrapper"/>
-        <property name="wrapper.lib.name" value="libwrapper.so"/>
-        <property name="make.name" value="make"/>
-        <property name="makefile.name" value="Makefile.solaris"/>
-        <property name="releasefile" value="wrapper_solaris_${dist.arch}_${version}"/>
-    </target>
-    <target name="init-aix" depends="init-arch" if="is.AIX">
-        <property name="is.Unix" value="true"/>
-        <property name="is.shell.sh" value="true"/>
-        <property name="wrapper.bin.name" value="wrapper"/>
-        <property name="wrapper.lib.name" value="libwrapper.so"/>
-        <property name="make.name" value="gmake"/>
-        <property name="makefile.name" value="Makefile.aix"/>
-        <property name="releasefile" value="wrapper_aix_${dist.arch}_${version}"/>
-    </target>
-    <target name="init-hpux" depends="init-arch" if="is.HP-UX">
-        <property name="is.Unix" value="true"/>
-        <property name="is.shell.sh" value="true"/>
-        <property name="wrapper.bin.name" value="wrapper"/>
-        <property name="wrapper.lib.name" value="libwrapper.so"/>
-        <property name="make.name" value="gmake"/>
-        <property name="makefile.name" value="Makefile.hpux"/>
-        <property name="releasefile" value="wrapper_hpux_${dist.arch}_${version}"/>
-    </target>
-    <target name="init-hpux64" depends="init-arch" if="is.HP-UX64">
-        <property name="is.Unix" value="true"/>
-        <property name="is.shell.sh" value="true"/>
-        <property name="wrapper.bin.name" value="wrapper"/>
-        <property name="wrapper.lib.name" value="libwrapper.sl"/>
-        <property name="make.name" value="make"/>
-        <property name="makefile.name" value="Makefile.hpux64"/>
-        <property name="releasefile" value="wrapper_hpux64_${dist.arch}_${version}"/>
-    </target>
-    <target name="init-macosx" depends="init-arch" if="is.Mac OS X">
-        <property name="is.Unix" value="true"/>
-        <property name="is.shell.sh" value="true"/>
-        <property name="wrapper.bin.name" value="wrapper"/>
-        <property name="wrapper.lib.name" value="libwrapper.jnilib"/>
-        <property name="make.name" value="make"/>
-        <property name="makefile.name" value="Makefile.macosx"/>
-        <property name="releasefile" value="wrapper_macosx_${dist.arch}_${version}"/>
-    </target>
-    <target name="init-osf1" depends="init-arch" if="is.OSF1">
-        <property name="is.Unix" value="true"/>
-        <property name="is.shell.sh" value="true"/>
-        <property name="wrapper.bin.name" value="wrapper"/>
-        <property name="wrapper.lib.name" value="libwrapper.so"/>
-        <property name="make.name" value="gmake"/>
-        <property name="makefile.name" value="Makefile.osf1"/>
-        <property name="releasefile" value="wrapper_osf1_${dist.arch}_${version}"/>
-    </target>
-    <target name="init-freebsd" depends="init-arch" if="is.FreeBSD">
-        <property name="is.Unix" value="true" />
-        <property name="is.shell.sh" value="true"/>
-        <property name="wrapper.bin.name" value="wrapper"/>
-        <property name="wrapper.lib.name" value="libwrapper.so"/>
-        <property name="make.name" value="gmake"/>
-        <property name="makefile.name" value="Makefile.freebsd"/>
-        <property name="releasefile" value="wrapper_freebsd_${dist.arch}_${version}"/>
-    </target>
-    <target name="init-irix" depends="init-arch" if="is.Irix">
-        <property name="is.Unix" value="true"/>
-        <property name="is.shell.sh" value="true"/>
-        <property name="wrapper.bin.name" value="wrapper"/>
-        <property name="wrapper.lib.name" value="libwrapper.so"/>
-        <property name="make.name" value="gmake"/>
-        <property name="makefile.name" value="Makefile.irix"/>
-        <property name="releasefile" value="wrapper_irix_${dist.arch}_${version}"/>
+    <target name="init-bits-warning" unless="bits">
+        <echo message="**********************************************************************"/>
+        <echo message="The &quot;bits&quot; system property has not been set."/>
+        <echo message="Most likely you are running a copy of Ant located on your path."/>
+        <echo message="Please use one of the build scripts in the Wrapper distribution."/>
+        <echo message="**********************************************************************"/>
+        <fail message="The &quot;bits&quot; system property has not been set."/>
     </target>
     
     <!-- =================================================================== -->
     <!-- Initialize build.                                                   -->
     <!-- =================================================================== -->
     <target name="init"
-        depends="init-windows, init-linux, init-solaris, init-aix, init-hpux, init-hpux64, init-macosx, init-osf1, init-freebsd, init-irix">
-        <echo message="os.name='${os.name}' os.arch='${os.arch}' dist.arch='${dist.arch}'"/>
+        depends="init-windows, init-unix, init-bits-warning">
+        <echo message="**********************************************************************"/>
+        <echo message="About to build a ${bits}-bit version of the Java Service Wrapper ${version}."/>
+        <echo message="The OS Name is &quot;${dist.os}&quot;, resolved from &quot;${os.name}&quot;."/>
+        <echo message="The Architecture is &quot;${dist.arch}&quot;, resolved from &quot;${os.arch}&quot;."/>
+        <echo message="The distribution name will be: ${releasefile}"/>
+        <echo message="**********************************************************************"/>
+        
         <tstamp/>
         <filter token="version"           value="${version}"       />
         <filter token="build.date"        value="${DSTAMP}"        />
@@ -274,7 +310,7 @@
             <class name="org.tanukisoftware.wrapper.WrapperManager"/>
         </javah>
     </target>
-    <target name="msvc-test" depends="init" if="is.Windows">
+    <target name="msvc-test" depends="init" if="is.windows">
         <condition property="msvc.present">
             <available file="${msvc.home}/VC98/BIN/VCVARS32.BAT"/>
         </condition>
@@ -311,31 +347,35 @@
         <property name="jni_md.h" value="${java.home}\..\include\win32\jni_md.h"/>
         
         <!-- Prepare the WrapperJNI.mak and WrapperJNI.dep files for the current environment. -->
-        <copy file ="${src.dir}/c/WrapperJNI.mak.in" tofile="${src.dir}/c/WrapperJNI.mak" overwrite="true" encoding="Shift_JIS">
+        <copy file ="${src.dir}/c/WrapperJNI${bits}.mak.in" tofile="${src.dir}/c/WrapperJNI${bits}.mak" overwrite="true" encoding="Shift_JIS">
             <filterset>
                 <filter token="java.home" value="${java.home}\.."/>
             </filterset>
         </copy>
-        <copy file ="${src.dir}/c/Wrapper.dep.in" tofile="${src.dir}/c/Wrapper.dep" overwrite="true">
+        <copy file ="${src.dir}/c/Wrapper${bits}.dep.in" tofile="${src.dir}/c/Wrapper${bits}.dep" overwrite="true">
             <filterset>
                 <filter token="msvc.home" value="${msvc.home}"/>
             </filterset>
         </copy>
-        <copy file ="${src.dir}/c/WrapperJNI.dep.in" tofile="${src.dir}/c/WrapperJNI.dep" overwrite="true">
+        <copy file ="${src.dir}/c/WrapperJNI${bits}.dep.in" tofile="${src.dir}/c/WrapperJNI${bits}.dep" overwrite="true">
             <filterset>
+                <filter token="msvc.home" value="${msvc.home}"/>
                 <filter token="jni.h" value="${jni.h}"/>
                 <filter token="jni_md.h" value="${jni_md.h}"/>
             </filterset>
         </copy>
         
         <!-- Build windows C targets -->
-        <exec executable="${src.dir}/c/makewin32.bat"
+        <exec executable="${src.dir}/c/makewin${bits}.bat"
             dir="${src.dir}/c" 
             failonerror="true">
             <arg value="${msvc.home}" />
         </exec>
+        
+        <copy file="${bin.dir}/${wrapper.bin.name}" tofile="${bin.dir}/${wrapper.bin.long.name}" overwrite="true" preservelastmodified="true"/>
+        <copy file="${lib.dir}/${wrapper.lib.name}" tofile="${lib.dir}/${wrapper.lib.long.name}" overwrite="true" preservelastmodified="true"/>
     </target>
-    <target name="compile-c-windows-check" depends="compile-c-windows" if="is.Windows">
+    <target name="compile-c-windows-check" depends="compile-c-windows" if="is.windows">
         <!-- Make sure that the native Windows tergets exist. -->
         <condition property="isWindowsNativeMissing">
             <not>
@@ -355,7 +395,16 @@
         <echo message="**********************************************************************"/>
         <fail message="bin/${wrapper.bin.name} or lib/${wrapper.lib.name} are missing."/>
     </target>
-    <target name="compile-c-unix" depends="init" if="is.Unix">
+    <target name="compile-c-unix-check" depends="init" if="isUnixMakefileMissing">
+        <echo message="**********************************************************************"/>
+        <echo message="Unable to locate a makefile for the current platform.  Looking for:"/>
+        <echo message="  ${makefile.name}"/>
+        <echo message="If the name contains any spaces or upper case characters then the"/>
+        <echo message="os and archictecture need to be defined in the build.xml file as well."/>
+        <echo message="**********************************************************************"/>
+        <fail message="Missing makefile."/>
+    </target>
+    <target name="compile-c-unix" depends="compile-c-unix-check" if="is.unix">
         <mkdir dir="${bin.dir}"/>        
         <mkdir dir="${lib.dir}"/>
         
@@ -615,7 +664,8 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat" eol="crlf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="**/*.bat.in" eol="crlf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="**/*.script.in" eol="lf" />
-        <fixcrlf srcdir="${releasesrcdir}" includes="build.sh" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="build32.sh" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="build64.sh" eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="tools/bin/ant" eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="tools/bin/antRun" eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="**/Makefile.*" eol="lf" />
@@ -663,13 +713,15 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <!-- Source archives with documentation source -->
         <tar tarfile="${build.dir}/${releasesrcfile}_with_doc_src.tar">
             <tarfileset dir="${build.dir}" mode="755">
-                <include name="${releasesrcfile}/build.sh"/>
+                <include name="${releasesrcfile}/build32.sh"/>
+                <include name="${releasesrcfile}/build64.sh"/>
                 <include name="${releasesrcfile}/tools/bin/ant"/>
                 <include name="${releasesrcfile}/tools/bin/antRun"/>
             </tarfileset>
             <tarfileset dir="${build.dir}">
                 <include name="${releasesrcfile}/**/*" />
-                <exclude name="${releasesrcfile}/build.sh"/>
+                <exclude name="${releasesrcfile}/build32.sh"/>
+                <exclude name="${releasesrcfile}/build64.sh"/>
                 <exclude name="${releasesrcfile}/tools/bin/ant"/>
                 <exclude name="${releasesrcfile}/tools/bin/antRun"/>
             </tarfileset>
@@ -679,7 +731,8 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <!-- Source archives without documentation source -->
         <tar tarfile="${build.dir}/${releasesrcfile}.tar">
             <tarfileset dir="${build.dir}" mode="755">
-                <include name="${releasesrcfile}/build.sh"/>
+                <include name="${releasesrcfile}/build32.sh"/>
+                <include name="${releasesrcfile}/build64.sh"/>
                 <include name="${releasesrcfile}/tools/bin/ant"/>
                 <include name="${releasesrcfile}/tools/bin/antRun"/>
             </tarfileset>
@@ -687,7 +740,8 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                 <include name="${releasesrcfile}/**/*" />
                 <exclude name="${releasesrcfile}/src/documentation/**/*" />
                 <exclude name="${releasesrcfile}/tools/cocoon-*/**" />
-                <exclude name="${releasesrcfile}/build.sh"/>
+                <include name="${releasesrcfile}/build32.sh"/>
+                <include name="${releasesrcfile}/build64.sh"/>
                 <exclude name="${releasesrcfile}/tools/bin/ant"/>
                 <exclude name="${releasesrcfile}/tools/bin/antRun"/>
             </tarfileset>
@@ -774,7 +828,8 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <fixcrlf srcdir="${intermdir}" includes="**/*.bat.in" eol="crlf" />
         <fixcrlf srcdir="${intermdir}" includes="**/*.script.in" eol="lf" />
         <fixcrlf srcdir="${intermdir}" includes="bin/${app.name}" eol="lf" />
-        <fixcrlf srcdir="${intermdir}" includes="build.sh" eol="lf" />
+        <fixcrlf srcdir="${intermdir}" includes="build32.sh" eol="lf" />
+        <fixcrlf srcdir="${intermdir}" includes="build64.sh" eol="lf" />
         <fixcrlf srcdir="${intermdir}" includes="tools/bin/ant" eol="lf" />
         <fixcrlf srcdir="${intermdir}" includes="tools/bin/antRun" eol="lf" />
         <fixcrlf srcdir="${intermdir}" includes="**/Makefile.*" eol="lf" />
@@ -802,13 +857,15 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
             eol="lf" />
         <tar tarfile="${build.dir}/${intermfile}.tar">
             <tarfileset dir="${build.dir}" mode="755">
-                <include name="${intermfile}/build.sh"/>
+                <include name="${intermfile}/build32.sh"/>
+                <include name="${intermfile}/build64.sh"/>
                 <include name="${intermfile}/tools/bin/ant"/>
                 <include name="${intermfile}/tools/bin/antRun"/>
             </tarfileset>
             <tarfileset dir="${build.dir}">
                 <include name="${intermfile}/**/*" />
-                <exclude name="${intermfile}/build.sh"/>
+                <include name="${intermfile}/build32.sh"/>
+                <include name="${intermfile}/build64.sh"/>
                 <exclude name="${intermfile}/tools/bin/ant"/>
                 <exclude name="${intermfile}/tools/bin/antRun"/>
             </tarfileset>
@@ -850,7 +907,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
     <!-- =================================================================== -->
     <!-- Release (Windows)                                                   -->
     <!-- =================================================================== -->
-    <target name="release-windows" depends="pre-release:check, compile-c" if="is.Windows">
+    <target name="release-windows" depends="pre-release:check, compile-c" if="is.windows">
         <property name="releasedir" value="${build.dir}/${releasefile}"/>
         <delete dir="${releasedir}"/>
         <mkdir dir="${releasedir}"/>
@@ -922,7 +979,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
     <!-- =================================================================== -->
     <!-- Release (Unix)                                                      -->
     <!-- =================================================================== -->
-    <target name="release-unix" depends="pre-release:check, compile-c" if="is.Unix">
+    <target name="release-unix" depends="pre-release:check, compile-c" if="is.unix">
         <property name="releasedir" value="${build.dir}/${releasefile}"/>
         <delete dir="${releasedir}"/>
         <mkdir dir="${releasedir}"/>
@@ -1010,7 +1067,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
     <!-- =================================================================== -->
     <!-- Cleans up generated stuff                                           -->
     <!-- =================================================================== -->
-    <target name="clean-unix" if="is.Unix">
+    <target name="clean-unix" if="is.unix">
         <exec executable="${make.name}"
               dir="${src.dir}/c">
             <arg line="-f ${makefile.name}" />
@@ -1019,16 +1076,20 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
     </target>
     <target name="clean" depends="clean-unix" description="Clean up any files from the build">
         <delete dir="${build.dir}"/>
-        <delete dir="${src.dir}/c/Debug"/>
-        <delete dir="${src.dir}/c/Release"/>
-        <delete dir="${src.dir}/c/WrapperJNI___Win32_Debug"/>
-        <delete dir="${src.dir}/c/WrapperJNI___Win32_Release"/>
+        <delete dir="${src.dir}/c/Debug32"/>
+        <delete dir="${src.dir}/c/Release32"/>
+        <delete dir="${src.dir}/c/WrapperJNI___Win32_Debug32"/>
+        <delete dir="${src.dir}/c/WrapperJNI___Win32_Release32"/>
+        <delete dir="${src.dir}/c/Debug64"/>
+        <delete dir="${src.dir}/c/Release64"/>
+        <delete dir="${src.dir}/c/WrapperJNI___Win32_Debug64"/>
+        <delete dir="${src.dir}/c/WrapperJNI___Win32_Release64"/>
     </target>
     
     <!-- =================================================================== -->
     <!-- Total cleanup                                                       -->
     <!-- =================================================================== -->
-    <target name="total-clean-unix" if="is.Unix">
+    <target name="total-clean-unix" if="is.unix">
         <exec executable="${make.name}"
               dir="${src.dir}/c">
             <arg line="-f ${makefile.name}" />
