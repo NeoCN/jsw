@@ -38,8 +38,8 @@ RSC=rc.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "WrapperJNI___Win32_Release"
-# PROP Intermediate_Dir "WrapperJNI___Win32_Release"
+# PROP Output_Dir "WrapperJNI___Win32_Release32"
+# PROP Intermediate_Dir "WrapperJNI___Win32_Release32"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "WRAPPERJNI_EXPORTS" /YX /FD /c
@@ -64,8 +64,8 @@ LINK32=link.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "WrapperJNI___Win32_Debug"
-# PROP Intermediate_Dir "WrapperJNI___Win32_Debug"
+# PROP Output_Dir "WrapperJNI___Win32_Debug32"
+# PROP Intermediate_Dir "WrapperJNI___Win32_Debug32"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "WRAPPERJNI_EXPORTS" /YX /FD /GZ /c

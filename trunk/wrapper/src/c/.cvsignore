@@ -1,14 +1,14 @@
 messages.rc
 wrapperinfo.c
-Debug
-Release
-WrapperJNI___Win32_Debug
-WrapperJNI___Win32_Release
-Wrapper.aps
-Wrapper.ncb
-Wrapper.opt
-Wrapper.dep
-WrapperJNI.dep
-WrapperJNI.mak
+Debug*
+Release*
+WrapperJNI___Win32_Debug*
+WrapperJNI___Win32_Release*
+Wrapper??.aps
+Wrapper??.ncb
+Wrapper??.opt
+Wrapper??.dep
+WrapperJNI??.dep
+WrapperJNI??.mak
 .deps
 
