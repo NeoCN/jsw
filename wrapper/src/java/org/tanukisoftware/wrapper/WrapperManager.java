@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.61  2005/12/21 07:15:17  mortenson
+// Make it possible to have platform specific native libraries on the library path and
+// then have them loaded correctly.
+//
 // Revision 1.60  2005/12/07 03:25:51  mortenson
 // Fix a problem where the Windows ServiceManager was not correctly reporting
 // a startup error if a service failed on startup.  The service was being
@@ -488,6 +492,13 @@ public final class WrapperManager
      *   warning is displayed. */
     private static int m_timerSlowThreshold;
     
+    /**
+     * Bit depth of the currently running JVM.  Will be 32 or 64.
+     *  A 64-bit JVM means that the system is also 64-bit, but a 32-bit JVM
+     *  can be run either on a 32 or 64-bit system.
+     */
+    private static int m_jvmBits;
+    
     /** An integer which stores the number of ticks since the
      *   JVM was launched.  Using an int rather than a long allows the value
      *   to be used without requiring any synchronization.  This is only
@@ -610,6 +621,13 @@ public final class WrapperManager
         if ( m_debug )
         {
             m_out.println( "Wrapper Manager: JVM #" + m_jvmId );
+        }
+        
+        // Decide whether this is a 32 or 64 bit version of Java.
+        m_jvmBits = Integer.getInteger( "sun.arch.data.model", 32 ).intValue();
+        if ( m_debug )
+        {
+            m_out.println( "Running a " + m_jvmBits + "-bit JVM." );
         }
         
         // Initialize the timerTicks to a very high value.  This means that we will
@@ -1097,6 +1115,62 @@ public final class WrapperManager
     }
     
     /**
+     * Generates a detailed native library base name which is made up of the
+     *  base name, the os name, architecture, and the bits of the current JVM,
+     *  not the platform.
+     *
+     * @return A detailed native library base name.
+     */
+    private static String generateDetailedNativeLibraryBaseName( String baseName )
+    {
+        // Generate an os name.  Most names are used as is, but some are modified.
+        String os = System.getProperty( "os.name", "" ).toLowerCase();
+        if ( os.startsWith( "windows" ) )
+        {
+            os = "windows";
+        }
+        else if ( os.equals( "sunos" ) )
+        {
+            os = "solaris";
+        }
+        else if ( os.equals( "hp-ux" ) || os.equals( "hp-ux64" ) )
+        {
+            os = "hpux";
+        }
+        else if ( os.equals( "mac os x" ) )
+        {
+            os = "macosx";
+        }
+        else if ( os.equals( "unix_sv" ) )
+        {
+            os = "unixware";
+        }
+        
+        // Generate an architecture name.
+        String arch = System.getProperty( "os.arch", "" ).toLowerCase();
+        if ( arch.equals( "amd64" ) || arch.equals( "ia32" ) || arch.equals( "ia64" ) ||
+            arch.equals( "i686" ) || arch.equals( "i586" ) || arch.equals( "i486" ) ||
+            arch.equals( "i386" ) )
+        {
+            arch = "x86";
+        }
+        else if ( arch.startsWith( "sparc" ) )
+        {
+            arch = "sparc";
+        }
+        else if ( arch.equals( "power" ) || arch.equals( "powerpc" ) )
+        {
+            arch = "ppc";
+        }
+        else if ( arch.equals( "pa_risc" ) || arch.equals( "pa-risc" ) )
+        {
+            arch = "parisc";
+        }
+        
+        return baseName + "-" + os + "-" + arch + "-" + m_jvmBits;
+    }
+    
+    /**
      * Searches for and then loads the native library.  This method will attempt
      *  locate the wrapper library using one of the following 3 naming 
      */
@@ -1114,18 +1188,24 @@ public final class WrapperManager
             m_out.println( "          set. Using the default value, 'wrapper'." );
             baseName = "wrapper";
         }
+        String detailedName = generateDetailedNativeLibraryBaseName( baseName );
         
         // Resolve the osname and osarch for the currect system.
-        String osName = System.getProperty( "os.name" );
-        if ( osName.indexOf( "Windows" ) >= 0 )
+        String osName = System.getProperty( "os.name" ).toLowerCase();
+        if ( osName.startsWith( "windows" ) )
         {
             libraryHead = "";
             libraryTail = ".dll";
         }
-        else if ( osName.indexOf( "Mac" ) >= 0 )
+        else if ( osName.startsWith( "mac" ) )
         {
             libraryHead = "lib";
             libraryTail = ".jnilib";
+        }
+        else if ( osName.startsWith( "hp-ux" ) && ( m_jvmBits == 64 ) )
+        {
+            libraryHead = "lib";
+            libraryTail = ".sl";
         }
         else
         {
@@ -1133,10 +1213,14 @@ public final class WrapperManager
             libraryTail = ".so";
         }
         
+        // Construct brief and detailed native library file names.
         String file = libraryHead + baseName + libraryTail;
+        String detailedFile = libraryHead + detailedName + libraryTail;
         
-        // Attempt to load the native library using various names.
-        if ( loadNativeLibrary( baseName, file ) )
+        // Try loading the native library using the detailed name first.  If that fails, use
+        //  the brief name.
+        if ( loadNativeLibrary( detailedName, detailedFile ) ||
+            loadNativeLibrary( baseName, file ) )
         {
             m_libraryOK = true;
             
@@ -1169,16 +1253,20 @@ public final class WrapperManager
             }
             else
             {
-                File libFile = locateFileOnPath( file, libPath );
+                File libFile = locateFileOnPath( detailedFile, libPath );
+                if ( libFile == null )
+                {
+                    libFile = locateFileOnPath( file, libPath );
+                }
                 if ( libFile == null )
                 {
                     // The library could not be located on the library path.
                     m_out.println(
-                        "WARNING - Unable to load the Wrapper's native library because the file" );
+                        "WARNING - Unable to load the Wrapper's native library because neither the" );
                     m_out.println(
-                        "          '" + file + "' could not be located in the following" );
+                        "          file '" + detailedFile + "' nor '" + file + "' could " );
                     m_out.println(
-                        "          java.library.path:" );
+                        "          be located in the following java.library.path:" );
                     String pathSep = System.getProperty( "path.separator" );
                     StringTokenizer st = new StringTokenizer( libPath, pathSep );
                     while ( st.hasMoreTokens() )
@@ -1211,6 +1299,8 @@ public final class WrapperManager
                         "          One common cause of this problem is running a 32-bit version" );
                     m_out.println(
                         "          of the Wrapper with a 64-bit version of Java, or vica versa." );
+                    m_out.println(
+                        "          This is a " + m_jvmBits + "-bit JVM." );
                 }
             }
             m_out.println( "          System signals will not be handled correctly." );
