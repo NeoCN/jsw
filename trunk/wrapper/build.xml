@@ -161,13 +161,13 @@
         <property name="wrapper.bin.long.name" value="wrapper-${dist.os}-${dist.arch}-${bits}"/>
         
         <!-- Decide on library names -->
-        <condition name="wrapper.lib.extension" value="sl">
+        <condition property="wrapper.lib.extension" value="sl">
             <and>
                 <isset property="is.hpux"/>
                 <equals arg1="${bits}" arg2="64"/>
             </and>
         </condition>
-        <condition name="wrapper.lib.extension" value="jnilib">
+        <condition property="wrapper.lib.extension" value="jnilib">
             <isset property="is.macosx"/>
         </condition>
         <property name="wrapper.lib.extension" value="so"/>
@@ -182,15 +182,15 @@
                     <isset property="is.hpux"/>
                     <equals arg1="${bits}" arg2="32"/>
                 </and>
+                <isset property="is.osf1"/>
+                <isset property="is.freebsd"/>
+                <isset property="is.irix"/>
             </or>
-            <isset property="is.osf1"/>
-            <isset property="is.freebsd"/>
-            <isset property="is.irix"/>
         </condition>
         <property name="make.name" value="make"/>
         
         <!-- Generate the makefile name -->
-        <property name="makefile.name" value="MakeFile-${dist.os}-${dist.arch}-${bits}"/>
+        <property name="makefile.name" value="Makefile-${dist.os}-${dist.arch}-${bits}"/>
         
         <condition property="isUnixMakefileMissing" value="true">
             <not>
@@ -400,7 +400,7 @@
         <echo message="Unable to locate a makefile for the current platform.  Looking for:"/>
         <echo message="  ${makefile.name}"/>
         <echo message="If the name contains any spaces or upper case characters then the"/>
-        <echo message="os and archictecture need to be defined in the build.xml file as well."/>
+        <echo message="os and architecture need to be defined in the build.xml file as well."/>
         <echo message="**********************************************************************"/>
         <fail message="Missing makefile."/>
     </target>
@@ -413,6 +413,11 @@
             failonerror="true">
             <arg line="-f ${makefile.name}" />
         </exec>
+        
+        <copy file="${bin.dir}/${wrapper.bin.name}" tofile="${bin.dir}/${wrapper.bin.long.name}" overwrite="true" preservelastmodified="true"/>
+        <copy file="${lib.dir}/${wrapper.lib.name}" tofile="${lib.dir}/${wrapper.lib.long.name}" overwrite="true" preservelastmodified="true"/>
+        
+        <chmod file="${bin.dir}/${wrapper.bin.long.name}" perm="+x"/>
     </target>
     <target name="compile-c" depends="compile-c-windows-check2,compile-c-unix">
     </target>

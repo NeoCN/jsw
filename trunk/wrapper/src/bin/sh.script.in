@@ -123,6 +123,71 @@ then
     fi
 fi
 
+# Resolve the os
+DIST_OS=`uname -s | tr [:upper:] [:lower:] | tr -d [:blank:]`
+case "$DIST_OS" in
+    'sunos')
+        DIST_OS="solaris"
+        ;;
+    'hp-ux' | 'hp-ux64')
+        DIST_OS="hpux"
+        ;;
+    'unix_sv')
+        DIST_OS="unixware"
+        ;;
+esac
+
+# Resolve the architecture
+DIST_ARCH=`uname -p | tr [:upper:] [:lower:] | tr -d [:blank:]`
+if [ "$DIST_ARCH" = "unknown" ]
+then
+    DIST_ARCH=`uname -m | tr [:upper:] [:lower:] | tr -d [:blank:]`
+fi
+case "$DIST_ARCH" in
+    'amd64' | 'ia32' | 'ia64' | 'i386' | 'i486' | 'i586' | 'i686')
+        DIST_ARCH="x86"
+        ;;
+    'power' | 'powerpc')
+        DIST_ARCH="ppc"
+        ;;
+    'pa_risc' | 'pa-risc')
+        DIST_ARCH="parisc"
+        ;;
+    'sparcv9')
+        DIST_ARCH="sparc"
+        ;;
+esac
+
+# Decide on a detailed wrapper name
+WRAPPER_LONG32_CMD="$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-32"
+WRAPPER_LONG64_CMD="$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-64"
+
+# If a 32-bit wrapper binary exists then it will work on 32 or 64 bit
+#  platforms, if the 64-bit binary exists then the distribution most
+#  likely wants to use long names.  Otherwise, look for the default.
+if [ -x $WRAPPER_LONG32_CMD ]
+then
+    WRAPPER_CMD="$WRAPPER_LONG32_CMD"
+else
+    if [ -x $WRAPPER_LONG64_CMD ]
+    then
+        WRAPPER_CMD="$WRAPPER_LONG64_CMD"
+    else
+        if [ ! -x $WRAPPER_CMD ]
+        then
+            echo "Unable to locate any of the following binaries:"
+            echo "  $WRAPPER_LONG32_CMD"
+            echo "  $WRAPPER_LONG64_CMD"
+            echo "  $WRAPPER_CMD"
+            exit 1
+        fi
+    fi
+fi
+ 
+echo "Temporary - Long32: $WRAPPER_LONG32_CMD"
+echo "Temporary - Long64: $WRAPPER_LONG64_CMD"
+echo "Temporary - Use:    $WRAPPER_CMD"
+
 # Build the nice clause
 if [ "X$PRIORITY" = "X" ]
 then
