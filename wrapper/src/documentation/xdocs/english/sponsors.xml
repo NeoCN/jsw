@@ -31,6 +31,12 @@
             -->
         <donorlist>
             <donor>
+                <date>Dec 21, 2005</date>
+                <amount>100.00</amount>
+                <name>Konstantin Laveczky</name>
+                <message>I also have had use of the Java Service Wrapper!  Thank you for your great work!</message>
+            </donor>
+            <donor>
                 <date>Oct 28, 2005</date>
                 <amount>250.00</amount>
                 <name>Anonymous</name>
