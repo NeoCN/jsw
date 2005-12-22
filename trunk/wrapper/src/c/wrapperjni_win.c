@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.23  2005/12/22 06:16:30  mortenson
+ * Fix a compiler warning when building against java 1.3.1
+ *
  * Revision 1.22  2005/05/23 02:37:55  mortenson
  * Update the copyright information.
  *
@@ -191,7 +194,9 @@ void throwException(JNIEnv *env, const char *className, const char *message) {
         /* Look for the constructor. Ignore failures. */
         if (constructor = (*env)->GetMethodID(env, exceptionClass, "<init>", "([B)V")) {
             jMessage = (*env)->NewByteArray(env, strlen(message));
-            (*env)->SetByteArrayRegion(env, jMessage, 0, strlen(message), message);
+            /* The 1.3.1 jni.h file does not specify the message as const.  The cast is to
+             *  avoid compiler warnings trying to pass a (const char *) as a (char *). */
+            (*env)->SetByteArrayRegion(env, jMessage, 0, strlen(message), (char *)message);
             
             exception = (*env)->NewObject(env, exceptionClass, constructor, jMessage);
             
