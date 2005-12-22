@@ -139,6 +139,21 @@
         
         <!-- Generate the release-file base. -->
         <property name="releasefile" value="wrapper-${dist.os}-${dist.arch}-${bits}-${version}"/>
+        
+        <!-- Java version. -->
+        <condition property="javac.target.version" value="1.2">
+            <or>
+                <equals arg1="${java.specification.version}" arg2="1.2"/>
+                <equals arg1="${java.specification.version}" arg2="1.3"/>
+                <equals arg1="${java.specification.version}" arg2="1.4"/>
+            </or>
+        </condition>
+        <property name="javac.target.version" value="1.4"/>
+        <condition property="javac.target.warn" value="true">
+            <not>
+                <equals arg1="${javac.target.version}" arg2="1.2"/>
+            </not>
+        </condition>
     </target>
     <target name="init-windows" depends="init-setup" if="is.windows">
         <!-- Decide on the type of script to generate. -->
@@ -261,7 +276,14 @@
     <!-- =================================================================== -->
     <!-- Compiles the source code                                            -->
     <!-- =================================================================== -->
-    <target name="compile-java" depends="update-info">
+    <target name="compile-java-warn" depends="update-info" if="javac.target.warn">
+        <echo message="**********************************************************************"/>
+        <echo message="WARNING"/>
+        <echo message="The jar is being built for Java version ${javac.target.version}.  This will not be"/>
+        <echo message="compatible with older JVMs."/>
+        <echo message="**********************************************************************"/>
+    </target>
+    <target name="compile-java" depends="compile-java-warn">
         <mkdir dir="${build.dir}"/>
         <mkdir dir="${build.classes}"/>
         <mkdir dir="${build.testclasses}"/>
@@ -272,8 +294,8 @@
                deprecation="on"
                debug="on"
                optimize="on"
-               source="1.2"
-               target="1.2"> <!-- The 1.2 target is done so we work with older JVMs -->
+               source="${javac.target.version}"
+               target="${javac.target.version}">
             <classpath refid="project.class.path"/>
         </javac>
 
@@ -282,8 +304,8 @@
                deprecation="on"
                debug="on"
                optimize="on"
-               source="1.2"
-               target="1.2"> <!-- The 1.2 target is done so we work with older JVMs -->
+               source="${javac.target.version}"
+               target="${javac.target.version}">
             <classpath refid="test.class.path"/>
         </javac>
 
