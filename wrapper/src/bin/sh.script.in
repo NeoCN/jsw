@@ -132,6 +132,9 @@ case "$DIST_OS" in
     'hp-ux' | 'hp-ux64')
         DIST_OS="hpux"
         ;;
+    'darwin')
+        DIST_OS="macosx"
+        ;;
     'unix_sv')
         DIST_OS="unixware"
         ;;
