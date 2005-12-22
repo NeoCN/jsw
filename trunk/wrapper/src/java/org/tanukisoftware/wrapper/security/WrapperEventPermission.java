@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.security;
  */
 
 // $Log$
+// Revision 1.4  2005/12/22 06:26:53  mortenson
+// Change enum to en to avoid warnings when building under Java 1.5
+//
 // Revision 1.3  2005/10/14 02:08:54  mortenson
 // Fix javadocs.
 //
@@ -411,10 +414,10 @@ final class WECollection
         int pendingMask = desiredMask;
         int foundMask = 0;
         
-        for ( Enumeration enum = m_permissions.elements(); enum.hasMoreElements(); )
+        for ( Enumeration en = m_permissions.elements(); en.hasMoreElements(); )
         {
             WrapperEventPermission p2 =
-                (WrapperEventPermission)enum.nextElement();
+                (WrapperEventPermission)en.nextElement();
             if ( ( pendingMask & p2.getActionMask() ) != 0 )
             {
                 // This permission has one or more eventTypes that we need.

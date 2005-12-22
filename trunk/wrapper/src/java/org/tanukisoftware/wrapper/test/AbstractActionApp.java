@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.16  2005/12/22 06:26:53  mortenson
+// Change enum to en to avoid warnings when building under Java 1.5
+//
 // Revision 1.15  2005/10/13 05:52:16  mortenson
 // Implement the ability to catch control events using the WrapperEventLisener.
 //
@@ -415,9 +418,9 @@ public abstract class AbstractActionApp
         {
             System.out.println( "Dump System Properties:" );
             Properties props = System.getProperties();
-            for ( Enumeration enum = props.propertyNames(); enum.hasMoreElements(); )
+            for ( Enumeration en = props.propertyNames(); en.hasMoreElements(); )
             {
-                String name = (String)enum.nextElement();
+                String name = (String)en.nextElement();
                 System.out.println( "  " + name + "=" + props.getProperty( name ) );
             }
             System.out.println();
@@ -426,9 +429,9 @@ public abstract class AbstractActionApp
         {
             System.out.println( "Dump Wrapper Properties:" );
             Properties props = WrapperManager.getProperties();
-            for ( Enumeration enum = props.propertyNames(); enum.hasMoreElements(); )
+            for ( Enumeration en = props.propertyNames(); en.hasMoreElements(); )
             {
-                String name = (String)enum.nextElement();
+                String name = (String)en.nextElement();
                 System.out.println( "  " + name + "=" + props.getProperty( name ) );
             }
             System.out.println();
