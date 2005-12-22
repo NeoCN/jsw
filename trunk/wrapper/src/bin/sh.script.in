@@ -147,17 +147,23 @@ then
     DIST_ARCH=`uname -m | tr [:upper:] [:lower:] | tr -d [:blank:]`
 fi
 case "$DIST_ARCH" in
-    'amd64' | 'ia32' | 'ia64' | 'i386' | 'i486' | 'i586' | 'i686')
+    'amd64' | 'ia32' | 'ia64' | 'i386' | 'i486' | 'i586' | 'i686' | 'x86_64')
         DIST_ARCH="x86"
         ;;
-    'power' | 'powerpc')
+    'ip27')
+        DIST_ARCH="mips"
+        ;;
+    'power' | 'powerpc' | 'power_pc')
         DIST_ARCH="ppc"
         ;;
     'pa_risc' | 'pa-risc')
         DIST_ARCH="parisc"
         ;;
-    'sparcv9')
+    'sun4u' | 'sparcv9')
         DIST_ARCH="sparc"
+        ;;
+    '9000/800')
+        DIST_ARCH="parisc"
         ;;
 esac
 
