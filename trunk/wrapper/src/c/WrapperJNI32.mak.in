@@ -1,22 +1,21 @@
 # Microsoft Developer Studio Generated NMAKE File, Based on WrapperJNI32.dsp
 !IF "$(CFG)" == ""
 CFG=WrapperJNI - Win32 Debug
-!MESSAGE 構成が指定されていません。ﾃﾞﾌｫﾙﾄの WrapperJNI - Win32 Debug を設定します。
+!MESSAGE Build mode not specified.  Defaulting to "WrapperJNI - Win32 Debug".
 !ENDIF 
 
 !IF "$(CFG)" != "WrapperJNI - Win32 Release" && "$(CFG)" != "WrapperJNI - Win32 Debug"
-!MESSAGE 指定された ﾋﾞﾙﾄﾞ ﾓｰﾄﾞ "$(CFG)" は正しくありません。
-!MESSAGE NMAKE の実行時に構成を指定できます
-!MESSAGE ｺﾏﾝﾄﾞ ﾗｲﾝ上でﾏｸﾛの設定を定義します。例:
+!MESSAGE The build target "$(CFG)" is invalid.
+!MESSAGE Usage:
 !MESSAGE 
 !MESSAGE NMAKE /f "WrapperJNI32.mak" CFG="WrapperJNI - Win32 Debug"
 !MESSAGE 
-!MESSAGE 選択可能なﾋﾞﾙﾄﾞ ﾓｰﾄﾞ:
+!MESSAGE Valid build modes:
 !MESSAGE 
-!MESSAGE "WrapperJNI - Win32 Release" ("Win32 (x86) Dynamic-Link Library" 用)
-!MESSAGE "WrapperJNI - Win32 Debug" ("Win32 (x86) Dynamic-Link Library" 用)
+!MESSAGE "WrapperJNI - Win32 Release" ("Win32 (x86) Dynamic-Link Library")
+!MESSAGE "WrapperJNI - Win32 Debug" ("Win32 (x86) Dynamic-Link Library")
 !MESSAGE 
-!ERROR 無効な構成が指定されています。
+!ERROR Ivalid build mode.
 !ENDIF 
 
 !IF "$(OS)" == "Windows_NT"
