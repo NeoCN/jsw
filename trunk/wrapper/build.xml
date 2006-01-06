@@ -154,6 +154,12 @@
                 <equals arg1="${javac.target.version}" arg2="1.2"/>
             </not>
         </condition>
+        
+        <condition property="bits-mismatch" value="true">
+            <not>
+                <equals arg1="${sun.arch.data.model}" arg2="${bits}"/>
+            </not>
+        </condition>
     </target>
     <target name="init-windows" depends="init-setup" if="is.windows">
         <!-- Decide on the type of script to generate. -->
@@ -221,12 +227,18 @@
         <echo message="**********************************************************************"/>
         <fail message="The &quot;bits&quot; system property has not been set."/>
     </target>
+    <target name="init-bits-mismatch-warning" if="bits-mismatch">
+        <echo message="**********************************************************************"/>
+        <echo message="A ${bits}-bit build was requested, but this is a ${sun.arch.data.model}-bit JVM."/>
+        <echo message="**********************************************************************"/>
+        <fail message="The &quot;bits&quot; system property does not match that of the JVM."/>
+    </target>
     
     <!-- =================================================================== -->
     <!-- Initialize build.                                                   -->
     <!-- =================================================================== -->
     <target name="init"
-        depends="init-windows, init-unix, init-bits-warning">
+        depends="init-windows, init-unix, init-bits-warning, init-bits-mismatch-warning">
         <echo message="**********************************************************************"/>
         <echo message="About to build a ${bits}-bit version of the Java Service Wrapper ${version}."/>
         <echo message="The OS Name is &quot;${dist.os}&quot;, resolved from &quot;${os.name}&quot;."/>
@@ -805,13 +817,13 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                 <include name="src/c/*.c" />
                 <include name="src/c/*.c.in" />
                 <include name="src/c/*.h" />
-                <include name="src/c/Makefile.*" />
+                <include name="src/c/Makefile-*" />
                 <include name="src/c/*.mak" />
-                <exclude name="src/c/WrapperJNI.mak" />
+                <exclude name="src/c/WrapperJNI*.mak" />
                 <include name="src/c/*.mak.in" />
                 <include name="src/c/*.dep" />
-                <exclude name="src/c/Wrapper.dep" />
-                <exclude name="src/c/WrapperJNI.dep" />
+                <exclude name="src/c/Wrapper*.dep" />
+                <exclude name="src/c/WrapperJNI*.dep" />
                 <include name="src/c/*.dep.in" />
                 <include name="src/c/*.dsp" />
                 <include name="src/c/*.dsw" />
