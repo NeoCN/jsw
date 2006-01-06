@@ -14,6 +14,9 @@
 
     <!-- property name="classpath"     value=""/ -->
     
+    <property name="ant.dist.version" value="1.6.2"/>
+    <property name="cocoon.dist.version" value="2.0.4"/>
+    
     <!-- Project classpath -->
     <path id="project.class.path">
         <pathelement location="${build.classes}"/>
@@ -28,7 +31,7 @@
         <!-- Cocoon docs.  The directory is set as it is so the build will work when
              the cocoon files are not available. -->
         <fileset dir="${basedir}/tools/">
-            <include name="cocoon-2.0.4/lib/*.jar" />
+            <include name="cocoon-${cocoon.dist.version}/lib/*.jar" />
         </fileset>
     </path>
     
@@ -406,8 +409,10 @@
             <arg value="${msvc.home}" />
         </exec>
         
+        <!--
         <copy file="${bin.dir}/${wrapper.bin.name}" tofile="${bin.dir}/${wrapper.bin.long.name}" overwrite="true" preservelastmodified="true"/>
         <copy file="${lib.dir}/${wrapper.lib.name}" tofile="${lib.dir}/${wrapper.lib.long.name}" overwrite="true" preservelastmodified="true"/>
+        -->
     </target>
     <target name="compile-c-windows-check" depends="compile-c-windows" if="is.windows">
         <!-- Make sure that the native Windows tergets exist. -->
@@ -448,10 +453,11 @@
             <arg line="-f ${makefile.name}" />
         </exec>
         
+        <!--
         <copy file="${bin.dir}/${wrapper.bin.name}" tofile="${bin.dir}/${wrapper.bin.long.name}" overwrite="true" preservelastmodified="true"/>
         <copy file="${lib.dir}/${wrapper.lib.name}" tofile="${lib.dir}/${wrapper.lib.long.name}" overwrite="true" preservelastmodified="true"/>
-        
         <chmod file="${bin.dir}/${wrapper.bin.long.name}" perm="+x"/>
+        -->
     </target>
     <target name="compile-c" depends="compile-c-windows-check2,compile-c-unix">
     </target>
@@ -536,7 +542,7 @@
     <!-- =================================================================== -->
     <!-- Bin target (Bat Files - Windows)                                    -->
     <!-- =================================================================== -->
-    <target name="bin-bat" depends="compile" if="is.shell.bat">
+    <target name="bin-bat" depends="init" if="is.shell.bat">
         <!-- Create batch files for the TestWrapper Sample Application -->
         <copy file="${src.dir}/bin/App.bat.in"
               tofile="${bin.dir}/${app.caps.name}.bat"
@@ -561,7 +567,7 @@
     <!-- =================================================================== -->
     <!-- Bin target (sh scripts - Unix. Linux)                               -->
     <!-- =================================================================== -->
-    <target name="bin-sh" depends="compile" if="is.shell.sh">
+    <target name="bin-sh" depends="init" if="is.shell.sh">
         <copy file="${src.dir}/bin/sh.script.in"
             tofile="${bin.dir}/${app.name}"
             filtering="on"/>
@@ -793,7 +799,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
     <!-- =================================================================== -->
     <target name="pre-release" depends="release-common"
         description="Builds an intermediate release file that can then be deployed to individual platforms to complete the platform specific releases.">
-        <property name="intermfile" value="wrapper_tmp_${version}"/>
+        <property name="intermfile" value="wrapper_prerelease_${version}"/>
         <property name="intermdir" value="${build.dir}/${intermfile}"/>
         <delete dir="${intermdir}"/>
         <mkdir dir="${intermdir}"/>
@@ -804,8 +810,6 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                 <include name="build*" />
                 <include name="default.properties" />
                 <include name="project.dtd" />
-                <include name="bin/*.bat" />
-                <include name="bin/${app.name}" />
                 <include name="lib/wrapper.jar" />
                 <include name="lib/wrappertest.jar" />
                 <include name="logs" />
@@ -831,11 +835,12 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                 <include name="src/c/*.rc" />
                 <include name="src/c/*.ico" />
                 <include name="src/c/*.bin" />
-                <include name="tools/**" />
-                <exclude name="tools/cocoon*" />
+                <include name="tools/apache-ant-${ant.dist.version}/**" />
+                <!--<exclude name="tools/cocoon**" />-->
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
+        <echo message="${basedir}/tools/apache-ant-${ant.dist.version}"/>
         <!-- Copy a fresh wrapper.conf rather than the development file -->
         <copy file="${src.dir}/conf/wrapper.conf.in"
               tofile="${intermdir}/conf/wrapper.conf"
@@ -928,7 +933,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
     </target>
     
     <target name="pre-release:check-init" depends="init">
-        <property name="intermfile" value="wrapper_tmp_${version}"/>
+        <property name="intermfile" value="wrapper_prerelease_${version}"/>
         <property name="intermdir" value="${build.dir}/${intermfile}"/>
         
         <available property="pre-release.exists" value="true" file="${build.dir}/${intermmarker}"/>
@@ -950,6 +955,12 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <property name="releasedir" value="${build.dir}/${releasefile}"/>
         <delete dir="${releasedir}"/>
         <mkdir dir="${releasedir}"/>
+        <mkdir dir="${releasedir}/bin"/>
+        
+        <antcall target="bin" inheritall="false">
+            <param name="bin.dir" value="${releasedir}/bin"/>
+        </antcall>
+        
         <mkdir dir="${dist.dir}"/>
         <copy todir="${releasedir}" >
             <fileset dir="${basedir}" >
@@ -1022,6 +1033,12 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <property name="releasedir" value="${build.dir}/${releasefile}"/>
         <delete dir="${releasedir}"/>
         <mkdir dir="${releasedir}"/>
+        <mkdir dir="${releasedir}/bin"/>
+        
+        <antcall target="bin" inheritall="false">
+            <param name="bin.dir" value="${releasedir}/bin"/>
+        </antcall>
+        
         <mkdir dir="${dist.dir}"/>
         <copy todir="${releasedir}" >
             <fileset dir="${basedir}" >
@@ -1142,11 +1159,23 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <delete dir="${jdoc.dir}"/>
         <delete dir="${doc.dir}/english"/>
 
-        <delete file="${bin.dir}/wrapper.exe"/>
-        <delete file="${lib.dir}/wrapper.dll"/>
         <delete file="${lib.dir}/wrapper.jar"/>
         <delete file="${lib.dir}/wrappertest.jar"/>
-
+        
+        <!-- Windows -->
+        <delete><fileset dir="${bin.dir}" includes="*${app.caps.name}*.bat"/></delete>
+        <delete file="${bin.dir}/wrapper.exe"/>
+        <delete><fileset dir="${bin.dir}" includes="wrapper-*-*-??.exe"/></delete>
+        <delete file="${lib.dir}/wrapper.dll"/>
+        <delete><fileset dir="${lib.dir}" includes="wrapper-*-*-??.dll"/></delete>
+        
+        <!-- *nix -->
+        <delete file="${bin.dir}/${app.name}"/>
+        <delete file="${bin.dir}/wrapper"/>
+        <delete><fileset dir="${bin.dir}" includes="wrapper-*-*-??"/></delete>
+        <delete><fileset dir="${lib.dir}" includes="libwrapper.*"/></delete>
+        <delete><fileset dir="${lib.dir}" includes="libwrapper-*-*-??.*"/></delete>
+        
         <ant antfile="build-tests.xml" target="total-clean" inheritall="false"/>  
     </target>
 </project>
