@@ -44,6 +44,12 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.10  2006/01/07 02:39:27  mortenson
+// Fix a problem with the WrapperSimpleApp and WrapperStartStopApp helper
+// classes where on heavily loaded systems it was possible for the Wrapper
+// to get a running thread count of 0 and shutdown before the main thread
+// had a chance to be started.
+//
 // Revision 1.9  2005/12/07 02:45:18  mortenson
 // Modify the WrapperSimpleApp and WrapperStartStopApp classes so that the
 // WrapperManager is always initialized immediately.  This makes the output
@@ -131,7 +137,14 @@ public class WrapperSimpleApp
     private String[] m_appArgs;
     
     /**
-     * Gets set to true when the thread used to launch the application completes.
+     * Gets set to true when the thread used to launch the application
+     *  actuially starts.
+     */
+    private boolean m_mainStarted;
+    
+    /**
+     * Gets set to true when the thread used to launch the application
+     *  completes.
      */
     private boolean m_mainComplete;
     
@@ -164,6 +177,13 @@ public class WrapperSimpleApp
      */
     public void run()
     {
+        // Notify the start method that the thread has been started by the JVM.
+        synchronized( this )
+        {
+            m_mainStarted = true;
+            notifyAll();
+        }
+        
         Throwable t = null;
         try
         {
@@ -280,6 +300,20 @@ public class WrapperSimpleApp
         {
             m_appArgs = args;
             mainThread.start();
+            
+            // To avoid problems with the main thread starting slowly on heavily loaded systems,
+            //  do not continue until the thread has actually started.
+            while ( !m_mainStarted )
+            {
+                try
+                {
+                    this.wait( 1000 );
+                }
+                catch ( InterruptedException e )
+                {
+                    // Continue.
+                }
+            }
             
             // Wait for startup main method to complete.
             int loops = 0;
