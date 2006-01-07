@@ -1083,6 +1083,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="#wrapper.app.parameter.1=" />
         <!-- Need an empty log file so that the logs directory will be included -->
+        <mkdir dir="${releasedir}/logs"/>
         <touch file="${releasedir}/logs/wrapper.log"/>
         
         <!-- Make sure that files are formatted correctly for their platforms -->
