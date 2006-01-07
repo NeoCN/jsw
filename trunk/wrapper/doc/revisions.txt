@@ -193,6 +193,10 @@ Java Service Wrapper Revision History.
   on shutdown.
 * Store javadocs in tar distibutions in a nested tar file to avoid problems
   with long filenames in some tar distributions.
+* Fix a problem with the WrapperSimpleApp and WrapperStartStopApp helper
+  classes where on heavily loaded systems it was possible for the Wrapper
+  to get a running thread count of 0 and shutdown before the main thread
+  had a chance to be started.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
