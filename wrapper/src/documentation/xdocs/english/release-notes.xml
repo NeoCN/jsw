@@ -452,6 +452,12 @@ $Id$
                     on shutdown.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Store javadocs in tar distibutions in a nested tar file to avoid problems
+                    with long filenames in some tar distributions.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
