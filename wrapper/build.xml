@@ -158,6 +158,8 @@
             </not>
         </condition>
         
+        <!-- Not all JVMs support the sun.arch.data.model property.  Default to 32-bit. -->
+        <property name="sun.arch.data.model" value="32"/>
         <condition property="bits-mismatch" value="true">
             <not>
                 <equals arg1="${sun.arch.data.model}" arg2="${bits}"/>
@@ -242,12 +244,6 @@
     <!-- =================================================================== -->
     <target name="init"
         depends="init-windows, init-unix, init-bits-warning, init-bits-mismatch-warning">
-        <echo message="**********************************************************************"/>
-        <echo message="About to build a ${bits}-bit version of the Java Service Wrapper ${version}."/>
-        <echo message="The OS Name is &quot;${dist.os}&quot;, resolved from &quot;${os.name}&quot;."/>
-        <echo message="The Architecture is &quot;${dist.arch}&quot;, resolved from &quot;${os.arch}&quot;."/>
-        <echo message="The distribution name will be: ${releasefile}"/>
-        <echo message="**********************************************************************"/>
         
         <tstamp/>
         <filter token="version"           value="${version}"       />
@@ -260,11 +256,19 @@
         
         <property name="intermmarker" value="pre-release"/>
     </target>
+    <target name="init:msg" depends="init">
+        <echo message="**********************************************************************"/>
+        <echo message="About to build a ${bits}-bit version of the Java Service Wrapper ${version}."/>
+        <echo message="The OS Name is &quot;${dist.os}&quot;, resolved from &quot;${os.name}&quot;."/>
+        <echo message="The Architecture is &quot;${dist.arch}&quot;, resolved from &quot;${os.arch}&quot;."/>
+        <echo message="The distribution name will be: ${releasefile}"/>
+        <echo message="**********************************************************************"/>
+    </target>
     
     <!-- =================================================================== -->
     <!-- Converts natively encoded src files to ascii                        -->
     <!-- =================================================================== -->
-    <target name="convert" depends="init">
+    <target name="convert" depends="init:msg">
         <native2ascii src="${src.dir}/java"
                       dest="${src.dir}/java"
                       encoding="JISAutoDetect"
@@ -347,7 +351,7 @@
             <class name="org.tanukisoftware.wrapper.WrapperManager"/>
         </javah>
     </target>
-    <target name="msvc-test" depends="init" if="is.windows">
+    <target name="msvc-test" depends="init:msg" if="is.windows">
         <condition property="msvc.present">
             <available file="${msvc.home}/VC98/BIN/VCVARS32.BAT"/>
         </condition>
@@ -434,7 +438,7 @@
         <echo message="**********************************************************************"/>
         <fail message="bin/${wrapper.bin.name} or lib/${wrapper.lib.name} are missing."/>
     </target>
-    <target name="compile-c-unix-check" depends="init" if="isUnixMakefileMissing">
+    <target name="compile-c-unix-check" depends="init:msg" if="isUnixMakefileMissing">
         <echo message="**********************************************************************"/>
         <echo message="Unable to locate a makefile for the current platform.  Looking for:"/>
         <echo message="  ${makefile.name}"/>
@@ -628,7 +632,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
     <!-- =================================================================== -->
     <!-- Documentation target                                                -->
     <!-- =================================================================== -->
-    <target name="doc-src-test" depends="init">
+    <target name="doc-src-test" depends="init:msg">
        <available file="${src.dir}/documentation/english.uris" property="doc-src.present"/>
     </target>
     <target name="doc" depends="doc-src-test" if="doc-src.present"
@@ -922,7 +926,7 @@ original tar distribution due to a lack of support for long path names in some t
         <echo>**********************************************************</echo>
     </target>
     
-    <target name="pre-release:check-init" depends="init">
+    <target name="pre-release:check-init" depends="init:msg">
         <property name="intermfile" value="wrapper_prerelease_${version}"/>
         <property name="intermdir" value="${build.dir}/${intermfile}"/>
         
