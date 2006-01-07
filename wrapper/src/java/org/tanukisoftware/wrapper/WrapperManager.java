@@ -44,6 +44,11 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.62  2006/01/07 03:27:11  mortenson
+// Add a new wrapper.thread_count_delay property which will force the
+// WrapperManager to wait the specified number of seconds before it begins
+// to check the number of running threads.
+//
 // Revision 1.61  2005/12/21 07:15:17  mortenson
 // Make it possible to have platform specific native libraries on the library path and
 // then have them loaded correctly.
@@ -461,6 +466,13 @@ public final class WrapperManager
     /** True if the thread count should be monitored for application
      *   completion. */
     private static boolean m_monitorThreadCount = true;
+    
+    /** The amount of time to delay counting threads after the start method
+     *   has completed. */
+    private static long m_threadCountDelay;
+    
+    /** Tick count when the start method completed. */
+    private static int m_startedTicks;
     
     /** The lowest configured log level in the Wrapper's configuration.  This 
      *   is set to a high value by default to disable all logging if the
@@ -2790,6 +2802,7 @@ public final class WrapperManager
                 return;
             }
         }
+        m_startedTicks = getTicks();
         if ( m_debug )
         {
             m_out.println( "returned from listener.start()" );
@@ -3167,11 +3180,28 @@ public final class WrapperManager
         m_monitorThreadCount = properties.getProperty( "wrapper.monitor_thread_count", "true" ).
             toLowerCase().equals( "true" );
         
+        String threadCountDelay = properties.getProperty( "wrapper.thread_count_delay", "1" );
+        try
+        {
+            m_threadCountDelay = Integer.parseInt( threadCountDelay ) * 1000;
+        }
+        catch ( NumberFormatException e )
+        {
+            System.out.println( "Invalid value for wrapper.thread_count_delay, "
+                + "\"" + threadCountDelay + "\".  Using default." );
+            m_threadCountDelay = 1000;
+        }
+        
         if ( m_debug )
         {
             if ( !m_monitorThreadCount )
             {
                 System.out.println( "Monitoring of the JVM thread count is disabled." );
+            }
+            else if ( m_threadCountDelay > 0 )
+            {
+                System.out.println( "Monitoring of the JVM thread count will be delayed for "
+                    + ( m_threadCountDelay / 1000 ) + " seconds." );
             }
         }
         
@@ -3758,7 +3788,11 @@ public final class WrapperManager
                 // Check to see if all non-daemon threads have exited.
                 if ( m_started && m_monitorThreadCount )
                 {
-                    checkThreads();
+                    long startAge = getTickAge( m_startedTicks, getTicks() );
+                    if ( startAge >= m_threadCountDelay )
+                    {
+                        checkThreads();
+                    }
                 }
             }
             return;
