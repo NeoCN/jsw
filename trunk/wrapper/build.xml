@@ -461,7 +461,7 @@
     </target>
     <target name="compile-c" depends="compile-c-windows-check2,compile-c-unix">
     </target>
-    <target name="compile" depends="compile-c,compile-java"
+    <target name="compile" depends="compile-java, compile-c"
         description="Compiles all java and c source">
         
         <mkdir dir="${logs.dir}"/>
@@ -622,10 +622,8 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
     <!-- Main target                                                         -->
     <!-- =================================================================== -->
     <target name="main"
-        depends="test, bin, conf, test-setup"
-        description="default development build task">
-        
-    </target>
+        depends="compile, test, bin, conf, test-setup"
+        description="default development build task"/>
     
     <!-- =================================================================== -->
     <!-- Documentation target                                                -->
@@ -663,7 +661,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
     <!-- =================================================================== -->
     <!-- Release (Common)                                                    -->
     <!-- =================================================================== -->
-    <target name="release-common" depends="main, jdoc, doc">
+    <target name="release-common" depends="test, jdoc, doc">
         <property name="releasesrcfile" value="wrapper_${version}_src"/>
         <property name="releasesrcdir" value="${build.dir}/${releasesrcfile}"/>
         <delete dir="${releasesrcdir}"/>
@@ -813,7 +811,6 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                 <include name="project.dtd" />
                 <include name="lib/wrapper.jar" />
                 <include name="lib/wrappertest.jar" />
-                <include name="logs" />
                 <include name="jdoc/**" />
                 <include name="doc/**" />
                 <include name="src/bin/**" />
@@ -841,37 +838,10 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
             </fileset>
         </copy>
         
-        <!-- Copy a fresh wrapper.conf rather than the development file -->
-        <copy file="${src.dir}/conf/wrapper.conf.in"
-              tofile="${intermdir}/conf/wrapper.conf"
-              filtering="on"/>
-        <replace file="${intermdir}/conf/wrapper.conf">
-            <replacetoken># Wrapper Properties</replacetoken>
-            <replacevalue><![CDATA[# TestWrapper Properties
-#
-# NOTE - Please use src/conf/wrapper.conf.in as a template for your
-#        own application rather than the values used for the
-#        TestWrapper sample.]]></replacevalue>
-        </replace>
-        <replace file="${intermdir}/conf/wrapper.conf"
-                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
-                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main" />
-        <replace file="${intermdir}/conf/wrapper.conf">
-            <replacetoken>wrapper.java.classpath.1=../lib/wrapper.jar</replacetoken>
-            <replacevalue><![CDATA[wrapper.java.classpath.1=../lib/wrappertest.jar
-wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
-        </replace>
-        <replace file="${intermdir}/conf/wrapper.conf"
-                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
-                 value="#wrapper.app.parameter.1=" />
-        <!-- Need an empty log file so that the logs directory will be included -->
-        <touch file="${intermdir}/logs/wrapper.log"/>
-        
         <!-- Make sure that files are formatted correctly for their platforms -->
         <fixcrlf srcdir="${intermdir}" includes="**/*.bat" eol="crlf" />
         <fixcrlf srcdir="${intermdir}" includes="**/*.bat.in" eol="crlf" />
         <fixcrlf srcdir="${intermdir}" includes="**/*.script.in" eol="lf" />
-        <fixcrlf srcdir="${intermdir}" includes="bin/${app.name}" eol="lf" />
         <fixcrlf srcdir="${intermdir}" includes="build32.sh" eol="lf" />
         <fixcrlf srcdir="${intermdir}" includes="build64.sh" eol="lf" />
         <fixcrlf srcdir="${intermdir}" includes="tools/bin/ant" eol="lf" />
@@ -1028,6 +998,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="#wrapper.app.parameter.1=" />
         <!-- Need an empty log file so that the logs directory will be included -->
+        <mkdir dir="${releasedir}/logs"/>
         <touch file="${releasedir}/logs/wrapper.log"/>
         
         <!-- Make sure that files are formatted correctly for their platforms -->
