@@ -466,6 +466,13 @@ $Id$
                     had a chance to be started.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add a new <ulink url="prop-thread-count-delay.html">wrapper.thread_count_delay</ulink>
+                    property which will force the WrapperManager to wait the specified number
+                    of seconds before it begins to check the number of running threads.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">

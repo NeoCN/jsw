@@ -166,6 +166,9 @@
             <listproperty version="2.2.8">
                 <ulink url="prop-successful-invocation-time.html">wrapper.successful_invocation_time</ulink>
             </listproperty>
+            <listproperty version="3.2.0">
+                <ulink url="prop-thread-count-delay.html">wrapper.thread_count_delay</ulink>
+            </listproperty>
             <listproperty version="3.1.0">
                 <ulink url="prop-use-system-time.html#prop-timer-fast-threshold">wrapper.timer_fast_threshold</ulink>
             </listproperty>
