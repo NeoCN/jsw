@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.64  2006/01/09 00:51:53  mortenson
+// Fix a compiler problem with the last FreeBSD commit.
+//
 // Revision 1.63  2006/01/09 00:44:21  mortenson
 // Fix a problem with the opening of the backend socket.  FreeBSD uses a different
 // exception to indicate that a port is in use.
@@ -3260,16 +3263,24 @@ public final class WrapperManager
                 connected = true;
                 break;
             }
-            catch ( BindException e )
+            catch ( SocketException e )
             {
-                String eName = e.getClass().getName();
                 String eMessage = e.getMessage();
                 
-                // Most Java implementations throw a BindException when the port is in use,
-                //  but FreeBSD throws a SocketException with a specific message.
-                if ( eName.endsWith( "BindException" ) ||
+                if ( e instanceof ConnectException )
+                {
+                    m_out.println( "Failed to connect to the Wrapper at port " + m_port + "." );
+                    m_out.println( e );
+                    // This is fatal because there is nobody listening.
+                    m_out.println( "Exiting JVM..." );
+                    stopImmediate( 1 );
+                }
+                else if ( ( e instanceof BindException ) ||
                     ( ( eMessage != null ) && ( eMessage.indexOf( "errno: 48" ) >= 0 ) ) )
                 {
+                    // Most Java implementations throw a BindException when the port is in use,
+                    //  but FreeBSD throws a SocketException with a specific message.
+                    
                     // This happens if the local port is already in use.  In this case, we want
                     //  to loop and try again.
                     if ( m_debug )
@@ -3295,14 +3306,6 @@ public final class WrapperManager
                     m_socket = null;
                     return null;
                 }
-            }
-            catch ( ConnectException e )
-            {
-                m_out.println( "Failed to connect to the Wrapper at port " + m_port + "." );
-                m_out.println( e );
-                // This is fatal because there is nobody listening.
-                m_out.println( "Exiting JVM..." );
-                stopImmediate( 1 );
             }
             catch ( IOException e )
             {
