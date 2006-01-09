@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.148  2006/01/09 00:20:57  mortenson
+ * Add a missing header for FreeBSD
+ *
  * Revision 1.147  2005/12/19 05:57:32  mortenson
  * Add new wrapper.lockfile property.
  *
@@ -515,6 +518,7 @@
 #ifdef IRIX
 #else
 #ifdef FREEBSD
+#include <sys/param.h>
 #include <errno.h>
 #else /* LINUX */
 #include <asm/errno.h>
