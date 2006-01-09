@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.63  2006/01/09 00:44:21  mortenson
+// Fix a problem with the opening of the backend socket.  FreeBSD uses a different
+// exception to indicate that a port is in use.
+//
 // Revision 1.62  2006/01/07 03:27:11  mortenson
 // Add a new wrapper.thread_count_delay property which will force the
 // WrapperManager to wait the specified number of seconds before it begins
@@ -3258,22 +3262,38 @@ public final class WrapperManager
             }
             catch ( BindException e )
             {
-                // This happens if the local port is already in use.  In this case, we want
-                //  to loop and try again.
-                if ( m_debug )
-                {
-                    m_out.println( "Failed attempt to bind using local port " + tryPort );
-                }
+                String eName = e.getClass().getName();
+                String eMessage = e.getMessage();
                 
-                if ( fixedPort )
+                // Most Java implementations throw a BindException when the port is in use,
+                //  but FreeBSD throws a SocketException with a specific message.
+                if ( eName.endsWith( "BindException" ) ||
+                    ( ( eMessage != null ) && ( eMessage.indexOf( "errno: 48" ) >= 0 ) ) )
                 {
-                    // The last port checked was the fixed port, switch to the dynamic range.
-                    tryPort = m_jvmPortMin;
-                    fixedPort = false;
+                    // This happens if the local port is already in use.  In this case, we want
+                    //  to loop and try again.
+                    if ( m_debug )
+                    {
+                        m_out.println( "Failed attempt to bind using local port " + tryPort );
+                    }
+                    
+                    if ( fixedPort )
+                    {
+                        // The last port checked was the fixed port, switch to the dynamic range.
+                        tryPort = m_jvmPortMin;
+                        fixedPort = false;
+                    }
+                    else
+                    {
+                        tryPort++;
+                    }
                 }
                 else
                 {
-                    tryPort++;
+                    // Unexpected exception.
+                    m_out.println( e );
+                    m_socket = null;
+                    return null;
                 }
             }
             catch ( ConnectException e )
@@ -3997,7 +4017,7 @@ public final class WrapperManager
                         // Failed, so wait for just a moment
                         try
                         {
-                            Thread.sleep( 10 );
+                            Thread.sleep( 100 );
                         }
                         catch ( InterruptedException e )
                         {
