@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.150  2006/01/10 01:36:57  mortenson
+ * Correct the reference to the LD_LIBRARY_PATH variable.
+ *
  * Revision 1.149  2006/01/10 01:29:26  mortenson
  * Fix a problem where the wrapper.java.library.path.append_system_path
  * property was appending the PATH rather than the LD_LIBRARY_PATH
@@ -1655,7 +1658,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 #ifdef WIN32
             systemPath = getenv("PATH");
 #else
-            systemPath = getenv("");
+            systemPath = getenv("LD_LIBRARY_PATH");
 #endif
             
             /* If we are going to add our own quotes then we need to make sure that the system
