@@ -473,6 +473,13 @@ $Id$
                     of seconds before it begins to check the number of running threads.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where the <ulink url="prop-java-library-path-append-system-path.html">wrapper.java.library.path.append_system_path</ulink>
+                    property was appending the PATH rather than the LD_LIBRARY_PATH environment
+                    variable on Unix systems.  PATH is correct for Windows systems.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">

@@ -59,5 +59,38 @@
                 be quoted even if they contain spaces.
             </para>
         </note>
+        <note>
+            <simpara>
+                Some native libraries reference other dynamically linked libraries.
+                Java will locate the initial JNI library using the java library path,
+                but the secondary libraries are loaded using the default mechanism
+                for the platform.
+            </simpara>
+            <simpara>
+                On Windows, the system will first look in the current working
+                directory (The location of the wrapper.exe), then it will look in
+                the Windows system32 directory and the Windows directory.  Finally,
+                it will search the entire system PATH.  If both DLLs are located in
+                your application's lib directory, it may be necessary to add its
+                location to your system path as follows.  The PATH is for Windows
+                and the LD_LIBRARY_PATH makes the configuration file cross
+                platform so it works on Unix systems as well.
+            </simpara>
+            <informalexample>
+                <screen format="linespecific"><![CDATA[set.PATH=..%WRAPPER_FILE_SEPARATOR%bin%WRAPPER_PATH_SEPARATOR%%PATH%
+set.LD_LIBRARY_PATH=..%WRAPPER_FILE_SEPARATOR%bin%WRAPPER_PATH_SEPARATOR%%LD_LIBRARY_PATH%]]></screen>
+            </informalexample>
+            <simpara>
+                Not that placing the secondary library on the PATH rather than in the
+                current working directory has a risk that an old version of the library
+                could be encountered first in the Windows system32 directory if it was
+                installed by another application.  This is due to the order in which
+                the system looks for the file.
+            </simpara>
+            <simpara>
+                This problem has been seen when working with SAP's JCO libraries
+                if other SAP applications are also installed on the system.
+            </simpara>
+        </note>
     </section>
 </chapter>

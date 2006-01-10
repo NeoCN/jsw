@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.149  2006/01/10 01:29:26  mortenson
+ * Fix a problem where the wrapper.java.library.path.append_system_path
+ * property was appending the PATH rather than the LD_LIBRARY_PATH
+ * environment variable on Unix systems.  PATH is correct for Windows systems.
+ *
  * Revision 1.148  2006/01/09 00:20:57  mortenson
  * Add a missing header for FreeBSD
  *
@@ -1647,7 +1652,11 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         if (wrapperData->libraryPathAppendPath) {
             /* We are going to want to append the full system path to
              *  whatever library path is generated. */
+#ifdef WIN32
             systemPath = getenv("PATH");
+#else
+            systemPath = getenv("");
+#endif
             
             /* If we are going to add our own quotes then we need to make sure that the system
              *  PATH doesn't contain any of its own.  Windows allows users to do this... */

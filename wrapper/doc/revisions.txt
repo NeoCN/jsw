@@ -200,6 +200,9 @@ Java Service Wrapper Revision History.
 * Add a new wrapper.thread_count_delay property which will force the
   WrapperManager to wait the specified number of seconds before it begins
   to check the number of running threads.
+* Fix a problem where the wrapper.java.library.path.append_system_path
+  property was appending the PATH rather than the LD_LIBRARY_PATH environment
+  variable on Unix systems.  PATH is correct for Windows systems.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
