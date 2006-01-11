@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.151  2006/01/11 06:55:16  mortenson
+ * Go through and clean up unwanted type casts from const to normal strings.
+ * Start on the logfile roll mode feature.
+ *
  * Revision 1.150  2006/01/10 01:36:57  mortenson
  * Correct the reference to the LD_LIBRARY_PATH variable.
  *
@@ -1236,6 +1240,7 @@ int wrapperInitializeLogging() {
     }
 
     setLogfilePath("wrapper.log");
+    setLogfileRollMode(ROLL_MODE_SIZE);
     setLogfileFormat("LPTM");
     setLogfileLevelInt(LEVEL_DEBUG);
     setLogfileAutoClose(FALSE);
@@ -2321,7 +2326,7 @@ void wrapperBuildKey() {
  * Updates a string value by making a copy of the original.  Any old value is
  *  first freed.
  */
-void updateStringValue(char **ptr, char *value) {
+void updateStringValue(char **ptr, const char *value) {
     if (*ptr != NULL) {
         free(*ptr);
         *ptr = NULL;
@@ -2347,21 +2352,22 @@ void wrapperBuildNTServiceInfo() {
     char dependencyKey[32]; /* Length of "wrapper.ntservice.dependency.nn" + '\0' */
     const char *dependencies[10];
     char *work;
+    const char *priority;
     int len;
     int i;
 
     if (!wrapperData->configured) {
         /* Load the service name */
-        updateStringValue(&wrapperData->ntServiceName, (char *)getStringProperty(properties, "wrapper.ntservice.name", "Wrapper"));
+        updateStringValue(&wrapperData->ntServiceName, getStringProperty(properties, "wrapper.ntservice.name", "Wrapper"));
 
         /* Load the service display name */
-        updateStringValue(&wrapperData->ntServiceDisplayName, (char *)getStringProperty(properties, "wrapper.ntservice.displayname", "Wrapper"));
+        updateStringValue(&wrapperData->ntServiceDisplayName, getStringProperty(properties, "wrapper.ntservice.displayname", "Wrapper"));
 
         /* Load the service description, default to nothing */
-        updateStringValue(&wrapperData->ntServiceDescription, (char *)getStringProperty(properties, "wrapper.ntservice.description", ""));
+        updateStringValue(&wrapperData->ntServiceDescription, getStringProperty(properties, "wrapper.ntservice.description", ""));
 
         /* Load the service load order group */
-        updateStringValue(&wrapperData->ntServiceLoadOrderGroup, (char *)getStringProperty(properties, "wrapper.ntservice.load_order_group", ""));
+        updateStringValue(&wrapperData->ntServiceLoadOrderGroup, getStringProperty(properties, "wrapper.ntservice.load_order_group", ""));
 
         /* *** Build the dependency list *** */
         len = 0;
@@ -2402,7 +2408,7 @@ void wrapperBuildNTServiceInfo() {
 
 
         /* Set the service start type */
-        if (strcmp(_strupr((char *)getStringProperty(properties, "wrapper.ntservice.starttype", "DEMAND_START")), "AUTO_START") == 0) {
+        if (strcmpIgnoreCase(getStringProperty(properties, "wrapper.ntservice.starttype", "DEMAND_START"), "AUTO_START") == 0) {
             wrapperData->ntServiceStartType = SERVICE_AUTO_START;
         } else {
             wrapperData->ntServiceStartType = SERVICE_DEMAND_START;
@@ -2410,23 +2416,23 @@ void wrapperBuildNTServiceInfo() {
 
 
         /* Set the service priority class */
-        work = _strupr((char *)getStringProperty(properties, "wrapper.ntservice.process_priority", "NORMAL"));
-        if ( (strcmp(work, "LOW") == 0) || (strcmp(work, "IDLE") == 0) ) {
+        priority = getStringProperty(properties, "wrapper.ntservice.process_priority", "NORMAL");
+        if ( (strcmpIgnoreCase(priority, "LOW") == 0) || (strcmpIgnoreCase(priority, "IDLE") == 0) ) {
             wrapperData->ntServicePriorityClass = IDLE_PRIORITY_CLASS;
-        } else if (strcmp(work, "HIGH") == 0) {
+        } else if (strcmpIgnoreCase(priority, "HIGH") == 0) {
             wrapperData->ntServicePriorityClass = HIGH_PRIORITY_CLASS;
-        } else if (strcmp(work, "REALTIME") == 0) {
+        } else if (strcmpIgnoreCase(priority, "REALTIME") == 0) {
             wrapperData->ntServicePriorityClass = REALTIME_PRIORITY_CLASS;
-        } else if (strcmp(work, "ABOVE_NORMAL") == 0) {
+        } else if (strcmpIgnoreCase(priority, "ABOVE_NORMAL") == 0) {
             wrapperData->ntServicePriorityClass = ABOVE_NORMAL_PRIORITY_CLASS;
-        } else if (strcmp(work, "BELOW_NORMAL") == 0) {
+        } else if (strcmpIgnoreCase(priority, "BELOW_NORMAL") == 0) {
             wrapperData->ntServicePriorityClass = BELOW_NORMAL_PRIORITY_CLASS;
         } else {
             wrapperData->ntServicePriorityClass = NORMAL_PRIORITY_CLASS;
         }
 
         /* Account name */
-        updateStringValue(&wrapperData->ntServiceAccount, (char *)getStringProperty(properties, "wrapper.ntservice.account", NULL));
+        updateStringValue(&wrapperData->ntServiceAccount, getStringProperty(properties, "wrapper.ntservice.account", NULL));
         if ( wrapperData->ntServiceAccount && ( strlen( wrapperData->ntServiceAccount ) <= 0 ) )
         {
             wrapperData->ntServiceAccount = NULL;
@@ -2435,7 +2441,7 @@ void wrapperBuildNTServiceInfo() {
         /* Acount password */
         wrapperData->ntServicePasswordPrompt = getBooleanProperty( properties, "wrapper.ntservice.password.prompt", FALSE );
         wrapperData->ntServicePasswordPromptMask = getBooleanProperty( properties, "wrapper.ntservice.password.prompt.mask", TRUE );
-        updateStringValue(&wrapperData->ntServicePassword, (char *)getStringProperty(properties, "wrapper.ntservice.password", NULL));
+        updateStringValue(&wrapperData->ntServicePassword, getStringProperty(properties, "wrapper.ntservice.password", NULL));
         if ( wrapperData->ntServicePassword && ( strlen( wrapperData->ntServicePassword ) <= 0 ) )
         {
             wrapperData->ntServicePassword = NULL;
@@ -2465,7 +2471,7 @@ void wrapperBuildNTServiceInfo() {
     }
 
     /* Obtain the Console Title. */
-    updateStringValue(&wrapperData->consoleTitle, (char *)getStringProperty(properties, "wrapper.console.title", NULL));
+    updateStringValue(&wrapperData->consoleTitle, getStringProperty(properties, "wrapper.console.title", NULL));
 
     /* Set the single invocation flag. */
     wrapperData->isSingleInvocation = getBooleanProperty( properties, "wrapper.single_invocation", FALSE );
@@ -2490,41 +2496,58 @@ int getOutputFilterActionForName( const char *actionName ) {
 }
 
 int loadConfiguration() {
+    const char* logfilePath;
+    int logfileRollMode;
     char key[256];
     const char* val;
     int i;
     int startupDelay;
 
     /* Load log file */
-    setLogfilePath((char *)getStringProperty(properties, "wrapper.logfile", "wrapper.log"));
+    logfilePath = getStringProperty(properties, "wrapper.logfile", "wrapper.log");
+    setLogfilePath(logfilePath);
+    
+    logfileRollMode = getLogfileRollModeForName(getStringProperty(properties, "wrapper.logfile.rollmode", "SIZE"));
+    if (logfileRollMode == ROLL_MODE_UNKNOWN) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            "wrapper.logfile.rollmode invalid.  Disabling log file rolling.");
+        logfileRollMode = ROLL_MODE_NONE;
+    } else if (logfileRollMode == ROLL_MODE_DATE) {
+        if (!strstr(logfilePath, "YYYYMMDD")) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                "wrapper.logfile must contain \"YYYYMMDD\" for a roll mode of DATE.  Disabling log file rolling.");
+            logfileRollMode = ROLL_MODE_NONE;
+        }
+    }
+    setLogfileRollMode(logfileRollMode);
     
     /* Load log file format */
-    setLogfileFormat((char *)getStringProperty(properties, "wrapper.logfile.format", "LPTM"));
+    setLogfileFormat(getStringProperty(properties, "wrapper.logfile.format", "LPTM"));
 
     /* Load log file log level */
-    setLogfileLevel((char *)getStringProperty(properties, "wrapper.logfile.loglevel", "INFO"));
+    setLogfileLevel(getStringProperty(properties, "wrapper.logfile.loglevel", "INFO"));
 
     /* Load max log filesize log level */
-    setLogfileMaxFileSize((char *)getStringProperty(properties, "wrapper.logfile.maxsize", "0"));
+    setLogfileMaxFileSize(getStringProperty(properties, "wrapper.logfile.maxsize", "0"));
 
     /* Load log files level */
-    setLogfileMaxLogFiles((char *)getStringProperty(properties, "wrapper.logfile.maxfiles", "0"));
+    setLogfileMaxLogFiles(getIntProperty(properties, "wrapper.logfile.maxfiles", 0));
     
     /* Get the memory output status. */
     wrapperData->logfileInactivityTimeout = __max(getIntProperty(properties, "wrapper.logfile.inactivity.timeout", 1), 0);
     setLogfileAutoClose(wrapperData->logfileInactivityTimeout <= 0);
 
     /* Load console format */
-    setConsoleLogFormat((char *)getStringProperty(properties, "wrapper.console.format", "PM"));
+    setConsoleLogFormat(getStringProperty(properties, "wrapper.console.format", "PM"));
 
     /* Load console log level */
-    setConsoleLogLevel((char *)getStringProperty(properties, "wrapper.console.loglevel", "INFO"));
+    setConsoleLogLevel(getStringProperty(properties, "wrapper.console.loglevel", "INFO"));
 
     /* Load syslog log level */
-    setSyslogLevel((char *)getStringProperty(properties, "wrapper.syslog.loglevel", "NONE"));
+    setSyslogLevel(getStringProperty(properties, "wrapper.syslog.loglevel", "NONE"));
 
     /* Load syslog event source name */
-    setSyslogEventSourceName((char *)getStringProperty(properties, "wrapper.ntservice.name", "Wrapper"));
+    setSyslogEventSourceName(getStringProperty(properties, "wrapper.ntservice.name", "Wrapper"));
 
     /* Register the syslog message file if syslog is enabled */
     if (getSyslogLevelInt() < LEVEL_NONE) {
@@ -2611,7 +2634,7 @@ int loadConfiguration() {
     wrapperData->timerSlowThreshold = getIntProperty(properties, "wrapper.timer_slow_threshold", WRAPPER_TIMER_SLOW_THRESHOLD * WRAPPER_TICK_MS / 1000) * 1000 / WRAPPER_TICK_MS;
 
     /* Load the name of the native library to be loaded. */
-    wrapperData->nativeLibrary = (char *)getStringProperty(properties, "wrapper.native_library", "wrapper");
+    wrapperData->nativeLibrary = getStringProperty(properties, "wrapper.native_library", "wrapper");
 
     /* Get the append PATH to library path flag. */
     wrapperData->libraryPathAppendPath = getBooleanProperty(properties, "wrapper.java.library.path.append_system_path", FALSE);
@@ -2771,33 +2794,33 @@ int loadConfiguration() {
 
     /** Get the pid files if any.  May be NULL */
     if (!wrapperData->configured) {
-        updateStringValue(&wrapperData->pidFilename, (char *)getStringProperty(properties, "wrapper.pidfile", NULL));
+        updateStringValue(&wrapperData->pidFilename, getStringProperty(properties, "wrapper.pidfile", NULL));
     }
-    updateStringValue(&wrapperData->javaPidFilename, (char *)getStringProperty(properties, "wrapper.java.pidfile", NULL));
+    updateStringValue(&wrapperData->javaPidFilename, getStringProperty(properties, "wrapper.java.pidfile", NULL));
     
     /** Get the lock file if any.  May be NULL */
     if (!wrapperData->configured) {
-        updateStringValue(&wrapperData->lockFilename, (char *)getStringProperty(properties, "wrapper.lockfile", NULL));
+        updateStringValue(&wrapperData->lockFilename, getStringProperty(properties, "wrapper.lockfile", NULL));
     }
     
     /** Get the java id file.  May be NULL */
-    updateStringValue(&wrapperData->javaIdFilename, (char *)getStringProperty(properties, "wrapper.java.idfile", NULL));
+    updateStringValue(&wrapperData->javaIdFilename, getStringProperty(properties, "wrapper.java.idfile", NULL));
     
     /** Get the status files if any.  May be NULL */
     if (!wrapperData->configured) {
-        updateStringValue(&wrapperData->statusFilename, (char *)getStringProperty(properties, "wrapper.statusfile", NULL));
+        updateStringValue(&wrapperData->statusFilename, getStringProperty(properties, "wrapper.statusfile", NULL));
     }
-    updateStringValue(&wrapperData->javaStatusFilename, (char *)getStringProperty(properties, "wrapper.java.statusfile", NULL));
+    updateStringValue(&wrapperData->javaStatusFilename, getStringProperty(properties, "wrapper.java.statusfile", NULL));
     
     /** Get the command file if any. May be NULL */
-    updateStringValue(&wrapperData->commandFilename, (char *)getStringProperty(properties, "wrapper.commandfile", NULL));
+    updateStringValue(&wrapperData->commandFilename, getStringProperty(properties, "wrapper.commandfile", NULL));
 
     /** Get the interval at which the command file will be polled. */
     wrapperData->commandPollInterval = __min(__max(getIntProperty(properties, "wrapper.command.poll_interval", 5), 1), 3600);
 
     /** Get the anchor file if any.  May be NULL */
     if (!wrapperData->configured) {
-        updateStringValue(&wrapperData->anchorFilename, (char *)getStringProperty(properties, "wrapper.anchorfile", NULL));
+        updateStringValue(&wrapperData->anchorFilename, getStringProperty(properties, "wrapper.anchorfile", NULL));
     }
 
     /** Get the interval at which the anchor file will be polled. */

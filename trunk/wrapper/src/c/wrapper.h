@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.76  2006/01/11 06:55:19  mortenson
+ * Go through and clean up unwanted type casts from const to normal strings.
+ * Start on the logfile roll mode feature.
+ *
  * Revision 1.75  2005/12/19 05:57:32  mortenson
  * Add new wrapper.lockfile property.
  *
@@ -373,7 +377,7 @@ struct WrapperConfig {
 
     int     isDebugging;            /* TRUE if set in the configuration file */
     int     isAdviserEnabled;       /* TRUE if advice messages should be output. */
-    char    *nativeLibrary;         /* The base name of the native library loaded by the WrapperManager. */
+    const char *nativeLibrary;      /* The base name of the native library loaded by the WrapperManager. */
     int     libraryPathAppendPath;  /* TRUE if the PATH environment variable should be appended to the java library path. */
     int     isStateOutputEnabled;   /* TRUE if set in the configuration file.  Shows output on the state of the state engine. */
     int     isTimerOutputEnabled;   /* TRUE if detailed timer output should be included in debug output. */
