@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.56  2006/01/11 06:55:15  mortenson
+ * Go through and clean up unwanted type casts from const to normal strings.
+ * Start on the logfile roll mode feature.
+ *
  * Revision 1.55  2005/11/07 07:23:36  mortenson
  * The cmask should have been in octal.
  *
@@ -208,6 +212,8 @@
 
 /* Global data for logger */
 
+int currentLogfileRollMode = ROLL_MODE_SIZE;
+
 /* Initialize all log levels to unknown until they are set */
 int currentConsoleLevel = LEVEL_UNKNOWN;
 int currentLogfileLevel = LEVEL_UNKNOWN;
@@ -368,6 +374,26 @@ int strcmpIgnoreCase( const char *str1, const char *str2 ) {
 #endif
 }
 
+int getLogfileRollModeForName( const char *logfileRollName ) {
+    if (strcmpIgnoreCase(logfileRollName, "NONE") == 0) {
+        return ROLL_MODE_NONE;
+    } else if (strcmpIgnoreCase(logfileRollName, "SIZE") == 0) {
+        return ROLL_MODE_SIZE;
+    } else if (strcmpIgnoreCase(logfileRollName, "WRAPPER") == 0) {
+        return ROLL_MODE_WRAPPER;
+    } else if (strcmpIgnoreCase(logfileRollName, "JVM") == 0) {
+        return ROLL_MODE_JVM;
+    } else if (strcmpIgnoreCase(logfileRollName, "SIZE_OR_WRAPPER") == 0) {
+        return ROLL_MODE_SIZE_OR_WRAPPER;
+    } else if (strcmpIgnoreCase(logfileRollName, "SIZE_OR_JVM") == 0) {
+        return ROLL_MODE_SIZE_OR_JVM;
+    } else if (strcmpIgnoreCase(logfileRollName, "DATE") == 0) {
+        return ROLL_MODE_DATE;
+    } else {
+        return ROLL_MODE_UNKNOWN;
+    }
+}
+
 int getLogLevelForName( const char *logLevelName ) {
     if (strcmpIgnoreCase(logLevelName, "NONE") == 0) {
         return LEVEL_NONE;
@@ -392,7 +418,7 @@ int getLogLevelForName( const char *logLevelName ) {
 
 /* Logfile functions */
 
-void setLogfilePath( char *log_file_path ) {
+void setLogfilePath( const char *log_file_path ) {
 #ifdef WIN32
     char *c;
 #endif
@@ -409,11 +435,15 @@ void setLogfilePath( char *log_file_path ) {
 #endif
 }
 
+void setLogfileRollMode( int log_file_roll_mode ) {
+    currentLogfileRollMode = log_file_roll_mode;
+}
+
 void setLogfileUmask( int log_file_umask ) {
     logFileUmask = log_file_umask;
 }
 
-void setLogfileFormat( char *log_file_format ) {
+void setLogfileFormat( const char *log_file_format ) {
     if( log_file_format != NULL )
         strcpy( logfileFormat, log_file_format );
 }
@@ -426,11 +456,11 @@ int getLogfileLevelInt() {
     return currentLogfileLevel;
 }
 
-void setLogfileLevel( char *log_file_level ) {
+void setLogfileLevel( const char *log_file_level ) {
     setLogfileLevelInt(getLogLevelForName(log_file_level));
 }
 
-void setLogfileMaxFileSize( char *max_file_size ) {
+void setLogfileMaxFileSize( const char *max_file_size ) {
     int multiple, i, newLength;
     char *tmpFileSizeBuff;
     char chr;
@@ -477,12 +507,7 @@ void setLogfileMaxFileSizeInt( int max_file_size ) {
     logFileMaxSize = max_file_size;
 }
 
-void setLogfileMaxLogFiles( char *max_log_files ) {
-    if( max_log_files != NULL )
-        logFileMaxLogFiles = atoi( max_log_files );
-}
-
-void setLogfileMaxLogFilesInt( int max_log_files ) {
+void setLogfileMaxLogFiles( int max_log_files ) {
     logFileMaxLogFiles = max_log_files;
 }
 
@@ -593,7 +618,7 @@ void flushLogfile() {
 }
 
 /* Console functions */
-void setConsoleLogFormat( char *console_log_format ) {
+void setConsoleLogFormat( const char *console_log_format ) {
     if( console_log_format != NULL )
         strcpy( consoleFormat, console_log_format );
 }
@@ -606,7 +631,7 @@ int getConsoleLogLevelInt() {
     return currentConsoleLevel;
 }
 
-void setConsoleLogLevel( char *console_log_level ) {
+void setConsoleLogLevel( const char *console_log_level ) {
     setConsoleLogLevelInt(getLogLevelForName(console_log_level));
 }
 
@@ -619,11 +644,11 @@ int getSyslogLevelInt() {
     return currentLoginfoLevel;
 }
 
-void setSyslogLevel( char *loginfo_level ) {
+void setSyslogLevel( const char *loginfo_level ) {
     setSyslogLevelInt(getLogLevelForName(loginfo_level));
 }
 
-void setSyslogEventSourceName( char *event_source_name ) {
+void setSyslogEventSourceName( const char *event_source_name ) {
     if( event_source_name != NULL )
         strcpy( loginfoSourceName, event_source_name );
 }
@@ -784,7 +809,7 @@ void forceFlush(FILE *fp) {
 }
 
 /* General log functions */
-void log_printf( int source_id, int level, char *lpszFmt, ... ) {
+void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
     va_list     vargs;
     int         count;
     char        *printBuffer;
@@ -1454,7 +1479,7 @@ void log_printf_queueInner( int source_id, int level, char *buffer ) {
     }
 }
 
-void log_printf_queue( int useQueue, int source_id, int level, char *lpszFmt, ... ) {
+void log_printf_queue( int useQueue, int source_id, int level, const char *lpszFmt, ... ) {
     va_list     vargs;
     int         count;
     char        *buffer;

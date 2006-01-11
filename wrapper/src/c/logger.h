@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.25  2006/01/11 06:55:15  mortenson
+ * Go through and clean up unwanted type casts from const to normal strings.
+ * Start on the logfile roll mode feature.
+ *
  * Revision 1.24  2005/11/07 07:04:52  mortenson
  * Make it possible to configure the umask for all files created by the Wrapper and
  * that of the JVM.
@@ -176,6 +180,16 @@
 /* Unknown level */
 #define LEVEL_UNKNOWN  0
 
+/* * * Log file roll mode constants * * */
+#define ROLL_MODE_UNKNOWN         0
+#define ROLL_MODE_NONE            1
+#define ROLL_MODE_SIZE            2
+#define ROLL_MODE_WRAPPER         4
+#define ROLL_MODE_JVM             8
+#define ROLL_MODE_SIZE_OR_WRAPPER ROLL_MODE_SIZE + ROLL_MODE_WRAPPER
+#define ROLL_MODE_SIZE_OR_JVM     ROLL_MODE_SIZE + ROLL_MODE_JVM
+#define ROLL_MODE_DATE            16
+
 #ifdef WIN32
 extern void setConsoleStdoutHandle( HANDLE stdoutHandle );
 #endif
@@ -184,32 +198,33 @@ extern void setConsoleStdoutHandle( HANDLE stdoutHandle );
 extern int strcmpIgnoreCase( const char *str1, const char *str2 );
 
 /* * Logfile functions * */
-extern void setLogfilePath( char *log_file_path );
+extern void setLogfilePath( const char *log_file_path );
+extern int getLogfileRollModeForName( const char *logfileRollName );
+extern void setLogfileRollMode( int log_file_roll_mode );
 extern void setLogfileUmask( int log_file_umask );
-extern void setLogfileFormat( char *log_file_format );
+extern void setLogfileFormat( const char *log_file_format );
 extern void setLogfileLevelInt( int log_file_level );
 extern int getLogfileLevelInt();
-extern void setLogfileLevel( char *log_file_level );
-extern void setLogfileMaxFileSize( char *max_file_size );
+extern void setLogfileLevel( const char *log_file_level );
+extern void setLogfileMaxFileSize( const char *max_file_size );
 extern void setLogfileMaxFileSizeInt( int max_file_size );
-extern void setLogfileMaxLogFiles( char *max_log_files );
-extern void setLogfileMaxLogFilesInt( int max_log_files );
+extern void setLogfileMaxLogFiles( int max_log_files );
 extern DWORD getLogfileActivity();
 extern void closeLogfile();
 extern void setLogfileAutoClose(int autoClose);
 extern void flushLogfile();
 
 /* * Console functions * */
-extern void setConsoleLogFormat( char *console_log_format );
+extern void setConsoleLogFormat( const char *console_log_format );
 extern void setConsoleLogLevelInt( int console_log_level );
 extern int getConsoleLogLevelInt();
-extern void setConsoleLogLevel( char *console_log_level );
+extern void setConsoleLogLevel( const char *console_log_level );
 
 /* * Syslog/eventlog functions * */
 extern void setSyslogLevelInt( int loginfo_level );
 extern int getSyslogLevelInt();
-extern void setSyslogLevel( char *loginfo_level );
-extern void setSyslogEventSourceName( char *event_source_name );
+extern void setSyslogLevel( const char *loginfo_level );
+extern void setSyslogEventSourceName( const char *event_source_name );
 extern int registerSyslogMessageFile( );
 extern int unregisterSyslogMessageFile( );
 
@@ -220,8 +235,8 @@ extern int initLogging();
 extern int disposeLogging();
 extern int getLogLevelForName( const char *logLevelName );
 extern void logRegisterThread( int thread_id );
-extern void log_printf( int source_id, int level, char *lpszFmt, ... );
-extern void log_printf_queue( int useQueue, int source_id, int level, char *lpszFmt, ... );
+extern void log_printf( int source_id, int level, const char *lpszFmt, ... );
+extern void log_printf_queue( int useQueue, int source_id, int level, const char *lpszFmt, ... );
 
 extern char* getLastErrorText();
 extern int getLastError();
