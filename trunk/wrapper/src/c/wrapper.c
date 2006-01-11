@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.152  2006/01/11 16:13:11  mortenson
+ * Add support for log file roll modes.
+ *
  * Revision 1.151  2006/01/11 06:55:16  mortenson
  * Go through and clean up unwanted type casts from const to normal strings.
  * Start on the logfile roll mode feature.
@@ -2513,9 +2516,10 @@ int loadConfiguration() {
             "wrapper.logfile.rollmode invalid.  Disabling log file rolling.");
         logfileRollMode = ROLL_MODE_NONE;
     } else if (logfileRollMode == ROLL_MODE_DATE) {
-        if (!strstr(logfilePath, "YYYYMMDD")) {
+        if (!strstr(logfilePath, ROLL_MODE_DATE_TOKEN)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                "wrapper.logfile must contain \"YYYYMMDD\" for a roll mode of DATE.  Disabling log file rolling.");
+                "wrapper.logfile must contain \"%s\" for a roll mode of DATE.  Disabling log file rolling.",
+                ROLL_MODE_DATE_TOKEN);
             logfileRollMode = ROLL_MODE_NONE;
         }
     }
@@ -2553,6 +2557,10 @@ int loadConfiguration() {
     if (getSyslogLevelInt() < LEVEL_NONE) {
         registerSyslogMessageFile();
     }
+    
+    /* To make configuration reloading work correctly with changes to the log file,
+     *  it needs to be closed here. */
+    closeLogfile();
 
     /* Initialize some values not loaded */
     wrapperData->exitCode = 0;

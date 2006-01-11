@@ -203,6 +203,9 @@ Java Service Wrapper Revision History.
 * Fix a problem where the wrapper.java.library.path.append_system_path
   property was appending the PATH rather than the LD_LIBRARY_PATH environment
   variable on Unix systems.  PATH is correct for Windows systems.
+* Add a new wrapper.logfile.rollmode property which makes it possible to
+  control how and when the logfile is rolled.  Feature Requests #864463,
+  #1085097, and #1085850.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager

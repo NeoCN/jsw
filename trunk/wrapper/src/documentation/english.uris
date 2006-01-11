@@ -75,6 +75,7 @@ english/prop-logfile-inactivity-timeout.html
 english/prop-logfile-loglevel.html
 english/prop-logfile-maxfiles.html
 english/prop-logfile-maxsize.html
+english/prop-logfile-rollmode.html
 english/prop-max-failed-invocations.html
 english/prop-monitor-thread-count.html
 english/prop-native-library.html

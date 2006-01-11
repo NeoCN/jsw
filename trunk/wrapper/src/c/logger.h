@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.26  2006/01/11 16:13:11  mortenson
+ * Add support for log file roll modes.
+ *
  * Revision 1.25  2006/01/11 06:55:15  mortenson
  * Go through and clean up unwanted type casts from const to normal strings.
  * Start on the logfile roll mode feature.
@@ -190,6 +193,8 @@
 #define ROLL_MODE_SIZE_OR_JVM     ROLL_MODE_SIZE + ROLL_MODE_JVM
 #define ROLL_MODE_DATE            16
 
+#define ROLL_MODE_DATE_TOKEN      "YYYYMMDD"
+
 #ifdef WIN32
 extern void setConsoleStdoutHandle( HANDLE stdoutHandle );
 #endif
@@ -201,6 +206,7 @@ extern int strcmpIgnoreCase( const char *str1, const char *str2 );
 extern void setLogfilePath( const char *log_file_path );
 extern int getLogfileRollModeForName( const char *logfileRollName );
 extern void setLogfileRollMode( int log_file_roll_mode );
+extern int getLogfileRollMode();
 extern void setLogfileUmask( int log_file_umask );
 extern void setLogfileFormat( const char *log_file_format );
 extern void setLogfileLevelInt( int log_file_level );
@@ -233,6 +239,7 @@ extern int getLowLogLevel();
 /* * General log functions * */
 extern int initLogging();
 extern int disposeLogging();
+extern void rollLogs();
 extern int getLogLevelForName( const char *logLevelName );
 extern void logRegisterThread( int thread_id );
 extern void log_printf( int source_id, int level, const char *lpszFmt, ... );

@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.116  2006/01/11 16:13:11  mortenson
+ * Add support for log file roll modes.
+ *
  * Revision 1.115  2005/12/19 05:57:32  mortenson
  * Add new wrapper.lockfile property.
  *
@@ -3370,6 +3373,12 @@ void _CRTAPI1 main(int argc, char **argv) {
                             wrapperProcess = GetCurrentProcess();
                             wrapperProcessId = GetCurrentProcessId();
                             
+                            /* See if the logs should be rolled on Wrapper startup. */
+                            if ((getLogfileRollMode() & ROLL_MODE_WRAPPER) ||
+                                (getLogfileRollMode() & ROLL_MODE_JVM)) {
+                                rollLogs();
+                            }
+                            
                             /* Write pid and anchor files as requested.  If they are the same file the file is
                              *  simply overwritten. */
                             cleanUpPIDFilesOnExit = TRUE;
@@ -3418,6 +3427,12 @@ void _CRTAPI1 main(int argc, char **argv) {
                             /* Get the current process. */
                             wrapperProcess = GetCurrentProcess();
                             wrapperProcessId = GetCurrentProcessId();
+                            
+                            /* See if the logs should be rolled on Wrapper startup. */
+                            if ((getLogfileRollMode() & ROLL_MODE_WRAPPER) ||
+                                (getLogfileRollMode() & ROLL_MODE_JVM)) {
+                                rollLogs();
+                            }
                             
                             /* Write pid and anchor files as requested.  If they are the same file the file is
                              *  simply overwritten. */

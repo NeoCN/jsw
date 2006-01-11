@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.115  2006/01/11 16:13:11  mortenson
+ * Add support for log file roll modes.
+ *
  * Revision 1.114  2005/12/19 05:57:32  mortenson
  * Add new wrapper.lockfile property.
  *
@@ -1786,6 +1789,12 @@ int main(int argc, char **argv) {
                 daemonize();
             }
 
+            /* See if the logs should be rolled on Wrapper startup. */
+            if ((getLogfileRollMode() & ROLL_MODE_WRAPPER) ||
+                (getLogfileRollMode() & ROLL_MODE_JVM)) {
+                rollLogs();
+            }
+            
             /* Write pid and anchor files as requested.  If they are the same file the file is
              *  simply overwritten. */
             if (wrapperData->anchorFilename) {
