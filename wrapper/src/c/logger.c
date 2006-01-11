@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.57  2006/01/11 16:13:11  mortenson
+ * Add support for log file roll modes.
+ *
  * Revision 1.56  2006/01/11 06:55:15  mortenson
  * Go through and clean up unwanted type casts from const to normal strings.
  * Start on the logfile roll mode feature.
@@ -212,19 +215,22 @@
 
 /* Global data for logger */
 
-int currentLogfileRollMode = ROLL_MODE_SIZE;
-
 /* Initialize all log levels to unknown until they are set */
 int currentConsoleLevel = LEVEL_UNKNOWN;
 int currentLogfileLevel = LEVEL_UNKNOWN;
 int currentLoginfoLevel = LEVEL_UNKNOWN;
 
-char logFilePath[ 1024 ];
+char *logFilePath;
+char *currentLogFileName;
+char *workLogFileName;
+int logFileRollMode = ROLL_MODE_SIZE;
 int logFileUmask = 0022;
 char *logLevelNames[] = { "NONE  ", "DEBUG ", "INFO  ", "STATUS", "WARN  ", "ERROR ", "FATAL ", "ADVICE" };
 char loginfoSourceName[ 1024 ];
 int  logFileMaxSize = -1;
 int  logFileMaxLogFiles = -1;
+
+char logFileLastNowDate[9];
 
 /* Defualt formats (Must be 4 chars) */
 char consoleFormat[32];
@@ -290,6 +296,50 @@ void setConsoleStdoutHandle( HANDLE stdoutHandle ) {
 #endif
 
 /**
+ * Replaces one token with another.  The length of the new token must be equal
+ *  to or less than that of the old token.
+ *
+ * newToken may be null, implying "".
+ */
+char *replaceStringLongWithShort(char *string, const char *oldToken, const char *newToken) {
+    int oldLen = strlen(oldToken);
+    int newLen;
+    char *in = string;
+    char *out = string;
+    
+    if (newToken) {
+        newLen = strlen(newToken);
+    } else {
+        newLen = 0;
+    }
+    
+    // Assertion check.
+    if (newLen > oldLen) {
+        return string;
+    }
+    
+    while (in[0] != '\0') {
+        if (memcmp(in, oldToken, oldLen) == 0) {
+            // Found the oldToken.  Replace it with the new.
+            if (newLen > 0) {
+                memcpy(out, newToken, newLen);
+            }
+            in += oldLen;
+            out += newLen;
+        }
+        else
+        {
+            out[0] = in[0];
+            in++;
+            out++;
+        }
+    }
+    out[0] = '\0';
+    
+    return string;
+}
+
+/**
  * Initializes the logger.  Returns 0 if the operation was successful.
  */
 int initLogging() {
@@ -297,11 +347,13 @@ int initLogging() {
 
 #ifdef WIN32
     if (!(log_printfMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
-        printf( "Failed to create logging mutex. %s\n", getLastErrorText());
+        printf("Failed to create logging mutex. %s\n", getLastErrorText());
         fflush(NULL);
         return 1;
     }
 #endif
+    
+    logFileLastNowDate[0] = '\0';
 
     for ( i = 0; i < WRAPPER_THREAD_COUNT; i++ ) {
         threadIds[i] = 0;
@@ -419,11 +471,23 @@ int getLogLevelForName( const char *logLevelName ) {
 /* Logfile functions */
 
 void setLogfilePath( const char *log_file_path ) {
+    int len = strlen(log_file_path);
 #ifdef WIN32
     char *c;
 #endif
     
-    strcpy( logFilePath, log_file_path );
+    if (logFilePath) {
+        free(logFilePath);
+        free(currentLogFileName);
+        free(workLogFileName);
+    }
+    logFilePath = malloc(sizeof(char) * (len + 1));
+    strcpy(logFilePath, log_file_path);
+
+    currentLogFileName = malloc(sizeof(char) * (len + 10 + 1));
+    currentLogFileName[0] = '\0';
+    workLogFileName = malloc(sizeof(char) * (len + 10 + 1));
+    workLogFileName[0] = '\0';
     
 #ifdef WIN32	
     /* To avoid problems on some windows systems, the '/' characters must
@@ -436,7 +500,11 @@ void setLogfilePath( const char *log_file_path ) {
 }
 
 void setLogfileRollMode( int log_file_roll_mode ) {
-    currentLogfileRollMode = log_file_roll_mode;
+    logFileRollMode = log_file_roll_mode;
+}
+
+int getLogfileRollMode() {
+    return logFileRollMode;
 }
 
 void setLogfileUmask( int log_file_umask ) {
@@ -580,6 +648,7 @@ void closeLogfile() {
         
         fclose(logfileFP);
         logfileFP = NULL;
+        currentLogFileName[0] = '\0';
     }
 
     /* Release the lock we have on this function so that other threads can get in. */
@@ -661,19 +730,13 @@ int getLowLogLevel() {
 
 /* Writes to and then returns a buffer that is reused by the current thread.
  *  It should not be released. */
-char* buildPrintBuffer( int source_id, int level, char *format, char *message ) {
-    time_t    now;
-    struct tm *nowTM;
+char* buildPrintBuffer( int source_id, int level, struct tm *nowTM, char *format, char *message ) {
     int       i;
     int       reqSize;
     int       numColumns;
     char      *pos;
     int       currentColumn;
     int       handledFormat;
-
-    /* Build a timestamp */
-    now = time( NULL );
-    nowTM = localtime( &now );
     
     /* Decide the number of columns and come up with a required length for the printBuffer. */
     reqSize = 0;
@@ -808,12 +871,62 @@ void forceFlush(FILE *fp) {
     lastError = getLastError();
 }
 
+/**
+ * Generates a log file name given.
+ *
+ * buffer - Buffer into which to sprintf the generated name.
+ * template - Template from which the name is generated.
+ * nowDate - Optional date used to replace any YYYYMMDD tokens.
+ * rollNum - Optional roll number used to replace any ROLLNUM tokens.
+ */
+void generateLogFileName(char *buffer, const char *template, const char *nowDate, const char *rollNum ) {
+    /* Copy the template to the buffer to get started. */
+    sprintf(buffer, template);
+    
+    /* Handle the date token. */
+    if (strstr(buffer, "YYYYMMDD")) {
+        if (nowDate == NULL) {
+            /* The token needs to be removed. */
+            replaceStringLongWithShort(buffer, "-YYYYMMDD", NULL);
+            replaceStringLongWithShort(buffer, "_YYYYMMDD", NULL);
+            replaceStringLongWithShort(buffer, ".YYYYMMDD", NULL);
+            replaceStringLongWithShort(buffer, "YYYYMMDD", NULL);
+        } else {
+            /* The token needs to be replaced. */
+            replaceStringLongWithShort(buffer, "YYYYMMDD", nowDate);
+        }
+    }
+    
+    /* Handle the roll number token. */
+    if (strstr(buffer, "ROLLNUM")) {
+        if (rollNum == NULL ) {
+            /* The token needs to be removed. */
+            replaceStringLongWithShort(buffer, "-ROLLNUM", NULL);
+            replaceStringLongWithShort(buffer, "_ROLLNUM", NULL);
+            replaceStringLongWithShort(buffer, ".ROLLNUM", NULL);
+            replaceStringLongWithShort(buffer, "ROLLNUM", NULL);
+        } else {
+            /* The token needs to be replaced. */
+            replaceStringLongWithShort(buffer, "ROLLNUM", rollNum);
+        }
+    } else {
+        /* The name did not contain a ROLLNUM token. */
+        if (rollNum != NULL ) {
+            /* Generate the name as if ".ROLLNUM" was appended to the template. */
+            sprintf(buffer + strlen(buffer), ".%s", rollNum);
+        }
+    }
+}
+
 /* General log functions */
 void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
     va_list     vargs;
     int         count;
     char        *printBuffer;
     int         old_umask;
+    char        nowDate[9];
+    time_t      now;
+    struct tm   *nowTM;
 
     /* We need to be very careful that only one thread is allowed in here
      *  at a time.  On Windows this is done using a Mutex object that is
@@ -871,10 +984,14 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
         }
     } while ( count < 0 );
 
+    /* Build a timestamp */
+    now = time( NULL );
+    nowTM = localtime( &now );
+
     /* Console output by format */
     if( level >= currentConsoleLevel ) {
         /* Build up the printBuffer. */
-        printBuffer = buildPrintBuffer( source_id, level, consoleFormat, threadMessageBuffer );
+        printBuffer = buildPrintBuffer( source_id, level, nowTM, consoleFormat, threadMessageBuffer );
 
         /* Write the print buffer to the console. */
 #ifdef WIN32
@@ -895,15 +1012,30 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
         /* If the log file was set to a blank value then it will not be used. */
         if ( strlen( logFilePath ) > 0 )
         {
+            /* If this the roll mode is date then we need a nowDate for this log entry. */
+            if (logFileRollMode & ROLL_MODE_DATE) {
+                sprintf(nowDate, "%04d%02d%02d", nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday );
+            } else {
+                nowDate[0] = '\0';
+            }
+            
             /* Make sure that the log file does not need to be rolled. */
-            checkAndRollLogs();
+            checkAndRollLogs(nowDate);
             
             /* If the file needs to be opened then do so. */
             if (logfileFP == NULL) {
+                /* Generate the log file name. */
+                if (logFileRollMode & ROLL_MODE_DATE) {
+                    generateLogFileName(currentLogFileName, logFilePath, nowDate, NULL);
+                } else {
+                    generateLogFileName(currentLogFileName, logFilePath, NULL, NULL);
+                }
+                
                 old_umask = umask( logFileUmask );
-                logfileFP = fopen( logFilePath, "a" );
+                logfileFP = fopen( currentLogFileName, "a" );
                 if (logfileFP == NULL) {
                     /* The log file could not be opened.  Try the default file location. */
+                    sprintf(currentLogFileName, "wrapper.log");
                     logfileFP = fopen( "wrapper.log", "a" );
                 }
                 umask(old_umask);
@@ -917,11 +1049,15 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
             }
             
             if (logfileFP == NULL) {
+                currentLogFileName[0] = '\0';
                 printf("Unable to open logfile %s: %s\n", logFilePath, getLastErrorText());
                 fflush(NULL);
             } else {
+                /* We need to store the date the file was opened for. */
+                strcpy(logFileLastNowDate, nowDate);
+                
                 /* Build up the printBuffer. */
-                printBuffer = buildPrintBuffer( source_id, level, logfileFormat, threadMessageBuffer );
+                printBuffer = buildPrintBuffer( source_id, level, nowTM, logfileFormat, threadMessageBuffer );
                 
                 fprintf( logfileFP, "%s\n", printBuffer );
                 
@@ -938,6 +1074,7 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
                     
                     fclose(logfileFP);
                     logfileFP = NULL;
+                    currentLogFileName[0] = '\0';
                 }
                 
                 /* Leave the file open.  It will be closed later after a period of inactivity. */
@@ -1300,143 +1437,159 @@ void writeToConsole( char *lpszFmt, ... ) {
 #endif
 
 /**
- * Check to see whether or not the log file needs to be rolled.
- *  This is only called when synchronized.
+ * Rolls log files using the ROLLNUM system.
  */
-void checkAndRollLogs() {
-    long position;
-    struct stat fileStat;
-    char *tmpLogFilePathOld;
-    char *tmpLogFilePathNew;
-    int result;
+void rollLogs() {
     int i;
-
-    if (logFileMaxSize <= 0)
-        return;
+    char rollNum[11];
+    struct stat fileStat;
+    int result;
     
-    /* Find out the current size of the file.  If the file is currently open then we need to
-     *  use ftell to make sure that the buffered data is also included. */
-    if (logfileFP != NULL) {
-        if ((position = ftell(logfileFP)) < 0) {
-            printf("Unable to get the current logfile size with ftell: %s\n", getLastErrorText());
-            return;
-        }
-    } else {
-        if (stat(logFilePath, &fileStat) != 0) {
-            if ( getLastError() == 2 ) {
-                /* File does not yet exist. */
-                position = 0;
-            } else {
-                printf("Unable to get the current logfile size with stat: %s\n", getLastErrorText());
-                return;
-            }
-        } else {
-            position = fileStat.st_size;
-        }
+    /* Only roll the logs for certain modes. */
+    if (!((logFileRollMode & ROLL_MODE_SIZE) || (logFileRollMode & ROLL_MODE_WRAPPER) ||
+            (logFileRollMode & ROLL_MODE_JVM))) {
+        return;
     }
     
-    /* Does the log file need to rotated? */
-    if (position >= logFileMaxSize) {
-        tmpLogFilePathOld = NULL;
-        tmpLogFilePathNew = NULL;
-        
-        /* If the log file is currently open, it needs to be closed. */
-        if (logfileFP != NULL) {
+    /* If the log file is currently open, it needs to be closed. */
+    if (logfileFP != NULL) {
 #ifdef _DEBUG
-            printf("Closing logfile so it can be rolled...\n");
-            fflush(NULL);
+        printf("Closing logfile so it can be rolled...\n");
+        fflush(NULL);
 #endif
 
-            fclose(logfileFP);
-            logfileFP = NULL;
-        }
-        
+        fclose(logfileFP);
+        logfileFP = NULL;
+        currentLogFileName[0] = '\0';
+    }
+    
 #ifdef _DEBUG
-            printf("Rolling log files...\n");
+    printf("Rolling log files...\n");
 #endif
-        /* Allocate buffers (Allow for 10 digit file indices) */
-        if ((tmpLogFilePathOld = malloc(sizeof(char) * (strlen(logFilePath) + 10 + 2))) == NULL) {
-            /* Don't log this as with other errors as that would cause recursion. */
-            fprintf(stderr, "Out of memory.\n");
-            goto cleanup;
-        }
-        if ((tmpLogFilePathNew = malloc(sizeof(char) * (strlen(logFilePath) + 10 + 2))) == NULL) {
-            /* Don't log this as with other errors as that would cause recursion. */
-            fprintf(stderr, "Out of memory.\n");
-            goto cleanup;
-        }
-
-        /* We don't know how many log files need to be rotated yet, so look. */
-        i = 0;
-        do {
-            i++;
-            sprintf(tmpLogFilePathOld, "%s.%d", logFilePath, i);
-            result = stat(tmpLogFilePathOld, &fileStat);
+    
+    /* We don't know how many log files need to be rotated yet, so look. */
+    i = 0;
+    do {
+        i++;
+        sprintf(rollNum, "%d", i);
+        generateLogFileName(workLogFileName, logFilePath, NULL, rollNum);
+        result = stat(workLogFileName, &fileStat);
 #ifdef _DEBUG
-            if (result == 0) {
-                printf("Rolled log file %s exists.\n", tmpLogFilePathOld);
-            }
-#endif
-        } while((result == 0) && ((logFileMaxLogFiles <= 0) || (i < logFileMaxLogFiles)));
-
-        /* Remove the file with the highest index if it exists */
-        sprintf(tmpLogFilePathOld, "%s.%d", logFilePath, i);
-        remove(tmpLogFilePathOld);
-
-        /* Now, starting at the highest file rename them up by one index. */
-        for (; i > 1; i--) {
-            sprintf(tmpLogFilePathNew, "%s", tmpLogFilePathOld);
-            sprintf(tmpLogFilePathOld, "%s.%d", logFilePath, i - 1);
-
-            if (rename(tmpLogFilePathOld, tmpLogFilePathNew) != 0) {
-                if (errno == 13) {
-                    /* Don't log this as with other errors as that would cause recursion. */
-                    printf("Unable to rename log file %s to %s.  File is in use by another application.\n",
-                        tmpLogFilePathOld, tmpLogFilePathNew);
-                } else {
-                    /* Don't log this as with other errors as that would cause recursion. */
-                    printf("Unable to rename log file %s to %s. (errno %d)\n",
-                        tmpLogFilePathOld, tmpLogFilePathNew, errno);
-                }
-                goto cleanup;
-            }
-#ifdef _DEBUG
-            else {
-                printf("Renamed %s to %s\n", tmpLogFilePathOld, tmpLogFilePathNew);
-            }
-#endif
+        if (result == 0) {
+            printf("Rolled log file %s exists.\n", workLogFileName);
         }
+#endif
+    } while((result == 0) && ((logFileMaxLogFiles <= 0) || (i < logFileMaxLogFiles)));
+    
+    /* Remove the file with the highest index if it exists */
+    remove(workLogFileName);
+    
+    /* Now, starting at the highest file rename them up by one index. */
+    for (; i > 1; i--) {
+        strcpy(currentLogFileName, workLogFileName);
+        sprintf(rollNum, "%d", i - 1);
+        generateLogFileName(workLogFileName, logFilePath, NULL, rollNum);
 
-        /* Rename the current file to the #1 index position */
-        sprintf(tmpLogFilePathNew, "%s", tmpLogFilePathOld);
-        if (rename(logFilePath, tmpLogFilePathNew) != 0) {
+        if (rename(workLogFileName, currentLogFileName) != 0) {
             if (errno == 13) {
                 /* Don't log this as with other errors as that would cause recursion. */
                 printf("Unable to rename log file %s to %s.  File is in use by another application.\n",
-                    logFilePath, tmpLogFilePathNew);
+                    workLogFileName, currentLogFileName);
             } else {
                 /* Don't log this as with other errors as that would cause recursion. */
                 printf("Unable to rename log file %s to %s. (errno %d)\n",
-                    logFilePath, tmpLogFilePathNew, errno);
+                    workLogFileName, currentLogFileName, errno);
             }
-            exit(1);
-            goto cleanup;
+            return;
         }
 #ifdef _DEBUG
         else {
-            printf("Renamed %s to %s\n", logFilePath, tmpLogFilePathNew);
+            printf("Renamed %s to %s\n", workLogFileName, currentLogFileName);
         }
 #endif
+    }
 
-        cleanup:
-        /* Free memory */
-        if (tmpLogFilePathOld != NULL) {
-            free((void *)tmpLogFilePathOld);
-            tmpLogFilePathOld = NULL;
+    /* Rename the current file to the #1 index position */
+    generateLogFileName(currentLogFileName, logFilePath, NULL, NULL);
+    if (rename(currentLogFileName, workLogFileName) != 0) {
+        if (errno == 13) {
+            /* Don't log this as with other errors as that would cause recursion. */
+            printf("Unable to rename log file %s to %s.  File is in use by another application.\n",
+                currentLogFileName, workLogFileName);
+        } else {
+            /* Don't log this as with other errors as that would cause recursion. */
+            printf("Unable to rename log file %s to %s. (errno %d)\n",
+                currentLogFileName, workLogFileName, errno);
         }
-        if (tmpLogFilePathNew != NULL) {
-            free((void *)tmpLogFilePathNew);
-            tmpLogFilePathNew = NULL;
+        return;
+    }
+#ifdef _DEBUG
+    else {
+        printf("Renamed %s to %s\n", currentLogFileName, workLogFileName);
+    }
+#endif
+}
+
+/**
+ * Check to see whether or not the log file needs to be rolled.
+ *  This is only called when synchronized.
+ */
+void checkAndRollLogs(const char *nowDate) {
+    long position;
+    struct stat fileStat;
+    
+    /* Depending on the roll mode, decide how to roll the log file. */
+    if (logFileRollMode & ROLL_MODE_SIZE) {
+        /* Roll based on the size of the file. */
+        if (logFileMaxSize <= 0)
+            return;
+        
+        /* Find out the current size of the file.  If the file is currently open then we need to
+         *  use ftell to make sure that the buffered data is also included. */
+        if (logfileFP != NULL) {
+            /* File is open */
+            if ((position = ftell(logfileFP)) < 0) {
+                printf("Unable to get the current logfile size with ftell: %s\n", getLastErrorText());
+                return;
+            }
+        } else {
+            /* File is not open */
+            if (stat(logFilePath, &fileStat) != 0) {
+                if ( getLastError() == 2 ) {
+                    /* File does not yet exist. */
+                    position = 0;
+                } else {
+                    printf("Unable to get the current logfile size with stat: %s\n", getLastErrorText());
+                    return;
+                }
+            } else {
+                position = fileStat.st_size;
+            }
+        }
+        
+        /* Does the log file need to rotated? */
+        if (position >= logFileMaxSize) {
+            rollLogs();
+        }
+    } else if (logFileRollMode & ROLL_MODE_DATE) {
+        /* Roll based on the date of the log entry. */
+        if (strcmp(nowDate, logFileLastNowDate) != 0) {
+            /* The date has changed.  Close the file. */
+            if (logfileFP != NULL) {
+#ifdef _DEBUG
+                printf("Closing logfile because the date changed...\n");
+                fflush(NULL);
+#endif
+        
+                fclose(logfileFP);
+                logfileFP = NULL;
+                currentLogFileName[0] = '\0';
+                
+                /* This will happen just before a new log file is created.
+                 *  Check the maximum file count. */
+                printf("TODO: Check max file count.\n");
+                fflush(NULL);
+            }
         }
     }
 }

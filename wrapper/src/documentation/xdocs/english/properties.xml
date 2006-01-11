@@ -214,6 +214,9 @@
                     <ulink url="prop-logfile-maxsize.html">wrapper.logfile.maxsize</ulink>
                 </listproperty>
                 <listproperty version="3.2.0">
+                    <ulink url="prop-logfile-rollmode.html">wrapper.logfile.rollmode</ulink>
+                </listproperty>
+                <listproperty version="3.2.0">
                     <ulink url="prop-umask.html">wrapper.logfile.umask</ulink>
                 </listproperty>
                 <listproperty version="2.2.8">

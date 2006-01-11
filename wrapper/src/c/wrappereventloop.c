@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.28  2006/01/11 16:13:11  mortenson
+ * Add support for log file roll modes.
+ *
  * Revision 1.27  2005/11/07 07:04:52  mortenson
  * Make it possible to configure the umask for all files created by the Wrapper and
  * that of the JVM.
@@ -880,9 +883,14 @@ void jStateLaunch(DWORD nowTicks, int nextSleep) {
         if (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0) {
             /* Launch the new JVM */
             
-            /* Unless this is the first JVM invocation, make it possible to reload the
-             *  Wrapper configuration file. */
             if (wrapperData->jvmRestarts > 0) {
+                /* See if the logs should be rolled on Wrapper startup. */
+                if (getLogfileRollMode() & ROLL_MODE_JVM) {
+                    rollLogs();
+                }
+                
+                /* Unless this is the first JVM invocation, make it possible to reload the
+                 *  Wrapper configuration file. */
                 if (wrapperData->restartReloadConf) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         "Reloading Wrapper configuration...");

@@ -38,5 +38,12 @@
             <simpara><emphasis>Example:</emphasis></simpara>
             <screen format="linespecific"><![CDATA[wrapper.logfile.maxsize=10m]]></screen>
         </informalexample>
+        <para>
+            This property is ignored unless the
+            <ulink url="prop-logfile-rollmode.html">wrapper.logfile.rollmode</ulink> property
+            has a value of <literal moreinfo="none">SIZE</literal>,
+            <literal moreinfo="none">SIZE_OR_WRAPPER</literal>, or
+            <literal moreinfo="none">SIZE_OR_JVM</literal>.
+        </para>
     </section>
 </chapter>
