@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.60  2006/01/12 05:24:15  mortenson
+ * Fix comments.
+ *
  * Revision 1.59  2006/01/12 04:58:30  mortenson
  * Fix a compile problem with the glob api.
  *
@@ -320,14 +323,14 @@ char *replaceStringLongWithShort(char *string, const char *oldToken, const char 
         newLen = 0;
     }
     
-    // Assertion check.
+    /* Assertion check. */
     if (newLen > oldLen) {
         return string;
     }
     
     while (in[0] != '\0') {
         if (memcmp(in, oldToken, oldLen) == 0) {
-            // Found the oldToken.  Replace it with the new.
+            /* Found the oldToken.  Replace it with the new. */
             if (newLen > 0) {
                 memcpy(out, newToken, newLen);
             }
