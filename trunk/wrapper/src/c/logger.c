@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.59  2006/01/12 04:58:30  mortenson
+ * Fix a compile problem with the glob api.
+ *
  * Revision 1.58  2006/01/12 04:48:40  mortenson
  * Implement max file count checking for DATE rolled files.
  *
@@ -209,6 +212,7 @@
 #include <conio.h>
 #include "messages.h"
 #else
+#include <glob.h>
 #include <syslog.h>
 #include <strings.h>
 #include <pthread.h>
