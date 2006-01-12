@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.58  2006/01/12 04:48:40  mortenson
+ * Implement max file count checking for DATE rolled files.
+ *
  * Revision 1.57  2006/01/11 16:13:11  mortenson
  * Add support for log file roll modes.
  *
@@ -1445,12 +1448,6 @@ void rollLogs() {
     struct stat fileStat;
     int result;
     
-    /* Only roll the logs for certain modes. */
-    if (!((logFileRollMode & ROLL_MODE_SIZE) || (logFileRollMode & ROLL_MODE_WRAPPER) ||
-            (logFileRollMode & ROLL_MODE_JVM))) {
-        return;
-    }
-    
     /* If the log file is currently open, it needs to be closed. */
     if (logfileFP != NULL) {
 #ifdef _DEBUG
@@ -1465,6 +1462,7 @@ void rollLogs() {
     
 #ifdef _DEBUG
     printf("Rolling log files...\n");
+    fflush(NULL);
 #endif
     
     /* We don't know how many log files need to be rotated yet, so look. */
@@ -1477,12 +1475,16 @@ void rollLogs() {
 #ifdef _DEBUG
         if (result == 0) {
             printf("Rolled log file %s exists.\n", workLogFileName);
+            fflush(NULL);
         }
 #endif
     } while((result == 0) && ((logFileMaxLogFiles <= 0) || (i < logFileMaxLogFiles)));
     
     /* Remove the file with the highest index if it exists */
-    remove(workLogFileName);
+    if (remove(workLogFileName)) {
+        printf("Unable to delete old log file: %s (%s)\n", workLogFileName, getLastErrorText());
+        fflush(NULL);
+    }
     
     /* Now, starting at the highest file rename them up by one index. */
     for (; i > 1; i--) {
@@ -1495,16 +1497,19 @@ void rollLogs() {
                 /* Don't log this as with other errors as that would cause recursion. */
                 printf("Unable to rename log file %s to %s.  File is in use by another application.\n",
                     workLogFileName, currentLogFileName);
+                fflush(NULL);
             } else {
                 /* Don't log this as with other errors as that would cause recursion. */
-                printf("Unable to rename log file %s to %s. (errno %d)\n",
-                    workLogFileName, currentLogFileName, errno);
+                printf("Unable to rename log file %s to %s. (%s)\n",
+                    workLogFileName, currentLogFileName, getLastErrorText());
+                fflush(NULL);
             }
             return;
         }
 #ifdef _DEBUG
         else {
             printf("Renamed %s to %s\n", workLogFileName, currentLogFileName);
+            fflush(NULL);
         }
 #endif
     }
@@ -1516,18 +1521,216 @@ void rollLogs() {
             /* Don't log this as with other errors as that would cause recursion. */
             printf("Unable to rename log file %s to %s.  File is in use by another application.\n",
                 currentLogFileName, workLogFileName);
+            fflush(NULL);
         } else {
             /* Don't log this as with other errors as that would cause recursion. */
-            printf("Unable to rename log file %s to %s. (errno %d)\n",
-                currentLogFileName, workLogFileName, errno);
+            printf("Unable to rename log file %s to %s. (%s)\n",
+                currentLogFileName, workLogFileName, getLastErrorText());
+            fflush(NULL);
         }
         return;
     }
 #ifdef _DEBUG
     else {
         printf("Renamed %s to %s\n", currentLogFileName, workLogFileName);
+        fflush(NULL);
     }
 #endif
+}
+
+void limitLogFileCountHandleFile(const char *currentFile, const char *testFile, char **latestFiles, int count) {
+    int i, j;
+    int result;
+
+#ifdef _DEBUG
+    printf("  limitLogFileCountHandleFile(%s, %s, latestFiles, %d)\n", currentFile, testFile, count);
+    fflush(NULL);
+#endif
+
+    if (strcmp(testFile, currentFile) > 0) {
+        /* Newer than the current file.  Ignore it. */
+#ifdef _DEBUG
+        printf("    Newer Ignore\n");
+        fflush(NULL);
+#endif
+        return;
+    }
+    
+    /* Decide where in the array of files the file should be located. */
+    for (i = 0; i < count; i++) {
+#ifdef _DEBUG
+        printf("    i=%d\n", i);
+        fflush(NULL);
+#endif
+        if (latestFiles[i] == NULL) {
+#ifdef _DEBUG
+            printf("    Store at index  %d\n", i);
+            fflush(NULL);
+#endif
+            latestFiles[i] = malloc(sizeof(char) * (strlen(testFile) + 1));
+            strcpy(latestFiles[i], testFile);
+            return;
+        } else {
+            result = strcmp(latestFiles[i], testFile);
+            if (result == 0) {
+                /* Ignore. */
+#ifdef _DEBUG
+                printf("    Duplicate at index  %d\n", i);
+                fflush(NULL);
+#endif
+                return;
+            } else if (result < 0) {
+                /* test file is newer than the one in the list, shift all files up in the array. */
+                for (j = count - 1; j >= i; j--) {
+                    if (latestFiles[j] != NULL) {
+                        if (j < count - 1) {
+                            /* Move the file up. */
+                            latestFiles[j + 1] = latestFiles[j];
+                            latestFiles[j] = NULL;
+                        } else {
+                            /* File needs to be deleted as it can't be moved up. */
+#ifdef _DEBUG
+                            printf("    Delete old %s\n", latestFiles[j]);
+                            fflush(NULL);
+#endif
+                            if (remove(latestFiles[j])) {
+                                printf("Unable to delete old log file: %s (%s)\n",
+                                    latestFiles[j], getLastErrorText());
+                                fflush(NULL);
+                            }
+                            free(latestFiles[j]);
+                            latestFiles[j] = NULL;
+                        }
+                    }
+                }
+
+#ifdef _DEBUG
+                printf("    Insert at index  %d\n", i);
+                fflush(NULL);
+#endif
+                latestFiles[i] = malloc(sizeof(char) * (strlen(testFile) + 1));
+                strcpy(latestFiles[i], testFile);
+                return;
+            }
+        }
+    }
+    
+    /* File could not be added to the list because it was too old.  Delete. */
+#ifdef _DEBUG
+    printf("    Delete %s\n", testFile);
+    fflush(NULL);
+#endif
+    if (remove(testFile)) {
+        printf("Unable to delete old log file: %s (%s)\n",
+            testFile, getLastErrorText());
+        fflush(NULL);
+    }
+}
+
+/**
+ * Does a search for all files matching the specified pattern and deletes all
+ *  but the most recent 'count' files.  The files are sorted by their names.
+ */
+void limitLogFileCount(const char *current, const char *pattern, int count) {
+    char** latestFiles;
+    int i;
+#ifdef WIN32
+    char* path;
+    char* c;
+    long handle;
+    struct _finddata_t fblock;
+    char* testFile;
+#else
+    glob_t g;
+#endif
+
+#ifdef _DEBUG
+    printf("limitLogFileCount(%s, %d)\n", pattern, count);
+    fflush(NULL);
+#endif
+
+    latestFiles = malloc(sizeof(char *) * count);
+    for (i = 0; i < count; i++) {
+        latestFiles[i] = NULL;
+    }
+    /* Set the first element to the current file so things will work correctly if it already
+     *  exists. */
+    latestFiles[0] = malloc(sizeof(char) * (strlen(current) + 1));
+    strcpy(latestFiles[0], current);
+
+#ifdef WIN32
+    path = malloc(sizeof(char) * (strlen(pattern) + 1));
+
+    /* Extract any path information from the beginning of the file */
+    strcpy(path, pattern);
+    c = max(strrchr(path, '\\'), strrchr(path, '/'));
+    if (c == NULL) {
+        path[0] = '\0';
+    } else {
+        c[1] = '\0'; /* terminate after the slash */
+    }
+
+    if ((handle = _findfirst(pattern, &fblock)) <= 0) {
+        if (errno == ENOENT) {
+            /* No matching files found. */
+        } else {
+            /* Encountered an error of some kind. */
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                "Error in findfirst for log file purge: %s", pattern);
+        }
+    } else {
+        testFile = malloc(sizeof(char) * (strlen(path) + strlen(fblock.name) + 1));
+        sprintf(testFile, "%s%s", path, fblock.name);
+        limitLogFileCountHandleFile(current, testFile, latestFiles, count);
+        free(testFile);
+        testFile = NULL;
+
+        /* Look for additional entries */
+        while (_findnext(handle, &fblock) == 0) {
+            testFile = malloc(sizeof(char) * (strlen(path) + strlen(fblock.name) + 1));
+            sprintf(testFile, "%s%s", path, fblock.name);
+            limitLogFileCountHandleFile(current, testFile, latestFiles, count);
+            free(testFile);
+            testFile = NULL;
+        }
+
+        /* Close the file search */
+        _findclose(handle);
+    }
+
+    free(path);
+#else
+    /* Wildcard support for unix */
+    glob(pattern, GLOB_MARK | GLOB_NOSORT, NULL, &g);
+
+    if (g.gl_pathc > 0) {
+        for (i = 0; i < g.gl_pathc; i++) {
+            limitLogFileCountHandleFile(current, g.gl_pathv[i], latestFiles, count);
+        }
+    } else {
+        /* No matching files. */
+    }
+
+    globfree(&g);
+#endif
+
+#ifdef _DEBUG
+    printf("  Sorted file list:\n");
+    fflush(NULL);
+#endif
+    for (i = 0; i < count; i++) {
+        if (latestFiles[i]) {
+#ifdef _DEBUG
+            printf("    latestFiles[%d]=%s\n", i, latestFiles[i]); fflush(NULL);
+#endif
+            free(latestFiles[i]);
+        } else {
+#ifdef _DEBUG
+            printf("    latestFiles[%d]=NULL\n", i); fflush(NULL);
+#endif
+        }
+    }
+    free(latestFiles);
 }
 
 /**
@@ -1550,6 +1753,7 @@ void checkAndRollLogs(const char *nowDate) {
             /* File is open */
             if ((position = ftell(logfileFP)) < 0) {
                 printf("Unable to get the current logfile size with ftell: %s\n", getLastErrorText());
+                fflush(NULL);
                 return;
             }
         } else {
@@ -1560,6 +1764,7 @@ void checkAndRollLogs(const char *nowDate) {
                     position = 0;
                 } else {
                     printf("Unable to get the current logfile size with stat: %s\n", getLastErrorText());
+                    fflush(NULL);
                     return;
                 }
             } else {
@@ -1584,11 +1789,18 @@ void checkAndRollLogs(const char *nowDate) {
                 fclose(logfileFP);
                 logfileFP = NULL;
                 currentLogFileName[0] = '\0';
+            }
+            
+            /* This will happen just before a new log file is created.
+             *  Check the maximum file count. */
+            if (logFileMaxLogFiles > 0) {
+                generateLogFileName(currentLogFileName, logFilePath, nowDate, NULL);
+                generateLogFileName(workLogFileName, logFilePath, "????????", NULL);
                 
-                /* This will happen just before a new log file is created.
-                 *  Check the maximum file count. */
-                printf("TODO: Check max file count.\n");
-                fflush(NULL);
+                limitLogFileCount(currentLogFileName, workLogFileName, logFileMaxLogFiles + 1);
+                
+                currentLogFileName[0] = '\0';
+                workLogFileName[0] = '\0';
             }
         }
     }
