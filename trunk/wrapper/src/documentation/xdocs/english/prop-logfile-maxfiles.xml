@@ -25,15 +25,27 @@
     <section>
         <title>wrapper.logfile.maxfiles</title>
         <para>
-            When log file rolling is enabled, old log files will be renamed with
-            an integer suffix.  Where larger indices are older log files.  The
-            maximum number of log files can be set using this property.  The
-            default value, 0, implies no limit on the number of files.  If this
-            number is reduced from say 10 to 5, the extra 5 files will not be
-            deleted, new log files will only be rolled within the first 5
-            indices.  This property is ignored if
+            When log file rolling is enabled, old log files will be renamed by replacing
+            their ROLLNUM token with an integer or by appending that integer to the end
+            of the file.  Larger indices are older log files.  The maximum number of
+            rolled log files can be set using this property.  The default value, 0,
+            implies no limit on the number of files.  If this number is reduced from
+            say 10 to 5, the extra 5 files will not be deleted, new log files will only
+            be rolled within the first 5 indices.
+        </para>
+        <para>
+            When the <ulink url="prop-logfile-maxsize.html">wrapper.logfile.rollmode</ulink>
+            is DATE, new log files will be created for each new log by replacing the YYYYMMDD
+            token with the appropriate date.  This property defines the maximum number of
+            past log files that will be maintained.  A value of 0 indicates no limit.
+            Unlike the case with rolled files above, all files over the specified limit will
+            be deleted.  Files are sorted by name with the most recent files preserved.
+        </para>
+        <para>
+            This property is ignored if
             <ulink url="prop-logfile-maxsize.html">wrapper.logfile.maxsize</ulink>
-            is 0.
+            is 0 or the <ulink url="prop-logfile-maxsize.html">wrapper.logfile.rollmode</ulink>
+            is NONE.
         </para>
         <informalexample>
             <simpara><emphasis>Example:</emphasis></simpara>
