@@ -123,6 +123,19 @@ then
     fi
 fi
 
+# Resolve the location of the 'pidof' command
+PIDOFEXE="/usr/bin/pidof"
+if [ ! -x $PIDOFEXE ]
+then
+    PIDOFEXE="/bin/pidof"
+    if [ ! -x $PIDOFEXE ]
+    then
+        # pidof is optional for now.
+        PIDOFEXE=""
+    fi
+fi
+
+
 # Resolve the os
 DIST_OS=`uname -s | tr [:upper:] [:lower:] | tr -d [:blank:]`
 case "$DIST_OS" in
@@ -263,9 +276,20 @@ getpid() {
             pid=`cat $PIDFILE`
             if [ "X$pid" != "X" ]
             then
-                # Verify that a process with this pid is still running.
-                pid=`$PSEXE -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
-                if [ "X$pid" = "X" ]
+                # If pidof is available, then use that to see if this pid is still running
+                #  as the correct application.  ps will match other apps with the same pid.
+                #  This can happen if the server crashes and is restarted.
+                if [ "X$PIDOFEXE" != "X" ]
+                then
+                    # Verify that the correct process with this pid is still running.  A
+                    #  line of more than one pids may be returned, the one we are looking
+                    #  for may not be the first.
+                    pidtest=`$PIDOFEXE $WRAPPER_CMD | grep $pid`
+                else
+                    # Verify that a process with this pid is still running.
+                    pidtest=`$PSEXE -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
+                fi
+                if [ "X$pidtest" = "X" ]
                 then
                     # This is a stale pid file.
                     rm -f $PIDFILE
