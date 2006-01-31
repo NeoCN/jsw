@@ -206,6 +206,11 @@ Java Service Wrapper Revision History.
 * Add a new wrapper.logfile.rollmode property which makes it possible to
   control how and when the logfile is rolled.  Feature Requests #864463,
   #1085097, and #1085850.
+* Fix a problem on Linux where the test for the status of the Java child
+  process would sometimes fail causing the Wrapper to shutdown with the
+  error "Critical error: wait for JVM process failed (No child processes)"
+  rather than restart the child JVM.  Users who encountered this problem
+  found it easy to reproduce, but it only happened on some systems.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager

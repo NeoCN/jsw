@@ -489,6 +489,15 @@ $Id$
                     and <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=1085850&amp;group_id=39428&amp;atid=425190">#1085850</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem on Linux where the test for the status of the Java child
+                    process would sometimes fail causing the Wrapper to shutdown with the
+                    error "Critical error: wait for JVM process failed (No child processes)"
+                    rather than restart the child JVM.  Users who encountered this problem
+                    found it easy to reproduce, but it only happened on some systems.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
