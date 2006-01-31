@@ -211,6 +211,10 @@ Java Service Wrapper Revision History.
   error "Critical error: wait for JVM process failed (No child processes)"
   rather than restart the child JVM.  Users who encountered this problem
   found it easy to reproduce, but it only happened on some systems.
+* Modify the shell script to use pidof when it is available rather than ps.
+  This fixes a system reboot problem where a stale pid has been reused by
+  another application, making the script think the wrapper was already
+  running.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
