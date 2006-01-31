@@ -474,7 +474,7 @@
     <!-- =================================================================== -->
     <!-- Creates the jar archive                                             -->
     <!-- =================================================================== -->
-    <target name="jar" depends="compile-java">
+    <target name="jar:jar" depends="compile-java">
         <jar jarfile="${lib.dir}/wrapper.jar"
              basedir="${build.classes}"
              includes="**/*.class,**/*.properties"
@@ -494,7 +494,24 @@
              basedir="${build.classes}"
              includes="**/test/*"
              />
+        
+        <condition property="do.sign">
+            <isset property="signjar.alias"/>
+        </condition>
     </target>
+    <target name="jar:sign" depends="jar:jar" if="do.sign">
+        <signjar
+            jar="${lib.dir}/wrapper.jar"
+            alias="${signjar.alias}"
+            storepass="${signjar.storepass}"/>
+    </target>
+    <target name="jar:nosign" depends="jar:jar" unless="do.sign">
+        <echo message="**********************************************************************"/>
+        <echo message="The generated jar is not being signed and should not be used for an"/>
+        <echo message="official Wrapper distribution."/>
+        <echo message="**********************************************************************"/>
+    </target>
+    <target name="jar" depends="jar:jar"/> <!-- depends="jar:sign, jar:nosign" No point until I have a signed cert. -->
     
     <!-- =================================================================== -->
     <!-- Test Task                                                           -->
