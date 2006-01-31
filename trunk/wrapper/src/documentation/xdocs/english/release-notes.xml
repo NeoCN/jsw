@@ -500,10 +500,11 @@ $Id$
             </listitem>
             <listitem>
                 <para>
-                    Modify the shell script to use pidof when it is available rather than ps.
-                    This fixes a system reboot problem where a stale pid has been reused by
-                    another application, making the script think the wrapper was already
-                    running.
+                    Modify the way the UNIX shell script tests for the existence of a process
+                    matching the pid in an existing pid file.  It now verifies the process
+                    command as well as the pid to fix a system reboot problem where a stale
+                    pid has been reused by another application, making the script think the
+                    wrapper was already running.
                 </para>
             </listitem>
         </itemizedlist>
