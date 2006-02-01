@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.153  2006/02/01 05:33:05  mortenson
+ * Get the solaris x86 build working.
+ *
  * Revision 1.152  2006/01/11 16:13:11  mortenson
  * Add support for log file roll modes.
  *
@@ -508,6 +511,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <netinet/in.h>
