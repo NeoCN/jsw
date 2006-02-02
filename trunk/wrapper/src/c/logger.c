@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.61  2006/02/02 06:38:07  mortenson
+ * Fix a compiler warning when debug is enabled.
+ *
  * Revision 1.60  2006/01/12 05:24:15  mortenson
  * Fix comments.
  *
@@ -1052,7 +1055,7 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
                 
 #ifdef _DEBUG				
                 if (logfileFP != NULL) {
-                    printf("Opened logfile\n", logfileFP);
+                    printf("Opened logfile\n");
                     fflush(NULL);
                 }
 #endif
