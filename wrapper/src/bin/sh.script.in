@@ -274,6 +274,7 @@ getpid() {
                     # This is a stale pid file.
                     rm -f $PIDFILE
                     echo "Removed stale pid file: $PIDFILE"
+                    pid=""
                 fi
             fi
         else
