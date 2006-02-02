@@ -71,6 +71,7 @@
                 <equals arg1="${os.arch}" arg2="ppc"/>
                 <equals arg1="${os.arch}" arg2="Power"/>
                 <equals arg1="${os.arch}" arg2="PowerPC"/>
+                <equals arg1="${os.arch}" arg2="ppc64"/>
             </or>
         </condition>
         <condition property="dist.arch" value="parisc">
