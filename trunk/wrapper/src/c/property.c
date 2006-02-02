@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.37  2006/02/02 07:38:14  mortenson
+ * Fix a compiler error on linux powerpc systems caused by the unsigned char
+ * definition.
+ *
  * Revision 1.36  2005/12/06 05:44:28  mortenson
  * Ignore '#' characters which are included within double quotes in the value
  * of a property in the configuration file.  Unquoted values must be escaped
@@ -412,8 +416,13 @@ void setInnerProperty(Property *property, const char *propertyValue) {
         /* Strip any non valid characters like control characters. Some valid characters are
          *  less than 0 when the char is unsigned. */
         for (i = 0, count = 0; i < (int)strlen(buffer); i++) {
-            /* Only add valid chars, skip control chars */
-            if ((buffer[i] > 31) || (buffer[i] < 0)) {
+            /* Only add valid chars, skip control chars.  We want all chars other than those
+             *  in the range 1..31.  0 is not possible as that would be end of the string.
+             *  On most platforms, char is signed, but on PowerPC, it is unsigned.  This
+             *  means that any comparison such as >= 0 will cause a compiler error as that
+             *  would always be true.
+             * The logic below is to get the correct behavior in either case assuming no 0. */
+            if ((buffer[i] < 1) || (buffer[i] > 31)) {
                 property->value[count++] = buffer[i];
             }
         }
