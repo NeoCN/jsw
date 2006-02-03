@@ -31,6 +31,12 @@
             -->
         <donorlist>
             <donor>
+                <date>Feb 2, 2006</date>
+                <amount>100.00</amount>
+                <name>Anonymous</name>
+                <message>This did exactly what we needed it to do and at a very fare cost.</message>
+            </donor>
+            <donor>
                 <date>Dec 21, 2005</date>
                 <amount>100.00</amount>
                 <name>Konstantin</name>
