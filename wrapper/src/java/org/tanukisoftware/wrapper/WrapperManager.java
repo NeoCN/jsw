@@ -44,6 +44,11 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.66  2006/02/03 06:18:50  mortenson
+// More work getting things working for the 64-bit GNU gcj java implementation.
+// When the bit depth of the JVM can not be determined, try both 32 and 64 bit
+// libraries attempting to load one.  This will work even if they both exist.
+//
 // Revision 1.65  2006/02/03 05:36:06  mortenson
 // Add support for the GNU libjcj JVM.  Like JRocket, it requires slightly
 // different thread counting.
@@ -647,10 +652,17 @@ public final class WrapperManager
         }
         
         // Decide whether this is a 32 or 64 bit version of Java.
-        m_jvmBits = Integer.getInteger( "sun.arch.data.model", 32 ).intValue();
+        m_jvmBits = Integer.getInteger( "sun.arch.data.model", -1 ).intValue();
         if ( m_debug )
         {
-            m_out.println( "Running a " + m_jvmBits + "-bit JVM." );
+            if ( m_jvmBits > 0 )
+            {
+                m_out.println( "Running a " + m_jvmBits + "-bit JVM." );
+            }
+            else
+            {
+                m_out.println( "The bit depth of this JVM could not be determined." );
+            }
         }
         
         // Initialize the timerTicks to a very high value.  This means that we will
@@ -1151,7 +1163,7 @@ public final class WrapperManager
      *
      * @return A detailed native library base name.
      */
-    private static String generateDetailedNativeLibraryBaseName( String baseName )
+    private static String generateDetailedNativeLibraryBaseName( String baseName, int jvmBits )
     {
         // Generate an os name.  Most names are used as is, but some are modified.
         String os = System.getProperty( "os.name", "" ).toLowerCase();
@@ -1179,8 +1191,8 @@ public final class WrapperManager
         // Generate an architecture name.
         String arch = System.getProperty( "os.arch", "" ).toLowerCase();
         if ( arch.equals( "amd64" ) || arch.equals( "ia32" ) || arch.equals( "ia64" ) ||
-            arch.equals( "i686" ) || arch.equals( "i586" ) || arch.equals( "i486" ) ||
-            arch.equals( "i386" ) )
+            arch.equals( "x86_64" ) || arch.equals( "i686" ) || arch.equals( "i586" ) ||
+            arch.equals( "i486" ) || arch.equals( "i386" ) )
         {
             arch = "x86";
         }
@@ -1197,7 +1209,7 @@ public final class WrapperManager
             arch = "parisc";
         }
         
-        return baseName + "-" + os + "-" + arch + "-" + m_jvmBits;
+        return baseName + "-" + os + "-" + arch + "-" + jvmBits;
     }
     
     /**
@@ -1218,7 +1230,18 @@ public final class WrapperManager
             m_out.println( "          set. Using the default value, 'wrapper'." );
             baseName = "wrapper";
         }
-        String detailedName = generateDetailedNativeLibraryBaseName( baseName );
+        String detailedName1;
+        String detailedName2;
+        if ( m_jvmBits > 0 )
+        {
+            detailedName1 = generateDetailedNativeLibraryBaseName( baseName, m_jvmBits );
+            detailedName2 = null;
+        }
+        else
+        {
+            detailedName1 = generateDetailedNativeLibraryBaseName( baseName, 32 );
+            detailedName2 = generateDetailedNativeLibraryBaseName( baseName, 64 );
+        }
         
         // Resolve the osname and osarch for the currect system.
         String osName = System.getProperty( "os.name" ).toLowerCase();
@@ -1245,16 +1268,18 @@ public final class WrapperManager
         
         // Construct brief and detailed native library file names.
         String file = libraryHead + baseName + libraryTail;
-        String detailedFile = libraryHead + detailedName + libraryTail;
+        String detailedFile1 = libraryHead + detailedName1 + libraryTail;
+        String detailedFile2 = libraryHead + detailedName2 + libraryTail;
         
         // Try loading the native library using the detailed name first.  If that fails, use
         //  the brief name.
         if ( m_debug )
         {
-            m_out.println( "Load native library.  The first attempt may fail if platform "
+            m_out.println( "Load native library.  One or more attempts may fail if platform "
                 + "specific libraries do not exist." ); 
         }
-        if ( loadNativeLibrary( detailedName, detailedFile ) ||
+        if ( loadNativeLibrary( detailedName1, detailedFile1 ) ||
+            ( ( detailedName2 != null ) && loadNativeLibrary( detailedName2, detailedFile2 ) ) ||
             loadNativeLibrary( baseName, file ) )
         {
             m_libraryOK = true;
@@ -1288,20 +1313,41 @@ public final class WrapperManager
             }
             else
             {
-                File libFile = locateFileOnPath( detailedFile, libPath );
+                File libFile = locateFileOnPath( detailedFile1, libPath );
                 if ( libFile == null )
                 {
-                    libFile = locateFileOnPath( file, libPath );
+                    if ( detailedName2 != null )
+                    {
+                        libFile = locateFileOnPath( detailedFile2, libPath );
+                    }
+                    if ( libFile == null )
+                    {
+                        libFile = locateFileOnPath( file, libPath );
+                    }
                 }
                 if ( libFile == null )
                 {
                     // The library could not be located on the library path.
-                    m_out.println(
-                        "WARNING - Unable to load the Wrapper's native library because neither the" );
-                    m_out.println(
-                        "          file '" + detailedFile + "' nor '" + file + "' could " );
-                    m_out.println(
-                        "          be located in the following java.library.path:" );
+                    if ( detailedName2 == null )
+                    {
+                        m_out.println(
+                            "WARNING - Unable to load the Wrapper's native library because neither the" );
+                        m_out.println(
+                            "          file '" + detailedFile1 + "' nor '" + file + "' could " );
+                        m_out.println(
+                            "          be located in the following java.library.path:" );
+                    }
+                    else
+                    {
+                        m_out.println(
+                            "WARNING - Unable to load the Wrapper's native library because none of the" );
+                        m_out.println(
+                            "          files '" + detailedFile1 + "', '" + detailedFile2 + "'," );
+                        m_out.println(
+                            "          nor '" + file + "' could be located in the following" );
+                        m_out.println(
+                            "          java.library.path:" );
+                    }
                     String pathSep = System.getProperty( "path.separator" );
                     StringTokenizer st = new StringTokenizer( libPath, pathSep );
                     while ( st.hasMoreTokens() )
@@ -1319,7 +1365,7 @@ public final class WrapperManager
                 {
                     // The library file was found but could not be loaded for some reason.
                     m_out.println(
-                        "WARNING - Unable to load the Wrapper's native library '" + file + "'." );
+                        "WARNING - Unable to load the Wrapper's native library '" + libFile.getName() + "'." );
                     m_out.println(
                         "          The file is located on the path at the following location but" );
                     m_out.println(
@@ -1334,8 +1380,16 @@ public final class WrapperManager
                         "          One common cause of this problem is running a 32-bit version" );
                     m_out.println(
                         "          of the Wrapper with a 64-bit version of Java, or vica versa." );
-                    m_out.println(
-                        "          This is a " + m_jvmBits + "-bit JVM." );
+                    if ( m_jvmBits > 0 )
+                    {
+                        m_out.println(
+                            "          This is a " + m_jvmBits + "-bit JVM." );
+                    }
+                    else
+                    {
+                        m_out.println(
+                            "          The bit depth of this JVM could not be determined." );
+                    }
                 }
             }
             m_out.println( "          System signals will not be handled correctly." );
