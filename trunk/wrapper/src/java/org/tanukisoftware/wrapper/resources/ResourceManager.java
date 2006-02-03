@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper.resources;
  */
 
 // $Log$
+// Revision 1.6  2006/02/03 05:39:04  mortenson
+// Remove support for image resources.  They are not used and cause problems
+// when run on non-sun JVMs
+//
 // Revision 1.5  2005/05/23 02:40:26  mortenson
 // Update the copyright information.
 //
@@ -66,11 +70,6 @@ import java.util.Hashtable;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.text.MessageFormat;
-import com.sun.image.codec.jpeg.JPEGCodec;
-import com.sun.image.codec.jpeg.JPEGImageDecoder;
-import java.awt.image.BufferedImage;
-import java.io.InputStream;
-import java.io.IOException;
 
 /**
  * Some helper functions for handling i18n issues. One instance of this class
@@ -227,29 +226,6 @@ public class ResourceManager
         }
         
         return msg;
-    }
-
-    /**
-     * Returns the requested buffered image resource.
-     *
-     * @param filename The name of the file containing the desired image
-     */
-    public BufferedImage getBufferedImage( String filename )
-    {
-        BufferedImage image = null;
-        InputStream is = getClass().getResourceAsStream( filename );
-        if ( is != null )
-        {
-            try
-            {
-                JPEGImageDecoder decoder = JPEGCodec.createJPEGDecoder( is );
-                image = decoder.decodeAsBufferedImage();
-            }
-            catch ( IOException e )
-            {
-            }
-        }
-        return image;
     }
     
     /**
