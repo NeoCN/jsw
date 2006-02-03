@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.116  2006/02/03 05:40:25  mortenson
+ * Make the inability to write the lock file a warning rather than a fatal error.
+ *
  * Revision 1.115  2006/01/11 16:13:11  mortenson
  * Add support for log file roll modes.
  *
@@ -1819,12 +1822,13 @@ int main(int argc, char **argv) {
             }
             if (wrapperData->lockFilename) {
                 if (writePidFile(wrapperData->lockFilename, (int)getpid(), wrapperData->lockFileUmask)) {
-                    log_printf
-                        (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                         "ERROR: Could not write lock file %s: %s",
+                    /* This will fail if the user is running as a user without full privileges.
+                     *  To make things easier for user configuration, this is ignored if sufficient
+                     *  privileges do not exist. */
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                         "WARNING: Could not write lock file %s: %s",
                          wrapperData->lockFilename, getLastErrorText());
-                    appExit(1);
-                    return 1; /* For compiler. */
+                    wrapperData->lockFilename = NULL;
                 }
             }
 

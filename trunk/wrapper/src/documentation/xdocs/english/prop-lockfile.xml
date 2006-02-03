@@ -55,6 +55,11 @@
             <literal moreinfo="none">src/bin</literal> directory for an example.
         </para>
         <para>
+            If the specified file can not be written for any reason on startup,
+            a warning message will be logged but the Wrapper will continue to
+            start up.
+        </para>
+        <para>
             The property is also available in the Windows version.
         </para>
         <informalexample>
