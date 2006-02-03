@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.67  2006/02/03 06:40:07  mortenson
+// Add support for Linux 64-bit PPC and Solaris 32-bit x86 versions.
+//
 // Revision 1.66  2006/02/03 06:18:50  mortenson
 // More work getting things working for the 64-bit GNU gcj java implementation.
 // When the bit depth of the JVM can not be determined, try both 32 and 64 bit
@@ -1200,7 +1203,7 @@ public final class WrapperManager
         {
             arch = "sparc";
         }
-        else if ( arch.equals( "power" ) || arch.equals( "powerpc" ) )
+        else if ( arch.equals( "power" ) || arch.equals( "powerpc" ) || arch.equals( "ppc64" ) )
         {
             arch = "ppc";
         }

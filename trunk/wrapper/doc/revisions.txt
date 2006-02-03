@@ -218,6 +218,7 @@ Java Service Wrapper Revision History.
   wrapper was already running.
 * Add support for the GNU libjcj JVM.  Like JRocket, it requires slightly
   different thread counting.
+* Add support for Linux 64-bit PPC and Solaris 32-bit x86 versions.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
