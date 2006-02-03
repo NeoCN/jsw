@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.154  2006/02/03 05:43:24  mortenson
+ * Add comment about compiler warning for debug builds.
+ *
  * Revision 1.153  2006/02/01 05:33:05  mortenson
  * Get the solaris x86 build working.
  *
@@ -2909,6 +2912,9 @@ DWORD wrapperGetSystemTicks() {
 #ifdef WIN32
     assertSum = (DWORD)((timeBuffer.time * 1000UI64 + timeBuffer.millitm) / WRAPPER_TICK_MS);
 #else
+    /* This will produce the following warning on some compilers:
+     *  warning: ANSI C forbids long long integer constants
+     * Is there another way to do this? */
     assertSum = (DWORD)((timeBuffer.time * 1000ULL + timeBuffer.millitm) / WRAPPER_TICK_MS);
 #endif
     if (assertSum != sum) {
