@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.62  2006/02/03 05:37:29  mortenson
+ * Fix a potential crash error if the format of any log target is blank.
+ *
  * Revision 1.61  2006/02/02 06:38:07  mortenson
  * Fix a compiler warning when debug is enabled.
  *
@@ -780,10 +783,10 @@ char* buildPrintBuffer( int source_id, int level, struct tm *nowTM, char *format
             numColumns++;
             break;
         }
-
-        /* Always add room for the null. */
-        reqSize += 1;
     }
+
+    /* Always add room for the null. */
+    reqSize += 1;
 
     if ( threadPrintBuffer == NULL ) {
         threadPrintBuffer = (char *)malloc( reqSize * sizeof( char ) );
@@ -794,6 +797,9 @@ char* buildPrintBuffer( int source_id, int level, struct tm *nowTM, char *format
         threadPrintBufferSize = reqSize;
     }
 
+    /* Always start with a null terminated string in case there are no formats specified. */
+    threadPrintBuffer[0] = '\0';
+    
     /* Create a pointer to the beginning of the print buffer, it will be advanced
      *  as the formatted message is build up. */
     pos = threadPrintBuffer;
@@ -1000,7 +1006,7 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
     /* Build a timestamp */
     now = time( NULL );
     nowTM = localtime( &now );
-
+    
     /* Console output by format */
     if( level >= currentConsoleLevel ) {
         /* Build up the printBuffer. */
