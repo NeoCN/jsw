@@ -507,6 +507,12 @@ $Id$
                     wrapper was already running.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add support for the <ulink url="http://gcc.gnu.org/java/">GNU libgcj JVM</ulink>.
+                    Like JRocket, it requires slightly different thread counting.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">

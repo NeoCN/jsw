@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.65  2006/02/03 05:36:06  mortenson
+// Add support for the GNU libjcj JVM.  Like JRocket, it requires slightly
+// different thread counting.
+//
 // Revision 1.64  2006/01/09 00:51:53  mortenson
 // Fix a compiler problem with the last FreeBSD commit.
 //
@@ -978,6 +982,13 @@ public final class WrapperManager
             //  and Blackdown.
             m_systemThreadCount = 0;
         }
+        else if ( fullVersion.indexOf( "gcj" ) >= 0 )
+        {
+            // GNU libgcj Virtual Machine
+            // This JVM handles its shutdown thread differently that IBM, Sun
+            //  and Blackdown.
+            m_systemThreadCount = 0;
+        }
         else
         {
             // All other known JVMs have a system thread which is used by the
@@ -1238,6 +1249,11 @@ public final class WrapperManager
         
         // Try loading the native library using the detailed name first.  If that fails, use
         //  the brief name.
+        if ( m_debug )
+        {
+            m_out.println( "Load native library.  The first attempt may fail if platform "
+                + "specific libraries do not exist." ); 
+        }
         if ( loadNativeLibrary( detailedName, detailedFile ) ||
             loadNativeLibrary( baseName, file ) )
         {
@@ -3912,7 +3928,22 @@ public final class WrapperManager
         //  This thread is either the main thread which has not yet completed, or a thread
         //  launched by java when the main thread completes whose job is to wait around for
         //  all other non-daemon threads to complete.  We are overriding that thread here.
-        if ( liveCount <= m_systemThreadCount )
+        int nonDaemonCount;
+        if ( liveCount > m_systemThreadCount )
+        {
+            nonDaemonCount = liveCount - m_systemThreadCount;
+        }
+        else
+        {
+            nonDaemonCount = 0;
+        }
+        
+        if ( m_debug )
+        {
+            m_out.println( "Non-daemon thread count = " + liveCount + " - "
+                + m_systemThreadCount + "(system) = " + nonDaemonCount );
+        }
+        if ( nonDaemonCount <= 0 )
         {
             if ( m_debug )
             {
@@ -3926,10 +3957,6 @@ public final class WrapperManager
         else
         {
             // There are daemons running, let the JVM continue to run.
-            if ( m_debug )
-            {
-                m_out.println( "Non-daemon thread count: " + liveCount );
-            }
         }
     }
     
