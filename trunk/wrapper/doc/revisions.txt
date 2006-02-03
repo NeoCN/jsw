@@ -216,6 +216,8 @@ Java Service Wrapper Revision History.
   command as well as the pid to fix a system reboot problem where a stale
   pid has been reused by another application, making the script think the
   wrapper was already running.
+* Add support for the GNU libjcj JVM.  Like JRocket, it requires slightly
+  different thread counting.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
