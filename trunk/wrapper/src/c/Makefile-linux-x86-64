@@ -1,6 +1,6 @@
 # This makefile is inprogess.  It builds, but the resulting libwrapper.so does not yet work.
 # If you know how to fix it then please help out.
-COMPILE = gcc -O3 -fPIC -Wall --pedantic -pthread -DUSE_NANOSLEEP
+COMPILE = gcc -O3 -fPIC -Wall --pedantic
 
 INCLUDE=$(JAVA_HOME)/include
 
@@ -26,7 +26,7 @@ init:
 	if test ! -d .deps; then mkdir .deps; fi
 
 wrapper: $(wrapper_SOURCE)
-	$(COMPILE) -lm $(wrapper_SOURCE) -o $(BIN)/wrapper
+	$(COMPILE) -pthread -lm $(wrapper_SOURCE) -o $(BIN)/wrapper
 
 libwrapper.so: $(libwrapper_so_OBJECTS)
 	${COMPILE} -shared $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
