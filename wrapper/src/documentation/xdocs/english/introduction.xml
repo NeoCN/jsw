@@ -305,6 +305,7 @@
                 <para>
                     <literal moreinfo="none">linux</literal> - Linux kernels; 2.2.x 2.4.x, 2.6.x.
                     Known to work with Debian and Red Hat, but should work with any distribution.
+                    Currently supported on both 32 and 64-bit x86, and 64-bit ppc systems.
                 </para>
             </listitem>
             <listitem>
@@ -320,6 +321,7 @@
             <listitem>
                 <para>
                     <literal moreinfo="none">solaris</literal> - Sun OS, Solaris 7, 8, 9 and 10.
+                    Currently supported on both 32 and 64-bit sparc, and 32-bit x86 systems.
                 </para>
             </listitem>
             <listitem>
