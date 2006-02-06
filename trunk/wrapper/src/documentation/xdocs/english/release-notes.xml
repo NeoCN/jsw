@@ -518,6 +518,13 @@ $Id$
                     Add support for Linux 64-bit PPC and Solaris 32-bit x86 versions.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add a new set.default.ENV syntax to the configuration file making it
+                    possible to environment variable values which do not overwrite existing
+                    values, ie. to specify a default value.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">

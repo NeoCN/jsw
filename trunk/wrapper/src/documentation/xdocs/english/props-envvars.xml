@@ -82,12 +82,22 @@
             </para>
             <para>
                 Environment variables are defined by using special property names which
-                begin with <literal moreinfo="none">"set."</literal> followed by the name
+                begin with <literal moreinfo="none">"set."</literal> or
+                <literal moreinfo="none">"set.default."</literal> followed by the name
                 of the environment variable.  The value of the property will be the value
                 of the new environment variable.
             </para>
             <informalexample>
                 <screen format="linespecific"><![CDATA[set.EXTERN_APP=C:/ExternAppHome]]></screen>
+            </informalexample>
+            <para>
+                If the <literal moreinfo="none">"set.default."</literal> syntax is used,
+                the environment variable will only be set if it does not yet exist.
+                This can be useful for defining a series of default environment variable
+                values.
+            </para>
+            <informalexample>
+                <screen format="linespecific"><![CDATA[set.default.EXTERN_APP=C:/ExternAppHome]]></screen>
             </informalexample>
             <para>
                 The ability to define environment variables make it possible to easily

@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.38  2006/02/06 02:51:21  mortenson
+ * Add a new set.default.ENV syntax to the configuration file making it
+ * possible to environment variable values which do not overwrite existing
+ * values, ie. to specify a default value.
+ *
  * Revision 1.37  2006/02/02 07:38:14  mortenson
  * Fix a compiler error on linux powerpc systems caused by the unsigned char
  * definition.
@@ -725,12 +730,30 @@ void addProperty(Properties *properties, const char *propertyName, const char *p
         property->quotable = quotable;
 
         /* See if this is a special property */
-        if ((strlen(propertyNameTrim) > 4) && (strstr(propertyNameTrim, "set.") == propertyNameTrim)) {
+        if ((strlen(propertyNameTrim) > 12) && (strstr(propertyNameTrim, "set.default.") == propertyNameTrim)) {
+            /* This property is an environment variable definition that should only
+             *  be set if the environment variable does not already exist.  Get the
+             *  value back out of the property as it may have had environment
+             *  replacements. */
+            if (getenv(propertyNameTrim + 12) == NULL) {
+#ifdef _DEBUG
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "set default env('%s', '%s')",
+                    propertyNameTrim + 12, property->value);
+#endif
+                setEnv(propertyNameTrim + 12, property->value);
+            } else {
+#ifdef _DEBUG
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    "not setting default env('%s', '%s'), already set to '%s'",
+                    propertyNameTrim + 12, property->value, getenv(propertyNameTrim + 12));
+#endif
+            }
+        } else if ((strlen(propertyNameTrim) > 4) && (strstr(propertyNameTrim, "set.") == propertyNameTrim)) {
             /* This property is an environment variable definition.  Get the
              *  value back out of the property as it may have had environment
              *  replacements. */
 #ifdef _DEBUG
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "setEnv('%s', '%s')",
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "set env('%s', '%s')",
                 propertyNameTrim + 4, property->value);
 #endif
             setEnv(propertyNameTrim + 4, property->value);

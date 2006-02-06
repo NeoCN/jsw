@@ -219,6 +219,9 @@ Java Service Wrapper Revision History.
 * Add support for the GNU libjcj JVM.  Like JRocket, it requires slightly
   different thread counting.
 * Add support for Linux 64-bit PPC and Solaris 32-bit x86 versions.
+* Add a new set.default.ENV syntax to the configuration file making it
+  possible to environment variable values which do not overwrite existing
+  values, ie. to specify a default value.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
