@@ -193,10 +193,6 @@ else
     fi
 fi
  
-echo "Temporary - Long32: $WRAPPER_LONG32_CMD"
-echo "Temporary - Long64: $WRAPPER_LONG64_CMD"
-echo "Temporary - Use:    $WRAPPER_CMD"
-
 # Build the nice clause
 if [ "X$PRIORITY" = "X" ]
 then
@@ -414,33 +410,33 @@ dump() {
 case "$1" in
 
     'console')
-        checkUser
+        checkUser $1
         console
         ;;
 
     'start')
-        checkUser
+        checkUser $1
         start
         ;;
 
     'stop')
-        checkUser
+        checkUser $1
         stopit
         ;;
 
     'restart')
-        checkUser
+        checkUser $1
         stopit
         start
         ;;
 
     'status')
-        checkUser
+        checkUser $1
         status
         ;;
 
     'dump')
-        checkUser
+        checkUser $1
         dump
         ;;
 
