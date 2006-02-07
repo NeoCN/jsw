@@ -59,25 +59,37 @@ case $0 in
         ;;
 esac
 
-# Change spaces to ":" so the tokens can be parsed.
-SCRIPT=`echo $SCRIPT | sed -e 's; ;:;g'`
-# Get the real path to this script, resolving any symbolic links
-TOKENS=`echo $SCRIPT | sed -e 's;/; ;g'`
-REALPATH=
-for C in $TOKENS; do
-    REALPATH="$REALPATH/$C"
-    while [ -h "$REALPATH" ] ; do
-        LS="`ls -ld "$REALPATH"`"
-        LINK="`expr "$LS" : '.*-> \(.*\)$'`"
-        if expr "$LINK" : '/.*' > /dev/null; then
-            REALPATH="$LINK"
-        else
-            REALPATH="`dirname "$REALPATH"`""/$LINK"
-        fi
+# Resolve the true real path without any sym links.
+CHANGED=true
+while [ "X$CHANGED" != "X" ]
+do
+    # Change spaces to ":" so the tokens can be parsed.
+    SCRIPT=`echo $SCRIPT | sed -e 's; ;:;g'`
+    # Get the real path to this script, resolving any symbolic links
+    TOKENS=`echo $SCRIPT | sed -e 's;/; ;g'`
+    REALPATH=
+    for C in $TOKENS; do
+        REALPATH="$REALPATH/$C"
+        while [ -h "$REALPATH" ] ; do
+            LS="`ls -ld "$REALPATH"`"
+            LINK="`expr "$LS" : '.*-> \(.*\)$'`"
+            if expr "$LINK" : '/.*' > /dev/null; then
+                REALPATH="$LINK"
+            else
+                REALPATH="`dirname "$REALPATH"`""/$LINK"
+            fi
+        done
     done
+    # Change ":" chars back to spaces.
+    REALPATH=`echo $REALPATH | sed -e 's;:; ;g'`
+
+    if [ "$REALPATH" = "$SCRIPT" ]
+    then
+        CHANGED=""
+    else
+        SCRIPT="$REALPATH"
+    fi
 done
-# Change ":" chars back to spaces.
-REALPATH=`echo $REALPATH | sed -e 's;:; ;g'`
 
 # Change the current directory to the location of the script
 cd "`dirname "$REALPATH"`"
@@ -244,9 +256,43 @@ checkUser() {
     fi
     if [ "X$RUN_AS_USER" != "X" ]
     then
+        # If LOCKPROP and $RUN_AS_USER are defined then the new user will most likely not be
+        # able to create the lock file.  The Wrapper will be able to update this file once it
+        # is created but will not be able to delete it on shutdown.  If $2 is defined then
+        # the lock file should be created for the current command
+        if [ "X$LOCKPROP" != "X" ]
+        then
+            if [ "X$2" != "X" ]
+            then
+                # Resolve the primary group 
+                RUN_AS_GROUP=`groups $RUN_AS_USER | awk '{print $3}' | tail -1`
+                if [ "X$RUN_AS_GROUP" = "X" ]
+                then
+                    RUN_AS_GROUP=RUN_AS_USER
+                fi
+                touch $LOCKFILE
+                chown $RUN_AS_USER:$RUN_AS_GROUP $LOCKFILE
+            fi
+        fi
+
         # Still want to change users, recurse.  This means that the user will only be
         #  prompted for a password once.
         su -m $RUN_AS_USER -c "$REALPATH $1"
+
+        # Now that we are the original user again, we may need to clean up the lock file.
+        if [ "X$LOCKPROP" != "X" ]
+        then
+            getpid
+            if [ "X$pid" = "X" ]
+            then
+                # Wrapper is not running so make sure the lock file is deleted.
+                if [ -f $LOCKFILE ]
+                then
+                    rm $LOCKFILE
+                fi
+            fi
+        fi
+
         exit 0
     fi
 }
@@ -286,6 +332,7 @@ testpid() {
     then
         # Process is gone so remove the pid file.
         rm -f $PIDFILE
+        pid=""
     fi
 }
 
@@ -294,7 +341,8 @@ console() {
     getpid
     if [ "X$pid" = "X" ]
     then
-        exec $CMDNICE $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$PIDFILE $ANCHORPROP $LOCKPROP
+        COMMAND_LINE="$CMDNICE $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$PIDFILE $ANCHORPROP $LOCKPROP"
+        exec $COMMAND_LINE
     else
         echo "$APP_LONG_NAME is already running."
         exit 1
@@ -306,7 +354,8 @@ start() {
     getpid
     if [ "X$pid" = "X" ]
     then
-        exec $CMDNICE $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$PIDFILE wrapper.daemonize=TRUE $ANCHORPROP $IGNOREPROP $LOCKPROP
+        COMMAND_LINE="$CMDNICE $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$PIDFILE wrapper.daemonize=TRUE $ANCHORPROP $IGNOREPROP $LOCKPROP"
+        exec $COMMAND_LINE
     else
         echo "$APP_LONG_NAME is already running."
         exit 1
@@ -410,12 +459,12 @@ dump() {
 case "$1" in
 
     'console')
-        checkUser $1
+        checkUser $1 touchlock
         console
         ;;
 
     'start')
-        checkUser $1
+        checkUser $1 touchlock
         start
         ;;
 
@@ -425,7 +474,7 @@ case "$1" in
         ;;
 
     'restart')
-        checkUser $1
+        checkUser $1 touchlock
         stopit
         start
         ;;
