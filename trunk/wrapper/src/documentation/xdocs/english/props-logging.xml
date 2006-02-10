@@ -35,6 +35,9 @@
             <listproperty version="3.1.0">
                 <ulink url="prop-adviser.html">wrapper.adviser</ulink>
             </listproperty>
+            <listproperty version="3.2.0">
+                <ulink url="prop-console-flush.html">wrapper.console.flush</ulink>
+            </listproperty>
             <listproperty>
                 <ulink url="prop-console-format.html">wrapper.console.format</ulink>
             </listproperty>

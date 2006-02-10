@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.155  2006/02/10 14:27:11  mortenson
+ * Added a new wrapper.console.flush property which forces the wrapper to
+ * explicitly flush stdout after each line of log output.
+ *
  * Revision 1.154  2006/02/03 05:43:24  mortenson
  * Add comment about compiler warning for debug builds.
  *
@@ -1256,6 +1260,7 @@ int wrapperInitializeLogging() {
     setLogfileAutoClose(FALSE);
     setConsoleLogFormat("LPM");
     setConsoleLogLevelInt(LEVEL_DEBUG);
+    setConsoleFlush(FALSE);
     setSyslogLevelInt(LEVEL_NONE);
 
     return 0;
@@ -2553,6 +2558,9 @@ int loadConfiguration() {
 
     /* Load console log level */
     setConsoleLogLevel(getStringProperty(properties, "wrapper.console.loglevel", "INFO"));
+
+    /* Load the console flush flag. */
+    setConsoleFlush(getBooleanProperty(properties, "wrapper.console.flush", FALSE));
 
     /* Load syslog log level */
     setSyslogLevel(getStringProperty(properties, "wrapper.syslog.loglevel", "NONE"));

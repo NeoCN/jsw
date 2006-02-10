@@ -525,6 +525,13 @@ $Id$
                     values, ie. to specify a default value.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Added a new <ulink url="prop-console-flush.html">wrapper.console.flush</ulink>
+                    property which forces the wrapper to explicitly flush stdout after
+                    each line of log output.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
