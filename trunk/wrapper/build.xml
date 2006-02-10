@@ -69,6 +69,7 @@
         <condition property="dist.arch" value="ppc">
             <or>
                 <equals arg1="${os.arch}" arg2="ppc"/>
+                <equals arg1="${os.arch}" arg2="power"/>
                 <equals arg1="${os.arch}" arg2="Power"/>
                 <equals arg1="${os.arch}" arg2="PowerPC"/>
                 <equals arg1="${os.arch}" arg2="ppc64"/>
