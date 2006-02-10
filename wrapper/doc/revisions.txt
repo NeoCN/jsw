@@ -222,6 +222,8 @@ Java Service Wrapper Revision History.
 * Add a new set.default.ENV syntax to the configuration file making it
   possible to environment variable values which do not overwrite existing
   values, ie. to specify a default value.
+* Added a new wrapper.console.flush property which forces the wrapper to
+  explicitly flush stdout after each line of log output.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager

@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.63  2006/02/10 14:27:10  mortenson
+ * Added a new wrapper.console.flush property which forces the wrapper to
+ * explicitly flush stdout after each line of log output.
+ *
  * Revision 1.62  2006/02/03 05:37:29  mortenson
  * Fix a potential crash error if the format of any log target is blank.
  *
@@ -251,6 +255,9 @@ char logFileLastNowDate[9];
 /* Defualt formats (Must be 4 chars) */
 char consoleFormat[32];
 char logfileFormat[32];
+
+/* Flag to keep track of whether the console output should be flushed or not. */
+int consoleFlush = FALSE;
 
 /* Internal function declaration */
 void sendEventlogMessage( int source_id, int level, char *szBuff );
@@ -720,6 +727,11 @@ void setConsoleLogLevel( const char *console_log_level ) {
     setConsoleLogLevelInt(getLogLevelForName(console_log_level));
 }
 
+void setConsoleFlush( int flush ) {
+    consoleFlush = flush;
+}
+
+
 /* Syslog/eventlog functions */
 void setSyslogLevelInt( int loginfo_level ) {
     currentLoginfoLevel = loginfo_level;
@@ -1019,6 +1031,9 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
         } else {
 #endif
             fprintf( stdout, "%s\n", printBuffer );
+            if ( consoleFlush ) {
+                fflush( stdout );
+            }
 #ifdef WIN32
         }
 #endif

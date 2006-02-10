@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.27  2006/02/10 14:27:10  mortenson
+ * Added a new wrapper.console.flush property which forces the wrapper to
+ * explicitly flush stdout after each line of log output.
+ *
  * Revision 1.26  2006/01/11 16:13:11  mortenson
  * Add support for log file roll modes.
  *
@@ -225,6 +229,7 @@ extern void setConsoleLogFormat( const char *console_log_format );
 extern void setConsoleLogLevelInt( int console_log_level );
 extern int getConsoleLogLevelInt();
 extern void setConsoleLogLevel( const char *console_log_level );
+extern void setConsoleFlush( int flush );
 
 /* * Syslog/eventlog functions * */
 extern void setSyslogLevelInt( int loginfo_level );
