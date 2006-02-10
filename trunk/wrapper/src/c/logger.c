@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.64  2006/02/10 14:40:48  mortenson
+ * Fix a linux compiler error.
+ *
  * Revision 1.63  2006/02/10 14:27:10  mortenson
  * Added a new wrapper.console.flush property which forces the wrapper to
  * explicitly flush stdout after each line of log output.
@@ -232,6 +235,14 @@
 #endif
 
 #include "logger.h"
+
+#ifndef TRUE
+#define TRUE -1
+#endif
+
+#ifndef FALSE
+#define FALSE 0
+#endif
 
 /* Global data for logger */
 
