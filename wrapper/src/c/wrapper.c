@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.156  2006/02/14 15:43:22  mortenson
+ * Commit some changes by Andreas Wendt to get the OSF1 and Irix builds working.
+ *
  * Revision 1.155  2006/02/10 14:27:11  mortenson
  * Added a new wrapper.console.flush property which forces the wrapper to
  * explicitly flush stdout after each line of log output.
@@ -540,8 +543,11 @@
 #ifdef MACOSX
 #else
 #ifdef OSF1
+#define socklen_t int
 #else
 #ifdef IRIX
+#define socklen_t int
+#define PATH_MAX FILENAME_MAX
 #else
 #ifdef FREEBSD
 #include <sys/param.h>
