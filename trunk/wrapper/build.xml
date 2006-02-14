@@ -142,9 +142,6 @@
             </not>
         </condition>
         
-        <!-- Generate the release-file base. -->
-        <property name="releasefile" value="wrapper-${dist.os}-${dist.arch}-${bits}-${version}"/>
-        
         <!-- Java version. -->
         <condition property="javac.target.version" value="1.2">
             <or>
@@ -158,6 +155,11 @@
                 <equals arg1="${javac.target.version}" arg2="1.2"/>
             </not>
         </condition>
+        <condition property="src.java.missing" value="true">
+            <not>
+                <available file="${src.dir}/java"/>
+            </not>
+        </condition>
         
         <!-- Not all JVMs support the sun.arch.data.model property.  Default to 32-bit. -->
         <property name="sun.arch.data.model" value="32"/>
@@ -166,6 +168,15 @@
                 <equals arg1="${sun.arch.data.model}" arg2="${bits}"/>
             </not>
         </condition>
+
+        <condition property="pre-release.disable" value="true">
+            <not>
+                <equals arg1="${javac.target.version}" arg2="1.2"/>
+            </not>
+        </condition>
+        
+        <!-- Generate the release-file base. -->
+        <property name="releasefile" value="wrapper-${dist.os}-${dist.arch}-${bits}-${version}"/>
     </target>
     <target name="init-windows" depends="init-setup" if="is.windows">
         <!-- Decide on the type of script to generate. -->
@@ -303,7 +314,15 @@
         <echo message="compatible with older JVMs."/>
         <echo message="**********************************************************************"/>
     </target>
-    <target name="compile-java" depends="compile-java-warn">
+    <target name="compile-java-missing" depends="update-info" if="src.java.missing">
+        <echo message="**********************************************************************"/>
+        <echo message="The src/java directory could not be found.  Most likely this is a"/>
+        <echo message="pre-release distribution.  Please run &quot;build${bits} release&quot; to"/>
+        <echo message="the full release."/>
+        <echo message="**********************************************************************"/>
+        <fail message="The src/java directory could not be found."/>
+    </target>
+    <target name="compile-java" depends="compile-java-warn, compile-java-missing">
         <mkdir dir="${build.dir}"/>
         <mkdir dir="${build.classes}"/>
         <mkdir dir="${build.testclasses}"/>
@@ -818,7 +837,17 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
     <!-- =================================================================== -->
     <!-- Pre Release                                                         -->
     <!-- =================================================================== -->
-    <target name="pre-release" depends="release-common"
+    <target name="pre-release:disabled" depends="init" if="pre-release.disable">
+        <echo/>
+        <echo>**********************************************************</echo>
+        <echo>* Pre-release distributions can only be generated using  *</echo>
+        <echo>* Java 1.3 JVMs to guarantee that the resulting jars     *</echo>
+        <echo>* will run on all platforms.                             *</echo>
+        <echo>* This is a ${java.specification.version} JVM.                                     *</echo>
+        <echo>**********************************************************</echo>
+        <fail message="Invalid JVM version for pre-release build."/>
+    </target>
+    <target name="pre-release" depends="pre-release:disabled, release-common"
         description="Builds an intermediate release file that can then be deployed to individual platforms to complete the platform specific releases.">
         <property name="intermfile" value="wrapper_prerelease_${version}"/>
         <property name="intermdir" value="${build.dir}/${intermfile}"/>
@@ -1174,7 +1203,20 @@ original tar distribution due to a lack of support for long path names in some t
         </exec>
     </target>
     <target name="clean" depends="clean-unix" description="Clean up any files from the build">
-        <delete dir="${build.dir}"/>
+        <condition property="clean.excludes" value="build/pre-release">
+            <isset property="src.java.missing"/>
+        </condition>
+        <property name="clean.excludes" value=""/>
+
+        <!-- We don't want to delete the build/pre-release file for prerelease distributions. -->
+        <delete includeEmptyDirs="true">
+            <fileset dir="${basedir}">
+                <include name="build/**/*"/>
+                <include name="build"/>
+                <exclude name="${clean.excludes}"/>
+            </fileset>
+        </delete>
+
         <delete dir="${src.dir}/c/Debug32"/>
         <delete dir="${src.dir}/c/Release32"/>
         <delete dir="${src.dir}/c/WrapperJNI___Win32_Debug32"/>
