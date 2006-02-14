@@ -276,11 +276,19 @@
         <echo message="The distribution name will be: ${releasefile}"/>
         <echo message="**********************************************************************"/>
     </target>
+    <target name="init:java-missing" depends="init" if="src.java.missing">
+        <echo message="**********************************************************************"/>
+        <echo message="The src/java directory could not be found.  Most likely this is a"/>
+        <echo message="pre-release distribution.  Please run &quot;build${bits} release&quot; to build"/>
+        <echo message="the full release."/>
+        <echo message="**********************************************************************"/>
+        <fail message="The src/java directory could not be found."/>
+    </target>
     
     <!-- =================================================================== -->
     <!-- Converts natively encoded src files to ascii                        -->
     <!-- =================================================================== -->
-    <target name="convert" depends="init:msg">
+    <target name="convert" depends="init:msg, init:java-missing">
         <native2ascii src="${src.dir}/java"
                       dest="${src.dir}/java"
                       encoding="JISAutoDetect"
@@ -314,15 +322,7 @@
         <echo message="compatible with older JVMs."/>
         <echo message="**********************************************************************"/>
     </target>
-    <target name="compile-java-missing" depends="update-info" if="src.java.missing">
-        <echo message="**********************************************************************"/>
-        <echo message="The src/java directory could not be found.  Most likely this is a"/>
-        <echo message="pre-release distribution.  Please run &quot;build${bits} release&quot; to"/>
-        <echo message="the full release."/>
-        <echo message="**********************************************************************"/>
-        <fail message="The src/java directory could not be found."/>
-    </target>
-    <target name="compile-java" depends="compile-java-warn, compile-java-missing">
+    <target name="compile-java" depends="compile-java-warn">
         <mkdir dir="${build.dir}"/>
         <mkdir dir="${build.classes}"/>
         <mkdir dir="${build.testclasses}"/>
