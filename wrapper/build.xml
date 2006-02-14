@@ -706,7 +706,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                 <include name="src/c/*.c.in" />
                 <exclude name="src/c/wrapperinfo.c" />
                 <include name="src/c/*.h" />
-                <include name="src/c/Makefile.*" />
+                <include name="src/c/Makefile-*" />
                 <include name="src/c/*.mak" />
                 <exclude name="src/c/WrapperJNI.mak" />
                 <include name="src/c/*.mak.in" />
@@ -734,7 +734,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <fixcrlf srcdir="${releasesrcdir}" includes="build64.sh" eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="tools/bin/ant" eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="tools/bin/antRun" eol="lf" />
-        <fixcrlf srcdir="${releasesrcdir}" includes="**/Makefile.*" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="**/Makefile-*" eol="lf" />
         
         
         <!-- Make src builds for Windows -->
@@ -868,7 +868,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <fixcrlf srcdir="${intermdir}" includes="build64.sh" eol="lf" />
         <fixcrlf srcdir="${intermdir}" includes="tools/bin/ant" eol="lf" />
         <fixcrlf srcdir="${intermdir}" includes="tools/bin/antRun" eol="lf" />
-        <fixcrlf srcdir="${intermdir}" includes="**/Makefile.*" eol="lf" />
+        <fixcrlf srcdir="${intermdir}" includes="**/Makefile-*" eol="lf" />
         
         <!-- Create a marker in both the intermdir and the build dir so the release target
             can be run from the current source tree or from the intermdir tree. -->
