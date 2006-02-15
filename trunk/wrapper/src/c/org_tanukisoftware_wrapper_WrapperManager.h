@@ -131,6 +131,7 @@ extern "C" {
 /* Inaccessible static: m_jvmId */
 /* Inaccessible static: m_stopping */
 /* Inaccessible static: m_stoppingThread */
+/* Inaccessible static: m_exitCode */
 /* Inaccessible static: m_libraryOK */
 /* Inaccessible static: m_commandBuffer */
 /* Inaccessible static: m_properties */

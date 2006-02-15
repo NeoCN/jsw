@@ -538,6 +538,16 @@ $Id$
                     shutdown to a warning message.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where the Wrapper would show the following error message
+                    if user code called System.exit from within the WrapperListener.stop
+                    callback method.  This would happen if the stop class's main method
+                    registered with the WrapperStartStopApp called System.exit.
+                    "JVM exited unexpectedly while stopping the application."
+                    <ulink url="http://sourceforge.net/tracker/?func=detail&amp;aid=945976&amp;group_id=39428&amp;atid=425187">Bug #945976</ulink>.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">

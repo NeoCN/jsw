@@ -44,6 +44,11 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.29  2006/02/15 06:04:50  mortenson
+// Fix a problem where the Wrapper would show the following error message
+// if user code called System.exit from within the WrapperListener.stop
+// callback method.
+//
 // Revision 1.28  2005/10/13 05:52:16  mortenson
 // Implement the ability to catch control events using the WrapperEventLisener.
 //
@@ -228,6 +233,9 @@ public class Main
             
             buildCommand( gridBag, c, "StopAndReturn(0)", "stopandreturn0",
                 "Calls WrapperManager.stopAndReturn( 0 ) to shutdown the JVM and Wrapper with a success exit code." );
+            
+            buildCommand( gridBag, c, "Nested Exit(1)", "nestedexit1",
+                "Calls System.exit(1) within WrapperListener.stop(1) callback." );
             
             buildCommand( gridBag, c, "Halt", "halt",
                 "Calls Runtime.getRuntime().halt(0) to kill the JVM, the Wrapper will restart it." );
@@ -445,6 +453,12 @@ public class Main
                 m_frame.dispose();
             }
             m_frame = null;
+        }
+        
+        if ( isNestedExit() )
+        {
+            System.out.println( "calling System.exit(" + exitCode + ") within stop." );
+            System.exit( exitCode );
         }
         
         return exitCode;

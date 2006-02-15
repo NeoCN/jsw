@@ -226,6 +226,12 @@ Java Service Wrapper Revision History.
   explicitly flush stdout after each line of log output.
 * Change the error shown when the JVM shuts down prematurely during a
   shutdown to a warning message.
+* Fix a problem where the Wrapper would show the following error message
+  if user code called System.exit from within the WrapperListener.stop
+  callback method.  This would happen if the stop class's main method
+  registered with the WrapperStartStopApp called System.exit.
+  "JVM exited unexpectedly while stopping the application."
+  Bug #945976.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
