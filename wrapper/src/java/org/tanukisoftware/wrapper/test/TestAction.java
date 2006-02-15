@@ -44,6 +44,11 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.16  2006/02/15 06:04:50  mortenson
+// Fix a problem where the Wrapper would show the following error message
+// if user code called System.exit from within the WrapperListener.stop
+// callback method.
+//
 // Revision 1.15  2005/08/24 06:53:39  mortenson
 // Add stopAndReturn and restartAndReturn methods.
 //
@@ -140,6 +145,12 @@ public class TestAction
     public int stop(int exitCode) {
         System.out.println("stop(" + exitCode + ")");
         
+        if (isNestedExit())
+        {
+            System.out.println("calling System.exit(" + exitCode + ") within stop.");
+            System.exit(exitCode);
+        }
+        
         return exitCode;
     }
     
@@ -209,6 +220,7 @@ public class TestAction
         System.err.println( "  Actions which should cause the Wrapper to exit in an error state:" );
         System.err.println( "   stop1                    : Calls WrapperManager.stop(1)" );
         System.err.println( "   exit1                    : Calls System.exit(1)" );
+        System.err.println( "   nestedexit1              : Calls System.exit(1) within WrapperListener.stop(1) callback" );
         System.err.println( "   stopimmediate1           : Calls WrapperManager.stopImmediate(1)" );
         System.err.println( "  Actions which should cause the Wrapper to restart the JVM:" );
         System.err.println( "   access_violation         : Calls WrapperManager.accessViolation" );

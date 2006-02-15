@@ -44,6 +44,11 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.68  2006/02/15 06:04:51  mortenson
+// Fix a problem where the Wrapper would show the following error message
+// if user code called System.exit from within the WrapperListener.stop
+// callback method.
+//
 // Revision 1.67  2006/02/03 06:40:07  mortenson
 // Add support for Linux 64-bit PPC and Solaris 32-bit x86 versions.
 //
@@ -552,6 +557,7 @@ public final class WrapperManager
     private static int m_jvmId = 0;
     private static boolean m_stopping = false;
     private static Thread m_stoppingThread;
+    private static int m_exitCode;
     private static boolean m_libraryOK = false;
     private static byte[] m_commandBuffer = new byte[512];
     
@@ -3034,6 +3040,18 @@ public final class WrapperManager
                                     + ", continuing after 5 seconds." );
                             }
                         }
+                        
+                        // To keep the wrapper from showing a JVM exited unexpectedly message
+                        //  on shutdown, tell the wrapper that we are ready to stop.
+                        // If the WrapperListener.stop method is taking a long time, we will
+                        //  also get here.  In that case, the Wrapper will still wait for
+                        //  the configured exit timeout before killing the JVM process.
+                        // In theory, the shutdown process of an application will only call
+                        //  System.exit after the shutdown is complete so this should be Ok.
+                        // Use the exit code from the thread which initiated the call rather
+                        //  than this call as that one is the one we really want.
+                        signalStopped( m_exitCode );
+                        
                         return;
                     }
                 }
@@ -3047,6 +3065,7 @@ public final class WrapperManager
             m_out.println( "Thread, " + Thread.currentThread().getName()
                 + ", handling the shutdown process." );
         }
+        m_exitCode = exitCode;
         
         // Only stop the listener if the app has been started.
         int code = exitCode;

@@ -44,6 +44,11 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.17  2006/02/15 06:04:50  mortenson
+// Fix a problem where the Wrapper would show the following error message
+// if user code called System.exit from within the WrapperListener.stop
+// callback method.
+//
 // Revision 1.16  2005/12/22 06:26:53  mortenson
 // Change enum to en to avoid warnings when building under Java 1.5
 //
@@ -129,6 +134,8 @@ public abstract class AbstractActionApp
     private boolean m_users;
     private boolean m_groups;
     
+    private boolean m_nestedExit;
+    
     private long m_eventMask = 0xffffffffffffffffL;
     private String m_serviceName = "testWrapper";
     
@@ -196,6 +203,11 @@ public abstract class AbstractActionApp
     /*---------------------------------------------------------------
      * Methods
      *-------------------------------------------------------------*/
+    protected boolean isNestedExit()
+    {
+        return m_nestedExit;
+    }
+    
     protected void setEventMask( long eventMask )
     {
         m_eventMask = eventMask;
@@ -233,6 +245,12 @@ public abstract class AbstractActionApp
         else if ( action.equals( "exit1" ) )
         {
             System.exit( 1 );
+            
+        }
+        else if ( action.equals( "nestedexit1" ) )
+        {
+            m_nestedExit = true;
+            WrapperManager.stop( 1 );
             
         }
         else if ( action.equals( "stopimmediate0" ) )
