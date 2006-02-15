@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.30  2006/02/15 06:33:36  mortenson
+// Put content into a ScrollPane as the window was getting way too large.
+//
 // Revision 1.29  2006/02/15 06:04:50  mortenson
 // Fix a problem where the Wrapper would show the following error message
 // if user code called System.exit from within the WrapperListener.stop
@@ -152,6 +155,7 @@ import java.awt.GridBagLayout;
 import java.awt.Label;
 import java.awt.List;
 import java.awt.Panel;
+import java.awt.ScrollPane;
 import java.awt.TextField;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -203,78 +207,89 @@ public class Main
             super( "Wrapper Test Application" );
             
             init();
-            pack();
-            setResizable( false );
+            
+            setLocation( 10, 10 );
+            setSize( 750, 480 );
+            
+            setResizable( true );
         }
         
         private void init()
         {
             GridBagLayout gridBag = new GridBagLayout();
             GridBagConstraints c = new GridBagConstraints();
-            setLayout( gridBag );
             
-            buildCommand( gridBag, c, "Stop(0)", "stop0",
+            Panel panel = new Panel();
+            panel.setLayout( gridBag );
+            
+            ScrollPane scrollPane = new ScrollPane();
+            scrollPane.add( panel );
+            
+            setLayout( new BorderLayout() );
+            add( scrollPane, BorderLayout.CENTER );
+            
+            buildCommand( panel, gridBag, c, "Stop(0)", "stop0",
                 "Calls WrapperManager.stop( 0 ) to shutdown the JVM and Wrapper with a success exit code." );
             
-            buildCommand( gridBag, c, "Stop(1)", "stop1",
+            buildCommand( panel, gridBag, c, "Stop(1)", "stop1",
                 "Calls WrapperManager.stop( 1 ) to shutdown the JVM and Wrapper with a failure exir code." );
             
-            buildCommand( gridBag, c, "Exit(0)", "exit0",
+            buildCommand( panel, gridBag, c, "Exit(0)", "exit0",
                 "Calls System.exit( 0 ) to shutdown the JVM and Wrapper with a success exit code." );
             
-            buildCommand( gridBag, c, "Exit(1)", "exit1",
+            buildCommand( panel, gridBag, c, "Exit(1)", "exit1",
                 "Calls System.exit( 1 ) to shutdown the JVM and Wrapper with a failure exit code." );
             
-            buildCommand( gridBag, c, "StopImmediate(0)", "stopimmediate0",
+            buildCommand( panel, gridBag, c, "StopImmediate(0)", "stopimmediate0",
                 "Calls WrapperManager.stopImmediate( 0 ) to immediately shutdown the JVM and Wrapper with a success exit code." );
             
-            buildCommand( gridBag, c, "StopImmediate(1)", "stopimmediate1",
+            buildCommand( panel, gridBag, c, "StopImmediate(1)", "stopimmediate1",
                 "Calls WrapperManager.stopImmediate( 1 ) to immediately shutdown the JVM and Wrapper with a failure exir code." );
             
-            buildCommand( gridBag, c, "StopAndReturn(0)", "stopandreturn0",
+            buildCommand( panel, gridBag, c, "StopAndReturn(0)", "stopandreturn0",
                 "Calls WrapperManager.stopAndReturn( 0 ) to shutdown the JVM and Wrapper with a success exit code." );
             
-            buildCommand( gridBag, c, "Nested Exit(1)", "nestedexit1",
+            buildCommand( panel, gridBag, c, "Nested Exit(1)", "nestedexit1",
                 "Calls System.exit(1) within WrapperListener.stop(1) callback." );
             
-            buildCommand( gridBag, c, "Halt", "halt",
+            buildCommand( panel, gridBag, c, "Halt", "halt",
                 "Calls Runtime.getRuntime().halt(0) to kill the JVM, the Wrapper will restart it." );
             
-            buildCommand( gridBag, c, "Restart()", "restart",
+            buildCommand( panel, gridBag, c, "Restart()", "restart",
                 "Calls WrapperManager.restart() to shutdown the current JVM and start a new one." );
             
-            buildCommand( gridBag, c, "RestartAndReturn()", "restartandreturn",
+            buildCommand( panel, gridBag, c, "RestartAndReturn()", "restartandreturn",
                 "Calls WrapperManager.restartAndReturn() to shutdown the current JVM and start a new one." );
             
-            buildCommand( gridBag, c, "Access Violation", "access_violation",
+            buildCommand( panel, gridBag, c, "Access Violation", "access_violation",
                 "Attempts to cause an access violation within the JVM, relies on a JVM bug and may not work." );
             
-            buildCommand( gridBag, c, "Native Access Violation", "access_violation_native",
+            buildCommand( panel, gridBag, c, "Native Access Violation", "access_violation_native",
                 "Causes an access violation using native code, the JVM will crash and be restarted." );
             
-            buildCommand( gridBag, c, "Simulate JVM Hang", "appear_hung",
+            buildCommand( panel, gridBag, c, "Simulate JVM Hang", "appear_hung",
                 "Makes the JVM appear to be hung as viewed from the Wrapper, it will be killed and restarted." );
             
-            buildCommand( gridBag, c, "Request Thread Dump", "dump",
+            buildCommand( panel, gridBag, c, "Request Thread Dump", "dump",
                 "Calls WrapperManager.requestThreadDump() to cause the JVM to dump its current thread state." );
             
-            buildCommand( gridBag, c, "System.out Deadlock", "deadlock_out",
+            buildCommand( panel, gridBag, c, "System.out Deadlock", "deadlock_out",
                 "Simulates a failure mode where the System.out object has become deadlocked." );
             
-            buildCommand( gridBag, c, "Poll Users", "users",
+            buildCommand( panel, gridBag, c, "Poll Users", "users",
                 "Begins calling WrapperManager.getUser() and getInteractiveUser() to monitor the current and interactive users." );
             
-            buildCommand( gridBag, c, "Poll Users with Groups", "groups",
+            buildCommand( panel, gridBag, c, "Poll Users with Groups", "groups",
                 "Same as above, but includes information about the user's groups." );
             
-            buildCommand( gridBag, c, "Console", "console", "Prompt for Actions in the console." );
+            buildCommand( panel, gridBag, c, "Console", "console", "Prompt for Actions in the console." );
             
-            buildCommand( gridBag, c, "Idle", "idle", "Run idly." );
+            buildCommand( panel, gridBag, c, "Idle", "idle", "Run idly." );
             
-            buildCommand( gridBag, c, "Dump Properties", "properties",
+            buildCommand( panel, gridBag, c, "Dump Properties", "properties",
                 "Dumps all System Properties to the console." );
             
-            buildCommand( gridBag, c, "Dump Configuration", "configuration",
+            buildCommand( panel, gridBag, c, "Dump Configuration", "configuration",
                 "Dumps all Wrapper Configuration Properties to the console." );
             
             
@@ -293,9 +308,9 @@ public class Main
             flagPanel2.setLayout( new BorderLayout() );
             flagPanel2.add( flagPanel, BorderLayout.WEST );
             
-            buildCommand( gridBag, c, "Update Event Listener", "listener", flagPanel2 );
+            buildCommand( panel, gridBag, c, "Update Event Listener", "listener", flagPanel2 );
             
-            buildCommand( gridBag, c, "Service List", "service_list", "Displays a list of registered services on Windows." );
+            buildCommand( panel, gridBag, c, "Service List", "service_list", "Displays a list of registered services on Windows." );
             
             m_serviceName = new TextField( "testwrapper" );
             
@@ -308,16 +323,17 @@ public class Main
             servicePanel2.setLayout( new BorderLayout() );
             servicePanel2.add( servicePanel, BorderLayout.WEST );
             
-            buildCommand( gridBag, c, "Service Interrogate", "service_interrogate", servicePanel2 );
+            buildCommand( panel, gridBag, c, "Service Interrogate", "service_interrogate", servicePanel2 );
             
-            buildCommand( gridBag, c, "Service Start", "service_start", "Starts the above service." );
+            buildCommand( panel, gridBag, c, "Service Start", "service_start", "Starts the above service." );
             
-            buildCommand( gridBag, c, "Service Stop", "service_stop", "Stops the above service." );
+            buildCommand( panel, gridBag, c, "Service Stop", "service_stop", "Stops the above service." );
             
-            buildCommand( gridBag, c, "Service User Code", "service_user", "Sends a series of user codes to the above service." );
+            buildCommand( panel, gridBag, c, "Service User Code", "service_user", "Sends a series of user codes to the above service." );
         }
         
-        private void buildCommand( GridBagLayout gridBag,
+        private void buildCommand( Container container,
+                                   GridBagLayout gridBag,
                                    GridBagConstraints c,
                                    String label,
                                    String command,
@@ -329,7 +345,7 @@ public class Main
             c.fill = GridBagConstraints.BOTH;
             c.gridwidth = 1;
             gridBag.setConstraints( button, c );
-            add( button );
+            container.add( button );
             button.addActionListener(this);
             
             c.gridwidth = GridBagConstraints.REMAINDER;
@@ -348,7 +364,7 @@ public class Main
             }
             
             gridBag.setConstraints( desc, c );
-            add( desc );
+            container.add( desc );
         }
         
         public void actionPerformed( ActionEvent event )
