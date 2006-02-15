@@ -224,6 +224,8 @@ Java Service Wrapper Revision History.
   values, ie. to specify a default value.
 * Added a new wrapper.console.flush property which forces the wrapper to
   explicitly flush stdout after each line of log output.
+* Change the error shown when the JVM shuts down prematurely during a
+  shutdown to a warning message.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager

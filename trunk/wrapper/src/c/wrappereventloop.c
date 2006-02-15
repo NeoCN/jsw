@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.29  2006/02/15 05:34:52  mortenson
+ * Change the error shown when the JVM shuts down prematurely during a
+ * shutdown to a warning message.
+ *
  * Revision 1.28  2006/01/11 16:13:11  mortenson
  * Add support for log file roll modes.
  *
@@ -1124,7 +1128,7 @@ void jStateStopping(DWORD nowTicks, int nextSleep) {
     if (nextSleep && (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone. */
         wrapperSetJavaState(WRAPPER_JSTATE_DOWN, nowTicks, -1);
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                    "JVM exited unexpectedly while stopping the application.");
         wrapperProtocolClose();
     } else {

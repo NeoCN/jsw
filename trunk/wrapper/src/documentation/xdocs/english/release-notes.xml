@@ -532,6 +532,12 @@ $Id$
                     each line of log output.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Change the error shown when the JVM shuts down prematurely during a
+                    shutdown to a warning message.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
