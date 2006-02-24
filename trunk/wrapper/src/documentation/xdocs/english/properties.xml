@@ -327,6 +327,9 @@
                 <listproperty version="2.2.8">
                     <ulink url="prop-successful-invocation-time.html">wrapper.successful_invocation_time</ulink>
                 </listproperty>
+                <listproperty version="3.2.0">
+                    <ulink url="prop-syslog-ident.html">wrapper.syslog.ident</ulink>
+                </listproperty>
                 <listproperty version="2.2.5">
                     <ulink url="prop-syslog-loglevel.html">wrapper.syslog.loglevel</ulink>
                 </listproperty>
