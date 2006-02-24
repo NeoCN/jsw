@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2005 Tanuki Software Inc.
+ * Copyright (c) 1999, 2006 Tanuki Software Inc.
  * 
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of the Java Service Wrapper and associated
@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.28  2006/02/24 05:43:36  mortenson
+ * Update the copyright.
+ *
  * Revision 1.27  2006/02/10 14:27:10  mortenson
  * Added a new wrapper.console.flush property which forces the wrapper to
  * explicitly flush stdout after each line of log output.

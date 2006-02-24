@@ -1,7 +1,7 @@
 package com.silveregg.wrapper;
 
 /*
- * Copyright (c) 1999, 2005 Tanuki Software Inc.
+ * Copyright (c) 1999, 2006 Tanuki Software Inc.
  * 
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of the Java Service Wrapper and associated
@@ -44,6 +44,9 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.6  2006/02/24 05:45:57  mortenson
+// Update the copyright.
+//
 // Revision 1.5  2005/05/23 02:38:19  mortenson
 // Update the copyright information.
 //

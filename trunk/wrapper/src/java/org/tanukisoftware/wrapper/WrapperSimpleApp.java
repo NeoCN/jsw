@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper;
 
 /*
- * Copyright (c) 1999, 2005 Tanuki Software Inc.
+ * Copyright (c) 1999, 2006 Tanuki Software Inc.
  * 
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of the Java Service Wrapper and associated
@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.11  2006/02/24 05:45:57  mortenson
+// Update the copyright.
+//
 // Revision 1.10  2006/01/07 02:39:27  mortenson
 // Fix a problem with the WrapperSimpleApp and WrapperStartStopApp helper
 // classes where on heavily loaded systems it was possible for the Wrapper

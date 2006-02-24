@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2005 Tanuki Software Inc.
+ * Copyright (c) 1999, 2006 Tanuki Software Inc.
  * 
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of the Java Service Wrapper and associated
@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.117  2006/02/24 05:43:36  mortenson
+ * Update the copyright.
+ *
  * Revision 1.116  2006/01/11 16:13:11  mortenson
  * Add support for log file roll modes.
  *

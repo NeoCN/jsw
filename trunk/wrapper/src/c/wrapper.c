@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2005 Tanuki Software Inc.
+ * Copyright (c) 1999, 2006 Tanuki Software Inc.
  * 
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of the Java Service Wrapper and associated
@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.158  2006/02/24 05:43:36  mortenson
+ * Update the copyright.
+ *
  * Revision 1.157  2006/02/24 03:25:01  mortenson
  * Add a new wrapper.syslog.ident property which makes it possible to
  * specify the identity used in syslog entries on UNIX.

@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper.security;
 
 /*
- * Copyright (c) 1999, 2005 Tanuki Software Inc.
+ * Copyright (c) 1999, 2006 Tanuki Software Inc.
  * 
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of the Java Service Wrapper and associated
@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.security;
  */
 
 // $Log$
+// Revision 1.2  2006/02/24 05:45:58  mortenson
+// Update the copyright.
+//
 // Revision 1.1  2005/06/24 16:00:39  mortenson
 // Add a security model to protect the Wrapper and many of its calls when a
 // ServiceManager has been registered with the JVM.

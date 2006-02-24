@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper.resources;
 
 /*
- * Copyright (c) 1999, 2005 Tanuki Software Inc.
+ * Copyright (c) 1999, 2006 Tanuki Software Inc.
  * 
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of the Java Service Wrapper and associated
@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.resources;
  */
 
 // $Log$
+// Revision 1.7  2006/02/24 05:45:58  mortenson
+// Update the copyright.
+//
 // Revision 1.6  2006/02/03 05:39:04  mortenson
 // Remove support for image resources.  They are not used and cause problems
 // when run on non-sun JVMs
