@@ -31,6 +31,12 @@
             -->
         <donorlist>
             <donor>
+                <date>Feb 10, 2006</date>
+                <amount>50.00</amount>
+                <name>Gil Adam</name>
+                <message>Excellent quality software. I appreciate your efforts so much! Thank you!</message>
+            </donor>
+            <donor>
                 <date>Feb 2, 2006</date>
                 <amount>100.00</amount>
                 <name>Anonymous</name>
