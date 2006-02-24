@@ -321,7 +321,7 @@
             <listitem>
                 <para>
                     <literal moreinfo="none">solaris</literal> - Sun OS, Solaris 7, 8, 9 and 10.
-                    Currently supported on both 32 and 64-bit sparc, and 32-bit x86 systems.
+                    Currently supported on both 32 and 64-bit sparc, and x86 systems.
                 </para>
             </listitem>
             <listitem>
