@@ -43,6 +43,19 @@
         </para>
         <note>
             <para>
+                On Windows XP, it is possible for multiple users to be logged
+                in locally at the same time.   Windows services only have access
+                to the desktop of the first user.
+            </para>
+            <para>
+                Desktops created with the Remote Desktop tool do not appear to
+                ever be accessible by interactive services.  Other tools which
+                are actually mirroring the local desktop will have access as
+                Windows thinks it is rendering the local desktop.
+            </para>
+        </note>
+        <note>
+            <para>
                 This property must be set to FALSE if the
                 <ulink url="prop-ntservice-account.html">wrapper.ntservice.account</ulink>
                 property is also set.
