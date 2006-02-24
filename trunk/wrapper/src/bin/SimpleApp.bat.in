@@ -1,6 +1,6 @@
 @echo off
 
-rem Copyright (c) 1999, 2005 Tanuki Software Inc.
+rem Copyright (c) 1999, 2006 Tanuki Software Inc.
 
 set _WRAPPER_CONF="%~f1"
 if not %_WRAPPER_CONF%=="" goto startup
