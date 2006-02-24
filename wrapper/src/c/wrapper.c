@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.157  2006/02/24 03:25:01  mortenson
+ * Add a new wrapper.syslog.ident property which makes it possible to
+ * specify the identity used in syslog entries on UNIX.
+ *
  * Revision 1.156  2006/02/14 15:43:22  mortenson
  * Commit some changes by Andreas Wendt to get the OSF1 and Irix builds working.
  *
@@ -2572,7 +2576,11 @@ int loadConfiguration() {
     setSyslogLevel(getStringProperty(properties, "wrapper.syslog.loglevel", "NONE"));
 
     /* Load syslog event source name */
-    setSyslogEventSourceName(getStringProperty(properties, "wrapper.ntservice.name", "Wrapper"));
+#ifdef WIN32
+    setSyslogEventSourceName(getStringProperty(properties, "wrapper.ntservice.name", "wrapper"));
+#else
+    setSyslogEventSourceName(getStringProperty(properties, "wrapper.unix.name", getStringProperty(properties, "wrapper.ntservice.name", "wrapper")));
+#endif
 
     /* Register the syslog message file if syslog is enabled */
     if (getSyslogLevelInt() < LEVEL_NONE) {

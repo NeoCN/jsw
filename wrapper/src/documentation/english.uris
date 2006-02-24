@@ -106,6 +106,7 @@ english/prop-startup-delay.html
 english/prop-startup-timeout.html
 english/prop-statusfile.html
 english/prop-successful-invocation-time.html
+english/prop-syslog-ident.html
 english/prop-syslog-loglevel.html
 english/prop-thread-count-delay.html
 english/prop-umask.html

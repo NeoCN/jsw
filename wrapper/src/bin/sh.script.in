@@ -341,7 +341,7 @@ console() {
     getpid
     if [ "X$pid" = "X" ]
     then
-        COMMAND_LINE="$CMDNICE $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$PIDFILE $ANCHORPROP $LOCKPROP"
+        COMMAND_LINE="$CMDNICE $WRAPPER_CMD $WRAPPER_CONF wrapper.syslog.ident=$APP_NAME wrapper.pidfile=$PIDFILE $ANCHORPROP $LOCKPROP"
         exec $COMMAND_LINE
     else
         echo "$APP_LONG_NAME is already running."
@@ -354,7 +354,7 @@ start() {
     getpid
     if [ "X$pid" = "X" ]
     then
-        COMMAND_LINE="$CMDNICE $WRAPPER_CMD $WRAPPER_CONF wrapper.pidfile=$PIDFILE wrapper.daemonize=TRUE $ANCHORPROP $IGNOREPROP $LOCKPROP"
+        COMMAND_LINE="$CMDNICE $WRAPPER_CMD $WRAPPER_CONF wrapper.syslog.ident=$APP_NAME wrapper.pidfile=$PIDFILE wrapper.daemonize=TRUE $ANCHORPROP $IGNOREPROP $LOCKPROP"
         exec $COMMAND_LINE
     else
         echo "$APP_LONG_NAME is already running."

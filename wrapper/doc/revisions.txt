@@ -232,6 +232,10 @@ Java Service Wrapper Revision History.
   registered with the WrapperStartStopApp called System.exit.
   "JVM exited unexpectedly while stopping the application."
   Bug #945976.
+* Add a new wrapper.syslog.ident property which makes it possible to
+  specify the identity used in syslog entries on UNIX.  This was possible
+  in older versions but was set using the wrapper.ntservice.name property.
+  Bug #1432855.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
