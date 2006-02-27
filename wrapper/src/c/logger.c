@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.66  2006/02/27 02:51:38  mortenson
+ * Fix a problem where some of the new log wrapping features were not working
+ * correctly if the directory or current wrapper log file did not exist.
+ *
  * Revision 1.65  2006/02/24 05:43:36  mortenson
  * Update the copyright.
  *
@@ -1527,8 +1531,14 @@ void rollLogs() {
     
     /* Remove the file with the highest index if it exists */
     if (remove(workLogFileName)) {
-        printf("Unable to delete old log file: %s (%s)\n", workLogFileName, getLastErrorText());
-        fflush(NULL);
+        if (getLastError() == 2) {
+            /* The file did not exist. */
+        } else if (getLastError() == 3) {
+            /* The path did not exist. */
+        } else {
+            printf("Unable to delete old log file: %s (%s)\n", workLogFileName, getLastErrorText());
+            fflush(NULL);
+        }
     }
     
     /* Now, starting at the highest file rename them up by one index. */
@@ -1562,7 +1572,11 @@ void rollLogs() {
     /* Rename the current file to the #1 index position */
     generateLogFileName(currentLogFileName, logFilePath, NULL, NULL);
     if (rename(currentLogFileName, workLogFileName) != 0) {
-        if (errno == 13) {
+        if (getLastError() == 2) {
+            /* File does not yet exist. */
+        } else if (getLastError() == 3) {
+            /* Path does not yet exist. */
+        } else if (errno == 13) {
             /* Don't log this as with other errors as that would cause recursion. */
             printf("Unable to rename log file %s to %s.  File is in use by another application.\n",
                 currentLogFileName, workLogFileName);
@@ -1804,9 +1818,11 @@ void checkAndRollLogs(const char *nowDate) {
         } else {
             /* File is not open */
             if (stat(logFilePath, &fileStat) != 0) {
-                if ( getLastError() == 2 ) {
+                if (getLastError() == 2) {
                     /* File does not yet exist. */
                     position = 0;
+                } else if (getLastError() == 3) {
+                    /* Path does not exist. */
                 } else {
                     printf("Unable to get the current logfile size with stat: %s\n", getLastErrorText());
                     fflush(NULL);
