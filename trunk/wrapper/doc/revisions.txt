@@ -236,6 +236,9 @@ Java Service Wrapper Revision History.
   specify the identity used in syslog entries on UNIX.  This was possible
   in older versions but was set using the wrapper.ntservice.name property.
   Bug #1432855.
+* Add support for MacOSX Universal Binary distributions.
+* Add support for Delta Pack distributions.  This is a distribution that
+  contains the binaries of multiple platforms.
 
 3.1.2
 * Modify the way boolean system properties are resolved by the WrapperManager
