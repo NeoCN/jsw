@@ -979,6 +979,13 @@ original tar distribution due to a lack of support for long path names in some t
         
         <available property="pre-release.exists" value="true" file="${build.dir}/${intermmarker}"/>
         <available property="pre-release.jdocs" value="true" file="jdoc.tar.gz"/>
+
+        <condition property="delta-dirs.exists" value="true">
+            <and>
+                <available file="${basedir}/dist/delta-${version}/bin"/>
+                <available file="${basedir}/dist/delta-${version}/lib"/>
+            </and>
+        </condition>
     </target>
     <target name="pre-release:check" depends="pre-release:check-init" unless="pre-release.exists">
         <echo/>
@@ -1181,6 +1188,147 @@ original tar distribution due to a lack of support for long path names in some t
         <echo>*                                                        *</echo>
         <echo>* Release distribution:                                  *</echo>
         <echo>*   ${dist.dir}/${releasefile}.tar.gz</echo>
+        <echo>**********************************************************</echo>
+    </target>
+    
+    <!-- =================================================================== -->
+    <!-- Release (Unix)                                                      -->
+    <!-- =================================================================== -->
+    <target name="release-delta:check" depends="pre-release:check-init" unless="delta-dirs.exists">
+        <echo/>
+        <echo>**********************************************************</echo>
+        <echo>* You must first manually set up the dist/delta-${version}/bin</echo>
+        <echo>* and dist/delta-${version}/lib directories.</echo>
+        <echo>**********************************************************</echo>
+        <fail message="dist/delta-${version} directories not found."/>
+    </target>
+    <target name="release-delta" depends="pre-release:check, release-delta:check, pre-release:restore-jdocs">
+        <property name="deltareleasefile" value="wrapper-delta-pack-${version}"/>
+        <property name="releasedir" value="${build.dir}/${deltareleasefile}"/>
+        <delete dir="${releasedir}"/>
+        <mkdir dir="${releasedir}"/>
+        <mkdir dir="${releasedir}/bin"/>
+        
+        <antcall target="bin" inheritall="false">
+            <param name="bin.dir" value="${releasedir}/bin"/>
+            <param name="is.shell.bat" value="true"/>
+        </antcall>
+        <antcall target="bin" inheritall="false">
+            <param name="bin.dir" value="${releasedir}/bin"/>
+            <param name="is.shell.sh" value="true"/>
+        </antcall>
+
+        <copy todir="${releasedir}">
+            <fileset dir="${basedir}">
+                <include name="index.html"/>
+                <include name="bin/*.bat"/>
+                <include name="bin/${app.name}"/>
+                <include name="lib/wrapper.jar"/>
+                <include name="lib/wrappertest.jar"/>
+                <include name="logs"/>
+                <include name="src/bin/*.bat.in"/>
+                <include name="src/bin/sh.script.in"/>
+                <include name="src/conf/**"/>
+                <include name="jdoc/**"/>
+                <include name="doc/**"/>
+                <exclude name="**/CVS/*"/>
+            </fileset>
+        </copy>
+        <copy todir="${releasedir}">
+            <fileset dir="${dist.dir}/delta-${version}">
+                <include name="bin/wrapper-*"/>
+                <include name="lib/libwrapper-*"/>
+                <include name="lib/wrapper-*"/>
+            </fileset>
+        </copy>
+        <!-- Copy a fresh wrapper.conf rather than the development file -->
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${releasedir}/conf/wrapper.conf"
+              filtering="on"/>
+        <replace file="${releasedir}/conf/wrapper.conf">
+            <replacetoken># Wrapper Properties</replacetoken>
+            <replacevalue><![CDATA[# TestWrapper Properties
+#
+# NOTE - Please use src/conf/wrapper.conf.in as a template for your
+#        own application rather than the values used for the
+#        TestWrapper sample.]]></replacevalue>
+        </replace>
+        <replace file="${releasedir}/conf/wrapper.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Main" />
+        <replace file="${releasedir}/conf/wrapper.conf">
+            <replacetoken>wrapper.java.classpath.1=../lib/wrapper.jar</replacetoken>
+            <replacevalue><![CDATA[wrapper.java.classpath.1=../lib/wrappertest.jar
+wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
+        </replace>
+        <replace file="${releasedir}/conf/wrapper.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="#wrapper.app.parameter.1=" />
+        <!-- Need an empty log file so that the logs directory will be included -->
+        <mkdir dir="${releasedir}/logs"/>
+        <touch file="${releasedir}/logs/wrapper.log"/>
+        
+        <!-- Make sure that files are formatted correctly for their platforms -->
+        <fixcrlf srcdir="${releasedir}" includes="**/*.bat" eol="crlf" />
+        <fixcrlf srcdir="${releasedir}" includes="**/*.bat.in" eol="crlf" />
+        <fixcrlf srcdir="${releasedir}" includes="bin/${app.name}" eol="lf" />
+        <fixcrlf srcdir="${releasedir}" includes="**/*.script.in" eol="lf" />
+        
+        <!-- Create release targetted at windows users. -->
+        <fixcrlf srcdir="${releasedir}" includes="**/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.log" eol="crlf"/>
+        
+        <zip zipfile="${dist.dir}/${deltareleasefile}.zip"
+            basedir="${build.dir}"
+            compress="true">
+            <include name="${deltareleasefile}/**/*" />
+        </zip>
+        
+        <!-- Create release targetted at unix users. -->
+        <fixcrlf srcdir="${releasedir}" includes="**/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.log" eol="lf"/>
+        
+        <!-- For tar files, the javadocs are stored in a jdoc.tar file to avoid problems with
+             long file names and some tar implementations. -->
+        <tar tarfile="${releasedir}/jdoc.tar">
+            <tarfileset dir="${releasedir}">
+                <include name="jdoc/**"/>
+            </tarfileset>
+        </tar>
+        <gzip zipfile="${releasedir}/jdoc.tar.gz" src="${releasedir}/jdoc.tar" />
+        <delete file="${releasedir}/jdoc.tar"/>
+        <delete dir="${releasedir}/jdoc"/>
+        <!-- Create a dummy jdoc dir which directs the user to expand the actual javadocs. -->
+        <mkdir dir="${releasedir}/jdoc"/>
+        <echo file="${releasedir}/jdoc/index.html">&lt;html&gt;&lt;body&gt;
+The javadocs for this application are found in $WRAPPER_HOME/jdoc.tar.gz.  Please extract this
+archive into the $WRAPPER_HOME directory.&lt;p&gt;The javadocs could not be included directly in the
+original tar distribution due to a lack of support for long path names in some tar implementations.
+&lt;/body&gt;&lt;/html&gt;</echo>
+        <fixcrlf srcdir="${releasedir}/jdoc" eol="lf" />
+
+        <tar tarfile="${build.dir}/${deltareleasefile}.tar">
+            <tarfileset dir="${build.dir}" mode="755">
+                <include name="${deltareleasefile}/bin/wrapper-*"/>
+                <include name="${deltareleasefile}/bin/wrapper-windows-*"/>
+                <include name="${deltareleasefile}/bin/${app.name}"/>
+                <include name="${deltareleasefile}/lib/libwrapper-*"/>
+            </tarfileset>
+            <tarfileset dir="${build.dir}">
+                <include name="${deltareleasefile}/**"/>
+                <exclude name="${deltareleasefile}/bin/wrapper-*"/>
+                <include name="${deltareleasefile}/bin/wrapper-windows-*"/>
+                <exclude name="${deltareleasefile}/bin/${app.name}"/>
+                <exclude name="${deltareleasefile}/lib/libwrapper-*"/>
+            </tarfileset>
+        </tar>
+        <gzip zipfile="${dist.dir}/${deltareleasefile}.tar.gz" src="${build.dir}/${deltareleasefile}.tar" />
+        
+        <echo>**********************************************************</echo>
+        <echo>* A delta-pack release distribution has been created in  *</echo>
+        <echo>* the dist directory.                                    *</echo>
+        <echo>*                                                        *</echo>
+        <echo>* Release distributions:                                 *</echo>
+        <echo>*   ${dist.dir}/${deltareleasefile}.zip</echo>
+        <echo>*   ${dist.dir}/${deltareleasefile}.tar.gz</echo>
         <echo>**********************************************************</echo>
     </target>
     
