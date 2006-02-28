@@ -562,6 +562,12 @@ $Id$
                     Add support for MacOSX Universal Binary distributions.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add support for Delta Pack distributions.  This is a distribution that
+                    contains
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.1.2">
