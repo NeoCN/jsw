@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.70  2006/02/28 15:52:48  mortenson
+// Add support for MacOSX Universal Binary distributions.
+//
 // Revision 1.69  2006/02/24 05:45:57  mortenson
 // Update the copyright.
 //
@@ -1175,7 +1178,9 @@ public final class WrapperManager
      *
      * @return A detailed native library base name.
      */
-    private static String generateDetailedNativeLibraryBaseName( String baseName, int jvmBits )
+    private static String generateDetailedNativeLibraryBaseName( String baseName,
+                                                                 int jvmBits,
+                                                                 boolean universal )
     {
         // Generate an os name.  Most names are used as is, but some are modified.
         String os = System.getProperty( "os.name", "" ).toLowerCase();
@@ -1202,23 +1207,30 @@ public final class WrapperManager
         
         // Generate an architecture name.
         String arch = System.getProperty( "os.arch", "" ).toLowerCase();
-        if ( arch.equals( "amd64" ) || arch.equals( "ia32" ) || arch.equals( "ia64" ) ||
-            arch.equals( "x86_64" ) || arch.equals( "i686" ) || arch.equals( "i586" ) ||
-            arch.equals( "i486" ) || arch.equals( "i386" ) )
+        if ( universal )
         {
-            arch = "x86";
+            arch = "universal";
         }
-        else if ( arch.startsWith( "sparc" ) )
+        else
         {
-            arch = "sparc";
-        }
-        else if ( arch.equals( "power" ) || arch.equals( "powerpc" ) || arch.equals( "ppc64" ) )
-        {
-            arch = "ppc";
-        }
-        else if ( arch.equals( "pa_risc" ) || arch.equals( "pa-risc" ) )
-        {
-            arch = "parisc";
+            if ( arch.equals( "amd64" ) || arch.equals( "ia32" ) || arch.equals( "ia64" ) ||
+                arch.equals( "x86_64" ) || arch.equals( "i686" ) || arch.equals( "i586" ) ||
+                arch.equals( "i486" ) || arch.equals( "i386" ) )
+            {
+                arch = "x86";
+            }
+            else if ( arch.startsWith( "sparc" ) )
+            {
+                arch = "sparc";
+            }
+            else if ( arch.equals( "power" ) || arch.equals( "powerpc" ) || arch.equals( "ppc64" ) )
+            {
+                arch = "ppc";
+            }
+            else if ( arch.equals( "pa_risc" ) || arch.equals( "pa-risc" ) )
+            {
+                arch = "parisc";
+            }
         }
         
         return baseName + "-" + os + "-" + arch + "-" + jvmBits;
@@ -1230,33 +1242,10 @@ public final class WrapperManager
      */
     private static void initializeNativeLibrary()
     {
-        String libraryHead;
-        String libraryTail;
-        
-        // Look for the base name of the library.
-        String baseName = System.getProperty( "wrapper.native_library" );
-        if ( baseName == null )
-        {
-            // This should only happen if an old version of the Wrapper binary is being used.
-            m_out.println( "WARNING - The wrapper.native_library system property was not" );
-            m_out.println( "          set. Using the default value, 'wrapper'." );
-            baseName = "wrapper";
-        }
-        String detailedName1;
-        String detailedName2;
-        if ( m_jvmBits > 0 )
-        {
-            detailedName1 = generateDetailedNativeLibraryBaseName( baseName, m_jvmBits );
-            detailedName2 = null;
-        }
-        else
-        {
-            detailedName1 = generateDetailedNativeLibraryBaseName( baseName, 32 );
-            detailedName2 = generateDetailedNativeLibraryBaseName( baseName, 64 );
-        }
-        
         // Resolve the osname and osarch for the currect system.
         String osName = System.getProperty( "os.name" ).toLowerCase();
+        String libraryHead;
+        String libraryTail;
         if ( osName.startsWith( "windows" ) )
         {
             libraryHead = "";
@@ -1278,10 +1267,45 @@ public final class WrapperManager
             libraryTail = ".so";
         }
         
+        // Look for the base name of the library.
+        String baseName = System.getProperty( "wrapper.native_library" );
+        if ( baseName == null )
+        {
+            // This should only happen if an old version of the Wrapper binary is being used.
+            m_out.println( "WARNING - The wrapper.native_library system property was not" );
+            m_out.println( "          set. Using the default value, 'wrapper'." );
+            baseName = "wrapper";
+        }
+        String[] detailedNames = new String[4];
+        if ( m_jvmBits > 0 )
+        {
+            detailedNames[0] = generateDetailedNativeLibraryBaseName( baseName, m_jvmBits, false );
+            if ( osName.startsWith( "mac" ) )
+            {
+                detailedNames[1] = generateDetailedNativeLibraryBaseName( baseName, m_jvmBits, true );
+            }
+        }
+        else
+        {
+            detailedNames[0] = generateDetailedNativeLibraryBaseName( baseName, 32, false );
+            detailedNames[1] = generateDetailedNativeLibraryBaseName( baseName, 64, false );
+            if ( osName.startsWith( "mac" ) )
+            {
+                detailedNames[2] = generateDetailedNativeLibraryBaseName( baseName, 32, true );
+                detailedNames[3] = generateDetailedNativeLibraryBaseName( baseName, 64, true );
+            }
+        }
+        
         // Construct brief and detailed native library file names.
         String file = libraryHead + baseName + libraryTail;
-        String detailedFile1 = libraryHead + detailedName1 + libraryTail;
-        String detailedFile2 = libraryHead + detailedName2 + libraryTail;
+        String[] detailedFiles = new String[detailedNames.length];
+        for ( int i = 0; i < detailedNames.length; i++ )
+        {
+            if ( detailedNames[i] != null )
+            {
+                detailedFiles[i] = libraryHead + detailedNames[i] + libraryTail;
+            }
+        }
         
         // Try loading the native library using the detailed name first.  If that fails, use
         //  the brief name.
@@ -1290,12 +1314,24 @@ public final class WrapperManager
             m_out.println( "Load native library.  One or more attempts may fail if platform "
                 + "specific libraries do not exist." ); 
         }
-        if ( loadNativeLibrary( detailedName1, detailedFile1 ) ||
-            ( ( detailedName2 != null ) && loadNativeLibrary( detailedName2, detailedFile2 ) ) ||
-            loadNativeLibrary( baseName, file ) )
+        m_libraryOK = false;
+        for ( int i = 0; i < detailedNames.length; i++ )
+        {
+            if ( detailedNames[i] != null )
+            {
+                if ( loadNativeLibrary( detailedNames[i], detailedFiles[i] ) )
+                {
+                    m_libraryOK = true;
+                    break;
+                }
+            }
+        }
+        if ( ( !m_libraryOK ) && loadNativeLibrary( baseName, file ) )
         {
             m_libraryOK = true;
-            
+        }
+        if ( m_libraryOK )
+        {
             // The library was loaded correctly, so initialize it.
             if ( m_debug )
             {
@@ -1305,8 +1341,6 @@ public final class WrapperManager
         }
         else
         {
-            m_libraryOK = false;
-            
             // The library could not be loaded, so we want to give the user a useful
             //  clue as to why not.
             String libPath = System.getProperty( "java.library.path" );
@@ -1325,41 +1359,43 @@ public final class WrapperManager
             }
             else
             {
-                File libFile = locateFileOnPath( detailedFile1, libPath );
-                if ( libFile == null )
+                // Attempt to locate the actual files on the path.
+                File libFile = null;
+                for ( int i = 0; i < detailedNames.length; i++ )
                 {
-                    if ( detailedName2 != null )
+                    if ( detailedFiles[i] != null )
                     {
-                        libFile = locateFileOnPath( detailedFile2, libPath );
-                    }
-                    if ( libFile == null )
-                    {
-                        libFile = locateFileOnPath( file, libPath );
+                        libFile = locateFileOnPath( detailedFiles[i], libPath );
+                        if ( libFile != null )
+                        {
+                            break;
+                        }
                     }
                 }
                 if ( libFile == null )
                 {
+                    libFile = locateFileOnPath( file, libPath );
+                }
+                if ( libFile == null )
+                {
                     // The library could not be located on the library path.
-                    if ( detailedName2 == null )
+                    m_out.println(
+                        "WARNING - Unable to load the Wrapper's native library because none of the" );
+                    m_out.println(
+                        "          following files:" );
+                    for ( int i = 0; i < detailedNames.length; i++ )
                     {
-                        m_out.println(
-                            "WARNING - Unable to load the Wrapper's native library because neither the" );
-                        m_out.println(
-                            "          file '" + detailedFile1 + "' nor '" + file + "' could " );
-                        m_out.println(
-                            "          be located in the following java.library.path:" );
+                        if ( detailedFiles[i] != null )
+                        {
+                            m_out.println(
+                                "            " + detailedFiles[i] );
+                        }
                     }
-                    else
-                    {
-                        m_out.println(
-                            "WARNING - Unable to load the Wrapper's native library because none of the" );
-                        m_out.println(
-                            "          files '" + detailedFile1 + "', '" + detailedFile2 + "'," );
-                        m_out.println(
-                            "          nor '" + file + "' could be located in the following" );
-                        m_out.println(
-                            "          java.library.path:" );
-                    }
+                    m_out.println(
+                        "            " + file );
+                    m_out.println(
+                        "          could be located on the following java.library.path:" );
+                    
                     String pathSep = System.getProperty( "path.separator" );
                     StringTokenizer st = new StringTokenizer( libPath, pathSep );
                     while ( st.hasMoreTokens() )
