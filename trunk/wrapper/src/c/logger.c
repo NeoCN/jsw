@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.67  2006/02/28 16:01:46  mortenson
+ * Add support for MacOSX Universal Binary distributions.
+ *
  * Revision 1.66  2006/02/27 02:51:38  mortenson
  * Fix a problem where some of the new log wrapping features were not working
  * correctly if the directory or current wrapper log file did not exist.
@@ -1823,6 +1826,7 @@ void checkAndRollLogs(const char *nowDate) {
                     position = 0;
                 } else if (getLastError() == 3) {
                     /* Path does not exist. */
+                    position = 0;
                 } else {
                     printf("Unable to get the current logfile size with stat: %s\n", getLastErrorText());
                     fflush(NULL);

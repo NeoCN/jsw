@@ -53,6 +53,9 @@
     <!-- =================================================================== -->
     <target name="init-setup">
         <!-- Resolve an architecture to use in release names. -->
+        <condition property="dist.arch" value="universal">
+            <isset property="universal"/>
+        </condition>
         <condition property="dist.arch" value="x86">
             <or>
                 <equals arg1="${os.arch}" arg2="amd64"/>
