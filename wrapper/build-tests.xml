@@ -326,8 +326,8 @@ wrapper.java.additional.7.stripquotes=TRUE]]></replacevalue>
               tofile="${test.dir}/TestBackgroundThreads.bat"
               filtering="on"/>
         <replace file="${test.dir}/TestBackgroundThreads.bat"
-                 token='set _WRAPPER_EXE=%_REALPATH%wrapper.exe'
-                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\wrapper.exe' />
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
         <replace file="${test.dir}/TestBackgroundThreads.bat"
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\backgroundthreads.conf' />
@@ -338,8 +338,8 @@ wrapper.java.additional.7.stripquotes=TRUE]]></replacevalue>
               tofile="${test.dir}/TestLongRunningBackgroundThreads.bat"
               filtering="on"/>
         <replace file="${test.dir}/TestLongRunningBackgroundThreads.bat"
-                 token='set _WRAPPER_EXE=%_REALPATH%wrapper.exe'
-                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\wrapper.exe' />
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
         <replace file="${test.dir}/TestLongRunningBackgroundThreads.bat"
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\longrunningbackgroundthreads.conf' />
@@ -350,8 +350,8 @@ wrapper.java.additional.7.stripquotes=TRUE]]></replacevalue>
               tofile="${test.dir}/TestDaemonThreads.bat"
               filtering="on"/>
         <replace file="${test.dir}/TestDaemonThreads.bat"
-                 token='set _WRAPPER_EXE=%_REALPATH%wrapper.exe'
-                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\wrapper.exe' />
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
         <replace file="${test.dir}/TestDaemonThreads.bat"
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\daemonthreads.conf' />
@@ -362,8 +362,8 @@ wrapper.java.additional.7.stripquotes=TRUE]]></replacevalue>
               tofile="${test.dir}/TestNoReturn.bat"
               filtering="on"/>
         <replace file="${test.dir}/TestNoReturn.bat"
-                 token='set _WRAPPER_EXE=%_REALPATH%wrapper.exe'
-                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\wrapper.exe' />
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
         <replace file="${test.dir}/TestNoReturn.bat"
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\noreturn.conf' />
@@ -374,8 +374,8 @@ wrapper.java.additional.7.stripquotes=TRUE]]></replacevalue>
               tofile="${test.dir}/TestQuickComplete.bat"
               filtering="on"/>
         <replace file="${test.dir}/TestQuickComplete.bat"
-                 token='set _WRAPPER_EXE=%_REALPATH%wrapper.exe'
-                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\wrapper.exe' />
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
         <replace file="${test.dir}/TestQuickComplete.bat"
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\quickcomplete.conf' />
@@ -386,8 +386,8 @@ wrapper.java.additional.7.stripquotes=TRUE]]></replacevalue>
               tofile="${test.dir}/TestEnvironmentVariables.bat"
               filtering="on"/>
         <replace file="${test.dir}/TestEnvironmentVariables.bat"
-                 token='set _WRAPPER_EXE=%_REALPATH%wrapper.exe'
-                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\wrapper.exe' />
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
         <replace file="${test.dir}/TestEnvironmentVariables.bat"
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\envvars.conf' />
@@ -410,8 +410,8 @@ set ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/TestPercentOutput.bat"
               filtering="on"/>
         <replace file="${test.dir}/TestPercentOutput.bat"
-                 token='set _WRAPPER_EXE=%_REALPATH%wrapper.exe'
-                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\wrapper.exe' />
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
         <replace file="${test.dir}/TestPercentOutput.bat"
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\percentoutput.conf' />
@@ -422,8 +422,8 @@ set ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/TestLogOutput.bat"
               filtering="on"/>
         <replace file="${test.dir}/TestLogOutput.bat"
-                 token='set _WRAPPER_EXE=%_REALPATH%wrapper.exe'
-                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\wrapper.exe' />
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
         <replace file="${test.dir}/TestLogOutput.bat"
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\logoutput.conf' />
@@ -434,8 +434,8 @@ set ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/TestRestarter.bat"
               filtering="on"/>
         <replace file="${test.dir}/TestRestarter.bat"
-                 token='set _WRAPPER_EXE=%_REALPATH%wrapper.exe'
-                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\wrapper.exe' />
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
         <replace file="${test.dir}/TestRestarter.bat"
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\restarter.conf' />
@@ -446,8 +446,8 @@ set ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/TestAction.bat"
               filtering="on"/>
         <replace file="${test.dir}/TestAction.bat"
-                 token='set _WRAPPER_EXE=%_REALPATH%wrapper.exe'
-                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\wrapper.exe' />
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
         <replace file="${test.dir}/TestAction.bat"
                  token='set _WRAPPER_CONF="%~f1"'
                  value='set _WRAPPER_CONF=""' />
@@ -464,8 +464,8 @@ set ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/TestShutdownHook.bat"
               filtering="on"/>
         <replace file="${test.dir}/TestShutdownHook.bat"
-                 token='set _WRAPPER_EXE=%_REALPATH%wrapper.exe'
-                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\wrapper.exe' />
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
         <replace file="${test.dir}/TestShutdownHook.bat"
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\shutdownhook.conf' />
@@ -476,8 +476,8 @@ set ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/TestOutputLoader.bat"
               filtering="on"/>
         <replace file="${test.dir}/TestOutputLoader.bat"
-                 token='set _WRAPPER_EXE=%_REALPATH%wrapper.exe'
-                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\wrapper.exe' />
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
         <replace file="${test.dir}/TestOutputLoader.bat"
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\outputloader.conf' />
@@ -488,8 +488,8 @@ set ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/TestMemory.bat"
               filtering="on"/>
         <replace file="${test.dir}/TestMemory.bat"
-                 token='set _WRAPPER_EXE=%_REALPATH%wrapper.exe'
-                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\wrapper.exe' />
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
         <replace file="${test.dir}/TestMemory.bat"
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\memory.conf' />
@@ -500,8 +500,8 @@ set ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/TestFilter.bat"
               filtering="on"/>
         <replace file="${test.dir}/TestFilter.bat"
-                 token='set _WRAPPER_EXE=%_REALPATH%wrapper.exe'
-                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\wrapper.exe' />
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
         <replace file="${test.dir}/TestFilter.bat"
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\filter.conf' />
@@ -512,8 +512,8 @@ set ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/TestLoadedWrapperListener.bat"
               filtering="on"/>
         <replace file="${test.dir}/TestLoadedWrapperListener.bat"
-                 token='set _WRAPPER_EXE=%_REALPATH%wrapper.exe'
-                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\wrapper.exe' />
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
         <replace file="${test.dir}/TestLoadedWrapperListener.bat"
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\loadedwrapperlistener.conf' />
@@ -524,8 +524,8 @@ set ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/TestSystemProperty.bat"
               filtering="on"/>
         <replace file="${test.dir}/TestSystemProperty.bat"
-                 token='set _WRAPPER_EXE=%_REALPATH%wrapper.exe'
-                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\wrapper.exe' />
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
         <replace file="${test.dir}/TestSystemProperty.bat"
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\systemproperty.conf' />
