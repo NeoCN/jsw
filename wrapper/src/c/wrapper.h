@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.56.2.1  2006/03/08 04:39:50  mortenson
+ * Merge in a patch by Hugo Weber to make it possible to configure the Wrapper to
+ * pull the JRE from the system registry on windows.
+ *
  * Revision 1.56  2004/09/22 11:06:28  mortenson
  * Start using nanosleep in place of usleep on UNIX platforms to work around usleep
  * problems with alarm signals on Solaris.
@@ -384,6 +388,7 @@ void wrapperAddDefaultProperties();
 
 #ifdef WIN32
 extern char** wrapperGetSystemPath();
+extern int getJavaHomeFromWindowsRegistry(char *javaHome);
 #endif
 
 extern int wrapperCheckRestartTimeOK();
