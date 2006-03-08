@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.118  2006/03/08 04:48:19  mortenson
+ * Merge in a patch by Hugo Weber to make it possible to configure the Wrapper
+ * to pull the JRE from the system registry on windows. (Merge from branch)
+ *
  * Revision 1.117  2006/02/24 05:43:36  mortenson
  * Update the copyright.
  *
@@ -146,6 +150,10 @@
  * Revision 1.90  2004/10/17 01:32:13  mortenson
  * Add additional output when the JVM can not be launched due to security
  * restrictions on Windows.
+ *
+ * Revision 1.89.2.1  2006/03/08 04:39:50  mortenson
+ * Merge in a patch by Hugo Weber to make it possible to configure the Wrapper to
+ * pull the JRE from the system registry on windows.
  *
  * Revision 1.89  2004/09/24 05:03:58  mortenson
  * Display a descriptive error message on Windows if the the JVM process crashes
@@ -1230,8 +1238,8 @@ void wrapperReportStatus(int useLoggerQueue, int status, int errorCode, int wait
             ssStatus.dwWin32ExitCode = NO_ERROR;
             ssStatus.dwServiceSpecificExitCode = 0;
         } else {
-            ssStatus.dwWin32ExitCode = errorCode; //ERROR_SERVICE_SPECIFIC_ERROR;
-            ssStatus.dwServiceSpecificExitCode = 0; //errorCode;
+            ssStatus.dwWin32ExitCode = errorCode; /* ERROR_SERVICE_SPECIFIC_ERROR; */
+            ssStatus.dwServiceSpecificExitCode = 0; /* errorCode; */
         }
         ssStatus.dwWaitHint = waitHint;
 
@@ -3498,4 +3506,72 @@ void _CRTAPI1 main(int argc, char **argv) {
     appExit(result);
 }
 
- #endif /* ifdef WIN32 */
+/**
+ * Gets the JavaHome absolute path from the windows registry
+ */
+int getJavaHomeFromWindowsRegistry(char *javaHome) {
+    char jresubkey[255];    /* Registry subkey that jvm creates when is installed */
+    char jreversion[10];    /* Will receive a registry value that has jvm version */
+    char jhome[2048];       /* Will hold that full path for JavaHome */
+    HKEY jreopenkey = NULL; /* Will receive the handle to the opened registry key */
+    DWORD n = 5;            /* Buffer size to retrieve the jvm version */
+    LPDWORD tipoval = NULL; /* Will receive the type of value that was read from the registry */
+
+    /*
+     * Initialize the string variables used to retrieve values from Windows Registry
+     */
+    memset(&jresubkey, sizeof(jresubkey), 0);
+    memset(&jreversion, sizeof(jreversion), 0);
+    memset(&jhome, sizeof(jhome), 0);
+
+    /* SubKey containing the jvm version */
+    strcpy(jresubkey, "SOFTWARE\\JavaSoft\\Java Runtime Environment");
+
+    /*
+     * Opens the Registry Key needed to query the jvm version
+     */
+    if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, jresubkey, 0, KEY_QUERY_VALUE, &jreopenkey) != ERROR_SUCCESS) {
+        return 0;
+    }
+
+    /*
+     * Queries for the jvm version
+     */
+
+    if (RegQueryValueEx(jreopenkey, "CurrentVersion", NULL, tipoval, jreversion, &n) != ERROR_SUCCESS) {
+        return 0;
+    }
+
+    RegCloseKey(jreopenkey);
+
+
+    /* adds the jvm version to the subkey */
+    strcat(jresubkey, "\\");
+    strcat(jresubkey, jreversion);
+    n = 2048;
+    tipoval = NULL;
+
+    /*
+     * Opens the Registry Key needed to query the JavaHome
+     */
+    if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, jresubkey, 0, KEY_QUERY_VALUE, &jreopenkey) != ERROR_SUCCESS) {
+        return 0;
+    }
+
+    /*
+     * Queries for the JavaHome
+     */
+    if (RegQueryValueEx(jreopenkey, "JavaHome", NULL, tipoval, jhome, &n) != ERROR_SUCCESS) {
+        return 0;
+    }
+
+    RegCloseKey(jreopenkey);
+
+    /* Returns the JavaHome path */
+    strcpy(javaHome, jhome);
+
+    return 1;
+}
+
+#endif /* ifdef WIN32 */
+

@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.159  2006/03/08 04:48:19  mortenson
+ * Merge in a patch by Hugo Weber to make it possible to configure the Wrapper
+ * to pull the JRE from the system registry on windows. (Merge from branch)
+ *
  * Revision 1.158  2006/02/24 05:43:36  mortenson
  * Update the copyright.
  *
@@ -186,6 +190,10 @@
  * Add the wrapper.memory_output and wrapper.memory_output.interval properties to
  * make it possible to track memory usage of the Wrapper and JVM over time.
  * Change the JVM process variable names to make their meaning more obvious.
+ *
+ * Revision 1.118.2.1  2006/03/08 04:39:50  mortenson
+ * Merge in a patch by Hugo Weber to make it possible to configure the Wrapper to
+ * pull the JRE from the system registry on windows.
  *
  * Revision 1.118  2004/10/01 03:18:57  mortenson
  * Remove C++ style comments.
@@ -1550,32 +1558,49 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 #ifdef WIN32
         found = 0;
 
-        /* To avoid problems on Windows XP systems, the '/' characters must
-         *  be replaced by '\' characters in the specified path. */
-        c = (char *)prop;
-        while((c = strchr(c, '/')) != NULL) {
-            c[0] = '\\';
-        }
-
-        /* If the full path to the java command was not specified, then we
-         *  need to try and resolve it here to avoid problems later when
-         *  calling CreateProcess.  CreateProcess will look in the windows
-         *  system directory before searching the PATH.  This can lead to
-         *  the wrong JVM being run. */
-        sprintf(cpPath, "%s", prop);
-        if ((PathFindOnPath((LPSTR)cpPath, (LPCSTR *)wrapperGetSystemPath())) && (!PathIsDirectory(cpPath))) {
-            /*printf("Found %s on path.\n", cpPath); */
-            found = 1;
+        if (strcmp(prop, "") == 0) {
+            /* If the java command is an empty string, we want to look for the
+             *  the java command in the windows registry. */
+            if (getJavaHomeFromWindowsRegistry(cpPath)) {
+                strcat(cpPath, "\\bin\\java.exe");
+                if (wrapperData->isDebugging) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                        "Found Java Runtime Environment home directory in system registry.");
+                }
+                found = 1;
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                    "The Java Runtime Environment home directory could not be located in the system registry.");
+                found = 0;
+            }
         } else {
-            /*printf("Could not find %s on path.\n", cpPath); */
-
-            /* Try adding .exe to the end */
-            sprintf(cpPath, "%s.exe", prop);
-            if ((PathFindOnPath(cpPath, wrapperGetSystemPath())) && (!PathIsDirectory(cpPath))) {
+            /* To avoid problems on Windows XP systems, the '/' characters must
+             *  be replaced by '\' characters in the specified path. */
+            c = (char *)prop;
+            while((c = strchr(c, '/')) != NULL) {
+                c[0] = '\\';
+            }
+    
+            /* If the full path to the java command was not specified, then we
+             *  need to try and resolve it here to avoid problems later when
+             *  calling CreateProcess.  CreateProcess will look in the windows
+             *  system directory before searching the PATH.  This can lead to
+             *  the wrong JVM being run. */
+            sprintf(cpPath, "%s", prop);
+            if ((PathFindOnPath((LPSTR)cpPath, (LPCSTR *)wrapperGetSystemPath())) && (!PathIsDirectory(cpPath))) {
                 /*printf("Found %s on path.\n", cpPath); */
                 found = 1;
             } else {
                 /*printf("Could not find %s on path.\n", cpPath); */
+    
+                /* Try adding .exe to the end */
+                sprintf(cpPath, "%s.exe", prop);
+                if ((PathFindOnPath(cpPath, wrapperGetSystemPath())) && (!PathIsDirectory(cpPath))) {
+                    /*printf("Found %s on path.\n", cpPath); */
+                    found = 1;
+                } else {
+                    /*printf("Could not find %s on path.\n", cpPath); */
+                }
             }
         }
 

@@ -21,6 +21,12 @@ $Id$
                     Add a solaris-x86-64 makefile.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Merge in a patch by Hugo Weber to make it possible to configure the Wrapper
+                    to pull the JRE from the system registry on windows.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.0">

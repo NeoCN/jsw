@@ -3,6 +3,8 @@ Java Service Wrapper Revision History.
 3.2.1
 * Fix a problem with the solaris-sparc-64 makefile.
 * Add a solaris-x86-64 makefile.
+* Merge in a patch by Hugo Weber to make it possible to configure the Wrapper
+  to pull the JRE from the system registry on windows.
 
 3.2.0
 * Rework the release cycle so that the wrapper.jar file released for all
