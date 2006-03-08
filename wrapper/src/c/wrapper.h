@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.78  2006/03/08 04:48:19  mortenson
+ * Merge in a patch by Hugo Weber to make it possible to configure the Wrapper
+ * to pull the JRE from the system registry on windows. (Merge from branch)
+ *
  * Revision 1.77  2006/02/24 05:43:36  mortenson
  * Update the copyright.
  *
@@ -118,6 +122,10 @@
  * Add the wrapper.memory_output and wrapper.memory_output.interval properties to
  * make it possible to track memory usage of the Wrapper and JVM over time.
  * Change the JVM process variable names to make their meaning more obvious.
+ *
+ * Revision 1.56.2.1  2006/03/08 04:39:50  mortenson
+ * Merge in a patch by Hugo Weber to make it possible to configure the Wrapper to
+ * pull the JRE from the system registry on windows.
  *
  * Revision 1.56  2004/09/22 11:06:28  mortenson
  * Start using nanosleep in place of usleep on UNIX platforms to work around usleep
@@ -503,6 +511,7 @@ extern void wrapperGetCurrentTime(struct timeb *timeBuffer);
 
 #ifdef WIN32
 extern char** wrapperGetSystemPath();
+extern int getJavaHomeFromWindowsRegistry(char *javaHome);
 #endif
 
 extern int wrapperCheckRestartTimeOK();
