@@ -8,6 +8,21 @@ $Id$
 
 <article id="index">
     <title>Java Service Wrapper Release Notes</title>
+    <section id="3.2.1">
+        <title>Version 3.2.1: Changes and bug fixes</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Fix a problem with the solaris-sparc-64 makefile.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Add a solaris-x86-64 makefile.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
     <section id="3.2.0">
         <title>Version 3.2.0: Changes and bug fixes</title>
         <itemizedlist>

@@ -1,5 +1,9 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.2.1
+* Fix a problem with the solaris-sparc-64 makefile.
+* Add a solaris-x86-64 makefile.
+
 3.2.0
 * Rework the release cycle so that the wrapper.jar file released for all
   platforms is now built on the same machine.  This resolves a few
