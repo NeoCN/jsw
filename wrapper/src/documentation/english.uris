@@ -70,6 +70,7 @@ english/prop-java-pidfile.html
 english/prop-java-statusfile.html
 english/prop-jvm-exit-timeout.html
 english/prop-jvm-port.html
+english/prop-lockfile.html
 english/prop-logfile.html
 english/prop-logfile-format.html
 english/prop-logfile-inactivity-timeout.html
