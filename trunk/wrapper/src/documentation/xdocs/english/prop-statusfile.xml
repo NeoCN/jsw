@@ -60,7 +60,7 @@
                 startup, or the Wrapper begins to shut down.
             </listproperty>
             <listproperty>
-                <literal moreinfo="none">STARTING</literal> - The Wrapper is started.
+                <literal moreinfo="none">STARTED</literal> - The Wrapper is started.
                 It will remain in this state until the Wrapper begins to shut down.
             </listproperty>
             <listproperty>
