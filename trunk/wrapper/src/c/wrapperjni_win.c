@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.25  2006/03/22 07:57:26  mortenson
+ * Add a comment to a reference of code based on MSDN example code.
+ *
  * Revision 1.24  2006/02/24 05:43:36  mortenson
  * Update the copyright.
  *
@@ -221,8 +224,9 @@ void throwServiceException(JNIEnv *env, const char *message) {
 /**
  * Generates a text representation of an SID.
  *
- * Code was taken from the Microsoft site:
- * http://msdn.microsoft.com/library/default.asp?url=/library/en-us/security/security/converting_a_binary_sid_to_string_format.asp
+ * Code in this function is based on public domain example code on the Microsoft site:
+ * http://msdn.microsoft.com/library/default.asp?url=/library/en-us/secauthz/security/converting_a_binary_sid_to_string_format_in_c__.asp
+ * Use of this code has no affect on the license of this source file.
  */
 BOOL GetTextualSid(
     PSID pSid,            /* binary Sid */
