@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.7  2006/03/22 07:55:53  mortenson
+// Remove a javadoc comment that was copied from another source file.
+//
 // Revision 1.6  2006/02/24 05:45:59  mortenson
 // Update the copyright.
 //
@@ -60,8 +63,6 @@ import org.tanukisoftware.wrapper.WrapperManager;
 /**
  * This test was created to test timeout problems under heavily loaded
  *  conditions.
- *
- * Based on code taken from an application by Nathan Clement.
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
  * @version $Revision$
