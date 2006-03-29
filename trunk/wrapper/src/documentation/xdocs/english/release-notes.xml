@@ -41,6 +41,12 @@ $Id$
                     debug log output.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Modify the UNIX shell script to be more informative if the script is unable
+                    to locate a wrapper binary due to a executable bit permission problem.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.0">
