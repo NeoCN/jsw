@@ -5,6 +5,12 @@ Java Service Wrapper Revision History.
 * Add a solaris-x86-64 makefile.
 * Merge in a patch by Hugo Weber to make it possible to configure the Wrapper
   to pull the JRE from the system registry on windows.
+* Fix a batch file bug added in 3.2.0 where the scripts would not function
+  correctly if the full path to the batch file contained spaces.
+  Bug #1450601.
+* Modify the message shown when a native library fails to load so the
+  exception message text is now shown in the log without having to enable
+  debug log output.
 
 3.2.0
 * Rework the release cycle so that the wrapper.jar file released for all

@@ -44,6 +44,11 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.71  2006/03/29 01:15:42  mortenson
+// Modify the message shown when a native library fails to load so the
+// exception message text is now shown in the log without having to enable
+// debug log output.
+//
 // Revision 1.70  2006/02/28 15:52:48  mortenson
 // Add support for MacOSX Universal Binary distributions.
 //
@@ -1118,9 +1123,10 @@ public final class WrapperManager
      * @param name Name of the library to load.
      * @param file Name of the actual library file.
      *
-     * @return True if the library was successfully loaded.
+     * @return null if the library was successfully loaded, an error message
+     *         otherwise.
      */
-    private static boolean loadNativeLibrary( String name, String file )
+    private static String loadNativeLibrary( String name, String file )
     {
         try
         {
@@ -1131,7 +1137,7 @@ public final class WrapperManager
                 m_out.println( "Loaded native library: " + file );
             }
             
-            return true;
+            return null;
         }
         catch ( UnsatisfiedLinkError e )
         {
@@ -1139,7 +1145,21 @@ public final class WrapperManager
             {
                 m_out.println( "Loading native library failed: " + file + "  Cause: " + e );
             }
-            return false;
+            String error = e.getMessage();
+            if ( error == null )
+            {
+                error = e.toString();
+            }
+            return error;
+        }
+        catch ( Throwable e )
+        {
+            if ( m_debug )
+            {
+                m_out.println( "Loading native library failed: " + file + "  Cause: " + e );
+            }
+            String error = e.toString();
+            return error;
         }
     }
     
@@ -1307,6 +1327,9 @@ public final class WrapperManager
             }
         }
         
+        String[] detailedErrors = new String[detailedNames.length];
+        String baseError = null;
+        
         // Try loading the native library using the detailed name first.  If that fails, use
         //  the brief name.
         if ( m_debug )
@@ -1319,14 +1342,15 @@ public final class WrapperManager
         {
             if ( detailedNames[i] != null )
             {
-                if ( loadNativeLibrary( detailedNames[i], detailedFiles[i] ) )
+                detailedErrors[i] = loadNativeLibrary( detailedNames[i], detailedFiles[i] );
+                if ( detailedErrors[i] == null )
                 {
                     m_libraryOK = true;
                     break;
                 }
             }
         }
-        if ( ( !m_libraryOK ) && loadNativeLibrary( baseName, file ) )
+        if ( ( !m_libraryOK ) && ( ( baseError = loadNativeLibrary( baseName, file ) ) == null ) )
         {
             m_libraryOK = true;
         }
@@ -1360,6 +1384,7 @@ public final class WrapperManager
             else
             {
                 // Attempt to locate the actual files on the path.
+                String error = null;
                 File libFile = null;
                 for ( int i = 0; i < detailedNames.length; i++ )
                 {
@@ -1368,6 +1393,7 @@ public final class WrapperManager
                         libFile = locateFileOnPath( detailedFiles[i], libPath );
                         if ( libFile != null )
                         {
+                            error = detailedErrors[i];
                             break;
                         }
                     }
@@ -1375,6 +1401,10 @@ public final class WrapperManager
                 if ( libFile == null )
                 {
                     libFile = locateFileOnPath( file, libPath );
+                    if ( libFile != null )
+                    {
+                        error = baseError;
+                    }
                 }
                 if ( libFile == null )
                 {
@@ -1438,6 +1468,10 @@ public final class WrapperManager
                         m_out.println(
                             "          The bit depth of this JVM could not be determined." );
                     }
+                    m_out.println(
+                        "          Reported cause:" );
+                    m_out.println(
+                        "            " + error );
                 }
             }
             m_out.println( "          System signals will not be handled correctly." );
