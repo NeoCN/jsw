@@ -47,6 +47,11 @@ $Id$
                     to locate a wrapper binary due to a executable bit permission problem.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a minor permission problem with the build for the delta-pack.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.0">
