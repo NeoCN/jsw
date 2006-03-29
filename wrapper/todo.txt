@@ -82,46 +82,11 @@ The other desktops return 0x57, invalid parameter.
 If the interactive flag is on, the correct desktop can be opened and the other
 desktops return 0x57.
 
-Got the following error message when running as a service at Hitachi.
-This was with interactive and console both set to false.
-Attempt to set the console tile failed: ƒnƒ“ƒhƒ‹‚ª–³Œø‚Å‚·B (0x6)
-
 
 The "ant clean doc" target fails when run under JDK 1.4.2  May need to
 upgrade Cocoon?
 
-
-An support for Security Managers to protect access to certain WrapperManager
-method calls.  Look in the Avalon i18n ResourceManager class for an example.
-
-
 What happens if I set the O_NDELAY bit on the pipe from the JVM?
-
-
-Hitachi ran into a problem where the Wrapper deadlocked somewhere
-in the main event loop.  The JVM timed out and quit on its own
-after it stopped receiving pings.  Sending a SIGQUIT to the Wrapper
-woke it up and caused it to launch a nwe JVM.  It had been locked
-for several days.
-This sounds like FreeBSD problem which was fixed for 3.1.1.  That
-fix is only used on FreeSD however as it sounds like it was a
-FreeBSD / OpenBSD only problem.
-
-Log:
-STATUS | wrapper  | 2004/09/01 08:10:11 |     Ticks=0006bee7, WrapperState=STARTED, JVMState=STARTED JVMStateTimeoutTicks=0006c03d (34s), Exit=false, Restart=false
-STATUS | wrapper  | 2004/09/01 08:10:11 |     Ticks=0006bee8, WrapperState=STARTED, JVMState=STARTED JVMStateTimeoutTicks=0006c03d (34s), Exit=false, Restart=false
-STATUS | wrapper  | 2004/09/01 08:10:11 |     Ticks=0006bee9, WrapperState=STARTED, JVMState=STARTED JVMStateTimeoutTicks=0006c03d (34s), Exit=false, Restart=false
-STATUS | wrapper  | 2004/09/01 08:10:11 |     Ticks=0006beea, WrapperState=STARTED, JVMState=STARTED JVMStateTimeoutTicks=0006c03d (33s), Exit=false, Restart=false
->> Frozen at this point.  Wake it up by sending a SIGQUIT.  While frozen the JVM gave up and requested a restart.
-STATUS | wrapper  | 2004/09/07 15:01:22 | Dumping JVM state.
-INFO   | jvm 1    | 2004/09/07 15:01:22 | Wrapper Manager: The Wrapper code did not ping the JVM for 54 seconds.  Quit and let the Wrapper resynch.
-INFO   | jvm 1    | 2004/09/07 15:01:22 | stop(1)
-STATUS | wrapper  | 2004/09/07 15:01:22 | JVM requested a restart.
-INFO   | wrapper  | 2004/09/07 15:01:22 | Wrapper Process has not received any CPU time for 492297 seconds.  Extending timeouts.
-STATUS | wrapper  | 2004/09/07 15:01:22 |     Ticks=0051dd4d, WrapperState=STARTED, JVMState=STOPPED JVMStateTimeoutTicks=009cfc0b (492307s), Exit=true, Restart=true
-STATUS | wrapper  | 2004/09/07 15:01:22 |     Ticks=0051dd4e, WrapperState=STARTED, JVMState=DOWN JVMStateTimeoutTicks=00000000 (0s), Exit=false, Restart=true
-STATUS | wrapper  | 2004/09/07 15:01:23 |     Ticks=0051dd50, WrapperState=STARTED, JVMState=LAUNCH(DELAY) JVMStateTimeoutTicks=0051dd80 (4s), Exit=false, Restart=false
-STATUS | wrapper  | 2004/09/07 15:01:23 |     Ticks=0051dd51, WrapperState=STARTED, JVMState=LAUNCH(DELAY) JVMStateTimeoutTi
 
 Great overview at http://www.microsoft.com/msj/archive/S402.aspx
 Look at GetProcessMemoryInfo as a way to get memory info about the Wrapper and Java processes.
