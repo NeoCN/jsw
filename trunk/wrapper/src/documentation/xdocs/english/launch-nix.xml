@@ -17,7 +17,7 @@
         </itemizedlist>
     </section>
     <section>
-        <title>Launching Your Application (Win32)</title>
+        <title>Launching Your Application (Linux / UNIX)</title>
         <itemizedlist>
             <listitem>
                 <ulink url="#scripts">Setup The Scripts</ulink>
