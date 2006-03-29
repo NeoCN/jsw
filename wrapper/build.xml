@@ -1311,16 +1311,18 @@ original tar distribution due to a lack of support for long path names in some t
         <tar tarfile="${build.dir}/${deltareleasefile}.tar">
             <tarfileset dir="${build.dir}" mode="755">
                 <include name="${deltareleasefile}/bin/wrapper-*"/>
-                <include name="${deltareleasefile}/bin/wrapper-windows-*"/>
+                <exclude name="${deltareleasefile}/bin/wrapper-windows-*"/>
                 <include name="${deltareleasefile}/bin/${app.name}"/>
                 <include name="${deltareleasefile}/lib/libwrapper-*"/>
             </tarfileset>
             <tarfileset dir="${build.dir}">
                 <include name="${deltareleasefile}/**"/>
                 <exclude name="${deltareleasefile}/bin/wrapper-*"/>
-                <include name="${deltareleasefile}/bin/wrapper-windows-*"/>
                 <exclude name="${deltareleasefile}/bin/${app.name}"/>
                 <exclude name="${deltareleasefile}/lib/libwrapper-*"/>
+            </tarfileset>
+            <tarfileset dir="${build.dir}">
+                <include name="${deltareleasefile}/bin/wrapper-windows-*"/>
             </tarfileset>
         </tar>
         <gzip zipfile="${dist.dir}/${deltareleasefile}.tar.gz" src="${build.dir}/${deltareleasefile}.tar" />

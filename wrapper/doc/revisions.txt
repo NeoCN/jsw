@@ -13,6 +13,7 @@ Java Service Wrapper Revision History.
   debug log output.
 * Modify the UNIX shell script to be more informative if the script is unable
   to locate a wrapper binary due to a executable bit permission problem.
+* Fix a minor permission problem with the build for the delta-pack.
 
 3.2.0
 * Rework the release cycle so that the wrapper.jar file released for all
