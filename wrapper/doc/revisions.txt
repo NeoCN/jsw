@@ -11,6 +11,8 @@ Java Service Wrapper Revision History.
 * Modify the message shown when a native library fails to load so the
   exception message text is now shown in the log without having to enable
   debug log output.
+* Modify the UNIX shell script to be more informative if the script is unable
+  to locate a wrapper binary due to a executable bit permission problem.
 
 3.2.0
 * Rework the release cycle so that the wrapper.jar file released for all
