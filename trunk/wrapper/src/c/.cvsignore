@@ -2,8 +2,8 @@ messages.rc
 wrapperinfo.c
 Debug*
 Release*
-WrapperJNI___Win32_Debug*
-WrapperJNI___Win32_Release*
+WrapperJNI___Win??_Debug*
+WrapperJNI___Win??_Release*
 Wrapper??.aps
 Wrapper??.ncb
 Wrapper??.opt
