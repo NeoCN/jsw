@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.79  2006/04/05 02:01:00  mortenson
+ * Synchronize the command line so that both the Windows and UNIX versions
+ * are now the same.  The old command line syntaxes are now supported
+ * everywhere so these will be no compatibility problems.
+ *
  * Revision 1.78  2006/03/08 04:48:19  mortenson
  * Merge in a patch by Hugo Weber to make it possible to configure the Wrapper
  * to pull the JRE from the system registry on windows. (Merge from branch)
@@ -347,7 +352,10 @@
 /* Type definitions */
 typedef struct WrapperConfig WrapperConfig;
 struct WrapperConfig {
-    int     argBase;                /* The first argument which should be treated as a property. */
+    char*   argCommand;             /* The command used to launch the wrapper. */
+    char*   argConfFile;            /* The name of the config file from the command line. */
+    int     argConfFileDefault;     /* True if the config file was not specified. */
+    int     argConfFileFound;       /* True if the config file was found. */
     int     argCount;               /* The total argument count. */
     char**  argValues;              /* Argument values. */
     
@@ -524,6 +532,17 @@ extern void wrapperBuildJavaCommandArray(char ***strings, int *length, int addQu
 extern void wrapperFreeJavaCommandArray(char **strings, int length);
 
 extern int wrapperInitializeLogging();
+
+/**
+ * Returns the file name base as a newly malloced char *.  The resulting
+ *  base file name will have any path and extension stripped.
+ */
+extern char *wrapperGetFileBase(const char *fileName);
+
+/**
+ * Output the application usage.
+ */
+extern void wrapperUsage(char *appName);
 
 /**
  * Called when the Wrapper detects that the JVM process has exited.
