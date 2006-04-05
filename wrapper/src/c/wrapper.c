@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.160  2006/04/05 02:01:00  mortenson
+ * Synchronize the command line so that both the Windows and UNIX versions
+ * are now the same.  The old command line syntaxes are now supported
+ * everywhere so these will be no compatibility problems.
+ *
  * Revision 1.159  2006/03/08 04:48:19  mortenson
  * Merge in a patch by Hugo Weber to make it possible to configure the Wrapper
  * to pull the JRE from the system registry on windows. (Merge from branch)
@@ -618,18 +623,18 @@ int wrapperLoadConfigurationProperties() {
         /* This is the first time, so preserve the full canonical location of the
          *  configuration file. */
 #ifdef WIN32
-        work = GetFullPathName(wrapperData->argValues[wrapperData->argBase - 1], 0, NULL, NULL);
+        work = GetFullPathName(wrapperData->argConfFile, 0, NULL, NULL);
         if (!work) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Unable to resolve the full path of the configuration file, %s: %s",
-                wrapperData->argValues[wrapperData->argBase - 1], getLastErrorText());
+                wrapperData->argConfFile, getLastErrorText());
             return 1;
         }
         wrapperData->configFile = malloc(sizeof(char) * work);
-        if (!GetFullPathName(wrapperData->argValues[wrapperData->argBase - 1], work, wrapperData->configFile, &filePart)) {
+        if (!GetFullPathName(wrapperData->argConfFile, work, wrapperData->configFile, &filePart)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Unable to resolve the full path of the configuration file, %s: %s",
-                wrapperData->argValues[wrapperData->argBase - 1], getLastErrorText());
+                wrapperData->argConfFile, getLastErrorText());
             return 1;
         }
 #else
@@ -637,10 +642,10 @@ int wrapperLoadConfigurationProperties() {
          *  path is provided.  We always need an abosulte path here.  So build up one and
          *  then use realpath to remove any .. or other relative references. */
         wrapperData->configFile = malloc(PATH_MAX);
-        if (realpath(wrapperData->argValues[wrapperData->argBase - 1], wrapperData->configFile) == NULL) {
+        if (realpath(wrapperData->argConfFile, wrapperData->configFile) == NULL) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Unable to resolve the full path of the configuration file, %s: %s",
-                wrapperData->argValues[wrapperData->argBase - 1], getLastErrorText());
+                wrapperData->argConfFile, getLastErrorText());
             return 1;
         }
 #endif
@@ -653,7 +658,7 @@ int wrapperLoadConfigurationProperties() {
     /* The argument prior to the argBase will be the configuration file, followed
      *  by 0 or more command line properties.  The command line properties need to be
      *  loaded first, followed by the configuration file. */
-    for (i = wrapperData->argBase; i < wrapperData->argCount; i++) {
+    for (i = 0; i < wrapperData->argCount; i++) {
         if (addPropertyPair(properties, wrapperData->argValues[i], TRUE, TRUE)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, 
                 "The argument '%s' is not a valid property name-value pair.",
@@ -665,10 +670,18 @@ int wrapperLoadConfigurationProperties() {
     /* Now load the configuration file. */
     if (loadProperties(properties, wrapperData->configFile)) {
         /* File not found. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            "Unable to open configuration file. %s", wrapperData->configFile);
+        /* If this was a default file name then we don't want to show this as
+         *  an error here.  It will be handled by the caller. */
+        /* Debug is not yet available as the config file is not yet loaded. */
+        if (!wrapperData->argConfFileDefault) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                "Unable to open configuration file. %s", wrapperData->configFile);
+        }
         return 1;
     }
+
+    /* Config file found. */
+    wrapperData->argConfFileFound = TRUE;
 
 #ifdef _DEBUG
     /* Display the active properties */
@@ -1285,6 +1298,143 @@ int wrapperInitializeLogging() {
     setSyslogLevelInt(LEVEL_NONE);
 
     return 0;
+}
+
+/**
+ * Returns the file name base as a newly malloced char *.  The resulting
+ *  base file name will have any path and extension stripped.
+ */
+char *wrapperGetFileBase(const char *fileName) {
+    const char *start;
+    const char *end;
+    const char *c;
+    char *base;
+
+    start = fileName;
+    end = &fileName[strlen(fileName)];
+
+    /* Strip off any path. */
+#ifdef WIN32
+    c = strrchr(start, '\\');
+#else
+    c = strrchr(start, '/');
+#endif
+    if (c) {
+        start = &c[1];
+    }
+
+    /* Strip off any extension. */
+    c = strrchr(start, '.');
+    if (c) {
+        end = c;
+    }
+
+    /* Now create the new base name. */
+    base = malloc((end - start + 1) * sizeof(char));
+    memcpy(base, start, end - start);
+    base[end - start] = '\0';
+
+    return base;
+}
+
+/**
+ * Output the application usage.
+ */
+void wrapperUsage(char *appName) {
+    char *confFileBase = wrapperGetFileBase(appName);
+
+    printf("Wrapper (Version %s) http://wrapper.tanukisoftware.org\n", wrapperVersion);
+    printf("\n");
+    printf("Usage:\n");
+    printf("  %s <command> <configuration file> [configuration properties] [...]\n", appName);
+    printf("  %s <configuration file> [configuration properties] [...]\n", appName);
+    printf("     (<command> implicitly '-c')\n");
+    printf("  %s <command>\n", appName);
+    printf("     (<configuration file> implicitly '%s.conf')\n", confFileBase);
+    printf("  %s\n", appName);
+    printf("     (<command> implicitly '-c' and <configuration file> '%s.conf')\n", confFileBase);
+    printf("\n");
+    printf("where <command> can be one of:\n");
+    printf("  -c  --console run as a Console application\n");
+#ifdef WIN32
+    printf("  -t  --start   starT an NT service\n");
+    printf("  -p  --stop    stoP a running NT service\n");
+    printf("  -i  --install Install as an NT service\n");
+    printf("  -r  --remove  Remove as an NT service\n");
+    /** Return mask: installed:1 running:2 interactive:4 automatic:8 manual:16 disabled:32 */
+    printf("  -q  --query   Query the current status of the service\n");
+    printf("  -qs --querysilent Silently Query the current status of the service\n");
+    /* Omit '-s' option from help as it is only used by the service manager. */
+    /*printf("  -s  --service used by service manager\n"); */
+#endif
+    printf("  -?  --help    print this help message\n");
+    printf("\n");
+    printf("<configuration file> is the wrapper.conf to use.  Name must be absolute or relative\n");
+    printf("  to the location of %s\n", appName);
+    printf("\n");
+    printf("[configuration properties] are configuration name-value pairs which override values\n");
+    printf("  in wrapper.conf.  For example:\n");
+    printf("  wrapper.debug=true\n");
+    printf("\n");
+}
+
+/**
+ * Parse the main arguments.
+ *
+ * Returns FALSE if the application should exit with an error.  A message will
+ *  already have been logged.
+ */
+int wrapperParseArguments(int argc, char **argv) {
+    char *argConfFileBase;
+
+    if (argc > 1) {
+        if ((argv[1][0] == '-') || (argv[1][0] == '/')) {
+            /* Syntax 1 or 3 */
+            /* A command appears to have been specified. */
+            wrapperData->argCommand = &argv[1][1]; /* Strip off the '-' or '/' */
+            if (wrapperData->argCommand[0] == '\0') {
+                wrapperUsage(argv[0]);
+                return FALSE;
+            }
+
+            if (argc > 2) {
+                /* Syntax 1 */
+                /* A command and conf file were specified. */
+                wrapperData->argConfFile = argv[2];
+                wrapperData->argCount = argc - 3;
+                wrapperData->argValues = &argv[3];
+            } else {
+                /* Syntax 3 */
+                /* Only a command was specified.  Assume a default config file name. */
+                argConfFileBase = wrapperGetFileBase(argv[0]);
+                wrapperData->argConfFile = malloc((strlen(argConfFileBase) + 4 + 1) * sizeof(char));
+                sprintf(wrapperData->argConfFile, "%s.conf", argConfFileBase);
+                wrapperData->argConfFileDefault = TRUE;
+                wrapperData->argCount = argc - 2;
+                wrapperData->argValues = &argv[2];
+            }
+        } else {
+            /* Syntax 2 */
+            /* A command was not specified, but there may be a config file. */
+            wrapperData->argCommand = "c";
+            wrapperData->argConfFile = argv[1];
+            wrapperData->argCount = argc - 2;
+            wrapperData->argValues = &argv[2];
+        }
+    } else {
+        /* Systax 4 */
+        /* A config file was not specified.  Assume a default config file name. */
+        wrapperData->argCommand = "c";
+
+        argConfFileBase = wrapperGetFileBase(argv[0]);
+        wrapperData->argConfFile = malloc((strlen(argConfFileBase) + 4 + 1) * sizeof(char));
+        sprintf(wrapperData->argConfFile, "%s.conf", argConfFileBase);
+        wrapperData->argConfFileDefault = TRUE;
+        wrapperData->argCount = argc - 1;
+        wrapperData->argValues = &argv[1];
+    }
+
+    return TRUE;
 }
 
 /**

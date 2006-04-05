@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.118  2006/04/05 02:01:00  mortenson
+ * Synchronize the command line so that both the Windows and UNIX versions
+ * are now the same.  The old command line syntaxes are now supported
+ * everywhere so these will be no compatibility problems.
+ *
  * Revision 1.117  2006/02/24 05:43:36  mortenson
  * Update the copyright.
  *
@@ -1672,7 +1677,8 @@ int setWorkingDir(char *app) {
     
     /* Get the full path and filename of this program */
     if (realpath(app, szPath) == NULL) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to get the path-%s", getLastErrorText());
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to get the path for '%s'-%s",
+            app, getLastErrorText());
         return 1;
     }
 
@@ -1705,7 +1711,6 @@ int setWorkingDir(char *app) {
  *******************************************************************************/
 
 int main(int argc, char **argv) {
-    int exitStatus;
 #ifdef _DEBUG
     int i;
 #endif
@@ -1756,90 +1761,98 @@ int main(int argc, char **argv) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  argv[%d]=%s", i, argv[i]);
     }
 #endif
-    
-    if (argc < 2) {
-        wrapperUsage(argv[0]);
+
+    /* Parse the command and configuration file from the command line. */
+    if (!wrapperParseArguments(argc, argv)) {
         appExit(1);
         return 1; /* For compiler. */
-        
-    } else if (strcmp(argv[1],"--help") == 0) {
+    }
+
+    /* At this point, we have a command, confFile, and possibly additional arguments. */
+    if (!_stricmp(wrapperData->argCommand,"?") || !_stricmp(wrapperData->argCommand,"-help")) {
+        /* User asked for the usage. */
         wrapperUsage(argv[0]);
         appExit(0);
         return 0; /* For compiler. */
-        
-    } else {
-        /* Store information about the arguments. */
-        wrapperData->argBase = 2;
-        wrapperData->argCount = argc;
-        wrapperData->argValues = argv;
-        
-        /* Load the properties. */
-        if (wrapperLoadConfigurationProperties()) {
-            /* Unable to load the configuration.  Any errors will have already
-             *  been reported. */
-            appExit(1);
-            return 1; /* For compiler. */
-            
-        } else {
-            /* Change the working directory if configured to do so. */
-            if (wrapperSetWorkingDirProp()) {
+    }
+
+    /* Load the properties. */
+    if (wrapperLoadConfigurationProperties()) {
+        /* Unable to load the configuration.  Any errors will have already
+         *  been reported. */
+        if (wrapperData->argConfFileDefault && !wrapperData->argConfFileFound) {
+            /* The config file that was being looked for was default and
+             *  it did not exist.  Show the usage. */
+            wrapperUsage(argv[0]);
+        }
+        appExit(1);
+        return 1; /* For compiler. */
+    }
+
+    /* Change the working directory if configured to do so. */
+    if (wrapperSetWorkingDirProp()) {
+        appExit(1);
+        return 1; /* For compiler. */
+    }
+
+    /* Set the default umask of the Wrapper process. */
+    umask(wrapperData->umask);
+
+    if(!_stricmp(wrapperData->argCommand,"c") || !_stricmp(wrapperData->argCommand,"-console")) {
+        /* Run as a console application */
+
+        /* fork to a Daemonized process if configured to do so. */
+        if (wrapperData->daemonize) {
+            daemonize();
+        }
+
+        /* See if the logs should be rolled on Wrapper startup. */
+        if ((getLogfileRollMode() & ROLL_MODE_WRAPPER) ||
+            (getLogfileRollMode() & ROLL_MODE_JVM)) {
+            rollLogs();
+        }
+
+        /* Write pid and anchor files as requested.  If they are the same file the file is
+         *  simply overwritten. */
+        if (wrapperData->anchorFilename) {
+            if (writePidFile(wrapperData->anchorFilename, (int)getpid(), wrapperData->anchorFileUmask)) {
+                log_printf
+                    (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                     "ERROR: Could not write anchor file %s: %s",
+                     wrapperData->anchorFilename, getLastErrorText());
                 appExit(1);
                 return 1; /* For compiler. */
             }
-            
-            /* Set the default umask of the Wrapper process. */
-            umask(wrapperData->umask);
-            
-            /* fork to a Daemonized process if configured to do so. */
-            if (wrapperData->daemonize) {
-                daemonize();
-            }
-
-            /* See if the logs should be rolled on Wrapper startup. */
-            if ((getLogfileRollMode() & ROLL_MODE_WRAPPER) ||
-                (getLogfileRollMode() & ROLL_MODE_JVM)) {
-                rollLogs();
-            }
-            
-            /* Write pid and anchor files as requested.  If they are the same file the file is
-             *  simply overwritten. */
-            if (wrapperData->anchorFilename) {
-                if (writePidFile(wrapperData->anchorFilename, (int)getpid(), wrapperData->anchorFileUmask)) {
-                    log_printf
-                        (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                         "ERROR: Could not write anchor file %s: %s",
-                         wrapperData->anchorFilename, getLastErrorText());
-                    appExit(1);
-                    return 1; /* For compiler. */
-                }
-            }
-            if (wrapperData->pidFilename) {
-                if (writePidFile(wrapperData->pidFilename, (int)getpid(), wrapperData->pidFileUmask)) {
-                    log_printf
-                        (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                         "ERROR: Could not write pid file %s: %s",
-                         wrapperData->pidFilename, getLastErrorText());
-                    appExit(1);
-                    return 1; /* For compiler. */
-                }
-            }
-            if (wrapperData->lockFilename) {
-                if (writePidFile(wrapperData->lockFilename, (int)getpid(), wrapperData->lockFileUmask)) {
-                    /* This will fail if the user is running as a user without full privileges.
-                     *  To make things easier for user configuration, this is ignored if sufficient
-                     *  privileges do not exist. */
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                         "WARNING: Could not write lock file %s: %s",
-                         wrapperData->lockFilename, getLastErrorText());
-                    wrapperData->lockFilename = NULL;
-                }
-            }
-
-            exitStatus = wrapperRunConsole();
-            
-            appExit(exitStatus);
-            return exitStatus; /* For compiler. */
         }
+        if (wrapperData->pidFilename) {
+            if (writePidFile(wrapperData->pidFilename, (int)getpid(), wrapperData->pidFileUmask)) {
+                log_printf
+                    (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                     "ERROR: Could not write pid file %s: %s",
+                     wrapperData->pidFilename, getLastErrorText());
+                appExit(1);
+                return 1; /* For compiler. */
+            }
+        }
+        if (wrapperData->lockFilename) {
+            if (writePidFile(wrapperData->lockFilename, (int)getpid(), wrapperData->lockFileUmask)) {
+                /* This will fail if the user is running as a user without full privileges.
+                 *  To make things easier for user configuration, this is ignored if sufficient
+                 *  privileges do not exist. */
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                     "WARNING: Could not write lock file %s: %s",
+                     wrapperData->lockFilename, getLastErrorText());
+                wrapperData->lockFilename = NULL;
+            }
+        }
+
+        appExit(wrapperRunConsole());
+        return 0; /* For compiler. */
+    } else {
+        printf("\nUnrecognized option: -%s\n", wrapperData->argCommand);
+        wrapperUsage(argv[0]);
+        appExit(1);
+        return 1; /* For compiler. */
     }
 }
 

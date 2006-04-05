@@ -174,20 +174,29 @@ wrapper  | My Application removed.]]></screen>
             </para>
             <informalexample>
                 <screen format="linespecific"><![CDATA[C:\MyApp\bin>wrapper.exe
+Wrapper (Version 3.n.n) http://wrapper.tanukisoftware.org
+
 Usage:
   wrapper.exe <command> <configuration file> [configuration properties] [...]
+  wrapper.exe <configuration file> [configuration properties] [...]
+     (<command> implicitly '-c')
+  wrapper.exe <command>
+     (<configuration file> implicitly 'wrapper.conf')
+  wrapper.exe
+     (<command> implicitly '-c' and <configuration file> 'wrapper.conf')
 
 where <command> can be one of:
-  -c   run as a Console application
-  -t   starT an NT service
-  -p   stoP a running NT service
-  -i   Install as an NT service
-  -r   Remove as an NT service
-  -q   Query the current status of the service
-  -qs  Silently Query the current status of the service
-  -?   print this help message
+  -c  --console run as a Console application
+  -t  --start   starT an NT service
+  -p  --stop    stoP a running NT service
+  -i  --install Install as an NT service
+  -r  --remove  Remove as an NT service
+  -q  --query   Query the current status of the service
+  -qs --querysilent Silently Query the current status of the service
+  -?  --help    print this help message
 
-<configuration file> is the wrapper.conf to use
+<configuration file> is the wrapper.conf to use.  Name must be absolute or relative
+  to the location of wrapper.exe
 
 [configuration properties] are configuration name-value pairs which override values
   in wrapper.conf.  For example:
