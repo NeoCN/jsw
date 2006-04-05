@@ -114,7 +114,7 @@
                 <listproperty>
                     <ulink url="prop-debug.html">wrapper.debug</ulink>
                 </listproperty>
-                <listproperty version="3.1.2">
+                <listproperty version="3.2.0">
                     <ulink url="prop-disable-restarts.html">wrapper.disable_restarts</ulink>
                 </listproperty>
                 <listproperty>
