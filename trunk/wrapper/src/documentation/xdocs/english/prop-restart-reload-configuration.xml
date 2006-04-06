@@ -7,7 +7,7 @@
      ******************************************************************** -->
 
 <chapter id="prop-restart-reload-configuration">
-    <title>wrapper.restart.reload-configuration Property</title>
+    <title>wrapper.restart.reload_configuration Property</title>
     <section>
         <title>Configuration Property Overview</title>
         <itemizedlist>
@@ -23,14 +23,14 @@
         </itemizedlist>
     </section>
     <section>
-        <title>wrapper.restart.reload-configuration</title>
+        <title>wrapper.restart.reload_configuration</title>
         <para>
             Controls whether or not the Wrapper configuration file will be
             reloaded in the event of a JVM restart.  Defaults to FALSE.
         </para>
         <informalexample>
             <simpara><emphasis>Example:</emphasis></simpara>
-            <screen format="linespecific"><![CDATA[wrapper.restart.reload-configuration=TRUE]]></screen>
+            <screen format="linespecific"><![CDATA[wrapper.restart.reload_configuration=TRUE]]></screen>
         </informalexample>
         <para>
             This property can be useful when an application needs to be able
