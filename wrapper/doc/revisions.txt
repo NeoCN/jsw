@@ -21,7 +21,9 @@ Java Service Wrapper Revision History.
   name of the wrapper binary.
 * Synchronize the command line so that both the Windows and UNIX versions
   are now the same.  The old command line syntaxes are now supported
-  everywhere so these will be no compatibility problems.
+  everywhere so there will be no compatibility problems.
+* The 32-bit HP-UX 3.2.0 build was generating a libwrapper.so file rather
+  than libwrapper.sl.
 
 3.2.0
 * Rework the release cycle so that the wrapper.jar file released for all
