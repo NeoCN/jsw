@@ -6,19 +6,19 @@ DEFS = -I$(INCLUDE) -I$(INCLUDE)/hp-ux
 
 wrapper_SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c
 
-libwrapper_so_OBJECTS = wrapperjni_unix.o wrapperinfo.o wrapperjni.o
+libwrapper_sl_OBJECTS = wrapperjni_unix.o wrapperinfo.o wrapperjni.o
 
 BIN = ../../bin
 LIB = ../../lib
 
-all: init wrapper libwrapper.so
+all: init wrapper libwrapper.sl
 
 clean:
 	rm -f *.o
 
 cleanall: clean
 	rm -rf *~ .deps
-	rm -f $(BIN)/wrapper $(LIB)/libwrapper.so
+	rm -f $(BIN)/wrapper $(LIB)/libwrapper.sl
 
 init:
 	if test ! -d .deps; then mkdir .deps; fi
@@ -26,8 +26,8 @@ init:
 wrapper: $(wrapper_SOURCE)
 	$(COMPILE) $(wrapper_SOURCE) -lm -lpthread -o $(BIN)/wrapper
 
-libwrapper.so: $(libwrapper_so_OBJECTS)
-	${COMPILE} -fPIC -shared $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
+libwrapper.sl: $(libwrapper_sl_OBJECTS)
+	${COMPILE} -fPIC -shared $(libwrapper_sl_OBJECTS) -o $(LIB)/libwrapper.sl
 
 %.o: %.c
 	${COMPILE} -fPIC -c ${DEFS} $<
