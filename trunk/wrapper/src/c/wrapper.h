@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.80  2006/04/14 04:51:35  mortenson
+ * Fix a compiler error.
+ *
  * Revision 1.79  2006/04/05 02:01:00  mortenson
  * Synchronize the command line so that both the Windows and UNIX versions
  * are now the same.  The old command line syntaxes are now supported
@@ -543,6 +546,14 @@ extern char *wrapperGetFileBase(const char *fileName);
  * Output the application usage.
  */
 extern void wrapperUsage(char *appName);
+
+/**
+ * Parse the main arguments.
+ *
+ * Returns FALSE if the application should exit with an error.  A message will
+ *  already have been logged.
+ */
+extern int wrapperParseArguments(int argc, char **argv);
 
 /**
  * Called when the Wrapper detects that the JVM process has exited.
