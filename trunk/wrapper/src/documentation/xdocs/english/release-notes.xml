@@ -78,6 +78,12 @@ $Id$
                     than libwrapper.sl.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Make the WrapperManager.setConsoleTitle, getWrapperPID, and getJavaPID
+                    methods available through JMX.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.0">

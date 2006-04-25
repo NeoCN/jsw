@@ -26,6 +26,10 @@ package org.tanukisoftware.wrapper.jmx;
  */
 
 // $Log$
+// Revision 1.5  2006/04/25 08:12:26  mortenson
+// Make the WrapperManager.setConsoleTitle, getWrapperPID, and getJavaPID
+// methods available through JMX.
+//
 // Revision 1.4  2006/02/24 05:45:58  mortenson
 // Update the copyright.
 //
@@ -65,6 +69,41 @@ public interface WrapperManagerMBean
      * @return The Id of the current JVM.
      */
     int getJVMId();
+    
+    /**
+     * Sets the title of the console in which the Wrapper is running.  This
+     *  is currently only supported on Windows platforms.
+     * <p>
+     * As an alternative, it is also possible to set the console title from
+     *  within the wrapper.conf file using the wrapper.console.title property.
+     *
+     * @param title The new title.  The specified string will be encoded
+     *              to a byte array using the default encoding for the
+     *              current platform.
+     */
+    void setConsoleTitle( String title );
+    
+    /**
+     * Returns the PID of the Wrapper process.
+     *
+     * A PID of 0 will be returned if the JVM was launched standalone.
+     *
+     * This value can also be obtained using the 'wrapper.pid' system property.
+     *
+     * @return The PID of the Wrpper process.
+     */
+    int getWrapperPID();
+    
+    /**
+     * Returns the PID of the Java process.
+     *
+     * A PID of 0 will be returned if the native library has not been initialized.
+     *
+     * This value can also be obtained using the 'wrapper.java.pid' system property.
+     *
+     * @return The PID of the Java process.
+     */
+    int getJavaPID();
     
     /**
      * Requests that the current JVM process request a thread dump.  This is
@@ -107,12 +146,18 @@ public interface WrapperManagerMBean
     /**
      * Tells the native wrapper that the JVM wants to restart, then informs
      *	all listeners that the JVM is about to shutdown before killing the JVM.
+     * <p>
+     * The restart is actually performed in a background thread allowing JMX
+     *  a chance to respond to the client.
      */
     void restart();
     
     /**
      * Tells the native wrapper that the JVM wants to shut down, then informs
      *	all listeners that the JVM is about to shutdown before killing the JVM.
+     * <p>
+     * The stop is actually performed in a background thread allowing JMX
+     *  a chance to respond to the client.
      *
      * @param exitCode The exit code that the Wrapper will return when it exits.
      */
