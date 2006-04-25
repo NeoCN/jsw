@@ -24,6 +24,8 @@ Java Service Wrapper Revision History.
   everywhere so there will be no compatibility problems.
 * The 32-bit HP-UX 3.2.0 build was generating a libwrapper.so file rather
   than libwrapper.sl.
+* Make the WrapperManager.setConsoleTitle, getWrapperPID, and getJavaPID
+  methods available through JMX.
 
 3.2.0
 * Rework the release cycle so that the wrapper.jar file released for all
