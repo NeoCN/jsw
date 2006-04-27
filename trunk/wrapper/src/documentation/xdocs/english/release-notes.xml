@@ -84,6 +84,19 @@ $Id$
                     methods available through JMX.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a state engine problem introduced in 3.2.0 which was causing the
+                    <ulink url="prop-on-exit-n.html">wrapper.on_exit.&lt;n&gt;</ulink>
+                    properties to be ignored in most cases.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Fix a potential problem that could have caused crashes when debug logging
+                    was enabled.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.0">

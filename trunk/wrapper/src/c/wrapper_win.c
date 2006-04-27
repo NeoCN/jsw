@@ -42,6 +42,12 @@
  * 
  *
  * $Log$
+ * Revision 1.120  2006/04/27 03:07:09  mortenson
+ * Fix a state engine problem introduced in 3.2.0 which was causing the
+ *   wrapper.on_exit.<n> properties to be ignored in most cases.
+ * Fix a potential problem that could have caused crashes when debug logging
+ *   was enabled.
+ *
  * Revision 1.119  2006/04/05 02:01:00  mortenson
  * Synchronize the command line so that both the Windows and UNIX versions
  * are now the same.  The old command line syntaxes are now supported
@@ -845,7 +851,7 @@ int wrapperConsoleHandler(int key) {
                 (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
                 /* Already stopping. */
             } else {
-                wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
+                wrapperSetWrapperState(TRUE, WRAPPER_WSTATE_STOPPING);
             }
         }
         
@@ -1571,7 +1577,7 @@ void wrapperKillProcessNow() {
         wrapperData->exitCode = 1;
     }
 
-    wrapperSetJavaState(WRAPPER_JSTATE_DOWN, -1, -1);
+    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, -1, -1);
 
     /* Remove java pid file if it was registered and created by this process. */
     if (wrapperData->javaPidFilename) {
@@ -1610,7 +1616,7 @@ void wrapperKillProcess(int useLoggerQueue) {
         }
     }
 
-    wrapperSetJavaState(WRAPPER_JSTATE_KILLING, wrapperGetTicks(), delay);
+    wrapperSetJavaState(useLoggerQueue, WRAPPER_JSTATE_KILLING, wrapperGetTicks(), delay);
 }
 
 /**
@@ -2108,7 +2114,7 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
                 (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
                 /* Already stopping. */
             } else {
-                wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
+                wrapperSetWrapperState(TRUE, WRAPPER_WSTATE_STOPPING);
             }
     
             return;
@@ -2138,7 +2144,7 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
                 (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
                 /* Already stopping. */
             } else {
-                wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
+                wrapperSetWrapperState(TRUE, WRAPPER_WSTATE_STOPPING);
             }
     
             break;
@@ -3234,8 +3240,8 @@ void _CRTAPI1 main(int argc, char **argv) {
     /* Setup the initial values of required properties. */
     wrapperData->configured = FALSE;
     wrapperData->isConsole = TRUE;
-    wrapperSetWrapperState(WRAPPER_WSTATE_STARTING);
-    wrapperSetJavaState(WRAPPER_JSTATE_DOWN, 0, -1);
+    wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STARTING);
+    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, 0, -1);
     wrapperData->lastPingTicks = wrapperGetTicks();
     wrapperData->jvmCommand = NULL;
     wrapperData->exitRequested = FALSE;

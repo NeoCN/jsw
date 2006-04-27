@@ -42,6 +42,12 @@
  * 
  *
  * $Log$
+ * Revision 1.161  2006/04/27 03:07:09  mortenson
+ * Fix a state engine problem introduced in 3.2.0 which was causing the
+ *   wrapper.on_exit.<n> properties to be ignored in most cases.
+ * Fix a potential problem that could have caused crashes when debug logging
+ *   was enabled.
+ *
  * Revision 1.160  2006/04/05 02:01:00  mortenson
  * Synchronize the command line so that both the Windows and UNIX versions
  * are now the same.  The old command line syntaxes are now supported
@@ -1494,8 +1500,8 @@ int wrapperRunConsole() {
     int res;
 
     /* Setup the wrapperData structure. */
-    wrapperSetWrapperState(WRAPPER_WSTATE_STARTING);
-    wrapperSetJavaState(WRAPPER_JSTATE_DOWN, -1, -1);
+    wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STARTING);
+    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, -1, -1);
     wrapperData->isConsole = TRUE;
 
     /* Initialize the wrapper */
@@ -1541,8 +1547,8 @@ int wrapperRunService() {
     int res;
 
     /* Setup the wrapperData structure. */
-    wrapperSetWrapperState(WRAPPER_WSTATE_STARTING);
-    wrapperSetJavaState(WRAPPER_JSTATE_DOWN, -1, -1);
+    wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STARTING);
+    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, -1, -1);
     wrapperData->isConsole = FALSE;
 
     /* Initialize the wrapper */
@@ -1602,8 +1608,14 @@ void wrapperStopProcess(int useLoggerQueue, int exitCode) {
         }
 
         wrapperData->exitCode = exitCode;
+
+        /* Make sure that further restarts are disabled. */
         wrapperData->restartRequested = FALSE;
-        wrapperData->wState = WRAPPER_WSTATE_STOPPING;
+
+        /* Do not call wrapperSetWrapperState(useLoggerQueue, WRAPPER_WSTATE_STOPPING) here.
+         *  It will be called by the wrappereventloop.c.jStateDown once the
+         *  the JVM is completely down.  Calling it here will make it
+         *  impossible to trap and restart based on exit codes. */
     }
 }
 
@@ -3238,7 +3250,7 @@ void wrapperKeyRegistered(char *key) {
         if (strcmp(key, wrapperData->key) == 0) {
             /* This is the correct key. */
             /* We now know that the Java side wrapper code has started. */
-            wrapperSetJavaState(WRAPPER_JSTATE_LAUNCHED, -1, -1);
+            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCHED, -1, -1);
 
             /* Send the low log level to the JVM so that it can control output via the log method. */
             sprintf(buffer, "%d", getLowLogLevel());
@@ -3279,7 +3291,7 @@ void wrapperKeyRegistered(char *key) {
         
         /* Allow up to 5 + <shutdownTimeout> seconds for the application to stop itself. */
         /* Already in this state. */
-        wrapperSetJavaState(WRAPPER_JSTATE_STOPPING, wrapperGetTicks(), 5 + wrapperData->shutdownTimeout);
+        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, wrapperGetTicks(), 5 + wrapperData->shutdownTimeout);
         break;
 
     default:
@@ -3334,7 +3346,7 @@ void wrapperStopPendingSignalled(int waitHint) {
 
     if (wrapperData->jState == WRAPPER_JSTATE_STARTED) {
         /* Change the state to STOPPING */
-        wrapperSetJavaState(WRAPPER_JSTATE_STOPPING, -1, -1);
+        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, -1, -1);
         /* Don't need to set the timeout here because it will be set below. */
     }
 
@@ -3360,7 +3372,7 @@ void wrapperStoppedSignalled() {
 
     /* The Java side of the wrapper signalled that it stopped
      *  allow 5 + jvmExitTimeout seconds for the JVM to exit. */
-    wrapperSetJavaState(WRAPPER_JSTATE_STOPPED, wrapperGetTicks(), 5 + wrapperData->jvmExitTimeout);
+    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPED, wrapperGetTicks(), 5 + wrapperData->jvmExitTimeout);
 }
 
 /**
@@ -3401,11 +3413,11 @@ void wrapperStartedSignalled() {
     if (wrapperData->jState == WRAPPER_JSTATE_STARTING) {
         /* We got a response to a ping.  Allow 5 + <pingTimeout> more seconds before the JVM
          *  is considered to be dead. */
-        wrapperSetJavaState(WRAPPER_JSTATE_STARTED, wrapperGetTicks(), 5 + wrapperData->pingTimeout);
+        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STARTED, wrapperGetTicks(), 5 + wrapperData->pingTimeout);
 
         /* Is the wrapper state STARTING? */
         if (wrapperData->wState == WRAPPER_WSTATE_STARTING) {
-            wrapperSetWrapperState(WRAPPER_WSTATE_STARTED);
+            wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STARTED);
 
             if (!wrapperData->isConsole) {
                 /* Tell the service manager that we started */
@@ -3419,6 +3431,6 @@ void wrapperStartedSignalled() {
         
         /* Allow up to 5 + <shutdownTimeout> seconds for the application to stop itself. */
         /* Already in this state. */
-        wrapperSetJavaState(WRAPPER_JSTATE_STOPPING, wrapperGetTicks(), 5 + wrapperData->shutdownTimeout);
+        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, wrapperGetTicks(), 5 + wrapperData->shutdownTimeout);
     }
 }

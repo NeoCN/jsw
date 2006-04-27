@@ -27,8 +27,8 @@
             explained elsewhere in this document.
         </para>
         <para>
-            The Wrapper configuration file is very similar, but exactly the
-            same, as a Java Properties file.  The '\' character is not
+            The Wrapper configuration file is very similar, but not exactly
+            the same, as a Java Properties file.  The '\' character is not
             interpreted as an escape character for example.  The '#'
             character is interpreted as a comment character.  To include a
             '#' character in a property value, the value must either be
