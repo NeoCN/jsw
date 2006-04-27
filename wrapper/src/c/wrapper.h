@@ -42,6 +42,12 @@
  * 
  *
  * $Log$
+ * Revision 1.81  2006/04/27 03:07:09  mortenson
+ * Fix a state engine problem introduced in 3.2.0 which was causing the
+ *   wrapper.on_exit.<n> properties to be ignored in most cases.
+ * Fix a potential problem that could have caused crashes when debug logging
+ *   was enabled.
+ *
  * Revision 1.80  2006/04/14 04:51:35  mortenson
  * Fix a compiler error.
  *
@@ -570,9 +576,10 @@ extern void wrapperLogChildOutput(const char* log);
 /**
  * Changes the current Wrapper state.
  *
+ * useLoggerQueue - True if the log entries should be queued.
  * wState - The new Wrapper state.
  */
-extern void wrapperSetWrapperState(int wState);
+extern void wrapperSetWrapperState(int useLoggerQueue, int wState);
 
 /**
  * Updates the current state time out.
@@ -587,13 +594,14 @@ extern void wrapperUpdateJavaStateTimeout(DWORD nowTicks, int delay);
 /**
  * Changes the current Java state.
  *
+ * useLoggerQueue - True if the log entries should be queued.
  * jState - The new Java state.
  * nowTicks - The current tick count at the time of the call, may be -1 if
  *            delay is negative.
  * delay - The delay in seconds, added to the nowTicks after which the state
  *         will time out, if negative will never time out.
  */
-extern void wrapperSetJavaState(int jState, DWORD nowTicks, int delay);
+extern void wrapperSetJavaState(int useLoggerQueue, int jState, DWORD nowTicks, int delay);
 
 /******************************************************************************
  * Platform specific methods

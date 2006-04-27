@@ -26,6 +26,10 @@ Java Service Wrapper Revision History.
   than libwrapper.sl.
 * Make the WrapperManager.setConsoleTitle, getWrapperPID, and getJavaPID
   methods available through JMX.
+* Fix a state engine problem introduced in 3.2.0 which was causing the
+  wrapper.on_exit.<n> properties to be ignored in most cases.
+* Fix a potential problem that could have caused crashes when debug logging
+  was enabled.
 
 3.2.0
 * Rework the release cycle so that the wrapper.jar file released for all

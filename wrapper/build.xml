@@ -82,6 +82,7 @@
             <or>
                 <equals arg1="${os.arch}" arg2="PA_RISC"/>
                 <equals arg1="${os.arch}" arg2="PA-RISC"/>
+                <equals arg1="${os.arch}" arg2="PA_RISC2.0"/>
             </or>
         </condition>
         <condition property="dist.arch" value="sparc">
