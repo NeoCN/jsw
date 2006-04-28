@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.162  2006/04/28 02:19:11  mortenson
+ * It is no longer possible to specify arguments using the '/c' syntax.
+ *
  * Revision 1.161  2006/04/27 03:07:09  mortenson
  * Fix a state engine problem introduced in 3.2.0 which was causing the
  *   wrapper.on_exit.<n> properties to be ignored in most cases.
@@ -1394,10 +1397,10 @@ int wrapperParseArguments(int argc, char **argv) {
     char *argConfFileBase;
 
     if (argc > 1) {
-        if ((argv[1][0] == '-') || (argv[1][0] == '/')) {
+        if (argv[1][0] == '-') {
             /* Syntax 1 or 3 */
             /* A command appears to have been specified. */
-            wrapperData->argCommand = &argv[1][1]; /* Strip off the '-' or '/' */
+            wrapperData->argCommand = &argv[1][1]; /* Strip off the '-' */
             if (wrapperData->argCommand[0] == '\0') {
                 wrapperUsage(argv[0]);
                 return FALSE;

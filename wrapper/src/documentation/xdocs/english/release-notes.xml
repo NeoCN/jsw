@@ -74,6 +74,14 @@ $Id$
             </listitem>
             <listitem>
                 <para>
+                    It is no longer possible to specify arguments using the '/c' syntax.
+                    This was undocumented so hopefully it is not being used.  The documented
+                    '-c' syntax must now be used.  The change was necessary to synchronize
+                    the command line between UNIX and windows platforms.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
                     The 32-bit HP-UX 3.2.0 build was generating a libwrapper.so file rather
                     than libwrapper.sl.
                 </para>
