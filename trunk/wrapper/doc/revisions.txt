@@ -30,6 +30,9 @@ Java Service Wrapper Revision History.
   wrapper.on_exit.<n> properties to be ignored in most cases.
 * Fix a potential problem that could have caused crashes when debug logging
   was enabled.
+* Fix a problem where signals were not being handled correctly on some UNIX
+  platforms, including AIX.  This was making it impossible to shutdown the
+  wrapper cleanly with the TERM signal.  Bug #1477619.
 
 3.2.0
 * Rework the release cycle so that the wrapper.jar file released for all

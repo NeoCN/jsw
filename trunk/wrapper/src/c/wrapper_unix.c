@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.120  2006/04/28 01:53:37  mortenson
+ * Fix a problem where signals were not being handled correctly on some UNIX
+ * platforms, including AIX.  This was making it impossible to shutdown the
+ * wrapper cleanly with the TERM signal.  Bug #1477619.
+ *
  * Revision 1.119  2006/04/27 03:07:09  mortenson
  * Fix a state engine problem introduced in 3.2.0 which was causing the
  *   wrapper.on_exit.<n> properties to be ignored in most cases.
@@ -676,7 +681,7 @@ void handleCommon(const char* sigName) {
     threadId = pthread_self();
 
     /* All threads will receive a signal.  We want to ignore any signal sent to the timer thread. */
-    if (threadId == timerThreadId) {
+    if (pthread_equal(threadId, timerThreadId)) {
         if (wrapperData->isDebugging) {
             log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                 "%s trapped, but signals for timer thread are ignored.", sigName);
@@ -735,7 +740,7 @@ void sigActionAlarm(int sigNum, siginfo_t *sigInfo, void *na) {
     threadId = pthread_self();
 
     if (wrapperData->isDebugging) {
-        if (threadId == timerThreadId) {
+        if (pthread_equal(threadId, timerThreadId)) {
             log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                 "Timer thread received an Alarm signal.  Ignoring.");
         } else {
@@ -770,7 +775,7 @@ void sigActionQuit(int sigNum, siginfo_t *sigInfo, void *na) {
 
     threadId = pthread_self();
 
-    if (threadId == timerThreadId) {
+    if (pthread_equal(threadId, timerThreadId)) {
         log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
             "Timer thread received an Quit signal.  Ignoring.");
     } else {
@@ -841,7 +846,7 @@ void handleAlarm(int sig_num) {
     threadId = pthread_self();
 
     if (wrapperData->isDebugging) {
-        if (threadId == timerThreadId) {
+        if (pthread_equal(threadId, timerThreadId)) {
             log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                 "Timer thread received an Alarm signal.  Ignoring.");
         } else {
@@ -882,7 +887,7 @@ void handleQuit(int sig_num) {
     /* Ignore any other signals while in this handler. */
     signal(SIGQUIT, SIG_IGN);
 
-    if (threadId == timerThreadId) {
+    if (pthread_equal(threadId, timerThreadId)) {
         log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
             "Timer thread received an Quit signal.  Ignoring.");
     } else {
@@ -942,9 +947,22 @@ void *timerRunner(void *arg) {
     DWORD tickOffset;
     long int offsetDiff;
     int first = 1;
+    sigset_t signal_mask;
+    int rc;
 
     /* Immediately register this thread with the logger. */
     logRegisterThread(WRAPPER_THREAD_TIMER);
+
+    /* mask signals so the timer doesn't get any of these. */
+    sigemptyset(&signal_mask);
+    sigaddset(&signal_mask, SIGTERM);
+    sigaddset(&signal_mask, SIGINT);
+    sigaddset(&signal_mask, SIGQUIT);
+    sigaddset(&signal_mask, SIGALRM);
+    rc = pthread_sigmask(SIG_BLOCK, &signal_mask, NULL);
+    if (rc != 0) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Could not mask signals for timer thread.");
+    }
 
     if (wrapperData->isTimerOutputEnabled) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Timer thread started.");
