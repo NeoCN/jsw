@@ -171,23 +171,66 @@ wrapper.java.classpath.5=%EXTERN_APP%/lib/ext/jar4.jar]]></screen>
                         set to ';' on Windows and ':' on UNIX platforms.  The variable can be
                         used to build up platform independent paths.
                     </para>
+                    <informalexample>
+                        <simpara><emphasis>Example:</emphasis></simpara>
+                        <screen format="linespecific"><![CDATA[set.PATH=..%WRAPPER_FILE_SEPARATOR%lib%WRAPPER_PATH_SEPARATOR%%PATH%]]></screen>
+                    </informalexample>
+                    <para>
+                        Which resolves to the following:
+                    </para>
+                    <informalexample>
+                        <simpara><emphasis>Windows:</emphasis></simpara>
+                        <screen format="linespecific"><![CDATA[set.PATH=..\lib;%PATH%]]></screen>
+                    </informalexample>
+                    <informalexample>
+                        <simpara><emphasis>UNIX:</emphasis></simpara>
+                        <screen format="linespecific"><![CDATA[set.PATH=../lib:%PATH%]]></screen>
+                    </informalexample>
+                </listitem>
+                <listitem>
+                    <para>
+                        The <literal moreinfo="none">WRAPPER_OS</literal> variable is set to the
+                        name of the OS for which the currently running copy of Wrapper was built.
+                    </para>
+                    <informalexample>
+                        <simpara><emphasis>Example:</emphasis></simpara>
+                        <screen format="linespecific"><![CDATA[wrapper.java.library.path.1=../lib
+wrapper.java.library.path.2=../lib/native/%WRAPPER_OS%-%WRAPPER_ARCH%-%WRAPPER_BITS%]]></screen>
+                    </informalexample>
+                    <para>
+                        Which resolves to the following:
+                    </para>
+                    <informalexample>
+                        <simpara><emphasis>Windows:</emphasis></simpara>
+                        <screen format="linespecific"><![CDATA[wrapper.java.library.path.1=../lib
+wrapper.java.library.path.2=../lib/native/windows-x86-32]]></screen>
+                    </informalexample>
+                    <informalexample>
+                        <simpara><emphasis>Linux:</emphasis></simpara>
+                        <screen format="linespecific"><![CDATA[wrapper.java.library.path.1=../lib
+wrapper.java.library.path.2=../lib/native/linux-x86-32]]></screen>
+                    </informalexample>
+                    <informalexample>
+                        <simpara><emphasis>Solaris:</emphasis></simpara>
+                        <screen format="linespecific"><![CDATA[wrapper.java.library.path.1=../lib
+wrapper.java.library.path.2=../lib/native/solaris-sparc-32]]></screen>
+                    </informalexample>
+                </listitem>
+                <listitem>
+                    <para>
+                        The <literal moreinfo="none">WRAPPER_ARCH</literal> variable is set to the
+                        name of the architecture for which the currently running copy of Wrapper
+                        was built.
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        The <literal moreinfo="none">WRAPPER_BITS</literal> variable is set to the
+                        32 or 64 bit depth for which the currently running copy of Wrapper was
+                        built.
+                    </para>
                 </listitem>
             </itemizedlist>
-            <informalexample>
-                <simpara><emphasis>Example:</emphasis></simpara>
-                <screen format="linespecific"><![CDATA[set.PATH=..%WRAPPER_FILE_SEPARATOR%lib%WRAPPER_PATH_SEPARATOR%%PATH%]]></screen>
-            </informalexample>
-            <para>
-                Which resolves to the following:
-            </para>
-            <informalexample>
-                <simpara><emphasis>Windows:</emphasis></simpara>
-                <screen format="linespecific"><![CDATA[set.PATH=..\lib;%PATH%]]></screen>
-            </informalexample>
-            <informalexample>
-                <simpara><emphasis>UNIX:</emphasis></simpara>
-                <screen format="linespecific"><![CDATA[set.PATH=../lib:%PATH%]]></screen>
-            </informalexample>
         </section>
     </section>
 </chapter>

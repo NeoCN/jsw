@@ -263,6 +263,9 @@
         
         <tstamp/>
         <filter token="version"           value="${version}"       />
+        <filter token="bits"              value="${bits}"          />
+        <filter token="dist.arch"         value="${dist.arch}"     />
+        <filter token="dist.os"           value="${dist.os}"       />
         <filter token="build.date"        value="${DSTAMP}"        />
         <filter token="build.time"        value="${TSTAMP}"        />
         

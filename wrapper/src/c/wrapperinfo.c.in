@@ -23,6 +23,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  *
  * $Log$
+ * Revision 1.5  2006/04/28 03:35:10  mortenson
+ * Add new default environment variables which can be referenced in a configuration
+ * file to configure platform specific directories and file names.
+ *
  * Revision 1.4  2006/02/24 05:43:36  mortenson
  * Update the copyright.
  *
@@ -50,4 +54,7 @@
  */
 
 char *wrapperVersion = "@version@";
+char *wrapperBits = "@bits@";
+char *wrapperArch = "@dist.arch@";
+char *wrapperOS = "@dist.os@";
 
