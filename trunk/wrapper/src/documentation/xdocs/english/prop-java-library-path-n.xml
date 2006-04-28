@@ -35,7 +35,7 @@
         <para>
             The library path is used to specify a list of directories in which
             to look for any native (JNI) libraries used by the application.
-            You must place the <literal moreinfo="none">Wrapper.DLL</literal>
+            You must place the <literal moreinfo="none">wrapper.dll</literal>
             (for Windows) or <literal moreinfo="none">libWrapper.so</literal>
             (for Linux and Unix) file in one of the directories specified.
         </para>
@@ -92,5 +92,54 @@ set.LD_LIBRARY_PATH=..%WRAPPER_FILE_SEPARATOR%bin%WRAPPER_PATH_SEPARATOR%%LD_LIB
                 if other SAP applications are also installed on the system.
             </simpara>
         </note>
+        <section>
+            <title>Platform specific native libraries</title>
+            <para>
+                The Wrapper also provides a facility to make it easy to create
+                binary distributions that run on any platform, even if the
+                application makes use of native libraries.
+            </para>
+            <para>
+                In the case of the Wrapper's native library, the Wrapper is
+                intelligent about the way it locates its native component.  The
+                library can be named in such a way that it contains the current
+                OS name, platform name, and bit depth.   Examples are:
+                <literal moreinfo="none">wrapper-windows-x86-32.dll</literal>
+                and <literal moreinfo="none">libwrapper-linux-x86-32.so</literal>.
+            </para>
+            <para>
+                Most libraries do not support this kind of feature however and
+                expect their native libraries to be named the same for all
+                platforms.  This usually results in having to release platform
+                specific distributions of an application.   By defining the
+                library path as follows however, the Wrapper will dynamically
+                reference the correct platform specific directory at run time,
+                making it possible to include all supported platforms in a
+                single distribution.
+            </para>
+            <informalexample>
+                <simpara><emphasis>Example:</emphasis></simpara>
+                <screen format="linespecific"><![CDATA[wrapper.java.library.path.1=../lib
+wrapper.java.library.path.2=../lib/native/%WRAPPER_OS%-%WRAPPER_ARCH%-%WRAPPER_BITS%]]></screen>
+            </informalexample>
+            <para>
+                Which resolves to the following:
+            </para>
+            <informalexample>
+                <simpara><emphasis>Windows:</emphasis></simpara>
+                <screen format="linespecific"><![CDATA[wrapper.java.library.path.1=../lib
+wrapper.java.library.path.2=../lib/native/windows-x86-32]]></screen>
+            </informalexample>
+            <informalexample>
+                <simpara><emphasis>Linux:</emphasis></simpara>
+                <screen format="linespecific"><![CDATA[wrapper.java.library.path.1=../lib
+wrapper.java.library.path.2=../lib/native/linux-x86-32]]></screen>
+            </informalexample>
+            <informalexample>
+                <simpara><emphasis>Solaris:</emphasis></simpara>
+                <screen format="linespecific"><![CDATA[wrapper.java.library.path.1=../lib
+wrapper.java.library.path.2=../lib/native/solaris-sparc-32]]></screen>
+            </informalexample>
+        </section>
     </section>
 </chapter>

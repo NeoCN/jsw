@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.163  2006/04/28 03:35:10  mortenson
+ * Add new default environment variables which can be referenced in a configuration
+ * file to configure platform specific directories and file names.
+ *
  * Revision 1.162  2006/04/28 02:19:11  mortenson
  * It is no longer possible to specify arguments using the '/c' syntax.
  *
@@ -608,12 +612,23 @@ SOCKET sd = INVALID_SOCKET;
 int loadConfiguration();
 
 void wrapperAddDefaultProperties() {
+    char buffer[50];
+
+    sprintf(buffer, "set.WRAPPER_BITS=%s", wrapperBits);
+    addPropertyPair(properties, buffer, TRUE, FALSE);
+
+    sprintf(buffer, "set.WRAPPER_ARCH=%s", wrapperArch);
+    addPropertyPair(properties, buffer, TRUE, FALSE);
+
+    sprintf(buffer, "set.WRAPPER_OS=%s", wrapperOS);
+    addPropertyPair(properties, buffer, TRUE, FALSE);
+
 #ifdef WIN32
-    addPropertyPair(properties, "set.WRAPPER_FILE_SEPARATOR=\\", FALSE, FALSE);
-    addPropertyPair(properties, "set.WRAPPER_PATH_SEPARATOR=;", FALSE, FALSE);
+    addPropertyPair(properties, "set.WRAPPER_FILE_SEPARATOR=\\", TRUE, FALSE);
+    addPropertyPair(properties, "set.WRAPPER_PATH_SEPARATOR=;", TRUE, FALSE);
 #else
-    addPropertyPair(properties, "set.WRAPPER_FILE_SEPARATOR=/", FALSE, FALSE);
-    addPropertyPair(properties, "set.WRAPPER_PATH_SEPARATOR=:", FALSE, FALSE);
+    addPropertyPair(properties, "set.WRAPPER_FILE_SEPARATOR=/", TRUE, FALSE);
+    addPropertyPair(properties, "set.WRAPPER_PATH_SEPARATOR=:", TRUE, FALSE);
 #endif
 }
 

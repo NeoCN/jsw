@@ -113,6 +113,14 @@ $Id$
                     <ulink url="http://sourceforge.net/tracker/?func=detail&amp;aid=1477619&amp;group_id=39428&amp;atid=425187">Bug #1477619</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add new <ulink url="props-envvars.html#default-definitions">default environment variables</ulink>
+                    which can be referenced in a configuration file to configure platform
+                    specific directories and file names.  WRAPPER_OS, WRAPPER_ARCH, and
+                    WRAPPER_BITS.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.0">
