@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.18  2006/04/28 02:06:08  mortenson
+// Fix an NPE if CTRL-C is pressed immediately after the app is launched.
+//
 // Revision 1.17  2006/02/24 05:45:59  mortenson
 // Update the copyright.
 //
@@ -161,7 +164,11 @@ public class TestAction
         System.out.println("controlEvent(" + event + ")");
         if (event == WrapperManager.WRAPPER_CTRL_C_EVENT) {
             //WrapperManager.stop(0);
-            m_actionRunner.endThread();
+            
+            // May be called before the running is started.
+            if (m_actionRunner != null) {
+                m_actionRunner.endThread();
+            }
         }
     }
 
