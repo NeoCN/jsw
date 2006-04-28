@@ -966,10 +966,10 @@ original tar distribution due to a lack of support for long path names in some t
         <echo>* An intermediate pre-release distribution has been      *</echo>
         <echo>* created in the dist directory.  This file can be       *</echo>
         <echo>* expanded on any system to quickly produce a native     *</echo>
-        <echo>* release by running "build<64/32> release".             *</echo>
+        <echo>* release by running "build&lt;64/32&gt; release".             *</echo>
         <echo>*                                                        *</echo>
         <echo>* Alternately a release can be generated for the current *</echo>
-        <echo>* platform by running "build<64/32> release" now.        *</echo>
+        <echo>* platform by running "build&lt;64/32&gt; release" now.        *</echo>
         <echo>*                                                        *</echo>
         <echo>* Intermediate pre-release distributions:                *</echo>
         <echo>*   ${dist.dir}/${intermfile}.zip</echo>
