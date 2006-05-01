@@ -34,8 +34,8 @@
     </menu>
     
     <menu label="Download">
-        <menu-item label="Binaries"                   href="http://sourceforge.net/project/showfiles.php?group_id=39428"/>
-        <menu-item label="Source Code"                href="http://sourceforge.net/project/showfiles.php?group_id=39428"/>
+        <menu-item label="Binaries"                   href="http://sourceforge.net/project/showfiles.php?group_id=39428&amp;package_id=31591"/>
+        <menu-item label="Source Code"                href="http://sourceforge.net/project/showfiles.php?group_id=39428&amp;package_id=33658"/>
     </menu>
     
     <menu label="Get Involved">
