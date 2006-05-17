@@ -121,6 +121,19 @@ $Id$
                     WRAPPER_BITS.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add a -v argument to make it possible to request the version from a wrapper
+                    binary.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Add support for registering the WrapperManager MBean with the
+                    PlatformMBeanServer when run on a 1.5+ JVM.  See the
+                    <ulink url="jmx.html">JMX</ulink> section in the documentation for details.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.0">

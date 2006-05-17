@@ -40,6 +40,11 @@ Java Service Wrapper Revision History.
 * Add new default environment variables which can be referenced in a
   configuration file to configure platform specific directories and file
   names.  WRAPPER_OS, WRAPPER_ARCH, and WRAPPER_BITS.
+* Add a -v argument to make it possible to request the version from a wrapper
+  binary.
+* Add support for registering the WrapperManager MBean with the
+  PlatformMBeanServer when run on a 1.5+ JVM.  See the JMX section in the
+  documentation for details.
 
 3.2.0
 * Rework the release cycle so that the wrapper.jar file released for all
