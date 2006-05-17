@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.32  2006/05/17 03:10:45  mortenson
+// Fix a typo.
+//
 // Revision 1.31  2006/02/24 05:45:59  mortenson
 // Update the copyright.
 //
@@ -235,7 +238,7 @@ public class Main
                 "Calls WrapperManager.stop( 0 ) to shutdown the JVM and Wrapper with a success exit code." );
             
             buildCommand( panel, gridBag, c, "Stop(1)", "stop1",
-                "Calls WrapperManager.stop( 1 ) to shutdown the JVM and Wrapper with a failure exir code." );
+                "Calls WrapperManager.stop( 1 ) to shutdown the JVM and Wrapper with a failure exit code." );
             
             buildCommand( panel, gridBag, c, "Exit(0)", "exit0",
                 "Calls System.exit( 0 ) to shutdown the JVM and Wrapper with a success exit code." );
