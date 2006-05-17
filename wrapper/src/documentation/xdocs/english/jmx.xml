@@ -19,6 +19,9 @@
         </para>
         <itemizedlist>
             <listitem>
+                <ulink url="#jconsole">JConsole</ulink>
+            </listitem>
+            <listitem>
                 <ulink url="#jboss">JBoss</ulink>
             </listitem>
             <listitem>
@@ -28,6 +31,55 @@
                 <ulink url="#sun">Sun JMX Reference Implementation</ulink>
             </listitem>
         </itemizedlist>
+        <section id="jconsole">
+            <title>JConsole</title>
+            <para>
+                Sun's JDK 5.0 includes the
+                <ulink url="http://java.sun.com/developer/technicalArticles/J2SE/jconsole.html">Java Monitoring and Management Console (JConsole) tool</ulink>.
+                See the above link for details, but JConsole makes it easy to connect
+                to properly configured JVMs and monitor and manage their various
+                functions.
+            </para>
+            <para>
+                For security reasons, the ability to remotely monitor a JVM is not
+                enabled by default.  To enable this functionality it is necessary
+                to define the <literal moreinfo="none">com.sun.management.jmxremote</literal>
+                system property when launching the JVM.   This can be done using the wrapper
+                by specifying a JVM parameter as follows.  See the
+                <ulink url="prop-java-additional-n.html">wrapper.java.additional.&lt;n&gt;</ulink>
+                property for details of its usage:
+            </para>
+            <informalexample>
+                <screen format="linespecific"><![CDATA[wrapper.java.additional.1=-Dcom.sun.management.jmxremote]]></screen>
+            </informalexample>
+            <para>
+                The Wrapper currently provides 2 MBean interfaces.   The primary MBean,
+                <literal moreinfo="none">org.tanukisoftware.wrapper.jmx.WrapperManagerMBean</literal>,
+                provides basic information about the Wrapper and JVM as well as the
+                ability to stop and restart the JVM as well as trigger a full thread dump.
+                The registration of this MBean is controlled by setting the
+                <literal moreinfo="none">org.tanukisoftware.wrapper.WrapperManager.mbean</literal>
+                system property.  It is enabled by default.
+            </para>
+            <para>
+                The second MBean, <literal moreinfo="none">org.tanukisoftware.wrapper.jmx.WrapperManagerTestingMBean</literal>,
+                makes it possible to trigger various failure states for testing and should
+                not be made enabled outside of a testing environment.
+                The registration of this MBean is controlled by setting the
+                <literal moreinfo="none">org.tanukisoftware.wrapper.WrapperManager.mbean.testing</literal>
+                system property.  It is disabled by default.
+            </para>
+            <informalexample>
+                <screen format="linespecific"><![CDATA[wrapper.java.additional.1=-Dcom.sun.management.jmxremote
+wrapper.java.additional.2=-Dorg.tanukisoftware.wrapper.WrapperManager.mbean=true
+wrapper.java.additional.3=-Dorg.tanukisoftware.wrapper.WrapperManager.mbean.testing=false]]></screen>
+            </informalexample>
+            <para>
+                The registered Wrapper MBeans will show up on the MBean tab of the JConsole
+                interface under the <literal moreinfo="none">org.tanukisoftware.wrapper</literal>
+                package.
+            </para>
+        </section>
         <section id="jboss">
             <title>JBoss</title>
             <para>

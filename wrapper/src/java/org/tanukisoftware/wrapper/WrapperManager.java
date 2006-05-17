@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.72  2006/05/17 03:11:47  mortenson
+// Add support for registering the WrapperManager MBean with the
+// PlatformMBeanServer when run on a 1.5+ JVM.
+//
 // Revision 1.71  2006/03/29 01:15:42  mortenson
 // Modify the message shown when a native library fails to load so the
 // exception message text is now shown in the log without having to enable
@@ -336,6 +340,7 @@ import java.io.InterruptedIOException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.BindException;
@@ -858,6 +863,20 @@ public final class WrapperManager
         // Make sure that the version of the Wrapper is correct.
         verifyWrapperVersion();
         
+        // Register the MBeans if configured to do so.
+        if ( WrapperSystemPropertyUtil.getBooleanProperty(
+            WrapperManager.class.getName() + ".mbean", true ) )
+        {
+            registerMBean( new org.tanukisoftware.wrapper.jmx.WrapperManager(),
+                "org.tanukisoftware.wrapper:type=WrapperManager" );
+        }
+        if ( WrapperSystemPropertyUtil.getBooleanProperty(
+            WrapperManager.class.getName() + ".mbean.testing", false ) )
+        {
+            registerMBean( new org.tanukisoftware.wrapper.jmx.WrapperManagerTesting(),
+                "org.tanukisoftware.wrapper:type=WrapperManagerTesting" );
+        }
+        
         // Initialize the native code to trap system signals
         initializeNativeLibrary();
         
@@ -1002,12 +1021,19 @@ public final class WrapperManager
         
         // Resolve the system thread count based on the Java Version
         String fullVersion = System.getProperty( "java.fullversion" );
+        String vendor = System.getProperty( "java.vm.vendor", "" );
+        String os = System.getProperty( "os.name", "" ).toLowerCase();
         if ( fullVersion == null )
         {
             fullVersion = System.getProperty( "java.runtime.version" ) + " "
                 + System.getProperty( "java.vm.name" );
         }
-        if ( fullVersion.indexOf( "JRockit" ) >= 0 )
+        if ( ( fullVersion.indexOf( "IBM" ) >= 0 ) && ( os.indexOf( "aix" ) >= 0 ) )
+        {
+            // The IBM 5.0.0 JVM on AIX
+            m_systemThreadCount = 0;
+        }
+        else if ( fullVersion.indexOf( "JRockit" ) >= 0 )
         {
             // BEA Weblogic JRockit(R) Virtual Machine
             // This JVM handles its shutdown thread differently that IBM, Sun
@@ -1034,7 +1060,7 @@ public final class WrapperManager
         {
             // Display more JVM infor right after the call initialization of the library.
             m_out.println( "Java Version   : " + fullVersion );
-            m_out.println( "Java VM Vendor : " + System.getProperty( "java.vm.vendor" ) );
+            m_out.println( "Java VM Vendor : " + vendor );
             m_out.println();
         }
         
@@ -1160,6 +1186,60 @@ public final class WrapperManager
             }
             String error = e.toString();
             return error;
+        }
+    }
+    
+    /**
+     * Java 1.5 and above supports the ability to register the WrapperManager
+     *  MBean internally.
+     */
+    private static void registerMBean( Object mbean, String name )
+    {
+        Class classManagementFactory;
+        try
+        {
+            classManagementFactory = Class.forName( "java.lang.management.ManagementFactory" );
+        }
+        catch ( ClassNotFoundException e )
+        {
+            if ( m_debug )
+            {
+                m_out.println( "Registering MBeans not supported by current JVM: " + name );
+            }
+            return;
+        }
+        
+        try
+        {
+            // This code uses reflection so it combiles on older JVMs.
+            // The original code is as follows:
+            // javax.management.MBeanServer mbs =
+            //     java.lang.management.ManagementFactory.getPlatformMBeanServer();
+            // javax.management.ObjectName oName = new javax.management.ObjectName( name );
+            // mbs.registerMBean( mbean, oName );
+            
+            // The version of the above code using reflection follows.
+            Class classMBeanServer = Class.forName( "javax.management.MBeanServer" );
+            Class classObjectName = Class.forName( "javax.management.ObjectName" );
+            Method methodGetPlatformMBeanServer =
+                classManagementFactory.getMethod( "getPlatformMBeanServer", null );
+            Constructor constructorObjectName =
+                classObjectName.getConstructor( new Class[] {String.class} );
+            Method methodRegisterMBean = classMBeanServer.getMethod(
+                "registerMBean", new Class[] {Object.class, classObjectName} );
+            Object mbs = methodGetPlatformMBeanServer.invoke( null, null );
+            Object oName = constructorObjectName.newInstance( new Object[] {name} );
+            methodRegisterMBean.invoke( mbs, new Object[] {mbean, oName} );
+            
+            if ( m_debug )
+            {
+                m_out.println( "Registered MBean with Platform MBean Server: " + name );
+            }
+        }
+        catch ( Throwable t )
+        {
+            m_err.println( "Unable to register the " + name + " MBean." );
+            t.printStackTrace();
         }
     }
     

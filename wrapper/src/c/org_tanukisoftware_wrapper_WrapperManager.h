@@ -147,6 +147,8 @@ extern "C" {
 /* Inaccessible static: class_00024org_00024tanukisoftware_00024wrapper_00024WrapperManager */
 /* Inaccessible static: class_00024java_00024lang_00024Thread */
 /* Inaccessible static: class_00024java_00024lang_00024Runtime */
+/* Inaccessible static: class_00024java_00024lang_00024String */
+/* Inaccessible static: class_00024java_00024lang_00024Object */
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeInit
