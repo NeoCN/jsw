@@ -134,6 +134,32 @@ $Id$
                     <ulink url="jmx.html">JMX</ulink> section in the documentation for details.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Rework the way timeout properties are handled.  Values of 0 now actually
+                    disable the timeouts rather than setting them to a large value.  To avoid
+                    overflow problems when converting to internal timer ticks, timeouts are now
+                    restricted to a maximum of 20 days, or 1728000 seconds.  Change affects the
+                    <ulink url="prop-cpu-timeout.html">wrapper.cpu.timeout</ulink>,
+                    <ulink url="prop-startup-timeout.html">wrapper.startup.timeout</ulink>,
+                    <ulink url="prop-ping-timeout.html">wrapper.ping.timeout</ulink>,
+                    <ulink url="prop-shutdown-timeout.html">wrapper.shutdown.timeout</ulink>,
+                    and <ulink url="prop-jvm-exit-timeout.html">wrapper.jvm_exit.timeout</ulink>
+                    properties.  For values less than 20 days, there should be no change in
+                    functionality.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Add support for debuggers.  The Wrapper will now show a warning on startup
+                    and then again the first time a timeout occurs.  But all timeouts will be
+                    ignored.  This is to avoid problems with the Wrapper restarting a suspended
+                    JVM in the middle of a debugging session.  The wrapper enters this mode if
+                    the <ulink url="prop-java-command.html">wrapper.java.command</ulink> ends
+                    with the string "jdb" or "jdb.exe", or the "-Xdebug" parameter is passed to
+                    the JVM.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.0">

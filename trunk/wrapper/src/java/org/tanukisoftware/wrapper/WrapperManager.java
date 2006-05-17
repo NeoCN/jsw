@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.73  2006/05/17 07:35:59  mortenson
+// Add support for debuggers and avoiding shutdowns caused by the wrapper.
+// Fix some problems with disabled timers so they are now actually disabled.
+//
 // Revision 1.72  2006/05/17 03:11:47  mortenson
 // Add support for registering the WrapperManager MBean with the
 // PlatformMBeanServer when run on a 1.5+ JVM.
@@ -976,7 +980,7 @@ public final class WrapperManager
                     //  set.
                     int nowTicks = getTicks();
                     long age = getTickAge( m_eventRunnerTicks, nowTicks );
-                    if ( age > m_cpuTimeout )
+                    if ( ( m_cpuTimeout > 0 ) && ( age > m_cpuTimeout ) )
                     {
                         m_out.println( "JVM Process has not received any CPU time for "
                             + ( age / 1000 ) + " seconds.  Extending timeouts." );
