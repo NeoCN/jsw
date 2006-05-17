@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.83  2006/05/17 07:35:59  mortenson
+ * Add support for debuggers and avoiding shutdowns caused by the wrapper.
+ * Fix some problems with disabled timers so they are now actually disabled.
+ *
  * Revision 1.82  2006/05/17 03:10:08  mortenson
  * Add a new -v command to show the version of the wrapper.
  *
@@ -359,7 +363,12 @@
 #define FILTER_ACTION_RESTART    91
 #define FILTER_ACTION_SHUTDOWN   92
 
-#define WRAPPER_TIMEOUT_MAX      31557600 /* One Year.  Effectively never. */
+
+/* Because of the way time is converted to ticks, the largest possible timeout that
+ *  can be specified without causing 32-bit overflows is (2^31 / 1000) - 5 = 2147478
+ *  Which is a little over 24 days.  To make the interface nice, round this down to
+ *  20 days.  Or 1728000. */
+#define WRAPPER_TIMEOUT_MAX      1728000
 
 /* Type definitions */
 typedef struct WrapperConfig WrapperConfig;
@@ -392,6 +401,7 @@ struct WrapperConfig {
     char    **jvmCommand;           /* Command used to launch the JVM */
 #endif
     int     debugJVM;               /* True if the JVM is being launched with a debugger enabled. */
+    int     debugJVMTimeoutNotified;/* True if the JVM is being launched with a debugger enabled and the user has already been notified of a timeout. */
     char    key[17];                /* Key which the JVM uses to authorize connections. (16 digits + \0) */
     int     isConsole;              /* TRUE if the wrapper was launched as a console. */
     int     cpuTimeout;             /* Number of seconds without CPU before the JVM will issue a warning and extend timeouts */

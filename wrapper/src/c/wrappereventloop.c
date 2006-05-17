@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.32  2006/05/17 07:35:59  mortenson
+ * Add support for debuggers and avoiding shutdowns caused by the wrapper.
+ * Fix some problems with disabled timers so they are now actually disabled.
+ *
  * Revision 1.31  2006/04/27 03:07:09  mortenson
  * Fix a state engine problem introduced in 3.2.0 which was causing the
  *   wrapper.on_exit.<n> properties to be ignored in most cases.
@@ -407,6 +411,34 @@ void displayLaunchingTimeoutMessage() {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "" );
         }
     }
+}
+
+/**
+ * Handles a timeout for a DebugJVM by showing an appropriate message and
+ *  resetting internal timeouts.
+ */
+void handleDebugJVMTimeout(DWORD nowTicks, const char *message, const char *timer) {
+    if (!wrapperData->debugJVMTimeoutNotified) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            "------------------------------------------------------------------------" );
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "%s", message);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            "The JVM was launched with debug options so this may be because the JVM" );
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            "is currently suspended by a debugger.  Any future timeouts during this" );
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            "JVM invocation will be silently ignored.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            "------------------------------------------------------------------------" );
+    }
+    wrapperData->debugJVMTimeoutNotified = TRUE;
+
+    /* Make this individual state never timeout then continue. */
+    if (wrapperData->isStateOutputEnabled) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            "      DebugJVM timeout.  Disable current %s timeout.", timer);
+    }
+    wrapperUpdateJavaStateTimeout(nowTicks, -1);
 }
 
 /**
@@ -894,7 +926,7 @@ void jStateLaunch(DWORD nowTicks, int nextSleep) {
         (wrapperData->wState == WRAPPER_WSTATE_STARTED)) {
 
         /* Is it time to proceed? */
-        if (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0) {
+        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
             /* Launch the new JVM */
             
             if (wrapperData->jvmRestarts > 0) {
@@ -940,7 +972,11 @@ void jStateLaunch(DWORD nowTicks, int nextSleep) {
                  *  launch will be successful.  Allow <startupTimeout> seconds before giving up.
                  *  This can take quite a while if the system is heavily loaded.
                  *  (At startup for example) */
-                wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCHING, nowTicks, wrapperData->startupTimeout);
+                if (wrapperData->startupTimeout > 0) {
+                    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCHING, nowTicks, wrapperData->startupTimeout);
+                } else {
+                    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCHING, nowTicks, -1);
+                }
             }
         }
     } else {
@@ -976,14 +1012,19 @@ void jStateLaunching(DWORD nowTicks, int nextSleep) {
          * We are waiting in this state until we receive a KEY packet
          *  from the JVM attempting to register.
          * Have we waited too long already */
-        if (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0) {
-            displayLaunchingTimeoutMessage();
-
-            /* Give up on the JVM and start trying to kill it. */
-            wrapperKillProcess(FALSE);
-
-            /* Restart the JVM. */
-            wrapperData->restartRequested = TRUE;
+        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
+            if (wrapperData->debugJVM) {
+                handleDebugJVMTimeout(nowTicks,
+                    "Startup: Timed out waiting for a signal from the JVM.", "startup");
+            } else {
+                displayLaunchingTimeoutMessage();
+    
+                /* Give up on the JVM and start trying to kill it. */
+                wrapperKillProcess(FALSE);
+    
+                /* Restart the JVM. */
+                wrapperData->restartRequested = TRUE;
+            }
         }
     }
 }
@@ -1021,7 +1062,11 @@ void jStateLaunched(DWORD nowTicks, int nextSleep) {
          *  that it has started.  Allow <startupTimeout> seconds before 
          *  giving up.  A good application will send starting signals back
          *  much sooner than this as a way to extend this time if necessary. */
-        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STARTING, nowTicks, wrapperData->startupTimeout);
+        if (wrapperData->startupTimeout > 0) {
+            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STARTING, nowTicks, wrapperData->startupTimeout);
+        } else {
+            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STARTING, nowTicks, -1);
+        }
     }
 }
 
@@ -1048,15 +1093,20 @@ void jStateStarting(DWORD nowTicks, int nextSleep) {
         wrapperProtocolClose();
     } else {
         /* Have we waited too long already */
-        if (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                       "Startup failed: Timed out waiting for signal from JVM.");
-
-            /* Give up on the JVM and start trying to kill it. */
-            wrapperKillProcess(FALSE);
-
-            /* Restart the JVM. */
-            wrapperData->restartRequested = TRUE;
+        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
+            if (wrapperData->debugJVM) {
+                handleDebugJVMTimeout(nowTicks,
+                    "Startup: Timed out waiting for a signal from the JVM.", "startup");
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                           "Startup failed: Timed out waiting for signal from JVM.");
+    
+                /* Give up on the JVM and start trying to kill it. */
+                wrapperKillProcess(FALSE);
+    
+                /* Restart the JVM. */
+                wrapperData->restartRequested = TRUE;
+            }
         } else {
             /* Keep waiting. */
         }
@@ -1091,15 +1141,20 @@ void jStateStarted(DWORD nowTicks, int nextSleep) {
     } else {
         /* Have we waited too long already.  The jStateTimeoutTicks is reset each time a ping
          *  response is received from the JVM. */
-        if (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                       "JVM appears hung: Timed out waiting for signal from JVM.");
-
-            /* Give up on the JVM and start trying to kill it. */
-            wrapperKillProcess(FALSE);
-
-            /* Restart the JVM. */
-            wrapperData->restartRequested = TRUE;
+        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
+            if (wrapperData->debugJVM) {
+                handleDebugJVMTimeout(nowTicks,
+                    "Ping: Timed out waiting for signal from JVM.", "ping");
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                           "JVM appears hung: Timed out waiting for signal from JVM.");
+    
+                /* Give up on the JVM and start trying to kill it. */
+                wrapperKillProcess(FALSE);
+    
+                /* Restart the JVM. */
+                wrapperData->restartRequested = TRUE;
+            }
         } else if (wrapperGetTickAge(wrapperAddToTicks(wrapperData->lastPingTicks, wrapperData->pingInterval), nowTicks) >= 0) {
             /* It is time to send another ping to the JVM */
             if (wrapperData->isLoopOutputEnabled) {
@@ -1143,12 +1198,17 @@ void jStateStopping(DWORD nowTicks, int nextSleep) {
         wrapperProtocolClose();
     } else {
         /* Have we waited too long already */
-        if (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                       "Shutdown failed: Timed out waiting for signal from JVM.");
-
-            /* Give up on the JVM and start trying to kill it. */
-            wrapperKillProcess(FALSE);
+        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
+            if (wrapperData->debugJVM) {
+                handleDebugJVMTimeout(nowTicks,
+                    "Shutdown: Timed out waiting for a signal from the JVM.", "shutdown");
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                           "Shutdown failed: Timed out waiting for signal from JVM.");
+    
+                /* Give up on the JVM and start trying to kill it. */
+                wrapperKillProcess(FALSE);
+            }
         } else {
             /* Keep waiting. */
         }
@@ -1179,12 +1239,17 @@ void jStateStopped(DWORD nowTicks, int nextSleep) {
         wrapperProtocolClose();
     } else {
         /* Have we waited too long already */
-        if (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                       "Shutdown failed: Timed out waiting for the JVM to terminate.");
-
-            /* Give up on the JVM and start trying to kill it. */
-            wrapperKillProcess(FALSE);
+        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
+            if (wrapperData->debugJVM) {
+                handleDebugJVMTimeout(nowTicks,
+                    "Shutdown: Timed out waiting for the JVM to terminate.", "JVM exit");
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                           "Shutdown failed: Timed out waiting for the JVM to terminate.");
+    
+                /* Give up on the JVM and start trying to kill it. */
+                wrapperKillProcess(FALSE);
+            }
         } else {
             /* Keep waiting. */
         }
@@ -1214,7 +1279,7 @@ void jStateKilling(DWORD nowTicks, int nextSleep) {
         wrapperProtocolClose();
     } else {
         /* Have we waited long enough */
-        if (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0) {
+        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
             /* It is time to actually kill the JVM. */
             wrapperKillProcessNow();
         } else {
@@ -1401,15 +1466,26 @@ void wrapperEventLoop() {
 
         /* Useful for development debugging, but not runtime debugging */
         if (wrapperData->isStateOutputEnabled) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                       "    Ticks=%08lx, WrapperState=%s, JVMState=%s JVMStateTimeoutTicks=%08lx (%ds), Exit=%s, Restart=%s",
-                       nowTicks,
-                       wrapperGetWState(wrapperData->wState),
-                       wrapperGetJState(wrapperData->jState),
-                       wrapperData->jStateTimeoutTicks,
-                       (wrapperData->jStateTimeoutTicksSet ? wrapperGetTickAge(nowTicks, wrapperData->jStateTimeoutTicks) : 0),
-                       (wrapperData->exitRequested ? "true" : "false"),
-                       (wrapperData->restartRequested ? "true" : "false"));
+            if (wrapperData->jStateTimeoutTicksSet) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                           "    Ticks=%08lx, WrapperState=%s, JVMState=%s JVMStateTimeoutTicks=%08lx (%ds), Exit=%s, Restart=%s",
+                           nowTicks,
+                           wrapperGetWState(wrapperData->wState),
+                           wrapperGetJState(wrapperData->jState),
+                           wrapperData->jStateTimeoutTicks,
+                           wrapperGetTickAge(nowTicks, wrapperData->jStateTimeoutTicks),
+                           (wrapperData->exitRequested ? "true" : "false"),
+                           (wrapperData->restartRequested ? "true" : "false"));
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                           "    Ticks=%08lx, WrapperState=%s, JVMState=%s JVMStateTimeoutTicks=%08lx (N/A), Exit=%s, Restart=%s",
+                           nowTicks,
+                           wrapperGetWState(wrapperData->wState),
+                           wrapperGetJState(wrapperData->jState),
+                           wrapperData->jStateTimeoutTicks,
+                           (wrapperData->exitRequested ? "true" : "false"),
+                           (wrapperData->restartRequested ? "true" : "false"));
+            }
         }
 
         /* If we are configured to do so, confirm that the anchor file still exists. */
@@ -1456,7 +1532,11 @@ void wrapperEventLoop() {
                     wrapperProtocolFunction(WRAPPER_MSG_STOP, NULL);
                 
                     /* Allow up to 5 + <shutdownTimeout> seconds for the application to stop itself. */
-                    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, nowTicks, 5 + wrapperData->shutdownTimeout);
+                    if (wrapperData->shutdownTimeout > 0) {
+                        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, nowTicks, 5 + wrapperData->shutdownTimeout);
+                    } else {
+                        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, nowTicks, -1);
+                    }
                 }
             }
         }

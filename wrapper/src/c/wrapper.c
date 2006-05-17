@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.165  2006/05/17 07:35:59  mortenson
+ * Add support for debuggers and avoiding shutdowns caused by the wrapper.
+ * Fix some problems with disabled timers so they are now actually disabled.
+ *
  * Revision 1.164  2006/05/17 03:10:08  mortenson
  * Add a new -v command to show the version of the wrapper.
  *
@@ -1820,9 +1824,16 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             sprintf(strings[index], "%s", prop);
         }
 #endif
-        if (strstr(strings[index], "jdb")) {
-            /* The jdb debugger is being used directly.  go into debug JVM mode. */
+        c = strstr(strings[index], "jdb");
+        if (c && (c - strings[index] == strlen(strings[index]) - 3 - 1)) {
+            /* Ends with "jdb".  The jdb debugger is being used directly.  go into debug JVM mode. */
             wrapperData->debugJVM = TRUE;
+        } else {
+            c = strstr(strings[index], "jdb.exe");
+            if (c && (c - strings[index] == strlen(strings[index]) - 7 - 1)) {
+                /* Ends with "jdb".  The jdb debugger is being used directly.  go into debug JVM mode. */
+                wrapperData->debugJVM = TRUE;
+            }
         }
     }
     index++;
@@ -2503,6 +2514,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 void wrapperBuildJavaCommandArray(char ***stringsPtr, int *length, int addQuotes) {
     /* Reset the flag stating that the JVM is a debug JVM. */
     wrapperData->debugJVM = FALSE;
+    wrapperData->debugJVMTimeoutNotified = FALSE;
 
     /* Find out how long the array needs to be first. */
     *length = wrapperBuildJavaCommandArrayInner(NULL, addQuotes);
@@ -2513,12 +2525,21 @@ void wrapperBuildJavaCommandArray(char ***stringsPtr, int *length, int addQuotes
     /* Now actually fill in the strings */
     wrapperBuildJavaCommandArrayInner(*stringsPtr, addQuotes);
 
-    /* TODO - Still need to implement the rest of this.
     if (wrapperData->debugJVM) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-            "The JVM is being launched with a debugger enabled and may be suspended.  Timeouts will be disabled.");
+        if ((wrapperData->startupTimeout > 0) || (wrapperData->pingTimeout > 0) ||
+            (wrapperData->shutdownTimeout > 0) || (wrapperData->jvmExitTimeout > 0)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                "------------------------------------------------------------------------" );
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                "The JVM is being launched with a debugger enabled and could possibly be" );
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                "suspended.  To avoid unwanted shutdowns, timeouts will be disabled," );
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                "removing the ability to detect and restart frozen JVMs." );
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                "------------------------------------------------------------------------" );
+        }
     }
-    */
 }
 
 void wrapperFreeJavaCommandArray(char **strings, int length) {
@@ -2758,6 +2779,19 @@ int getOutputFilterActionForName( const char *actionName ) {
     }
 }
 
+int validateTimeout(const char* propertyName, int value) {
+    if (value <= 0) {
+        return 0;
+    } else if (value > WRAPPER_TIMEOUT_MAX) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            "%s must be in the range 0 to %d days (%d seconds).  Changing to %d.",
+            propertyName, WRAPPER_TIMEOUT_MAX / 86400, WRAPPER_TIMEOUT_MAX, WRAPPER_TIMEOUT_MAX);
+        return WRAPPER_TIMEOUT_MAX;
+    } else {
+        return value;
+    }
+}
+
 int loadConfiguration() {
     const char* logfilePath;
     int logfileRollMode;
@@ -2967,12 +3001,13 @@ int loadConfiguration() {
     wrapperData->pingInterval = getIntProperty(properties, "wrapper.ping.interval", 5);
     wrapperData->shutdownTimeout = getIntProperty(properties, "wrapper.shutdown.timeout", 30);
     wrapperData->jvmExitTimeout = getIntProperty(properties, "wrapper.jvm_exit.timeout", 15);
-    if (wrapperData->startupTimeout <= 0) {
-        wrapperData->startupTimeout = WRAPPER_TIMEOUT_MAX;
-    }
-    if (wrapperData->pingTimeout <= 0) {
-        wrapperData->pingTimeout = WRAPPER_TIMEOUT_MAX;
-    }
+
+    wrapperData->cpuTimeout = validateTimeout("wrapper.cpu.timeout", wrapperData->cpuTimeout);
+    wrapperData->startupTimeout = validateTimeout("wrapper.startup.timeout", wrapperData->startupTimeout);
+    wrapperData->pingTimeout = validateTimeout("wrapper.ping.timeout", wrapperData->pingTimeout);
+    wrapperData->shutdownTimeout = validateTimeout("wrapper.shutdown.timeout", wrapperData->shutdownTimeout);
+    wrapperData->jvmExitTimeout = validateTimeout("wrapper.jvm_exit.timeout", wrapperData->jvmExitTimeout);
+
     if (wrapperData->pingInterval < 1) {
         wrapperData->pingInterval = 1;
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
@@ -2982,30 +3017,22 @@ int loadConfiguration() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
             "wrapper.ping.interval must be at less than or equal to 1 hour (3600 seconds).  Changing to 3600.");
     }
-    if (wrapperData->pingTimeout < wrapperData->pingInterval + 5 ) {
+    if ((wrapperData->pingTimeout > 0) && (wrapperData->pingTimeout < wrapperData->pingInterval + 5 )) {
         wrapperData->pingTimeout = wrapperData->pingInterval + 5;
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
             "wrapper.ping.timeout must be at least 5 seconds longer than wrapper.ping.interval.  Changing to %d.", wrapperData->pingTimeout);
     }
-    if (wrapperData->shutdownTimeout <= 0) {
-        wrapperData->shutdownTimeout = WRAPPER_TIMEOUT_MAX;
-    }
-    if (wrapperData->jvmExitTimeout <= 0) {
-        wrapperData->jvmExitTimeout = WRAPPER_TIMEOUT_MAX;
-    }
-    if (wrapperData->cpuTimeout <= 0) {
-        wrapperData->cpuTimeout = WRAPPER_TIMEOUT_MAX;
-    } else {
+    if (wrapperData->cpuTimeout > 0) {
         /* Make sure that the timeouts are all longer than the cpu timeout. */
-        if ( wrapperData->startupTimeout < wrapperData->cpuTimeout ) {
+        if ((wrapperData->startupTimeout > 0) && (wrapperData->startupTimeout < wrapperData->cpuTimeout)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 "CPU timeout detection may not operate correctly during startup because wrapper.cpu.timeout is not smaller than wrapper.startup.timeout.");
         }
-        if ( wrapperData->pingTimeout < wrapperData->cpuTimeout ) {
+        if ((wrapperData->pingTimeout > 0) && (wrapperData->pingTimeout < wrapperData->cpuTimeout)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 "CPU timeout detection may not operate correctly because wrapper.cpu.timeout is not smaller than wrapper.ping.timeout.");
         }
-        if ( wrapperData->shutdownTimeout < wrapperData->cpuTimeout ) {
+        if ((wrapperData->shutdownTimeout > 0) && (wrapperData->shutdownTimeout < wrapperData->cpuTimeout)) { 
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 "CPU timeout detection may not operate correctly during shutdown because wrapper.cpu.timeout is not smaller than wrapper.shutdown.timeout.");
         }
@@ -3193,6 +3220,10 @@ DWORD wrapperGetSystemTicks() {
  * This can be done safely in 32 bits
  */
 int wrapperGetTickAge(DWORD start, DWORD end) {
+    /*
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "      wrapperGetTickAge(%08lx, %08lx) -> %08lx", start, end, (int)((end - start) * WRAPPER_TICK_MS) / 1000);
+    */
+
     /* Simply subtracting the values will always work even if end has wrapped
      *  due to overflow.
      *  0x00000001 - 0xffffffff = 0x00000002 = 2
@@ -3224,6 +3255,9 @@ int wrapperTickExpired(DWORD nowTicks, DWORD timeoutTicks) {
  *  enough to require more than 32 bits when multiplied by 1000.
  */
 DWORD wrapperAddToTicks(DWORD start, int seconds) {
+    /*
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "      wrapperAddToTicks(%08lx, %08lx) -> %08lx", start, seconds, start + (seconds * 1000 / WRAPPER_TICK_MS));
+    */
     return start + (seconds * 1000 / WRAPPER_TICK_MS);
 }
 
@@ -3305,7 +3339,7 @@ void wrapperKeyRegistered(char *key) {
             wrapperProtocolFunction(WRAPPER_MSG_LOW_LOG_LEVEL, buffer);
 
             /* Send the ping timeout to the JVM. */
-            if ( wrapperData->pingTimeout >= WRAPPER_TIMEOUT_MAX ) {
+            if (wrapperData->pingTimeout >= WRAPPER_TIMEOUT_MAX) {
                 /* Timeout disabled */
                 sprintf(buffer, "%d", 0);
             } else {
@@ -3339,7 +3373,11 @@ void wrapperKeyRegistered(char *key) {
         
         /* Allow up to 5 + <shutdownTimeout> seconds for the application to stop itself. */
         /* Already in this state. */
-        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, wrapperGetTicks(), 5 + wrapperData->shutdownTimeout);
+        if (wrapperData->shutdownTimeout > 0) {
+            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, wrapperGetTicks(), 5 + wrapperData->shutdownTimeout);
+        } else {
+            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, wrapperGetTicks(), -1);
+        }
         break;
 
     default:
@@ -3358,7 +3396,11 @@ void wrapperPingResponded() {
     case WRAPPER_JSTATE_STARTED:
         /* We got a response to a ping.  Allow 5 + <pingTimeout> more seconds before the JVM
          *  is considered to be dead. */
-        wrapperUpdateJavaStateTimeout(wrapperGetTicks(), 5 + wrapperData->pingTimeout);
+        if (wrapperData->pingTimeout > 0) {
+            wrapperUpdateJavaStateTimeout(wrapperGetTicks(), 5 + wrapperData->pingTimeout);
+        } else {
+            wrapperUpdateJavaStateTimeout(wrapperGetTicks(), -1);
+        }
         break;
     default:
         /* We got a ping response that we were not expecting.  Ignore it. */
@@ -3420,7 +3462,11 @@ void wrapperStoppedSignalled() {
 
     /* The Java side of the wrapper signalled that it stopped
      *  allow 5 + jvmExitTimeout seconds for the JVM to exit. */
-    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPED, wrapperGetTicks(), 5 + wrapperData->jvmExitTimeout);
+    if (wrapperData->jvmExitTimeout > 0) {
+        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPED, wrapperGetTicks(), 5 + wrapperData->jvmExitTimeout);
+    } else {
+        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPED, wrapperGetTicks(), -1);
+    }
 }
 
 /**
@@ -3461,7 +3507,11 @@ void wrapperStartedSignalled() {
     if (wrapperData->jState == WRAPPER_JSTATE_STARTING) {
         /* We got a response to a ping.  Allow 5 + <pingTimeout> more seconds before the JVM
          *  is considered to be dead. */
-        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STARTED, wrapperGetTicks(), 5 + wrapperData->pingTimeout);
+        if (wrapperData->pingTimeout > 0) {
+            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STARTED, wrapperGetTicks(), 5 + wrapperData->pingTimeout);
+        } else {
+            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STARTED, wrapperGetTicks(), -1);
+        }
 
         /* Is the wrapper state STARTING? */
         if (wrapperData->wState == WRAPPER_WSTATE_STARTING) {
@@ -3479,6 +3529,10 @@ void wrapperStartedSignalled() {
         
         /* Allow up to 5 + <shutdownTimeout> seconds for the application to stop itself. */
         /* Already in this state. */
-        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, wrapperGetTicks(), 5 + wrapperData->shutdownTimeout);
+        if (wrapperData->shutdownTimeout > 0) {
+            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, wrapperGetTicks(), 5 + wrapperData->shutdownTimeout);
+        } else {
+            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, wrapperGetTicks(), -1);
+        }
     }
 }

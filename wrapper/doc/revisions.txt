@@ -45,6 +45,19 @@ Java Service Wrapper Revision History.
 * Add support for registering the WrapperManager MBean with the
   PlatformMBeanServer when run on a 1.5+ JVM.  See the JMX section in the
   documentation for details.
+* Rework the way timeout properties are handled.  Values of 0 now actually
+  disable the timeouts rather than setting them to a large value.  To avoid
+  overflow problems when converting to internal timer ticks, timeouts are now
+  restricted to a maximum of 20 days, or 1728000 seconds.  Change affects the
+  wrapper.cpu.timeout, wrapper.startup.timeout, wrapper.ping.timeout,
+  wrapper.shutdown.timeout, and wrapper.jvm_exit.timeout properties.  For
+  values less than 20 days, there should be no change in functionality.
+* Add support for debuggers.  The Wrapper will now show a warning on startup
+  and then again the first time a timeout occurs.  But all timeouts will be
+  ignored.  This is to avoid problems with the Wrapper restarting a suspended
+  JVM in the middle of a debugging session.  The wrapper enters this mode if
+  the wrapper.java.command ends with the string "jdb" or "jdb.exe", or the
+  "-Xdebug" parameter is passed to the JVM.
 
 3.2.0
 * Rework the release cycle so that the wrapper.jar file released for all
