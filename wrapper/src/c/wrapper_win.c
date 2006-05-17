@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.121  2006/05/17 03:10:08  mortenson
+ * Add a new -v command to show the version of the wrapper.
+ *
  * Revision 1.120  2006/04/27 03:07:09  mortenson
  * Fix a state engine problem introduced in 3.2.0 which was causing the
  *   wrapper.on_exit.<n> properties to be ignored in most cases.
@@ -3291,6 +3294,11 @@ void _CRTAPI1 main(int argc, char **argv) {
         if (!_stricmp(wrapperData->argCommand,"?") || !_stricmp(wrapperData->argCommand,"-help")) {
             /* User asked for the usage. */
             wrapperUsage(argv[0]);
+            appExit(0);
+            return; /* For clarity. */
+        } else if (!_stricmp(wrapperData->argCommand,"v") || !_stricmp(wrapperData->argCommand,"-version")) {
+            /* User asked for version. */
+            wrapperVersionBanner();
             appExit(0);
             return; /* For clarity. */
         }

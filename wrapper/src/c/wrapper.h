@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.82  2006/05/17 03:10:08  mortenson
+ * Add a new -v command to show the version of the wrapper.
+ *
  * Revision 1.81  2006/04/27 03:07:09  mortenson
  * Fix a state engine problem introduced in 3.2.0 which was causing the
  *   wrapper.on_exit.<n> properties to be ignored in most cases.
@@ -388,6 +391,7 @@ struct WrapperConfig {
 #else /* UNIX */
     char    **jvmCommand;           /* Command used to launch the JVM */
 #endif
+    int     debugJVM;               /* True if the JVM is being launched with a debugger enabled. */
     char    key[17];                /* Key which the JVM uses to authorize connections. (16 digits + \0) */
     int     isConsole;              /* TRUE if the wrapper was launched as a console. */
     int     cpuTimeout;             /* Number of seconds without CPU before the JVM will issue a warning and extend timeouts */
@@ -547,6 +551,11 @@ extern int wrapperInitializeLogging();
  *  base file name will have any path and extension stripped.
  */
 extern char *wrapperGetFileBase(const char *fileName);
+
+/**
+ * Output the version.
+ */
+extern void wrapperVersionBanner();
 
 /**
  * Output the application usage.
