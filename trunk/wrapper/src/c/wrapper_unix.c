@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.121  2006/05/17 03:10:08  mortenson
+ * Add a new -v command to show the version of the wrapper.
+ *
  * Revision 1.120  2006/04/28 01:53:37  mortenson
  * Fix a problem where signals were not being handled correctly on some UNIX
  * platforms, including AIX.  This was making it impossible to shutdown the
@@ -1588,22 +1591,6 @@ void wrapperKillProcess(int useLoggerQueue) {
 }
 
 /**
- * Show usage.
- */
-void wrapperUsage(char *appName) {
-    printf("Wrapper (Version %s) http://wrapper.tanukisoftware.org\n", wrapperVersion);
-    printf("\n");
-    printf("Usage: %s <file> [configuration properties] [...]\n", appName);
-    printf("<file> is the application configuration file.\n");
-    printf("\n");
-    printf("[configuration properties] are configuration name-value pairs which\n");
-    printf("  override values in wrapper.conf.  For example:\n");
-    printf("  wrapper.debug=true\n");
-    printf("\n");
-    printf("Options:  --help\n");
-}
-
-/**
  * Transform a program into a daemon.
  * Inspired by code from GNU monit, which in turn, was
  * inspired by code from Stephen A. Rago's book,
@@ -1796,6 +1783,11 @@ int main(int argc, char **argv) {
     if (!_stricmp(wrapperData->argCommand,"?") || !_stricmp(wrapperData->argCommand,"-help")) {
         /* User asked for the usage. */
         wrapperUsage(argv[0]);
+        appExit(0);
+        return 0; /* For compiler. */
+    } else if (!_stricmp(wrapperData->argCommand,"v") || !_stricmp(wrapperData->argCommand,"-version")) {
+        /* User asked for version. */
+        wrapperVersionBanner();
         appExit(0);
         return 0; /* For compiler. */
     }

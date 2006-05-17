@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.164  2006/05/17 03:10:08  mortenson
+ * Add a new -v command to show the version of the wrapper.
+ *
  * Revision 1.163  2006/04/28 03:35:10  mortenson
  * Add new default environment variables which can be referenced in a configuration
  * file to configure platform specific directories and file names.
@@ -1362,12 +1365,19 @@ char *wrapperGetFileBase(const char *fileName) {
 }
 
 /**
+ * Output the version.
+ */
+void wrapperVersionBanner() {
+    printf("Wrapper (Version %s) http://wrapper.tanukisoftware.org\n", wrapperVersion);
+}
+
+/**
  * Output the application usage.
  */
 void wrapperUsage(char *appName) {
     char *confFileBase = wrapperGetFileBase(appName);
 
-    printf("Wrapper (Version %s) http://wrapper.tanukisoftware.org\n", wrapperVersion);
+    wrapperVersionBanner();
     printf("\n");
     printf("Usage:\n");
     printf("  %s <command> <configuration file> [configuration properties] [...]\n", appName);
@@ -1391,6 +1401,7 @@ void wrapperUsage(char *appName) {
     /* Omit '-s' option from help as it is only used by the service manager. */
     /*printf("  -s  --service used by service manager\n"); */
 #endif
+    printf("  -v  --version print the wrapper's version information.\n");
     printf("  -?  --help    print this help message\n");
     printf("\n");
     printf("<configuration file> is the wrapper.conf to use.  Name must be absolute or relative\n");
@@ -1809,6 +1820,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             sprintf(strings[index], "%s", prop);
         }
 #endif
+        if (strstr(strings[index], "jdb")) {
+            /* The jdb debugger is being used directly.  go into debug JVM mode. */
+            wrapperData->debugJVM = TRUE;
+        }
     }
     index++;
 
@@ -1855,6 +1870,11 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                             free(propStripped);
                             propStripped = NULL;
                         }
+                    }
+
+                    /* Set if this paremeter enables debugging. */
+                    if (strstr(strings[index], "-Xdebug") == strings[index]) {
+                        wrapperData->debugJVM = TRUE;
                     }
                 }
                 index++;
@@ -2481,6 +2501,9 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
  * length is the number of strings in the above array.
  */
 void wrapperBuildJavaCommandArray(char ***stringsPtr, int *length, int addQuotes) {
+    /* Reset the flag stating that the JVM is a debug JVM. */
+    wrapperData->debugJVM = FALSE;
+
     /* Find out how long the array needs to be first. */
     *length = wrapperBuildJavaCommandArrayInner(NULL, addQuotes);
 
@@ -2489,6 +2512,13 @@ void wrapperBuildJavaCommandArray(char ***stringsPtr, int *length, int addQuotes
 
     /* Now actually fill in the strings */
     wrapperBuildJavaCommandArrayInner(*stringsPtr, addQuotes);
+
+    /* TODO - Still need to implement the rest of this.
+    if (wrapperData->debugJVM) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            "The JVM is being launched with a debugger enabled and may be suspended.  Timeouts will be disabled.");
+    }
+    */
 }
 
 void wrapperFreeJavaCommandArray(char **strings, int length) {
