@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.122  2006/05/19 02:35:47  mortenson
+ * Fix a problem where the environment variables loaded when a service was
+ * started were always the system environment even if the service was running
+ * as a specific account.
+ *
  * Revision 1.121  2006/05/17 03:10:08  mortenson
  * Add a new -v command to show the version of the wrapper.
  *
@@ -2466,12 +2471,11 @@ int wrapperInstall() {
  */
 static char **envKeys = NULL;
 static int envKeysCount = 0;
-int wrapperLoadEnvFromRegistry() {
+int wrapperLoadEnvFromRegistryInner(HKEY baseKey, const char *regPath) {
     int envCount = 0;
     int result = 0;
     int ret;
     HKEY hKey;
-    char regPath[1024];
     DWORD dwIndex;
     LONG err;
     CHAR name[MAX_PROPERTY_NAME_LENGTH];
@@ -2482,13 +2486,11 @@ int wrapperLoadEnvFromRegistry() {
     char *envVal;
     BOOL expanded;
 
-#ifdef _DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Loading environment variables from Registry:");
-#endif
+    /* NOTE - Any log output here will be placed in the default log file as it happens
+     *        before the wrapper.conf is loaded. */
 
     /* Open the registry entry where the current environment variables are stored. */
-    sprintf(regPath, "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment\\");
-    if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, regPath, 0, KEY_ENUMERATE_SUB_KEYS | KEY_QUERY_VALUE, (PHKEY) &hKey) == ERROR_SUCCESS) {
+    if (RegOpenKeyEx(baseKey, regPath, 0, KEY_ENUMERATE_SUB_KEYS | KEY_QUERY_VALUE, (PHKEY) &hKey) == ERROR_SUCCESS) {
         /* Read in each of the environment variables and set them into the environment.
          *  These values will be set as is without doing any environment variable
          *  expansion.  In order for the ExpandEnvironmentStrings function to work all
@@ -2644,6 +2646,32 @@ int wrapperLoadEnvFromRegistry() {
     }
 
     return result;
+}
+
+int wrapperLoadEnvFromRegistry() {
+    /* Always load in the system wide variables. */
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Loading System environment variables from Registry:");
+#endif
+
+    if (wrapperLoadEnvFromRegistryInner(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment\\"))
+    {
+        return 1;
+    }
+
+    /* Only load in the user specific variables if the USERNAME environment variable is set. */
+    if (getenv("USERNAME")) {
+#ifdef _DEBUG
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Loading Account environment variables from Registry:");
+#endif
+
+        if (wrapperLoadEnvFromRegistryInner(HKEY_CURRENT_USER, "Environment\\"))
+        {
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 char *getNTServiceStatusName(int status)

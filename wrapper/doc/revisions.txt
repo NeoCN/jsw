@@ -59,6 +59,11 @@ Java Service Wrapper Revision History.
   the wrapper.java.command ends with the string "jdb" or "jdb.exe", or the
   "-Xdebug" parameter is passed to the JVM.
 * Add 'athlon' to the list of supported architectures.
+* Fix a problem where the environment variables loaded when a service was
+  started were always the system environment even if the service was running
+  as a specific account.  The environment of a specific account will now be
+  loaded on top of the system environment if the USERNAME environment
+  variable is set by the system.  Bug #1491138.
 
 3.2.0
 * Rework the release cycle so that the wrapper.jar file released for all
