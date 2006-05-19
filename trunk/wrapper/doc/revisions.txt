@@ -58,6 +58,7 @@ Java Service Wrapper Revision History.
   JVM in the middle of a debugging session.  The wrapper enters this mode if
   the wrapper.java.command ends with the string "jdb" or "jdb.exe", or the
   "-Xdebug" parameter is passed to the JVM.
+* Add 'athlon' to the list of supported architectures.
 
 3.2.0
 * Rework the release cycle so that the wrapper.jar file released for all

@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.74  2006/05/19 01:39:31  mortenson
+// Add 'athlon' to the list of supported architectures.
+//
 // Revision 1.73  2006/05/17 07:35:59  mortenson
 // Add support for debuggers and avoiding shutdowns caused by the wrapper.
 // Fix some problems with disabled timers so they are now actually disabled.
@@ -1317,9 +1320,9 @@ public final class WrapperManager
         }
         else
         {
-            if ( arch.equals( "amd64" ) || arch.equals( "ia32" ) || arch.equals( "ia64" ) ||
-                arch.equals( "x86_64" ) || arch.equals( "i686" ) || arch.equals( "i586" ) ||
-                arch.equals( "i486" ) || arch.equals( "i386" ) )
+            if ( arch.equals( "amd64" ) || arch.equals( "athlon" ) || arch.equals( "ia32" ) ||
+                arch.equals( "ia64" ) || arch.equals( "x86_64" ) || arch.equals( "i686" ) ||
+                arch.equals( "i586" ) || arch.equals( "i486" ) || arch.equals( "i386" ) )
             {
                 arch = "x86";
             }
