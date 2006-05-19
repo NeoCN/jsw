@@ -160,6 +160,11 @@ $Id$
                     the JVM.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add 'athlon' to the list of supported architectures.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.0">
