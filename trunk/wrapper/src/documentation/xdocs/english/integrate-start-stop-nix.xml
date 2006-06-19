@@ -540,6 +540,20 @@ wrapper.app.parameter.7=stop]]></screen>
                         <literal moreinfo="none"><ulink url="prop-shutdown-timeout.html">Shutdown Timeout</ulink></literal>
                         has expired.  This defaults to 30 seconds.
                     </para>
+                    <note>
+                        <para>
+                            If the main method of the stop class calls System.exit from within its
+                            main thread, that thread will in effect become deadlocked by that call.
+                            The Wrapper avoids a deadlock by detecting this and proceeding with the
+                            shutdown after 5 seconds.  This may however result in the application
+                            failing to shutdown cleanly on its own and should be avoided where
+                            possible.
+                        </para>
+                        <para>
+                            This case can be tested for by enabling the wrapper.debug=true property
+                            and then observing the log file during the shutdown process.
+                        </para>
+                    </note>
                 </section>
                 <section>
                     <title>Library Path</title>
