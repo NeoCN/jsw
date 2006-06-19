@@ -78,7 +78,7 @@
             </para>
             <para>
                 The following section will walk you through a detailed explanation of
-                how to configure <ulink url="http://jakarta.apache.org/tomcat/">Tomcat</ulink>
+                how to configure <ulink url="http://tomcat.apache.org/">Tomcat</ulink>
                 to run within the Wrapper.  Most other applications can be integrated by
                 following the same steps.
             </para>
@@ -89,7 +89,7 @@
                 <title>Install Tomcat</title>
                 <para>
                     This tutorial will start with a clean install of
-                    <ulink url="http://jakarta.apache.org/tomcat/">Tomcat</ulink>.  We
+                    <ulink url="http://tomcat.apache.org/">Tomcat</ulink>.  We
                     used version 4.1.18 so the exact steps may be slightly different
                     depending on the exact version installed.  Tomcat was installed in
                     the root directory, <literal moreinfo="none">D:\</literal>,

@@ -60,7 +60,7 @@
             </para>
             <para>
                 Detailed overview and instructions, using
-                <ulink url="http://jakarta.apache.org/tomcat/">Tomcat</ulink> as an
+                <ulink url="http://tomcat.apache.org/">Tomcat</ulink> as an
                 example.  (<ulink url="integrate-start-stop-win.html">Win32</ulink>
                 or <ulink url="integrate-start-stop-nix.html">Linux / UNIX</ulink>).
             </para>
