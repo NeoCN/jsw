@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.75  2006/06/19 14:45:46  mortenson
+// Make it more obvious when the user code is calling System.exit from within the
+// WrapperListener.stop method.
+//
 // Revision 1.74  2006/05/19 01:39:31  mortenson
 // Add 'athlon' to the list of supported architectures.
 //
@@ -3163,6 +3167,18 @@ public final class WrapperManager
             {
                 m_out.println( "Thread, " + Thread.currentThread().getName()
                     + ", waiting for the JVM to exit." );
+                
+                if ( Thread.currentThread() == m_hook )
+                {
+                    m_out.println( "System.exit appears to have been called from within the" );
+                    m_out.println( "  WrapperListener.stop() method.  If possible the application" );
+                    m_out.println( "  should be modified to avoid this behavior." );
+                    m_out.println( "  To avoid a deadlock, this thread will only wait 5 seconds" );
+                    m_out.println( "  for the application to shutdown.  This may result in the" );
+                    m_out.println( "  application failing to shutdown completely before the JVM" );
+                    m_out.println( "  exists.  Removing the offending System.exit call will" );
+                    m_out.println( "  resolve this." );
+                }
             }
             
             // This thread needs to be put into an infinite loop until the JVM exits.
