@@ -55,7 +55,7 @@ $Id$
             <listitem>
                 <para>
                     Commit a patch by Juergen Hermann to make the error shown when realpath
-                    failes clearer.
+                    fails clearer.
                 </para>
             </listitem>
             <listitem>
