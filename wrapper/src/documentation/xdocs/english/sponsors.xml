@@ -31,6 +31,12 @@
             -->
         <donorlist>
             <donor>
+                <date>Jun 13, 2006</date>
+                <amount>150.00</amount>
+                <name><ulink url="http://www.cytric.com/">i:FAO Group</ulink></name>
+                <message>i:FAO Group is very happy with the Java Service Wrapper!</message>
+            </donor>
+            <donor>
                 <date>Mar 13, 2006</date>
                 <amount>75.00</amount>
                 <name>Anonymous</name>
