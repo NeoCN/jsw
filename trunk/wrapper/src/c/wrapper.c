@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.166  2006/06/20 04:48:54  mortenson
+ * Fix a compiler warning.
+ *
  * Revision 1.165  2006/05/17 07:35:59  mortenson
  * Add support for debuggers and avoiding shutdowns caused by the wrapper.
  * Fix some problems with disabled timers so they are now actually disabled.
@@ -1825,12 +1828,12 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         }
 #endif
         c = strstr(strings[index], "jdb");
-        if (c && (c - strings[index] == strlen(strings[index]) - 3 - 1)) {
+        if (c && ((unsigned int)(c - strings[index]) == strlen(strings[index]) - 3 - 1)) {
             /* Ends with "jdb".  The jdb debugger is being used directly.  go into debug JVM mode. */
             wrapperData->debugJVM = TRUE;
         } else {
             c = strstr(strings[index], "jdb.exe");
-            if (c && (c - strings[index] == strlen(strings[index]) - 7 - 1)) {
+            if (c && ((unsigned int)(c - strings[index]) == strlen(strings[index]) - 7 - 1)) {
                 /* Ends with "jdb".  The jdb debugger is being used directly.  go into debug JVM mode. */
                 wrapperData->debugJVM = TRUE;
             }
