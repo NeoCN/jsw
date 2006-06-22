@@ -611,6 +611,12 @@
         <copy file="${src.dir}/bin/StopApp-NT.bat.in"
               tofile="${bin.dir}/Stop${app.caps.name}-NT.bat"
               filtering="on"/>
+        <copy file="${src.dir}/bin/PauseApp-NT.bat.in"
+              tofile="${bin.dir}/Pause${app.caps.name}-NT.bat"
+              filtering="on"/>
+        <copy file="${src.dir}/bin/ResumeApp-NT.bat.in"
+              tofile="${bin.dir}/Resume${app.caps.name}-NT.bat"
+              filtering="on"/>
     </target>
     
     <!-- =================================================================== -->

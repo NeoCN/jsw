@@ -91,6 +91,8 @@ english/prop-ntservice-interactive.html
 english/prop-ntservice-load-order-group.html
 english/prop-ntservice-name.html
 english/prop-ntservice-password.html
+english/prop-ntservice-pausable.html
+english/prop-ntservice-pausable.stop_jvm.html
 english/prop-ntservice-process-priority.html
 english/prop-ntservice-starttype.html
 english/prop-on-exit-n.html

@@ -90,6 +90,18 @@
                     JVM reflecting the changes.
                 </listproperty>
                 <listproperty>
+                    <literal moreinfo="none">PAUSE</literal> - Requests that the Wrapper
+                    by paused.  Only supported when run as a Windows service and the
+                    <ulink url="prop-ntservice-pausable.html">wrapper.ntservice.pausable</ulink>
+                    property is true.
+                </listproperty>
+                <listproperty>
+                    <literal moreinfo="none">RESUME</literal> - Requests that the Wrapper
+                    by resumed.  Only supported when run as a Windows service and the
+                    <ulink url="prop-ntservice-pausable.html">wrapper.ntservice.pausable</ulink>
+                    property is true.
+                </listproperty>
+                <listproperty>
                     <literal moreinfo="none">DUMP</literal> - Requests that the Wrapper cause the
                     JVM to produce a thread dump.  The results can be viewed in the Wrapper log
                     file.

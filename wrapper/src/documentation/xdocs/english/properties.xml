@@ -267,6 +267,12 @@
                 <listproperty version="3.2.0">
                     <ulink url="prop-ntservice-password.html#mask">wrapper.ntservice.password.prompt.mask</ulink>
                 </listproperty>
+                <listproperty version="3.2.1">
+                    <ulink url="prop-ntservice-pausable.html">wrapper.ntservice.pausable</ulink>
+                </listproperty>
+                <listproperty version="3.2.1">
+                    <ulink url="prop-ntservice-pausable-stop-jvm.html">wrapper.ntservice.pausable.stop_jvm</ulink>
+                </listproperty>
                 <listproperty version="2.2.7">
                     <ulink url="prop-ntservice-process-priority.html">wrapper.ntservice.process_priority</ulink>
                 </listproperty>

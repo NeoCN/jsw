@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.167  2006/06/22 16:48:16  mortenson
+ * Make it possible to pause and resume windows services.
+ *
  * Revision 1.166  2006/06/20 04:48:54  mortenson
  * Fix a compiler warning.
  *
@@ -1396,9 +1399,11 @@ void wrapperUsage(char *appName) {
     printf("     (<command> implicitly '-c' and <configuration file> '%s.conf')\n", confFileBase);
     printf("\n");
     printf("where <command> can be one of:\n");
-    printf("  -c  --console run as a Console application\n");
+    printf("  -c  --console  run as a Console application\n");
 #ifdef WIN32
     printf("  -t  --start   starT an NT service\n");
+    printf("  -a  --pause   pAuse a started NT service\n");
+    printf("  -e  --resume  rEsume a paused NT service\n");
     printf("  -p  --stop    stoP a running NT service\n");
     printf("  -i  --install Install as an NT service\n");
     printf("  -r  --remove  Remove as an NT service\n");
@@ -1624,7 +1629,7 @@ void wrapperStopProcess(int useLoggerQueue, int exitCode) {
         (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
         if (wrapperData->isDebugging) {
             log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "wrapperStopProcess(%d) called.  (IGNORED)", exitCode);
+                "wrapperStopProcess(%d) called while stopping.  (IGNORED)", exitCode);
         }
     } else {
         if (wrapperData->isDebugging) {
@@ -1718,6 +1723,21 @@ void wrapperStripQuotes(const char *prop, char *propStripped) {
     propStripped[j] = '\0';
 }
 
+/*
+ * Corrects a windows path in place by replacing all '/' characters with '\'
+ *  on Windows versions.
+ */
+void correctWindowsPath(char *filename) {
+#ifdef WIN32
+    char *c;
+
+    c = (char *)filename;
+    while((c = strchr(c, '/')) != NULL) {
+        c[0] = '\\';
+    }
+#endif
+}
+
 /**
  * Loops over and stores all necessary commands into an array which
  *  can be used to launch a process.
@@ -1773,11 +1793,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             }
         } else {
             /* To avoid problems on Windows XP systems, the '/' characters must
-             *  be replaced by '\' characters in the specified path. */
-            c = (char *)prop;
-            while((c = strchr(c, '/')) != NULL) {
-                c[0] = '\\';
-            }
+             *  be replaced by '\' characters in the specified path.
+             * prop is supposed to be constant, but allow this change as it is
+             *  the actual value that we want. */
+            correctWindowsPath((char *)prop);
     
             /* If the full path to the java command was not specified, then we
              *  need to try and resolve it here to avoid problems later when
@@ -2748,6 +2767,10 @@ void wrapperBuildNTServiceInfo() {
             wrapperData->ntServiceInteractive = FALSE;
         }
 
+        /* Pausable */
+        wrapperData->ntServicePausable = getBooleanProperty( properties, "wrapper.ntservice.pausable", FALSE );
+        wrapperData->ntServicePausableStopJVM = getBooleanProperty( properties, "wrapper.ntservice.pausable.stop_jvm", TRUE );
+
         /* Display a Console Window. */
         wrapperData->ntAllocConsole = getBooleanProperty( properties, "wrapper.ntservice.console", FALSE );
         /* Set the default hide wrapper console flag to the inverse of the alloc console flag. */
@@ -3100,25 +3123,32 @@ int loadConfiguration() {
     /** Get the pid files if any.  May be NULL */
     if (!wrapperData->configured) {
         updateStringValue(&wrapperData->pidFilename, getStringProperty(properties, "wrapper.pidfile", NULL));
+        correctWindowsPath(wrapperData->pidFilename);
     }
     updateStringValue(&wrapperData->javaPidFilename, getStringProperty(properties, "wrapper.java.pidfile", NULL));
+    correctWindowsPath(wrapperData->javaPidFilename);
     
     /** Get the lock file if any.  May be NULL */
     if (!wrapperData->configured) {
         updateStringValue(&wrapperData->lockFilename, getStringProperty(properties, "wrapper.lockfile", NULL));
+        correctWindowsPath(wrapperData->lockFilename);
     }
     
     /** Get the java id file.  May be NULL */
     updateStringValue(&wrapperData->javaIdFilename, getStringProperty(properties, "wrapper.java.idfile", NULL));
+    correctWindowsPath(wrapperData->javaIdFilename);
     
     /** Get the status files if any.  May be NULL */
     if (!wrapperData->configured) {
         updateStringValue(&wrapperData->statusFilename, getStringProperty(properties, "wrapper.statusfile", NULL));
+        correctWindowsPath(wrapperData->statusFilename);
     }
     updateStringValue(&wrapperData->javaStatusFilename, getStringProperty(properties, "wrapper.java.statusfile", NULL));
+    correctWindowsPath(wrapperData->javaStatusFilename);
     
     /** Get the command file if any. May be NULL */
     updateStringValue(&wrapperData->commandFilename, getStringProperty(properties, "wrapper.commandfile", NULL));
+    correctWindowsPath(wrapperData->commandFilename);
 
     /** Get the interval at which the command file will be polled. */
     wrapperData->commandPollInterval = __min(__max(getIntProperty(properties, "wrapper.command.poll_interval", 5), 1), 3600);
@@ -3126,6 +3156,7 @@ int loadConfiguration() {
     /** Get the anchor file if any.  May be NULL */
     if (!wrapperData->configured) {
         updateStringValue(&wrapperData->anchorFilename, getStringProperty(properties, "wrapper.anchorfile", NULL));
+        correctWindowsPath(wrapperData->anchorFilename);
     }
 
     /** Get the interval at which the anchor file will be polled. */
