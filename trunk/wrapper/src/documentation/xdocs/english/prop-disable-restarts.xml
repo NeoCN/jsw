@@ -30,6 +30,12 @@
             to false.
         </para>
         <para>
+            The exception is for JVMs which are stopped when a Windows service is
+            paused because the <ulink url="prop-ntservice-pausable-stop-jvm.html">wrapper.ntservice.pausable.stop_jvm</ulink>
+            property was TRUE.  When the service is resumed the JVM will be restarted
+            as that is considered normal operation.
+        </para>
+        <para>
             This property was requested by users who wished to make sure that the JVM
             was never restarted under any circumstances.  Most users however will want
             to leave restarts enabled.  When tuning of the restarts is required, the

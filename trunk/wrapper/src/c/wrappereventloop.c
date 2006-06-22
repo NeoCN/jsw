@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.33  2006/06/22 16:48:16  mortenson
+ * Make it possible to pause and resume windows services.
+ *
  * Revision 1.32  2006/05/17 07:35:59  mortenson
  * Add support for debuggers and avoiding shutdowns caused by the wrapper.
  * Fix some problems with disabled timers so they are now actually disabled.
@@ -197,6 +200,15 @@ const char *wrapperGetWState(int wState) {
         break;
     case WRAPPER_WSTATE_STARTED:
         name = "STARTED";
+        break;
+    case WRAPPER_WSTATE_PAUSING:
+        name = "PAUSING";
+        break;
+    case WRAPPER_WSTATE_PAUSED:
+        name = "PAUSED";
+        break;
+    case WRAPPER_WSTATE_CONTINUING:
+        name = "CONTINUING";
         break;
     case WRAPPER_WSTATE_STOPPING:
         name = "STOPPING";
@@ -532,7 +544,7 @@ void commandPoll(DWORD nowTicks) {
 
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, 
-        "Command timeout=%d, now=%d", wrapperData->commandTimeoutTicks, nowTicks);
+        "Command timeout=%08x, now=%08x", wrapperData->commandTimeoutTicks, nowTicks);
 #endif
 
     if (wrapperData->commandFilename) {
@@ -605,6 +617,38 @@ void commandPoll(DWORD nowTicks) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Command '%s'. Shutting down with exit code %d.", command, exitCode);
 
                                 wrapperStopProcess(FALSE, exitCode);
+                            } else if (strcmpIgnoreCase(command, "PAUSE") == 0) {
+#ifdef WIN32
+                                if (wrapperData->isConsole) {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Command '%s' not supported in console mode, ignoring.", command);
+                                } else {
+                                    /* Running as a service. */
+                                    if (wrapperData->ntServicePausable) {
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Command '%s'. Pausing JVM.", command);
+                                        wrapperPauseProcess(FALSE);
+                                    } else {
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Command '%s' not enabled, ignoring.", command);
+                                    }
+                                }
+#else
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Command '%s' not supported on this platform, ignoring.", command);
+#endif
+                            } else if (strcmpIgnoreCase(command, "RESUME") == 0) {
+#ifdef WIN32
+                                if (wrapperData->isConsole) {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Command '%s' not supported in console mode, ignoring.", command);
+                                } else {
+                                    /* Running as a service. */
+                                    if (wrapperData->ntServicePausable) {
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Command '%s'. Resuming JVM.", command);
+                                        wrapperContinueProcess(FALSE);
+                                    } else {
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Command '%s' not enabled, ignoring.", command);
+                                    }
+                                }
+#else
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Command '%s' not supported on this platform, ignoring.", command);
+#endif
                             } else if (strcmpIgnoreCase(command, "DUMP") == 0) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Command '%s'. Requesting a Thread Dump.", command);
                                 wrapperRequestDumpJVMState(FALSE);
@@ -737,6 +781,88 @@ void wStateStarted(DWORD nowTicks) {
 }
 
 /**
+ * WRAPPER_WSTATE_PAUSING
+ * The Wrapper process is being paused.  If stopping the JVM is enabled
+ *  then it will remain in this state until the JVM has been stopped.
+ *  Otherwise it will immediately go to the WRAPPER_WSTATE_PAUSED state.
+ *
+ * nowTicks: The tick counter value this time through the event loop.
+ */
+void wStatePausing(DWORD nowTicks) {
+    /* While the wrapper is pausing, we need to ping the service  */
+    /*  manager to reasure it that we are still alive. */
+
+    /* Tell the service manager that we are pausing */
+    wrapperReportStatus(FALSE, WRAPPER_WSTATE_PAUSING, 0, 1000);
+
+    /* If we are configured to do so, stop the JVM */
+    if (wrapperData->ntServicePausableStopJVM) {
+        /* If it has not already been set, set the exit request flag. */
+        if (wrapperData->jState == WRAPPER_JSTATE_DOWN) {
+            /* JVM is now down.  We are now paused. */
+            wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_PAUSED);
+            
+            /* Tell the service manager that we are paused */
+            wrapperReportStatus(FALSE, WRAPPER_WSTATE_PAUSED, 0, 0);
+        } else if (wrapperData->exitRequested ||
+            (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
+            (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
+            (wrapperData->jState == WRAPPER_JSTATE_KILLING)) {
+            /* In the process of stopping the JVM. */
+        } else {
+            wrapperData->exitRequested = TRUE;
+
+            /* Make sure the JVM will be restarted. */
+            wrapperData->restartRequested = TRUE;
+        }
+    } else {
+        /* We want to leave the JVM process as is.  We are now paused. */
+        wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_PAUSED);
+        
+        /* Tell the service manager that we are paused */
+        wrapperReportStatus(FALSE, WRAPPER_WSTATE_PAUSED, 0, 0);
+    }
+}
+
+/**
+ * WRAPPER_WSTATE_PAUSED
+ * The Wrapper process is paused.  It will remain in this state until
+ *  the Wrapper is continued or is ready to start shutting down.  The
+ *  JVM may be stopped or will remain stopped while the Wrapper is in
+ *  this state.
+ *
+ * nowTicks: The tick counter value this time through the event loop.
+ */
+void wStatePaused(DWORD nowTicks) {
+    /* Just keep running.  Nothing to do here. */
+}
+
+/**
+ * WRAPPER_WSTATE_CONTINUING
+ * The Wrapper process is being resumed.  We will remain in this state
+ *  until the JVM enters the running state.  It may or may not be initially
+ *  started.
+ *
+ * nowTicks: The tick counter value this time through the event loop.
+ */
+void wStateContinuing(DWORD nowTicks) {
+    /* While the wrapper is continuing, we need to ping the service  */
+    /*  manager to reasure it that we are still alive. */
+
+    /* Tell the service manager that we are continuing */
+    wrapperReportStatus(FALSE, WRAPPER_WSTATE_CONTINUING, 0, 1000);
+    
+    /* If the JVM state is now STARTED, then change the wrapper state */
+    /*  to be STARTED as well. */
+    if (wrapperData->jState == WRAPPER_JSTATE_STARTED) {
+        wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STARTED);
+        
+        /* Tell the service manager that we started */
+        wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTED, 0, 0);
+    }
+}
+
+/**
  * WRAPPER_WSTATE_STOPPING
  * The Wrapper process has started its shutdown process.  It will
  *  remain in this state until it is confirmed that the JVM has been
@@ -794,12 +920,13 @@ void jStateDown(DWORD nowTicks, int nextSleep) {
     char onExitParamBuffer[16 + 10 + 1];
     int startupDelay;
 
-    /* The JVM can be down for one of 3 reasons.  The first is that the
+    /* The JVM can be down for one of 4 reasons.  The first is that the
      *  wrapper is just starting.  The second is that the JVM is being
-     *  restarted for some reason, and the 3rd is that the wrapper is
-     *  trying to shut down. */
+     *  restarted for some reason, the 3rd is that the wrapper is paused,
+     *  and the 4th is that the wrapper is trying to shut down. */
     if ((wrapperData->wState == WRAPPER_WSTATE_STARTING) ||
-        (wrapperData->wState == WRAPPER_WSTATE_STARTED)) {
+        (wrapperData->wState == WRAPPER_WSTATE_STARTED) ||
+        (wrapperData->wState == WRAPPER_WSTATE_CONTINUING)) {
 
         if (wrapperData->restartRequested) {
             /* A JVM needs to be launched. */
@@ -808,7 +935,14 @@ void jStateDown(DWORD nowTicks, int nextSleep) {
             /* Depending on the number of restarts to date, decide how to handle the (re)start. */
             if (wrapperData->jvmRestarts > 0) {
                 /* This is not the first JVM, so make sure that we still want to launch. */
-                if (wrapperData->isRestartDisabled) {
+                if ((wrapperData->wState == WRAPPER_WSTATE_CONTINUING) && wrapperData->ntServicePausableStopJVM) {
+                    /* We are continuing and the JVM was expected to be stopped.  Always launch
+                     *  immediately and reset the failed invocation count.
+                     * This mode of restarts works even if restarts have been disabled. */
+                    wrapperData->failedInvocationCount = 0;
+                    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCH, nowTicks, 0);
+
+                } else if (wrapperData->isRestartDisabled) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "JVM Restarts disabled.  Shutting down.");
                     wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
                     
@@ -897,8 +1031,37 @@ void jStateDown(DWORD nowTicks, int nextSleep) {
                 wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
             }
         }
+    } else if (wrapperData->wState == WRAPPER_WSTATE_PAUSED) {
+        /* The wrapper is paused. */
+
+        if ( wrapperData->ntServicePausableStopJVM ) {
+            /* The stop state is expected. */
+        } else {
+            /* The JVM should still be running, but it is not.  Try to figure out why. */
+            if (wrapperData->restartRequested) {
+                /* The JVM must have crashed.  The restart will be honored when the service
+                 *  is resumed. Do nothing for now. */
+            } else {
+                /* No restart was requested.  So the JVM must have requested a stop.
+                 *  Normally, this would result in the service stopping from the paused
+                 *  state, but it is possible that an exit code is registered. Check them. */
+                sprintf(onExitParamBuffer, "wrapper.on_exit.%d", wrapperData->exitCode);
+                if (checkPropertyEqual(properties, onExitParamBuffer, getStringProperty(properties, "wrapper.on_exit.default", "shutdown"), "restart")) {
+                    /* We want to restart the JVM. */
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                        "on_exit trigger matched.  Service is paused, will restart the JVM when resumed.  (Exit code: %d)", wrapperData->exitCode);
+    
+                    wrapperData->restartRequested = TRUE;
+    
+                    /* Fall through, the restart will take place once the service is continued. */
+                } else {
+                    /* We want to stop the Wrapper. */
+                    wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
+                }
+            }
+        }
     } else {
-        /* The wrapper is shutting down.  Do nothing. */
+        /* The wrapper is shutting down or pausing.  Do nothing. */
     }
 
     /* Reset the last ping time */
@@ -923,7 +1086,8 @@ void jStateLaunch(DWORD nowTicks, int nextSleep) {
      *  invocation, then the state timeout will be set to the current
      *  time causing the new JVM to be launced immediately. */
     if ((wrapperData->wState == WRAPPER_WSTATE_STARTING) ||
-        (wrapperData->wState == WRAPPER_WSTATE_STARTED)) {
+        (wrapperData->wState == WRAPPER_WSTATE_STARTED) ||
+        (wrapperData->wState == WRAPPER_WSTATE_CONTINUING)) {
 
         /* Is it time to proceed? */
         if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
@@ -980,7 +1144,7 @@ void jStateLaunch(DWORD nowTicks, int nextSleep) {
             }
         }
     } else {
-        /* The wrapper is shutting down.  Switch to the down state. */
+        /* The wrapper is shutting down, pausing or paused.  Switch to the down state. */
         wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, nowTicks, -1);
     }
 }
@@ -1553,6 +1717,18 @@ void wrapperEventLoop() {
             
         case WRAPPER_WSTATE_STARTED:
             wStateStarted(nowTicks);
+            break;
+            
+        case WRAPPER_WSTATE_PAUSING:
+            wStatePausing(nowTicks);
+            break;
+            
+        case WRAPPER_WSTATE_PAUSED:
+            wStatePaused(nowTicks);
+            break;
+            
+        case WRAPPER_WSTATE_CONTINUING:
+            wStateContinuing(nowTicks);
             break;
             
         case WRAPPER_WSTATE_STOPPING:

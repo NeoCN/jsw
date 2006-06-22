@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.84  2006/06/22 16:48:16  mortenson
+ * Make it possible to pause and resume windows services.
+ *
  * Revision 1.83  2006/05/17 07:35:59  mortenson
  * Add support for debuggers and avoiding shutdowns caused by the wrapper.
  * Fix some problems with disabled timers so they are now actually disabled.
@@ -326,10 +329,16 @@
                                      *  until the wrapper decides to shut down.
                                      *  This is true even when the JVM process
                                      *  is being restarted. */
-#define WRAPPER_WSTATE_STOPPING  53 /* The wrapper is shutting down.  Will be in
+#define WRAPPER_WSTATE_PAUSING   53 /* The wrapper enters this state when a PAUSE signal
+                                     *  is received from the service control manager. */
+#define WRAPPER_WSTATE_PAUSED    54 /* The wrapper enters this state when the Wrapper
+                                     *  has actually paused. */
+#define WRAPPER_WSTATE_CONTINUING 55 /* The wrapper enters this state when a CONTINUE signal
+                                     *  is received from the service control manager. */
+#define WRAPPER_WSTATE_STOPPING  56 /* The wrapper is shutting down.  Will be in
                                      *  this state until the JVM enters the DOWN
                                      *  state. */
-#define WRAPPER_WSTATE_STOPPED   54 /* The wrapper enters this state just before
+#define WRAPPER_WSTATE_STOPPED   57 /* The wrapper enters this state just before
                                      *  it exits. */
 
 
@@ -491,6 +500,8 @@ struct WrapperConfig {
     int     ntServicePasswordPrompt; /* If true then the user will be prompted for a password when installing as a service. */
     int     ntServicePasswordPromptMask; /* If true then the password will be masked as it is input. */
     int     ntServiceInteractive;   /* Should the service be allowed to interact with the desktop? */
+    int     ntServicePausable;      /* Should the service be allowed to be paused? */
+    int     ntServicePausableStopJVM; /* Should the JVM be stopped when the service is paused? */
     int     ntHideJVMConsole;       /* Should the JVMs Console window be hidden when run as a service.  True by default but GUIs will not be visible for JVMs prior to 1.4.0. */
     int     ntHideWrapperConsole;   /* Should the Wrapper Console window be hidden when run as a service. */
     HWND    wrapperConsoleHandle;   /* Pointer to the Wrapper Console handle if it exists.  This will only be set if the console was allocated then hidden. */
@@ -723,6 +734,18 @@ extern int wrapperRunConsole();
  * Launch the wrapper as a service application.
  */
 extern int wrapperRunService();
+
+#ifdef WIN32
+/**
+ * Used to ask the state engine to pause the JVM and Wrapper
+ */
+extern void wrapperPauseProcess(int useLoggerQueue);
+
+/**
+ * Used to ask the state engine to resume the JVM and Wrapper
+ */
+extern void wrapperContinueProcess(int useLoggerQueue);
+#endif
 
 /**
  * Used to ask the state engine to shut down the JVM and Wrapper

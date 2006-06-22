@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.event;
  */
 
 // $Log$
+// Revision 1.6  2006/06/22 16:48:16  mortenson
+// Make it possible to pause and resume windows services.
+//
 // Revision 1.5  2006/02/24 05:45:58  mortenson
 // Update the copyright.
 //
@@ -52,6 +55,10 @@ package org.tanukisoftware.wrapper.event;
  * <dl>
  *   <dt>WrapperManager.SERVICE_CONTROL_CODE_STOP (1)</dt>
  *   <dd>The service was requested to stop.</dd>
+ *   <dt>WrapperManager.SERVICE_CONTROL_CODE_PAUSE (2)</dt>
+ *   <dd>The system requested that the service be paused.</dd>
+ *   <dt>WrapperManager.SERVICE_CONTROL_CODE_CONTINUE (3)</dt>
+ *   <dd>The system requested that the paused service be resumed.</dd>
  *   <dt>WrapperManager.SERVICE_CONTROL_CODE_INTERROGATE (4)</dt>
  *   <dd>The service manager queried the service to make sure it is still alive.</dd>
  *   <dt>WrapperManager.SERVICE_CONTROL_CODE_SHUTDOWN (5)</dt>

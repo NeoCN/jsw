@@ -175,6 +175,40 @@ $Id$
                     <ulink url="http://sourceforge.net/tracker/?func=detail&amp;aid=1491138&amp;group_id=39428&amp;atid=425187">Bug #1491138</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Added new <ulink url="prop-ntservice-pausable.html">wrapper.ntservice.pausable</ulink>
+                    <ulink url="prop-ntservice-pausable-stop-jvm.html">wrapper.ntservice.pausable.stop_jvm</ulink>
+                    properties to make it possible to pause and resume the Wrapper when installed
+                    as a Windows service.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Added new Pause and Resume batch files as well as modified the command batch
+                    file to support pause and resume.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Added PAUSE and RESUME commands for use by the
+                    <ulink url="prop-commandfile.html">wrapper.commandfile</ulink> property.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Fix a problem with the <ulink url="prop-pidfile.html">wrapper.pidfile</ulink>,
+                    <ulink url="prop-java-pidfile.html">wrapper.java.pidfile</ulink>,
+                    <ulink url="prop-anchorfile.html">wrapper.anchorfile</ulink>,
+                    <ulink url="prop-commandfile.html">wrapper.commandfile</ulink>,
+                    <ulink url="prop-statusfile.html">wrapper.statusfile</ulink>,
+                    <ulink url="prop-java-statusfile.html">wrapper.java.statusfile</ulink>,
+                    <ulink url="prop-java-idfile.html">wrapper.java.idfile</ulink>,
+                    and <ulink url="prop-umask.html">wrapper.lockfile.umask</ulink>
+                    properties where forward slashes in paths were not being changed to back
+                    slashes on Windows versions.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.0">

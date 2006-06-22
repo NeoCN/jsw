@@ -64,6 +64,17 @@ Java Service Wrapper Revision History.
   as a specific account.  The environment of a specific account will now be
   loaded on top of the system environment if the USERNAME environment
   variable is set by the system.  Bug #1491138.
+* Added new wrapper.ntservice.pausable and wrapper.ntservice.pausable.stop_jvm
+  properties to make it possible to pause and resume the Wrapper when installed
+  as a Windows service.
+* Added new Pause and Resume batch files as well as modified the command batch
+  file to support pause and resume.
+* Added PAUSE and RESUME commands for use by the wrapper.commandfile property.
+* Fix a problem with the wrapper.pidfile, wrapper.java.pidfile,
+  wrapper.anchorfile, wrapper.commandfile, wrapper.statusfile,
+  wrapper.java.statusfile, wrapper.java.idfile, and wrapper.lockfile
+  properties where forward slashes in paths were not being changed to back
+  slashes on Windows versions.
 
 3.2.0
 * Rework the release cycle so that the wrapper.jar file released for all
