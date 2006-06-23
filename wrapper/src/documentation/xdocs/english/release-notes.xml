@@ -209,6 +209,12 @@ $Id$
                     slashes on Windows versions.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Simplify the code used to load a native library by using the
+                    System.mapLibraryName method rather than doing the same thing manually.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.0">

@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.77  2006/06/23 05:30:16  mortenson
+// Simplify the code used to load a native library by using the
+// System.mapLibraryName method rather than doing the same thing manually.
+//
 // Revision 1.76  2006/06/23 04:23:32  mortenson
 // Correct 2 more locations where the 32-bit HP-UX extension was .so rather than .sl
 //
@@ -1358,28 +1362,6 @@ public final class WrapperManager
     {
         // Resolve the osname and osarch for the currect system.
         String osName = System.getProperty( "os.name" ).toLowerCase();
-        String libraryHead;
-        String libraryTail;
-        if ( osName.startsWith( "windows" ) )
-        {
-            libraryHead = "";
-            libraryTail = ".dll";
-        }
-        else if ( osName.startsWith( "mac" ) )
-        {
-            libraryHead = "lib";
-            libraryTail = ".jnilib";
-        }
-        else if ( osName.startsWith( "hp-ux" ) )
-        {
-            libraryHead = "lib";
-            libraryTail = ".sl";
-        }
-        else
-        {
-            libraryHead = "lib";
-            libraryTail = ".so";
-        }
         
         // Look for the base name of the library.
         String baseName = System.getProperty( "wrapper.native_library" );
@@ -1411,13 +1393,13 @@ public final class WrapperManager
         }
         
         // Construct brief and detailed native library file names.
-        String file = libraryHead + baseName + libraryTail;
+        String file = System.mapLibraryName( baseName );
         String[] detailedFiles = new String[detailedNames.length];
         for ( int i = 0; i < detailedNames.length; i++ )
         {
             if ( detailedNames[i] != null )
             {
-                detailedFiles[i] = libraryHead + detailedNames[i] + libraryTail;
+                detailedFiles[i] = System.mapLibraryName( detailedNames[i] );
             }
         }
         
