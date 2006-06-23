@@ -205,10 +205,7 @@
         
         <!-- Decide on library names -->
         <condition property="wrapper.lib.extension" value="sl">
-            <and>
-                <isset property="is.hpux"/>
-                <equals arg1="${bits}" arg2="64"/>
-            </and>
+            <isset property="is.hpux"/>
         </condition>
         <condition property="wrapper.lib.extension" value="jnilib">
             <isset property="is.macosx"/>

@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.76  2006/06/23 04:23:32  mortenson
+// Correct 2 more locations where the 32-bit HP-UX extension was .so rather than .sl
+//
 // Revision 1.75  2006/06/19 14:45:46  mortenson
 // Make it more obvious when the user code is calling System.exit from within the
 // WrapperListener.stop method.
@@ -1367,7 +1370,7 @@ public final class WrapperManager
             libraryHead = "lib";
             libraryTail = ".jnilib";
         }
-        else if ( osName.startsWith( "hp-ux" ) && ( m_jvmBits == 64 ) )
+        else if ( osName.startsWith( "hp-ux" ) )
         {
             libraryHead = "lib";
             libraryTail = ".sl";
