@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.68  2006/06/27 06:04:59  mortenson
+ * Add a new wrapper.syslog.facility property which makes it possible to specify the
+ * syslog facility on UNIX systems.
+ *
  * Revision 1.67  2006/02/28 16:01:46  mortenson
  * Add support for MacOSX Universal Binary distributions.
  *
@@ -260,6 +264,9 @@
 int currentConsoleLevel = LEVEL_UNKNOWN;
 int currentLogfileLevel = LEVEL_UNKNOWN;
 int currentLoginfoLevel = LEVEL_UNKNOWN;
+
+/* Default syslog facility is LOG_USER */
+int currentLogfacilityLevel = LOG_USER;
 
 char *logFilePath;
 char *currentLogFileName;
@@ -509,6 +516,30 @@ int getLogLevelForName( const char *logLevelName ) {
         return LEVEL_DEBUG;
     } else {
         return LEVEL_UNKNOWN;
+    }
+}
+
+int getLogFacilityForName( const char *logFacilityName ) {
+    if (strcmpIgnoreCase(logFacilityName, "USER") == 0) {
+      return LOG_USER;
+    } else if (strcmpIgnoreCase(logFacilityName, "LOCAL0") == 0) {
+      return LOG_LOCAL0;
+    } else if (strcmpIgnoreCase(logFacilityName, "LOCAL1") == 0) {
+      return LOG_LOCAL1;
+    } else if (strcmpIgnoreCase(logFacilityName, "LOCAL2") == 0) {
+      return LOG_LOCAL2;
+    } else if (strcmpIgnoreCase(logFacilityName, "LOCAL3") == 0) {
+      return LOG_LOCAL3;
+    } else if (strcmpIgnoreCase(logFacilityName, "LOCAL4") == 0) {
+      return LOG_LOCAL4;
+    } else if (strcmpIgnoreCase(logFacilityName, "LOCAL5") == 0) {
+      return LOG_LOCAL5;
+    } else if (strcmpIgnoreCase(logFacilityName, "LOCAL6") == 0) {
+      return LOG_LOCAL6;
+    } else if (strcmpIgnoreCase(logFacilityName, "LOCAL7") == 0) {
+      return LOG_LOCAL7;
+    } else {
+      return LOG_USER;
     }
 }
 
@@ -764,6 +795,14 @@ int getSyslogLevelInt() {
 
 void setSyslogLevel( const char *loginfo_level ) {
     setSyslogLevelInt(getLogLevelForName(loginfo_level));
+}
+
+void setSyslogFacilityInt( int logfacility_level ) {
+    currentLogfacilityLevel = logfacility_level;
+}
+
+void setSyslogFacility( const char *loginfo_level ) {
+    setSyslogFacilityInt(getLogFacilityForName(loginfo_level));
 }
 
 void setSyslogEventSourceName( const char *event_source_name ) {
@@ -1437,7 +1476,7 @@ void sendLoginfoMessage( int source_id, int level, char *szBuff ) {
             eventType = LOG_DEBUG;
     }
 
-    openlog( loginfoSourceName, LOG_PID | LOG_NDELAY, LOG_USER );
+    openlog( loginfoSourceName, LOG_PID | LOG_NDELAY, currentLogfacilityLevel );
     syslog( eventType, "%s", szBuff );
     closelog( );
 #endif

@@ -80,6 +80,9 @@
             <listproperty version="3.2.0">
                 <ulink url="prop-umask.html">wrapper.logfile.umask</ulink>
             </listproperty>
+            <listproperty version="3.2.1">
+                <ulink url="prop-syslog-facility.html">wrapper.syslog.facility</ulink>
+            </listproperty>
             <listproperty version="3.2.0">
                 <ulink url="prop-syslog-ident.html">wrapper.syslog.ident</ulink>
             </listproperty>

@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.29  2006/06/27 06:04:59  mortenson
+ * Add a new wrapper.syslog.facility property which makes it possible to specify the
+ * syslog facility on UNIX systems.
+ *
  * Revision 1.28  2006/02/24 05:43:36  mortenson
  * Update the copyright.
  *
@@ -238,6 +242,7 @@ extern void setConsoleFlush( int flush );
 extern void setSyslogLevelInt( int loginfo_level );
 extern int getSyslogLevelInt();
 extern void setSyslogLevel( const char *loginfo_level );
+extern void setSyslogFacility( const char *loginfo_level );
 extern void setSyslogEventSourceName( const char *event_source_name );
 extern int registerSyslogMessageFile( );
 extern int unregisterSyslogMessageFile( );
@@ -249,6 +254,7 @@ extern int initLogging();
 extern int disposeLogging();
 extern void rollLogs();
 extern int getLogLevelForName( const char *logLevelName );
+extern int getLogFacilityForName( const char *logFacilityName );
 extern void logRegisterThread( int thread_id );
 extern void log_printf( int source_id, int level, const char *lpszFmt, ... );
 extern void log_printf_queue( int useQueue, int source_id, int level, const char *lpszFmt, ... );
