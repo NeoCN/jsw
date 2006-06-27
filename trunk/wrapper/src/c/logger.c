@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.69  2006/06/27 06:21:28  mortenson
+ * Fix some compiler problems caused by the Facility patch.
+ *
  * Revision 1.68  2006/06/27 06:04:59  mortenson
  * Add a new wrapper.syslog.facility property which makes it possible to specify the
  * syslog facility on UNIX systems.
@@ -265,8 +268,10 @@ int currentConsoleLevel = LEVEL_UNKNOWN;
 int currentLogfileLevel = LEVEL_UNKNOWN;
 int currentLoginfoLevel = LEVEL_UNKNOWN;
 
+#ifndef WIN32
 /* Default syslog facility is LOG_USER */
 int currentLogfacilityLevel = LOG_USER;
+#endif
 
 char *logFilePath;
 char *currentLogFileName;
@@ -519,6 +524,7 @@ int getLogLevelForName( const char *logLevelName ) {
     }
 }
 
+#ifndef WIN32
 int getLogFacilityForName( const char *logFacilityName ) {
     if (strcmpIgnoreCase(logFacilityName, "USER") == 0) {
       return LOG_USER;
@@ -542,6 +548,7 @@ int getLogFacilityForName( const char *logFacilityName ) {
       return LOG_USER;
     }
 }
+#endif
 
 /* Logfile functions */
 
@@ -797,6 +804,7 @@ void setSyslogLevel( const char *loginfo_level ) {
     setSyslogLevelInt(getLogLevelForName(loginfo_level));
 }
 
+#ifndef WIN32
 void setSyslogFacilityInt( int logfacility_level ) {
     currentLogfacilityLevel = logfacility_level;
 }
@@ -804,6 +812,7 @@ void setSyslogFacilityInt( int logfacility_level ) {
 void setSyslogFacility( const char *loginfo_level ) {
     setSyslogFacilityInt(getLogFacilityForName(loginfo_level));
 }
+#endif
 
 void setSyslogEventSourceName( const char *event_source_name ) {
     if( event_source_name != NULL )

@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.169  2006/06/27 06:21:28  mortenson
+ * Fix some compiler problems caused by the Facility patch.
+ *
  * Revision 1.168  2006/06/27 06:04:59  mortenson
  * Add a new wrapper.syslog.facility property which makes it possible to specify the
  * syslog facility on UNIX systems.
@@ -2877,8 +2880,10 @@ int loadConfiguration() {
     /* Load syslog log level */
     setSyslogLevel(getStringProperty(properties, "wrapper.syslog.loglevel", "NONE"));
 
+#ifndef WIN32
     /* Load syslog facility */
-    setSyslogFacility(getStringProperty(properties, "wrapper.syslog.facility", "NONE"));
+    setSyslogFacility(getStringProperty(properties, "wrapper.syslog.facility", "USER"));
+#endif
 
     /* Load syslog event source name */
 #ifdef WIN32
@@ -3381,7 +3386,6 @@ void wrapperKeyRegistered(char *key) {
 
             /* Send the ping timeout to the JVM. */
             if (wrapperData->pingTimeout >= WRAPPER_TIMEOUT_MAX) {
-            if ( wrapperData->pingTimeout >= WRAPPER_TIMEOUT_MAX ) {
                 /* Timeout disabled */
                 sprintf(buffer, "%d", 0);
             } else {
@@ -3444,6 +3448,7 @@ void wrapperPingResponded() {
             wrapperUpdateJavaStateTimeout(wrapperGetTicks(), -1);
         }
         break;
+
     default:
         /* We got a ping response that we were not expecting.  Ignore it. */
         break;
