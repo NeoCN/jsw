@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.168  2006/06/27 06:04:59  mortenson
+ * Add a new wrapper.syslog.facility property which makes it possible to specify the
+ * syslog facility on UNIX systems.
+ *
  * Revision 1.167  2006/06/22 16:48:16  mortenson
  * Make it possible to pause and resume windows services.
  *
@@ -2873,6 +2877,9 @@ int loadConfiguration() {
     /* Load syslog log level */
     setSyslogLevel(getStringProperty(properties, "wrapper.syslog.loglevel", "NONE"));
 
+    /* Load syslog facility */
+    setSyslogFacility(getStringProperty(properties, "wrapper.syslog.facility", "NONE"));
+
     /* Load syslog event source name */
 #ifdef WIN32
     setSyslogEventSourceName(getStringProperty(properties, "wrapper.ntservice.name", "wrapper"));
@@ -3374,6 +3381,7 @@ void wrapperKeyRegistered(char *key) {
 
             /* Send the ping timeout to the JVM. */
             if (wrapperData->pingTimeout >= WRAPPER_TIMEOUT_MAX) {
+            if ( wrapperData->pingTimeout >= WRAPPER_TIMEOUT_MAX ) {
                 /* Timeout disabled */
                 sprintf(buffer, "%d", 0);
             } else {

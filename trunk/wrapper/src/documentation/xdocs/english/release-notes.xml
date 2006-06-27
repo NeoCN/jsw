@@ -215,6 +215,13 @@ $Id$
                     System.mapLibraryName method rather than doing the same thing manually.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add a new <ulink url="prop-syslog-facility.html">wrapper.syslog.facility</ulink>
+                    property which makes it possible to specify the syslog facility on UNIX systems.
+                    Thanks for the patch from Bruce Pennypacker.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.0">
