@@ -540,6 +540,17 @@ wrapper.app.parameter.7=stop]]></screen>
                         <literal moreinfo="none"><ulink url="prop-shutdown-timeout.html">Shutdown Timeout</ulink></literal>
                         has expired.  This defaults to 30 seconds.
                     </para>
+                    <para>
+                        Non-daemon threads are counted by iterating over all threads in the
+                        system and counting those whose isDaemon method returns false.
+                        Unfortunately, this count will never actually reach 0 on most JVMs
+                        because of the existence of system threads.  In most Sun JVMs, there
+                        will be one non-daemon system thread.  To make the shutdown work
+                        correctly, this system thread count needs to be correct.  It can be
+                        set by defining a
+                        <literal moreinfo="none">org.tanukisoftware.wrapper.WrapperStartStopApp.systemThreadCount</literal>
+                        system property.  The default value is 1 thread.
+                    </para>
                     <note>
                         <para>
                             If the main method of the stop class calls System.exit from within its

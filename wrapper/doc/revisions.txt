@@ -80,6 +80,17 @@ Java Service Wrapper Revision History.
 * Add a new wrapper.syslog.facility property which makes it possible to
   specify the syslog facility on UNIX systems.  Thanks for the patch from
   Bruce Pennypacker.
+* Removed the custom thread counting used to keep track of when the wrapped
+  Java application has completed.  It is now done in a different way that
+  will work on all Java implementations without requiring any special
+  consideration of the current JVM.   Deprecated the
+  wrapper.monitor_thread_count and wrapper.thread_count_delay properties.
+  Bug #1470265.
+* The WrapperStartStopApp helper class still requires thread counting if the
+  stopWait parameter is set to true.  Previous versions all hardcoded the
+  system thread count to 1 which worked for most JVMs.  A new system property,
+  org.tanukisoftware.wrapper.WrapperStartStopApp.systemThreadCount, was added
+  to make it possible to customize.  It currently defaults to 1.
 
 3.2.0
 * Rework the release cycle so that the wrapper.jar file released for all

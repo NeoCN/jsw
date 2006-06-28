@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.6  2006/06/28 05:05:18  mortenson
+// Removed the custom thread counting used to keep track of when the wrapped
+// Java application has completed.
+//
 // Revision 1.5  2006/02/24 05:45:58  mortenson
 // Update the copyright.
 //
@@ -69,10 +73,13 @@ package org.tanukisoftware.wrapper.test;
  * @version $Revision$
  */
 public class BackgroundThreads implements Runnable {
+    private static boolean m_started = false;
+    
     /*---------------------------------------------------------------
      * Runnable Method
      *-------------------------------------------------------------*/
     public void run() {
+        m_started = true;
         while(true) {
             System.out.println(Thread.currentThread().getName() + " running...");
             try {
@@ -86,7 +93,8 @@ public class BackgroundThreads implements Runnable {
      * Main Method
      *-------------------------------------------------------------*/
     public static void main(String[] args) {
-        System.out.println("Background Threads Running...");
+        System.out.println("Background Thread Test Running...");
+        System.out.println("Launching background non-daemon threads...");
         
         BackgroundThreads app = new BackgroundThreads();
         for (int i = 0; i < 2; i++) {
@@ -94,7 +102,24 @@ public class BackgroundThreads implements Runnable {
             thread.start();
         }
         
-        System.out.println("Background Threads Main Done...");
+        // Wait for at least one of the daemon threads to start to make sure
+        //  this main method does not exit prematurely and trigger a JVM
+        //  shutdown.
+        while ( !m_started )
+        {
+            try
+            {
+                Thread.sleep( 10 );
+            }
+            catch ( InterruptedException e )
+            {
+                // Ignore.
+            }
+        }
+        
+        System.out.println("The JVM should now continue to run indefinitely.");
+        
+        System.out.println("Background Thread Test Main Done...");
     }
 }
 

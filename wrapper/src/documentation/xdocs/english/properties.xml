@@ -225,7 +225,7 @@
                 <listproperty version="2.2.8">
                     <ulink url="prop-max-failed-invocations.html">wrapper.max_failed_invocations</ulink>
                 </listproperty>
-                <listproperty version="3.2.0">
+                <listproperty version="3.2.0 (Deprecated as of 3.2.1)">
                     <ulink url="prop-monitor-thread-count.html">wrapper.monitor_thread_count</ulink>
                 </listproperty>
                 <listproperty version="3.1.0">
@@ -342,7 +342,7 @@
                 <listproperty version="2.2.5">
                     <ulink url="prop-syslog-loglevel.html">wrapper.syslog.loglevel</ulink>
                 </listproperty>
-                <listproperty version="3.2.0">
+                <listproperty version="3.2.0 (Deprecated as of 3.2.1)">
                     <ulink url="prop-thread-count-delay.html">wrapper.thread_count_delay</ulink>
                 </listproperty>
                 <listproperty version="3.1.0">

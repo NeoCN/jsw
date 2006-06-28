@@ -222,6 +222,28 @@ $Id$
                     Thanks for the patch from Bruce Pennypacker.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Removed the custom thread counting used to keep track of when the wrapped
+                    Java application has completed.  It is now done in a different way that
+                    will work on all Java implementations without requiring any special
+                    consideration of the current JVM.   Deprecated the
+                    <ulink url="prop-monitor-thread-count.html">wrapper.monitor_thread_count</ulink>
+                    and <ulink url="prop-thread-count-delay.html">wrapper.thread_count_delay</ulink>
+                    properties.
+                    <ulink url="http://sourceforge.net/tracker/?func=detail&amp;aid=1470265&amp;group_id=39428&amp;atid=425187">Bug #1470265</ulink>.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    The <ulink url="javadocs.html">WrapperStartStopApp helper class</ulink> still
+                    requires thread counting if the stopWait parameter is set to true.  Previous
+                    versions all hard coded the system thread count to 1 which worked for most
+                    JVMs.  A new system property,
+                    org.tanukisoftware.wrapper.WrapperStartStopApp.systemThreadCount, was added
+                    to make it possible to customize.  It currently defaults to 1.
+               </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.0">
