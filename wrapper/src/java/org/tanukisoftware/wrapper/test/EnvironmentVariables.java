@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.7  2006/06/28 08:37:44  mortenson
+// Get the environment variable test working on Windows XP
+//
 // Revision 1.6  2006/02/24 05:45:58  mortenson
 // Update the copyright.
 //
@@ -141,44 +144,32 @@ public class EnvironmentVariables {
         
         Process p = null;
         
-        if       (os.indexOf("windows 9") > -1) {
-            
+        if (os.indexOf("windows 9") > -1) {
             p = Runtime.getRuntime().exec("command.com /c set");
-        }
-                else if  (os.indexOf("unix") > -1) {  
-            
+        } else if (os.indexOf("unix") > -1) {
             p = Runtime.getRuntime().exec("/bin/env");
-        }
-        
-
-        else if ((os.indexOf("nt") > -1) || 
-                 (os.indexOf("windows 2000") > -1) ) {
-            
+        } else if ((os.indexOf("nt") > -1) || (os.indexOf("windows 2000") > -1)
+            || (os.indexOf("windows xp") > -1) || (os.indexOf("windows 2003") > -1) ) {
             p = Runtime.getRuntime().exec("cmd.exe /c set");
-        }
-        
-        else if  (os.indexOf("unix") > -1) {  
-            
+        } else if  (os.indexOf("unix") > -1) {
             p = Runtime.getRuntime().exec("/bin/env");
-        }
-        
-        else if  ((os.indexOf("linux") > -1) || (os.indexOf("mac os x") > -1)) {  
-            
+        } else if  ((os.indexOf("linux") > -1) || (os.indexOf("mac os x") > -1)) {
             p = Runtime.getRuntime().exec("/usr/bin/env");
         }
         
         if (p == null) {
-            System.out.println("Don't know how to read environment variables on this platform.");
+            System.out.println(
+                "Don't know how to read environment variables on this platform: " + os);
             return;
         }
-
+        
         _env = new Properties();
-
+        
         BufferedReader br=new BufferedReader(new InputStreamReader(p.getInputStream()));
-
+        
         String line = null;
         while ((line = br.readLine()) != null) {
-
+            
             int idx = line.indexOf('=');
             
             if (idx > -1) {
