@@ -102,9 +102,6 @@ extern "C" {
 /* Inaccessible static: m_key */
 /* Inaccessible static: m_soTimeout */
 /* Inaccessible static: m_cpuTimeout */
-/* Inaccessible static: m_systemThreadCount */
-/* Inaccessible static: m_monitorThreadCount */
-/* Inaccessible static: m_threadCountDelay */
 /* Inaccessible static: m_startedTicks */
 /* Inaccessible static: m_lowLogLevel */
 /* Inaccessible static: m_pingTimeout */
@@ -113,6 +110,7 @@ extern "C" {
 /* Inaccessible static: m_commRunnerStarted */
 /* Inaccessible static: m_eventRunner */
 /* Inaccessible static: m_eventRunnerTicks */
+/* Inaccessible static: m_startupRunner */
 /* Inaccessible static: m_useSystemTime */
 /* Inaccessible static: m_timerFastThreshold */
 /* Inaccessible static: m_timerSlowThreshold */

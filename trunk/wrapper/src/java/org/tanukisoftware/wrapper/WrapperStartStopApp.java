@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.14  2006/06/28 05:05:18  mortenson
+// Removed the custom thread counting used to keep track of when the wrapped
+// Java application has completed.
+//
 // Revision 1.13  2006/02/24 05:45:57  mortenson
 // Update the copyright.
 //
@@ -411,13 +415,22 @@ public class WrapperStartStopApp
             
             if ( m_stopWait )
             {
+                // This feature exists to make sure the stop process waits for the main
+                //  application to fully shutdown.  This can only be done by looking for
+                //  and counting the number of non-daemon threads still running in the
+                //  system.
+                
+                int systemThreadCount = WrapperSystemPropertyUtil.getIntProperty(
+                    WrapperStartStopApp.class.getName() + ".systemThreadCount", 1 );
+                systemThreadCount = Math.max( 0, systemThreadCount ); 
+                
                 int threadCnt;
-                while( ( threadCnt = WrapperManager.getNonDaemonThreadCount() ) > 1 )
+                while( ( threadCnt = getNonDaemonThreadCount() ) > systemThreadCount )
                 {
                     if ( WrapperManager.isDebugEnabled() )
                     {
                         System.out.println( "WrapperStartStopApp: stopping.  Waiting for "
-                            + (threadCnt - 1) + " threads to complete." );
+                            + ( threadCnt - systemThreadCount ) + " threads to complete." );
                     }
                     try
                     {
@@ -489,6 +502,54 @@ public class WrapperStartStopApp
     /*---------------------------------------------------------------
      * Methods
      *-------------------------------------------------------------*/
+    /**
+     * Returns a count of all non-daemon threads in the JVM, starting with the top
+     *  thread group.
+     *
+     * @return Number of non-daemon threads.
+     */
+    private static int getNonDaemonThreadCount()
+    {
+        // Locate the top thread group.
+        ThreadGroup topGroup = Thread.currentThread().getThreadGroup();
+        while ( topGroup.getParent() != null )
+        {
+            topGroup = topGroup.getParent();
+        }
+        
+        // Get a list of all threads.  Use an array that is twice the total number of
+        //  threads as the number of running threads may be increasing as this runs.
+        Thread[] threads = new Thread[topGroup.activeCount() * 2];
+        topGroup.enumerate( threads, true );
+        
+        // Only count any non daemon threads which are 
+        //  still alive other than this thread.
+        int liveCount = 0;
+        for ( int i = 0; i < threads.length; i++ )
+        {
+            /*
+            if ( threads[i] != null )
+            {
+                System.out.println( "Check " + threads[i].getName() + " daemon="
+                    + threads[i].isDaemon() + " alive=" + threads[i].isAlive() );
+            }
+            */
+            if ( ( threads[i] != null ) && threads[i].isAlive() )
+            {
+                // Do not count this thread.
+                if ( ( Thread.currentThread() != threads[i] ) && ( !threads[i].isDaemon() ) )
+                {
+                    // Non-Daemon living thread
+                    liveCount++;
+                    //System.out.println( "  -> Non-Daemon" );
+                }
+            }
+        }
+        //System.out.println( "  => liveCount = " + liveCount );
+        
+        return liveCount;
+    }
+    
     /**
      * Returns the main method of the specified class.  If there are any problems,
      *  an error message will be displayed and the Wrapper will be stopped.  This

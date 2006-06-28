@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.78  2006/06/28 05:05:18  mortenson
+// Removed the custom thread counting used to keep track of when the wrapped
+// Java application has completed.
+//
 // Revision 1.77  2006/06/23 05:30:16  mortenson
 // Simplify the code used to load a native library by using the
 // System.mapLibraryName method rather than doing the same thing manually.
@@ -517,18 +521,6 @@ public final class WrapperManager
     private static int m_soTimeout = DEFAULT_SO_TIMEOUT;
     private static long m_cpuTimeout = DEFAULT_CPU_TIMEOUT;
     
-    /** The number of threads to ignore when deciding when all application
-     *   threads have completed. */
-    private static int m_systemThreadCount;
-    
-    /** True if the thread count should be monitored for application
-     *   completion. */
-    private static boolean m_monitorThreadCount = true;
-    
-    /** The amount of time to delay counting threads after the start method
-     *   has completed. */
-    private static long m_threadCountDelay;
-    
     /** Tick count when the start method completed. */
     private static int m_startedTicks;
     
@@ -550,6 +542,7 @@ public final class WrapperManager
     private static boolean m_commRunnerStarted = false;
     private static Thread m_eventRunner;
     private static int m_eventRunnerTicks;
+    private static Thread m_startupRunner;
     
     /** True if the system time should be used for internal timeouts. */
     private static boolean m_useSystemTime;
@@ -768,6 +761,9 @@ public final class WrapperManager
                         m_out.println( "Wrapper Manager: ShutdownHook started" );
                     }
                     
+                    // Let the startup thread die since the shutdown hook is running.
+                    m_startupRunner = null;
+                    
                     // If we are not already stopping, then do so.
                     WrapperManager.stop( 0 );
                     
@@ -927,109 +923,124 @@ public final class WrapperManager
         {
             public void run()
             {
-                WrapperTickEventImpl tickEvent = new WrapperTickEventImpl();
-                int lastTickOffset = 0;
-                boolean first = true;
-                
-                while ( !m_shuttingDown )
+                if ( m_debug )
                 {
-                    int offsetDiff;
-                    if ( !m_useSystemTime )
+                    m_out.println( "Control event monitor thread started." );
+                }
+                
+                try
+                {
+                    WrapperTickEventImpl tickEvent = new WrapperTickEventImpl();
+                    int lastTickOffset = 0;
+                    boolean first = true;
+                    
+                    while ( !m_shuttingDown )
                     {
-                        // Get the tick count based on the system time.
-                        int sysTicks = getSystemTicks();
-                        
-                        // Increment the tick counter by 1. This loop takes just slightly
-                        //  more than the length of a "tick" but it is a good enough
-                        //  approximation for our purposes.  The accuracy of the tick length
-                        //  falls sharply when the system is under heavly load, but this
-                        //  has the desired effect as the Wrapper is also much less likely
-                        //  to encounter false timeouts due to the heavy load.
-                        // The ticks field is volatile and a single integer, so it is not
-                        //  necessary to synchronize this.
-                        // When the ticks count reaches the upper limit of the int range,
-                        //  it is ok to just let it overflow and wrap.
-                        m_ticks++;
-                        
-                        // Calculate the offset between the two tick counts.
-                        //  This will always work due to overflow.
-                        int tickOffset = sysTicks - m_ticks;
-                        
-                        // The number we really want is the difference between this tickOffset
-                        //  and the previous one.
-                        offsetDiff = tickOffset - lastTickOffset;
-                        
-                        if ( first )
+                        int offsetDiff;
+                        if ( !m_useSystemTime )
                         {
-                            first = false;
+                            // Get the tick count based on the system time.
+                            int sysTicks = getSystemTicks();
+                            
+                            // Increment the tick counter by 1. This loop takes just slightly
+                            //  more than the length of a "tick" but it is a good enough
+                            //  approximation for our purposes.  The accuracy of the tick length
+                            //  falls sharply when the system is under heavly load, but this
+                            //  has the desired effect as the Wrapper is also much less likely
+                            //  to encounter false timeouts due to the heavy load.
+                            // The ticks field is volatile and a single integer, so it is not
+                            //  necessary to synchronize this.
+                            // When the ticks count reaches the upper limit of the int range,
+                            //  it is ok to just let it overflow and wrap.
+                            m_ticks++;
+                            
+                            // Calculate the offset between the two tick counts.
+                            //  This will always work due to overflow.
+                            int tickOffset = sysTicks - m_ticks;
+                            
+                            // The number we really want is the difference between this tickOffset
+                            //  and the previous one.
+                            offsetDiff = tickOffset - lastTickOffset;
+                            
+                            if ( first )
+                            {
+                                first = false;
+                            }
+                            else
+                            {
+                                if ( offsetDiff > m_timerSlowThreshold )
+                                {
+                                    m_out.println( "The timer fell behind the system clock by "
+                                        + ( offsetDiff * TICK_MS ) + "ms." );
+                                }
+                                else if ( offsetDiff < - m_timerFastThreshold )
+                                {
+                                    m_out.println( "The system clock fell behind the timer by "
+                                        + ( -1 * offsetDiff * TICK_MS ) + "ms." );
+                                }
+                            }
+                            
+                            // Store this tick offset for the net time through the loop.
+                            lastTickOffset = tickOffset;
                         }
                         else
                         {
-                            if ( offsetDiff > m_timerSlowThreshold )
-                            {
-                                m_out.println( "The timer fell behind the system clock by "
-                                    + ( offsetDiff * TICK_MS ) + "ms." );
-                            }
-                            else if ( offsetDiff < - m_timerFastThreshold )
-                            {
-                                m_out.println( "The system clock fell behind the timer by "
-                                    + ( -1 * offsetDiff * TICK_MS ) + "ms." );
-                            }
+                            offsetDiff = 0;
                         }
                         
-                        // Store this tick offset for the net time through the loop.
-                        lastTickOffset = tickOffset;
-                    }
-                    else
-                    {
-                        offsetDiff = 0;
-                    }
-                    
-                    //m_out.println( "  UNIX Time: " + Long.toHexString( System.currentTimeMillis() )
-                    //  + ", ticks=" + Integer.toHexString( getTicks() ) + ", sysTicks="
-                    //  + Integer.toHexString( getSystemTicks() ) );
-                        
-                    // Attempt to detect whether or not we are being starved of CPU.
-                    //  This will only have any effect if the m_useSystemTime flag is
-                    //  set.
-                    int nowTicks = getTicks();
-                    long age = getTickAge( m_eventRunnerTicks, nowTicks );
-                    if ( ( m_cpuTimeout > 0 ) && ( age > m_cpuTimeout ) )
-                    {
-                        m_out.println( "JVM Process has not received any CPU time for "
-                            + ( age / 1000 ) + " seconds.  Extending timeouts." );
-                        
-                        // Make sure that we don't get any ping timeouts in this event
-                        m_lastPingTicks = nowTicks;
-                    }
-                    m_eventRunnerTicks = nowTicks;
-                    
-                    // If there are any listeners interrested in core events then fire
-                    //  off a tick event.
-                    if ( m_produceCoreEvents )
-                    {
-                        tickEvent.m_ticks = nowTicks;
-                        tickEvent.m_tickOffset = offsetDiff;
-                        fireWrapperEvent( tickEvent );
-                    }
-                    
-                    if ( m_libraryOK )
-                    {
-                        // Look for a control event in the wrapper library
-                        int event = WrapperManager.nativeGetControlEvent();
-                        if ( event != 0 )
+                        //m_out.println( "  UNIX Time: " + Long.toHexString( System.currentTimeMillis() )
+                        //  + ", ticks=" + Integer.toHexString( getTicks() ) + ", sysTicks="
+                        //  + Integer.toHexString( getSystemTicks() ) );
+                            
+                        // Attempt to detect whether or not we are being starved of CPU.
+                        //  This will only have any effect if the m_useSystemTime flag is
+                        //  set.
+                        int nowTicks = getTicks();
+                        long age = getTickAge( m_eventRunnerTicks, nowTicks );
+                        if ( ( m_cpuTimeout > 0 ) && ( age > m_cpuTimeout ) )
                         {
-                            WrapperManager.controlEvent( event );
+                            m_out.println( "JVM Process has not received any CPU time for "
+                                + ( age / 1000 ) + " seconds.  Extending timeouts." );
+                            
+                            // Make sure that we don't get any ping timeouts in this event
+                            m_lastPingTicks = nowTicks;
+                        }
+                        m_eventRunnerTicks = nowTicks;
+                        
+                        // If there are any listeners interrested in core events then fire
+                        //  off a tick event.
+                        if ( m_produceCoreEvents )
+                        {
+                            tickEvent.m_ticks = nowTicks;
+                            tickEvent.m_tickOffset = offsetDiff;
+                            fireWrapperEvent( tickEvent );
+                        }
+                        
+                        if ( m_libraryOK )
+                        {
+                            // Look for a control event in the wrapper library
+                            int event = WrapperManager.nativeGetControlEvent();
+                            if ( event != 0 )
+                            {
+                                WrapperManager.controlEvent( event );
+                            }
+                        }
+                        
+                        // Wait before checking for another control event.
+                        try
+                        {
+                            Thread.sleep( TICK_MS );
+                        }
+                        catch ( InterruptedException e )
+                        {
                         }
                     }
-                    
-                    // Wait before checking for another control event.
-                    try
+                }
+                finally
+                {
+                    if ( m_debug )
                     {
-                        Thread.sleep( TICK_MS );
-                    }
-                    catch ( InterruptedException e )
-                    {
+                        m_out.println( "Control event monitor thread stopped." );
                     }
                 }
             }
@@ -1046,33 +1057,6 @@ public final class WrapperManager
             fullVersion = System.getProperty( "java.runtime.version" ) + " "
                 + System.getProperty( "java.vm.name" );
         }
-        if ( ( fullVersion.indexOf( "IBM" ) >= 0 ) && ( os.indexOf( "aix" ) >= 0 ) )
-        {
-            // The IBM 5.0.0 JVM on AIX
-            m_systemThreadCount = 0;
-        }
-        else if ( fullVersion.indexOf( "JRockit" ) >= 0 )
-        {
-            // BEA Weblogic JRockit(R) Virtual Machine
-            // This JVM handles its shutdown thread differently that IBM, Sun
-            //  and Blackdown.
-            m_systemThreadCount = 0;
-        }
-        else if ( fullVersion.indexOf( "gcj" ) >= 0 )
-        {
-            // GNU libgcj Virtual Machine
-            // This JVM handles its shutdown thread differently that IBM, Sun
-            //  and Blackdown.
-            m_systemThreadCount = 0;
-        }
-        else
-        {
-            // All other known JVMs have a system thread which is used by the
-            //  system to trigger a JVM shutdown after all other threads have
-            //  terminated.  This thread must be ignored when counting the
-            //  remaining number of threads.
-            m_systemThreadCount = 1;
-        }
         
         if ( m_debug )
         {
@@ -1081,6 +1065,51 @@ public final class WrapperManager
             m_out.println( "Java VM Vendor : " + vendor );
             m_out.println();
         }
+        
+        // This thread will most likely be thread which launches the JVM.
+        //  Once this method returns however, the main thread will likely
+        //  quit.  There will be a slight delay before the Wrapper binary
+        //  has a change to send a command to start the application.
+        //  During this lag, the JVM may not have any non-daemon threads
+        //  running and would exit.   To keep it from doing so, start a
+        //  simple non-daemon thread which will run until the
+        //  WrapperListener.start() method returns or the Wrapper's
+        //  shutdown thread has started.
+        m_startupRunner = new Thread( "Wrapper-Startup-Runner" )
+        {
+            public void run()
+            {
+                if ( m_debug )
+                {
+                    m_out.println( "Startup runner thread started." );
+                }
+                
+                try
+                {
+                    while ( m_startupRunner != null )
+                    {
+                        try
+                        {
+                            Thread.sleep( 100 );
+                        }
+                        catch ( InterruptedException e )
+                        {
+                            // Ignore.
+                        }
+                    }
+                }
+                finally
+                {
+                    if ( m_debug )
+                    {
+                        m_out.println( "Startup runner thread stopped." );
+                    }
+                }
+            }
+        };
+        // This thread must not be a daemon thread.
+        m_startupRunner.setDaemon( false );
+        m_startupRunner.start();
         
         // Create the singleton
         m_instance = new WrapperManager();
@@ -2166,6 +2195,7 @@ public final class WrapperManager
                 restartInner();
             }
         };
+        restarter.setDaemon( false );
         restarter.start();
     }
     
@@ -2330,6 +2360,7 @@ public final class WrapperManager
                 );
             }
         };
+        stopper.setDaemon( false );
         stopper.start();
     }
 
@@ -3007,41 +3038,133 @@ public final class WrapperManager
         int oldPriority = Thread.currentThread().getPriority();
         Thread.currentThread().setPriority( Thread.NORM_PRIORITY );
         
-        if ( m_debug )
+        // This method can be called from the connection thread which must be a
+        //  daemon thread by design.  We need to call the WrapperListener.start method
+        //  from a non-daemon thread.  This means that if the current thread is a
+        //  daemon we need to launch a new thread while we wait for the start method
+        //  to return.
+        if ( m_listener == null )
         {
-            m_out.println( "calling listener.start()" );
-        }
-        if ( m_listener != null )
-        {
-            // This is user code, so don't trust it.
-            try
+            if ( m_debug )
             {
-                Integer result = m_listener.start( m_args );
-                if ( result != null )
+                m_out.println( "No WrapperListener has been set.  Nothing to start." );
+            }
+        }
+        else
+        {
+            if ( m_debug )
+            {
+                m_out.println( "calling WrapperListener.start()" );
+            }
+            
+            // These arrays aren't pretty, but we need final variables for the inline
+            //  class and this makes it possible to get the values back.
+            final Integer[] resultF = new Integer[1];
+            final Throwable[] tF = new Throwable[1];
+            
+            if ( Thread.currentThread().isDaemon() )
+            {
+                // Start in a dedicated thread.
+                Thread startRunner = new Thread( "WrapperListener_start_runner" )
                 {
-                    int exitCode = result.intValue();
-                    // Signal the native code.
-                    stop( exitCode );
-                    // Won't make it here.
-                    return;
+                    public void run()
+                    {
+                        if ( m_debug )
+                        {
+                           m_out.println( "WrapperListener.start runner thread started." );
+                        }
+                        
+                        try
+                        {
+                            // This is user code, so don't trust it.
+                            try
+                            {
+                                resultF[0] = m_listener.start( m_args );
+                            }
+                            catch ( Throwable t )
+                            {
+                                tF[0] = t;
+                            }
+                        }
+                        finally
+                        {
+                            if ( m_debug )
+                            {
+                               m_out.println( "WrapperListener.start runner thread stopped." );
+                            }
+                        }
+                    }
+                };
+                startRunner.setDaemon( false );
+                startRunner.start();
+                
+                // Wait for the start runner to complete.
+                if ( m_debug )
+                {
+                   m_out.println( "Waiting for WrapperListener.start runner thread to complete." );
+                }
+                while ( ( startRunner != null ) && ( startRunner.isAlive() ) )
+                {
+                    try
+                    {
+                        startRunner.join();
+                        startRunner = null;
+                    }
+                    catch ( InterruptedException e )
+                    {
+                        // Ignore and keep waiting.
+                    }
                 }
             }
-            catch ( Throwable t )
+            else
             {
-                m_out.println( "Error in WrapperListener.start callback.  " + t );
-                t.printStackTrace();
+                // Start in line.
+                // This is user code, so don't trust it.
+                try
+                {
+                    resultF[0] = m_listener.start( m_args );
+                }
+                catch ( Throwable t )
+                {
+                    tF[0] = t;
+                }
+            }
+            
+            // Now that we are back in the main thread, handle the results.
+            if ( tF[0] != null )
+            {
+                m_out.println( "Error in WrapperListener.start callback.  " + tF[0] );
+                tF[0].printStackTrace();
                 // Kill the JVM, but don't tell the wrapper that we want to stop.
                 //  This may be a problem with this instantiation only.
                 privilegedStopInner( 1 );
                 // Won't make it here.
                 return;
             }
+            
+            if ( m_debug )
+            {
+                m_out.println( "returned from WrapperListener.start()" );
+            }
+            if ( resultF[0] != null )
+            {
+                int exitCode = resultF[0].intValue();
+                if ( m_debug )
+                {
+                    m_out.println(
+                        "WrapperListener.start() returned an exit code of " + exitCode + "." );
+                }
+                
+                // Signal the native code.
+                stop( exitCode );
+                // Won't make it here.
+                return;
+            }
         }
         m_startedTicks = getTicks();
-        if ( m_debug )
-        {
-            m_out.println( "returned from listener.start()" );
-        }
+        
+        // Let the startup thread die since the application has been started.
+        m_startupRunner = null;
         
         // Check the SecurityManager here as it is possible that it was set in the
         //  listener's start method.
@@ -3237,26 +3360,101 @@ public final class WrapperManager
             int oldPriority = Thread.currentThread().getPriority();
             Thread.currentThread().setPriority( Thread.NORM_PRIORITY );
             
-            if ( m_debug )
+            // This method can be called from the connection thread which must be a
+            //  daemon thread by design.  We need to call the WrapperListener.stop method
+            //  from a non-daemon thread.  This means that if the current thread is a
+            //  daemon we need to launch a new thread while we wait for the stop method
+            //  to return.
+            if ( m_listener == null )
             {
-                m_out.println( "calling listener.stop()" );
-            }
-            if ( m_listener != null )
-            {
-                // This is user code, so don't trust it.
-                try
+                if ( m_debug )
                 {
-                    code = m_listener.stop( code );
-                }
-                catch ( Throwable t )
-                {
-                    m_out.println( "Error in WrapperListener.stop callback.  " + t );
-                    t.printStackTrace();
+                    m_out.println( "No WrapperListener has been set.  Nothing to stop." );
                 }
             }
-            if ( m_debug )
+            else
             {
-                m_out.println( "returned from listener.stop()" );
+                if ( m_debug )
+                {
+                    m_out.println( "calling listener.stop()" );
+                }
+                
+                if ( Thread.currentThread().isDaemon() )
+                {
+                    // This array isn't pretty, but we need final variables for the inline
+                    //  class and this makes it possible to get the values back.
+                    final Integer[] codeF = new Integer[] {new Integer(code)};
+                    
+                    // Start in a dedicated thread.
+                    Thread stopRunner = new Thread( "WrapperListener_stop_runner" )
+                    {
+                        public void run()
+                        {
+                            if ( m_debug )
+                            {
+                               m_out.println( "WrapperListener.stop runner thread started." );
+                            }
+                            
+                            try
+                            {
+                                // This is user code, so don't trust it.
+                                try
+                                {
+                                    codeF[0] = new Integer( m_listener.stop( codeF[0].intValue() ) );
+                                }
+                                catch ( Throwable t )
+                                {
+                                    m_out.println( "Error in WrapperListener.stop callback.  " + t );
+                                    t.printStackTrace();
+                                }
+                            }
+                            finally
+                            {
+                                if ( m_debug )
+                                {
+                                   m_out.println( "WrapperListener.stop runner thread stopped." );
+                                }
+                            }
+                        }
+                    };
+                    stopRunner.setDaemon( false );
+                    stopRunner.start();
+                    
+                    // Wait for the start runner to complete.
+                    if ( m_debug )
+                    {
+                       m_out.println( "Waiting for WrapperListener.stop runner thread to complete." );
+                    }
+                    while ( ( stopRunner != null ) && ( stopRunner.isAlive() ) )
+                    {
+                        try
+                        {
+                            stopRunner.join();
+                            stopRunner = null;
+                        }
+                        catch ( InterruptedException e )
+                        {
+                            // Ignore and keep waiting.
+                        }
+                    }
+                }
+                else
+                {
+                    // This is user code, so don't trust it.
+                    try
+                    {
+                        code = m_listener.stop( code );
+                    }
+                    catch ( Throwable t )
+                    {
+                        m_out.println( "Error in WrapperListener.stop callback.  " + t );
+                        t.printStackTrace();
+                    }
+                }
+                if ( m_debug )
+                {
+                    m_out.println( "returned from listener.stop()" );
+                }
             }
             
             // Crank the priority back up.
@@ -3435,35 +3633,6 @@ public final class WrapperManager
         
         // Lock the properties object and store it.
         properties.lock();
-        
-        // Initialize any internal values set by wrapper properties.
-        m_monitorThreadCount = properties.getProperty( "wrapper.monitor_thread_count", "true" ).
-            toLowerCase().equals( "true" );
-        
-        String threadCountDelay = properties.getProperty( "wrapper.thread_count_delay", "1" );
-        try
-        {
-            m_threadCountDelay = Integer.parseInt( threadCountDelay ) * 1000;
-        }
-        catch ( NumberFormatException e )
-        {
-            System.out.println( "Invalid value for wrapper.thread_count_delay, "
-                + "\"" + threadCountDelay + "\".  Using default." );
-            m_threadCountDelay = 1000;
-        }
-        
-        if ( m_debug )
-        {
-            if ( !m_monitorThreadCount )
-            {
-                System.out.println( "Monitoring of the JVM thread count is disabled." );
-            }
-            else if ( m_threadCountDelay > 0 )
-            {
-                System.out.println( "Monitoring of the JVM thread count will be delayed for "
-                    + ( m_threadCountDelay / 1000 ) + " seconds." );
-            }
-        }
         
         m_properties = properties;
     }
@@ -3935,8 +4104,7 @@ public final class WrapperManager
                                 m_pingTimeout = Integer.parseInt( msg ) * 1000;
                                 if ( m_debug )
                                 {
-                                    m_out.println( "Wrapper Manager: PingTimeout from Wrapper "
-                                        + "is " + m_pingTimeout );
+                                    m_out.println( "PingTimeout from Wrapper is " + m_pingTimeout );
                                 }
                             }
                             catch ( NumberFormatException e )
@@ -3963,8 +4131,8 @@ public final class WrapperManager
                                 int serviceControlCode = Integer.parseInt( msg );
                                 if ( m_debug )
                                 {
-                                    m_out.println( "Wrapper Manager: ServiceControlCode from "
-                                        + "Wrapper with code " + serviceControlCode );
+                                    m_out.println( "ServiceControlCode from Wrapper with code "
+                                        + serviceControlCode );
                                 }
                                 WrapperServiceControlEvent event =
                                     new WrapperServiceControlEvent( serviceControlCode );
@@ -4060,16 +4228,6 @@ public final class WrapperManager
                         }
                     }
                 }
-                
-                // Check to see if all non-daemon threads have exited.
-                if ( m_started && m_monitorThreadCount )
-                {
-                    long startAge = getTickAge( m_startedTicks, getTicks() );
-                    if ( startAge >= m_threadCountDelay )
-                    {
-                        checkThreads();
-                    }
-                }
             }
             return;
 
@@ -4100,103 +4258,6 @@ public final class WrapperManager
         }
     }
     
-    /**
-     * Returns a count of all non-daemon threads in the JVM, starting with the top
-     *  thread group.
-     *
-     * @return Number of non-daemon threads.
-     */
-    protected static int getNonDaemonThreadCount()
-    {
-        // Locate the top thread group.
-        ThreadGroup topGroup = Thread.currentThread().getThreadGroup();
-        while ( topGroup.getParent() != null )
-        {
-            topGroup = topGroup.getParent();
-        }
-        
-        // Get a list of all threads.  Use an array that is twice the total number of
-        //  threads as the number of running threads may be increasing as this runs.
-        Thread[] threads = new Thread[topGroup.activeCount() * 2];
-        topGroup.enumerate( threads, true );
-        
-        // Only count any non daemon threads which are 
-        //  still alive other than this thread.
-        int liveCount = 0;
-        for ( int i = 0; i < threads.length; i++ )
-        {
-            /*
-            if ( threads[i] != null )
-            {
-                m_out.println( "Check " + threads[i].getName() + " daemon="
-                + threads[i].isDaemon() + " alive=" + threads[i].isAlive() );
-            }
-            */
-            if ( ( threads[i] != null ) && ( threads[i].isAlive() && ( !threads[i].isDaemon() ) ) )
-            {
-                // Do not count this thread or the wrapper connection thread
-                if ( ( Thread.currentThread() != threads[i] ) && ( threads[i] != m_commRunner ) )
-                {
-                    // Non-Daemon living thread
-                    liveCount++;
-                    //m_out.println( "  -> Non-Daemon" );
-                }
-            }
-        }
-        //m_out.println( "  => liveCount = " + liveCount );
-        
-        return liveCount;
-    }
-    
-    /**
-     * With a normal Java application, the JVM will exit when all non-daemon
-     *  threads have completed.  This does not work correctly with the wrapper
-     *  because the connection thread is not a daemon.  It would also cause
-     *  problems because the wrapper would not know whether the exit had been
-     *  intentional or not.  This method takes care of making sure that the
-     *  JVM exits when it is supposed to and makes sure that the Wrapper is
-     *  propperly informed.
-     */
-    private static void checkThreads()
-    {
-        int liveCount = getNonDaemonThreadCount();
-        
-        // Depending on the JVM, there will always be one (or zero) non-daemon thread alive.
-        //  This thread is either the main thread which has not yet completed, or a thread
-        //  launched by java when the main thread completes whose job is to wait around for
-        //  all other non-daemon threads to complete.  We are overriding that thread here.
-        int nonDaemonCount;
-        if ( liveCount > m_systemThreadCount )
-        {
-            nonDaemonCount = liveCount - m_systemThreadCount;
-        }
-        else
-        {
-            nonDaemonCount = 0;
-        }
-        
-        if ( m_debug )
-        {
-            m_out.println( "Non-daemon thread count = " + liveCount + " - "
-                + m_systemThreadCount + "(system) = " + nonDaemonCount );
-        }
-        if ( nonDaemonCount <= 0 )
-        {
-            if ( m_debug )
-            {
-                m_out.println( "All non-daemon threads have stopped.  Exiting." );
-            }
-            
-            // Exit normally
-            WrapperManager.stop( 0 );
-            // Will not get here.
-        }
-        else
-        {
-            // There are daemons running, let the JVM continue to run.
-        }
-    }
-    
     private static void startRunner()
     {
         if ( isControlledByNativeWrapper() )
@@ -4205,7 +4266,7 @@ public final class WrapperManager
             {
                 // Create and launch a new thread to manage this connection
                 m_commRunner = new Thread( m_instance, WRAPPER_CONNECTION_THREAD_NAME );
-                // This thread can not be a daemon or the JVM will quit immediately
+                m_commRunner.setDaemon( true );
                 m_commRunner.start();
             }
             
@@ -4245,6 +4306,11 @@ public final class WrapperManager
         {
             throw new IllegalStateException(
                 "Only the comm runner thread is allowed to call this method." );
+        }
+        
+        if ( m_debug )
+        {
+            m_out.println( "Communications runner thread started." );
         }
         
         // This thread needs to have a very high priority so that it never

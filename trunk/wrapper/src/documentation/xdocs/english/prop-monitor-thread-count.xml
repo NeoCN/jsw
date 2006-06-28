@@ -25,31 +25,8 @@
     <section>
         <title>wrapper.monitor_thread_count</title>
         <para>
-            By default Java monitors the currently running threads and will cause the
-            JVM to begin the shutdown process when it detects that all non-daemon
-            threads have completed.  The Java component of the Wrapper has need for
-            its own non-daemon threads, meaning that this check will never be satisfied.
+            As of version 3.2.1, this property has been deprecated and is now
+            ignored by the Wrapper.
         </para>
-        <para>
-            To make it possible for the Wrapper to tell when an application has
-            completed and shutdown in the same way that a standalone JVM does, the
-            Wrapper does its own thread counting.   Normally, this property should
-            never be touched.  But there have been certain cases reported where
-            applications whose main threads run in native JNI libraries were not
-            being handled correctly.  In such cases this thread counting functionality
-            can be disabled by setting the
-            <literal moreinfo="none">wrapper.monitor_thread_count</literal>
-            property to false.  Defaults to true.
-        </para>
-        <para>
-            Be aware that if disabled, the Wrapper will not terminate the JVM if it
-            completes normally.   The JVM will still exit due to external input or
-            if System.exit(), or any other method which specifically causes the JVM
-            to exit is called.
-        </para>
-        <informalexample>
-            <simpara><emphasis>Example:</emphasis></simpara>
-            <screen format="linespecific"><![CDATA[wrapper.monitor_thread_count=true]]></screen>
-        </informalexample>
     </section>
 </chapter>
