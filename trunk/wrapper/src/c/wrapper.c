@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.170  2006/06/28 05:04:47  mortenson
+ * Fix an unreleased access violation caused by any filename property not being specified.
+ *
  * Revision 1.169  2006/06/27 06:21:28  mortenson
  * Fix some compiler problems caused by the Facility patch.
  *
@@ -1733,14 +1736,18 @@ void wrapperStripQuotes(const char *prop, char *propStripped) {
 /*
  * Corrects a windows path in place by replacing all '/' characters with '\'
  *  on Windows versions.
+ *
+ * filename - Filename to be modified.  Could be null.
  */
 void correctWindowsPath(char *filename) {
 #ifdef WIN32
     char *c;
 
-    c = (char *)filename;
-    while((c = strchr(c, '/')) != NULL) {
-        c[0] = '\\';
+    if (filename) {
+        c = (char *)filename;
+        while((c = strchr(c, '/')) != NULL) {
+            c[0] = '\\';
+        }
     }
 #endif
 }
