@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.70  2006/06/28 07:54:48  mortenson
+ * Start using a common form of strcmp to make unix and windows code as
+ * replicable as possible.
+ *
  * Revision 1.69  2006/06/27 06:21:28  mortenson
  * Fix some compiler problems caused by the Facility patch.
  *
@@ -472,14 +476,6 @@ int getThreadId() {
     
     printf( "WARNING - Encountered an unknown thread %ld in getThreadId().\n", (long int)threadId );
     return 0; /* WRAPPER_THREAD_SIGNAL */
-}
-
-int strcmpIgnoreCase( const char *str1, const char *str2 ) {
-#ifdef WIN32
-    return stricmp(str1, str2);
-#else /* UNIX */
-    return strcasecmp(str1, str2);
-#endif
 }
 
 int getLogfileRollModeForName( const char *logfileRollName ) {

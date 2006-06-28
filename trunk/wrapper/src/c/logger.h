@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.31  2006/06/28 07:54:48  mortenson
+ * Start using a common form of strcmp to make unix and windows code as
+ * replicable as possible.
+ *
  * Revision 1.30  2006/06/27 06:21:28  mortenson
  * Fix some compiler problems caused by the Facility patch.
  *
@@ -214,7 +218,11 @@ extern void setConsoleStdoutHandle( HANDLE stdoutHandle );
 #endif
 
 /* * * Function predeclaration * * */
-extern int strcmpIgnoreCase( const char *str1, const char *str2 );
+#ifdef WIN32
+#define strcmpIgnoreCase(str1, str2) stricmp(str1, str2)
+#else
+#define strcmpIgnoreCase(str1, str2) strcasecmp(str1, str2)
+#endif
 
 /* * Logfile functions * */
 extern void setLogfilePath( const char *log_file_path );

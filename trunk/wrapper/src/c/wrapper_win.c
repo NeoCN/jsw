@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.124  2006/06/28 07:54:48  mortenson
+ * Start using a common form of strcmp to make unix and windows code as
+ * replicable as possible.
+ *
  * Revision 1.123  2006/06/22 16:48:16  mortenson
  * Make it possible to pause and resume windows services.
  *
@@ -3678,12 +3682,12 @@ void _CRTAPI1 main(int argc, char **argv) {
         }
 
         /* At this point, we have a command, confFile, and possibly additional arguments. */
-        if (!_stricmp(wrapperData->argCommand,"?") || !_stricmp(wrapperData->argCommand,"-help")) {
+        if (!strcmpIgnoreCase(wrapperData->argCommand,"?") || !strcmpIgnoreCase(wrapperData->argCommand,"-help")) {
             /* User asked for the usage. */
             wrapperUsage(argv[0]);
             appExit(0);
             return; /* For clarity. */
-        } else if (!_stricmp(wrapperData->argCommand,"v") || !_stricmp(wrapperData->argCommand,"-version")) {
+        } else if (!strcmpIgnoreCase(wrapperData->argCommand,"v") || !strcmpIgnoreCase(wrapperData->argCommand,"-version")) {
             /* User asked for version. */
             wrapperVersionBanner();
             appExit(0);
@@ -3694,7 +3698,7 @@ void _CRTAPI1 main(int argc, char **argv) {
          *  reduce duplicate code.  But before loading the parameters, in the case
          *  of an NT service. the environment variables must first be loaded from
          *  the registry. */
-        if (!_stricmp(wrapperData->argCommand,"s") || !_stricmp(wrapperData->argCommand,"-service")) {
+        if (!strcmpIgnoreCase(wrapperData->argCommand,"s") || !strcmpIgnoreCase(wrapperData->argCommand,"-service")) {
             if (wrapperLoadEnvFromRegistry())
             {
                 appExit(1);
@@ -3725,55 +3729,55 @@ void _CRTAPI1 main(int argc, char **argv) {
         umask(wrapperData->umask);
         
         /* Perform the specified command */
-        if(!_stricmp(wrapperData->argCommand,"i") || !_stricmp(wrapperData->argCommand,"-install")) {
+        if(!strcmpIgnoreCase(wrapperData->argCommand,"i") || !strcmpIgnoreCase(wrapperData->argCommand,"-install")) {
             /* Install an NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             appExit(wrapperInstall());
             return; /* For clarity. */
-        } else if(!_stricmp(wrapperData->argCommand,"r") || !_stricmp(wrapperData->argCommand,"-remove")) {
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand,"r") || !strcmpIgnoreCase(wrapperData->argCommand,"-remove")) {
             /* Remove an NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             appExit(wrapperRemove());
             return; /* For clarity. */
-        } else if(!_stricmp(wrapperData->argCommand,"t") || !_stricmp(wrapperData->argCommand,"-start")) {
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand,"t") || !strcmpIgnoreCase(wrapperData->argCommand,"-start")) {
             /* Start an NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             appExit(wrapperStartService());
             return; /* For clarity. */
-        } else if(!_stricmp(wrapperData->argCommand,"a") || !_stricmp(wrapperData->argCommand,"-pause")) {
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand,"a") || !strcmpIgnoreCase(wrapperData->argCommand,"-pause")) {
             /* Pause a started NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             appExit(wrapperPauseService());
             return; /* For clarity. */
-        } else if(!_stricmp(wrapperData->argCommand,"e") || !_stricmp(wrapperData->argCommand,"-resume")) {
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand,"e") || !strcmpIgnoreCase(wrapperData->argCommand,"-resume")) {
             /* Resume a paused NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             appExit(wrapperContinueService());
             return; /* For clarity. */
-        } else if(!_stricmp(wrapperData->argCommand,"p") || !_stricmp(wrapperData->argCommand,"-stop")) {
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand,"p") || !strcmpIgnoreCase(wrapperData->argCommand,"-stop")) {
             /* Stop an NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             appExit(wrapperStopService(TRUE));
             return; /* For clarity. */
-        } else if(!_stricmp(wrapperData->argCommand,"q") || !_stricmp(wrapperData->argCommand,"-query")) {
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand,"q") || !strcmpIgnoreCase(wrapperData->argCommand,"-query")) {
             /* Return service status with console output. */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             appExit(wrapperServiceStatus(TRUE));
             return; /* For clarity. */
-        } else if(!_stricmp(wrapperData->argCommand,"qs") || !_stricmp(wrapperData->argCommand,"-querysilent")) {
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand,"qs") || !strcmpIgnoreCase(wrapperData->argCommand,"-querysilent")) {
             /* Return service status without console output. */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             appExit(wrapperServiceStatus(FALSE));
             return; /* For clarity. */
-        } else if(!_stricmp(wrapperData->argCommand,"c") || !_stricmp(wrapperData->argCommand,"-console")) {
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand,"c") || !strcmpIgnoreCase(wrapperData->argCommand,"-console")) {
             /* Run as a console application */
             
             /* Load any dynamic functions. */
@@ -3831,7 +3835,7 @@ void _CRTAPI1 main(int argc, char **argv) {
 
             appExit(wrapperRunConsole());
             return; /* For clarity. */
-        } else if(!_stricmp(wrapperData->argCommand,"s") || !_stricmp(wrapperData->argCommand,"-service")) {
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand,"s") || !strcmpIgnoreCase(wrapperData->argCommand,"-service")) {
             /* Run as a service */
             
             /* Load any dynamic functions. */

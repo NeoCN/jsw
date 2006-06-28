@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.122  2006/06/28 07:54:48  mortenson
+ * Start using a common form of strcmp to make unix and windows code as
+ * replicable as possible.
+ *
  * Revision 1.121  2006/05/17 03:10:08  mortenson
  * Add a new -v command to show the version of the wrapper.
  *
@@ -1780,12 +1784,12 @@ int main(int argc, char **argv) {
     }
 
     /* At this point, we have a command, confFile, and possibly additional arguments. */
-    if (!_stricmp(wrapperData->argCommand,"?") || !_stricmp(wrapperData->argCommand,"-help")) {
+    if (!strcmpIgnoreCase(wrapperData->argCommand,"?") || !strcmpIgnoreCase(wrapperData->argCommand,"-help")) {
         /* User asked for the usage. */
         wrapperUsage(argv[0]);
         appExit(0);
         return 0; /* For compiler. */
-    } else if (!_stricmp(wrapperData->argCommand,"v") || !_stricmp(wrapperData->argCommand,"-version")) {
+    } else if (!strcmpIgnoreCase(wrapperData->argCommand,"v") || !strcmpIgnoreCase(wrapperData->argCommand,"-version")) {
         /* User asked for version. */
         wrapperVersionBanner();
         appExit(0);
@@ -1814,7 +1818,7 @@ int main(int argc, char **argv) {
     /* Set the default umask of the Wrapper process. */
     umask(wrapperData->umask);
 
-    if(!_stricmp(wrapperData->argCommand,"c") || !_stricmp(wrapperData->argCommand,"-console")) {
+    if(!strcmpIgnoreCase(wrapperData->argCommand,"c") || !strcmpIgnoreCase(wrapperData->argCommand,"-console")) {
         /* Run as a console application */
 
         /* fork to a Daemonized process if configured to do so. */
