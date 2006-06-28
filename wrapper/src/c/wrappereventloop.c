@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.34  2006/06/28 07:43:07  mortenson
+ * Fix some compiler errors caused by the lack of a pausable state on UNIX.
+ *
  * Revision 1.33  2006/06/22 16:48:16  mortenson
  * Make it possible to pause and resume windows services.
  *
@@ -201,6 +204,7 @@ const char *wrapperGetWState(int wState) {
     case WRAPPER_WSTATE_STARTED:
         name = "STARTED";
         break;
+#ifdef WIN32
     case WRAPPER_WSTATE_PAUSING:
         name = "PAUSING";
         break;
@@ -210,6 +214,7 @@ const char *wrapperGetWState(int wState) {
     case WRAPPER_WSTATE_CONTINUING:
         name = "CONTINUING";
         break;
+#endif
     case WRAPPER_WSTATE_STOPPING:
         name = "STOPPING";
         break;
@@ -780,6 +785,7 @@ void wStateStarted(DWORD nowTicks) {
     /* Just keep running.  Nothing to do here. */
 }
 
+#ifdef WIN32
 /**
  * WRAPPER_WSTATE_PAUSING
  * The Wrapper process is being paused.  If stopping the JVM is enabled
@@ -861,6 +867,7 @@ void wStateContinuing(DWORD nowTicks) {
         wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTED, 0, 0);
     }
 }
+#endif
 
 /**
  * WRAPPER_WSTATE_STOPPING
@@ -935,6 +942,7 @@ void jStateDown(DWORD nowTicks, int nextSleep) {
             /* Depending on the number of restarts to date, decide how to handle the (re)start. */
             if (wrapperData->jvmRestarts > 0) {
                 /* This is not the first JVM, so make sure that we still want to launch. */
+#ifdef WIN32
                 if ((wrapperData->wState == WRAPPER_WSTATE_CONTINUING) && wrapperData->ntServicePausableStopJVM) {
                     /* We are continuing and the JVM was expected to be stopped.  Always launch
                      *  immediately and reset the failed invocation count.
@@ -943,6 +951,9 @@ void jStateDown(DWORD nowTicks, int nextSleep) {
                     wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCH, nowTicks, 0);
 
                 } else if (wrapperData->isRestartDisabled) {
+#else
+                if (wrapperData->isRestartDisabled) {
+#endif
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "JVM Restarts disabled.  Shutting down.");
                     wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
                     
@@ -1034,9 +1045,11 @@ void jStateDown(DWORD nowTicks, int nextSleep) {
     } else if (wrapperData->wState == WRAPPER_WSTATE_PAUSED) {
         /* The wrapper is paused. */
 
+#ifdef WIN32
         if ( wrapperData->ntServicePausableStopJVM ) {
             /* The stop state is expected. */
         } else {
+#endif
             /* The JVM should still be running, but it is not.  Try to figure out why. */
             if (wrapperData->restartRequested) {
                 /* The JVM must have crashed.  The restart will be honored when the service
@@ -1059,7 +1072,9 @@ void jStateDown(DWORD nowTicks, int nextSleep) {
                     wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
                 }
             }
+#ifdef WIN32
         }
+#endif
     } else {
         /* The wrapper is shutting down or pausing.  Do nothing. */
     }
@@ -1719,6 +1734,7 @@ void wrapperEventLoop() {
             wStateStarted(nowTicks);
             break;
             
+#ifdef WIN32
         case WRAPPER_WSTATE_PAUSING:
             wStatePausing(nowTicks);
             break;
@@ -1730,7 +1746,8 @@ void wrapperEventLoop() {
         case WRAPPER_WSTATE_CONTINUING:
             wStateContinuing(nowTicks);
             break;
-            
+#endif
+        
         case WRAPPER_WSTATE_STOPPING:
             wStateStopping(nowTicks);
             break;

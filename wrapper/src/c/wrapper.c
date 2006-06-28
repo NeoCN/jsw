@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.171  2006/06/28 07:43:07  mortenson
+ * Fix some compiler errors caused by the lack of a pausable state on UNIX.
+ *
  * Revision 1.170  2006/06/28 05:04:47  mortenson
  * Fix an unreleased access violation caused by any filename property not being specified.
  *
@@ -1770,9 +1773,9 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     char *tmpString;
     struct stat statBuffer;
     char *systemPath;
+    char *c;
 #ifdef WIN32
     char cpPath[512];
-    char *c;
     long handle;
     int len, found;
     struct _finddata_t fblock;
