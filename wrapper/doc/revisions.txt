@@ -91,6 +91,8 @@ Java Service Wrapper Revision History.
   system thread count to 1 which worked for most JVMs.  A new system property,
   org.tanukisoftware.wrapper.WrapperStartStopApp.systemThreadCount, was added
   to make it possible to customize.  It currently defaults to 1.
+* Make it possible to extend the WrapperSimpleApp and WrapperStartStopApp
+  helper classes.  Feature Request #1510274.
 
 3.2.0
 * Rework the release cycle so that the wrapper.jar file released for all

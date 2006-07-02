@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.15  2006/07/02 15:19:00  mortenson
+// Make it possible to extend the WrapperSimpleApp and WrapperStartStopApp
+// helper classes.
+//
 // Revision 1.14  2006/06/28 05:05:18  mortenson
 // Removed the custom thread counting used to keep track of when the wrapped
 // Java application has completed.
@@ -123,6 +127,11 @@ import java.lang.reflect.Modifier;
  *  the property to 300 as follows (defaults to 2 seconds):
  *  -Dorg.tanukisoftware.wrapper.WrapperStartStopApp.maxStartMainWait=300
  * <p>
+ * It is possible to extend this class but make absolutely sure that any
+ *  overridden methods call their super method or the class will fail to
+ *  function correctly.  Most users will have no need to override this
+ *  class.
+ * <p>
  * NOTE - The main methods of many applications are designed not to
  *  return.  In these cases, you must either stick with the default 2 second
  *  startup timeout or specify a slightly longer timeout, using the
@@ -192,7 +201,72 @@ public class WrapperStartStopApp
     /*---------------------------------------------------------------
      * Constructors
      *-------------------------------------------------------------*/
-    private WrapperStartStopApp( Method startMainMethod,
+    protected WrapperStartStopApp( String args[] )
+    {
+        
+        // Initialize the WrapperManager class on startup by referencing it.
+        Class wmClass = WrapperManager.class;
+        
+        // Get the class name of the application
+        if ( args.length < 5 )
+        {
+            System.out.println( "WrapperStartStopApp: Not enough argments.  Minimum 5 required." );
+            showUsage();
+            WrapperManager.stop( 1 );
+            return;  // Will not get here
+        }
+        
+        
+        // Look for the start main method.
+        m_startMainMethod = getMainMethod( args[0] );
+        // Get the start arguments
+        String[] startArgs = getArgs( args, 1 );
+        
+        
+        // Where do the stop arguments start
+        int stopArgBase = 2 + startArgs.length;
+        if ( args.length < stopArgBase + 3 )
+        {
+            System.out.println( "WrapperStartStopApp: Not enough argments. Minimum 3 after start "
+                + "arguments." );
+            showUsage();
+            WrapperManager.stop( 1 );
+            return;  // Will not get here
+        }
+        // Look for the stop main method.
+        m_stopMainMethod = getMainMethod( args[stopArgBase] );
+        // Get the stopWait flag
+        if ( args[stopArgBase + 1].equalsIgnoreCase( "true" ) )
+        {
+            m_stopWait = true;
+        }
+        else if ( args[stopArgBase + 1].equalsIgnoreCase( "false" ) )
+        {
+            m_stopWait = false;
+        }
+        else
+        {
+            System.out.println( "WrapperStartStopApp: The stop_wait argument must be either true "
+                + "or false." );
+            showUsage();
+            WrapperManager.stop( 1 );
+            return;  // Will not get here
+        }
+        // Get the start arguments
+        m_stopMainArgs = getArgs( args, stopArgBase + 2 );
+        
+        // Start the application.  If the JVM was launched from the native
+        //  Wrapper then the application will wait for the native Wrapper to
+        //  call the application's start method.  Otherwise the start method
+        //  will be called immediately.
+        WrapperManager.start( this, startArgs );
+        
+        // This thread ends, the WrapperManager will start the application after the Wrapper has
+        //  been propperly initialized by calling the start method above.
+    }
+    
+    
+    protected WrapperStartStopApp( Method startMainMethod,
                                  Method stopMainMethod,
                                  boolean stopWait,
                                  String[] stopMainArgs )
@@ -508,7 +582,7 @@ public class WrapperStartStopApp
      *
      * @return Number of non-daemon threads.
      */
-    private static int getNonDaemonThreadCount()
+    private int getNonDaemonThreadCount()
     {
         // Locate the top thread group.
         ThreadGroup topGroup = Thread.currentThread().getThreadGroup();
@@ -555,7 +629,7 @@ public class WrapperStartStopApp
      *  an error message will be displayed and the Wrapper will be stopped.  This
      *  method will only return if it has a valid method.
      */
-    private static Method getMainMethod( String className )
+    private Method getMainMethod( String className )
     {
         // Look for the start class by name
         Class mainClass;
@@ -622,7 +696,7 @@ public class WrapperStartStopApp
         return mainMethod;
     }
     
-    private static String[] getArgs( String[] args, int argBase )
+    private String[] getArgs( String[] args, int argBase )
     {
         // The arg at the arg base should be a count of the number of available arguments.
         int argCount;
@@ -665,7 +739,7 @@ public class WrapperStartStopApp
     /**
      * Displays application usage
      */
-    private static void showUsage()
+    protected void showUsage()
     {
         System.out.println();
         System.out.println(
@@ -715,71 +789,7 @@ public class WrapperStartStopApp
      */
     public static void main( String args[] )
     {
-        // Initialize the WrapperManager class on startup by referencing it.
-        Class wmClass = WrapperManager.class;
-        
-        // Get the class name of the application
-        if ( args.length < 5 )
-        {
-            System.out.println( "WrapperStartStopApp: Not enough argments.  Minimum 5 required." );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        
-        
-        // Look for the start main method.
-        Method startMainMethod = getMainMethod( args[0] );
-        // Get the start arguments
-        String[] startArgs = getArgs( args, 1 );
-        
-        
-        // Where do the stop arguments start
-        int stopArgBase = 2 + startArgs.length;
-        if ( args.length < stopArgBase + 3 )
-        {
-            System.out.println( "WrapperStartStopApp: Not enough argments. Minimum 3 after start "
-                + "arguments." );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        // Look for the stop main method.
-        Method stopMainMethod = getMainMethod( args[stopArgBase] );
-        // Get the stopWait flag
-        boolean stopWait;
-        if ( args[stopArgBase + 1].equalsIgnoreCase( "true" ) )
-        {
-            stopWait = true;
-        }
-        else if ( args[stopArgBase + 1].equalsIgnoreCase( "false" ) )
-        {
-            stopWait = false;
-        }
-        else
-        {
-            System.out.println( "WrapperStartStopApp: The stop_wait argument must be either true "
-                + "or false." );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        // Get the start arguments
-        String[] stopArgs = getArgs( args, stopArgBase + 2 );
-        
-        
-        // Create the WrapperStartStopApp
-        WrapperStartStopApp app =
-            new WrapperStartStopApp( startMainMethod, stopMainMethod, stopWait, stopArgs );
-        
-        // Start the application.  If the JVM was launched from the native
-        //  Wrapper then the application will wait for the native Wrapper to
-        //  call the application's start method.  Otherwise the start method
-        //  will be called immediately.
-        WrapperManager.start( app, startArgs );
-        
-        // This thread ends, the WrapperManager will start the application after the Wrapper has
-        //  been propperly initialized by calling the start method above.
+        new WrapperStartStopApp( args );
     }
 }
 

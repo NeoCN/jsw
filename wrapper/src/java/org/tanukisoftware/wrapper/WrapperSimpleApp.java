@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.12  2006/07/02 15:19:00  mortenson
+// Make it possible to extend the WrapperSimpleApp and WrapperStartStopApp
+// helper classes.
+//
 // Revision 1.11  2006/02/24 05:45:57  mortenson
 // Update the copyright.
 //
@@ -111,6 +115,11 @@ import java.lang.reflect.Modifier;
  *  the property to 300 as follows (defaults to 2 seconds):
  *  -Dorg.tanukisoftware.wrapper.WrapperSimpleApp.maxStartMainWait=300
  * <p>
+ * It is possible to extend this class but make absolutely sure that any
+ *  overridden methods call their super method or the class will fail to
+ *  function correctly.  Most users will have no need to override this
+ *  class.
+ * <p>
  * NOTE - The main methods of many applications are designed not to
  *  return.  In these cases, you must either stick with the default 2 second
  *  startup timeout or specify a slightly longer timeout, using the
@@ -166,10 +175,96 @@ public class WrapperSimpleApp
      *-------------------------------------------------------------*/
     /**
      * Creates an instance of a WrapperSimpleApp.
+     *
+     * @param The full list of arguments passed to the JVM.
      */
-    private WrapperSimpleApp( Method mainMethod )
+    protected WrapperSimpleApp( String args[] )
     {
-        m_mainMethod = mainMethod;
+        
+        // Initialize the WrapperManager class on startup by referencing it.
+        Class wmClass = WrapperManager.class;
+        
+        // Get the class name of the application
+        if ( args.length < 1 )
+        {
+            showUsage();
+            WrapperManager.stop( 1 );
+            return;  // Will not get here
+        }
+        
+        // Look for the specified class by name
+        Class mainClass;
+        try
+        {
+            mainClass = Class.forName( args[0] );
+        }
+        catch ( ClassNotFoundException e )
+        {
+            System.out.println( "WrapperSimpleApp: Unable to locate the class " + args[0] + ": "
+                + e );
+            showUsage();
+            WrapperManager.stop( 1 );
+            return;  // Will not get here
+        }
+        catch ( LinkageError e )
+        {
+            System.out.println( "WrapperSimpleApp: Unable to locate the class " + args[0] + ": "
+                + e );
+            showUsage();
+            WrapperManager.stop( 1 );
+            return;  // Will not get here
+        }
+        
+        // Look for the main method
+        try
+        {
+            // getDeclaredMethod will return any method named main in the specified class,
+            //  while getMethod will only return public methods, but it will search up the
+            //  inheritance path.
+            m_mainMethod = mainClass.getMethod( "main", new Class[] { String[].class } );
+        }
+        catch ( NoSuchMethodException e )
+        {
+            System.out.println(
+                "WrapperSimpleApp: Unable to locate a public static main method in class "
+                + args[0] + ": " + e );
+            showUsage();
+            WrapperManager.stop( 1 );
+            return;  // Will not get here
+        }
+        catch ( SecurityException e )
+        {
+            System.out.println(
+                "WrapperSimpleApp: Unable to locate a public static main method in class "
+                + args[0] + ": " + e );
+            showUsage();
+            WrapperManager.stop( 1 );
+            return;  // Will not get here
+        }
+        
+        // Make sure that the method is public and static
+        int modifiers = m_mainMethod.getModifiers();
+        if ( !( Modifier.isPublic( modifiers ) && Modifier.isStatic( modifiers ) ) )
+        {
+            System.out.println( "WrapperSimpleApp: The main method in class " + args[0]
+                + " must be declared public and static." );
+            showUsage();
+            WrapperManager.stop( 1 );
+            return;  // Will not get here
+        }
+        
+        // Build the application args array
+        String[] appArgs = new String[args.length - 1];
+        System.arraycopy( args, 1, appArgs, 0, appArgs.length );
+        
+        // Start the application.  If the JVM was launched from the native
+        //  Wrapper then the application will wait for the native Wrapper to
+        //  call the application's start method.  Otherwise the start method
+        //  will be called immediately.
+        WrapperManager.start( this, appArgs );
+        
+        // This thread ends, the WrapperManager will start the application after the Wrapper has
+        //  been properly initialized by calling the start method above.
     }
     
     /*---------------------------------------------------------------
@@ -409,7 +504,7 @@ public class WrapperSimpleApp
     /**
      * Displays application usage
      */
-    private static void showUsage()
+    protected void showUsage()
     {
         System.out.println();
         System.out.println(
@@ -439,94 +534,7 @@ public class WrapperSimpleApp
      */
     public static void main( String args[] )
     {
-        // Initialize the WrapperManager class on startup by referencing it.
-        Class wmClass = WrapperManager.class;
-        
-        // Get the class name of the application
-        if ( args.length < 1 )
-        {
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        
-        // Look for the specified class by name
-        Class mainClass;
-        try
-        {
-            mainClass = Class.forName( args[0] );
-        }
-        catch ( ClassNotFoundException e )
-        {
-            System.out.println( "WrapperSimpleApp: Unable to locate the class " + args[0] + ": "
-                + e );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        catch ( LinkageError e )
-        {
-            System.out.println( "WrapperSimpleApp: Unable to locate the class " + args[0] + ": "
-                + e );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        
-        // Look for the main method
-        Method mainMethod;
-        try
-        {
-            // getDeclaredMethod will return any method named main in the specified class,
-            //  while getMethod will only return public methods, but it will search up the
-            //  inheritance path.
-            mainMethod = mainClass.getMethod( "main", new Class[] { String[].class } );
-        }
-        catch ( NoSuchMethodException e )
-        {
-            System.out.println(
-                "WrapperSimpleApp: Unable to locate a public static main method in class "
-                + args[0] + ": " + e );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        catch ( SecurityException e )
-        {
-            System.out.println(
-                "WrapperSimpleApp: Unable to locate a public static main method in class "
-                + args[0] + ": " + e );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        
-        // Make sure that the method is public and static
-        int modifiers = mainMethod.getModifiers();
-        if ( !( Modifier.isPublic( modifiers ) && Modifier.isStatic( modifiers ) ) )
-        {
-            System.out.println( "WrapperSimpleApp: The main method in class " + args[0]
-                + " must be declared public and static." );
-            showUsage();
-            WrapperManager.stop( 1 );
-            return;  // Will not get here
-        }
-        
-        // Build the application args array
-        String[] appArgs = new String[args.length - 1];
-        System.arraycopy( args, 1, appArgs, 0, appArgs.length );
-        
-        // Create the WrapperSimpleApp
-        WrapperSimpleApp app = new WrapperSimpleApp( mainMethod );
-        
-        // Start the application.  If the JVM was launched from the native
-        //  Wrapper then the application will wait for the native Wrapper to
-        //  call the application's start method.  Otherwise the start method
-        //  will be called immediately.
-        WrapperManager.start( app, appArgs );
-        
-        // This thread ends, the WrapperManager will start the application after the Wrapper has
-        //  been propperly initialized by calling the start method above.
+        new WrapperSimpleApp( args );
     }
 }
 
