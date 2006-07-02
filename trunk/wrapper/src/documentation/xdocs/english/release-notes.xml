@@ -242,7 +242,14 @@ $Id$
                     JVMs.  A new system property,
                     org.tanukisoftware.wrapper.WrapperStartStopApp.systemThreadCount, was added
                     to make it possible to customize.  It currently defaults to 1.
-               </para>
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Make it possible to extend the WrapperSimpleApp and WrapperStartStopApp
+                    helper classes.
+                    <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=1510274&amp;group_id=39428&amp;atid=425190">Feature Request #1510274</ulink>.
+                </para>
             </listitem>
         </itemizedlist>
     </section>
