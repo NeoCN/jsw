@@ -44,6 +44,10 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.37  2006/07/03 04:41:18  mortenson
+// Add warning messages if the old org.silveregg.wrapper package classes are
+// still being used.  They will be removed in the next release.
+//
 // Revision 1.36  2006/02/24 05:45:57  mortenson
 // Update the copyright.
 //
@@ -111,6 +115,14 @@ public final class WrapperManager
     /** Log message at fatal log level. */
     public static final int WRAPPER_LOG_LEVEL_FATAL      =
         org.tanukisoftware.wrapper.WrapperManager.WRAPPER_LOG_LEVEL_FATAL;
+    
+    static
+    {
+        System.out.println( "*********************************************************************" );
+        System.out.println( "WARNING - Use of the org.silveregg.wrapper.WrapperManager class has" );
+        System.out.println( "          been deprecated and will be removed in the next version." );
+        System.out.println( "*********************************************************************" );
+    }
     
     /*---------------------------------------------------------------
      * Public Methods

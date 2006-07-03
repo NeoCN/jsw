@@ -251,6 +251,12 @@ $Id$
                     <ulink url="http://sourceforge.net/tracker/index.php?func=detail&amp;aid=1510274&amp;group_id=39428&amp;atid=425190">Feature Request #1510274</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add warning messages if the old org.silveregg.wrapper package classes are
+                    still being used.  They will be removed in the next release.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.0">
