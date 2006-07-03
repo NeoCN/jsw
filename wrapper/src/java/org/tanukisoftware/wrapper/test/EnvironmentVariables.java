@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper.test;
  */
 
 // $Log$
+// Revision 1.8  2006/07/03 03:57:32  mortenson
+// Include locale information in the test output.
+//
 // Revision 1.7  2006/06/28 08:37:44  mortenson
 // Get the environment variable test working on Windows XP
 //
@@ -90,7 +93,9 @@ public class EnvironmentVariables {
      * Main Method
      *-------------------------------------------------------------*/
     public static void main(String[] args) {
-        
+        System.out.println("user.language=" + System.getProperty("user.language"));
+        System.out.println("user.region=" + System.getProperty("user.region"));
+        System.out.println("Locale=" + java.util.Locale.getDefault());        
         System.out.println("Looking for environment variables...");
         
         try {
