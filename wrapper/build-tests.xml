@@ -265,6 +265,25 @@ wrapper.filter.trigger.4=ALLDONE
 wrapper.filter.action.4=SHUTDOWN]]></replacevalue>
         </replace>
 
+        <!-- OnExit Test -->
+        <delete file="${test.dir}/onexit.conf"/>
+        <filter token="app.name"          value="onexit"/>
+        <filter token="app.long.name"     value="OnExit Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/onexit.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/onexit.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.OnExit" />
+        <replace file="${test.dir}/onexit.conf">
+            <replacetoken>wrapper.syslog.loglevel=NONE</replacetoken>
+            <replacevalue><![CDATA[wrapper.syslog.loglevel=NONE
+
+wrapper.on_exit.1=RESTART
+wrapper.on_exit.3=SHUTDOWN
+wrapper.on_exit.default=RESTART]]></replacevalue>
+        </replace>
+
         <!-- Loaded WrapperListener Test -->
         <delete file="${test.dir}/loadedwrapperlistener.conf"/>
         <filter token="app.name"          value="loadedwrapperlistener"/>
@@ -506,6 +525,18 @@ set ENV_VAR_4=d]]></replacevalue>
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\filter.conf' />
         
+        <!-- OnExit Test -->
+        <delete file="${test.dir}/TestOnExit.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestOnExit.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestOnExit.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestOnExit.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\onexit.conf' />
+        
         <!-- Loaded WrapperListener Test -->
         <delete file="${test.dir}/TestLoadedWrapperListener.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
@@ -730,6 +761,14 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/filter"
               filtering="on"/>
         <chmod file="${test.dir}/filter" perm="+x"/> 
+        
+        <!-- OnExit Test -->
+        <filter token="app.name"          value="onexit"/>
+        <filter token="app.long.name"     value="OnExit Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/onexit"
+              filtering="on"/>
+        <chmod file="${test.dir}/onexit" perm="+x"/> 
         
         <!-- Loaded WrapperListener Test -->
         <filter token="app.name"          value="loadedwrapperlistener"/>
