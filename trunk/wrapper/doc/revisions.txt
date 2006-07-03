@@ -93,6 +93,8 @@ Java Service Wrapper Revision History.
   to make it possible to customize.  It currently defaults to 1.
 * Make it possible to extend the WrapperSimpleApp and WrapperStartStopApp
   helper classes.  Feature Request #1510274.
+* Add warning messages if the old org.silveregg.wrapper package classes are
+  still being used.  They will be removed in the next release.
 
 3.2.0
 * Rework the release cycle so that the wrapper.jar file released for all

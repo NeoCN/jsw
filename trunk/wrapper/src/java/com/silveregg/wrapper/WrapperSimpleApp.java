@@ -44,6 +44,10 @@ package com.silveregg.wrapper;
  */
 
 // $Log$
+// Revision 1.11  2006/07/03 04:41:18  mortenson
+// Add warning messages if the old org.silveregg.wrapper package classes are
+// still being used.  They will be removed in the next release.
+//
 // Revision 1.10  2006/02/24 05:45:57  mortenson
 // Update the copyright.
 //
@@ -71,6 +75,14 @@ package com.silveregg.wrapper;
  */
 public class WrapperSimpleApp
 {
+    static
+    {
+        System.out.println( "*********************************************************************" );
+        System.out.println( "WARNING - Use of the org.silveregg.wrapper.WrapperSimpleApp class has" );
+        System.out.println( "          been deprecated and will be removed in the next version." );
+        System.out.println( "*********************************************************************" );
+    }
+    
     /*---------------------------------------------------------------
      * Constructors
      *-------------------------------------------------------------*/
