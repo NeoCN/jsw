@@ -1,5 +1,9 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.2.2
+* Correct a typo in the usage output of the WrapperStartStopApp.  Thanks to
+  Michael Giroux for pointing it out.
+
 3.2.1
 * Fix a problem with the solaris-sparc-64 makefile.
 * Add a solaris-x86-64 makefile.
