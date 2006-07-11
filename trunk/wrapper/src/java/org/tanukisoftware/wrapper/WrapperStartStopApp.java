@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.16  2006/07/11 16:16:16  mortenson
+// Correct a typo in the usage output of the WrapperStartStopApp.  Thanks to
+// Michael Giroux for pointing it out.
+//
 // Revision 1.15  2006/07/02 15:19:00  mortenson
 // Make it possible to extend the WrapperSimpleApp and WrapperStartStopApp
 // helper classes.
@@ -759,6 +763,10 @@ public class WrapperStartStopApp
         System.out.println(
             "                   main method." );
         System.out.println(
+            "  start_arguments: The arguments that would normally be passed to the start " );
+        System.out.println(
+            "                   class application." );
+        System.out.println(
             "  stop_class:      The fully qualified class name to run to stop the " );
         System.out.println(
             "                   application." );
@@ -770,11 +778,10 @@ public class WrapperStartStopApp
             "  stop_arg_count:  The number of arguments to be passed to the stop class's " );
         System.out.println(
             "                   main method." );
-        
         System.out.println(
-            "  app_parameters:  The parameters that would normally be passed to the" );
+            "  stop_arguments:  The arguments that would normally be passed to the stop " );
         System.out.println(
-            "                   application." );
+            "                   class application." );
     }
     
     /*---------------------------------------------------------------
