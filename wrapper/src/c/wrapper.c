@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.172  2006/07/19 06:24:15  mortenson
+ * Fix a problem on OSF1 systems where the backend socket was not listening
+ * correctly due to a backlog of 0.
+ *
  * Revision 1.171  2006/06/28 07:43:07  mortenson
  * Fix some compiler errors caused by the lack of a pausable state on UNIX.
  *
@@ -891,7 +895,7 @@ void protocolStartServer() {
     }
 
     /* Tell the socket to start listening. */
-    rc = listen(ssd, 0);
+    rc = listen(ssd, 1);
     if (rc == SOCKET_ERROR) {
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, "server socket listen failed. (%d)", wrapperGetLastError());
         wrapperProtocolClose();
