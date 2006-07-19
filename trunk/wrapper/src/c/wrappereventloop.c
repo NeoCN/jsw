@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.36  2006/07/19 07:44:51  mortenson
+ * Remove the com.silveregg.wrapper package classes that were deprecated in
+ * version 3.0.0.
+ *
  * Revision 1.35  2006/07/19 07:24:36  mortenson
  * Remove the com.silveregg.wrapper package classes that were deprecated in
  * version 3.0.0.
@@ -1097,6 +1101,8 @@ void jStateDown(DWORD nowTicks, int nextSleep) {
  *            function will be called again immediately.
  */
 void jStateLaunch(DWORD nowTicks, int nextSleep) {
+    const char *mainClass;
+
     /* The Waiting state is set from the DOWN state if a JVM had
      *  previously been launched the Wrapper will wait in this state
      *  until the restart delay has expired.  If this was the first
@@ -1126,10 +1132,32 @@ void jStateLaunch(DWORD nowTicks, int nextSleep) {
                         /* Failed to reload the configuration.  This is bad.
                          *  The JVM is already down.  Shutdown the Wrapper. */
                         wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
+                        wrapperData->exitCode = 1;
                         return;
                     }
                 }
             }
+
+            /* Make sure user is not trying to use the old removed SilverEgg package names. */
+            mainClass = getStringProperty(properties, "wrapper.java.mainclass", "Main");
+            if (strstr(mainClass, "com.silveregg.wrapper.WrapperSimpleApp") != NULL) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                    "The com.silveregg.wrapper.WrapperSimpleApp class is no longer supported." );
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                    "Please use the org.tanukisoftware.wrapper.WrapperSimpleApp class instead." );
+                wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
+                wrapperData->exitCode = 1;
+                return;
+            } else if (strstr(mainClass, "com.silveregg.wrapper.WrapperStartStopApp") != NULL) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                    "The com.silveregg.wrapper.WrapperStartStopApp class is no longer supported." );
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                    "Please use the org.tanukisoftware.wrapper.WrapperStartStopApp class instead." );
+                wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
+                wrapperData->exitCode = 1;
+                return;
+            }
+            
 
             /* Set the launch time to the curent time */
             wrapperData->jvmLaunchTicks = wrapperGetTicks();
