@@ -17,6 +17,13 @@ $Id$
                     Michael Giroux for pointing it out.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem on OSF1 systems where the backend socket was not listening
+                    correctly due to a backlog of 0.  This was broken in 3.2.0.  Thanks to
+                    Phillip Gussow for supplying a patch.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.1">
