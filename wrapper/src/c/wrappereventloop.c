@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.35  2006/07/19 07:24:36  mortenson
+ * Remove the com.silveregg.wrapper package classes that were deprecated in
+ * version 3.0.0.
+ *
  * Revision 1.34  2006/06/28 07:43:07  mortenson
  * Fix some compiler errors caused by the lack of a pausable state on UNIX.
  *
@@ -385,9 +389,7 @@ void displayLaunchingTimeoutMessage() {
     mainClass = getStringProperty(properties, "wrapper.java.mainclass", "Main");
 
     if ((strstr(mainClass, "org.tanukisoftware.wrapper.WrapperSimpleApp") != NULL)
-        || (strstr(mainClass, "org.tanukisoftware.wrapper.WrapperStartStopApp") != NULL)
-        || (strstr(mainClass, "com.silveregg.wrapper.WrapperSimpleApp") != NULL)
-        || (strstr(mainClass, "com.silveregg.wrapper.WrapperStartStopApp") != NULL)) {
+        || (strstr(mainClass, "org.tanukisoftware.wrapper.WrapperStartStopApp") != NULL)) {
 
         /* The user appears to be using a valid main class, so no advice available. */
     } else {
