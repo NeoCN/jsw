@@ -30,6 +30,13 @@ $Id$
                     version 3.0.0.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a potential problem in the UNIX script where the lock file permissions
+                    were not being set correctly if the LOCKFILE and RUN_AS_USER variables are
+                    specified but the group of the specified user could not be resolved.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.1">
