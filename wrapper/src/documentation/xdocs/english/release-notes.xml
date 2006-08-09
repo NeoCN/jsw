@@ -37,6 +37,12 @@ $Id$
                     specified but the group of the specified user could not be resolved.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where the exit code returned by WrapperListener.stop was being
+                    ignored in some cases.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.1">
