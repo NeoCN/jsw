@@ -13,6 +13,9 @@ Java Service Wrapper Revision History.
   specified but the group of the specified user could not be resolved.
 * Fix a problem where the exit code returned by WrapperListener.stop was being
   ignored in some cases.
+* Fix a problem where the shell script would not work correctly when the
+  wrapper or its configuration files were located in a directory path
+  containing spaces.
 
 3.2.1
 * Fix a problem with the solaris-sparc-64 makefile.
