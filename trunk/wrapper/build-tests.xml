@@ -714,7 +714,7 @@ export ENV_VAR_4=d]]></replacevalue>
         </replace>
         <replace file="${test.dir}/action">
             <replacetoken><![CDATA[checkUser "" $1]]></replacetoken>
-            <replacetoken><![CDATA[checkUser "" $1 $2]]></replacetoken>
+            <replacevalue><![CDATA[checkUser "" $1 $2]]></replacevalue>
         </replace>
         <replace file="${test.dir}/action">
             <replacetoken><![CDATA[Running $APP_LONG_NAME]]></replacetoken>
