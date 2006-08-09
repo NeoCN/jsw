@@ -677,40 +677,44 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/action"
               filtering="on"/>
         <replace file="${test.dir}/action">
-            <replacetoken><![CDATA[$REALPATH $1]]></replacetoken>
-            <replacevalue><![CDATA[$REALPATH $1 $2]]></replacevalue>
+            <replacetoken><![CDATA[\"$REALPATH\" $2]]></replacetoken>
+            <replacevalue><![CDATA[\"$REALPATH\" $2 $3]]></replacevalue>
         </replace>
         <replace file="${test.dir}/action">
             <replacetoken><![CDATA['console')
-        checkUser $1 touchlock
+        checkUser touchlock $1
         console
         ;;]]></replacetoken>
             <replacevalue><![CDATA['console')
-        checkUser $1 touchlock
+        checkUser touchlock $1 $2
         console $2
         ;;]]></replacevalue>
         </replace>
         <replace file="${test.dir}/action">
             <replacetoken><![CDATA['start')
-        checkUser $1 touchlock
+        checkUser touchlock $1
         start
         ;;]]></replacetoken>
             <replacevalue><![CDATA['start')
-        checkUser $1 touchlock
+        checkUser touchlock $1 $2
         start $2
         ;;]]></replacevalue>
         </replace>
         <replace file="${test.dir}/action">
             <replacetoken><![CDATA['restart')
-        checkUser $1 touchlock
+        checkUser touchlock $1
         stopit
         start
         ;;]]></replacetoken>
             <replacevalue><![CDATA['restart')
-        checkUser $1 touchlock
+        checkUser touchlock $1 $2
         stopit
         start $2
         ;;]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/action">
+            <replacetoken><![CDATA[checkUser "" $1]]></replacetoken>
+            <replacetoken><![CDATA[checkUser "" $1 $2]]></replacetoken>
         </replace>
         <replace file="${test.dir}/action">
             <replacetoken><![CDATA[Running $APP_LONG_NAME]]></replacetoken>
