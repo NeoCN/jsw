@@ -11,6 +11,8 @@ Java Service Wrapper Revision History.
 * Fix a potential problem in the UNIX script where the lock file permissions
   were not being set correctly if the LOCKFILE and RUN_AS_USER variables are
   specified but the group of the specified user could not be resolved.
+* Fix a problem where the exit code returned by WrapperListener.stop was being
+  ignored in some cases.
 
 3.2.1
 * Fix a problem with the solaris-sparc-64 makefile.

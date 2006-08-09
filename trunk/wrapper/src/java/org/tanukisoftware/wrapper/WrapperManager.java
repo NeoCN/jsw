@@ -44,6 +44,10 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.79  2006/08/09 04:23:14  mortenson
+// Fix a problem where the exit code returned by WrapperListener.stop was being
+// ignored in some cases.
+//
 // Revision 1.78  2006/06/28 05:05:18  mortenson
 // Removed the custom thread counting used to keep track of when the wrapped
 // Java application has completed.
@@ -3179,11 +3183,16 @@ public final class WrapperManager
     
     private static void shutdownJVM( int exitCode )
     {
+        if ( m_debug )
+        {
+            m_out.println( "shutdownJVM(" + exitCode + ") Thread:" + Thread.currentThread().getName() );
+        }
+        
         // Do not call System.exit if this is the ShutdownHook
         if ( Thread.currentThread() == m_hook )
         {
             // Signal that the application has stopped and the JVM is about to shutdown.
-            signalStopped( 0 );
+            signalStopped( exitCode );
             
             // Dispose the wrapper.  (If the hook runs, it will do this.)
             dispose();
@@ -3223,7 +3232,7 @@ public final class WrapperManager
                 }
             }
             // Signal that the application has stopped and the JVM is about to shutdown.
-            signalStopped( 0 );
+            signalStopped( exitCode );
             
             // Dispose the wrapper.  (If the hook runs, it will do this.)
             dispose();
@@ -3437,6 +3446,9 @@ public final class WrapperManager
                             // Ignore and keep waiting.
                         }
                     }
+                    
+                    // Get the exit code back from the array.
+                    code = codeF[0].intValue();
                 }
                 else
                 {
@@ -3453,7 +3465,7 @@ public final class WrapperManager
                 }
                 if ( m_debug )
                 {
-                    m_out.println( "returned from listener.stop()" );
+                    m_out.println( "returned from listener.stop() -> " + code );
                 }
             }
             
