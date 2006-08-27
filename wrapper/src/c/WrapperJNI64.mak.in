@@ -37,31 +37,31 @@ ALL : "..\..\lib\wrapper.dll"
 
 
 CLEAN :
-	-@erase "$(INTDIR)\vc60.idb"
-	-@erase "$(INTDIR)\wrapperinfo.obj"
-	-@erase "$(INTDIR)\wrapperjni.obj"
-	-@erase "$(INTDIR)\wrapperjni_unix.obj"
-	-@erase "$(INTDIR)\wrapperjni_win.obj"
-	-@erase "$(OUTDIR)\wrapper.exp"
-	-@erase "$(OUTDIR)\wrapper.lib"
-	-@erase "..\..\lib\wrapper.dll"
+    -@erase "$(INTDIR)\vc60.idb"
+    -@erase "$(INTDIR)\wrapperinfo.obj"
+    -@erase "$(INTDIR)\wrapperjni.obj"
+    -@erase "$(INTDIR)\wrapperjni_unix.obj"
+    -@erase "$(INTDIR)\wrapperjni_win.obj"
+    -@erase "$(OUTDIR)\wrapper.exp"
+    -@erase "$(OUTDIR)\wrapper.lib"
+    -@erase "..\..\lib\wrapper.dll"
 
 "$(OUTDIR)" :
     if not exist "$(OUTDIR)/$(NULL)" mkdir "$(OUTDIR)"
 
-CPP_PROJ=/nologo /MT /W3 /O2 /I "@java.home@\include\\" /I "@java.home@\include\win32\\" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "WRAPPERJNI_EXPORTS" /Fp"$(INTDIR)\WrapperJNI64.pch" /YX /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /EHSC /c 
+CPP_PROJ=/nologo /MT /W3 /O2 /I "@java.home@\include\\" /I "@java.home@\include\win32\\" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "WRAPPERJNI_EXPORTS" /Fp"$(INTDIR)\WrapperJNI64.pch" /YX /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /EHSC /c /D "_CRT_SECURE_NO_DEPRECATE"
 MTL_PROJ=/nologo /D "NDEBUG" /mktyplib203 /win64 
 BSC64=bscmake.exe
 BSC64_FLAGS=/nologo /o"$(OUTDIR)\WrapperJNI64.bsc" 
 BSC64_SBRS= \
-	
+    
 LINK64=link.exe
-LINK64_FLAGS=kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib bufferoverflowU.lib /nologo /dll /incremental:no /pdb:"$(OUTDIR)\wrapper.pdb" /machine:I386 /out:"../../lib/wrapper.dll" /implib:"$(OUTDIR)\wrapper.lib" 
+LINK64_FLAGS=kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib bufferoverflowU.lib /nologo /dll /incremental:no /pdb:"$(OUTDIR)\wrapper.pdb" /machine:x64 /out:"../../lib/wrapper.dll" /implib:"$(OUTDIR)\wrapper.lib" 
 LINK64_OBJS= \
-	"$(INTDIR)\wrapperinfo.obj" \
-	"$(INTDIR)\wrapperjni.obj" \
-	"$(INTDIR)\wrapperjni_unix.obj" \
-	"$(INTDIR)\wrapperjni_win.obj"
+    "$(INTDIR)\wrapperinfo.obj" \
+    "$(INTDIR)\wrapperjni.obj" \
+    "$(INTDIR)\wrapperjni_unix.obj" \
+    "$(INTDIR)\wrapperjni_win.obj"
 
 "..\..\lib\wrapper.dll" : "$(OUTDIR)" $(DEF_FILE) $(LINK64_OBJS)
     $(LINK64) @<<
@@ -80,35 +80,35 @@ ALL : "..\..\lib\wrapper.dll" "$(OUTDIR)\WrapperJNI64.bsc"
 
 
 CLEAN :
-	-@erase "$(INTDIR)\vc60.idb"
-	-@erase "$(INTDIR)\vc60.pdb"
-	-@erase "$(INTDIR)\wrapperinfo.obj"
-	-@erase "$(INTDIR)\wrapperinfo.sbr"
-	-@erase "$(INTDIR)\wrapperjni.obj"
-	-@erase "$(INTDIR)\wrapperjni.sbr"
-	-@erase "$(INTDIR)\wrapperjni_unix.obj"
-	-@erase "$(INTDIR)\wrapperjni_unix.sbr"
-	-@erase "$(INTDIR)\wrapperjni_win.obj"
-	-@erase "$(INTDIR)\wrapperjni_win.sbr"
-	-@erase "$(OUTDIR)\wrapper.exp"
-	-@erase "$(OUTDIR)\wrapper.lib"
-	-@erase "$(OUTDIR)\wrapper.pdb"
-	-@erase "$(OUTDIR)\WrapperJNI64.bsc"
-	-@erase "..\..\lib\wrapper.dll"
-	-@erase "..\..\lib\wrapper.ilk"
+    -@erase "$(INTDIR)\vc60.idb"
+    -@erase "$(INTDIR)\vc60.pdb"
+    -@erase "$(INTDIR)\wrapperinfo.obj"
+    -@erase "$(INTDIR)\wrapperinfo.sbr"
+    -@erase "$(INTDIR)\wrapperjni.obj"
+    -@erase "$(INTDIR)\wrapperjni.sbr"
+    -@erase "$(INTDIR)\wrapperjni_unix.obj"
+    -@erase "$(INTDIR)\wrapperjni_unix.sbr"
+    -@erase "$(INTDIR)\wrapperjni_win.obj"
+    -@erase "$(INTDIR)\wrapperjni_win.sbr"
+    -@erase "$(OUTDIR)\wrapper.exp"
+    -@erase "$(OUTDIR)\wrapper.lib"
+    -@erase "$(OUTDIR)\wrapper.pdb"
+    -@erase "$(OUTDIR)\WrapperJNI64.bsc"
+    -@erase "..\..\lib\wrapper.dll"
+    -@erase "..\..\lib\wrapper.ilk"
 
 "$(OUTDIR)" :
     if not exist "$(OUTDIR)/$(NULL)" mkdir "$(OUTDIR)"
 
-CPP_PROJ=/nologo /MTd /W3 /Gm /ZI /Od /I "@java.home@\include\\" /I "@java.home@\include\win32\\" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "WRAPPERJNI_EXPORTS" /FR"$(INTDIR)\\" /Fp"$(INTDIR)\WrapperJNI64.pch" /YX /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /EHSC /c 
+CPP_PROJ=/nologo /MTd /W3 /Gm /ZI /Od /I "@java.home@\include\\" /I "@java.home@\include\win32\\" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "WRAPPERJNI_EXPORTS" /FR"$(INTDIR)\\" /Fp"$(INTDIR)\WrapperJNI64.pch" /YX /Fo"$(INTDIR)\\" /Fd"$(INTDIR)\\" /FD /EHSC /c /D "_CRT_SECURE_NO_DEPRECATE"
 MTL_PROJ=/nologo /D "_DEBUG" /mktyplib203 /win64 
 BSC64=bscmake.exe
 BSC64_FLAGS=/nologo /o"$(OUTDIR)\WrapperJNI64.bsc" 
 BSC64_SBRS= \
-	"$(INTDIR)\wrapperinfo.sbr" \
-	"$(INTDIR)\wrapperjni.sbr" \
-	"$(INTDIR)\wrapperjni_unix.sbr" \
-	"$(INTDIR)\wrapperjni_win.sbr"
+    "$(INTDIR)\wrapperinfo.sbr" \
+    "$(INTDIR)\wrapperjni.sbr" \
+    "$(INTDIR)\wrapperjni_unix.sbr" \
+    "$(INTDIR)\wrapperjni_win.sbr"
 
 "$(OUTDIR)\WrapperJNI64.bsc" : "$(OUTDIR)" $(BSC64_SBRS)
     $(BSC64) @<<
@@ -116,12 +116,12 @@ BSC64_SBRS= \
 <<
 
 LINK64=link.exe
-LINK64_FLAGS=kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib bufferoverflowU.lib /nologo /dll /incremental:yes /pdb:"$(OUTDIR)\wrapper.pdb" /debug /machine:I386 /out:"../../lib/wrapper.dll" /implib:"$(OUTDIR)\wrapper.lib" /pdbtype:sept 
+LINK64_FLAGS=kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib bufferoverflowU.lib /nologo /dll /incremental:yes /pdb:"$(OUTDIR)\wrapper.pdb" /debug /machine:x64 /out:"../../lib/wrapper.dll" /implib:"$(OUTDIR)\wrapper.lib" /pdbtype:sept 
 LINK64_OBJS= \
-	"$(INTDIR)\wrapperinfo.obj" \
-	"$(INTDIR)\wrapperjni.obj" \
-	"$(INTDIR)\wrapperjni_unix.obj" \
-	"$(INTDIR)\wrapperjni_win.obj"
+    "$(INTDIR)\wrapperinfo.obj" \
+    "$(INTDIR)\wrapperjni.obj" \
+    "$(INTDIR)\wrapperjni_unix.obj" \
+    "$(INTDIR)\wrapperjni_win.obj"
 
 "..\..\lib\wrapper.dll" : "$(OUTDIR)" $(DEF_FILE) $(LINK64_OBJS)
     $(LINK64) @<<

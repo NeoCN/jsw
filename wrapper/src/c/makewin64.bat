@@ -1,6 +1,7 @@
 @echo off
 echo Building C Targets
-call %1\VC98\BIN\VCVARS32.BAT
+REM call VCVARSnn.BAT
+call %1
 
 NMAKE.EXE -f Wrapper64.mak CFG="Wrapper - Win64 Release" ALL
 if not errorlevel 1 goto ok1

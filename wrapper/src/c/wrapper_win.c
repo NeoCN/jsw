@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.125  2006/08/27 14:53:16  mortenson
+ * Get the 64-bit Windows build working.  Patch by Michael Saya
+ *
  * Revision 1.124  2006/06/28 07:54:48  mortenson
  * Start using a common form of strcmp to make unix and windows code as
  * replicable as possible.
@@ -3608,7 +3611,7 @@ int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
-void _CRTAPI1 main(int argc, char **argv) {
+void main(int argc, char **argv) {
 #ifdef _DEBUG
     int i;
 #endif
