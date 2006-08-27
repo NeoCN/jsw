@@ -50,6 +50,12 @@ $Id$
                     containing spaces.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Apply a series of patches by Michael Saya to get the Windows 64 bit build
+                    working.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.1">

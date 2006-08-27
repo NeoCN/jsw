@@ -194,6 +194,20 @@
         <!-- Decide on library names -->
         <property name="wrapper.lib.name" value="wrapper.dll"/>
         <property name="wrapper.lib.long.name" value="wrapper-${dist.os}-${dist.arch}-${bits}.dll"/>
+
+        <!-- Decide on the MSVC version being used. -->
+        <condition property="msvc.home" value="${msvc.home.v8_64}">
+            <and>
+                <equals arg1="${bits}" arg2="64"/>
+                <available file="${msvc.home.v8_64}"/>
+            </and>
+        </condition>
+        <property name="msvc.home" value="${msvc.home.98}"/>
+        <condition property="msvc.vcvars" value="${msvc.home}\VC\BIN\amd64\VCVARSamd64.BAT">
+            <equals arg1="msvc.home" arg2="${msvc.home.v8_64}"/>
+        </condition>
+        <property name="msvc.vcvars" value="${msvc.home}\VC98\BIN\VCVARS32.BAT"/>
+        
     </target>
     <target name="init-unix" depends="init-setup" if="is.unix">
         <!-- Decide on the type of script to generate. -->
@@ -378,11 +392,11 @@
     </target>
     <target name="msvc-test" depends="init:msg" if="is.windows">
         <condition property="msvc.present">
-            <available file="${msvc.home}/VC98/BIN/VCVARS32.BAT"/>
+            <available file="${msvc.vcvars}"/>
         </condition>
         <condition property="msvc.missing">
             <not>
-                <available file="${msvc.home}/VC98/BIN/VCVARS32.BAT"/>
+                <available file="${msvc.vcvars}"/>
             </not>
         </condition>
     </target>
@@ -435,7 +449,7 @@
         <exec executable="${src.dir}/c/makewin${bits}.bat"
             dir="${src.dir}/c" 
             failonerror="true">
-            <arg value="${msvc.home}" />
+            <arg value="${msvc.vcvars}" />
         </exec>
         
         <!--

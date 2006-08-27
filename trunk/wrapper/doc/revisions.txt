@@ -16,6 +16,8 @@ Java Service Wrapper Revision History.
 * Fix a problem where the shell script would not work correctly when the
   wrapper or its configuration files were located in a directory path
   containing spaces.
+* Apply a series of patches by Michael Saya to get the Windows 64 bit build
+  working.
 
 3.2.1
 * Fix a problem with the solaris-sparc-64 makefile.
