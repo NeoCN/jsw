@@ -204,7 +204,7 @@
         </condition>
         <property name="msvc.home" value="${msvc.home.98}"/>
         <condition property="msvc.vcvars" value="${msvc.home}\VC\BIN\amd64\VCVARSamd64.BAT">
-            <equals arg1="msvc.home" arg2="${msvc.home.v8_64}"/>
+            <equals arg1="${msvc.home}" arg2="${msvc.home.v8_64}"/>
         </condition>
         <property name="msvc.vcvars" value="${msvc.home}\VC98\BIN\VCVARS32.BAT"/>
         
