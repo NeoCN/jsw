@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.123  2006/09/14 02:11:54  mortenson
+ * Add support for the HUP signal
+ *
  * Revision 1.122  2006/06/28 07:54:48  mortenson
  * Start using a common form of strcmp to make unix and windows code as
  * replicable as possible.
@@ -597,6 +600,8 @@ const char* getSignalName(int signo) {
             return "SIGCHLD";
         case SIGTERM:
             return "SIGTERM";
+        case SIGHUP:
+            return "SIGHUP";
         default:
             return "UNKNOWN";
     }
@@ -820,6 +825,30 @@ void sigActionTermination(int sigNum, siginfo_t *sigInfo, void *na) {
 }
 
 /**
+ * Handle hangup signals.
+ */
+void sigActionHangup(int sigNum, siginfo_t *sigInfo, void *na) {
+    pthread_t threadId;
+
+    /* On UNIX the calling thread is the actual thread being interrupted
+     *  so it has already been registered with logRegisterThread. */
+
+    descSignal(sigInfo);
+
+    threadId = pthread_self();
+
+    if (wrapperData->isDebugging) {
+        if (pthread_equal(threadId, timerThreadId)) {
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                "Timer thread received a Hangup signal.  Ignoring.");
+        } else {
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                "Received a Hangup signal.  Ignoring.");
+        }
+    }
+}
+
+/**
  * Registers a single signal handler.
  */
 int registerSigAction(int sigNum, void (*sigAction)(int, siginfo_t *, void *)) {
@@ -913,7 +942,7 @@ void handleChildDeath(int sig_num) {
      *  a zombie process. */
 
     /* Ignore any other signals while in this handler. */
-    signal(SIGTERM, SIG_IGN);
+    signal(SIGCHLD, SIG_IGN);
     
     log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
         "Received SIGCHLD, calling wait().");
@@ -937,6 +966,33 @@ void handleTermination(int sig_num) {
     handleCommon("TERM");
 
     signal(SIGTERM, handleTermination); 
+}
+
+/**
+ * Handle hangup signals.
+ */
+void handleHangup(int sig_num) {
+    pthread_t threadId;
+
+    /* On UNIX the calling thread is the actual thread being interrupted
+     *  so it has already been registered with logRegisterThread. */
+
+    /* Ignore any other signals while in this handler. */
+    signal(SIGHUP, SIG_IGN);
+
+    threadId = pthread_self();
+
+    if (wrapperData->isDebugging) {
+        if (pthread_equal(threadId, timerThreadId)) {
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                "Timer thread received a Hangup signal.  Ignoring.");
+        } else {
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                "Received a Hangup signal.  Ignoring.");
+        }
+    }    
+
+    signal(SIGHUP, handleHangup);
 }
 #endif
 
@@ -966,6 +1022,7 @@ void *timerRunner(void *arg) {
     sigaddset(&signal_mask, SIGINT);
     sigaddset(&signal_mask, SIGQUIT);
     sigaddset(&signal_mask, SIGALRM);
+    sigaddset(&signal_mask, SIGHUP);
     rc = pthread_sigmask(SIG_BLOCK, &signal_mask, NULL);
     if (rc != 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Could not mask signals for timer thread.");
@@ -1052,7 +1109,8 @@ int wrapperInitialize() {
         registerSigAction(SIGINT,  sigActionInterrupt) ||
         registerSigAction(SIGQUIT, sigActionQuit) ||
         registerSigAction(SIGCHLD, sigActionChildDeath) ||
-        registerSigAction(SIGTERM, sigActionTermination)) {
+        registerSigAction(SIGTERM, sigActionTermination) ||
+        registerSigAction(SIGHUP,  sigActionHangup)) {
         retval = -1;
     }
 #else
@@ -1061,7 +1119,8 @@ int wrapperInitialize() {
         signal(SIGINT,  handleInterrupt)   == SIG_ERR ||
         signal(SIGQUIT, handleQuit)        == SIG_ERR ||
         signal(SIGCHLD, handleChildDeath)  == SIG_ERR ||
-        signal(SIGTERM, handleTermination) == SIG_ERR) {
+        signal(SIGTERM, handleTermination) == SIG_ERR ||
+        signal(SIGHUP,  handleHangup)      == SIG_ERR) {
         retval = -1;
     }
 #endif

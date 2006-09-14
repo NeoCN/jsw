@@ -18,6 +18,9 @@ Java Service Wrapper Revision History.
   containing spaces.
 * Apply a series of patches by Michael Saya to get the Windows 64 bit build
   working.
+* Fix a problem in UNIX versions where the SIGTERM handler was being disabled
+  when a SIGCHLD was received.
+* Added support in UNIX versions for the SIGHUP signal.
 
 3.2.1
 * Fix a problem with the solaris-sparc-64 makefile.
