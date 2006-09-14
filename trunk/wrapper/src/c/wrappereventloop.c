@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.37  2006/09/14 04:22:42  mortenson
+ * Fix a problem where the new HUP signal log output could cause synch problems.
+ *
  * Revision 1.36  2006/07/19 07:44:51  mortenson
  * Remove the com.silveregg.wrapper package classes that were deprecated in
  * version 3.0.0.
@@ -618,7 +621,7 @@ void commandPoll(DWORD nowTicks) {
                             /* Process the command. */
                             if (strcmpIgnoreCase(command, "RESTART") == 0) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Command '%s'. Restarting JVM.", command);
-                                wrapperRestartProcess();
+                                wrapperRestartProcess(FALSE);
                             } else if (strcmpIgnoreCase(command, "STOP") == 0) {
                                 if (params == NULL) {
                                     exitCode = 0;
