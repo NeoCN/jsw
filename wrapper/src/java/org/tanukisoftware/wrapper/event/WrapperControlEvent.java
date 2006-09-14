@@ -26,6 +26,9 @@ package org.tanukisoftware.wrapper.event;
  */
 
 // $Log$
+// Revision 1.3  2006/09/14 02:11:54  mortenson
+// Add support for the HUP signal
+//
 // Revision 1.2  2006/02/24 05:45:57  mortenson
 // Update the copyright.
 //
@@ -63,6 +66,8 @@ package org.tanukisoftware.wrapper.event;
  *   <dd>The system is being shutdown (Windows).</dd>
  *   <dt>WRAPPER_CTRL_TERM_EVENT</td>
  *   <dd>The kill TERM signal was received (UNIX).</dd>
+ *   <dt>WRAPPER_CTRL_HUP_EVENT</td>
+ *   <dd>The kill HUP signal was received (UNIX).</dd>
  * </dl>
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
@@ -122,7 +127,8 @@ public class WrapperControlEvent
      * <p>
      * Possible values are: WrapperManager.WRAPPER_CTRL_C_EVENT, 
      *    WRAPPER_CTRL_CLOSE_EVENT, WRAPPER_CTRL_LOGOFF_EVENT, 
-     *    WRAPPER_CTRL_SHUTDOWN_EVENT, or WRAPPER_CTRL_TERM_EVENT.
+     *    WRAPPER_CTRL_SHUTDOWN_EVENT, WRAPPER_CTRL_TERM_EVENT, or
+     *    WRAPPER_CTRL_HUP_EVENT.
      *
      * @return The system control event.
      */

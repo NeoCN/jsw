@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.80  2006/09/14 02:11:54  mortenson
+// Add support for the HUP signal
+//
 // Revision 1.79  2006/08/09 04:23:14  mortenson
 // Fix a problem where the exit code returned by WrapperListener.stop was being
 // ignored in some cases.
@@ -464,6 +467,9 @@ public final class WrapperManager
     
     /** Received when a SIG TERM is received on a UNIX system. */
     public static final int WRAPPER_CTRL_TERM_EVENT      = 204;
+    
+    /** Received when a SIG HUP is received on a UNIX system. */
+    public static final int WRAPPER_CTRL_HUP_EVENT       = 205;
     
     /** Log message at debug log level. */
     public static final int WRAPPER_LOG_LEVEL_DEBUG      = 1;
@@ -3485,8 +3491,8 @@ public final class WrapperManager
     /**
      * Called by the native code when a control event is trapped by native code.
      * Can have the values: WRAPPER_CTRL_C_EVENT, WRAPPER_CTRL_CLOSE_EVENT, 
-     *    WRAPPER_CTRL_LOGOFF_EVENT, WRAPPER_CTRL_SHUTDOWN_EVENT, or
-     *    WRAPPER_CTRL_TERM_EVENT.
+     *    WRAPPER_CTRL_LOGOFF_EVENT, WRAPPER_CTRL_SHUTDOWN_EVENT,
+     *    WRAPPER_CTRL_TERM_EVENT, or WRAPPER_CTRL_HUP_EVENT.
      */
     private static void controlEvent( int event )
     {
@@ -3512,6 +3518,10 @@ public final class WrapperManager
             break;
         case WRAPPER_CTRL_TERM_EVENT:
             eventName = "WRAPPER_CTRL_TERM_EVENT";
+            ignore = m_ignoreSignals;
+            break;
+        case WRAPPER_CTRL_HUP_EVENT:
+            eventName = "WRAPPER_CTRL_HUP_EVENT";
             ignore = m_ignoreSignals;
             break;
         default:

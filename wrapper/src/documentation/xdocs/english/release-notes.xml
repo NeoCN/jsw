@@ -56,6 +56,17 @@ $Id$
                     working.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem in UNIX versions where the SIGTERM handler was being disabled
+                    when a SIGCHLD was received.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Added support in UNIX versions for the SIGHUP signal.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.1">

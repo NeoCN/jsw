@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.22  2006/09/14 02:11:54  mortenson
+ * Add support for the HUP signal
+ *
  * Revision 1.21  2006/02/24 05:43:36  mortenson
  * Update the copyright.
  *
@@ -131,6 +134,14 @@ void handleTermination(int sig_num) {
     wrapperJNIHandleSignal(org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_TERM_EVENT);
 }
 
+/**
+ * Handle hangup signals.
+ */
+void handleHangup(int sig_num) {
+    signal(SIGHUP, handleHangup); 
+    wrapperJNIHandleSignal(org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_HUP_EVENT);
+}
+
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeInit
@@ -149,6 +160,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass cl
     /* Set handlers for signals */
     signal(SIGINT,  handleInterrupt);
     signal(SIGTERM, handleTermination);
+    signal(SIGHUP,  handleHangup);
 
     /* Store the current process Id */
     wrapperProcessId = getpid();
