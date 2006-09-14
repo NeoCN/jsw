@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.86  2006/09/14 04:22:42  mortenson
+ * Fix a problem where the new HUP signal log output could cause synch problems.
+ *
  * Revision 1.85  2006/09/14 04:02:37  mortenson
  * Add the wrapper.signal.mode.hup property.
  *
@@ -764,7 +767,7 @@ extern void wrapperStopProcess(int useLoggerQueue, int exitCode);
 /**
  * Used to ask the state engine to shut down the JVM.
  */
-extern void wrapperRestartProcess();
+extern void wrapperRestartProcess(int useLoggerQueue);
 
 /**
  * The main event loop for the wrapper.  Handles all state changes and events.

@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.125  2006/09/14 04:22:42  mortenson
+ * Fix a problem where the new HUP signal log output could cause synch problems.
+ *
  * Revision 1.124  2006/09/14 04:02:37  mortenson
  * Add the wrapper.signal.mode.hup property.
  *
@@ -710,7 +713,7 @@ void handleCommon(int sigNum, const char* sigName, int mode) {
             case WRAPPER_SIGNAL_MODE_RESTART:
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     "%s trapped.  Restarting JVM.", sigName);
-                wrapperRestartProcess();
+                wrapperRestartProcess(TRUE);
                 break;
 
             case WRAPPER_SIGNAL_MODE_SHUTDOWN:
@@ -762,7 +765,10 @@ void handleCommon(int sigNum, const char* sigName, int mode) {
                 break;
 
             default: /* WRAPPER_SIGNAL_MODE_IGNORE */
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    "%s trapped, but ignored.", sigName);
                 break;
+            }
         }
     }
 }

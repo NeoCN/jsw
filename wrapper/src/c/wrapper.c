@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.174  2006/09/14 04:22:42  mortenson
+ * Fix a problem where the new HUP signal log output could cause synch problems.
+ *
  * Revision 1.173  2006/09/14 04:02:37  mortenson
  * Add the wrapper.signal.mode.hup property.
  *
@@ -1520,7 +1523,7 @@ void wrapperLogChildOutput(const char* log) {
             switch(wrapperData->outputFilterActions[i]) {
             case FILTER_ACTION_RESTART:
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Filter trigger matched.  Restarting JVM.");
-                wrapperRestartProcess();
+                wrapperRestartProcess(FALSE);
                 break;
 
             case FILTER_ACTION_SHUTDOWN:
@@ -1683,7 +1686,7 @@ void wrapperStopProcess(int useLoggerQueue, int exitCode) {
 /**
  * Used to ask the state engine to shut down the JVM.
  */
-void wrapperRestartProcess() {
+void wrapperRestartProcess(int useLoggerQueue) {
     /* If it has not already been set, set the restart request flag in the wrapper data. */
     if (wrapperData->exitRequested || wrapperData->restartRequested ||
         (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
@@ -1692,11 +1695,13 @@ void wrapperRestartProcess() {
         (wrapperData->jState == WRAPPER_JSTATE_DOWN)) {
 
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "wrapperRestartProcess() called.  (IGNORED)");
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                "wrapperRestartProcess() called.  (IGNORED)");
         }
     } else {
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "wrapperRestartProcess() called.");
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                "wrapperRestartProcess() called.");
         }
 
         wrapperData->exitRequested = TRUE;
@@ -3508,7 +3513,7 @@ void wrapperStopRequested(int exitCode) {
 
 void wrapperRestartRequested() {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "JVM requested a restart.");
-    wrapperRestartProcess();
+    wrapperRestartProcess(FALSE);
 }
 
 /**
