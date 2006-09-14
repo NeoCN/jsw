@@ -42,6 +42,10 @@
  * 
  *
  * $Log$
+ * Revision 1.175  2006/09/14 04:34:33  mortenson
+ * Fix a problem were the restart requests were not being ignored while the
+ * Wrapper was waiting to launch the next JVM.
+ *
  * Revision 1.174  2006/09/14 04:22:42  mortenson
  * Fix a problem where the new HUP signal log output could cause synch problems.
  *
@@ -1692,7 +1696,8 @@ void wrapperRestartProcess(int useLoggerQueue) {
         (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
         (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
         (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
-        (wrapperData->jState == WRAPPER_JSTATE_DOWN)) {
+        (wrapperData->jState == WRAPPER_JSTATE_DOWN) ||
+        (wrapperData->jState == WRAPPER_JSTATE_LAUNCH)) { /* Down but not yet restarted. */
 
         if (wrapperData->isDebugging) {
             log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
