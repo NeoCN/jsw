@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.173  2006/09/14 04:02:37  mortenson
+ * Add the wrapper.signal.mode.hup property.
+ *
  * Revision 1.172  2006/07/19 06:24:15  mortenson
  * Fix a problem on OSF1 systems where the backend socket was not listening
  * correctly due to a backlog of 0.
@@ -2810,9 +2813,32 @@ void wrapperBuildNTServiceInfo() {
 #endif
 
 #ifndef WIN32 /* UNIX */
+int getSignalMode(const char *modeName, int defaultMode) {
+    if (!modeName) {
+        return defaultMode;
+    }
+    
+    if (strcmpIgnoreCase(modeName, "IGNORE") == 0) {
+        return WRAPPER_SIGNAL_MODE_IGNORE;
+    } else if (strcmpIgnoreCase(modeName, "RESTART") == 0) {
+        return WRAPPER_SIGNAL_MODE_RESTART;
+    } else if (strcmpIgnoreCase(modeName, "SHUTDOWN") == 0) {
+        return WRAPPER_SIGNAL_MODE_SHUTDOWN;
+    } else if (strcmpIgnoreCase(modeName, "FORWARD") == 0) {
+        return WRAPPER_SIGNAL_MODE_FORWARD;
+    } else {
+        return defaultMode;
+    }
+}
+
 void wrapperBuildUnixDaemonInfo() {
-    /** Get the daemonize flag. */
-    wrapperData->daemonize = getBooleanProperty(properties, "wrapper.daemonize", FALSE);
+    if (!wrapperData->configured) {
+        /** Get the daemonize flag. */
+        wrapperData->daemonize = getBooleanProperty(properties, "wrapper.daemonize", FALSE);
+    
+        /** Configure the HUP signal handler. */
+        wrapperData->signalHUPMode = getSignalMode(getStringProperty(properties, "wrapper.signal.mode.hup", NULL), WRAPPER_SIGNAL_MODE_FORWARD);
+    }
 }
 #endif
 

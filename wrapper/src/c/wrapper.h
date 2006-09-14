@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.85  2006/09/14 04:02:37  mortenson
+ * Add the wrapper.signal.mode.hup property.
+ *
  * Revision 1.84  2006/06/22 16:48:16  mortenson
  * Make it possible to pause and resume windows services.
  *
@@ -508,8 +511,14 @@ struct WrapperConfig {
     int     ntAllocConsole;         /* True if a console should be allocated for the Service. */
 #else /* UNIX */
     int     daemonize;              /* TRUE if the process  should be spawned as a daemon process on launch. */
+    int     signalHUPMode;          /* Controls what happens when the Wrapper receives a HUP signal. */
 #endif
 };
+
+#define WRAPPER_SIGNAL_MODE_IGNORE   (char)100
+#define WRAPPER_SIGNAL_MODE_RESTART  (char)101
+#define WRAPPER_SIGNAL_MODE_SHUTDOWN (char)102
+#define WRAPPER_SIGNAL_MODE_FORWARD  (char)103
 
 #define WRAPPER_MSG_START         (char)100
 #define WRAPPER_MSG_STOP          (char)101

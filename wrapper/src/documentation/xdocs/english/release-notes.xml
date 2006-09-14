@@ -58,13 +58,21 @@ $Id$
             </listitem>
             <listitem>
                 <para>
-                    Fix a problem in UNIX versions where the SIGTERM handler was being disabled
-                    when a SIGCHLD was received.
+                    Fix a problem in UNIX versions where the TERM signal handler was being
+                    disabled when a CHLD signal was received.
                 </para>
             </listitem>
             <listitem>
                 <para>
-                    Added support in UNIX versions for the SIGHUP signal.
+                    Added support in UNIX versions for the HUP signal.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Added a new
+                    <ulink url="prop-signal-mode-hup.html">wrapper.signal.mode.hup</ulink>
+                    property to let the user control what
+                    happens when the Wrapper process receives an HUP signal
                 </para>
             </listitem>
         </itemizedlist>
