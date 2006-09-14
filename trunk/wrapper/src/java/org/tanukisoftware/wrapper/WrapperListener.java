@@ -44,6 +44,9 @@ package org.tanukisoftware.wrapper;
  */
 
 // $Log$
+// Revision 1.11  2006/09/14 04:02:37  mortenson
+// Add the wrapper.signal.mode.hup property.
+//
 // Revision 1.10  2006/02/24 05:45:57  mortenson
 // Update the copyright.
 //
@@ -140,7 +143,8 @@ public interface WrapperListener
      *  against the Java process.  It is up to the callback to take any actions
      *  necessary.  Possible values are: WrapperManager.WRAPPER_CTRL_C_EVENT, 
      *    WRAPPER_CTRL_CLOSE_EVENT, WRAPPER_CTRL_LOGOFF_EVENT, 
-     *    WRAPPER_CTRL_SHUTDOWN_EVENT, or WRAPPER_CTRL_TERM_EVENT.
+     *    WRAPPER_CTRL_SHUTDOWN_EVENT, WRAPPER_CTRL_TERM_EVENT, or
+     *    WRAPPER_CTRL_HUP_EVENT.
      * <p>
      * The WRAPPER_CTRL_C_EVENT will be called whether or not the JVM is
      *  controlled by the Wrapper.  If controlled by the Wrapper, it is
@@ -173,7 +177,8 @@ public interface WrapperListener
      * WRAPPER_CTRL_TERM_EVENT events will only be encountered on UNIX systems.
      * <p>
      * If the wrapper.ignore_signals property is set to TRUE then any
-     *  WRAPPER_CTRL_C_EVENT, WRAPPER_CTRL_CLOSE_EVENT, or WRAPPER_CTRL_TERM_EVENT
+     *  WRAPPER_CTRL_C_EVENT, WRAPPER_CTRL_CLOSE_EVENT,
+     *  WRAPPER_CTRL_TERM_EVENT, or WRAPPER_CTRL_HUP_EVENT
      *  events will be blocked prior to this method being called.
      * <p>
      * Unless you know what you are doing, it is suggested that the body of

@@ -31,6 +31,9 @@
             <listproperty version="3.0.0">
                 <ulink url="prop-daemonize.html">wrapper.daemonize</ulink>
             </listproperty>
+            <listproperty version="3.2.2">
+                <ulink url="prop-signal-mode-hup.html">wrapper.signal.mode.hup</ulink>
+            </listproperty>
         </itemizedlist>
     </section>
 </chapter>

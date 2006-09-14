@@ -315,6 +315,9 @@
                 <listproperty version="2.2.7">
                     <ulink url="prop-shutdown-timeout.html">wrapper.shutdown.timeout</ulink>
                 </listproperty>
+                <listproperty version="3.2.2">
+                    <ulink url="prop-signal-mode-hup.html">wrapper.signal.mode.hup</ulink>
+                </listproperty>
                 <listproperty version="3.1.2">
                     <ulink url="prop-single-invocation.html">wrapper.single_invocation</ulink>
                 </listproperty>

@@ -42,6 +42,9 @@
  * 
  *
  * $Log$
+ * Revision 1.124  2006/09/14 04:02:37  mortenson
+ * Add the wrapper.signal.mode.hup property.
+ *
  * Revision 1.123  2006/09/14 02:11:54  mortenson
  * Add support for the HUP signal
  *
@@ -685,9 +688,9 @@ void descSignal(siginfo_t *sigInfo) {
 #endif
 
 #ifdef WRAPPER_USE_SIGACTION
-void sigActionCommon(const char *sigName, siginfo_t *sigInfo) {
+void sigActionCommon(int sigNum, const char *sigName, siginfo_t *sigInfo, int mode) {
 #else
-void handleCommon(const char* sigName) {
+void handleCommon(int sigNum, const char* sigName, int mode) {
 #endif
     pthread_t threadId;
     threadId = pthread_self();
@@ -703,35 +706,63 @@ void handleCommon(const char* sigName) {
             log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                 "%s trapped, but ignored.", sigName);
         } else {
-            if (wrapperData->exitRequested || wrapperData->restartRequested ||
-                (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
-                (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
-                (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
-                (wrapperData->jState == WRAPPER_JSTATE_DOWN)) {
-
-                /* Signalled while we were already shutting down. */
+            switch (mode) {
+            case WRAPPER_SIGNAL_MODE_RESTART:
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    "%s trapped.  Forcing immediate shutdown.", sigName);
+                    "%s trapped.  Restarting JVM.", sigName);
+                wrapperRestartProcess();
+                break;
 
-                /* Disable the thread dump on exit feature if it is set because it
-                 *  should not be displayed when the user requested the immediate exit. */
-                wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
-                wrapperKillProcess(TRUE);
-            } else {
-                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    "%s trapped.  Shutting down.", sigName);
-                wrapperStopProcess(TRUE, 0);
-            }
-            /* Don't actually kill the process here.  Let the application shut itself down */
+            case WRAPPER_SIGNAL_MODE_SHUTDOWN:
+                if (wrapperData->exitRequested || wrapperData->restartRequested ||
+                    (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
+                    (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
+                    (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
+                    (wrapperData->jState == WRAPPER_JSTATE_DOWN)) {
+    
+                    /* Signalled while we were already shutting down. */
+                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                        "%s trapped.  Forcing immediate shutdown.", sigName);
+    
+                    /* Disable the thread dump on exit feature if it is set because it
+                     *  should not be displayed when the user requested the immediate exit. */
+                    wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
+                    wrapperKillProcess(TRUE);
+                } else {
+                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                        "%s trapped.  Shutting down.", sigName);
+                    wrapperStopProcess(TRUE, 0);
+                }
+                /* Don't actually kill the process here.  Let the application shut itself down */
+    
+                /* To make sure that the JVM will not be restarted for any reason,
+                 *  start the Wrapper shutdown process as well. */
+                if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
+                    (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
+                    /* Already stopping. */
+                } else {
+                    wrapperSetWrapperState(TRUE, WRAPPER_WSTATE_STOPPING);
+                }
+                break;
 
-            /* To make sure that the JVM will not be restarted for any reason,
-             *  start the Wrapper shutdown process as well. */
-            if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
-                (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
-                /* Already stopping. */
-            } else {
-                wrapperSetWrapperState(TRUE, WRAPPER_WSTATE_STOPPING);
-            }
+            case WRAPPER_SIGNAL_MODE_FORWARD:
+                if (jvmPid > 0) {
+                    if (wrapperData->isDebugging) {
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                            "%s trapped.  Forwarding to JVM process.", sigName);
+                    }
+                    if (kill(jvmPid, sigNum)) {
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                            "Unable to forward %s signal to JVM process.  %s", sigName, getLastErrorText());
+                    }
+                } else {
+                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                        "%s trapped.  Unable to forward signal to JVM because it is not running.", sigName);
+                }
+                break;
+
+            default: /* WRAPPER_SIGNAL_MODE_IGNORE */
+                break;
         }
     }
 }
@@ -771,7 +802,7 @@ void sigActionInterrupt(int sigNum, siginfo_t *sigInfo, void *na) {
 
     descSignal(sigInfo);
 
-    sigActionCommon("INT", sigInfo);
+    sigActionCommon(sigNum, "INT", sigInfo, WRAPPER_SIGNAL_MODE_SHUTDOWN);
 }
 
 /**
@@ -821,31 +852,19 @@ void sigActionTermination(int sigNum, siginfo_t *sigInfo, void *na) {
 
     descSignal(sigInfo);
 
-    sigActionCommon("TERM", sigInfo);
+    sigActionCommon(sigNum, "TERM", sigInfo, WRAPPER_SIGNAL_MODE_SHUTDOWN);
 }
 
 /**
  * Handle hangup signals.
  */
 void sigActionHangup(int sigNum, siginfo_t *sigInfo, void *na) {
-    pthread_t threadId;
-
     /* On UNIX the calling thread is the actual thread being interrupted
      *  so it has already been registered with logRegisterThread. */
 
     descSignal(sigInfo);
 
-    threadId = pthread_self();
-
-    if (wrapperData->isDebugging) {
-        if (pthread_equal(threadId, timerThreadId)) {
-            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "Timer thread received a Hangup signal.  Ignoring.");
-        } else {
-            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "Received a Hangup signal.  Ignoring.");
-        }
-    }
+    sigActionCommon(sigNum, "HUP", sigInfo, wrapperData->signalHUPMode);
 }
 
 /**
@@ -904,7 +923,7 @@ void handleInterrupt(int sig_num) {
     /* Ignore any other signals while in this handler. */
     signal(SIGINT, SIG_IGN);
 
-    handleCommon("INT");
+    handleCommon(sig_num, "INT", WRAPPER_SIGNAL_MODE_SHUTDOWN);
 
     signal(SIGINT, handleInterrupt);
 }
@@ -963,7 +982,7 @@ void handleTermination(int sig_num) {
     /* Ignore any other signals while in this handler. */
     signal(SIGTERM, SIG_IGN);
 
-    handleCommon("TERM");
+    handleCommon(sig_num, "TERM", WRAPPER_SIGNAL_MODE_SHUTDOWN);
 
     signal(SIGTERM, handleTermination); 
 }
