@@ -42,6 +42,11 @@
  * 
  *
  * $Log$
+ * Revision 1.126  2006/09/15 06:59:39  mortenson
+ * Remove the code that could be enabled by removing the WRAPPER_USE_SIGACTION
+ * define.  The sigAction appears to be reliable so the old signal code does not need
+ * to be kept around.
+ *
  * Revision 1.125  2006/09/14 04:22:42  mortenson
  * Fix a problem where the new HUP signal log output could cause synch problems.
  *
@@ -475,16 +480,9 @@
 #include <time.h>
 #endif
 
-/* Moved from using the signal call to using sigaction.  Until this has
- *  been well tested on all platforms, make it easy to go back by commenting
- *  out the WRAPPER_USE_SIGACTION definition. */
-#define WRAPPER_USE_SIGACTION
-
-#ifdef WRAPPER_USE_SIGACTION
 #ifndef getsid
 /* getpid links ok on Linux, but is not defined correctly. */
 pid_t getsid(pid_t pid);
-#endif
 #endif
 
 #define max(x,y) (((x) > (y)) ? (x) : (y)) 
@@ -593,7 +591,6 @@ void wrapperRequestDumpJVMState(int useLoggerQueue) {
     }
 }
 
-#ifdef WRAPPER_USE_SIGACTION
 const char* getSignalName(int signo) {
     switch (signo) {
         case SIGALRM:
@@ -688,13 +685,8 @@ void descSignal(siginfo_t *sigInfo) {
         }
     }
 }
-#endif
 
-#ifdef WRAPPER_USE_SIGACTION
 void sigActionCommon(int sigNum, const char *sigName, siginfo_t *sigInfo, int mode) {
-#else
-void handleCommon(int sigNum, const char* sigName, int mode) {
-#endif
     pthread_t threadId;
     threadId = pthread_self();
 
@@ -773,7 +765,6 @@ void handleCommon(int sigNum, const char* sigName, int mode) {
     }
 }
 
-#ifdef WRAPPER_USE_SIGACTION
 /**
  * Handle alarm signals.  We are getting them on solaris when running with
  *  the tick timer.  Not yet sure where they are coming from.
@@ -890,136 +881,6 @@ int registerSigAction(int sigNum, void (*sigAction)(int, siginfo_t *, void *)) {
     }
     return 0;
 }
-#else
-/**
- * Handle alarm signals.  We are getting them on solaris when running with
- *  the tick timer.  Not yet sure where they are coming from.
- */
-void handleAlarm(int sig_num) {
-    pthread_t threadId;
-
-    /* On UNIX the calling thread is the actual thread being interrupted
-     *  so it has already been registered with logRegisterThread. */
-
-    /* Ignore any other signals while in this handler. */
-    signal(SIGALRM, SIG_IGN);
-
-    threadId = pthread_self();
-
-    if (wrapperData->isDebugging) {
-        if (pthread_equal(threadId, timerThreadId)) {
-            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "Timer thread received an Alarm signal.  Ignoring.");
-        } else {
-            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "Received an Alarm signal.  Ignoring.");
-        }
-    }    
-
-    signal(SIGALRM, handleAlarm);
-}
-
-/**
- * Handle interrupt signals (i.e. Crtl-C).
- */
-void handleInterrupt(int sig_num) {
-    /* On UNIX the calling thread is the actual thread being interrupted
-     *  so it has already been registered with logRegisterThread. */
-
-    /* Ignore any other signals while in this handler. */
-    signal(SIGINT, SIG_IGN);
-
-    handleCommon(sig_num, "INT", WRAPPER_SIGNAL_MODE_SHUTDOWN);
-
-    signal(SIGINT, handleInterrupt);
-}
-
-/**
- * Handle quit signals (i.e. Crtl-\).
- */
-void handleQuit(int sig_num) {
-    pthread_t threadId;
-
-    /* On UNIX the calling thread is the actual thread being interrupted
-     *  so it has already been registered with logRegisterThread. */
-
-    threadId = pthread_self();
-
-    /* Ignore any other signals while in this handler. */
-    signal(SIGQUIT, SIG_IGN);
-
-    if (pthread_equal(threadId, timerThreadId)) {
-        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-            "Timer thread received an Quit signal.  Ignoring.");
-    } else {
-        wrapperRequestDumpJVMState(TRUE);
-    }
-
-    signal(SIGQUIT, handleQuit); 
-}
-
-/**
- * Handle child death
- */
-void handleChildDeath(int sig_num) {
-    /* On UNIX, when a Child process changes state, a SIGCHLD signal is sent to the parent.
-     *  The parent should do a wait to make sure the child is cleaned up and doesn't become
-     *  a zombie process. */
-
-    /* Ignore any other signals while in this handler. */
-    signal(SIGCHLD, SIG_IGN);
-    
-    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-        "Received SIGCHLD, calling wait().");
-    wait(NULL);
-    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-        "wait() returned, child process should be gone.");
-    
-    signal(SIGCHLD, handleChildDeath);
-}
-
-/**
- * Handle termination signals (i.e. machine is shutting down).
- */
-void handleTermination(int sig_num) {
-    /* On UNIX the calling thread is the actual thread being interrupted
-     *  so it has already been registered with logRegisterThread. */
-
-    /* Ignore any other signals while in this handler. */
-    signal(SIGTERM, SIG_IGN);
-
-    handleCommon(sig_num, "TERM", WRAPPER_SIGNAL_MODE_SHUTDOWN);
-
-    signal(SIGTERM, handleTermination); 
-}
-
-/**
- * Handle hangup signals.
- */
-void handleHangup(int sig_num) {
-    pthread_t threadId;
-
-    /* On UNIX the calling thread is the actual thread being interrupted
-     *  so it has already been registered with logRegisterThread. */
-
-    /* Ignore any other signals while in this handler. */
-    signal(SIGHUP, SIG_IGN);
-
-    threadId = pthread_self();
-
-    if (wrapperData->isDebugging) {
-        if (pthread_equal(threadId, timerThreadId)) {
-            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "Timer thread received a Hangup signal.  Ignoring.");
-        } else {
-            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "Received a Hangup signal.  Ignoring.");
-        }
-    }    
-
-    signal(SIGHUP, handleHangup);
-}
-#endif
 
 /**
  * The main entry point for the timer thread which is started by
@@ -1128,7 +989,6 @@ int wrapperInitialize() {
     int retval = 0;
     int res;
 
-#ifdef WRAPPER_USE_SIGACTION
     /* Register any signal actions we are concerned with. */
     if (registerSigAction(SIGALRM, sigActionAlarm) ||
         registerSigAction(SIGINT,  sigActionInterrupt) ||
@@ -1138,17 +998,6 @@ int wrapperInitialize() {
         registerSigAction(SIGHUP,  sigActionHangup)) {
         retval = -1;
     }
-#else
-    /* Register any signals we are concerned with. */
-    if (signal(SIGALRM, handleAlarm)       == SIG_ERR ||
-        signal(SIGINT,  handleInterrupt)   == SIG_ERR ||
-        signal(SIGQUIT, handleQuit)        == SIG_ERR ||
-        signal(SIGCHLD, handleChildDeath)  == SIG_ERR ||
-        signal(SIGTERM, handleTermination) == SIG_ERR ||
-        signal(SIGHUP,  handleHangup)      == SIG_ERR) {
-        retval = -1;
-    }
-#endif
 
     if (wrapperData->useSystemTime) {
         /* We are going to be using system time so there is no reason to start up a timer thread. */
