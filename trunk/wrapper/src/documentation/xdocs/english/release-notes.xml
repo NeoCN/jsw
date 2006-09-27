@@ -75,6 +75,29 @@ $Id$
                     happens when the Wrapper process receives an HUP signal
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Migrated the source to Subversion from CVS.  Did a bunch of cleanup in the
+                    source, removing CVS specific tags.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Fix a problem in UNIX versions were the pid file specified by the
+                    <ulink url="prop-java-pidfile.html">wrapper.java.pidfile</ulink>
+                    property contained the wrapper pid rather than the
+                    jvm pid.
+                    <ulink url="http://sourceforge.net/tracker/?func=detail&amp;aid=1565011&amp;group_id=39428&amp;atid=425187">Bug #1565011</ulink>.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Fix a problem in UNIX versions where the file specified by the
+                    <ulink url="prop-java-pidfile.html">wrapper.java.pidfile</ulink>
+                    property was not always being deleted when the JVM
+                    process went away.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.1">
