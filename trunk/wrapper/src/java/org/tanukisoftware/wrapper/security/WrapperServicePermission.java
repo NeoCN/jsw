@@ -25,18 +25,6 @@ package org.tanukisoftware.wrapper.security;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// $Log$
-// Revision 1.3  2006/02/24 05:45:58  mortenson
-// Update the copyright.
-//
-// Revision 1.2  2005/12/22 06:26:53  mortenson
-// Change enum to en to avoid warnings when building under Java 1.5
-//
-// Revision 1.1  2005/06/24 16:00:39  mortenson
-// Add a security model to protect the Wrapper and many of its calls when a
-// ServiceManager has been registered with the JVM.
-//
-
 import java.security.Permission;
 import java.security.PermissionCollection;
 import java.util.Enumeration;
@@ -130,7 +118,6 @@ import java.util.StringTokenizer;
  * </table>
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public class WrapperServicePermission
     extends Permission

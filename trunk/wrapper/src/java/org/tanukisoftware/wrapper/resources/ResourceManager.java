@@ -43,32 +43,6 @@ package org.tanukisoftware.wrapper.resources;
  * included in all copies or substantial portions of the Software.
  */
 
-// $Log$
-// Revision 1.7  2006/02/24 05:45:58  mortenson
-// Update the copyright.
-//
-// Revision 1.6  2006/02/03 05:39:04  mortenson
-// Remove support for image resources.  They are not used and cause problems
-// when run on non-sun JVMs
-//
-// Revision 1.5  2005/05/23 02:40:26  mortenson
-// Update the copyright information.
-//
-// Revision 1.4  2004/11/29 13:15:38  mortenson
-// Fix some javadocs problems.
-//
-// Revision 1.3  2004/01/16 04:42:00  mortenson
-// The license was revised for this version to include a copyright omission.
-// This change is to be retroactively applied to all versions of the Java
-// Service Wrapper starting with version 3.0.0.
-//
-// Revision 1.2  2003/04/03 04:05:22  mortenson
-// Fix several typos in the docs.  Thanks to Mike Castle.
-//
-// Revision 1.1  2003/02/03 06:55:29  mortenson
-// License transfer to TanukiSoftware.org
-//
-
 import java.util.Hashtable;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
@@ -97,6 +71,7 @@ import java.text.MessageFormat;
  * methods. If a string is not found in the bundle the key is returned and a 
  * message is logged to the debug channel for this class.
  *
+ * @author Leif Mortenson <leif@tanukisoftware.com>
  */
 public class ResourceManager
 {

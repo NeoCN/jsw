@@ -25,32 +25,6 @@ package org.tanukisoftware.wrapper.test;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// $Log$
-// Revision 1.7  2006/03/22 07:55:53  mortenson
-// Remove a javadoc comment that was copied from another source file.
-//
-// Revision 1.6  2006/02/24 05:45:59  mortenson
-// Update the copyright.
-//
-// Revision 1.5  2005/05/23 02:39:30  mortenson
-// Update the copyright information.
-//
-// Revision 1.4  2004/08/13 14:34:03  mortenson
-// Fix a typo in javadoc references to the signalStopping() method.
-//
-// Revision 1.3  2004/01/16 04:41:55  mortenson
-// The license was revised for this version to include a copyright omission.
-// This change is to be retroactively applied to all versions of the Java
-// Service Wrapper starting with version 3.0.0.
-//
-// Revision 1.2  2003/04/16 00:05:28  mortenson
-// Fix a segmentation fault on UNIX systems when the first console output
-// from the JVM was an empty line.  Thanks to Mike Castle for finding this.
-//
-// Revision 1.1  2003/04/09 10:19:21  mortenson
-// Add a new load test to help track down timeouts under extreme circumstances.
-//
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -65,7 +39,6 @@ import org.tanukisoftware.wrapper.WrapperManager;
  *  conditions.
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public class LoadedWrapperListener
     implements WrapperListener, Runnable

@@ -43,61 +43,6 @@ package org.tanukisoftware.wrapper;
  * included in all copies or substantial portions of the Software.
  */
 
-// $Log$
-// Revision 1.13  2006/07/11 16:16:16  mortenson
-// Correct a typo in the usage output of the WrapperStartStopApp.  Thanks to
-// Michael Giroux for pointing it out.
-//
-// Revision 1.12  2006/07/02 15:19:00  mortenson
-// Make it possible to extend the WrapperSimpleApp and WrapperStartStopApp
-// helper classes.
-//
-// Revision 1.11  2006/02/24 05:45:57  mortenson
-// Update the copyright.
-//
-// Revision 1.10  2006/01/07 02:39:27  mortenson
-// Fix a problem with the WrapperSimpleApp and WrapperStartStopApp helper
-// classes where on heavily loaded systems it was possible for the Wrapper
-// to get a running thread count of 0 and shutdown before the main thread
-// had a chance to be started.
-//
-// Revision 1.9  2005/12/07 02:45:18  mortenson
-// Modify the WrapperSimpleApp and WrapperStartStopApp classes so that the
-// WrapperManager is always initialized immediately.  This makes the output
-// clearer in the event of startup errors.
-//
-// Revision 1.8  2005/05/23 02:41:12  mortenson
-// Update the copyright information.
-//
-// Revision 1.7  2005/03/24 07:23:51  mortenson
-// Make it possible to control whether or not the helper classes wait for the main
-// methods to complete before reporting that the application has been started.
-//
-// Revision 1.6  2004/02/16 04:37:20  mortenson
-// Modify the WrapperSimpleApp and WrapperStartStopApp so that the main method
-// of a class is located even if it exists in a parent class rather than the
-// class specified.
-//
-// Revision 1.5  2004/01/16 04:42:00  mortenson
-// The license was revised for this version to include a copyright omission.
-// This change is to be retroactively applied to all versions of the Java
-// Service Wrapper starting with version 3.0.0.
-//
-// Revision 1.4  2003/06/19 05:45:02  mortenson
-// Modified the suggested behavior of the WrapperListener.controlEvent() method.
-//
-// Revision 1.3  2003/04/03 04:05:23  mortenson
-// Fix several typos in the docs.  Thanks to Mike Castle.
-//
-// Revision 1.2  2003/02/17 09:52:16  mortenson
-// Modify the way exceptions thrown by an application's main method are
-// presented to the user by the WrapperSimpleApp and WrapperStartStopApp so
-// they no longer look like a problem with Wrapper configuration.
-//
-// Revision 1.1  2003/02/03 06:55:28  mortenson
-// License transfer to TanukiSoftware.org
-//
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -137,7 +82,6 @@ import java.lang.reflect.Modifier;
  *  Wrapper's error recovery mechanisms will not function correctly.
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public class WrapperSimpleApp
     implements WrapperListener, Runnable

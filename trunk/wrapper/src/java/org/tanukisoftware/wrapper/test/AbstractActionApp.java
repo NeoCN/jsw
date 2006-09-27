@@ -43,69 +43,6 @@ package org.tanukisoftware.wrapper.test;
  * included in all copies or substantial portions of the Software.
  */
 
-// $Log$
-// Revision 1.18  2006/02/24 05:45:58  mortenson
-// Update the copyright.
-//
-// Revision 1.17  2006/02/15 06:04:50  mortenson
-// Fix a problem where the Wrapper would show the following error message
-// if user code called System.exit from within the WrapperListener.stop
-// callback method.
-//
-// Revision 1.16  2005/12/22 06:26:53  mortenson
-// Change enum to en to avoid warnings when building under Java 1.5
-//
-// Revision 1.15  2005/10/13 05:52:16  mortenson
-// Implement the ability to catch control events using the WrapperEventLisener.
-//
-// Revision 1.14  2005/08/24 06:53:39  mortenson
-// Add stopAndReturn and restartAndReturn methods.
-//
-// Revision 1.13  2005/05/23 02:39:30  mortenson
-// Update the copyright information.
-//
-// Revision 1.12  2004/12/08 04:54:27  mortenson
-// Make it possible to access the contents of the Wrapper configuration file from
-// within the JVM.
-//
-// Revision 1.11  2004/11/26 08:41:22  mortenson
-// Implement reading from System.in
-//
-// Revision 1.10  2004/11/22 09:35:45  mortenson
-// Add methods for controlling other services.
-//
-// Revision 1.9  2004/11/22 04:06:42  mortenson
-// Add an event model to make it possible to communicate with user applications in
-// a more flexible way.
-//
-// Revision 1.8  2004/10/18 09:35:46  mortenson
-// Remove the gc call in the main loop.  It was causing a noticeable hickup in the
-// CPU usage every 5 seconds.
-//
-// Revision 1.7  2004/08/06 08:05:26  mortenson
-// Add test case which dumps the system properties.  Useful for testing.
-//
-// Revision 1.6  2004/08/06 07:56:20  mortenson
-// Add test case which runs idle.  Useful to test some operations.
-//
-// Revision 1.5  2004/04/15 06:42:11  mortenson
-// Fix a typo in the access_violation_native action.
-//
-// Revision 1.4  2004/03/27 14:39:20  mortenson
-// Add actions for the stopImmediate method.
-//
-// Revision 1.3  2004/01/16 04:41:55  mortenson
-// The license was revised for this version to include a copyright omission.
-// This change is to be retroactively applied to all versions of the Java
-// Service Wrapper starting with version 3.0.0.
-//
-// Revision 1.2  2004/01/15 09:50:30  mortenson
-// Fix some problems where the Wrapper was not handling exit codes correctly.
-//
-// Revision 1.1  2004/01/10 15:44:15  mortenson
-// Rework the test wrapper app so there is less code duplication.
-//
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.IOException;
@@ -123,7 +60,6 @@ import org.tanukisoftware.wrapper.event.WrapperEventListener;
 
 /**
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public abstract class AbstractActionApp
     implements WrapperEventListener

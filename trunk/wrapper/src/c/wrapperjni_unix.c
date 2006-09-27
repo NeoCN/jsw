@@ -39,68 +39,6 @@
  * 
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
- *
- * $Log$
- * Revision 1.22  2006/09/14 02:11:54  mortenson
- * Add support for the HUP signal
- *
- * Revision 1.21  2006/02/24 05:43:36  mortenson
- * Update the copyright.
- *
- * Revision 1.20  2005/05/23 02:37:55  mortenson
- * Update the copyright information.
- *
- * Revision 1.19  2004/12/16 14:13:45  mortenson
- * Fix a problem where TERM signals were not being correctly ignored by the JVM
- * process on UNIX platforms even if wrapper.ignore_signals was set.
- *
- * Revision 1.18  2004/12/08 05:08:49  mortenson
- * Correct the return types of the unsupported Windows service related methods.
- *
- * Revision 1.17  2004/11/22 09:35:47  mortenson
- * Add methods for controlling other services.
- *
- * Revision 1.16  2004/11/15 08:15:49  mortenson
- * Make it possible for users to access the Wrapper and JVM PIDs from within the JVM.
- *
- * Revision 1.15  2004/01/16 04:42:00  mortenson
- * The license was revised for this version to include a copyright omission.
- * This change is to be retroactively applied to all versions of the Java
- * Service Wrapper starting with version 3.0.0.
- *
- * Revision 1.14  2004/01/12 17:40:03  mortenson
- * Fix some compiler warnings on Solaris
- *
- * Revision 1.13  2004/01/10 19:57:48  mortenson
- * Add the ability to request a user's groups on UNIX platforms.
- *
- * Revision 1.12  2004/01/10 18:40:16  mortenson
- * Add additional user info to the UNIX user object.
- *
- * Revision 1.11  2004/01/10 17:17:26  mortenson
- * Add the ability to request user information.
- *
- * Revision 1.10  2003/11/03 10:27:46  mortenson
- * Fix some link errors.
- *
- * Revision 1.9  2003/11/02 20:55:54  mortenson
- * Implement stubs for the user methods.
- *
- * Revision 1.8  2003/10/31 11:10:46  mortenson
- * Add a getLastErrorText function so we can display more user friendly messages
- * within the native library.
- *
- * Revision 1.7  2003/10/31 05:59:34  mortenson
- * Added a new method, setConsoleTitle, to the WrapperManager class which
- * enables the application to dynamically set the console title.
- *
- * Revision 1.6  2003/04/03 04:05:22  mortenson
- * Fix several typos in the docs.  Thanks to Mike Castle.
- *
- * Revision 1.5  2003/02/03 06:55:27  mortenson
- * License transfer to TanukiSoftware.org
- *
  */
 
 #ifndef WIN32

@@ -39,47 +39,6 @@
  * 
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
- *
- * $Log$
- * Revision 1.13  2006/02/24 05:43:36  mortenson
- * Update the copyright.
- *
- * Revision 1.12  2005/05/23 02:37:54  mortenson
- * Update the copyright information.
- *
- * Revision 1.11  2004/12/08 04:54:29  mortenson
- * Make it possible to access the contents of the Wrapper configuration file from
- * within the JVM.
- *
- * Revision 1.10  2004/03/27 16:09:45  mortenson
- * Add wrapper.on_exit.<n> properties to control what happens when a exits based
- * on the exit code.  This led to a major rework of the state engine to make it possible.
- *
- * Revision 1.9  2004/01/16 04:41:59  mortenson
- * The license was revised for this version to include a copyright omission.
- * This change is to be retroactively applied to all versions of the Java
- * Service Wrapper starting with version 3.0.0.
- *
- * Revision 1.8  2003/09/09 14:18:10  mortenson
- * Fix a problem where not all properties specified on the command line worked
- * correctly when they included spaces.
- *
- * Revision 1.7  2003/08/02 06:49:13  mortenson
- * Changed the way environment variables are loaded from the registry on Windows
- * platforms so users will no longer get warning messages about not being able
- * to handle very large environment variables.
- *
- * Revision 1.6  2003/04/03 04:05:22  mortenson
- * Fix several typos in the docs.  Thanks to Mike Castle.
- *
- * Revision 1.5  2003/03/13 15:40:41  mortenson
- * Add the ability to set environment variables from within the configuration
- * file or from the command line.
- *
- * Revision 1.4  2003/02/03 06:55:26  mortenson
- * License transfer to TanukiSoftware.org
- *
  */
 
 #ifndef TRUE

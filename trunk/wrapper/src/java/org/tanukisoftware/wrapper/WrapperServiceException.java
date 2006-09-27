@@ -25,23 +25,11 @@ package org.tanukisoftware.wrapper;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// $Log$
-// Revision 1.3  2006/02/24 05:45:57  mortenson
-// Update the copyright.
-//
-// Revision 1.2  2005/05/23 02:41:12  mortenson
-// Update the copyright information.
-//
-// Revision 1.1  2004/11/22 09:35:48  mortenson
-// Add methods for controlling other services.
-//
-
 /**
  * WrapperServiceExceptions are thrown when the Wrapper is unable to obtain
  *  information on a requested service.
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public class WrapperServiceException
     extends Exception

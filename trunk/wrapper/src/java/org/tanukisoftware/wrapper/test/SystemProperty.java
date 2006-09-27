@@ -25,17 +25,6 @@ package org.tanukisoftware.wrapper.test;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// $Log$
-// Revision 1.3  2006/02/24 05:45:59  mortenson
-// Update the copyright.
-//
-// Revision 1.2  2005/05/23 02:39:30  mortenson
-// Update the copyright information.
-//
-// Revision 1.1  2004/08/06 09:06:34  mortenson
-// Add a test to test the setting of system properties.
-//
-
 import org.tanukisoftware.wrapper.WrapperManager;
 
 /**
@@ -43,7 +32,6 @@ import org.tanukisoftware.wrapper.WrapperManager;
  *  are handled and passed into the JVM as expected.
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public class SystemProperty
 {

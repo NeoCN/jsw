@@ -25,18 +25,12 @@ package org.tanukisoftware.wrapper.test;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// $Log$
-// Revision 1.1  2006/07/03 03:13:08  mortenson
-// Add a test of the on_exit feature.
-//
-
 import org.tanukisoftware.wrapper.WrapperManager;
 
 /**
  *
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public class OnExit {
     /*---------------------------------------------------------------

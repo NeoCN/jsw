@@ -25,36 +25,12 @@ package org.tanukisoftware.wrapper.test;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// $Log$
-// Revision 1.6  2006/02/24 05:45:59  mortenson
-// Update the copyright.
-//
-// Revision 1.5  2005/10/03 01:57:18  mortenson
-// Modify the Filter test to make sure that filters containing spaces work correctly.
-//
-// Revision 1.4  2005/05/23 02:39:30  mortenson
-// Update the copyright information.
-//
-// Revision 1.3  2004/01/16 04:41:55  mortenson
-// The license was revised for this version to include a copyright omission.
-// This change is to be retroactively applied to all versions of the Java
-// Service Wrapper starting with version 3.0.0.
-//
-// Revision 1.2  2003/04/16 04:51:53  mortenson
-// On fast machines the Wrapper was detecting that the main thread was exiting
-// and causing the application to exit even though
-//
-// Revision 1.1  2003/04/16 04:37:49  mortenson
-// Add a test case to make it easier to test the output filter feature.
-//
-
 import org.tanukisoftware.wrapper.WrapperManager;
 
 /**
  *
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public class Filter {
     /*---------------------------------------------------------------

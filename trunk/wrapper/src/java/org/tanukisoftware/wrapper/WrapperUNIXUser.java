@@ -25,38 +25,12 @@ package org.tanukisoftware.wrapper;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// $Log$
-// Revision 1.7  2006/02/24 05:45:57  mortenson
-// Update the copyright.
-//
-// Revision 1.6  2005/05/23 02:41:12  mortenson
-// Update the copyright information.
-//
-// Revision 1.5  2004/06/30 09:02:33  mortenson
-// Remove unused imports.
-//
-// Revision 1.4  2004/01/16 04:42:00  mortenson
-// The license was revised for this version to include a copyright omission.
-// This change is to be retroactively applied to all versions of the Java
-// Service Wrapper starting with version 3.0.0.
-//
-// Revision 1.3  2004/01/10 19:57:48  mortenson
-// Add the ability to request a user's groups on UNIX platforms.
-//
-// Revision 1.2  2004/01/10 18:40:16  mortenson
-// Add additional user info to the UNIX user object.
-//
-// Revision 1.1  2004/01/10 17:17:26  mortenson
-// Add the ability to request user information.
-//
-
 /**
  * A WrapperUser contains information about a user account on the platform
  *  running the Wrapper.  A WrapperUser is obtained by calling
  *  WrapperManager.getUser() or WrapperManager.getInteractiveUser().
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public class WrapperUNIXUser
     extends WrapperUser

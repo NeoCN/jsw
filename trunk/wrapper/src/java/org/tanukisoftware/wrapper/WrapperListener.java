@@ -43,47 +43,6 @@ package org.tanukisoftware.wrapper;
  * included in all copies or substantial portions of the Software.
  */
 
-// $Log$
-// Revision 1.11  2006/09/14 04:02:37  mortenson
-// Add the wrapper.signal.mode.hup property.
-//
-// Revision 1.10  2006/02/24 05:45:57  mortenson
-// Update the copyright.
-//
-// Revision 1.9  2005/05/23 02:41:12  mortenson
-// Update the copyright information.
-//
-// Revision 1.8  2004/12/16 14:13:47  mortenson
-// Fix a problem where TERM signals were not being correctly ignored by the JVM
-// process on UNIX platforms even if wrapper.ignore_signals was set.
-//
-// Revision 1.7  2004/08/13 14:34:03  mortenson
-// Fix a typo in javadoc references to the signalStopping() method.
-//
-// Revision 1.6  2004/06/15 05:26:57  mortenson
-// Fix a problem where the Wrapper would sometimes hang on shutdown if
-// another thread called System.exit while the Wrapper was shutting down.
-// Bug #955248.
-//
-// Revision 1.5  2004/02/13 02:53:26  mortenson
-// Add some javadocs describing what happens if an uncaught exception is thrown
-// within the start method.
-//
-// Revision 1.4  2004/01/16 04:42:00  mortenson
-// The license was revised for this version to include a copyright omission.
-// This change is to be retroactively applied to all versions of the Java
-// Service Wrapper starting with version 3.0.0.
-//
-// Revision 1.3  2003/06/19 05:45:02  mortenson
-// Modified the suggested behavior of the WrapperListener.controlEvent() method.
-//
-// Revision 1.2  2003/04/03 04:05:23  mortenson
-// Fix several typos in the docs.  Thanks to Mike Castle.
-//
-// Revision 1.1  2003/02/03 06:55:28  mortenson
-// License transfer to TanukiSoftware.org
-//
-
 /**
  * Applications which need to be controlled directly as a service can implement
  *  the WrapperListener interface and then register themselves with the
@@ -91,7 +50,6 @@ package org.tanukisoftware.wrapper;
  *  the class as a service for its entire life-cycle.
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public interface WrapperListener
 {

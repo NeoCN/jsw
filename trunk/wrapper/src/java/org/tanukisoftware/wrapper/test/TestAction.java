@@ -43,69 +43,6 @@ package org.tanukisoftware.wrapper.test;
  * included in all copies or substantial portions of the Software.
  */
 
-// $Log$
-// Revision 1.18  2006/04/28 02:06:08  mortenson
-// Fix an NPE if CTRL-C is pressed immediately after the app is launched.
-//
-// Revision 1.17  2006/02/24 05:45:59  mortenson
-// Update the copyright.
-//
-// Revision 1.16  2006/02/15 06:04:50  mortenson
-// Fix a problem where the Wrapper would show the following error message
-// if user code called System.exit from within the WrapperListener.stop
-// callback method.
-//
-// Revision 1.15  2005/08/24 06:53:39  mortenson
-// Add stopAndReturn and restartAndReturn methods.
-//
-// Revision 1.14  2005/05/23 02:39:30  mortenson
-// Update the copyright information.
-//
-// Revision 1.13  2004/12/08 04:54:27  mortenson
-// Make it possible to access the contents of the Wrapper configuration file from
-// within the JVM.
-//
-// Revision 1.12  2004/11/26 08:41:22  mortenson
-// Implement reading from System.in
-//
-// Revision 1.11  2004/08/06 08:05:26  mortenson
-// Add test case which dumps the system properties.  Useful for testing.
-//
-// Revision 1.10  2004/08/06 07:56:20  mortenson
-// Add test case which runs idle.  Useful to test some operations.
-//
-// Revision 1.9  2004/06/30 09:01:57  mortenson
-// Style fix.  Referencing a static method using an instance.
-//
-// Revision 1.8  2004/03/27 14:39:20  mortenson
-// Add actions for the stopImmediate method.
-//
-// Revision 1.7  2004/01/16 04:41:55  mortenson
-// The license was revised for this version to include a copyright omission.
-// This change is to be retroactively applied to all versions of the Java
-// Service Wrapper starting with version 3.0.0.
-//
-// Revision 1.6  2004/01/15 09:50:30  mortenson
-// Fix some problems where the Wrapper was not handling exit codes correctly.
-//
-// Revision 1.5  2004/01/10 15:44:15  mortenson
-// Rework the test wrapper app so there is less code duplication.
-//
-// Revision 1.4  2003/10/18 07:51:10  mortenson
-// The DeadlockPrintStream should not be set until after the WrapperManager class
-// has been initialized.
-//
-// Revision 1.3  2003/10/18 07:35:30  mortenson
-// Add test cases to test how the wrapper handles it when the System.out stream
-// becomes deadlocked.  This can happen if buggy usercode overrides those streams.
-//
-// Revision 1.2  2003/04/03 04:05:22  mortenson
-// Fix several typos in the docs.  Thanks to Mike Castle.
-//
-// Revision 1.1  2003/02/03 06:55:29  mortenson
-// License transfer to TanukiSoftware.org
-//
-
 import org.tanukisoftware.wrapper.WrapperManager;
 import org.tanukisoftware.wrapper.WrapperListener;
 
@@ -113,7 +50,6 @@ import org.tanukisoftware.wrapper.WrapperListener;
  *
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public class TestAction
     extends AbstractActionApp

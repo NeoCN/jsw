@@ -43,30 +43,10 @@ package org.tanukisoftware.wrapper.test;
  * included in all copies or substantial portions of the Software.
  */
 
-// $Log$
-// Revision 1.5  2006/02/24 05:45:59  mortenson
-// Update the copyright.
-//
-// Revision 1.4  2005/05/23 02:39:30  mortenson
-// Update the copyright information.
-//
-// Revision 1.3  2004/01/16 04:41:55  mortenson
-// The license was revised for this version to include a copyright omission.
-// This change is to be retroactively applied to all versions of the Java
-// Service Wrapper starting with version 3.0.0.
-//
-// Revision 1.2  2003/04/03 04:05:22  mortenson
-// Fix several typos in the docs.  Thanks to Mike Castle.
-//
-// Revision 1.1  2003/02/03 06:55:29  mortenson
-// License transfer to TanukiSoftware.org
-//
-
 /**
  *
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public class QuickComplete {
     /*---------------------------------------------------------------
