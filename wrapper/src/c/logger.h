@@ -39,110 +39,12 @@
  * 
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
- *
- * $Log$
- * Revision 1.31  2006/06/28 07:54:48  mortenson
- * Start using a common form of strcmp to make unix and windows code as
- * replicable as possible.
- *
- * Revision 1.30  2006/06/27 06:21:28  mortenson
- * Fix some compiler problems caused by the Facility patch.
- *
- * Revision 1.29  2006/06/27 06:04:59  mortenson
- * Add a new wrapper.syslog.facility property which makes it possible to specify the
- * syslog facility on UNIX systems.
- *
- * Revision 1.28  2006/02/24 05:43:36  mortenson
- * Update the copyright.
- *
- * Revision 1.27  2006/02/10 14:27:10  mortenson
- * Added a new wrapper.console.flush property which forces the wrapper to
- * explicitly flush stdout after each line of log output.
- *
- * Revision 1.26  2006/01/11 16:13:11  mortenson
- * Add support for log file roll modes.
- *
- * Revision 1.25  2006/01/11 06:55:15  mortenson
- * Go through and clean up unwanted type casts from const to normal strings.
- * Start on the logfile roll mode feature.
- *
- * Revision 1.24  2005/11/07 07:04:52  mortenson
- * Make it possible to configure the umask for all files created by the Wrapper and
- * that of the JVM.
- *
- * Revision 1.23  2005/05/23 02:37:54  mortenson
- * Update the copyright information.
- *
- * Revision 1.22  2004/10/20 07:55:35  mortenson
- * Make sure that the logfile is flushed in a timely manner rather than leaving
- * it entirely up to the OS.
- *
- * Revision 1.21  2004/10/19 11:48:20  mortenson
- * Rework logging so that the logfile is kept open.  Results in a 4 fold speed increase.
- *
- * Revision 1.20  2004/09/16 04:04:32  mortenson
- * Close the Handle to the logging mutex on shutdown.
- *
- * Revision 1.19  2004/08/06 16:17:04  mortenson
- * Added a new wrapper.java.command.loglevel property which makes it possible
- * to control the log level of the generated java command.
- *
- * Revision 1.18  2004/07/05 07:43:53  mortenson
- * Fix a deadlock on solaris by being very careful that we never perform any direct
- * logging from within a signal handler.
- *
- * Revision 1.17  2004/06/06 15:28:05  mortenson
- * Fix a synchronization problem in the logging code which would
- * occassionally cause the Wrapper to crash with an Access Violation.
- * The problem was only encountered when the tick timer was enabled,
- * and was only seen on multi-CPU systems.  Bug #949877.
- *
- * Revision 1.16  2004/03/20 16:55:49  mortenson
- * Add an adviser feature to help cut down on support requests from new users.
- *
- * Revision 1.15  2004/01/16 04:41:58  mortenson
- * The license was revised for this version to include a copyright omission.
- * This change is to be retroactively applied to all versions of the Java
- * Service Wrapper starting with version 3.0.0.
- *
- * Revision 1.14  2004/01/09 18:31:36  mortenson
- * define the DWORD symbol so it can used.
- *
- * Revision 1.13  2004/01/09 17:49:00  mortenson
- * Rework the logging so it is now threadsafe.
- *
- * Revision 1.12  2003/10/30 19:34:34  mortenson
- * Added a new wrapper.ntservice.console property so the console can be shown for
- * services.
- * Fixed a problem where requesting thread dumps on exit was failing when running
- * as a service.
- *
- * Revision 1.11  2003/08/02 15:50:03  mortenson
- * Implement getLastErrorText on UNIX versions.
- *
- * Revision 1.10  2003/07/04 03:18:36  mortenson
- * Improve the error message displayed when the NT EventLog is full in response
- * to feature request #643617.
- *
- * Revision 1.9  2003/04/03 04:05:22  mortenson
- * Fix several typos in the docs.  Thanks to Mike Castle.
- *
- * Revision 1.8  2003/02/07 16:05:27  mortenson
- * Implemented feature request #676599 to enable the filtering of JVM output to
- * trigger JVM restarts or Wrapper shutdowns.
- *
- * Revision 1.7  2003/02/03 06:55:26  mortenson
- * License transfer to TanukiSoftware.org
- *
  */
 
 /**
  * Author:
  *   Johan Sorlin   <Johan.Sorlin@Paregos.se>
  *   Leif Mortenson <leif@tanukisoftware.com>
- *
- * Version CVS $Revision$ $Date$
  */
 
 #ifndef _LOGGER_H

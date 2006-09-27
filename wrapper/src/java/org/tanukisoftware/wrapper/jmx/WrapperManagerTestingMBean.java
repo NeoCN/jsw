@@ -25,28 +25,13 @@ package org.tanukisoftware.wrapper.jmx;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// $Log$
-// Revision 1.4  2006/02/24 05:45:58  mortenson
-// Update the copyright.
-//
-// Revision 1.3  2005/05/23 02:40:13  mortenson
-// Update the copyright information.
-//
-// Revision 1.2  2004/01/16 04:42:01  mortenson
-// The license was revised for this version to include a copyright omission.
-// This change is to be retroactively applied to all versions of the Java
-// Service Wrapper starting with version 3.0.0.
-//
-// Revision 1.1  2003/09/03 14:39:58  mortenson
-// Added a pair of MBean interfaces which allow the Wrapper to be controlled
-// using JMX.  See the new JMX section in the documentation for details.
-//
-
 /**
  * This MBean interface provides access to a number of actions which can be
  *  useful for testing how well an application responds to JVM crashes.  It
  *  has been broken out frtom the WrapperManagerMBean interface so system
  *  administrators can easily disable the testing functions.
+ *
+ * @author Leif Mortenson <leif@tanukisoftware.com>
  */
 public interface WrapperManagerTestingMBean
 {

@@ -25,26 +25,11 @@ package org.tanukisoftware.wrapper;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// $Log$
-// Revision 1.4  2006/02/24 05:45:57  mortenson
-// Update the copyright.
-//
-// Revision 1.3  2005/05/23 02:41:12  mortenson
-// Update the copyright information.
-//
-// Revision 1.2  2005/03/24 07:21:27  mortenson
-// Correct some javadoc typos.
-//
-// Revision 1.1  2005/03/24 06:27:40  mortenson
-// Add a new WrapperSystemPropertyUtil class to avoid code duplication.
-//
-
 /**
  * A collection of utility methods which make it easy to work with System
  *  Properties without littering code with error handling.
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public final class WrapperSystemPropertyUtil
 {

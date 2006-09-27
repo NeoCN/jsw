@@ -25,15 +25,6 @@ package org.tanukisoftware.wrapper.security;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// $Log$
-// Revision 1.2  2006/02/24 05:45:58  mortenson
-// Update the copyright.
-//
-// Revision 1.1  2005/06/24 16:00:39  mortenson
-// Add a security model to protect the Wrapper and many of its calls when a
-// ServiceManager has been registered with the JVM.
-//
-
 import java.security.BasicPermission;
 
 /**
@@ -138,7 +129,6 @@ test.accessViolationNative
 
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public class WrapperPermission
     extends BasicPermission

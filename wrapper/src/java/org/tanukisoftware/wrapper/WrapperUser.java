@@ -25,23 +25,6 @@ package org.tanukisoftware.wrapper;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// $Log$
-// Revision 1.4  2006/02/24 05:45:57  mortenson
-// Update the copyright.
-//
-// Revision 1.3  2005/05/23 02:41:12  mortenson
-// Update the copyright information.
-//
-// Revision 1.2  2004/01/16 04:42:00  mortenson
-// The license was revised for this version to include a copyright omission.
-// This change is to be retroactively applied to all versions of the Java
-// Service Wrapper starting with version 3.0.0.
-//
-// Revision 1.1  2003/11/02 20:29:30  mortenson
-// Add the ability to get information about the user account which is running the
-// Wrapper as well as the user account with which the Wrapper is interacting.
-//
-
 import java.util.Vector;
 
 /**
@@ -50,7 +33,6 @@ import java.util.Vector;
  *  WrapperManager.getUser() or WrapperManager.getInteractiveUser().
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public abstract class WrapperUser
 {

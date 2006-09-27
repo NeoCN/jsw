@@ -25,28 +25,11 @@ package org.tanukisoftware.wrapper;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// $Log$
-// Revision 1.4  2006/02/24 05:45:57  mortenson
-// Update the copyright.
-//
-// Revision 1.3  2005/05/23 02:41:12  mortenson
-// Update the copyright information.
-//
-// Revision 1.2  2004/01/16 04:42:00  mortenson
-// The license was revised for this version to include a copyright omission.
-// This change is to be retroactively applied to all versions of the Java
-// Service Wrapper starting with version 3.0.0.
-//
-// Revision 1.1  2004/01/10 19:57:48  mortenson
-// Add the ability to request a user's groups on UNIX platforms.
-//
-
 /**
  * A WrapperGroup contains information about a group which a user
  *  belongs to.  A WrapperGroup is obtained via a WrapperUser.
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public class WrapperUNIXGroup
     extends WrapperGroup

@@ -25,27 +25,6 @@ package org.tanukisoftware.wrapper.event;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// $Log$
-// Revision 1.6  2006/06/22 16:48:16  mortenson
-// Make it possible to pause and resume windows services.
-//
-// Revision 1.5  2006/02/24 05:45:58  mortenson
-// Update the copyright.
-//
-// Revision 1.4  2005/05/23 02:39:59  mortenson
-// Update the copyright information.
-//
-// Revision 1.3  2004/11/29 14:26:52  mortenson
-// Add javadocs.
-//
-// Revision 1.2  2004/11/29 13:15:38  mortenson
-// Fix some javadocs problems.
-//
-// Revision 1.1  2004/11/22 04:06:44  mortenson
-// Add an event model to make it possible to communicate with user applications in
-// a more flexible way.
-//
-
 /**
  * WrapperServiceControlEvents are used to notify the listener whenever a
  *  Service Control Event is received by the service.   These events will
@@ -68,7 +47,6 @@ package org.tanukisoftware.wrapper.event;
  * </dl>
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public class WrapperServiceControlEvent
     extends WrapperServiceEvent

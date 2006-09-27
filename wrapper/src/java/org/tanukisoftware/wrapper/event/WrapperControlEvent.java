@@ -25,17 +25,6 @@ package org.tanukisoftware.wrapper.event;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// $Log$
-// Revision 1.3  2006/09/14 02:11:54  mortenson
-// Add support for the HUP signal
-//
-// Revision 1.2  2006/02/24 05:45:57  mortenson
-// Update the copyright.
-//
-// Revision 1.1  2005/10/13 05:52:16  mortenson
-// Implement the ability to catch control events using the WrapperEventLisener.
-//
-
 /**
  * WrapperControlEvent are used to notify the listener whenever the native
  *  wrapper code traps a system control signal against the Java process.
@@ -71,7 +60,6 @@ package org.tanukisoftware.wrapper.event;
  * </dl>
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public class WrapperControlEvent
     extends WrapperEvent

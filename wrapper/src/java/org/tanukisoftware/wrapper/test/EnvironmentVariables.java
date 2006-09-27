@@ -43,35 +43,6 @@ package org.tanukisoftware.wrapper.test;
  * included in all copies or substantial portions of the Software.
  */
 
-// $Log$
-// Revision 1.8  2006/07/03 03:57:32  mortenson
-// Include locale information in the test output.
-//
-// Revision 1.7  2006/06/28 08:37:44  mortenson
-// Get the environment variable test working on Windows XP
-//
-// Revision 1.6  2006/02/24 05:45:58  mortenson
-// Update the copyright.
-//
-// Revision 1.5  2005/05/23 02:39:30  mortenson
-// Update the copyright information.
-//
-// Revision 1.4  2004/01/16 04:41:55  mortenson
-// The license was revised for this version to include a copyright omission.
-// This change is to be retroactively applied to all versions of the Java
-// Service Wrapper starting with version 3.0.0.
-//
-// Revision 1.3  2003/04/14 14:11:51  mortenson
-// Add support for Mac OS X.
-// (Patch from Andy Barnett)
-//
-// Revision 1.2  2003/04/03 04:05:22  mortenson
-// Fix several typos in the docs.  Thanks to Mike Castle.
-//
-// Revision 1.1  2003/02/03 06:55:29  mortenson
-// License transfer to TanukiSoftware.org
-//
-
 import java.util.Properties;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -83,7 +54,6 @@ import org.tanukisoftware.wrapper.WrapperManager;
  *
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public class EnvironmentVariables {
 

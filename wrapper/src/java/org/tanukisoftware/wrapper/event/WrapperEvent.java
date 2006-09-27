@@ -25,21 +25,6 @@ package org.tanukisoftware.wrapper.event;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// $Log$
-// Revision 1.4  2006/02/24 05:45:57  mortenson
-// Update the copyright.
-//
-// Revision 1.3  2005/05/23 02:39:59  mortenson
-// Update the copyright information.
-//
-// Revision 1.2  2004/11/29 13:15:38  mortenson
-// Fix some javadocs problems.
-//
-// Revision 1.1  2004/11/22 04:06:43  mortenson
-// Add an event model to make it possible to communicate with user applications in
-// a more flexible way.
-//
-
 import java.util.EventObject;
 
 import org.tanukisoftware.wrapper.WrapperManager;
@@ -54,7 +39,6 @@ import org.tanukisoftware.wrapper.WrapperManager;
  *  method.
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public abstract class WrapperEvent
     extends EventObject

@@ -21,16 +21,6 @@
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
- *
- * $Log$
- * Revision 1.2  2006/04/28 03:35:10  mortenson
- * Add new default environment variables which can be referenced in a configuration
- * file to configure platform specific directories and file names.
- *
- * Revision 1.1  2003/11/05 16:45:42  mortenson
- * The WrapperManager class now checks to make sure that its current version
- * matches the version of the native library and Wrapper.
- *
  */
 
 #ifndef _WRAPPERINFO_H

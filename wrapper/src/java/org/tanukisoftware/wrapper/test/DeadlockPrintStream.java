@@ -25,23 +25,6 @@ package org.tanukisoftware.wrapper.test;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// $Log$
-// Revision 1.4  2006/02/24 05:45:58  mortenson
-// Update the copyright.
-//
-// Revision 1.3  2005/05/23 02:39:30  mortenson
-// Update the copyright information.
-//
-// Revision 1.2  2004/01/16 04:41:55  mortenson
-// The license was revised for this version to include a copyright omission.
-// This change is to be retroactively applied to all versions of the Java
-// Service Wrapper starting with version 3.0.0.
-//
-// Revision 1.1  2003/10/18 07:35:30  mortenson
-// Add test cases to test how the wrapper handles it when the System.out stream
-// becomes deadlocked.  This can happen if buggy usercode overrides those streams.
-//
-
 import java.io.IOException;
 import java.io.PrintStream;
 
@@ -51,7 +34,6 @@ import java.io.PrintStream;
  * Obviously, this class will not be useful to many as it is for tests.
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public class DeadlockPrintStream extends PrintStream {
     /** The Wrapped PrintStream. */

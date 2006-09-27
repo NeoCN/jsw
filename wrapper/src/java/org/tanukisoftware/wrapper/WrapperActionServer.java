@@ -25,43 +25,6 @@ package org.tanukisoftware.wrapper;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// $Log$
-// Revision 1.10  2006/02/24 05:45:57  mortenson
-// Update the copyright.
-//
-// Revision 1.9  2005/09/12 03:54:30  mortenson
-// Fix some spelling.
-//
-// Revision 1.8  2005/05/23 02:41:12  mortenson
-// Update the copyright information.
-//
-// Revision 1.7  2004/06/30 09:02:33  mortenson
-// Remove unused imports.
-//
-// Revision 1.6  2004/01/16 04:42:00  mortenson
-// The license was revised for this version to include a copyright omission.
-// This change is to be retroactively applied to all versions of the Java
-// Service Wrapper starting with version 3.0.0.
-//
-// Revision 1.5  2003/10/30 17:13:24  mortenson
-// Add an action to the WrapperActionServer which makes it possible to test
-// simulate a JVM hang for testing.
-//
-// Revision 1.4  2003/09/03 08:55:48  mortenson
-// Add some more javadocs describing how to use the class.
-//
-// Revision 1.3  2003/08/20 17:42:03  mortenson
-// Got rid of some old messages.
-//
-// Revision 1.2  2003/06/08 04:15:34  mortenson
-// Synchronize access to the actions map.
-// Cast chars to byte so that the class will compile under Java 1.2.x
-//
-// Revision 1.1  2003/06/07 05:19:11  mortenson
-// Add a new class, WrapperActionServer, which makes it easy to remotely control
-// the Wrapper remotely by opening a socket and sending commands.  See the
-// javadocs of the class for more details.
-
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.lang.reflect.InvocationTargetException;
@@ -126,7 +89,6 @@ import org.tanukisoftware.wrapper.WrapperManager;
  * </pre>
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public class WrapperActionServer
     implements Runnable

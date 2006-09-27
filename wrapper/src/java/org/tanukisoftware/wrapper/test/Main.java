@@ -43,114 +43,6 @@ package org.tanukisoftware.wrapper.test;
  * included in all copies or substantial portions of the Software.
  */
 
-// $Log$
-// Revision 1.32  2006/05/17 03:10:45  mortenson
-// Fix a typo.
-//
-// Revision 1.31  2006/02/24 05:45:59  mortenson
-// Update the copyright.
-//
-// Revision 1.30  2006/02/15 06:33:36  mortenson
-// Put content into a ScrollPane as the window was getting way too large.
-//
-// Revision 1.29  2006/02/15 06:04:50  mortenson
-// Fix a problem where the Wrapper would show the following error message
-// if user code called System.exit from within the WrapperListener.stop
-// callback method.
-//
-// Revision 1.28  2005/10/13 05:52:16  mortenson
-// Implement the ability to catch control events using the WrapperEventLisener.
-//
-// Revision 1.27  2005/09/12 03:54:42  mortenson
-// Fix some spelling.
-//
-// Revision 1.26  2005/08/24 06:53:39  mortenson
-// Add stopAndReturn and restartAndReturn methods.
-//
-// Revision 1.25  2005/05/23 02:39:30  mortenson
-// Update the copyright information.
-//
-// Revision 1.24  2004/12/08 04:54:27  mortenson
-// Make it possible to access the contents of the Wrapper configuration file from
-// within the JVM.
-//
-// Revision 1.23  2004/11/26 08:41:22  mortenson
-// Implement reading from System.in
-//
-// Revision 1.22  2004/11/22 09:35:46  mortenson
-// Add methods for controlling other services.
-//
-// Revision 1.21  2004/11/22 04:06:42  mortenson
-// Add an event model to make it possible to communicate with user applications in
-// a more flexible way.
-//
-// Revision 1.20  2004/11/12 09:52:19  mortenson
-// Don't set the console title from within java in the sample.  It makes the use of the
-// usage of the config file property confusing.
-//
-// Revision 1.19  2004/08/06 08:05:26  mortenson
-// Add test case which dumps the system properties.  Useful for testing.
-//
-// Revision 1.18  2004/08/06 07:56:20  mortenson
-// Add test case which runs idle.  Useful to test some operations.
-//
-// Revision 1.17  2004/06/30 09:02:33  mortenson
-// Remove unused imports.
-//
-// Revision 1.16  2004/04/15 06:42:11  mortenson
-// Fix a typo in the access_violation_native action.
-//
-// Revision 1.15  2004/03/27 14:39:20  mortenson
-// Add actions for the stopImmediate method.
-//
-// Revision 1.14  2004/01/16 04:41:55  mortenson
-// The license was revised for this version to include a copyright omission.
-// This change is to be retroactively applied to all versions of the Java
-// Service Wrapper starting with version 3.0.0.
-//
-// Revision 1.13  2004/01/15 09:50:30  mortenson
-// Fix some problems where the Wrapper was not handling exit codes correctly.
-//
-// Revision 1.12  2004/01/10 15:44:15  mortenson
-// Rework the test wrapper app so there is less code duplication.
-//
-// Revision 1.11  2004/01/10 13:59:14  mortenson
-// Add a command button to test the user functions.
-//
-// Revision 1.10  2003/10/31 05:59:33  mortenson
-// Added a new method, setConsoleTitle, to the WrapperManager class which
-// enables the application to dynamically set the console title.
-//
-// Revision 1.9  2003/10/30 17:13:24  mortenson
-// Add an action to the WrapperActionServer which makes it possible to test
-// simulate a JVM hang for testing.
-//
-// Revision 1.8  2003/10/18 07:51:10  mortenson
-// The DeadlockPrintStream should not be set until after the WrapperManager class
-// has been initialized.
-//
-// Revision 1.7  2003/10/18 07:35:30  mortenson
-// Add test cases to test how the wrapper handles it when the System.out stream
-// becomes deadlocked.  This can happen if buggy usercode overrides those streams.
-//
-// Revision 1.5  2003/06/19 05:45:00  mortenson
-// Modified the suggested behavior of the WrapperListener.controlEvent() method.
-//
-// Revision 1.4  2003/06/07 05:19:10  mortenson
-// Add a new class, WrapperActionServer, which makes it easy to remotely control
-// the Wrapper remotely by opening a socket and sending commands.  See the
-// javadocs of the class for more details.
-//
-// Revision 1.3  2003/04/03 04:05:22  mortenson
-// Fix several typos in the docs.  Thanks to Mike Castle.
-//
-// Revision 1.2  2003/03/02 08:39:56  mortenson
-// Improve the example code for the controlEvent method.
-//
-// Revision 1.1  2003/02/03 06:55:29  mortenson
-// License transfer to TanukiSoftware.org
-//
-
 import java.awt.BorderLayout;
 import java.awt.Button;
 import java.awt.Component;
@@ -184,7 +76,6 @@ import org.tanukisoftware.wrapper.event.WrapperEventListener;
  *  section of the documentation for more details.
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public class Main
     extends AbstractActionApp

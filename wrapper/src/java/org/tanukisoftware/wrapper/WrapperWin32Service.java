@@ -25,23 +25,11 @@ package org.tanukisoftware.wrapper;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// $Log$
-// Revision 1.3  2006/02/24 05:45:57  mortenson
-// Update the copyright.
-//
-// Revision 1.2  2005/05/23 02:41:12  mortenson
-// Update the copyright information.
-//
-// Revision 1.1  2004/11/26 05:58:58  mortenson
-// Add a service descriptor class.
-//
-
 /**
  * A WrapperWin32Service contains information about an individual service
  *  registered with the current system.
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 public class WrapperWin32Service
 {

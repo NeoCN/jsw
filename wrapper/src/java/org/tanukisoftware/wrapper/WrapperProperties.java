@@ -25,17 +25,6 @@ package org.tanukisoftware.wrapper;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// $Log$
-// Revision 1.3  2006/02/24 05:45:57  mortenson
-// Update the copyright.
-//
-// Revision 1.2  2005/05/23 02:41:12  mortenson
-// Update the copyright information.
-//
-// Revision 1.1  2004/12/06 09:21:37  mortenson
-// Commit the WrapperProperties class.
-//
-
 import java.io.InputStream;
 import java.io.IOException;
 import java.util.Collection;
@@ -50,7 +39,6 @@ import java.util.Set;
  *  by the user.
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
- * @version $Revision$
  */
 class WrapperProperties
     extends Properties

@@ -25,24 +25,12 @@ package org.tanukisoftware.wrapper;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// $Log$
-// Revision 1.4  2006/02/24 05:45:40  mortenson
-// Update the copyright.
-//
-// Revision 1.3  2005/05/23 02:43:13  mortenson
-// Update the copyright information.
-//
-// Revision 1.2  2004/08/31 14:21:22  mortenson
-// Mark long values.
-//
-// Revision 1.1  2004/08/30 03:24:54  mortenson
-// Add test to make sure the system time to tick conversion is working correctly.
-//
-
 import junit.framework.TestCase;
 
 /**
  * Tests the conversion of system time into ticks.
+ *
+ * @author Leif Mortenson <leif@tanukisoftware.com>
  */
 public class WrapperManagerSystemTimeTestCase
     extends TestCase
