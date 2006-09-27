@@ -1195,7 +1195,7 @@ void wrapperExecute() {
 
             /* If a java pid filename is specified then write the pid of the java process. */
             if (wrapperData->javaPidFilename) {
-                if (writePidFile(wrapperData->javaPidFilename, getpid(), wrapperData->javaPidFileUmask)) {
+                if (writePidFile(wrapperData->javaPidFilename, jvmPid, wrapperData->javaPidFileUmask)) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                         "Unable to write the Java PID file: %s", wrapperData->javaPidFilename);
                 }
@@ -1280,14 +1280,20 @@ int wrapperGetProcessStatus() {
     int res;
 
     retval = waitpid(jvmPid, &status, WNOHANG);
+    if (retval == 0) {
+        /* Still up and running. */
+        res = WRAPPER_PROCESS_UP;
+    } else {
+        if (retval < 0) {
+            if (errno == ECHILD) {
+                /* Process is gone.  Happens after a SIGCHLD is handled. Normal. */
+            } else {
+                /* Error requesting the status. */
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                    "Unable to request JVM process status: %s", getLastErrorText());
+            }
+        }
 
-    if (retval < 0) {
-        /* Wait failed.  The child process is down an unknown.  Happens after a SIGCHLD is handled. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-            "JVM process is gone.");
-        
-        res = WRAPPER_PROCESS_DOWN;
-    } else if (retval > 0) {
         /* JVM has exited. */
         res = WRAPPER_PROCESS_DOWN;
 
@@ -1306,8 +1312,6 @@ int wrapperGetProcessStatus() {
         if (wrapperData->javaPidFilename) {
             unlink(wrapperData->javaPidFilename);
         }
-    } else {
-        res = WRAPPER_PROCESS_UP;
     }
     
     return res;

@@ -21,6 +21,14 @@ Java Service Wrapper Revision History.
 * Fix a problem in UNIX versions where the SIGTERM handler was being disabled
   when a SIGCHLD was received.
 * Added support in UNIX versions for the SIGHUP signal.
+* Migrated the source to Subversion from CVS.  Did a bunch of cleanup in the
+  source, removing CVS specific tags.
+* Fix a problem in UNIX versions were the pid file specified by the
+  wrapper.java.pidfile property contained the wrapper pid rather than the
+  jvm pid.  Bug #1565011.
+* Fix a problem in UNIX versions where the file specified by the
+  wrapper.java.pidfile property was not always being deleted when the JVM
+  process went away.
 
 3.2.1
 * Fix a problem with the solaris-sparc-64 makefile.
