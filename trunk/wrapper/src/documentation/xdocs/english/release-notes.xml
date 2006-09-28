@@ -98,6 +98,13 @@ $Id$
                     process went away.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    A user encountered a JVM bug where calls to System.exit were resulting in
+                    an IllegalThreadStateException being thrown.  Added some code to trap this
+                    and shut down the JVM using other means to avoid a hang during shutdown.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.1">

@@ -2928,7 +2928,27 @@ public final class WrapperManager
                 m_out.println( "calling System.exit(" + exitCode + ")" );
             }
             m_shutdownJVMComplete = true;
+            safeSystemExit( exitCode );
+        }
+    }
+    
+    /**
+     * A user ran into a JVM bug where a call to System exit was causing an
+     *  IllegalThreadStateException to be thrown.  Not sure how widespread
+     *  this problem is.  But it is easy to avoid it causing serious problems
+     *  for the wrapper.
+     */
+    private static void safeSystemExit( int exitCode )
+    {
+        try
+        {
             System.exit( exitCode );
+        }
+        catch ( IllegalThreadStateException e )
+        {
+            m_out.println( "Wrapper Manager: Attempted System.exit(" + exitCode + ") call failed: " + e.toString() );
+            m_out.println( "                 Trying Runtime.halt(" + exitCode + ")" );
+            Runtime.getRuntime().halt( exitCode );
         }
     }
     
@@ -3893,7 +3913,7 @@ public final class WrapperManager
                                         //  so just give up and kill the JVM
                                         m_out.println(
                                             "Wrapper Manager: JVM did not exit.  Give up." );
-                                        System.exit(1);
+                                        safeSystemExit(1);
                                     }
                                     else if ( lastPingAge > m_pingTimeout )
                                     {
