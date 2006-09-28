@@ -29,6 +29,9 @@ Java Service Wrapper Revision History.
 * Fix a problem in UNIX versions where the file specified by the
   wrapper.java.pidfile property was not always being deleted when the JVM
   process went away.
+* A user encountered a JVM bug where calls to System.exit were resulting in
+  an IllegalThreadStateException being thrown.  Added some code to trap this
+  and shut down the JVM using other means to avoid a hang during shutdown.
 
 3.2.1
 * Fix a problem with the solaris-sparc-64 makefile.
