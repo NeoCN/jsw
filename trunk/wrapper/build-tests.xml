@@ -725,8 +725,8 @@ export ENV_VAR_4=d]]></replacevalue>
             <replacevalue><![CDATA[Starting $APP_LONG_NAME with test action: $1]]></replacevalue>
         </replace>
         <replace file="${test.dir}/action">
-            <replacetoken><![CDATA[$WRAPPER_CMD $WRAPPER_CONF]]></replacetoken>
-            <replacevalue><![CDATA[$WRAPPER_CMD $WRAPPER_CONF wrapper.app.parameter.1=$1]]></replacevalue>
+            <replacetoken><![CDATA[\"$WRAPPER_CMD\" \"$WRAPPER_CONF\"]]></replacetoken>
+            <replacevalue><![CDATA[\"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.app.parameter.1=$1]]></replacevalue>
         </replace>
         <replace file="${test.dir}/action">
             <replacetoken><![CDATA[Usage: $0 { console | start | stop | restart | status | dump }]]></replacetoken>
