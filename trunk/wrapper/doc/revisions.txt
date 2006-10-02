@@ -35,6 +35,9 @@ Java Service Wrapper Revision History.
 * Fix a NullPointerException caused by users incorrectly implementing
   an Integration Method #3 class and then calling WrapperManager.start with
   a null value for the args parameter.
+* Update the banner displayed by the Wrapper on startup to include a
+  copyright notice.  Please see the license page of the documentation for
+  details.
 
 3.2.1
 * Fix a problem with the solaris-sparc-64 makefile.

@@ -112,6 +112,14 @@ $Id$
                     a null value for the args parameter.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Update the banner displayed by the Wrapper on startup to include a
+                    copyright notice.  Please see the
+                    <ulink url="license.html">license</ulink> page of the documentation
+                    for details.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.1">
