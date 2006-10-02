@@ -367,7 +367,16 @@ public final class WrapperManager
                 + "  Using classloader: " + WrapperManager.class.getClassLoader() );
         }
         
+        //
+        // WARNING - The following banner is displayed to inform the user that they
+        //           are using the Java Service Wrapper.  This banner must remain
+        //           clearly visible in the logs of any application making use of
+        //           the Wrapper.  This includes any applications based on the
+        //           wrapper source.
+        //           If you are here then you are benefiting from this project,
+        //           please have the courtesy to respect its license.
         m_out.println( "Wrapper (Version " + getVersion() + ") http://wrapper.tanukisoftware.org" );
+        m_out.println( "  Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved." );
         m_out.println();
         
         // Check for the jvmID
