@@ -1750,6 +1750,13 @@ public final class WrapperManager
         // Check the SecurityManager here as it is possible that it was set before this call.
         checkSecurityManager();
         
+        // Just in case the user failed to provide an argument list, recover by creating one
+        //  here.  This will avoid possible problems down stream.
+        if ( args == null )
+        {
+            args = new String[0];
+        }
+        
         if ( m_debug )
         {
             StringBuffer sb = new StringBuffer();
