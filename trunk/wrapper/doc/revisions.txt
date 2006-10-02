@@ -32,6 +32,9 @@ Java Service Wrapper Revision History.
 * A user encountered a JVM bug where calls to System.exit were resulting in
   an IllegalThreadStateException being thrown.  Added some code to trap this
   and shut down the JVM using other means to avoid a hang during shutdown.
+* Fix a NullPointerException caused by users incorrectly implementing
+  an Integration Method #3 class and then calling WrapperManager.start with
+  a null value for the args parameter.
 
 3.2.1
 * Fix a problem with the solaris-sparc-64 makefile.

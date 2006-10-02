@@ -105,6 +105,13 @@ $Id$
                     and shut down the JVM using other means to avoid a hang during shutdown.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a NullPointerException caused by users incorrectly implementing
+                    an Integration Method #3 class and then calling WrapperManager.start with
+                    a null value for the args parameter.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.1">
