@@ -636,7 +636,7 @@ int getLowLogLevel() {
 
 /* Writes to and then returns a buffer that is reused by the current thread.
  *  It should not be released. */
-char* buildPrintBuffer( int source_id, int level, struct tm *nowTM, char *format, char *message ) {
+char* buildPrintBuffer( int source_id, int level, struct tm *nowTM, int nowMillis, char *format, char *message ) {
     int       i;
     int       reqSize;
     int       numColumns;
@@ -665,6 +665,11 @@ char* buildPrintBuffer( int source_id, int level, struct tm *nowTM, char *format
 
         case 'T':
             reqSize += 19 + 3;
+            numColumns++;
+            break;
+
+        case 'Z':
+            reqSize += 23 + 3;
             numColumns++;
             break;
 
@@ -748,9 +753,16 @@ char* buildPrintBuffer( int source_id, int level, struct tm *nowTM, char *format
             break;
 
         case 'T':
-            pos += sprintf( pos, "%04d/%02d/%02d %02d:%02d:%02d", 
+            pos += sprintf( pos, "%04d/%02d/%02d %02d:%02d:%02d",
                 nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday, 
                 nowTM->tm_hour, nowTM->tm_min, nowTM->tm_sec );
+            currentColumn++;
+            break;
+
+        case 'Z':
+            pos += sprintf( pos, "%04d/%02d/%02d %02d:%02d:%02d.%03d",
+                nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday, 
+                nowTM->tm_hour, nowTM->tm_min, nowTM->tm_sec, nowMillis );
             currentColumn++;
             break;
 
@@ -834,7 +846,13 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
     char        *printBuffer;
     int         old_umask;
     char        nowDate[9];
+#ifdef WIN32
+    struct _timeb timebNow;
+#else
+    timeval     timevalNow;
+#endif
     time_t      now;
+    int         nowMillis;
     struct tm   *nowTM;
 
     /* We need to be very careful that only one thread is allowed in here
@@ -894,13 +912,22 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
     } while ( count < 0 );
 
     /* Build a timestamp */
-    now = time( NULL );
+#ifdef WIN32
+    _ftime( &timebNow );
+    now = (time_t)timebNow.time;
+    nowMillis = timebNow.millitm;
+#else
+    gettimeofday( &timevalNow, NULL );
+    now = (time_t)timevalNow.tv_sec;
+    nowMillis = timevalNow.tv_usec / 1000;
+#endif
     nowTM = localtime( &now );
+
     
     /* Console output by format */
     if( level >= currentConsoleLevel ) {
         /* Build up the printBuffer. */
-        printBuffer = buildPrintBuffer( source_id, level, nowTM, consoleFormat, threadMessageBuffer );
+        printBuffer = buildPrintBuffer( source_id, level, nowTM, nowMillis, consoleFormat, threadMessageBuffer );
 
         /* Write the print buffer to the console. */
 #ifdef WIN32
@@ -969,7 +996,7 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
                 strcpy(logFileLastNowDate, nowDate);
                 
                 /* Build up the printBuffer. */
-                printBuffer = buildPrintBuffer( source_id, level, nowTM, logfileFormat, threadMessageBuffer );
+                printBuffer = buildPrintBuffer( source_id, level, nowTM, nowMillis, logfileFormat, threadMessageBuffer );
                 
                 fprintf( logfileFP, "%s\n", printBuffer );
                 

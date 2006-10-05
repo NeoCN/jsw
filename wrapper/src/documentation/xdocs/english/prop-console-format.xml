@@ -30,7 +30,8 @@
             <literal moreinfo="none">'L'</literal> for log level,
             <literal moreinfo="none">'P'</literal> for prefix,
             <literal moreinfo="none">'D'</literal> for thread,
-            <literal moreinfo="none">'T'</literal> for time, and
+            <literal moreinfo="none">'T'</literal> for time,
+            <literal moreinfo="none">'Z'</literal> for millisecond time, and
             <literal moreinfo="none">'M'</literal> for message.  If the format
             contains these values then it will be included in the format.  The
             order of the tokens does not affect the way the log appears, but
@@ -49,6 +50,12 @@
             Note that the first two lines are output from the Wrapper, while the
             last is output from the JVM.
         </para>
+        <informalexample>
+            <simpara><emphasis>Example output where <literal moreinfo="none">wrapper.console.format=LPZM</literal></emphasis></simpara>
+            <screen format="linespecific"><![CDATA[STATUS | wrapper  | 2001/12/11 13:45:33.560 | --> Wrapper Started as Console
+STATUS | wrapper  | 2001/12/11 13:45:33.560 | Launching a JVM...
+INFO   | jvm 1    | 2001/12/11 13:45:35.575 | Initializing...]]></screen>
+        </informalexample>
         <informalexample>
             <simpara><emphasis>Example output where <literal moreinfo="none">wrapper.console.format=LPTM</literal></emphasis></simpara>
             <screen format="linespecific"><![CDATA[STATUS | wrapper  | 2001/12/11 13:45:33 | --> Wrapper Started as Console
