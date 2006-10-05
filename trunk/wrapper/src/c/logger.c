@@ -849,7 +849,7 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
 #ifdef WIN32
     struct _timeb timebNow;
 #else
-    timeval     timevalNow;
+    struct timeval timevalNow;
 #endif
     time_t      now;
     int         nowMillis;
