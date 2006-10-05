@@ -120,6 +120,11 @@ $Id$
                     for details.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add a new 'Z' log format which will log the time to millisecond accuracy.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.1">

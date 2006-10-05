@@ -38,6 +38,7 @@ Java Service Wrapper Revision History.
 * Update the banner displayed by the Wrapper on startup to include a
   copyright notice.  Please see the license page of the documentation for
   details.
+* Add a new 'Z' log format which will log the time to millisecond accuracy.
 
 3.2.1
 * Fix a problem with the solaris-sparc-64 makefile.
