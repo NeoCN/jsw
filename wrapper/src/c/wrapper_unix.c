@@ -429,10 +429,14 @@ void sigActionChildDeath(int sigNum, siginfo_t *sigInfo, void *na) {
     descSignal(sigInfo);
 
     log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-        "Received SIGCHLD, calling wait().");
-    wait(NULL);
-    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-        "wait() returned, child process should be gone.");
+        "Received SIGCHLD, checking JVM process status.");
+    if (wrapperGetProcessStatus(TRUE) == WRAPPER_PROCESS_UP) {
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            "JVM process was still running after receiving a SIGCHLD signal.");
+    } else {
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+            "JVM process is no longer running.");
+    }
 }
 
 /**
