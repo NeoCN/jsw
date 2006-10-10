@@ -52,6 +52,11 @@
 #include <string.h>
 
 #ifdef WIN32
+
+// MS Visual Studio 8 went and deprecated the POXIX names for functions.
+//  Fixing them all would be a big headache for UNIX versions.
+#pragma warning(disable : 4996)
+
 #else
 #include <strings.h>
 #endif
@@ -164,9 +169,9 @@ void evaluateEnvironmentVariables(const char *propertyValue, char *buffer, int b
     char *envValue;
     char *start;
     char *end;
-    int len;
-    int outLen;
-    int bufferAvailable;
+    size_t len;
+    size_t outLen;
+    size_t bufferAvailable;
 
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "evaluateEnvironmentVariables('%s', buffer, %d)",
@@ -190,7 +195,7 @@ void evaluateEnvironmentVariables(const char *propertyValue, char *buffer, int b
             if (end != NULL) {
                 /* A pair of '%' characters was found.  An environment */
                 /*  variable name should be between the two. */
-                len = end - start - 1;
+                len = (int)(end - start - 1);
                 memcpy(envName, start + 1, len);
                 envName[len] = '\0';
 
@@ -199,7 +204,7 @@ void evaluateEnvironmentVariables(const char *propertyValue, char *buffer, int b
                 if (envValue != NULL) {
                     /* An envvar value was found. */
                     /* Copy over any text before the envvar */
-                    outLen = start - in;
+                    outLen = (int)(start - in);
                     if (bufferAvailable < outLen) {
                         outLen = bufferAvailable;
                     }
@@ -329,11 +334,11 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
     char buffer[MAX_PROPERTY_NAME_VALUE_LENGTH];
     char expBuffer[MAX_PROPERTY_NAME_VALUE_LENGTH];
     char *trimmedBuffer;
-    int trimmedBufferLen;
+    size_t trimmedBufferLen;
     char *c;
     char *d;
-    int i, j;
-    int len;
+    size_t i, j;
+    size_t len;
     int quoted;
 
 #ifdef _DEBUG
@@ -533,9 +538,9 @@ void setEnv( const char *name, const char *value )
  *  buffer is at least as large as the in buffer. */
 void trim(const char *in, char *out)
 {
-    int len;
-    int first;
-    int last;
+    size_t len;
+    size_t first;
+    size_t last;
 
     len = strlen(in);
     first = 0;
@@ -760,7 +765,7 @@ void dumpProperties(Properties *properties) {
  *  The returned buffer must be freed by the calling code. */
 char *linearizeProperties(Properties *properties, char separator) {
     Property *property;
-    int size;
+    size_t size;
     char *c;
     char *fullBuffer;
     char *buffer;

@@ -158,7 +158,7 @@ void loadDLLProcs() {
  */
 void buildSystemPath() {
     char *envBuffer;
-    int len, i;
+    size_t len, i;
     char *c, *lc;
 
     /* Get the length of the PATH environment variable. */
@@ -171,7 +171,7 @@ void buildSystemPath() {
 
     /* Allocate the memory to hold the PATH */
     envBuffer = malloc(sizeof(char) * len);
-    GetEnvironmentVariable("PATH", envBuffer, len);
+    GetEnvironmentVariable("PATH", envBuffer, (DWORD)len);
 
 #ifdef _DEBUG
     printf("Getting the system path: %s\n", envBuffer);
@@ -185,7 +185,7 @@ void buildSystemPath() {
     /* Get the elements ending in a ';' */
     while (((c = strchr(lc, ';')) != NULL) && (i < SYSTEM_PATH_MAX_LEN - 2))
     {
-        len = c - lc;
+        len = (int)(c - lc);
         systemPath[i] = malloc(sizeof(char) * (len + 1));
         memcpy(systemPath[i], lc, len);
         systemPath[i][len] = '\0';
@@ -268,32 +268,32 @@ void appExit(int exitCode) {
     if (cleanUpPIDFilesOnExit) {
         /* Remove pid file.  It may no longer exist. */
         if (wrapperData->pidFilename) {
-            unlink(wrapperData->pidFilename);
+            _unlink(wrapperData->pidFilename);
         }
         
         /* Remove lock file.  It may no longer exist. */
         if (wrapperData->lockFilename) {
-            unlink(wrapperData->lockFilename);
+            _unlink(wrapperData->lockFilename);
         }
         
         /* Remove status file.  It may no longer exist. */
         if (wrapperData->statusFilename) {
-            unlink(wrapperData->statusFilename);
+            _unlink(wrapperData->statusFilename);
         }
         
         /* Remove java status file if it was registered and created by this process. */
         if (wrapperData->javaStatusFilename) {
-            unlink(wrapperData->javaStatusFilename);
+            _unlink(wrapperData->javaStatusFilename);
         }
         
         /* Remove java id file if it was registered and created by this process. */
         if (wrapperData->javaIdFilename) {
-            unlink(wrapperData->javaIdFilename);
+            _unlink(wrapperData->javaIdFilename);
         }
         
         /* Remove anchor file.  It may no longer exist. */
         if (wrapperData->anchorFilename) {
-            unlink(wrapperData->anchorFilename);
+            _unlink(wrapperData->anchorFilename);
         }
     }
     
@@ -586,7 +586,7 @@ void wrapperRequestDumpJVMState(int useLoggerQueue) {
 }
 
 void wrapperBuildJavaCommand() {
-    int commandLen;
+    size_t commandLen;
     char **strings;
     int length, i;
 
@@ -1008,11 +1008,11 @@ int wrapperReadChildOutput() {
     DWORD keepCnt;
     int thisLF;
     struct timeb timeBuffer;
-    long startTime;
+    time_t startTime;
     int startTimeMillis;
-    long now;
+    time_t now;
     int nowMillis;
-    long durr;
+    time_t durr;
 
 
     if (!wrapperChildStdoutRdBuffer) {
@@ -1052,7 +1052,7 @@ int wrapperReadChildOutput() {
          *  full buffer, but not more than the READ_BUFFER_BLOCK_SIZE at a time.
          *  Always peeking the max will just waste CPU as most lines will be much
          *  shorter. */
-        maxRead = wrapperChildStdoutRdBufferSize - (bufferP - wrapperChildStdoutRdBuffer) - 1;
+        maxRead = wrapperChildStdoutRdBufferSize - (int)(bufferP - wrapperChildStdoutRdBuffer) - 1;
         if (maxRead <= 0 ) {
             /* We are out of buffer space.  The buffer needs to be expanded. */
             /*
@@ -1096,7 +1096,7 @@ int wrapperReadChildOutput() {
 
             if ((cCR != NULL) && ((cLF == NULL) || (cLF > cCR))) {
                 /* CR was found.  If both were found then the CR was first. */
-                keepCnt = cCR - bufferP + 1;
+                keepCnt = (int)(cCR - bufferP) + 1;
                 if (cCR[1] == (char)0x0a) {
                     /* CR+LF found. Read count should include it as well. */
                     keepCnt++;
@@ -1113,15 +1113,15 @@ int wrapperReadChildOutput() {
 
                 /* Terminate the buffer to just before the CR. */
                 cCR[0] = '\0';
-                lineLength = cCR - wrapperChildStdoutRdBuffer;
+                lineLength = (int)(cCR - wrapperChildStdoutRdBuffer);
 
             } else if (cLF != NULL) {
                 /* LF found. */
-                keepCnt = cLF - bufferP + 1;
+                keepCnt = (int)(cLF - bufferP) + 1;
 
                 /* Terminate the buffer to just before the LF. */
                 cLF[0] = '\0';
-                lineLength = cLF - wrapperChildStdoutRdBuffer;
+                lineLength = (int)(cLF - wrapperChildStdoutRdBuffer);
                 thisLF = 1;
               /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  LF");*/
             } else {
@@ -1293,7 +1293,7 @@ void wrapperKillProcessNow() {
 
     /* Remove java pid file if it was registered and created by this process. */
     if (wrapperData->javaPidFilename) {
-        unlink(wrapperData->javaPidFilename);
+        _unlink(wrapperData->javaPidFilename);
     }
     
     if (!CloseHandle(javaProcess)) {
@@ -2151,7 +2151,7 @@ int wrapperInstall() {
                 /* Set Description key in registry */
                 RegSetValueEx(hKey, "Description", (DWORD) 0, (DWORD) REG_SZ,
                     (const unsigned char *)wrapperData->ntServiceDescription,
-                    (strlen(wrapperData->ntServiceDescription) + 1));
+                    (int)(strlen(wrapperData->ntServiceDescription) + 1));
                 RegCloseKey(hKey);
             }
             
@@ -2256,7 +2256,7 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseKey, const char *regPath) {
                     envKeys[dwIndex] = malloc(MAX_PROPERTY_NAME_LENGTH - 1 + MAX_PROPERTY_VALUE_LENGTH - 1 + 2);
                     if (envKeys[dwIndex] != NULL) {
                         sprintf(envKeys[dwIndex], "%s=%s", name, data);
-                        if (putenv(envKeys[dwIndex])) {
+                        if (_putenv(envKeys[dwIndex])) {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to set environment variable from the registry - %s", getLastErrorText());
                             err = ERROR_NO_MORE_ITEMS;
                             result = 1;
@@ -2326,7 +2326,7 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseKey, const char *regPath) {
 #endif
                                     /* Replace the env string. */
                                     sprintf(envKeys[ dwIndex ], "%s=%s", name, data);
-                                    if (putenv(envKeys[ dwIndex ])) {
+                                    if (_putenv(envKeys[ dwIndex ])) {
                                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to set environment variable from the registry - %s", getLastErrorText());
                                         err = ERROR_NO_MORE_ITEMS;
                                         result = 1;
@@ -3185,7 +3185,7 @@ int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "  exceptionCode    = %s", exName);
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "  exceptionFlag    = %s", 
         (exceptionPointers->ExceptionRecord->ExceptionFlags == EXCEPTION_NONCONTINUABLE ? "EXCEPTION_NONCONTINUABLE" : "EXCEPTION_NONCONTINUABLE_EXCEPTION"));
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "  exceptionAddress = %p", (int)exceptionPointers->ExceptionRecord->ExceptionAddress);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "  exceptionAddress = %p", exceptionPointers->ExceptionRecord->ExceptionAddress);
     if (exCode == EXCEPTION_ACCESS_VIOLATION) {
         if (exceptionPointers->ExceptionRecord->ExceptionInformation[0] == 0) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "  Read access exception from %p", 
@@ -3322,7 +3322,7 @@ void main(int argc, char **argv) {
         }
         
         /* Set the default umask of the Wrapper process. */
-        umask(wrapperData->umask);
+        _umask(wrapperData->umask);
         
         /* Perform the specified command */
         if(!strcmpIgnoreCase(wrapperData->argCommand,"i") || !strcmpIgnoreCase(wrapperData->argCommand,"-install")) {
@@ -3524,9 +3524,9 @@ int getJavaHomeFromWindowsRegistry(char *javaHome) {
     /*
      * Initialize the string variables used to retrieve values from Windows Registry
      */
-    memset(&jresubkey, sizeof(jresubkey), 0);
-    memset(&jreversion, sizeof(jreversion), 0);
-    memset(&jhome, sizeof(jhome), 0);
+    memset(&jresubkey, 0, sizeof(jresubkey));
+    memset(&jreversion, 0, sizeof(jreversion));
+    memset(&jhome, 0, sizeof(jhome));
 
     /* SubKey containing the jvm version */
     strcpy(jresubkey, "SOFTWARE\\JavaSoft\\Java Runtime Environment");
