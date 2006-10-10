@@ -433,7 +433,7 @@ extern int wrapperReadChildOutput();
  * Checks on the status of the JVM Process.
  * Returns WRAPPER_PROCESS_UP or WRAPPER_PROCESS_DOWN
  */
-extern int wrapperGetProcessStatus();
+extern int wrapperGetProcessStatus(int useLoggerQueue);
 
 /**
  * Immediately kill the JVM process and set the JVM state to

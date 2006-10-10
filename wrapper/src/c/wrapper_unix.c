@@ -868,7 +868,7 @@ void wrapperDumpCPUUsage() {
  * Checks on the status of the JVM Process.
  * Returns WRAPPER_PROCESS_UP or WRAPPER_PROCESS_DOWN
  */
-int wrapperGetProcessStatus() {
+int wrapperGetProcessStatus(int useLoggerQueue) {
     int retval;
     int status;
     int exitCode;
@@ -884,7 +884,7 @@ int wrapperGetProcessStatus() {
                 /* Process is gone.  Happens after a SIGCHLD is handled. Normal. */
             } else {
                 /* Error requesting the status. */
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                     "Unable to request JVM process status: %s", getLastErrorText());
             }
         }
@@ -896,7 +896,7 @@ int wrapperGetProcessStatus() {
         if (WIFEXITED(status)) {
             exitCode = WEXITSTATUS(status);
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                        "WIFEXITED indicates that the JVM exited abnormally.");
             exitCode = 1;
         }

@@ -60,6 +60,7 @@
 #include <windows.h>
 #include <tchar.h>
 #include <conio.h>
+#include <sys/timeb.h>
 #include "messages.h"
 #else
 #include <glob.h>
