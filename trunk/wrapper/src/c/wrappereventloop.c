@@ -1034,7 +1034,7 @@ void jStateLaunch(DWORD nowTicks, int nextSleep) {
             wrapperExecute();
         
             /* Check if the start was successful. */
-            if (nextSleep && (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN)) {
+            if (nextSleep && (wrapperGetProcessStatus(FALSE) == WRAPPER_PROCESS_DOWN)) {
                 /* Failed to start the JVM.  Tell the wrapper to shutdown. */
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to start a JVM");
                 wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
@@ -1071,7 +1071,7 @@ void jStateLaunch(DWORD nowTicks, int nextSleep) {
  */
 void jStateLaunching(DWORD nowTicks, int nextSleep) {
     /* Make sure that the JVM process is still up and running */
-    if (nextSleep && (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN)) {
+    if (nextSleep && (wrapperGetProcessStatus(FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone.  Restart it. */
         wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, nowTicks, -1);
         wrapperData->restartRequested = TRUE;
@@ -1155,7 +1155,7 @@ void jStateLaunched(DWORD nowTicks, int nextSleep) {
  */
 void jStateStarting(DWORD nowTicks, int nextSleep) {
     /* Make sure that the JVM process is still up and running */
-    if (nextSleep && (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN)) {
+    if (nextSleep && (wrapperGetProcessStatus(FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone.  Restart it. */
         wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, nowTicks, -1);
         wrapperData->restartRequested = TRUE;
@@ -1202,7 +1202,7 @@ void jStateStarted(DWORD nowTicks, int nextSleep) {
     int ret;
 
     /* Make sure that the JVM process is still up and running */
-    if (nextSleep && (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN)) {
+    if (nextSleep && (wrapperGetProcessStatus(FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone.  Restart it. */
         wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, nowTicks, -1);
         wrapperData->restartRequested = TRUE;
@@ -1261,7 +1261,7 @@ void jStateStarted(DWORD nowTicks, int nextSleep) {
  */
 void jStateStopping(DWORD nowTicks, int nextSleep) {
     /* Make sure that the JVM process is still up and running */
-    if (nextSleep && (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN)) {
+    if (nextSleep && (wrapperGetProcessStatus(FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone. */
         wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, nowTicks, -1);
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
@@ -1301,7 +1301,7 @@ void jStateStopping(DWORD nowTicks, int nextSleep) {
  *            function will be called again immediately.
  */
 void jStateStopped(DWORD nowTicks, int nextSleep) {
-    if (nextSleep && (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN)) {
+    if (nextSleep && (wrapperGetProcessStatus(FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone. */
         wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, nowTicks, -1);
         if (wrapperData->isDebugging) {
@@ -1342,7 +1342,7 @@ void jStateStopped(DWORD nowTicks, int nextSleep) {
  */
 void jStateKilling(DWORD nowTicks, int nextSleep) {
     /* Make sure that the JVM process is still up and running */
-    if (nextSleep && (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN)) {
+    if (nextSleep && (wrapperGetProcessStatus(FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone. */
         wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, nowTicks, -1);
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
@@ -1586,7 +1586,7 @@ void wrapperEventLoop() {
                 /** The JVM is already being stopped, so nothing else needs to be done. */
             } else {
                 /* The JVM should be running, so it needs to be stopped. */
-                if (wrapperGetProcessStatus() == WRAPPER_PROCESS_DOWN) {
+                if (wrapperGetProcessStatus(FALSE) == WRAPPER_PROCESS_DOWN) {
                     /* The process is gone. */
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                         "JVM shut down unexpectedly.");

@@ -1200,7 +1200,7 @@ int wrapperReadChildOutput() {
  * Checks on the status of the JVM Process.
  * Returns WRAPPER_PROCESS_UP or WRAPPER_PROCESS_DOWN
  */
-int wrapperGetProcessStatus() {
+int wrapperGetProcessStatus(int useLoggerQueue) {
     int res;
     DWORD exitCode;
     char *exName;
@@ -1212,21 +1212,21 @@ int wrapperGetProcessStatus() {
 
         /* Get the exit code of the process. */
         if (!GetExitCodeProcess(javaProcess, &exitCode)) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Critical error: unable to obtain the exit code of the JVM process: %s", getLastErrorText());
             appExit(1);
         }
         
         if (exitCode == STILL_ACTIVE) {
             /* Should never happen, but check for it. */
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 "The JVM returned JVM exit code was STILL_ACTIVE." );
         }
         
         /* If the JVM crashed then GetExitCodeProcess could have returned an uncaught exception. */
         exName = getExceptionName(exitCode);
         if (exName != NULL) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 "The JVM process terminated due to an uncaught exception: %s (0x%08x)", exName, exitCode);
             
             /* Reset the exit code as the exeption value will confuse users. */
@@ -1241,7 +1241,7 @@ int wrapperGetProcessStatus() {
         }
         
         if (!CloseHandle(javaProcess)) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 "Failed to close the Java process handle: %s", getLastErrorText());
         }
         javaProcess = NULL;
@@ -1254,7 +1254,8 @@ int wrapperGetProcessStatus() {
         break;
 
     default:
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Critical error: wait for JVM process failed");
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+            "Critical error: wait for JVM process failed");
         appExit(1);
     }
 
