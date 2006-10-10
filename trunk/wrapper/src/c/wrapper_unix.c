@@ -192,6 +192,8 @@ const char* getSignalName(int signo) {
             return "SIGALRM";
         case SIGINT:
             return "SIGINT";
+        case SIGKILL:
+            return "SIGKILL";
         case SIGQUIT:
             return "SIGQUIT";
         case SIGCHLD:
@@ -898,9 +900,13 @@ int wrapperGetProcessStatus(int useLoggerQueue, DWORD nowTicks) {
         /* Get the exit code of the process. */
         if (WIFEXITED(status)) {
             exitCode = WEXITSTATUS(status);
+        } else if (WIFSIGNALED(status)) {
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                "JVM exited in response to signal %s (%d).", getSignalName(WTERMSIG(status)), WTERMSIG(status));
+            exitCode = 1;
         } else {
             log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                       "WIFEXITED indicates that the JVM exited abnormally.");
+                "WIFEXITED indicates that the JVM exited abnormally.");
             exitCode = 1;
         }
 
