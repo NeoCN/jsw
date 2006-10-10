@@ -149,8 +149,11 @@ public class Main
             buildCommand( panel, gridBag, c, "Nested Exit(1)", "nestedexit1",
                 "Calls System.exit(1) within WrapperListener.stop(1) callback." );
             
-            buildCommand( panel, gridBag, c, "Halt", "halt",
+            buildCommand( panel, gridBag, c, "Halt(0)", "halt0",
                 "Calls Runtime.getRuntime().halt(0) to kill the JVM, the Wrapper will restart it." );
+            
+            buildCommand( panel, gridBag, c, "Halt(1)", "halt1",
+                "Calls Runtime.getRuntime().halt(1) to kill the JVM, the Wrapper will restart it." );
             
             buildCommand( panel, gridBag, c, "Restart()", "restart",
                 "Calls WrapperManager.restart() to shutdown the current JVM and start a new one." );
