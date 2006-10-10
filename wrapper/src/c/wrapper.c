@@ -2098,7 +2098,7 @@ void wrapperFreeJavaCommandArray(char **strings, int length) {
  * Called when the Wrapper detects that the JVM process has exited.
  *  Contains code common to all platforms.
  */
-void wrapperJVMProcessExited(int useLoggerQueue, int exitCode) {
+void wrapperJVMProcessExited(int useLoggerQueue, DWORD nowTicks, int exitCode) {
     if (exitCode == 0) {
         /* The JVM exit code was 0, so leave any current exit code as is. */
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
@@ -2117,6 +2117,74 @@ void wrapperJVMProcessExited(int useLoggerQueue, int exitCode) {
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
             "JVM process exited with a code of %d, however the wrapper exit code was already %d.",
             exitCode, wrapperData->exitCode);
+    }
+
+    switch(wrapperData->jState)
+    {
+    case WRAPPER_JSTATE_DOWN:
+        /* Shouldn't be called in this state.  But just in case. */
+        if (wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM already down.");
+        }
+        break;
+
+    case WRAPPER_JSTATE_LAUNCH:
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            "Unable to start a JVM");
+        break;
+
+    case WRAPPER_JSTATE_LAUNCHING:
+        wrapperData->restartRequested = TRUE;
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            "JVM exited while loading the application.");
+        break;
+
+    case WRAPPER_JSTATE_LAUNCHED:
+        /* Shouldn't be called in this state, but just in case. */
+        wrapperData->restartRequested = TRUE;
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            "JVM exited before starting the application.");
+        break;
+
+    case WRAPPER_JSTATE_STARTING:
+        wrapperData->restartRequested = TRUE;
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            "JVM exited while starting the application.");
+        break;
+
+    case WRAPPER_JSTATE_STARTED:
+        wrapperData->restartRequested = TRUE;
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            "JVM exited unexpectedly.");
+        break;
+
+    case WRAPPER_JSTATE_STOPPING:
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            "JVM exited unexpectedly while stopping the application.");
+        break;
+
+    case WRAPPER_JSTATE_STOPPED:
+        if (wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM exited normally.");
+        }
+        break;
+
+    case WRAPPER_JSTATE_KILLING:
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
+            "JVM exited on its own while waiting to kill the application.");
+        break;
+
+    default:
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            "Unexpected jState=%d in wrapperJVMProcessExited.", wrapperData->jState);
+        break;
+    }
+    wrapperSetJavaState(useLoggerQueue, WRAPPER_JSTATE_DOWN, nowTicks, -1);
+    wrapperProtocolClose();
+
+    /* Remove java pid file if it was registered and created by this process. */
+    if (wrapperData->javaPidFilename) {
+        unlink(wrapperData->javaPidFilename);
     }
 }
 

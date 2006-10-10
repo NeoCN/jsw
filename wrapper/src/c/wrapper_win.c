@@ -1200,7 +1200,7 @@ int wrapperReadChildOutput() {
  * Checks on the status of the JVM Process.
  * Returns WRAPPER_PROCESS_UP or WRAPPER_PROCESS_DOWN
  */
-int wrapperGetProcessStatus(int useLoggerQueue) {
+int wrapperGetProcessStatus(int useLoggerQueue, DWORD nowTicks) {
     int res;
     DWORD exitCode;
     char *exName;
@@ -1233,12 +1233,7 @@ int wrapperGetProcessStatus(int useLoggerQueue) {
             exitCode = 1;
         }
         
-        wrapperJVMProcessExited(useLoggerQueue, exitCode);
-
-        /* Remove java pid file if it was registered and created by this process. */
-        if (wrapperData->javaPidFilename) {
-            unlink(wrapperData->javaPidFilename);
-        }
+        wrapperJVMProcessExited(useLoggerQueue, nowTicks, exitCode);
         
         if (!CloseHandle(javaProcess)) {
             log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,

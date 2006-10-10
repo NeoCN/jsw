@@ -355,7 +355,7 @@ extern int wrapperParseArguments(int argc, char **argv);
  * Called when the Wrapper detects that the JVM process has exited.
  *  Contains code common to all platforms.
  */
-extern void wrapperJVMProcessExited(int useLoggerQueue, int exitCode);
+extern void wrapperJVMProcessExited(int useLoggerQueue, DWORD nowTicks, int exitCode);
 
 /**
  * Logs a single line of child output allowing any filtering
@@ -433,7 +433,7 @@ extern int wrapperReadChildOutput();
  * Checks on the status of the JVM Process.
  * Returns WRAPPER_PROCESS_UP or WRAPPER_PROCESS_DOWN
  */
-extern int wrapperGetProcessStatus(int useLoggerQueue);
+extern int wrapperGetProcessStatus(int useLoggerQueue, DWORD nowTicks);
 
 /**
  * Immediately kill the JVM process and set the JVM state to
