@@ -63,6 +63,10 @@
 #include <winsock.h>
 #include <shlwapi.h>
 
+// MS Visual Studio 8 went and deprecated the POXIX names for functions.
+//  Fixing them all would be a big headache for UNIX versions.
+#pragma warning(disable : 4996)
+
 #define EADDRINUSE  WSAEADDRINUSE
 #define EWOULDBLOCK WSAEWOULDBLOCK
 #define ENOTSOCK    WSAENOTSOCK
@@ -591,11 +595,11 @@ char *wrapperProtocolGetCodeName(char code) {
     return name;
 }
 
-int protocolSendBufferSize = 0;
+size_t protocolSendBufferSize = 0;
 char *protocolSendBuffer = NULL;
 int wrapperProtocolFunction(char function, const char *message) {
     int rc;
-    int len;
+    size_t len;
     const char *logMsg;
     
     /* We don't want to show the full properties log message.  It is quite long and distracting. */
@@ -641,7 +645,7 @@ int wrapperProtocolFunction(char function, const char *message) {
     }
 
     /* Send the packet */
-    rc = send(sd, protocolSendBuffer, len, 0);
+    rc = send(sd, protocolSendBuffer, (int)len, 0);
     if (rc == SOCKET_ERROR) {
         if (wrapperData->isDebugging) {
             log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket send failed. (%d)", wrapperGetLastError());
@@ -665,11 +669,11 @@ int wrapperProtocolRead() {
     int pos;
     int err;
     struct timeb timeBuffer;
-    long startTime;
+    time_t startTime;
     int startTimeMillis;
-    long now;
+    time_t now;
     int nowMillis;
-    long durr;
+    time_t durr;
     
     wrapperGetCurrentTime(&timeBuffer);
     startTime = now = timeBuffer.time;
@@ -1202,12 +1206,13 @@ void wrapperRestartProcess(int useLoggerQueue) {
  *  in this case the backslash is stripped.
  */
 void wrapperStripQuotes(const char *prop, char *propStripped) {
-    int len, i, j;
+    size_t len;
+	int i, j;
     
     len = strlen(prop);
     j = 0;
-    for (i = 0; i < len; i++) {
-        if ((prop[i] == '\\') && (i < len - 1)) {
+    for (i = 0; i < (int)len; i++) {
+        if ((prop[i] == '\\') && (i < (int)len - 1)) {
             if (prop[i + 1] == '\\') {
                 /* Double backslash.  Keep the first, and skip the second. */
                 propStripped[j] = prop[i];
@@ -1265,16 +1270,18 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     int initMemory = 0, maxMemory;
     char paramBuffer[128];
     int quotable;
-    int i, j, len2;
-    int cpLen, cpLenAlloc;
+    int i, j;
+	size_t len2;
+    size_t cpLen, cpLenAlloc;
     char *tmpString;
     struct stat statBuffer;
     char *systemPath;
     char *c;
 #ifdef WIN32
     char cpPath[512];
-    long handle;
-    int len, found;
+    intptr_t handle;
+    size_t len;
+	int found;
     struct _finddata_t fblock;
 #else
     glob_t g;
@@ -2241,7 +2248,7 @@ void wrapperBuildNTServiceInfo() {
     const char *dependencies[10];
     char *work;
     const char *priority;
-    int len;
+    size_t len;
     int i;
 
     if (!wrapperData->configured) {
@@ -2827,8 +2834,8 @@ DWORD wrapperGetSystemTicks() {
     wrapperGetCurrentTime(&timeBuffer);
 
     /* Break in half. */
-    high = timeBuffer.time >> 16;
-    low = timeBuffer.time & 0xffff;
+    high = (DWORD)(timeBuffer.time >> 16);
+    low = (DWORD)(timeBuffer.time & 0xffff);
 
     /* Work on each half. */
     high = high * 1000 / WRAPPER_TICK_MS;

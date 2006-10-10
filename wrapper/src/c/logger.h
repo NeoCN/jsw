@@ -121,7 +121,7 @@ extern void setConsoleStdoutHandle( HANDLE stdoutHandle );
 
 /* * * Function predeclaration * * */
 #ifdef WIN32
-#define strcmpIgnoreCase(str1, str2) stricmp(str1, str2)
+#define strcmpIgnoreCase(str1, str2) _stricmp(str1, str2)
 #else
 #define strcmpIgnoreCase(str1, str2) strcasecmp(str1, str2)
 #endif

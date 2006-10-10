@@ -62,6 +62,11 @@
 #include <conio.h>
 #include <sys/timeb.h>
 #include "messages.h"
+
+// MS Visual Studio 8 went and deprecated the POXIX names for functions.
+//  Fixing them all would be a big headache for UNIX versions.
+#pragma warning(disable : 4996)
+
 #else
 #include <glob.h>
 #include <syslog.h>
@@ -143,9 +148,9 @@ DWORD threadIds[WRAPPER_THREAD_COUNT];
 pthread_t threadIds[WRAPPER_THREAD_COUNT];
 #endif
 char *threadMessageBuffer = NULL;
-int threadMessageBufferSize = 0;
+size_t threadMessageBufferSize = 0;
 char *threadPrintBuffer = NULL;
-int threadPrintBufferSize = 0;
+size_t threadPrintBufferSize = 0;
 
 /* Logger file pointer.  It is kept open under high log loads but closed whenever it has been idle. */
 FILE *logfileFP = NULL;
@@ -177,8 +182,8 @@ void setConsoleStdoutHandle( HANDLE stdoutHandle ) {
  * newToken may be null, implying "".
  */
 char *replaceStringLongWithShort(char *string, const char *oldToken, const char *newToken) {
-    int oldLen = strlen(oldToken);
-    int newLen;
+    size_t oldLen = strlen(oldToken);
+    size_t newLen;
     char *in = string;
     char *out = string;
     
@@ -364,7 +369,7 @@ int getLogFacilityForName( const char *logFacilityName ) {
 /* Logfile functions */
 
 void setLogfilePath( const char *log_file_path ) {
-    int len = strlen(log_file_path);
+    size_t len = strlen(log_file_path);
 #ifdef WIN32
     char *c;
 #endif
@@ -640,7 +645,7 @@ int getLowLogLevel() {
  *  It should not be released. */
 char* buildPrintBuffer( int source_id, int level, struct tm *nowTM, int nowMillis, char *format, char *message ) {
     int       i;
-    int       reqSize;
+    size_t    reqSize;
     int       numColumns;
     char      *pos;
     int       currentColumn;
@@ -844,7 +849,7 @@ void generateLogFileName(char *buffer, const char *template, const char *nowDate
 /* General log functions */
 void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
     va_list     vargs;
-    int         count;
+    size_t      count;
     char        *printBuffer;
     int         old_umask;
     char        nowDate[9];
@@ -1106,13 +1111,13 @@ int registerSyslogMessageFile( ) {
 
             if( RegOpenKeyEx( HKEY_LOCAL_MACHINE, regPath, 0, KEY_WRITE, (PHKEY) &hKey ) == ERROR_SUCCESS ) {
                 /* Set EventMessageFile */
-                if( RegSetValueEx( hKey, "EventMessageFile", (DWORD) 0, (DWORD) REG_SZ, (const unsigned char *) buffer, (strlen(buffer) + 1) ) != ERROR_SUCCESS ) {
+                if( RegSetValueEx( hKey, "EventMessageFile", (DWORD) 0, (DWORD) REG_SZ, (const unsigned char *) buffer, (DWORD)(strlen(buffer) + 1) ) != ERROR_SUCCESS ) {
                     RegCloseKey( hKey );
                     return -1;
                 }
 
                 /* Set CategoryMessageFile */
-                if( RegSetValueEx( hKey, "CategoryMessageFile", (DWORD) 0, (DWORD) REG_SZ, (const unsigned char *) buffer, (strlen(buffer) + 1) ) != ERROR_SUCCESS ) {
+                if( RegSetValueEx( hKey, "CategoryMessageFile", (DWORD) 0, (DWORD) REG_SZ, (const unsigned char *) buffer, (DWORD)(strlen(buffer) + 1) ) != ERROR_SUCCESS ) {
                     RegCloseKey( hKey );
                     return -1;
                 }
@@ -1366,7 +1371,7 @@ void vWriteToConsole( char *lpszFmt, va_list vargs ) {
     }
 
     /* We can now write the message. */
-    WriteConsole(consoleStdoutHandle, vWriteToConsoleBuffer, strlen( vWriteToConsoleBuffer ), &wrote, NULL);
+    WriteConsole(consoleStdoutHandle, vWriteToConsoleBuffer, (DWORD)strlen( vWriteToConsoleBuffer ), &wrote, NULL);
 }
 void writeToConsole( char *lpszFmt, ... ) {
     va_list		vargs;
@@ -1585,7 +1590,7 @@ void limitLogFileCount(const char *current, const char *pattern, int count) {
 #ifdef WIN32
     char* path;
     char* c;
-    long handle;
+    intptr_t handle;
     struct _finddata_t fblock;
     char* testFile;
 #else
