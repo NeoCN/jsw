@@ -44,6 +44,8 @@ Java Service Wrapper Revision History.
   of the Wrapper was being set correctly through other means however.
 * Fix a potential synchronization problem in the logging code if a JVM exits
   with debug output enabled.
+* Updated the WrapperListener.stop method javadocs to better explain the
+  exitCode value under certain exit modes.
 
 3.2.1
 * Fix a problem with the solaris-sparc-64 makefile.

@@ -87,7 +87,12 @@ public interface WrapperListener
      *  shutdown was originally initiated by a call to System.exit.
      *
      * @param exitCode The suggested exit code that will be returned to the OS
-     *                 when the JVM exits.
+     *                 when the JVM exits.  If WrapperManager.stop was called
+     *                 to stop the JVM then this exit code will reflect that
+     *                 value.  However, if System.exit or Runtime.halt were
+     *                 used then this exitCode will always be 0.  In these
+     *                 cases, the Wrapper process will be able to detect the
+     *                 actual JVM exit code and handle it correctly.
      *
      * @return The exit code to actually return to the OS.  In most cases, this
      *         should just be the value of exitCode, however the user code has
