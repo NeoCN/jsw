@@ -1233,7 +1233,7 @@ int wrapperGetProcessStatus(int useLoggerQueue) {
             exitCode = 1;
         }
         
-        wrapperJVMProcessExited(exitCode);
+        wrapperJVMProcessExited(useLoggerQueue, exitCode);
 
         /* Remove java pid file if it was registered and created by this process. */
         if (wrapperData->javaPidFilename) {
