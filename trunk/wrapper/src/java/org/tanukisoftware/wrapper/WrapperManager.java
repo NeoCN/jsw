@@ -2120,7 +2120,7 @@ public final class WrapperManager
             Runtime runtime = Runtime.getRuntime();
             try
             {
-                haltMethod.invoke( runtime, new Object[] { new Integer( 0 ) } );
+                haltMethod.invoke( runtime, new Object[] { new Integer( exitCode ) } );
             }
             catch ( IllegalAccessException e )
             {
