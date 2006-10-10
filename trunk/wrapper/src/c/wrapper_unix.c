@@ -430,12 +430,11 @@ void sigActionChildDeath(int sigNum, siginfo_t *sigInfo, void *na) {
 
     log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
         "Received SIGCHLD, checking JVM process status.");
-    if (wrapperGetProcessStatus(TRUE) == WRAPPER_PROCESS_UP) {
+    if (wrapperGetProcessStatus(TRUE, wrapperGetTicks()) == WRAPPER_PROCESS_UP) {
         log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
             "JVM process was still running after receiving a SIGCHLD signal.");
     } else {
-        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-            "JVM process is no longer running.");
+        /* Handled and logged. */
     }
 }
 
@@ -872,7 +871,7 @@ void wrapperDumpCPUUsage() {
  * Checks on the status of the JVM Process.
  * Returns WRAPPER_PROCESS_UP or WRAPPER_PROCESS_DOWN
  */
-int wrapperGetProcessStatus(int useLoggerQueue) {
+int wrapperGetProcessStatus(int useLoggerQueue, DWORD nowTicks) {
     int retval;
     int status;
     int exitCode;
@@ -905,12 +904,7 @@ int wrapperGetProcessStatus(int useLoggerQueue) {
             exitCode = 1;
         }
 
-        wrapperJVMProcessExited(useLoggerQueue, exitCode);
-
-        /* Remove java pid file if it was registered and created by this process. */
-        if (wrapperData->javaPidFilename) {
-            unlink(wrapperData->javaPidFilename);
-        }
+        wrapperJVMProcessExited(useLoggerQueue, nowTicks, exitCode);
     }
     
     return res;

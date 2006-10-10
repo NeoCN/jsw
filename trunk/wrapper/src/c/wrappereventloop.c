@@ -1034,9 +1034,8 @@ void jStateLaunch(DWORD nowTicks, int nextSleep) {
             wrapperExecute();
         
             /* Check if the start was successful. */
-            if (nextSleep && (wrapperGetProcessStatus(FALSE) == WRAPPER_PROCESS_DOWN)) {
+            if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks) == WRAPPER_PROCESS_DOWN)) {
                 /* Failed to start the JVM.  Tell the wrapper to shutdown. */
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to start a JVM");
                 wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
             } else {
                 /* The JVM was launched.  We still do not know whether the
@@ -1071,13 +1070,8 @@ void jStateLaunch(DWORD nowTicks, int nextSleep) {
  */
 void jStateLaunching(DWORD nowTicks, int nextSleep) {
     /* Make sure that the JVM process is still up and running */
-    if (nextSleep && (wrapperGetProcessStatus(FALSE) == WRAPPER_PROCESS_DOWN)) {
-        /* The process is gone.  Restart it. */
-        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, nowTicks, -1);
-        wrapperData->restartRequested = TRUE;
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                   "JVM exited while loading the application.");
-        wrapperProtocolClose();
+    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks) == WRAPPER_PROCESS_DOWN)) {
+        /* The process is gone.  Restart it. (Handled and logged) */
     } else {
         /* The process is up and running.
          * We are waiting in this state until we receive a KEY packet
@@ -1155,13 +1149,8 @@ void jStateLaunched(DWORD nowTicks, int nextSleep) {
  */
 void jStateStarting(DWORD nowTicks, int nextSleep) {
     /* Make sure that the JVM process is still up and running */
-    if (nextSleep && (wrapperGetProcessStatus(FALSE) == WRAPPER_PROCESS_DOWN)) {
-        /* The process is gone.  Restart it. */
-        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, nowTicks, -1);
-        wrapperData->restartRequested = TRUE;
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                   "JVM exited while starting the application.");
-        wrapperProtocolClose();
+    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks) == WRAPPER_PROCESS_DOWN)) {
+        /* The process is gone.  Restart it. (Handled and logged) */
     } else {
         /* Have we waited too long already */
         if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
@@ -1202,13 +1191,8 @@ void jStateStarted(DWORD nowTicks, int nextSleep) {
     int ret;
 
     /* Make sure that the JVM process is still up and running */
-    if (nextSleep && (wrapperGetProcessStatus(FALSE) == WRAPPER_PROCESS_DOWN)) {
-        /* The process is gone.  Restart it. */
-        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, nowTicks, -1);
-        wrapperData->restartRequested = TRUE;
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                   "JVM exited unexpectedly.");
-        wrapperProtocolClose();
+    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks) == WRAPPER_PROCESS_DOWN)) {
+        /* The process is gone.  Restart it. (Handled and logged) */
     } else {
         /* Have we waited too long already.  The jStateTimeoutTicks is reset each time a ping
          *  response is received from the JVM. */
@@ -1261,12 +1245,8 @@ void jStateStarted(DWORD nowTicks, int nextSleep) {
  */
 void jStateStopping(DWORD nowTicks, int nextSleep) {
     /* Make sure that the JVM process is still up and running */
-    if (nextSleep && (wrapperGetProcessStatus(FALSE) == WRAPPER_PROCESS_DOWN)) {
-        /* The process is gone. */
-        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, nowTicks, -1);
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                   "JVM exited unexpectedly while stopping the application.");
-        wrapperProtocolClose();
+    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks) == WRAPPER_PROCESS_DOWN)) {
+        /* The process is gone. (Handled and logged)*/
     } else {
         /* Have we waited too long already */
         if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
@@ -1301,13 +1281,8 @@ void jStateStopping(DWORD nowTicks, int nextSleep) {
  *            function will be called again immediately.
  */
 void jStateStopped(DWORD nowTicks, int nextSleep) {
-    if (nextSleep && (wrapperGetProcessStatus(FALSE) == WRAPPER_PROCESS_DOWN)) {
-        /* The process is gone. */
-        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, nowTicks, -1);
-        if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM exited normally.");
-        }
-        wrapperProtocolClose();
+    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks) == WRAPPER_PROCESS_DOWN)) {
+        /* The process is gone. (Handled and logged) */
     } else {
         /* Have we waited too long already */
         if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
@@ -1342,12 +1317,8 @@ void jStateStopped(DWORD nowTicks, int nextSleep) {
  */
 void jStateKilling(DWORD nowTicks, int nextSleep) {
     /* Make sure that the JVM process is still up and running */
-    if (nextSleep && (wrapperGetProcessStatus(FALSE) == WRAPPER_PROCESS_DOWN)) {
-        /* The process is gone. */
-        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, nowTicks, -1);
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
-                   "JVM exited on its own while waiting to kill the application.");
-        wrapperProtocolClose();
+    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks) == WRAPPER_PROCESS_DOWN)) {
+        /* The process is gone. (Handled and logged) */
     } else {
         /* Have we waited long enough */
         if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
@@ -1586,13 +1557,11 @@ void wrapperEventLoop() {
                 /** The JVM is already being stopped, so nothing else needs to be done. */
             } else {
                 /* The JVM should be running, so it needs to be stopped. */
-                if (wrapperGetProcessStatus(FALSE) == WRAPPER_PROCESS_DOWN) {
-                    /* The process is gone. */
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                        "JVM shut down unexpectedly.");
+                if (wrapperGetProcessStatus(FALSE, nowTicks) == WRAPPER_PROCESS_DOWN) {
+                    /* The process is gone.  (Handled and logged) */
 
-                    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, nowTicks, -1);
-                    wrapperProtocolClose();
+                    /* We never want to restart here. */
+                    wrapperData->restartRequested = FALSE;
                 } else {
                     /* JVM is still up.  Try asking it to shutdown nicely. */
                     if (wrapperData->isDebugging) {
