@@ -39,6 +39,9 @@ Java Service Wrapper Revision History.
   copyright notice.  Please see the license page of the documentation for
   details.
 * Add a new 'Z' log format which will log the time to millisecond accuracy.
+* Fix a problem where the JVM exit code was not being set correctly when
+  the JVM was shutdown using WrapperManager.stopImmediate().  The exit code
+  of the Wrapper was being set correctly through other means however.
 
 3.2.1
 * Fix a problem with the solaris-sparc-64 makefile.
