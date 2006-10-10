@@ -204,7 +204,7 @@ public abstract class AbstractActionApp
         {
             WrapperManager.stopAndReturn( 0 );
         }
-        else if ( action.equals( "halt" ) )
+        else if ( action.equals( "halt0" ) )
         {
             // Execute runtime.halt(0) using reflection so this class will
             //  compile on 1.2.x versions of Java.
@@ -225,6 +225,38 @@ public abstract class AbstractActionApp
                 try
                 {
                     haltMethod.invoke( runtime, new Object[] { new Integer( 0 ) } );
+                }
+                catch ( IllegalAccessException e )
+                {
+                    System.out.println( "Unable to call runitme.halt: " + e.getMessage() );
+                }
+                catch ( InvocationTargetException e )
+                {
+                    System.out.println( "Unable to call runitme.halt: " + e.getMessage() );
+                }
+            }
+        }
+        else if ( action.equals( "halt1" ) )
+        {
+            // Execute runtime.halt(1) using reflection so this class will
+            //  compile on 1.2.x versions of Java.
+            Method haltMethod;
+            try
+            {
+                haltMethod = Runtime.class.getMethod( "halt", new Class[] { Integer.TYPE } );
+            }
+            catch ( NoSuchMethodException e )
+            {
+                System.out.println( "halt not supported by current JVM." );
+                haltMethod = null;
+            }
+            
+            if ( haltMethod != null )
+            {
+                Runtime runtime = Runtime.getRuntime();
+                try
+                {
+                    haltMethod.invoke( runtime, new Object[] { new Integer( 1 ) } );
                 }
                 catch ( IllegalAccessException e )
                 {

@@ -172,7 +172,8 @@ public class TestAction
         System.err.println( "   access_violation         : Calls WrapperManager.accessViolation" );
         System.err.println( "   access_violation_native  : Calls WrapperManager.accessViolationNative()" );
         System.err.println( "   appear_hung              : Calls WrapperManager.appearHung()" );
-        System.err.println( "   halt                     : Calls Runtime.getRuntime().halt(0)" );
+        System.err.println( "   halt0                    : Calls Runtime.getRuntime().halt(0)" );
+        System.err.println( "   halt1                    : Calls Runtime.getRuntime().halt(1)" );
         System.err.println( "   restart                  : Calls WrapperManager.restart()" );
         System.err.println( "   restartandreturn         : Calls WrapperManager.restartAndReturn()" );
         System.err.println( "  Additional Tests:" );
