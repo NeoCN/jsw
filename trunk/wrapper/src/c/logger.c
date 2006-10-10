@@ -67,6 +67,7 @@
 #include <syslog.h>
 #include <strings.h>
 #include <pthread.h>
+#include <sys/time.h>
 #endif
 
 #include "logger.h"
