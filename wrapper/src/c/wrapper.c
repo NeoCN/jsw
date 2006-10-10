@@ -2098,23 +2098,23 @@ void wrapperFreeJavaCommandArray(char **strings, int length) {
  * Called when the Wrapper detects that the JVM process has exited.
  *  Contains code common to all platforms.
  */
-void wrapperJVMProcessExited(int exitCode) {
+void wrapperJVMProcessExited(int useLoggerQueue, int exitCode) {
     if (exitCode == 0) {
         /* The JVM exit code was 0, so leave any current exit code as is. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
             "JVM process exited with a code of %d, leaving the wrapper exit code set to %d.",
             exitCode, wrapperData->exitCode);
 
     } else if (wrapperData->exitCode == 0) {
         /* Update the wrapper exitCode. */
         wrapperData->exitCode = exitCode;
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
             "JVM process exited with a code of %d, setting the wrapper exit code to %d.",
             exitCode, wrapperData->exitCode);
 
     } else {
         /* The wrapper exit code was already non-zero, so leave it as is. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
             "JVM process exited with a code of %d, however the wrapper exit code was already %d.",
             exitCode, wrapperData->exitCode);
     }

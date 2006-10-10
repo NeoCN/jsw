@@ -355,7 +355,7 @@ extern int wrapperParseArguments(int argc, char **argv);
  * Called when the Wrapper detects that the JVM process has exited.
  *  Contains code common to all platforms.
  */
-extern void wrapperJVMProcessExited(int exitCode);
+extern void wrapperJVMProcessExited(int useLoggerQueue, int exitCode);
 
 /**
  * Logs a single line of child output allowing any filtering
