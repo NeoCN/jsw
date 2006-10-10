@@ -144,6 +144,20 @@ $Id$
                     exitCode value under certain exit modes.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    On UNIX versions, add a log message which records the signal that caused
+                    the JVM process to exit when it terminates unexpectedly.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where the
+                    <ulink url="prop-on-exit-n.html">wrapper.on_exit.&lt;n&gt;</ulink>
+                    property was not working correctly in some cases on UNIX.  With help
+                    from Andreas Schafer.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.1">
