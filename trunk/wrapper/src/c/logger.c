@@ -849,7 +849,7 @@ void generateLogFileName(char *buffer, const char *template, const char *nowDate
 /* General log functions */
 void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
     va_list     vargs;
-    size_t      count;
+    int         count;
     char        *printBuffer;
     int         old_umask;
     char        nowDate[9];
@@ -892,7 +892,7 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
         printf( " vsnprintf->%d, size=%d\n", count, threadMessageBufferSize );
         fflush(NULL);
         */
-        if ( ( count < 0 ) || ( count >= threadMessageBufferSize ) ) {
+        if ( ( count < 0 ) || ( count >= (int)threadMessageBufferSize ) ) {
             /* If the count is exactly equal to the buffer size then a null char was not written.
              *  It must be larger.
              * Windows will return -1 if the buffer is too small. If the number is
@@ -903,9 +903,9 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
             free( threadMessageBuffer );
 
             /* Decide on a new buffer size. */
-            if ( count <= threadMessageBufferSize ) {
+            if ( count <= (int)threadMessageBufferSize ) {
                 threadMessageBufferSize += 100;
-            } else if ( count + 1 <= threadMessageBufferSize + 100 ) {
+            } else if ( count + 1 <= (int)threadMessageBufferSize + 100 ) {
                 threadMessageBufferSize += 100;
             } else {
                 threadMessageBufferSize = count + 1;
