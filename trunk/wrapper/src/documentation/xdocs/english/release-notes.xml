@@ -138,6 +138,12 @@ $Id$
                     with debug output enabled.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Updated the WrapperListener.stop method javadocs to better explain the
+                    exitCode value under certain exit modes.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.1">
