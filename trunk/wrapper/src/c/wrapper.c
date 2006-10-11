@@ -68,8 +68,9 @@
 #pragma warning(disable : 4996)
 
 // Defines for MS Visual Studio 6
-#ifndef intptr_t
+#ifndef _INTPTR_T_DEFINED
 typedef long intptr_t;
+#define _INTPTR_T_DEFINED
 #endif
 
 #define EADDRINUSE  WSAEADDRINUSE
