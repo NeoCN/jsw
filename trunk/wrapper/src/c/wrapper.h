@@ -325,7 +325,8 @@ extern int wrapperCheckRestartTimeOK();
 extern void wrapperBuildJavaCommandArray(char ***strings, int *length, int addQuotes);
 extern void wrapperFreeJavaCommandArray(char **strings, int length);
 
-extern int wrapperInitializeLogging();
+extern int wrapperInitialize();
+extern void wrapperDispose();
 
 /**
  * Returns the file name base as a newly malloced char *.  The resulting
@@ -405,7 +406,7 @@ extern int wrapperGetLastError();
 /**
  * Execute initialization code to get the wrapper set up.
  */
-extern int wrapperInitialize();
+extern int wrapperInitializeRun();
 
 /**
  * Cause the current thread to sleep for the specified number of milliseconds.

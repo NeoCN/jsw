@@ -138,8 +138,8 @@ void appExit(int exitCode) {
         unlink(wrapperData->anchorFilename);
     }
     
-    /* Clean up the logging system. */
-    disposeLogging();
+	/* Common wrapper cleanup code. */
+	wrapperDispose();
 
     exit(exitCode);
 }
@@ -585,7 +585,7 @@ int initializeTimer() {
 /**
  * Execute initialization code to get the wrapper set up.
  */
-int wrapperInitialize() {
+int wrapperInitializeRun() {
     int retval = 0;
     int res;
 
@@ -1266,29 +1266,7 @@ int main(int argc, char **argv) {
     int i;
 #endif
 
-    /* Initialize the properties variable. */
-    properties = NULL;
-
-    /* Make sure all values are reliably set to 0. All required values should also be
-     *  set below, but this extra step will protect against future changes.  Some
-     *  platforms appear to initialize maloc'd memory to 0 while others do not. */
-    wrapperData = malloc(sizeof(WrapperConfig));
-    memset(wrapperData, 0, sizeof(WrapperConfig));
-    /* Setup the initial values of required properties. */
-    wrapperData->configured = FALSE;
-    wrapperData->isConsole = TRUE;
-    wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STARTING);
-    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, 0, -1);
-    wrapperData->lastPingTicks = wrapperGetTicks();
-    wrapperData->jvmCommand = NULL;
-    wrapperData->exitRequested = FALSE;
-    wrapperData->restartRequested = TRUE; /* The first JVM needs to be started. */
-    wrapperData->exitCode = 0;
-    wrapperData->jvmRestarts = 0;
-    wrapperData->jvmLaunchTicks = wrapperGetTicks();
-    wrapperData->failedInvocationCount = 0;
-        
-    if (wrapperInitializeLogging()) {
+    if (wrapperInitialize()) {
         appExit(1);
         return 1; /* For compiler. */
     }
