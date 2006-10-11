@@ -158,6 +158,12 @@ $Id$
                     from Andreas Schafer.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add support for building the Wrapper with Visual Studio 8 for Windows.
+                    Releases will now be done using this compiler.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.1">
