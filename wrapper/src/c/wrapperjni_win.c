@@ -55,6 +55,10 @@ barf
 #include <tlhelp32.h>
 #include "wrapperjni.h"
 
+// MS Visual Studio 8 went and deprecated the POXIX names for functions.
+//  Fixing them all would be a big headache for UNIX versions.
+#pragma warning(disable : 4996)
+
 static DWORD wrapperProcessId = 0;
 
 FARPROC OptionalProcess32First = NULL;
@@ -127,10 +131,10 @@ void throwException(JNIEnv *env, const char *className, const char *message) {
     if (exceptionClass = (*env)->FindClass(env, className)) {
         /* Look for the constructor. Ignore failures. */
         if (constructor = (*env)->GetMethodID(env, exceptionClass, "<init>", "([B)V")) {
-            jMessage = (*env)->NewByteArray(env, strlen(message));
+            jMessage = (*env)->NewByteArray(env, (jsize)strlen(message));
             /* The 1.3.1 jni.h file does not specify the message as const.  The cast is to
              *  avoid compiler warnings trying to pass a (const char *) as a (char *). */
-            (*env)->SetByteArrayRegion(env, jMessage, 0, strlen(message), (char *)message);
+            (*env)->SetByteArrayRegion(env, jMessage, 0, (jsize)strlen(message), (char *)message);
             
             exception = (*env)->NewObject(env, exceptionClass, constructor, jMessage);
             
@@ -349,16 +353,16 @@ setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HANDLE 
                     /* Create the arguments to the constructor as java objects */
 
                     /* SID byte array */
-                    jSID = (*env)->NewByteArray(env, strlen(sidText));
-                    (*env)->SetByteArrayRegion(env, jSID, 0, strlen(sidText), sidText);
+                    jSID = (*env)->NewByteArray(env, (jsize)strlen(sidText));
+                    (*env)->SetByteArrayRegion(env, jSID, 0, (jsize)strlen(sidText), sidText);
 
                     /* GroupName byte array */
-                    jGroupName = (*env)->NewByteArray(env, strlen(groupName));
-                    (*env)->SetByteArrayRegion(env, jGroupName, 0, strlen(groupName), groupName);
+                    jGroupName = (*env)->NewByteArray(env, (jsize)strlen(groupName));
+                    (*env)->SetByteArrayRegion(env, jGroupName, 0, (jsize)strlen(groupName), groupName);
 
                     /* DomainName byte array */
-                    jDomainName = (*env)->NewByteArray(env, strlen(domainName));
-                    (*env)->SetByteArrayRegion(env, jDomainName, 0, strlen(domainName), domainName);
+                    jDomainName = (*env)->NewByteArray(env, (jsize)strlen(domainName));
+                    (*env)->SetByteArrayRegion(env, jDomainName, 0, (jsize)strlen(domainName), domainName);
 
                     /* Now actually add the group to the user. */
                     (*env)->CallVoidMethod(env, wrapperUser, addGroup, jSID, jGroupName, jDomainName);
@@ -441,16 +445,16 @@ createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean groups) {
                             /* Create the arguments to the constructor as java objects */
 
                             /* SID byte array */
-                            jSID = (*env)->NewByteArray(env, strlen(sidText));
-                            (*env)->SetByteArrayRegion(env, jSID, 0, strlen(sidText), sidText);
+                            jSID = (*env)->NewByteArray(env, (jsize)strlen(sidText));
+                            (*env)->SetByteArrayRegion(env, jSID, 0, (jsize)strlen(sidText), sidText);
 
                             /* UserName byte array */
-                            jUserName = (*env)->NewByteArray(env, strlen(userName));
-                            (*env)->SetByteArrayRegion(env, jUserName, 0, strlen(userName), userName);
+                            jUserName = (*env)->NewByteArray(env, (jsize)strlen(userName));
+                            (*env)->SetByteArrayRegion(env, jUserName, 0, (jsize)strlen(userName), userName);
 
                             /* DomainName byte array */
-                            jDomainName = (*env)->NewByteArray(env, strlen(domainName));
-                            (*env)->SetByteArrayRegion(env, jDomainName, 0, strlen(domainName), domainName);
+                            jDomainName = (*env)->NewByteArray(env, (jsize)strlen(domainName));
+                            (*env)->SetByteArrayRegion(env, jDomainName, 0, (jsize)strlen(domainName), domainName);
 
                             /* Now create the new wrapperUser using the constructor arguments collected above. */
                             wrapperUser = (*env)->NewObject(env, wrapperUserClass, constructor, jSID, jUserName, jDomainName, loginTime);
@@ -699,9 +703,9 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
     /* In order to be able to return the interactive user, we first need to locate the
      *  logged on user whose desktop we are able to open.  On XP systems, there will be
      *  more than one user with a desktop, but only the first one to log on will allow
-     *  up to open its desktop.  On all NT systems, there will be additional logged on
+     *  us to open its desktop.  On all NT systems, there will be additional logged on
      *  users if there are other services running. */
-    if ((snapshot = (void*)OptionalCreateToolhelp32Snapshot(TH32CS_SNAPPROCESS + TH32CS_SNAPTHREAD, 0)) >= 0) {
+    if ((snapshot = (HANDLE)OptionalCreateToolhelp32Snapshot(TH32CS_SNAPPROCESS + TH32CS_SNAPTHREAD, 0)) >= 0) {
         processEntry.dwSize = sizeof(processEntry);
         if (OptionalProcess32First(snapshot, &processEntry)) {
             do {
@@ -843,11 +847,11 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, j
                     serviceArray = (*env)->NewObjectArray(env, servicesReturned, serviceClass, NULL);
                     
                     for (i = 0; i < servicesReturned; i++ ) {
-                        jName = (*env)->NewByteArray(env, strlen(services[i].lpServiceName));
-                        (*env)->SetByteArrayRegion(env, jName, 0, strlen(services[i].lpServiceName), services[i].lpServiceName);
+                        jName = (*env)->NewByteArray(env, (jsize)strlen(services[i].lpServiceName));
+                        (*env)->SetByteArrayRegion(env, jName, 0, (jsize)strlen(services[i].lpServiceName), services[i].lpServiceName);
                         
-                        jDisplayName = (*env)->NewByteArray(env, strlen(services[i].lpDisplayName));
-                        (*env)->SetByteArrayRegion(env, jDisplayName, 0, strlen(services[i].lpDisplayName), services[i].lpDisplayName);
+                        jDisplayName = (*env)->NewByteArray(env, (jsize)strlen(services[i].lpDisplayName));
+                        (*env)->SetByteArrayRegion(env, jDisplayName, 0, (jsize)strlen(services[i].lpDisplayName), services[i].lpDisplayName);
                         
                         state = services[i].ServiceStatus.dwCurrentState;
                         
@@ -991,8 +995,8 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
                                 if (!GetServiceDisplayName(hSCManager, serviceNameBytes, displayBuffer, &displayBufferSize)) {
                                     strcpy(displayBuffer, serviceNameBytes);
                                 }
-                                jDisplayName = (*env)->NewByteArray(env, strlen(displayBuffer));
-                                (*env)->SetByteArrayRegion(env, jDisplayName, 0, strlen(displayBuffer), displayBuffer);
+                                jDisplayName = (*env)->NewByteArray(env, (jsize)strlen(displayBuffer));
+                                (*env)->SetByteArrayRegion(env, jDisplayName, 0, (jsize)strlen(displayBuffer), displayBuffer);
                                 
                                 state = serviceStatus.dwCurrentState;
                                 
