@@ -52,6 +52,12 @@ Java Service Wrapper Revision History.
   correctly in some cases on UNIX.  With help from Andreas Schafer.
 * Add support for building the Wrapper with Visual Studio 8 for Windows.
   Releases will now be done using this compiler.
+* Fix a CRITICAL bug in the 3.2.0 and 3.2.1 Windows versions of the Wrapper
+  where the Wrapper would crash under rare circumstances when running as a
+  service.  If the service manager interrogated the service at the same
+  instant as the wrapper was pinging the JVM, the wrapper was sometimes
+  crashing due to a synchronization problem.   The problem did not exist
+  prior to 3.2.0.  Bug #1574537.
 
 3.2.1
 * Fix a problem with the solaris-sparc-64 makefile.
