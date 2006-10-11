@@ -600,6 +600,12 @@ char *wrapperProtocolGetCodeName(char code) {
     return name;
 }
 
+/* Mutex for syncronization of the wrapperProtocolFunction function. */
+#ifdef WIN32
+HANDLE wrapperProtocolFunctionMutexHandle = NULL;
+#else
+pthread_mutex_t wrapperProtocolFunctionMutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
 size_t protocolSendBufferSize = 0;
 char *protocolSendBuffer = NULL;
 int wrapperProtocolFunction(char function, const char *message) {
@@ -833,9 +839,31 @@ int wrapperProtocolRead() {
  *****************************************************************************/
 
 /**
- * Initialize logging.
+ * Pre initialize the wrapper.
  */
-int wrapperInitializeLogging() {
+int wrapperInitialize() {
+    /* Initialize the properties variable. */
+    properties = NULL;
+
+    /* Make sure all values are reliably set to 0. All required values should also be
+     *  set below, but this extra step will protect against future changes.  Some
+     *  platforms appear to initialize maloc'd memory to 0 while others do not. */
+    wrapperData = malloc(sizeof(WrapperConfig));
+    memset(wrapperData, 0, sizeof(WrapperConfig));
+    /* Setup the initial values of required properties. */
+    wrapperData->configured = FALSE;
+    wrapperData->isConsole = TRUE;
+    wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STARTING);
+    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, 0, -1);
+    wrapperData->lastPingTicks = wrapperGetTicks();
+    wrapperData->jvmCommand = NULL;
+    wrapperData->exitRequested = FALSE;
+    wrapperData->restartRequested = TRUE; /* The first JVM needs to be started. */
+    wrapperData->exitCode = 0;
+    wrapperData->jvmRestarts = 0;
+    wrapperData->jvmLaunchTicks = wrapperGetTicks();
+    wrapperData->failedInvocationCount = 0;
+        
     if (initLogging()) {
         return 1;
     }
@@ -850,7 +878,22 @@ int wrapperInitializeLogging() {
     setConsoleFlush(FALSE);
     setSyslogLevelInt(LEVEL_NONE);
 
+#ifdef WIN32
+    if (!(wrapperProtocolFunctionMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
+        printf("Failed to create protocol mutex. %s\n", getLastErrorText());
+        fflush(NULL);
+        return 1;
+    }
+#endif
+
     return 0;
+}
+
+/** Common wrapper cleanup code. */
+void wrapperDispose()
+{
+    /* Clean up the logging system. */
+    disposeLogging();
 }
 
 /**
@@ -1062,7 +1105,7 @@ int wrapperRunConsole() {
     wrapperData->isConsole = TRUE;
 
     /* Initialize the wrapper */
-    res = wrapperInitialize();
+    res = wrapperInitializeRun();
     if (res != 0) {
         return res;
     }
@@ -1109,7 +1152,7 @@ int wrapperRunService() {
     wrapperData->isConsole = FALSE;
 
     /* Initialize the wrapper */
-    res = wrapperInitialize();
+    res = wrapperInitializeRun();
     if (res != 0) {
         return res;
     }
