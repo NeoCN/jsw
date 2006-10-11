@@ -173,7 +173,26 @@ extern int getLogLevelForName( const char *logLevelName );
 extern int getLogFacilityForName( const char *logFacilityName );
 #endif
 extern void logRegisterThread( int thread_id );
+
+/**
+ * The log_printf function logs a message to the configured log targets.
+ *
+ * This method can be used safely in most cases.  See the log_printf_queue
+ *  funtion for the exceptions.
+ */
 extern void log_printf( int source_id, int level, const char *lpszFmt, ... );
+
+/**
+ * The log_printf_queue function is less efficient than the log_printf
+ *  function and will cause logged messages to be logged out of order from
+ *  those logged with log_printf because the messages are queued and then
+ *  logged from another thread.
+ *
+ * Use of this function is required in cases where the thread may possibly
+ *  be a signal callback.  In these cases, it is possible for the original
+ *  thread to have been suspended within a log_printf call.  If the signal
+ *  thread then attempted to call log_printf, it would result in a deadlock.
+ */
 extern void log_printf_queue( int useQueue, int source_id, int level, const char *lpszFmt, ... );
 
 extern char* getLastErrorText();
