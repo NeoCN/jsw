@@ -67,6 +67,11 @@
 //  Fixing them all would be a big headache for UNIX versions.
 #pragma warning(disable : 4996)
 
+// Defines for MS Visual Studio 6
+#ifndef intptr_t
+typedef long intptr_t;
+#endif
+
 #define EADDRINUSE  WSAEADDRINUSE
 #define EWOULDBLOCK WSAEWOULDBLOCK
 #define ENOTSOCK    WSAENOTSOCK
