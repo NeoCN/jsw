@@ -499,15 +499,15 @@ int lockLoggingMutex() {
 #ifdef WIN32
     switch (WaitForSingleObject(log_printfMutexHandle, INFINITE)) {
     case WAIT_ABANDONED:
-        printf("Logging Mutex was abandoned.\n");
+        printf("Logging mutex was abandoned.\n");
         fflush(NULL);
         return -1;
     case WAIT_FAILED:
-        printf("Logging Mutex wait failed.\n");
+        printf("Logging mutex wait failed.\n");
         fflush(NULL);
         return -1;
     case WAIT_TIMEOUT:
-        printf("Logging Mutex wait timed out.\n");
+        printf("Logging mutex wait timed out.\n");
         fflush(NULL);
         return -1;
     default:
