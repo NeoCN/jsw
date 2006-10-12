@@ -653,7 +653,7 @@ int releaseProtocolMutex() {
 
 size_t protocolSendBufferSize = 0;
 char *protocolSendBuffer = NULL;
-int wrapperProtocolFunction(char function, const char *message) {
+int wrapperProtocolFunction(int useLoggerQueue, char function, const char *message) {
     int rc;
     size_t len;
     const char *logMsg;
@@ -687,13 +687,15 @@ int wrapperProtocolFunction(char function, const char *message) {
     if (sd == INVALID_SOCKET) {
         /* A socket was not opened */
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket not open, so packet not sent %s : %s",
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
+                "socket not open, so packet not sent %s : %s",
                 wrapperProtocolGetCodeName(function), (message == NULL ? "NULL" : logMsg));
         }
         returnVal = -1;
     } else {
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "send a packet %s : %s",
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
+                "send a packet %s : %s",
                 wrapperProtocolGetCodeName(function), (message == NULL ? "NULL" : logMsg));
         }
     
@@ -709,7 +711,8 @@ int wrapperProtocolFunction(char function, const char *message) {
         rc = send(sd, protocolSendBuffer, (int)len, 0);
         if (rc == SOCKET_ERROR) {
             if (wrapperData->isDebugging) {
-                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket send failed. (%d)", wrapperGetLastError());
+                log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
+                    "socket send failed. (%d)", wrapperGetLastError());
             }
             wrapperProtocolClose();
             returnVal = -1;
@@ -1156,7 +1159,7 @@ void sendProperties()
     char *buffer;
     
     buffer = linearizeProperties(properties, '\t');
-    wrapperProtocolFunction(WRAPPER_MSG_PROPERTIES, buffer);
+    wrapperProtocolFunction(FALSE, WRAPPER_MSG_PROPERTIES, buffer);
     
     free(buffer);
 }
@@ -3103,7 +3106,7 @@ void wrapperKeyRegistered(char *key) {
 
             /* Send the low log level to the JVM so that it can control output via the log method. */
             sprintf(buffer, "%d", getLowLogLevel());
-            wrapperProtocolFunction(WRAPPER_MSG_LOW_LOG_LEVEL, buffer);
+            wrapperProtocolFunction(FALSE, WRAPPER_MSG_LOW_LOG_LEVEL, buffer);
 
             /* Send the ping timeout to the JVM. */
             if (wrapperData->pingTimeout >= WRAPPER_TIMEOUT_MAX) {
@@ -3112,7 +3115,7 @@ void wrapperKeyRegistered(char *key) {
             } else {
                 sprintf(buffer, "%d", wrapperData->pingTimeout);
             }
-            wrapperProtocolFunction(WRAPPER_MSG_PING_TIMEOUT, buffer);
+            wrapperProtocolFunction(FALSE, WRAPPER_MSG_PING_TIMEOUT, buffer);
             
             /* Send the properties. */
             sendProperties();
@@ -3120,7 +3123,7 @@ void wrapperKeyRegistered(char *key) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Received a connection request with an incorrect key.  Waiting for another connection.");
 
             /* This was the wrong key.  Send a response. */
-            wrapperProtocolFunction(WRAPPER_MSG_BADKEY, "Incorrect key.  Connection rejected.");
+            wrapperProtocolFunction(FALSE, WRAPPER_MSG_BADKEY, "Incorrect key.  Connection rejected.");
 
             /* Close the current connection.  Assume that the real JVM
              *  is still out there trying to connect.  So don't change
@@ -3136,7 +3139,7 @@ void wrapperKeyRegistered(char *key) {
          *  being launched but the Wrapper is trying to stop.  Now that the
          *  connection to the JVM has been opened, tell it to stop cleanly. */
         
-        wrapperProtocolFunction(WRAPPER_MSG_STOP, NULL);
+        wrapperProtocolFunction(FALSE, WRAPPER_MSG_STOP, NULL);
         
         /* Allow up to 5 + <shutdownTimeout> seconds for the application to stop itself. */
         /* Already in this state. */
@@ -3293,7 +3296,7 @@ void wrapperStartedSignalled() {
     } else if (wrapperData->jState == WRAPPER_JSTATE_STOPPING) {
         /* This will happen if the Wrapper was asked to stop as the JVM is being launched. */
         
-        wrapperProtocolFunction(WRAPPER_MSG_STOP, NULL);
+        wrapperProtocolFunction(FALSE, WRAPPER_MSG_STOP, NULL);
         
         /* Allow up to 5 + <shutdownTimeout> seconds for the application to stop itself. */
         /* Already in this state. */

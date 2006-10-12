@@ -561,7 +561,7 @@ void commandPoll(DWORD nowTicks) {
                                             wrapperData->isDebugging = (newLowLogLevel <= LEVEL_DEBUG);
                                             
                                             sprintf(buffer, "%d", getLowLogLevel());
-                                            wrapperProtocolFunction(WRAPPER_MSG_LOW_LOG_LEVEL, buffer);
+                                            wrapperProtocolFunction(FALSE, WRAPPER_MSG_LOW_LOG_LEVEL, buffer);
                                         }
                                     }
                                 }
@@ -1118,7 +1118,7 @@ void jStateLaunched(DWORD nowTicks, int nextSleep) {
     if (wrapperData->isDebugging) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Start Application.");
     }
-    ret = wrapperProtocolFunction(WRAPPER_MSG_START, "start");
+    ret = wrapperProtocolFunction(FALSE, WRAPPER_MSG_START, "start");
     if (ret < 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to send the start command to the JVM.");
 
@@ -1220,7 +1220,7 @@ void jStateStarted(DWORD nowTicks, int nextSleep) {
             if (wrapperData->isLoopOutputEnabled) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Temp: Sending a ping packet.");
             }
-            ret = wrapperProtocolFunction(WRAPPER_MSG_PING, "ping");
+            ret = wrapperProtocolFunction(FALSE, WRAPPER_MSG_PING, "ping");
             if (ret < 0) {
                 /* Failed to send the ping. */
                 if (wrapperData->isDebugging) {
@@ -1574,7 +1574,7 @@ void wrapperEventLoop() {
                             "Sending stop signal to JVM");
                     }
                 
-                    wrapperProtocolFunction(WRAPPER_MSG_STOP, NULL);
+                    wrapperProtocolFunction(FALSE, WRAPPER_MSG_STOP, NULL);
                 
                     /* Allow up to 5 + <shutdownTimeout> seconds for the application to stop itself. */
                     if (wrapperData->shutdownTimeout > 0) {

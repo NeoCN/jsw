@@ -123,8 +123,8 @@ char logfileFormat[32];
 int consoleFlush = FALSE;
 
 /* Internal function declaration */
-void sendEventlogMessage( int source_id, int level, char *szBuff );
-void sendLoginfoMessage( int source_id, int level, char *szBuff );
+void sendEventlogMessage( int source_id, int level, const char *szBuff );
+void sendLoginfoMessage( int source_id, int level, const char *szBuff );
 #ifdef WIN32
 void writeToConsole( char *lpszFmt, ... );
 #endif
@@ -655,7 +655,7 @@ int getLowLogLevel() {
 
 /* Writes to and then returns a buffer that is reused by the current thread.
  *  It should not be released. */
-char* buildPrintBuffer( int source_id, int level, int threadId, struct tm *nowTM, int nowMillis, char *format, char *message ) {
+char* buildPrintBuffer( int source_id, int level, int threadId, int queued, struct tm *nowTM, int nowMillis, const char *format, const char *message ) {
     int       i;
     size_t    reqSize;
     int       numColumns;
@@ -679,6 +679,11 @@ char* buildPrintBuffer( int source_id, int level, int threadId, struct tm *nowTM
 
         case 'D':
             reqSize += 7 + 3;
+            numColumns++;
+            break;
+
+        case 'Q':
+            reqSize += 1 + 3;
             numColumns++;
             break;
 
@@ -771,6 +776,11 @@ char* buildPrintBuffer( int source_id, int level, int threadId, struct tm *nowTM
             currentColumn++;
             break;
 
+        case 'Q':
+            pos += sprintf( pos, "%c", ( queued ? 'Q' : ' ' ) );
+            currentColumn++;
+            break;
+
         case 'T':
             pos += sprintf( pos, "%04d/%02d/%02d %02d:%02d:%02d",
                 nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday, 
@@ -858,10 +868,12 @@ void generateLogFileName(char *buffer, const char *template, const char *nowDate
     }
 }
 
-/* General log functions */
-void log_printf_thread( int source_id, int level, int threadId, const char *lpszFmt, ... ) {
-    va_list     vargs;
-    int         count;
+/**
+ * Prints the contents of a buffer to all configured targets.
+ *
+ * Must be called while locked.
+ */
+void log_printf_message( int source_id, int level, int threadId, int queued, const char *message ) {
     char        *printBuffer;
     int         old_umask;
     char        nowDate[9];
@@ -873,67 +885,6 @@ void log_printf_thread( int source_id, int level, int threadId, const char *lpsz
     time_t      now;
     int         nowMillis;
     struct tm   *nowTM;
-
-    /* We need to be very careful that only one thread is allowed in here
-     *  at a time.  On Windows this is done using a Mutex object that is
-     *  initialized in the initLogging function. */
-    if (lockLoggingMutex()) {
-        return;
-    }
-
-    if ( threadId < 0 )
-    {
-        threadId = getThreadId();
-    }
-
-    /* Loop until the buffer is large enough that we are able to successfully
-     *  print into it. Once the buffer has grown to the largest message size,
-     *  smaller messages will pass through this code without looping. */
-    do {
-        if ( threadMessageBufferSize == 0 )
-        {
-            /* No buffer yet. Allocate one to get started. */
-            threadMessageBufferSize = 100;
-            threadMessageBuffer = (char*)malloc( threadMessageBufferSize * sizeof(char) );
-        }
-
-        /* Try writing to the buffer. */
-        va_start( vargs, lpszFmt );
-#ifdef WIN32
-        count = _vsnprintf( threadMessageBuffer, threadMessageBufferSize, lpszFmt, vargs );
-#else
-        count = vsnprintf( threadMessageBuffer, threadMessageBufferSize, lpszFmt, vargs );
-#endif
-        va_end( vargs );
-        /*
-        printf( " vsnprintf->%d, size=%d\n", count, threadMessageBufferSize );
-        fflush(NULL);
-        */
-        if ( ( count < 0 ) || ( count >= (int)threadMessageBufferSize ) ) {
-            /* If the count is exactly equal to the buffer size then a null char was not written.
-             *  It must be larger.
-             * Windows will return -1 if the buffer is too small. If the number is
-             *  exact however, we still need to expand it to have room for the null.
-             * UNIX will return the required size. */
-
-            /* Free the old buffer for starters. */
-            free( threadMessageBuffer );
-
-            /* Decide on a new buffer size. */
-            if ( count <= (int)threadMessageBufferSize ) {
-                threadMessageBufferSize += 100;
-            } else if ( count + 1 <= (int)threadMessageBufferSize + 100 ) {
-                threadMessageBufferSize += 100;
-            } else {
-                threadMessageBufferSize = count + 1;
-            }
-
-            threadMessageBuffer = (char*)malloc( threadMessageBufferSize * sizeof(char) );
-
-            /* Always set the count to -1 so we will loop again. */
-            count = -1;
-        }
-    } while ( count < 0 );
 
     /* Build a timestamp */
 #ifdef WIN32
@@ -947,11 +898,15 @@ void log_printf_thread( int source_id, int level, int threadId, const char *lpsz
 #endif
     nowTM = localtime( &now );
 
+    if ( threadId < 0 )
+    {
+        threadId = getThreadId();
+    }
     
     /* Console output by format */
     if( level >= currentConsoleLevel ) {
         /* Build up the printBuffer. */
-        printBuffer = buildPrintBuffer( source_id, level, threadId, nowTM, nowMillis, consoleFormat, threadMessageBuffer );
+        printBuffer = buildPrintBuffer( source_id, level, threadId, queued, nowTM, nowMillis, consoleFormat, message );
 
         /* Write the print buffer to the console. */
 #ifdef WIN32
@@ -1020,7 +975,7 @@ void log_printf_thread( int source_id, int level, int threadId, const char *lpsz
                 strcpy(logFileLastNowDate, nowDate);
                 
                 /* Build up the printBuffer. */
-                printBuffer = buildPrintBuffer( source_id, level, threadId, nowTM, nowMillis, logfileFormat, threadMessageBuffer );
+                printBuffer = buildPrintBuffer( source_id, level, threadId, queued, nowTM, nowMillis, logfileFormat, message );
                 
                 fprintf( logfileFP, "%s\n", printBuffer );
                 
@@ -1054,10 +1009,78 @@ void log_printf_thread( int source_id, int level, int threadId, const char *lpsz
 
     default:
         if( level >= currentLoginfoLevel ) {
-            sendEventlogMessage( source_id, level, threadMessageBuffer );
-            sendLoginfoMessage( source_id, level, threadMessageBuffer );
+            sendEventlogMessage( source_id, level, message );
+            sendLoginfoMessage( source_id, level, message );
         }
     }
+}
+
+
+/* General log functions */
+void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
+    va_list     vargs;
+    int         count;
+    int         threadId;
+
+    /* We need to be very careful that only one thread is allowed in here
+     *  at a time.  On Windows this is done using a Mutex object that is
+     *  initialized in the initLogging function. */
+    if (lockLoggingMutex()) {
+        return;
+    }
+
+    threadId = getThreadId();
+
+    /* Loop until the buffer is large enough that we are able to successfully
+     *  print into it. Once the buffer has grown to the largest message size,
+     *  smaller messages will pass through this code without looping. */
+    do {
+        if ( threadMessageBufferSize == 0 )
+        {
+            /* No buffer yet. Allocate one to get started. */
+            threadMessageBufferSize = 100;
+            threadMessageBuffer = (char*)malloc( threadMessageBufferSize * sizeof(char) );
+        }
+
+        /* Try writing to the buffer. */
+        va_start( vargs, lpszFmt );
+#ifdef WIN32
+        count = _vsnprintf( threadMessageBuffer, threadMessageBufferSize, lpszFmt, vargs );
+#else
+        count = vsnprintf( threadMessageBuffer, threadMessageBufferSize, lpszFmt, vargs );
+#endif
+        va_end( vargs );
+        /*
+        printf( " vsnprintf->%d, size=%d\n", count, threadMessageBufferSize );
+        fflush(NULL);
+        */
+        if ( ( count < 0 ) || ( count >= (int)threadMessageBufferSize ) ) {
+            /* If the count is exactly equal to the buffer size then a null char was not written.
+             *  It must be larger.
+             * Windows will return -1 if the buffer is too small. If the number is
+             *  exact however, we still need to expand it to have room for the null.
+             * UNIX will return the required size. */
+
+            /* Free the old buffer for starters. */
+            free( threadMessageBuffer );
+
+            /* Decide on a new buffer size. */
+            if ( count <= (int)threadMessageBufferSize ) {
+                threadMessageBufferSize += 100;
+            } else if ( count + 1 <= (int)threadMessageBufferSize + 100 ) {
+                threadMessageBufferSize += 100;
+            } else {
+                threadMessageBufferSize = count + 1;
+            }
+
+            threadMessageBuffer = (char*)malloc( threadMessageBufferSize * sizeof(char) );
+
+            /* Always set the count to -1 so we will loop again. */
+            count = -1;
+        }
+    } while ( count < 0 );
+
+    log_printf_message( source_id, level, threadId, FALSE, threadMessageBuffer );
 
     /* Release the lock we have on this function so that other threads can get in. */
     if (releaseLoggingMutex()) {
@@ -1183,10 +1206,10 @@ int unregisterSyslogMessageFile( ) {
 #endif
 }
 
-void sendEventlogMessage( int source_id, int level, char *szBuff ) {
+void sendEventlogMessage( int source_id, int level, const char *szBuff ) {
 #ifdef WIN32
     char   header[16];
-    char   **strings = (char **) malloc( 3 * sizeof( char * ) );
+    const char   **strings = (char **) malloc( 3 * sizeof( char * ) );
     WORD   eventType;
     HANDLE handle;
     WORD   eventID, categoryID;
@@ -1314,7 +1337,7 @@ void sendEventlogMessage( int source_id, int level, char *szBuff ) {
 #endif
 }
 
-void sendLoginfoMessage( int source_id, int level, char *szBuff ) {
+void sendLoginfoMessage( int source_id, int level, const char *szBuff ) {
 #ifndef WIN32 /* If UNIX */
     int eventType;
 
@@ -1918,37 +1941,48 @@ void maintainLogger() {
 
     /* NOTE - The queue variables are not synchronized so we need to access them
      *        carefully and assume that data could possibly be corrupted. */
-
-
-    /* Empty the queue of any logged messages. */
     localWriteIndex = queueWriteIndex; /* Snapshot the value to maintain a constant reference. */
-    while ( queueReadIndex != localWriteIndex ) {
-        /* Snapshot the values in the queue at that index. */
-        source_id = queueSourceIds[queueReadIndex];
-        level = queueLevels[queueReadIndex];
-        threadId = queueThreadIds[queueReadIndex];
-        buffer = queueMessages[queueReadIndex];
-
-        /* Now we have safe values.  Everything below this is thread safe. */
-
-        if (buffer) {
-            /* non null, assume it is valid. */
-
-#ifdef _DEBUG
-            printf( "LOG QUEUED[%d]: %s\n", queueReadIndex, buffer );
-            fflush( NULL );
-#endif
-
-            log_printf_thread( source_id, level, threadId, "%s", buffer );
-        } else {
-#ifdef _DEBUG
-            printf( "LOG QUEUED[%d]: <NULL> SYNCHRONIZATION CONFLICT!\n", queueReadIndex );
-            fflush( NULL );
-#endif
+    if ( queueReadIndex != localWriteIndex ) {
+        /* Lock the logging mutex. */
+        if (lockLoggingMutex()) {
+            return;
         }
-        queueReadIndex++;
-        if ( queueReadIndex >= QUEUE_SIZE ) {
-            queueReadIndex = 0;
+
+        /* Empty the queue of any logged messages. */
+        localWriteIndex = queueWriteIndex; /* Snapshot the value to maintain a constant reference. */
+        while ( queueReadIndex != localWriteIndex ) {
+            /* Snapshot the values in the queue at that index. */
+            source_id = queueSourceIds[queueReadIndex];
+            level = queueLevels[queueReadIndex];
+            threadId = queueThreadIds[queueReadIndex];
+            buffer = queueMessages[queueReadIndex];
+
+            /* Now we have safe values.  Everything below this is thread safe. */
+
+            if (buffer) {
+                /* non null, assume it is valid. */
+
+#ifdef _DEBUG
+                printf( "LOG QUEUED[%d]: %s\n", queueReadIndex, buffer );
+                fflush( NULL );
+#endif
+
+                log_printf_message( source_id, level, threadId, TRUE, buffer );
+            } else {
+#ifdef _DEBUG
+                printf( "LOG QUEUED[%d]: <NULL> SYNCHRONIZATION CONFLICT!\n", queueReadIndex );
+                fflush( NULL );
+#endif
+            }
+            queueReadIndex++;
+            if ( queueReadIndex >= QUEUE_SIZE ) {
+                queueReadIndex = 0;
+            }
+        }
+
+        /* Release the lock we have on the logging mutes so that other threads can get in. */
+        if (releaseLoggingMutex()) {
+            return;
         }
     }
 }

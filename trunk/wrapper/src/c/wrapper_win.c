@@ -752,7 +752,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
 
             /* Store this tick offset for the next time through the loop. */
             lastTickOffset = tickOffset;
-            //wrapperProtocolFunction(WRAPPER_MSG_SERVICE_CONTROL_CODE, "255");
+            //wrapperProtocolFunction(FALSE, WRAPPER_MSG_SERVICE_CONTROL_CODE, "255");
         }
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Fatal error in the Timer thread.");
@@ -1805,7 +1805,7 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
         
         /* Forward the control code off to the JVM. */
         sprintf(buffer, "%d", dwCtrlCode);
-        wrapperProtocolFunction(WRAPPER_MSG_SERVICE_CONTROL_CODE, buffer);
+        wrapperProtocolFunction(TRUE, WRAPPER_MSG_SERVICE_CONTROL_CODE, buffer);
     
         switch(dwCtrlCode) {
         case SERVICE_CONTROL_PAUSE:
