@@ -303,8 +303,8 @@ void appExit(int exitCode) {
         invocationMutexHandle = NULL;
     }
     
-	/* Common wrapper cleanup code. */
-	wrapperDispose();
+    /* Common wrapper cleanup code. */
+    wrapperDispose();
 
     /* Do this here to unregister the syslog resources on exit.*/
     /*unregisterSyslogMessageFile(); */
@@ -752,6 +752,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
 
             /* Store this tick offset for the next time through the loop. */
             lastTickOffset = tickOffset;
+            //wrapperProtocolFunction(WRAPPER_MSG_SERVICE_CONTROL_CODE, "255");
         }
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Fatal error in the Timer thread.");

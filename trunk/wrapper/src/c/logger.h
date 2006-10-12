@@ -66,6 +66,7 @@
 /* * * Log thread constants * * */
 /* These are indexes in an array so they must be sequential, start
  *  with zero and be one less than the final WRAPPER_THREAD_COUNT */
+#define WRAPPER_THREAD_CURRENT  -1
 #define WRAPPER_THREAD_SIGNAL   0
 #define WRAPPER_THREAD_MAIN     1
 #define WRAPPER_THREAD_SRVMAIN  2
@@ -180,7 +181,8 @@ extern void logRegisterThread( int thread_id );
  * This method can be used safely in most cases.  See the log_printf_queue
  *  funtion for the exceptions.
  */
-extern void log_printf( int source_id, int level, const char *lpszFmt, ... );
+extern void log_printf_thread( int source_id, int level, int threadId, const char *lpszFmt, ... );
+#define log_printf( source_id, level, lpszFmt, ... ) log_printf_thread( source_id, level, WRAPPER_THREAD_CURRENT, lpszFmt, __VA_ARGS__ )
 
 /**
  * The log_printf_queue function is less efficient than the log_printf
