@@ -603,17 +603,66 @@ char *wrapperProtocolGetCodeName(char code) {
 
 /* Mutex for syncronization of the wrapperProtocolFunction function. */
 #ifdef WIN32
-HANDLE wrapperProtocolFunctionMutexHandle = NULL;
+HANDLE protocolMutexHandle = NULL;
 #else
-pthread_mutex_t wrapperProtocolFunctionMutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t protocolMutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
+
+
+/** Obtains a lock on the protocol mutex. */
+int lockProtocolMutex() {
+#ifdef WIN32
+    switch (WaitForSingleObject(protocolMutexHandle, INFINITE)) {
+    case WAIT_ABANDONED:
+        printf("Protocol mutex was abandoned.\n");
+        fflush(NULL);
+        return -1;
+    case WAIT_FAILED:
+        printf("Protocol mutex wait failed.\n");
+        fflush(NULL);
+        return -1;
+    case WAIT_TIMEOUT:
+        printf("Protocol mutex wait timed out.\n");
+        fflush(NULL);
+        return -1;
+    default:
+        /* Ok */
+        break;
+    }
+#else
+    pthread_mutex_lock(&protocolMutex);
+#endif
+    
+    return 0;
+}
+
+/** Releases a lock on the protocol mutex. */
+int releaseProtocolMutex() {
+#ifdef WIN32
+    if (!ReleaseMutex(protocolMutexHandle)) {
+        printf( "Failed to release protocol mutex. %s\n", getLastErrorText());
+        fflush(NULL);
+        return -1;
+    }
+#else
+    pthread_mutex_unlock(&protocolMutex);
+#endif
+    return 0;
+}
+
 size_t protocolSendBufferSize = 0;
 char *protocolSendBuffer = NULL;
 int wrapperProtocolFunction(char function, const char *message) {
     int rc;
     size_t len;
     const char *logMsg;
+    int returnVal;
     
+    /* It is important than there is never more than one thread allowed in here at a time. */
+    if (lockProtocolMutex()) {
+        return -1;
+    }
+
     /* We don't want to show the full properties log message.  It is quite long and distracting. */
     if (function == WRAPPER_MSG_PROPERTIES) {
         logMsg = "(Property Values)";
@@ -640,33 +689,40 @@ int wrapperProtocolFunction(char function, const char *message) {
             log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket not open, so packet not sent %s : %s",
                 wrapperProtocolGetCodeName(function), (message == NULL ? "NULL" : logMsg));
         }
-        return -1;
-    }
-
-    if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "send a packet %s : %s",
-            wrapperProtocolGetCodeName(function), (message == NULL ? "NULL" : logMsg));
-    }
-
-    /* Build the packet */
-    protocolSendBuffer[0] = function;
-    if (message == NULL) {
-        protocolSendBuffer[1] = '\0';
+        returnVal = -1;
     } else {
-        strcpy((char*)(protocolSendBuffer + 1), message);
-    }
-
-    /* Send the packet */
-    rc = send(sd, protocolSendBuffer, (int)len, 0);
-    if (rc == SOCKET_ERROR) {
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket send failed. (%d)", wrapperGetLastError());
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "send a packet %s : %s",
+                wrapperProtocolGetCodeName(function), (message == NULL ? "NULL" : logMsg));
         }
-        wrapperProtocolClose();
-        return -1;
+    
+        /* Build the packet */
+        protocolSendBuffer[0] = function;
+        if (message == NULL) {
+            protocolSendBuffer[1] = '\0';
+        } else {
+            strcpy((char*)(protocolSendBuffer + 1), message);
+        }
+    
+        /* Send the packet */
+        rc = send(sd, protocolSendBuffer, (int)len, 0);
+        if (rc == SOCKET_ERROR) {
+            if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket send failed. (%d)", wrapperGetLastError());
+            }
+            wrapperProtocolClose();
+            returnVal = -1;
+        } else {
+            returnVal = 1;
+        }
     }
 
-    return 1;
+    /* Always make sure the mutex is released. */
+    if (releaseProtocolMutex()) {
+        returnVal = -1;
+    }
+
+    return returnVal;
 }
 
 /**
@@ -880,7 +936,7 @@ int wrapperInitialize() {
     setSyslogLevelInt(LEVEL_NONE);
 
 #ifdef WIN32
-    if (!(wrapperProtocolFunctionMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
+    if (!(protocolMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
         printf("Failed to create protocol mutex. %s\n", getLastErrorText());
         fflush(NULL);
         return 1;
@@ -893,6 +949,16 @@ int wrapperInitialize() {
 /** Common wrapper cleanup code. */
 void wrapperDispose()
 {
+#ifdef WIN32
+    if (protocolMutexHandle) {
+        if (!CloseHandle(protocolMutexHandle))
+        {
+            printf("Unable to close protocol mutex handle. %s\n", getLastErrorText());
+            fflush(NULL);
+        }
+    }
+#endif
+    
     /* Clean up the logging system. */
     disposeLogging();
 }
@@ -1256,7 +1322,7 @@ void wrapperRestartProcess(int useLoggerQueue) {
  */
 void wrapperStripQuotes(const char *prop, char *propStripped) {
     size_t len;
-	int i, j;
+    int i, j;
     
     len = strlen(prop);
     j = 0;
@@ -1320,7 +1386,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     char paramBuffer[128];
     int quotable;
     int i, j;
-	size_t len2;
+    size_t len2;
     size_t cpLen, cpLenAlloc;
     char *tmpString;
     struct stat statBuffer;
@@ -1330,7 +1396,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     char cpPath[512];
     intptr_t handle;
     size_t len;
-	int found;
+    int found;
     struct _finddata_t fblock;
 #else
     glob_t g;
