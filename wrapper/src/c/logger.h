@@ -182,7 +182,7 @@ extern void logRegisterThread( int thread_id );
  *  funtion for the exceptions.
  */
 extern void log_printf_thread( int source_id, int level, int threadId, const char *lpszFmt, ... );
-#define log_printf( source_id, level, lpszFmt, ... ) log_printf_thread( source_id, level, WRAPPER_THREAD_CURRENT, lpszFmt, __VA_ARGS__ )
+#define log_printf( source_id, level, lpszFmt, ... ) log_printf_thread( source_id, level, WRAPPER_THREAD_CURRENT, lpszFmt, ##__VA_ARGS__ )
 
 /**
  * The log_printf_queue function is less efficient than the log_printf

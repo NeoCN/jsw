@@ -85,6 +85,7 @@ typedef long intptr_t;
 #include <unistd.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <pthread.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <netinet/in.h>
