@@ -138,8 +138,8 @@ void appExit(int exitCode) {
         unlink(wrapperData->anchorFilename);
     }
     
-	/* Common wrapper cleanup code. */
-	wrapperDispose();
+    /* Common wrapper cleanup code. */
+    wrapperDispose();
 
     exit(exitCode);
 }
