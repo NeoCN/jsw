@@ -121,6 +121,8 @@ public class Main
             
             ScrollPane scrollPane = new ScrollPane();
             scrollPane.add( panel );
+            scrollPane.getHAdjustable().setUnitIncrement( 20 );
+            scrollPane.getVAdjustable().setUnitIncrement( 20 );
             
             setLayout( new BorderLayout() );
             add( scrollPane, BorderLayout.CENTER );
