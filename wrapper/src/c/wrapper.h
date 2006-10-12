@@ -299,7 +299,7 @@ extern char wrapperClasspathSeparator;
 
 /* Protocol Functions */
 extern void wrapperProtocolClose();
-extern int wrapperProtocolFunction(char function, const char *message);
+extern int wrapperProtocolFunction(int useLoggerQueue, char function, const char *message);
 extern int wrapperProtocolRead();
 
 /******************************************************************************
