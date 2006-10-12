@@ -175,6 +175,12 @@ $Id$
                     <ulink url="http://sourceforge.net/tracker/?func=detail&amp;aid=1574537&amp;group_id=39428&amp;atid=425187">Bug #1574537</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a minor logging problem where the 'D' format was not displaying the
+                    correct thread name for queued log messages.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.1">

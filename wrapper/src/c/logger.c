@@ -146,6 +146,7 @@ int queueReadIndex = 0;
 char *queueMessages[QUEUE_SIZE];
 int queueSourceIds[QUEUE_SIZE];
 int queueLevels[QUEUE_SIZE];
+int queueThreadIds[QUEUE_SIZE];
 
 /* Thread specific work buffers. */
 #ifdef WIN32
@@ -243,6 +244,11 @@ int initLogging() {
 
     for ( i = 0; i < WRAPPER_THREAD_COUNT; i++ ) {
         threadIds[i] = 0;
+    }
+
+    for ( i = 0; i < QUEUE_SIZE; i++ )
+    {
+        queueMessages[i] = NULL;
     }
 
     return 0;
@@ -649,7 +655,7 @@ int getLowLogLevel() {
 
 /* Writes to and then returns a buffer that is reused by the current thread.
  *  It should not be released. */
-char* buildPrintBuffer( int source_id, int level, struct tm *nowTM, int nowMillis, char *format, char *message ) {
+char* buildPrintBuffer( int source_id, int level, int threadId, struct tm *nowTM, int nowMillis, char *format, char *message ) {
     int       i;
     size_t    reqSize;
     int       numColumns;
@@ -740,7 +746,7 @@ char* buildPrintBuffer( int source_id, int level, struct tm *nowTM, int nowMilli
             break;
 
         case 'D':
-            switch ( getThreadId() )
+            switch ( threadId )
             {
             case WRAPPER_THREAD_SIGNAL:
                 pos += sprintf( pos, "signal " );
@@ -853,7 +859,7 @@ void generateLogFileName(char *buffer, const char *template, const char *nowDate
 }
 
 /* General log functions */
-void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
+void log_printf_thread( int source_id, int level, int threadId, const char *lpszFmt, ... ) {
     va_list     vargs;
     int         count;
     char        *printBuffer;
@@ -873,6 +879,11 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
      *  initialized in the initLogging function. */
     if (lockLoggingMutex()) {
         return;
+    }
+
+    if ( threadId < 0 )
+    {
+        threadId = getThreadId();
     }
 
     /* Loop until the buffer is large enough that we are able to successfully
@@ -940,7 +951,7 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
     /* Console output by format */
     if( level >= currentConsoleLevel ) {
         /* Build up the printBuffer. */
-        printBuffer = buildPrintBuffer( source_id, level, nowTM, nowMillis, consoleFormat, threadMessageBuffer );
+        printBuffer = buildPrintBuffer( source_id, level, threadId, nowTM, nowMillis, consoleFormat, threadMessageBuffer );
 
         /* Write the print buffer to the console. */
 #ifdef WIN32
@@ -1009,7 +1020,7 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
                 strcpy(logFileLastNowDate, nowDate);
                 
                 /* Build up the printBuffer. */
-                printBuffer = buildPrintBuffer( source_id, level, nowTM, nowMillis, logfileFormat, threadMessageBuffer );
+                printBuffer = buildPrintBuffer( source_id, level, threadId, nowTM, nowMillis, logfileFormat, threadMessageBuffer );
                 
                 fprintf( logfileFP, "%s\n", printBuffer );
                 
@@ -1780,10 +1791,20 @@ void checkAndRollLogs(const char *nowDate) {
  *  need to be all that efficient.
  */
 void log_printf_queueInner( int source_id, int level, char *buffer ) {
+    int threadId;
+
 #ifdef _DEBUG
     printf( "LOG ENQUEUE[%d]: %s\n", queueWriteIndex, buffer );
     fflush( NULL );
 #endif
+
+    /* Get the thread id here to keep the time below to a minimum. */
+    threadId = getThreadId();
+
+    /* NOTE - This function is not synchronized.  So be very careful and think
+     *        about what would happen if the queueWrapped and or queueWriteIndex
+     *        values were to be changed by another thread.  We need to be sure
+     *        that such changes would not result in a crash of any kind. */
 
     /* Clear any old buffer, only necessary starting on the second time through the queue buffers. */
     if ( queueWrapped ) {
@@ -1797,6 +1818,7 @@ void log_printf_queueInner( int source_id, int level, char *buffer ) {
     /* Store additional information about the call. */
     queueSourceIds[queueWriteIndex] = source_id;
     queueLevels[queueWriteIndex] = level;
+    queueThreadIds[queueWriteIndex] = threadId;
 
     /* Lastly increment and wrap the write index. */
     queueWriteIndex++;
@@ -1861,6 +1883,13 @@ void log_printf_queue( int useQueue, int source_id, int level, const char *lpszF
 
     /* Now decide what to actually do with the message. */
     if ( useQueue ) {
+        /* There is a risk here due to synchronization problems.  But these queued messages
+         *  should only be called rarely and then only from signal threads so it should be
+         *  ok.  If more than one thread gets into the following function at the same time
+         *  it would not be good.  But the problem is that we can not do synchronization
+         *  here as that could lead to deadlocks.  The contents of this function tries to
+         *  be as careful as possible about checking its values to make sure that any
+         *  synchronization issues result only in a malformed message and not a crash. */
         log_printf_queueInner( source_id, level, buffer );
         /* The buffer will be freed by the queue at a later point. */
     } else {
@@ -1881,14 +1910,42 @@ void log_printf_queue( int useQueue, int source_id, int level, const char *lpszF
  *  any time as this function is being executed.
  */
 void maintainLogger() {
+    int localWriteIndex;
+    int source_id;
+    int level;
+    int threadId;
+    char *buffer;
+
+    /* NOTE - The queue variables are not synchronized so we need to access them
+     *        carefully and assume that data could possibly be corrupted. */
+
+
     /* Empty the queue of any logged messages. */
-    while ( queueReadIndex != queueWriteIndex ) {
+    localWriteIndex = queueWriteIndex; /* Snapshot the value to maintain a constant reference. */
+    while ( queueReadIndex != localWriteIndex ) {
+        /* Snapshot the values in the queue at that index. */
+        source_id = queueSourceIds[queueReadIndex];
+        level = queueLevels[queueReadIndex];
+        threadId = queueThreadIds[queueReadIndex];
+        buffer = queueMessages[queueReadIndex];
+
+        /* Now we have safe values.  Everything below this is thread safe. */
+
+        if (buffer) {
+            /* non null, assume it is valid. */
+
 #ifdef _DEBUG
-        printf( "LOG QUEUED[%d]: %s\n", queueReadIndex, queueMessages[queueReadIndex] );
-        fflush( NULL );
+            printf( "LOG QUEUED[%d]: %s\n", queueReadIndex, buffer );
+            fflush( NULL );
 #endif
-        log_printf( queueSourceIds[queueReadIndex], queueLevels[queueReadIndex],
-            "%s", queueMessages[queueReadIndex] );
+
+            log_printf_thread( source_id, level, threadId, "%s", buffer );
+        } else {
+#ifdef _DEBUG
+            printf( "LOG QUEUED[%d]: <NULL> SYNCHRONIZATION CONFLICT!\n", queueReadIndex );
+            fflush( NULL );
+#endif
+        }
         queueReadIndex++;
         if ( queueReadIndex >= QUEUE_SIZE ) {
             queueReadIndex = 0;

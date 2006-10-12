@@ -58,6 +58,8 @@ Java Service Wrapper Revision History.
   instant as the wrapper was pinging the JVM, the wrapper was sometimes
   crashing due to a synchronization problem.   The problem did not exist
   prior to 3.2.0.  Bug #1574537.
+* Fix a minor logging problem where the 'D' format was not displaying the
+  correct thread name for queued log messages.
 
 3.2.1
 * Fix a problem with the solaris-sparc-64 makefile.
