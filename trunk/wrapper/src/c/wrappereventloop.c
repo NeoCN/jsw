@@ -58,8 +58,8 @@
 #ifdef WIN32
 #include <io.h>
 
-// MS Visual Studio 8 went and deprecated the POXIX names for functions.
-//  Fixing them all would be a big headache for UNIX versions.
+/* MS Visual Studio 8 went and deprecated the POXIX names for functions.
+ *  Fixing them all would be a big headache for UNIX versions. */
 #pragma warning(disable : 4996)
 
 #else /* UNIX */
