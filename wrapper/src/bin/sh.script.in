@@ -268,11 +268,13 @@ else
 fi
 
 # Build the lock file clause.  Only create a lock file if the lock directory exists on this platform.
+LOCKPROP=
 if [ -d $LOCKDIR ]
 then
-    LOCKPROP=wrapper.lockfile=\"$LOCKFILE\"
-else
-    LOCKPROP=
+    if [ -w $LOCKDIR ]
+    then
+        LOCKPROP=wrapper.lockfile=\"$LOCKFILE\"
+    fi
 fi
 
 checkUser() {
