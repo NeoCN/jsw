@@ -193,6 +193,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\wrapperjni_unix.c"
+				>
+			</File>
+			<File
 				RelativePath=".\wrapperjni_win.c"
 				>
 			</File>
