@@ -198,6 +198,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\wrapper_unix.c"
+				>
+			</File>
+			<File
 				RelativePath=".\wrapper_win.c"
 				>
 			</File>
