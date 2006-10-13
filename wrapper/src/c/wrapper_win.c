@@ -752,7 +752,6 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
 
             /* Store this tick offset for the next time through the loop. */
             lastTickOffset = tickOffset;
-            //wrapperProtocolFunction(FALSE, WRAPPER_MSG_SERVICE_CONTROL_CODE, "255");
         }
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Fatal error in the Timer thread.");
@@ -1738,7 +1737,7 @@ void wrapperDumpCPUUsage() {
         }
         
         
-        // Convert the times to ms.
+        /* Convert the times to ms. */
         wKernelTimeMs = filetimeToMS(&wKernelTime);
         wUserTimeMs = filetimeToMS(&wUserTime);
         wTimeMs = wKernelTimeMs + wUserTimeMs;
@@ -2017,7 +2016,7 @@ char *readPassword() {
             }
             break;
         }
-        //printf( "(%02x)", c );
+        /*printf( "(%02x)", c );*/
     } while ((c != 0x0d) && (c != 0x0a));
     printf("\n");
     
@@ -2122,7 +2121,7 @@ int wrapperInstall() {
                                  );
     
     if (schSCManager) {
-        // Make sure that an empty length password is null.
+        /* Make sure that an empty length password is null. */
         ntServicePassword = wrapperData->ntServicePassword;
         if ((ntServicePassword != NULL) && (strlen(ntServicePassword) <= 0)) {
             ntServicePassword = NULL;
