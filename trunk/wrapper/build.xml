@@ -63,6 +63,7 @@
                 <equals arg1="${os.arch}" arg2="ia32"/>
                 <equals arg1="${os.arch}" arg2="IA32"/>
                 <equals arg1="${os.arch}" arg2="ia64"/>
+                <equals arg1="${os.arch}" arg2="x86_64"/>
                 <equals arg1="${os.arch}" arg2="x86"/>
                 <equals arg1="${os.arch}" arg2="i686"/>
                 <equals arg1="${os.arch}" arg2="i586"/>
@@ -856,8 +857,8 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <fixcrlf srcdir="${releasesrcdir}" includes="**/*.script.in" eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="build32.sh" eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="build64.sh" eol="lf" />
-        <fixcrlf srcdir="${releasesrcdir}" includes="tools/bin/ant" eol="lf" />
-        <fixcrlf srcdir="${releasesrcdir}" includes="tools/bin/antRun" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="tools/**/bin/ant" eol="lf" />
+        <fixcrlf srcdir="${releasesrcdir}" includes="tools/**/bin/antRun" eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="**/Makefile-*" eol="lf" />
         
         
@@ -905,15 +906,15 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
             <tarfileset dir="${build.dir}" mode="755">
                 <include name="${releasesrcfile}/build32.sh"/>
                 <include name="${releasesrcfile}/build64.sh"/>
-                <include name="${releasesrcfile}/tools/bin/ant"/>
-                <include name="${releasesrcfile}/tools/bin/antRun"/>
+                <include name="${releasesrcfile}/tools/**/bin/ant"/>
+                <include name="${releasesrcfile}/tools/**/bin/antRun"/>
             </tarfileset>
             <tarfileset dir="${build.dir}">
                 <include name="${releasesrcfile}/**/*"/>
                 <exclude name="${releasesrcfile}/build32.sh"/>
                 <exclude name="${releasesrcfile}/build64.sh"/>
-                <exclude name="${releasesrcfile}/tools/bin/ant"/>
-                <exclude name="${releasesrcfile}/tools/bin/antRun"/>
+                <exclude name="${releasesrcfile}/tools/**/bin/ant"/>
+                <exclude name="${releasesrcfile}/tools/**/bin/antRun"/>
             </tarfileset>
         </tar>
         <gzip zipfile="${dist.dir}/${releasesrcfile}_with_doc_src.tar.gz" src="${build.dir}/${releasesrcfile}_with_doc_src.tar" />
@@ -923,8 +924,8 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
             <tarfileset dir="${build.dir}" mode="755">
                 <include name="${releasesrcfile}/build32.sh"/>
                 <include name="${releasesrcfile}/build64.sh"/>
-                <include name="${releasesrcfile}/tools/bin/ant"/>
-                <include name="${releasesrcfile}/tools/bin/antRun"/>
+                <include name="${releasesrcfile}/tools/**/bin/ant"/>
+                <include name="${releasesrcfile}/tools/**/bin/antRun"/>
             </tarfileset>
             <tarfileset dir="${build.dir}">
                 <include name="${releasesrcfile}/**/*" />
@@ -932,8 +933,8 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                 <exclude name="${releasesrcfile}/tools/cocoon-*/**" />
                 <exclude name="${releasesrcfile}/build32.sh"/>
                 <exclude name="${releasesrcfile}/build64.sh"/>
-                <exclude name="${releasesrcfile}/tools/bin/ant"/>
-                <exclude name="${releasesrcfile}/tools/bin/antRun"/>
+                <exclude name="${releasesrcfile}/tools/**/bin/ant"/>
+                <exclude name="${releasesrcfile}/tools/**/bin/antRun"/>
             </tarfileset>
         </tar>
         <gzip zipfile="${dist.dir}/${releasesrcfile}.tar.gz" src="${build.dir}/${releasesrcfile}.tar" />
@@ -1000,8 +1001,8 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <fixcrlf srcdir="${intermdir}" includes="**/*.script.in" eol="lf" />
         <fixcrlf srcdir="${intermdir}" includes="build32.sh" eol="lf" />
         <fixcrlf srcdir="${intermdir}" includes="build64.sh" eol="lf" />
-        <fixcrlf srcdir="${intermdir}" includes="tools/bin/ant" eol="lf" />
-        <fixcrlf srcdir="${intermdir}" includes="tools/bin/antRun" eol="lf" />
+        <fixcrlf srcdir="${intermdir}" includes="tools/**/bin/ant" eol="lf" />
+        <fixcrlf srcdir="${intermdir}" includes="tools/**/bin/antRun" eol="lf" />
         <fixcrlf srcdir="${intermdir}" includes="**/Makefile-*" eol="lf" />
         
         <!-- Create a marker in both the intermdir and the build dir so the release target
@@ -1049,15 +1050,15 @@ original tar distribution due to a lack of support for long path names in some t
             <tarfileset dir="${build.dir}" mode="755">
                 <include name="${intermfile}/build32.sh"/>
                 <include name="${intermfile}/build64.sh"/>
-                <include name="${intermfile}/tools/bin/ant"/>
-                <include name="${intermfile}/tools/bin/antRun"/>
+                <include name="${intermfile}/tools/**/bin/ant"/>
+                <include name="${intermfile}/tools/**/bin/antRun"/>
             </tarfileset>
             <tarfileset dir="${build.dir}">
                 <include name="${intermfile}/**/*" />
                 <exclude name="${intermfile}/build32.sh"/>
                 <exclude name="${intermfile}/build64.sh"/>
-                <exclude name="${intermfile}/tools/bin/ant"/>
-                <exclude name="${intermfile}/tools/bin/antRun"/>
+                <exclude name="${intermfile}/tools/**/bin/ant"/>
+                <exclude name="${intermfile}/tools/**/bin/antRun"/>
             </tarfileset>
         </tar>
         <gzip zipfile="${dist.dir}/${intermfile}.tar.gz" src="${build.dir}/${intermfile}.tar" />
