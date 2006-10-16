@@ -8,6 +8,16 @@ $Id$
 
 <article id="index">
     <title>Java Service Wrapper Release Notes</title>
+    <section id="3.2.3">
+        <title>Version 3.2.3: Changes and bug fixes</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Add support for x86 Mac OS X distributions.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
     <section id="3.2.2">
         <title>Version 3.2.2: Changes and bug fixes</title>
         <itemizedlist>

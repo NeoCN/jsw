@@ -1,5 +1,8 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.2.3
+* Add support for x86 Mac OS X distributions.
+
 3.2.2
 * Correct a typo in the usage output of the WrapperStartStopApp.  Thanks to
   Michael Giroux for pointing it out.
