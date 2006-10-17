@@ -2,6 +2,11 @@ Java Service Wrapper Revision History.
 --------------------------------------
 3.2.3
 * Add support for x86 Mac OS X distributions.
+* The 3.2.2 Windows version was accidentally released with its MFC libraries
+  dynamically linked.  This meant that anyone who did not have VS8 installed
+  were not able to run the Wrapper due to missing DLLs.  This version fixes
+  that snafu by correctly using statically linked libraries as was done in
+  previous versions built with VS6.  Bug #1578554.
 
 3.2.2
 * Correct a typo in the usage output of the WrapperStartStopApp.  Thanks to
