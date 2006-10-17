@@ -20,6 +20,7 @@
 			OutputDirectory="$(SolutionDir)$(IntDir)"
 			IntermediateDirectory="$(ProjectName)__$(PlatformName)_$(ConfigurationName)"
 			ConfigurationType="1"
+			UseOfMFC="1"
 			CharacterSet="0"
 			>
 			<Tool
@@ -45,7 +46,7 @@
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				StructMemberAlignment="3"
 				BufferSecurityCheck="true"
 				TreatWChar_tAsBuiltInType="true"
@@ -65,11 +66,13 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="wsock32.lib shlwapi.lib"
+				AdditionalOptions="wsock32.lib shlwapi.lib advapi32.lib user32.lib"
 				OutputFile="$(InputDir)\..\..\bin\wrapper.exe"
 				LinkIncremental="2"
+				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="true"
 				SubSystem="1"
+				OptimizeForWindows98="2"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -102,6 +105,7 @@
 			OutputDirectory="$(SolutionDir)$(IntDir)"
 			IntermediateDirectory="$(ProjectName)__$(PlatformName)_$(ConfigurationName)"
 			ConfigurationType="1"
+			UseOfMFC="1"
 			CharacterSet="0"
 			WholeProgramOptimization="1"
 			>
@@ -124,7 +128,7 @@
 				Name="VCCLCompilerTool"
 				AdditionalOptions="/D &quot;_CRT_SECURE_NO_DEPRECATE&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
-				RuntimeLibrary="2"
+				RuntimeLibrary="0"
 				StructMemberAlignment="3"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -142,13 +146,15 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="wsock32.lib shlwapi.lib"
+				AdditionalOptions="wsock32.lib shlwapi.lib advapi32.lib user32.lib"
 				OutputFile="$(InputDir)\..\..\bin\wrapper.exe"
 				LinkIncremental="1"
+				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
+				OptimizeForWindows98="2"
 				TargetMachine="1"
 			/>
 			<Tool
