@@ -694,9 +694,14 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const char *messa
         returnVal = -1;
     } else {
         if (wrapperData->isDebugging) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
-                "send a packet %s : %s",
-                wrapperProtocolGetCodeName(function), (message == NULL ? "NULL" : logMsg));
+            if ( ( function == WRAPPER_MSG_PING ) && ( strcmp( message, "silent" ) == 0 ) ) {
+                //log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
+                //    "send a silent ping packet");
+            } else {
+                log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
+                    "send a packet %s : %s",
+                    wrapperProtocolGetCodeName(function), (message == NULL ? "NULL" : logMsg));
+            }
         }
     
         /* Build the packet */
@@ -826,8 +831,12 @@ int wrapperProtocolRead() {
         packetBuffer[pos] = '\0';
 
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "read a packet %s : %s",
-                wrapperProtocolGetCodeName(code), packetBuffer);
+            if ( ( code == WRAPPER_MSG_PING ) && ( strcmp( packetBuffer, "silent" ) == 0 ) ) {
+                //log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "read a silent ping packet");
+            } else {
+                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "read a packet %s : %s",
+                    wrapperProtocolGetCodeName(code), packetBuffer);
+            }
         }
 
         switch (code) {
@@ -917,6 +926,7 @@ int wrapperInitialize() {
     wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STARTING);
     wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, 0, -1);
     wrapperData->lastPingTicks = wrapperGetTicks();
+    wrapperData->lastLoggedPingTicks = wrapperGetTicks();
     wrapperData->jvmCommand = NULL;
     wrapperData->exitRequested = FALSE;
     wrapperData->restartRequested = TRUE; /* The first JVM needs to be started. */
@@ -2761,6 +2771,7 @@ int loadConfiguration() {
     wrapperData->startupTimeout = getIntProperty(properties, "wrapper.startup.timeout", 30);
     wrapperData->pingTimeout = getIntProperty(properties, "wrapper.ping.timeout", 30);
     wrapperData->pingInterval = getIntProperty(properties, "wrapper.ping.interval", 5);
+    wrapperData->pingIntervalLogged = getIntProperty(properties, "wrapper.ping.interval.logged", 1);
     wrapperData->shutdownTimeout = getIntProperty(properties, "wrapper.shutdown.timeout", 30);
     wrapperData->jvmExitTimeout = getIntProperty(properties, "wrapper.jvm_exit.timeout", 15);
 
@@ -2777,8 +2788,18 @@ int loadConfiguration() {
     } else if (wrapperData->pingInterval > 3600) {
         wrapperData->pingInterval = 3600;
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-            "wrapper.ping.interval must be at less than or equal to 1 hour (3600 seconds).  Changing to 3600.");
+            "wrapper.ping.interval must be less than or equal to 1 hour (3600 seconds).  Changing to 3600.");
     }
+    if (wrapperData->pingIntervalLogged < 1) {
+        wrapperData->pingIntervalLogged = 1;
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            "wrapper.ping.interval.logged must be at least 1 second.  Changing to 1.");
+    } else if (wrapperData->pingIntervalLogged > 86400) {
+        wrapperData->pingIntervalLogged = 86400;
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            "wrapper.ping.interval.logged must be less than or equal to 1 day (86400 seconds).  Changing to 86400.");
+    }
+
     if ((wrapperData->pingTimeout > 0) && (wrapperData->pingTimeout < wrapperData->pingInterval + 5 )) {
         wrapperData->pingTimeout = wrapperData->pingInterval + 5;
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
@@ -3156,11 +3177,7 @@ void wrapperKeyRegistered(char *key) {
     }
 }
 
-void wrapperPingResponded() {
-    if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Got ping response from JVM");
-    }
-
+void wrapperPingResponded( boolean silent ) {
     /* Depending on the current JVM state, do something. */
     switch (wrapperData->jState) {
     case WRAPPER_JSTATE_STARTED:

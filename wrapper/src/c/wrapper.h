@@ -171,6 +171,7 @@ struct WrapperConfig {
     int     startupTimeout;         /* Number of seconds the wrapper will wait for a JVM to startup */
     int     pingTimeout;            /* Number of seconds the wrapper will wait for a JVM to reply to a ping */
     int     pingInterval;           /* Number of seconds between pinging the JVM */
+    int     pingIntervalLogged;     /* Number of seconds between pings which can be logged to debug output. */
     int     shutdownTimeout;        /* Number of seconds the wrapper will wait for a JVM to shutdown */
     int     jvmExitTimeout;         /* Number of seconds the wrapper will wait for a JVM to process to terminate */
 
@@ -179,6 +180,7 @@ struct WrapperConfig {
     DWORD   jStateTimeoutTicks;     /* Tick count until which the current jState is valid */
     int     jStateTimeoutTicksSet;  /* 1 if the current jStateTimeoutTicks is set. */
     DWORD   lastPingTicks;          /* Time that the last ping was sent */
+    DWORD   lastLoggedPingTicks;    /* Time that the last logged ping was sent */
 
     int     isDebugging;            /* TRUE if set in the configuration file */
     int     isAdviserEnabled;       /* TRUE if advice messages should be output. */

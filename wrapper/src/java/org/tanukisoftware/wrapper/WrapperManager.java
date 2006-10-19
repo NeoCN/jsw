@@ -3651,7 +3651,14 @@ public final class WrapperManager
     {
         if ( m_debug )
         {
-            m_out.println( "Send a packet " + getPacketCodeName( code ) + " : " + message );
+            if ( ( code == WRAPPER_MSG_PING ) && ( message.equals( "silent" ) ) )
+            {
+                //m_out.println( "Send silent ping packet." );
+            }
+            else
+            {
+                m_out.println( "Send a packet " + getPacketCodeName( code ) + " : " + message );
+            }
         }
         if ( m_appearHung )
         {
@@ -3779,8 +3786,17 @@ public final class WrapperManager
                             {
                                 logMsg = msg;
                             }
-                            m_out.println( "Received a packet " + getPacketCodeName( code )
-                                + " : " + logMsg );
+                            
+                            // Don't log silent pings.
+                            if ( ( code == WRAPPER_MSG_PING ) && ( msg.equals( "silent" ) ) )
+                            {
+                                //m_out.println( "Received silent ping packet." );
+                            }
+                            else
+                            {
+                                m_out.println( "Received a packet " + getPacketCodeName( code )
+                                    + " : " + logMsg );
+                            }
                         }
                         
                         // Ok, we got a packet.  Do something with it.
@@ -3801,7 +3817,7 @@ public final class WrapperManager
                             
                         case WRAPPER_MSG_PING:
                             m_lastPingTicks = getTicks();
-                            sendCommand( WRAPPER_MSG_PING, "ok" );
+                            sendCommand( WRAPPER_MSG_PING, msg );
                             
                             if ( m_produceCoreEvents )
                             {
