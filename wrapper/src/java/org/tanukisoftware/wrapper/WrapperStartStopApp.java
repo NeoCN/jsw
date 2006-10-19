@@ -137,6 +137,11 @@ public class WrapperStartStopApp
     /*---------------------------------------------------------------
      * Constructors
      *-------------------------------------------------------------*/
+    /**
+     * Creates an instance of a WrapperStartStopApp.
+     *
+     * @param args The full list of arguments passed to the JVM.
+     */
     protected WrapperStartStopApp( String args[] )
     {
         
@@ -725,6 +730,8 @@ public class WrapperStartStopApp
      *  to launch.  All remaining arguments will be wrapped into a new
      *  argument list and passed to the main method of the specified
      *  application.
+     *
+     * @param args Arguments passed to the application.
      */
     public static void main( String args[] )
     {
