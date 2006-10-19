@@ -124,7 +124,7 @@ public class WrapperSimpleApp
     /**
      * Creates an instance of a WrapperSimpleApp.
      *
-     * @param The full list of arguments passed to the JVM.
+     * @param args The full list of arguments passed to the JVM.
      */
     protected WrapperSimpleApp( String args[] )
     {
@@ -479,6 +479,8 @@ public class WrapperSimpleApp
      *  to launch.  All remaining arguments will be wrapped into a new
      *  argument list and passed to the main method of the specified
      *  application.
+     *
+     * @param args Arguments passed to the application.
      */
     public static void main( String args[] )
     {
