@@ -954,6 +954,7 @@ void jStateDown(DWORD nowTicks, int nextSleep) {
 
     /* Reset the last ping time */
     wrapperData->lastPingTicks = nowTicks;
+    wrapperData->lastLoggedPingTicks = nowTicks;
 }
 
 /**
@@ -1217,10 +1218,18 @@ void jStateStarted(DWORD nowTicks, int nextSleep) {
             }
         } else if (wrapperGetTickAge(wrapperAddToTicks(wrapperData->lastPingTicks, wrapperData->pingInterval), nowTicks) >= 0) {
             /* It is time to send another ping to the JVM */
-            if (wrapperData->isLoopOutputEnabled) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Temp: Sending a ping packet.");
+            if (wrapperGetTickAge(wrapperAddToTicks(wrapperData->lastLoggedPingTicks, wrapperData->pingIntervalLogged), nowTicks) >= 0) {
+                if (wrapperData->isLoopOutputEnabled) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Temp: Sending a ping packet.");
+                }
+                ret = wrapperProtocolFunction(FALSE, WRAPPER_MSG_PING, "ping");
+                wrapperData->lastLoggedPingTicks = nowTicks;
+            } else {
+                if (wrapperData->isLoopOutputEnabled) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Temp: Sending a silent ping packet.");
+                }
+                ret = wrapperProtocolFunction(FALSE, WRAPPER_MSG_PING, "silent");
             }
-            ret = wrapperProtocolFunction(FALSE, WRAPPER_MSG_PING, "ping");
             if (ret < 0) {
                 /* Failed to send the ping. */
                 if (wrapperData->isDebugging) {

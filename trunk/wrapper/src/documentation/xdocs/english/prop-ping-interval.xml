@@ -34,6 +34,12 @@
             <simpara><emphasis>Example:</emphasis></simpara>
             <screen format="linespecific"><![CDATA[wrapper.ping.interval=5]]></screen>
         </informalexample>
+        <para>
+            While debug output is enabled, the default ping output can be overwhelming.
+            Rather than reducing the actual ping interval, consider using the
+            <ulink url="prop-ping-interval-logged.html">wrapper.ping.interval.logged</ulink>
+            property to reduce the number of actual pings which get logged.
+        </para>
         <warning>
             <simpara>
                 Some users have requested this due to concerns about the load imposed
