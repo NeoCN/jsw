@@ -916,6 +916,11 @@ void wrapperReportStatus(int useLoggerQueue, int status, int errorCode, int wait
     static DWORD dwCheckPoint = 1;
     BOOL bResult = TRUE;
 
+    /*
+    log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+        "wrapperReportStatus(%d, %d, %d, %d)", useLoggerQueue, status, errorCode, waitHint);
+    */
+
     switch (status) {
     case WRAPPER_WSTATE_STARTING:
         natState = SERVICE_START_PENDING;
@@ -1897,6 +1902,8 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
  *	It is called by the service manager.
  */
 void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
+    int timeout;
+
     /* Enclose the contents of this call in a try catch block so we can
      *  display and log useful information should the need arise. */
     __try {
@@ -1925,7 +1932,12 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
         /* second, we would not have to report our status to the service control manager. */
         /* For good measure, we will assign SERVICE_START_PENDING to the current service */
         /* state and inform the service control manager through our ReportStatus function. */
-        wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTING, 0, 3000);
+        if (wrapperData->startupTimeout > 0 ) {
+            timeout = wrapperData->startupTimeout * 1000;
+        } else {
+            timeout = 86400000; // Set infinity at 1 day.
+        }
+        wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTING, 0, timeout);
     
         /* Now actually start the service */
         wrapperRunService();

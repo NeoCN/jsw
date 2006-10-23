@@ -75,11 +75,11 @@ public class ShutdownHook {
         Runtime runtime = Runtime.getRuntime();
         Thread hook = new Thread() {
                 public void run() {
-                    System.out.println("Starting shutdown hook. Loop for 20 seconds.");
-                    System.out.println("Should timeout unless this property is set: wrapper.jvm_exit.timeout=25");
+                    System.out.println("Starting shutdown hook. Loop for 25 seconds.");
+                    System.out.println("Should timeout unless this property is set: wrapper.jvm_exit.timeout=30");
 
                     long start = System.currentTimeMillis();
-                    while(System.currentTimeMillis() - start < 20000)
+                    while(System.currentTimeMillis() - start < 25000)
                     {
                         try
                         {
@@ -90,7 +90,7 @@ public class ShutdownHook {
                             // Ignore
                         }
                     }
-                    System.out.println("Shutdown look complete. Should exit now.");
+                    System.out.println("Shutdown hook complete. Should exit now.");
                 }
             };
         try {
