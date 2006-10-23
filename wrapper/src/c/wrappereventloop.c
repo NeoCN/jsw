@@ -70,6 +70,10 @@
 #include "wrapper.h"
 #include "logger.h"
 
+#ifndef MAX
+#define MAX(a, b)  (((a) > (b)) ? (a) : (b)) 
+#endif
+
 const char *wrapperGetWState(int wState) {
     const char *name;
     switch(wState) {
@@ -630,11 +634,18 @@ void commandPoll(DWORD nowTicks) {
  * nowTicks: The tick counter value this time through the event loop.
  */
 void wStateStarting(DWORD nowTicks) {
+    int timeout;
+
     /* While the wrapper is starting up, we need to ping the service  */
     /*  manager to reasure it that we are still alive. */
 
     /* Tell the service manager that we are starting */
-    wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTING, 0, 1000);
+    if (wrapperData->startupTimeout > 0 ) {
+        timeout = (wrapperData->startupTimeout) * 1000;
+    } else {
+        timeout = 86400000; // Set infinity at 1 day.
+    }
+    wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTING, 0, timeout);
     
     /* If the JVM state is now STARTED, then change the wrapper state */
     /*  to be STARTED as well. */
@@ -668,11 +679,10 @@ void wStateStarted(DWORD nowTicks) {
  * nowTicks: The tick counter value this time through the event loop.
  */
 void wStatePausing(DWORD nowTicks) {
+    int timeout;
+
     /* While the wrapper is pausing, we need to ping the service  */
     /*  manager to reasure it that we are still alive. */
-
-    /* Tell the service manager that we are pausing */
-    wrapperReportStatus(FALSE, WRAPPER_WSTATE_PAUSING, 0, 1000);
 
     /* If we are configured to do so, stop the JVM */
     if (wrapperData->ntServicePausableStopJVM) {
@@ -683,16 +693,27 @@ void wStatePausing(DWORD nowTicks) {
             
             /* Tell the service manager that we are paused */
             wrapperReportStatus(FALSE, WRAPPER_WSTATE_PAUSED, 0, 0);
-        } else if (wrapperData->exitRequested ||
-            (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
-            (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
-            (wrapperData->jState == WRAPPER_JSTATE_KILLING)) {
-            /* In the process of stopping the JVM. */
         } else {
-            wrapperData->exitRequested = TRUE;
+            /* Tell the service manager that we are pausing */
+            if ( (wrapperData->shutdownTimeout <= 0) || (wrapperData->jvmExitTimeout <= 0)) {
+                timeout = 86400000; // Set infinity at 1 day.
+            } else {
+                timeout = MAX(wrapperData->shutdownTimeout, wrapperData->jvmExitTimeout) * 1000;
+            }
+            wrapperReportStatus(FALSE, WRAPPER_WSTATE_PAUSING, 0, timeout);
 
-            /* Make sure the JVM will be restarted. */
-            wrapperData->restartRequested = TRUE;
+            if (wrapperData->exitRequested ||
+                (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
+                (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
+                (wrapperData->jState == WRAPPER_JSTATE_KILLING)) {
+                /* In the process of stopping the JVM. */
+            } else {
+                /* The JVM needs to be stopped, start that process. */
+                wrapperData->exitRequested = TRUE;
+    
+                /* Make sure the JVM will be restarted. */
+                wrapperData->restartRequested = TRUE;
+            }
         }
     } else {
         /* We want to leave the JVM process as is.  We are now paused. */
@@ -725,12 +746,11 @@ void wStatePaused(DWORD nowTicks) {
  * nowTicks: The tick counter value this time through the event loop.
  */
 void wStateContinuing(DWORD nowTicks) {
+    int timeout;
+
     /* While the wrapper is continuing, we need to ping the service  */
     /*  manager to reasure it that we are still alive. */
 
-    /* Tell the service manager that we are continuing */
-    wrapperReportStatus(FALSE, WRAPPER_WSTATE_CONTINUING, 0, 1000);
-    
     /* If the JVM state is now STARTED, then change the wrapper state */
     /*  to be STARTED as well. */
     if (wrapperData->jState == WRAPPER_JSTATE_STARTED) {
@@ -738,6 +758,15 @@ void wStateContinuing(DWORD nowTicks) {
         
         /* Tell the service manager that we started */
         wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTED, 0, 0);
+    } else {
+        /* JVM is down and so it needs to be started. */
+        /* Tell the service manager that we are continuing */
+        if (wrapperData->startupTimeout > 0 ) {
+            timeout = wrapperData->startupTimeout * 1000;
+        } else {
+            timeout = 86400000; // Set infinity at 1 day.
+        }
+        wrapperReportStatus(FALSE, WRAPPER_WSTATE_CONTINUING, 0, timeout);
     }
 }
 #endif
@@ -751,11 +780,18 @@ void wStateContinuing(DWORD nowTicks) {
  * nowTicks: The tick counter value this time through the event loop.
  */
 void wStateStopping(DWORD nowTicks) {
+    int timeout;
+
     /* The wrapper is stopping, we need to ping the service manager */
     /*  to reasure it that we are still alive. */
     
     /* Tell the service manager that we are stopping */
-    wrapperReportStatus(FALSE, WRAPPER_WSTATE_STOPPING, wrapperData->exitCode, 1000);
+    if ( (wrapperData->shutdownTimeout <= 0) || (wrapperData->jvmExitTimeout <= 0)) {
+        timeout = 86400000; // Set infinity at 1 day.
+    } else {
+        timeout = MAX(wrapperData->shutdownTimeout, wrapperData->jvmExitTimeout) * 1000;
+    }
+    wrapperReportStatus(FALSE, WRAPPER_WSTATE_STOPPING, wrapperData->exitCode, timeout);
     
     /* If the JVM state is now DOWN, then change the wrapper state */
     /*  to be STOPPED as well. */

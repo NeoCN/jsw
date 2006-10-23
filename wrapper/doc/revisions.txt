@@ -4,6 +4,11 @@ Java Service Wrapper Revision History.
 * Add a new wrapper.ping.interval.logged property which makes it possible to
   reduce the debug output caused by ping transactions between the Wrapper and
   JVM.
+* Fix a problem on Windows where the Windows Service Manager was not waiting
+  the full configured time of the wrapper.jvm_exit.timeout and
+  wrapper.shutdown.timeout properties.  This was leading to the net stop
+  command timing out and the system shutting down without the java application
+  having fully stopped.  Bug #1582568.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
