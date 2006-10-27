@@ -89,6 +89,9 @@ extern "C" {
 #define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_SHUTDOWN 5L
 /* Inaccessible static: m_out */
 /* Inaccessible static: m_err */
+/* Inaccessible static: m_outInfo */
+/* Inaccessible static: m_outError */
+/* Inaccessible static: m_outDebug */
 /* Inaccessible static: m_securityManagerChecked */
 /* Inaccessible static: m_disposed */
 /* Inaccessible static: m_started */

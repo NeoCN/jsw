@@ -91,7 +91,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass cl
 
     if (wrapperJNIDebugging) {
         /* This is useful for making sure that the JNI call is working. */
-        printf("Inside native WrapperManager initialization method\n");
+        printf("WrapperJNI Debug: Inside native WrapperManager initialization method\n");
         fflush(NULL);
     }
 
@@ -122,11 +122,13 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetJavaPID(JNIEnv *env, jcl
 JNIEXPORT void JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump(JNIEnv *env, jclass clazz) {
     if (wrapperJNIDebugging) {
-        printf("Sending SIGQUIT event to process group %d.\n", (int)wrapperProcessId);
+        printf("WrapperJNI Debug: Sending SIGQUIT event to process group %d.\n",
+            (int)wrapperProcessId);
         fflush(NULL);
     }
     if (kill(wrapperProcessId, SIGQUIT) < 0) {
-        printf("Unable to send SIGQUIT to JVM process: %s\n", getLastErrorText());
+        printf("WrapperJNI Error: Unable to send SIGQUIT to JVM process: %s\n",
+            getLastErrorText());
         fflush(NULL);
     }
 }
@@ -139,7 +141,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump(JNIEnv *e
 JNIEXPORT void JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle(JNIEnv *env, jclass clazz, jbyteArray jTitleBytes) {
     if (wrapperJNIDebugging) {
-        printf("Setting the console title not supported on UNIX platforms.\n");
+        printf("WrapperJNI Debug: Setting the console title not supported on UNIX platforms.\n");
         fflush(NULL);
     }
 }

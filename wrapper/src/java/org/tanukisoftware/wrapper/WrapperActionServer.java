@@ -126,6 +126,9 @@ public class WrapperActionServer
     /** Table of all the registered actions. */
     private Hashtable m_actions = new Hashtable();
     
+    /** Log channel */
+    private static WrapperPrintStream m_out;
+    
     /*---------------------------------------------------------------
      * Constructors
      *-------------------------------------------------------------*/
@@ -140,6 +143,8 @@ public class WrapperActionServer
     {
         m_port = port;
         m_bindAddr = bindAddress;
+        
+        m_out = new WrapperPrintStream( System.out, "WrapperActionServer: " );
     }
     
     /**
@@ -205,9 +210,8 @@ public class WrapperActionServer
                             }
                             catch ( Throwable t )
                             {
-                                System.out.println(
-                                    "WrapperActionServer: Error processing action." );
-                                t.printStackTrace();
+                                m_out.println( "Error processing action." );
+                                t.printStackTrace( m_out );
                             }
                         }
                     }
@@ -226,9 +230,8 @@ public class WrapperActionServer
                     }
                     else
                     {
-                        System.out.println(
-                            "WrapperActionServer: Unexpeced error." );
-                        t.printStackTrace();
+                        m_out.println( "Unexpeced error." );
+                        t.printStackTrace( m_out );
                         
                         // Avoid tight thrashing
                         try
@@ -468,7 +471,7 @@ public class WrapperActionServer
                         }
                         catch ( NoSuchMethodException e )
                         {
-                            System.out.println( "halt not supported by current JVM." );
+                            m_out.println( "halt not supported by current JVM." );
                             haltMethod = null;
                         }
                         
@@ -481,12 +484,12 @@ public class WrapperActionServer
                             }
                             catch ( IllegalAccessException e )
                             {
-                                System.out.println(
+                                m_out.println(
                                     "Unable to call runitme.halt: " + e.getMessage() );
                             }
                             catch ( InvocationTargetException e )
                             {
-                                System.out.println(
+                                m_out.println(
                                     "Unable to call runitme.halt: " + e.getMessage() );
                             }
                         }
