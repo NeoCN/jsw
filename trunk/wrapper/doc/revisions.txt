@@ -9,6 +9,12 @@ Java Service Wrapper Revision History.
   wrapper.shutdown.timeout properties.  This was leading to the net stop
   command timing out and the system shutting down without the java application
   having fully stopped.  Bug #1582568.
+* If internal firewalls were preventing the backend socket from being created,
+  it was not being made clear what the cause was.  It was also possible that
+  the JVM would deadlock on shutdown.  This second problem was recovered from
+  when the Wrapper killed the JVM.
+* Rework the console output from all Wrapper classes to make it much more
+  obvious that that is their source.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

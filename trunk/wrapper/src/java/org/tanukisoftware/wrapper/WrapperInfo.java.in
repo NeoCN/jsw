@@ -82,7 +82,7 @@ final class WrapperInfo
         }
         catch ( ParseException e )
         {
-            System.out.println( "Can not parse build date: " + e.getMessage() );
+            System.out.println( "WrapperInfo: Can not parse build date: " + e.getMessage() );
         }
     }
 

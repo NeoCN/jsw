@@ -28,6 +28,20 @@ $Id$
                     <ulink url="http://sourceforge.net/tracker/?func=detail&amp;aid=1582568&amp;group_id=39428&amp;atid=425187">Bug #1582568</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    If internal firewalls were preventing the backend socket from being created,
+                    it was not being made clear what the cause was.  It was also possible that
+                    the JVM would deadlock on shutdown.  This second problem was recovered from
+                    when the Wrapper killed the JVM.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Rework the console output from all Wrapper classes to make it much more
+                    obvious that that is their source.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">

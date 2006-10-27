@@ -86,6 +86,15 @@ import java.lang.reflect.Modifier;
 public class WrapperSimpleApp
     implements WrapperListener, Runnable
 {
+    /** Info level log channel */
+    private static WrapperPrintStream m_outInfo;
+    
+    /** Error level log channel */
+    private static WrapperPrintStream m_outError;
+    
+    /** Debug level log channel */
+    private static WrapperPrintStream m_outDebug;
+    
     /**
      * Application's main method
      */
@@ -132,6 +141,11 @@ public class WrapperSimpleApp
         // Initialize the WrapperManager class on startup by referencing it.
         Class wmClass = WrapperManager.class;
         
+        // Set up some log channels
+        m_outInfo = new WrapperPrintStream( System.out, "WrapperSimpleApp: " );
+        m_outError = new WrapperPrintStream( System.out, "WrapperSimpleApp: " );
+        m_outDebug = new WrapperPrintStream( System.out, "WrapperSimpleApp Debug: " );
+        
         // Get the class name of the application
         if ( args.length < 1 )
         {
@@ -148,16 +162,14 @@ public class WrapperSimpleApp
         }
         catch ( ClassNotFoundException e )
         {
-            System.out.println( "WrapperSimpleApp: Unable to locate the class " + args[0] + ": "
-                + e );
+            m_outError.println( "Unable to locate the class " + args[0] + ": " + e );
             showUsage();
             WrapperManager.stop( 1 );
             return;  // Will not get here
         }
         catch ( LinkageError e )
         {
-            System.out.println( "WrapperSimpleApp: Unable to locate the class " + args[0] + ": "
-                + e );
+            m_outError.println( "Unable to locate the class " + args[0] + ": " + e );
             showUsage();
             WrapperManager.stop( 1 );
             return;  // Will not get here
@@ -173,18 +185,16 @@ public class WrapperSimpleApp
         }
         catch ( NoSuchMethodException e )
         {
-            System.out.println(
-                "WrapperSimpleApp: Unable to locate a public static main method in class "
-                + args[0] + ": " + e );
+            m_outError.println(
+                "Unable to locate a public static main method in class " + args[0] + ": " + e );
             showUsage();
             WrapperManager.stop( 1 );
             return;  // Will not get here
         }
         catch ( SecurityException e )
         {
-            System.out.println(
-                "WrapperSimpleApp: Unable to locate a public static main method in class "
-                + args[0] + ": " + e );
+            m_outError.println(
+                "Unable to locate a public static main method in class " + args[0] + ": " + e );
             showUsage();
             WrapperManager.stop( 1 );
             return;  // Will not get here
@@ -194,8 +204,8 @@ public class WrapperSimpleApp
         int modifiers = m_mainMethod.getModifiers();
         if ( !( Modifier.isPublic( modifiers ) && Modifier.isStatic( modifiers ) ) )
         {
-            System.out.println( "WrapperSimpleApp: The main method in class " + args[0]
-                + " must be declared public and static." );
+            m_outError.println(
+                "The main method in class " + args[0] + " must be declared public and static." );
             showUsage();
             WrapperManager.stop( 1 );
             return;  // Will not get here
@@ -235,12 +245,12 @@ public class WrapperSimpleApp
         {
             if ( WrapperManager.isDebugEnabled() )
             {
-                System.out.println( "WrapperSimpleApp: invoking main method" );
+                m_outDebug.println( "invoking main method" );
             }
             m_mainMethod.invoke( null, new Object[] { m_appArgs } );
             if ( WrapperManager.isDebugEnabled() )
             {
-                System.out.println( "WrapperSimpleApp: main method completed" );
+                m_outDebug.println( "main method completed" );
             }
             
             synchronized(this)
@@ -272,13 +282,13 @@ public class WrapperSimpleApp
         
         // If we get here, then an error was thrown.  If this happened quickly 
         // enough, the start method should be allowed to shut things down.
-        System.out.println();
-        System.out.println( "WrapperSimpleApp: Encountered an error running main: " + t );
+        m_outInfo.println();
+        m_outError.println( "Encountered an error running main:" );
 
         // We should print a stack trace here, because in the case of an 
         // InvocationTargetException, the user needs to know what exception
         // their app threw.
-        t.printStackTrace();
+        t.printStackTrace( m_outError );
 
         synchronized(this)
         {
@@ -327,8 +337,8 @@ public class WrapperSimpleApp
             maxLoops = Integer.MAX_VALUE;
             if ( WrapperManager.isDebugEnabled() )
             {
-                System.out.println( "WrapperSimpleApp: start(args) Will wait indefinitely "
-                    + "for the main method to complete." );
+                m_outDebug.println(
+                    "start(args) Will wait indefinitely for the main method to complete." );
             }
         }
         else
@@ -336,7 +346,7 @@ public class WrapperSimpleApp
             maxLoops = maxStartMainWait; // 1s loops.
             if ( WrapperManager.isDebugEnabled() )
             {
-                System.out.println( "WrapperSimpleApp: start(args) Will wait up to " + maxLoops
+                m_outDebug.println( "start(args) Will wait up to " + maxLoops
                     + " seconds for the main method to complete." );
             }
         }
@@ -394,8 +404,8 @@ public class WrapperSimpleApp
             //  main method.
             if ( WrapperManager.isDebugEnabled() )
             {
-                System.out.println( "WrapperSimpleApp: start(args) end.  Main Completed="
-                    + m_mainComplete + ", exitCode=" + m_mainExitCode );
+                m_outDebug.println( "start(args) end.  Main Completed=" + m_mainComplete
+                    + ", exitCode=" + m_mainExitCode );
             }
             return m_mainExitCode;
         }
@@ -408,7 +418,7 @@ public class WrapperSimpleApp
     {
         if ( WrapperManager.isDebugEnabled() )
         {
-            System.out.println( "WrapperSimpleApp: stop(" + exitCode + ")" );
+            m_outDebug.println( "stop(" + exitCode + ")" );
         }
         
         // Normally an application will be asked to shutdown here.  Standard Java applications do
@@ -432,14 +442,14 @@ public class WrapperSimpleApp
             // Ignore
             if ( WrapperManager.isDebugEnabled() )
             {
-                System.out.println( "WrapperSimpleApp: controlEvent(" + event + ") Ignored" );
+                m_outDebug.println( "controlEvent(" + event + ") Ignored" );
             }
         }
         else
         {
             if ( WrapperManager.isDebugEnabled() )
             {
-                System.out.println( "WrapperSimpleApp: controlEvent(" + event + ") Stopping" );
+                m_outDebug.println( "controlEvent(" + event + ") Stopping" );
             }
             WrapperManager.stop( 0 );
             // Will not get here.
@@ -454,6 +464,7 @@ public class WrapperSimpleApp
      */
     protected void showUsage()
     {
+        // Show this output without headers.
         System.out.println();
         System.out.println(
             "WrapperSimpleApp Usage:" );
