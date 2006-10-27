@@ -1071,6 +1071,13 @@ void jStateLaunch(DWORD nowTicks, int nextSleep) {
         
             /* Generate the command used to launch the Java process */
             wrapperBuildJavaCommand();
+
+            /* Log a few comments that will explain the JVM behavior. */
+            if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                    "Ping settings: wrapper.ping.interval=%d, wrapper.ping.interval.logged=%d, wrapper.ping.timeout=%d",
+                    wrapperData->pingInterval, wrapperData->pingIntervalLogged, wrapperData->pingTimeout);
+            }
         
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Launching a JVM...");
             wrapperExecute();
