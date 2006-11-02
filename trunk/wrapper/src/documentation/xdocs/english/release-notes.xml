@@ -13,6 +13,15 @@ $Id$
         <itemizedlist>
             <listitem>
                 <para>
+                    Purchased a 64-bit system to make it possible for me to develop 64-bit
+                    versions of the Wrapper.  This purchase was made for the sole purpose of
+                    supporting Wrapper development.  If you find any of the 64-bit versions
+                    useful please consider helping to offset costs with a
+                    <ulink url="donate.html">donation</ulink>.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
                     Add a new <ulink url="prop-ping-interval-logged.html">wrapper.ping.interval.logged</ulink>
                     property which makes it possible to reduce the debug output caused by ping
                     transactions between the Wrapper and JVM.
