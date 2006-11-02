@@ -31,6 +31,12 @@
             -->
         <donorlist>
             <donor>
+                <date>Nov 1, 2006</date>
+                <amount>50.00</amount>
+                <name>Mauritz Lovgren</name>
+                <message>Pushing Win64 edition  :-)</message>
+            </donor>
+            <donor>
                 <date>Jun 13, 2006</date>
                 <amount>150.00</amount>
                 <name><ulink url="http://www.cytric.com/">i:FAO Group</ulink></name>
