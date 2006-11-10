@@ -3177,7 +3177,7 @@ void wrapperKeyRegistered(char *key) {
     }
 }
 
-void wrapperPingResponded( boolean silent ) {
+void wrapperPingResponded() {
     /* Depending on the current JVM state, do something. */
     switch (wrapperData->jState) {
     case WRAPPER_JSTATE_STARTED:
