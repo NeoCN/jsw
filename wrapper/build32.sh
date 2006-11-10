@@ -15,4 +15,4 @@ export ANT_HOME
 chmod u+x $WRAPPER_TOOLS/bin/antRun
 chmod u+x $WRAPPER_TOOLS/bin/ant
 
-$WRAPPER_TOOLS/bin/ant -noconfig -logger org.apache.tools.ant.NoBannerLogger -emacs -Dtools.dir=$WRAPPER_TOOLS -Dbits=32 $@ 
+$WRAPPER_TOOLS/bin/ant --noconfig -logger org.apache.tools.ant.NoBannerLogger -emacs -Dtools.dir=$WRAPPER_TOOLS -Dbits=32 $@ 
