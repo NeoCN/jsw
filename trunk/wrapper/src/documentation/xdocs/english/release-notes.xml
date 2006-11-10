@@ -59,6 +59,13 @@ $Id$
                     systems.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where the local copy of ant was not always being used
+                    correctly on UNIX systems which have a default copy of any installed.
+                    Thanks to Robey Pointer for the patch.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">
