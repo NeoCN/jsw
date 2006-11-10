@@ -151,6 +151,12 @@ public final class WrapperManager
     /** Received when a SIG HUP is received on a UNIX system. */
     public static final int WRAPPER_CTRL_HUP_EVENT       = 205;
     
+    /** Received when a SIG USR1 is received on a UNIX system. */
+    public static final int WRAPPER_CTRL_USR1_EVENT      = 206;
+    
+    /** Received when a SIG USR2 is received on a UNIX system. */
+    public static final int WRAPPER_CTRL_USR2_EVENT      = 207;
+    
     /** Log message at debug log level. */
     public static final int WRAPPER_LOG_LEVEL_DEBUG      = 1;
     /** Log message at info log level. */
@@ -3271,6 +3277,14 @@ public final class WrapperManager
             break;
         case WRAPPER_CTRL_HUP_EVENT:
             eventName = "WRAPPER_CTRL_HUP_EVENT";
+            ignore = m_ignoreSignals;
+            break;
+        case WRAPPER_CTRL_USR1_EVENT:
+            eventName = "WRAPPER_CTRL_USR1_EVENT";
+            ignore = m_ignoreSignals;
+            break;
+        case WRAPPER_CTRL_USR2_EVENT:
+            eventName = "WRAPPER_CTRL_USR2_EVENT";
             ignore = m_ignoreSignals;
             break;
         default:

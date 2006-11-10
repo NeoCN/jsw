@@ -202,6 +202,10 @@ const char* getSignalName(int signo) {
             return "SIGTERM";
         case SIGHUP:
             return "SIGHUP";
+        case SIGUSR1:
+            return "SIGUSR1";
+        case SIGUSR2:
+            return "SIGUSR2";
         default:
             return "UNKNOWN";
     }
@@ -465,6 +469,30 @@ void sigActionHangup(int sigNum, siginfo_t *sigInfo, void *na) {
 }
 
 /**
+ * Handle USR1 signals.
+ */
+void sigActionUSR1(int sigNum, siginfo_t *sigInfo, void *na) {
+    /* On UNIX the calling thread is the actual thread being interrupted
+     *  so it has already been registered with logRegisterThread. */
+
+    descSignal(sigInfo);
+
+    sigActionCommon(sigNum, "USR1", sigInfo, wrapperData->signalUSR1Mode);
+}
+
+/**
+ * Handle USR2 signals.
+ */
+void sigActionUSR2(int sigNum, siginfo_t *sigInfo, void *na) {
+    /* On UNIX the calling thread is the actual thread being interrupted
+     *  so it has already been registered with logRegisterThread. */
+
+    descSignal(sigInfo);
+
+    sigActionCommon(sigNum, "USR2", sigInfo, wrapperData->signalUSR2Mode);
+}
+
+/**
  * Registers a single signal handler.
  */
 int registerSigAction(int sigNum, void (*sigAction)(int, siginfo_t *, void *)) {
@@ -509,6 +537,8 @@ void *timerRunner(void *arg) {
     sigaddset(&signal_mask, SIGQUIT);
     sigaddset(&signal_mask, SIGALRM);
     sigaddset(&signal_mask, SIGHUP);
+    sigaddset(&signal_mask, SIGUSR1);
+    sigaddset(&signal_mask, SIGUSR2);
     rc = pthread_sigmask(SIG_BLOCK, &signal_mask, NULL);
     if (rc != 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Could not mask signals for timer thread.");
@@ -595,7 +625,9 @@ int wrapperInitializeRun() {
         registerSigAction(SIGQUIT, sigActionQuit) ||
         registerSigAction(SIGCHLD, sigActionChildDeath) ||
         registerSigAction(SIGTERM, sigActionTermination) ||
-        registerSigAction(SIGHUP,  sigActionHangup)) {
+        registerSigAction(SIGHUP,  sigActionHangup) ||
+        registerSigAction(SIGUSR1, sigActionUSR1) ||
+        registerSigAction(SIGUSR2, sigActionUSR2)) {
         retval = -1;
     }
 

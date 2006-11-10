@@ -34,6 +34,12 @@
             <listproperty version="3.2.2">
                 <ulink url="prop-signal-mode-hup.html">wrapper.signal.mode.hup</ulink>
             </listproperty>
+            <listproperty version="3.2.4">
+                <ulink url="prop-signal-mode-usr1.html">wrapper.signal.mode.usr1</ulink>
+            </listproperty>
+            <listproperty version="3.2.4">
+                <ulink url="prop-signal-mode-usr2.html">wrapper.signal.mode.usr2</ulink>
+            </listproperty>
         </itemizedlist>
     </section>
 </chapter>

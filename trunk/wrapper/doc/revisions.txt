@@ -29,6 +29,10 @@ Java Service Wrapper Revision History.
 * Add the -lm to the command line when building Linux 32 and 64 bit versions
   of the wrapper on Linux.  This is to support building on recent Debian
   and Ubuntu versions.  Thanks to Robey Pointer for the patch.
+* Add support for the SIGUSR1 and SIGUSR2 signals so they can now trigger a
+  shutdown, restart or be forwarded to the JVM for custom functionality.
+  See the wrapper.signal.mode.usr1 and wrapper.signal.mode.usr2 properties.
+  Based on a patch by Robey Pointer.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

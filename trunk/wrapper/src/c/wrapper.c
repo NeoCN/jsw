@@ -2532,6 +2532,12 @@ void wrapperBuildUnixDaemonInfo() {
     
         /** Configure the HUP signal handler. */
         wrapperData->signalHUPMode = getSignalMode(getStringProperty(properties, "wrapper.signal.mode.hup", NULL), WRAPPER_SIGNAL_MODE_FORWARD);
+    
+        /** Configure the USR1 signal handler. */
+        wrapperData->signalUSR1Mode = getSignalMode(getStringProperty(properties, "wrapper.signal.mode.usr1", NULL), WRAPPER_SIGNAL_MODE_FORWARD);
+    
+        /** Configure the USR2 signal handler. */
+        wrapperData->signalUSR2Mode = getSignalMode(getStringProperty(properties, "wrapper.signal.mode.usr2", NULL), WRAPPER_SIGNAL_MODE_FORWARD);
     }
 }
 #endif
