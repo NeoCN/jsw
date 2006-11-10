@@ -30,6 +30,15 @@ PIDDIR="."
 #  TERM signals.
 #IGNORE_SIGNALS=true
 
+# Wrapper will start the JVM asynchronously. Your application may have some
+#  initialization tasks and it may be desirable to wait a few seconds
+#  before returning.  For example, to delay the invocation of following
+#  startup scripts.  Setting WAIT_AFTER_STARTUP to a positive number will
+#  cause the start command to delay for the indicated period of time 
+#  (in seconds).
+# 
+WAIT_AFTER_STARTUP=0
+
 # If specified, the Wrapper will be run as the specified user.
 # IMPORTANT - Make sure that the user has the required privileges to write
 #  the PID file and wrapper.log files.  Failure to be able to write the log
@@ -156,10 +165,10 @@ case "$DIST_OS" in
 esac
 
 # Resolve the architecture
-DIST_ARCH=`uname -p | tr [:upper:] [:lower:] | tr -d [:blank:]`
+DIST_ARCH=`uname -p 2>/dev/null | tr [:upper:] [:lower:] | tr -d [:blank:]`
 if [ "$DIST_ARCH" = "unknown" ]
 then
-    DIST_ARCH=`uname -m | tr [:upper:] [:lower:] | tr -d [:blank:]`
+    DIST_ARCH=`uname -m 2>/dev/null | tr [:upper:] [:lower:] | tr -d [:blank:]`
 fi
 case "$DIST_ARCH" in
     'amd64' | 'athlon' | 'ia32' | 'ia64' | 'i386' | 'i486' | 'i586' | 'i686' | 'x86_64')
@@ -326,7 +335,15 @@ checkUser() {
 
         # Still want to change users, recurse.  This means that the user will only be
         #  prompted for a password once. Variables shifted by 1
-        su -m $RUN_AS_USER -c "\"$REALPATH\" $2"
+        # 
+        # Use "runuser" if this exists.  runuser should be used on RedHat in preference to su.
+        #
+        if test -f "/sbin/runuser"
+        then
+            /sbin/runuser -m $RUN_AS_USER -c "\"$REALPATH\" $2"
+        else
+            su -m $RUN_AS_USER -c "\"$REALPATH\" $2"
+        fi
 
         # Now that we are the original user again, we may need to clean up the lock file.
         if [ "X$LOCKPROP" != "X" ]
@@ -400,7 +417,7 @@ console() {
 }
  
 start() {
-    echo "Starting $APP_LONG_NAME..."
+    echo -n "Starting $APP_LONG_NAME..."
     getpid
     if [ "X$pid" = "X" ]
     then
@@ -410,6 +427,28 @@ start() {
     else
         echo "$APP_LONG_NAME is already running."
         exit 1
+    fi
+
+    # Sleep for a few seconds to allow for intialization if required 
+    #  then test to make sure we're still running.
+    #
+    for (( i = 0; i < $WAIT_AFTER_STARTUP; i++ ))
+    do
+        sleep 1
+        echo -n "."
+    done
+    if [ $WAIT_AFTER_STARTUP -gt 0 ]
+    then
+        getpid
+        if [ "X$pid" = "X" ]
+        then
+            echo " WARNING: $APP_LONG_NAME may have failed to start."
+            exit 1
+        else
+            echo " running ($pid)."
+        fi
+    else 
+        echo ""
     fi
 }
  

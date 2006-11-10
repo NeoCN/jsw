@@ -51,6 +51,14 @@ $Id$
                     obvious that that is their source.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Submit a patch to the UNIX sh script by Chris Dance which makes it possible
+                    to tell the shell to wait a few seconds for the wrapper to start up.  Also
+                    includes some modifications to work correctly on older Debian and RedHat
+                    systems.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">
