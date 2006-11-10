@@ -429,6 +429,7 @@
             classpath="${build.classes}">
             <class name="org.tanukisoftware.wrapper.WrapperManager"/>
         </javah>
+        <fixcrlf srcdir="${src.dir}/c" includes="org_tanukisoftware_wrapper_WrapperManager.h" eol="lf" />
     </target>
     <target name="msvc-missing" depends="init:msg" if="msvc.missing">
         <condition property="msvc.home.v8_c" value="${msvc.home.v8_64_c}">

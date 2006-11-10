@@ -106,6 +106,8 @@ english/prop-restart-delay.html
 english/prop-restart-reload-configuration.html
 english/prop-shutdown-timeout.html
 english/prop-signal-mode-hup.html
+english/prop-signal-mode-usr1.html
+english/prop-signal-mode-usr2.html
 english/prop-single-invocation.html
 english/prop-startup-delay.html
 english/prop-startup-timeout.html

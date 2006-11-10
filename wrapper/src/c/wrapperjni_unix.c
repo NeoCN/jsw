@@ -80,6 +80,22 @@ void handleHangup(int sig_num) {
     wrapperJNIHandleSignal(org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_HUP_EVENT);
 }
 
+/**
+ * Handle usr1 signals.
+ */
+void handleUsr1(int sig_num) {
+    signal(SIGUSR1, handleUsr1); 
+    wrapperJNIHandleSignal(org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_USR1_EVENT);
+}
+
+/**
+ * Handle usr2 signals.
+ */
+void handleUsr2(int sig_num) {
+    signal(SIGUSR2, handleUsr1); 
+    wrapperJNIHandleSignal(org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_USR2_EVENT);
+}
+
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeInit
@@ -99,6 +115,8 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass cl
     signal(SIGINT,  handleInterrupt);
     signal(SIGTERM, handleTermination);
     signal(SIGHUP,  handleHangup);
+    signal(SIGUSR1, handleUsr1);
+    signal(SIGUSR2, handleUsr2);
 
     /* Store the current process Id */
     wrapperProcessId = getpid();

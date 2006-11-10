@@ -73,6 +73,15 @@ $Id$
                     and Ubuntu versions.  Thanks to Robey Pointer for the patch.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add support for the SIGUSR1 and SIGUSR2 signals so they can now trigger a
+                    shutdown, restart or be forwarded to the JVM for custom functionality.
+                    See the <ulink url="prop-signal-mode-usr1.html">wrapper.signal.mode.usr1</ulink>
+                    and <ulink url="prop-signal-mode-usr2.html">wrapper.signal.mode.usr2</ulink>
+                    properties.  Based on a patch by Robey Pointer.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">

@@ -265,6 +265,8 @@ struct WrapperConfig {
 #else /* UNIX */
     int     daemonize;              /* TRUE if the process  should be spawned as a daemon process on launch. */
     int     signalHUPMode;          /* Controls what happens when the Wrapper receives a HUP signal. */
+    int     signalUSR1Mode;         /* Controls what happens when the Wrapper receives a USR1 signal. */
+    int     signalUSR2Mode;         /* Controls what happens when the Wrapper receives a USR2 signal. */
 #endif
 };
 
