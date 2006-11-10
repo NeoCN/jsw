@@ -19,6 +19,10 @@ Java Service Wrapper Revision History.
   when the Wrapper killed the JVM.
 * Rework the console output from all Wrapper classes to make it much more
   obvious that that is their source.
+* Submit a patch to the UNIX sh script by Chris Dance which makes it possible
+  to tell the shell to wait a few seconds for the wrapper to start up.  Also
+  includes some modifications to work correctly on older Debian and RedHat
+  systems.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
