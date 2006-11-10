@@ -66,6 +66,13 @@ $Id$
                     Thanks to Robey Pointer for the patch.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add the -lm to the command line when building Linux 32 and 64 bit versions
+                    of the wrapper on Linux.  This is to support building on recent Debian
+                    and Ubuntu versions.  Thanks to Robey Pointer for the patch.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">

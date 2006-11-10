@@ -26,6 +26,9 @@ Java Service Wrapper Revision History.
 * Fix a problem where the local copy of ant was not always being used
   correctly on UNIX systems which have a default copy of any installed.
   Thanks to Robey Pointer for the patch.
+* Add the -lm to the command line when building Linux 32 and 64 bit versions
+  of the wrapper on Linux.  This is to support building on recent Debian
+  and Ubuntu versions.  Thanks to Robey Pointer for the patch.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
