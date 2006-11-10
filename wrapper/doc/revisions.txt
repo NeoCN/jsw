@@ -23,6 +23,9 @@ Java Service Wrapper Revision History.
   to tell the shell to wait a few seconds for the wrapper to start up.  Also
   includes some modifications to work correctly on older Debian and RedHat
   systems.
+* Fix a problem where the local copy of ant was not always being used
+  correctly on UNIX systems which have a default copy of any installed.
+  Thanks to Robey Pointer for the patch.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
