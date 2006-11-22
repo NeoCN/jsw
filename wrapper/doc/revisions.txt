@@ -33,6 +33,9 @@ Java Service Wrapper Revision History.
   shutdown, restart or be forwarded to the JVM for custom functionality.
   See the wrapper.signal.mode.usr1 and wrapper.signal.mode.usr2 properties.
   Based on a patch by Robey Pointer.
+* Fix a problem where the WRAPPER_OS, WRAPPER_ARCH, and WRAPPER_BITS
+  environment variables were not being initialized correctly for the various
+  unix platforms.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
