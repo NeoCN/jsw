@@ -366,6 +366,8 @@
         <copy file="${src.dir}/java/org/tanukisoftware/wrapper/WrapperInfo.java.in"
               tofile="${src.dir}/java/org/tanukisoftware/wrapper/WrapperInfo.java" 
               filtering="on" overwrite="true"/>
+    </target>
+    <target name="update-info-c" depends="init:msg">
         <copy file="${src.dir}/c/wrapperinfo.c.in"
               tofile="${src.dir}/c/wrapperinfo.c" 
               filtering="on" overwrite="true"/>
@@ -431,7 +433,7 @@
         </javah>
         <fixcrlf srcdir="${src.dir}/c" includes="org_tanukisoftware_wrapper_WrapperManager.h" eol="lf" />
     </target>
-    <target name="msvc-missing" depends="init:msg" if="msvc.missing">
+    <target name="msvc-missing" depends="update-info-c" if="msvc.missing">
         <condition property="msvc.home.v8_c" value="${msvc.home.v8_64_c}">
             <equals arg1="${bits}" arg2="64"/>
         </condition>
@@ -559,7 +561,7 @@
         <echo message="**********************************************************************"/>
         <fail message="bin/${wrapper.bin.name} or lib/${wrapper.lib.name} are missing."/>
     </target>
-    <target name="compile-c-unix-check" depends="init:msg" if="isUnixMakefileMissing">
+    <target name="compile-c-unix-check" depends="update-info-c" if="isUnixMakefileMissing">
         <echo message="**********************************************************************"/>
         <echo message="Unable to locate a makefile for the current platform.  Looking for:"/>
         <echo message="  ${makefile.name}"/>

@@ -82,6 +82,13 @@ $Id$
                     properties.  Based on a patch by Robey Pointer.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where the WRAPPER_OS, WRAPPER_ARCH, and WRAPPER_BITS
+                    environment variables were not being initialized correctly for the various
+                    unix platforms.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">
