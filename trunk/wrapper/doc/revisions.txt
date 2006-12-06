@@ -36,6 +36,8 @@ Java Service Wrapper Revision History.
 * Fix a problem where the WRAPPER_OS, WRAPPER_ARCH, and WRAPPER_BITS
   environment variables were not being initialized correctly for the various
   unix platforms.
+* Removed the 4096Mb upper limit set on the wrapper.java.initmemory and
+  wrapper.java.maxmemory properties.  64bit users need to go way beyond that.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

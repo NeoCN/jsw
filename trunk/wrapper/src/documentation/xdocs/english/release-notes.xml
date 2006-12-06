@@ -89,6 +89,14 @@ $Id$
                     unix platforms.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Removed the 4096Mb upper limit set on the
+                    <ulink url="prop-java-initmemory.html">wrapper.java.initmemory</ulink> and
+                    <ulink url="prop-java-maxmemory.html">wrapper.java.maxmemory</ulink> properties.
+                    64bit users need to go way beyond that.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">
