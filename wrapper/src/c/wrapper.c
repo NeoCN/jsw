@@ -1569,7 +1569,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     /* Initial JVM memory */
     initMemory = getIntProperty(properties, "wrapper.java.initmemory", 0);
     if (initMemory > 0 ) {
-        initMemory = __min(__max(initMemory, 1), 4096); /* 1 <= n <= 4096 */
+        initMemory = __max(initMemory, 1); /* 1 <= n */
         if (strings) {
             strings[index] = malloc(sizeof(char) * (5 + 4 + 1));  /* Allow up to 4 digits. */
             sprintf(strings[index], "-Xms%dm", initMemory);
@@ -1583,7 +1583,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     /* Maximum JVM memory */
     maxMemory = getIntProperty(properties, "wrapper.java.maxmemory", 0);
     if (maxMemory > 0) {
-        maxMemory = __min(__max(maxMemory, initMemory), 4096);  /* initMemory <= n <= 4096 */
+        maxMemory = __max(maxMemory, initMemory);  /* initMemory <= n */
         if (strings) {
             strings[index] = malloc(sizeof(char) * (5 + 4 + 1));  /* Allow up to 4 digits. */
             sprintf(strings[index], "-Xmx%dm", maxMemory);
