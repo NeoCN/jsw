@@ -156,6 +156,8 @@ struct WrapperConfig {
     int     jvmPortMin;             /* Minimum port which the JVM should bind to when connecting back to the wrapper. */
     int     jvmPortMax;             /* Maximum port which the JVM should bind to when connecting back to the wrapper. */
     int     sock;                   /* Socket number. if open. */
+    char    *originalWorkingDir;    /* Original Wrapper working directory. */
+    char    *workingDir;            /* Configured working directory. */
     char    *configFile;            /* Name of the configuration file */
     int     commandLogLevel;        /* The log level to use when logging the java command. */
 #ifdef WIN32
@@ -566,13 +568,6 @@ extern DWORD wrapperAddToTicks(DWORD start, int seconds);
  * If there are any problems then a non-zero value will be returned.
  */
 extern int wrapperSetWorkingDir(const char* dir);
-
-/**
- * Sets the working directory using the value of the wrapper.working.dir
- *  property.  If it is not set then the directory will not be changed.
- * If there are any problems then a non-zero value will be returned.
- */
-extern int wrapperSetWorkingDirProp();
 
 /******************************************************************************
  * Protocol callback functions

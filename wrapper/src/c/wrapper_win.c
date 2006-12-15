@@ -3306,7 +3306,7 @@ void main(int argc, char **argv) {
         }
 
         /* Change the working directory if configured to do so. */
-        if (wrapperSetWorkingDirProp()) {
+        if (wrapperData->workingDir && wrapperSetWorkingDir(wrapperData->workingDir)) {
             appExit(1);
             return; /* For clarity. */
         }
