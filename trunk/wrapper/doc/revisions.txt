@@ -38,6 +38,10 @@ Java Service Wrapper Revision History.
   unix platforms.
 * Removed the 4096Mb upper limit set on the wrapper.java.initmemory and
   wrapper.java.maxmemory properties.  64bit users need to go way beyond that.
+* Fix a problem where relative include file references in the configuration
+  file were not working correctly if the wrapper.working.dir was used to
+  change the working directory.  The working directory is now always reset
+  to its original value as the configuration file is being loaded.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

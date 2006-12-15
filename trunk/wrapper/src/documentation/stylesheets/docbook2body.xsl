@@ -636,7 +636,7 @@
         <div class="note">
             <table border="0" width="100%" cellpadding="2" cellspacing="0">
                 <tr>
-                    <td valign="top" nowrap="nowrap"><p class="notelabel"><font color="#0000a0"><b>NOTE MEG</b></font></p></td>
+                    <td valign="top" nowrap="nowrap"><p class="notelabel"><font color="#0000a0"><b>NOTE</b></font></p></td>
                     <td><img src="images/spacer.gif" width="10"/></td>
                     <td class="notebody" bgcolor="#bbbbdd">
                         <font color="#222260">

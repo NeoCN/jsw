@@ -97,6 +97,15 @@ $Id$
                     64bit users need to go way beyond that.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where relative include file references in the configuration
+                    file were not working correctly if the
+                    <ulink url="prop-working-dir.html">wrapper.working.dir</ulink> was used to
+                    change the working directory.  The working directory is now always reset
+                    to its original value as the configuration file is being loaded.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">

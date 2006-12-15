@@ -165,16 +165,20 @@ void wrapperAddDefaultProperties() {
 
 int wrapperLoadConfigurationProperties() {
     int i;
+    int firstCall;
 #ifdef WIN32
     int work;
     char *filePart;
 #endif
+    const char* prop;
 
     /* Unless this is the first call, we need to dispose the previous properties object. */
     if (properties) {
+        firstCall = FALSE;
         disposeProperties(properties);
         properties = NULL;
     } else {
+        firstCall = TRUE;
         /* This is the first time, so preserve the full canonical location of the
          *  configuration file. */
 #ifdef WIN32
@@ -201,6 +205,32 @@ int wrapperLoadConfigurationProperties() {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Unable to resolve the full path of the configuration file, %s: %s",
                 wrapperData->argConfFile, getLastErrorText());
+            return 1;
+        }
+#endif
+
+        /* This is the first time, so preserve the working directory. */
+#ifdef WIN32
+        work = GetFullPathName(".", 0, NULL, NULL);
+        if (!work) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                "Unable to resolve the original working directory: %s", getLastErrorText());
+            return 1;
+        }
+        wrapperData->originalWorkingDir = malloc(sizeof(char) * work);
+        if (!GetFullPathName(".", work, wrapperData->originalWorkingDir, &filePart)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                "Unable to resolve the original working directory: %s", getLastErrorText());
+            return 1;
+        }
+#else
+        /* The solaris implementation of realpath will return a relative path if a relative
+         *  path is provided.  We always need an abosulte path here.  So build up one and
+         *  then use realpath to remove any .. or other relative references. */
+        wrapperData->originalWorkingDir = malloc(PATH_MAX);
+        if (realpath(".", wrapperData->originalWorkingDir) == NULL) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                "Unable to resolve the original working directory: %s", getLastErrorText());
             return 1;
         }
 #endif
@@ -249,6 +279,38 @@ int wrapperLoadConfigurationProperties() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
             "Problem loading wrapper configuration file: %s", wrapperData->configFile);
         return 1;
+    }
+
+    if (firstCall) {
+        /* If the working dir was configured, we need to extract it and preserve its value.
+         *  This must be done after the configuration has been completely loaded. */
+        prop = getStringProperty(properties, "wrapper.working.dir", NULL);
+        if (prop && (strlen(prop) > 0)) {
+#ifdef WIN32
+            work = GetFullPathName(prop, 0, NULL, NULL);
+            if (!work) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                    "Unable to resolve the working directory %s: %s", prop, getLastErrorText());
+                return 1;
+            }
+            wrapperData->workingDir = malloc(sizeof(char) * work);
+            if (!GetFullPathName(prop, work, wrapperData->workingDir, &filePart)) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                    "Unable to resolve the working directory %s: %s", prop, getLastErrorText());
+                return 1;
+            }
+#else
+            /* The solaris implementation of realpath will return a relative path if a relative
+             *  path is provided.  We always need an abosulte path here.  So build up one and
+             *  then use realpath to remove any .. or other relative references. */
+            wrapperData->workingDir = malloc(PATH_MAX);
+            if (realpath(prop, wrapperData->workingDir) == NULL) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                    "Unable to resolve the working directory %s: %s", prop, getLastErrorText());
+                return 1;
+            }
+#endif
+        }
     }
 
     return 0;
@@ -3082,22 +3144,6 @@ int wrapperSetWorkingDir(const char* dir) {
     }
 
     return FALSE;
-}
-
-/**
- * Sets the working directory using the value of the wrapper.working.dir
- *  property.  If it is not set then the directory will not be changed.
- * If there are any problems then a non-zero value will be returned.
- */
-int wrapperSetWorkingDirProp() {
-    const char* dir;
-
-    dir = getStringProperty(properties, "wrapper.working.dir", NULL);
-    if (dir && (strlen(dir) > 0)) {
-        return wrapperSetWorkingDir(dir);
-    } else {
-        return 0;
-    }
 }
 
 /******************************************************************************

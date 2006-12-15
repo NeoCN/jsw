@@ -1032,9 +1032,29 @@ void jStateLaunch(DWORD nowTicks, int nextSleep) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         "Reloading Wrapper configuration...");
                     
+                    /* If the working dir has been changed then we need to restore it before
+                     *  the configuration can be reloaded.  This is needed to support relative
+                     *  references to include files. */
+                    if (wrapperData->workingDir && wrapperData->originalWorkingDir) {
+                        if (wrapperSetWorkingDir(wrapperData->originalWorkingDir)) {
+                            /* Failed to restore the working dir.  Shutdown the Wrapper */
+                            wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
+                            wrapperData->exitCode = 1;
+                            return;
+                        }
+                    }
+
                     if (wrapperLoadConfigurationProperties()) {
                         /* Failed to reload the configuration.  This is bad.
                          *  The JVM is already down.  Shutdown the Wrapper. */
+                        wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
+                        wrapperData->exitCode = 1;
+                        return;
+                    }
+
+                    /* Change the working directory if configured to do so. */
+                    if (wrapperData->workingDir && wrapperSetWorkingDir(wrapperData->workingDir)) {
+                        /* Failed to set the working dir.  Shutdown the Wrapper */
                         wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
                         wrapperData->exitCode = 1;
                         return;
