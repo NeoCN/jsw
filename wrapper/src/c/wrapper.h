@@ -319,7 +319,7 @@ extern void wrapperGetCurrentTime(struct timeb *timeBuffer);
 
 #ifdef WIN32
 extern char** wrapperGetSystemPath();
-extern int getJavaHomeFromWindowsRegistry(char *javaHome);
+extern int wrapperGetJavaHomeFromWindowsRegistry(char *javaHome);
 #endif
 
 extern int wrapperCheckRestartTimeOK();
