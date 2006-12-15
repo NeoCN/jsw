@@ -2404,6 +2404,73 @@ int wrapperLoadEnvFromRegistry() {
     return 0;
 }
 
+/**
+ * Gets the JavaHome absolute path from the windows registry
+ */
+int wrapperGetJavaHomeFromWindowsRegistry(char *javaHome) {
+    char jresubkey[255];    /* Registry subkey that jvm creates when is installed */
+    char jreversion[10];    /* Will receive a registry value that has jvm version */
+    char jhome[2048];       /* Will hold that full path for JavaHome */
+    HKEY jreopenkey = NULL; /* Will receive the handle to the opened registry key */
+    DWORD n = 5;            /* Buffer size to retrieve the jvm version */
+    LPDWORD tipoval = NULL; /* Will receive the type of value that was read from the registry */
+
+    /*
+     * Initialize the string variables used to retrieve values from Windows Registry
+     */
+    memset(&jresubkey, 0, sizeof(jresubkey));
+    memset(&jreversion, 0, sizeof(jreversion));
+    memset(&jhome, 0, sizeof(jhome));
+
+    /* SubKey containing the jvm version */
+    strcpy(jresubkey, "SOFTWARE\\JavaSoft\\Java Runtime Environment");
+
+    /*
+     * Opens the Registry Key needed to query the jvm version
+     */
+    if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, jresubkey, 0, KEY_QUERY_VALUE, &jreopenkey) != ERROR_SUCCESS) {
+        return 0;
+    }
+
+    /*
+     * Queries for the jvm version
+     */
+
+    if (RegQueryValueEx(jreopenkey, "CurrentVersion", NULL, tipoval, jreversion, &n) != ERROR_SUCCESS) {
+        return 0;
+    }
+
+    RegCloseKey(jreopenkey);
+
+
+    /* adds the jvm version to the subkey */
+    strcat(jresubkey, "\\");
+    strcat(jresubkey, jreversion);
+    n = 2048;
+    tipoval = NULL;
+
+    /*
+     * Opens the Registry Key needed to query the JavaHome
+     */
+    if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, jresubkey, 0, KEY_QUERY_VALUE, &jreopenkey) != ERROR_SUCCESS) {
+        return 0;
+    }
+
+    /*
+     * Queries for the JavaHome
+     */
+    if (RegQueryValueEx(jreopenkey, "JavaHome", NULL, tipoval, jhome, &n) != ERROR_SUCCESS) {
+        return 0;
+    }
+
+    RegCloseKey(jreopenkey);
+
+    /* Returns the JavaHome path */
+    strcpy(javaHome, jhome);
+
+    return 1;
+}
+
 char *getNTServiceStatusName(int status)
 {
     char *name;
@@ -3498,73 +3565,6 @@ void main(int argc, char **argv) {
         appExit(1);
         return; /* For clarity. */
     }
-}
-
-/**
- * Gets the JavaHome absolute path from the windows registry
- */
-int getJavaHomeFromWindowsRegistry(char *javaHome) {
-    char jresubkey[255];    /* Registry subkey that jvm creates when is installed */
-    char jreversion[10];    /* Will receive a registry value that has jvm version */
-    char jhome[2048];       /* Will hold that full path for JavaHome */
-    HKEY jreopenkey = NULL; /* Will receive the handle to the opened registry key */
-    DWORD n = 5;            /* Buffer size to retrieve the jvm version */
-    LPDWORD tipoval = NULL; /* Will receive the type of value that was read from the registry */
-
-    /*
-     * Initialize the string variables used to retrieve values from Windows Registry
-     */
-    memset(&jresubkey, 0, sizeof(jresubkey));
-    memset(&jreversion, 0, sizeof(jreversion));
-    memset(&jhome, 0, sizeof(jhome));
-
-    /* SubKey containing the jvm version */
-    strcpy(jresubkey, "SOFTWARE\\JavaSoft\\Java Runtime Environment");
-
-    /*
-     * Opens the Registry Key needed to query the jvm version
-     */
-    if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, jresubkey, 0, KEY_QUERY_VALUE, &jreopenkey) != ERROR_SUCCESS) {
-        return 0;
-    }
-
-    /*
-     * Queries for the jvm version
-     */
-
-    if (RegQueryValueEx(jreopenkey, "CurrentVersion", NULL, tipoval, jreversion, &n) != ERROR_SUCCESS) {
-        return 0;
-    }
-
-    RegCloseKey(jreopenkey);
-
-
-    /* adds the jvm version to the subkey */
-    strcat(jresubkey, "\\");
-    strcat(jresubkey, jreversion);
-    n = 2048;
-    tipoval = NULL;
-
-    /*
-     * Opens the Registry Key needed to query the JavaHome
-     */
-    if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, jresubkey, 0, KEY_QUERY_VALUE, &jreopenkey) != ERROR_SUCCESS) {
-        return 0;
-    }
-
-    /*
-     * Queries for the JavaHome
-     */
-    if (RegQueryValueEx(jreopenkey, "JavaHome", NULL, tipoval, jhome, &n) != ERROR_SUCCESS) {
-        return 0;
-    }
-
-    RegCloseKey(jreopenkey);
-
-    /* Returns the JavaHome path */
-    strcpy(javaHome, jhome);
-
-    return 1;
 }
 
 #endif /* ifdef WIN32 */

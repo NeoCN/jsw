@@ -1491,7 +1491,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         if (strcmp(prop, "") == 0) {
             /* If the java command is an empty string, we want to look for the
              *  the java command in the windows registry. */
-            if (getJavaHomeFromWindowsRegistry(cpPath)) {
+            if (wrapperGetJavaHomeFromWindowsRegistry(cpPath)) {
                 strcat(cpPath, "\\bin\\java.exe");
                 if (wrapperData->isDebugging) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
