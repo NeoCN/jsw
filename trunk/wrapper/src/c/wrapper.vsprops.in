@@ -2,7 +2,7 @@
 <VisualStudioPropertySheet
     ProjectType="Visual C++"
     Version="8.00"
-    Name="wrapper32"
+    Name="wrapper"
     >
     <UserMacro
         Name="javaHome"

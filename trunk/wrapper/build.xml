@@ -463,9 +463,14 @@
         <mkdir dir="${lib.dir}"/>
         
         <echo message="Java.vendor=${java.vendor}"/>
+
+        <condition property="vcbuild.target" value="Release|x64">
+            <equals arg1="${bits}" arg2="64"/>
+        </condition>
+        <property name="vcbuild.target" value="Release|Win32"/>
         
-        <!-- Initialize the wrapper32.vsprops file -->
-        <copy file="${src.dir}/c/wrapper32.vsprops.in" tofile="${src.dir}/c/wrapper32.vsprops" overwrite="true" encoding="Shift_JIS">
+        <!-- Initialize the wrapper.vsprops file -->
+        <copy file="${src.dir}/c/wrapper.vsprops.in" tofile="${src.dir}/c/wrapper.vsprops" overwrite="true" encoding="Shift_JIS">
             <filterset>
                 <filter token="java.home" value="${java.home}\..\"/>
             </filterset>
@@ -476,10 +481,10 @@
         <exec executable="${msvc.home}\VC\vcpackages\vcbuild.exe"
             dir="${src.dir}/c"
             failonerror="true">
-            <arg value="wrapper${bits}_VC8.vcproj"/>
+            <arg value="wrapper_VC8.vcproj"/>
             <arg value="/rebuild"/>
             <arg value="/time"/>
-            <arg value="Release|Win32"/>
+            <arg value="${vcbuild.target}"/>
         </exec>
         
         <!-- Build the JNI DLL -->
@@ -487,10 +492,10 @@
         <exec executable="${msvc.home}\VC\vcpackages\vcbuild.exe"
             dir="${src.dir}/c"
             failonerror="true">
-            <arg value="wrapperJNI${bits}_VC8.vcproj"/>
+            <arg value="wrapperJNI_VC8.vcproj"/>
             <arg value="/rebuild"/>
             <arg value="/time"/>
-            <arg value="Release|Win32"/>
+            <arg value="${vcbuild.target}"/>
         </exec>
         
         <!--
