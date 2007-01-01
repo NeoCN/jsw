@@ -128,6 +128,13 @@ $Id$
                     in the configuration file.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Set any unset properties to their default values internally.  This is
+                    necessary so the WrapperManager.getProperties() method returns the
+                    correct set of active properties.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">

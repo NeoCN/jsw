@@ -707,6 +707,10 @@ const char* getStringProperty(Properties *properties, const char *propertyName, 
     Property *property;
     property = getInnerProperty(properties, propertyName);
     if (property == NULL) {
+        if (defaultValue != NULL) {
+            addProperty(properties, propertyName, defaultValue, FALSE, FALSE);
+        }
+
         return defaultValue;
     } else {
         return property->value;
@@ -745,9 +749,14 @@ int checkPropertyEqual(Properties *properties, const char *propertyName, const c
 }
 
 int getIntProperty(Properties *properties, const char *propertyName, int defaultValue) {
+    char buffer[16];
     Property *property;
+
     property = getInnerProperty(properties, propertyName);
     if (property == NULL) {
+        sprintf(buffer, "%d", defaultValue);
+        addProperty(properties, propertyName, buffer, FALSE, FALSE);
+
         return defaultValue;
     } else {
         return (int)strtol(property->value, NULL, 0);
