@@ -58,5 +58,11 @@ wrapper.registry.java_home=HKEY_LOCAL_MACHINE\SOFTWARE\MyCompany\MyApplication\J
             <simpara><emphasis>Example - REG_SZ Value:</emphasis></simpara>
             <screen format="linespecific"><![CDATA[C:\Program Files\MyApp\jre]]></screen>
         </informalexample>
+        <para>
+            If the java command is located using the Windows registry, the JAVA_HOME
+            value will be stored into a <literal moreinfo="none">WRAPPER_JAVA_HOME</literal>
+            environment variable.  This value can then be referenced in the values of other
+            properties.
+        </para>
     </section>
 </chapter>
