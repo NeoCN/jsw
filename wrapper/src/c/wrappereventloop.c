@@ -1090,7 +1090,12 @@ void jStateLaunch(DWORD nowTicks, int nextSleep) {
             wrapperBuildKey();
         
             /* Generate the command used to launch the Java process */
-            wrapperBuildJavaCommand();
+            if (wrapperBuildJavaCommand()) {
+                /* Failed. Wrapper shutdown. */
+                wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
+                wrapperData->exitCode = 1;
+                return;
+            }
 
             /* Log a few comments that will explain the JVM behavior. */
             if (wrapperData->isDebugging) {

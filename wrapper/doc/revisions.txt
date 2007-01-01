@@ -42,6 +42,8 @@ Java Service Wrapper Revision History.
   file were not working correctly if the wrapper.working.dir was used to
   change the working directory.  The working directory is now always reset
   to its original value as the configuration file is being loaded.
+* Added a new wrapper.registry.java_home property which makes it
+  possible to specify the location of java within the registry.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
