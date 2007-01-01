@@ -675,6 +675,11 @@ void wrapperSleep(int ms) {
     }
 }
 
+/**
+ * Build the java command line.
+ *
+ * @return TRUE if there were any problems.
+ */
 void wrapperBuildJavaCommand() {
     char **strings;
     int length, i;
@@ -695,7 +700,9 @@ void wrapperBuildJavaCommand() {
     /* Build the Java Command Strings */
     strings = NULL;
     length = 0;
-    wrapperBuildJavaCommandArray(&strings, &length, FALSE);
+    if (wrapperBuildJavaCommandArray(&strings, &length, FALSE)) {
+        return TRUE;
+    }
     
     if (wrapperData->commandLogLevel != LEVEL_NONE) {
         for (i = 0; i < length; i++) {
@@ -718,6 +725,8 @@ void wrapperBuildJavaCommand() {
     
     /* Free up the temporary command array */
     wrapperFreeJavaCommandArray(strings, length);
+
+    return FALSE;
 }
 
 /**

@@ -97,6 +97,9 @@
                 <listproperty>
                     <ulink url="prop-ntservice-starttype.html">wrapper.ntservice.starttype</ulink>
                 </listproperty>
+                <listproperty version="3.2.4">
+                    <ulink url="prop-registry-java-home.html">wrapper.registry.java_home</ulink>
+                </listproperty>
             </itemizedlist>
         </section>
     </section>

@@ -106,6 +106,13 @@ $Id$
                     to its original value as the configuration file is being loaded.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Added a new <ulink url="prop-registry-java-home.html">wrapper.registry.java_home</ulink>
+                    property which makes it possible to specify the location of java within
+                    the registry.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">

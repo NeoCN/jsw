@@ -328,7 +328,7 @@ extern int wrapperCheckRestartTimeOK();
  * command is a pointer to a pointer of an array of character strings.
  * length is the number of strings in the above array.
  */
-extern void wrapperBuildJavaCommandArray(char ***strings, int *length, int addQuotes);
+extern int wrapperBuildJavaCommandArray(char ***strings, int *length, int addQuotes);
 extern void wrapperFreeJavaCommandArray(char **strings, int length);
 
 extern int wrapperInitialize();
@@ -536,7 +536,12 @@ extern void wrapperBuildKey();
  */
 extern void wrapperRequestDumpJVMState(int useLoggerQueue);
 
-extern void wrapperBuildJavaCommand();
+/**
+ * Build the java command line.
+ *
+ * @return TRUE if there were any problems.
+ */
+extern int wrapperBuildJavaCommand();
 
 /**
  * Calculates a tick count using the system time.

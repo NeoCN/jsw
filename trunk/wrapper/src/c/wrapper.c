@@ -1492,6 +1492,13 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             /* If the java command is an empty string, we want to look for the
              *  the java command in the windows registry. */
             if (wrapperGetJavaHomeFromWindowsRegistry(cpPath)) {
+                if (wrapperData->isDebugging) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                        "Loaded java home from registry: %s", cpPath);
+                }
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
+                    "Loaded java home from registry: %s", cpPath);
+
                 strcat(cpPath, "\\bin\\java.exe");
                 if (wrapperData->isDebugging) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
@@ -1499,9 +1506,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                 }
                 found = 1;
             } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                     "The Java Runtime Environment home directory could not be located in the system registry.");
                 found = 0;
+                return -1;
             }
         } else {
             /* To avoid problems on Windows XP systems, the '/' characters must
@@ -2244,20 +2252,31 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 /**
  * command is a pointer to a pointer of an array of character strings.
  * length is the number of strings in the above array.
+ *
+ * @return TRUE if there were any problems.
  */
-void wrapperBuildJavaCommandArray(char ***stringsPtr, int *length, int addQuotes) {
+int wrapperBuildJavaCommandArray(char ***stringsPtr, int *length, int addQuotes) {
+    int reqLen;
+
     /* Reset the flag stating that the JVM is a debug JVM. */
     wrapperData->debugJVM = FALSE;
     wrapperData->debugJVMTimeoutNotified = FALSE;
 
     /* Find out how long the array needs to be first. */
-    *length = wrapperBuildJavaCommandArrayInner(NULL, addQuotes);
+    reqLen = wrapperBuildJavaCommandArrayInner(NULL, addQuotes);
+    if (reqLen < 0) {
+        return TRUE;
+    }
+    *length = reqLen;
 
     /* Allocate the correct amount of memory */
     *stringsPtr = malloc(sizeof(char *) * (*length));
 
     /* Now actually fill in the strings */
-    wrapperBuildJavaCommandArrayInner(*stringsPtr, addQuotes);
+    reqLen = wrapperBuildJavaCommandArrayInner(*stringsPtr, addQuotes);
+    if (reqLen < 0) {
+        return TRUE;
+    }
 
     if (wrapperData->debugJVM) {
         if ((wrapperData->startupTimeout > 0) || (wrapperData->pingTimeout > 0) ||
@@ -2274,6 +2293,8 @@ void wrapperBuildJavaCommandArray(char ***stringsPtr, int *length, int addQuotes
                 "------------------------------------------------------------------------" );
         }
     }
+
+    return FALSE;
 }
 
 void wrapperFreeJavaCommandArray(char **strings, int length) {

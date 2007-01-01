@@ -101,6 +101,7 @@ english/prop-ping-interval.html
 english/prop-ping-interval-logged.html
 english/prop-ping-timeout.html
 english/prop-port.html
+english/prop-registry-java-home.html
 english/prop-request-thread-dump-on-failed-jvm-exit.html
 english/prop-restart-delay.html
 english/prop-restart-reload-configuration.html

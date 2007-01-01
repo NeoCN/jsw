@@ -306,6 +306,9 @@
                 <listproperty version="3.2.0">
                     <ulink url="prop-port.html">wrapper.port.min</ulink>
                 </listproperty>
+                <listproperty version="3.2.4">
+                    <ulink url="prop-registry-java-home.html">wrapper.registry.java_home</ulink>
+                </listproperty>
                 <listproperty version="2.2.7">
                     <ulink url="prop-request-thread-dump-on-failed-jvm-exit.html">wrapper.request_thread_dump_on_failed_jvm_exit</ulink>
                 </listproperty>
