@@ -51,6 +51,9 @@ Java Service Wrapper Revision History.
   property was originally set.  This is possible with some WRAPPER_*
   environment variables or depending on the placement of set.* properties
   in the configuration file.
+* Set any unset properties to their default values internally.  This is
+  necessary so the WrapperManager.getProperties() method returns the
+  correct set of active properties.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
