@@ -197,18 +197,6 @@
         <property name="wrapper.lib.long.name" value="wrapper-${dist.os}-${dist.arch}-${bits}.dll"/>
 
         <!-- Decide on the MSVC version being used. -->
-        <condition property="msvc.home" value="${msvc.home.v8_32_c}">
-            <and>
-                <equals arg1="${bits}" arg2="32"/>
-                <available file="${msvc.home.v8_32_c}"/>
-            </and>
-        </condition>
-        <condition property="msvc.home" value="${msvc.home.v8_32_d}">
-            <and>
-                <equals arg1="${bits}" arg2="32"/>
-                <available file="${msvc.home.v8_32_d}"/>
-            </and>
-        </condition>
         <condition property="msvc.home" value="${msvc.home.v8_64_c}">
             <and>
                 <equals arg1="${bits}" arg2="64"/>
@@ -220,6 +208,12 @@
                 <equals arg1="${bits}" arg2="64"/>
                 <available file="${msvc.home.v8_64_d}"/>
             </and>
+        </condition>
+        <condition property="msvc.home" value="${msvc.home.v8_32_c}">
+            <available file="${msvc.home.v8_32_c}"/>
+        </condition>
+        <condition property="msvc.home" value="${msvc.home.v8_32_d}">
+            <available file="${msvc.home.v8_32_d}"/>
         </condition>
         <property name="msvc.home" value="${msvc.home.98}"/>
 
