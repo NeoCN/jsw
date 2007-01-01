@@ -231,6 +231,11 @@ wrapper.java.library.path.2=../lib/native/solaris-sparc-32]]></screen>
                     </para>
                 </listitem>
             </itemizedlist>
+            <para>
+                On Windows platforms, if the java command is located using the system registry,
+                a <literal moreinfo="none">WRAPPER_JAVA_HOME</literal> environment variable will
+                be set.
+            </para>
         </section>
     </section>
 </chapter>

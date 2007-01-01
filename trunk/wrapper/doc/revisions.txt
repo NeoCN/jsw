@@ -44,6 +44,13 @@ Java Service Wrapper Revision History.
   to its original value as the configuration file is being loaded.
 * Added a new wrapper.registry.java_home property which makes it
   possible to specify the location of java within the registry.
+* Set a new WRAPPER_JAVA_HOME environment variable if the JAVA_HOME is
+  located in the Windows registry.
+* Modify the way properties are looked up so that any unreplaced environment
+  variable references will be reevaluated in case they were set after the
+  property was originally set.  This is possible with some WRAPPER_*
+  environment variables or depending on the placement of set.* properties
+  in the configuration file.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

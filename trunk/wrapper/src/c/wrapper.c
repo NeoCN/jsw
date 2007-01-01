@@ -1499,6 +1499,8 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
                     "Loaded java home from registry: %s", cpPath);
 
+                addProperty(properties, "set.WRAPPER_JAVA_HOME", cpPath, FALSE, FALSE );
+
                 strcat(cpPath, "\\bin\\java.exe");
                 if (wrapperData->isDebugging) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,

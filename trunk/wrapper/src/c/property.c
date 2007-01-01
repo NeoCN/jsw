@@ -66,12 +66,15 @@
 
 #define MAX_INCLUDE_DEPTH 10
 
+void setInnerProperty(Property *property, const char *propertyValue);
+
 /**
  * Private function to find a Property structure.
  */
 Property* getInnerProperty(Properties *properties, const char *propertyName) {
     Property *property;
     int cmp;
+    char *oldValue;
 
     /* Loop over the properties which are in order and look for the specified property. */
     property = properties->first;
@@ -82,6 +85,24 @@ Property* getInnerProperty(Properties *properties, const char *propertyName) {
             return NULL;
         } else if (cmp == 0) {
             /* We found it. */
+
+            if (strstr(property->value, "%")) {
+                /* Reset the property.  If the unreplaced environment variables are now available
+                 *  setting it again will cause it to be replaced correctly.  If not this will
+                 *  only waste time.  The value will be freed in the process so we need to
+                 *  keep it around. */
+#ifdef _DEBUG
+                printf( "Unreplaced property %s=%s\n", property->name, property->value );
+#endif
+                oldValue = malloc(strlen(property->value) + 1);
+                strcpy(oldValue, property->value);
+                setInnerProperty(property, oldValue);
+                free(oldValue);
+#ifdef _DEBUG
+                printf( "        -> property %s=%s\n", property->name, property->value );
+#endif
+            }
+
             return property;
         }
         /* Keep looking */

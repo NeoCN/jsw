@@ -113,6 +113,21 @@ $Id$
                     the registry.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Set a new WRAPPER_JAVA_HOME environment variable if the JAVA_HOME is
+                    located in the Windows registry.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Modify the way properties are looked up so that any unreplaced environment
+                    variable references will be reevaluated in case they were set after the
+                    property was originally set.  This is possible with some WRAPPER_*
+                    environment variables or depending on the placement of set.* properties
+                    in the configuration file.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">
