@@ -432,10 +432,12 @@ start() {
     # Sleep for a few seconds to allow for intialization if required 
     #  then test to make sure we're still running.
     #
-    for (( i = 0; i < $WAIT_AFTER_STARTUP; i++ ))
+    i=0
+    while [ $i -lt $WAIT_AFTER_STARTUP ]
     do
         sleep 1
         echo -n "."
+        i=`expr $i + 1`
     done
     if [ $WAIT_AFTER_STARTUP -gt 0 ]
     then
