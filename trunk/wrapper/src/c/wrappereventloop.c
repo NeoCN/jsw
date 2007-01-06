@@ -643,7 +643,7 @@ void wStateStarting(DWORD nowTicks) {
     if (wrapperData->startupTimeout > 0 ) {
         timeout = (wrapperData->startupTimeout) * 1000;
     } else {
-        timeout = 86400000; // Set infinity at 1 day.
+        timeout = 86400000; /* Set infinity at 1 day. */
     }
     wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTING, 0, timeout);
     
@@ -696,7 +696,7 @@ void wStatePausing(DWORD nowTicks) {
         } else {
             /* Tell the service manager that we are pausing */
             if ( (wrapperData->shutdownTimeout <= 0) || (wrapperData->jvmExitTimeout <= 0)) {
-                timeout = 86400000; // Set infinity at 1 day.
+                timeout = 86400000; /* Set infinity at 1 day. */
             } else {
                 timeout = MAX(wrapperData->shutdownTimeout, wrapperData->jvmExitTimeout) * 1000;
             }
@@ -764,7 +764,7 @@ void wStateContinuing(DWORD nowTicks) {
         if (wrapperData->startupTimeout > 0 ) {
             timeout = wrapperData->startupTimeout * 1000;
         } else {
-            timeout = 86400000; // Set infinity at 1 day.
+            timeout = 86400000; /* Set infinity at 1 day. */
         }
         wrapperReportStatus(FALSE, WRAPPER_WSTATE_CONTINUING, 0, timeout);
     }
@@ -787,7 +787,7 @@ void wStateStopping(DWORD nowTicks) {
     
     /* Tell the service manager that we are stopping */
     if ( (wrapperData->shutdownTimeout <= 0) || (wrapperData->jvmExitTimeout <= 0)) {
-        timeout = 86400000; // Set infinity at 1 day.
+        timeout = 86400000; /* Set infinity at 1 day. */
     } else {
         timeout = MAX(wrapperData->shutdownTimeout, wrapperData->jvmExitTimeout) * 1000;
     }
