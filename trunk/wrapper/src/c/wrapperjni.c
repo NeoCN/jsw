@@ -59,10 +59,6 @@ int controlEventQueue[CONTROL_EVENT_QUEUE_SIZE];
 int controlEventQueueLastReadIndex = 0;
 int controlEventQueueLastWriteIndex = 0;
 
-
-//volatile int lastControlEvent = 0;
-//volatile int checkingControlEvent = 0;
-
 /**
  * Create an error message from GetLastError() using the
  *  FormatMessage API Call...

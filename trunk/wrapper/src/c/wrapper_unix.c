@@ -680,7 +680,7 @@ void wrapperSleep(int ms) {
  *
  * @return TRUE if there were any problems.
  */
-void wrapperBuildJavaCommand() {
+int wrapperBuildJavaCommand() {
     char **strings;
     int length, i;
 

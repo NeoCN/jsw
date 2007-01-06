@@ -65,7 +65,7 @@ int wrapperLockControlEventQueue() {
     
     /* Only wait for up to 30 seconds to make sure we don't get into a deadlock situation.
      *  This could happen if a signal is encountered while locked. */
-    while (pthread_mutex_trylock(&controlEventQueueMutex) = EBUSY) {
+    while (pthread_mutex_trylock(&controlEventQueueMutex) == EBUSY) {
         if (count >= 3000) {
             printf("WrapperJNI Error: Timed out waiting for control event queue lock.\n");
             fflush(NULL);
@@ -81,7 +81,7 @@ int wrapperLockControlEventQueue() {
     if ( count > 0 ) {
         if (wrapperJNIDebugging) {
             /* This is useful for making sure that the JNI call is working. */
-            printf("WrapperJNI Debug: wrapperLockControlEventQueue looped %d times before lock.\n");
+            printf("WrapperJNI Debug: wrapperLockControlEventQueue looped %d times before lock.\n", count);
             fflush(NULL);
         }
     }
