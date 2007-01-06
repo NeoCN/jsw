@@ -757,8 +757,10 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const char *messa
     } else {
         if (wrapperData->isDebugging) {
             if ( ( function == WRAPPER_MSG_PING ) && ( strcmp( message, "silent" ) == 0 ) ) {
-                //log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
-                //    "send a silent ping packet");
+                /*
+                log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
+                    "send a silent ping packet");
+                */
             } else {
                 log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
                     "send a packet %s : %s",
@@ -894,7 +896,9 @@ int wrapperProtocolRead() {
 
         if (wrapperData->isDebugging) {
             if ( ( code == WRAPPER_MSG_PING ) && ( strcmp( packetBuffer, "silent" ) == 0 ) ) {
-                //log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "read a silent ping packet");
+                /*
+                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "read a silent ping packet");
+                */
             } else {
                 log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "read a packet %s : %s",
                     wrapperProtocolGetCodeName(code), packetBuffer);
