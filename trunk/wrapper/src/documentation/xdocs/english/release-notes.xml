@@ -142,6 +142,14 @@ $Id$
                     <ulink url="http://sourceforge.net/tracker/?func=detail&amp;aid=1614010&amp;group_id=39428&amp;atid=425187">Bug #1614010</ulink>.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem on Solaris versions, where the Wrapper was not correctly
+                    recovering and attempting another back end port when the first was already
+                    in use.
+                    <ulink url="http://sourceforge.net/tracker/?func=detail&amp;aid=1594073&amp;group_id=39428&amp;atid=425187">Bug #1594073</ulink>.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">

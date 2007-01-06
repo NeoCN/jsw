@@ -3491,7 +3491,8 @@ public final class WrapperManager
                     stopImmediate( 1 );
                 }
                 else if ( ( e instanceof BindException ) ||
-                    ( ( eMessage != null ) && ( eMessage.indexOf( "errno: 48" ) >= 0 ) ) )
+                    ( ( eMessage != null ) &&
+                    ( ( eMessage.indexOf( "errno: 48" ) >= 0 ) || ( eMessage.indexOf( "Address already in use" ) >= 0 ) ) ) )
                 {
                     // Most Java implementations throw a BindException when the port is in use,
                     //  but FreeBSD throws a SocketException with a specific message.

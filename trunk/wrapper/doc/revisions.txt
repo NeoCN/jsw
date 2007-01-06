@@ -56,6 +56,9 @@ Java Service Wrapper Revision History.
   correct set of active properties.
 * Fix an occasional crash with 64-bit UNIX caused by a native synchronization
   problem when system signals are trapped.  Bug #1614010.
+* Fix a problem on Solaris versions, where the Wrapper was not correctly
+  recovering and attempting another back end port when the first was already
+  in use.  Bug #1594073.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
