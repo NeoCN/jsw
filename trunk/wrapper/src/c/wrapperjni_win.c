@@ -61,11 +61,52 @@ barf
 
 static DWORD wrapperProcessId = 0;
 
+HANDLE controlEventQueueMutexHandle = NULL;
+
 FARPROC OptionalProcess32First = NULL;
 FARPROC OptionalProcess32Next = NULL;
 FARPROC OptionalThread32First = NULL;
 FARPROC OptionalThread32Next = NULL;
 FARPROC OptionalCreateToolhelp32Snapshot = NULL;
+
+int wrapperLockControlEventQueue() {
+    if (!controlEventQueueMutexHandle) {
+        /* Not initialized so fail quietly.  A message was shown on startup. */
+        return -1;
+    }
+
+    /* Only wait for up to 30 seconds to make sure we don't get into a deadlock situation.
+     *  This could happen if a signal is encountered while locked. */
+    switch (WaitForSingleObject(controlEventQueueMutexHandle, 30000)) {
+    case WAIT_ABANDONED:
+        printf("WrapperJNI Error: Control Event mutex was abandoned.\n");
+        fflush(NULL);
+        return -1;
+    case WAIT_FAILED:
+        printf("WrapperJNI Error: Control Event mutex wait failed.\n");
+        fflush(NULL);
+        return -1;
+    case WAIT_TIMEOUT:
+        printf("WrapperJNI Error: Control Event mutex wait timed out.\n");
+        fflush(NULL);
+        return -1;
+    default:
+        /* Ok */
+        break;
+    }
+
+    return 0;
+}
+
+int wrapperReleaseControlEventQueue() {
+    if (!ReleaseMutex(controlEventQueueMutexHandle)) {
+        printf( "WrapperJNI Error: Failed to release Control Event mutex. %s\n", getLastErrorText());
+        fflush(NULL);
+        return -1;
+    }
+
+    return 0;
+}
 
 /**
  * Handler to take care of the case where the user hits CTRL-C when the wrapper
@@ -578,6 +619,12 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass cl
     }
 
     loadDLLProcs();
+
+    if (!(controlEventQueueMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
+        printf("WrapperJNI Error: Failed to create control event queue mutex. Signals will be ignored. %s\n", getLastErrorText());
+        flushall();
+        controlEventQueueMutexHandle = NULL;
+    }
 
     /* Make sure that the handling of CTRL-C signals is enabled for this process. */
     SetConsoleCtrlHandler(NULL, FALSE);

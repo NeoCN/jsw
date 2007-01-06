@@ -47,6 +47,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <grp.h>
+#include <pthread.h>
 #include <pwd.h>
 #include <signal.h>
 #include <string.h>
@@ -55,6 +56,43 @@
 #include "wrapperjni.h"
 
 static pid_t wrapperProcessId = -1;
+
+pthread_mutex_t controlEventQueueMutex = PTHREAD_MUTEX_INITIALIZER;
+
+int wrapperLockControlEventQueue() {
+    int count = 0;
+    struct timespec ts;
+    
+    /* Only wait for up to 30 seconds to make sure we don't get into a deadlock situation.
+     *  This could happen if a signal is encountered while locked. */
+    while (pthread_mutex_trylock(&controlEventQueueMutex) = EBUSY) {
+        if (count >= 3000) {
+            printf("WrapperJNI Error: Timed out waiting for control event queue lock.\n");
+            fflush(NULL);
+            return -1;
+        }
+
+        ts.tv_sec = 0;
+        ts.tv_nsec = 10000000; /* 10ms (nanoseconds) */
+        nanosleep(&ts, NULL);
+        count++;
+    }
+
+    if ( count > 0 ) {
+        if (wrapperJNIDebugging) {
+            /* This is useful for making sure that the JNI call is working. */
+            printf("WrapperJNI Debug: wrapperLockControlEventQueue looped %d times before lock.\n");
+            fflush(NULL);
+        }
+    }
+
+    return 0;
+}
+
+int wrapperReleaseControlEventQueue() {
+    pthread_mutex_unlock(&controlEventQueueMutex);
+    return 0;
+}
 
 /**
  * Handle interrupt signals (i.e. Crtl-C).

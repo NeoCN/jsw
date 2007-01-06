@@ -54,8 +54,14 @@
 
 int wrapperJNIDebugging = JNI_FALSE;
 
-volatile int lastControlEvent = 0;
-volatile int checkingControlEvent = 0;
+#define CONTROL_EVENT_QUEUE_SIZE 10
+int controlEventQueue[CONTROL_EVENT_QUEUE_SIZE];
+int controlEventQueueLastReadIndex = 0;
+int controlEventQueueLastWriteIndex = 0;
+
+
+//volatile int lastControlEvent = 0;
+//volatile int checkingControlEvent = 0;
 
 /**
  * Create an error message from GetLastError() using the
@@ -97,13 +103,31 @@ char* getLastErrorText() {
 #endif
 
 void wrapperJNIHandleSignal(int signal) {
-    /* Wait for the semaphore before setting the value */
-    while (checkingControlEvent) {
-        /* Tight loop, but will be very short. */
+    if (wrapperLockControlEventQueue()) {
+        /* Failed.  Should have been reported. */
+        printf("WrapperJNI Error: Signal %d trapped, but ignored.\n", signal);
+        fflush(NULL);
+        return;
     }
 
-    /* Save the last signal */
-    lastControlEvent = signal;
+#ifdef _DEBUG
+    printf(" Queue Write 1 R:%d W:%d E:%d\n", controlEventQueueLastReadIndex, controlEventQueueLastWriteIndex, signal);
+    fflush(NULL);
+#endif
+    controlEventQueueLastWriteIndex++;
+    if (controlEventQueueLastWriteIndex >= CONTROL_EVENT_QUEUE_SIZE) {
+        controlEventQueueLastWriteIndex = 0;
+    }
+    controlEventQueue[controlEventQueueLastWriteIndex] = signal;
+#ifdef _DEBUG
+    printf(" Queue Write 2 R:%d W:%d\n", controlEventQueueLastReadIndex, controlEventQueueLastWriteIndex);
+    fflush(NULL);
+#endif
+
+    if (wrapperReleaseControlEventQueue()) {
+        /* Failed.  Should have been reported. */
+        return;
+    }
 }
 
 /*
@@ -127,19 +151,33 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetLibraryVersion(JNIEnv *e
  */
 JNIEXPORT jint JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetControlEvent(JNIEnv *env, jclass clazz) {
-    int event;
+    int event = 0;
 
-    /* Use this as a very simple semaphore */
-    checkingControlEvent = 1;
-
-    /* Check the event.  This is not technically thread safe, but there are
-     *  very few threads coming through. */
-    if ((event = lastControlEvent) != 0) {
-        lastControlEvent = 0;
+    if (wrapperLockControlEventQueue()) {
+        /* Failed.  Should have been reported. */
+        return 0;
     }
 
-    /* Clear the semaphore */
-    checkingControlEvent = 0;
+    if (controlEventQueueLastWriteIndex != controlEventQueueLastReadIndex) {
+#ifdef _DEBUG
+        printf(" Queue Read 1 R:%d W:%d\n", controlEventQueueLastReadIndex, controlEventQueueLastWriteIndex);
+        fflush(NULL);
+#endif
+        controlEventQueueLastReadIndex++;
+        if (controlEventQueueLastReadIndex >= CONTROL_EVENT_QUEUE_SIZE) {
+            controlEventQueueLastReadIndex = 0;
+        }
+        event = controlEventQueue[controlEventQueueLastReadIndex];
+#ifdef _DEBUG
+        printf(" Queue Read 2 R:%d W:%d E:%d\n", controlEventQueueLastReadIndex, controlEventQueueLastWriteIndex, event);
+        fflush(NULL);
+#endif
+    }
+
+    if (wrapperReleaseControlEventQueue()) {
+        /* Failed.  Should have been reported. */
+        return event;
+    }
 
     return event;
 }

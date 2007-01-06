@@ -54,6 +54,8 @@ Java Service Wrapper Revision History.
 * Set any unset properties to their default values internally.  This is
   necessary so the WrapperManager.getProperties() method returns the
   correct set of active properties.
+* Fix an occasional crash with 64-bit UNIX caused by a native synchronization
+  problem when system signals are trapped.  Bug #1614010.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
