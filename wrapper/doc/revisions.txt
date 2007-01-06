@@ -62,6 +62,9 @@ Java Service Wrapper Revision History.
 * Fix a problem on Solaris and AIX where the RUN_AS_USER feature of the
   shell script was not working due to lack of support for the "-m" option of
   su.  The shell script now uses "su -".  Bug #1590168.
+* Change the HP-UX build from using gmake to make.  Fix some problems in the
+  shell script to make the script work better on HP-UX.  Thanks to David
+  Brown for the patches.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
