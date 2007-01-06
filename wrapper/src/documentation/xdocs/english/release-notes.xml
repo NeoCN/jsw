@@ -155,6 +155,7 @@ $Id$
                     Fix a problem on Solaris and AIX where the RUN_AS_USER feature of the
                     shell script was not working due to lack of support for the "-m" option of
                     su.  The shell script now uses "su -".
+                    <ulink url="http://sourceforge.net/tracker/?func=detail&amp;aid=1590168&amp;group_id=39428&amp;atid=425187">Bug #1590168</ulink>.
                 </para>
             </listitem>
         </itemizedlist>

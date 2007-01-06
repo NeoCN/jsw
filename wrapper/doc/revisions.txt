@@ -61,7 +61,7 @@ Java Service Wrapper Revision History.
   in use.  Bug #1594073.
 * Fix a problem on Solaris and AIX where the RUN_AS_USER feature of the
   shell script was not working due to lack of support for the "-m" option of
-  su.  The shell script now uses "su -".
+  su.  The shell script now uses "su -".  Bug #1590168.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
