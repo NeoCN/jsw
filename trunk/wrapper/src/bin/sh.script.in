@@ -154,7 +154,10 @@ case "$DIST_OS" in
         DIST_OS="solaris"
         ;;
     'hp-ux' | 'hp-ux64')
+        # HP-UX needs the XPG4 version of ps (for -o args)
         DIST_OS="hpux"
+        UNIX95=""
+        export UNIX95   
         ;;
     'darwin')
         DIST_OS="macosx"
@@ -166,6 +169,10 @@ esac
 
 # Resolve the architecture
 DIST_ARCH=`uname -p 2>/dev/null | tr [:upper:] [:lower:] | tr -d [:blank:]`
+if [ $? -ne 0 ]
+then
+    DIST_ARCH="unknown"
+fi
 if [ "$DIST_ARCH" = "unknown" ]
 then
     DIST_ARCH=`uname -m 2>/dev/null | tr [:upper:] [:lower:] | tr -d [:blank:]`
