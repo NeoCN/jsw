@@ -738,12 +738,18 @@ public final class WrapperManager
                         
                         if ( m_libraryOK )
                         {
-                            // Look for a control event in the wrapper library
-                            int event = WrapperManager.nativeGetControlEvent();
-                            if ( event != 0 )
+                            // Look for control events in the wrapper library.
+                            //  There may be more than one.
+                            int event = 0;
+                            do
                             {
-                                WrapperManager.controlEvent( event );
+                                event = WrapperManager.nativeGetControlEvent();
+                                if ( event != 0 )
+                                {
+                                    WrapperManager.controlEvent( event );
+                                }
                             }
+                            while ( event != 0 );
                         }
                         
                         // Wait before checking for another control event.

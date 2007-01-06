@@ -135,6 +135,13 @@ $Id$
                     correct set of active properties.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix an occasional crash with 64-bit UNIX caused by a native synchronization
+                    problem when system signals are trapped.
+                    <ulink url="http://sourceforge.net/tracker/?func=detail&amp;aid=1614010&amp;group_id=39428&amp;atid=425187">Bug #1614010</ulink>.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">
