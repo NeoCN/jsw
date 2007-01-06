@@ -1,4 +1,4 @@
-COMPILE = gcc -O3 -Wall --pedantic -lm
+COMPILE = gcc -O3 -Wall --pedantic
 
 INCLUDE=$(JAVA_HOME)/include
 
@@ -24,10 +24,10 @@ init:
 	if test ! -d .deps; then mkdir .deps; fi
 
 wrapper: $(wrapper_SOURCE)
-	$(COMPILE) -pthread $(wrapper_SOURCE) -o $(BIN)/wrapper
+	$(COMPILE) -lm -pthread $(wrapper_SOURCE) -o $(BIN)/wrapper
 
 libwrapper.so: $(libwrapper_so_OBJECTS)
-	${COMPILE} -shared -fPIC $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
+	${COMPILE} -lm -shared -fPIC $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
 
 %.o: %.c
 	@echo '$(COMPILE) -c $<'; \
