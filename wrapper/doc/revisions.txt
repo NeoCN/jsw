@@ -59,6 +59,9 @@ Java Service Wrapper Revision History.
 * Fix a problem on Solaris versions, where the Wrapper was not correctly
   recovering and attempting another back end port when the first was already
   in use.  Bug #1594073.
+* Fix a problem on Solaris and AIX where the RUN_AS_USER feature of the
+  shell script was not working due to lack of support for the "-m" option of
+  su.  The shell script now uses "su -".
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
