@@ -1500,8 +1500,6 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                         "Loaded java home from registry: %s", cpPath);
                 }
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
-                    "Loaded java home from registry: %s", cpPath);
 
                 addProperty(properties, "set.WRAPPER_JAVA_HOME", cpPath, FALSE, FALSE );
 
