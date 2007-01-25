@@ -1215,7 +1215,7 @@ int wrapperReadChildOutput() {
  * Checks on the status of the JVM Process.
  * Returns WRAPPER_PROCESS_UP or WRAPPER_PROCESS_DOWN
  */
-int wrapperGetProcessStatus(int useLoggerQueue, DWORD nowTicks) {
+int wrapperGetProcessStatus(int useLoggerQueue, DWORD nowTicks, int sigChild) {
     int res;
     DWORD exitCode;
     char *exName;
