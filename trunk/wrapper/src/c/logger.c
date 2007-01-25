@@ -139,7 +139,7 @@ void checkAndRollLogs( );
  *  that a signal could be fired while we are in maintainLogger, so case is
  *  taken to make sure that volatile changes are only made in log_printf_queue.
  */
-#define QUEUE_SIZE 10
+#define QUEUE_SIZE 25
 int queueWrapped = 0;
 int queueWriteIndex = 0;
 int queueReadIndex = 0;
