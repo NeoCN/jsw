@@ -269,6 +269,7 @@ struct WrapperConfig {
     int     signalHUPMode;          /* Controls what happens when the Wrapper receives a HUP signal. */
     int     signalUSR1Mode;         /* Controls what happens when the Wrapper receives a USR1 signal. */
     int     signalUSR2Mode;         /* Controls what happens when the Wrapper receives a USR2 signal. */
+    int     jvmStopped;             /* Flag which remembers the the stopped state of the JVM process. */
 #endif
 };
 
@@ -440,7 +441,7 @@ extern int wrapperReadChildOutput();
  * Checks on the status of the JVM Process.
  * Returns WRAPPER_PROCESS_UP or WRAPPER_PROCESS_DOWN
  */
-extern int wrapperGetProcessStatus(int useLoggerQueue, DWORD nowTicks);
+extern int wrapperGetProcessStatus(int useLoggerQueue, DWORD nowTicks, int sigChild);
 
 /**
  * Immediately kill the JVM process and set the JVM state to

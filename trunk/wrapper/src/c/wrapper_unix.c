@@ -436,12 +436,8 @@ void sigActionChildDeath(int sigNum, siginfo_t *sigInfo, void *na) {
 
     log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
         "Received SIGCHLD, checking JVM process status.");
-    if (wrapperGetProcessStatus(TRUE, wrapperGetTicks()) == WRAPPER_PROCESS_UP) {
-        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-            "JVM process was still running after receiving a SIGCHLD signal.");
-    } else {
-        /* Handled and logged. */
-    }
+    wrapperGetProcessStatus(TRUE, wrapperGetTicks(), TRUE);
+    /* Handled and logged. */
 }
 
 /**
@@ -771,6 +767,9 @@ void wrapperExecute() {
     } else {
         /* Reset the exit code when we launch a new JVM. */
         wrapperData->exitCode = 0;
+
+        /* Reset the stopped flag. */
+        wrapperData->jvmStopped = FALSE;
         
         /* Fork succeeded: increment the process ID for logging. */
         wrapperData->jvmRestarts++;
@@ -914,44 +913,67 @@ void wrapperDumpCPUUsage() {
  * Checks on the status of the JVM Process.
  * Returns WRAPPER_PROCESS_UP or WRAPPER_PROCESS_DOWN
  */
-int wrapperGetProcessStatus(int useLoggerQueue, DWORD nowTicks) {
+int wrapperGetProcessStatus(int useLoggerQueue, DWORD nowTicks, int sigChild) {
     int retval;
     int status;
     int exitCode;
     int res;
 
-    retval = waitpid(jvmPid, &status, WNOHANG);
+    retval = waitpid(jvmPid, &status, WNOHANG | WUNTRACED);
     if (retval == 0) {
-        /* Still up and running. */
-        res = WRAPPER_PROCESS_UP;
-    } else {
-        if (retval < 0) {
-            if (errno == ECHILD) {
-                /* Process is gone.  Happens after a SIGCHLD is handled. Normal. */
-            } else {
-                /* Error requesting the status. */
-                log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                    "Unable to request JVM process status: %s", getLastErrorText());
-            }
+        /* Up and running. */
+        if (sigChild && wrapperData->jvmStopped) {
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                "JVM process was continued.");
+            wrapperData->jvmStopped = FALSE;
         }
-
-        /* JVM has exited. */
+        res = WRAPPER_PROCESS_UP;
+    } else if (retval < 0) {
+        if (errno == ECHILD) {
+            /* Process is gone.  Happens after a SIGCHLD is handled. Normal. */
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                "JVM process is gone.");
+        } else {
+            /* Error requesting the status. */
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                "Unable to request JVM process status: %s", getLastErrorText());
+        }
+        exitCode = 1;
         res = WRAPPER_PROCESS_DOWN;
+        wrapperJVMProcessExited(useLoggerQueue, nowTicks, exitCode);
+    } else {
+#ifdef _DEBUG
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            "  WIFEXITED=%d", WIFEXITED(status));
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            "  WIFSTOPPED=%d", WIFSTOPPED(status));
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            "  WIFSIGNALED=%d", WIFSIGNALED(status));
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            "  WTERMSIG=%d", WTERMSIG(status));
+#endif
 
         /* Get the exit code of the process. */
         if (WIFEXITED(status)) {
+            /* JVM has exited. */
             exitCode = WEXITSTATUS(status);
+            res = WRAPPER_PROCESS_DOWN;
+
+            wrapperJVMProcessExited(useLoggerQueue, nowTicks, exitCode);
         } else if (WIFSIGNALED(status)) {
             log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                "JVM exited in response to signal %s (%d).", getSignalName(WTERMSIG(status)), WTERMSIG(status));
-            exitCode = 1;
+                "JVM received a signal %s (%d).", getSignalName(WTERMSIG(status)), WTERMSIG(status));
+            res = WRAPPER_PROCESS_UP;
+        } else if (WIFSTOPPED(status)) {
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                "JVM process was stopped.  It will be killed if the ping timeout expires.");
+            wrapperData->jvmStopped = TRUE;
+            res = WRAPPER_PROCESS_UP;
         } else {
             log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "WIFEXITED indicates that the JVM exited abnormally.");
-            exitCode = 1;
+                "JVM process signaled the Wrapper unexpectedly.");
+            res = WRAPPER_PROCESS_UP;
         }
-
-        wrapperJVMProcessExited(useLoggerQueue, nowTicks, exitCode);
     }
     
     return res;
