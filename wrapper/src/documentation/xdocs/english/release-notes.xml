@@ -165,6 +165,28 @@ $Id$
                     Brown for the patches.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where any signals received by the JVM and triggering a
+                    SIGCHLD signal in the Wrapper were being interpretted as the JVM having
+                    stopped.  This was not always true.
+                    <ulink url="http://sourceforge.net/tracker/?func=detail&amp;aid=1643666&amp;group_id=39428&amp;atid=425187">Bug #1643666</ulink>.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    The Wrapper is now able to detect when the JVM process is stopped and
+                    continued.  It will still timeout if stopped, but a descriptive warning
+                    is now logged.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Increase the maximum number of log entries which can be queued to avoid
+                    losing them.  These are only used for log entries outside of the primary
+                    thread.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">

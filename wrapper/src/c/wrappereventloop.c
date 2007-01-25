@@ -1108,7 +1108,7 @@ void jStateLaunch(DWORD nowTicks, int nextSleep) {
             wrapperExecute();
         
             /* Check if the start was successful. */
-            if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks) == WRAPPER_PROCESS_DOWN)) {
+            if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
                 /* Failed to start the JVM.  Tell the wrapper to shutdown. */
                 wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
             } else {
@@ -1144,7 +1144,7 @@ void jStateLaunch(DWORD nowTicks, int nextSleep) {
  */
 void jStateLaunching(DWORD nowTicks, int nextSleep) {
     /* Make sure that the JVM process is still up and running */
-    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks) == WRAPPER_PROCESS_DOWN)) {
+    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone.  Restart it. (Handled and logged) */
     } else {
         /* The process is up and running.
@@ -1223,7 +1223,7 @@ void jStateLaunched(DWORD nowTicks, int nextSleep) {
  */
 void jStateStarting(DWORD nowTicks, int nextSleep) {
     /* Make sure that the JVM process is still up and running */
-    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks) == WRAPPER_PROCESS_DOWN)) {
+    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone.  Restart it. (Handled and logged) */
     } else {
         /* Have we waited too long already */
@@ -1265,7 +1265,7 @@ void jStateStarted(DWORD nowTicks, int nextSleep) {
     int ret;
 
     /* Make sure that the JVM process is still up and running */
-    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks) == WRAPPER_PROCESS_DOWN)) {
+    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone.  Restart it. (Handled and logged) */
     } else {
         /* Have we waited too long already.  The jStateTimeoutTicks is reset each time a ping
@@ -1327,7 +1327,7 @@ void jStateStarted(DWORD nowTicks, int nextSleep) {
  */
 void jStateStopping(DWORD nowTicks, int nextSleep) {
     /* Make sure that the JVM process is still up and running */
-    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks) == WRAPPER_PROCESS_DOWN)) {
+    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone. (Handled and logged)*/
     } else {
         /* Have we waited too long already */
@@ -1363,7 +1363,7 @@ void jStateStopping(DWORD nowTicks, int nextSleep) {
  *            function will be called again immediately.
  */
 void jStateStopped(DWORD nowTicks, int nextSleep) {
-    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks) == WRAPPER_PROCESS_DOWN)) {
+    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone. (Handled and logged) */
     } else {
         /* Have we waited too long already */
@@ -1399,7 +1399,7 @@ void jStateStopped(DWORD nowTicks, int nextSleep) {
  */
 void jStateKilling(DWORD nowTicks, int nextSleep) {
     /* Make sure that the JVM process is still up and running */
-    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks) == WRAPPER_PROCESS_DOWN)) {
+    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone. (Handled and logged) */
     } else {
         /* Have we waited long enough */
@@ -1639,7 +1639,7 @@ void wrapperEventLoop() {
                 /** The JVM is already being stopped, so nothing else needs to be done. */
             } else {
                 /* The JVM should be running, so it needs to be stopped. */
-                if (wrapperGetProcessStatus(FALSE, nowTicks) == WRAPPER_PROCESS_DOWN) {
+                if (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN) {
                     /* The process is gone.  (Handled and logged) */
 
                     /* We never want to restart here. */

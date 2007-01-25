@@ -65,6 +65,15 @@ Java Service Wrapper Revision History.
 * Change the HP-UX build from using gmake to make.  Fix some problems in the
   shell script to make the script work better on HP-UX.  Thanks to David
   Brown for the patches.
+* Fix a problem where any signals received by the JVM and triggering a
+  SIGCHLD signal in the Wrapper were being interpretted as the JVM having
+  stopped.  This was not always true.  Bug #1643666.
+* The Wrapper is now able to detect when the JVM process is stopped and
+  continued.  It will still timeout if stopped, but a descriptive warning
+  is now logged.
+* Increase the maximum number of log entries which can be queued to avoid
+  losing them.  These are only used for log entries outside of the primary
+  thread.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
