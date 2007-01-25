@@ -192,7 +192,7 @@ public class TestAction
         System.err.println( "ERROR: " + error_msg );
         System.err.println( "" );
 
-        System.exit( -1 );
+        System.exit( 1 );
     }
 
     /**************************************************************************
