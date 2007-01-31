@@ -569,6 +569,7 @@
         <mkdir dir="${bin.dir}"/>        
         <mkdir dir="${lib.dir}"/>
         
+        <echo message="Build native components using '${make.name}' and Makefile: ${makefile.name}"/>
         <exec executable="${make.name}"
             dir="${src.dir}/c" 
             failonerror="true">
