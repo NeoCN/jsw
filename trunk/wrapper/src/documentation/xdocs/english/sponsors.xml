@@ -31,6 +31,12 @@
             -->
         <donorlist>
             <donor>
+                <date>Jan 31, 2007</date>
+                <amount>50.00</amount>
+                <name><ulink url="http://www.nadatech.com/">NADAtech</ulink></name>
+                <message></message>
+            </donor>
+            <donor>
                 <date>Nov 20, 2006</date>
                 <amount>50.00</amount>
                 <name><ulink url="http://www.schaefer-bs.com/">SCHAEFER Business Solutions</ulink></name>
