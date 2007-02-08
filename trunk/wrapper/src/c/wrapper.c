@@ -1105,7 +1105,7 @@ void wrapperUsage(char *appName) {
     printf("     (<command> implicitly '-c' and <configuration file> '%s.conf')\n", confFileBase);
     printf("\n");
     printf("where <command> can be one of:\n");
-    printf("  -c  --console  run as a Console application\n");
+    printf("  -c  --console run as a Console application\n");
 #ifdef WIN32
     printf("  -t  --start   starT an NT service\n");
     printf("  -a  --pause   pAuse a started NT service\n");
