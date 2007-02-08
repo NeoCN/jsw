@@ -187,6 +187,12 @@ $Id$
                     thread.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem in the shell script which was making it impossible to stop
+                    the Wrapper or query its status on OSX.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">
