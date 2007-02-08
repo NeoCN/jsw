@@ -74,6 +74,8 @@ Java Service Wrapper Revision History.
 * Increase the maximum number of log entries which can be queued to avoid
   losing them.  These are only used for log entries outside of the primary
   thread.
+* Fix a problem in the shell script which was making it impossible to stop
+  the Wrapper or query its status on OSX.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
