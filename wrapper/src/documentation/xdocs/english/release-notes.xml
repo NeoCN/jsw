@@ -193,6 +193,12 @@ $Id$
                     the Wrapper or query its status on OSX.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Add support for 64 bit AIX.  Thanks to Nicolas Varney for supplying a
+                    Makefile.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">

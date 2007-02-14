@@ -76,6 +76,8 @@ Java Service Wrapper Revision History.
   thread.
 * Fix a problem in the shell script which was making it impossible to stop
   the Wrapper or query its status on OSX.
+* Add support for 64 bit AIX.  Thanks to Nicolas Varney for supplying a
+  Makefile.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
