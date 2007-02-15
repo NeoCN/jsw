@@ -39,8 +39,8 @@
     </menu>
     
     <menu label="Get Involved">
-        <menu-item label="Source Forge"               href="http://sourceforge.net/projects/wrapper/"/>
-        <menu-item label="Subversion Repository"      href="http://svn.sourceforge.net/viewvc/wrapper/"/>
+        <menu-item label="SourceForge Project"        href="http://sourceforge.net/projects/wrapper/"/>
+        <menu-item label="Source Repository"          href="http://sourceforge.net/svn/?group_id=39428"/>
         <menu-item label="Issue Tracking"             href="http://sourceforge.net/tracker/?group_id=39428"/>
         <menu-item label="Mailing Lists and Archives" href="http://sourceforge.net/mail/?group_id=39428"/>
         <menu-item label="Forums (Old)"               href="http://sourceforge.net/forum/?group_id=39428"/>
