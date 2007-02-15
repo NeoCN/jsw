@@ -252,6 +252,9 @@
         <property name="wrapper.bin.long.name" value="wrapper-${dist.os}-${dist.arch}-${bits}"/>
         
         <!-- Decide on library names -->
+        <condition property="wrapper.lib.extension" value="a">
+            <isset property="is.aix"/>
+        </condition>
         <condition property="wrapper.lib.extension" value="sl">
             <isset property="is.hpux"/>
         </condition>

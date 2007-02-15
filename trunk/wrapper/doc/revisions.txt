@@ -78,6 +78,7 @@ Java Service Wrapper Revision History.
   the Wrapper or query its status on OSX.
 * Add support for 64 bit AIX.  Thanks to Nicolas Varney for supplying a
   Makefile.
+* Correct the AIX library extension to be ".a".
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

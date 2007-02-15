@@ -199,6 +199,11 @@ $Id$
                     Makefile.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Correct the AIX library extension to be ".a".
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">
