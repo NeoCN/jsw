@@ -269,6 +269,7 @@
         <condition property="make.name" value="gmake">
             <or>
                 <isset property="is.aix"/>
+                <isset property="is.hpux"/>
                 <isset property="is.osf1"/>
                 <isset property="is.freebsd"/>
                 <isset property="is.irix"/>

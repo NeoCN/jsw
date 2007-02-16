@@ -1,35 +1,33 @@
-JNI_HEADERS = $(JAVA_HOME)/include
-DEFS = -I$(JNI_HEADERS) -I$(JNI_HEADERS)/hp-ux
- 
-DEFVALS = -O3 -Wall -DHPUX -D_HPUX -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE_EXTENDED
-COMPILE = cc +z $(DEFVALS) $(DEFS)
-LINK = ld
+COMPILE = gcc -march=2.0 -O3 -Wall --pedantic -DHPUX -D_XOPEN_SOURCE_EXTENDED
 
-SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c wrapperjni_unix.c wrapperjni.c
-WRAPPER_OBJECTS = wrapper.o wrapperinfo.o wrappereventloop.o wrapper_unix.o property.o logger.o
-LIBWRAPPER_SL_OBJECTS = wrapperjni_unix.o wrapperjni.o wrapperinfo.o 
+INCLUDE=$(JAVA_HOME)/include
+
+DEFS = -I$(INCLUDE) -I$(INCLUDE)/hp-ux
+
+wrapper_SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c
+
+libwrapper_sl_OBJECTS = wrapperjni_unix.o wrapperinfo.o wrapperjni.o
 
 BIN = ../../bin
 LIB = ../../lib
- 
-all: cleanall init compile wrapper libwrapper.sl
+
+all: init wrapper libwrapper.sl
 
 clean:
 	rm -f *.o
 
-cleanall:clean
+cleanall: clean
 	rm -rf *~ .deps
 	rm -f $(BIN)/wrapper $(LIB)/libwrapper.sl
-	
+
 init:
 	if test ! -d .deps; then mkdir .deps; fi
- 
-compile:$(SOURCE)
-	${COMPILE} -c $(SOURCE)
 
-wrapper:$(WRAPPER_OBJECTS)
-	${COMPILE} $(WRAPPER_OBJECTS) -lm -o $(BIN)/wrapper
+wrapper: $(wrapper_SOURCE)
+	$(COMPILE) $(wrapper_SOURCE) -lm -lpthread -o $(BIN)/wrapper
 
-libwrapper.sl:$(LIBWRAPPER_SL_OBJECTS)
-	${LINK} $(LIBWRAPPER_SL_OBJECTS) -b -o $(LIB)/libwrapper.sl
+libwrapper.sl: $(libwrapper_sl_OBJECTS)
+	${COMPILE} -fPIC -shared $(libwrapper_sl_OBJECTS) -o $(LIB)/libwrapper.sl
 
+%.o: %.c
+	${COMPILE} -fPIC -c ${DEFS} $<
