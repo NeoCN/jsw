@@ -160,9 +160,9 @@ $Id$
             </listitem>
             <listitem>
                 <para>
-                    Change the HP-UX build from using gmake to make.  Fix some problems in the
+                    Add HP-UX Makefiles for building with make.  Fix some problems in the
                     shell script to make the script work better on HP-UX.  Thanks to David
-                    Brown for the patches.
+                    Brown for the patches.  The default build uses gmake for HP-UX.
                 </para>
             </listitem>
             <listitem>
