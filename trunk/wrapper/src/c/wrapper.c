@@ -337,6 +337,7 @@ void protocolStartServer() {
     int port;
     int fixedPort;
 
+    /*int optVal;*/
 #ifdef WIN32
     u_long dwNoBlock = TRUE;
 #endif
@@ -348,6 +349,25 @@ void protocolStartServer() {
             "server socket creation failed. (%s)", getLastErrorText());
         return;
     }
+
+    /* Make sure the socket is reused. */
+    /* We actually do not want to do this as it makes it possible for more than one Wrapper
+     *  instance to bind to the same port.  The second instance succeeds to bind, but any
+     *  attempts to connect to that port will go to the dirst Wrapper.  This would of course
+     *  cause attempts to launch the second JVM to fail.
+    optVal = 1;
+#ifdef WIN32
+    if (setsockopt(ssd, SOL_SOCKET, SO_REUSEADDR, (char *)&optVal, sizeof(optVal)) < 0) {
+#else
+    if (setsockopt(ssd, SOL_SOCKET, SO_REUSEADDR, &optVal, sizeof(optVal)) < 0) {
+#endif
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR,
+            "server socket SO_REUSEADDR failed. (%s)", getLastErrorText());
+        wrapperProtocolClose();
+        protocolStopServer();
+        return;
+    }
+    */
 
     /* Make the socket non-blocking */
 #ifdef WIN32
