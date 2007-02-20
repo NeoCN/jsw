@@ -79,6 +79,8 @@ Java Service Wrapper Revision History.
 * Add support for 64 bit AIX.  Thanks to Nicolas Varney for supplying a
   Makefile.
 * Correct the AIX library extension to be ".a".
+* Rename the UNIX Makefiles so it is more obvious which tool must be used
+  to build with them.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

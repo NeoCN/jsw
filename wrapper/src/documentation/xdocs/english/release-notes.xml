@@ -204,6 +204,12 @@ $Id$
                     Correct the AIX library extension to be ".a".
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Rename the UNIX Makefiles so it is more obvious which tool must be used
+                    to build with them.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">
