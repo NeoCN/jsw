@@ -31,3 +31,4 @@ libwrapper.sl: $(libwrapper_sl_OBJECTS)
 
 %.o: %.c
 	${COMPILE} -fPIC -c ${DEFS} $<
+

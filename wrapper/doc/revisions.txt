@@ -64,7 +64,7 @@ Java Service Wrapper Revision History.
   su.  The shell script now uses "su -".  Bug #1590168.
 * Add HP-UX Makefiles for building with make.  Fix some problems in the
   shell script to make the script work better on HP-UX.  Thanks to David
-  Brown for the patches.  The default build uses gmake for HP-UX.
+  Brown and Nicolas Varney for the patches.
 * Fix a problem where any signals received by the JVM and triggering a
   SIGCHLD signal in the Wrapper were being interpretted as the JVM having
   stopped.  This was not always true.  Bug #1643666.
