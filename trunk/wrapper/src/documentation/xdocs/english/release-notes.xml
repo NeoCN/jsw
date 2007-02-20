@@ -210,6 +210,13 @@ $Id$
                     to build with them.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where the HP-UX native library would not be located
+                    correctly for some processor types if the file had a platform specific
+                    name.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">
