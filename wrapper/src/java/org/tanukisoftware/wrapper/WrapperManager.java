@@ -1100,7 +1100,7 @@ public final class WrapperManager
             {
                 arch = "ppc";
             }
-            else if ( arch.equals( "pa_risc" ) || arch.equals( "pa-risc" ) )
+            else if ( arch.startsWith( "pa_risc" ) || arch.startsWith( "pa-risc" ) )
             {
                 arch = "parisc";
             }

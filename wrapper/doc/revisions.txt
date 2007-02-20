@@ -81,6 +81,9 @@ Java Service Wrapper Revision History.
 * Correct the AIX library extension to be ".a".
 * Rename the UNIX Makefiles so it is more obvious which tool must be used
   to build with them.
+* Fix a problem where the HP-UX native library would not be located
+  correctly for some processor types if the file had a platform specific
+  name.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
