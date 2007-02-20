@@ -96,35 +96,18 @@ typedef long intptr_t;
 #define __max(x,y) (((x) > (y)) ? (x) : (y))
 #define __min(x,y) (((x) < (y)) ? (x) : (y))
 
-#ifdef SOLARIS
+#if defined(SOLARIS)
 #include <sys/errno.h>
 #include <sys/fcntl.h>
-#else
-#ifdef AIX
-#else
-#ifdef HPUX
-#else
-#ifdef MACOSX
-#else
-#ifdef OSF1
-#define socklen_t int
-#else
-#ifdef IRIX
-#define socklen_t int
+#elif defined(AIX) || defined(HPUX) || defined(MACOSX) || defined(OSF1)
+#elif defined(IRIX)
 #define PATH_MAX FILENAME_MAX
-#else
-#ifdef FREEBSD
+#elif defined(FREEBSD)
 #include <sys/param.h>
 #include <errno.h>
-#else /* LINUX */
+#else /* LINIX */
 #include <asm/errno.h>
-#endif /* FREEBSD */
-#endif /* IRIX */
-#endif /* OSF1 */
-#endif /* MACOSX */
-#endif /* HPUX */
-#endif /* AIX */
-#endif /* SOLARIS */
+#endif
 
 #endif /* WIN32 */
 
@@ -473,9 +456,11 @@ void protocolStartServer() {
 void protocolOpen() {
     struct sockaddr_in addr_srv;
     int rc;
-#ifdef WIN32
+#if defined(WIN32)
     u_long dwNoBlock = TRUE;
     u_long addr_srv_len;
+#elif defined(HPUX) || defined(OSF1) || defined(IRIX)
+    int addr_srv_len;
 #else
     socklen_t addr_srv_len;
 #endif
@@ -495,21 +480,9 @@ void protocolOpen() {
     addr_srv_len = sizeof(addr_srv);
 #ifdef WIN32
     sd = accept(ssd, (struct sockaddr FAR *)&addr_srv, &addr_srv_len);
-#else
-#ifdef MACOSX
-    sd = accept(ssd, (struct sockaddr *)&addr_srv, &addr_srv_len);
-#else
-#ifdef OSF1
-    sd = accept(ssd, (struct sockaddr *)&addr_srv, &addr_srv_len);
-#else
-#ifdef IRIX
-    sd = accept(ssd, (struct sockaddr *)&addr_srv, &addr_srv_len);
 #else /* UNIX */
-    sd = accept(ssd, (struct sockaddr *)&addr_srv, (socklen_t *)&addr_srv_len);
-#endif /* IRIX */
-#endif /* OSF1 */
-#endif /* MACOSX */
-#endif /* WIN32 */
+    sd = accept(ssd, (struct sockaddr *)&addr_srv, &addr_srv_len);
+#endif
     if (sd == INVALID_SOCKET) {
         rc = wrapperGetLastError();
         /* EWOULDBLOCK != EAGAIN on some platforms. */
