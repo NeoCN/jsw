@@ -270,7 +270,10 @@
         <condition property="make.name" value="gmake">
             <or>
                 <isset property="is.aix"/>
-                <isset property="is.hpux"/>
+                <and> <!-- 32-bit HPUX uses gmake, 64-bit uses make. -->
+                    <isset property="is.hpux"/>
+                    <equals arg1="${bits}" arg2="32"/>
+                </and>
                 <isset property="is.osf1"/>
                 <isset property="is.freebsd"/>
                 <isset property="is.irix"/>

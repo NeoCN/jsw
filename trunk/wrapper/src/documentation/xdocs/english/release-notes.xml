@@ -162,7 +162,7 @@ $Id$
                 <para>
                     Add HP-UX Makefiles for building with make.  Fix some problems in the
                     shell script to make the script work better on HP-UX.  Thanks to David
-                    Brown for the patches.  The default build uses gmake for HP-UX.
+                    Brown and Nicolas Varney for the patches.
                 </para>
             </listitem>
             <listitem>
