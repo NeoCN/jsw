@@ -84,6 +84,8 @@ Java Service Wrapper Revision History.
 * Fix a problem where the HP-UX native library would not be located
   correctly for some processor types if the file had a platform specific
   name.
+* Internally rename the WRAPPER_JSTATE_LAUNCH state to
+  WRAPPER_JSTATE_LAUNCH_DELAY for clarity.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

@@ -99,7 +99,7 @@
 #define WRAPPER_JSTATE_DOWN      71 /* JVM is confirmed to be down.  This is the 
                                      *  initial state and the state after the JVM
                                      *  process has gone away. */
-#define WRAPPER_JSTATE_LAUNCH    72 /* Set from the DOWN state to launch a JVM.  The
+#define WRAPPER_JSTATE_LAUNCH_DELAY 72 /* Set from the DOWN state to launch a JVM.  The
                                      *  timeout will be the time to actually launch
                                      *  the JVM after any required delay. */
 #define WRAPPER_JSTATE_LAUNCHING 73 /* JVM was launched, but has not yet responded.

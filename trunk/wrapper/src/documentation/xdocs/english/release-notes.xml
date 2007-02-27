@@ -217,6 +217,12 @@ $Id$
                     name.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Internally rename the WRAPPER_JSTATE_LAUNCH state to
+                    WRAPPER_JSTATE_LAUNCH_DELAY for clarity.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">
