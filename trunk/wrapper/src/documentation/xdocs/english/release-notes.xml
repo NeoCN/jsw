@@ -223,6 +223,13 @@ $Id$
                     WRAPPER_JSTATE_LAUNCH_DELAY for clarity.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a problem where the UNIX versions of the Wrapper would shutdown
+                    rather than restarting a frozen JVM if the arrival of the SIGCHLD signal
+                    from the old JVM process was delayed by more than a second or two.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">

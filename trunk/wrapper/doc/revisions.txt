@@ -86,6 +86,9 @@ Java Service Wrapper Revision History.
   name.
 * Internally rename the WRAPPER_JSTATE_LAUNCH state to
   WRAPPER_JSTATE_LAUNCH_DELAY for clarity.
+* Fix a problem where the UNIX versions of the Wrapper would shutdown
+  rather than restarting a frozen JVM if the arrival of the SIGCHLD signal
+  from the old JVM process was delayed by more than a second or two.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
