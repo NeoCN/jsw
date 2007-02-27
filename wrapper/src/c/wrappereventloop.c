@@ -113,7 +113,7 @@ const char *wrapperGetJState(int jState) {
     case WRAPPER_JSTATE_DOWN:
         name = "DOWN";
         break;
-    case WRAPPER_JSTATE_LAUNCH:
+    case WRAPPER_JSTATE_LAUNCH_DELAY:
         name = "LAUNCH(DELAY)";
         break;
     case WRAPPER_JSTATE_LAUNCHING:
@@ -857,7 +857,7 @@ void jStateDown(DWORD nowTicks, int nextSleep) {
                      *  immediately and reset the failed invocation count.
                      * This mode of restarts works even if restarts have been disabled. */
                     wrapperData->failedInvocationCount = 0;
-                    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCH, nowTicks, 0);
+                    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCH_DELAY, nowTicks, 0);
 
                 } else if (wrapperData->isRestartDisabled) {
 #else
@@ -873,7 +873,7 @@ void jStateDown(DWORD nowTicks, int nextSleep) {
                     wrapperData->failedInvocationCount = 0;
 
                     /* Set the state to launch after the restart delay. */
-                    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCH, nowTicks, wrapperData->restartDelay);
+                    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCH_DELAY, nowTicks, wrapperData->restartDelay);
 
                     if (wrapperData->restartDelay > 0) {
                         if (wrapperData->isDebugging) {
@@ -897,7 +897,7 @@ void jStateDown(DWORD nowTicks, int nextSleep) {
                         /* Try reslaunching the JVM */
 
                         /* Set the state to launch after the restart delay. */
-                        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCH, nowTicks, wrapperData->restartDelay);
+                        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCH_DELAY, nowTicks, wrapperData->restartDelay);
 
                         if (wrapperData->restartDelay > 0) {
                             if (wrapperData->isDebugging) {
@@ -925,7 +925,7 @@ void jStateDown(DWORD nowTicks, int nextSleep) {
                 } else {
                     startupDelay = wrapperData->startupDelayService;
                 }
-                wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCH, nowTicks, startupDelay);
+                wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCH_DELAY, nowTicks, startupDelay);
 
                 if (startupDelay > 0) {
                     if (wrapperData->isDebugging) {
@@ -994,7 +994,7 @@ void jStateDown(DWORD nowTicks, int nextSleep) {
 }
 
 /**
- * WRAPPER_JSTATE_LAUNCH
+ * WRAPPER_JSTATE_LAUNCH_DELAY
  * Waiting to launch a JVM.  When the state timeout has expired, a JVM
  *  will be launched.
  *
@@ -1004,7 +1004,7 @@ void jStateDown(DWORD nowTicks, int nextSleep) {
  *            may make sense to avoid certain actions if it is known that the
  *            function will be called again immediately.
  */
-void jStateLaunch(DWORD nowTicks, int nextSleep) {
+void jStateLaunchDelay(DWORD nowTicks, int nextSleep) {
     const char *mainClass;
 
     /* The Waiting state is set from the DOWN state if a JVM had
@@ -1130,7 +1130,7 @@ void jStateLaunch(DWORD nowTicks, int nextSleep) {
 }
 
 /**
- * WRAPPER_JSTATE_LAUNCH
+ * WRAPPER_JSTATE_LAUNCHING
  * The JVM process has been launched, but there has been no confirmation that
  *  the JVM and its application have started.  We remain in this state until
  *  the state times out or the WrapperManager class in the JVM has sent a
@@ -1630,7 +1630,7 @@ void wrapperEventLoop() {
             
             if (wrapperData->jState == WRAPPER_JSTATE_DOWN) {
                 /** A JVM is not currently running. Nothing to do.*/
-            } else if (wrapperData->jState == WRAPPER_JSTATE_LAUNCH) {
+            } else if (wrapperData->jState == WRAPPER_JSTATE_LAUNCH_DELAY) {
                 /** A JVM is not yet running go back to the DOWN state. */
                 wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, nowTicks, -1);
             } else if ((wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
@@ -1714,8 +1714,8 @@ void wrapperEventLoop() {
             jStateDown(nowTicks, nextSleep);
             break;
             
-        case WRAPPER_JSTATE_LAUNCH:
-            jStateLaunch(nowTicks, nextSleep);
+        case WRAPPER_JSTATE_LAUNCH_DELAY:
+            jStateLaunchDelay(nowTicks, nextSleep);
             break;
 
         case WRAPPER_JSTATE_LAUNCHING:

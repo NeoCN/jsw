@@ -1369,7 +1369,7 @@ void wrapperRestartProcess(int useLoggerQueue) {
         (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
         (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
         (wrapperData->jState == WRAPPER_JSTATE_DOWN) ||
-        (wrapperData->jState == WRAPPER_JSTATE_LAUNCH)) { /* Down but not yet restarted. */
+        (wrapperData->jState == WRAPPER_JSTATE_LAUNCH_DELAY)) { /* Down but not yet restarted. */
 
         if (wrapperData->isDebugging) {
             log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
@@ -2344,9 +2344,14 @@ void wrapperJVMProcessExited(int useLoggerQueue, DWORD nowTicks, int exitCode) {
         }
         break;
 
-    case WRAPPER_JSTATE_LAUNCH:
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-            "Unable to start a JVM");
+    case WRAPPER_JSTATE_LAUNCH_DELAY:
+        /* We got a message that the JVM process died when we already thought is was down.
+         *  Most likely this was caused by a SIGCHLD signal.  We are already in the expected
+         *  state so go ahead and ignore it. */
+        if (wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                "Received a message that the JVM is down when in the LAUNCH(DELAY) state.");
+        }
         break;
 
     case WRAPPER_JSTATE_LAUNCHING:
