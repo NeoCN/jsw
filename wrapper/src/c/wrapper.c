@@ -2315,6 +2315,8 @@ void wrapperFreeJavaCommandArray(char **strings, int length) {
  *  Contains code common to all platforms.
  */
 void wrapperJVMProcessExited(int useLoggerQueue, DWORD nowTicks, int exitCode) {
+    int setState = TRUE;
+
     if (exitCode == 0) {
         /* The JVM exit code was 0, so leave any current exit code as is. */
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
@@ -2342,16 +2344,19 @@ void wrapperJVMProcessExited(int useLoggerQueue, DWORD nowTicks, int exitCode) {
         if (wrapperData->isDebugging) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM already down.");
         }
+        setState = FALSE;
         break;
 
     case WRAPPER_JSTATE_LAUNCH_DELAY:
         /* We got a message that the JVM process died when we already thought is was down.
          *  Most likely this was caused by a SIGCHLD signal.  We are already in the expected
-         *  state so go ahead and ignore it. */
+         *  state so go ahead and ignore it.  Do NOT go back to DOWN or the restart flag
+         *  and all restart counts will have be lost */
         if (wrapperData->isDebugging) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                 "Received a message that the JVM is down when in the LAUNCH(DELAY) state.");
         }
+        setState = FALSE;
         break;
 
     case WRAPPER_JSTATE_LAUNCHING:
@@ -2400,7 +2405,12 @@ void wrapperJVMProcessExited(int useLoggerQueue, DWORD nowTicks, int exitCode) {
             "Unexpected jState=%d in wrapperJVMProcessExited.", wrapperData->jState);
         break;
     }
-    wrapperSetJavaState(useLoggerQueue, WRAPPER_JSTATE_DOWN, nowTicks, -1);
+
+    /* Only set the state to DOWN if we are not already in a state which reflects this. */
+    if (setState) {
+        wrapperSetJavaState(useLoggerQueue, WRAPPER_JSTATE_DOWN, nowTicks, -1);
+    }
+
     wrapperProtocolClose();
 
     /* Remove java pid file if it was registered and created by this process. */
