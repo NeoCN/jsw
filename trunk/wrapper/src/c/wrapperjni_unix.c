@@ -98,41 +98,51 @@ int wrapperReleaseControlEventQueue() {
  * Handle interrupt signals (i.e. Crtl-C).
  */
 void handleInterrupt(int sig_num) {
-    signal(SIGINT, handleInterrupt);
     wrapperJNIHandleSignal(org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_C_EVENT);
+    signal(SIGINT, handleInterrupt);
 }
 
 /**
  * Handle termination signals (i.e. machine is shutting down).
  */
 void handleTermination(int sig_num) {
-    signal(SIGTERM, handleTermination); 
     wrapperJNIHandleSignal(org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_TERM_EVENT);
+    signal(SIGTERM, handleTermination); 
 }
 
 /**
  * Handle hangup signals.
  */
 void handleHangup(int sig_num) {
-    signal(SIGHUP, handleHangup); 
     wrapperJNIHandleSignal(org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_HUP_EVENT);
+    signal(SIGHUP, handleHangup); 
 }
 
 /**
  * Handle usr1 signals.
+ *
+ * SIGUSR1 & SIGUSR2 are used by the JVM for internal garbage collection sweeps.
+ *  These signals MUST be passed on to the JVM or the JVM will hang.
  */
+/*
 void handleUsr1(int sig_num) {
-    signal(SIGUSR1, handleUsr1); 
     wrapperJNIHandleSignal(org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_USR1_EVENT);
+    signal(SIGUSR1, handleUsr1); 
 }
+*/
 
 /**
  * Handle usr2 signals.
+ *
+ * SIGUSR1 & SIGUSR2 are used by the JVM for internal garbage collection sweeps.
+ *  These signals MUST be passed on to the JVM or the JVM will hang.
  */
+/*
 void handleUsr2(int sig_num) {
-    signal(SIGUSR2, handleUsr1); 
     wrapperJNIHandleSignal(org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_USR2_EVENT);
+    signal(SIGUSR2, handleUsr2); 
 }
+*/
 
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
@@ -153,8 +163,10 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass cl
     signal(SIGINT,  handleInterrupt);
     signal(SIGTERM, handleTermination);
     signal(SIGHUP,  handleHangup);
+    /*
     signal(SIGUSR1, handleUsr1);
     signal(SIGUSR2, handleUsr2);
+    */
 
     /* Store the current process Id */
     wrapperProcessId = getpid();
