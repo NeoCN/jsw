@@ -79,7 +79,9 @@ $Id$
                     shutdown, restart or be forwarded to the JVM for custom functionality.
                     See the <ulink url="prop-signal-mode-usr1.html">wrapper.signal.mode.usr1</ulink>
                     and <ulink url="prop-signal-mode-usr2.html">wrapper.signal.mode.usr2</ulink>
-                    properties.  Based on a patch by Robey Pointer.
+                    properties.  Based on a patch by Robey Pointer.  Note that the JVM process does
+                    not trap SIGUSR1 or SIGUSR2 signals as they are used internally by the JVM
+                    as part of the garbage collection process.
                 </para>
             </listitem>
             <listitem>
