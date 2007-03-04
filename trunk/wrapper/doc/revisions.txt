@@ -32,7 +32,9 @@ Java Service Wrapper Revision History.
 * Add support for the SIGUSR1 and SIGUSR2 signals so they can now trigger a
   shutdown, restart or be forwarded to the JVM for custom functionality.
   See the wrapper.signal.mode.usr1 and wrapper.signal.mode.usr2 properties.
-  Based on a patch by Robey Pointer.
+  Based on a patch by Robey Pointer.  Note that the JVM process does not
+  trap SIGUSR1 or SIGUSR2 signals as they are used internally by the JVM
+  as part of the garbage collection process.
 * Fix a problem where the WRAPPER_OS, WRAPPER_ARCH, and WRAPPER_BITS
   environment variables were not being initialized correctly for the various
   unix platforms.
