@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-rem Copyright (c) 1999, 2006 Tanuki Software Inc.
+rem Copyright (c) 1999, 2007 Tanuki Software Inc.
 rem
 rem Java Service Wrapper general startup script
 rem

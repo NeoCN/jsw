@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper.jmx;
 
 /*
- * Copyright (c) 1999, 2006 Tanuki Software Inc.
+ * Copyright (c) 1999, 2007 Tanuki Software Inc.
  * 
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of the Java Service Wrapper and associated
