@@ -1,0 +1,80 @@
+# Copyright (c) 1999, 2007 Tanuki Software Inc.
+# 
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of the Java Service Wrapper and associated
+# documentation files (the "Software"), to deal in the Software
+# without  restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sub-license,
+# and/or sell copies of the Software, and to permit persons to
+# whom the Software is furnished to do so, subject to the
+# following conditions:
+# 
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
+# NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+
+PROJ = wrapper
+
+COMPILE = cl /D "WIN32" /D "NDEBUG"  /FD /EHsc /MT /Zp4 /W3 /nologo /c /Zi /errorReport:prompt /D "_CRT_SECURE_NO_DEPRECATE"
+LINK = link /NOLOGO /MANIFEST /DEBUG /MACHINE:X86 /ERRORREPORT:PROMPT DelayImp.lib
+RC = rc /fo"$(OUTDIR)/$(PROJ).res"
+
+# EXE Definitions
+EXE_OUTDIR = $(PROJ)32_VC8__Win32_Release
+EXE_OBJS = $(EXE_OUTDIR)\logger.obj $(EXE_OUTDIR)\property.obj $(EXE_OUTDIR)\wrapper.obj $(EXE_OUTDIR)\wrapper_win.obj $(EXE_OUTDIR)\wrappereventloop.obj $(EXE_OUTDIR)\wrapperinfo.obj 
+EXE_LIBS = wsock32.lib shlwapi.lib advapi32.lib user32.lib
+EXE_COMPILE_OPTS = /O2 /GL /D "_CONSOLE" /Wp64
+EXE_LINK_OPTS = /INCREMENTAL:NO /SUBSYSTEM:CONSOLE /MANIFESTFILE:"$(EXE_OUTDIR)\$(PROJ).exe.intermediate.manifest" /PDB:"$(EXE_OUTDIR)\$(PROJ).pdb" /OPT:REF /OPT:ICF /OPT:WIN98 /LTCG 
+
+# DLL Definitions
+DLL_OUTDIR = $(PROJ)JNI32_VC8__Win32_Release
+DLL_OBJS = $(DLL_OUTDIR)\wrapperjni.obj $(DLL_OUTDIR)\wrapperjni_win.obj $(DLL_OUTDIR)\wrapperinfo.obj
+DLL_LIBS = advapi32.lib user32.lib
+DLL_COMPILE_OPTS = /Od  /I "..\\" /I ".\\" /I "C:\Sun\j2sdk1.4.2_08\jre\..\\include" /I "C:\Sun\j2sdk1.4.2_08\jre\..\\include\win32" /D "_WINDOWS" /D "_USRDLL" /D "DECODERJNI_VC8_EXPORTS" /D "_WINDLL"
+DLL_LINK_OPTS = /INCREMENTAL /DLL /SUBSYSTEM:WINDOWS /MANIFESTFILE:"$(DLL_OUTDIR)\$(PROJ).dll.intermediate.manifest" /PDB:"$(DLL_OUTDIR)\$(PROJ).pdb" 
+
+
+all: $(EXE_OUTDIR) $(DLL_OUTDIR) $(PROJ).EXE $(PROJ).DLL
+
+# Define project specific macros
+
+#BASE_OBJS  =
+#EXTRA_LIBS = wsock32.lib shlwapi.lib advapi32.lib user32.lib
+#GLOBAL_DEP = logger.h property.h psapi.h wrapper.h wrapperinfo.h messages.h resource.h
+#RC_DEP     = resource.h
+
+#----- If OUTDIR does not exist, then create directory
+$(EXE_OUTDIR) :
+    if not exist "$(EXE_OUTDIR)/$(NULL)" mkdir $(EXE_OUTDIR)
+$(DLL_OUTDIR) :
+    if not exist "$(DLL_OUTDIR)/$(NULL)" mkdir $(DLL_OUTDIR)
+
+# Inference rule for updating the object files
+.c{$(EXE_OUTDIR)}.obj:
+    $(COMPILE) $(EXE_COMPILE_OPTS) /Fo"$(EXE_OUTDIR)\\" /Fd"$(EXE_OUTDIR)\\" $**
+.c{$(DLL_OUTDIR)}.obj:
+    $(COMPILE) $(DLL_COMPILE_OPTS) /Fo"$(DLL_OUTDIR)\\" /Fd"$(DLL_OUTDIR)\\" $**
+
+# Build rule for resource file
+$(OUTDIR)\$(PROJ).res: $(PROJ).rc $(RC_DEP)
+    $(RC) $(PROJ).rc
+#    $(rc) $(rcflags) $(rcvars) /fo $(OUTDIR)\$(PROJ).res $(PROJ).rc
+
+$(PROJ).EXE: $(BASE_OBJS) $(EXE_OBJS) $(OUTDIR)\$(PROJ).res
+    $(LINK) $(EXE_LINK_OPTS) $(EXE_OBJS) $(EXE_LIBS) $(OUTDIR)\$(PROJ).res /OUT:"..\..\bin\$(PROJ).exe"
+
+$(PROJ).DLL: $(BASE_OBJS) $(DLL_OBJS) $(OUTDIR)\$(PROJ).res
+    $(LINK) $(DLL_LINK_OPTS) $(DLL_OBJS) $(DLL_LIBS) $(OUTDIR)\$(PROJ).res /OUT:"..\..\lib\$(PROJ).dll"
+
+clean:
+    if exist $(OUTDIR)/$(NULL) rd /s /q $(OUTDIR)
+    if exist ..\..\bin\$(PROJ).exe del /q ..\..\bin\$(PROJ).exe
+    if exist ..\..\lib\$(PROJ).dll del /q ..\..\lib\$(PROJ).dll
