@@ -197,52 +197,49 @@
         <property name="wrapper.lib.name" value="wrapper.dll"/>
         <property name="wrapper.lib.long.name" value="wrapper-${dist.os}-${dist.arch}-${bits}.dll"/>
 
-        <!-- Decide on the MSVC version being used. -->
-        <condition property="msvc.home" value="${msvc.home.v8_64_c}">
+        <!-- Decide on the script that will be used to configure the Visual Studio environment. -->
+        <condition property="vcvars.bat" value="${vcvars.v8_32_1}">
             <and>
-                <equals arg1="${bits}" arg2="64"/>
-                <available file="${msvc.home.v8_64_c}"/>
+                <equals arg1="${bits}" arg2="32"/>
+                <available file="${vcvars.v8_32_1}"/>
             </and>
         </condition>
-        <condition property="msvc.home" value="${msvc.home.v8_64_d}">
+        <condition property="vcvars.bat" value="${vcvars.v8_32_2}">
             <and>
-                <equals arg1="${bits}" arg2="64"/>
-                <available file="${msvc.home.v8_64_d}"/>
+                <equals arg1="${bits}" arg2="32"/>
+                <available file="${vcvars.v8_32_2}"/>
             </and>
         </condition>
-        <condition property="msvc.home" value="${msvc.home.v8_32_c}">
-            <available file="${msvc.home.v8_32_c}"/>
+        <condition property="vcvars.bat" value="${vcvars.v8_32_3}">
+            <and>
+                <equals arg1="${bits}" arg2="32"/>
+                <available file="${vcvars.v8_32_3}"/>
+            </and>
         </condition>
-        <condition property="msvc.home" value="${msvc.home.v8_32_d}">
-            <available file="${msvc.home.v8_32_d}"/>
+        <condition property="vcvars.bat" value="${vcvars.v8_32_4}">
+            <and>
+                <equals arg1="${bits}" arg2="32"/>
+                <available file="${vcvars.v8_32_4}"/>
+            </and>
         </condition>
-        <property name="msvc.home" value="${msvc.home.98}"/>
+        <condition property="vcvars.bat" value="${vcvars.v8_64_1}">
+            <and>
+                <equals arg1="${bits}" arg2="64"/>
+                <available file="${vcvars.v8_64_1}"/>
+            </and>
+        </condition>
+        <condition property="vcvars.bat" value="${vcvars.v8_64_2}">
+            <and>
+                <equals arg1="${bits}" arg2="64"/>
+                <available file="${vcvars.v8_64_2}"/>
+            </and>
+        </condition>
 
-        <condition property="msvc.use.vcbuild" value="true">
-            <available file="${msvc.home}\VC\vcpackages\vcbuild.exe"/>
-        </condition>
-        <condition property="msvc.vcvars" value="${msvc.home}\VC\BIN\amd64\VCVARSamd64.BAT">
-            <or>
-                <equals arg1="${msvc.home}" arg2="${msvc.home.v8_64_c}"/>
-                <equals arg1="${msvc.home}" arg2="${msvc.home.v8_64_d}"/>
-            </or>
-        </condition>
-        <property name="msvc.vcvars" value="${msvc.home}\VC98\BIN\VCVARS32.BAT"/>
-        <condition property="msvc.use.make" value="true">
-            <and>
-                <not><isset property="msvc.use.vcbuild"/></not>
-                <available file="${msvc.vcvars}"/>
-            </and>
-        </condition>
         <condition property="msvc.missing" value="true">
             <not>
-                <or>
-                    <isset property="msvc.use.vcbuild"/>
-                    <isset property="msvc.use.make"/>
-                </or>
+                <isset property="vcvars.bat"/>
             </not>
         </condition>
-        
     </target>
     <target name="init-unix" depends="init-setup" if="is.unix">
         <!-- Decide on the type of script to generate. -->
@@ -292,15 +289,15 @@
     </target>
     <target name="init-bits-warning" unless="bits">
         <echo message="**********************************************************************"/>
-        <echo message="The &quot;bits&quot; system property has not been set."/>
-        <echo message="Most likely you are running a copy of Ant located on your path."/>
-        <echo message="Please use one of the build scripts in the Wrapper distribution."/>
+        <echo message="* The &quot;bits&quot; system property has not been set."/>
+        <echo message="* Most likely you are running a copy of Ant located on your path."/>
+        <echo message="* Please use one of the build scripts in the Wrapper distribution."/>
         <echo message="**********************************************************************"/>
         <fail message="The &quot;bits&quot; system property has not been set."/>
     </target>
     <target name="init-bits-mismatch-warning" if="bits-mismatch">
         <echo message="**********************************************************************"/>
-        <echo message="A ${bits}-bit build was requested, but this is a ${sun.arch.data.model}-bit JVM."/>
+        <echo message="* A ${bits}-bit build was requested, but this is a ${sun.arch.data.model}-bit JVM."/>
         <echo message="**********************************************************************"/>
         <fail message="The &quot;bits&quot; system property does not match that of the JVM."/>
     </target>
@@ -327,17 +324,17 @@
     </target>
     <target name="init:msg" depends="init">
         <echo message="**********************************************************************"/>
-        <echo message="About to build a ${bits}-bit version of the Java Service Wrapper ${version}."/>
-        <echo message="The OS Name is &quot;${dist.os}&quot;, resolved from &quot;${os.name}&quot;."/>
-        <echo message="The Architecture is &quot;${dist.arch}&quot;, resolved from &quot;${os.arch}&quot;."/>
-        <echo message="The distribution name will be: ${releasefile}"/>
+        <echo message="* About to build a ${bits}-bit version of the Java Service Wrapper ${version}."/>
+        <echo message="* The OS Name is &quot;${dist.os}&quot;, resolved from &quot;${os.name}&quot;."/>
+        <echo message="* The Architecture is &quot;${dist.arch}&quot;, resolved from &quot;${os.arch}&quot;."/>
+        <echo message="* The distribution name will be: ${releasefile}"/>
         <echo message="**********************************************************************"/>
     </target>
     <target name="init:java-missing" depends="init" if="src.java.missing">
         <echo message="**********************************************************************"/>
-        <echo message="The src/java directory could not be found.  Most likely this is a"/>
-        <echo message="pre-release distribution.  Please run &quot;build${bits} release&quot; to build"/>
-        <echo message="the full release."/>
+        <echo message="* The src/java directory could not be found.  Most likely this is a"/>
+        <echo message="* pre-release distribution.  Please run &quot;build${bits} release&quot; to build"/>
+        <echo message="* the full release."/>
         <echo message="**********************************************************************"/>
         <fail message="The src/java directory could not be found."/>
     </target>
@@ -376,9 +373,9 @@
     <!-- =================================================================== -->
     <target name="compile-java-warn" depends="update-info" if="javac.target.warn">
         <echo message="**********************************************************************"/>
-        <echo message="WARNING"/>
-        <echo message="The jar is being built for Java version ${javac.target.version}.  This will not be"/>
-        <echo message="compatible with older JVMs."/>
+        <echo message="* WARNING"/>
+        <echo message="* The jar is being built for Java version ${javac.target.version}.  This will not be"/>
+        <echo message="* compatible with older JVMs."/>
         <echo message="**********************************************************************"/>
     </target>
     <target name="compile-java" depends="compile-java-warn">
@@ -432,119 +429,49 @@
         <fixcrlf srcdir="${src.dir}/c" includes="org_tanukisoftware_wrapper_WrapperManager.h" eol="lf" />
     </target>
     <target name="msvc-missing" depends="update-info-c" if="msvc.missing">
-        <condition property="msvc.home.v8_c" value="${msvc.home.v8_64_c}">
-            <equals arg1="${bits}" arg2="64"/>
-        </condition>
-        <property name="msvc.home.v8_c" value="${msvc.home.v8_32_c}"/>
-        <condition property="msvc.home.v8_d" value="${msvc.home.v8_64_d}">
-            <equals arg1="${bits}" arg2="64"/>
-        </condition>
-        <property name="msvc.home.v8_d" value="${msvc.home.v8_32_d}"/>
-
         <echo message="**********************************************************************"/>
-        <echo message="Microsoft Visual Studio was not found at any of the following locations:"/>
-        <echo message="  ${msvc.home.98}"/>
-        <echo message="  ${msvc.home.v8_c}"/>
-        <echo message="  ${msvc.home.v8_d}"/>
-        <echo message="wrapper.exe and wrapper.dll will be rebuilt.  If you do not have MSVC "/>
-        <echo message="installed then you can obtain wrapper.exe and wrapper.dll from a "/>
-        <echo message="binary release of the project."/>
-        <echo message=" "/>
-        <echo message="If it is installed at a different location, create a file called "/>
-        <echo message="  ${user.home}/.ant.properties"/>
-        <echo message="Then define a msvc.home property pointing to the MSVC root:"/>
-        <echo message="  msvc.home = ${msvc.home}"/>
+        <echo message="* Microsoft Visual Studio is not installed, or is not in the expected"/>
+        <echo message="* location."/>
+        <echo message="* Checked the following locations for the 32-bit build:"/>
+        <echo message="*   ${vcvars.v8_32_1}"/>
+        <echo message="*   ${vcvars.v8_32_2}"/>
+        <echo message="*   ${vcvars.v8_32_3}"/>
+        <echo message="*   ${vcvars.v8_32_4}"/>
+        <echo message="* And the following locations for the 64-bit build:"/>
+        <echo message="*   ${vcvars.v8_64_1}"/>
+        <echo message="*   ${vcvars.v8_64_2}"/>
+        <echo message="*  "/>
+        <echo message="* If it is installed at a different location, create a file called "/>
+        <echo message="*   ${user.home}/.ant.properties"/>
+        <echo message="* * and define the vcvars.bat property with the absolute location of the "/>
+        <echo message="* vcvars scripts.  For example:"/>
+        <echo message="*   vcvars.bat=${vcvars.v8_32_1}"/>
+        <echo message="*  "/>
+        <echo message="* The build will be allowed to continue if wrapper.exe and wrapper.dll"/>
+        <echo message="* files already exist.  Note that they will not be rebuilt however."/>
         <echo message="**********************************************************************"/>
     </target>
-    <target name="compile-c-windows-vcbuild" depends="msvc-missing" if="msvc.use.vcbuild">
+    <target name="compile-c-windows-vcvars" depends="msvc-missing" unless="msvc.missing">
         <mkdir dir="${bin.dir}"/>        
         <mkdir dir="${lib.dir}"/>
         
         <echo message="Java.vendor=${java.vendor}"/>
 
-        <condition property="vcbuild.target" value="Release|x64">
+        <condition property="makefile" value="Makefile-windows-x86-64.nmake">
             <equals arg1="${bits}" arg2="64"/>
         </condition>
-        <property name="vcbuild.target" value="Release|Win32"/>
-        
-        <!-- Initialize the wrapper.vsprops file -->
-        <copy file="${src.dir}/c/wrapper.vsprops.in" tofile="${src.dir}/c/wrapper.vsprops" overwrite="true" encoding="Shift_JIS">
-            <filterset>
-                <filter token="java.home" value="${java.home}\..\"/>
-            </filterset>
-        </copy>
+        <property name="makefile" value="Makefile-windows-x86-32.nmake"/>
 
-        <!-- Build the wrapper binary -->
-        <echo message="Build Wrapper binary..."/>
-        <exec executable="${msvc.home}\VC\vcpackages\vcbuild.exe"
-            dir="${src.dir}/c"
-            failonerror="true">
-            <arg value="wrapper_VC8.vcproj"/>
-            <arg value="/rebuild"/>
-            <arg value="/time"/>
-            <arg value="${vcbuild.target}"/>
-        </exec>
-        
-        <!-- Build the JNI DLL -->
-        <echo message="Build Wrapper DLL..."/>
-        <exec executable="${msvc.home}\VC\vcpackages\vcbuild.exe"
-            dir="${src.dir}/c"
-            failonerror="true">
-            <arg value="wrapperJNI_VC8.vcproj"/>
-            <arg value="/rebuild"/>
-            <arg value="/time"/>
-            <arg value="${vcbuild.target}"/>
-        </exec>
-        
-        <!--
-        <copy file="${bin.dir}/${wrapper.bin.name}" tofile="${bin.dir}/${wrapper.bin.long.name}" overwrite="true" preservelastmodified="true"/>
-        <copy file="${lib.dir}/${wrapper.lib.name}" tofile="${lib.dir}/${wrapper.lib.long.name}" overwrite="true" preservelastmodified="true"/>
-        -->
-    </target>
-    <target name="compile-c-windows-make" depends="msvc-missing" if="msvc.use.make">
-        <mkdir dir="${bin.dir}"/>        
-        <mkdir dir="${lib.dir}"/>
-        
-        <echo message="Java.vendor=${java.vendor}"/>
-        
-        <!-- IBM had to make their include directory structure slightly different than Sun's so
-             we have to play some games to locate the required JNI files -->
-        <property name="jni.h" value="${java.home}\..\include\jni.h"/>
-        <available property="jni_md.h" value="${java.home}\..\include\jni_md.h" file="${java.home}\..\include\jni_md.h"/>
-        <property name="jni_md.h" value="${java.home}\..\include\win32\jni_md.h"/>
-        
-        <!-- Prepare the WrapperJNI.mak and WrapperJNI.dep files for the current environment. -->
-        <copy file ="${src.dir}/c/WrapperJNI${bits}.mak.in" tofile="${src.dir}/c/WrapperJNI${bits}.mak" overwrite="true" encoding="Shift_JIS">
-            <filterset>
-                <filter token="java.home" value="${java.home}\.."/>
-            </filterset>
-        </copy>
-        <copy file ="${src.dir}/c/Wrapper${bits}.dep.in" tofile="${src.dir}/c/Wrapper${bits}.dep" overwrite="true">
-            <filterset>
-                <filter token="msvc.home" value="${msvc.home}"/>
-            </filterset>
-        </copy>
-        <copy file ="${src.dir}/c/WrapperJNI${bits}.dep.in" tofile="${src.dir}/c/WrapperJNI${bits}.dep" overwrite="true">
-            <filterset>
-                <filter token="msvc.home" value="${msvc.home}"/>
-                <filter token="jni.h" value="${jni.h}"/>
-                <filter token="jni_md.h" value="${jni_md.h}"/>
-            </filterset>
-        </copy>
-        
-        <!-- Build windows C targets -->
-        <exec executable="${src.dir}/c/makewin${bits}.bat"
+        <exec executable="${src.dir}/c/runnmake.bat"
             dir="${src.dir}/c" 
             failonerror="true">
-            <arg value="${msvc.vcvars}" />
+            <arg value="${vcvars.bat}"/>
+            <arg value="${makefile}"/>
+            <arg value="clean"/>
+            <arg value="all"/>
         </exec>
-        
-        <!--
-        <copy file="${bin.dir}/${wrapper.bin.name}" tofile="${bin.dir}/${wrapper.bin.long.name}" overwrite="true" preservelastmodified="true"/>
-        <copy file="${lib.dir}/${wrapper.lib.name}" tofile="${lib.dir}/${wrapper.lib.long.name}" overwrite="true" preservelastmodified="true"/>
-        -->
     </target>
-    <target name="compile-c-windows-check" depends="compile-c-windows-vcbuild, compile-c-windows-make" if="is.windows">
+    <target name="compile-c-windows-check" depends="compile-c-windows-vcvars" if="is.windows">
         <!-- Make sure that the native Windows tergets exist. -->
         <condition property="isWindowsNativeMissing">
             <not>
@@ -557,19 +484,19 @@
     </target>
     <target name="compile-c-windows-check2" depends="compile-c-windows-check" if="isWindowsNativeMissing">
         <echo message="**********************************************************************"/>
-        <echo message="bin/${wrapper.bin.name} or lib/${wrapper.lib.name} are missing."/>
-        <echo message="Please optain the files from a binary release or install MSVC."/>
-        <echo message="The targets can be build in the task above, or using the MSVC project"/>
-        <echo message="workspace src/c/Wrapper.dsw"/>
+        <echo message="* bin/${wrapper.bin.name} or lib/${wrapper.lib.name} are missing."/>
+        <echo message="* Please optain the files from a binary release or install MSVC."/>
+        <echo message="* The targets can be build in the task above, or using the MSVC project"/>
+        <echo message="* workspace src/c/Wrapper.dsw"/>
         <echo message="**********************************************************************"/>
         <fail message="bin/${wrapper.bin.name} or lib/${wrapper.lib.name} are missing."/>
     </target>
     <target name="compile-c-unix-check" depends="update-info-c" if="isUnixMakefileMissing">
         <echo message="**********************************************************************"/>
-        <echo message="Unable to locate a makefile for the current platform.  Looking for:"/>
-        <echo message="  ${makefile.name}.${make.name}"/>
-        <echo message="If the name contains any spaces or upper case characters then the"/>
-        <echo message="os and architecture need to be defined in the build.xml file as well."/>
+        <echo message="* Unable to locate a makefile for the current platform.  Looking for:"/>
+        <echo message="*   ${makefile.name}.${make.name}"/>
+        <echo message="* If the name contains any spaces or upper case characters then the"/>
+        <echo message="* os and architecture need to be defined in the build.xml file as well."/>
         <echo message="**********************************************************************"/>
         <fail message="Missing makefile."/>
     </target>
@@ -634,8 +561,8 @@
     </target>
     <target name="jar:nosign" depends="jar:jar" unless="do.sign">
         <echo message="**********************************************************************"/>
-        <echo message="The generated jar is not being signed and should not be used for an"/>
-        <echo message="official Wrapper distribution."/>
+        <echo message="* The generated jar is not being signed and should not be used for an"/>
+        <echo message="* official Wrapper distribution."/>
         <echo message="**********************************************************************"/>
     </target>
     <target name="jar" depends="jar:jar"/> <!-- depends="jar:sign, jar:nosign" No point until I have a signed cert. -->

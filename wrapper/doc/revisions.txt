@@ -91,6 +91,9 @@ Java Service Wrapper Revision History.
 * Fix a problem where the UNIX versions of the Wrapper would shutdown
   rather than restarting a frozen JVM if the arrival of the SIGCHLD signal
   from the old JVM process was delayed by more than a second or two.
+* Rework the Windows build so it now uses nmake and a Makefile rather than
+  vcbuild.  This is probably not as clean, but it was needed to get the
+  64-bit build working.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
