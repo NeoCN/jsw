@@ -31,6 +31,12 @@
             -->
         <donorlist>
             <donor>
+                <date>Mar 3, 2007</date>
+                <amount>50.00</amount>
+                <name>Anonymous</name>
+                <message>Great product. Just what I needed.</message>
+            </donor>
+            <donor>
                 <date>Jan 31, 2007</date>
                 <amount>50.00</amount>
                 <name><ulink url="http://www.nadatech.com/">NADAtech</ulink></name>
