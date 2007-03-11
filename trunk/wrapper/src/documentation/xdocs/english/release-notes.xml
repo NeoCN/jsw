@@ -232,6 +232,13 @@ $Id$
                     from the old JVM process was delayed by more than a second or two.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Rework the Windows build so it now uses nmake and a Makefile rather than
+                    vcbuild.  This is probably not as clean, but it was needed to get the
+                    64-bit build working.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">
