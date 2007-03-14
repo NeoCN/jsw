@@ -235,6 +235,9 @@
             </and>
         </condition>
 
+        <condition property="is.windows.msvc" value="true">
+            <isset property="vcvars.bat"/>
+        </condition>
         <condition property="msvc.missing" value="true">
             <not>
                 <isset property="vcvars.bat"/>
@@ -451,7 +454,7 @@
         <echo message="* files already exist.  Note that they will not be rebuilt however."/>
         <echo message="**********************************************************************"/>
     </target>
-    <target name="compile-c-windows-vcvars" depends="msvc-missing" unless="msvc.missing">
+    <target name="compile-c-windows-vcvars" depends="msvc-missing" if="is.windows.msvc">
         <mkdir dir="${bin.dir}"/>        
         <mkdir dir="${lib.dir}"/>
         
