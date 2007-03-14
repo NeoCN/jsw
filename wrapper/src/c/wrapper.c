@@ -1392,6 +1392,9 @@ void wrapperRestartProcess(int useLoggerQueue) {
  *
  * The exception is double quotes that are preceeded by a backslash
  *  in this case the backslash is stripped.
+ *
+ * If two backslashes are found in a row, then the first escapes the
+ *  second and the second is removed.
  */
 void wrapperStripQuotes(const char *prop, char *propStripped) {
     size_t len;
@@ -1443,6 +1446,72 @@ void correctWindowsPath(char *filename) {
         }
     }
 #endif
+}
+
+/**
+ * Adds quotes around the specified string in such a way that everything is
+ *  escaped correctly.  If the bufferSize is not large enough then the
+ *  required size will be returned.  0 is returned if successful.
+ */
+size_t quoteValue(const char* value, char *buffer, size_t bufferSize) {
+    size_t len = strlen(value);
+    size_t in = 0;
+    size_t out = 0;
+    size_t in2;
+    int escape;
+    
+    /* Initial quote. */
+    if (out < bufferSize) {
+        buffer[out] = '"';
+    }
+    out++;
+
+    /* Copy over characters of value. */
+    while ((in < len) && (value[in] != '\0')) {
+        escape = FALSE;
+        if (value[in] == '\\') {
+            /* All '\' characters in a row prior to a '"' or the end of the string need to be
+             *  escaped */
+            in2 = in + 1;
+            while ((in2 < len) && (value[in2] == '\\')) {
+                in2++;
+            }
+            escape = ((in2 >= len) || (value[in2] == '"'));
+        } else if (value[in] == '"') {
+            escape = TRUE;
+        }
+
+        if (escape) {
+            /* Needs to be escaped. */
+            if (out < bufferSize) {
+                buffer[out] = '\\';
+            }
+            out++;
+        }
+        if (out < bufferSize) {
+            buffer[out] = value[in];
+        }
+        out++;
+        in++;
+    }
+
+    /* Trailing quote. */
+    if (out < bufferSize) {
+        buffer[out] = '"';
+    }
+    out++;
+
+    /* Null terminate. */
+    if (out < bufferSize) {
+        buffer[out] = '\0';
+    }
+    out++;
+
+    if (out <= bufferSize) {
+        return 0;
+    } else {
+        return out;
+    }
 }
 
 /**
@@ -1607,15 +1676,16 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         } else {
                             propStripped = (char *)prop;
                         }
-    
-                        strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1 + 2));
+
                         if (addQuotes && quotable && strchr(propStripped, ' ')) {
-                            /* We want to add quotes to the value. */
-                            sprintf(strings[index], "\"%s\"", propStripped);
+                            len = quoteValue(propStripped, NULL, 0);
+                            strings[index] = malloc(len);
+                            quoteValue(propStripped, strings[index], len);
                         } else {
+                            strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1));
                             sprintf(strings[index], "%s", propStripped);
                         }
-    
+
                         if (stripQuote) {
                             free(propStripped);
                             propStripped = NULL;
@@ -2224,12 +2294,13 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         propStripped = (char *)prop;
                     }
 
-                    strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1 + 2));
                     if (addQuotes && quotable && strchr(propStripped, ' ')) {
-                        /* We want to add quotes to the value. */
-                     sprintf(strings[index], "\"%s\"", propStripped);
+                        len = quoteValue(propStripped, NULL, 0);
+                        strings[index] = malloc(len);
+                        quoteValue(propStripped, strings[index], len);
                     } else {
-                     sprintf(strings[index], "%s", propStripped);
+                        strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1));
+                        sprintf(strings[index], "%s", propStripped);
                     }
 
                     if (stripQuote) {

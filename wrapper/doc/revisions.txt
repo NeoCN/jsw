@@ -94,6 +94,9 @@ Java Service Wrapper Revision History.
 * Rework the Windows build so it now uses nmake and a Makefile rather than
   vcbuild.  This is probably not as clean, but it was needed to get the
   64-bit build working.
+* Fix a problem on Windows versions where quoted values specified from the
+  command line were not always being requoted correctly when generating the
+  java command line.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
