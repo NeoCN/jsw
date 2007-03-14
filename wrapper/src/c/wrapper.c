@@ -1514,6 +1514,48 @@ size_t quoteValue(const char* value, char *buffer, size_t bufferSize) {
     }
 }
 
+int checkQuotes(const char *value, const char *propName) {
+    size_t len = strlen(value);
+    size_t in = 0;
+    size_t in2 = 0;
+    int inQuote = FALSE;
+    int escaped;
+
+    while (in < len) {
+        if (value[in] == '"') {
+            /* Decide whether or not this '"' is escaped. */
+            in2 = in - 1;
+            escaped = FALSE;
+            while ((in2 >= 0) && (value[in2] == '\\')) {
+                escaped = !escaped;
+                in2--;
+            }
+            if (!escaped) {
+                inQuote = !inQuote;
+            }
+        } else if (inQuote) {
+            /* Quoted text. */
+        } else {
+            /* Unquoted. white space is bad. */
+            if (value[in] == ' ') {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                    "The value of property '%s', '%s' contains unquoted spaces and will most likely result in an invalid java command line.",
+                    propName, value );
+                return 1;
+            }
+        }
+
+        in++;
+    }
+    if (inQuote) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            "The value of property '%s', '%s' contains an unterminated quote and will most likely result in an invalid java command line.",
+            propName, value );
+        return 1;
+    }
+    return 0;
+}
+
 /**
  * Loops over and stores all necessary commands into an array which
  *  can be used to launch a process.
@@ -1526,6 +1568,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     int stripQuote;
     int initMemory = 0, maxMemory;
     char paramBuffer[128];
+    char paramBuffer2[128];
     int quotable;
     int i, j;
     size_t len2;
@@ -1623,6 +1666,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             }
         }
 
+        if (addQuotes) {
+            checkQuotes(strings[index], "wrapper.java.command");
+        }
+
 #else /* UNIX */
 
         strings[index] = malloc(sizeof(char) * (strlen(prop) + 2 + 1));
@@ -1664,11 +1711,11 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         strings[index][0] = '\0';
                     } else {
                         quotable = isQuotableProperty(properties, paramBuffer);
-                        sprintf(paramBuffer, "wrapper.java.additional.%d.stripquotes", i + 1);
+                        sprintf(paramBuffer2, "wrapper.java.additional.%d.stripquotes", i + 1);
                         if (addQuotes) {
                             stripQuote = FALSE;
                         } else {
-                            stripQuote = getBooleanProperty(properties, paramBuffer, FALSE);
+                            stripQuote = getBooleanProperty(properties, paramBuffer2, FALSE);
                         }
                         if (stripQuote) {
                             propStripped = malloc(sizeof(char) * (strlen(prop) + 1));
@@ -1684,6 +1731,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         } else {
                             strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1));
                             sprintf(strings[index], "%s", propStripped);
+                        }
+
+                        if (addQuotes) {
+                            checkQuotes(strings[index], paramBuffer);
                         }
 
                         if (stripQuote) {
@@ -1788,6 +1839,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                     sprintf(strings[index], "-Djava.library.path=%s", prop);
                 }
             }
+
+            if (addQuotes) {
+                checkQuotes(strings[index], "wrapper.java.library.path");
+            }
         } else {
             /* Look for a multiline library path. */
             cpLen = 0;
@@ -1874,6 +1929,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                 }
                 sprintf(&(strings[index][cpLen]), "\"");
                 cpLen++;
+            }
+
+            if (addQuotes) {
+                checkQuotes(strings[index], "wrapper.java.library.path.<n>");
             }
         }
     }
@@ -2079,6 +2138,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             sprintf(&(strings[index][cpLen]), "\"");
             cpLen++;
         }
+
+        if (addQuotes) {
+            checkQuotes(strings[index], "wrapper.java.classpath.<n>");
+        }
     }
     index++;
 
@@ -2281,11 +2344,11 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             if (strlen(prop) > 0) {
                 if (strings) {
                     quotable = isQuotableProperty(properties, paramBuffer);
-                    sprintf(paramBuffer, "wrapper.app.parameter.%d.stripquotes", i + 1);
+                    sprintf(paramBuffer2, "wrapper.app.parameter.%d.stripquotes", i + 1);
                     if (addQuotes) {
                         stripQuote = FALSE;
                     } else {
-                        stripQuote = getBooleanProperty(properties, paramBuffer, FALSE);
+                        stripQuote = getBooleanProperty(properties, paramBuffer2, FALSE);
                     }
                     if (stripQuote) {
                         propStripped = malloc(sizeof(char) * (strlen(prop) + 1));
@@ -2301,6 +2364,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                     } else {
                         strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1));
                         sprintf(strings[index], "%s", propStripped);
+                    }
+
+                    if (addQuotes) {
+                        checkQuotes(strings[index], paramBuffer);
                     }
 
                     if (stripQuote) {
