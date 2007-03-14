@@ -23,7 +23,7 @@
 
 PROJ = wrapper
 
-COMPILE = cl /D "_AMD64_=1" /D "WIN64" /D "_WIN64" /D "WIN32" /FIPRE64PRA.H /D "NDEBUG"  /FD /EHsc /MT /Zp4 /W3 /nologo /c /Zi /errorReport:prompt /D "_CRT_SECURE_NO_DEPRECATE"
+COMPILE = cl /D "_AMD64_=1" /D "WIN64" /D "_WIN64" /D "WIN32" /FIPRE64PRA.H /D "NDEBUG"  /FD /EHsc /MT /Zp8 /W3 /nologo /c /Zi /errorReport:prompt /D "_CRT_SECURE_NO_DEPRECATE"
 LINK = link /NOLOGO /MANIFEST /DEBUG /MACHINE:AMD64 /ERRORREPORT:PROMPT DelayImp.lib
 RC = rc
 

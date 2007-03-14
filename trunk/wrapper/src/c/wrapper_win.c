@@ -81,8 +81,8 @@ static HANDLE wrapperProcess = NULL;
 static DWORD  wrapperProcessId = 0;
 static HANDLE javaProcess = NULL;
 static DWORD  javaProcessId = 0;
-static HANDLE wrapperChildStdoutWr = NULL;
-static HANDLE wrapperChildStdoutRd = NULL;
+static HANDLE wrapperChildStdoutWr = INVALID_HANDLE_VALUE;
+static HANDLE wrapperChildStdoutRd = INVALID_HANDLE_VALUE;
 
 /* Each time wrapperReadChildOutput() is called, there is a chance the we are
  *  forced to log a line of output before receiving the LF.  This flag remembers
@@ -347,16 +347,17 @@ int writePidFile(const char *filename, DWORD pid, int newUmask) {
  */
 int wrapperInitChildPipe() {
     SECURITY_ATTRIBUTES saAttr;
-    HANDLE childStdoutRd;
+    HANDLE childStdoutRd = INVALID_HANDLE_VALUE;
 
     /* Set the bInheritHandle flag so pipe handles are inherited. */
     saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
-    saAttr.bInheritHandle = TRUE;
     saAttr.lpSecurityDescriptor = NULL;
+    saAttr.bInheritHandle = TRUE;
 
     /* Create a pipe for the child process's STDOUT. */
     if (!CreatePipe(&childStdoutRd, &wrapperChildStdoutWr, &saAttr, 0)) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Stdout pipe creation failed");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Stdout pipe creation failed  Err(%ld : %s)",
+            GetLastError(), getLastErrorText());
         return -1;
     }
 
