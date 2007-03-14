@@ -198,16 +198,16 @@
         <property name="wrapper.lib.long.name" value="wrapper-${dist.os}-${dist.arch}-${bits}.dll"/>
 
         <!-- Decide on the script that will be used to configure the Visual Studio environment. -->
-        <condition property="vcvars.bat" value="${vcvars.v8_32_1}">
+        <condition property="vcvars.bat" value="${vcvars.v6_32_1}">
             <and>
                 <equals arg1="${bits}" arg2="32"/>
-                <available file="${vcvars.v8_32_1}"/>
+                <available file="${vcvars.v6_32_1}"/>
             </and>
         </condition>
-        <condition property="vcvars.bat" value="${vcvars.v8_32_2}">
+        <condition property="vcvars.bat" value="${vcvars.v6_32_2}">
             <and>
                 <equals arg1="${bits}" arg2="32"/>
-                <available file="${vcvars.v8_32_2}"/>
+                <available file="${vcvars.v6_32_2}"/>
             </and>
         </condition>
         <condition property="vcvars.bat" value="${vcvars.v8_32_3}">
@@ -222,6 +222,18 @@
                 <available file="${vcvars.v8_32_4}"/>
             </and>
         </condition>
+        <condition property="vcvars.bat" value="${vcvars.v8_32_5}">
+            <and>
+                <equals arg1="${bits}" arg2="32"/>
+                <available file="${vcvars.v8_32_5}"/>
+            </and>
+        </condition>
+        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_32_5.arg.1}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_5}"/>
+        </condition>
+        <condition property="vcvars.bat.arg.2" value="${vcvars.v8_32_5.arg.2}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_5}"/>
+        </condition>
         <condition property="vcvars.bat" value="${vcvars.v8_64_1}">
             <and>
                 <equals arg1="${bits}" arg2="64"/>
@@ -234,6 +246,21 @@
                 <available file="${vcvars.v8_64_2}"/>
             </and>
         </condition>
+        <condition property="vcvars.bat" value="${vcvars.v8_64_3}">
+            <and>
+                <equals arg1="${bits}" arg2="64"/>
+                <available file="${vcvars.v8_64_3}"/>
+            </and>
+        </condition>
+        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_64_3.arg.1}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_64_3}"/>
+        </condition>
+        <condition property="vcvars.bat.arg.2" value="${vcvars.v8_64_3.arg.2}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_64_3}"/>
+        </condition>
+        <property name="vcvars.bat.arg.1" value=""/>
+        <property name="vcvars.bat.arg.2" value=""/>
+        <property name="vcvars.bat.arg.3" value=""/>
 
         <condition property="is.windows.msvc" value="true">
             <isset property="vcvars.bat"/>
@@ -436,13 +463,15 @@
         <echo message="* Microsoft Visual Studio is not installed, or is not in the expected"/>
         <echo message="* location."/>
         <echo message="* Checked the following locations for the 32-bit build:"/>
-        <echo message="*   ${vcvars.v8_32_1}"/>
-        <echo message="*   ${vcvars.v8_32_2}"/>
+        <echo message="*   ${vcvars.v6_32_1}"/>
+        <echo message="*   ${vcvars.v6_32_2}"/>
         <echo message="*   ${vcvars.v8_32_3}"/>
         <echo message="*   ${vcvars.v8_32_4}"/>
+        <echo message="*   ${vcvars.v8_32_5} ${vcvars.v8_32_5.arg.1} ${vcvars.v8_32_5.arg.2}"/>
         <echo message="* And the following locations for the 64-bit build:"/>
         <echo message="*   ${vcvars.v8_64_1}"/>
         <echo message="*   ${vcvars.v8_64_2}"/>
+        <echo message="*   ${vcvars.v8_64_3} ${vcvars.v8_64_3.arg.1} ${vcvars.v8_64_3.arg.2}"/>
         <echo message="*  "/>
         <echo message="* If it is installed at a different location, create a file called "/>
         <echo message="*   ${user.home}/.ant.properties"/>
@@ -468,10 +497,11 @@
         <exec executable="${src.dir}/c/runnmake.bat"
             dir="${src.dir}/c" 
             failonerror="true">
-            <arg value="${vcvars.bat}"/>
             <arg value="${makefile}"/>
-            <arg value="clean"/>
-            <arg value="all"/>
+            <arg value="${vcvars.bat}"/>
+            <arg value="${vcvars.bat.arg.1}"/>
+            <arg value="${vcvars.bat.arg.2}"/>
+            <arg value="${vcvars.bat.arg.3}"/>
         </exec>
     </target>
     <target name="compile-c-windows-check" depends="compile-c-windows-vcvars" if="is.windows">
