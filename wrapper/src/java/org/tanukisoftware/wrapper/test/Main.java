@@ -232,6 +232,8 @@ public class Main
             buildCommand( panel, gridBag, c, "Service Stop", "service_stop", "Stops the above service." );
             
             buildCommand( panel, gridBag, c, "Service User Code", "service_user", "Sends a series of user codes to the above service." );
+            
+            buildCommand( panel, gridBag, c, "GC", "gc", "Performs a GC sweep." );
         }
         
         private void buildCommand( Container container,

@@ -433,6 +433,12 @@ public abstract class AbstractActionApp
         }
         else if ( action.equals( "service_list" ) )
         {
+            /*
+            for ( int i = 0; i < 1000; i++ )
+            {
+                WrapperWin32Service[] services = WrapperManager.listServices();
+            }
+            */
             WrapperWin32Service[] services = WrapperManager.listServices();
             if ( services == null )
             {
@@ -451,6 +457,13 @@ public abstract class AbstractActionApp
         {
             try
             {
+                /*
+                for ( int i = 0; i < 10000; i++ )
+                {
+                    WrapperWin32Service service = WrapperManager.sendServiceControlCode(
+                        m_serviceName, WrapperManager.SERVICE_CONTROL_CODE_INTERROGATE );
+                }
+                */
                 WrapperWin32Service service = WrapperManager.sendServiceControlCode(
                     m_serviceName, WrapperManager.SERVICE_CONTROL_CODE_INTERROGATE );
                 System.out.println( "Service after interrogate: " + service );
@@ -501,6 +514,10 @@ public abstract class AbstractActionApp
             {
                 e.printStackTrace();
             }
+        }
+        else if ( action.equals( "gc" ) )
+        {
+            System.gc();
         }
         else
         {
