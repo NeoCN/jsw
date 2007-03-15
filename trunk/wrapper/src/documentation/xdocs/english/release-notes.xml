@@ -254,6 +254,12 @@ $Id$
                     now result in a warning message that will help resolve the problem.
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    Fix a memory leak when calling WrapperManager.listServices() on Windows.
+                    <ulink url="http://sourceforge.net/tracker/?func=detail&amp;aid=1665947&amp;group_id=39428&amp;atid=425187">Bug #1665947</ulink>.
+                </para>
+            </listitem>
         </itemizedlist>
     </section>
     <section id="3.2.3">

@@ -101,6 +101,8 @@ Java Service Wrapper Revision History.
   parameters, application arguments, the classpath, and library path all
   contain values which are quoted correctly.  Incorrectly quoted values will
   now result in a warning message that will help resolve the problem.
+* Fix a memory leak when calling WrapperManager.listServices() on Windows.
+  Bug #1665947.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

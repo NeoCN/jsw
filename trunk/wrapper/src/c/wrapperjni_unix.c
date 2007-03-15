@@ -271,52 +271,62 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
             /* Now create the new wrapperUser using the constructor arguments collected above. */
             wrapperUser = (*env)->NewObject(env, wrapperUserClass, constructor, uid, ugid, jUser, jRealName, jHome, jShell);
 
+            (*env)->DeleteLocalRef(env, jUser);
+            (*env)->DeleteLocalRef(env, jRealName);
+            (*env)->DeleteLocalRef(env, jHome);
+            (*env)->DeleteLocalRef(env, jShell);
+
             /* If the caller requested the user's groups then look them up. */
             if (groups) {
-               /* Set the user group. */
-               if ((setGroup = (*env)->GetMethodID(env, wrapperUserClass, "setGroup", "(I[B)V")) != NULL) {
-                   if ((aGroup = getgrgid(ugid)) != NULL) {
-                       ggid = aGroup->gr_gid;
+                /* Set the user group. */
+                if ((setGroup = (*env)->GetMethodID(env, wrapperUserClass, "setGroup", "(I[B)V")) != NULL) {
+                    if ((aGroup = getgrgid(ugid)) != NULL) {
+                        ggid = aGroup->gr_gid;
 
-                       /* Group name byte array */
-                       jGroupName = (*env)->NewByteArray(env, strlen(aGroup->gr_name));
-                       (*env)->SetByteArrayRegion(env, jGroupName, 0, strlen(aGroup->gr_name), (jbyte*)aGroup->gr_name);
+                        /* Group name byte array */
+                        jGroupName = (*env)->NewByteArray(env, strlen(aGroup->gr_name));
+                        (*env)->SetByteArrayRegion(env, jGroupName, 0, strlen(aGroup->gr_name), (jbyte*)aGroup->gr_name);
 
                         /* Add the group to the user. */
-                       (*env)->CallVoidMethod(env, wrapperUser, setGroup, ggid, jGroupName);
-                   }
-               }
+                        (*env)->CallVoidMethod(env, wrapperUser, setGroup, ggid, jGroupName);
 
-               /* Look for the addGroup method. Ignore failures. */
-               if ((addGroup = (*env)->GetMethodID(env, wrapperUserClass, "addGroup", "(I[B)V")) != NULL) {
+                        (*env)->DeleteLocalRef(env, jGroupName);
+                    }
+                }
 
-                   setgrent();
-                   while ((aGroup = getgrent()) != NULL) {
-                       /* Search the member list to decide whether or not the user is a member. */
-                       member = 0;
-                       i = 0;
-                       while ((member == 0) && aGroup->gr_mem[i]) {
-                           if (strcmp(aGroup->gr_mem[i], pw->pw_name) == 0) {
+                /* Look for the addGroup method. Ignore failures. */
+                if ((addGroup = (*env)->GetMethodID(env, wrapperUserClass, "addGroup", "(I[B)V")) != NULL) {
+                    setgrent();
+                    while ((aGroup = getgrent()) != NULL) {
+                        /* Search the member list to decide whether or not the user is a member. */
+                        member = 0;
+                        i = 0;
+                        while ((member == 0) && aGroup->gr_mem[i]) {
+                            if (strcmp(aGroup->gr_mem[i], pw->pw_name) == 0) {
                                member = 1;
-                           }
-                           i++;
-                       }
+                            }
+                            i++;
+                        }
 
-                       if (member) {
-                           ggid = aGroup->gr_gid;
+                        if (member) {
+                            ggid = aGroup->gr_gid;
+                            
+                            /* Group name byte array */
+                            jGroupName = (*env)->NewByteArray(env, strlen(aGroup->gr_name));
+                            (*env)->SetByteArrayRegion(env, jGroupName, 0, strlen(aGroup->gr_name), (jbyte*)aGroup->gr_name);
 
-                           /* Group name byte array */
-                           jGroupName = (*env)->NewByteArray(env, strlen(aGroup->gr_name));
-                           (*env)->SetByteArrayRegion(env, jGroupName, 0, strlen(aGroup->gr_name), (jbyte*)aGroup->gr_name);
+                            /* Add the group to the user. */
+                            (*env)->CallVoidMethod(env, wrapperUser, addGroup, ggid, jGroupName);
 
-                           /* Add the group to the user. */
-                           (*env)->CallVoidMethod(env, wrapperUser, addGroup, ggid, jGroupName);
-                       }
-                   }
-                   endgrent();
+                            (*env)->DeleteLocalRef(env, jGroupName);
+                        }
+                    }
+                    endgrent();
                 }
             }
         }
+
+        (*env)->DeleteLocalRef(env, wrapperUserClass);
     }
 
     return wrapperUser;

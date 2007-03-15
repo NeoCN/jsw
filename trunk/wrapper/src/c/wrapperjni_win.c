@@ -184,7 +184,12 @@ void throwException(JNIEnv *env, const char *className, const char *message) {
                     className, message);
                 flushall();
             }
+
+            (*env)->DeleteLocalRef(env, jMessage);
+            (*env)->DeleteLocalRef(env, exception);
         }
+
+        (*env)->DeleteLocalRef(env, exceptionClass);
     } else {
         printf("WrapperJNI Error: Unable to load class, '%s' to report exception: %s",
             className, message);
@@ -409,6 +414,10 @@ setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HANDLE 
 
                     /* Now actually add the group to the user. */
                     (*env)->CallVoidMethod(env, wrapperUser, addGroup, jSID, jGroupName, jDomainName);
+
+                    (*env)->DeleteLocalRef(env, jSID);
+                    (*env)->DeleteLocalRef(env, jGroupName);
+                    (*env)->DeleteLocalRef(env, jDomainName);
                 } else {
                     /* This is normal as some accounts do not seem to be mappable. */
                     /*
@@ -506,7 +515,13 @@ createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean groups) {
                             if (groups) {
                                 setUserGroups(env, wrapperUserClass, wrapperUser, hProcessToken);
                             }
+
+                            (*env)->DeleteLocalRef(env, jSID);
+                            (*env)->DeleteLocalRef(env, jUserName);
+                            (*env)->DeleteLocalRef(env, jDomainName);
                         }
+
+                        (*env)->DeleteLocalRef(env, wrapperUserClass);
                     }
                 } else {
                     /* This is normal as some accounts do not seem to be mappable. */
@@ -848,8 +863,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, j
     SC_HANDLE hSCManager;
     DWORD size, sizeNeeded, servicesReturned, resumeHandle;
     DWORD err;
-    ENUM_SERVICE_STATUS serviceData;
-    ENUM_SERVICE_STATUS *services;
+    ENUM_SERVICE_STATUS *services = NULL;
     BOOL threwError = FALSE;
     DWORD i;
     
@@ -861,22 +875,22 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, j
     DWORD state;
     DWORD exitCode;
     jobject service;
-    
+
     hSCManager = OpenSCManager(NULL, NULL, SC_MANAGER_ENUMERATE_SERVICE);
     if (hSCManager) {
         /* Before we can get the list of services, we need to know how much memory it will take. */
         resumeHandle = 0;
-        if (!EnumServicesStatus(hSCManager, SERVICE_WIN32, SERVICE_STATE_ALL, &serviceData, sizeof(serviceData), &sizeNeeded, &servicesReturned, &resumeHandle)) {
+        if (!EnumServicesStatus(hSCManager, SERVICE_WIN32, SERVICE_STATE_ALL, NULL, 0, &sizeNeeded, &servicesReturned, &resumeHandle)) {
             err = GetLastError();
-            if (err == ERROR_MORE_DATA) {
+            if ((err == ERROR_MORE_DATA) || (err == ERROR_INSUFFICIENT_BUFFER)) {
                 /* Allocate the needed memory and call again. */
-                size = sizeNeeded + sizeof(ENUM_SERVICE_STATUS);
+                size = sizeNeeded;
                 services = malloc(size);
                 if (!EnumServicesStatus(hSCManager, SERVICE_WIN32, SERVICE_STATE_ALL, services, size, &sizeNeeded, &servicesReturned, &resumeHandle)) {
                     /* Failed to get the services. */
                     sprintf(buffer, "Unable to enumerate the system services: %s",
                         getLastErrorText());
-                    throwServiceException(env, buffer );
+                    throwServiceException(env, buffer);
                     threwError = TRUE;
                 } else {
                     /* Success. */
@@ -884,7 +898,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, j
             } else {
                 sprintf(buffer, "Unable to enumerate the system services: %s",
                     getLastErrorText());
-                throwServiceException(env, buffer );
+                throwServiceException(env, buffer);
                 threwError = TRUE;
             }
         } else {
@@ -913,13 +927,23 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, j
                         
                         service = (*env)->NewObject(env, serviceClass, constructor, jName, jDisplayName, state, exitCode);
                         (*env)->SetObjectArrayElement(env, serviceArray, i, service);
+
+                        (*env)->DeleteLocalRef(env, jDisplayName);
+                        (*env)->DeleteLocalRef(env, jName);
+                        (*env)->DeleteLocalRef(env, service);
                     }
                 }
+
+                (*env)->DeleteLocalRef(env, serviceClass);
             } else {
                 /* Unable to load the service class. */
                 sprintf(buffer, "Unable to locate class org.tanukisoftware.wrapper.WrapperWin32Service");
                 throwServiceException(env, buffer );
             }
+        }
+
+        if (services != NULL) {
+            free(services);
         }
 
         /* Close the handle to the service control manager database */
@@ -1057,7 +1081,11 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
                                 }
                                 
                                 service = (*env)->NewObject(env, serviceClass, constructor, serviceName, jDisplayName, state, exitCode);
+
+                                (*env)->DeleteLocalRef(env, jDisplayName);
                             }
+
+                            (*env)->DeleteLocalRef(env, serviceClass);
                         } else {
                             /* Unable to load the service class. */
                             sprintf(buffer, "Unable to locate class org.tanukisoftware.wrapper.WrapperWin32Service");
