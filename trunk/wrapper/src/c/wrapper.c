@@ -1111,7 +1111,7 @@ void wrapperGetFileBase(const char *fileName, char *baseName) {
  * Output the version.
  */
 void wrapperVersionBanner() {
-    printf("Wrapper Community Edition (Version %s)\n", wrapperVersion);
+    printf("Wrapper Community Edition (Version %s)\n", wrapperVersionRoot);
     printf("  Copyright 1999, 2007 Tanuki Software, Inc.  All Rights Reserved.\n");
     printf("    http://wrapper.tanukisoftware.org\n");
 }

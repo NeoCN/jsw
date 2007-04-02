@@ -26,6 +26,7 @@
 #ifndef _WRAPPERINFO_H
 #define _WRAPPERINFO_H
 
+extern char *wrapperVersionRoot;
 extern char *wrapperVersion;
 extern char *wrapperBits;
 extern char *wrapperArch;

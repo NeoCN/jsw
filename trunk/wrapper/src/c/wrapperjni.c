@@ -142,6 +142,16 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetLibraryVersion(JNIEnv *e
 
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeIsProfessionalEdition
+ * Signature: ()Z
+ */
+JNIEXPORT jboolean JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeIsProfessionalEdition(JNIEnv *env, jclass clazz) {
+    return JNI_FALSE;
+}
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeGetControlEvent
  * Signature: (V)I
  */

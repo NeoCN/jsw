@@ -519,6 +519,10 @@ public abstract class AbstractActionApp
         {
             System.gc();
         }
+        else if ( action.equals( "is_professional" ) )
+        {
+            System.out.println( "Professional Edition: " + WrapperManager.isProfessionalEdition() );
+        }
         else
         {
             // Unknown action
