@@ -387,9 +387,13 @@ public final class WrapperManager
                 + "  Using classloader: " + WrapperManager.class.getClassLoader() );
         }
 
-        String baseName = System.getProperty( "wrapper.native_library" );
+        String wrapperVersion = System.getProperty( "wrapper.version" );
+        if ( wrapperVersion == null )
+        {
+            wrapperVersion = "unknown";
+        }
         String product;
-        if ( baseName.indexOf( "-pro" ) >= 0 )
+        if ( wrapperVersion.endsWith( "-pro" ) )
         {
             product = "Professional";
         }
@@ -859,6 +863,7 @@ public final class WrapperManager
     private static native void nativeInit( boolean debug );
     private static native String nativeGetLibraryVersion();
     private static native int nativeGetJavaPID();
+    private static native boolean nativeIsProfessionalEdition();
     private static native int nativeGetControlEvent();
     private static native void nativeRequestThreadDump();
     private static native void accessViolationInner();
@@ -1342,6 +1347,10 @@ public final class WrapperManager
         {
             wrapperVersion = "unknown";
         }
+        if ( wrapperVersion.endsWith( "-pro" ) )
+        {
+            wrapperVersion = wrapperVersion.substring( 0, wrapperVersion.length() - 4 );
+        }
         
         if ( !WrapperInfo.getVersion().equals( wrapperVersion ) )
         {
@@ -1385,13 +1394,20 @@ public final class WrapperManager
             jniVersion = "unknown";
         }
         
-        if ( !WrapperInfo.getVersion().equals( jniVersion ) )
+        String wrapperVersion = System.getProperty( "wrapper.version" );
+        if ( wrapperVersion == null )
+        {
+            wrapperVersion = "unknown";
+        }
+        
+        if ( !wrapperVersion.equals( jniVersion ) )
         {
             m_outInfo.println(
-                "WARNING - The Wrapper jar file currently in use is version \""
-                + WrapperInfo.getVersion() + "\"" );
+                "WARNING - The version of the Wrapper which launched this JVM is " );
             m_outInfo.println(
-                "          while the version of the native library is \"" + jniVersion + "\"." );
+                "          \"" + wrapperVersion + "\" while the version of the native library " );
+            m_outInfo.println(
+                "          is \"" + jniVersion + "\"." );
             m_outInfo.println(
                 "          The Wrapper may appear to work correctly but some features may" );
             m_outInfo.println(
@@ -1434,6 +1450,36 @@ public final class WrapperManager
     }
     
     /**
+     * Returns true if the current Wrapper edition has support for Professional
+     *  features.
+     *
+     * @return True if professional features are supported.
+     */
+    public static boolean isProfessionalEdition()
+    {
+        // Be careful as this will not exist in older versions
+        if ( m_libraryOK )
+        {
+            try
+            {
+                return nativeIsProfessionalEdition();
+            }
+            catch ( Throwable e )
+            {
+                if ( m_debug )
+                {
+                    m_outDebug.println( "Call to nativeIsProfessionalEdition() failed: " + e );
+                }
+                return false;
+            }
+        }
+        else
+        {
+            return false;
+        }
+    }
+    
+    /**
      * Sets the title of the console in which the Wrapper is running.  This
      *  is currently only supported on Windows platforms.
      * <p>
@@ -1443,6 +1489,13 @@ public final class WrapperManager
      * @param title The new title.  The specified string will be encoded
      *              to a byte array using the default encoding for the
      *              current platform.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("setConsoleTitle")
+     *                           permission.
+     *
+     * @see WrapperPermission
      */
     public static void setConsoleTitle( String title )
     {
@@ -1478,6 +1531,12 @@ public final class WrapperManager
      *               the CPU load required to complete the call.
      *
      * @return An object describing the current user.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("getUser") permission.
+     *
+     * @see WrapperPermission
      */
     public static WrapperUser getUser( boolean groups )
     {
@@ -1528,6 +1587,13 @@ public final class WrapperManager
      *               the CPU load required to complete the call.
      *
      * @return The current interactive user, or null.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("getInteractiveUser")
+     *                           permission.
+     *
+     * @see WrapperPermission
      */
     public static WrapperUser getInteractiveUser( boolean groups )
     {
@@ -1554,6 +1620,13 @@ public final class WrapperManager
      *  be available in this Properties object.
      *
      * @return The contents of the Wrapper configuration file.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("getProperties")
+     *                           permission.
+     *
+     * @see WrapperPermission
      */
     public static Properties getProperties()
     {
@@ -1574,6 +1647,12 @@ public final class WrapperManager
      * This value can also be obtained using the 'wrapper.pid' system property.
      *
      * @return The PID of the Wrpper process.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("getWrapperPID") permission.
+     *
+     * @see WrapperPermission
      */
     public static int getWrapperPID()
     {
@@ -1594,6 +1673,12 @@ public final class WrapperManager
      * This value can also be obtained using the 'wrapper.java.pid' system property.
      *
      * @return The PID of the Java process.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("getJavaPID") permission.
+     *
+     * @see WrapperPermission
      */
     public static int getJavaPID()
     {
@@ -1611,6 +1696,13 @@ public final class WrapperManager
      *  the same as pressing CTRL-BREAK (under Windows) or CTRL-\ (under Unix)
      *  in the the console in which Java is running.  This method does nothing
      *  if the native library is not loaded.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("requestThreadDump")
+     *                           permission.
+     *
+     * @see WrapperPermission
      */
     public static void requestThreadDump()
     {
@@ -1635,6 +1727,12 @@ public final class WrapperManager
      *  to be hung when viewed from the native Wrapper code.  Does not have any effect when the
      *  JVM is not being controlled from the native Wrapper. Useful for testing the Wrapper 
      *  functions.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("test.appearHung") permission.
+     *
+     * @see WrapperPermission
      */
     public static void appearHung()
     {
@@ -1653,6 +1751,13 @@ public final class WrapperManager
      *  for testing the Wrapper functions.  This currently only crashes Sun
      *  JVMs and takes advantage of Bug #4369043 which does not exist in newer
      *  JVMs.  Use of the accessViolationNative() method is preferred.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("test.accessViolation")
+     *                           permission.
+     *
+     * @see WrapperPermission
      */
     public static void accessViolation()
     {
@@ -1692,9 +1797,16 @@ public final class WrapperManager
     }
 
     /**
-     * (Testing Method) Cause an access violation within native JNI code.  Useful for testing the
-     *  Wrapper functions. This currently causes the access violation by attempting to write to 
-     *  a null pointer.
+     * (Testing Method) Cause an access violation within native JNI code.
+     *  Useful for testing the Wrapper functions. This currently causes the
+     *  access violation by attempting to write to a null pointer.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("test.accessViolationNative")
+     *                           permission.
+     *
+     * @see WrapperPermission
      */
     public static void accessViolationNative()
     {
@@ -2363,6 +2475,8 @@ public final class WrapperManager
      *                           for this operation because this method makes
      *                           it possible to learn a great deal about the
      *                           state of the system.
+     *
+     * @see WrapperPermission
      */
     public static WrapperWin32Service[] listServices()
         throws SecurityException
@@ -2420,6 +2534,8 @@ public final class WrapperManager
      *                           for this operation because this method makes
      *                           it possible to control any service on the
      *                           system, which is of course rather dangerous.
+     *
+     * @see WrapperServicePermission
      */
     public static WrapperWin32Service sendServiceControlCode( String serviceName, int controlCode )
         throws WrapperServiceException, SecurityException
@@ -2488,6 +2604,12 @@ public final class WrapperManager
      *             interrested in receiving.  See the WrapperEventListener
      *             class for a full list of flags.  A mask is created by
      *             combining multiple flags using the binary '|' OR operator.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the appropriate
+     *                           WrapperEventPermission(...) permission.
+     *
+     * @see WrapperEventPermission
      */
     public static void addWrapperEventListener( WrapperEventListener listener, long mask )
     {
@@ -2545,6 +2667,13 @@ public final class WrapperManager
      * Removes a WrapperEventListener so it will not longer receive WrapperEvents.
      *
      * @param listener WrapperEventListener to be stop receiving events.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("removeWrapperEventListener")
+     *                           permission.
+     *
+     * @see WrapperPermission
      */
     public static void removeWrapperEventListener( WrapperEventListener listener )
     {

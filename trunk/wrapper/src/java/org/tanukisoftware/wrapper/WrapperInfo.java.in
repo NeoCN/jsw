@@ -57,7 +57,7 @@ import java.text.ParseException;
 final class WrapperInfo
 {
     /** Version of the Wrapper. */
-    private static final String   m_version         = "@version@";
+    private static final String   m_version         = "@version.root@";
 
     /** Date that the Wrapper was built. */
     private static final Calendar m_build           = Calendar.getInstance();
