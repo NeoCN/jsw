@@ -1,5 +1,6 @@
+
 #********************************************************************
-# Wrapper Properties
+# Wrapper Java Properties
 #********************************************************************
 # Java Application
 wrapper.java.command=java
