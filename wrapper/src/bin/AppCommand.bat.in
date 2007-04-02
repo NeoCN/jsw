@@ -47,7 +47,6 @@ if "%COMMAND%" == "" (
 rem
 rem Find the wrapper.conf
 rem
-:conf
 set _WRAPPER_CONF="%_REALPATH%..\conf\wrapper.conf"
 
 rem
