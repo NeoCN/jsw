@@ -103,6 +103,10 @@ Java Service Wrapper Revision History.
   now result in a warning message that will help resolve the problem.
 * Fix a memory leak when calling WrapperManager.listServices() on Windows.
   Bug #1665947.
+* Fix a buffer overflow problem if the Wrapper was launched without explicitly
+  specifying a configuration file.
+* Add tests of the return values of all malloc calls to catch out of memory
+  errors and recover as gracefully as possible.  Bug #1649880.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
