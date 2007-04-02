@@ -128,7 +128,7 @@ void sendLoginfoMessage( int source_id, int level, const char *szBuff );
 #ifdef WIN32
 void writeToConsole( char *lpszFmt, ... );
 #endif
-void checkAndRollLogs( );
+void checkAndRollLogs(const char *nowDate);
 
 /* Any log messages generated within signal handlers must be stored until we
  *  have left the signal handler to avoid deadlocks in the logging code.
@@ -181,6 +181,11 @@ void setConsoleStdoutHandle( HANDLE stdoutHandle ) {
     consoleStdoutHandle = stdoutHandle;
 }
 #endif
+
+void outOfMemory(const char *context, int id) {
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Out of memory (%s%02d). %s",
+        context, id, getLastErrorText());
+}
 
 /**
  * Replaces one token with another.  The length of the new token must be equal
@@ -391,12 +396,34 @@ void setLogfilePath( const char *log_file_path ) {
         free(currentLogFileName);
         free(workLogFileName);
     }
+    logFilePath = NULL;
+    currentLogFileName = NULL;
+    workLogFileName = NULL;
+
     logFilePath = malloc(sizeof(char) * (len + 1));
+    if (!logFilePath) {
+        outOfMemory("SLP", 1);
+        return;
+    }
     strcpy(logFilePath, log_file_path);
 
     currentLogFileName = malloc(sizeof(char) * (len + 10 + 1));
+    if (!currentLogFileName) {
+        outOfMemory("SLP", 2);
+        free(logFilePath);
+        logFilePath = NULL;
+        return;
+    }
     currentLogFileName[0] = '\0';
     workLogFileName = malloc(sizeof(char) * (len + 10 + 1));
+    if (!workLogFileName) {
+        outOfMemory("SLP", 3);
+        free(logFilePath);
+        logFilePath = NULL;
+        free(currentLogFileName);
+        currentLogFileName = NULL;
+        return;
+    }
     workLogFileName[0] = '\0';
     
 #ifdef WIN32	
@@ -445,8 +472,11 @@ void setLogfileMaxFileSize( const char *max_file_size ) {
 
     if( max_file_size != NULL ) {
         /* Allocate buffer */
-        if( (tmpFileSizeBuff = (char *) malloc(sizeof(char) * (strlen( max_file_size ) + 1))) == NULL )
+        tmpFileSizeBuff = (char *) malloc(sizeof(char) * (strlen( max_file_size ) + 1));
+        if (!tmpFileSizeBuff) {
+            outOfMemory("SLMFS", 1);
             return;
+        }
 
         /* Generate multiple and remove unwanted chars */
         multiple = 1;
@@ -521,7 +551,9 @@ int lockLoggingMutex() {
         break;
     }
 #else
-    pthread_mutex_lock(&log_printfMutex);
+    if (pthread_mutex_lock(&log_printfMutex)) {
+        printf("Failed to lock the Logging mutex. %s\n", getLastErrorText());
+    }
 #endif
     
     return 0;
@@ -536,7 +568,9 @@ int releaseLoggingMutex() {
         return -1;
     }
 #else
-    pthread_mutex_unlock(&log_printfMutex);
+    if (pthread_mutex_unlock(&log_printfMutex)) {
+        printf("Failed to unlock the Logging mutex. %s\n", getLastErrorText());
+    }
 #endif
     return 0;
 }
@@ -558,7 +592,9 @@ void closeLogfile() {
         
         fclose(logfileFP);
         logfileFP = NULL;
-        currentLogFileName[0] = '\0';
+        if (currentLogFileName) {
+            currentLogFileName[0] = '\0';
+        }
     }
 
     /* Release the lock we have on this function so that other threads can get in. */
@@ -709,10 +745,20 @@ char* buildPrintBuffer( int source_id, int level, int threadId, int queued, stru
 
     if ( threadPrintBuffer == NULL ) {
         threadPrintBuffer = (char *)malloc( reqSize * sizeof( char ) );
+        if (!threadPrintBuffer) {
+            printf("Out of memory is logging code (BPB1)\n");
+            threadPrintBufferSize = 0;
+            return NULL;
+        }
         threadPrintBufferSize = reqSize;
     } else if ( threadPrintBufferSize < reqSize ) {
         free( threadPrintBuffer );
         threadPrintBuffer = (char *)malloc( reqSize * sizeof( char ) );
+        if (!threadPrintBuffer) {
+            printf("Out of memory is logging code (BPB2)\n");
+            threadPrintBufferSize = 0;
+            return NULL;
+        }
         threadPrintBufferSize = reqSize;
     }
 
@@ -907,20 +953,21 @@ void log_printf_message( int source_id, int level, int threadId, int queued, con
     if( level >= currentConsoleLevel ) {
         /* Build up the printBuffer. */
         printBuffer = buildPrintBuffer( source_id, level, threadId, queued, nowTM, nowMillis, consoleFormat, message );
-
-        /* Write the print buffer to the console. */
+        if (printBuffer) {
+            /* Write the print buffer to the console. */
 #ifdef WIN32
-        if ( consoleStdoutHandle != NULL ) {
-            writeToConsole( "%s\n", printBuffer );
-        } else {
+            if ( consoleStdoutHandle != NULL ) {
+                writeToConsole( "%s\n", printBuffer );
+            } else {
 #endif
-            fprintf( stdout, "%s\n", printBuffer );
-            if ( consoleFlush ) {
-                fflush( stdout );
+                fprintf( stdout, "%s\n", printBuffer );
+                if ( consoleFlush ) {
+                    fflush( stdout );
+                }
+#ifdef WIN32
             }
-#ifdef WIN32
-        }
 #endif
+        }
     }
 
     /* Logfile output by format */
@@ -928,7 +975,7 @@ void log_printf_message( int source_id, int level, int threadId, int queued, con
     /* Log the message to the log file */
     if (level >= currentLogfileLevel) {
         /* If the log file was set to a blank value then it will not be used. */
-        if ( strlen( logFilePath ) > 0 )
+        if ( logFilePath && ( strlen( logFilePath ) > 0 ) )
         {
             /* If this the roll mode is date then we need a nowDate for this log entry. */
             if (logFileRollMode & ROLL_MODE_DATE) {
@@ -976,26 +1023,27 @@ void log_printf_message( int source_id, int level, int threadId, int queued, con
                 
                 /* Build up the printBuffer. */
                 printBuffer = buildPrintBuffer( source_id, level, threadId, queued, nowTM, nowMillis, logfileFormat, message );
-                
-                fprintf( logfileFP, "%s\n", printBuffer );
-                
-                /* Increment the activity counter. */
-                logfileActivityCount++;
-                
-                /* Only close the file if autoClose is set.  Otherwise it will be closed later
-                 *  after an appropriate period of inactivity. */
-                if (autoCloseLogfile) {
-#ifdef _DEBUG
-                    printf("Closing logfile immediately...\n");
-                    fflush(NULL);
-#endif
+                if (printBuffer) {
+                    fprintf( logfileFP, "%s\n", printBuffer );
                     
-                    fclose(logfileFP);
-                    logfileFP = NULL;
-                    currentLogFileName[0] = '\0';
+                    /* Increment the activity counter. */
+                    logfileActivityCount++;
+                    
+                    /* Only close the file if autoClose is set.  Otherwise it will be closed later
+                     *  after an appropriate period of inactivity. */
+                    if (autoCloseLogfile) {
+#ifdef _DEBUG
+                        printf("Closing logfile immediately...\n");
+                        fflush(NULL);
+#endif
+                        
+                        fclose(logfileFP);
+                        logfileFP = NULL;
+                        currentLogFileName[0] = '\0';
+                    }
+                    
+                    /* Leave the file open.  It will be closed later after a period of inactivity. */
                 }
-                
-                /* Leave the file open.  It will be closed later after a period of inactivity. */
             }
         }
     }
@@ -1040,6 +1088,11 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
             /* No buffer yet. Allocate one to get started. */
             threadMessageBufferSize = 100;
             threadMessageBuffer = (char*)malloc( threadMessageBufferSize * sizeof(char) );
+            if (!threadMessageBuffer) {
+                printf("Out of memory is logging code (P1)\n");
+                threadMessageBufferSize = 0;
+                return;
+            }
         }
 
         /* Try writing to the buffer. */
@@ -1074,6 +1127,11 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
             }
 
             threadMessageBuffer = (char*)malloc( threadMessageBufferSize * sizeof(char) );
+            if (!threadMessageBuffer) {
+                printf("Out of memory is logging code (P2)\n");
+                threadMessageBufferSize = 0;
+                return;
+            }
 
             /* Always set the count to -1 so we will loop again. */
             count = -1;
@@ -1209,11 +1267,17 @@ int unregisterSyslogMessageFile( ) {
 void sendEventlogMessage( int source_id, int level, const char *szBuff ) {
 #ifdef WIN32
     char   header[16];
-    const char   **strings = (char **) malloc( 3 * sizeof( char * ) );
+    const char   **strings;
     WORD   eventType;
     HANDLE handle;
     WORD   eventID, categoryID;
     int    result;
+
+    strings = (char **) malloc( 3 * sizeof( char * ) );
+    if (!strings) {
+        printf("Out of memory is logging code (SEM1)\n");
+        return;
+    }
 
     /* Build the source header */
     switch( source_id ) {
@@ -1388,6 +1452,10 @@ void vWriteToConsole( char *lpszFmt, va_list vargs ) {
 
     if ( vWriteToConsoleBuffer == NULL ) {
         vWriteToConsoleBuffer = (char *)malloc( vWriteToConsoleBufferSize * sizeof(char) );
+        if (!vWriteToConsoleBuffer) {
+            printf("Out of memory is logging code (WTC1)\n");
+            return;
+        }
     }
 
     /* The only way I could figure out how to write to the console
@@ -1408,6 +1476,10 @@ void vWriteToConsole( char *lpszFmt, va_list vargs ) {
         free( vWriteToConsoleBuffer );
         vWriteToConsoleBufferSize += 100;
         vWriteToConsoleBuffer = (char *)malloc( vWriteToConsoleBufferSize * sizeof(char) );
+        if (!vWriteToConsoleBuffer) {
+            printf("Out of memory is logging code (WTC2)\n");
+            return;
+        }
     }
 
     /* We can now write the message. */
@@ -1430,6 +1502,10 @@ void rollLogs() {
     char rollNum[11];
     struct stat fileStat;
     int result;
+
+    if (!logFilePath) {
+        return;
+    }
     
     /* If the log file is currently open, it needs to be closed. */
     if (logfileFP != NULL) {
@@ -1561,6 +1637,10 @@ void limitLogFileCountHandleFile(const char *currentFile, const char *testFile, 
             fflush(NULL);
 #endif
             latestFiles[i] = malloc(sizeof(char) * (strlen(testFile) + 1));
+            if (!latestFiles[i]) {
+                printf("Out of memory is logging code (LLFCHF1)\n");
+                return;
+            }
             strcpy(latestFiles[i], testFile);
             return;
         } else {
@@ -1602,6 +1682,10 @@ void limitLogFileCountHandleFile(const char *currentFile, const char *testFile, 
                 fflush(NULL);
 #endif
                 latestFiles[i] = malloc(sizeof(char) * (strlen(testFile) + 1));
+                if (!latestFiles[i]) {
+                    printf("Out of memory is logging code (LLFCHF2)\n");
+                    return;
+                }
                 strcpy(latestFiles[i], testFile);
                 return;
             }
@@ -1643,16 +1727,28 @@ void limitLogFileCount(const char *current, const char *pattern, int count) {
 #endif
 
     latestFiles = malloc(sizeof(char *) * count);
+    if (!latestFiles) {
+        printf("Out of memory is logging code (LLFC1)\n");
+        return;
+    }
     for (i = 0; i < count; i++) {
         latestFiles[i] = NULL;
     }
     /* Set the first element to the current file so things will work correctly if it already
      *  exists. */
     latestFiles[0] = malloc(sizeof(char) * (strlen(current) + 1));
+    if (!latestFiles[0]) {
+        printf("Out of memory is logging code (LLFC2)\n");
+        return;
+    }
     strcpy(latestFiles[0], current);
 
 #ifdef WIN32
     path = malloc(sizeof(char) * (strlen(pattern) + 1));
+    if (!path) {
+        printf("Out of memory is logging code (LLFC3)\n");
+        return;
+    }
 
     /* Extract any path information from the beginning of the file */
     strcpy(path, pattern);
@@ -1673,6 +1769,10 @@ void limitLogFileCount(const char *current, const char *pattern, int count) {
         }
     } else {
         testFile = malloc(sizeof(char) * (strlen(path) + strlen(fblock.name) + 1));
+        if (!testFile) {
+            printf("Out of memory is logging code (LLFC4)\n");
+            return;
+        }
         sprintf(testFile, "%s%s", path, fblock.name);
         limitLogFileCountHandleFile(current, testFile, latestFiles, count);
         free(testFile);
@@ -1681,6 +1781,10 @@ void limitLogFileCount(const char *current, const char *pattern, int count) {
         /* Look for additional entries */
         while (_findnext(handle, &fblock) == 0) {
             testFile = malloc(sizeof(char) * (strlen(path) + strlen(fblock.name) + 1));
+            if (!testFile) {
+                printf("Out of memory is logging code (LLFC5)\n");
+                return;
+            }
             sprintf(testFile, "%s%s", path, fblock.name);
             limitLogFileCountHandleFile(current, testFile, latestFiles, count);
             free(testFile);
@@ -1868,6 +1972,10 @@ void log_printf_queue( int useQueue, int source_id, int level, const char *lpszF
      *  efficient than necessary. */
     do {
         buffer = malloc( sizeof( char ) * bufferSize );
+        if (!buffer) {
+            printf("Out of memory is logging code (PQ1)\n");
+            return;
+        }
 
         /* Before we can store the string, we need to know how much space is required to do so. */
         va_start( vargs, lpszFmt );
@@ -1986,3 +2094,4 @@ void maintainLogger() {
         }
     }
 }
+

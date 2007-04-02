@@ -708,11 +708,19 @@ int wrapperBuildJavaCommand() {
     }
 
     /* Allocate memory to hold array of command strings */
-    wrapperData->jvmCommand = malloc(sizeof(char *) * (length + 1)); 
+    wrapperData->jvmCommand = malloc(sizeof(char *) * (length + 1));
+    if (!wrapperData->jvmCommand) {
+        outOfMemory("WBJC", 1);
+        return TRUE;
+    }
     /*                        number of arguments + 1 for a NULL pointer at the end */
     for (i = 0; i <= length; i++) {
         if (i < length) {
             wrapperData->jvmCommand[i] = malloc(sizeof(char) * (strlen(strings[i]) + 1));
+            if (!wrapperData->jvmCommand[i]) {
+                outOfMemory("WBJC", 2);
+                return TRUE;
+            }
             strcpy(wrapperData->jvmCommand[i], strings[i]);
         } else {
             wrapperData->jvmCommand[i] = NULL;
@@ -990,12 +998,19 @@ char *childOutputBuffer = NULL;
 int childOutputBufferSize = 0;
 /**
  * Make sure there is enough space in the outputBuffer.
+ *
+ * return TRUE if there were any problems.
  */
-void ensureSpaceInChildOutputBuffer(int childOutputBufferPos, int requiredSpace) {
+int ensureSpaceInChildOutputBuffer(int childOutputBufferPos, int requiredSpace) {
     char *tempBuf;
     
     if ( childOutputBufferPos >= childOutputBufferSize - requiredSpace ) {
         tempBuf = malloc(sizeof(char) * (childOutputBufferSize + 1024));
+        if (!tempBuf) {
+            outOfMemory("ESICOB", 1);
+            return TRUE;
+        }
+
         if (childOutputBuffer != NULL) {
             /* Copy over the old data */
             memcpy(tempBuf, childOutputBuffer, childOutputBufferSize);
@@ -1006,6 +1021,8 @@ void ensureSpaceInChildOutputBuffer(int childOutputBufferPos, int requiredSpace)
         childOutputBuffer = tempBuf;
         childOutputBufferSize += 1024;
     }
+
+    return FALSE;
 }
 
 /**
@@ -1091,7 +1108,9 @@ int wrapperReadChildOutput() {
 
                 if (childOutputBufferPos > 0) {
                     /* We have a partial line, write it out so it is not lost. */
-                    ensureSpaceInChildOutputBuffer( childOutputBufferPos, 1 );
+                    if (ensureSpaceInChildOutputBuffer( childOutputBufferPos, 1 )) {
+                        return 0;
+                    }
                     childOutputBuffer[childOutputBufferPos] = '\0';
                     wrapperLogChildOutput(childOutputBuffer);
                     childOutputBufferPos = 0;
@@ -1107,7 +1126,9 @@ int wrapperReadChildOutput() {
             for (readBufPos = 0; readBufPos < bytesRead; readBufPos++) {
                 if (readBuf[readBufPos] == (char)0x0a) {
                     /* Line feed; write out buffer and reset it. */
-                    ensureSpaceInChildOutputBuffer( childOutputBufferPos, 1 );
+                    if (ensureSpaceInChildOutputBuffer( childOutputBufferPos, 1 )) {
+                        return 0;
+                    }
                     childOutputBuffer[childOutputBufferPos] = '\0';
                     wrapperLogChildOutput(childOutputBuffer);
                     childOutputBufferPos = 0;
@@ -1117,7 +1138,9 @@ int wrapperReadChildOutput() {
                         return -1;
                     }
                 } else {
-                    ensureSpaceInChildOutputBuffer( childOutputBufferPos, 2 );
+                    if (ensureSpaceInChildOutputBuffer( childOutputBufferPos, 2 )) {
+                        return 0;
+                    }
 
                     /* Add character to write buffer. */
                     childOutputBuffer[childOutputBufferPos++] = readBuf[readBufPos];
@@ -1385,6 +1408,8 @@ int main(int argc, char **argv) {
         appExit(1);
         return 1; /* For compiler. */
     }
+
+    wrapperVersionBanner();
 
     /* Change the working directory if configured to do so. */
     if (wrapperData->workingDir && wrapperSetWorkingDir(wrapperData->workingDir)) {

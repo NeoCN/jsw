@@ -90,7 +90,10 @@ int wrapperLockControlEventQueue() {
 }
 
 int wrapperReleaseControlEventQueue() {
-    pthread_mutex_unlock(&controlEventQueueMutex);
+    if (pthread_mutex_unlock(&controlEventQueueMutex)) {
+        printf("WrapperJNI Error: Failed to unlock the event queue mutex.\n");
+        fflush(NULL);
+    }
     return 0;
 }
 

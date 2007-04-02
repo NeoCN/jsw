@@ -338,8 +338,11 @@ extern void wrapperDispose();
 /**
  * Returns the file name base as a newly malloced char *.  The resulting
  *  base file name will have any path and extension stripped.
+ *
+ * baseName should be long enough to always contain the base name.
+ *  (strlen(fileName) + 1) is safe.
  */
-extern char *wrapperGetFileBase(const char *fileName);
+extern void wrapperGetFileBase(const char *fileName, char *baseName);
 
 /**
  * Output the version.

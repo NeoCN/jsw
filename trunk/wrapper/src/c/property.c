@@ -95,9 +95,13 @@ Property* getInnerProperty(Properties *properties, const char *propertyName) {
                 printf( "Unreplaced property %s=%s\n", property->name, property->value );
 #endif
                 oldValue = malloc(strlen(property->value) + 1);
-                strcpy(oldValue, property->value);
-                setInnerProperty(property, oldValue);
-                free(oldValue);
+                if (!oldValue) {
+                    outOfMemory("GIP", 1);
+                } else {
+                    strcpy(oldValue, property->value);
+                    setInnerProperty(property, oldValue);
+                    free(oldValue);
+                }
 #ifdef _DEBUG
                 printf( "        -> property %s=%s\n", property->name, property->value );
 #endif
@@ -157,6 +161,10 @@ Property* createInnerProperty() {
     Property *property;
 
     property = malloc(sizeof(Property));
+    if (!property) {
+        outOfMemory("CIP", 1);
+        return NULL;
+    }
     property->name = NULL;
     property->next = NULL;
     property->previous = NULL;
@@ -324,23 +332,26 @@ void setInnerProperty(Property *property, const char *propertyValue) {
         evaluateEnvironmentVariables(propertyValue, buffer, MAX_PROPERTY_VALUE_LENGTH);
 
         property->value = malloc(sizeof(char) * (strlen(buffer) + 1));
-
-        /* Strip any non valid characters like control characters. Some valid characters are
-         *  less than 0 when the char is unsigned. */
-        for (i = 0, count = 0; i < (int)strlen(buffer); i++) {
-            /* Only add valid chars, skip control chars.  We want all chars other than those
-             *  in the range 1..31.  0 is not possible as that would be end of the string.
-             *  On most platforms, char is signed, but on PowerPC, it is unsigned.  This
-             *  means that any comparison such as >= 0 will cause a compiler error as that
-             *  would always be true.
-             * The logic below is to get the correct behavior in either case assuming no 0. */
-            if ((buffer[i] < 1) || (buffer[i] > 31)) {
-                property->value[count++] = buffer[i];
+        if (!property->value) {
+            outOfMemory("SIP", 1);
+        } else {
+            /* Strip any non valid characters like control characters. Some valid characters are
+             *  less than 0 when the char is unsigned. */
+            for (i = 0, count = 0; i < (int)strlen(buffer); i++) {
+                /* Only add valid chars, skip control chars.  We want all chars other than those
+                 *  in the range 1..31.  0 is not possible as that would be end of the string.
+                 *  On most platforms, char is signed, but on PowerPC, it is unsigned.  This
+                 *  means that any comparison such as >= 0 will cause a compiler error as that
+                 *  would always be true.
+                 * The logic below is to get the correct behavior in either case assuming no 0. */
+                if ((buffer[i] < 1) || (buffer[i] > 31)) {
+                    property->value[count++] = buffer[i];
+                }
             }
+    
+            /* Crop string to new size */
+            property->value[count] = '\0';
         }
-
-        /* Crop string to new size */
-        property->value[count] = '\0';
     }
 }
 
@@ -480,6 +491,10 @@ int loadProperties(Properties *properties, const char* filename) {
 
 Properties* createProperties() {
     Properties *properties = malloc(sizeof(Properties));
+    if (!properties) {
+        outOfMemory("CP", 1);
+        return NULL;
+    }
     properties->first = NULL;
     properties->last = NULL;
     return properties;
@@ -548,9 +563,13 @@ void setEnv( const char *name, const char *value )
      *  this memory so it is not freed after we set it. We only call this on
      *  startup, so the leak is minor. */
     envBuf = malloc(sizeof(char) * (strlen(name) + strlen(value) + 2));
-    sprintf(envBuf, "%s=%s", name, value);
-    if (putenv(envBuf)) {
-        printf("Unable to set environment variable: %s\n", envBuf);
+    if (!envBuf) {
+        outOfMemory("SE", 1);
+    } else {
+        sprintf(envBuf, "%s=%s", name, value);
+        if (putenv(envBuf)) {
+            printf("Unable to set environment variable: %s\n", envBuf);
+        }
     }
 }
 
@@ -597,8 +616,16 @@ void addProperty(Properties *properties, const char *propertyName, const char *p
 
     /* It is possible that the propertyName and or properyValue contains extra spaces. */
     propertyNameTrim = malloc(sizeof(char) * (strlen(propertyName) + 1));
+    if (!propertyNameTrim) {
+        outOfMemory("AP", 1);
+        return;
+    }
     trim(propertyName, propertyNameTrim);
     propertyValueTrim = malloc(sizeof(char) * (strlen(propertyValue) + 1));
+    if (!propertyValueTrim) {
+        outOfMemory("AP", 2);
+        return;
+    }
     trim(propertyValue, propertyValueTrim);
 
 #ifdef _DEBUG
@@ -612,9 +639,16 @@ void addProperty(Properties *properties, const char *propertyName, const char *p
     if (property == NULL) {
         /* This is a new property */
         property = createInnerProperty();
+        if (!property) {
+            return;
+        }
 
         /* Store a copy of the name */
         property->name = malloc(sizeof(char) * (strlen(propertyNameTrim) + 1));
+        if (!property->name) {
+            outOfMemory("AP", 3);
+            return;
+        }
         strcpy(property->name, propertyNameTrim);
 
         /* Insert this property at the correct location. */
@@ -830,6 +864,10 @@ char *linearizeProperties(Properties *properties, char separator) {
     
     /* Now that we know how much space this will all take up, allocate a buffer. */
     fullBuffer = buffer = malloc(size);
+    if (!fullBuffer) {
+        outOfMemory("LP", 1);
+        return NULL;
+    }
     
     /* Now actually build up the output.  Any separator characters need to be escaped with themselves. */
     property = properties->first;
