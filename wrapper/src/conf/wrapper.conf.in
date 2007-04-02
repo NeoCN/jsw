@@ -1,3 +1,16 @@
+#********************************************************************
+# Wrapper License Properties (Ignored by Community Edition)
+#********************************************************************
+wrapper.license.licensee=Tanuki Software Sample
+wrapper.license.type=FIXED
+wrapper.license.host-id=01-23-45-67-89-ab
+wrapper.license.upgrade-term.begin=2007-01-01
+wrapper.license.upgrade-term.end=2008-01-01
+wrapper.license.features=
+wrapper.license.key.1=1234-5678-90ab-cdef
+wrapper.license.key.2=1234-5678-90ab-cdef
+wrapper.license.key.3=1234-5678-90ab-cdef
+wrapper.license.key.4=1234-5678-90ab-cdef
 
 #********************************************************************
 # Wrapper Java Properties

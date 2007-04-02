@@ -234,6 +234,8 @@ public class Main
             buildCommand( panel, gridBag, c, "Service User Code", "service_user", "Sends a series of user codes to the above service." );
             
             buildCommand( panel, gridBag, c, "GC", "gc", "Performs a GC sweep." );
+            
+            buildCommand( panel, gridBag, c, "Is Professional?", "is_professional", "Prints true if this is a Professional Edition." );
         }
         
         private void buildCommand( Container container,

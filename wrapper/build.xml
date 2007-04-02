@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE project PUBLIC "-//ANT//DTD project//EN" "project.dtd">
 
 <!-- ======================================================================= -->
 <!-- Wrapper build file                                                      -->
@@ -183,19 +182,19 @@
         </condition>
         
         <!-- Generate the release-file base. -->
-        <property name="releasefile" value="wrapper-${dist.os}-${dist.arch}-${bits}-${version}"/>
+        <property name="releasefile" value="${name}-${dist.os}-${dist.arch}-${bits}-${version}"/>
     </target>
     <target name="init-windows" depends="init-setup" if="is.windows">
         <!-- Decide on the type of script to generate. -->
         <property name="is.shell.bat" value="true"/>
         
         <!-- Decide on binary names -->
-        <property name="wrapper.bin.name" value="wrapper.exe"/>
-        <property name="wrapper.bin.long.name" value="wrapper-${dist.os}-${dist.arch}-${bits}.exe"/>
+        <property name="wrapper.bin.name" value="${name}.exe"/>
+        <property name="wrapper.bin.long.name" value="${name}-${dist.os}-${dist.arch}-${bits}.exe"/>
         
         <!-- Decide on library names -->
-        <property name="wrapper.lib.name" value="wrapper.dll"/>
-        <property name="wrapper.lib.long.name" value="wrapper-${dist.os}-${dist.arch}-${bits}.dll"/>
+        <property name="wrapper.lib.name" value="${name}.dll"/>
+        <property name="wrapper.lib.long.name" value="${name}-${dist.os}-${dist.arch}-${bits}.dll"/>
 
         <!-- Decide on the script that will be used to configure the Visual Studio environment. -->
         <condition property="vcvars.bat" value="${vcvars.v6_32_1}">
@@ -276,8 +275,8 @@
         <property name="is.shell.sh" value="true"/>
         
         <!-- Decide on binary names -->
-        <property name="wrapper.bin.name" value="wrapper"/>
-        <property name="wrapper.bin.long.name" value="wrapper-${dist.os}-${dist.arch}-${bits}"/>
+        <property name="wrapper.bin.name" value="${name}"/>
+        <property name="wrapper.bin.long.name" value="${name}-${dist.os}-${dist.arch}-${bits}"/>
         
         <!-- Decide on library names -->
         <condition property="wrapper.lib.extension" value="a">
@@ -290,8 +289,8 @@
             <isset property="is.macosx"/>
         </condition>
         <property name="wrapper.lib.extension" value="so"/>
-        <property name="wrapper.lib.name" value="libwrapper.${wrapper.lib.extension}"/>
-        <property name="wrapper.lib.long.name" value="libwrapper-${dist.os}-${dist.arch}-${bits}.${wrapper.lib.extension}"/>
+        <property name="wrapper.lib.name" value="lib${name}.${wrapper.lib.extension}"/>
+        <property name="wrapper.lib.long.name" value="lib${name}-${dist.os}-${dist.arch}-${bits}.${wrapper.lib.extension}"/>
         
         <!-- Decide on the tool used to run make -->
         <condition property="make.name" value="gmake">
@@ -340,6 +339,7 @@
         
         <tstamp/>
         <filter token="version"           value="${version}"       />
+        <filter token="version.root"      value="${version.root}"  />
         <filter token="bits"              value="${bits}"          />
         <filter token="dist.arch"         value="${dist.arch}"     />
         <filter token="dist.os"           value="${dist.os}"       />
@@ -354,7 +354,7 @@
     </target>
     <target name="init:msg" depends="init">
         <echo message="**********************************************************************"/>
-        <echo message="* About to build a ${bits}-bit version of the Java Service Wrapper ${version}."/>
+        <echo message="* About to build a ${bits}-bit version of Java Service Wrapper Community ${version}."/>
         <echo message="* The OS Name is &quot;${dist.os}&quot;, resolved from &quot;${os.name}&quot;."/>
         <echo message="* The Architecture is &quot;${dist.arch}&quot;, resolved from &quot;${os.arch}&quot;."/>
         <echo message="* The distribution name will be: ${releasefile}"/>
