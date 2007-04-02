@@ -386,6 +386,17 @@ public final class WrapperManager
                 + Thread.currentThread().getName()
                 + "  Using classloader: " + WrapperManager.class.getClassLoader() );
         }
+
+        String baseName = System.getProperty( "wrapper.native_library" );
+        String product;
+        if ( baseName.indexOf( "-pro" ) >= 0 )
+        {
+            product = "Professional";
+        }
+        else
+        {
+            product = "Community";
+        }
         
         //
         // WARNING - The following banner is displayed to inform the user that they
@@ -396,8 +407,9 @@ public final class WrapperManager
         //           If you are here then you are benefiting from this project,
         //           please have the courtesy to respect its license.
         // These messages are a special case that do not get the standard Info level header.
-        m_out.println( "Wrapper (Version " + getVersion() + ") http://wrapper.tanukisoftware.org" );
-        m_out.println( "  Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved." );
+        m_out.println( "Wrapper " + product + " Edition (Version " + getVersion() + ")" );
+        m_out.println( "  Copyright 1999, 2007 Tanuki Software, Inc.  All Rights Reserved." );
+        m_out.println( "    http://wrapper.tanukisoftware.org" );
         m_out.println();
         
         // Check for the jvmID
