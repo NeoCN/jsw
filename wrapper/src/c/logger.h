@@ -127,6 +127,8 @@ extern void setConsoleStdoutHandle( HANDLE stdoutHandle );
 #define strcmpIgnoreCase(str1, str2) strcasecmp(str1, str2)
 #endif
 
+extern void outOfMemory(const char *context, int id);
+
 /* * Logfile functions * */
 extern void setLogfilePath( const char *log_file_path );
 extern int getLogfileRollModeForName( const char *logfileRollName );

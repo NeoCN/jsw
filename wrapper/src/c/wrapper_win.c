@@ -156,7 +156,7 @@ void loadDLLProcs() {
 /**
  * Builds an array in memory of the system path.
  */
-void buildSystemPath() {
+int buildSystemPath() {
     char *envBuffer;
     size_t len, i;
     char *c, *lc;
@@ -164,13 +164,17 @@ void buildSystemPath() {
     /* Get the length of the PATH environment variable. */
     len = GetEnvironmentVariable("PATH", NULL, 0);
     if (len == 0) {
-        /* PATH not set on this system */
+        /* PATH not set on this system.  Not an error. */
         systemPath[0] = NULL;
-        return;
+        return 0;
     }
 
     /* Allocate the memory to hold the PATH */
     envBuffer = malloc(sizeof(char) * len);
+    if (!envBuffer) {
+        outOfMemory("BSP", 1);
+        return 1;
+    }
     GetEnvironmentVariable("PATH", envBuffer, (DWORD)len);
 
 #ifdef _DEBUG
@@ -187,6 +191,11 @@ void buildSystemPath() {
     {
         len = (int)(c - lc);
         systemPath[i] = malloc(sizeof(char) * (len + 1));
+        if (!systemPath[i]) {
+            outOfMemory("BSP", 2);
+            return 1;
+        }
+
         memcpy(systemPath[i], lc, len);
         systemPath[i][len] = '\0';
 #ifdef _DEBUG
@@ -198,6 +207,10 @@ void buildSystemPath() {
     /* There should be one more value after the last ';' */
     len = strlen(lc);
     systemPath[i] = malloc(sizeof(char) * (len + 1));
+    if (!systemPath[i]) {
+        outOfMemory("BSP", 3);
+        return 1;
+    }
     strcpy(systemPath[i], lc);
 #ifdef _DEBUG
     printf("PATH[%d]=%s\n", i, systemPath[i]);
@@ -212,6 +225,8 @@ void buildSystemPath() {
 
     /* Release the environment variable memory. */
     free(envBuffer);
+
+    return 0;
 }
 char** wrapperGetSystemPath() {
     return systemPath;
@@ -226,6 +241,10 @@ int initInvocationMutex() {
     char *mutexName;
     if (wrapperData->isSingleInvocation) {
         mutexName = malloc(sizeof(char) * (23 + strlen(wrapperData->ntServiceName) + 1));
+        if (!mutexName) {
+            outOfMemory("IIM", 1);
+            return 1;
+        }
         sprintf(mutexName, "Java Service Wrapper - %s", wrapperData->ntServiceName);
         
         if (!(invocationMutexHandle = CreateMutex(NULL, FALSE, mutexName))) {
@@ -634,6 +653,10 @@ int wrapperBuildJavaCommand() {
 
     /* Build the actual command */
     wrapperData->jvmCommand = malloc(sizeof(char) * commandLen);
+    if (!wrapperData->jvmCommand) {
+        outOfMemory("WBJC", 1);
+        return TRUE;
+    }
     commandLen = 0;
     for (i = 0; i < length; i++) {
         if (i > 0) {
@@ -1036,7 +1059,7 @@ int wrapperReadChildOutput() {
          *  This is so that we can always add a \0 to the end of it. */
         wrapperChildStdoutRdBuffer = malloc(sizeof(CHAR) * (READ_BUFFER_BLOCK_SIZE + 1));
         if (!wrapperChildStdoutRdBuffer) {
-         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Out of memory allocating child read buffer.");
+            outOfMemory("WRCO", 1);
             return 0;
         }
         wrapperChildStdoutRdBufferSize = READ_BUFFER_BLOCK_SIZE + 1;
@@ -1077,6 +1100,10 @@ int wrapperReadChildOutput() {
                 wrapperChildStdoutRdBufferSize, wrapperChildStdoutRdBufferSize + READ_BUFFER_BLOCK_SIZE);
             */
             newBuffer = malloc(sizeof(char) * (wrapperChildStdoutRdBufferSize + READ_BUFFER_BLOCK_SIZE));
+            if (!newBuffer) {
+                outOfMemory("WRCO", 2);
+                return 0;
+            }
             strcpy(newBuffer, wrapperChildStdoutRdBuffer);
             bufferP = newBuffer + (bufferP - wrapperChildStdoutRdBuffer);
             free(wrapperChildStdoutRdBuffer);
@@ -1995,6 +2022,11 @@ char *readPassword() {
     int cnt = 0;
     
     buffer = malloc(sizeof(char) * 65);
+    if (!buffer) {
+        outOfMemory("RP", 1);
+        appExit(0);
+        return NULL;
+    }
     buffer[0] = 0;
     
     do {
@@ -2277,7 +2309,9 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath) {
 #endif
                     /* Found an environment variable in the registry.  Set it to the current environment. */
                     envKeys[dwIndex] = malloc(MAX_PROPERTY_NAME_LENGTH - 1 + MAX_PROPERTY_VALUE_LENGTH - 1 + 2);
-                    if (envKeys[dwIndex] != NULL) {
+                    if (!envKeys[dwIndex]) {
+                        outOfMemory("WLEFRI", 1);
+                    } else {
                         sprintf(envKeys[dwIndex], "%s=%s", name, data);
                         if (_putenv(envKeys[dwIndex])) {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to set environment variable from the registry - %s", getLastErrorText());
@@ -2491,6 +2525,11 @@ int wrapperGetJavaHomeFromWindowsRegistry(char *javaHome) {
             return 0;
         }
         value = malloc(valueSize);
+        if (!value) {
+            outOfMemory("WGJFWR", 1);
+            RegCloseKey(openHKey);
+            return 0;
+        }
         if (RegQueryValueEx(openHKey, valueKey, NULL, &valueType, value, &valueSize) != ERROR_SUCCESS) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 "Unable to access configured registry location %s - (%d)", prop, errno);
@@ -2551,6 +2590,11 @@ int wrapperGetJavaHomeFromWindowsRegistry(char *javaHome) {
             return 0;
         }
         value = malloc(valueSize);
+        if (!value) {
+            outOfMemory("WGJFWR", 2);
+            RegCloseKey(openHKey);
+            return 0;
+        }
         if (RegQueryValueEx(openHKey, "JavaHome", NULL, &valueType, value, &valueSize) != ERROR_SUCCESS) {
             RegCloseKey(openHKey);
             return 0;
@@ -3078,6 +3122,11 @@ int wrapperServiceStatus(int consoleOutput) {
             /* Get the service configuration. */
             QueryServiceConfig(schService, NULL, 0, &reqSize);
             pQueryServiceConfig = malloc(reqSize);
+            if (!pQueryServiceConfig) {
+                outOfMemory("WSS", 1);
+                CloseServiceHandle(schSCManager);
+                return 0;
+            }
             if (QueryServiceConfig(schService, pQueryServiceConfig, reqSize, &reqSize)) {
                 switch (pQueryServiceConfig->dwStartType) {
                 case SERVICE_BOOT_START:   /* Possible? */
@@ -3239,14 +3288,30 @@ int wrapperRemove() {
  * Sets the working directory to that of the current executable
  */
 int setWorkingDir() {
-    char szPath[512];
+    int size = 128;
+    char* szPath = NULL;
+    int result;
     char* pos;
-    
-    /* Get the full path and filename of this program */
-    if (GetModuleFileName(NULL, szPath, 512) == 0){
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to get the path-%s", getLastErrorText());
-        return 1;
-    }
+   
+    /* How large a buffer is needed? The GetModuleFileName function doesn't tell us how much
+     *  is needed, only if it is too short. */
+    do {
+        szPath = malloc(sizeof(TCHAR) * size);
+        if (!szPath) {
+            outOfMemory("SWD", 1);
+            return 1;
+        }
+        result = GetModuleFileName(NULL, szPath, size);
+        if (result <= 0) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to get the path-%s", getLastErrorText());
+            return 1;
+        } else if (result >= size) {
+            /* Too small. */
+            size += 128;
+            free(szPath);
+            szPath = NULL;
+        }
+    } while (!szPath);
 
     /* The wrapperData->isDebugging flag will never be set here, so we can't really use it. */
 #ifdef _DEBUG
@@ -3257,13 +3322,17 @@ int setWorkingDir() {
     pos = strrchr(szPath, '\\');
     if (pos == NULL) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to extract path from: %s", szPath);
+        free(szPath);
         return 1;
     } else {
         /* Clip the path at the position of the last backslash */
         pos[0] = (char)0;
     }
 
-    return wrapperSetWorkingDir(szPath);
+    result = wrapperSetWorkingDir(szPath);
+    free(szPath);
+
+    return result;
 }
 
 /******************************************************************************
@@ -3353,7 +3422,9 @@ int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
     exName = getExceptionName(exCode);
     if (exName == NULL) {
         exName = malloc(sizeof(char) * 64);  /* Let this leak.  It only happens once before shutdown. */
-        sprintf(exName, "Unknown Exception (%ld)", exCode);
+        if (exName) {
+            sprintf(exName, "Unknown Exception (%ld)", exCode);
+        }
     }
 
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "  exceptionCode    = %s", exName);
@@ -3363,10 +3434,10 @@ int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
     if (exCode == EXCEPTION_ACCESS_VIOLATION) {
         if (exceptionPointers->ExceptionRecord->ExceptionInformation[0] == 0) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "  Read access exception from %p", 
-                (int)exceptionPointers->ExceptionRecord->ExceptionInformation[1]);
+                exceptionPointers->ExceptionRecord->ExceptionInformation[1]);
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "  Write access exception to %p", 
-                (int)exceptionPointers->ExceptionRecord->ExceptionInformation[1]);
+                exceptionPointers->ExceptionRecord->ExceptionInformation[1]);
         }
     } else {
         for (i = 0; i < (int)exceptionPointers->ExceptionRecord->NumberParameters; i++) {
@@ -3391,7 +3462,10 @@ void main(int argc, char **argv) {
      * the table; */
     SERVICE_TABLE_ENTRY serviceTable[2];
 
-    buildSystemPath();
+    if (buildSystemPath()) {
+        appExit(1);
+        return; /* For clarity. */
+    }
 
     if (wrapperInitialize()) {
         appExit(1);

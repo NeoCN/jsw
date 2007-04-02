@@ -173,6 +173,10 @@ int wrapperLoadConfigurationProperties() {
             return 1;
         }
         wrapperData->configFile = malloc(sizeof(char) * work);
+        if (!wrapperData->configFile) {
+            outOfMemory("WLCP", 1);
+            return 1;
+        }
         if (!GetFullPathName(wrapperData->argConfFile, work, wrapperData->configFile, &filePart)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Unable to resolve the full path of the configuration file, %s: %s",
@@ -184,6 +188,10 @@ int wrapperLoadConfigurationProperties() {
          *  path is provided.  We always need an abosulte path here.  So build up one and
          *  then use realpath to remove any .. or other relative references. */
         wrapperData->configFile = malloc(PATH_MAX);
+        if (!wrapperData->configFile) {
+            outOfMemory("WLCP", 2);
+            return 1;
+        }
         if (realpath(wrapperData->argConfFile, wrapperData->configFile) == NULL) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Unable to resolve the full path of the configuration file, %s: %s",
@@ -201,6 +209,10 @@ int wrapperLoadConfigurationProperties() {
             return 1;
         }
         wrapperData->originalWorkingDir = malloc(sizeof(char) * work);
+        if (!wrapperData->originalWorkingDir) {
+            outOfMemory("WLCP", 3);
+            return 1;
+        }
         if (!GetFullPathName(".", work, wrapperData->originalWorkingDir, &filePart)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Unable to resolve the original working directory: %s", getLastErrorText());
@@ -211,6 +223,10 @@ int wrapperLoadConfigurationProperties() {
          *  path is provided.  We always need an abosulte path here.  So build up one and
          *  then use realpath to remove any .. or other relative references. */
         wrapperData->originalWorkingDir = malloc(PATH_MAX);
+        if (!wrapperData->originalWorkingDir) {
+            outOfMemory("WLCP", 4);
+            return 1;
+        }
         if (realpath(".", wrapperData->originalWorkingDir) == NULL) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Unable to resolve the original working directory: %s", getLastErrorText());
@@ -221,6 +237,9 @@ int wrapperLoadConfigurationProperties() {
 
     /* Create a Properties structure. */
     properties = createProperties();
+    if (!properties) {
+        return 1;
+    }
     wrapperAddDefaultProperties();
 
     /* The argument prior to the argBase will be the configuration file, followed
@@ -277,6 +296,10 @@ int wrapperLoadConfigurationProperties() {
                 return 1;
             }
             wrapperData->workingDir = malloc(sizeof(char) * work);
+            if (!wrapperData->workingDir) {
+                outOfMemory("WLCP", 5);
+                return 1;
+            }
             if (!GetFullPathName(prop, work, wrapperData->workingDir, &filePart)) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                     "Unable to resolve the working directory %s: %s", prop, getLastErrorText());
@@ -287,6 +310,10 @@ int wrapperLoadConfigurationProperties() {
              *  path is provided.  We always need an abosulte path here.  So build up one and
              *  then use realpath to remove any .. or other relative references. */
             wrapperData->workingDir = malloc(PATH_MAX);
+            if (!wrapperData->workingDir) {
+                outOfMemory("WLCP", 6);
+                return 1;
+            }
             if (realpath(prop, wrapperData->workingDir) == NULL) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                     "Unable to resolve the working directory %s: %s", prop, getLastErrorText());
@@ -737,6 +764,10 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const char *messa
             free(protocolSendBuffer);
         }
         protocolSendBuffer = malloc(len);
+        if (!protocolSendBuffer) {
+            outOfMemory("WPF", 1);
+            return -1;
+        }
     }
 
     if (sd == INVALID_SOCKET) {
@@ -978,6 +1009,10 @@ int wrapperInitialize() {
      *  set below, but this extra step will protect against future changes.  Some
      *  platforms appear to initialize maloc'd memory to 0 while others do not. */
     wrapperData = malloc(sizeof(WrapperConfig));
+    if (!wrapperData) {
+        outOfMemory("WI", 1);
+        return 1;
+    }
     memset(wrapperData, 0, sizeof(WrapperConfig));
     /* Setup the initial values of required properties. */
     wrapperData->configured = FALSE;
@@ -1039,12 +1074,14 @@ void wrapperDispose()
 /**
  * Returns the file name base as a newly malloced char *.  The resulting
  *  base file name will have any path and extension stripped.
+ *
+ * baseName should be long enough to always contain the base name.
+ *  (strlen(fileName) + 1) is safe.
  */
-char *wrapperGetFileBase(const char *fileName) {
+void wrapperGetFileBase(const char *fileName, char *baseName) {
     const char *start;
     const char *end;
     const char *c;
-    char *base;
 
     start = fileName;
     end = &fileName[strlen(fileName)];
@@ -1066,25 +1103,31 @@ char *wrapperGetFileBase(const char *fileName) {
     }
 
     /* Now create the new base name. */
-    base = malloc((end - start + 1) * sizeof(char));
-    memcpy(base, start, end - start);
-    base[end - start] = '\0';
-
-    return base;
+    memcpy(baseName, start, end - start);
+    baseName[end - start] = '\0';
 }
 
 /**
  * Output the version.
  */
 void wrapperVersionBanner() {
-    printf("Wrapper (Version %s) http://wrapper.tanukisoftware.org\n", wrapperVersion);
+    printf("Wrapper Community Edition (Version %s)\n", wrapperVersion);
+    printf("  Copyright 1999, 2007 Tanuki Software, Inc.  All Rights Reserved.\n");
+    printf("    http://wrapper.tanukisoftware.org\n");
 }
 
 /**
  * Output the application usage.
  */
 void wrapperUsage(char *appName) {
-    char *confFileBase = wrapperGetFileBase(appName);
+    char *confFileBase;
+
+    confFileBase = malloc(strlen(appName) + 1);
+    if (!confFileBase) {
+        outOfMemory("WU", 1);
+        return;
+    }
+    wrapperGetFileBase(appName, confFileBase);
 
     wrapperVersionBanner();
     printf("\n");
@@ -1122,6 +1165,8 @@ void wrapperUsage(char *appName) {
     printf("  in wrapper.conf.  For example:\n");
     printf("  wrapper.debug=true\n");
     printf("\n");
+
+    free(confFileBase);
 }
 
 /**
@@ -1152,12 +1197,25 @@ int wrapperParseArguments(int argc, char **argv) {
             } else {
                 /* Syntax 3 */
                 /* Only a command was specified.  Assume a default config file name. */
-                argConfFileBase = wrapperGetFileBase(argv[0]);
-                wrapperData->argConfFile = malloc((strlen(argConfFileBase) + 4 + 1) * sizeof(char));
+                argConfFileBase = malloc(strlen(argv[0]) + 1);
+                if (!argConfFileBase) {
+                    outOfMemory("WPA", 1);
+                    return FALSE;
+                }
+                wrapperGetFileBase(argv[0], argConfFileBase);
+
+                /* The following malloc is only called once, but is never freed. */
+                wrapperData->argConfFile = malloc((strlen(argConfFileBase) + 5 + 1) * sizeof(char));
+                if (!wrapperData->argConfFile) {
+                    outOfMemory("WPA", 2);
+                    free(argConfFileBase);
+                    return FALSE;
+                }
                 sprintf(wrapperData->argConfFile, "%s.conf", argConfFileBase);
                 wrapperData->argConfFileDefault = TRUE;
                 wrapperData->argCount = argc - 2;
                 wrapperData->argValues = &argv[2];
+                free(argConfFileBase);
             }
         } else {
             /* Syntax 2 */
@@ -1172,12 +1230,25 @@ int wrapperParseArguments(int argc, char **argv) {
         /* A config file was not specified.  Assume a default config file name. */
         wrapperData->argCommand = "c";
 
-        argConfFileBase = wrapperGetFileBase(argv[0]);
-        wrapperData->argConfFile = malloc((strlen(argConfFileBase) + 4 + 1) * sizeof(char));
+        argConfFileBase = malloc(strlen(argv[0]) + 1);
+        if (!argConfFileBase) {
+            outOfMemory("WPA", 3);
+            return FALSE;
+        }
+        wrapperGetFileBase(argv[0], argConfFileBase);
+
+        /* The following malloc is only called once, but is never freed. */
+        wrapperData->argConfFile = malloc((strlen(argConfFileBase) + 5 + 1) * sizeof(char));
+        if (!wrapperData->argConfFile) {
+            outOfMemory("WPA", 4);
+            free(argConfFileBase);
+            return FALSE;
+        }
         sprintf(wrapperData->argConfFile, "%s.conf", argConfFileBase);
         wrapperData->argConfFileDefault = TRUE;
         wrapperData->argCount = argc - 1;
         wrapperData->argValues = &argv[1];
+        free(argConfFileBase);
     }
 
     return TRUE;
@@ -1228,9 +1299,11 @@ void sendProperties()
     char *buffer;
     
     buffer = linearizeProperties(properties, '\t');
-    wrapperProtocolFunction(FALSE, WRAPPER_MSG_PROPERTIES, buffer);
-    
-    free(buffer);
+    if (buffer) {
+        wrapperProtocolFunction(FALSE, WRAPPER_MSG_PROPERTIES, buffer);
+        
+        free(buffer);
+    }
 }
 
 /**
@@ -1571,7 +1644,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     char paramBuffer2[128];
     int quotable;
     int i, j;
-    size_t len2;
+    size_t len, len2;
     size_t cpLen, cpLenAlloc;
     char *tmpString;
     struct stat statBuffer;
@@ -1580,7 +1653,6 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 #ifdef WIN32
     char cpPath[512];
     intptr_t handle;
-    size_t len;
     int found;
     struct _finddata_t fblock;
 #else
@@ -1652,6 +1724,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 
         if (found) {
             strings[index] = malloc(sizeof(char) * (strlen(cpPath) + 2 + 1));
+            if (!strings[index]) {
+                outOfMemory("WBJCAI", 1);
+                return -1;
+            }
             if (addQuotes) {
                 sprintf(strings[index], "\"%s\"", cpPath);
             } else {
@@ -1659,6 +1735,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             }
         } else {
             strings[index] = malloc(sizeof(char) * (strlen(prop) + 2 + 1));
+            if (!strings[index]) {
+                outOfMemory("WBJCAI", 2);
+                return -1;
+            }
             if (addQuotes) {
                 sprintf(strings[index], "\"%s\"", prop);
             } else {
@@ -1673,6 +1753,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 #else /* UNIX */
 
         strings[index] = malloc(sizeof(char) * (strlen(prop) + 2 + 1));
+        if (!strings[index]) {
+            outOfMemory("WBJCAI", 3);
+            return -1;
+        }
         if (addQuotes) {
             sprintf(strings[index], "\"%s\"", prop);
         } else {
@@ -1708,6 +1792,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                             "The value of property '%s', '%s' is not a valid argument to the jvm.  Skipping.",
                             paramBuffer, prop );
                         strings[index] = malloc(sizeof(char) * 1);
+                        if (!strings[index]) {
+                            outOfMemory("WBJCAI", 4);
+                            return -1;
+                        }
                         strings[index][0] = '\0';
                     } else {
                         quotable = isQuotableProperty(properties, paramBuffer);
@@ -1719,6 +1807,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         }
                         if (stripQuote) {
                             propStripped = malloc(sizeof(char) * (strlen(prop) + 1));
+                            if (!propStripped) {
+                                outOfMemory("WBJCAI", 5);
+                                return -1;
+                            }
                             wrapperStripQuotes(prop, propStripped);
                         } else {
                             propStripped = (char *)prop;
@@ -1727,9 +1819,17 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         if (addQuotes && quotable && strchr(propStripped, ' ')) {
                             len = quoteValue(propStripped, NULL, 0);
                             strings[index] = malloc(len);
+                            if (!strings[index]) {
+                                outOfMemory("WBJCAI", 6);
+                                return -1;
+                            }
                             quoteValue(propStripped, strings[index], len);
                         } else {
                             strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1));
+                            if (!strings[index]) {
+                                outOfMemory("WBJCAI", 7);
+                                return -1;
+                            }
                             sprintf(strings[index], "%s", propStripped);
                         }
 
@@ -1760,6 +1860,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         initMemory = __max(initMemory, 1); /* 1 <= n */
         if (strings) {
             strings[index] = malloc(sizeof(char) * (5 + 4 + 1));  /* Allow up to 4 digits. */
+            if (!strings[index]) {
+                outOfMemory("WBJCAI", 8);
+                return -1;
+            }
             sprintf(strings[index], "-Xms%dm", initMemory);
         }
         index++;
@@ -1774,6 +1878,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         maxMemory = __max(maxMemory, initMemory);  /* initMemory <= n */
         if (strings) {
             strings[index] = malloc(sizeof(char) * (5 + 4 + 1));  /* Allow up to 4 digits. */
+            if (!strings[index]) {
+                outOfMemory("WBJCAI", 9);
+                return -1;
+            }
             sprintf(strings[index], "-Xmx%dm", maxMemory);
         }
         index++;
@@ -1818,6 +1926,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
              *  before the quote. */
             if (systemPath) {
                 strings[index] = malloc(sizeof(char) * (22 + strlen(prop) + 1 + strlen(systemPath) + 1 + 1));
+                if (!strings[index]) {
+                    outOfMemory("WBJCAI", 10);
+                    return -1;
+                }
                 if (addQuotes) {
                     if ((strlen(systemPath) > 1) && (systemPath[strlen(systemPath) - 1] == '\\')) {
                         sprintf(strings[index], "-Djava.library.path=\"%s%c%s\\\"", prop, wrapperClasspathSeparator, systemPath);
@@ -1829,6 +1941,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                 }
             } else {
                 strings[index] = malloc(sizeof(char) * (22 + strlen(prop) + 1 + 1));
+                if (!strings[index]) {
+                    outOfMemory("WBJCAI", 11);
+                    return -1;
+                }
                 if (addQuotes) {
                     if ((strlen(prop) > 1) && (prop[strlen(prop) - 1] == '\\')) {
                         sprintf(strings[index], "-Djava.library.path=\"%s\\\"", prop);
@@ -1848,6 +1964,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             cpLen = 0;
             cpLenAlloc = 1024;
             strings[index] = malloc(sizeof(char) * cpLenAlloc);
+            if (!strings[index]) {
+                outOfMemory("WBJCAI", 12);
+                return -1;
+            }
             
             /* Start with the property value. */
             sprintf(&(strings[index][cpLen]), "-Djava.library.path=");
@@ -1874,6 +1994,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                             tmpString = strings[index];
                             cpLenAlloc += 1024;
                             strings[index] = malloc(sizeof(char) * cpLenAlloc);
+                            if (!strings[index]) {
+                                outOfMemory("WBJCAI", 13);
+                                return -1;
+                            }
                             sprintf(strings[index], "%s", tmpString);
                             free(tmpString);
                             tmpString = NULL;
@@ -1900,6 +2024,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         tmpString = strings[index];
                         cpLenAlloc += 1024;
                         strings[index] = malloc(sizeof(char) * cpLenAlloc);
+                        if (!strings[index]) {
+                            outOfMemory("WBJCAI", 14);
+                            return -1;
+                        }
                         sprintf(strings[index], "%s", tmpString);
                         free(tmpString);
                         tmpString = NULL;
@@ -1941,6 +2069,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     /* Store the classpath */
     if (strings) {
         strings[index] = malloc(sizeof(char) * (10 + 1));
+        if (!strings[index]) {
+            outOfMemory("WBJCAI", 15);
+            return -1;
+        }
         sprintf(strings[index], "-classpath");
     }
     index++;
@@ -1949,6 +2081,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         cpLen = 0;
         cpLenAlloc = 1024;
         strings[index] = malloc(sizeof(char) * cpLenAlloc);
+        if (!strings[index]) {
+            outOfMemory("WBJCAI", 16);
+            return -1;
+        }
         
         /* Add an open quote the classpath */
         if (addQuotes) {
@@ -1997,6 +2133,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                                 tmpString = strings[index];
                                 cpLenAlloc += 1024;
                                 strings[index] = malloc(sizeof(char) * cpLenAlloc);
+                                if (!strings[index]) {
+                                    outOfMemory("WBJCAI", 17);
+                                    return -1;
+                                }
                                 sprintf(strings[index], "%s", tmpString);
                                 free(tmpString);
                                 tmpString = NULL;
@@ -2019,6 +2159,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                                     tmpString = strings[index];
                                     cpLenAlloc += 1024;
                                     strings[index] = malloc(sizeof(char) * cpLenAlloc);
+                                    if (!strings[index]) {
+                                        outOfMemory("WBJCAI", 18);
+                                        return -1;
+                                    }
                                     sprintf(strings[index], "%s", tmpString);
                                     free(tmpString);
                                     tmpString = NULL;
@@ -2049,6 +2193,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                                     tmpString = strings[index];
                                     cpLenAlloc += 1024;
                                     strings[index] = malloc(sizeof(char) * cpLenAlloc);
+                                    if (!strings[index]) {
+                                        outOfMemory("WBJCAI", 19);
+                                        return -1;
+                                    }
                                     sprintf(strings[index], "%s", tmpString);
                                     free(tmpString);
                                     tmpString = NULL;
@@ -2075,6 +2223,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         propStripped = (char *)prop;
                         if ((prop[strlen(prop) - 1] == '/') || (prop[strlen(prop) - 1] == '\\')) {
                             propStripped = malloc(sizeof(char) * strlen(prop));
+                            if (!propStripped) {
+                                outOfMemory("WBJCAI", 20);
+                                return -1;
+                            }
                             memcpy(propStripped, prop, strlen(prop) - 1);
                             propStripped[strlen(prop) - 1] = '\0';
                         }
@@ -2106,6 +2258,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                             tmpString = strings[index];
                             cpLenAlloc += 1024;
                             strings[index] = malloc(sizeof(char) * cpLenAlloc);
+                            if (!strings[index]) {
+                                outOfMemory("WBJCAI", 21);
+                                return -1;
+                            }
                             sprintf(strings[index], "%s", tmpString);
                             free(tmpString);
                             tmpString = NULL;
@@ -2149,6 +2305,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     if (strings) {
         wrapperBuildKey();
         strings[index] = malloc(sizeof(char) * (16 + strlen(wrapperData->key) + 1));
+        if (!strings[index]) {
+            outOfMemory("WBJCAI", 22);
+            return -1;
+        }
         if (addQuotes) {
             sprintf(strings[index], "-Dwrapper.key=\"%s\"", wrapperData->key);
         } else {
@@ -2160,6 +2320,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     /* Store the Wrapper server port */
     if (strings) {
         strings[index] = malloc(sizeof(char) * (15 + 5 + 1));  /* Port up to 5 characters */
+        if (!strings[index]) {
+            outOfMemory("WBJCAI", 23);
+            return -1;
+        }
         sprintf(strings[index], "-Dwrapper.port=%d", (int)wrapperData->actualPort);
     }
     index++;
@@ -2169,17 +2333,29 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     {
         if (strings) {
             strings[index] = malloc(sizeof(char) * (19 + 5 + 1));  /* Port up to 5 characters */
+            if (!strings[index]) {
+                outOfMemory("WBJCAI", 24);
+                return -1;
+            }
             sprintf(strings[index], "-Dwrapper.jvm.port=%d", (int)wrapperData->jvmPort);
         }
         index++;
     }
     if (strings) {
         strings[index] = malloc(sizeof(char) * (23 + 5 + 1));  /* Port up to 5 characters */
+        if (!strings[index]) {
+            outOfMemory("WBJCAI", 25);
+            return -1;
+        }
         sprintf(strings[index], "-Dwrapper.jvm.port.min=%d", (int)wrapperData->jvmPortMin);
     }
     index++;
     if (strings) {
         strings[index] = malloc(sizeof(char) * (23 + 5 + 1));  /* Port up to 5 characters */
+        if (!strings[index]) {
+            outOfMemory("WBJCAI", 26);
+            return -1;
+        }
         sprintf(strings[index], "-Dwrapper.jvm.port.max=%d", (int)wrapperData->jvmPortMax);
     }
     index++;
@@ -2188,6 +2364,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     if (wrapperData->isDebugging) {
         if (strings) {
             strings[index] = malloc(sizeof(char) * (22 + 1));
+            if (!strings[index]) {
+                outOfMemory("WBJCAI", 27);
+                return -1;
+            }
             if (addQuotes) {
                 sprintf(strings[index], "-Dwrapper.debug=\"TRUE\"");
             } else {
@@ -2200,6 +2380,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     /* Store the Wrapper PID */
     if (strings) {
         strings[index] = malloc(sizeof(char) * (24 + 1)); /* Pid up to 10 characters */
+        if (!strings[index]) {
+            outOfMemory("WBJCAI", 28);
+            return -1;
+        }
         sprintf(strings[index], "-Dwrapper.pid=%d", wrapperGetPID());
     }
     index++;
@@ -2208,6 +2392,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     if (wrapperData->useSystemTime ) {
         if (strings) {
             strings[index] = malloc(sizeof(char) * (32 + 1));
+            if (!strings[index]) {
+                outOfMemory("WBJCAI", 29);
+                return -1;
+            }
             if (addQuotes) {
                 sprintf(strings[index], "-Dwrapper.use_system_time=\"TRUE\"");
             } else {
@@ -2221,6 +2409,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         if (wrapperData->timerFastThreshold != WRAPPER_TIMER_FAST_THRESHOLD) {
             if (strings) {
                 strings[index] = malloc(sizeof(char) * (43 + 1)); /* Allow for 10 digits */
+                if (!strings[index]) {
+                    outOfMemory("WBJCAI", 30);
+                    return -1;
+                }
                 if (addQuotes) {
                     sprintf(strings[index], "-Dwrapper.timer_fast_threshold=\"%d\"", wrapperData->timerFastThreshold * WRAPPER_TICK_MS / 1000);
                 } else {
@@ -2232,6 +2424,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         if (wrapperData->timerSlowThreshold != WRAPPER_TIMER_SLOW_THRESHOLD) {
             if (strings) {
                 strings[index] = malloc(sizeof(char) * (43 + 1)); /* Allow for 10 digits */
+                if (!strings[index]) {
+                    outOfMemory("WBJCAI", 31);
+                    return -1;
+                }
                 if (addQuotes) {
                     sprintf(strings[index], "-Dwrapper.timer_slow_threshold=\"%d\"", wrapperData->timerSlowThreshold * WRAPPER_TICK_MS / 1000);
                 } else {
@@ -2246,6 +2442,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
      *  WrapperManager class uses it to verify that the version matches. */
     if (strings) {
         strings[index] = malloc(sizeof(char) * (20 + strlen(wrapperVersion) + 1));
+        if (!strings[index]) {
+            outOfMemory("WBJCAI", 32);
+            return -1;
+        }
         if (addQuotes) {
             sprintf(strings[index], "-Dwrapper.version=\"%s\"", wrapperVersion);
         } else {
@@ -2257,6 +2457,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     /* Store the base name of the native library. */
     if (strings) {
         strings[index] = malloc(sizeof(char) * (27 + strlen(wrapperData->nativeLibrary) + 1));
+        if (!strings[index]) {
+            outOfMemory("WBJCAI", 33);
+            return -1;
+        }
         if (addQuotes) {
             sprintf(strings[index], "-Dwrapper.native_library=\"%s\"", wrapperData->nativeLibrary);
         } else {
@@ -2269,6 +2473,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     if (wrapperData->ignoreSignals) {
         if (strings) {
             strings[index] = malloc(sizeof(char) * (31 + 1));
+            if (!strings[index]) {
+                outOfMemory("WBJCAI", 34);
+                return -1;
+            }
             if (addQuotes) {
                 sprintf(strings[index], "-Dwrapper.ignore_signals=\"TRUE\"");
             } else {
@@ -2286,6 +2494,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 #endif
         if (strings) {
             strings[index] = malloc(sizeof(char) * (24 + 1));
+            if (!strings[index]) {
+                outOfMemory("WBJCAI", 35);
+                return -1;
+            }
             if (addQuotes) {
                 sprintf(strings[index], "-Dwrapper.service=\"TRUE\"");
             } else {
@@ -2299,6 +2511,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     if (wrapperData->isShutdownHookDisabled) {
         if (strings) {
             strings[index] = malloc(sizeof(char) * (38 + 1));
+            if (!strings[index]) {
+                outOfMemory("WBJCAI", 36);
+                return -1;
+            }
             if (addQuotes) {
                 sprintf(strings[index], "-Dwrapper.disable_shutdown_hook=\"TRUE\"");
             } else {
@@ -2312,6 +2528,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     if (strings) {
         /* Just to be safe, allow 20 characters for the timeout value */
         strings[index] = malloc(sizeof(char) * (24 + 20 + 1));
+        if (!strings[index]) {
+            outOfMemory("WBJCAI", 37);
+            return -1;
+        }
         if (addQuotes) {
             sprintf(strings[index], "-Dwrapper.cpu.timeout=\"%d\"", wrapperData->cpuTimeout);
         } else {
@@ -2323,6 +2543,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     /* Store the Wrapper JVM ID.  (Get here before incremented) */
     if (strings) {
         strings[index] = malloc(sizeof(char) * (16 + 5 + 1));  /* jvmid up to 5 characters */
+        if (!strings[index]) {
+            outOfMemory("WBJCAI", 38);
+            return -1;
+        }
         sprintf(strings[index], "-Dwrapper.jvmid=%d", (wrapperData->jvmRestarts + 1));
     }
     index++;
@@ -2331,6 +2555,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     if (strings) {
         prop = getStringProperty(properties, "wrapper.java.mainclass", "Main");
         strings[index] = malloc(sizeof(char) * (strlen(prop) + 1));
+        if (!strings[index]) {
+            outOfMemory("WBJCAI", 39);
+            return -1;
+        }
         sprintf(strings[index], "%s", prop);
     }
     index++;
@@ -2352,6 +2580,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                     }
                     if (stripQuote) {
                         propStripped = malloc(sizeof(char) * (strlen(prop) + 1));
+                        if (!propStripped) {
+                            outOfMemory("WBJCAI", 40);
+                            return -1;
+                        }
                         wrapperStripQuotes(prop, propStripped);
                     } else {
                         propStripped = (char *)prop;
@@ -2360,9 +2592,17 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                     if (addQuotes && quotable && strchr(propStripped, ' ')) {
                         len = quoteValue(propStripped, NULL, 0);
                         strings[index] = malloc(len);
+                        if (!strings[index]) {
+                            outOfMemory("WBJCAI", 41);
+                            return -1;
+                        }
                         quoteValue(propStripped, strings[index], len);
                     } else {
                         strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1));
+                        if (!strings[index]) {
+                            outOfMemory("WBJCAI", 42);
+                            return -1;
+                        }
                         sprintf(strings[index], "%s", propStripped);
                     }
 
@@ -2406,6 +2646,10 @@ int wrapperBuildJavaCommandArray(char ***stringsPtr, int *length, int addQuotes)
 
     /* Allocate the correct amount of memory */
     *stringsPtr = malloc(sizeof(char *) * (*length));
+    if (!stringsPtr) {
+        outOfMemory("WBJCA", 1);
+        return TRUE;
+    }
 
     /* Now actually fill in the strings */
     reqLen = wrapperBuildJavaCommandArrayInner(*stringsPtr, addQuotes);
@@ -2591,7 +2835,12 @@ void updateStringValue(char **ptr, const char *value) {
 
     if (value != NULL) {
         *ptr = malloc(sizeof(char) * (strlen(value) + 1));
-        strcpy(*ptr, value);
+        if (!ptr) {
+            outOfMemory("USV", 1);
+            /* TODO: This is pretty bad.  Not sure how to recover... */
+        } else {
+            strcpy(*ptr, value);
+        }
     }
 }
 
@@ -2605,7 +2854,10 @@ void updateStringValue(char **ptr, const char *value) {
 #define BELOW_NORMAL_PRIORITY_CLASS 0x00004000
 #endif
 
-void wrapperBuildNTServiceInfo() {
+/**
+ * Return FALSE if successful, TRUE if there were problems.
+ */
+int wrapperBuildNTServiceInfo() {
     char dependencyKey[32]; /* Length of "wrapper.ntservice.dependency.nn" + '\0' */
     const char *dependencies[10];
     char *work;
@@ -2650,6 +2902,10 @@ void wrapperBuildNTServiceInfo() {
             wrapperData->ntServiceDependencies = NULL;
         }
         work = wrapperData->ntServiceDependencies = malloc(sizeof(char) * len);
+        if (!work) {
+            outOfMemory("WBNTSI", 1);
+            return TRUE;
+        }
         for (i = 0; i < 10; i++) {
             if (dependencies[i] != NULL) {
                 strcpy(work, dependencies[i]);
@@ -2736,6 +2992,8 @@ void wrapperBuildNTServiceInfo() {
 
     /* Set the single invocation flag. */
     wrapperData->isSingleInvocation = getBooleanProperty( properties, "wrapper.single_invocation", FALSE );
+
+    return FALSE;
 }
 #endif
 
@@ -2758,7 +3016,10 @@ int getSignalMode(const char *modeName, int defaultMode) {
     }
 }
 
-void wrapperBuildUnixDaemonInfo() {
+/**
+ * Return FALSE if successful, TRUE if there were problems.
+ */
+int wrapperBuildUnixDaemonInfo() {
     if (!wrapperData->configured) {
         /** Get the daemonize flag. */
         wrapperData->daemonize = getBooleanProperty(properties, "wrapper.daemonize", FALSE);
@@ -2772,6 +3033,8 @@ void wrapperBuildUnixDaemonInfo() {
         /** Configure the USR2 signal handler. */
         wrapperData->signalUSR2Mode = getSignalMode(getStringProperty(properties, "wrapper.signal.mode.usr2", NULL), WRAPPER_SIGNAL_MODE_FORWARD);
     }
+
+    return FALSE;
 }
 #endif
 
@@ -2798,6 +3061,9 @@ int validateTimeout(const char* propertyName, int value) {
     }
 }
 
+/**
+ * Return FALSE if successful, TRUE if there were problems.
+ */
 int loadConfiguration() {
     const char* logfilePath;
     int logfileRollMode;
@@ -3097,12 +3363,24 @@ int loadConfiguration() {
     /* Now that a count is known, allocate memory to hold the filters and actions and load them in. */
     if (wrapperData->outputFilterCount > 0) {
         wrapperData->outputFilters = malloc(sizeof(char *) * wrapperData->outputFilterCount);
+        if (!wrapperData->outputFilters) {
+            outOfMemory("LC", 1);
+            return TRUE;
+        }
         wrapperData->outputFilterActions = malloc(sizeof(int) * wrapperData->outputFilterCount);
+        if (!wrapperData->outputFilterActions) {
+            outOfMemory("LC", 2);
+            return TRUE;
+        }
         for (i = 0; i < wrapperData->outputFilterCount; i++) {
             /* Get the filter */
             sprintf(key, "wrapper.filter.trigger.%d", i + 1);
             val = getStringProperty(properties, key, NULL);
             wrapperData->outputFilters[i] = malloc(sizeof(char) * (strlen(val) + 1));
+            if (!wrapperData->outputFilters[i]) {
+                outOfMemory("LC", 3);
+                return TRUE;
+            }
             strcpy(wrapperData->outputFilters[i], val);
 
             /* Get the action */
@@ -3175,7 +3453,9 @@ int loadConfiguration() {
 
 #ifdef WIN32
     /* Configure the NT service information */
-    wrapperBuildNTServiceInfo();
+    if (wrapperBuildNTServiceInfo()) {
+        return TRUE;
+    }
 
     if (wrapperData->requestThreadDumpOnFailedJVMExit) {
         if (!wrapperData->ntAllocConsole) {
@@ -3189,12 +3469,14 @@ int loadConfiguration() {
 
 #else /* UNIX */
     /* Configure the Unix daemon information */
-    wrapperBuildUnixDaemonInfo();
+    if (wrapperBuildUnixDaemonInfo()) {
+        return TRUE;
+    }
 #endif
     
     wrapperData->configured = TRUE;
 
-    return 0;
+    return FALSE;
 }
 
 /**
