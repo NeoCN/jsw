@@ -2311,10 +2311,14 @@ public final class WrapperManager
     
     /**
      * Signal the native wrapper that the startup is progressing but that more
-     *  time is needed.  The Wrapper will extend the startup timeout by the
-     *  specified time.
+     *  time is needed.  The current startup timeout will be extended if
+     *  necessary so it will be at least 'waitHint' milliseconds in the future.
+     * <p>
+     * This call will have no effect if the current startup timeout is already
+     *  more than 'waitHint' milliseconds in the future.
      *
-     * @param waitHint Additional time in milliseconds.
+     * @param waitHint Time in milliseconds to allow for the startup to
+     *                 complete.
      *
      * @throws SecurityException If a SecurityManager is present and the
      *                           calling thread does not have the
@@ -2335,10 +2339,14 @@ public final class WrapperManager
 
     /**
      * Signal the native wrapper that the shutdown is progressing but that more
-     *  time is needed.  The Wrapper will extend the stop timeout by the
-     *  specified time.
+     *  time is needed.  The current shutdown timeout will be extended if
+     *  necessary so it will be at least 'waitHint' milliseconds in the future.
+     * <p>
+     * This call will have no effect if the current shutdown timeout is already
+     *  more than 'waitHint' milliseconds in the future.
      *
-     * @param waitHint Additional time in milliseconds.
+     * @param waitHint Time in milliseconds to allow for the shutdown to
+     *                 complete.
      *
      * @throws SecurityException If a SecurityManager is present and the
      *                           calling thread does not have the
