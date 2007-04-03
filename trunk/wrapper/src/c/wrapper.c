@@ -3531,9 +3531,9 @@ DWORD wrapperGetSystemTicks() {
  *
  * This can be done safely in 32 bits
  */
-int wrapperGetTickAge(DWORD start, DWORD end) {
+int wrapperGetTickAgeSeconds(DWORD start, DWORD end) {
     /*
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "      wrapperGetTickAge(%08lx, %08lx) -> %08lx", start, end, (int)((end - start) * WRAPPER_TICK_MS) / 1000);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "      wrapperGetTickAgeSeconds(%08lx, %08lx) -> %08lx", start, end, (int)((end - start) * WRAPPER_TICK_MS) / 1000);
     */
 
     /* Simply subtracting the values will always work even if end has wrapped
@@ -3542,6 +3542,26 @@ int wrapperGetTickAge(DWORD start, DWORD end) {
      *  0xffffffff - 0x00000001 = 0xfffffffe = -2
      */
     return (int)((end - start) * WRAPPER_TICK_MS) / 1000;
+}
+
+/**
+ * Returns difference in ticks between the start and end ticks.  This function
+ *  handles cases where the tick counter has wrapped between when the start
+ *  and end tick counts were taken.  See the wrapperGetTicks() function.
+ *
+ * This can be done safely in 32 bits
+ */
+int wrapperGetTickAgeTicks(DWORD start, DWORD end) {
+    /*
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "      wrapperGetTickAgeSeconds(%08lx, %08lx) -> %08lx", start, end, (int)(end - start));
+    */
+
+    /* Simply subtracting the values will always work even if end has wrapped
+     *  due to overflow.
+     *  0x00000001 - 0xffffffff = 0x00000002 = 2
+     *  0xffffffff - 0x00000001 = 0xfffffffe = -2
+     */
+    return (int)(end - start);
 }
 
 /**
