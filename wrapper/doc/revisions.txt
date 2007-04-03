@@ -109,6 +109,8 @@ Java Service Wrapper Revision History.
   errors and recover as gracefully as possible.  Bug #1649880.
 * Modify the WrapperManager.signalStarting and signalStopping methods so that
   they will never have the effect of shortening the existing timeout.
+  Updated the javadocs of both methods so they more accurately reflect what
+  the methods do.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
