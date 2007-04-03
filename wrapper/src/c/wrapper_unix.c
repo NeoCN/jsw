@@ -862,7 +862,7 @@ void wrapperExecute() {
 
 /**
  * Returns a tick count that can be used in combination with the
- *  wrapperGetTickAge() function to perform time keeping.
+ *  wrapperGetTickAgeSeconds() function to perform time keeping.
  */
 DWORD wrapperGetTicks() {
     if (wrapperData->useSystemTime) {

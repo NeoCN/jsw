@@ -210,20 +210,43 @@ void wrapperSetWrapperState(int useLoggerQueue, int wState) {
  */
 void wrapperUpdateJavaStateTimeout(DWORD nowTicks, int delay) {
     DWORD newTicks;
+    int ignore;
+    int tickAge;
     
     if (delay >= 0) {
         newTicks = wrapperAddToTicks(nowTicks, delay);
-        
-        if (wrapperData->isStateOutputEnabled) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                "      Set Java State %s Timeout %08lx -> %08lx",
-                wrapperGetJState(wrapperData->jState),
-                wrapperData->jStateTimeoutTicks,
-                newTicks);
+        ignore = FALSE;
+        if (wrapperData->jStateTimeoutTicksSet) {
+            /* We need to make sure that the new delay is longer than the existing one.
+             *  This is complicated slightly because the tick counter can be wrapped. */
+            tickAge = wrapperGetTickAgeTicks(wrapperData->jStateTimeoutTicks, newTicks);
+            if (tickAge <= 0) {
+                ignore = TRUE;
+            }
         }
-        
-        wrapperData->jStateTimeoutTicks = newTicks;
-        wrapperData->jStateTimeoutTicksSet = 1;
+
+        if (ignore) {
+            /* The new value is meaningless. */
+            if (wrapperData->isStateOutputEnabled) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    "      Set Java State %s (%d) Ignored Timeout %08lx",
+                    wrapperGetJState(wrapperData->jState),
+                    delay,
+                    wrapperData->jStateTimeoutTicks);
+            }
+        } else {
+            if (wrapperData->isStateOutputEnabled) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    "      Set Java State %s (%d) Timeout %08lx -> %08lx",
+                    wrapperGetJState(wrapperData->jState),
+                    delay,
+                    wrapperData->jStateTimeoutTicks,
+                    newTicks);
+            }
+            
+            wrapperData->jStateTimeoutTicks = newTicks;
+            wrapperData->jStateTimeoutTicksSet = 1;
+        }
     } else {
         wrapperData->jStateTimeoutTicks = 0;
         wrapperData->jStateTimeoutTicksSet = 0;
@@ -866,7 +889,7 @@ void jStateDown(DWORD nowTicks, int nextSleep) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "JVM Restarts disabled.  Shutting down.");
                     wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
                     
-                } else if (wrapperGetTickAge(wrapperData->jvmLaunchTicks, nowTicks) >= wrapperData->successfulInvocationTime) {
+                } else if (wrapperGetTickAgeSeconds(wrapperData->jvmLaunchTicks, nowTicks) >= wrapperData->successfulInvocationTime) {
                     /* The previous JVM invocation was running long enough that its invocation */
                     /*   should be considered a success.  Reset the failedInvocationStart to   */
                     /*   start the count fresh.                                                */
@@ -889,7 +912,7 @@ void jStateDown(DWORD nowTicks, int nextSleep) {
                     if (wrapperData->isDebugging) {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
                             "JVM was only running for %d seconds leading to a failed restart count of %d.",
-                            wrapperGetTickAge(wrapperData->jvmLaunchTicks, nowTicks), wrapperData->failedInvocationCount);
+                            wrapperGetTickAgeSeconds(wrapperData->jvmLaunchTicks, nowTicks), wrapperData->failedInvocationCount);
                     }
 
                     /* See if we are allowed to try restarting the JVM again. */
@@ -1017,7 +1040,7 @@ void jStateLaunchDelay(DWORD nowTicks, int nextSleep) {
         (wrapperData->wState == WRAPPER_WSTATE_CONTINUING)) {
 
         /* Is it time to proceed? */
-        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
+        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAgeSeconds(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
             /* Launch the new JVM */
             
             if (wrapperData->jvmRestarts > 0) {
@@ -1151,7 +1174,7 @@ void jStateLaunching(DWORD nowTicks, int nextSleep) {
          * We are waiting in this state until we receive a KEY packet
          *  from the JVM attempting to register.
          * Have we waited too long already */
-        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
+        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAgeSeconds(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
             if (wrapperData->debugJVM) {
                 handleDebugJVMTimeout(nowTicks,
                     "Startup: Timed out waiting for a signal from the JVM.", "startup");
@@ -1227,7 +1250,7 @@ void jStateStarting(DWORD nowTicks, int nextSleep) {
         /* The process is gone.  Restart it. (Handled and logged) */
     } else {
         /* Have we waited too long already */
-        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
+        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAgeSeconds(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
             if (wrapperData->debugJVM) {
                 handleDebugJVMTimeout(nowTicks,
                     "Startup: Timed out waiting for a signal from the JVM.", "startup");
@@ -1270,7 +1293,7 @@ void jStateStarted(DWORD nowTicks, int nextSleep) {
     } else {
         /* Have we waited too long already.  The jStateTimeoutTicks is reset each time a ping
          *  response is received from the JVM. */
-        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
+        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAgeSeconds(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
             if (wrapperData->debugJVM) {
                 handleDebugJVMTimeout(nowTicks,
                     "Ping: Timed out waiting for signal from JVM.", "ping");
@@ -1284,9 +1307,9 @@ void jStateStarted(DWORD nowTicks, int nextSleep) {
                 /* Restart the JVM. */
                 wrapperData->restartRequested = TRUE;
             }
-        } else if (wrapperGetTickAge(wrapperAddToTicks(wrapperData->lastPingTicks, wrapperData->pingInterval), nowTicks) >= 0) {
+        } else if (wrapperGetTickAgeSeconds(wrapperAddToTicks(wrapperData->lastPingTicks, wrapperData->pingInterval), nowTicks) >= 0) {
             /* It is time to send another ping to the JVM */
-            if (wrapperGetTickAge(wrapperAddToTicks(wrapperData->lastLoggedPingTicks, wrapperData->pingIntervalLogged), nowTicks) >= 0) {
+            if (wrapperGetTickAgeSeconds(wrapperAddToTicks(wrapperData->lastLoggedPingTicks, wrapperData->pingIntervalLogged), nowTicks) >= 0) {
                 if (wrapperData->isLoopOutputEnabled) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Temp: Sending a ping packet.");
                 }
@@ -1331,7 +1354,7 @@ void jStateStopping(DWORD nowTicks, int nextSleep) {
         /* The process is gone. (Handled and logged)*/
     } else {
         /* Have we waited too long already */
-        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
+        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAgeSeconds(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
             if (wrapperData->debugJVM) {
                 handleDebugJVMTimeout(nowTicks,
                     "Shutdown: Timed out waiting for a signal from the JVM.", "shutdown");
@@ -1367,7 +1390,7 @@ void jStateStopped(DWORD nowTicks, int nextSleep) {
         /* The process is gone. (Handled and logged) */
     } else {
         /* Have we waited too long already */
-        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
+        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAgeSeconds(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
             if (wrapperData->debugJVM) {
                 handleDebugJVMTimeout(nowTicks,
                     "Shutdown: Timed out waiting for the JVM to terminate.", "JVM exit");
@@ -1403,7 +1426,7 @@ void jStateKilling(DWORD nowTicks, int nextSleep) {
         /* The process is gone. (Handled and logged) */
     } else {
         /* Have we waited long enough */
-        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAge(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
+        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAgeSeconds(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
             /* It is time to actually kill the JVM. */
             wrapperKillProcessNow();
         } else {
@@ -1576,14 +1599,14 @@ void wrapperEventLoop() {
 
         /* Has the process been getting CPU? This check will only detect a lag
          * if the useSystemTime flag is set. */
-        if (wrapperGetTickAge(lastCycleTicks, nowTicks) > wrapperData->cpuTimeout) {
+        if (wrapperGetTickAgeSeconds(lastCycleTicks, nowTicks) > wrapperData->cpuTimeout) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
                 "Wrapper Process has not received any CPU time for %d seconds.  Extending timeouts.",
-                wrapperGetTickAge(lastCycleTicks, nowTicks));
+                wrapperGetTickAgeSeconds(lastCycleTicks, nowTicks));
 
             if (wrapperData->jStateTimeoutTicksSet) {
                 wrapperData->jStateTimeoutTicks =
-                    wrapperAddToTicks(wrapperData->jStateTimeoutTicks, wrapperGetTickAge(lastCycleTicks, nowTicks));
+                    wrapperAddToTicks(wrapperData->jStateTimeoutTicks, wrapperGetTickAgeSeconds(lastCycleTicks, nowTicks));
             }
         }
         lastCycleTicks = nowTicks;
@@ -1597,7 +1620,7 @@ void wrapperEventLoop() {
                            wrapperGetWState(wrapperData->wState),
                            wrapperGetJState(wrapperData->jState),
                            wrapperData->jStateTimeoutTicks,
-                           wrapperGetTickAge(nowTicks, wrapperData->jStateTimeoutTicks),
+                           wrapperGetTickAgeSeconds(nowTicks, wrapperData->jStateTimeoutTicks),
                            (wrapperData->exitRequested ? "true" : "false"),
                            (wrapperData->restartRequested ? "true" : "false"));
             } else {

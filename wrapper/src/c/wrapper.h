@@ -66,7 +66,7 @@
 #define WRAPPER_TICK_MS 100 /* The number of ms that are represented by a single
                              *  tick.  Ticks are used as an alternative time
                              *  keeping method. See the wrapperGetTicks() and
-                             *  wrapperGetTickAge() functions for more information.
+                             *  wrapperGetTickAgeSeconds() functions for more information.
                              * Some code assumes that this number can be evenly
                              *  divided into 1000. */
 
@@ -472,7 +472,7 @@ extern void wrapperExecute();
 
 /**
  * Returns a tick count that can be used in combination with the
- *  wrapperGetTickAge() function to perform time keeping.
+ *  wrapperGetTickAgeSeconds() function to perform time keeping.
  */
 extern DWORD wrapperGetTicks();
 
@@ -557,7 +557,16 @@ extern DWORD wrapperGetSystemTicks();
  *  handles cases where the tick counter has wrapped between when the start
  *  and end tick counts were taken.  See the wrapperGetTicks() function.
  */
-extern int wrapperGetTickAge(DWORD start, DWORD end);
+extern int wrapperGetTickAgeSeconds(DWORD start, DWORD end);
+
+/**
+ * Returns difference in ticks between the start and end ticks.  This function
+ *  handles cases where the tick counter has wrapped between when the start
+ *  and end tick counts were taken.  See the wrapperGetTicks() function.
+ *
+ * This can be done safely in 32 bits
+ */
+extern int wrapperGetTickAgeTicks(DWORD start, DWORD end);
 
 /**
  * Returns TRUE if the specified tick timeout has expired relative to the
