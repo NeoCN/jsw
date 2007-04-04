@@ -758,8 +758,6 @@ const char* getStringProperty(Properties *properties, const char *propertyName, 
 int checkPropertyEqual(Properties *properties, const char *propertyName, const char *defaultValue, const char *value) {
     Property *property;
     const char *propertyValue;
-    char *dupValue;
-    int equal;
 
     property = getInnerProperty(properties, propertyName);
     if (property == NULL) {
@@ -768,18 +766,7 @@ int checkPropertyEqual(Properties *properties, const char *propertyName, const c
         propertyValue = property->value;
     }
 
-    /* Duplicate the value so we can change it to lower case without affecting the original. */
-    dupValue = strdup(propertyValue);
-
-#ifdef WIN32
-    equal = (strcmp(strlwr(dupValue), value) == 0);
-#else /* UNIX */
-    equal = (strcasecmp(dupValue, value) == 0);
-#endif
-
-    free(dupValue);
-
-    return equal;
+    return strcmpIgnoreCase(propertyValue, value) == 0;
 }
 
 int getIntProperty(Properties *properties, const char *propertyName, int defaultValue) {
