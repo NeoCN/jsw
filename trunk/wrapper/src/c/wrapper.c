@@ -146,6 +146,9 @@ void wrapperAddDefaultProperties() {
 #endif
 }
 
+/**
+ * Return TRUE if there were any problems.
+ */
 int wrapperLoadConfigurationProperties() {
     int i;
     int firstCall;
@@ -170,18 +173,18 @@ int wrapperLoadConfigurationProperties() {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Unable to resolve the full path of the configuration file, %s: %s",
                 wrapperData->argConfFile, getLastErrorText());
-            return 1;
+            return TRUE;
         }
         wrapperData->configFile = malloc(sizeof(char) * work);
         if (!wrapperData->configFile) {
             outOfMemory("WLCP", 1);
-            return 1;
+            return TRUE;
         }
         if (!GetFullPathName(wrapperData->argConfFile, work, wrapperData->configFile, &filePart)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Unable to resolve the full path of the configuration file, %s: %s",
                 wrapperData->argConfFile, getLastErrorText());
-            return 1;
+            return TRUE;
         }
 #else
         /* The solaris implementation of realpath will return a relative path if a relative
@@ -190,13 +193,13 @@ int wrapperLoadConfigurationProperties() {
         wrapperData->configFile = malloc(PATH_MAX);
         if (!wrapperData->configFile) {
             outOfMemory("WLCP", 2);
-            return 1;
+            return TRUE;
         }
         if (realpath(wrapperData->argConfFile, wrapperData->configFile) == NULL) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Unable to resolve the full path of the configuration file, %s: %s",
                 wrapperData->argConfFile, getLastErrorText());
-            return 1;
+            return TRUE;
         }
 #endif
 
@@ -206,17 +209,17 @@ int wrapperLoadConfigurationProperties() {
         if (!work) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Unable to resolve the original working directory: %s", getLastErrorText());
-            return 1;
+            return TRUE;
         }
         wrapperData->originalWorkingDir = malloc(sizeof(char) * work);
         if (!wrapperData->originalWorkingDir) {
             outOfMemory("WLCP", 3);
-            return 1;
+            return TRUE;
         }
         if (!GetFullPathName(".", work, wrapperData->originalWorkingDir, &filePart)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Unable to resolve the original working directory: %s", getLastErrorText());
-            return 1;
+            return TRUE;
         }
 #else
         /* The solaris implementation of realpath will return a relative path if a relative
@@ -225,12 +228,12 @@ int wrapperLoadConfigurationProperties() {
         wrapperData->originalWorkingDir = malloc(PATH_MAX);
         if (!wrapperData->originalWorkingDir) {
             outOfMemory("WLCP", 4);
-            return 1;
+            return TRUE;
         }
         if (realpath(".", wrapperData->originalWorkingDir) == NULL) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Unable to resolve the original working directory: %s", getLastErrorText());
-            return 1;
+            return TRUE;
         }
 #endif
     }
@@ -238,7 +241,7 @@ int wrapperLoadConfigurationProperties() {
     /* Create a Properties structure. */
     properties = createProperties();
     if (!properties) {
-        return 1;
+        return TRUE;
     }
     wrapperAddDefaultProperties();
 
@@ -250,7 +253,7 @@ int wrapperLoadConfigurationProperties() {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, 
                 "The argument '%s' is not a valid property name-value pair.",
                 wrapperData->argValues[i]);
-            return 1;
+            return TRUE;
         }
     }
 
@@ -264,7 +267,7 @@ int wrapperLoadConfigurationProperties() {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Unable to open configuration file. %s", wrapperData->configFile);
         }
-        return 1;
+        return TRUE;
     }
 
     /* Config file found. */
@@ -280,7 +283,7 @@ int wrapperLoadConfigurationProperties() {
     if (loadConfiguration()) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
             "Problem loading wrapper configuration file: %s", wrapperData->configFile);
-        return 1;
+        return TRUE;
     }
 
     if (firstCall) {
@@ -293,17 +296,17 @@ int wrapperLoadConfigurationProperties() {
             if (!work) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                     "Unable to resolve the working directory %s: %s", prop, getLastErrorText());
-                return 1;
+                return TRUE;
             }
             wrapperData->workingDir = malloc(sizeof(char) * work);
             if (!wrapperData->workingDir) {
                 outOfMemory("WLCP", 5);
-                return 1;
+                return TRUE;
             }
             if (!GetFullPathName(prop, work, wrapperData->workingDir, &filePart)) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                     "Unable to resolve the working directory %s: %s", prop, getLastErrorText());
-                return 1;
+                return TRUE;
             }
 #else
             /* The solaris implementation of realpath will return a relative path if a relative
@@ -312,18 +315,18 @@ int wrapperLoadConfigurationProperties() {
             wrapperData->workingDir = malloc(PATH_MAX);
             if (!wrapperData->workingDir) {
                 outOfMemory("WLCP", 6);
-                return 1;
+                return TRUE;
             }
             if (realpath(prop, wrapperData->workingDir) == NULL) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                     "Unable to resolve the working directory %s: %s", prop, getLastErrorText());
-                return 1;
+                return TRUE;
             }
 #endif
         }
     }
 
-    return 0;
+    return FALSE;
 }
 
 void wrapperGetCurrentTime(struct timeb *timeBuffer) {
