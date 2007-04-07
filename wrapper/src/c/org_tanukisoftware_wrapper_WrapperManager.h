@@ -182,6 +182,14 @@ JNIEXPORT jint JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetJ
 
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeIsProfessionalEdition
+ * Signature: ()Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeIsProfessionalEdition
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeGetControlEvent
  * Signature: ()I
  */

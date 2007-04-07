@@ -279,7 +279,7 @@ int wrapperLoadConfigurationProperties() {
     dumpProperties(properties);
 #endif
 
-    /* Apply properties to the WrapperConfig structure */
+    /* Load the configuration. */
     if (loadConfiguration()) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
             "Problem loading wrapper configuration file: %s", wrapperData->configFile);
@@ -1120,6 +1120,18 @@ void wrapperVersionBanner() {
 }
 
 /**
+ * Output the version.
+ */
+void wrapperVersionBannerLog() {
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+        "Wrapper Community Edition (Version %s)", wrapperVersionRoot);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+        "  Copyright 1999, 2007 Tanuki Software, Inc.  All Rights Reserved.");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+        "    http://wrapper.tanukisoftware.org");
+}
+
+/**
  * Output the application usage.
  */
 void wrapperUsage(char *appName) {
@@ -1335,6 +1347,11 @@ int wrapperRunConsole() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "--> Wrapper Started as Console");
     }
 #endif
+
+    /* Log a startup banner. */
+    wrapperVersionBannerLog();
+
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "");
     
     if (wrapperData->isDebugging) {
         if (wrapperData->useSystemTime) {
@@ -1374,6 +1391,11 @@ int wrapperRunService() {
     }
 
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "--> Wrapper Started as Service");
+
+    /* Log a startup banner. */
+    wrapperVersionBannerLog();
+
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "");
     
     if (wrapperData->isDebugging) {
         if (wrapperData->useSystemTime) {
@@ -3070,7 +3092,7 @@ int validateTimeout(const char* propertyName, int value) {
 int loadConfiguration() {
     const char* logfilePath;
     int logfileRollMode;
-    char key[256];
+    char propName[256];
     const char* val;
     int i;
     int startupDelay;
@@ -3357,8 +3379,8 @@ int loadConfiguration() {
     /* Count the number available */
     wrapperData->outputFilterCount = 0;
     do {
-        sprintf(key, "wrapper.filter.trigger.%d", wrapperData->outputFilterCount + 1);
-        val = getStringProperty(properties, key, NULL);
+        sprintf(propName, "wrapper.filter.trigger.%d", wrapperData->outputFilterCount + 1);
+        val = getStringProperty(properties, propName, NULL);
         if (val) {
             wrapperData->outputFilterCount++;
         }
@@ -3377,8 +3399,8 @@ int loadConfiguration() {
         }
         for (i = 0; i < wrapperData->outputFilterCount; i++) {
             /* Get the filter */
-            sprintf(key, "wrapper.filter.trigger.%d", i + 1);
-            val = getStringProperty(properties, key, NULL);
+            sprintf(propName, "wrapper.filter.trigger.%d", i + 1);
+            val = getStringProperty(properties, propName, NULL);
             wrapperData->outputFilters[i] = malloc(sizeof(char) * (strlen(val) + 1));
             if (!wrapperData->outputFilters[i]) {
                 outOfMemory("LC", 3);
@@ -3387,8 +3409,8 @@ int loadConfiguration() {
             strcpy(wrapperData->outputFilters[i], val);
 
             /* Get the action */
-            sprintf(key, "wrapper.filter.action.%d", i + 1);
-            val = getStringProperty(properties, key, "RESTART");
+            sprintf(propName, "wrapper.filter.action.%d", i + 1);
+            val = getStringProperty(properties, propName, "RESTART");
             wrapperData->outputFilterActions[i] = getOutputFilterActionForName(val);
 
 #ifdef _DEBUG
