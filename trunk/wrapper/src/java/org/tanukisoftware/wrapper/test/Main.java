@@ -312,7 +312,7 @@ public class Main
      *************************************************************************/
     public Integer start( String[] args )
     {
-        System.out.println( "start()" );
+        System.out.println( "TestWrapper: start()" );
 
         prepareSystemOutErr();
         
@@ -323,11 +323,11 @@ public class Main
         }
         catch ( java.lang.InternalError e )
         {
-            System.out.println();
-            System.out.println( "ERROR - Unable to display the Swing GUI:" );
-            System.out.println( "          " + e.toString() );
-            System.out.println( "Exiting" );
-            System.out.println();
+            System.out.println( "TestWrapper: " );
+            System.out.println( "TestWrapper: ERROR - Unable to display the Swing GUI:" );
+            System.out.println( "TestWrapper:           " + e.toString() );
+            System.out.println( "TestWrapper: Exiting" );
+            System.out.println( "TestWrapper: " );
             return new Integer( 1 );
         }
 
@@ -344,20 +344,20 @@ public class Main
             server.enableAppearHungAction( true );
             server.start();
             
-            System.out.println( "ActionServer Enabled. " );
-            System.out.println( "  Telnet localhost 9999" );
-            System.out.println( "  Commands: " );
-            System.out.println( "    S: Shutdown" );
-            System.out.println( "    H: Expected Halt" );
-            System.out.println( "    R: Restart" );
-            System.out.println( "    D: Thread Dump" );
-            System.out.println( "    U: Unexpected Halt (Simulate crash)" );
-            System.out.println( "    V: Access Violation (Actual crash)" );
-            System.out.println( "    G: Make the JVM appear to be hung." );
+            System.out.println( "TestWrapper: ActionServer Enabled. " );
+            System.out.println( "TestWrapper:   Telnet localhost 9999" );
+            System.out.println( "TestWrapper:   Commands: " );
+            System.out.println( "TestWrapper:     S: Shutdown" );
+            System.out.println( "TestWrapper:     H: Expected Halt" );
+            System.out.println( "TestWrapper:     R: Restart" );
+            System.out.println( "TestWrapper:     D: Thread Dump" );
+            System.out.println( "TestWrapper:     U: Unexpected Halt (Simulate crash)" );
+            System.out.println( "TestWrapper:     V: Access Violation (Actual crash)" );
+            System.out.println( "TestWrapper:     G: Make the JVM appear to be hung." );
         }
         catch ( java.io.IOException e )
         {
-            System.out.println( "Unable to open the action server socket: " + e.getMessage() );
+            System.out.println( "TestWrapper: Unable to open the action server socket: " + e.getMessage() );
         }
         
         return null;
@@ -365,7 +365,7 @@ public class Main
     
     public int stop( int exitCode )
     {
-        System.out.println( "stop(" + exitCode + ")" );
+        System.out.println( "TestWrapper: stop(" + exitCode + ")" );
         
         if ( m_frame != null )
         {
@@ -379,7 +379,7 @@ public class Main
         
         if ( isNestedExit() )
         {
-            System.out.println( "calling System.exit(" + exitCode + ") within stop." );
+            System.out.println( "TestWrapper: calling System.exit(" + exitCode + ") within stop." );
             System.exit( exitCode );
         }
         
@@ -388,12 +388,12 @@ public class Main
     
     public void controlEvent( int event )
     {
-        System.out.println( "controlEvent(" + event + ")" );
+        System.out.println( "TestWrapper: controlEvent(" + event + ")" );
         
         if ( ( event == WrapperManager.WRAPPER_CTRL_LOGOFF_EVENT )
             && WrapperManager.isLaunchedAsService() )
         {
-            System.out.println( "  Ignoring logoff event" );
+            System.out.println( "TestWrapper:   Ignoring logoff event" );
             // Ignore
         }
         else
@@ -412,7 +412,7 @@ public class Main
      */
     public static void main( String[] args )
     {
-        System.out.println( "Initializing..." );
+        System.out.println( "TestWrapper: Initializing..." );
         
         // Start the application.  If the JVM was launched from the native
         //  Wrapper then the application will wait for the native Wrapper to

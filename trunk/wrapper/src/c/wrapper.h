@@ -350,6 +350,11 @@ extern void wrapperGetFileBase(const char *fileName, char *baseName);
 extern void wrapperVersionBanner();
 
 /**
+ * Output the version.
+ */
+extern void wrapperVersionBannerLog();
+
+/**
  * Output the application usage.
  */
 extern void wrapperUsage(char *appName);

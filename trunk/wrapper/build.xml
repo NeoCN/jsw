@@ -303,6 +303,7 @@
                 <isset property="is.osf1"/>
                 <isset property="is.freebsd"/>
                 <isset property="is.irix"/>
+                <isset property="is.solaris"/>
             </or>
         </condition>
         <property name="make.name" value="make"/>
@@ -408,7 +409,7 @@
         <echo message="* compatible with older JVMs."/>
         <echo message="**********************************************************************"/>
     </target>
-    <target name="compile-java" depends="compile-java-warn">
+    <target name="compile-java:core" depends="compile-java-warn">
         <mkdir dir="${build.dir}"/>
         <mkdir dir="${build.classes}"/>
         <mkdir dir="${build.testclasses}"/>
@@ -422,16 +423,6 @@
                source="${javac.target.version}"
                target="${javac.target.version}">
             <classpath refid="project.class.path"/>
-        </javac>
-
-        <!-- compile everything under src/test -->
-        <javac srcdir="${src.dir}/test" destdir="${build.testclasses}"
-               deprecation="on"
-               debug="on"
-               optimize="on"
-               source="${javac.target.version}"
-               target="${javac.target.version}">
-            <classpath refid="test.class.path"/>
         </javac>
 
         <!-- copy resource files to build directory -->
@@ -457,7 +448,24 @@
             <class name="org.tanukisoftware.wrapper.WrapperManager"/>
         </javah>
         <fixcrlf srcdir="${src.dir}/c" includes="org_tanukisoftware_wrapper_WrapperManager.h" eol="lf" />
+
+        <available property="junit.present"
+            classname="junit.framework.TestCase">
+            <classpath refid="project.class.path"/>
+        </available>
     </target>
+    <target name="compile-java:junit" depends="compile-java:core" if="junit.present">
+        <!-- compile everything under src/test -->
+        <javac srcdir="${src.dir}/test" destdir="${build.testclasses}"
+               deprecation="on"
+               debug="on"
+               optimize="on"
+               source="${javac.target.version}"
+               target="${javac.target.version}">
+            <classpath refid="test.class.path"/>
+        </javac>
+    </target>
+    <target name="compile-java" depends="compile-java:junit"/>
     <target name="msvc-missing" depends="update-info-c" if="msvc.missing">
         <echo message="**********************************************************************"/>
         <echo message="* Microsoft Visual Studio is not installed, or is not in the expected"/>
@@ -603,7 +611,7 @@
     <!-- =================================================================== -->
     <!-- Test Task                                                           -->
     <!-- =================================================================== -->
-    <target name="test" depends="jar" description="Runs unit tests">
+    <target name="test" depends="jar" description="Runs unit tests" if="junit.present">
         <mkdir dir="${build.tests}"/>
         
         <junit fork="true"
@@ -622,29 +630,6 @@
                 </fileset>
             </batchtest>
         </junit>
-    </target>
-    
-    <!-- =================================================================== -->
-    <!-- Creates the javadocs archive                                        -->
-    <!-- =================================================================== -->
-    <target name="jdoc" description="generates the Wrapper javadocs">
-        <mkdir dir="${jdoc.dir}"/>
-        
-        <!-- Locale must be before any doclet parameters -->
-        <javadoc
-            packagenames="*"
-            excludepackagenames="com.*, org.tanukisoftware.wrapper.test.*"
-            Locale="en_US"
-            sourcepath="${src.dir}/java"
-            destdir="${jdoc.dir}"
-            author="true"
-            version="true"
-            private="false"
-            use="true"
-            windowtitle="Java Service Wrapper API"
-            doctitle="Java Service Wrapper"
-            bottom="Copyright 1999, ${year} Tanuki Software Inc.,  All Rights Reserved."
-        />
     </target>
     
     <!-- =================================================================== -->
@@ -740,42 +725,9 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         description="default development build task"/>
     
     <!-- =================================================================== -->
-    <!-- Documentation target                                                -->
-    <!-- =================================================================== -->
-    <target name="doc-src-test" depends="init:msg">
-       <available file="${src.dir}/documentation/english.uris" property="doc-src.present"/>
-    </target>
-    <target name="doc" depends="doc-src-test" if="doc-src.present"
-       description="generates the Wrapper documentation">
-        
-        <mkdir dir="${build.dir}"/>
-        <mkdir dir="${build.dir}/work"/>
-        <mkdir dir="${doc.dir}"/>
-        
-        <fixcrlf eol="lf" destdir="${context.dir}/xdocs/english" srcdir="${src.dir}/conf">
-            <include name="wrapper.conf.in"/>
-        </fixcrlf>
-
-        <java classname="org.apache.cocoon.Main" fork="true">
-            <jvmarg value="-Xmx256M"/>
-            <arg value="-c${context.dir}/"/>
-            <arg value="-d${doc.dir}"/>
-            <arg value="-w${build.dir}/work"/>
-            <arg value="-uINFO"/>
-            <arg value="-f${context.dir}/english.uris"/>
-            <classpath>
-                <path refid="tools.class.path"/>
-            </classpath>
-        </java>
-
-        <copy tofile="${doc.dir}/english/index.html" 
-              file="${doc.dir}/english/introduction.html"/>
-    </target>
-    
-    <!-- =================================================================== -->
     <!-- Release (Common)                                                    -->
     <!-- =================================================================== -->
-    <target name="release-common" depends="test, jdoc, doc">
+    <target name="release-common" depends="test">
         <property name="releasesrcfile" value="wrapper_${version}_src"/>
         <property name="releasesrcdir" value="${build.dir}/${releasesrcfile}"/>
         <delete dir="${releasesrcdir}"/>

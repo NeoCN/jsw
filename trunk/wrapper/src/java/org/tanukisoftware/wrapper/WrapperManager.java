@@ -386,35 +386,12 @@ public final class WrapperManager
                 + Thread.currentThread().getName()
                 + "  Using classloader: " + WrapperManager.class.getClassLoader() );
         }
-
-        String wrapperVersion = System.getProperty( "wrapper.version" );
-        if ( wrapperVersion == null )
-        {
-            wrapperVersion = "unknown";
-        }
-        String product;
-        if ( wrapperVersion.endsWith( "-pro" ) )
-        {
-            product = "Professional";
-        }
-        else
-        {
-            product = "Community";
-        }
         
-        //
-        // WARNING - The following banner is displayed to inform the user that they
-        //           are using the Java Service Wrapper.  This banner must remain
-        //           clearly visible in the logs of any application making use of
-        //           the Wrapper.  This includes any applications based on the
-        //           wrapper source.
-        //           If you are here then you are benefiting from this project,
-        //           please have the courtesy to respect its license.
-        // These messages are a special case that do not get the standard Info level header.
-        m_out.println( "Wrapper " + product + " Edition (Version " + getVersion() + ")" );
-        m_out.println( "  Copyright 1999, 2007 Tanuki Software, Inc.  All Rights Reserved." );
-        m_out.println( "    http://wrapper.tanukisoftware.org" );
-        m_out.println();
+        // The copyright banner was moved into the wrapper binary.  In order to
+        //  aid in the debugging of user integrations, some kind of a known message
+        //  needs to be displayed on startup so it is obvious whether or not the
+        //  WrapperManager class is being initialized.
+        m_outInfo.println( "Initializing..." );
         
         // Check for the jvmID
         m_jvmId = WrapperSystemPropertyUtil.getIntProperty( "wrapper.jvmid", 1 );

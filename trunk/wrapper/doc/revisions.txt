@@ -111,6 +111,8 @@ Java Service Wrapper Revision History.
   they will never have the effect of shortening the existing timeout.
   Updated the javadocs of both methods so they more accurately reflect what
   the methods do.
+* Move the Wrapper Copyright banner into the Wrapper process so it will be
+  output more consistently.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
