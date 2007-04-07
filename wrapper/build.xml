@@ -1373,7 +1373,7 @@ original tar distribution due to a lack of support for long path names in some t
     <target name="clean-unix" depends="init" if="is.unix">
         <exec executable="${make.name}"
               dir="${src.dir}/c">
-            <arg line="-f ${makefile.name}" />
+            <arg line="-f ${makefile.name}.${make.name}" />
             <arg value="clean"/>
         </exec>
     </target>
@@ -1408,7 +1408,7 @@ original tar distribution due to a lack of support for long path names in some t
     <target name="total-clean-unix" depends="init" if="is.unix">
         <exec executable="${make.name}"
               dir="${src.dir}/c">
-            <arg line="-f ${makefile.name}" />
+            <arg line="-f ${makefile.name}.${make.name}" />
             <arg value="cleanall"/>
         </exec>
     </target>
