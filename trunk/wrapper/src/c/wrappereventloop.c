@@ -1372,7 +1372,7 @@ void jStateStopping(DWORD nowTicks, int nextSleep) {
 }
 
 /**
- * WRAPPER_JSTATE_STOPPING
+ * WRAPPER_JSTATE_STOPPED
  * The application in the JVM has signalled that it has stopped.  We are now
  *  waiting for the JVM process to exit.  A good application will do this on
  *  its own, but if it fails to exit in a timely manner then the JVM will be
@@ -1387,7 +1387,7 @@ void jStateStopping(DWORD nowTicks, int nextSleep) {
  */
 void jStateStopped(DWORD nowTicks, int nextSleep) {
     if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
-        /* The process is gone. (Handled and logged) */
+        /* The process is gone. This is what we were waiting for. */
     } else {
         /* Have we waited too long already */
         if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAgeSeconds(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
@@ -1774,7 +1774,7 @@ void wrapperEventLoop() {
             break;
         }
     } while (wrapperData->wState != WRAPPER_WSTATE_STOPPED);
-    
+
     if (wrapperData->isLoopOutputEnabled) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Event loop stopped.");
     }

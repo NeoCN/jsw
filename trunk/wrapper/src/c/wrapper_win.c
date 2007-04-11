@@ -1352,7 +1352,7 @@ void wrapperKillProcessNow() {
 
 /**
  * Puts the Wrapper into a state where the JVM will be killed at the soonest
- *  possible oportunity.  It is necessary to wait a moment if a final thread
+ *  possible opportunity.  It is necessary to wait a moment if a final thread
  *  dump is to be requested.  This call wll always set the JVM state to
  *  WRAPPER_JSTATE_KILLING.
  */
