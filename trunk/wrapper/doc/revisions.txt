@@ -126,6 +126,9 @@ Java Service Wrapper Revision History.
 * Add WRAPPER_BIN_DIR and WRAPPER_WORKING_DIR environment variables which are
   now available for use within the wrapper.conf file as well as by any child
   processes.
+* Add documentation to the integration pages about existing system properties
+  that be used to control the way the WrapperSimpleApp and WrapperStartStopApp
+  handle application startup.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
