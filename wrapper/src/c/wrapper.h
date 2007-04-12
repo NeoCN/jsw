@@ -177,6 +177,13 @@ struct WrapperConfig {
     int     shutdownTimeout;        /* Number of seconds the wrapper will wait for a JVM to shutdown */
     int     jvmExitTimeout;         /* Number of seconds the wrapper will wait for a JVM to process to terminate */
 
+#ifdef WIN32
+    DWORD   wrapperPID;             /* PID of the Wrapper process. */
+    DWORD   javaPID;                /* PID of the Java process. */
+#else
+    pid_t   wrapperPID;             /* PID of the Wrapper process. */
+    pid_t   javaPID;                /* PID of the Java process. */
+#endif
     int     wState;                 /* The current state of the wrapper */
     int     jState;                 /* The current state of the jvm */
     DWORD   jStateTimeoutTicks;     /* Tick count until which the current jState is valid */
@@ -480,11 +487,6 @@ extern void wrapperExecute();
  *  wrapperGetTickAgeSeconds() function to perform time keeping.
  */
 extern DWORD wrapperGetTicks();
-
-/**
- * Returns the PID of the Wrapper process.
- */
-extern int wrapperGetPID();
 
 /**
  * Outputs a log entry at regular intervals to track the memory usage of the
