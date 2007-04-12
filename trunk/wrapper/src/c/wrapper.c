@@ -1163,6 +1163,7 @@ void wrapperUsage(char *appName) {
     printf("  -e  --resume  rEsume a paused NT service\n");
     printf("  -p  --stop    stoP a running NT service\n");
     printf("  -i  --install Install as an NT service\n");
+    printf("  -it --installstart Install and sTart as an NT service\n");
     printf("  -r  --remove  Remove as an NT service\n");
     /** Return mask: installed:1 running:2 interactive:4 automatic:8 manual:16 disabled:32 */
     printf("  -q  --query   Query the current status of the service\n");

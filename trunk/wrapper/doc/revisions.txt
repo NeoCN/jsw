@@ -132,6 +132,8 @@ Java Service Wrapper Revision History.
 * Remove support for native PPC and x86 distributions of the Wrapper for
   MAC OSX in favor of the universal X-Code distribution.  This appears to be
   the standard for the market and saves lots of time on testing.
+* Add a new '-it' command to the Windows version which makes it possible to
+  install and start a service as a single command.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

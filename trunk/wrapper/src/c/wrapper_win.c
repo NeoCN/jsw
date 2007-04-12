@@ -3451,6 +3451,7 @@ int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
 }
 
 void main(int argc, char **argv) {
+    int result;
 #ifdef _DEBUG
     int i;
 #endif
@@ -3557,6 +3558,16 @@ void main(int argc, char **argv) {
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             appExit(wrapperInstall());
+            return; /* For clarity. */
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand,"it") || !strcmpIgnoreCase(wrapperData->argCommand,"-installstart")) {
+            /* Install and Start an NT service */
+            /* Always auto close the log file to keep the output in synch. */
+            setLogfileAutoClose(TRUE);
+            result = wrapperInstall();
+            if (!result) {
+                result = wrapperStartService();
+            }
+            appExit(result);
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand,"r") || !strcmpIgnoreCase(wrapperData->argCommand,"-remove")) {
             /* Remove an NT service */
