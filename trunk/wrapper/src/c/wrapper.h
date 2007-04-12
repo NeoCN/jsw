@@ -534,6 +534,31 @@ extern void wrapperStopProcess(int useLoggerQueue, int exitCode);
 extern void wrapperRestartProcess(int useLoggerQueue);
 
 /**
+ * Loops over and strips all double quotes from prop and places the
+ *  stripped version into propStripped.
+ *
+ * The exception is double quotes that are preceeded by a backslash
+ *  in this case the backslash is stripped.
+ *
+ * If two backslashes are found in a row, then the first escapes the
+ *  second and the second is removed.
+ */
+extern void wrapperStripQuotes(const char *prop, char *propStripped);
+
+/**
+ * Adds quotes around the specified string in such a way that everything is
+ *  escaped correctly.  If the bufferSize is not large enough then the
+ *  required size will be returned.  0 is returned if successful.
+ */
+extern size_t wrapperQuoteValue(const char* value, char *buffer, size_t bufferSize);
+
+/**
+ * Checks the quotes in the value and displays an error if there are any problems.
+ * This can be useful to help users debug quote problems.
+ */
+extern int wrapperCheckQuotes(const char *value, const char *propName);
+
+/**
  * The main event loop for the wrapper.  Handles all state changes and events.
  */
 extern void wrapperEventLoop();

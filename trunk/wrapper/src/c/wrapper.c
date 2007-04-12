@@ -1552,7 +1552,7 @@ void correctWindowsPath(char *filename) {
  *  escaped correctly.  If the bufferSize is not large enough then the
  *  required size will be returned.  0 is returned if successful.
  */
-size_t quoteValue(const char* value, char *buffer, size_t bufferSize) {
+size_t wrapperQuoteValue(const char* value, char *buffer, size_t bufferSize) {
     size_t len = strlen(value);
     size_t in = 0;
     size_t out = 0;
@@ -1613,7 +1613,11 @@ size_t quoteValue(const char* value, char *buffer, size_t bufferSize) {
     }
 }
 
-int checkQuotes(const char *value, const char *propName) {
+/**
+ * Checks the quotes in the value and displays an error if there are any problems.
+ * This can be useful to help users debug quote problems.
+ */
+int wrapperCheckQuotes(const char *value, const char *propName) {
     size_t len = strlen(value);
     size_t in = 0;
     size_t in2 = 0;
@@ -1773,7 +1777,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         }
 
         if (addQuotes) {
-            checkQuotes(strings[index], "wrapper.java.command");
+            wrapperCheckQuotes(strings[index], "wrapper.java.command");
         }
 
 #else /* UNIX */
@@ -1843,13 +1847,13 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         }
 
                         if (addQuotes && quotable && strchr(propStripped, ' ')) {
-                            len = quoteValue(propStripped, NULL, 0);
+                            len = wrapperQuoteValue(propStripped, NULL, 0);
                             strings[index] = malloc(len);
                             if (!strings[index]) {
                                 outOfMemory("WBJCAI", 6);
                                 return -1;
                             }
-                            quoteValue(propStripped, strings[index], len);
+                            wrapperQuoteValue(propStripped, strings[index], len);
                         } else {
                             strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1));
                             if (!strings[index]) {
@@ -1860,7 +1864,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         }
 
                         if (addQuotes) {
-                            checkQuotes(strings[index], paramBuffer);
+                            wrapperCheckQuotes(strings[index], paramBuffer);
                         }
 
                         if (stripQuote) {
@@ -1983,7 +1987,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             }
 
             if (addQuotes) {
-                checkQuotes(strings[index], "wrapper.java.library.path");
+                wrapperCheckQuotes(strings[index], "wrapper.java.library.path");
             }
         } else {
             /* Look for a multiline library path. */
@@ -2086,7 +2090,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             }
 
             if (addQuotes) {
-                checkQuotes(strings[index], "wrapper.java.library.path.<n>");
+                wrapperCheckQuotes(strings[index], "wrapper.java.library.path.<n>");
             }
         }
     }
@@ -2322,7 +2326,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         }
 
         if (addQuotes) {
-            checkQuotes(strings[index], "wrapper.java.classpath.<n>");
+            wrapperCheckQuotes(strings[index], "wrapper.java.classpath.<n>");
         }
     }
     index++;
@@ -2616,13 +2620,13 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                     }
 
                     if (addQuotes && quotable && strchr(propStripped, ' ')) {
-                        len = quoteValue(propStripped, NULL, 0);
+                        len = wrapperQuoteValue(propStripped, NULL, 0);
                         strings[index] = malloc(len);
                         if (!strings[index]) {
                             outOfMemory("WBJCAI", 41);
                             return -1;
                         }
-                        quoteValue(propStripped, strings[index], len);
+                        wrapperQuoteValue(propStripped, strings[index], len);
                     } else {
                         strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1));
                         if (!strings[index]) {
@@ -2633,7 +2637,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                     }
 
                     if (addQuotes) {
-                        checkQuotes(strings[index], paramBuffer);
+                        wrapperCheckQuotes(strings[index], paramBuffer);
                     }
 
                     if (stripQuote) {
