@@ -83,7 +83,6 @@ pid_t getsid(pid_t pid);
 #define max(x,y) (((x) > (y)) ? (x) : (y)) 
 #define min(x,y) (((x) < (y)) ? (x) : (y)) 
 
-static pid_t jvmPid = -1;
 int          jvmOut = -1;
 
 /* Define a global pipe descriptor so that we don't have to keep allocating
@@ -180,7 +179,7 @@ int writePidFile(const char *filename, DWORD pid, int newUmask) {
 void wrapperRequestDumpJVMState(int useLoggerQueue) {
     log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
         "Dumping JVM state.");
-    if (kill(jvmPid, SIGQUIT) < 0) {
+    if (kill(wrapperData->javaPID, SIGQUIT) < 0) {
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                    "Could not dump JVM state: %s", getLastErrorText());
     }
@@ -342,12 +341,12 @@ void sigActionCommon(int sigNum, const char *sigName, siginfo_t *sigInfo, int mo
                 break;
 
             case WRAPPER_SIGNAL_MODE_FORWARD:
-                if (jvmPid > 0) {
+                if (wrapperData->javaPID > 0) {
                     if (wrapperData->isDebugging) {
                         log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                             "%s trapped.  Forwarding to JVM process.", sigName);
                     }
-                    if (kill(jvmPid, sigNum)) {
+                    if (kill(wrapperData->javaPID, sigNum)) {
                         log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                             "Unable to forward %s signal to JVM process.  %s", sigName, getLastErrorText());
                     }
@@ -817,7 +816,7 @@ void wrapperExecute() {
             exit(1);
         } else {
             /* We are the parent side. */
-            jvmPid = proc;
+            wrapperData->javaPID = proc;
             jvmOut = pipedes[STDIN_FILENO];
             
             /* Restore the auto close flag. */
@@ -840,7 +839,7 @@ void wrapperExecute() {
 
             /* If a java pid filename is specified then write the pid of the java process. */
             if (wrapperData->javaPidFilename) {
-                if (writePidFile(wrapperData->javaPidFilename, jvmPid, wrapperData->javaPidFileUmask)) {
+                if (writePidFile(wrapperData->javaPidFilename, wrapperData->javaPID, wrapperData->javaPidFileUmask)) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                         "Unable to write the Java PID file: %s", wrapperData->javaPidFilename);
                 }
@@ -870,13 +869,6 @@ DWORD wrapperGetTicks() {
         /* Return a snapshot of the current tick count. */
         return timerTicks;
     }
-}
-
-/**
- * Returns the PID of the Wrapper process.
- */
-int wrapperGetPID() {
-    return (int)getpid();
 }
 
 /**
@@ -924,7 +916,7 @@ int wrapperGetProcessStatus(int useLoggerQueue, DWORD nowTicks, int sigChild) {
     int exitCode;
     int res;
 
-    retval = waitpid(jvmPid, &status, WNOHANG | WUNTRACED);
+    retval = waitpid(wrapperData->javaPID, &status, WNOHANG | WUNTRACED);
     if (retval == 0) {
         /* Up and running. */
         if (sigChild && wrapperData->jvmStopped) {
@@ -1159,12 +1151,12 @@ int wrapperReadChildOutput() {
  */
 void wrapperKillProcessNow() {
     /* Check to make sure that the JVM process is still running */
-    if (waitpid(jvmPid, NULL, WNOHANG) == 0) {
+    if (waitpid(wrapperData->javaPID, NULL, WNOHANG) == 0) {
         /* JVM is still up when it should have already stopped itself. */
 
         /* The JVM process is not responding so the only choice we have is to
          *  kill it. */
-        if (kill(jvmPid, SIGKILL)) {
+        if (kill(wrapperData->javaPID, SIGKILL)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM did not exit on request.");
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 "  Attempt to terminate process failed: %s", getLastErrorText());
@@ -1180,7 +1172,7 @@ void wrapperKillProcessNow() {
     }
 
     wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, -1, -1);
-    jvmPid = -1;
+    wrapperData->javaPID = -1;
 
     /* Remove java pid file if it was registered and created by this process. */
     if (wrapperData->javaPidFilename) {
@@ -1201,7 +1193,7 @@ void wrapperKillProcess(int useLoggerQueue) {
     int delay = 0;
 
     /* Check to make sure that the JVM process is still running */
-    if (waitpid(jvmPid, NULL, WNOHANG) == 0) {
+    if (waitpid(wrapperData->javaPID, NULL, WNOHANG) == 0) {
         /* JVM is still up when it should have already stopped itself. */
         if (wrapperData->requestThreadDumpOnFailedJVMExit) {
             wrapperRequestDumpJVMState(useLoggerQueue);
@@ -1425,6 +1417,9 @@ int main(int argc, char **argv) {
         if (wrapperData->daemonize) {
             daemonize();
         }
+        
+        /* Get the current process. */
+        wrapperData->wrapperPID = getpid();
 
         /* See if the logs should be rolled on Wrapper startup. */
         if ((getLogfileRollMode() & ROLL_MODE_WRAPPER) ||
@@ -1435,7 +1430,7 @@ int main(int argc, char **argv) {
         /* Write pid and anchor files as requested.  If they are the same file the file is
          *  simply overwritten. */
         if (wrapperData->anchorFilename) {
-            if (writePidFile(wrapperData->anchorFilename, (int)getpid(), wrapperData->anchorFileUmask)) {
+            if (writePidFile(wrapperData->anchorFilename, wrapperData->wrapperPID, wrapperData->anchorFileUmask)) {
                 log_printf
                     (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                      "ERROR: Could not write anchor file %s: %s",
@@ -1445,7 +1440,7 @@ int main(int argc, char **argv) {
             }
         }
         if (wrapperData->pidFilename) {
-            if (writePidFile(wrapperData->pidFilename, (int)getpid(), wrapperData->pidFileUmask)) {
+            if (writePidFile(wrapperData->pidFilename, wrapperData->wrapperPID, wrapperData->pidFileUmask)) {
                 log_printf
                     (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                      "ERROR: Could not write pid file %s: %s",
@@ -1455,7 +1450,7 @@ int main(int argc, char **argv) {
             }
         }
         if (wrapperData->lockFilename) {
-            if (writePidFile(wrapperData->lockFilename, (int)getpid(), wrapperData->lockFileUmask)) {
+            if (writePidFile(wrapperData->lockFilename, wrapperData->wrapperPID, wrapperData->lockFileUmask)) {
                 /* This will fail if the user is running as a user without full privileges.
                  *  To make things easier for user configuration, this is ignored if sufficient
                  *  privileges do not exist. */

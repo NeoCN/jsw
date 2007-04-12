@@ -78,9 +78,7 @@ SERVICE_STATUS_HANDLE   sshStatusHandle;
 #define SYSTEM_PATH_MAX_LEN 256
 static char *systemPath[SYSTEM_PATH_MAX_LEN];
 static HANDLE wrapperProcess = NULL;
-static DWORD  wrapperProcessId = 0;
 static HANDLE javaProcess = NULL;
-static DWORD  javaProcessId = 0;
 static HANDLE wrapperChildStdoutWr = INVALID_HANDLE_VALUE;
 static HANDLE wrapperChildStdoutRd = INVALID_HANDLE_VALUE;
 
@@ -596,8 +594,8 @@ void wrapperRequestDumpJVMState(int useLoggerQueue) {
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
             "Dumping JVM state.");
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-            "Sending BREAK event to process group %ld.", javaProcessId);
-        if ( GenerateConsoleCtrlEvent( CTRL_BREAK_EVENT, javaProcessId ) == 0 ) {
+            "Sending BREAK event to process group %ld.", wrapperData->javaPID);
+        if ( GenerateConsoleCtrlEvent( CTRL_BREAK_EVENT, wrapperData->javaPID ) == 0 ) {
             log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 "Unable to send BREAK event to JVM process.  Err(%ld : %s)",
                 GetLastError(), getLastErrorText());
@@ -1283,7 +1281,7 @@ int wrapperGetProcessStatus(int useLoggerQueue, DWORD nowTicks, int sigChild) {
                 "Failed to close the Java process handle: %s", getLastErrorText());
         }
         javaProcess = NULL;
-        javaProcessId = 0;
+        wrapperData->javaPID = 0;
 
         break;
 
@@ -1344,7 +1342,7 @@ void wrapperKillProcessNow() {
             "Failed to close the Java process handle: %s", getLastErrorText());
     }
     javaProcess = NULL;
-    javaProcessId = 0;
+    wrapperData->javaPID = 0;
 
     /* Close any open socket to the JVM */
     wrapperProtocolClose();
@@ -1604,12 +1602,14 @@ void wrapperExecute() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM started (PID=%d)", process_info.dwProcessId);
     }
 
+    /* We keep a reference to the process handle, but need to close the thread handle. */
     javaProcess = process_info.hProcess;
-    javaProcessId = process_info.dwProcessId;
+    wrapperData->javaPID = process_info.dwProcessId;
+    CloseHandle(process_info.hThread);
 
     /* If a java pid filename is specified then write the pid of the java process. */
     if (wrapperData->javaPidFilename) {
-        if (writePidFile(wrapperData->javaPidFilename, javaProcessId, wrapperData->javaPidFileUmask)) {
+        if (writePidFile(wrapperData->javaPidFilename, wrapperData->javaPID, wrapperData->javaPidFileUmask)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 "Unable to write the Java PID file: %s", wrapperData->javaPidFilename);
         }
@@ -1640,13 +1640,6 @@ DWORD wrapperGetTicks() {
 }
 
 /**
- * Returns the PID of the Wrapper process.
- */
-int wrapperGetPID() {
-    return GetCurrentProcessId();
-}
-
-/**
  * Outputs a log entry at regular intervals to track the memory usage of the
  *  Wrapper and its JVM.
  */
@@ -1659,7 +1652,7 @@ void wrapperDumpMemory() {
         if (OptionalGetProcessMemoryInfo(wrapperProcess, &wCounters, sizeof(wCounters)) == 0) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 "Call to GetProcessMemoryInfo failed for Wrapper process %08x: %s",
-                wrapperProcessId, getLastErrorText());
+                wrapperData->wrapperPID, getLastErrorText());
             return;
         }
         
@@ -1668,7 +1661,7 @@ void wrapperDumpMemory() {
             if (OptionalGetProcessMemoryInfo(javaProcess, &jCounters, sizeof(jCounters)) == 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                     "Call to GetProcessMemoryInfo failed for Java process %08x: %s",
-                    javaProcessId, getLastErrorText());
+                    wrapperData->javaPID, getLastErrorText());
                 return;
             }
         } else {
@@ -1757,7 +1750,7 @@ void wrapperDumpCPUUsage() {
         if (!OptionalGetProcessTimes(wrapperProcess, &creationTime, &exitTime, &wKernelTime, &wUserTime)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 "Call to GetProcessTimes failed for Wrapper process %08x: %s",
-                wrapperProcessId, getLastErrorText());
+                wrapperData->wrapperPID, getLastErrorText());
             return;
         }
         
@@ -1766,7 +1759,7 @@ void wrapperDumpCPUUsage() {
             if (!OptionalGetProcessTimes(javaProcess, &creationTime, &exitTime, &jKernelTime, &jUserTime)) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                     "Call to GetProcessTimes failed for Java process %08x: %s",
-                    javaProcessId, getLastErrorText());
+                    wrapperData->javaPID, getLastErrorText());
                 return;
             }
         } else {
@@ -3625,7 +3618,7 @@ void main(int argc, char **argv) {
             
             /* Get the current process. */
             wrapperProcess = GetCurrentProcess();
-            wrapperProcessId = GetCurrentProcessId();
+            wrapperData->wrapperPID = GetCurrentProcessId();
             
             /* See if the logs should be rolled on Wrapper startup. */
             if ((getLogfileRollMode() & ROLL_MODE_WRAPPER) ||
@@ -3637,7 +3630,7 @@ void main(int argc, char **argv) {
              *  simply overwritten. */
             cleanUpPIDFilesOnExit = TRUE;
             if (wrapperData->anchorFilename) {
-                if (writePidFile(wrapperData->anchorFilename, wrapperProcessId, wrapperData->anchorFileUmask)) {
+                if (writePidFile(wrapperData->anchorFilename, wrapperData->wrapperPID, wrapperData->anchorFileUmask)) {
                     log_printf
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                          "ERROR: Could not write anchor file %s: %s",
@@ -3647,7 +3640,7 @@ void main(int argc, char **argv) {
                 }
             }
             if (wrapperData->pidFilename) {
-                if (writePidFile(wrapperData->pidFilename, wrapperProcessId, wrapperData->pidFileUmask)) {
+                if (writePidFile(wrapperData->pidFilename, wrapperData->wrapperPID, wrapperData->pidFileUmask)) {
                     log_printf
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                          "ERROR: Could not write pid file %s: %s",
@@ -3657,7 +3650,7 @@ void main(int argc, char **argv) {
                 }
             }
             if (wrapperData->lockFilename) {
-                if (writePidFile(wrapperData->lockFilename, wrapperProcessId, wrapperData->lockFileUmask)) {
+                if (writePidFile(wrapperData->lockFilename, wrapperData->wrapperPID, wrapperData->lockFileUmask)) {
                     log_printf
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                          "ERROR: Could not write lock file %s: %s",
@@ -3683,7 +3676,7 @@ void main(int argc, char **argv) {
             
             /* Get the current process. */
             wrapperProcess = GetCurrentProcess();
-            wrapperProcessId = GetCurrentProcessId();
+            wrapperData->wrapperPID = GetCurrentProcessId();
             
             /* See if the logs should be rolled on Wrapper startup. */
             if ((getLogfileRollMode() & ROLL_MODE_WRAPPER) ||
@@ -3695,7 +3688,7 @@ void main(int argc, char **argv) {
              *  simply overwritten. */
             cleanUpPIDFilesOnExit = TRUE;
             if (wrapperData->anchorFilename) {
-                if (writePidFile(wrapperData->anchorFilename, wrapperProcessId, wrapperData->anchorFileUmask)) {
+                if (writePidFile(wrapperData->anchorFilename, wrapperData->wrapperPID, wrapperData->anchorFileUmask)) {
                     log_printf
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                          "ERROR: Could not write anchor file %s: %s",
@@ -3705,7 +3698,7 @@ void main(int argc, char **argv) {
                 }
             }
             if (wrapperData->pidFilename) {
-                if (writePidFile(wrapperData->pidFilename, wrapperProcessId, wrapperData->pidFileUmask)) {
+                if (writePidFile(wrapperData->pidFilename, wrapperData->wrapperPID, wrapperData->pidFileUmask)) {
                     log_printf
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                          "ERROR: Could not write pid file %s: %s",

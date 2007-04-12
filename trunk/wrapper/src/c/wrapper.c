@@ -2414,7 +2414,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             outOfMemory("WBJCAI", 28);
             return -1;
         }
-        sprintf(strings[index], "-Dwrapper.pid=%d", wrapperGetPID());
+        sprintf(strings[index], "-Dwrapper.pid=%d", wrapperData->wrapperPID);
     }
     index++;
 
