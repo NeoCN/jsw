@@ -168,35 +168,40 @@ case "$DIST_OS" in
 esac
 
 # Resolve the architecture
-DIST_ARCH=`uname -p 2>/dev/null | tr [:upper:] [:lower:] | tr -d [:blank:]`
-if [ $? -ne 0 ]
+if [ "$DIST_OS" = "macosx" ]
 then
-    DIST_ARCH="unknown"
+    DIST_ARCH="universal"
+else
+    DIST_ARCH=`uname -p 2>/dev/null | tr [:upper:] [:lower:] | tr -d [:blank:]`
+    if [ $? -ne 0 ]
+    then
+        DIST_ARCH="unknown"
+    fi
+    if [ "$DIST_ARCH" = "unknown" ]
+    then
+        DIST_ARCH=`uname -m 2>/dev/null | tr [:upper:] [:lower:] | tr -d [:blank:]`
+    fi
+    case "$DIST_ARCH" in
+        'amd64' | 'athlon' | 'ia32' | 'ia64' | 'i386' | 'i486' | 'i586' | 'i686' | 'x86_64')
+            DIST_ARCH="x86"
+            ;;
+        'ip27')
+            DIST_ARCH="mips"
+            ;;
+        'power' | 'powerpc' | 'power_pc' | 'ppc64')
+            DIST_ARCH="ppc"
+            ;;
+        'pa_risc' | 'pa-risc')
+            DIST_ARCH="parisc"
+            ;;
+        'sun4u' | 'sparcv9')
+            DIST_ARCH="sparc"
+            ;;
+        '9000/800')
+            DIST_ARCH="parisc"
+            ;;
+    esac
 fi
-if [ "$DIST_ARCH" = "unknown" ]
-then
-    DIST_ARCH=`uname -m 2>/dev/null | tr [:upper:] [:lower:] | tr -d [:blank:]`
-fi
-case "$DIST_ARCH" in
-    'amd64' | 'athlon' | 'ia32' | 'ia64' | 'i386' | 'i486' | 'i586' | 'i686' | 'x86_64')
-        DIST_ARCH="x86"
-        ;;
-    'ip27')
-        DIST_ARCH="mips"
-        ;;
-    'power' | 'powerpc' | 'power_pc' | 'ppc64')
-        DIST_ARCH="ppc"
-        ;;
-    'pa_risc' | 'pa-risc')
-        DIST_ARCH="parisc"
-        ;;
-    'sun4u' | 'sparcv9')
-        DIST_ARCH="sparc"
-        ;;
-    '9000/800')
-        DIST_ARCH="parisc"
-        ;;
-esac
 
 outputFile() {
     if [ -f "$1" ]
@@ -211,56 +216,23 @@ outputFile() {
 # If a 32-bit wrapper binary exists then it will work on 32 or 64 bit
 #  platforms, if the 64-bit binary exists then the distribution most
 #  likely wants to use long names.  Otherwise, look for the default.
-# For macosx, we also want to look for universal binaries.
 WRAPPER_TEST_CMD="$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-32"
 if [ -x "$WRAPPER_TEST_CMD" ]
 then
     WRAPPER_CMD="$WRAPPER_TEST_CMD"
 else
-    if [ "$DIST_OS" = "macosx" ]
+    WRAPPER_TEST_CMD="$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-64"
+    if [ -x "$WRAPPER_TEST_CMD" ]
     then
-        WRAPPER_TEST_CMD="$WRAPPER_CMD-$DIST_OS-universal-32"
-        if [ -x "$WRAPPER_TEST_CMD" ]
-        then
-            WRAPPER_CMD="$WRAPPER_TEST_CMD"
-        else
-            WRAPPER_TEST_CMD="$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-64"
-            if [ -x "$WRAPPER_TEST_CMD" ]
-            then
-                WRAPPER_CMD="$WRAPPER_TEST_CMD"
-            else
-                WRAPPER_TEST_CMD="$WRAPPER_CMD-$DIST_OS-universal-64"
-                if [ -x "$WRAPPER_TEST_CMD" ]
-                then
-                    WRAPPER_CMD="$WRAPPER_TEST_CMD"
-                else
-                    if [ ! -x "$WRAPPER_CMD" ]
-                    then
-                        echo "Unable to locate any of the following binaries:"
-                        outputFile "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-32"
-                        outputFile "$WRAPPER_CMD-$DIST_OS-universal-32"
-                        outputFile "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-64"
-                        outputFile "$WRAPPER_CMD-$DIST_OS-universal-64"
-                        outputFile "$WRAPPER_CMD"
-                        exit 1
-                    fi
-                fi
-            fi
-        fi
+        WRAPPER_CMD="$WRAPPER_TEST_CMD"
     else
-        WRAPPER_TEST_CMD="$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-64"
-        if [ -x "$WRAPPER_TEST_CMD" ]
+        if [ ! -x "$WRAPPER_CMD" ]
         then
-            WRAPPER_CMD="$WRAPPER_TEST_CMD"
-        else
-            if [ ! -x "$WRAPPER_CMD" ]
-            then
-                echo "Unable to locate any of the following binaries:"
-                outputFile "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-32"
-                outputFile "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-64"
-                outputFile "$WRAPPER_CMD"
-                exit 1
-            fi
+            echo "Unable to locate any of the following binaries:"
+            outputFile "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-32"
+            outputFile "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-64"
+            outputFile "$WRAPPER_CMD"
+            exit 1
         fi
     fi
 fi

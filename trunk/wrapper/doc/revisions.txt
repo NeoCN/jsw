@@ -129,6 +129,9 @@ Java Service Wrapper Revision History.
 * Add documentation to the integration pages about existing system properties
   that be used to control the way the WrapperSimpleApp and WrapperStartStopApp
   handle application startup.
+* Remove support for native PPC and x86 distributions of the Wrapper for
+  MAC OSX in favor of the universal X-Code distribution.  This appears to be
+  the standard for the market and saves lots of time on testing.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

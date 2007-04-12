@@ -1046,8 +1046,7 @@ public final class WrapperManager
      * @return A detailed native library base name.
      */
     private static String generateDetailedNativeLibraryBaseName( String baseName,
-                                                                 int jvmBits,
-                                                                 boolean universal )
+                                                                 int jvmBits )
     {
         // Generate an os name.  Most names are used as is, but some are modified.
         String os = System.getProperty( "os.name", "" ).toLowerCase();
@@ -1073,13 +1072,14 @@ public final class WrapperManager
         }
         
         // Generate an architecture name.
-        String arch = System.getProperty( "os.arch", "" ).toLowerCase();
-        if ( universal )
+        String arch;
+        if ( os.equals( "macosx" ) )
         {
             arch = "universal";
         }
         else
         {
+            arch = System.getProperty( "os.arch", "" ).toLowerCase();
             if ( arch.equals( "amd64" ) || arch.equals( "athlon" ) || arch.equals( "ia32" ) ||
                 arch.equals( "ia64" ) || arch.equals( "x86_64" ) || arch.equals( "i686" ) ||
                 arch.equals( "i586" ) || arch.equals( "i486" ) || arch.equals( "i386" ) )
@@ -1109,9 +1109,6 @@ public final class WrapperManager
      */
     private static void initializeNativeLibrary()
     {
-        // Resolve the osname and osarch for the currect system.
-        String osName = System.getProperty( "os.name" ).toLowerCase();
-        
         // Look for the base name of the library.
         String baseName = System.getProperty( "wrapper.native_library" );
         if ( baseName == null )
@@ -1124,21 +1121,12 @@ public final class WrapperManager
         String[] detailedNames = new String[4];
         if ( m_jvmBits > 0 )
         {
-            detailedNames[0] = generateDetailedNativeLibraryBaseName( baseName, m_jvmBits, false );
-            if ( osName.startsWith( "mac" ) )
-            {
-                detailedNames[1] = generateDetailedNativeLibraryBaseName( baseName, m_jvmBits, true );
-            }
+            detailedNames[0] = generateDetailedNativeLibraryBaseName( baseName, m_jvmBits );
         }
         else
         {
-            detailedNames[0] = generateDetailedNativeLibraryBaseName( baseName, 32, false );
-            detailedNames[1] = generateDetailedNativeLibraryBaseName( baseName, 64, false );
-            if ( osName.startsWith( "mac" ) )
-            {
-                detailedNames[2] = generateDetailedNativeLibraryBaseName( baseName, 32, true );
-                detailedNames[3] = generateDetailedNativeLibraryBaseName( baseName, 64, true );
-            }
+            detailedNames[0] = generateDetailedNativeLibraryBaseName( baseName, 32 );
+            detailedNames[1] = generateDetailedNativeLibraryBaseName( baseName, 64 );
         }
         
         // Construct brief and detailed native library file names.
