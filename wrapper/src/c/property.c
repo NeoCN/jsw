@@ -570,7 +570,7 @@ void setEnv( const char *name, const char *value )
      *  setting the variable if it has not changed its value. */
     oldVal = getenv(name);
     if (value == NULL) {
-        printf("clear %s=\n", name);
+        /*printf("clear %s=\n", name);*/
         if (oldVal != NULL) {
             /* Allocate a block of memory for the environment variable.  The system uses
              *  this memory so it is not freed after we set it. We only call this on
@@ -588,7 +588,7 @@ void setEnv( const char *name, const char *value )
             }
         }
     } else {
-        printf("set %s=%s\n", name, value);
+        /*printf("set %s=%s\n", name, value);*/
         if ((oldVal == NULL) || (strcmp(oldVal, value) != 0)) {
             /* Allocate a block of memory for the environment variable.  The system uses
              *  this memory so it is not freed after we set it. We only call this on
