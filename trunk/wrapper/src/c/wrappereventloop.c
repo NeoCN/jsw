@@ -1128,6 +1128,9 @@ void jStateLaunchDelay(DWORD nowTicks, int nextSleep) {
             }
         
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Launching a JVM...");
+            /* Increment the JVM restart Id to keep track of how many JVMs we have launched. */
+            wrapperData->jvmRestarts++;
+
             wrapperExecute();
         
             /* Check if the start was successful. */

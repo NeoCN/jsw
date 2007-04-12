@@ -1412,9 +1412,6 @@ void wrapperExecute() {
     /* Reset the exit code when we launch a new JVM. */
     wrapperData->exitCode = 0;
 
-    /* Increment the process ID for Log sourcing */
-    wrapperData->jvmRestarts++;
-
     /* Add the priority class of the new process to the processflags */
     processflags = processflags | wrapperData->ntServicePriorityClass;
 
@@ -3329,7 +3326,11 @@ int setWorkingDir() {
         pos[0] = (char)0;
     }
 
+    /* Set a variable to the location of the binary. */
+    setEnv("WRAPPER_BIN_DIR", szPath);
+
     result = wrapperSetWorkingDir(szPath);
+
     free(szPath);
 
     return result;

@@ -778,9 +778,6 @@ void wrapperExecute() {
 
         /* Reset the stopped flag. */
         wrapperData->jvmStopped = FALSE;
-        
-        /* Fork succeeded: increment the process ID for logging. */
-        wrapperData->jvmRestarts++;
 
         if (proc == 0) {
             /* We are the child side. */
@@ -1334,9 +1331,10 @@ int setWorkingDir(char *app) {
         pos[0] = (char)0;
     }
 
-    if (chdir(szPath)) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            "Unable to set working dir to %s : %s", szPath, getLastErrorText());
+    /* Set a variable to the location of the binary. */
+    setEnv("WRAPPER_BIN_DIR", szPath);
+
+    if (wrapperSetWorkingDir(szPath)) {
         return 1;
     }
 
