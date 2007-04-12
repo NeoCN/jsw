@@ -1,10 +1,6 @@
 Java Service Wrapper Revision History.
 --------------------------------------
-3.2.4
-* Purchased a 64-bit system to make it possible for me to develop 64-bit
-  versions of the Wrapper.  This purchase was made for the sole purpose of
-  supporting Wrapper development.  If you find any of the 64-bit versions
-  useful please consider helping to offset costs with a donation.
+3.3.0
 * Add a new wrapper.ping.interval.logged property which makes it possible to
   reduce the debug output caused by ping transactions between the Wrapper and
   JVM.
@@ -113,6 +109,23 @@ Java Service Wrapper Revision History.
   the methods do.
 * Move the Wrapper Copyright banner into the Wrapper process so it will be
   output more consistently.
+* Branch the code to support Community and Professional Editions of the
+  Wrapper.
+* (Professional) Development and testing of the new Windows 64-bit version
+  required the purchase of 64-bit hardware and software.   We have decided
+  to delay the release of the Windows 64-bit Community edition until these
+  costs have been recouped.
+* (Professional) Add support for Fixed as well as OEM based licenses.
+* (Professional) Add event handling callbacks for Wrapper start/stop, JVM
+  start/stop, JVM started/stopped, JVM restart, JVM killed, and JVM unexpected
+  exit events.
+* (Professional) Add the ability to send emails in response to any event
+  callback.
+* (Professional) Add the ability to execute a a user configured command in
+  response to any event callback.
+* Add WRAPPER_BIN_DIR and WRAPPER_WORKING_DIR environment variables which are
+  now available for use within the wrapper.conf file as well as by any child
+  processes.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

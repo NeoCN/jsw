@@ -3641,6 +3641,9 @@ int wrapperSetWorkingDir(const char* dir) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Working directory set to: %s", dir);
     }
 
+    /* Set a variable to the location of the binary. */
+    setEnv("WRAPPER_WORKING_DIR", dir);
+
     return FALSE;
 }
 

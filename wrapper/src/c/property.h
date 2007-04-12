@@ -74,6 +74,8 @@ struct Properties {
     Property *last;          /* Pointer to the last property.  */
 };
 
+extern void setEnv( const char *name, const char *value );
+
 /**
  * Create a Properties structure loaded in from the specified file.
  *  Must call disposeProperties to free up allocated memory.

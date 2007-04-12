@@ -555,20 +555,55 @@ void removeProperty(Properties *properties, const char *propertyName) {
     }
 }
 
+/**
+ * Sets an environment variable with the specified value.
+ *  The function will only set the variable if its value is changed, but if
+ *  it does, the call will result in a memory leak the size of the string:
+ *   "name=value".
+ */
 void setEnv( const char *name, const char *value )
 {
+    char *oldVal;
     char *envBuf;
 
-    /* Allocate a block of memory for the environment variable.  The system uses
-     *  this memory so it is not freed after we set it. We only call this on
-     *  startup, so the leak is minor. */
-    envBuf = malloc(sizeof(char) * (strlen(name) + strlen(value) + 2));
-    if (!envBuf) {
-        outOfMemory("SE", 1);
+    /* Get the current environment variable value so we can avoid allocating and
+     *  setting the variable if it has not changed its value. */
+    oldVal = getenv(name);
+    if (value == NULL) {
+        printf("clear %s=\n", name);
+        if (oldVal != NULL) {
+            /* Allocate a block of memory for the environment variable.  The system uses
+             *  this memory so it is not freed after we set it. We only call this on
+             *  startup, so the leak is minor. */
+            envBuf = malloc(sizeof(char) * (strlen(name) + 2));
+            if (!envBuf) {
+                outOfMemory("SE", 1);
+            } else {
+                sprintf(envBuf, "%s=", name);
+                /* The memory pointed to by envBuf becomes part of the environment so it can
+                 *  not be freed by us here. */
+                if (putenv(envBuf)) {
+                    printf("Unable to clear environment variable: %s\n", envBuf);
+                }
+            }
+        }
     } else {
-        sprintf(envBuf, "%s=%s", name, value);
-        if (putenv(envBuf)) {
-            printf("Unable to set environment variable: %s\n", envBuf);
+        printf("set %s=%s\n", name, value);
+        if ((oldVal == NULL) || (strcmp(oldVal, value) != 0)) {
+            /* Allocate a block of memory for the environment variable.  The system uses
+             *  this memory so it is not freed after we set it. We only call this on
+             *  startup, so the leak is minor. */
+            envBuf = malloc(sizeof(char) * (strlen(name) + strlen(value) + 2));
+            if (!envBuf) {
+                outOfMemory("SE", 2);
+            } else {
+                sprintf(envBuf, "%s=%s", name, value);
+                /* The memory pointed to by envBuf becomes part of the environment so it can
+                 *  not be freed by us here. */
+                if (putenv(envBuf)) {
+                    printf("Unable to set environment variable: %s\n", envBuf);
+                }
+            }
         }
     }
 }
