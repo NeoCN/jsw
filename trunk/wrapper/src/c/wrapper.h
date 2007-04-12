@@ -50,7 +50,9 @@
 #include <winsock.h>
 
 #else /* UNIX */
+#include <sys/types.h>
 #include <time.h>
+#include <unistd.h>
 #ifndef MACOSX
 #define u_short unsigned short
 #endif /* MACOSX */
