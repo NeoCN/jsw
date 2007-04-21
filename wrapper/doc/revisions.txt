@@ -141,6 +141,9 @@ Java Service Wrapper Revision History.
 * Modify the shell script to set JAVA_HOME to the default JVM location on
   OSX systems if it is not already set.  OSX always places the JVM in a known
   location so this is possible.  Thanks to Andrew Williams for the patch.
+* Fix a problem where the UNIX shell script would fail if the APP_NAME was set
+  to a value containing spaces.  Thanks to Andrew Williams for the patch.
+  Bug #1695678.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
