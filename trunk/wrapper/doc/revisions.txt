@@ -144,6 +144,8 @@ Java Service Wrapper Revision History.
 * Fix a problem where the UNIX shell script would fail if the APP_NAME was set
   to a value containing spaces.  Thanks to Andrew Williams for the patch.
   Bug #1695678.
+* Fix a problem where the DIST_ARCH was not being resolved correctly on HP-UX
+  systems.  Thanks to Matej Kraus for the patch.  Bug #1697421.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
