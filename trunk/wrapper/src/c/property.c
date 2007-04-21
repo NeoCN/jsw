@@ -560,8 +560,10 @@ void removeProperty(Properties *properties, const char *propertyName) {
  *  The function will only set the variable if its value is changed, but if
  *  it does, the call will result in a memory leak the size of the string:
  *   "name=value".
+ *
+ * Return TRUE if there were any problems.
  */
-void setEnv( const char *name, const char *value )
+int setEnv( const char *name, const char *value )
 {
     char *oldVal;
     char *envBuf;
@@ -578,12 +580,14 @@ void setEnv( const char *name, const char *value )
             envBuf = malloc(sizeof(char) * (strlen(name) + 2));
             if (!envBuf) {
                 outOfMemory("SE", 1);
+                return TRUE;
             } else {
                 sprintf(envBuf, "%s=", name);
                 /* The memory pointed to by envBuf becomes part of the environment so it can
                  *  not be freed by us here. */
                 if (putenv(envBuf)) {
                     printf("Unable to clear environment variable: %s\n", envBuf);
+                    return TRUE;
                 }
             }
         }
@@ -596,16 +600,20 @@ void setEnv( const char *name, const char *value )
             envBuf = malloc(sizeof(char) * (strlen(name) + strlen(value) + 2));
             if (!envBuf) {
                 outOfMemory("SE", 2);
+                return TRUE;
             } else {
                 sprintf(envBuf, "%s=%s", name, value);
                 /* The memory pointed to by envBuf becomes part of the environment so it can
                  *  not be freed by us here. */
                 if (putenv(envBuf)) {
                     printf("Unable to set environment variable: %s\n", envBuf);
+                    return TRUE;
                 }
             }
         }
     }
+
+    return FALSE;
 }
 
 /* Trims any whitespace from the beginning and end of the in string

@@ -109,8 +109,8 @@ Java Service Wrapper Revision History.
   the methods do.
 * Move the Wrapper Copyright banner into the Wrapper process so it will be
   output more consistently.
-* Branch the code to support Community and Professional Editions of the
-  Wrapper.
+* Branch the code to support Community, Standard, and Professional Editions
+  of the Java Service Wrapper.
 * (Professional) Development and testing of the new Windows 64-bit version
   required the purchase of 64-bit hardware and software.   We have decided
   to delay the release of the Windows 64-bit Community edition until these
@@ -134,6 +134,10 @@ Java Service Wrapper Revision History.
   the standard for the market and saves lots of time on testing.
 * Add a new '-it' command to the Windows version which makes it possible to
   install and start a service as a single command.
+* Fix a problem where the PATH environment variable was not being set correctly
+  on Windows versions when run as a service if the wrapper.ntservice.account
+  was set and a PATH was set for both the SYSTEM and user accounts.
+  Bug #1702274.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

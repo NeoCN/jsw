@@ -74,7 +74,7 @@ struct Properties {
     Property *last;          /* Pointer to the last property.  */
 };
 
-extern void setEnv( const char *name, const char *value );
+extern int setEnv( const char *name, const char *value );
 
 /**
  * Create a Properties structure loaded in from the specified file.
