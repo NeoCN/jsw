@@ -172,8 +172,9 @@ if [ "$DIST_OS" = "macosx" ]
 then
     DIST_ARCH="universal"
 else
+    DIST_ARCH=
     DIST_ARCH=`uname -p 2>/dev/null | tr [:upper:] [:lower:] | tr -d [:blank:]`
-    if [ $? -ne 0 ]
+    if [ "X$DIST_ARCH" = "X" ]
     then
         DIST_ARCH="unknown"
     fi
