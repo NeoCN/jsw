@@ -146,9 +146,6 @@ Java Service Wrapper Revision History.
   Bug #1695678.
 * Fix a problem where the DIST_ARCH was not being resolved correctly on HP-UX
   systems.  Thanks to Matej Kraus for the patch.  Patch #1697421.
-* Fix a problem on HP-UX platforms where the shell script was not using the
-  correct arguments for the ps command.  Thanks to Matej Kraus for the patch.
-  Patch #1695447.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
