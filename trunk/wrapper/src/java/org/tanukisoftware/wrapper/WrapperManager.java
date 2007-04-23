@@ -841,6 +841,7 @@ public final class WrapperManager
     private static native String nativeGetLibraryVersion();
     private static native int nativeGetJavaPID();
     private static native boolean nativeIsProfessionalEdition();
+    private static native boolean nativeIsStandardEdition();
     private static native int nativeGetControlEvent();
     private static native void nativeRequestThreadDump();
     private static native void accessViolationInner();
@@ -1416,7 +1417,7 @@ public final class WrapperManager
     
     /**
      * Returns true if the current Wrapper edition has support for Professional
-     *  features.
+     *  Edition features.
      *
      * @return True if professional features are supported.
      */
@@ -1434,6 +1435,36 @@ public final class WrapperManager
                 if ( m_debug )
                 {
                     m_outDebug.println( "Call to nativeIsProfessionalEdition() failed: " + e );
+                }
+                return false;
+            }
+        }
+        else
+        {
+            return false;
+        }
+    }
+    
+    /**
+     * Returns true if the current Wrapper edition has support for Standard
+     *  Edition features.
+     *
+     * @return True if standard features are supported.
+     */
+    public static boolean isStandardEdition()
+    {
+        // Be careful as this will not exist in older versions
+        if ( m_libraryOK )
+        {
+            try
+            {
+                return nativeIsStandardEdition();
+            }
+            catch ( Throwable e )
+            {
+                if ( m_debug )
+                {
+                    m_outDebug.println( "Call to nativeIsStandardEdition() failed: " + e );
                 }
                 return false;
             }
