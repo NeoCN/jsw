@@ -548,6 +548,7 @@ int lockLoggingMutex() {
 #else
     if (pthread_mutex_lock(&log_printfMutex)) {
         printf("Failed to lock the Logging mutex. %s\n", getLastErrorText());
+        return -1;
     }
 #endif
     
@@ -564,6 +565,7 @@ int releaseLoggingMutex() {
 #else
     if (pthread_mutex_unlock(&log_printfMutex)) {
         printf("Failed to unlock the Logging mutex. %s\n", getLastErrorText());
+        return -1;
     }
 #endif
     return 0;
