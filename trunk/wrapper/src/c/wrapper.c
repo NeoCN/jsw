@@ -716,7 +716,10 @@ int lockProtocolMutex() {
         break;
     }
 #else
-    pthread_mutex_lock(&protocolMutex);
+    if (pthread_mutex_lock(&protocolMutex)) {
+        printf("Failed to lock the Protocol mutex. %s\n", getLastErrorText());
+        return -1;
+    }
 #endif
     
     return 0;
@@ -726,12 +729,15 @@ int lockProtocolMutex() {
 int releaseProtocolMutex() {
 #ifdef WIN32
     if (!ReleaseMutex(protocolMutexHandle)) {
-        printf( "Failed to release protocol mutex. %s\n", getLastErrorText());
+        printf( "Failed to release Protocol mutex. %s\n", getLastErrorText());
         fflush(NULL);
         return -1;
     }
 #else
-    pthread_mutex_unlock(&protocolMutex);
+    if (pthread_mutex_unlock(&protocolMutex)) {
+        printf("Failed to unlock the Protocol mutex. %s\n", getLastErrorText());
+        return -1;
+    }
 #endif
     return 0;
 }
