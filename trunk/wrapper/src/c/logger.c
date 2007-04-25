@@ -240,7 +240,6 @@ int initLogging() {
 #ifdef WIN32
     if (!(log_printfMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
         printf("Failed to create logging mutex. %s\n", getLastErrorText());
-        fflush(NULL);
         return 1;
     }
 #endif
@@ -268,7 +267,6 @@ int disposeLogging() {
         if (!CloseHandle(log_printfMutexHandle))
         {
             printf("Unable to close Logging Mutex handle. %s\n", getLastErrorText());
-            fflush(NULL);
             return 1;
         }
     }
@@ -536,15 +534,12 @@ int lockLoggingMutex() {
     switch (WaitForSingleObject(log_printfMutexHandle, INFINITE)) {
     case WAIT_ABANDONED:
         printf("Logging mutex was abandoned.\n");
-        fflush(NULL);
         return -1;
     case WAIT_FAILED:
         printf("Logging mutex wait failed.\n");
-        fflush(NULL);
         return -1;
     case WAIT_TIMEOUT:
         printf("Logging mutex wait timed out.\n");
-        fflush(NULL);
         return -1;
     default:
         /* Ok */
@@ -564,7 +559,6 @@ int releaseLoggingMutex() {
 #ifdef WIN32
     if (!ReleaseMutex(log_printfMutexHandle)) {
         printf( "Failed to release logging mutex. %s\n", getLastErrorText());
-        fflush(NULL);
         return -1;
     }
 #else
@@ -587,7 +581,6 @@ void closeLogfile() {
     if (logfileFP != NULL) {
 #ifdef _DEBUG
         printf("Closing logfile by request...\n");
-        fflush(NULL);
 #endif
         
         fclose(logfileFP);
@@ -620,7 +613,6 @@ void flushLogfile() {
     if (logfileFP != NULL) {
 #ifdef _DEBUG
         printf("Flushing logfile by request...\n");
-        fflush(NULL);
 #endif
 
         fflush(logfileFP);
@@ -1008,7 +1000,6 @@ void log_printf_message( int source_id, int level, int threadId, int queued, con
 #ifdef _DEBUG				
                 if (logfileFP != NULL) {
                     printf("Opened logfile\n");
-                    fflush(NULL);
                 }
 #endif
             }
@@ -1016,7 +1007,6 @@ void log_printf_message( int source_id, int level, int threadId, int queued, con
             if (logfileFP == NULL) {
                 currentLogFileName[0] = '\0';
                 printf("Unable to open logfile %s: %s\n", logFilePath, getLastErrorText());
-                fflush(NULL);
             } else {
                 /* We need to store the date the file was opened for. */
                 strcpy(logFileLastNowDate, nowDate);
@@ -1034,7 +1024,6 @@ void log_printf_message( int source_id, int level, int threadId, int queued, con
                     if (autoCloseLogfile) {
 #ifdef _DEBUG
                         printf("Closing logfile immediately...\n");
-                        fflush(NULL);
 #endif
                         
                         fclose(logfileFP);
@@ -1105,7 +1094,6 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
         va_end( vargs );
         /*
         printf( " vsnprintf->%d, size=%d\n", count, threadMessageBufferSize );
-        fflush(NULL);
         */
         if ( ( count < 0 ) || ( count >= (int)threadMessageBufferSize ) ) {
             /* If the count is exactly equal to the buffer size then a null char was not written.
@@ -1511,7 +1499,6 @@ void rollLogs() {
     if (logfileFP != NULL) {
 #ifdef _DEBUG
         printf("Closing logfile so it can be rolled...\n");
-        fflush(NULL);
 #endif
 
         fclose(logfileFP);
@@ -1521,7 +1508,6 @@ void rollLogs() {
     
 #ifdef _DEBUG
     printf("Rolling log files...\n");
-    fflush(NULL);
 #endif
     
     /* We don't know how many log files need to be rotated yet, so look. */
@@ -1534,7 +1520,6 @@ void rollLogs() {
 #ifdef _DEBUG
         if (result == 0) {
             printf("Rolled log file %s exists.\n", workLogFileName);
-            fflush(NULL);
         }
 #endif
     } while((result == 0) && ((logFileMaxLogFiles <= 0) || (i < logFileMaxLogFiles)));
@@ -1547,7 +1532,6 @@ void rollLogs() {
             /* The path did not exist. */
         } else {
             printf("Unable to delete old log file: %s (%s)\n", workLogFileName, getLastErrorText());
-            fflush(NULL);
         }
     }
     
@@ -1562,19 +1546,16 @@ void rollLogs() {
                 /* Don't log this as with other errors as that would cause recursion. */
                 printf("Unable to rename log file %s to %s.  File is in use by another application.\n",
                     workLogFileName, currentLogFileName);
-                fflush(NULL);
             } else {
                 /* Don't log this as with other errors as that would cause recursion. */
                 printf("Unable to rename log file %s to %s. (%s)\n",
                     workLogFileName, currentLogFileName, getLastErrorText());
-                fflush(NULL);
             }
             return;
         }
 #ifdef _DEBUG
         else {
             printf("Renamed %s to %s\n", workLogFileName, currentLogFileName);
-            fflush(NULL);
         }
 #endif
     }
@@ -1590,19 +1571,16 @@ void rollLogs() {
             /* Don't log this as with other errors as that would cause recursion. */
             printf("Unable to rename log file %s to %s.  File is in use by another application.\n",
                 currentLogFileName, workLogFileName);
-            fflush(NULL);
         } else {
             /* Don't log this as with other errors as that would cause recursion. */
             printf("Unable to rename log file %s to %s. (%s)\n",
                 currentLogFileName, workLogFileName, getLastErrorText());
-            fflush(NULL);
         }
         return;
     }
 #ifdef _DEBUG
     else {
         printf("Renamed %s to %s\n", currentLogFileName, workLogFileName);
-        fflush(NULL);
     }
 #endif
 }
@@ -1613,14 +1591,12 @@ void limitLogFileCountHandleFile(const char *currentFile, const char *testFile, 
 
 #ifdef _DEBUG
     printf("  limitLogFileCountHandleFile(%s, %s, latestFiles, %d)\n", currentFile, testFile, count);
-    fflush(NULL);
 #endif
 
     if (strcmp(testFile, currentFile) > 0) {
         /* Newer than the current file.  Ignore it. */
 #ifdef _DEBUG
         printf("    Newer Ignore\n");
-        fflush(NULL);
 #endif
         return;
     }
@@ -1629,12 +1605,10 @@ void limitLogFileCountHandleFile(const char *currentFile, const char *testFile, 
     for (i = 0; i < count; i++) {
 #ifdef _DEBUG
         printf("    i=%d\n", i);
-        fflush(NULL);
 #endif
         if (latestFiles[i] == NULL) {
 #ifdef _DEBUG
             printf("    Store at index  %d\n", i);
-            fflush(NULL);
 #endif
             latestFiles[i] = malloc(sizeof(char) * (strlen(testFile) + 1));
             if (!latestFiles[i]) {
@@ -1649,7 +1623,6 @@ void limitLogFileCountHandleFile(const char *currentFile, const char *testFile, 
                 /* Ignore. */
 #ifdef _DEBUG
                 printf("    Duplicate at index  %d\n", i);
-                fflush(NULL);
 #endif
                 return;
             } else if (result < 0) {
@@ -1664,12 +1637,10 @@ void limitLogFileCountHandleFile(const char *currentFile, const char *testFile, 
                             /* File needs to be deleted as it can't be moved up. */
 #ifdef _DEBUG
                             printf("    Delete old %s\n", latestFiles[j]);
-                            fflush(NULL);
 #endif
                             if (remove(latestFiles[j])) {
                                 printf("Unable to delete old log file: %s (%s)\n",
                                     latestFiles[j], getLastErrorText());
-                                fflush(NULL);
                             }
                             free(latestFiles[j]);
                             latestFiles[j] = NULL;
@@ -1679,7 +1650,6 @@ void limitLogFileCountHandleFile(const char *currentFile, const char *testFile, 
 
 #ifdef _DEBUG
                 printf("    Insert at index  %d\n", i);
-                fflush(NULL);
 #endif
                 latestFiles[i] = malloc(sizeof(char) * (strlen(testFile) + 1));
                 if (!latestFiles[i]) {
@@ -1695,12 +1665,10 @@ void limitLogFileCountHandleFile(const char *currentFile, const char *testFile, 
     /* File could not be added to the list because it was too old.  Delete. */
 #ifdef _DEBUG
     printf("    Delete %s\n", testFile);
-    fflush(NULL);
 #endif
     if (remove(testFile)) {
         printf("Unable to delete old log file: %s (%s)\n",
             testFile, getLastErrorText());
-        fflush(NULL);
     }
 }
 
@@ -1723,7 +1691,6 @@ void limitLogFileCount(const char *current, const char *pattern, int count) {
 
 #ifdef _DEBUG
     printf("limitLogFileCount(%s, %d)\n", pattern, count);
-    fflush(NULL);
 #endif
 
     latestFiles = malloc(sizeof(char *) * count);
@@ -1813,17 +1780,16 @@ void limitLogFileCount(const char *current, const char *pattern, int count) {
 
 #ifdef _DEBUG
     printf("  Sorted file list:\n");
-    fflush(NULL);
 #endif
     for (i = 0; i < count; i++) {
         if (latestFiles[i]) {
 #ifdef _DEBUG
-            printf("    latestFiles[%d]=%s\n", i, latestFiles[i]); fflush(NULL);
+            printf("    latestFiles[%d]=%s\n", i, latestFiles[i]);
 #endif
             free(latestFiles[i]);
         } else {
 #ifdef _DEBUG
-            printf("    latestFiles[%d]=NULL\n", i); fflush(NULL);
+            printf("    latestFiles[%d]=NULL\n", i);
 #endif
         }
     }
@@ -1850,7 +1816,6 @@ void checkAndRollLogs(const char *nowDate) {
             /* File is open */
             if ((position = ftell(logfileFP)) < 0) {
                 printf("Unable to get the current logfile size with ftell: %s\n", getLastErrorText());
-                fflush(NULL);
                 return;
             }
         } else {
@@ -1864,7 +1829,6 @@ void checkAndRollLogs(const char *nowDate) {
                     position = 0;
                 } else {
                     printf("Unable to get the current logfile size with stat: %s\n", getLastErrorText());
-                    fflush(NULL);
                     return;
                 }
             } else {
@@ -1883,7 +1847,6 @@ void checkAndRollLogs(const char *nowDate) {
             if (logfileFP != NULL) {
 #ifdef _DEBUG
                 printf("Closing logfile because the date changed...\n");
-                fflush(NULL);
 #endif
         
                 fclose(logfileFP);
@@ -1922,7 +1885,6 @@ void log_printf_queueInner( int source_id, int level, char *buffer ) {
 
 #ifdef _DEBUG
     printf( "LOG ENQUEUE[%d]: %s\n", queueWriteIndex, buffer );
-    fflush( NULL );
 #endif
 
     /* Get the thread id here to keep the time below to a minimum. */
@@ -1988,7 +1950,6 @@ void log_printf_queue( int useQueue, int source_id, int level, const char *lpszF
 
         /*
         printf( "count: %d bufferSize=%d\n", count, bufferSize );
-        fflush(NULL);
         */
 
         /* On UNIX, the required size will be returned if it is too small.
@@ -2072,14 +2033,12 @@ void maintainLogger() {
 
 #ifdef _DEBUG
                 printf( "LOG QUEUED[%d]: %s\n", queueReadIndex, buffer );
-                fflush( NULL );
 #endif
 
                 log_printf_message( source_id, level, threadId, TRUE, buffer );
             } else {
 #ifdef _DEBUG
                 printf( "LOG QUEUED[%d]: <NULL> SYNCHRONIZATION CONFLICT!\n", queueReadIndex );
-                fflush( NULL );
 #endif
             }
             queueReadIndex++;
