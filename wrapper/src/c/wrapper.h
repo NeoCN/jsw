@@ -421,6 +421,9 @@ extern void wrapperSetJavaState(int useLoggerQueue, int jState, DWORD nowTicks, 
 /******************************************************************************
  * Platform specific methods
  *****************************************************************************/
+#ifdef WIN32
+extern int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers);
+#endif
 
 /**
  * Gets the error code for the last operation that failed.
