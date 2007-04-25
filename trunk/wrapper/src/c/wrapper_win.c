@@ -115,7 +115,6 @@ int ctrlCTrapped = FALSE;
 int cleanUpPIDFilesOnExit = FALSE;
 
 char* getExceptionName(DWORD exCode);
-int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers);
 
 /* Dynamically loaded functions. */
 FARPROC OptionalGetProcessTimes = NULL;
@@ -748,7 +747,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
         logRegisterThread(WRAPPER_THREAD_TIMER);
 
         if (wrapperData->isTimerOutputEnabled) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Timer thread started.");
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Timer thread started.");
         }
 
         while(TRUE) {
@@ -770,13 +769,13 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
                 first = 0;
             } else {
                 if (offsetDiff > wrapperData->timerSlowThreshold) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The timer fell behind the system clock by %dms.", (int)(offsetDiff * WRAPPER_TICK_MS));
+                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The timer fell behind the system clock by %dms.", (int)(offsetDiff * WRAPPER_TICK_MS));
                 } else if (offsetDiff < -1 * wrapperData->timerFastThreshold) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The system clock fell behind the timer by %dms.", (int)(-1 * offsetDiff * WRAPPER_TICK_MS));
+                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The system clock fell behind the timer by %dms.", (int)(-1 * offsetDiff * WRAPPER_TICK_MS));
                 }
 
                 if (wrapperData->isTimerOutputEnabled) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         "    Timer: ticks=%lu, system ticks=%lu, offset=%lu, offsetDiff=%ld",
                         timerTicks, sysTicks, tickOffset, offsetDiff);
                 }
@@ -786,6 +785,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
             lastTickOffset = tickOffset;
         }
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
+        /* This call is not queued to make sure it makes it to the log prior to a shutdown. */
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Fatal error in the Timer thread.");
         appExit(1);
         return 1; /* For the compiler, we will never get here. */
