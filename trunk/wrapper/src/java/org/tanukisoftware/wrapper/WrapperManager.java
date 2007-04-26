@@ -1317,6 +1317,10 @@ public final class WrapperManager
         {
             wrapperVersion = wrapperVersion.substring( 0, wrapperVersion.length() - 4 );
         }
+        else if ( wrapperVersion.endsWith( "-st" ) )
+        {
+            wrapperVersion = wrapperVersion.substring( 0, wrapperVersion.length() - 3 );
+        }
         
         if ( !WrapperInfo.getVersion().equals( wrapperVersion ) )
         {
