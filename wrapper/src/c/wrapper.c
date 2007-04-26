@@ -1120,7 +1120,7 @@ void wrapperGetFileBase(const char *fileName, char *baseName) {
  * Output the version.
  */
 void wrapperVersionBanner() {
-    printf("Wrapper Community Edition (Version %s)\n", wrapperVersionRoot);
+    printf("Java Service Wrapper Community Edition (Version %s)\n", wrapperVersionRoot);
     printf("  Copyright 1999, 2007 Tanuki Software, Inc.  All Rights Reserved.\n");
     printf("    http://wrapper.tanukisoftware.org\n");
 }
@@ -1130,7 +1130,7 @@ void wrapperVersionBanner() {
  */
 void wrapperVersionBannerLog() {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-        "Wrapper Community Edition (Version %s)", wrapperVersionRoot);
+        "Java Service Wrapper Community Edition (Version %s)", wrapperVersionRoot);
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
         "  Copyright 1999, 2007 Tanuki Software, Inc.  All Rights Reserved.");
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
