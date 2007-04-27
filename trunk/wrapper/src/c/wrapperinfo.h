@@ -31,5 +31,7 @@ extern char *wrapperVersion;
 extern char *wrapperBits;
 extern char *wrapperArch;
 extern char *wrapperOS;
+extern char *wrapperBuildDate;
+extern char *wrapperBuildTime;
 
 #endif
