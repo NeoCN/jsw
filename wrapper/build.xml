@@ -93,6 +93,9 @@
         <condition property="dist.os" value="unixware">
             <equals arg1="${os.name}" arg2="UNIX_SV"/>
         </condition>
+        <condition property="dist.os" value="os400">
+            <equals arg1="${os.name}" arg2="OS/400"/>
+        </condition>
         <property name="dist.os" value="${os.name}"/>
         
         <!-- Resolve an architecture to use in release names. -->
@@ -294,6 +297,9 @@
         </condition>
         <condition property="wrapper.lib.extension" value="jnilib">
             <isset property="is.macosx"/>
+        </condition>
+        <condition property="wrapper.lib.extension" value="srvpgm">
+            <isset property="is.os400"/>
         </condition>
         <property name="wrapper.lib.extension" value="so"/>
         <property name="wrapper.lib.name" value="lib${name}.${wrapper.lib.extension}"/>
