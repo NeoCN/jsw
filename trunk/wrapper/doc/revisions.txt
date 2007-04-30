@@ -148,6 +148,7 @@ Java Service Wrapper Revision History.
   systems.  Thanks to Matej Kraus for the patch.  Patch #1697421.
 * Log output from the timer thread was not being queued correctly, this could
   have lead to timing problems if there were any delays writing to disk.
+* Add partial support for OS/400 into the build file.  Still needs a Makefile.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

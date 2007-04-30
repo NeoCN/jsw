@@ -1071,6 +1071,10 @@ public final class WrapperManager
         {
             os = "unixware";
         }
+        else if ( os.equals( "os/400" ) )
+        {
+            os = "os400";
+        }
         
         // Generate an architecture name.
         String arch;
