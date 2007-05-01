@@ -26,12 +26,6 @@
              possible locations of the tools.jar file. -->
         <pathelement location="${java.home}/lib/tools.jar"/>
         <pathelement location="${java.home}/../lib/tools.jar"/>
-        
-        <!-- Cocoon docs.  The directory is set as it is so the build will work when
-             the cocoon files are not available. -->
-        <fileset dir="${basedir}/tools/">
-            <include name="cocoon-${cocoon.dist.version}/lib/*.jar" />
-        </fileset>
     </path>
     
     <path id="test.class.path">
@@ -777,8 +771,6 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                 <include name="src/c/*.rc" />
                 <include name="src/c/*.ico" />
                 <include name="src/c/*.bin" />
-                <include name="src/documentation/**" />
-                <include name="tools/**" />
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
@@ -789,8 +781,6 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <fixcrlf srcdir="${releasesrcdir}" includes="**/*.script.in" eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="build32.sh" eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="build64.sh" eol="lf" />
-        <fixcrlf srcdir="${releasesrcdir}" includes="tools/**/bin/ant" eol="lf" />
-        <fixcrlf srcdir="${releasesrcdir}" includes="tools/**/bin/antRun" eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="**/Makefile-*" eol="lf" />
         
         
@@ -800,25 +790,12 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <fixcrlf srcdir="${releasesrcdir}"
             includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.c, **/*.h, **/*.log"
             eol="crlf" />
-        <fixcrlf srcdir="${releasesrcdir}"
-            includes="src/documentation/**"
-            excludes="**/images/**, **/*.ico, **/*.ttf"
-            eol="crlf" />
         
-        <!-- Source archives with documentation source -->
-        <zip zipfile="${dist.dir}/${releasesrcfile}_with_doc_src.zip"
-            basedir="${build.dir}"
-            compress="true">
-            <include name="${releasesrcfile}/**/*" />
-        </zip>
-        
-        <!-- Source archives without documentation source -->
+        <!-- Source archives  -->
         <zip zipfile="${dist.dir}/${releasesrcfile}.zip"
             basedir="${build.dir}"
             compress="true">
             <include name="${releasesrcfile}/**/*" />
-            <exclude name="${releasesrcfile}/src/documentation/**/*" />
-            <exclude name="${releasesrcfile}/tools/cocoon-*/**" />
         </zip>
         
         
@@ -828,45 +805,17 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <fixcrlf srcdir="${releasesrcdir}" 
             includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.c, **/*.h, **/*.log" 
             eol="lf" />
-        <fixcrlf srcdir="${releasesrcdir}"
-            includes="src/documentation/**"
-            excludes="**/images/**, **/*.ico, **/*.ttf"
-            eol="lf" />
         
-        <!-- Source archives with documentation source -->
-        <tar tarfile="${build.dir}/${releasesrcfile}_with_doc_src.tar">
-            <tarfileset dir="${build.dir}" mode="755">
-                <include name="${releasesrcfile}/build32.sh"/>
-                <include name="${releasesrcfile}/build64.sh"/>
-                <include name="${releasesrcfile}/tools/**/bin/ant"/>
-                <include name="${releasesrcfile}/tools/**/bin/antRun"/>
-            </tarfileset>
-            <tarfileset dir="${build.dir}">
-                <include name="${releasesrcfile}/**/*"/>
-                <exclude name="${releasesrcfile}/build32.sh"/>
-                <exclude name="${releasesrcfile}/build64.sh"/>
-                <exclude name="${releasesrcfile}/tools/**/bin/ant"/>
-                <exclude name="${releasesrcfile}/tools/**/bin/antRun"/>
-            </tarfileset>
-        </tar>
-        <gzip zipfile="${dist.dir}/${releasesrcfile}_with_doc_src.tar.gz" src="${build.dir}/${releasesrcfile}_with_doc_src.tar" />
-        
-        <!-- Source archives without documentation source -->
+        <!-- Source archives -->
         <tar tarfile="${build.dir}/${releasesrcfile}.tar">
             <tarfileset dir="${build.dir}" mode="755">
                 <include name="${releasesrcfile}/build32.sh"/>
                 <include name="${releasesrcfile}/build64.sh"/>
-                <include name="${releasesrcfile}/tools/**/bin/ant"/>
-                <include name="${releasesrcfile}/tools/**/bin/antRun"/>
             </tarfileset>
             <tarfileset dir="${build.dir}">
                 <include name="${releasesrcfile}/**/*" />
-                <exclude name="${releasesrcfile}/src/documentation/**/*" />
-                <exclude name="${releasesrcfile}/tools/cocoon-*/**" />
                 <exclude name="${releasesrcfile}/build32.sh"/>
                 <exclude name="${releasesrcfile}/build64.sh"/>
-                <exclude name="${releasesrcfile}/tools/**/bin/ant"/>
-                <exclude name="${releasesrcfile}/tools/**/bin/antRun"/>
             </tarfileset>
         </tar>
         <gzip zipfile="${dist.dir}/${releasesrcfile}.tar.gz" src="${build.dir}/${releasesrcfile}.tar" />
@@ -922,8 +871,6 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                 <include name="src/c/*.rc" />
                 <include name="src/c/*.ico" />
                 <include name="src/c/*.bin" />
-                <include name="tools/apache-ant-${ant.dist.version}/**" />
-                <exclude name="**/CVS/*" />
             </fileset>
         </copy>
         
@@ -933,8 +880,6 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <fixcrlf srcdir="${intermdir}" includes="**/*.script.in" eol="lf" />
         <fixcrlf srcdir="${intermdir}" includes="build32.sh" eol="lf" />
         <fixcrlf srcdir="${intermdir}" includes="build64.sh" eol="lf" />
-        <fixcrlf srcdir="${intermdir}" includes="tools/**/bin/ant" eol="lf" />
-        <fixcrlf srcdir="${intermdir}" includes="tools/**/bin/antRun" eol="lf" />
         <fixcrlf srcdir="${intermdir}" includes="**/Makefile-*" eol="lf" />
         
         <!-- Create a marker in both the intermdir and the build dir so the release target
@@ -982,15 +927,11 @@ original tar distribution due to a lack of support for long path names in some t
             <tarfileset dir="${build.dir}" mode="755">
                 <include name="${intermfile}/build32.sh"/>
                 <include name="${intermfile}/build64.sh"/>
-                <include name="${intermfile}/tools/**/bin/ant"/>
-                <include name="${intermfile}/tools/**/bin/antRun"/>
             </tarfileset>
             <tarfileset dir="${build.dir}">
                 <include name="${intermfile}/**/*" />
                 <exclude name="${intermfile}/build32.sh"/>
                 <exclude name="${intermfile}/build64.sh"/>
-                <exclude name="${intermfile}/tools/**/bin/ant"/>
-                <exclude name="${intermfile}/tools/**/bin/antRun"/>
             </tarfileset>
         </tar>
         <gzip zipfile="${dist.dir}/${intermfile}.tar.gz" src="${build.dir}/${intermfile}.tar" />
