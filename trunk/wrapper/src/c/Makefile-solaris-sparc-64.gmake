@@ -50,7 +50,7 @@ wrapper: $(wrapper_SOURCE)
 	$(COMPILE) -lsocket -lpthread -lnsl -lm -lposix4 $(wrapper_SOURCE) -o $(BIN)/wrapper
 
 libwrapper.so: $(libwrapper_so_OBJECTS)
-	${COMPILE} -G -fPIC $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
+	${COMPILE} -G -fPIC -lposix4 $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
 
 %.o: %.c
 	${COMPILE} -c ${DEFS} $<
