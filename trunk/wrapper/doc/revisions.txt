@@ -149,6 +149,9 @@ Java Service Wrapper Revision History.
 * Log output from the timer thread was not being queued correctly, this could
   have lead to timing problems if there were any delays writing to disk.
 * Add partial support for OS/400 into the build file.  Still needs a Makefile.
+* Fix a problem where the WrapperActionServer would deadlock in its stop method
+  if the JVM shutdown was initiated by a call to the shutdown or restart
+  actions.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

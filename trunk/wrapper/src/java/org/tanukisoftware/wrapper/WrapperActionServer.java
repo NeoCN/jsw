@@ -365,7 +365,7 @@ public class WrapperActionServer
                 {
                     public void run()
                     {
-                        WrapperManager.stop( 0 );
+                        WrapperManager.stopAndReturn( 0 );
                     }
                 } );
         }
@@ -413,7 +413,7 @@ public class WrapperActionServer
                 {
                     public void run()
                     {
-                        WrapperManager.restart();
+                        WrapperManager.restartAndReturn();
                     }
                 } );
         }
