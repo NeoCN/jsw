@@ -53,6 +53,22 @@ public interface WrapperManagerMBean
     int getJVMId();
     
     /**
+     * Returns true if the current Wrapper edition has support for Professional
+     *  Edition features.
+     *
+     * @return True if professional features are supported.
+     */
+    boolean isProfessionalEdition();
+    
+    /**
+     * Returns true if the current Wrapper edition has support for Standard
+     *  Edition features.
+     *
+     * @return True if standard features are supported.
+     */
+    boolean isStandardEdition();
+
+    /**
      * Sets the title of the console in which the Wrapper is running.  This
      *  is currently only supported on Windows platforms.
      * <p>
