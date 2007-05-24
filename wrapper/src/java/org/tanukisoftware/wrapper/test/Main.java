@@ -83,10 +83,7 @@ public class Main
 {
     private MainFrame m_frame;
     
-    private DeadlockPrintStream m_out;
-    private DeadlockPrintStream m_err;
-    
-    private Thread m_userRunner;
+    private WrapperActionServer m_actionServer;
     
     private List m_listenerFlags;
     private TextField m_serviceName;
@@ -334,15 +331,15 @@ public class Main
         try
         {
             int port = 9999;
-            WrapperActionServer server = new WrapperActionServer( port );
-            server.enableShutdownAction( true );
-            server.enableHaltExpectedAction( true );
-            server.enableRestartAction( true );
-            server.enableThreadDumpAction( true );
-            server.enableHaltUnexpectedAction( true );
-            server.enableAccessViolationAction( true );
-            server.enableAppearHungAction( true );
-            server.start();
+            m_actionServer = new WrapperActionServer( port );
+            m_actionServer.enableShutdownAction( true );
+            m_actionServer.enableHaltExpectedAction( true );
+            m_actionServer.enableRestartAction( true );
+            m_actionServer.enableThreadDumpAction( true );
+            m_actionServer.enableHaltUnexpectedAction( true );
+            m_actionServer.enableAccessViolationAction( true );
+            m_actionServer.enableAppearHungAction( true );
+            m_actionServer.start();
             
             System.out.println( "TestWrapper: ActionServer Enabled. " );
             System.out.println( "TestWrapper:   Telnet localhost 9999" );
@@ -366,6 +363,18 @@ public class Main
     public int stop( int exitCode )
     {
         System.out.println( "TestWrapper: stop(" + exitCode + ")" );
+        
+        if ( m_actionServer != null )
+        {
+            try
+            {
+                m_actionServer.stop();
+            }
+            catch ( Exception e )
+            {
+                System.out.println( "TestWrapper: Unable to stop the action server: " + e.getMessage() );
+            }
+        }
         
         if ( m_frame != null )
         {
