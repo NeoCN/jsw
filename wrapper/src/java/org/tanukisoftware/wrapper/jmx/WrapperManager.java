@@ -66,6 +66,27 @@ public class WrapperManager
     }
     
     /**
+     * Returns true if the current Wrapper edition has support for Professional
+     *  Edition features.
+     *
+     * @return True if professional features are supported.
+     */
+    public boolean isProfessionalEdition()
+    {
+    	return org.tanukisoftware.wrapper.WrapperManager.isProfessionalEdition();
+    }
+    
+    /**
+     * Returns true if the current Wrapper edition has support for Standard
+     *  Edition features.
+     *
+     * @return True if standard features are supported.
+     */
+    public boolean isStandardEdition()
+    {
+    	return org.tanukisoftware.wrapper.WrapperManager.isStandardEdition();
+    }
+    /**
      * Sets the title of the console in which the Wrapper is running.  This
      *  is currently only supported on Windows platforms.
      * <p>
