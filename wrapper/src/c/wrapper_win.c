@@ -886,7 +886,7 @@ int wrapperInitializeRun() {
         }
     }
 
-    /* Attempt to set the console tilte if it exists and is accessable. */
+    /* Attempt to set the console title if it exists and is accessable. */
     if (wrapperData->consoleTitle) {
         if (wrapperData->isConsole || (wrapperData->ntServiceInteractive && !wrapperData->ntHideWrapperConsole)) {
             /* The console should be visible. */
