@@ -3486,7 +3486,6 @@ int loadConfiguration() {
 
     /* Obtain the Console Title. */
     sprintf(propName, "wrapper.console.title.%s", wrapperOS);
-    printf("propName=%s\n", propName);
     updateStringValue(&wrapperData->consoleTitle, getStringProperty(properties, propName, getStringProperty(properties, "wrapper.console.title", NULL)));
 
 #ifdef WIN32
