@@ -1189,8 +1189,8 @@ int wrapperReadChildOutput() {
             /* Reterminate the string as we have read the LF back in. */
             wrapperChildStdoutRdBuffer[lineLength] = '\0';
             /*
-         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "lineLength=%d, keepCnt=%d, thisLF=%d", lineLength, keepCnt, thisLF);
-         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "buffer='%s'", wrapperChildStdoutRdBuffer);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "lineLength=%d, keepCnt=%d, thisLF=%d", lineLength, keepCnt, thisLF);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "buffer='%s'", wrapperChildStdoutRdBuffer);
             */
         } else {
             /* Nothing was read, but there is no more data available. */
