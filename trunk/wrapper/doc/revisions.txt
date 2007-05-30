@@ -160,6 +160,9 @@ Java Service Wrapper Revision History.
   registry if the they were specified on the command line when the Wrapper
   was installed as a service.  This was broken in version 3.2.2.
   Bug #1538725.
+* Fix a problem where the DUMP command was not working with the
+  wrpaper.commandfile property when run as a service on Windows.
+  Bug #1644421.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

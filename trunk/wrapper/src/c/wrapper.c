@@ -3494,7 +3494,7 @@ int loadConfiguration() {
         return TRUE;
     }
 
-    if (wrapperData->requestThreadDumpOnFailedJVMExit) {
+    if (wrapperData->requestThreadDumpOnFailedJVMExit || wrapperData->commandFilename) {
         if (!wrapperData->ntAllocConsole) {
             /* We need to allocate a console in order for the thread dumps to work
              *  when running as a service.  But the user did not request that a
