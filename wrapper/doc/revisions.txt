@@ -152,6 +152,9 @@ Java Service Wrapper Revision History.
 * Fix a problem where the WrapperActionServer would deadlock in its stop method
   if the JVM shutdown was initiated by a call to the shutdown or restart
   actions.
+* Add support for wrapper.console.title on UNIX platforms.  Add a set of
+  wrapper.console.title.<platform> properties which make it possible to set the
+  title based on the platform.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

@@ -626,6 +626,14 @@ int wrapperInitializeRun() {
         retval = -1;
     }
 
+    /* Attempt to set the console title if it exists and is accessable. */
+    if (wrapperData->consoleTitle) {
+        if (wrapperData->isConsole) {
+            /* The console should be visible. */
+            printf("%c]0;%s%c", '\033', wrapperData->consoleTitle, '\007');
+        }
+    }
+
     if (wrapperData->useSystemTime) {
         /* We are going to be using system time so there is no reason to start up a timer thread. */
         timerThreadId = 0;
@@ -1398,8 +1406,6 @@ int main(int argc, char **argv) {
         appExit(1);
         return 1; /* For compiler. */
     }
-
-    wrapperVersionBanner();
 
     /* Change the working directory if configured to do so. */
     if (wrapperData->workingDir && wrapperSetWorkingDir(wrapperData->workingDir)) {
