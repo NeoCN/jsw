@@ -2125,15 +2125,23 @@ int wrapperInstall() {
 
     /* All other arguments need to be appended as is. */
     for (i = 0; i < wrapperData->argCount; i++) {
-        strcat(binaryPath, " ");
+        /* For security reasons, skip the wrapper.ntservice.account and
+         *  wrapper.ntservice.password properties if they are declared on the
+         *  command line.  They will not be needed  once the service is
+         *  installed.  Having them in the registry would be an obvious
+         *  security leak. */
+        if ((strstr(wrapperData->argValues[i], "wrapper.ntservice.account") == NULL) &&
+            (strstr(wrapperData->argValues[i], "wrapper.ntservice.password") == NULL)) {
+            strcat(binaryPath, " ");
 
-        /* If the argument contains spaces, it needs to be quoted */
-        if (strchr(wrapperData->argValues[i], ' ') == NULL) {
-            strcat(binaryPath, wrapperData->argValues[i]);
-        } else {
-            strcat(binaryPath, "\"");
-            strcat(binaryPath, wrapperData->argValues[i]);
-            strcat(binaryPath, "\"");
+            /* If the argument contains spaces, it needs to be quoted */
+            if (strchr(wrapperData->argValues[i], ' ') == NULL) {
+                strcat(binaryPath, wrapperData->argValues[i]);
+            } else {
+                strcat(binaryPath, "\"");
+                strcat(binaryPath, wrapperData->argValues[i]);
+                strcat(binaryPath, "\"");
+            }
         }
     }
 

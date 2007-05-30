@@ -155,6 +155,11 @@ Java Service Wrapper Revision History.
 * Add support for wrapper.console.title on UNIX platforms.  Add a set of
   wrapper.console.title.<platform> properties which make it possible to set the
   title based on the platform.
+* Fix a problem where the wrapper.ntservice.account and
+  wrapper.ntservice.password properties were being stored in the system
+  registry if the they were specified on the command line when the Wrapper
+  was installed as a service.  This was broken in version 3.2.2.
+  Bug #1538725.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
