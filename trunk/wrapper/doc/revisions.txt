@@ -163,6 +163,8 @@ Java Service Wrapper Revision History.
 * Fix a problem where the DUMP command was not working with the
   wrpaper.commandfile property when run as a service on Windows.
   Bug #1644421.
+* Fix a problem where wildcards like "*.*" or "*" in a classpath property were
+  including the "." and ".." files on Windows versions.  Bug #1517928.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

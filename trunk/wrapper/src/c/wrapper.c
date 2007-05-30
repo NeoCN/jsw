@@ -1680,6 +1680,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     char paramBuffer2[128];
     int quotable;
     int i, j;
+    int cnt;
     size_t len, len2;
     size_t cpLen, cpLenAlloc;
     char *tmpString;
@@ -2151,7 +2152,70 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         }
                         len = strlen(cpPath);
 
-                        if ((handle = _findfirst(prop, &fblock)) <= 0) {
+                        cnt = 0;
+                        if ((handle = _findfirst(prop, &fblock)) > 0) {
+                            if ((strcmp(fblock.name, ".") != 0) && (strcmp(fblock.name, "..") != 0)) {
+                                len2 = strlen(fblock.name);
+    
+                                /* Is there room for the entry? */
+                                while (cpLen + len + len2 + 3 > cpLenAlloc) {
+                                    /* Resize the buffer */
+                                    tmpString = strings[index];
+                                    cpLenAlloc += 1024;
+                                    strings[index] = malloc(sizeof(char) * cpLenAlloc);
+                                    if (!strings[index]) {
+                                        outOfMemory("WBJCAI", 17);
+                                        return -1;
+                                    }
+                                    sprintf(strings[index], "%s", tmpString);
+                                    free(tmpString);
+                                    tmpString = NULL;
+                                }
+    
+                                if (j > 0) {
+                                    strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
+                                }
+                                sprintf(&(strings[index][cpLen]), "%s%s", cpPath, fblock.name);
+                                cpLen += (len + len2);
+                                j++;
+                                cnt++;
+                            }
+
+                            /* Look for additional entries */
+                            while (_findnext(handle, &fblock) == 0) {
+                                if ((strcmp(fblock.name, ".") != 0) && (strcmp(fblock.name, "..") != 0)) {
+                                    len2 = strlen(fblock.name);
+    
+                                    /* Is there room for the entry? */
+                                    while (cpLen + len + len2 + 3 > cpLenAlloc) {
+                                        /* Resize the buffer */
+                                        tmpString = strings[index];
+                                        cpLenAlloc += 1024;
+                                        strings[index] = malloc(sizeof(char) * cpLenAlloc);
+                                        if (!strings[index]) {
+                                            outOfMemory("WBJCAI", 18);
+                                            return -1;
+                                        }
+                                        sprintf(strings[index], "%s", tmpString);
+                                        free(tmpString);
+                                        tmpString = NULL;
+                                    }
+    
+                                    if (j > 0) {
+                                        strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
+                                    }
+                                    sprintf(&(strings[index][cpLen]), "%s%s", cpPath, fblock.name);
+                                    cpLen += (len + len2);
+                                    j++;
+                                    cnt++;
+                                }
+                            }
+
+                            /* Close the file search */
+                            _findclose(handle);
+                        }
+
+                        if (cnt <= 0) {
                             if (errno == ENOENT) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                                     "Classpath element, %s, does not match any files: %s", paramBuffer, prop);
@@ -2160,60 +2224,6 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                                     "Error in findfirst for classpath element: %s", prop);
                             }
-                        } else {
-                            len2 = strlen(fblock.name);
-
-                            /* Is there room for the entry? */
-                            while (cpLen + len + len2 + 3 > cpLenAlloc) {
-                                /* Resize the buffer */
-                                tmpString = strings[index];
-                                cpLenAlloc += 1024;
-                                strings[index] = malloc(sizeof(char) * cpLenAlloc);
-                                if (!strings[index]) {
-                                    outOfMemory("WBJCAI", 17);
-                                    return -1;
-                                }
-                                sprintf(strings[index], "%s", tmpString);
-                                free(tmpString);
-                                tmpString = NULL;
-                            }
-
-                            if (j > 0) {
-                                strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
-                            }
-                            sprintf(&(strings[index][cpLen]), "%s%s", cpPath, fblock.name);
-                            cpLen += (len + len2);
-                            j++;
-
-                            /* Look for additional entries */
-                            while (_findnext(handle, &fblock) == 0) {
-                                len2 = strlen(fblock.name);
-
-                                /* Is there room for the entry? */
-                                while (cpLen + len + len2 + 3 > cpLenAlloc) {
-                                    /* Resize the buffer */
-                                    tmpString = strings[index];
-                                    cpLenAlloc += 1024;
-                                    strings[index] = malloc(sizeof(char) * cpLenAlloc);
-                                    if (!strings[index]) {
-                                        outOfMemory("WBJCAI", 18);
-                                        return -1;
-                                    }
-                                    sprintf(strings[index], "%s", tmpString);
-                                    free(tmpString);
-                                    tmpString = NULL;
-                                }
-
-                                if (j > 0) {
-                                    strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
-                                }
-                                sprintf(&(strings[index][cpLen]), "%s%s", cpPath, fblock.name);
-                                cpLen += (len + len2);
-                                j++;
-                            }
-
-                            /* Close the file search */
-                            _findclose(handle);
                         }
 #else
                         /* Wildcard support for unix */
