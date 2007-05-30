@@ -3023,9 +3023,6 @@ int wrapperBuildNTServiceInfo() {
         wrapperData->ntHideJVMConsole = getBooleanProperty( properties, "wrapper.ntservice.hide_console", TRUE );
     }
 
-    /* Obtain the Console Title. */
-    updateStringValue(&wrapperData->consoleTitle, getStringProperty(properties, "wrapper.console.title", NULL));
-
     /* Set the single invocation flag. */
     wrapperData->isSingleInvocation = getBooleanProperty( properties, "wrapper.single_invocation", FALSE );
 
@@ -3486,6 +3483,11 @@ int loadConfiguration() {
 
     /** Flag controlling whether or not system signals should be ignored. */
     wrapperData->ignoreSignals = getBooleanProperty(properties, "wrapper.ignore_signals", FALSE);
+
+    /* Obtain the Console Title. */
+    sprintf(propName, "wrapper.console.title.%s", wrapperOS);
+    printf("propName=%s\n", propName);
+    updateStringValue(&wrapperData->consoleTitle, getStringProperty(properties, propName, getStringProperty(properties, "wrapper.console.title", NULL)));
 
 #ifdef WIN32
     /* Configure the NT service information */

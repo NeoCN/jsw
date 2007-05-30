@@ -249,9 +249,9 @@ struct WrapperConfig {
     int     javaStatusFileUmask;    /* Umask to use when creating the java status file. */
     int     anchorFileUmask;        /* Umask to use when creating the anchor file. */
     int     ignoreSignals;          /* True if the Wrapper should ignore any catchable system signals and inform its JVM to do the same. */
+    char    *consoleTitle;          /* Text to set the console title to. */
 
 #ifdef WIN32
-    char    *consoleTitle;          /* Text to set the console title to. */
     int     isSingleInvocation;     /* TRUE if only a single invocation of an application should be allowed to launch. */
     char    *ntServiceName;         /* Name of the NT Service */
     char    *ntServiceDisplayName;  /* Display name of the NT Service */
