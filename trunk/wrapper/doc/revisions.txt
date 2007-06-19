@@ -161,10 +161,12 @@ Java Service Wrapper Revision History.
   was installed as a service.  This was broken in version 3.2.2.
   Bug #1538725.
 * Fix a problem where the DUMP command was not working with the
-  wrpaper.commandfile property when run as a service on Windows.
+  wrapper.commandfile property when run as a service on Windows.
   Bug #1644421.
 * Fix a problem where wildcards like "*.*" or "*" in a classpath property were
   including the "." and ".." files on Windows versions.  Bug #1517928.
+* Modify the debug log output when the Wrapper is attempting to load its native
+  library in an attempt to make the expected failures less threatening.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
