@@ -838,6 +838,7 @@ public final class WrapperManager
      * Native Methods
      *-------------------------------------------------------------*/
     private static native void nativeInit( boolean debug );
+    private static native boolean nativePreStart( Properties props );
     private static native String nativeGetLibraryVersion();
     private static native int nativeGetJavaPID();
     private static native boolean nativeIsProfessionalEdition();
@@ -928,7 +929,7 @@ public final class WrapperManager
             
             if ( m_debug )
             {
-                m_outDebug.println( "Loaded native library: " + file );
+                m_outDebug.println( "  Loaded native library: " + file );
             }
             
             return null;
@@ -937,7 +938,7 @@ public final class WrapperManager
         {
             if ( m_debug )
             {
-                m_outDebug.println( "Loading native library failed: " + file + "  Cause: " + e );
+                m_outDebug.println( "  Unable to load native library: " + file + "  Cause: " + e.getMessage() );
             }
             String error = e.getMessage();
             if ( error == null )
@@ -1153,7 +1154,8 @@ public final class WrapperManager
         if ( m_debug )
         {
             m_outDebug.println( "Load native library.  One or more attempts may fail if platform "
-                + "specific libraries do not exist." ); 
+                + "specific libraries do not exist.  This is NORMAL and is only a problem if they "
+                + "all fail." ); 
         }
         m_libraryOK = false;
         for ( int i = 0; i < detailedNames.length; i++ )
@@ -2924,6 +2926,38 @@ public final class WrapperManager
      */
     private static void startInner()
     {
+        // Before we actually start the application, we need to send the wrapper
+        //  configuration to the JVM code so it can complete its initialization.
+        // If this process fails, we need to give up and stop the JVM.
+        //  Removing this call does not do much as the native features granted by
+        //  a license are only enabled if this method is called.
+        if ( m_libraryOK )
+        {
+            if ( m_debug )
+            {
+                m_outDebug.println( "Calling native pre-start method." );
+            }
+            try
+            {
+                if ( nativePreStart( m_properties ) )
+                {
+                    // Any errors should have been logged.
+                    if ( m_debug )
+                    {
+                        m_outDebug.println( "The native pre-start method failed.");
+                    }
+                    stopAndReturn( 1 );
+                    return;
+                }
+            }
+            catch ( UnsatisfiedLinkError e )
+            {
+                e.printStackTrace( m_outError );
+                stopAndReturn( 1 );
+                return;
+            }
+        }
+        
         // Set the thread priority back to normal so that any spawned threads
         //	will use the normal priority
         int oldPriority = Thread.currentThread().getPriority();

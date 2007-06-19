@@ -128,6 +128,25 @@ void wrapperJNIHandleSignal(int signal) {
 
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativePreStart
+ * Signature: (Ljava/util/Properties;)Z
+ */
+JNIEXPORT jboolean JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativePreStart(JNIEnv *env, jclass clazz, jobject props) {
+    jboolean result = JNI_FALSE;
+    if (wrapperJNIDebugging) {
+        /* This is useful for making sure that the JNI call is working. */
+        printf("WrapperJNI Debug: Performing pre-start native initialization.\n");
+        fflush(NULL);
+    }
+
+    return result;
+}
+
+
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeGetLibraryVersion
  * Signature: ()Ljava/lang/String;
  */

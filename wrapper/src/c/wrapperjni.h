@@ -46,6 +46,14 @@
 
 #include "org_tanukisoftware_wrapper_WrapperManager.h"
 
+#ifndef TRUE
+#define TRUE -1
+#endif
+
+#ifndef FALSE
+#define FALSE 0
+#endif
+
 extern char* getLastErrorText();
 extern int wrapperJNIDebugging;
 extern int wrapperLockControlEventQueue();
