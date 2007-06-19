@@ -1680,7 +1680,6 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     char paramBuffer2[128];
     int quotable;
     int i, j;
-    int cnt;
     size_t len, len2;
     size_t cpLen, cpLenAlloc;
     char *tmpString;
@@ -1688,6 +1687,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     char *systemPath;
     char *c;
 #ifdef WIN32
+    int cnt;
     char cpPath[512];
     intptr_t handle;
     int found;
