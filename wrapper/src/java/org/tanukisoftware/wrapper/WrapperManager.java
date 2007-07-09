@@ -1086,11 +1086,15 @@ public final class WrapperManager
         else
         {
             arch = System.getProperty( "os.arch", "" ).toLowerCase();
-            if ( arch.equals( "amd64" ) || arch.equals( "athlon" ) || arch.equals( "ia32" ) ||
-                arch.equals( "ia64" ) || arch.equals( "x86_64" ) || arch.equals( "i686" ) ||
-                arch.equals( "i586" ) || arch.equals( "i486" ) || arch.equals( "i386" ) )
+            if ( arch.equals( "amd64" ) || arch.equals( "athlon" ) || arch.equals( "x86_64" ) ||
+                arch.equals( "i686" ) || arch.equals( "i586" ) || arch.equals( "i486" ) ||
+                arch.equals( "i386" ) )
             {
                 arch = "x86";
+            }
+            else if ( arch.equals( "ia64" ) )
+            {
+                arch = "ia";
             }
             else if ( arch.startsWith( "sparc" ) )
             {

@@ -202,8 +202,11 @@ else
         DIST_ARCH=`uname -m 2>/dev/null | tr [:upper:] [:lower:] | tr -d [:blank:]`
     fi
     case "$DIST_ARCH" in
-        'amd64' | 'athlon' | 'ia32' | 'ia64' | 'i386' | 'i486' | 'i586' | 'i686' | 'x86_64')
+        'amd64' | 'athlon' | 'i386' | 'i486' | 'i586' | 'i686' | 'x86_64')
             DIST_ARCH="x86"
+            ;;
+        'ia64')
+            DIST_ARCH="ia"
             ;;
         'ip27')
             DIST_ARCH="mips"

@@ -176,6 +176,9 @@ Java Service Wrapper Revision History.
 * Commit a patch by Rob Oxspring which adds an init block to the UNIX shell
   script to make it work with install_initd and remove_initd scripts used by
   SUSE linux.  Patch #1750028.
+* Commit a patch by Travis Carlson, ia64 systems were being grouped as "x86"
+  systems.  They now are assigned the name "ia" which makes it possible to
+  create a distribution for them.  Patch #1663887.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
