@@ -173,6 +173,9 @@ Java Service Wrapper Revision History.
 * Add a DETAIL_STATUS flag to the UNIX shell script which will cause the
   status, start_msg, and stop_msg commands to display the current internal
   status of both the Wrapper and Java processes.
+* Commit a patch by Rob Oxspring which adds an init block to the UNIX shell
+  script to make it work with install_initd and remove_initd scripts used by
+  SUSE linux.  Patch #1750028.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
