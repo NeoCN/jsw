@@ -39,6 +39,10 @@ PIDDIR="."
 # 
 WAIT_AFTER_STARTUP=0
 
+# If set, the status, start_msg and stop_msg commands will print out detailed
+#   state information on the Wrapper and Java processes.
+#DETAIL_STATUS=true
+
 # If specified, the Wrapper will be run as the specified user.
 # IMPORTANT - Make sure that the user has the required privileges to write
 #  the PID file and wrapper.log files.  Failure to be able to write the log
@@ -129,6 +133,8 @@ fi
 
 # Process ID
 ANCHORFILE="$PIDDIR/$APP_NAME.anchor"
+STATUSFILE="$PIDDIR/$APP_NAME.status"
+JAVASTATUSFILE="$PIDDIR/$APP_NAME.java.status"
 PIDFILE="$PIDDIR/$APP_NAME.pid"
 LOCKDIR="/var/lock/subsys"
 LOCKFILE="$LOCKDIR/$APP_NAME"
@@ -264,6 +270,14 @@ else
    IGNOREPROP=wrapper.ignore_signals=TRUE
 fi
 
+# Build the status file clause.
+if [ "X$DETAIL_STATUS" = "X" ]
+then
+   STATUSPROP=
+else
+   STATUSPROP="wrapper.statusfile=\"$STATUSFILE\" wrapper.java.statusfile=\"$JAVASTATUSFILE\""
+fi
+
 # Build the lock file clause.  Only create a lock file if the lock directory exists on this platform.
 LOCKPROP=
 if [ -d $LOCKDIR ]
@@ -389,6 +403,34 @@ getpid() {
     fi
 }
 
+getstatus() {
+    STATUS=
+    if [ -f "$STATUSFILE" ]
+    then
+        if [ -r "$STATUSFILE" ]
+        then
+            STATUS=`cat "$STATUSFILE"`
+        fi
+    fi
+    if [ "X$STATUS" = "X" ]
+    then
+        STATUS="Unknown"
+    fi
+    
+    JAVASTATUS=
+    if [ -f "$JAVASTATUSFILE" ]
+    then
+        if [ -r "$JAVASTATUSFILE" ]
+        then
+            JAVASTATUS=`cat "$JAVASTATUSFILE"`
+        fi
+    fi
+    if [ "X$JAVASTATUS" = "X" ]
+    then
+        JAVASTATUS="Unknown"
+    fi
+}
+
 testpid() {
     pid=`$PSEXE -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
     if [ "X$pid" = "X" ]
@@ -405,7 +447,7 @@ console() {
     if [ "X$pid" = "X" ]
     then
         # The string passed to eval must handles spaces in paths correctly.
-        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" $ANCHORPROP $LOCKPROP"
+        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" $ANCHORPROP $STATUSPROP $LOCKPROP"
         eval $COMMAND_LINE
     else
         echo "$APP_LONG_NAME is already running."
@@ -419,7 +461,7 @@ start() {
     if [ "X$pid" = "X" ]
     then
         # The string passed to eval must handles spaces in paths correctly.
-        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.daemonize=TRUE $ANCHORPROP $IGNOREPROP $LOCKPROP"
+        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.daemonize=TRUE $ANCHORPROP $IGNOREPROP $STATUSPROP $LOCKPROP"
         eval $COMMAND_LINE
     else
         echo "$APP_LONG_NAME is already running."
@@ -520,7 +562,13 @@ status() {
         echo "$APP_LONG_NAME is not running."
         exit 1
     else
-        echo "$APP_LONG_NAME is running ($pid)."
+        if [ "X$DETAIL_STATUS" = "X" ]
+        then
+            echo "$APP_LONG_NAME is running (PID:$pid)."
+        else
+            getstatus
+            echo "$APP_LONG_NAME is running (PID:$pid, Wrapper:$STATUS, Java:$JAVASTATUS)"
+        fi
         exit 0
     fi
 }
@@ -531,7 +579,6 @@ dump() {
     if [ "X$pid" = "X" ]
     then
         echo "$APP_LONG_NAME was not running."
-
     else
         kill -3 $pid
 
@@ -541,6 +588,40 @@ dump() {
             exit 1
         else
             echo "Dumped $APP_LONG_NAME."
+        fi
+    fi
+}
+
+# Used by HP-UX init scripts.
+startmsg() {
+    getpid
+    if [ "X$pid" = "X" ]
+    then
+        echo "Starting $APP_LONG_NAME... (Wrapper:Stopped)"
+    else
+        if [ "X$DETAIL_STATUS" = "X" ]
+        then
+            echo "Starting $APP_LONG_NAME... (Wrapper:Running)"
+        else
+            getstatus
+            echo "Starting $APP_LONG_NAME... (Wrapper:$STATUS, Java:$JAVASTATUS)"
+        fi
+    fi
+}
+
+# Used by HP-UX init scripts.
+stopmsg() {
+    getpid
+    if [ "X$pid" = "X" ]
+    then
+        echo "Stopping $APP_LONG_NAME... (Wrapper:Stopped)"
+    else
+        if [ "X$DETAIL_STATUS" = "X" ]
+        then
+            echo "Stopping $APP_LONG_NAME... (Wrapper:Running)"
+        else
+            getstatus
+            echo "Stopping $APP_LONG_NAME... (Wrapper:$STATUS, Java:$JAVASTATUS)"
         fi
     fi
 }
@@ -576,6 +657,16 @@ case "$1" in
     'dump')
         checkUser "" $1
         dump
+        ;;
+
+    'start_msg')
+        checkUser "" $1
+        startmsg
+        ;;
+
+    'stop_msg')
+        checkUser "" $1
+        stopmsg
         ;;
 
     *)
