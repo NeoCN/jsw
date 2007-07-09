@@ -167,6 +167,12 @@ Java Service Wrapper Revision History.
   including the "." and ".." files on Windows versions.  Bug #1517928.
 * Modify the debug log output when the Wrapper is attempting to load its native
   library in an attempt to make the expected failures less threatening.
+* Commit a patch by Rob Oxspring which adds the start_msg and stop_msg commands
+  to the shell script.  These are expected by init scripts on HP-UX.
+  Patch #1750027.
+* Add a DETAIL_STATUS flag to the UNIX shell script which will cause the
+  status, start_msg, and stop_msg commands to display the current internal
+  status of both the Wrapper and Java processes.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
