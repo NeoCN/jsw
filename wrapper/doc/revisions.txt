@@ -179,6 +179,10 @@ Java Service Wrapper Revision History.
 * Commit a patch by Travis Carlson, ia64 systems were being grouped as "x86"
   systems.  They now are assigned the name "ia" which makes it possible to
   create a distribution for them.  Patch #1663887.
+* (Standard, Professional) Add new wrapper.java.initmemory.percent and
+  wrapper.java.maxmemory.percent properties which make it possible to set
+  the initial and maximum memory values relative to the amount of physical
+  memory on the system.  Feature Request #1741051.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

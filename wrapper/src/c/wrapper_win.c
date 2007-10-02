@@ -1493,7 +1493,7 @@ void wrapperExecute() {
     process_info.dwThreadId=0;
 
     /* Need the directory that this program exists in.  Not the current directory. */
-    /*	Note, the current directory when run as an NT service is the windows system directory. */
+    /*    Note, the current directory when run as an NT service is the windows system directory. */
     /* Get the full path and filename of this program */
     if (GetModuleFileName(NULL, szPath, 512) == 0){
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to launch %s -%s",
@@ -1640,12 +1640,21 @@ DWORD wrapperGetTicks() {
 }
 
 /**
+ * Outputs a a log entry describing what the memory dump columns are.
+ */
+void wrapperDumpMemoryBanner() {
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+        "Wrapper memory: PageFaultcount, WorkingSetSize (Peak), QuotaPagePoolUsage (Peak), QuotaNonPagedPoolUsage (Peak), PageFileUsage (Peak)  Java memory: PageFaultcount, WorkingSetSize (Peak), QuotaPagePoolUsage (Peak), QuotaNonPagedPoolUsage (Peak), PageFileUsage (Peak)  System memory: MemoryLoad, Available/PhysicalSize (%%), Available/PageFileSize (%%), Available/VirtualSize (%%), ExtendedVirtualSize");
+}
+
+/**
  * Outputs a log entry at regular intervals to track the memory usage of the
  *  Wrapper and its JVM.
  */
 void wrapperDumpMemory() {
     PROCESS_MEMORY_COUNTERS wCounters;
     PROCESS_MEMORY_COUNTERS jCounters;
+    MEMORYSTATUSEX statex;
     
     if (OptionalGetProcessMemoryInfo) {
         /* Start with the Wrapper process. */
@@ -1667,9 +1676,12 @@ void wrapperDumpMemory() {
         } else {
             memset(&jCounters, 0, sizeof(jCounters));
         }
+
+        statex.dwLength = sizeof (statex);
+        GlobalMemoryStatusEx(&statex);
         
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-            "Wrapper memory: %lu, %lu (%lu), %lu (%lu), %lu (%lu), %lu (%lu)  Java memory: %lu, %lu (%lu), %lu (%lu), %lu (%lu), %lu (%lu)",
+            "Wrapper memory: %lu, %lu (%lu), %lu (%lu), %lu (%lu), %lu (%lu)  Java memory: %lu, %lu (%lu), %lu (%lu), %lu (%lu), %lu (%lu)  System memory: %lu%%, %I64u/%I64u (%u%%), %I64u/%I64u (%u%%), %I64u/%I64u (%u%%), %I64u",
             wCounters.PageFaultCount,
             wCounters.WorkingSetSize, wCounters.PeakWorkingSetSize,
             wCounters.QuotaPagedPoolUsage, wCounters.QuotaPeakPagedPoolUsage,
@@ -1679,7 +1691,18 @@ void wrapperDumpMemory() {
             jCounters.WorkingSetSize, jCounters.PeakWorkingSetSize,
             jCounters.QuotaPagedPoolUsage, jCounters.QuotaPeakPagedPoolUsage,
             jCounters.QuotaNonPagedPoolUsage, jCounters.QuotaPeakNonPagedPoolUsage,
-            jCounters.PagefileUsage, jCounters.PeakPagefileUsage);
+            jCounters.PagefileUsage, jCounters.PeakPagefileUsage,
+            statex.dwMemoryLoad,
+            statex.ullAvailPhys,
+            statex.ullTotalPhys,
+            (int)(100 * statex.ullAvailPhys / statex.ullTotalPhys),
+            statex.ullAvailPageFile,
+            statex.ullTotalPageFile,
+            (int)(100 * statex.ullAvailPageFile / statex.ullTotalPageFile),
+            statex.ullAvailVirtual,
+            statex.ullTotalVirtual,
+            (int)(100 * statex.ullAvailVirtual / statex.ullTotalVirtual),
+            statex.ullAvailExtendedVirtual);
     }
 }
 
@@ -1817,8 +1840,8 @@ void wrapperDumpCPUUsage() {
 
 /**
  * The service control handler is called by the service manager when there are
- *	events for the service.  registered using a call to 
- *	RegisterServiceCtrlHandler in wrapperServiceMain.
+ *    events for the service.  registered using a call to 
+ *    RegisterServiceCtrlHandler in wrapperServiceMain.
  */
 VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
     /* Allow for a large integer + \0 */
@@ -1927,7 +1950,7 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
 
 /**
  * The wrapperServiceMain function is the entry point for the NT service.
- *	It is called by the service manager.
+ *    It is called by the service manager.
  */
 void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
     int timeout;
