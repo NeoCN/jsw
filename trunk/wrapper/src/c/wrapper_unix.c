@@ -879,6 +879,14 @@ DWORD wrapperGetTicks() {
     }
 }
 
+
+/**
+ * Outputs a a log entry describing what the memory dump columns are.
+ */
+void wrapperDumpMemoryBanner() {
+    /* Not yet implemented on UNIX platforms. */
+}
+
 /**
  * Outputs a log entry at regular intervals to track the memory usage of the
  *  Wrapper and its JVM.

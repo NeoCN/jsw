@@ -897,13 +897,13 @@ int wrapperProtocolRead() {
             /*
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "no data");
             */
-            return 0;	
+            return 0;
         } else if (len != 1) {
             if (wrapperData->isDebugging) {
                 log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket read no code (closed?).");
             }
             wrapperProtocolClose();
-            return 0;	
+            return 0;
         }
 
         code = c;
@@ -1120,8 +1120,8 @@ void wrapperGetFileBase(const char *fileName, char *baseName) {
  * Output the version.
  */
 void wrapperVersionBanner() {
-    printf("Java Service Wrapper Community Edition (Version %s)\n", wrapperVersionRoot);
-    printf("  Copyright 1999, 2007 Tanuki Software, Inc.  All Rights Reserved.\n");
+    printf("Java Service Wrapper Community Edition %s\n", wrapperVersionRoot);
+    printf("  Copyright (C) 1999-2007 Tanuki Software, Inc.  All Rights Reserved.\n");
     printf("    http://wrapper.tanukisoftware.org\n");
 }
 
@@ -1130,9 +1130,9 @@ void wrapperVersionBanner() {
  */
 void wrapperVersionBannerLog() {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-        "Java Service Wrapper Community Edition (Version %s)", wrapperVersionRoot);
+        "Java Service Wrapper Community Edition %s", wrapperVersionRoot);
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-        "  Copyright 1999, 2007 Tanuki Software, Inc.  All Rights Reserved.");
+        "  Copyright (C) 1999-2007 Tanuki Software, Inc.  All Rights Reserved.");
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
         "    http://wrapper.tanukisoftware.org");
 }
@@ -1894,9 +1894,9 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     /* Initial JVM memory */
     initMemory = getIntProperty(properties, "wrapper.java.initmemory", 0);
     if (initMemory > 0 ) {
-        initMemory = __max(initMemory, 1); /* 1 <= n */
         if (strings) {
-            strings[index] = malloc(sizeof(char) * (5 + 4 + 1));  /* Allow up to 4 digits. */
+           initMemory = __max(initMemory, 1); /* 1 <= n */
+            strings[index] = malloc(sizeof(char) * (5 + 10 + 1));  /* Allow up to 10 digits. */
             if (!strings[index]) {
                 outOfMemory("WBJCAI", 8);
                 return -1;
@@ -1905,18 +1905,18 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         }
         index++;
     } else {
-        /* Set the initMemory so the checks in the maxMemory section below will work correctly. */
-        initMemory = 3;
+            /* Set the initMemory so the checks in the maxMemory section below will work correctly. */
+            initMemory = 3;
     }
 
     /* Maximum JVM memory */
     maxMemory = getIntProperty(properties, "wrapper.java.maxmemory", 0);
     if (maxMemory > 0) {
-        maxMemory = __max(maxMemory, initMemory);  /* initMemory <= n */
         if (strings) {
+           maxMemory = __max(maxMemory, initMemory);  /* initMemory <= n */
             strings[index] = malloc(sizeof(char) * (5 + 4 + 1));  /* Allow up to 4 digits. */
             if (!strings[index]) {
-                outOfMemory("WBJCAI", 9);
+                outOfMemory("WBJCAI", 10);
                 return -1;
             }
             sprintf(strings[index], "-Xmx%dm", maxMemory);
@@ -1964,7 +1964,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             if (systemPath) {
                 strings[index] = malloc(sizeof(char) * (22 + strlen(prop) + 1 + strlen(systemPath) + 1 + 1));
                 if (!strings[index]) {
-                    outOfMemory("WBJCAI", 10);
+                    outOfMemory("WBJCAI", 12);
                     return -1;
                 }
                 if (addQuotes) {
@@ -1979,7 +1979,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             } else {
                 strings[index] = malloc(sizeof(char) * (22 + strlen(prop) + 1 + 1));
                 if (!strings[index]) {
-                    outOfMemory("WBJCAI", 11);
+                    outOfMemory("WBJCAI", 13);
                     return -1;
                 }
                 if (addQuotes) {
@@ -2002,7 +2002,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             cpLenAlloc = 1024;
             strings[index] = malloc(sizeof(char) * cpLenAlloc);
             if (!strings[index]) {
-                outOfMemory("WBJCAI", 12);
+                outOfMemory("WBJCAI", 14);
                 return -1;
             }
             
@@ -2032,7 +2032,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                             cpLenAlloc += 1024;
                             strings[index] = malloc(sizeof(char) * cpLenAlloc);
                             if (!strings[index]) {
-                                outOfMemory("WBJCAI", 13);
+                                outOfMemory("WBJCAI", 15);
                                 return -1;
                             }
                             sprintf(strings[index], "%s", tmpString);
@@ -2062,7 +2062,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         cpLenAlloc += 1024;
                         strings[index] = malloc(sizeof(char) * cpLenAlloc);
                         if (!strings[index]) {
-                            outOfMemory("WBJCAI", 14);
+                            outOfMemory("WBJCAI", 16);
                             return -1;
                         }
                         sprintf(strings[index], "%s", tmpString);
@@ -2107,7 +2107,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     if (strings) {
         strings[index] = malloc(sizeof(char) * (10 + 1));
         if (!strings[index]) {
-            outOfMemory("WBJCAI", 15);
+            outOfMemory("WBJCAI", 17);
             return -1;
         }
         sprintf(strings[index], "-classpath");
@@ -2119,7 +2119,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         cpLenAlloc = 1024;
         strings[index] = malloc(sizeof(char) * cpLenAlloc);
         if (!strings[index]) {
-            outOfMemory("WBJCAI", 16);
+            outOfMemory("WBJCAI", 18);
             return -1;
         }
         
@@ -2164,7 +2164,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                                     cpLenAlloc += 1024;
                                     strings[index] = malloc(sizeof(char) * cpLenAlloc);
                                     if (!strings[index]) {
-                                        outOfMemory("WBJCAI", 17);
+                                        outOfMemory("WBJCAI", 19);
                                         return -1;
                                     }
                                     sprintf(strings[index], "%s", tmpString);
@@ -2193,7 +2193,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                                         cpLenAlloc += 1024;
                                         strings[index] = malloc(sizeof(char) * cpLenAlloc);
                                         if (!strings[index]) {
-                                            outOfMemory("WBJCAI", 18);
+                                            outOfMemory("WBJCAI", 20);
                                             return -1;
                                         }
                                         sprintf(strings[index], "%s", tmpString);
@@ -2240,7 +2240,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                                     cpLenAlloc += 1024;
                                     strings[index] = malloc(sizeof(char) * cpLenAlloc);
                                     if (!strings[index]) {
-                                        outOfMemory("WBJCAI", 19);
+                                        outOfMemory("WBJCAI", 21);
                                         return -1;
                                     }
                                     sprintf(strings[index], "%s", tmpString);
@@ -2270,7 +2270,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         if ((prop[strlen(prop) - 1] == '/') || (prop[strlen(prop) - 1] == '\\')) {
                             propStripped = malloc(sizeof(char) * strlen(prop));
                             if (!propStripped) {
-                                outOfMemory("WBJCAI", 20);
+                                outOfMemory("WBJCAI", 22);
                                 return -1;
                             }
                             memcpy(propStripped, prop, strlen(prop) - 1);
@@ -2305,7 +2305,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                             cpLenAlloc += 1024;
                             strings[index] = malloc(sizeof(char) * cpLenAlloc);
                             if (!strings[index]) {
-                                outOfMemory("WBJCAI", 21);
+                                outOfMemory("WBJCAI", 23);
                                 return -1;
                             }
                             sprintf(strings[index], "%s", tmpString);
@@ -2352,7 +2352,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         wrapperBuildKey();
         strings[index] = malloc(sizeof(char) * (16 + strlen(wrapperData->key) + 1));
         if (!strings[index]) {
-            outOfMemory("WBJCAI", 22);
+            outOfMemory("WBJCAI", 24);
             return -1;
         }
         if (addQuotes) {
@@ -2367,7 +2367,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     if (strings) {
         strings[index] = malloc(sizeof(char) * (15 + 5 + 1));  /* Port up to 5 characters */
         if (!strings[index]) {
-            outOfMemory("WBJCAI", 23);
+            outOfMemory("WBJCAI", 25);
             return -1;
         }
         sprintf(strings[index], "-Dwrapper.port=%d", (int)wrapperData->actualPort);
@@ -2380,7 +2380,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         if (strings) {
             strings[index] = malloc(sizeof(char) * (19 + 5 + 1));  /* Port up to 5 characters */
             if (!strings[index]) {
-                outOfMemory("WBJCAI", 24);
+                outOfMemory("WBJCAI", 26);
                 return -1;
             }
             sprintf(strings[index], "-Dwrapper.jvm.port=%d", (int)wrapperData->jvmPort);
@@ -2390,7 +2390,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     if (strings) {
         strings[index] = malloc(sizeof(char) * (23 + 5 + 1));  /* Port up to 5 characters */
         if (!strings[index]) {
-            outOfMemory("WBJCAI", 25);
+            outOfMemory("WBJCAI", 27);
             return -1;
         }
         sprintf(strings[index], "-Dwrapper.jvm.port.min=%d", (int)wrapperData->jvmPortMin);
@@ -2399,7 +2399,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     if (strings) {
         strings[index] = malloc(sizeof(char) * (23 + 5 + 1));  /* Port up to 5 characters */
         if (!strings[index]) {
-            outOfMemory("WBJCAI", 26);
+            outOfMemory("WBJCAI", 28);
             return -1;
         }
         sprintf(strings[index], "-Dwrapper.jvm.port.max=%d", (int)wrapperData->jvmPortMax);
@@ -2411,7 +2411,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         if (strings) {
             strings[index] = malloc(sizeof(char) * (22 + 1));
             if (!strings[index]) {
-                outOfMemory("WBJCAI", 27);
+                outOfMemory("WBJCAI", 29);
                 return -1;
             }
             if (addQuotes) {
@@ -2427,7 +2427,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     if (strings) {
         strings[index] = malloc(sizeof(char) * (24 + 1)); /* Pid up to 10 characters */
         if (!strings[index]) {
-            outOfMemory("WBJCAI", 28);
+            outOfMemory("WBJCAI", 30);
             return -1;
         }
         sprintf(strings[index], "-Dwrapper.pid=%d", wrapperData->wrapperPID);
@@ -2439,7 +2439,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         if (strings) {
             strings[index] = malloc(sizeof(char) * (32 + 1));
             if (!strings[index]) {
-                outOfMemory("WBJCAI", 29);
+                outOfMemory("WBJCAI", 31);
                 return -1;
             }
             if (addQuotes) {
@@ -2456,7 +2456,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             if (strings) {
                 strings[index] = malloc(sizeof(char) * (43 + 1)); /* Allow for 10 digits */
                 if (!strings[index]) {
-                    outOfMemory("WBJCAI", 30);
+                    outOfMemory("WBJCAI", 32);
                     return -1;
                 }
                 if (addQuotes) {
@@ -2471,7 +2471,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             if (strings) {
                 strings[index] = malloc(sizeof(char) * (43 + 1)); /* Allow for 10 digits */
                 if (!strings[index]) {
-                    outOfMemory("WBJCAI", 31);
+                    outOfMemory("WBJCAI", 33);
                     return -1;
                 }
                 if (addQuotes) {
@@ -2489,7 +2489,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     if (strings) {
         strings[index] = malloc(sizeof(char) * (20 + strlen(wrapperVersion) + 1));
         if (!strings[index]) {
-            outOfMemory("WBJCAI", 32);
+            outOfMemory("WBJCAI", 34);
             return -1;
         }
         if (addQuotes) {
@@ -2504,7 +2504,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     if (strings) {
         strings[index] = malloc(sizeof(char) * (27 + strlen(wrapperData->nativeLibrary) + 1));
         if (!strings[index]) {
-            outOfMemory("WBJCAI", 33);
+            outOfMemory("WBJCAI", 35);
             return -1;
         }
         if (addQuotes) {
@@ -2520,7 +2520,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         if (strings) {
             strings[index] = malloc(sizeof(char) * (31 + 1));
             if (!strings[index]) {
-                outOfMemory("WBJCAI", 34);
+                outOfMemory("WBJCAI", 36);
                 return -1;
             }
             if (addQuotes) {
@@ -2541,7 +2541,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         if (strings) {
             strings[index] = malloc(sizeof(char) * (24 + 1));
             if (!strings[index]) {
-                outOfMemory("WBJCAI", 35);
+                outOfMemory("WBJCAI", 37);
                 return -1;
             }
             if (addQuotes) {
@@ -2558,7 +2558,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         if (strings) {
             strings[index] = malloc(sizeof(char) * (38 + 1));
             if (!strings[index]) {
-                outOfMemory("WBJCAI", 36);
+                outOfMemory("WBJCAI", 38);
                 return -1;
             }
             if (addQuotes) {
@@ -2575,7 +2575,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         /* Just to be safe, allow 20 characters for the timeout value */
         strings[index] = malloc(sizeof(char) * (24 + 20 + 1));
         if (!strings[index]) {
-            outOfMemory("WBJCAI", 37);
+            outOfMemory("WBJCAI", 39);
             return -1;
         }
         if (addQuotes) {
@@ -2590,7 +2590,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     if (strings) {
         strings[index] = malloc(sizeof(char) * (16 + 5 + 1));  /* jvmid up to 5 characters */
         if (!strings[index]) {
-            outOfMemory("WBJCAI", 38);
+            outOfMemory("WBJCAI", 40);
             return -1;
         }
         sprintf(strings[index], "-Dwrapper.jvmid=%d", (wrapperData->jvmRestarts + 1));
@@ -2602,7 +2602,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         prop = getStringProperty(properties, "wrapper.java.mainclass", "Main");
         strings[index] = malloc(sizeof(char) * (strlen(prop) + 1));
         if (!strings[index]) {
-            outOfMemory("WBJCAI", 39);
+            outOfMemory("WBJCAI", 41);
             return -1;
         }
         sprintf(strings[index], "%s", prop);
@@ -2627,7 +2627,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                     if (stripQuote) {
                         propStripped = malloc(sizeof(char) * (strlen(prop) + 1));
                         if (!propStripped) {
-                            outOfMemory("WBJCAI", 40);
+                            outOfMemory("WBJCAI", 42);
                             return -1;
                         }
                         wrapperStripQuotes(prop, propStripped);
@@ -2639,14 +2639,14 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         len = wrapperQuoteValue(propStripped, NULL, 0);
                         strings[index] = malloc(len);
                         if (!strings[index]) {
-                            outOfMemory("WBJCAI", 41);
+                            outOfMemory("WBJCAI", 43);
                             return -1;
                         }
                         wrapperQuoteValue(propStripped, strings[index], len);
                     } else {
                         strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1));
                         if (!strings[index]) {
-                            outOfMemory("WBJCAI", 42);
+                            outOfMemory("WBJCAI", 44);
                             return -1;
                         }
                         sprintf(strings[index], "%s", propStripped);
@@ -3778,7 +3778,7 @@ void wrapperStopRequested(int exitCode) {
     }
 
     /* Get things stopping on this end.  Ask the JVM to stop again in case the
-     *	user code on the Java side is not written correctly. */
+     *  user code on the Java side is not written correctly. */
     wrapperStopProcess(FALSE, exitCode);
 }
 
@@ -3789,7 +3789,7 @@ void wrapperRestartRequested() {
 
 /**
  * If the current state of the JVM is STOPPING then this message is used to
- *	extend the time that the wrapper will wait for a STOPPED message before
+ *  extend the time that the wrapper will wait for a STOPPED message before
  *  giving up on the JVM and killing it.
  */
 void wrapperStopPendingSignalled(int waitHint) {
@@ -3816,7 +3816,7 @@ void wrapperStopPendingSignalled(int waitHint) {
  * The wrapper received a signal from the JVM that it has completed the stop
  *  process.  If the state of the JVM is STOPPING, then change the state to
  *  STOPPED.  It is possible to get this request after the Wrapper has given up
- *	waiting for the JVM.  In this case, the message is ignored.
+ *  waiting for the JVM.  In this case, the message is ignored.
  */
 void wrapperStoppedSignalled() {
     if (wrapperData->isDebugging) {
@@ -3834,7 +3834,7 @@ void wrapperStoppedSignalled() {
 
 /**
  * If the current state of the JVM is STARTING then this message is used to
- *	extend the time that the wrapper will wait for a STARTED message before
+ *  extend the time that the wrapper will wait for a STARTED message before
  *  giving up on the JVM and killing it.
  */
 void wrapperStartPendingSignalled(int waitHint) {
@@ -3860,7 +3860,7 @@ void wrapperStartPendingSignalled(int waitHint) {
  * The wrapper received a signal from the JVM that it has completed the startup
  *  process.  If the state of the JVM is STARTING, then change the state to
  *  STARTED.  It is possible to get this request after the Wrapper has given up
- *	waiting for the JVM.  In this case, the message is ignored.
+ *  waiting for the JVM.  In this case, the message is ignored.
  */
 void wrapperStartedSignalled() {
     if (wrapperData->isDebugging) {

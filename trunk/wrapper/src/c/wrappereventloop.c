@@ -1508,6 +1508,10 @@ void wrapperEventLoop() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Event loop started.");
     }
 
+    if (wrapperData->isMemoryOutputEnabled) {
+        wrapperDumpMemoryBanner();
+    }
+
     nextSleep = TRUE;
     do {
         if (wrapperData->isLoopOutputEnabled) {
