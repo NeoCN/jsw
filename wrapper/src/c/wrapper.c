@@ -309,7 +309,7 @@ int wrapperLoadConfigurationProperties() {
                 outOfMemory("WLCP", 5);
                 return TRUE;
             }
-            if (!GetFullPathName(prop, work, wrapperData->workingDir, &filePart)) {
+            if (!GetFullPathName(prop, work, wrapperData->workingDir, NULL)) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                     "Unable to resolve the working directory %s: %s", prop, getLastErrorText());
                 return TRUE;
