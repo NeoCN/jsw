@@ -270,6 +270,12 @@ void wrapperSetJavaState(int useLoggerQueue, int jState, DWORD nowTicks, int del
             wrapperGetJState(jState));
     }
     
+    if (wrapperData->jState != jState) {
+        /* If the state has changed, then the old timeout will never be used.
+         *  Clear it here so any new timeout will be used. */
+        wrapperData->jStateTimeoutTicks = 0;
+        wrapperData->jStateTimeoutTicksSet = 0;
+    }
     wrapperData->jState = jState;
     wrapperUpdateJavaStateTimeout(nowTicks, delay);
     
