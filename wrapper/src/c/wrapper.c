@@ -154,7 +154,6 @@ int wrapperLoadConfigurationProperties() {
     int firstCall;
 #ifdef WIN32
     int work;
-    char *filePart;
 #endif
     const char* prop;
 
@@ -165,43 +164,6 @@ int wrapperLoadConfigurationProperties() {
         properties = NULL;
     } else {
         firstCall = TRUE;
-        /* This is the first time, so preserve the full canonical location of the
-         *  configuration file. */
-#ifdef WIN32
-        work = GetFullPathName(wrapperData->argConfFile, 0, NULL, NULL);
-        if (!work) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                "Unable to resolve the full path of the configuration file, %s: %s",
-                wrapperData->argConfFile, getLastErrorText());
-            return TRUE;
-        }
-        wrapperData->configFile = malloc(sizeof(char) * work);
-        if (!wrapperData->configFile) {
-            outOfMemory("WLCP", 1);
-            return TRUE;
-        }
-        if (!GetFullPathName(wrapperData->argConfFile, work, wrapperData->configFile, &filePart)) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                "Unable to resolve the full path of the configuration file, %s: %s",
-                wrapperData->argConfFile, getLastErrorText());
-            return TRUE;
-        }
-#else
-        /* The solaris implementation of realpath will return a relative path if a relative
-         *  path is provided.  We always need an abosulte path here.  So build up one and
-         *  then use realpath to remove any .. or other relative references. */
-        wrapperData->configFile = malloc(PATH_MAX);
-        if (!wrapperData->configFile) {
-            outOfMemory("WLCP", 2);
-            return TRUE;
-        }
-        if (realpath(wrapperData->argConfFile, wrapperData->configFile) == NULL) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                "Unable to resolve the full path of the configuration file, %s: %s",
-                wrapperData->argConfFile, getLastErrorText());
-            return TRUE;
-        }
-#endif
 
         /* This is the first time, so preserve the working directory. */
 #ifdef WIN32
@@ -216,7 +178,7 @@ int wrapperLoadConfigurationProperties() {
             outOfMemory("WLCP", 3);
             return TRUE;
         }
-        if (!GetFullPathName(".", work, wrapperData->originalWorkingDir, &filePart)) {
+        if (!GetFullPathName(".", work, wrapperData->originalWorkingDir, NULL)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Unable to resolve the original working directory: %s", getLastErrorText());
             return TRUE;
@@ -233,6 +195,50 @@ int wrapperLoadConfigurationProperties() {
         if (realpath(".", wrapperData->originalWorkingDir) == NULL) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Unable to resolve the original working directory: %s", getLastErrorText());
+            return TRUE;
+        }
+#endif
+
+        /* This is the first time, so preserve the full canonical location of the
+         *  configuration file. */
+#ifdef WIN32
+        work = GetFullPathName(wrapperData->argConfFile, 0, NULL, NULL);
+        if (!work) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                "Unable to resolve the full path of the configuration file, %s: %s",
+                wrapperData->argConfFile, getLastErrorText());
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                "Current working directory is: %s", wrapperData->originalWorkingDir);
+            return TRUE;
+        }
+        wrapperData->configFile = malloc(sizeof(char) * work);
+        if (!wrapperData->configFile) {
+            outOfMemory("WLCP", 1);
+            return TRUE;
+        }
+        if (!GetFullPathName(wrapperData->argConfFile, work, wrapperData->configFile, NULL)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                "Unable to resolve the full path of the configuration file, %s: %s",
+                wrapperData->argConfFile, getLastErrorText());
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                "Current working directory is: %s", wrapperData->originalWorkingDir);
+            return TRUE;
+        }
+#else
+        /* The solaris implementation of realpath will return a relative path if a relative
+         *  path is provided.  We always need an abosulte path here.  So build up one and
+         *  then use realpath to remove any .. or other relative references. */
+        wrapperData->configFile = malloc(PATH_MAX);
+        if (!wrapperData->configFile) {
+            outOfMemory("WLCP", 2);
+            return TRUE;
+        }
+        if (realpath(wrapperData->argConfFile, wrapperData->configFile) == NULL) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                "Unable to resolve the full path of the configuration file, %s: %s",
+                wrapperData->argConfFile, getLastErrorText());
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                "Current working directory is: %s", wrapperData->originalWorkingDir);
             return TRUE;
         }
 #endif

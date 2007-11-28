@@ -59,12 +59,19 @@
 
 #else
 #include <strings.h>
+#include <limits.h>
+#if defined(IRIX)
+#define PATH_MAX FILENAME_MAX
+#endif
 #endif
 
 #include "logger.h"
 #include "property.h"
+#include "wrapper.h"
 
 #define MAX_INCLUDE_DEPTH 10
+
+int debugIncludes = FALSE;
 
 void setInnerProperty(Property *property, const char *propertyValue);
 
@@ -372,6 +379,11 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
     size_t i, j;
     size_t len;
     int quoted;
+    char *absoluteBuffer;
+#ifdef WIN32
+    int size;
+#endif
+    
 
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "loadPropertiesInner(props, '%s', %d)", filename, depth);
@@ -380,10 +392,30 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
     /* Look for the specified file. */
     if ((stream = fopen(filename, "rt")) == NULL) {
         /* Unable to open the file. */
+        if (debugIncludes) {
+            if (depth > 0) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    "  Included configuration file, %s, was not found.", filename);
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    "Configuration file, %s, was not found.", filename);
+            }
+        } else {
 #ifdef _DEBUG
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Properties file not found: %s", filename);
 #endif
+        }
         return 1;
+    }
+    
+    if (debugIncludes) {
+        if (depth > 0) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                "  Loading included configuration file, %s", filename);
+        } else {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                "Loading configuration file, %s", filename);
+        }
     }
 
     /* Load in all of the properties */
@@ -450,7 +482,10 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
             /* Only look at lines which contain data and do not start with a '#'
              *  If the line starts with '#include' then recurse to the include file */
             if (strlen(trimmedBuffer) > 0) {
-                if (strstr(trimmedBuffer, "#include") == trimmedBuffer) {
+                if (strcmpIgnoreCase(trimmedBuffer, "#include.debug") == 0) {
+                    /* Enable include file debugging. */
+                    debugIncludes = TRUE;
+                } else if (strstr(trimmedBuffer, "#include") == trimmedBuffer) {
                     /* Include file, if the file does not exist, then ignore it */
                     /* Strip any leading whitespace */
                     c = trimmedBuffer + 8;
@@ -460,9 +495,71 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
 
                     if (depth < MAX_INCLUDE_DEPTH) {
                         /* The filename may contain environment variables, so expand them. */
+                        if (debugIncludes) {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                                "Found #include file in %s: %s", filename, c);
+                        }
                         evaluateEnvironmentVariables(c, expBuffer, MAX_PROPERTY_NAME_VALUE_LENGTH);
-
-                        loadPropertiesInner(properties, expBuffer, depth + 1);
+                        
+                        if (debugIncludes && (strcmp(c, expBuffer) != 0)) {
+                            /* Only show this log if there were any environment variables. */
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                                "  After environment variable replacements: %s", expBuffer);
+                        }
+                        
+                        /* Now obtain the real absolute path to the include file. */
+#ifdef WIN32
+                        /* Find out how big the absolute path will be */
+                        size = GetFullPathName(expBuffer, 0, NULL, NULL);
+                        if (!size) {
+                            if (debugIncludes) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                                    "  Unable to resolve the full path of the configuration include file, %s: %s",
+                                    expBuffer, getLastErrorText());
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                                    "  Current working directory is: %s", wrapperData->originalWorkingDir);
+                            }
+                            absoluteBuffer = NULL;
+                        } else {
+                            absoluteBuffer = malloc(sizeof(char) * size);
+                            if (!absoluteBuffer) {
+                                outOfMemory("LPI", 1);
+                            } else {
+                                if (!GetFullPathName(expBuffer, size, absoluteBuffer, NULL)) {
+                                    if (debugIncludes) {
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                                            "  Unable to resolve the full path of the configuration include file, %s: %s",
+                                            expBuffer, getLastErrorText());
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                                            "  Current working directory is: %s", wrapperData->originalWorkingDir);
+                                    }
+                                    free(absoluteBuffer);
+                                    absoluteBuffer = NULL;
+                                }
+                            }
+                        }
+#else
+                        absoluteBuffer = malloc(PATH_MAX);
+                        if (!absoluteBuffer) {
+                            outOfMemory("LPI", 2);
+                        } else {
+                            if (realpath(expBuffer, absoluteBuffer) == NULL) {
+                                if (debugIncludes) {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                                        "  Unable to resolve the full path of the configuration include file, %s: %s",
+                                        expBuffer, getLastErrorText());
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                                        "  Current working directory is: %s", wrapperData->originalWorkingDir);
+                                }
+                                free(absoluteBuffer);
+                                absoluteBuffer = NULL;
+                            }
+                        }
+#endif
+                        if (absoluteBuffer) {
+                            loadPropertiesInner(properties, absoluteBuffer, depth + 1);
+                            free(absoluteBuffer);
+                        }
                     }
                 } else if (trimmedBuffer[0] != '#') {
                     /* printf("%s\n", trimmedBuffer); */

@@ -183,6 +183,8 @@ Java Service Wrapper Revision History.
   wrapper.java.maxmemory.percent properties which make it possible to set
   the initial and maximum memory values relative to the amount of physical
   memory on the system.  Feature Request #1741051.
+* Add a new #include.debug declaration in the wrapper configuration file which
+  makes it much easier to debug problems with cascading include files.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
