@@ -113,7 +113,7 @@ typedef long intptr_t;
 
 WrapperConfig *wrapperData;
 char         packetBuffer[MAX_LOG_SIZE + 1];
-char         *keyChars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
+char         *keyChars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-";
 
 /* Properties structure loaded in from the configuration file. */
 Properties              *properties;
@@ -1704,7 +1704,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 #endif
 
     index = 0;
-
+    
     /* Java commnd */
     if (strings) {
         prop = getStringProperty(properties, "wrapper.java.command", "java");
@@ -2355,7 +2355,6 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 
     /* Store the Wrapper key */
     if (strings) {
-        wrapperBuildKey();
         strings[index] = malloc(sizeof(char) * (16 + strlen(wrapperData->key) + 1));
         if (!strings[index]) {
             outOfMemory("WBJCAI", 24);
@@ -2871,8 +2870,8 @@ void wrapperBuildKey() {
         wrapperData->key[i] = keyChars[(int)(rand() * num / RAND_MAX)];
     }
     wrapperData->key[16] = '\0';
-
-    /*printf("Key=%s\n", wrapperData->key); */
+    
+    /*printf("Key=%s\n", wrapperData->key);*/
 }
 
 /**

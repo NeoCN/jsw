@@ -59,5 +59,4 @@ extern int wrapperJNIDebugging;
 extern int wrapperLockControlEventQueue();
 extern int wrapperReleaseControlEventQueue();
 extern void wrapperJNIHandleSignal(int signal);
-
 #endif
