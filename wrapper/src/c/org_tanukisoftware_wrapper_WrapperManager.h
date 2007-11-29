@@ -166,14 +166,6 @@ JNIEXPORT void JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit
 
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
- * Method:    nativePreStart
- * Signature: (Ljava/util/Properties;)Z
- */
-JNIEXPORT jboolean JNICALL Java_org_tanukisoftware_wrapper_WrapperManager_nativePreStart
-  (JNIEnv *, jclass, jobject);
-
-/*
- * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeGetLibraryVersion
  * Signature: ()Ljava/lang/String;
  */
