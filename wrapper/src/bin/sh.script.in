@@ -1,7 +1,15 @@
 #! /bin/sh
 
 #
-# Copyright (c) 1999, 2007 Tanuki Software Inc.
+# Copyright (c) 1999, 2007 Tanuki Software, Inc.
+# http://www.tanukisoftware.com
+# All rights reserved.
+#
+# This software is the confidential and proprietary information
+# of Tanuki Software.  ("Confidential Information").  You shall
+# not disclose such Confidential Information and shall use it
+# only in accordance with the terms of the license agreement you
+# entered into with Tanuki Software.
 #
 # Java Service Wrapper sh script.  Suitable for starting and stopping
 #  wrapped Java applications on UNIX platforms.
