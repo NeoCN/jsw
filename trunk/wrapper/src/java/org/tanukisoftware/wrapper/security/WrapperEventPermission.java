@@ -1,28 +1,15 @@
 package org.tanukisoftware.wrapper.security;
 
 /*
- * Copyright (c) 1999, 2007 Tanuki Software Inc.
- * 
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of the Java Service Wrapper and associated
- * documentation files (the "Software"), to deal in the Software
- * without  restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sub-license,
- * and/or sell copies of the Software, and to permit persons to
- * whom the Software is furnished to do so, subject to the
- * following conditions:
- * 
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
+ * Copyright (c) 1999, 2007 Tanuki Software, Inc.
+ * http://www.tanukisoftware.com
+ * All rights reserved.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES 
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
- * NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
- * WHETHER IN AN EVENT_TYPE OF CONTRACT, TORT OR OTHERWISE, ARISING 
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
+ * This software is the confidential and proprietary information
+ * of Tanuki Software.  ("Confidential Information").  You shall
+ * not disclose such Confidential Information and shall use it
+ * only in accordance with the terms of the license agreement you
+ * entered into with Tanuki Software.
  */
 
 import java.security.Permission;
@@ -89,6 +76,11 @@ import java.util.StringTokenizer;
 public class WrapperEventPermission
     extends Permission
 {
+    /**
+     * Serial Version UID.
+     */
+    private static final long serialVersionUID = 8916489326587298168L;
+    
     public static String EVENT_TYPE_SERVICE = "service";
     public static String EVENT_TYPE_CONTROL = "control";
     public static String EVENT_TYPE_CORE = "core";
@@ -334,6 +326,11 @@ public class WrapperEventPermission
 final class WECollection
     extends PermissionCollection
 {
+    /**
+     * Serial Version UID. 
+     */
+    private static final long serialVersionUID = -5183704982261198435L;
+    
     private Vector m_permissions = new Vector();
     
     /*---------------------------------------------------------------
