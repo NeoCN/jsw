@@ -126,6 +126,7 @@
 typedef struct WrapperConfig WrapperConfig;
 struct WrapperConfig {
     char*   argCommand;             /* The command used to launch the wrapper. */
+    char*   argCommandArg;          /* The argument to the command used to launch the wrapper. */
     char*   argConfFile;            /* The name of the config file from the command line. */
     int     argConfFileDefault;     /* True if the config file was not specified. */
     int     argConfFileFound;       /* True if the config file was found. */

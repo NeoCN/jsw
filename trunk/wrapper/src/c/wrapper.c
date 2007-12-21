@@ -1161,6 +1161,7 @@ void wrapperUsage(char *appName) {
     printf("  -a  --pause   pAuse a started NT service\n");
     printf("  -e  --resume  rEsume a paused NT service\n");
     printf("  -p  --stop    stoP a running NT service\n");
+    printf("  -l=<code> --controlcode=<code> send a user controL Code to a running NT service\n");
     printf("  -i  --install Install as an NT service\n");
     printf("  -it --installstart Install and sTart as an NT service\n");
     printf("  -r  --remove  Remove as an NT service\n");
@@ -1192,6 +1193,7 @@ void wrapperUsage(char *appName) {
  */
 int wrapperParseArguments(int argc, char **argv) {
     char *argConfFileBase;
+    char *c;
 
     if (argc > 1) {
         if (argv[1][0] == '-') {
@@ -1201,6 +1203,15 @@ int wrapperParseArguments(int argc, char **argv) {
             if (wrapperData->argCommand[0] == '\0') {
                 wrapperUsage(argv[0]);
                 return FALSE;
+            }
+            
+            /* Does the argument have a value? */
+            c = strchr(wrapperData->argCommand, '=');
+            if (c == NULL) {
+                wrapperData->argCommandArg = NULL;
+            } else {
+                wrapperData->argCommandArg = (char *)(c + 1);
+                c[0] = '\0';
             }
 
             if (argc > 2) {
@@ -1236,6 +1247,7 @@ int wrapperParseArguments(int argc, char **argv) {
             /* Syntax 2 */
             /* A command was not specified, but there may be a config file. */
             wrapperData->argCommand = "c";
+            wrapperData->argCommandArg = NULL;
             wrapperData->argConfFile = argv[1];
             wrapperData->argCount = argc - 2;
             wrapperData->argValues = &argv[2];
@@ -1244,6 +1256,7 @@ int wrapperParseArguments(int argc, char **argv) {
         /* Systax 4 */
         /* A config file was not specified.  Assume a default config file name. */
         wrapperData->argCommand = "c";
+        wrapperData->argCommandArg = NULL;
 
         argConfFileBase = malloc(strlen(argv[0]) + 1);
         if (!argConfFileBase) {

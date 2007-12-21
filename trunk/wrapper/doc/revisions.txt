@@ -185,6 +185,8 @@ Java Service Wrapper Revision History.
   memory on the system.  Feature Request #1741051.
 * Add a new #include.debug declaration in the wrapper configuration file which
   makes it much easier to debug problems with cascading include files.
+* Add -l and -controlcode commands to the Windows version which make it easy
+  to send user defined control codes to the Wrapper running as a service.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

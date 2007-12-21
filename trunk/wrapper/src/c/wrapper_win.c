@@ -3148,6 +3148,102 @@ int wrapperContinueService() {
     return result;
 }
 
+
+/** Sends a service control code to a running as an NT Service. */
+int wrapperSendServiceControlCode(char **argv, char *controlCodeS) {
+    SC_HANDLE   schService;
+    SC_HANDLE   schSCManager;
+    SERVICE_STATUS serviceStatus;
+    int controlCode;
+    char *status;
+    int msgCntr;
+    int result = 0;
+    
+    /* Make sure the control code is valid. */
+    if (controlCodeS == NULL) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Control code to send is missing.");
+        wrapperUsage(argv[0]);
+        return 1;
+    }
+    controlCode = atoi(controlCodeS);
+    if ((controlCode < 128) || (controlCode > 255)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The service control code must be in the range 128-255.");
+        return 1;
+    }
+
+    /* First, get a handle to the service control manager */
+    schSCManager = OpenSCManager(
+                                 NULL,                   
+                                 NULL,                   
+                                 SC_MANAGER_ALL_ACCESS   
+                                 );
+    if (schSCManager) {
+        /* Next get the handle to this service... */
+        schService = OpenService(schSCManager, wrapperData->ntServiceName, SERVICE_ALL_ACCESS);
+
+        if (schService) {
+            /* Make sure that the service is in a state that can be resumed. */
+            if (QueryServiceStatus(schService, &serviceStatus)) {
+                if (serviceStatus.dwCurrentState == SERVICE_STOPPED) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "The %s service was not running.",
+                        wrapperData->ntServiceDisplayName);
+                    result = 1;
+                } else if (serviceStatus.dwCurrentState == SERVICE_STOP_PENDING) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                        "The %s service was in the process of stopping.",
+                        wrapperData->ntServiceDisplayName);
+                    result = 1;
+                } else if (serviceStatus.dwCurrentState == SERVICE_PAUSED) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                        "The %s service was currently paused.",
+                        wrapperData->ntServiceDisplayName);
+                    result = 1;
+                } else if (serviceStatus.dwCurrentState == SERVICE_PAUSE_PENDING) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                        "The %s service was in the process of being paused.",
+                        wrapperData->ntServiceDisplayName);
+                    result = 1;
+                } else if (serviceStatus.dwCurrentState == SERVICE_CONTINUE_PENDING) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                        "The %s service was in the process of being resumed.",
+                        wrapperData->ntServiceDisplayName);
+                } else {
+                    /* The service is running, so try sending the code. */
+                    if (ControlService( schService, controlCode, &serviceStatus)){
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Sent the %s service control code %d.",
+                            wrapperData->ntServiceDisplayName, controlCode);
+                    } else {
+                        status = getNTServiceStatusName(serviceStatus.dwCurrentState);
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                            "Attempt to send the %s service control code %d failed.  Status: %s",
+                            wrapperData->ntServiceDisplayName, controlCode, status);
+                        result = 1;
+                    }
+                }
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to query the status of the %s service - %s",
+                    wrapperData->ntServiceDisplayName, getLastErrorText());
+                result = 1;
+            }
+            
+            /* Close this service object's handle to the service control manager */
+            CloseServiceHandle(schService);
+        } else {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
+                wrapperData->ntServiceName, getLastErrorText());
+            result = 1;
+        }
+        
+        /* Finally, close the handle to the service control manager's database */
+        CloseServiceHandle(schSCManager);
+    } else {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenSCManager failed - %s", getLastErrorText());
+        result = 1;
+    }
+
+    return result;
+}
+
 /**
  * Obtains the current service status.
  * The returned result becomes the exitCode.  The exitCode is made up of
@@ -3671,6 +3767,12 @@ void main(int argc, char **argv) {
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             appExit(wrapperStopService(TRUE));
+            return; /* For clarity. */
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand,"l") || !strcmpIgnoreCase(wrapperData->argCommand,"-controlcode")) {
+            /* Sent a control code to an NT service */
+            /* Always auto close the log file to keep the output in synch. */
+            setLogfileAutoClose(TRUE);
+            appExit(wrapperSendServiceControlCode(argv, wrapperData->argCommandArg));
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand,"q") || !strcmpIgnoreCase(wrapperData->argCommand,"-query")) {
             /* Return service status with console output. */
