@@ -91,25 +91,30 @@
 #define WRAPPER_JSTATE_LAUNCH_DELAY 72 /* Set from the DOWN state to launch a JVM.  The
                                      *  timeout will be the time to actually launch
                                      *  the JVM after any required delay. */
-#define WRAPPER_JSTATE_LAUNCHING 73 /* JVM was launched, but has not yet responded.
+#define WRAPPER_JSTATE_RESTART   73 /* JVM is about to be restarted. No timeout. */
+#define WRAPPER_JSTATE_LAUNCH    74 /* JVM is about to launch a JVM. No timeout. */
+#define WRAPPER_JSTATE_LAUNCHING 75 /* JVM was launched, but has not yet responded.
                                      *  Must enter the LAUNCHED state before <t>
                                      *  or the JVM will be killed. */
-#define WRAPPER_JSTATE_LAUNCHED  74 /* JVM was launched, and responed to a ping. */
-#define WRAPPER_JSTATE_STARTING  75 /* JVM has been asked to start.  Must enter the
+#define WRAPPER_JSTATE_LAUNCHED  76 /* JVM was launched, and responed to a ping. */
+#define WRAPPER_JSTATE_STARTING  77 /* JVM has been asked to start.  Must enter the
                                      *  STARTED state before <t> or the JVM will be
                                      *  killed. */
-#define WRAPPER_JSTATE_STARTED   76 /* JVM has responded that it is running.  Must
+#define WRAPPER_JSTATE_STARTED   78 /* JVM has responded that it is running.  Must
                                      *  respond to a ping by <t> or the JVM will
                                      *  be killed. */
-#define WRAPPER_JSTATE_STOPPING  77 /* JVM was sent a stop command, but has not yet
+#define WRAPPER_JSTATE_STOP      79 /* JVM is about to be sent a stop command to shutdown
+                                     *  cleanly. */
+#define WRAPPER_JSTATE_STOPPING  80 /* JVM was sent a stop command, but has not yet
                                      *  responded.  Must enter the STOPPED state
                                      *  and exit before <t> or the JVM will be killed. */
-#define WRAPPER_JSTATE_STOPPED   78 /* JVM has responed that it is stopped. */
-#define WRAPPER_JSTATE_KILLING   79 /* The Wrapper is about ready to kill the JVM
+#define WRAPPER_JSTATE_STOPPED   81 /* JVM has responed that it is stopped. */
+#define WRAPPER_JSTATE_KILLING   82 /* The Wrapper is about ready to kill the JVM
                                      *  process but it must wait a few moments before
                                      *  actually doing so.  After <t> has expired, the
                                      *  JVM will be killed and we will enter the STOPPED
                                      *  state. */
+#define WRAPPER_JSTATE_KILL      83 /* The Wrapper is about ready to kill the JVM process. */
 
 #define FILTER_ACTION_NONE       90
 #define FILTER_ACTION_RESTART    91
@@ -238,12 +243,12 @@ struct WrapperConfig {
     int     anchorFileUmask;        /* Umask to use when creating the anchor file. */
     int     ignoreSignals;          /* True if the Wrapper should ignore any catchable system signals and inform its JVM to do the same. */
     char    *consoleTitle;          /* Text to set the console title to. */
+    char    *serviceName;           /* Name of the service. */
+    char    *serviceDisplayName;    /* Display name of the service. */
+    char    *serviceDescription;    /* Description for service. */
 
 #ifdef WIN32
     int     isSingleInvocation;     /* TRUE if only a single invocation of an application should be allowed to launch. */
-    char    *ntServiceName;         /* Name of the NT Service */
-    char    *ntServiceDisplayName;  /* Display name of the NT Service */
-    char    *ntServiceDescription;  /* Description for service in Win2k and XP */
     char    *ntServiceLoadOrderGroup; /* Load order group name. */
     char    *ntServiceDependencies; /* List of Dependencies */
     int     ntServiceStartType;     /* Mode in which the Service is installed. 
@@ -427,7 +432,7 @@ extern int wrapperInitializeRun();
  * Cause the current thread to sleep for the specified number of milliseconds.
  *  Sleeps over one second are not allowed.
  */
-extern void wrapperSleep(int ms);
+extern void wrapperSleep(int useLoggerQueue, int ms);
 
 /**
  * Reports the status of the wrapper to the service manager

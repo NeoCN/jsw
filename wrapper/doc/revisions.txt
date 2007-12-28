@@ -187,6 +187,14 @@ Java Service Wrapper Revision History.
   makes it much easier to debug problems with cascading include files.
 * Add -l and -controlcode commands to the Windows version which make it easy
   to send user defined control codes to the Wrapper running as a service.
+* Fix a synchronization problem in the logging code which could result in
+  data corruption or access violations.
+* Add version numbers to the bat and sh scripts to make them easier to
+  support.
+* Make the wrapper.ntservice.name, wrapper.ntservice.displayname, and
+  wrapper.ntservice.description properties aliases of new wrapper.name,
+  wrapper.displayname, and wrapper.description properties as they are now
+  used on UNIX platforms as well as Windows.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

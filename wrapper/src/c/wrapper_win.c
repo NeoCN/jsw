@@ -224,12 +224,12 @@ HANDLE invocationMutexHandle = NULL;
 int initInvocationMutex() {
     char *mutexName;
     if (wrapperData->isSingleInvocation) {
-        mutexName = malloc(sizeof(char) * (23 + strlen(wrapperData->ntServiceName) + 1));
+        mutexName = malloc(sizeof(char) * (23 + strlen(wrapperData->serviceName) + 1));
         if (!mutexName) {
             outOfMemory("IIM", 1);
             return 1;
         }
-        sprintf(mutexName, "Java Service Wrapper - %s", wrapperData->ntServiceName);
+        sprintf(mutexName, "Java Service Wrapper - %s", wrapperData->serviceName);
         
         if (!(invocationMutexHandle = CreateMutex(NULL, FALSE, mutexName))) {
             free(mutexName);
@@ -238,7 +238,7 @@ int initInvocationMutex() {
                 /* Most likely the app is running as a service and we tried to run it as a console. */
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                     "ERROR: Another instance of the %s application is already running.",
-                    wrapperData->ntServiceName);
+                    wrapperData->serviceName);
                 return 1;
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
@@ -253,7 +253,7 @@ int initInvocationMutex() {
         if (GetLastError() == ERROR_ALREADY_EXISTS) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 "ERROR: Another instance of the %s application is already running.",
-                wrapperData->ntServiceName);
+                wrapperData->serviceName);
             return 1;
         }
     }
@@ -665,7 +665,7 @@ void hideConsoleWindow(HWND consoleHandle) {
         consolePlacement.showCmd = SW_HIDE;
 
         /* If we hide the window too soon after it is shown, it sometimes sticks, so wait a moment. */
-        wrapperSleep(10);
+        wrapperSleep(FALSE, 10);
 
         if (!SetWindowPlacement(consoleHandle, &consolePlacement)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
@@ -685,7 +685,7 @@ HWND findAndHideConsoleWindow( char *title ) {
      *  up if it doesn't */
     consoleHandle = NULL;
     while ((!consoleHandle) && (i < 200)) {
-        wrapperSleep(10);
+        wrapperSleep(FALSE, 10);
         consoleHandle = FindWindow("ConsoleWindowClass", title);
         i++;
     }
@@ -738,7 +738,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
         }
 
         while(TRUE) {
-            wrapperSleep(WRAPPER_TICK_MS);
+            wrapperSleep(TRUE, WRAPPER_TICK_MS);
 
             /* Get the tick count based on the system time. */
             sysTicks = wrapperGetSystemTicks();
@@ -906,15 +906,16 @@ int wrapperInitializeRun() {
  * Cause the current thread to sleep for the specified number of milliseconds.
  *  Sleeps over one second are not allowed.
  */
-void wrapperSleep(int ms) {
+void wrapperSleep(int useLoggerQueue, int ms) {
     if (wrapperData->isSleepOutputEnabled) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Sleep: sleep %dms", ms);
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            "    Sleep: sleep %dms", ms);
     }
     
     Sleep(ms);
     
     if (wrapperData->isSleepOutputEnabled) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Sleep: awake");
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Sleep: awake");
     }
 }
 
@@ -1311,7 +1312,7 @@ void wrapperKillProcessNow() {
         }
 
         /* Give the JVM a chance to be killed so that the state will be correct. */
-        wrapperSleep(500); /* 0.5 seconds */
+        wrapperSleep(FALSE, 500); /* 0.5 seconds */
 
         /* Set the exit code since we were forced to kill the JVM. */
         wrapperData->exitCode = 1;
@@ -1484,7 +1485,7 @@ void wrapperExecute() {
     /* Get the full path and filename of this program */
     if (GetModuleFileName(NULL, szPath, 512) == 0){
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to launch %s -%s",
-                     wrapperData->ntServiceDisplayName, getLastErrorText());
+                     wrapperData->serviceDisplayName, getLastErrorText());
         javaProcess = NULL;
         return;
     }
@@ -1955,7 +1956,7 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
         /* Call RegisterServiceCtrlHandler immediately to register a service control */
         /* handler function. The returned SERVICE_STATUS_HANDLE is saved with global */
         /* scope, and used as a service id in calls to SetServiceStatus. */
-        if (!(sshStatusHandle = RegisterServiceCtrlHandler(wrapperData->ntServiceName, wrapperServiceControlHandler))) {
+        if (!(sshStatusHandle = RegisterServiceCtrlHandler(wrapperData->serviceName, wrapperServiceControlHandler))) {
             goto finally;
         }
     
@@ -2101,7 +2102,7 @@ int wrapperInstall() {
     /* Get the full path and filename of this program */
     if (GetModuleFileName(NULL, szPath, 512) == 0){
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to install %s -%s",
-                     wrapperData->ntServiceDisplayName, getLastErrorText());
+                     wrapperData->serviceDisplayName, getLastErrorText());
         return 1;
     }
     
@@ -2192,8 +2193,8 @@ int wrapperInstall() {
         
         schService = CreateService(
                                    schSCManager,                       /* SCManager database */
-                                   wrapperData->ntServiceName,         /* name of service */
-                                   wrapperData->ntServiceDisplayName,  /* name to display */
+                                   wrapperData->serviceName,           /* name of service */
+                                   wrapperData->serviceDisplayName,    /* name to display */
                                    SERVICE_ALL_ACCESS,                 /* desired access */
                                    serviceType,                        /* service type */
                                    wrapperData->ntServiceStartType,    /* start type */
@@ -2207,20 +2208,20 @@ int wrapperInstall() {
         
         if (schService) {
             /* Have the service, add a description to the registry. */
-            sprintf(regPath, "SYSTEM\\CurrentControlSet\\Services\\%s", wrapperData->ntServiceName);
-            if ((wrapperData->ntServiceDescription != NULL && strlen(wrapperData->ntServiceDescription) > 0)
+            sprintf(regPath, "SYSTEM\\CurrentControlSet\\Services\\%s", wrapperData->serviceName);
+            if ((wrapperData->serviceDescription != NULL && strlen(wrapperData->serviceDescription) > 0)
                 && (RegOpenKeyEx(HKEY_LOCAL_MACHINE, regPath, 0, KEY_WRITE, (PHKEY) &hKey) == ERROR_SUCCESS)) {
                 
                 /* Set Description key in registry */
                 RegSetValueEx(hKey, "Description", (DWORD) 0, (DWORD) REG_SZ,
-                    (const unsigned char *)wrapperData->ntServiceDescription,
-                    (int)(strlen(wrapperData->ntServiceDescription) + 1));
+                    (const unsigned char *)wrapperData->serviceDescription,
+                    (int)(strlen(wrapperData->serviceDescription) + 1));
                 RegCloseKey(hKey);
             }
             
             /* Service was installed. */
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s installed.",
-                wrapperData->ntServiceDisplayName);
+                wrapperData->serviceDisplayName);
 
             /* Close the handle to this service object */
             CloseServiceHandle(schService);
@@ -2731,7 +2732,7 @@ int wrapperStartService() {
                                  );
     if (schSCManager){
         /* Next get the handle to this service... */
-        schService = OpenService(schSCManager, wrapperData->ntServiceName, SERVICE_ALL_ACCESS);
+        schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_ALL_ACCESS);
 
         if (schService){
             /* Make sure that the service is not already running. */
@@ -2739,7 +2740,7 @@ int wrapperStartService() {
                 if (serviceStatus.dwCurrentState == SERVICE_STOPPED) {
                     /* The service is stopped, so try starting it. */
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Starting the %s service...",
-                        wrapperData->ntServiceDisplayName);
+                        wrapperData->serviceDisplayName);
                     if (StartService( schService, 0, NULL )) {
                         /* We will get here immediately if the service process was launched.
                          *  We still need to wait for it to actually start. */
@@ -2762,12 +2763,12 @@ int wrapperStartService() {
                                         msgCntr = 0;
                                     }
                                 }
-                                wrapperSleep(1000);
+                                wrapperSleep(FALSE, 1000);
                                 msgCntr++;
                             } else {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                                     "Unable to query the status of the %s service - %s",
-                                    wrapperData->ntServiceDisplayName, getLastErrorText());
+                                    wrapperData->serviceDisplayName, getLastErrorText());
                                 result = 1;
                                 break;
                             }
@@ -2777,12 +2778,12 @@ int wrapperStartService() {
 
                         /* Was the service started? */
                         if (serviceStatus.dwCurrentState == SERVICE_RUNNING) {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s started.", wrapperData->ntServiceDisplayName);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s started.", wrapperData->serviceDisplayName);
                         } else if (serviceStatus.dwCurrentState == SERVICE_PAUSED) {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s started but immediately paused..", wrapperData->ntServiceDisplayName);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s started but immediately paused..", wrapperData->serviceDisplayName);
                         } else {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service was launched, but failed to start.",
-                                wrapperData->ntServiceDisplayName);
+                                wrapperData->serviceDisplayName);
                             result = 1;
                         }
                     } else {
@@ -2793,12 +2794,12 @@ int wrapperStartService() {
                 } else {
                     status = getNTServiceStatusName(serviceStatus.dwCurrentState);
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is already running with status: %s",
-                        wrapperData->ntServiceDisplayName, status);
+                        wrapperData->serviceDisplayName, status);
                     result = 1;
                 }
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to query the status of the %s service - %s",
-                    wrapperData->ntServiceDisplayName, getLastErrorText());
+                    wrapperData->serviceDisplayName, getLastErrorText());
                 result = 1;
             }
             
@@ -2806,7 +2807,7 @@ int wrapperStartService() {
             CloseServiceHandle(schService);
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
-                wrapperData->ntServiceName, getLastErrorText());
+                wrapperData->serviceName, getLastErrorText());
             result = 1;
         }
         
@@ -2839,7 +2840,7 @@ int wrapperStopService(int command) {
     if (schSCManager){
 
         /* Next get the handle to this service... */
-        schService = OpenService(schSCManager, wrapperData->ntServiceName, SERVICE_ALL_ACCESS);
+        schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_ALL_ACCESS);
 
         if (schService){
             /* Find out what the current status of the service is so we can decide what to do. */
@@ -2847,19 +2848,19 @@ int wrapperStopService(int command) {
                 if (serviceStatus.dwCurrentState == SERVICE_STOPPED) {
                     if (command) {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "The %s service was not running.",
-                            wrapperData->ntServiceDisplayName);
+                            wrapperData->serviceDisplayName);
                     }
                 } else {
                     if (serviceStatus.dwCurrentState == SERVICE_STOP_PENDING) {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                             "The %s service was already in the process of stopping.",
-                            wrapperData->ntServiceDisplayName);
+                            wrapperData->serviceDisplayName);
                     } else {
                         /* Stop the service. */
                         if (ControlService( schService, SERVICE_CONTROL_STOP, &serviceStatus)){
                             if ( command ) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Stopping the %s service...",
-                                    wrapperData->ntServiceDisplayName);
+                                    wrapperData->serviceDisplayName);
                             } else {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Service is running.  Stopping it...");
                             }
@@ -2867,12 +2868,12 @@ int wrapperStopService(int command) {
                             if (serviceStatus.dwCurrentState == SERVICE_START_PENDING) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                                     "The %s service was in the process of starting.  Stopping it...",
-                                    wrapperData->ntServiceDisplayName);
+                                    wrapperData->serviceDisplayName);
                             } else {
                                 status = getNTServiceStatusName(serviceStatus.dwCurrentState);
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                                     "Attempt to stop the %s service failed.  Status: %s",
-                                    wrapperData->ntServiceDisplayName, status);
+                                    wrapperData->serviceDisplayName, status);
                                 result = 1;
                             }
                         }
@@ -2886,28 +2887,28 @@ int wrapperStopService(int command) {
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Waiting to stop...");
                                     msgCntr = 0;
                                 }
-                                wrapperSleep(1000);
+                                wrapperSleep(FALSE, 1000);
                                 msgCntr++;
                             } else {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                                     "Unable to query the status of the %s service - %s",
-                                    wrapperData->ntServiceDisplayName, getLastErrorText());
+                                    wrapperData->serviceDisplayName, getLastErrorText());
                                 result = 1;
                                 break;
                             }
                         } while (serviceStatus.dwCurrentState != SERVICE_STOPPED);
 
                         if ( serviceStatus.dwCurrentState == SERVICE_STOPPED ) {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s stopped.", wrapperData->ntServiceDisplayName);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s stopped.", wrapperData->serviceDisplayName);
                         } else {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "%s failed to stop.", wrapperData->ntServiceDisplayName);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "%s failed to stop.", wrapperData->serviceDisplayName);
                             result = 1;
                         }
                     }
                 }
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to query the status of the %s service - %s",
-                    wrapperData->ntServiceDisplayName, getLastErrorText());
+                    wrapperData->serviceDisplayName, getLastErrorText());
                 result = 1;
             }
             
@@ -2915,7 +2916,7 @@ int wrapperStopService(int command) {
             CloseServiceHandle(schService);
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
-                wrapperData->ntServiceName, getLastErrorText());
+                wrapperData->serviceName, getLastErrorText());
             result = 1;
         }
         
@@ -2947,38 +2948,38 @@ int wrapperPauseService() {
                                  );
     if (schSCManager) {
         /* Next get the handle to this service... */
-        schService = OpenService(schSCManager, wrapperData->ntServiceName, SERVICE_ALL_ACCESS);
+        schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_ALL_ACCESS);
 
         if (schService) {
             /* Make sure that the service is in a state that can be paused. */
             if (QueryServiceStatus(schService, &serviceStatus)) {
                 if (serviceStatus.dwCurrentState == SERVICE_STOPPED) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "The %s service was not running.",
-                        wrapperData->ntServiceDisplayName);
+                        wrapperData->serviceDisplayName);
                     result = 1;
                 } else if (serviceStatus.dwCurrentState == SERVICE_STOP_PENDING) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         "The %s service was in the process of stopping.",
-                        wrapperData->ntServiceDisplayName);
+                        wrapperData->serviceDisplayName);
                     result = 1;
                 } else if (serviceStatus.dwCurrentState == SERVICE_PAUSED) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         "The %s service was already paused.",
-                        wrapperData->ntServiceDisplayName);
+                        wrapperData->serviceDisplayName);
                 } else if (serviceStatus.dwCurrentState == SERVICE_PAUSE_PENDING) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         "The %s service was in the process of being paused.",
-                        wrapperData->ntServiceDisplayName);
+                        wrapperData->serviceDisplayName);
                 } else {
                     /* The service is started, starting, or continuing, so try pausing it. */
                     if (ControlService( schService, SERVICE_CONTROL_PAUSE, &serviceStatus)){
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Pausing the %s service...",
-                            wrapperData->ntServiceDisplayName);
+                            wrapperData->serviceDisplayName);
                     } else {
                         status = getNTServiceStatusName(serviceStatus.dwCurrentState);
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                             "Attempt to pause the %s service failed.  Status: %s",
-                            wrapperData->ntServiceDisplayName, status);
+                            wrapperData->serviceDisplayName, status);
                         result = 1;
                     }
                 }
@@ -2991,30 +2992,30 @@ int wrapperPauseService() {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Waiting to pause...");
                                 msgCntr = 0;
                             }
-                            wrapperSleep(1000);
+                            wrapperSleep(FALSE, 1000);
                             msgCntr++;
                         } else {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                                 "Unable to query the status of the %s service - %s",
-                                wrapperData->ntServiceDisplayName, getLastErrorText());
+                                wrapperData->serviceDisplayName, getLastErrorText());
                             result = 1;
                             break;
                         }
                     } while (!((serviceStatus.dwCurrentState == SERVICE_PAUSED) || (serviceStatus.dwCurrentState == SERVICE_STOPPED)));
 
                     if ( serviceStatus.dwCurrentState == SERVICE_PAUSED ) {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s paused.", wrapperData->ntServiceDisplayName);
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s paused.", wrapperData->serviceDisplayName);
                     } else {
                         status = getNTServiceStatusName(serviceStatus.dwCurrentState);
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                             "%s failed to pause.  Status: %s",
-                            wrapperData->ntServiceDisplayName, status);
+                            wrapperData->serviceDisplayName, status);
                         result = 1;
                     }
                 }
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to query the status of the %s service - %s",
-                    wrapperData->ntServiceDisplayName, getLastErrorText());
+                    wrapperData->serviceDisplayName, getLastErrorText());
                 result = 1;
             }
             
@@ -3022,7 +3023,7 @@ int wrapperPauseService() {
             CloseServiceHandle(schService);
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
-                wrapperData->ntServiceName, getLastErrorText());
+                wrapperData->serviceName, getLastErrorText());
             result = 1;
         }
         
@@ -3054,43 +3055,43 @@ int wrapperContinueService() {
                                  );
     if (schSCManager) {
         /* Next get the handle to this service... */
-        schService = OpenService(schSCManager, wrapperData->ntServiceName, SERVICE_ALL_ACCESS);
+        schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_ALL_ACCESS);
 
         if (schService) {
             /* Make sure that the service is in a state that can be resumed. */
             if (QueryServiceStatus(schService, &serviceStatus)) {
                 if (serviceStatus.dwCurrentState == SERVICE_STOPPED) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "The %s service was not running.",
-                        wrapperData->ntServiceDisplayName);
+                        wrapperData->serviceDisplayName);
                     result = 1;
                 } else if (serviceStatus.dwCurrentState == SERVICE_STOP_PENDING) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         "The %s service was in the process of stopping.",
-                        wrapperData->ntServiceDisplayName);
+                        wrapperData->serviceDisplayName);
                     result = 1;
                 } else if (serviceStatus.dwCurrentState == SERVICE_PAUSE_PENDING) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         "The %s service was in the process of being paused.",
-                        wrapperData->ntServiceDisplayName);
+                        wrapperData->serviceDisplayName);
                     result = 1;
                 } else if (serviceStatus.dwCurrentState == SERVICE_CONTINUE_PENDING) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         "The %s service was in the process of being resumed.",
-                        wrapperData->ntServiceDisplayName);
+                        wrapperData->serviceDisplayName);
                 } else if (serviceStatus.dwCurrentState == SERVICE_RUNNING) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         "The %s service was already started.",
-                        wrapperData->ntServiceDisplayName);
+                        wrapperData->serviceDisplayName);
                 } else {
                     /* The service is paused, so try resuming it. */
                     if (ControlService( schService, SERVICE_CONTROL_CONTINUE, &serviceStatus)){
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Resuming the %s service...",
-                            wrapperData->ntServiceDisplayName);
+                            wrapperData->serviceDisplayName);
                     } else {
                         status = getNTServiceStatusName(serviceStatus.dwCurrentState);
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                             "Attempt to resume the %s service failed.  Status: %s",
-                            wrapperData->ntServiceDisplayName, status);
+                            wrapperData->serviceDisplayName, status);
                         result = 1;
                     }
                 }
@@ -3103,30 +3104,30 @@ int wrapperContinueService() {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Waiting to resume...");
                                 msgCntr = 0;
                             }
-                            wrapperSleep(1000);
+                            wrapperSleep(FALSE, 1000);
                             msgCntr++;
                         } else {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                                 "Unable to query the status of the %s service - %s",
-                                wrapperData->ntServiceDisplayName, getLastErrorText());
+                                wrapperData->serviceDisplayName, getLastErrorText());
                             result = 1;
                             break;
                         }
                     } while (!((serviceStatus.dwCurrentState == SERVICE_RUNNING) || (serviceStatus.dwCurrentState == SERVICE_STOPPED)));
 
                     if ( serviceStatus.dwCurrentState == SERVICE_RUNNING ) {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s resumed.", wrapperData->ntServiceDisplayName);
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s resumed.", wrapperData->serviceDisplayName);
                     } else {
                         status = getNTServiceStatusName(serviceStatus.dwCurrentState);
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                             "%s failed to resume.  Status: %s",
-                            wrapperData->ntServiceDisplayName, status);
+                            wrapperData->serviceDisplayName, status);
                         result = 1;
                     }
                 }
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to query the status of the %s service - %s",
-                    wrapperData->ntServiceDisplayName, getLastErrorText());
+                    wrapperData->serviceDisplayName, getLastErrorText());
                 result = 1;
             }
             
@@ -3134,7 +3135,7 @@ int wrapperContinueService() {
             CloseServiceHandle(schService);
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
-                wrapperData->ntServiceName, getLastErrorText());
+                wrapperData->serviceName, getLastErrorText());
             result = 1;
         }
         
@@ -3275,13 +3276,13 @@ int wrapperServiceStatus(int consoleOutput) {
     if (schSCManager){
 
         /* Next get the handle to this service... */
-        schService = OpenService(schSCManager, wrapperData->ntServiceName, SERVICE_ALL_ACCESS);
+        schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_ALL_ACCESS);
 
         if (schService){
             /* Service is installed, so set that bit. */
             if (consoleOutput) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    "The %s Service is installed.", wrapperData->ntServiceDisplayName);
+                    "The %s Service is installed.", wrapperData->serviceDisplayName);
             }
             result |= 1;
             
@@ -3340,7 +3341,7 @@ int wrapperServiceStatus(int consoleOutput) {
                 free(pQueryServiceConfig);
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to query the configuration of the %s service - %s",
-                    wrapperData->ntServiceDisplayName, getLastErrorText());
+                    wrapperData->serviceDisplayName, getLastErrorText());
             }
             
             /* Find out what the current status of the service is so we can decide what to do. */
@@ -3367,7 +3368,7 @@ int wrapperServiceStatus(int consoleOutput) {
                 
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to query the status of the %s service - %s",
-                    wrapperData->ntServiceDisplayName, getLastErrorText());
+                    wrapperData->serviceDisplayName, getLastErrorText());
             }
             
             /* Close this service object's handle to the service control manager */
@@ -3376,7 +3377,7 @@ int wrapperServiceStatus(int consoleOutput) {
             /* Could not open the service.  This means that it is not installed. */
             if (consoleOutput) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    "The %s Service is not installed.", wrapperData->ntServiceDisplayName);
+                    "The %s Service is not installed.", wrapperData->serviceDisplayName);
             }
         }
         
@@ -3415,12 +3416,12 @@ int wrapperRemove() {
     if (schSCManager){
 
         /* Next get the handle to this service... */
-        schService = OpenService(schSCManager, wrapperData->ntServiceName, SERVICE_ALL_ACCESS);
+        schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_ALL_ACCESS);
 
         if (schService){
             /* Now try to remove the service... */
             if (DeleteService(schService)) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s removed.", wrapperData->ntServiceDisplayName);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s removed.", wrapperData->serviceDisplayName);
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "DeleteService failed - %s", getLastErrorText());
                 result = 1;
@@ -3430,7 +3431,7 @@ int wrapperRemove() {
             CloseServiceHandle(schService);
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
-                wrapperData->ntServiceName, getLastErrorText());
+                wrapperData->serviceName, getLastErrorText());
             result = 1;
         }
         
@@ -3891,12 +3892,12 @@ void main(int argc, char **argv) {
             }
 
             /* Prepare the service table */
-            serviceTable[0].lpServiceName = wrapperData->ntServiceName;
+            serviceTable[0].lpServiceName = wrapperData->serviceName;
             serviceTable[0].lpServiceProc = (LPSERVICE_MAIN_FUNCTION)wrapperServiceMain;
             serviceTable[1].lpServiceName = NULL;
             serviceTable[1].lpServiceProc = NULL;
 
-            printf("Attempting to start %s as an NT service.\n", wrapperData->ntServiceDisplayName);
+            printf("Attempting to start %s as an NT service.\n", wrapperData->serviceDisplayName);
             printf("\nCalling StartServiceCtrlDispatcher...please wait.\n");
 
             /* Start the service control dispatcher.  This will not return

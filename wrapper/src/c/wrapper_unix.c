@@ -36,6 +36,7 @@
 
 #ifndef WIN32
 
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -297,9 +298,11 @@ void sigActionCommon(int sigNum, const char *sigName, siginfo_t *sigInfo, int mo
 
             case WRAPPER_SIGNAL_MODE_SHUTDOWN:
                 if (wrapperData->exitRequested || wrapperData->restartRequested ||
+                    (wrapperData->jState == WRAPPER_JSTATE_STOP) ||
                     (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
                     (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
                     (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
+                    (wrapperData->jState == WRAPPER_JSTATE_KILL) ||
                     (wrapperData->jState == WRAPPER_JSTATE_DOWN)) {
     
                     /* Signalled while we were already shutting down. */
@@ -403,8 +406,10 @@ void sigActionQuit(int sigNum, siginfo_t *sigInfo, void *na) {
     threadId = pthread_self();
 
     if (pthread_equal(threadId, timerThreadId)) {
-        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-            "Timer thread received an Quit signal.  Ignoring.");
+        if (wrapperData->isDebugging) {
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                "Timer thread received an Quit signal.  Ignoring.");
+        }
     } else {
         wrapperRequestDumpJVMState(TRUE);
     }
@@ -414,16 +419,28 @@ void sigActionQuit(int sigNum, siginfo_t *sigInfo, void *na) {
  * Handle termination signals (i.e. machine is shutting down).
  */
 void sigActionChildDeath(int sigNum, siginfo_t *sigInfo, void *na) {
+    pthread_t threadId;
+    
     /* On UNIX, when a Child process changes state, a SIGCHLD signal is sent to the parent.
      *  The parent should do a wait to make sure the child is cleaned up and doesn't become
      *  a zombie process. */
 
-    descSignal(sigInfo);
-
-    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-        "Received SIGCHLD, checking JVM process status.");
-    wrapperGetProcessStatus(TRUE, wrapperGetTicks(), TRUE);
-    /* Handled and logged. */
+    threadId = pthread_self();
+    if (pthread_equal(threadId, timerThreadId)) {
+        if (wrapperData->isDebugging) {
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                "Timer thread received a SigChild signal.  Ignoring.");
+        }
+    } else {
+        descSignal(sigInfo);
+    
+        if (wrapperData->isDebugging) {
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                "Received SIGCHLD, checking JVM process status.");
+        }
+        wrapperGetProcessStatus(TRUE, wrapperGetTicks(), TRUE);
+        /* Handled and logged. */
+    }
 }
 
 /**
@@ -523,15 +540,16 @@ void *timerRunner(void *arg) {
     sigaddset(&signal_mask, SIGUSR2);
     rc = pthread_sigmask(SIG_BLOCK, &signal_mask, NULL);
     if (rc != 0) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Could not mask signals for timer thread.");
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            "Could not mask signals for timer thread.");
     }
 
     if (wrapperData->isTimerOutputEnabled) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Timer thread started.");
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Timer thread started.");
     }
 
     while (TRUE) {
-        wrapperSleep(WRAPPER_TICK_MS);
+        wrapperSleep(TRUE, WRAPPER_TICK_MS);
 
         /* Get the tick count based on the system time. */
         sysTicks = wrapperGetSystemTicks();
@@ -549,13 +567,15 @@ void *timerRunner(void *arg) {
             first = 0;
         } else {
             if (offsetDiff > wrapperData->timerSlowThreshold) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The timer fell behind the system clock by %ldms.", offsetDiff * WRAPPER_TICK_MS);
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
+                    "The timer fell behind the system clock by %ldms.", offsetDiff * WRAPPER_TICK_MS);
             } else if (offsetDiff < -1 * wrapperData->timerFastThreshold) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The system clock fell behind the timer by %ldms.", -1 * offsetDiff * WRAPPER_TICK_MS);
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
+                    "The system clock fell behind the timer by %ldms.", -1 * offsetDiff * WRAPPER_TICK_MS);
             }
 
             if (wrapperData->isTimerOutputEnabled) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     "    Timer: ticks=%lu, system ticks=%lu, offset=%lu, offsetDiff=%ld",
                     timerTicks, sysTicks, tickOffset, offsetDiff);
             }
@@ -638,30 +658,47 @@ int wrapperInitializeRun() {
  * Cause the current thread to sleep for the specified number of milliseconds.
  *  Sleeps over one second are not allowed.
  */
-void wrapperSleep(int ms) {
+void wrapperSleep(int useLoggerQueue, int ms) {
     /* We want to use nanosleep if it is available, but make it possible for the
        user to build a version that uses usleep if they want.
        usleep does not behave nicely with signals thrown while sleeping.  This
        was the believed cause of a hang experienced on one Solaris system. */
 #ifdef USE_USLEEP
     if (wrapperData->isSleepOutputEnabled) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Sleep: usleep %dms", ms);
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            "    Sleep: usleep %dms", ms);
     }
     usleep(ms * 1000); /* microseconds */
 #else
     struct timespec ts;
     
-    ts.tv_sec = 0;
-    ts.tv_nsec = ms * 1000000; /* nanoseconds */
+    if (ms >= 1000) {
+        ts.tv_sec = (ms * 1000000) / 1000000000;
+        ts.tv_nsec = (ms * 1000000) % 1000000000; /* nanoseconds */
+    } else {
+        ts.tv_sec = 0;
+        ts.tv_nsec = ms * 1000000; /* nanoseconds */
+    }
     
     if (wrapperData->isSleepOutputEnabled) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Sleep: nanosleep %dms", ms);
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            "    Sleep: nanosleep %dms", ms);
     }
-    nanosleep(&ts, NULL);
+    if (nanosleep(&ts, NULL)) {
+        if (errno == 4) {
+            if (wrapperData->isSleepOutputEnabled) {
+                log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    "    Sleep: nanosleep interrupted");
+            }
+        } else {
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                "nanosleep(%dms) failed. %s", ms, getLastErrorText());
+        }
+    }
 #endif
     
     if (wrapperData->isSleepOutputEnabled) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Sleep: awake");
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Sleep: awake");
     }
 }
 
@@ -701,13 +738,13 @@ int wrapperBuildJavaCommand() {
         }
     }
 
-    /* Allocate memory to hold array of command strings */
+    /* Allocate memory to hold array of command strings.  The array is itself NULL terminated */
     wrapperData->jvmCommand = malloc(sizeof(char *) * (length + 1));
     if (!wrapperData->jvmCommand) {
         outOfMemory("WBJC", 1);
         return TRUE;
     }
-    /*                        number of arguments + 1 for a NULL pointer at the end */
+    /* number of arguments + 1 for a NULL pointer at the end */
     for (i = 0; i <= length; i++) {
         if (i < length) {
             wrapperData->jvmCommand[i] = malloc(sizeof(char) * (strlen(strings[i]) + 1));
@@ -782,7 +819,8 @@ void wrapperExecute() {
             /* The logging code causes some log corruption if logging is called from the
              *  child of a fork.  Not sure exactly why but most likely because the forked
              *  child receives a copy of the mutex and thus synchronization is not working.
-             * It is ok to log errors in here, but avoid output otherwise. */
+             * It is ok to log errors in here, but avoid output otherwise.
+             * TODO: Figure out a way to fix this.  Maybe using shared memory? */
             
             /* Send output to the pipe by dupicating the pipe fd and setting the copy as the stdout fd. */
             if (dup2(pipedes[STDOUT_FILENO], STDOUT_FILENO) < 0) {
@@ -1168,7 +1206,7 @@ void wrapperKillProcessNow() {
         }
 
         /* Give the JVM a chance to be killed so that the state will be correct. */
-        wrapperSleep(500); /* 0.5 seconds */
+        wrapperSleep(FALSE, 500); /* 0.5 seconds */
 
         /* Set the exit code since we were forced to kill the JVM. */
         wrapperData->exitCode = 1;
@@ -1231,7 +1269,7 @@ void daemonize() {
     /* first fork */
     if (wrapperData->isDebugging) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Spawning intermediate process...");
-    }	
+    }    
     if ((pid = fork()) < 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Could not spawn daemon process: %s",
             getLastErrorText());
@@ -1243,7 +1281,7 @@ void daemonize() {
          * the console output look nice by making sure that all output from the
          * intermediate and daemon threads are complete before this thread exits.
          * Sleep for 0.5 seconds. */
-        wrapperSleep(500);
+        wrapperSleep(FALSE, 500);
         
         /* Call exit rather than appExit as we are only exiting this process. */
         exit(0);
@@ -1281,7 +1319,7 @@ void daemonize() {
     /* second fork */
     if (wrapperData->isDebugging) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Spawning daemon process...");
-    }	
+    }    
     if ((pid = fork()) < 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Could not spawn daemon process: %s",
             getLastErrorText());
@@ -1339,7 +1377,6 @@ int setWorkingDir(char *app) {
 /*******************************************************************************
  * Main function                                                               *
  *******************************************************************************/
-
 int main(int argc, char **argv) {
 #ifdef _DEBUG
     int i;
@@ -1375,7 +1412,7 @@ int main(int argc, char **argv) {
         appExit(1);
         return 1; /* For compiler. */
     }
-
+    
     /* At this point, we have a command, confFile, and possibly additional arguments. */
     if (!strcmpIgnoreCase(wrapperData->argCommand,"?") || !strcmpIgnoreCase(wrapperData->argCommand,"-help")) {
         /* User asked for the usage. */

@@ -1449,9 +1449,11 @@ void wrapperStopProcess(int useLoggerQueue, int exitCode) {
         
         /* If it has not already been set, set the exit request flag. */
         if (wrapperData->exitRequested ||
+            (wrapperData->jState == WRAPPER_JSTATE_STOP) ||
             (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
             (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
             (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
+            (wrapperData->jState == WRAPPER_JSTATE_KILL) ||
             (wrapperData->jState == WRAPPER_JSTATE_DOWN)) {
             /* JVM is already down or going down. */
         } else {
@@ -1476,9 +1478,11 @@ void wrapperStopProcess(int useLoggerQueue, int exitCode) {
 void wrapperRestartProcess(int useLoggerQueue) {
     /* If it has not already been set, set the restart request flag in the wrapper data. */
     if (wrapperData->exitRequested || wrapperData->restartRequested ||
+        (wrapperData->jState == WRAPPER_JSTATE_STOP) ||
         (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
         (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
         (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
+        (wrapperData->jState == WRAPPER_JSTATE_KILL) ||
         (wrapperData->jState == WRAPPER_JSTATE_DOWN) ||
         (wrapperData->jState == WRAPPER_JSTATE_LAUNCH_DELAY)) { /* Down but not yet restarted. */
 
@@ -2775,18 +2779,21 @@ void wrapperJVMProcessExited(int useLoggerQueue, DWORD nowTicks, int exitCode) {
     case WRAPPER_JSTATE_DOWN:
         /* Shouldn't be called in this state.  But just in case. */
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM already down.");
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                "JVM already down.");
         }
         setState = FALSE;
         break;
 
     case WRAPPER_JSTATE_LAUNCH_DELAY:
+    case WRAPPER_JSTATE_RESTART:
+    case WRAPPER_JSTATE_LAUNCH:
         /* We got a message that the JVM process died when we already thought is was down.
          *  Most likely this was caused by a SIGCHLD signal.  We are already in the expected
          *  state so go ahead and ignore it.  Do NOT go back to DOWN or the restart flag
          *  and all restart counts will have be lost */
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                 "Received a message that the JVM is down when in the LAUNCH(DELAY) state.");
         }
         setState = FALSE;
@@ -2801,35 +2808,38 @@ void wrapperJVMProcessExited(int useLoggerQueue, DWORD nowTicks, int exitCode) {
     case WRAPPER_JSTATE_LAUNCHED:
         /* Shouldn't be called in this state, but just in case. */
         wrapperData->restartRequested = TRUE;
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
             "JVM exited before starting the application.");
         break;
 
     case WRAPPER_JSTATE_STARTING:
         wrapperData->restartRequested = TRUE;
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
             "JVM exited while starting the application.");
         break;
 
     case WRAPPER_JSTATE_STARTED:
         wrapperData->restartRequested = TRUE;
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
             "JVM exited unexpectedly.");
         break;
 
+    case WRAPPER_JSTATE_STOP:
     case WRAPPER_JSTATE_STOPPING:
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
             "JVM exited unexpectedly while stopping the application.");
         break;
 
     case WRAPPER_JSTATE_STOPPED:
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM exited normally.");
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                "JVM exited normally.");
         }
         break;
 
     case WRAPPER_JSTATE_KILLING:
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
+    case WRAPPER_JSTATE_KILL:
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
             "JVM exited on its own while waiting to kill the application.");
         break;
 
@@ -2917,15 +2927,6 @@ int wrapperBuildNTServiceInfo() {
     int i;
 
     if (!wrapperData->configured) {
-        /* Load the service name */
-        updateStringValue(&wrapperData->ntServiceName, getStringProperty(properties, "wrapper.ntservice.name", "Wrapper"));
-
-        /* Load the service display name */
-        updateStringValue(&wrapperData->ntServiceDisplayName, getStringProperty(properties, "wrapper.ntservice.displayname", "Wrapper"));
-
-        /* Load the service description, default to nothing */
-        updateStringValue(&wrapperData->ntServiceDescription, getStringProperty(properties, "wrapper.ntservice.description", ""));
-
         /* Load the service load order group */
         updateStringValue(&wrapperData->ntServiceLoadOrderGroup, getStringProperty(properties, "wrapper.ntservice.load_order_group", ""));
 
@@ -3503,6 +3504,15 @@ int loadConfiguration() {
     sprintf(propName, "wrapper.console.title.%s", wrapperOS);
     updateStringValue(&wrapperData->consoleTitle, getStringProperty(properties, propName, getStringProperty(properties, "wrapper.console.title", NULL)));
 
+    /* Load the service name (Used to be windows specific so use those properties if set.) */
+    updateStringValue(&wrapperData->serviceName, getStringProperty(properties, "wrapper.name", getStringProperty(properties, "wrapper.ntservice.name", "Wrapper")));
+
+    /* Load the service display name (Used to be windows specific so use those properties if set.) */
+    updateStringValue(&wrapperData->serviceDisplayName, getStringProperty(properties, "wrapper.displayname", getStringProperty(properties, "wrapper.ntservice.displayname", wrapperData->serviceName)));
+
+    /* Load the service description, default to display name (Used to be windows specific so use those properties if set.) */
+    updateStringValue(&wrapperData->serviceDescription, getStringProperty(properties, "wrapper.description", getStringProperty(properties, "wrapper.ntservice.description", wrapperData->serviceDisplayName)));
+
 #ifdef WIN32
     /* Configure the NT service information */
     if (wrapperBuildNTServiceInfo()) {
@@ -3735,20 +3745,17 @@ void wrapperKeyRegistered(char *key) {
         }
         break;
 
+    case WRAPPER_JSTATE_STOP:
+        /* We got a key registration.  This means that the JVM thinks it was
+         *  being launched but the Wrapper is trying to stop.  This state
+         *  will clean up correctly. */
+        break;
+        
     case WRAPPER_JSTATE_STOPPING:
         /* We got a key registration.  This means that the JVM thinks it was
          *  being launched but the Wrapper is trying to stop.  Now that the
          *  connection to the JVM has been opened, tell it to stop cleanly. */
-        
-        wrapperProtocolFunction(FALSE, WRAPPER_MSG_STOP, NULL);
-        
-        /* Allow up to 5 + <shutdownTimeout> seconds for the application to stop itself. */
-        /* Already in this state. */
-        if (wrapperData->shutdownTimeout > 0) {
-            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, wrapperGetTicks(), 5 + wrapperData->shutdownTimeout);
-        } else {
-            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, wrapperGetTicks(), -1);
-        }
+        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOP, wrapperGetTicks(), -1);
         break;
 
     default:
@@ -3848,7 +3855,7 @@ void wrapperStartPendingSignalled(int waitHint) {
     }
 
     /* Only process the start pending signal if the JVM state is starting or
-     *  stopping.  Stopping is included because if the user hits CTRL-C while
+     *  stopping.  Stopping are included because if the user hits CTRL-C while
      *  the application is starting, then the stop request will not be noticed
      *  until the application has completed its startup. */
     if ((wrapperData->jState == WRAPPER_JSTATE_STARTING) ||
@@ -3890,17 +3897,10 @@ void wrapperStartedSignalled() {
                 wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTED, 0, 0);
             }
         }
+    } else if (wrapperData->jState == WRAPPER_JSTATE_STOP) {
+        /* This will happen if the Wrapper was asked to stop as the JVM is being launched. */
     } else if (wrapperData->jState == WRAPPER_JSTATE_STOPPING) {
         /* This will happen if the Wrapper was asked to stop as the JVM is being launched. */
-        
-        wrapperProtocolFunction(FALSE, WRAPPER_MSG_STOP, NULL);
-        
-        /* Allow up to 5 + <shutdownTimeout> seconds for the application to stop itself. */
-        /* Already in this state. */
-        if (wrapperData->shutdownTimeout > 0) {
-            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, wrapperGetTicks(), 5 + wrapperData->shutdownTimeout);
-        } else {
-            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, wrapperGetTicks(), -1);
-        }
+        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOP, wrapperGetTicks(), -1);
     }
 }
