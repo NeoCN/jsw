@@ -11,7 +11,8 @@ rem not disclose such Confidential Information and shall use it
 rem only in accordance with the terms of the license agreement you
 rem entered into with Tanuki Software.
 rem
-rem Java Service Wrapper general NT service uninstall script
+rem Java Service Wrapper general NT service uninstall script.
+rem Optimized for use with version 3.3.0-d of the Wrapper.
 rem
 
 if "%OS%"=="Windows_NT" goto nt
