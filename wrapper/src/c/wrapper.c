@@ -739,6 +739,7 @@ size_t protocolSendBufferSize = 0;
 char *protocolSendBuffer = NULL;
 int wrapperProtocolFunction(int useLoggerQueue, char function, const char *message) {
     int rc;
+    int cnt;
     size_t len;
     const char *logMsg;
     int returnVal;
@@ -803,11 +804,24 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const char *messa
         }
     
         /* Send the packet */
-        rc = send(sd, protocolSendBuffer, (int)len, 0);
+        cnt = 0;
+        do {
+            if (cnt > 0) {
+                wrapperSleep(useLoggerQueue, 10);
+            }
+            rc = send(sd, protocolSendBuffer, (int)len, 0);
+            cnt++;
+        } while ((rc == SOCKET_ERROR) && (wrapperGetLastError() == EWOULDBLOCK) && (cnt < 200));
         if (rc == SOCKET_ERROR) {
-            if (wrapperData->isDebugging) {
-                log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
-                    "socket send failed. (%d)", wrapperGetLastError());
+            if (wrapperGetLastError() == EWOULDBLOCK) {
+                log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
+                    "socket send failed.  Blocked for 2 seconds.  %s",
+                    getLastErrorText());
+            } else {
+                if (wrapperData->isDebugging) {
+                    log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
+                        "socket send failed.  %s", getLastErrorText());
+                }
             }
             wrapperProtocolClose();
             returnVal = -1;
