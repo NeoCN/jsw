@@ -1078,7 +1078,7 @@ public final class WrapperManager
             {
                 arch = "x86";
             }
-            else if ( arch.equals( "ia64" ) )
+            else if ( arch.startsWith( "ia32" ) || arch.startsWith( "ia64" ) )
             {
                 arch = "ia";
             }

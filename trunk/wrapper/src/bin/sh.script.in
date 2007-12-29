@@ -214,7 +214,7 @@ else
         'amd64' | 'athlon' | 'i386' | 'i486' | 'i586' | 'i686' | 'x86_64')
             DIST_ARCH="x86"
             ;;
-        'ia64')
+        'ia32' | 'ia64' | 'ia64n' | 'ia64w')
             DIST_ARCH="ia"
             ;;
         'ip27')

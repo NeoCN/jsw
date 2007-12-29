@@ -100,15 +100,21 @@
             <or>
                 <equals arg1="${os.arch}" arg2="amd64"/>
                 <equals arg1="${os.arch}" arg2="athlon"/>
-                <equals arg1="${os.arch}" arg2="ia32"/>
-                <equals arg1="${os.arch}" arg2="IA32"/>
-                <equals arg1="${os.arch}" arg2="ia64"/>
                 <equals arg1="${os.arch}" arg2="x86_64"/>
                 <equals arg1="${os.arch}" arg2="x86"/>
                 <equals arg1="${os.arch}" arg2="i686"/>
                 <equals arg1="${os.arch}" arg2="i586"/>
                 <equals arg1="${os.arch}" arg2="i486"/>
                 <equals arg1="${os.arch}" arg2="i386"/>
+            </or>
+        </condition>
+        <condition property="dist.arch" value="x86">
+            <or>
+                <equals arg1="${os.arch}" arg2="ia32"/>
+                <equals arg1="${os.arch}" arg2="IA32"/>
+                <equals arg1="${os.arch}" arg2="ia64"/>
+                <equals arg1="${os.arch}" arg2="ia64n"/>
+                <equals arg1="${os.arch}" arg2="ia64w"/>
             </or>
         </condition>
         <condition property="dist.arch" value="ppc">

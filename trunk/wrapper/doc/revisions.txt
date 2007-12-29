@@ -195,6 +195,12 @@ Java Service Wrapper Revision History.
   wrapper.ntservice.description properties aliases of new wrapper.name,
   wrapper.displayname, and wrapper.description properties as they are now
   used on UNIX platforms as well as Windows.
+* Fix a problem where the wrapper would sometimes fail to send a packet to
+  the JVM because the sending of the packet would block.  Thanks to Peter
+  Gorgon for the patch.
+* Fix a problem where CPUs identifying themselves as 'ia64n' or 'ia64w' were
+  not correctly being categorized as 'ia'. Thanks to Stirling Chow for the
+  patch.  Patch #1859412.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
