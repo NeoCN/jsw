@@ -311,6 +311,8 @@ void evaluateEnvironmentVariables(const char *propertyValue, char *buffer, int b
 
 void setInnerProperty(Property *property, const char *propertyValue) {
     int i, count;
+    /* The property value is expanded into a large buffer once, but that is temporary.  The actual
+     *  value is stored in the minimum required size. */
     char buffer[MAX_PROPERTY_VALUE_LENGTH];
 
     /* Free any existing value */
