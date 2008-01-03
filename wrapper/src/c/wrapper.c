@@ -1175,10 +1175,11 @@ void wrapperUsage(char *appName) {
     printf("  -a  --pause   pAuse a started NT service\n");
     printf("  -e  --resume  rEsume a paused NT service\n");
     printf("  -p  --stop    stoP a running NT service\n");
-    printf("  -l=<code> --controlcode=<code> send a user controL Code to a running NT service\n");
     printf("  -i  --install Install as an NT service\n");
     printf("  -it --installstart Install and sTart as an NT service\n");
     printf("  -r  --remove  Remove as an NT service\n");
+    printf("  -l=<code> --controlcode=<code> send a user controL Code to a running NT service\n");
+    printf("  -d  --dump    request a thread Dump\n");
     /** Return mask: installed:1 running:2 interactive:4 automatic:8 manual:16 disabled:32 */
     printf("  -q  --query   Query the current status of the service\n");
     printf("  -qs --querysilent Silently Query the current status of the service\n");
@@ -3055,6 +3056,15 @@ int wrapperBuildNTServiceInfo() {
 
     /* Set the single invocation flag. */
     wrapperData->isSingleInvocation = getBooleanProperty( properties, "wrapper.single_invocation", FALSE );
+    
+    wrapperData->threadDumpControlCode = getIntProperty(properties, "wrapper.thread_dump_control_code", 255);
+    if (wrapperData->threadDumpControlCode <= 0) {
+        /* Disabled */
+    } else if ((wrapperData->threadDumpControlCode < 128) || (wrapperData->threadDumpControlCode > 255)) {
+        wrapperData->threadDumpControlCode = 255;
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            "Ignoring the wrapper.thread_dump_control_code property because it must be in the range 128-255 or 0.");
+    }
 
     return FALSE;
 }
