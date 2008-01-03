@@ -185,7 +185,7 @@ Java Service Wrapper Revision History.
   memory on the system.  Feature Request #1741051.
 * Add a new #include.debug declaration in the wrapper configuration file which
   makes it much easier to debug problems with cascading include files.
-* Add -l and -controlcode commands to the Windows version which make it easy
+* Add -l and --controlcode commands to the Windows version which make it easy
   to send user defined control codes to the Wrapper running as a service.
 * Fix a synchronization problem in the logging code which could result in
   data corruption or access violations.
@@ -201,6 +201,10 @@ Java Service Wrapper Revision History.
 * Fix a problem where CPUs identifying themselves as 'ia64n' or 'ia64w' were
   not correctly being categorized as 'ia'. Thanks to Stirling Chow for the
   patch.  Patch #1859412.
+* Add -d and --dump commands to the Windows version which make it possible to
+  send thread dump requests to the Wrapper when running as a service.  Works
+  in association with the new wrapper.thread_dump_control_code property.
+  Feature Request #1118110.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

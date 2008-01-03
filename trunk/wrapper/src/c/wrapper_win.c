@@ -816,8 +816,8 @@ int initializeWinSock() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Cannot initialize Windows socket DLLs.");
         return res;
     }
-	
-	return 0;
+    
+    return 0;
 }
 
 /**
@@ -1926,7 +1926,11 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
             break;
     
         default:
-            /* Any other cases... */
+            if ((wrapperData->threadDumpControlCode > 0) && (dwCtrlCode == wrapperData->threadDumpControlCode)) {
+                wrapperRequestDumpJVMState(TRUE);
+            } else {
+                /* Any other cases... */
+            }
             break;
         }
     
@@ -3155,27 +3159,12 @@ int wrapperContinueService() {
     return result;
 }
 
-
-/** Sends a service control code to a running as an NT Service. */
-int wrapperSendServiceControlCode(char **argv, char *controlCodeS) {
+int sendServiceControlCodeInner(int controlCode) {
     SC_HANDLE   schService;
     SC_HANDLE   schSCManager;
     SERVICE_STATUS serviceStatus;
-    int controlCode;
     char *status;
     int result = 0;
-    
-    /* Make sure the control code is valid. */
-    if (controlCodeS == NULL) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Control code to send is missing.");
-        wrapperUsage(argv[0]);
-        return 1;
-    }
-    controlCode = atoi(controlCodeS);
-    if ((controlCode < 128) || (controlCode > 255)) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The service control code must be in the range 128-255.");
-        return 1;
-    }
 
     /* First, get a handle to the service control manager */
     schSCManager = OpenSCManager(
@@ -3216,8 +3205,7 @@ int wrapperSendServiceControlCode(char **argv, char *controlCodeS) {
                 } else {
                     /* The service is running, so try sending the code. */
                     if (ControlService( schService, controlCode, &serviceStatus)){
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Sent the %s service control code %d.",
-                            wrapperData->serviceDisplayName, controlCode);
+                        result = 0;
                     } else {
                         status = getNTServiceStatusName(serviceStatus.dwCurrentState);
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
@@ -3245,6 +3233,52 @@ int wrapperSendServiceControlCode(char **argv, char *controlCodeS) {
     } else {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenSCManager failed - %s", getLastErrorText());
         result = 1;
+    }
+    
+    return result;
+}
+
+/** Sends a service control code to a running as an NT Service. */
+int wrapperSendServiceControlCode(char **argv, char *controlCodeS) {
+    int controlCode;
+    int result;
+    
+    /* Make sure the control code is valid. */
+    if (controlCodeS == NULL) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Control code to send is missing.");
+        wrapperUsage(argv[0]);
+        return 1;
+    }
+    controlCode = atoi(controlCodeS);
+    if ((controlCode < 128) || (controlCode > 255)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The service control code must be in the range 128-255.");
+        return 1;
+    }
+    
+    result = sendServiceControlCodeInner(controlCode);
+    if (!result) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Sent the %s service control code %d.",
+            wrapperData->serviceDisplayName, controlCode);
+    }
+
+    return result;
+}
+
+/**
+ * Requests that the Wrapper perform a thread dump.
+ */
+int wrapperRequestThreadDump() {
+    int result;
+    
+    if (wrapperData->threadDumpControlCode <= 0) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The thread dump control code is disabled.");
+        return 1;
+    }
+    
+    result = sendServiceControlCodeInner(wrapperData->threadDumpControlCode);
+    if (!result) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Requested that the %s service perform a thread dump.",
+            wrapperData->serviceDisplayName);
     }
 
     return result;
@@ -3780,10 +3814,16 @@ void main(int argc, char **argv) {
             appExit(wrapperStopService(TRUE));
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand,"l") || !strcmpIgnoreCase(wrapperData->argCommand,"-controlcode")) {
-            /* Sent a control code to an NT service */
+            /* Send a control code to an NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             appExit(wrapperSendServiceControlCode(argv, wrapperData->argCommandArg));
+            return; /* For clarity. */
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand,"d") || !strcmpIgnoreCase(wrapperData->argCommand,"-dump")) {
+            /* Request a thread dump */
+            /* Always auto close the log file to keep the output in synch. */
+            setLogfileAutoClose(TRUE);
+            appExit(wrapperRequestThreadDump(argv));
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand,"q") || !strcmpIgnoreCase(wrapperData->argCommand,"-query")) {
             /* Return service status with console output. */

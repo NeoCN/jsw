@@ -266,6 +266,7 @@ struct WrapperConfig {
     int     ntHideWrapperConsole;   /* Should the Wrapper Console window be hidden when run as a service. */
     HWND    wrapperConsoleHandle;   /* Pointer to the Wrapper Console handle if it exists.  This will only be set if the console was allocated then hidden. */
     int     ntAllocConsole;         /* True if a console should be allocated for the Service. */
+    int     threadDumpControlCode;  /* Control code which can be used to trigger a thread dump. */
 #else /* UNIX */
     int     daemonize;              /* TRUE if the process  should be spawned as a daemon process on launch. */
     int     signalHUPMode;          /* Controls what happens when the Wrapper receives a HUP signal. */
