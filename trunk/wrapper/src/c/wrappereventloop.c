@@ -1666,7 +1666,7 @@ void wrapperEventLoop() {
             ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) || (wrapperData->wState == WRAPPER_WSTATE_STOPPED))) {
             /* Skin socket processing. */
         } else {
-            if ( wrapperProtocolRead() )
+            if (wrapperProtocolRead())
             {
                 /* There was more data waiting to be read, but we broke out. */
                 if (wrapperData->isDebugging) {
