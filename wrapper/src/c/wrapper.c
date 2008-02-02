@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2007 Tanuki Software, Inc.
+ * Copyright (c) 1999, 2008 Tanuki Software, Inc.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -1128,7 +1128,7 @@ void wrapperGetFileBase(const char *fileName, char *baseName) {
  */
 void wrapperVersionBanner() {
     printf("Java Service Wrapper Community Edition %s\n", wrapperVersionRoot);
-    printf("  Copyright (C) 1999-2007 Tanuki Software, Inc.  All Rights Reserved.\n");
+    printf("  Copyright (C) 1999-2008 Tanuki Software, Inc.  All Rights Reserved.\n");
     printf("    http://wrapper.tanukisoftware.org\n");
 }
 
@@ -1139,7 +1139,7 @@ void wrapperVersionBannerLog() {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
         "Java Service Wrapper Community Edition %s", wrapperVersionRoot);
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-        "  Copyright (C) 1999-2007 Tanuki Software, Inc.  All Rights Reserved.");
+        "  Copyright (C) 1999-2008 Tanuki Software, Inc.  All Rights Reserved.");
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
         "    http://wrapper.tanukisoftware.org");
 }
