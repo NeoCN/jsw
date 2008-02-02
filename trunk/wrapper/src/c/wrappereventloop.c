@@ -615,7 +615,7 @@ void commandPoll(DWORD nowTicks) {
                                 } else if (strcmpIgnoreCase(command, "CPU_OUTPUT") == 0) {
                                     wrapperData->isCPUOutputEnabled = flag;
                                 } else if (strcmpIgnoreCase(command, "TIMER_OUTPUT") == 0) {
-                                    wrapperData->isTimerOutputEnabled = flag;
+                                    wrapperData->isTickOutputEnabled = flag;
                                 } else if (strcmpIgnoreCase(command, "SLEEP_OUTPUT") == 0) {
                                     wrapperData->isSleepOutputEnabled = flag;
                                 }
@@ -1552,7 +1552,7 @@ void jStateKill(DWORD nowTicks, int nextSleep) {
  * Event Loop / State Engine
  *******************************************************************/
 
-void logTimerStats() {
+void logTickTimerStats() {
     char buffer[30];
     struct tm when;
     time_t now, overflowTime;
@@ -1610,8 +1610,8 @@ void wrapperEventLoop() {
     wrapperData->cpuOutputTimeoutTicks = lastCycleTicks;
     wrapperData->logfileInactivityTimeoutTicks = lastCycleTicks;
 
-    if (wrapperData->isTimerOutputEnabled) {
-        logTimerStats();
+    if (wrapperData->isTickOutputEnabled) {
+        logTickTimerStats();
     }
 
     if (wrapperData->isLoopOutputEnabled) {
@@ -1751,7 +1751,7 @@ void wrapperEventLoop() {
                            (wrapperData->restartRequested ? "true" : "false"));
             }
         }
-
+        
         /* If we are configured to do so, confirm that the anchor file still exists. */
         anchorPoll(nowTicks);
         

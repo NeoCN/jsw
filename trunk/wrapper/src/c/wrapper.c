@@ -3301,8 +3301,8 @@ int loadConfiguration() {
     /* Get the state output status. */
     wrapperData->isStateOutputEnabled = getBooleanProperty(properties, "wrapper.state_output", FALSE);
     
-    /* Get the timer output status. */
-    wrapperData->isTimerOutputEnabled = getBooleanProperty(properties, "wrapper.timer_output", FALSE);
+    /* Get the tick output status. */
+    wrapperData->isTickOutputEnabled = getBooleanProperty(properties, "wrapper.tick_output", FALSE);
     
     /* Get the loop debug output status. */
     wrapperData->isLoopOutputEnabled = getBooleanProperty(properties, "wrapper.loop_output", FALSE);

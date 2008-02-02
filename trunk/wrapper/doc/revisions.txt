@@ -205,6 +205,9 @@ Java Service Wrapper Revision History.
   send thread dump requests to the Wrapper when running as a service.  Works
   in association with the new wrapper.thread_dump_control_code property.
   Feature Request #1118110.
+* (Professional) Add wrapper.timer.<n>.interval and wrapper.timer.<n>.action
+  properties which make it possible to schedule Wrapper shutdowns, JVM
+  restarts and thread dumps at arbitrary times. 
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
