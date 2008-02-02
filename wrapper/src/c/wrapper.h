@@ -191,7 +191,7 @@ struct WrapperConfig {
     const char *nativeLibrary;      /* The base name of the native library loaded by the WrapperManager. */
     int     libraryPathAppendPath;  /* TRUE if the PATH environment variable should be appended to the java library path. */
     int     isStateOutputEnabled;   /* TRUE if set in the configuration file.  Shows output on the state of the state engine. */
-    int     isTimerOutputEnabled;   /* TRUE if detailed timer output should be included in debug output. */
+    int     isTickOutputEnabled;    /* TRUE if detailed tick timer output should be included in debug output. */
     int     isLoopOutputEnabled;    /* TRUE if very detailed output from the main loop should be output. */
     int     isSleepOutputEnabled;   /* TRUE if detailed sleep output should be included in debug output. */
     int     isMemoryOutputEnabled;  /* TRUE if detailed memory output should be included in status output. */

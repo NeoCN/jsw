@@ -733,7 +733,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
         /* Immediately register this thread with the logger. */
         logRegisterThread(WRAPPER_THREAD_TIMER);
 
-        if (wrapperData->isTimerOutputEnabled) {
+        if (wrapperData->isTickOutputEnabled) {
             log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Timer thread started.");
         }
 
@@ -761,7 +761,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
                     log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The system clock fell behind the timer by %dms.", (int)(-1 * offsetDiff * WRAPPER_TICK_MS));
                 }
 
-                if (wrapperData->isTimerOutputEnabled) {
+                if (wrapperData->isTickOutputEnabled) {
                     log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         "    Timer: ticks=%lu, system ticks=%lu, offset=%lu, offsetDiff=%ld",
                         timerTicks, sysTicks, tickOffset, offsetDiff);
@@ -785,7 +785,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
  *  to using the system clock.
  */
 int initializeTimer() {
-    if (wrapperData->isTimerOutputEnabled) {
+    if (wrapperData->isTickOutputEnabled) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Launching Timer thread.");
     }
 

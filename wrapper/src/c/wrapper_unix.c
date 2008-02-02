@@ -544,7 +544,7 @@ void *timerRunner(void *arg) {
             "Could not mask signals for timer thread.");
     }
 
-    if (wrapperData->isTimerOutputEnabled) {
+    if (wrapperData->isTickOutputEnabled) {
         log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Timer thread started.");
     }
 
@@ -574,7 +574,7 @@ void *timerRunner(void *arg) {
                     "The system clock fell behind the timer by %ldms.", -1 * offsetDiff * WRAPPER_TICK_MS);
             }
 
-            if (wrapperData->isTimerOutputEnabled) {
+            if (wrapperData->isTickOutputEnabled) {
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     "    Timer: ticks=%lu, system ticks=%lu, offset=%lu, offsetDiff=%ld",
                     timerTicks, sysTicks, tickOffset, offsetDiff);
@@ -596,7 +596,7 @@ void *timerRunner(void *arg) {
 int initializeTimer() {
     int res;
 
-    if (wrapperData->isTimerOutputEnabled) {
+    if (wrapperData->isTickOutputEnabled) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Launching Timer thread.");
     }
 
