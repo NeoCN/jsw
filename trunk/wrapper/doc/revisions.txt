@@ -207,7 +207,9 @@ Java Service Wrapper Revision History.
   Feature Request #1118110.
 * (Professional) Add wrapper.timer.<n>.interval and wrapper.timer.<n>.action
   properties which make it possible to schedule Wrapper shutdowns, JVM
-  restarts and thread dumps at arbitrary times. 
+  restarts and thread dumps at arbitrary times.
+* Fix a problem where the default configuration file name was being corrupted
+  by a buffer overrun.  Thanks to Rob Joyce for the patch.  Patch #1879049.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
