@@ -3085,33 +3085,6 @@ public final class WrapperManager
         }
         else
         {
-            // We do not want the ShutdownHook to execute, so unregister it before calling exit.
-            //  It can't be unregistered if it has already fired however.  The only way that this
-            //  could happen is if user code calls System.exit from within the listener stop
-            //  method.
-            if ( ( !m_hookTriggered ) && ( m_hook != null ) )
-            {
-                // Remove the shutdown hook using reflection.
-                try
-                {
-                    m_removeShutdownHookMethod.invoke(
-                        Runtime.getRuntime(), new Object[] { m_hook } );
-                }
-                catch ( IllegalAccessException e )
-                {
-                    m_outError.println( "Unable to unregister shutdown hook: " + e );
-                }
-                catch ( InvocationTargetException e )
-                {
-                    Throwable t = e.getTargetException();
-                    if ( t == null )
-                    {
-                        t = e;
-                    }
-                    
-                    m_outError.println( "Unable to unregister shutdown hook: " + t );
-                }
-            }
             // Signal that the application has stopped and the JVM is about to shutdown.
             signalStopped( exitCode );
             
@@ -3268,6 +3241,39 @@ public final class WrapperManager
                 + ", handling the shutdown process." );
         }
         m_exitCode = exitCode;
+        
+        // If appropriate, unregister the shutdown hook.  This must be done before the
+        //  user stop code is called to avoid nested shutdowns.
+        if ( Thread.currentThread() != m_hook )
+        {
+            // We do not want the ShutdownHook to execute, so unregister it before calling exit.
+            //  It can't be unregistered if it has already fired however.  The only way that this
+            //  could happen is if user code calls System.exit from within the listener stop
+            //  method.
+            if ( ( !m_hookTriggered ) && ( m_hook != null ) )
+            {
+                // Remove the shutdown hook using reflection.
+                try
+                {
+                    m_removeShutdownHookMethod.invoke(
+                        Runtime.getRuntime(), new Object[] { m_hook } );
+                }
+                catch ( IllegalAccessException e )
+                {
+                    m_outError.println( "Unable to unregister shutdown hook: " + e );
+                }
+                catch ( InvocationTargetException e )
+                {
+                    Throwable t = e.getTargetException();
+                    if ( t == null )
+                    {
+                        t = e;
+                    }
+                    
+                    m_outError.println( "Unable to unregister shutdown hook: " + t );
+                }
+            }
+        }
         
         // Only stop the listener if the app has been started.
         int code = exitCode;
