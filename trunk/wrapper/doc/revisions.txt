@@ -210,6 +210,8 @@ Java Service Wrapper Revision History.
   restarts and thread dumps at arbitrary times.
 * Fix a problem where the default configuration file name was being corrupted
   by a buffer overrun.  Thanks to Rob Joyce for the patch.  Patch #1879049.
+* Fix a problem where the WrapperManager would sometimes attempt to unregister
+  its shutdown hook after the shutdown hook had been initiated.  Bug #1799489.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.
