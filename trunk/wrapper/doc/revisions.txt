@@ -212,6 +212,8 @@ Java Service Wrapper Revision History.
   by a buffer overrun.  Thanks to Rob Joyce for the patch.  Patch #1879049.
 * Fix a problem where the WrapperManager would sometimes attempt to unregister
   its shutdown hook after the shutdown hook had been initiated.  Bug #1799489.
+* Fix a problem where log files were limited to 2GB on Linux systems.
+  Bug #1881038.
 
 3.2.3
 * Add support for x86 Mac OS X distributions.

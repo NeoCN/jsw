@@ -8,7 +8,7 @@
 # only in accordance with the terms of the license agreement you
 # entered into with Tanuki Software.
 
-COMPILE = gcc -O3 -Wall --pedantic
+COMPILE = gcc -O3 -Wall --pedantic -D_FILE_OFFSET_BITS=64
 
 INCLUDE=$(JAVA_HOME)/include
 

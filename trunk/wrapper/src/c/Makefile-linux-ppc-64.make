@@ -10,7 +10,7 @@
 
 # This makefile is inprogess.  It builds, but the resulting libwrapper.so does not yet work.
 # If you know how to fix it then please help out.
-COMPILE = gcc -O3 -m64 -fPIC --pedantic
+COMPILE = gcc -O3 -m64 -fPIC --pedantic -D_FILE_OFFSET_BITS=64
 
 INCLUDE=$(JAVA_HOME)/include
 
