@@ -23,8 +23,8 @@ Section 2 - Your Obligations
 
 A copy of this license must be distributed in full with the Product
 in a location that is obvious to Your customers.  The Software
-Program may not me modified, nor may the Product in any way obfuscate
-or obstruct the copyright notice and licence information displayed in
+Program may not be modified, nor may the Product in any way obfuscate
+or obstruct the copyright notice and license information displayed in
 the console and log files by the Software Program on startup. 
 
 
