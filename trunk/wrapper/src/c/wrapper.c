@@ -92,7 +92,7 @@ typedef long intptr_t;
 #elif defined(FREEBSD)
 #include <sys/param.h>
 #include <errno.h>
-#else /* LINIX */
+#else /* LINUX */
 #include <asm/errno.h>
 #endif
 
