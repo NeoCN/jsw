@@ -690,6 +690,12 @@ void wrapperSleep(int useLoggerQueue, int ms) {
                 log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     "    Sleep: nanosleep interrupted");
             }
+        } else if (errno == 11) {
+            /* On 64-bit AIX this happens once on shutdown. */
+            if (wrapperData->isSleepOutputEnabled) {
+                log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    "    Sleep: nanosleep unavailable");
+            }
         } else {
             log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 "nanosleep(%dms) failed. %s", ms, getLastErrorText());
