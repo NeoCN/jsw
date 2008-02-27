@@ -308,7 +308,6 @@
         <!-- Decide on the tool used to run make -->
         <condition property="make.name" value="gmake">
             <or>
-                <isset property="is.aix"/>
                 <and> <!-- 32-bit HPUX uses gmake, 64-bit uses make. -->
                     <isset property="is.hpux"/>
                     <equals arg1="${bits}" arg2="32"/>
@@ -794,7 +793,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         
         <!-- Set files to windows line feeds for .zip files -->
         <fixcrlf srcdir="${releasesrcdir}"
-            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.c, **/*.h, **/*.log"
+            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.c.in, **/*.c, **/*.h, **/*.log"
             eol="crlf" />
         
         <!-- Source archives  -->
@@ -809,7 +808,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         
         <!-- Set files to unix line feeds for .tar files -->
         <fixcrlf srcdir="${releasesrcdir}" 
-            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.c, **/*.h, **/*.log" 
+            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.c.in, **/*.c, **/*.h, **/*.log" 
             eol="lf" />
         
         <!-- Source archives -->
@@ -897,7 +896,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         
         <!-- Set files to windows line feeds for .zip files -->
         <fixcrlf srcdir="${intermdir}"
-            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.c, **/*.h, **/*.log"
+            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.c.in, **/*.c, **/*.h, **/*.log"
             eol="crlf" />
         <zip zipfile="${dist.dir}/${intermfile}.zip"
             basedir="${build.dir}"
@@ -907,7 +906,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         
         <!-- Make the intermediate build for Unix -->
         <fixcrlf srcdir="${intermdir}"
-            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.c, **/*.h, **/*.log"
+            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.c.in, **/*.c, **/*.h, **/*.log"
             eol="lf" />
         
         <!-- For tar files, the javadocs are stored in a jdoc.tar file to avoid problems with
