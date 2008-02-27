@@ -8,38 +8,36 @@
 # only in accordance with the terms of the license agreement you
 # entered into with Tanuki Software.
 
-# This makefile is inprogess.  It builds, but the resulting libwrapper.so does not yet work.
-# If you know how to fix it then please help out.
 COMPILE = gcc -O3 -fPIC --pedantic -DAIX -maix64 -D_FILE_OFFSET_BITS=64
 
 INCLUDE=$(JAVA_HOME)/include
 
-DEFS = -I$(INCLUDE) -I$(INCLUDE)/linux
+DEFS = -I$(INCLUDE) -I$(INCLUDE)/aix
 
 wrapper_SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c
 
-libwrapper_so_OBJECTS = wrapperjni_unix.o wrapperinfo.o wrapperjni.o
+libwrapper_a_SOURCE = wrapperjni_unix.c wrapperinfo.c wrapperjni.c
 
 BIN = ../../bin
 LIB = ../../lib
 
-all: init wrapper libwrapper.so
+all: init wrapper libwrapper.a
 
 clean:
 	rm -f *.o
 
 cleanall: clean
 	rm -rf *~ .deps
-	rm -f $(BIN)/wrapper $(LIB)/libwrapper.so
+	rm -f $(BIN)/wrapper $(LIB)/libwrapper.a
 
 init:
 	if test ! -d .deps; then mkdir .deps; fi
 
 wrapper: $(wrapper_SOURCE)
-	$(COMPILE) -pthread -lm $(wrapper_SOURCE) -o $(BIN)/wrapper
+	$(COMPILE) -lpthread -lnsl -lm $(wrapper_SOURCE) -o $(BIN)/wrapper
 
-libwrapper.so: $(libwrapper_so_OBJECTS)
-	${COMPILE} -shared $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
+libwrapper.a: $(libwrapper_a_SOURCE)
+	${COMPILE} $(DEFS) -shared -lpthread $(libwrapper_a_SOURCE) -o $(LIB)/libwrapper.a
 
 %.o: %.c
 	@echo '$(COMPILE) -c $<'; \
