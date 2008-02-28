@@ -1920,7 +1920,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     initMemory = getIntProperty(properties, "wrapper.java.initmemory", 0);
     if (initMemory > 0 ) {
         if (strings) {
-           initMemory = __max(initMemory, 1); /* 1 <= n */
+            initMemory = __max(initMemory, 1); /* 1 <= n */
             strings[index] = malloc(sizeof(char) * (5 + 10 + 1));  /* Allow up to 10 digits. */
             if (!strings[index]) {
                 outOfMemory("WBJCAI", 8);
@@ -1938,7 +1938,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     maxMemory = getIntProperty(properties, "wrapper.java.maxmemory", 0);
     if (maxMemory > 0) {
         if (strings) {
-           maxMemory = __max(maxMemory, initMemory);  /* initMemory <= n */
+            maxMemory = __max(maxMemory, initMemory);  /* initMemory <= n */
             strings[index] = malloc(sizeof(char) * (5 + 4 + 1));  /* Allow up to 4 digits. */
             if (!strings[index]) {
                 outOfMemory("WBJCAI", 10);
