@@ -1351,6 +1351,14 @@ void wrapperKillProcessNow() {
 void wrapperKillProcess(int useLoggerQueue) {
     int ret;
     int delay = 0;
+    
+    if ((wrapperData->jState == WRAPPER_JSTATE_DOWN) || (wrapperData->jState != WRAPPER_JSTATE_LAUNCH_DELAY)) {
+        /* Already down. */
+        if (wrapperData->jState != WRAPPER_JSTATE_DOWN) {
+            wrapperSetJavaState(useLoggerQueue, WRAPPER_JSTATE_DOWN, wrapperGetTicks(), 0);
+        }
+        return;
+    }
 
     /* Check to make sure that the JVM process is still running */
     ret = WaitForSingleObject(javaProcess, 0);
