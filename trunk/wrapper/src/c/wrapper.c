@@ -2454,7 +2454,11 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             outOfMemory("WBJCAI", 30);
             return -1;
         }
+#if defined(SOLARIS) && (!defined(_LP64))
+        sprintf(strings[index], "-Dwrapper.pid=%ld", wrapperData->wrapperPID);
+#else
         sprintf(strings[index], "-Dwrapper.pid=%d", wrapperData->wrapperPID);
+#endif
     }
     index++;
 
