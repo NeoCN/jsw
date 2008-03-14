@@ -510,6 +510,10 @@ public abstract class AbstractActionApp
         {
             System.out.println( "Professional Edition: " + WrapperManager.isProfessionalEdition() );
         }
+        else if ( action.equals( "is_standard" ) )
+        {
+            System.out.println( "Standard Edition: " + WrapperManager.isStandardEdition() );
+        }
         else
         {
             // Unknown action

@@ -225,6 +225,8 @@ public class Main
             buildCommand( panel, gridBag, c, "GC", "gc", "Performs a GC sweep." );
             
             buildCommand( panel, gridBag, c, "Is Professional?", "is_professional", "Prints true if this is a Professional Edition." );
+            
+            buildCommand( panel, gridBag, c, "Is Standard?", "is_standard", "Prints true if this is a Standard Edition." );
         }
         
         private void buildCommand( Container container,
@@ -311,6 +313,15 @@ public class Main
             m_frame.setVisible( true );
         }
         catch ( java.lang.InternalError e )
+        {
+            System.out.println( "TestWrapper: " );
+            System.out.println( "TestWrapper: ERROR - Unable to display the Swing GUI:" );
+            System.out.println( "TestWrapper:           " + e.toString() );
+            System.out.println( "TestWrapper: Exiting" );
+            System.out.println( "TestWrapper: " );
+            return new Integer( 1 );
+        }
+        catch ( java.awt.AWTError e )
         {
             System.out.println( "TestWrapper: " );
             System.out.println( "TestWrapper: ERROR - Unable to display the Swing GUI:" );
