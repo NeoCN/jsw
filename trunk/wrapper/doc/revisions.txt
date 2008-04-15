@@ -1,5 +1,9 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.3.1
+* Add debug output showing the current os name and architecture to aid in
+  debugging problems.
+
 3.3.0
 * Add a new wrapper.ping.interval.logged property which makes it possible to
   reduce the debug output caused by ping transactions between the Wrapper and
@@ -115,7 +119,8 @@ Java Service Wrapper Revision History.
   required the purchase of 64-bit hardware and software.   We have decided
   to delay the release of the Windows 64-bit Community edition until these
   costs have been recouped.
-* (Professional) Add support for Fixed as well as OEM based licenses.
+* (Professional) Add support for Server (Fixed) as well as Development
+  (OEM based) licenses.
 * (Professional) Add event handling callbacks for Wrapper start/stop, JVM
   start/stop, JVM started/stopped, JVM restart, JVM killed, and JVM unexpected
   exit events.

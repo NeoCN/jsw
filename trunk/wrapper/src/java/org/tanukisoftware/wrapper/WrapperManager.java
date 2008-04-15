@@ -766,9 +766,11 @@ public final class WrapperManager
         
         if ( m_debug )
         {
-            // Display more JVM infor right after the call initialization of the library.
+            // Display more JVM info right after the call initialization of the library.
             m_outDebug.println( "Java Version   : " + fullVersion );
             m_outDebug.println( "Java VM Vendor : " + vendor );
+            m_outDebug.println( "OS Name        : " + System.getProperty( "os.name", "" ) );
+            m_outDebug.println( "OS Arch        : " + System.getProperty( "os.arch", "" ) );
             m_outDebug.println();
         }
         
