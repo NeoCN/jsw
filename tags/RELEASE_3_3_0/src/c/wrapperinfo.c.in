@@ -1,0 +1,29 @@
+/*
+ * Copyright (c) 1999, 2008 Tanuki Software, Inc.
+ * http://www.tanukisoftware.com
+ * All rights reserved.
+ *
+ * This software is the confidential and proprietary information
+ * of Tanuki Software.  ("Confidential Information").  You shall
+ * not disclose such Confidential Information and shall use it
+ * only in accordance with the terms of the license agreement you
+ * entered into with Tanuki Software.
+ */
+
+#include "wrapperinfo.h"
+
+/**
+ * wrapperinfo.c is built as part of the build process.  Ant creates this
+ *  file by making a copy of wrapperinfo.c.in, replacing tokens as it does
+ *  so.  If you need to make modifications to this file, the changes should
+ *  always be made to wrapperinfo.c.in.
+ */
+
+char *wrapperVersionRoot = "@version.root@";
+char *wrapperVersion = "@version@";
+char *wrapperBits = "@bits@";
+char *wrapperArch = "@dist.arch@";
+char *wrapperOS = "@dist.os@";
+char *wrapperBuildDate = "@build.date@";
+char *wrapperBuildTime = "@build.time@";
+
