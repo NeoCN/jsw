@@ -12,7 +12,7 @@ rem only in accordance with the terms of the license agreement you
 rem entered into with Tanuki Software.
 rem
 rem Java Service Wrapper general NT service start script.
-rem Optimized for use with version 3.3.1-a of the Wrapper.
+rem Optimized for use with version 3.3.0 of the Wrapper.
 rem
 
 if "%OS%"=="Windows_NT" goto nt
@@ -53,7 +53,7 @@ rem
 rem Start the Wrapper NT service.
 rem
 :startup
-"%_WRAPPER_EXE%" -t %_WRAPPER_CONF%
+"%_WRAPPER_EXE%" -a %_WRAPPER_CONF%
 if not errorlevel 1 goto :eof
 pause
 
