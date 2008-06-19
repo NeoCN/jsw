@@ -108,13 +108,16 @@
                 <equals arg1="${os.arch}" arg2="i386"/>
             </or>
         </condition>
-        <condition property="dist.arch" value="x86">
+        <condition property="dist.arch" value="ia">
             <or>
                 <equals arg1="${os.arch}" arg2="ia32"/>
                 <equals arg1="${os.arch}" arg2="IA32"/>
                 <equals arg1="${os.arch}" arg2="ia64"/>
+                <equals arg1="${os.arch}" arg2="IA64"/>
                 <equals arg1="${os.arch}" arg2="ia64n"/>
+                <equals arg1="${os.arch}" arg2="IA64N"/>
                 <equals arg1="${os.arch}" arg2="ia64w"/>
+                <equals arg1="${os.arch}" arg2="IA64W"/>
             </or>
         </condition>
         <condition property="dist.arch" value="ppc">
@@ -293,7 +296,10 @@
             <isset property="is.aix"/>
         </condition>
         <condition property="wrapper.lib.extension" value="sl">
-            <isset property="is.hpux"/>
+            <and>
+                <isset property="is.hpux"/>
+                <equals arg1="${dist.arch}" arg2="parisc"/>
+            </and>
         </condition>
         <condition property="wrapper.lib.extension" value="jnilib">
             <isset property="is.macosx"/>
@@ -310,7 +316,10 @@
             <or>
                 <and> <!-- 32-bit HPUX uses gmake, 64-bit uses make. -->
                     <isset property="is.hpux"/>
-                    <equals arg1="${bits}" arg2="32"/>
+                    <or>
+                        <equals arg1="${bits}" arg2="32"/>
+                        <equals arg1="${dist.arch}" arg2="ia"/>
+                    </or>
                 </and>
                 <isset property="is.osf1"/>
                 <isset property="is.freebsd"/>
