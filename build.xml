@@ -314,13 +314,6 @@
         <!-- Decide on the tool used to run make -->
         <condition property="make.name" value="gmake">
             <or>
-                <and> <!-- 32-bit HPUX uses gmake, 64-bit uses make. -->
-                    <isset property="is.hpux"/>
-                    <or>
-                        <equals arg1="${bits}" arg2="32"/>
-                        <equals arg1="${dist.arch}" arg2="ia"/>
-                    </or>
-                </and>
                 <isset property="is.osf1"/>
                 <isset property="is.freebsd"/>
                 <isset property="is.irix"/>

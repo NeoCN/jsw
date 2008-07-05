@@ -8,8 +8,8 @@
 # only in accordance with the terms of the license agreement you
 # entered into with Tanuki Software.
 
-UNIVERSAL_SDK_HOME=/Developer/SDKs/MacOSX10.4u.sdk
-COMPILE = gcc -O3 -Wall -DUSE_NANOSLEEP -DMACOSX -arch ppc -arch i386 -isysroot $(UNIVERSAL_SDK_HOME)
+UNIVERSAL_SDK_HOME=/Developer/SDKs/MacOSX10.5.sdk
+COMPILE = gcc -O3 -Wall -DUSE_NANOSLEEP -DMACOSX -arch ppc -arch i386 -isysroot $(UNIVERSAL_SDK_HOME) -mmacosx-version-min=10.4
 
 DEFS = -I$(UNIVERSAL_SDK_HOME)/System/Library/Frameworks/JavaVM.framework/Headers
 
