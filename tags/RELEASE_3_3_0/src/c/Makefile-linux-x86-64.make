@@ -8,8 +8,6 @@
 # only in accordance with the terms of the license agreement you
 # entered into with Tanuki Software.
 
-# This makefile is inprogess.  It builds, but the resulting libwrapper.so does not yet work.
-# If you know how to fix it then please help out.
 COMPILE = gcc -O3 -fPIC -Wall --pedantic -D_FILE_OFFSET_BITS=64
 
 INCLUDE=$(JAVA_HOME)/include

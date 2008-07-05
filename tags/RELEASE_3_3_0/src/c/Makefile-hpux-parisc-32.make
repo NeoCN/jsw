@@ -8,17 +8,15 @@
 # only in accordance with the terms of the license agreement you
 # entered into with Tanuki Software.
 
-
-COMPILE = cc  -DHPUX -D_XOPEN_SOURCE_EXTENDED -Ae +Z
+COMPILE = cc -DHPUX -D_XOPEN_SOURCE_EXTENDED -Ae +Z
 
 INCLUDE=$(JAVA_HOME)/include
 
 DEFS = -I$(INCLUDE) -I$(INCLUDE)/hp-ux
 
 wrapper_SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c
-wrapper_objs = wrapper.o wrapperinfo.o wrappereventloop.o wrapper_unix.o property.c logger.o
 
-libwrapper_sl_OBJECTS = wrapperjni_unix.o wrapperinfo.o wrapperjni.o
+libwrapper_sl_SOURCE = wrapperjni_unix.c wrapperinfo.c wrapperjni.c
 
 BIN = ../../bin
 LIB = ../../lib
@@ -35,22 +33,11 @@ cleanall: clean
 init:
 	if test ! -d .deps; then mkdir .deps; fi
 
-wrapper: $(wrapper_objs)
-	$(COMPILE) $(wrapper_objs) -lm -lpthread -o $(BIN)/wrapper
+wrapper: $(wrapper_SOURCE)
+	$(COMPILE) $(wrapper_SOURCE) -lm -lpthread -o $(BIN)/wrapper
 
-wrapperjni_unix.o: wrapperjni_unix.c
-	${COMPILE} -c ${DEFS} $<
-
-wrapperjni.o: wrapperjni.c
-	${COMPILE} -c ${DEFS} $<
-
-wrapperinfo.o: wrapperinfo.c
-	${COMPILE} -c ${DEFS} $<
+libwrapper.sl: $(libwrapper_sl_SOURCE)
+	${COMPILE} ${DEFS} $(libwrapper_sl_SOURCE) -b -lm -lpthread -o $(LIB)/libwrapper.sl
 
 %.o: %.c
-	${COMPILE} -fPIC -c ${DEFS} $<
-
-libwrapper.sl: $(libwrapper_sl_OBJECTS)
-	${COMPILE} $(libwrapper_sl_OBJECTS) -b -o $(LIB)/libwrapper.sl
-
-
+	${COMPILE} -c ${DEFS} $<
