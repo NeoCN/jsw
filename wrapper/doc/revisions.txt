@@ -3,6 +3,73 @@ Java Service Wrapper Revision History.
 3.3.1
 * Add debug output showing the current os name and architecture to aid in
   debugging problems.
+* (Standard, Professional) Improve the message displayed when a license key
+  is found but is deemed to be invalid.
+* Modify the template wrapper.conf file to help users debug include file
+  problems.
+* Disable the console title feature on all UNIX platforms other than LINUX
+  because the console title does not get reset correctly when the Wrapper
+  process terminates.
+* Add support for HP-UX IA64 CPUs.
+* (Standard, Professional) Update the development license to version 1.1
+  so that a new copyright notice file can be shipped with user applications
+  rather than the full license text.
+* Update the license banner in source files so it is clearer that the user
+  is restricted by the license they agreed to.  The Community Edition may
+  be licensed under either the GPL2 based Community License, or the
+  Development License.  The source for the Standard and Professional Editions
+  of the Wrapper are proprietary.
+  http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
+* Modify the Community edition so it will now display a Licensed to banner
+  on startup if shipped with a Development License.  This is required to
+  enable the distribution of the Community Edition under the Development
+  License.
+* (Professional) Fix a problem where the UNIX versions of the Professional
+  Edition would sometimes deadlock on startup when run as a daemon process.
+  Bug #1989355.
+* (Professional) Added two new events; jvm_failed_invocation and
+  jvm_max_failed_invocations.  Feature Request #1994718.
+* Fix a problem where the Windows service exit code was not being set
+  correctly when the JVM exited with a non-zero exit code.  The problem
+  could be seen by running "sc query {service}" from the command line.
+  Bug #1859061.
+* Added support for the Windows Itanium 64-bit platform.
+* Added support for the HP-UX Itanium 32 and 64-bit platforms.
+* Added support for the MAC OSX 64-bit platform.
+* (Standard, Professional) Fix a problem on Windows versions where servers
+  which reported a large number of possible host ids could cause a buffer
+  overflow on startup.   This crash was possible when using either
+  Development or Server licenses.  Removed duplicate host ids from the list
+  of possible ids.
+* Add a new "condrestart" command to the shell script which will restart
+  the Wrapper only if it is already running.  Feature Request #1928045.
+* Fix a problem where the 64-bit Solaris x86 version was unable to load its
+  JNI library.  Bug #1992039.
+* Fix a problem on Windows versions where a frozen JVM process was not always
+  being killed.  This could result in the zombie JVM processes being left
+  around that consumed memory and other resources.
+* Add a new wrapper.ignore_console_logouts property which allows the Wrapper
+  and JVM to survive logouts when launched as a console application from
+  another service.
+* (Standard, Professional) Add a wrapperw.exe binary in Windows implementations
+  which makes it possible to run the Wrapper without a console.  A console still
+  flickers for an instant when the Wrapper starts.  This is the same issue that
+  has existed when running as an interactive service and is required to make
+  thread dumping possible.
+* (Standard, Professional) Add new wrapper.logdialog.enable,
+  wrapper.logdialog.format, wrapper.logdialog.lines, and
+  wrapper.logdialog.loglevel properties used to configure the display of a Log
+  dialog when the wrapperw.exe binary exits in an error state.
+* Fix a problem where the Wrapper was attempting to reopen its backend port
+  even when the JVM was down.  This was only a problem when the defined port
+  range was limited to a single port with the wrapper.port.min and
+  wrapper.port.max properties.  In such a case one or more warning messages
+  were being displayed because the port is locked for a few moments after
+  being closed.
+* (Standard, Professional) The wrapper.initmemory.percent and
+  wrapper.maxmemory.percent properties were not correctly being calculated
+  relative to a maximum of 2048MB for 32-bit versions of the Wrapper.
+  Bug #2053167.
 
 3.3.0
 * Add a new wrapper.ping.interval.logged property which makes it possible to

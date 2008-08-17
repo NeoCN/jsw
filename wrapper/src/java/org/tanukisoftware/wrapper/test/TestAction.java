@@ -5,11 +5,10 @@ package org.tanukisoftware.wrapper.test;
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
- * This software is the confidential and proprietary information
- * of Tanuki Software.  ("Confidential Information").  You shall
- * not disclose such Confidential Information and shall use it
- * only in accordance with the terms of the license agreement you
- * entered into with Tanuki Software.
+ * This software is the proprietary information of Tanuki Software.
+ * You shall use it only in accordance with the terms of the
+ * license agreement you entered into with Tanuki Software.
+ * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
  * 
  * 
  * Portions of the Software have been derived from source code
@@ -88,7 +87,7 @@ public class TestAction
         if (event == WrapperManager.WRAPPER_CTRL_C_EVENT) {
             //WrapperManager.stop(0);
             
-            // May be called before the running is started.
+            // May be called before the runner is started.
             if (m_actionRunner != null) {
                 m_actionRunner.endThread();
             }

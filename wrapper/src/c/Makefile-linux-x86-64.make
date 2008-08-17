@@ -2,15 +2,12 @@
 # http://www.tanukisoftware.com
 # All rights reserved.
 #
-# This software is the confidential and proprietary information
-# of Tanuki Software.  ("Confidential Information").  You shall
-# not disclose such Confidential Information and shall use it
-# only in accordance with the terms of the license agreement you
-# entered into with Tanuki Software.
+# This software is the proprietary information of Tanuki Software.
+# You shall use it only in accordance with the terms of the
+# license agreement you entered into with Tanuki Software.
+# http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
 
-# This makefile is inprogess.  It builds, but the resulting libwrapper.so does not yet work.
-# If you know how to fix it then please help out.
-COMPILE = gcc -O3 -fPIC -Wall --pedantic -D_FILE_OFFSET_BITS=64
+COMPILE = gcc -O3 -fPIC -Wall --pedantic -DLINUX -D_FILE_OFFSET_BITS=64
 
 INCLUDE=$(JAVA_HOME)/include
 

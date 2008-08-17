@@ -5,11 +5,10 @@ package org.tanukisoftware.wrapper;
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
- * This software is the confidential and proprietary information
- * of Tanuki Software.  ("Confidential Information").  You shall
- * not disclose such Confidential Information and shall use it
- * only in accordance with the terms of the license agreement you
- * entered into with Tanuki Software.
+ * This software is the proprietary information of Tanuki Software.
+ * You shall use it only in accordance with the terms of the
+ * license agreement you entered into with Tanuki Software.
+ * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
  * 
  * 
  * Portions of the Software have been derived from source code
@@ -69,15 +68,15 @@ import org.tanukisoftware.wrapper.security.WrapperServicePermission;
 
 /**
  * Handles all communication with the native portion of the Wrapper code.
- *	The native wrapper code will launch Java in a separate process and set
- *	up a server socket which the Java code is expected to open a socket to
- *	on startup.  When the server socket is created, a port will be chosen
- *	depending on what is available to the system.  This port will then be
- *	passed to the Java process as property named "wrapper.port".
+ *  The native wrapper code will launch Java in a separate process and set
+ *  up a server socket which the Java code is expected to open a socket to
+ *  on startup.  When the server socket is created, a port will be chosen
+ *  depending on what is available to the system.  This port will then be
+ *  passed to the Java process as property named "wrapper.port".
  *
  * For security reasons, the native code will only allow connections from
- *	localhost and will expect to receive the key specified in a property
- *	named "wrapper.key".
+ *  localhost and will expect to receive the key specified in a property
+ *  named "wrapper.key".
  *
  * This class is implemented as a singleton class.
  *
@@ -271,6 +270,8 @@ public final class WrapperManager
     private static Method m_addShutdownHookMethod = null;
     private static Method m_removeShutdownHookMethod = null;
     
+    private static boolean m_ignoreUserLogoffs = false;
+    
     private static boolean m_service = false;
     private static boolean m_debug = false;
     private static int m_jvmId = 0;
@@ -305,12 +306,12 @@ public final class WrapperManager
      *-------------------------------------------------------------*/
     /**
      * When the WrapperManager class is first loaded, it attempts to load the
-     *	configuration file specified using the 'wrapper.config' system property.
-     *	When the JVM is launched from the Wrapper native code, the
-     *	'wrapper.config' and 'wrapper.key' parameters are specified.
-     *	The 'wrapper.key' parameter is a password which is used to verify that
-     *	connections are only coming from the native Wrapper which launched the
-     *	current JVM.
+     *  configuration file specified using the 'wrapper.config' system property.
+     *  When the JVM is launched from the Wrapper native code, the
+     *  'wrapper.config' and 'wrapper.key' parameters are specified.
+     *  The 'wrapper.key' parameter is a password which is used to verify that
+     *  connections are only coming from the native Wrapper which launched the
+     *  current JVM.
      */
     static
     {
@@ -1789,7 +1790,7 @@ public final class WrapperManager
                 // Shouldn't get here.
                 ex.printStackTrace( m_outError );
             }
-        }					
+        }
         
         m_outInfo.println( "  Attempt to cause access violation failed.  JVM is still alive." );
     }
@@ -1851,6 +1852,17 @@ public final class WrapperManager
     public static boolean isLaunchedAsService()
     {
         return m_service;
+    }
+    
+    /**
+     * Returns true if the JVM should ignore user logoff events.  Mainly used
+     *  within WrapperListener.controlEvent() method implemenations.
+     
+     * @return True if user logoff events should be ignroed.
+     */
+    public static boolean isIgnoreUserLogoffs()
+    {
+        return m_ignoreUserLogoffs;
     }
     
     /**
@@ -1966,7 +1978,7 @@ public final class WrapperManager
     
     /**
      * Tells the native wrapper that the JVM wants to restart, then informs
-     *	all listeners that the JVM is about to shutdown before killing the JVM.
+     *  all listeners that the JVM is about to shutdown before killing the JVM.
      * <p>
      * This method will not return.
      *
@@ -1996,7 +2008,7 @@ public final class WrapperManager
     
     /**
      * Tells the native wrapper that the JVM wants to restart, then informs
-     *	all listeners that the JVM is about to shutdown before killing the JVM.
+     *  all listeners that the JVM is about to shutdown before killing the JVM.
      * <p>
      * This method requests that the JVM be restarted but then returns.  This
      *  allows components to initiate a JVM exit and then continue, allowing
@@ -2108,7 +2120,7 @@ public final class WrapperManager
     
     /**
      * Tells the native wrapper that the JVM wants to shut down, then informs
-     *	all listeners that the JVM is about to shutdown before killing the JVM.
+     *  all listeners that the JVM is about to shutdown before killing the JVM.
      * <p>
      * This method will not return.
      *
@@ -2151,7 +2163,7 @@ public final class WrapperManager
     
     /**
      * Tells the native wrapper that the JVM wants to shut down, then informs
-     *	all listeners that the JVM is about to shutdown before killing the JVM.
+     *  all listeners that the JVM is about to shutdown before killing the JVM.
      * <p>
      * This method requests that the JVM be shutdown but then returns.  This
      *  allows components to initiate a JVM exit and then continue, allowing
@@ -2891,7 +2903,7 @@ public final class WrapperManager
     
     /**
      * Dispose of all resources used by the WrapperManager.  Closes the server
-     *	socket which is used to listen for events from the 
+     *  socket which is used to listen for events from the 
      */
     private static void dispose()
     {
@@ -2919,7 +2931,7 @@ public final class WrapperManager
     private static void startInner()
     {
         // Set the thread priority back to normal so that any spawned threads
-        //	will use the normal priority
+        //  will use the normal priority
         int oldPriority = Thread.currentThread().getPriority();
         Thread.currentThread().setPriority( Thread.NORM_PRIORITY );
         
@@ -3282,7 +3294,7 @@ public final class WrapperManager
         if ( m_started )
         {
             // Set the thread priority back to normal so that any spawned threads
-            //	will use the normal priority
+            //  will use the normal priority
             int oldPriority = Thread.currentThread().getPriority();
             Thread.currentThread().setPriority( Thread.NORM_PRIORITY );
             
@@ -3572,6 +3584,12 @@ public final class WrapperManager
                 }
                 
                 properties.setProperty( key, value );
+                
+                // Process special properties
+                if ( key.equals( "wrapper.ignore_user_logoffs" ) )
+                {
+                    m_ignoreUserLogoffs = value.equalsIgnoreCase( "true" );
+                }
             }
         }
         
@@ -4288,7 +4306,7 @@ public final class WrapperManager
         }
         
         // This thread needs to have a very high priority so that it never
-        //	gets put behind other threads.
+        //  gets put behind other threads.
         Thread.currentThread().setPriority( Thread.MAX_PRIORITY );
         
         // Initialize the last ping tick count.

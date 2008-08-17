@@ -3,11 +3,10 @@
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
- * This software is the confidential and proprietary information
- * of Tanuki Software.  ("Confidential Information").  You shall
- * not disclose such Confidential Information and shall use it
- * only in accordance with the terms of the license agreement you
- * entered into with Tanuki Software.
+ * This software is the proprietary information of Tanuki Software.
+ * You shall use it only in accordance with the terms of the
+ * license agreement you entered into with Tanuki Software.
+ * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
  * 
  * 
  * Portions of the Software have been derived from source code
@@ -923,7 +922,7 @@ void jStateDown(DWORD nowTicks, int nextSleep) {
                             "JVM was only running for %d seconds leading to a failed restart count of %d.",
                             wrapperGetTickAgeSeconds(wrapperData->jvmLaunchTicks, nowTicks), wrapperData->failedInvocationCount);
                     }
-
+                    
                     /* See if we are allowed to try restarting the JVM again. */
                     if (wrapperData->failedInvocationCount < wrapperData->maxFailedInvocations) {
                         /* Try reslaunching the JVM */
@@ -1114,12 +1113,21 @@ void jStateLaunchDelay(DWORD nowTicks, int nextSleep) {
                 return;
             }
             
-
             /* Set the launch time to the curent time */
             wrapperData->jvmLaunchTicks = wrapperGetTicks();
 
             /* Generate a unique key to use when communicating with the JVM */
             wrapperBuildKey();
+            
+            /* Check the backend server socket to make sure it has been initialized.
+             *  This is needed so we can pass its port as part of the java command. */
+            if (!wrapperCheckServerSocket(TRUE)) {
+            	/* The socket is not up.  An error should have been reported.  But this means we
+            	 *  are unable to continue. */
+                wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
+                wrapperData->exitCode = 1;
+                return;
+            }
         
             /* Generate the command used to launch the Java process */
             if (wrapperBuildJavaCommand()) {
@@ -1454,7 +1462,7 @@ void jStateStopping(DWORD nowTicks, int nextSleep) {
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                            "Shutdown failed: Timed out waiting for signal from JVM.");
-    
+                
                 /* Give up on the JVM and start trying to kill it. */
                 wrapperKillProcess(FALSE);
             }

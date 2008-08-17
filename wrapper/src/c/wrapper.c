@@ -3,11 +3,10 @@
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
- * This software is the confidential and proprietary information
- * of Tanuki Software.  ("Confidential Information").  You shall
- * not disclose such Confidential Information and shall use it
- * only in accordance with the terms of the license agreement you
- * entered into with Tanuki Software.
+ * This software is the proprietary information of Tanuki Software.
+ * You shall use it only in accordance with the terms of the
+ * license agreement you entered into with Tanuki Software.
+ * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
  * 
  * 
  * Portions of the Software have been derived from source code
@@ -49,6 +48,7 @@
 #include <io.h>
 #include <winsock.h>
 #include <shlwapi.h>
+#include <windows.h>
 
 /* MS Visual Studio 8 went and deprecated the POXIX names for functions.
  *  Fixing them all would be a big headache for UNIX versions. */
@@ -69,6 +69,7 @@ typedef long intptr_t;
 #include <string.h>
 #include <glob.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -502,7 +503,7 @@ void protocolOpen() {
 #if defined(WIN32)
     u_long dwNoBlock = TRUE;
     u_long addr_srv_len;
-#elif defined(HPUX) || defined(OSF1) || defined(IRIX)
+#elif (defined(HPUX) && !defined(ARCH_IA)) || defined(OSF1) || defined(IRIX)
     int addr_srv_len;
 #else
     socklen_t addr_srv_len;
@@ -839,9 +840,49 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const char *messa
 }
 
 /**
+ * Checks the status of the server socket.
+ *
+ * The socket will be initialized if the JVM is in a state where it should
+ *  be up, otherwise the socket will be left alone.
+ *
+ * If the forceOpen flag is set then an attempt will be made to initialize
+ *  the socket regardless of the JVM state.
+ *
+ * Returns TRUE if the socket is open and ready on return, FALSE if not.
+ */
+int wrapperCheckServerSocket(int forceOpen) {
+    if (ssd == INVALID_SOCKET) {
+        /* The socket is not currently open.  Unless the JVM is DOWN */
+        if ((!forceOpen) &&
+            ((wrapperData->jState == WRAPPER_JSTATE_DOWN) || 
+        	 (wrapperData->jState == WRAPPER_JSTATE_LAUNCH_DELAY) ||
+        	 (wrapperData->jState == WRAPPER_JSTATE_RESTART) ||
+        	 (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
+        	 (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
+        	 (wrapperData->jState == WRAPPER_JSTATE_KILL))) {
+        	/* The JVM is down or in a state where the socket is not needed. */
+        	return FALSE;
+        } else {
+        	/* The socket should be open, try doing so. */
+            protocolStartServer();
+            if (ssd == INVALID_SOCKET) {
+                /* Failed. */
+                return FALSE;
+            } else {
+            	return TRUE;
+            }
+        }
+    } else {
+        /* Socket is ready. */
+        return TRUE;
+    }
+}
+
+/**
  * Read any data sent from the JVM.  This function will loop and read as many
  *  packets are available.  The loop will only be allowed to go for 250ms to
  *  ensure that other functions are handled correctly.
+ *
  * Returns 0 if all available data has been read, 1 if more data is waiting.
  */
 int wrapperProtocolRead() {
@@ -874,12 +915,9 @@ int wrapperProtocolRead() {
             /* A Client socket is not open */
 
             /* Is the server socket open? */
-            if (ssd == INVALID_SOCKET) {
-                protocolStartServer();
-                if (ssd == INVALID_SOCKET) {
-                    /* Failed. */
-                    return 0;
-                }
+            if (!wrapperCheckServerSocket(FALSE)) {
+                /* Socket is down.  We can not read any packets. */
+                return 0;
             }
 
             /* Try accepting a socket */
@@ -1127,15 +1165,6 @@ void wrapperGetFileBase(const char *fileName, char *baseName) {
  * Output the version.
  */
 void wrapperVersionBanner() {
-    printf("Java Service Wrapper Community Edition %s\n", wrapperVersionRoot);
-    printf("  Copyright (C) 1999-2008 Tanuki Software, Inc.  All Rights Reserved.\n");
-    printf("    http://wrapper.tanukisoftware.org\n");
-}
-
-/**
- * Output the version.
- */
-void wrapperVersionBannerLog() {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
         "Java Service Wrapper Community Edition %s", wrapperVersionRoot);
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
@@ -1156,46 +1185,52 @@ void wrapperUsage(char *appName) {
         return;
     }
     wrapperGetFileBase(appName, confFileBase);
+    
+    /* Force the log levels to control output. */
+    setConsoleLogFormat("M");
+    setConsoleLogLevelInt(LEVEL_INFO);
+    setLogfileLevelInt(LEVEL_NONE);
+    setSyslogLevelInt(LEVEL_NONE);
 
     wrapperVersionBanner();
-    printf("\n");
-    printf("Usage:\n");
-    printf("  %s <command> <configuration file> [configuration properties] [...]\n", appName);
-    printf("  %s <configuration file> [configuration properties] [...]\n", appName);
-    printf("     (<command> implicitly '-c')\n");
-    printf("  %s <command>\n", appName);
-    printf("     (<configuration file> implicitly '%s.conf')\n", confFileBase);
-    printf("  %s\n", appName);
-    printf("     (<command> implicitly '-c' and <configuration file> '%s.conf')\n", confFileBase);
-    printf("\n");
-    printf("where <command> can be one of:\n");
-    printf("  -c  --console run as a Console application\n");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Usage:");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  %s <command> <configuration file> [configuration properties] [...]", appName);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  %s <configuration file> [configuration properties] [...]", appName);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "     (<command> implicitly '-c')");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  %s <command>", appName);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "     (<configuration file> implicitly '%s.conf')", confFileBase);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  %s", appName);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "     (<command> implicitly '-c' and <configuration file> '%s.conf')", confFileBase);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "where <command> can be one of:");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -c  --console run as a Console application");
 #ifdef WIN32
-    printf("  -t  --start   starT an NT service\n");
-    printf("  -a  --pause   pAuse a started NT service\n");
-    printf("  -e  --resume  rEsume a paused NT service\n");
-    printf("  -p  --stop    stoP a running NT service\n");
-    printf("  -i  --install Install as an NT service\n");
-    printf("  -it --installstart Install and sTart as an NT service\n");
-    printf("  -r  --remove  Remove as an NT service\n");
-    printf("  -l=<code> --controlcode=<code> send a user controL Code to a running NT service\n");
-    printf("  -d  --dump    request a thread Dump\n");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -t  --start   starT an NT service");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -a  --pause   pAuse a started NT service");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -e  --resume  rEsume a paused NT service");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -p  --stop    stoP a running NT service");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -i  --install Install as an NT service");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -it --installstart Install and sTart as an NT service");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -r  --remove  Remove as an NT service");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -l=<code> --controlcode=<code> send a user controL Code to a running NT service");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -d  --dump    request a thread Dump");
     /** Return mask: installed:1 running:2 interactive:4 automatic:8 manual:16 disabled:32 */
-    printf("  -q  --query   Query the current status of the service\n");
-    printf("  -qs --querysilent Silently Query the current status of the service\n");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -q  --query   Query the current status of the service");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -qs --querysilent Silently Query the current status of the service");
     /* Omit '-s' option from help as it is only used by the service manager. */
-    /*printf("  -s  --service used by service manager\n"); */
+    /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -s  --service used by service manager"); */
 #endif
-    printf("  -v  --version print the wrapper's version information.\n");
-    printf("  -?  --help    print this help message\n");
-    printf("\n");
-    printf("<configuration file> is the wrapper.conf to use.  Name must be absolute or relative\n");
-    printf("  to the location of %s\n", appName);
-    printf("\n");
-    printf("[configuration properties] are configuration name-value pairs which override values\n");
-    printf("  in wrapper.conf.  For example:\n");
-    printf("  wrapper.debug=true\n");
-    printf("\n");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -v  --version print the wrapper's version information.");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -?  --help    print this help message");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "<configuration file> is the wrapper.conf to use.  Name must be absolute or relative");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  to the location of %s", appName);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "[configuration properties] are configuration name-value pairs which override values");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  in wrapper.conf.  For example:");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  wrapper.debug=true");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "");
 
     free(confFileBase);
 }
@@ -1349,11 +1384,120 @@ void sendProperties()
     }
 }
 
+
+/**
+ * Immediately kill the JVM process and set the JVM state to
+ *  WRAPPER_JSTATE_DOWN.
+ */
+void wrapperKillProcessNow() {
+#ifdef WIN32
+    int ret;
+#endif
+
+    /* Check to make sure that the JVM process is still running */
+#ifdef WIN32
+    ret = WaitForSingleObject(wrapperData->javaProcess, 0);
+    if (ret == WAIT_TIMEOUT) {
+#else
+    if (waitpid(wrapperData->javaPID, NULL, WNOHANG) == 0) {
+#endif
+        /* JVM is still up when it should have already stopped itself. */
+
+        /* The JVM process is not responding so the only choice we have is to
+         *  kill it. */
+#ifdef WIN32
+        /* The TerminateProcess funtion will kill the process, but it
+         *  does not correctly notify the process's DLLs that it is shutting
+         *  down.  Ideally, we would call ExitProcess, but that can only be
+         *  called from within the process being killed. */
+        if (TerminateProcess(wrapperData->javaProcess, 0)) {
+#else
+        if (kill(wrapperData->javaPID, SIGKILL) == 0) {
+#endif
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM did not exit on request, terminated");
+        } else {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM did not exit on request.");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                "  Attempt to terminate process failed: %s", getLastErrorText());
+        }
+
+        /* Give the JVM a chance to be killed so that the state will be correct. */
+        wrapperSleep(FALSE, 500); /* 0.5 seconds */
+
+        /* Set the exit code since we were forced to kill the JVM. */
+        wrapperData->exitCode = 1;
+    }
+
+    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, -1, -1);
+
+    /* Remove java pid file if it was registered and created by this process. */
+    if (wrapperData->javaPidFilename) {
+#ifdef WIN32
+        _unlink(wrapperData->javaPidFilename);
+#else
+        unlink(wrapperData->javaPidFilename);
+#endif
+    }
+    
+#ifdef WIN32
+    if (!CloseHandle(wrapperData->javaProcess)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            "Failed to close the Java process handle: %s", getLastErrorText());
+    }
+    wrapperData->javaProcess = NULL;
+    wrapperData->javaPID = 0;
+#else
+    wrapperData->javaPID = -1;
+#endif
+
+    /* Close any open socket to the JVM */
+    wrapperProtocolClose();
+}
+
+/**
+ * Puts the Wrapper into a state where the JVM will be killed at the soonest
+ *  possible opportunity.  It is necessary to wait a moment if a final thread
+ *  dump is to be requested.  This call wll always set the JVM state to
+ *  WRAPPER_JSTATE_KILLING.
+ */
+void wrapperKillProcess(int useLoggerQueue) {
+#ifdef WIN32
+    int ret;
+#endif
+    int delay = 0;
+    
+    if ((wrapperData->jState == WRAPPER_JSTATE_DOWN) || (wrapperData->jState == WRAPPER_JSTATE_LAUNCH_DELAY)) {
+        /* Already down. */
+        if (wrapperData->jState != WRAPPER_JSTATE_DOWN) {
+            wrapperSetJavaState(useLoggerQueue, WRAPPER_JSTATE_DOWN, wrapperGetTicks(), 0);
+        }
+        return;
+    }
+
+    /* Check to make sure that the JVM process is still running */
+#ifdef WIN32
+    ret = WaitForSingleObject(wrapperData->javaProcess, 0);
+    if (ret == WAIT_TIMEOUT) {
+#else
+    if (waitpid(wrapperData->javaPID, NULL, WNOHANG) == 0) {
+#endif
+        /* JVM is still up when it should have already stopped itself. */
+        if (wrapperData->requestThreadDumpOnFailedJVMExit) {
+            wrapperRequestDumpJVMState(useLoggerQueue);
+
+            delay = 5;
+        }
+    }
+
+    wrapperSetJavaState(useLoggerQueue, WRAPPER_JSTATE_KILLING, wrapperGetTicks(), delay);
+}
+
 /**
  * Launch the wrapper as a console application.
  */
 int wrapperRunConsole() {
     int res;
+    const char *prop;
 
     /* Setup the wrapperData structure. */
     wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STARTING);
@@ -1377,8 +1521,21 @@ int wrapperRunConsole() {
 #endif
 
     /* Log a startup banner. */
-    wrapperVersionBannerLog();
+    wrapperVersionBanner();
 
+    /* The following code will display a licensed to block if a license key is found
+     *  in the Wrapper configuration.  This piece of code is required as is for
+     *  Development License owners to be in complience with their development license.
+     *  This code does not do any validation of the license keys and works differently
+     *  from the license code found in the Standard and Professional Editions of the
+     *  Wrapper. */
+    prop = getStringProperty(properties, "wrapper.license.type", "");
+    if (strcmpIgnoreCase(prop, "dev") == 0) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            "  Licensed to %s for %s",
+            getStringProperty(properties, "wrapper.license.licensee", "(LICENSE INVALID)"),
+            getStringProperty(properties, "wrapper.license.dev_application", "(LICENSE INVALID)"));
+    }
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "");
     
     if (wrapperData->isDebugging) {
@@ -1421,7 +1578,7 @@ int wrapperRunService() {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "--> Wrapper Started as Service");
 
     /* Log a startup banner. */
-    wrapperVersionBannerLog();
+    wrapperVersionBanner();
 
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "");
     
@@ -3542,6 +3699,8 @@ int loadConfiguration() {
     updateStringValue(&wrapperData->serviceDescription, getStringProperty(properties, "wrapper.description", getStringProperty(properties, "wrapper.ntservice.description", wrapperData->serviceDisplayName)));
 
 #ifdef WIN32
+    wrapperData->ignoreUserLogoffs = getBooleanProperty( properties, "wrapper.ignore_user_logoffs", FALSE );
+    
     /* Configure the NT service information */
     if (wrapperBuildNTServiceInfo()) {
         return TRUE;

@@ -8,7 +8,7 @@
 # http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
 
 UNIVERSAL_SDK_HOME=/Developer/SDKs/MacOSX10.5.sdk
-COMPILE = gcc -O3 -Wall -DUSE_NANOSLEEP -DMACOSX -arch ppc -arch i386 -isysroot $(UNIVERSAL_SDK_HOME) -mmacosx-version-min=10.4
+COMPILE = gcc -O3 -m64 -Wall -DUSE_NANOSLEEP -DMACOSX -arch ppc64 -arch x86_64 -isysroot $(UNIVERSAL_SDK_HOME) -mmacosx-version-min=10.4
 
 DEFS = -I$(UNIVERSAL_SDK_HOME)/System/Library/Frameworks/JavaVM.framework/Headers
 
@@ -22,21 +22,21 @@ LIB = ../../lib
 all: init wrapper libwrapper.jnilib
 
 clean:
-	rm -f *.o
+    rm -f *.o
 
 cleanall: clean
-	rm -rf *~ .deps
-	rm -f $(BIN)/wrapper $(LIB)/libwrapper.jnilib
+    rm -rf *~ .deps
+    rm -f $(BIN)/wrapper $(LIB)/libwrapper.jnilib
 
 init:
-	if test ! -d .deps; then mkdir .deps; fi
+    if test ! -d .deps; then mkdir .deps; fi
 
 wrapper: $(wrapper_SOURCE)
-	$(COMPILE) -DMACOSX $(wrapper_SOURCE) -o $(BIN)/wrapper
+    $(COMPILE) -DMACOSX $(wrapper_SOURCE) -o $(BIN)/wrapper
 
 libwrapper.jnilib: $(libwrapper_so_OBJECTS)
-	$(COMPILE) -bundle -o $(LIB)/libwrapper.jnilib $(libwrapper_so_OBJECTS)
+    $(COMPILE) -bundle -o $(LIB)/libwrapper.jnilib $(libwrapper_so_OBJECTS)
 
 %.o: %.c
-	$(COMPILE) -c $(DEFS) $<
+    $(COMPILE) -c $(DEFS) $<
 

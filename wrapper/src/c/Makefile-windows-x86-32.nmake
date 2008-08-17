@@ -2,15 +2,14 @@
 # http://www.tanukisoftware.com
 # All rights reserved.
 #
-# This software is the confidential and proprietary information
-# of Tanuki Software.  ("Confidential Information").  You shall
-# not disclose such Confidential Information and shall use it
-# only in accordance with the terms of the license agreement you
-# entered into with Tanuki Software.
+# This software is the proprietary information of Tanuki Software.
+# You shall use it only in accordance with the terms of the
+# license agreement you entered into with Tanuki Software.
+# http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
 
 PROJ = wrapper
 
-COMPILE = cl /D "WIN32" /D "NDEBUG"  /FD /EHsc /MT /Zp4 /W3 /nologo /c /Zi /errorReport:prompt /D "_CRT_SECURE_NO_DEPRECATE"
+COMPILE = cl /D "WIN32" /D "NDEBUG" /FD /EHsc /MT /Zp4 /W3 /nologo /c /Zi /errorReport:prompt /D "_CRT_SECURE_NO_DEPRECATE"
 LINK = link /NOLOGO /MANIFEST /DEBUG /MACHINE:X86 /ERRORREPORT:PROMPT DelayImp.lib
 RC = rc
 
@@ -29,7 +28,7 @@ DLL_COMPILE_OPTS = /Od  /I "..\" /I ".\" /I "$(JAVA_HOME)\include" /I "$(JAVA_HO
 DLL_LINK_OPTS = /INCREMENTAL /DLL /SUBSYSTEM:WINDOWS /MANIFESTFILE:"$(DLL_OUTDIR)\$(PROJ).dll.intermediate.manifest" /PDB:"$(DLL_OUTDIR)\$(PROJ).pdb" 
 
 
-all: $(EXE_OUTDIR) $(DLL_OUTDIR) $(PROJ).EXE $(PROJ).DLL
+all: $(EXE_OUTDIR) $(DLL_OUTDIR) $(PROJ).exe $(PROJ).dll
 
 # Define project specific macros
 
@@ -51,10 +50,10 @@ $(EXE_OUTDIR)\$(PROJ).res: $(PROJ).rc $(RC_DEP)
 $(DLL_OUTDIR)\$(PROJ).res: $(PROJ).rc $(RC_DEP)
     $(RC) /fo"$(DLL_OUTDIR)/$(PROJ).res" $(PROJ).rc
 
-$(PROJ).EXE: $(BASE_OBJS) $(EXE_OBJS) $(EXE_OUTDIR)\$(PROJ).res
+$(PROJ).exe: $(BASE_OBJS) $(EXE_OBJS) $(EXE_OUTDIR)\$(PROJ).res
     $(LINK) $(EXE_LINK_OPTS) $(EXE_OBJS) $(EXE_LIBS) $(EXE_OUTDIR)\$(PROJ).res /OUT:"..\..\bin\$(PROJ).exe"
 
-$(PROJ).DLL: $(BASE_OBJS) $(DLL_OBJS) $(DLL_OUTDIR)\$(PROJ).res
+$(PROJ).dll: $(BASE_OBJS) $(DLL_OBJS) $(DLL_OUTDIR)\$(PROJ).res
     $(LINK) $(DLL_LINK_OPTS) $(DLL_OBJS) $(DLL_LIBS) $(DLL_OUTDIR)\$(PROJ).res /OUT:"..\..\lib\$(PROJ).dll"
 
 clean:

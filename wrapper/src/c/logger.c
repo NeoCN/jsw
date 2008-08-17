@@ -3,11 +3,10 @@
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
- * This software is the confidential and proprietary information
- * of Tanuki Software.  ("Confidential Information").  You shall
- * not disclose such Confidential Information and shall use it
- * only in accordance with the terms of the license agreement you
- * entered into with Tanuki Software.
+ * This software is the proprietary information of Tanuki Software.
+ * You shall use it only in accordance with the terms of the
+ * license agreement you entered into with Tanuki Software.
+ * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
  * 
  * 
  * Portions of the Software have been derived from source code
@@ -423,6 +422,11 @@ void setLogfilePath( const char *log_file_path ) {
         c[0] = '\\';
     }
 #endif
+}
+
+const char *getLogfilePath()
+{
+    return logFilePath;
 }
 
 void setLogfileRollMode( int log_file_roll_mode ) {
@@ -1038,7 +1042,7 @@ void log_printf_message( int source_id, int level, int threadId, int queued, con
         break;
 
     default:
-        if( level >= currentLoginfoLevel ) {
+        if ( level >= currentLoginfoLevel ) {
             sendEventlogMessage( source_id, level, message );
             sendLoginfoMessage( source_id, level, message );
         }
