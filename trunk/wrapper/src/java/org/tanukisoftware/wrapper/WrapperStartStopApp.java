@@ -5,11 +5,10 @@ package org.tanukisoftware.wrapper;
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
- * This software is the confidential and proprietary information
- * of Tanuki Software.  ("Confidential Information").  You shall
- * not disclose such Confidential Information and shall use it
- * only in accordance with the terms of the license agreement you
- * entered into with Tanuki Software.
+ * This software is the proprietary information of Tanuki Software.
+ * You shall use it only in accordance with the terms of the
+ * license agreement you entered into with Tanuki Software.
+ * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
  * 
  * 
  * Portions of the Software have been derived from source code
@@ -306,12 +305,12 @@ public class WrapperStartStopApp
      *-------------------------------------------------------------*/
     /**
      * The start method is called when the WrapperManager is signalled by the 
-     *	native wrapper code that it can start its application.  This
-     *	method call is expected to return, so a new thread should be launched
-     *	if necessary.
+     *    native wrapper code that it can start its application.  This
+     *    method call is expected to return, so a new thread should be launched
+     *    if necessary.
      * If there are any problems, then an Integer should be returned, set to
-     *	the desired exit code.  If the application should continue,
-     *	return null.
+     *    the desired exit code.  If the application should continue,
+     *    return null.
      */
     public Integer start( String[] args )
     {
@@ -494,13 +493,10 @@ public class WrapperStartStopApp
     public void controlEvent( int event )
     {
         if ( ( event == WrapperManager.WRAPPER_CTRL_LOGOFF_EVENT )
-            && WrapperManager.isLaunchedAsService() )
+            && ( WrapperManager.isLaunchedAsService() || WrapperManager.isIgnoreUserLogoffs() ) )
         {
             // Ignore
-            if ( WrapperManager.isDebugEnabled() )
-            {
-                m_outDebug.println( "controlEvent(" + event + ") Ignored" );
-            }
+            m_outInfo.println( "User logged out.  Ignored." );
         }
         else
         {

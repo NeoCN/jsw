@@ -3,11 +3,10 @@
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
- * This software is the confidential and proprietary information
- * of Tanuki Software.  ("Confidential Information").  You shall
- * not disclose such Confidential Information and shall use it
- * only in accordance with the terms of the license agreement you
- * entered into with Tanuki Software.
+ * This software is the proprietary information of Tanuki Software.
+ * You shall use it only in accordance with the terms of the
+ * license agreement you entered into with Tanuki Software.
+ * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
  * 
  * 
  * Portions of the Software have been derived from source code
@@ -118,6 +117,7 @@ extern void outOfMemory(const char *context, int id);
 
 /* * Logfile functions * */
 extern void setLogfilePath( const char *log_file_path );
+extern const char *getLogfilePath();
 extern int getLogfileRollModeForName( const char *logfileRollName );
 extern void setLogfileRollMode( int log_file_roll_mode );
 extern int getLogfileRollMode();

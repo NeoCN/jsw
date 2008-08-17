@@ -2,14 +2,13 @@
 # http://www.tanukisoftware.com
 # All rights reserved.
 #
-# This software is the confidential and proprietary information
-# of Tanuki Software.  ("Confidential Information").  You shall
-# not disclose such Confidential Information and shall use it
-# only in accordance with the terms of the license agreement you
-# entered into with Tanuki Software.
+# This software is the proprietary information of Tanuki Software.
+# You shall use it only in accordance with the terms of the
+# license agreement you entered into with Tanuki Software.
+# http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
 
-UNIVERSAL_SDK_HOME=/Developer/SDKs/MacOSX10.4u.sdk
-COMPILE = gcc -O3 -Wall -DUSE_NANOSLEEP -DMACOSX -arch ppc -arch i386 -isysroot $(UNIVERSAL_SDK_HOME)
+UNIVERSAL_SDK_HOME=/Developer/SDKs/MacOSX10.5.sdk
+COMPILE = gcc -O3 -Wall -DUSE_NANOSLEEP -DMACOSX -arch ppc -arch i386 -isysroot $(UNIVERSAL_SDK_HOME) -mmacosx-version-min=10.4
 
 DEFS = -I$(UNIVERSAL_SDK_HOME)/System/Library/Frameworks/JavaVM.framework/Headers
 

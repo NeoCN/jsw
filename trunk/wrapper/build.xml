@@ -108,13 +108,16 @@
                 <equals arg1="${os.arch}" arg2="i386"/>
             </or>
         </condition>
-        <condition property="dist.arch" value="x86">
+        <condition property="dist.arch" value="ia">
             <or>
                 <equals arg1="${os.arch}" arg2="ia32"/>
                 <equals arg1="${os.arch}" arg2="IA32"/>
                 <equals arg1="${os.arch}" arg2="ia64"/>
+                <equals arg1="${os.arch}" arg2="IA64"/>
                 <equals arg1="${os.arch}" arg2="ia64n"/>
+                <equals arg1="${os.arch}" arg2="IA64N"/>
                 <equals arg1="${os.arch}" arg2="ia64w"/>
+                <equals arg1="${os.arch}" arg2="IA64W"/>
             </or>
         </condition>
         <condition property="dist.arch" value="ppc">
@@ -179,9 +182,14 @@
         </condition>
 
         <condition property="pre-release.disable" value="true">
-            <not>
-                <equals arg1="${javac.target.version}" arg2="1.2"/>
-            </not>
+            <and>
+                <not>
+                    <equals arg1="${javac.target.version}" arg2="1.2"/>
+                </not>
+                <not>
+                    <isset property="disable.java.version.check"/>
+                </not>
+            </and>
         </condition>
         
         <!-- Generate the release-file base. -->
@@ -228,29 +236,45 @@
         <condition property="vcvars.bat.arg.2" value="${vcvars.v8_32_5.arg.2}">
             <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_5}"/>
         </condition>
-        <condition property="vcvars.bat" value="${vcvars.v8_64_1}">
+        <condition property="vcvars.bat" value="${vcvars.v8_x86_64_1}">
             <and>
                 <equals arg1="${bits}" arg2="64"/>
-                <available file="${vcvars.v8_64_1}"/>
+                <equals arg1="${dist.arch}" arg2="x86"/>
+                <available file="${vcvars.v8_x86_64_1}"/>
             </and>
         </condition>
-        <condition property="vcvars.bat" value="${vcvars.v8_64_2}">
+        <condition property="vcvars.bat" value="${vcvars.v8_x86_64_2}">
             <and>
                 <equals arg1="${bits}" arg2="64"/>
-                <available file="${vcvars.v8_64_2}"/>
+                <equals arg1="${dist.arch}" arg2="x86"/>
+                <available file="${vcvars.v8_x86_64_2}"/>
             </and>
         </condition>
-        <condition property="vcvars.bat" value="${vcvars.v8_64_3}">
+        <condition property="vcvars.bat" value="${vcvars.v8_x86_64_3}">
             <and>
                 <equals arg1="${bits}" arg2="64"/>
-                <available file="${vcvars.v8_64_3}"/>
+                <equals arg1="${dist.arch}" arg2="x86"/>
+                <available file="${vcvars.v8_x86_64_3}"/>
             </and>
         </condition>
-        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_64_3.arg.1}">
-            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_64_3}"/>
+        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_x86_64_3.arg.1}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_x86_64_3}"/>
         </condition>
-        <condition property="vcvars.bat.arg.2" value="${vcvars.v8_64_3.arg.2}">
-            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_64_3}"/>
+        <condition property="vcvars.bat.arg.2" value="${vcvars.v8_x86_64_3.arg.2}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_x86_64_3}"/>
+        </condition>
+        <condition property="vcvars.bat" value="${vcvars.v8_ia_64_1}">
+            <and>
+                <equals arg1="${bits}" arg2="64"/>
+                <equals arg1="${dist.arch}" arg2="ia"/>
+                <available file="${vcvars.v8_ia_64_1}"/>
+            </and>
+        </condition>
+        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_ia_64_1.arg.1}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_ia_64_1}"/>
+        </condition>
+        <condition property="vcvars.bat.arg.2" value="${vcvars.v8_ia_64_1.arg.2}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_ia_64_1}"/>
         </condition>
         <!-- D drive checks -->
         <condition property="vcvars.bat" value="${vcvars.v6_32_2}">
@@ -293,7 +317,10 @@
             <isset property="is.aix"/>
         </condition>
         <condition property="wrapper.lib.extension" value="sl">
-            <isset property="is.hpux"/>
+            <and>
+                <isset property="is.hpux"/>
+                <equals arg1="${dist.arch}" arg2="parisc"/>
+            </and>
         </condition>
         <condition property="wrapper.lib.extension" value="jnilib">
             <isset property="is.macosx"/>
@@ -308,10 +335,6 @@
         <!-- Decide on the tool used to run make -->
         <condition property="make.name" value="gmake">
             <or>
-                <and> <!-- 32-bit HPUX uses gmake, 64-bit uses make. -->
-                    <isset property="is.hpux"/>
-                    <equals arg1="${bits}" arg2="32"/>
-                </and>
                 <isset property="is.osf1"/>
                 <isset property="is.freebsd"/>
                 <isset property="is.irix"/>
@@ -509,7 +532,7 @@
         
         <echo message="Java.vendor=${java.vendor}"/>
 
-        <condition property="makefile" value="Makefile-windows-x86-64.nmake">
+        <condition property="makefile" value="Makefile-windows-${dist.arch}-64.nmake">
             <equals arg1="${bits}" arg2="64"/>
         </condition>
         <property name="makefile" value="Makefile-windows-x86-32.nmake"/>
@@ -1303,7 +1326,6 @@ original tar distribution due to a lack of support for long path names in some t
                 <exclude name="${deltareleasefile}/lib/libwrapper-*"/>
             </tarfileset>
             <tarfileset dir="${build.dir}">
-                <include name="${deltareleasefile}/bin/wrapper-windows-*"/>
             </tarfileset>
         </tar>
         <gzip zipfile="${dist.dir}/${deltareleasefile}.tar.gz" src="${build.dir}/${deltareleasefile}.tar" />

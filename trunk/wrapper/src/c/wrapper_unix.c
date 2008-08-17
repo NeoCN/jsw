@@ -3,11 +3,10 @@
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
- * This software is the confidential and proprietary information
- * of Tanuki Software.  ("Confidential Information").  You shall
- * not disclose such Confidential Information and shall use it
- * only in accordance with the terms of the license agreement you
- * entered into with Tanuki Software.
+ * This software is the proprietary information of Tanuki Software.
+ * You shall use it only in accordance with the terms of the
+ * license agreement you entered into with Tanuki Software.
+ * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
  * 
  * 
  * Portions of the Software have been derived from source code
@@ -61,6 +60,15 @@
 
 #ifndef USE_USLEEP
 #include <time.h>
+#endif
+
+#if defined(LINUX)
+#if __GNUC_PREREQ (2,4)
+/* This compiler supports glibc 2.4 which means that the result will require
+ *  that version.  We want to make sure that we only require 2.3 so show a
+ *  warning. */
+#warning Compiler supports glibc 2.4 or greater.  Binary will not work with glibc 2.3.
+#endif
 #endif
 
 #ifndef getsid
@@ -585,7 +593,10 @@ void *timerRunner(void *arg) {
         lastTickOffset = tickOffset;
     }
 
+    /* Will never get here.  Solaris warns if the return is there.  Others warn if it is not. */
+#if !defined(SOLARIS)
     return NULL;
+#endif
 }
 
 /**
@@ -633,13 +644,17 @@ int wrapperInitializeRun() {
         retval = -1;
     }
 
-    /* Attempt to set the console title if it exists and is accessable. */
+    /* Attempt to set the console title if it exists and is accessable.
+     *  This works on all UNIX versions, but only Linux resets it
+     *  correctly when the wrapper process terminates. */
+#if defined(LINUX)
     if (wrapperData->consoleTitle) {
         if (wrapperData->isConsole) {
             /* The console should be visible. */
             printf("%c]0;%s%c", '\033', wrapperData->consoleTitle, '\007');
         }
     }
+#endif
 
     if (wrapperData->useSystemTime) {
         /* We are going to be using system time so there is no reason to start up a timer thread. */
@@ -1191,65 +1206,6 @@ int wrapperReadChildOutput() {
     }
     
     return 0;
-}
-
-/**
- * Kill the JVM Process immediately and set the JVM State to WRAPPER_JSTATE_DOWN
- */
-void wrapperKillProcessNow() {
-    /* Check to make sure that the JVM process is still running */
-    if (waitpid(wrapperData->javaPID, NULL, WNOHANG) == 0) {
-        /* JVM is still up when it should have already stopped itself. */
-
-        /* The JVM process is not responding so the only choice we have is to
-         *  kill it. */
-        if (kill(wrapperData->javaPID, SIGKILL)) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM did not exit on request.");
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "  Attempt to terminate process failed: %s", getLastErrorText());
-        } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM did not exit on request, terminated");
-        }
-
-        /* Give the JVM a chance to be killed so that the state will be correct. */
-        wrapperSleep(FALSE, 500); /* 0.5 seconds */
-
-        /* Set the exit code since we were forced to kill the JVM. */
-        wrapperData->exitCode = 1;
-    }
-
-    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, -1, -1);
-    wrapperData->javaPID = -1;
-
-    /* Remove java pid file if it was registered and created by this process. */
-    if (wrapperData->javaPidFilename) {
-        unlink(wrapperData->javaPidFilename);
-    }
-
-    /* Close any open socket to the JVM */
-    wrapperProtocolClose();
-}
-
-/**
- * Puts the Wrapper into a state where the JVM will be killed at the soonest
- *  possible oportunity.  It is necessary to wait a moment if a final thread
- *  dump is to be requested.  This call wll always set the JVM state to
- *  WRAPPER_JSTATE_KILLING.
- */
-void wrapperKillProcess(int useLoggerQueue) {
-    int delay = 0;
-
-    /* Check to make sure that the JVM process is still running */
-    if (waitpid(wrapperData->javaPID, NULL, WNOHANG) == 0) {
-        /* JVM is still up when it should have already stopped itself. */
-        if (wrapperData->requestThreadDumpOnFailedJVMExit) {
-            wrapperRequestDumpJVMState(useLoggerQueue);
-            
-            delay = 5;
-        }
-    }
-
-    wrapperSetJavaState(useLoggerQueue, WRAPPER_JSTATE_KILLING, wrapperGetTicks(), delay);
 }
 
 /**

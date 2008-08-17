@@ -1,6 +1,9 @@
 #********************************************************************
 # Wrapper License Properties (Ignored by Community Edition)
 #********************************************************************
+# Include file problems can be debugged by removing the first '#'
+#  from the following line:
+##include.debug
 #include ../conf/wrapper-license.conf
 
 #********************************************************************

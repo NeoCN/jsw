@@ -3,11 +3,10 @@
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
- * This software is the confidential and proprietary information
- * of Tanuki Software.  ("Confidential Information").  You shall
- * not disclose such Confidential Information and shall use it
- * only in accordance with the terms of the license agreement you
- * entered into with Tanuki Software.
+ * This software is the proprietary information of Tanuki Software.
+ * You shall use it only in accordance with the terms of the
+ * license agreement you entered into with Tanuki Software.
+ * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
  * 
  * 
  * Portions of the Software have been derived from source code
@@ -33,11 +32,6 @@
  *   Leif Mortenson <leif@tanukisoftware.com>
  */
 
-#ifndef WIN32
-/* For some reason this is not defined sometimes when I build $%$%$@@!! */
-barf
-#endif
-
 #ifdef WIN32
 
 #include <direct.h>
@@ -51,6 +45,7 @@ barf
 #include <conio.h>
 #include "psapi.h"
 
+#include "resource.h"
 #include "wrapper.h"
 #include "wrapperinfo.h"
 #include "property.h"
@@ -64,8 +59,6 @@ SERVICE_STATUS_HANDLE   sshStatusHandle;
 
 #define SYSTEM_PATH_MAX_LEN 256
 static char *systemPath[SYSTEM_PATH_MAX_LEN];
-static HANDLE wrapperProcess = NULL;
-static HANDLE javaProcess = NULL;
 static HANDLE wrapperChildStdoutWr = INVALID_HANDLE_VALUE;
 static HANDLE wrapperChildStdoutRd = INVALID_HANDLE_VALUE;
 
@@ -308,7 +301,7 @@ void appExit(int exitCode) {
     
     /* Common wrapper cleanup code. */
     wrapperDispose();
-
+    
     /* Do this here to unregister the syslog resources on exit.*/
     /*unregisterSyslogMessageFile(); */
     exit(exitCode);
@@ -430,7 +423,7 @@ int wrapperConsoleHandler(int key) {
         case CTRL_LOGOFF_EVENT:
             /* Happens when the user logs off.  We should quit when run as a */
             /*  console, but stay up when run as a service. */
-            if (wrapperData->isConsole) {
+            if ((wrapperData->isConsole) && (!wrapperData->ignoreUserLogoffs)) {
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     "User logged out.  Shutting down.");
                 quit = TRUE;
@@ -576,7 +569,7 @@ void wrapperContinueProcess(int useLoggerQueue) {
  * Send a signal to the JVM process asking it to dump its JVM state.
  */
 void wrapperRequestDumpJVMState(int useLoggerQueue) {
-    if (javaProcess != NULL) {
+    if (wrapperData->javaProcess != NULL) {
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
             "Dumping JVM state.");
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
@@ -996,8 +989,8 @@ void wrapperReportStatus(int useLoggerQueue, int status, int errorCode, int wait
             ssStatus.dwWin32ExitCode = NO_ERROR;
             ssStatus.dwServiceSpecificExitCode = 0;
         } else {
-            ssStatus.dwWin32ExitCode = errorCode; /* ERROR_SERVICE_SPECIFIC_ERROR; */
-            ssStatus.dwServiceSpecificExitCode = 0; /* errorCode; */
+            ssStatus.dwWin32ExitCode = ERROR_SERVICE_SPECIFIC_ERROR;
+            ssStatus.dwServiceSpecificExitCode = errorCode;
         }
         ssStatus.dwWaitHint = waitHint;
 
@@ -1240,13 +1233,13 @@ int wrapperGetProcessStatus(int useLoggerQueue, DWORD nowTicks, int sigChild) {
     DWORD exitCode;
     char *exName;
 
-    switch (WaitForSingleObject(javaProcess, 0)) {
+    switch (WaitForSingleObject(wrapperData->javaProcess, 0)) {
     case WAIT_ABANDONED:
     case WAIT_OBJECT_0:
         res = WRAPPER_PROCESS_DOWN;
 
         /* Get the exit code of the process. */
-        if (!GetExitCodeProcess(javaProcess, &exitCode)) {
+        if (!GetExitCodeProcess(wrapperData->javaProcess, &exitCode)) {
             log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Critical error: unable to obtain the exit code of the JVM process: %s", getLastErrorText());
             appExit(1);
@@ -1270,11 +1263,11 @@ int wrapperGetProcessStatus(int useLoggerQueue, DWORD nowTicks, int sigChild) {
         
         wrapperJVMProcessExited(useLoggerQueue, nowTicks, exitCode);
         
-        if (!CloseHandle(javaProcess)) {
+        if (!CloseHandle(wrapperData->javaProcess)) {
             log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 "Failed to close the Java process handle: %s", getLastErrorText());
         }
-        javaProcess = NULL;
+        wrapperData->javaProcess = NULL;
         wrapperData->javaPID = 0;
 
         break;
@@ -1290,88 +1283,6 @@ int wrapperGetProcessStatus(int useLoggerQueue, DWORD nowTicks, int sigChild) {
     }
 
     return res;
-}
-
-/**
- * Immediately kill the JVM process and set the JVM state to
- *  WRAPPER_JSTATE_DOWN.
- */
-void wrapperKillProcessNow() {
-    int ret;
-
-    /* Check to make sure that the JVM process is still running */
-    ret = WaitForSingleObject(javaProcess, 0);
-    if (ret == WAIT_TIMEOUT) {
-        /* JVM is still up when it should have already stopped itself. */
-
-        /* The JVM process is not responding so the only choice we have is to
-         *  kill it.  The TerminateProcess funtion will kill the process, but it
-         *  does not correctly notify the process's DLLs that it is shutting
-         *  down.  Ideally, we would call ExitProcess, but that can only be
-         *  called from within the process being killed. */
-        if (TerminateProcess(javaProcess, 0)) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM did not exit on request, terminated");
-        } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "JVM did not exit on request.");
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "  Attempt to terminate process failed: %s", getLastErrorText());
-        }
-
-        /* Give the JVM a chance to be killed so that the state will be correct. */
-        wrapperSleep(FALSE, 500); /* 0.5 seconds */
-
-        /* Set the exit code since we were forced to kill the JVM. */
-        wrapperData->exitCode = 1;
-    }
-
-    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, -1, -1);
-
-    /* Remove java pid file if it was registered and created by this process. */
-    if (wrapperData->javaPidFilename) {
-        _unlink(wrapperData->javaPidFilename);
-    }
-    
-    if (!CloseHandle(javaProcess)) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-            "Failed to close the Java process handle: %s", getLastErrorText());
-    }
-    javaProcess = NULL;
-    wrapperData->javaPID = 0;
-
-    /* Close any open socket to the JVM */
-    wrapperProtocolClose();
-}
-
-/**
- * Puts the Wrapper into a state where the JVM will be killed at the soonest
- *  possible opportunity.  It is necessary to wait a moment if a final thread
- *  dump is to be requested.  This call wll always set the JVM state to
- *  WRAPPER_JSTATE_KILLING.
- */
-void wrapperKillProcess(int useLoggerQueue) {
-    int ret;
-    int delay = 0;
-    
-    if ((wrapperData->jState == WRAPPER_JSTATE_DOWN) || (wrapperData->jState != WRAPPER_JSTATE_LAUNCH_DELAY)) {
-        /* Already down. */
-        if (wrapperData->jState != WRAPPER_JSTATE_DOWN) {
-            wrapperSetJavaState(useLoggerQueue, WRAPPER_JSTATE_DOWN, wrapperGetTicks(), 0);
-        }
-        return;
-    }
-
-    /* Check to make sure that the JVM process is still running */
-    ret = WaitForSingleObject(javaProcess, 0);
-    if (ret == WAIT_TIMEOUT) {
-        /* JVM is still up when it should have already stopped itself. */
-        if (wrapperData->requestThreadDumpOnFailedJVMExit) {
-            wrapperRequestDumpJVMState(useLoggerQueue);
-
-            delay = 5;
-        }
-    }
-
-    wrapperSetJavaState(useLoggerQueue, WRAPPER_JSTATE_KILLING, wrapperGetTicks(), delay);
 }
 
 /**
@@ -1500,7 +1411,7 @@ void wrapperExecute() {
     if (GetModuleFileName(NULL, szPath, 512) == 0){
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to launch %s -%s",
                      wrapperData->serviceDisplayName, getLastErrorText());
-        javaProcess = NULL;
+        wrapperData->javaProcess = NULL;
         return;
     }
     c = strrchr(szPath, '\\');
@@ -1547,7 +1458,7 @@ void wrapperExecute() {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 "Unable to execute Java command.  %s", getLastErrorText());
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "    %s", commandline);
-            javaProcess = NULL;
+            wrapperData->javaProcess = NULL;
             
             if (err == ERROR_ACCESS_DENIED) {
                 if (wrapperData->isAdviserEnabled) {
@@ -1583,7 +1494,7 @@ void wrapperExecute() {
     /* Now check if we have a process handle again for the Swedish WinNT bug */
     if (process_info.hProcess==NULL) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "can not execute \"%s\"", commandline);
-        javaProcess = NULL;
+        wrapperData->javaProcess = NULL;
         return;
     }
 
@@ -1596,7 +1507,7 @@ void wrapperExecute() {
         } else {
             /* We need to locate the console that was created by the JVM on launch
              *  and hide it. */
-         findAndHideConsoleWindow(titleBuffer);
+            findAndHideConsoleWindow(titleBuffer);
         }
     }
 
@@ -1605,7 +1516,7 @@ void wrapperExecute() {
     }
 
     /* We keep a reference to the process handle, but need to close the thread handle. */
-    javaProcess = process_info.hProcess;
+    wrapperData->javaProcess = process_info.hProcess;
     wrapperData->javaPID = process_info.dwProcessId;
     CloseHandle(process_info.hThread);
 
@@ -1660,16 +1571,16 @@ void wrapperDumpMemory() {
     
     if (OptionalGetProcessMemoryInfo) {
         /* Start with the Wrapper process. */
-        if (OptionalGetProcessMemoryInfo(wrapperProcess, &wCounters, sizeof(wCounters)) == 0) {
+        if (OptionalGetProcessMemoryInfo(wrapperData->wrapperProcess, &wCounters, sizeof(wCounters)) == 0) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 "Call to GetProcessMemoryInfo failed for Wrapper process %08x: %s",
                 wrapperData->wrapperPID, getLastErrorText());
             return;
         }
         
-        if (javaProcess != NULL) {
+        if (wrapperData->javaProcess != NULL) {
             /* Next the Java process. */
-            if (OptionalGetProcessMemoryInfo(javaProcess, &jCounters, sizeof(jCounters)) == 0) {
+            if (OptionalGetProcessMemoryInfo(wrapperData->javaProcess, &jCounters, sizeof(jCounters)) == 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                     "Call to GetProcessMemoryInfo failed for Java process %08x: %s",
                     wrapperData->javaPID, getLastErrorText());
@@ -1772,16 +1683,16 @@ void wrapperDumpCPUUsage() {
         performanceCount = count.QuadPart;
         
         /* Start with the Wrapper process. */
-        if (!OptionalGetProcessTimes(wrapperProcess, &creationTime, &exitTime, &wKernelTime, &wUserTime)) {
+        if (!OptionalGetProcessTimes(wrapperData->wrapperProcess, &creationTime, &exitTime, &wKernelTime, &wUserTime)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 "Call to GetProcessTimes failed for Wrapper process %08x: %s",
                 wrapperData->wrapperPID, getLastErrorText());
             return;
         }
         
-        if (javaProcess != NULL) {
+        if (wrapperData->javaProcess != NULL) {
             /* Next the Java process. */
-            if (!OptionalGetProcessTimes(javaProcess, &creationTime, &exitTime, &jKernelTime, &jUserTime)) {
+            if (!OptionalGetProcessTimes(wrapperData->javaProcess, &creationTime, &exitTime, &jKernelTime, &jUserTime)) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                     "Call to GetProcessTimes failed for Java process %08x: %s",
                     wrapperData->javaPID, getLastErrorText());
@@ -2001,19 +1912,9 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
     
  finally:
     
-        /* The the exit code is non-zero then we want the Service Manager to detect that we
-         *  are exiting in an error state.  If we tell it that it STOPPED then it appears to
-         *  ignore the exit code that we have set.   We need to simply exit the process.
-         * If the exit code is 0, however, then it is important that we actually report that
-         *  we have stopped with an exit code of 0. */
-        if (wrapperData->exitCode == 0) {
-            /* Report to the service manager that the application is about to exit. */
-            if (sshStatusHandle) {
-                /* This will continue on an be exited normally below. */
-                wrapperReportStatus(FALSE, WRAPPER_WSTATE_STOPPED, wrapperData->exitCode, 1000);
-            }
-        }
-    
+        /* Report that the service has stopped and set the correct exit code. */
+        wrapperReportStatus(FALSE, WRAPPER_WSTATE_STOPPED, wrapperData->exitCode, 1000);
+        
 #ifdef _DEBUG
         /* The following message will not always appear on the screen if the STOPPED
          *  status was set above.  But the code in the appExit function below always
@@ -3858,7 +3759,7 @@ void main(int argc, char **argv) {
             }
             
             /* Get the current process. */
-            wrapperProcess = GetCurrentProcess();
+            wrapperData->wrapperProcess = GetCurrentProcess();
             wrapperData->wrapperPID = GetCurrentProcessId();
             
             /* See if the logs should be rolled on Wrapper startup. */
@@ -3916,7 +3817,7 @@ void main(int argc, char **argv) {
             }
             
             /* Get the current process. */
-            wrapperProcess = GetCurrentProcess();
+            wrapperData->wrapperProcess = GetCurrentProcess();
             wrapperData->wrapperPID = GetCurrentProcessId();
             
             /* See if the logs should be rolled on Wrapper startup. */

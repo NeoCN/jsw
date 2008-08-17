@@ -3,11 +3,10 @@
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
- * This software is the confidential and proprietary information
- * of Tanuki Software.  ("Confidential Information").  You shall
- * not disclose such Confidential Information and shall use it
- * only in accordance with the terms of the license agreement you
- * entered into with Tanuki Software.
+ * This software is the proprietary information of Tanuki Software.
+ * You shall use it only in accordance with the terms of the
+ * license agreement you entered into with Tanuki Software.
+ * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
  * 
  * 
  * Portions of the Software have been derived from source code
@@ -173,8 +172,11 @@ struct WrapperConfig {
     int     jvmExitTimeout;         /* Number of seconds the wrapper will wait for a JVM to process to terminate */
 
 #ifdef WIN32
+    int     ignoreUserLogoffs;      /* If TRUE, the Wrapper will ignore logoff events when run in the background as an in console mode. */
     DWORD   wrapperPID;             /* PID of the Wrapper process. */
     DWORD   javaPID;                /* PID of the Java process. */
+    HANDLE  wrapperProcess;         /* Handle of the Wrapper process. */
+    HANDLE  javaProcess;            /* Handle of the Java process. */
 #else
     pid_t   wrapperPID;             /* PID of the Wrapper process. */
     pid_t   javaPID;                /* PID of the Java process. */
@@ -308,8 +310,34 @@ extern Properties    *properties;
 extern char wrapperClasspathSeparator;
 
 /* Protocol Functions */
+/**
+ * Build the java command line.
+ *
+ * @return TRUE if there were any problems.
+ */
 extern void wrapperProtocolClose();
 extern int wrapperProtocolFunction(int useLoggerQueue, char function, const char *message);
+
+/**
+ * Checks the status of the server socket.
+ *
+ * The socket will be initialized if the JVM is in a state where it should
+ *  be up, otherwise the socket will be left alone.
+ *
+ * If the forceOpen flag is set then an attempt will be made to initialize
+ *  the socket regardless of the JVM state.
+ *
+ * Returns TRUE if the socket is open and ready on return, FALSE if not.
+ */
+extern int wrapperCheckServerSocket(int forceOpen);
+
+/**
+ * Read any data sent from the JVM.  This function will loop and read as many
+ *  packets are available.  The loop will only be allowed to go for 250ms to
+ *  ensure that other functions are handled correctly.
+ *
+ * Returns 0 if all available data has been read, 1 if more data is waiting.
+ */
 extern int wrapperProtocolRead();
 
 /******************************************************************************
@@ -351,11 +379,6 @@ extern void wrapperGetFileBase(const char *fileName, char *baseName);
  * Output the version.
  */
 extern void wrapperVersionBanner();
-
-/**
- * Output the version.
- */
-extern void wrapperVersionBannerLog();
 
 /**
  * Output the application usage.
@@ -458,20 +481,6 @@ extern int wrapperReadChildOutput();
 extern int wrapperGetProcessStatus(int useLoggerQueue, DWORD nowTicks, int sigChild);
 
 /**
- * Immediately kill the JVM process and set the JVM state to
- *  WRAPPER_JSTATE_DOWN.
- */
-extern void wrapperKillProcessNow();
-
-/**
- * Puts the Wrapper into a state where the JVM will be killed at the soonest
- *  possible oportunity.  It is necessary to wait a moment if a final thread
- *  dump is to be requested.  This call wll always set the JVM state to
- *  WRAPPER_JSTATE_KILLING.
- */
-extern void wrapperKillProcess(int useLoggerQueue);
-
-/**
  * Pauses before launching a new JVM if necessary.
  */
 extern void wrapperPauseBeforeExecute();
@@ -507,6 +516,20 @@ extern void wrapperDumpCPUUsage();
 /******************************************************************************
  * Wrapper inner methods.
  *****************************************************************************/
+/**
+ * Immediately kill the JVM process and set the JVM state to
+ *  WRAPPER_JSTATE_DOWN.
+ */
+extern void wrapperKillProcessNow();
+
+/**
+ * Puts the Wrapper into a state where the JVM will be killed at the soonest
+ *  possible opportunity.  It is necessary to wait a moment if a final thread
+ *  dump is to be requested.  This call wll always set the JVM state to
+ *  WRAPPER_JSTATE_KILLING.
+ */
+extern void wrapperKillProcess(int useLoggerQueue);
+
 /**
  * Launch the wrapper as a console application.
  */
