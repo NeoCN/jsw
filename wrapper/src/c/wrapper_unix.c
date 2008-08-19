@@ -62,14 +62,8 @@
 #include <time.h>
 #endif
 
-#if defined(LINUX)
-#if __GNUC_PREREQ (2,4)
-/* This compiler supports glibc 2.4 which means that the result will require
- *  that version.  We want to make sure that we only require 2.3 so show a
- *  warning. */
-#warning Compiler supports glibc 2.4 or greater.  Binary will not work with glibc 2.3.
-#endif
-#endif
+#define __max(x,y) (((x) > (y)) ? (x) : (y))
+#define __min(x,y) (((x) < (y)) ? (x) : (y))
 
 #ifndef getsid
 /* getpid links ok on Linux, but is not defined correctly. */

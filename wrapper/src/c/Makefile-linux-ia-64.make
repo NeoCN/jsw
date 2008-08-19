@@ -7,10 +7,11 @@
 # license agreement you entered into with Tanuki Software.
 # http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
 
-UNIVERSAL_SDK_HOME=/Developer/SDKs/MacOSX10.5.sdk
-COMPILE = gcc -O3 -m64 -Wall -DUSE_NANOSLEEP -DMACOSX -arch ppc64 -arch x86_64 -isysroot $(UNIVERSAL_SDK_HOME) -mmacosx-version-min=10.4
+COMPILE = gcc -O3 -fPIC -Wall --pedantic -DLINUX -D_FILE_OFFSET_BITS=64
 
-DEFS = -I$(UNIVERSAL_SDK_HOME)/System/Library/Frameworks/JavaVM.framework/Headers
+INCLUDE=$(JAVA_HOME)/include
+
+DEFS = -I$(INCLUDE) -I$(INCLUDE)/linux
 
 wrapper_SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c
 
@@ -19,24 +20,29 @@ libwrapper_so_OBJECTS = wrapperjni_unix.o wrapperinfo.o wrapperjni.o
 BIN = ../../bin
 LIB = ../../lib
 
-all: init wrapper libwrapper.jnilib
+all: init wrapper libwrapper.so
 
 clean:
 	rm -f *.o
 
 cleanall: clean
 	rm -rf *~ .deps
-	rm -f $(BIN)/wrapper $(LIB)/libwrapper.jnilib
+	rm -f $(BIN)/wrapper $(LIB)/libwrapper.so
 
 init:
 	if test ! -d .deps; then mkdir .deps; fi
 
 wrapper: $(wrapper_SOURCE)
-	$(COMPILE) -DMACOSX $(wrapper_SOURCE) -o $(BIN)/wrapper
+	$(COMPILE) -lm -pthread $(wrapper_SOURCE) -o $(BIN)/wrapper
 
-libwrapper.jnilib: $(libwrapper_so_OBJECTS)
-	$(COMPILE) -bundle -o $(LIB)/libwrapper.jnilib $(libwrapper_so_OBJECTS)
+libwrapper.so: $(libwrapper_so_OBJECTS)
+	${COMPILE} -lm -shared $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
 
 %.o: %.c
-	$(COMPILE) -c $(DEFS) $<
-
+	@echo '$(COMPILE) -c $<'; \
+	$(COMPILE) $(DEFS) -Wp,-MD,.deps/$(*F).pp -c $<
+	@-cp .deps/$(*F).pp .deps/$(*F).P; \
+	tr ' ' '\012' < .deps/$(*F).pp \
+	| sed -e 's/^\\$$//' -e '/^$$/ d' -e '/:$$/ d' -e 's/$$/ :/' \
+	>> .deps/$(*F).P; \
+	rm .deps/$(*F).pp
