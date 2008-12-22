@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2008 Tanuki Software, Inc.
+ * Copyright (c) 1999, 2008 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -1122,8 +1122,8 @@ void jStateLaunchDelay(DWORD nowTicks, int nextSleep) {
             /* Check the backend server socket to make sure it has been initialized.
              *  This is needed so we can pass its port as part of the java command. */
             if (!wrapperCheckServerSocket(TRUE)) {
-            	/* The socket is not up.  An error should have been reported.  But this means we
-            	 *  are unable to continue. */
+                /* The socket is not up.  An error should have been reported.  But this means we
+                 *  are unable to continue. */
                 wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
                 wrapperData->exitCode = 1;
                 return;

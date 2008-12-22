@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper;
 
 /*
- * Copyright (c) 1999, 2008 Tanuki Software, Inc.
+ * Copyright (c) 1999, 2008 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -175,6 +175,50 @@ public final class WrapperManager
     
     /** Service Control code which can be received when the system is shutting down. */
     public static final int SERVICE_CONTROL_CODE_SHUTDOWN    = 5;
+    
+    /** Service Control code which is received when the system being suspended. */
+    public static final int SERVICE_CONTROL_CODE_POWEREVENT_QUERYSUSPEND       = 0x0D00;
+	
+	/** Service Control code which is received when permission to suspend the
+	 *   computer was denied by a process.  Support for this event was removed
+	 *   from the Windows OS starting with Vista.*/
+    public static final int SERVICE_CONTROL_CODE_POWEREVENT_QUERYSUSPENDFAILED = 0x0D02;
+	
+	/** Service Control code which is received when the computer is about to
+	 *   enter a suspended state. */
+    public static final int SERVICE_CONTROL_CODE_POWEREVENT_SUSPEND            = 0x0D04;
+	
+	/** Service Control code which is received when the system has resumed
+	 *   operation. This event can indicate that some or all applications did
+	 *   not receive a SERVICE_CONTROL_CODE_POWEREVENT_SUSPEND event.
+	 *   Support for this event was removed from the Windows OS starting with
+	 *   Vista.  See SERVICE_CONTROL_CODE_POWEREVENT_RESUMEAUTOMATIC. */
+    public static final int SERVICE_CONTROL_CODE_POWEREVENT_RESUMECRITICAL     = 0x0D06;
+	
+	/** Service Control code which is received when the system has resumed
+	 *   operation after being suspended. */
+    public static final int SERVICE_CONTROL_CODE_POWEREVENT_RESUMESUSPEND      = 0x0D07;
+	
+	/** Service Control code which is received when the battery power is low.
+	 *   Support for this event was removed from the Windows OS starting with
+	 *   Vista.  See SERVICE_CONTROL_CODE_POWEREVENT_POWERSTATUSCHANGE. */
+    public static final int SERVICE_CONTROL_CODE_POWEREVENT_BATTERYLOW         = 0x0D09;
+	
+	/** Service Control code which is received when there is a change in the
+	 *   power status of the computer, such as a switch from battery power to
+	 *   A/C. The system also broadcasts this event when remaining battery
+	 *   power slips below the threshold specified by the user or if the
+	 *   battery power changes by a specified percentage. */
+    public static final int SERVICE_CONTROL_CODE_POWEREVENT_POWERSTATUSCHANGE  = 0x0D0A;
+	
+	/** Service Control code which is received when the APM BIOS has signaled
+	 *   an APM OEM event.  Support for this event was removed from the Windows
+	 *   OS starting with Vista. */
+    public static final int SERVICE_CONTROL_CODE_POWEREVENT_OEMEVENT           = 0x0D0B;
+	
+	/** Service Control code which is received when the computer has woken up
+	 *   automatically to handle an event. */
+    public static final int SERVICE_CONTROL_CODE_POWEREVENT_RESUMEAUTOMATIC    = 0x0D12;
     
     /** Reference to the original value of System.out. */
     private static PrintStream m_out;
@@ -518,6 +562,12 @@ public final class WrapperManager
             if ( m_debug )
             {
                 m_outDebug.println( "Using wrapper" );
+            }
+            
+            if ( WrapperSystemPropertyUtil.getBooleanProperty( "wrapper.disable_console_input", false ) )
+            {
+                // Replace the System.in stream with one of our own to disable it.
+                System.setIn( new WrapperInputStream() );
             }
             
             // A port must have been specified.
@@ -2589,7 +2639,11 @@ public final class WrapperManager
                 break;
                 
             default:
-                action = WrapperServicePermission.ACTION_USER_CODE;
+            	if ( ( controlCode >= 128 ) && ( controlCode <= 255 ) ) {
+                    action = WrapperServicePermission.ACTION_USER_CODE;
+            	} else {
+            		throw new IllegalArgumentException( "The specified controlCode is invalid." );
+            	}
                 break;
             }
             
@@ -4433,6 +4487,42 @@ public final class WrapperManager
         public int getTickOffset()
         {
             return m_tickOffset;
+        }
+    }
+    
+    /**
+     * When the JVM is being controlled by the Wrapper, stdin can not be used
+     *  as it is undefined.  This class makes it possible to provide the user
+     *  application with a descriptive error message if System.in is accessed.
+     */
+    private static class WrapperInputStream
+        extends InputStream
+    {
+        /**
+         * This method will always throw an IOException as the read method is
+         *  not valid.
+         */
+        public int read()
+            throws IOException
+        {
+            m_out.println( "WARNING - System.in has been disabled by the wrapper.disable_console_input property.  "
+                + "Calls will block indefinitely." );
+            
+            // Go into a loop that will never return.
+            while ( true )
+            {
+                synchronized( this )
+                {
+                    try
+                    {
+                        this.wait();
+                    }
+                    catch ( InterruptedException e )
+                    {
+                        // Ignore.
+                    }
+                }
+            }
         }
     }
 }

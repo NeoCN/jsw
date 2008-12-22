@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2008 Tanuki Software, Inc.
+ * Copyright (c) 1999, 2008 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -61,9 +61,6 @@
 #ifndef USE_USLEEP
 #include <time.h>
 #endif
-
-#define __max(x,y) (((x) > (y)) ? (x) : (y))
-#define __min(x,y) (((x) < (y)) ? (x) : (y))
 
 #ifndef getsid
 /* getpid links ok on Linux, but is not defined correctly. */
@@ -1372,11 +1369,13 @@ int main(int argc, char **argv) {
     /* At this point, we have a command, confFile, and possibly additional arguments. */
     if (!strcmpIgnoreCase(wrapperData->argCommand,"?") || !strcmpIgnoreCase(wrapperData->argCommand,"-help")) {
         /* User asked for the usage. */
+        setSimpleLogLevels();
         wrapperUsage(argv[0]);
         appExit(0);
         return 0; /* For compiler. */
     } else if (!strcmpIgnoreCase(wrapperData->argCommand,"v") || !strcmpIgnoreCase(wrapperData->argCommand,"-version")) {
         /* User asked for version. */
+        setSimpleLogLevels();
         wrapperVersionBanner();
         appExit(0);
         return 0; /* For compiler. */
@@ -1458,7 +1457,8 @@ int main(int argc, char **argv) {
         appExit(wrapperRunConsole());
         return 0; /* For compiler. */
     } else {
-        printf("\nUnrecognized option: -%s\n", wrapperData->argCommand);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Unrecognized option: -%s", wrapperData->argCommand);
         wrapperUsage(argv[0]);
         appExit(1);
         return 1; /* For compiler. */

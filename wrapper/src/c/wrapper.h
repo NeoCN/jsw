@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2008 Tanuki Software, Inc.
+ * Copyright (c) 1999, 2008 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -43,6 +43,8 @@
 #define u_short unsigned short
 #endif /* MACOSX */
 
+#define __max(x,y) (((x) > (y)) ? (x) : (y))
+#define __min(x,y) (((x) < (y)) ? (x) : (y))
 #endif
 
 #ifndef DWORD
@@ -268,6 +270,7 @@ struct WrapperConfig {
     int     ntHideWrapperConsole;   /* Should the Wrapper Console window be hidden when run as a service. */
     HWND    wrapperConsoleHandle;   /* Pointer to the Wrapper Console handle if it exists.  This will only be set if the console was allocated then hidden. */
     int     ntAllocConsole;         /* True if a console should be allocated for the Service. */
+    int     generateConsole;        /* Make sure that a console is always generated to support thread dumps */
     int     threadDumpControlCode;  /* Control code which can be used to trigger a thread dump. */
 #else /* UNIX */
     int     daemonize;              /* TRUE if the process  should be spawned as a daemon process on launch. */

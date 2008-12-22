@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2008 Tanuki Software, Inc.
+ * Copyright (c) 1999, 2008 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -115,7 +115,10 @@ extern void setConsoleStdoutHandle( HANDLE stdoutHandle );
 
 extern void outOfMemory(const char *context, int id);
 
+extern void setSimpleLogLevels();
+
 /* * Logfile functions * */
+extern int isLogfileAccessed();
 extern void setLogfilePath( const char *log_file_path );
 extern const char *getLogfilePath();
 extern int getLogfileRollModeForName( const char *logfileRollName );

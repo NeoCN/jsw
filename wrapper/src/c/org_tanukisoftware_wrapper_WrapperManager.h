@@ -91,6 +91,16 @@ extern "C" {
 #define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_INTERROGATE 4L
 #undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_SHUTDOWN
 #define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_SHUTDOWN 5L
+#undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_QUERYSUSPEND
+#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_QUERYSUSPEND 128L
+#undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_RESUMEAUTOMATIC
+#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_RESUMEAUTOMATIC 129L
+#undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_QUERYSUSPENDFAILED
+#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_QUERYSUSPENDFAILED 130L
+#undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_RESUMESUSPEND
+#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_RESUMESUSPEND 131L
+#undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_SUSPEND
+#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_SUSPEND 132L
 /* Inaccessible static: m_out */
 /* Inaccessible static: m_err */
 /* Inaccessible static: m_outInfo */
@@ -133,6 +143,7 @@ extern "C" {
 /* Inaccessible static: m_appearHung */
 /* Inaccessible static: m_addShutdownHookMethod */
 /* Inaccessible static: m_removeShutdownHookMethod */
+/* Inaccessible static: m_ignoreUserLogoffs */
 /* Inaccessible static: m_service */
 /* Inaccessible static: m_debug */
 /* Inaccessible static: m_jvmId */

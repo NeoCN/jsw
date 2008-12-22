@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2008 Tanuki Software, Inc.
+ * Copyright (c) 1999, 2008 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -144,6 +144,9 @@ size_t threadMessageBufferSize = 0;
 char *threadPrintBuffer = NULL;
 size_t threadPrintBufferSize = 0;
 
+/* Flag which gets set when a log entry is written to the log file. */
+int logFileAccessed = FALSE;
+
 /* Logger file pointer.  It is kept open under high log loads but closed whenever it has been idle. */
 FILE *logfileFP = NULL;
 
@@ -229,6 +232,7 @@ int initLogging() {
     }
 #endif
     
+    logFileAccessed = FALSE;
     logFileLastNowDate[0] = '\0';
 
     for ( threadId = 0; threadId < WRAPPER_THREAD_COUNT; threadId++ ) {
@@ -238,7 +242,7 @@ int initLogging() {
         {
             queueWrapped[threadId] = 0;
             queueWriteIndex[threadId] = 0;
-            queueReadIndex[threadId] = -1; /* Start here so equality checks work. */
+            queueReadIndex[threadId] = 0;
             queueMessages[threadId][i] = NULL;
             queueSourceIds[threadId][i] = 0;
             queueLevels[threadId][i] = 0;
@@ -371,7 +375,19 @@ int getLogFacilityForName( const char *logFacilityName ) {
 }
 #endif
 
+/** Sets the console log levels to a simple format for help and usage messages. */
+void setSimpleLogLevels() {
+    /* Force the log levels to control output. */
+    setConsoleLogFormat("M");
+    setConsoleLogLevelInt(LEVEL_INFO);
+    setLogfileLevelInt(LEVEL_NONE);
+    setSyslogLevelInt(LEVEL_NONE);
+}
+
 /* Logfile functions */
+int isLogfileAccessed() {
+    return logFileAccessed;
+}
 
 void setLogfilePath( const char *log_file_path ) {
     size_t len = strlen(log_file_path);
@@ -1012,6 +1028,7 @@ void log_printf_message( int source_id, int level, int threadId, int queued, con
                 printBuffer = buildPrintBuffer( source_id, level, threadId, queued, nowTM, nowMillis, logfileFormat, message );
                 if (printBuffer) {
                     fprintf( logfileFP, "%s\n", printBuffer );
+                    logFileAccessed = TRUE;
                     
                     /* Increment the activity counter. */
                     logfileActivityCount++;

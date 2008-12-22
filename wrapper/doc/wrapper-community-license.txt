@@ -1,11 +1,11 @@
 ----------------------------------------------------------------------
 -----------------                                    -----------------
-                         Tanuki Software, Inc. 
+                         Tanuki Software, Ltd. 
                  Community Software License Agreement
                              Version 1.0
 
 IMPORTANT-READ CAREFULLY: This license agreement is a legal agreement
-between you and Tanuki Software, Inc.("TSI"), which includes computer
+between you and Tanuki Software, Ltd.("TSI"), which includes computer
 software, associated media, printed materials, and may include online
 or electronic documentation ( Software ).  PLEASE READ THIS AGREEMENT
 CAREFULLY BEFORE YOU INSTALL, COPY, DOWNLOAD OR USE THE SOFTWARE
