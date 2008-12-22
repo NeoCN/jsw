@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2008 Tanuki Software, Inc.
+ * Copyright (c) 1999, 2008 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -72,7 +72,7 @@ Property* getInnerProperty(Properties *properties, const char *propertyName) {
     /* Loop over the properties which are in order and look for the specified property. */
     property = properties->first;
     while (property != NULL) {
-        cmp = strcmp(property->name, propertyName);
+        cmp = strcmpIgnoreCase(property->name, propertyName);
         if (cmp > 0) {
             /* This property would be after the one being looked for, so it does not exist. */
             return NULL;
@@ -117,7 +117,7 @@ void insertInnerProperty(Properties *properties, Property *newProperty) {
     /* This function assumes that Property is not already in properties. */
     property = properties->first;
     while (property != NULL) {
-        cmp = strcmp(property->name, newProperty->name);
+        cmp = strcmpIgnoreCase(property->name, newProperty->name);
         if (cmp > 0) {
             /* This property would be after the new property, so insert it here. */
             newProperty->previous = property->previous;
@@ -168,7 +168,7 @@ Property* createInnerProperty() {
 
 /**
  * Private function to dispose a Property structure.  Assumes that the
- *	Property is disconnected already.
+ *    Property is disconnected already.
  */
 void disposeInnerProperty(Property *property) {
     free(property->name);
@@ -549,6 +549,10 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
                             free(absoluteBuffer);
                         }
                     }
+                } else if (strstr(trimmedBuffer, "include") == trimmedBuffer) {
+                    /* Users sometimes remove the '#' from include statements.  Add a warning to help them notice the problem. */
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                        "Include file reference missing leading '#': %s", trimmedBuffer);
                 } else if (trimmedBuffer[0] != '#') {
                     /* printf("%s\n", trimmedBuffer); */
 

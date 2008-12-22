@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper.test;
 
 /*
- * Copyright (c) 1999, 2008 Tanuki Software, Inc.
+ * Copyright (c) 1999, 2008 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -402,7 +402,7 @@ public class Main
         System.out.println( "TestWrapper: controlEvent(" + event + ")" );
         
         if ( ( event == WrapperManager.WRAPPER_CTRL_LOGOFF_EVENT )
-        	&& ( WrapperManager.isLaunchedAsService() || WrapperManager.isIgnoreUserLogoffs() ) )
+            && ( WrapperManager.isLaunchedAsService() || WrapperManager.isIgnoreUserLogoffs() ) )
         {
             System.out.println( "TestWrapper:   Ignoring logoff event" );
             // Ignore

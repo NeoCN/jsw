@@ -236,6 +236,19 @@
         <condition property="vcvars.bat.arg.2" value="${vcvars.v8_32_5.arg.2}">
             <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_5}"/>
         </condition>
+        <condition property="vcvars.bat" value="${vcvars.v8_32_6}">
+            <and>
+                <not><isset property="vcvars.bat"/></not>
+                <equals arg1="${bits}" arg2="32"/>
+                <available file="${vcvars.v8_32_6}"/>
+            </and>
+        </condition>
+        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_32_6.arg.1}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_6}"/>
+        </condition>
+        <condition property="vcvars.bat.arg.2" value="${vcvars.v8_32_6.arg.2}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_6}"/>
+        </condition>
         <condition property="vcvars.bat" value="${vcvars.v8_x86_64_1}">
             <and>
                 <equals arg1="${bits}" arg2="64"/>
@@ -262,6 +275,19 @@
         </condition>
         <condition property="vcvars.bat.arg.2" value="${vcvars.v8_x86_64_3.arg.2}">
             <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_x86_64_3}"/>
+        </condition>
+        <condition property="vcvars.bat" value="${vcvars.v8_x86_64_4}">
+            <and>
+                <equals arg1="${bits}" arg2="64"/>
+                <equals arg1="${dist.arch}" arg2="x86"/>
+                <available file="${vcvars.v8_x86_64_4}"/>
+            </and>
+        </condition>
+        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_x86_64_4.arg.1}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_x86_64_4}"/>
+        </condition>
+        <condition property="vcvars.bat.arg.2" value="${vcvars.v8_x86_64_4.arg.2}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_x86_64_4}"/>
         </condition>
         <condition property="vcvars.bat" value="${vcvars.v8_ia_64_1}">
             <and>
@@ -618,9 +644,9 @@
                 <attribute name="Package" value="org.tanukisoftware.wrapper"/>
                 <attribute name="Extension-Name" value="wrapper"/>
                 <attribute name="Specification-Title" value="Java Service Wrapper"/>
-                <attribute name="Specification-Vendor" value="Tanuki Software, Inc."/>
+                <attribute name="Specification-Vendor" value="Tanuki Software, Ltd."/>
                 <attribute name="Implementation-Title" value="org.tanukisoftware.wrapper"/>
-                <attribute name="Implementation-Vendor" value="Tanuki Software, Inc."/>
+                <attribute name="Implementation-Vendor" value="Tanuki Software, Ltd."/>
                 <attribute name="Implementation-Version" value="${Version}"/>
             </manifest>
         </jar>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2008 Tanuki Software, Inc.
+ * Copyright (c) 1999, 2008 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -149,7 +149,7 @@ initExplorerExeName() {
     sprintf(explorerExe, "Explorer.exe");
 }
 
-void throwException(JNIEnv *env, const char *className, const char *message) {
+void throwException(JNIEnv *env, const char *className, int jErrorCode, const char *message) {
     jclass exceptionClass;
     jmethodID constructor;
     jbyteArray jMessage;
@@ -157,13 +157,13 @@ void throwException(JNIEnv *env, const char *className, const char *message) {
     
     if (exceptionClass = (*env)->FindClass(env, className)) {
         /* Look for the constructor. Ignore failures. */
-        if (constructor = (*env)->GetMethodID(env, exceptionClass, "<init>", "([B)V")) {
+        if (constructor = (*env)->GetMethodID(env, exceptionClass, "<init>", "(I[B)V")) {
             jMessage = (*env)->NewByteArray(env, (jsize)strlen(message));
             /* The 1.3.1 jni.h file does not specify the message as const.  The cast is to
              *  avoid compiler warnings trying to pass a (const char *) as a (char *). */
             (*env)->SetByteArrayRegion(env, jMessage, 0, (jsize)strlen(message), (char *)message);
             
-            exception = (*env)->NewObject(env, exceptionClass, constructor, jMessage);
+            exception = (*env)->NewObject(env, exceptionClass, constructor, jErrorCode, jMessage);
             
             if ((*env)->Throw(env, exception)){
                 printf("WrapperJNI Error: Unable to throw exception of class '%s' with message: %s",
@@ -183,8 +183,8 @@ void throwException(JNIEnv *env, const char *className, const char *message) {
     }
 }
 
-void throwServiceException(JNIEnv *env, const char *message) {
-    throwException(env, "org/tanukisoftware/wrapper/WrapperServiceException", message);
+void throwServiceException(JNIEnv *env, int errorCode, const char *message) {
+    throwException(env, "org/tanukisoftware/wrapper/WrapperServiceException", errorCode, message);
 }
 
 /**
@@ -876,7 +876,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, j
                     /* Failed to get the services. */
                     sprintf(buffer, "Unable to enumerate the system services: %s",
                         getLastErrorText());
-                    throwServiceException(env, buffer);
+                    throwServiceException(env, GetLastError(), buffer);
                     threwError = TRUE;
                 } else {
                     /* Success. */
@@ -884,7 +884,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, j
             } else {
                 sprintf(buffer, "Unable to enumerate the system services: %s",
                     getLastErrorText());
-                throwServiceException(env, buffer);
+                throwServiceException(env, GetLastError(), buffer);
                 threwError = TRUE;
             }
         } else {
@@ -924,7 +924,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, j
             } else {
                 /* Unable to load the service class. */
                 sprintf(buffer, "Unable to locate class org.tanukisoftware.wrapper.WrapperWin32Service");
-                throwServiceException(env, buffer );
+                throwServiceException(env, 1, buffer );
             }
         }
 
@@ -938,7 +938,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, j
         /* Unable to open the service manager. */
         sprintf(buffer, "Unable to open the Windows service control manager database: %s",
             getLastErrorText());
-        throwServiceException(env, buffer );
+        throwServiceException(env, GetLastError(), buffer );
     }
     
     return serviceArray;
@@ -994,7 +994,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
         } else {
             /* Illegal control code. */
             sprintf(buffer, "Illegal Control code specified: %d", controlCode);
-            throwServiceException(env, buffer );
+            throwServiceException(env, 1, buffer );
             threwError = TRUE;
         }
         
@@ -1017,7 +1017,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
                         /* Failed. */
                         sprintf(buffer, "Unable to start service \"%s\": %s", serviceNameBytes,
                             getLastErrorText());
-                        throwServiceException(env, buffer );
+                        throwServiceException(env, GetLastError(), buffer );
                         threwError = TRUE;
                     }
                 }
@@ -1035,14 +1035,14 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
                                 /* Actual failure. */
                                 sprintf(buffer, "Unable to query status of service \"%s\": %s",
                                     serviceNameBytes, getLastErrorText());
-                                throwServiceException(env, buffer );
+                                throwServiceException(env, GetLastError(), buffer );
                                 threwError = TRUE;
                             }
                         } else {
                             /* Actual failure. */
                             sprintf(buffer, "Unable to send control code to service \"%s\": %s",
                                 serviceNameBytes, getLastErrorText());
-                            throwServiceException(env, buffer );
+                            throwServiceException(env, GetLastError(), buffer );
                             threwError = TRUE;
                         }
                     }
@@ -1075,7 +1075,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
                         } else {
                             /* Unable to load the service class. */
                             sprintf(buffer, "Unable to locate class org.tanukisoftware.wrapper.WrapperWin32Service");
-                            throwServiceException(env, buffer );
+                            throwServiceException(env, 1, buffer );
                         }
                     }
                 }
@@ -1085,7 +1085,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
                 /* Unable to open service. */
                 sprintf(buffer, "Unable to open the service '%s': %s",
                     serviceNameBytes, getLastErrorText());
-                throwServiceException(env, buffer );
+                throwServiceException(env, GetLastError(), buffer );
                 threwError = TRUE;
             }
             
@@ -1098,7 +1098,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
         /* Unable to open the service manager. */
         sprintf(buffer, "Unable to open the Windows service control manager database: %s",
             getLastErrorText());
-        throwServiceException(env, buffer );
+        throwServiceException(env, GetLastError(), buffer );
         threwError = TRUE;
     }
     

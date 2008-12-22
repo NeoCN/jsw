@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2008 Tanuki Software, Inc.
+ * Copyright (c) 1999, 2008 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -96,18 +96,63 @@ int cleanUpPIDFilesOnExit = FALSE;
 
 char* getExceptionName(DWORD exCode);
 
+/* Dynamically loadedfunction types. */
+typedef SERVICE_STATUS_HANDLE(*FTRegisterServiceCtrlHandlerEx)(LPCTSTR, LPHANDLER_FUNCTION_EX, LPVOID);
+
 /* Dynamically loaded functions. */
 FARPROC OptionalGetProcessTimes = NULL;
 FARPROC OptionalGetProcessMemoryInfo = NULL;
+FTRegisterServiceCtrlHandlerEx OptionalRegisterServiceCtrlHandlerEx = NULL;
 
 /******************************************************************************
  * Windows specific code
  ******************************************************************************/
+
+/**
+ * Tests whether or not the current OS is at or below the version of Windows NT.
+ *
+ * @return TRUE if NT 4.0 or earlier, FALSE otherwise.
+ */
+BOOL isWindowsNT4_0OrEarlier() 
+{
+   OSVERSIONINFOEX osvi;
+   BOOL bOsVersionInfoEx;
+   BOOL retval;
+   
+   /* Try calling GetVersionEx using the OSVERSIONINFOEX structure.
+    *  If that fails, try using the OSVERSIONINFO structure. */
+   retval = TRUE;
+   ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
+   osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+
+   if (!(bOsVersionInfoEx = GetVersionEx ((OSVERSIONINFO *) &osvi))) {
+      /* If OSVERSIONINFOEX doesn't work, try OSVERSIONINFO. */
+      osvi.dwOSVersionInfoSize = sizeof (OSVERSIONINFO);
+      if (!GetVersionEx((OSVERSIONINFO *) &osvi)) {
+          retval = TRUE;
+      }
+   }
+
+   if (osvi.dwMajorVersion <= 4) {
+      retval = TRUE;
+   } else {
+      retval = FALSE;
+   }
+
+   return retval;
+}
+
+#ifdef _UNICODE
+#define FUNCTION_NAME_RegisterServiceCtrlHandlerEx "RegisterServiceCtrlHandlerExW"
+#else
+#define FUNCTION_NAME_RegisterServiceCtrlHandlerEx "RegisterServiceCtrlHandlerExA"
+#endif
 void loadDLLProcs() {
     HMODULE kernel32Mod;
     HMODULE psapiMod;
+    HMODULE advapi32Mod;
 
-    /* The PSAPI module was added in NT 3.5. */
+    /* The KERNEL32 module was added in NT 3.5. */
     if ((kernel32Mod = GetModuleHandle("KERNEL32.DLL")) == NULL) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
             "The KERNEL32.DLL was not found.  Some functions will be disabled.");
@@ -126,6 +171,18 @@ void loadDLLProcs() {
         if ((OptionalGetProcessMemoryInfo = GetProcAddress(psapiMod, "GetProcessMemoryInfo")) == NULL) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                 "The GetProcessMemoryInfo is not available in this PSAPI.DLL version.  Some functions will be disabled.");
+        }
+    }
+
+    /* The ADVAPI32 module was added in NT 5.0. */
+    if ((advapi32Mod = LoadLibrary("ADVAPI32.DLL")) == NULL) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+            "The ADVAPI32.DLL was not found.  Some functions will be disabled.");
+    } else {
+        if ((OptionalRegisterServiceCtrlHandlerEx = (FTRegisterServiceCtrlHandlerEx)GetProcAddress(advapi32Mod, FUNCTION_NAME_RegisterServiceCtrlHandlerEx)) == NULL) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                "The %s is not available in this ADVAPI32.DLL version.  Some functions will be disabled.",
+                FUNCTION_NAME_RegisterServiceCtrlHandlerEx);
         }
     }
 }
@@ -651,23 +708,48 @@ int wrapperBuildJavaCommand() {
 }
 
 void hideConsoleWindow(HWND consoleHandle) {
+    int tries;
     WINDOWPLACEMENT consolePlacement;
     
-    if (GetWindowPlacement(consoleHandle, &consolePlacement)) {
-        /* Hide the Window. */
-        consolePlacement.showCmd = SW_HIDE;
+    memset(&consolePlacement, 0, sizeof(WINDOWPLACEMENT));
+    consolePlacement.length = sizeof(WINDOWPLACEMENT);
+    
+    tries = 0;
+    while (tries < 100) {
+        if (IsWindowVisible(consoleHandle)) {
+            if (tries > 0) {
+                /* Sleep before the second try. */
+                wrapperSleep(FALSE, 10);
+            }
 
-        /* If we hide the window too soon after it is shown, it sometimes sticks, so wait a moment. */
-        wrapperSleep(FALSE, 10);
+            /* Hide the Window. */
+            consolePlacement.showCmd = SW_HIDE;
 
-        if (!SetWindowPlacement(consoleHandle, &consolePlacement)) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                "Unable to set window placement information: %s", getLastErrorText());
+            if (!SetWindowPlacement(consoleHandle, &consolePlacement)) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                    "Unable to set window placement information: %s", getLastErrorText());
+            }
+            tries++;
+        } else {
+            break;
         }
-    } else {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-            "Unable to obtain window placement information: %s", getLastErrorText());
     }
+    
+    //if (GetWindowPlacement(consoleHandle, &consolePlacement)) {
+    //    /* Hide the Window. */
+    //    consolePlacement.showCmd = SW_HIDE;
+    //
+    //    /* If we hide the window too soon after it is shown, it sometimes sticks, so wait a moment. */
+    //    wrapperSleep(FALSE, 1000);
+    //
+    //    if (!SetWindowPlacement(consoleHandle, &consolePlacement)) {
+    //        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+    //            "Unable to set window placement information: %s", getLastErrorText());
+    //    }
+    //} else {
+    //    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+    //        "Unable to obtain window placement information: %s", getLastErrorText());
+    //}
 }
 
 HWND findAndHideConsoleWindow( char *title ) {
@@ -839,9 +921,9 @@ int wrapperInitializeRun() {
     /* The Wrapper will not have its own console when running as a service.  We need
      *  to create one here. */
     if ((!wrapperData->isConsole) && (wrapperData->ntAllocConsole)) {
-#ifdef _DEBUG
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Allocating a console for the service.");
-#endif
+        if (wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Allocating a console for the service.");
+        }
 
         if (!AllocConsole()) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
@@ -975,14 +1057,30 @@ void wrapperReportStatus(int useLoggerQueue, int status, int errorCode, int wait
     }
 
     if (!wrapperData->isConsole) {
-        if (natState == SERVICE_START_PENDING) {
-            ssStatus.dwControlsAccepted = 0;
-        } else {
-            ssStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN;
+        ssStatus.dwControlsAccepted = 0;
+        if (natState != SERVICE_START_PENDING) {
+            ssStatus.dwControlsAccepted |= SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN;
             if (wrapperData->ntServicePausable) {
                 ssStatus.dwControlsAccepted |= SERVICE_ACCEPT_PAUSE_CONTINUE;
             }
         }
+        if (isWindowsNT4_0OrEarlier()) {
+            /* Old Windows - Does not support power events. */
+        } else {
+            /* Supports power events. */
+            ssStatus.dwControlsAccepted |= SERVICE_ACCEPT_POWEREVENT;
+        }
+        /*
+        if (wrapperData->isDebugging) {
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                "  Service %s accepting STOP=%s, SHUTDOWN=%s, PAUSE/CONTINUE=%s, POWEREVENT=%s",
+                natStateName,
+                (ssStatus.dwControlsAccepted & SERVICE_ACCEPT_STOP ? "True" : "False"),
+                (ssStatus.dwControlsAccepted & SERVICE_ACCEPT_SHUTDOWN ? "True" : "False"),
+                (ssStatus.dwControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE ? "True" : "False"),
+                (ssStatus.dwControlsAccepted & SERVICE_ACCEPT_POWEREVENT ? "True" : "False"));
+        }
+        */
 
         ssStatus.dwCurrentState = natState;
         if (errorCode == 0) {
@@ -1755,24 +1853,130 @@ void wrapperDumpCPUUsage() {
  * The service control handler is called by the service manager when there are
  *    events for the service.  registered using a call to 
  *    RegisterServiceCtrlHandler in wrapperServiceMain.
+ *
+ * Note on PowerEvents prior to win2k: http://blogs.msdn.com/heaths/archive/2005/05/18/419791.aspx
  */
-VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
+DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
+                                            DWORD dwEvtType, 
+                                            LPVOID lpEvtData,
+                                            LPVOID lpCntxt) {
     /* Allow for a large integer + \0 */
     char buffer[11];
+
+    DWORD result = result = NO_ERROR;
+    
+    /* Forward the control code off to the JVM. */
+    DWORD controlCode = dwCtrlCode;
     
     /* Enclose the contents of this call in a try catch block so we can
      *  display and log useful information should the need arise. */
     __try {
+        /*
         if (wrapperData->isDebugging) {
-            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "ServiceControlHandler(%d)", dwCtrlCode);
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "ServiceControlHandlerEx(%d, %d, %p, %p)", dwCtrlCode, dwEvtType, lpEvtData, lpCntxt);
         }
+        */
     
         /* This thread appears to always be the same as the main thread.
          *  Just to be safe reregister it. */
         logRegisterThread(WRAPPER_THREAD_MAIN);
         
+        if (dwCtrlCode == SERVICE_CONTROL_POWEREVENT) {
+            switch (dwEvtType) {
+                case PBT_APMQUERYSUSPEND: /* 0x0 */
+                    /* system is hiberating
+                     * send off power resume event */
+                    if (wrapperData->isDebugging) {
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_POWEREVENT(PBT_APMQUERYSUSPEND)");
+                    }
+                    controlCode = 0x0D00;
+                    break;
+
+                case PBT_APMQUERYSUSPENDFAILED: /* 0x2 */
+                    /* system is waking up
+                     * send off power resume event */
+                    if (wrapperData->isDebugging) {
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_POWEREVENT(PBT_APMQUERYSUSPENDFAILED)");
+                    }
+                    controlCode = 0x0D02;
+                    break;
+
+                case PBT_APMSUSPEND:/* 0x4 */
+                    /* system is waking up
+                     * send off power resume event */
+                    if (wrapperData->isDebugging) {
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_POWEREVENT(PBT_APMSUSPEND)");
+                    }
+                    controlCode = 0x0D04;
+                    break;
+                
+                case PBT_APMRESUMECRITICAL: /* 0x6 */
+                    /* system is waking up
+                     * send off power resume event */
+                    if (wrapperData->isDebugging) {
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_POWEREVENT(PBT_APMRESUMECRITICAL)");
+                    }
+                    controlCode = 0x0D06;
+                    break;
+
+                case PBT_APMRESUMESUSPEND: /* 0x7 */
+                    /* system is waking up
+                     * send off power resume event */
+                    if (wrapperData->isDebugging) {
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_POWEREVENT(PBT_APMRESUMESUSPEND)");
+                    }
+                    controlCode = 0x0D07;
+                    break;
+
+                case PBT_APMBATTERYLOW: /* 0x9 */
+                    /* batter is low warning. */
+                    if (wrapperData->isDebugging) {
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_POWEREVENT(PBT_APMBATTERYLOW)");
+                    }
+                    controlCode = 0x0D09;
+                    break;
+
+                case PBT_APMPOWERSTATUSCHANGE: /* 0xA */
+                    /* the status of system power changed. */
+                    if (wrapperData->isDebugging) {
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_POWEREVENT(PBT_APMPOWERSTATUSCHANGE)");
+                    }
+                    controlCode = 0x0D0A;
+                    break;
+
+                case PBT_APMOEMEVENT: /* 0xB */
+                    /* there was an OEM event. */
+                    if (wrapperData->isDebugging) {
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_POWEREVENT(PBT_APMOEMEVENT)");
+                    }
+                    controlCode = 0x0D0B;
+                    break;
+                
+                case PBT_APMRESUMEAUTOMATIC: /* 0x12 */
+                    /* system is waking up */
+                    if (wrapperData->isDebugging) {
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_POWEREVENT(PBT_APMRESUMEAUTOMATIC)");
+                    }
+                    controlCode = 0x0D12;
+                    break;
+                
+                /* The following STANDBY values do not appear to be used but are defined in WinUser.h. */
+                /*case PBT_APMQUERYSTANDBY:*/ /* 0x1 */
+                /*case PBT_APMQUERYSTANDBYFAILED:*/ /* 0x3 */
+                /*case PBT_APMSTANDBY:*/ /* 0x5 */
+                /*case PBT_APMRESUMESTANDBY:*/ /* 0x8 */
+                
+                default:
+                    /* Unexpected generic powerevent code */
+                    if (wrapperData->isDebugging) {
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_POWEREVENT(%d)", dwEvtType);
+                    }
+                    break;
+            }
+        }
+        
         /* Forward the control code off to the JVM. */
-        sprintf(buffer, "%d", dwCtrlCode);
+        sprintf(buffer, "%d", controlCode);
         wrapperProtocolFunction(TRUE, WRAPPER_MSG_SERVICE_CONTROL_CODE, buffer);
     
         switch(dwCtrlCode) {
@@ -1801,6 +2005,11 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_STOP");
             }
     
+            /* Request to stop the service. Report SERVICE_STOP_PENDING */
+            /* to the service control manager before calling ServiceStop() */
+            /* to avoid a "Service did not respond" error. */
+            wrapperReportStatus(TRUE, WRAPPER_WSTATE_STOPPING, 0, 0);
+
             /* Tell the wrapper to shutdown normally */
             wrapperStopProcess(TRUE, 0);
     
@@ -1824,12 +2033,24 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
             /* This case MUST be processed, even though we are not */
             /* obligated to do anything substantial in the process. */
             break;
-    
+
+        case SERVICE_CONTROL_POWEREVENT:
+            // we handled it 
+            if (wrapperData->isDebugging) {
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_POWEREVENT (handled)");
+            }
+            break;
+
         case SERVICE_CONTROL_SHUTDOWN:
             if (wrapperData->isDebugging) {
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_SHUTDOWN");
             }
     
+            /* Request to stop the service. Report SERVICE_STOP_PENDING */
+            /* to the service control manager before calling ServiceStop() */
+            /* to avoid a "Service did not respond" error. */
+            wrapperReportStatus(TRUE, WRAPPER_WSTATE_STOPPING, 0, 0);
+
             /* Tell the wrapper to shutdown normally */
             wrapperStopProcess(TRUE, 0);
     
@@ -1846,9 +2067,16 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
     
         default:
             if ((wrapperData->threadDumpControlCode > 0) && (dwCtrlCode == wrapperData->threadDumpControlCode)) {
+                if (wrapperData->isDebugging) {
+                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_(%d) Request Thread Dump.", dwCtrlCode);
+                }
                 wrapperRequestDumpJVMState(TRUE);
             } else {
-                /* Any other cases... */
+                /* Any other cases... Did not handle */
+                if (wrapperData->isDebugging) {
+                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_(%d) Not handled.", dwCtrlCode);
+                }
+                result = ERROR_CALL_NOT_IMPLEMENTED;
             }
             break;
         }
@@ -1863,6 +2091,22 @@ VOID WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
             "<-- Wrapper Stopping due to error in service control handler.");
         appExit(1);
     }
+
+    return result;
+}
+
+/**
+ * The service control handler is called by the service manager when there are
+ *    events for the service.  registered using a call to 
+ *    RegisterServiceCtrlHandler in wrapperServiceMain.
+ */
+void WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
+    /*
+    if (wrapperData->isDebugging) {
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "ServiceControlHandler(%d)", dwCtrlCode);
+    }
+    */
+    wrapperServiceControlHandlerEx(dwCtrlCode, 0, NULL, NULL);
 }
 
 /**
@@ -1885,7 +2129,15 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
         /* Call RegisterServiceCtrlHandler immediately to register a service control */
         /* handler function. The returned SERVICE_STATUS_HANDLE is saved with global */
         /* scope, and used as a service id in calls to SetServiceStatus. */
-        if (!(sshStatusHandle = RegisterServiceCtrlHandler(wrapperData->serviceName, wrapperServiceControlHandler))) {
+        if (OptionalRegisterServiceCtrlHandlerEx) {
+            /* Use RegisterServiceCtrlHandlerEx if available. */
+            sshStatusHandle = OptionalRegisterServiceCtrlHandlerEx(
+                TEXT(wrapperData->serviceName), wrapperServiceControlHandlerEx, (LPVOID)1);
+        } else {
+            sshStatusHandle = RegisterServiceCtrlHandler(
+                TEXT(wrapperData->serviceName), wrapperServiceControlHandler);
+        }
+        if (!sshStatusHandle) {
             goto finally;
         }
     
@@ -3631,11 +3883,21 @@ void main(int argc, char **argv) {
         /* At this point, we have a command, confFile, and possibly additional arguments. */
         if (!strcmpIgnoreCase(wrapperData->argCommand,"?") || !strcmpIgnoreCase(wrapperData->argCommand,"-help")) {
             /* User asked for the usage. */
+            setSimpleLogLevels();
+#ifdef WRAPPERW
+            /* We always want to show the log dialog even though the exit code is 0. */
+            wrapperData->forceDialogLog = TRUE;
+#endif
             wrapperUsage(argv[0]);
             appExit(0);
             return; /* For clarity. */
         } else if (!strcmpIgnoreCase(wrapperData->argCommand,"v") || !strcmpIgnoreCase(wrapperData->argCommand,"-version")) {
             /* User asked for version. */
+            setSimpleLogLevels();
+#ifdef WRAPPERW
+            /* We always want to show the log dialog even though the exit code is 0. */
+            wrapperData->forceDialogLog = TRUE;
+#endif
             wrapperVersionBanner();
             appExit(0);
             return; /* For clarity. */
@@ -3871,7 +4133,8 @@ void main(int argc, char **argv) {
             appExit(0);
             return; /* For clarity. */
         } else {
-            printf("\nUnrecognized option: -%s\n", wrapperData->argCommand);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Unrecognized option: -%s", wrapperData->argCommand);
             wrapperUsage(argv[0]);
             appExit(1);
             return; /* For clarity. */

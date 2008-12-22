@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2008 Tanuki Software, Inc.
+ * Copyright (c) 1999, 2008 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -82,8 +82,6 @@ typedef long intptr_t;
 #define SOCKET         int
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR   -1
-#define __max(x,y) (((x) > (y)) ? (x) : (y))
-#define __min(x,y) (((x) < (y)) ? (x) : (y))
 
 #if defined(SOLARIS)
 #include <sys/errno.h>
@@ -856,21 +854,21 @@ int wrapperCheckServerSocket(int forceOpen) {
         /* The socket is not currently open.  Unless the JVM is DOWN */
         if ((!forceOpen) &&
             ((wrapperData->jState == WRAPPER_JSTATE_DOWN) || 
-        	 (wrapperData->jState == WRAPPER_JSTATE_LAUNCH_DELAY) ||
-        	 (wrapperData->jState == WRAPPER_JSTATE_RESTART) ||
-        	 (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
-        	 (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
-        	 (wrapperData->jState == WRAPPER_JSTATE_KILL))) {
-        	/* The JVM is down or in a state where the socket is not needed. */
-        	return FALSE;
+             (wrapperData->jState == WRAPPER_JSTATE_LAUNCH_DELAY) ||
+             (wrapperData->jState == WRAPPER_JSTATE_RESTART) ||
+             (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
+             (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
+             (wrapperData->jState == WRAPPER_JSTATE_KILL))) {
+            /* The JVM is down or in a state where the socket is not needed. */
+            return FALSE;
         } else {
-        	/* The socket should be open, try doing so. */
+            /* The socket should be open, try doing so. */
             protocolStartServer();
             if (ssd == INVALID_SOCKET) {
                 /* Failed. */
                 return FALSE;
             } else {
-            	return TRUE;
+                return TRUE;
             }
         }
     } else {
@@ -1169,7 +1167,7 @@ void wrapperVersionBanner() {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
         "Java Service Wrapper Community Edition %s", wrapperVersionRoot);
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-        "  Copyright (C) 1999-2008 Tanuki Software, Inc.  All Rights Reserved.");
+        "  Copyright (C) 1999-2008 Tanuki Software, Ltd.  All Rights Reserved.");
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
         "    http://wrapper.tanukisoftware.org");
 }
@@ -1187,11 +1185,7 @@ void wrapperUsage(char *appName) {
     }
     wrapperGetFileBase(appName, confFileBase);
     
-    /* Force the log levels to control output. */
-    setConsoleLogFormat("M");
-    setConsoleLogLevelInt(LEVEL_INFO);
-    setLogfileLevelInt(LEVEL_NONE);
-    setSyslogLevelInt(LEVEL_NONE);
+    setSimpleLogLevels();
 
     wrapperVersionBanner();
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "");
@@ -2604,6 +2598,23 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         }
         index++;
     }
+
+    /* Store the Wrapper disable console input flag. */
+    if (getBooleanProperty(properties, "wrapper.disable_console_input", FALSE)) {
+        if (strings) {
+            strings[index] = malloc(sizeof(char) * (38 + 1));
+            if (!strings[index]) {
+                outOfMemory("WBJCAI", 29);
+                return -1;
+            }
+            if (addQuotes) {
+                sprintf(strings[index], "-Dwrapper.disable_console_input=\"TRUE\"");
+            } else {
+                sprintf(strings[index], "-Dwrapper.disable_console_input=TRUE");
+            }
+        }
+        index++;
+    }
     
     /* Store the Wrapper PID */
     if (strings) {
@@ -3041,7 +3052,8 @@ void wrapperJVMProcessExited(int useLoggerQueue, DWORD nowTicks, int exitCode) {
 
 void wrapperBuildKey() {
     int i;
-    float num;
+    size_t kcNum;
+    size_t num;
     static int seeded = FALSE;
 
     /* Seed the randomizer */
@@ -3051,14 +3063,23 @@ void wrapperBuildKey() {
     }
 
     /* Start by generating a key */
-    num = (float)strlen(keyChars);
+    num = strlen(keyChars);
     
     for (i = 0; i < 16; i++) {
-        wrapperData->key[i] = keyChars[(int)(rand() * num / RAND_MAX)];
+        /* The way rand works, this will sometimes equal num, which is too big.
+         *  This is rare so just round those cases down. */
+        kcNum = (size_t)(rand() * num / RAND_MAX);
+        if (kcNum >= num) {
+            kcNum = num - 1;
+        }
+        
+        wrapperData->key[i] = keyChars[kcNum];
     }
     wrapperData->key[16] = '\0';
     
-    /*printf("Key=%s\n", wrapperData->key);*/
+    /*
+    printf("  Key=%s Len=%d\n", wrapperData->key, strlen(wrapperData->key));
+    */
 }
 
 /**
@@ -3214,6 +3235,9 @@ int wrapperBuildNTServiceInfo() {
 
         /* Hide the JVM Console Window. */
         wrapperData->ntHideJVMConsole = getBooleanProperty( properties, "wrapper.ntservice.hide_console", TRUE );
+        
+        /* Make sure that a console is always generated to support thread dumps */
+        wrapperData->generateConsole = getBooleanProperty( properties, "wrapper.ntservice.generate_console", TRUE );
     }
 
     /* Set the single invocation flag. */
@@ -3707,7 +3731,7 @@ int loadConfiguration() {
         return TRUE;
     }
 
-    if (wrapperData->requestThreadDumpOnFailedJVMExit || wrapperData->commandFilename) {
+    if (wrapperData->requestThreadDumpOnFailedJVMExit || wrapperData->commandFilename || wrapperData->generateConsole) {
         if (!wrapperData->ntAllocConsole) {
             /* We need to allocate a console in order for the thread dumps to work
              *  when running as a service.  But the user did not request that a
