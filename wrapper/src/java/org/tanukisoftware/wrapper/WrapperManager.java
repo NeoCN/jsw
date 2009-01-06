@@ -178,46 +178,46 @@ public final class WrapperManager
     
     /** Service Control code which is received when the system being suspended. */
     public static final int SERVICE_CONTROL_CODE_POWEREVENT_QUERYSUSPEND       = 0x0D00;
-	
-	/** Service Control code which is received when permission to suspend the
-	 *   computer was denied by a process.  Support for this event was removed
-	 *   from the Windows OS starting with Vista.*/
+    
+    /** Service Control code which is received when permission to suspend the
+     *   computer was denied by a process.  Support for this event was removed
+     *   from the Windows OS starting with Vista.*/
     public static final int SERVICE_CONTROL_CODE_POWEREVENT_QUERYSUSPENDFAILED = 0x0D02;
-	
-	/** Service Control code which is received when the computer is about to
-	 *   enter a suspended state. */
+    
+    /** Service Control code which is received when the computer is about to
+     *   enter a suspended state. */
     public static final int SERVICE_CONTROL_CODE_POWEREVENT_SUSPEND            = 0x0D04;
-	
-	/** Service Control code which is received when the system has resumed
-	 *   operation. This event can indicate that some or all applications did
-	 *   not receive a SERVICE_CONTROL_CODE_POWEREVENT_SUSPEND event.
-	 *   Support for this event was removed from the Windows OS starting with
-	 *   Vista.  See SERVICE_CONTROL_CODE_POWEREVENT_RESUMEAUTOMATIC. */
+    
+    /** Service Control code which is received when the system has resumed
+     *   operation. This event can indicate that some or all applications did
+     *   not receive a SERVICE_CONTROL_CODE_POWEREVENT_SUSPEND event.
+     *   Support for this event was removed from the Windows OS starting with
+     *   Vista.  See SERVICE_CONTROL_CODE_POWEREVENT_RESUMEAUTOMATIC. */
     public static final int SERVICE_CONTROL_CODE_POWEREVENT_RESUMECRITICAL     = 0x0D06;
-	
-	/** Service Control code which is received when the system has resumed
-	 *   operation after being suspended. */
+    
+    /** Service Control code which is received when the system has resumed
+     *   operation after being suspended. */
     public static final int SERVICE_CONTROL_CODE_POWEREVENT_RESUMESUSPEND      = 0x0D07;
-	
-	/** Service Control code which is received when the battery power is low.
-	 *   Support for this event was removed from the Windows OS starting with
-	 *   Vista.  See SERVICE_CONTROL_CODE_POWEREVENT_POWERSTATUSCHANGE. */
+    
+    /** Service Control code which is received when the battery power is low.
+     *   Support for this event was removed from the Windows OS starting with
+     *   Vista.  See SERVICE_CONTROL_CODE_POWEREVENT_POWERSTATUSCHANGE. */
     public static final int SERVICE_CONTROL_CODE_POWEREVENT_BATTERYLOW         = 0x0D09;
-	
-	/** Service Control code which is received when there is a change in the
-	 *   power status of the computer, such as a switch from battery power to
-	 *   A/C. The system also broadcasts this event when remaining battery
-	 *   power slips below the threshold specified by the user or if the
-	 *   battery power changes by a specified percentage. */
+    
+    /** Service Control code which is received when there is a change in the
+     *   power status of the computer, such as a switch from battery power to
+     *   A/C. The system also broadcasts this event when remaining battery
+     *   power slips below the threshold specified by the user or if the
+     *   battery power changes by a specified percentage. */
     public static final int SERVICE_CONTROL_CODE_POWEREVENT_POWERSTATUSCHANGE  = 0x0D0A;
-	
-	/** Service Control code which is received when the APM BIOS has signaled
-	 *   an APM OEM event.  Support for this event was removed from the Windows
-	 *   OS starting with Vista. */
+    
+    /** Service Control code which is received when the APM BIOS has signaled
+     *   an APM OEM event.  Support for this event was removed from the Windows
+     *   OS starting with Vista. */
     public static final int SERVICE_CONTROL_CODE_POWEREVENT_OEMEVENT           = 0x0D0B;
-	
-	/** Service Control code which is received when the computer has woken up
-	 *   automatically to handle an event. */
+    
+    /** Service Control code which is received when the computer has woken up
+     *   automatically to handle an event. */
     public static final int SERVICE_CONTROL_CODE_POWEREVENT_RESUMEAUTOMATIC    = 0x0D12;
     
     /** Reference to the original value of System.out. */
@@ -239,6 +239,11 @@ public final class WrapperManager
     private static boolean m_securityManagerChecked = false;
     
     private static boolean m_disposed = false;
+    
+    /** The starting flag is set when the Application has been asked to start. */
+    private static boolean m_starting = false;
+    
+    /** The started flag is set when the Application has completed its startup. */
     private static boolean m_started = false;
     private static WrapperManager m_instance = null;
     private static Thread m_hook = null;
@@ -289,6 +294,11 @@ public final class WrapperManager
     /** The threashold of how many ticks the timer can be slow before a
      *   warning is displayed. */
     private static int m_timerSlowThreshold;
+    
+    /** Flag which controls whether or not the WrapperListener.stop method will
+     *   be called on shutdown when the WrapperListener.start method has not
+     *   returned or returned an exit code. */
+    private static boolean m_listenerForceStop;
     
     /**
      * Bit depth of the currently running JVM.  Will be 32 or 64.
@@ -462,6 +472,10 @@ public final class WrapperManager
         // Check to see if we should register a shutdown hook
         boolean disableShutdownHook = WrapperSystemPropertyUtil.getBooleanProperty(
             "wrapper.disable_shutdown_hook", false );
+        
+        // Check to see if the listener stop method should always be called.
+        m_listenerForceStop = WrapperSystemPropertyUtil.getBooleanProperty(
+            "wrapper.listener.force_stop", false );
         
         // Locate the add and remove shutdown hook methods using reflection so
         //  that this class can be compiled on 1.2.x versions of java.
@@ -2022,7 +2036,7 @@ public final class WrapperManager
         //  JVM, then we want to start now.
         if ( !isControlledByNativeWrapper() )
         {
-            startInner();
+            startInner( true );
         }
     }
     
@@ -2639,11 +2653,11 @@ public final class WrapperManager
                 break;
                 
             default:
-            	if ( ( controlCode >= 128 ) && ( controlCode <= 255 ) ) {
+                if ( ( controlCode >= 128 ) && ( controlCode <= 255 ) ) {
                     action = WrapperServicePermission.ACTION_USER_CODE;
-            	} else {
-            		throw new IllegalArgumentException( "The specified controlCode is invalid." );
-            	}
+                } else {
+                    throw new IllegalArgumentException( "The specified controlCode is invalid." );
+                }
                 break;
             }
             
@@ -2980,14 +2994,39 @@ public final class WrapperManager
     }
     
     /**
-     * Informs the listener that it should start.
+     * Called by startInner when the WrapperListner.start method has completed.
      */
-    private static void startInner()
+    private static void startCompleted()
+    {
+        synchronized( WrapperManager.class )
+        {
+            m_startedTicks = getTicks();
+            
+            // Let the startup thread die since the application has been started.
+            m_startupRunner = null;
+            
+            // Check the SecurityManager here as it is possible that it was set in the
+            //  listener's start method.
+            checkSecurityManager();
+            
+            // Signal that the application has started.
+            signalStarted();
+        }
+    }
+    
+    /**
+     * Informs the listener that it should start.
+     *
+     * @param block True if this call should block for the WrapperListener.start method to complete.
+     */
+    private static void startInner( boolean block )
     {
         // Set the thread priority back to normal so that any spawned threads
         //  will use the normal priority
         int oldPriority = Thread.currentThread().getPriority();
         Thread.currentThread().setPriority( Thread.NORM_PRIORITY );
+
+        m_starting = true;
         
         // This method can be called from the connection thread which must be a
         //  daemon thread by design.  We need to call the WrapperListener.start method
@@ -3000,6 +3039,8 @@ public final class WrapperManager
             {
                 m_outDebug.println( "No WrapperListener has been set.  Nothing to start." );
             }
+            
+            startCompleted();
         }
         else
         {
@@ -3013,42 +3054,77 @@ public final class WrapperManager
             final Integer[] resultF = new Integer[1];
             final Throwable[] tF = new Throwable[1];
             
-            if ( Thread.currentThread().isDaemon() )
+            // Start in a dedicated thread.
+            Thread startRunner = new Thread( "WrapperListener_start_runner" )
             {
-                // Start in a dedicated thread.
-                Thread startRunner = new Thread( "WrapperListener_start_runner" )
+                public void run()
                 {
-                    public void run()
+                    if ( m_debug )
                     {
-                        if ( m_debug )
-                        {
-                           m_outDebug.println( "WrapperListener.start runner thread started." );
-                        }
-                        
+                       m_outDebug.println( "WrapperListener.start runner thread started." );
+                    }
+                    
+                    try
+                    {
+                        // This is user code, so don't trust it.
                         try
                         {
-                            // This is user code, so don't trust it.
-                            try
-                            {
-                                resultF[0] = m_listener.start( m_args );
-                            }
-                            catch ( Throwable t )
-                            {
-                                tF[0] = t;
-                            }
+                            resultF[0] = m_listener.start( m_args );
                         }
-                        finally
+                        catch ( Throwable t )
                         {
-                            if ( m_debug )
-                            {
-                               m_outDebug.println( "WrapperListener.start runner thread stopped." );
-                            }
+                            tF[0] = t;
                         }
                     }
-                };
-                startRunner.setDaemon( false );
-                startRunner.start();
-                
+                    finally
+                    {
+                        // Now that we are back, handle the results.
+                        if ( tF[0] != null )
+                        {
+                            m_outError.println( "Error in WrapperListener.start callback.  " + tF[0] );
+                            tF[0].printStackTrace( m_outError );
+                            // Kill the JVM, but don't tell the wrapper that we want to stop.
+                            //  This may be a problem with this instantiation only.
+                            privilegedStopInner( 1 );
+                            // Won't make it here.
+                            return;
+                        }
+                        
+                        if ( m_debug )
+                        {
+                            m_outDebug.println( "returned from WrapperListener.start()" );
+                        }
+                        if ( resultF[0] != null )
+                        {
+                            int exitCode = resultF[0].intValue();
+                            if ( m_debug )
+                            {
+                                m_outDebug.println(
+                                    "WrapperListener.start() returned an exit code of " + exitCode + "." );
+                            }
+                            
+                            // Signal the native code.
+                            WrapperManager.stop( exitCode );
+                            // Won't make it here.
+                            return;
+                        }
+                        startCompleted();
+                        
+                        if ( m_debug )
+                        {
+                           m_outDebug.println( "WrapperListener.start runner thread stopped." );
+                        }
+                    }
+                }
+            };
+            startRunner.setDaemon( false );
+            startRunner.start();
+            
+            // Crank the priority back up.
+            Thread.currentThread().setPriority( oldPriority );
+            
+            if ( block )
+            {
                 // Wait for the start runner to complete.
                 if ( m_debug )
                 {
@@ -3068,65 +3144,7 @@ public final class WrapperManager
                     }
                 }
             }
-            else
-            {
-                // Start in line.
-                // This is user code, so don't trust it.
-                try
-                {
-                    resultF[0] = m_listener.start( m_args );
-                }
-                catch ( Throwable t )
-                {
-                    tF[0] = t;
-                }
-            }
-            
-            // Now that we are back in the main thread, handle the results.
-            if ( tF[0] != null )
-            {
-                m_outError.println( "Error in WrapperListener.start callback.  " + tF[0] );
-                tF[0].printStackTrace( m_outError );
-                // Kill the JVM, but don't tell the wrapper that we want to stop.
-                //  This may be a problem with this instantiation only.
-                privilegedStopInner( 1 );
-                // Won't make it here.
-                return;
-            }
-            
-            if ( m_debug )
-            {
-                m_outDebug.println( "returned from WrapperListener.start()" );
-            }
-            if ( resultF[0] != null )
-            {
-                int exitCode = resultF[0].intValue();
-                if ( m_debug )
-                {
-                    m_outDebug.println(
-                        "WrapperListener.start() returned an exit code of " + exitCode + "." );
-                }
-                
-                // Signal the native code.
-                stop( exitCode );
-                // Won't make it here.
-                return;
-            }
         }
-        m_startedTicks = getTicks();
-        
-        // Let the startup thread die since the application has been started.
-        m_startupRunner = null;
-        
-        // Check the SecurityManager here as it is possible that it was set in the
-        //  listener's start method.
-        checkSecurityManager();
-        
-        // Crank the priority back up.
-        Thread.currentThread().setPriority( oldPriority );
-        
-        // Signal that the application has started.
-        signalStarted();
     }
     
     private static void shutdownJVM( int exitCode )
@@ -3343,9 +3361,10 @@ public final class WrapperManager
             }
         }
         
-        // Only stop the listener if the app has been started.
+        // Only stop the listener if the app has been asked to start.  Does not need to have actually started.
         int code = exitCode;
-        if ( m_started )
+        
+        if ( ( m_listenerForceStop && m_starting ) || m_started )
         {
             // Set the thread priority back to normal so that any spawned threads
             //  will use the normal priority
@@ -4096,7 +4115,7 @@ public final class WrapperManager
                         switch( code )
                         {
                         case WRAPPER_MSG_START:
-                            startInner();
+                            startInner( false );
                             break;
                             
                         case WRAPPER_MSG_STOP:
