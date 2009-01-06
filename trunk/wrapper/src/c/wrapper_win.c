@@ -2352,7 +2352,7 @@ int wrapperInstall() {
     schSCManager = OpenSCManager(
                                  NULL,                   
                                  NULL,                   
-                                 SC_MANAGER_ALL_ACCESS   
+                                 SC_MANAGER_CONNECT | SC_MANAGER_CREATE_SERVICE   
                                  );
     
     if (schSCManager) {
@@ -2366,7 +2366,7 @@ int wrapperInstall() {
                                    schSCManager,                       /* SCManager database */
                                    wrapperData->serviceName,           /* name of service */
                                    wrapperData->serviceDisplayName,    /* name to display */
-                                   SERVICE_ALL_ACCESS,                 /* desired access */
+                                   0,                                  /* desired access */
                                    serviceType,                        /* service type */
                                    wrapperData->ntServiceStartType,    /* start type */
                                    SERVICE_ERROR_NORMAL,               /* error control type */
@@ -2894,16 +2894,16 @@ int wrapperStartService() {
     int msgCntr;
     int stopping;
     int result = 0;
-
+	
     /* First, get a handle to the service control manager */
     schSCManager = OpenSCManager(
                                  NULL,                   
                                  NULL,                   
-                                 SC_MANAGER_ALL_ACCESS   
+                                 SC_MANAGER_CONNECT   
                                  );
     if (schSCManager){
         /* Next get the handle to this service... */
-        schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_ALL_ACCESS);
+        schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_QUERY_STATUS | SERVICE_START);
 
         if (schService){
             /* Make sure that the service is not already running. */
@@ -2977,8 +2977,12 @@ int wrapperStartService() {
             /* Close this service object's handle to the service control manager */
             CloseServiceHandle(schService);
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
-                wrapperData->serviceName, getLastErrorText());
+			if (GetLastError() == ERROR_ACCESS_DENIED) {
+		        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
+			} else {
+	            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
+    	            wrapperData->serviceName, getLastErrorText());
+			}
             result = 1;
         }
         
@@ -3006,12 +3010,12 @@ int wrapperStopService(int command) {
     schSCManager = OpenSCManager(
                                  NULL,                   
                                  NULL,                   
-                                 SC_MANAGER_ALL_ACCESS   
+                                 SC_MANAGER_CONNECT   
                                  );
     if (schSCManager){
 
         /* Next get the handle to this service... */
-        schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_ALL_ACCESS);
+        schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_QUERY_STATUS | SERVICE_STOP );
 
         if (schService){
             /* Find out what the current status of the service is so we can decide what to do. */
@@ -3086,8 +3090,12 @@ int wrapperStopService(int command) {
             /* Close this service object's handle to the service control manager */
             CloseServiceHandle(schService);
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
-                wrapperData->serviceName, getLastErrorText());
+			if (GetLastError() == ERROR_ACCESS_DENIED) {
+		        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
+			} else {
+	            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
+	                wrapperData->serviceName, getLastErrorText());
+			}
             result = 1;
         }
         
@@ -3115,11 +3123,11 @@ int wrapperPauseService() {
     schSCManager = OpenSCManager(
                                  NULL,                   
                                  NULL,                   
-                                 SC_MANAGER_ALL_ACCESS   
+                                 SC_MANAGER_CONNECT   
                                  );
     if (schSCManager) {
         /* Next get the handle to this service... */
-        schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_ALL_ACCESS);
+        schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_QUERY_STATUS | SERVICE_PAUSE_CONTINUE);
 
         if (schService) {
             /* Make sure that the service is in a state that can be paused. */
@@ -3193,8 +3201,12 @@ int wrapperPauseService() {
             /* Close this service object's handle to the service control manager */
             CloseServiceHandle(schService);
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
-                wrapperData->serviceName, getLastErrorText());
+			if (GetLastError() == ERROR_ACCESS_DENIED) {
+		        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
+			} else {
+	            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
+	                wrapperData->serviceName, getLastErrorText());
+			}
             result = 1;
         }
         
@@ -3222,11 +3234,11 @@ int wrapperContinueService() {
     schSCManager = OpenSCManager(
                                  NULL,                   
                                  NULL,                   
-                                 SC_MANAGER_ALL_ACCESS   
+                                 SC_MANAGER_CONNECT   
                                  );
     if (schSCManager) {
         /* Next get the handle to this service... */
-        schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_ALL_ACCESS);
+        schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_QUERY_STATUS | SERVICE_PAUSE_CONTINUE);
 
         if (schService) {
             /* Make sure that the service is in a state that can be resumed. */
@@ -3305,8 +3317,12 @@ int wrapperContinueService() {
             /* Close this service object's handle to the service control manager */
             CloseServiceHandle(schService);
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
-                wrapperData->serviceName, getLastErrorText());
+			if (GetLastError() == ERROR_ACCESS_DENIED) {
+		        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
+			} else {
+	            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
+	                wrapperData->serviceName, getLastErrorText());
+			}
             result = 1;
         }
         
@@ -3331,11 +3347,11 @@ int sendServiceControlCodeInner(int controlCode) {
     schSCManager = OpenSCManager(
                                  NULL,                   
                                  NULL,                   
-                                 SC_MANAGER_ALL_ACCESS   
+                                 SC_MANAGER_CONNECT   
                                  );
     if (schSCManager) {
         /* Next get the handle to this service... */
-        schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_ALL_ACCESS);
+        schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_QUERY_STATUS | SERVICE_USER_DEFINED_CONTROL);
 
         if (schService) {
             /* Make sure that the service is in a state that can be resumed. */
@@ -3384,8 +3400,12 @@ int sendServiceControlCodeInner(int controlCode) {
             /* Close this service object's handle to the service control manager */
             CloseServiceHandle(schService);
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
-                wrapperData->serviceName, getLastErrorText());
+			if (GetLastError() == ERROR_ACCESS_DENIED) {
+		        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
+			} else {
+	            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
+	                wrapperData->serviceName, getLastErrorText());
+			}
             result = 1;
         }
         
@@ -3471,12 +3491,12 @@ int wrapperServiceStatus(int consoleOutput) {
     schSCManager = OpenSCManager(
                                  NULL,                   
                                  NULL,                   
-                                 SC_MANAGER_ALL_ACCESS   
+                                 SC_MANAGER_CONNECT   
                                  );
     if (schSCManager){
 
         /* Next get the handle to this service... */
-        schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_ALL_ACCESS);
+        schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_QUERY_STATUS);
 
         if (schService){
             /* Service is installed, so set that bit. */
@@ -3574,11 +3594,14 @@ int wrapperServiceStatus(int consoleOutput) {
             /* Close this service object's handle to the service control manager */
             CloseServiceHandle(schService);
         } else {
-            /* Could not open the service.  This means that it is not installed. */
-            if (consoleOutput) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    "The %s Service is not installed.", wrapperData->serviceDisplayName);
-            }
+			if (GetLastError() == ERROR_ACCESS_DENIED) {
+		        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
+			} else {
+	            if (consoleOutput) {
+	                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+	                    "The %s Service is not installed.", wrapperData->serviceDisplayName);
+	            }
+			}
         }
         
         /* Finally, close the handle to the service control manager's database */
@@ -3611,12 +3634,12 @@ int wrapperRemove() {
     schSCManager = OpenSCManager(
                                  NULL,                   
                                  NULL,                   
-                                 SC_MANAGER_ALL_ACCESS   
+                                 SC_MANAGER_CONNECT   
                                  );
     if (schSCManager){
 
         /* Next get the handle to this service... */
-        schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_ALL_ACCESS);
+        schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_QUERY_STATUS | DELETE);
 
         if (schService){
             /* Now try to remove the service... */
@@ -3630,8 +3653,12 @@ int wrapperRemove() {
             /* Close this service object's handle to the service control manager */
             CloseServiceHandle(schService);
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
-                wrapperData->serviceName, getLastErrorText());
+			if (GetLastError() == ERROR_ACCESS_DENIED) {
+		        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
+			} else {
+	            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
+	                wrapperData->serviceName, getLastErrorText());
+			}
             result = 1;
         }
         
@@ -3825,7 +3852,7 @@ void main(int argc, char **argv) {
 #ifdef _DEBUG
     int i;
 #endif
-
+    
     /* The StartServiceCtrlDispatcher requires this table to specify
      * the ServiceMain function to run in the calling process. The first
      * member in this example is actually ignored, since we will install

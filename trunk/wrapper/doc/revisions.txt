@@ -46,6 +46,23 @@ Java Service Wrapper Revision History.
 * (Standard, Professional) Fix a problem where on some Windows machines the
   Wrapper would return a random hostId that changed each time the system was
   rebooted.
+* (Standard, Professional) Make it possible to define License Keys so that
+  their property names are encoded using either the host name or hostId.  This
+  makes it possible to define multiple keys within the same configuration file,
+  visible on the same host.  This was necessary to support some load balanced
+  network adapters where the visible hostId changes depending on the active
+  physical network adapter.
+* Rework the Java side state engine so it is now possible for the Java side of
+  the Wrapper to respond to stop events while the WrapperListener.start method
+  is still in progress.
+* Add a new wrapper.listener.force_stop property which allows control over
+  whether the WrapperListener.stop method is called on shutdown even if the
+  WrapperListener.start method has not yet completed.
+* Fix a problem on Windows where the ability to start and stop the Wrapper as
+  a service using the Wrapper itself was requiring the Administrator permission
+  when a lower permission should have been possible.  The Wrapper should now
+  allow service control to do whatever is possible from the Services control
+  panel.
 
 3.3.1
 * Add debug output showing the current os name and architecture to aid in
