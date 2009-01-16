@@ -1374,7 +1374,7 @@ original tar distribution due to a lack of support for long path names in some t
     <!-- Release                                                             -->
     <!-- =================================================================== -->
     <target name="release" 
-        depends="release-windows, release-unix"
+        depends="test-setup, bin, conf, release-windows, release-unix"
         description="Builds all release files for the current platform">
     </target>
     
