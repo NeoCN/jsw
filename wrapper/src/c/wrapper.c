@@ -124,6 +124,9 @@ void wrapperAddDefaultProperties() {
     sprintf(buffer, "set.WRAPPER_OS=%s", wrapperOS);
     addPropertyPair(properties, buffer, TRUE, FALSE);
 
+    sprintf(buffer, "set.WRAPPER_HOST_NAME=%s", wrapperData->hostName);
+    addPropertyPair(properties, buffer, TRUE, FALSE);
+
 #ifdef WIN32
     addPropertyPair(properties, "set.WRAPPER_FILE_SEPARATOR=\\", TRUE, FALSE);
     addPropertyPair(properties, "set.WRAPPER_PATH_SEPARATOR=;", TRUE, FALSE);
