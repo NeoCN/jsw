@@ -1366,6 +1366,8 @@ int main(int argc, char **argv) {
         return 1; /* For compiler. */
     }
     
+    wrapperLoadHostName();
+    
     /* At this point, we have a command, confFile, and possibly additional arguments. */
     if (!strcmpIgnoreCase(wrapperData->argCommand,"?") || !strcmpIgnoreCase(wrapperData->argCommand,"-help")) {
         /* User asked for the usage. */

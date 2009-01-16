@@ -92,15 +92,23 @@ extern "C" {
 #undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_SHUTDOWN
 #define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_SHUTDOWN 5L
 #undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_QUERYSUSPEND
-#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_QUERYSUSPEND 128L
-#undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_RESUMEAUTOMATIC
-#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_RESUMEAUTOMATIC 129L
+#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_QUERYSUSPEND 3328L
 #undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_QUERYSUSPENDFAILED
-#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_QUERYSUSPENDFAILED 130L
-#undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_RESUMESUSPEND
-#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_RESUMESUSPEND 131L
+#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_QUERYSUSPENDFAILED 3330L
 #undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_SUSPEND
-#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_SUSPEND 132L
+#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_SUSPEND 3332L
+#undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_RESUMECRITICAL
+#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_RESUMECRITICAL 3334L
+#undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_RESUMESUSPEND
+#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_RESUMESUSPEND 3335L
+#undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_BATTERYLOW
+#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_BATTERYLOW 3337L
+#undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_POWERSTATUSCHANGE
+#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_POWERSTATUSCHANGE 3338L
+#undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_OEMEVENT
+#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_OEMEVENT 3339L
+#undef org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_RESUMEAUTOMATIC
+#define org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_POWEREVENT_RESUMEAUTOMATIC 3346L
 /* Inaccessible static: m_out */
 /* Inaccessible static: m_err */
 /* Inaccessible static: m_outInfo */
@@ -108,6 +116,7 @@ extern "C" {
 /* Inaccessible static: m_outDebug */
 /* Inaccessible static: m_securityManagerChecked */
 /* Inaccessible static: m_disposed */
+/* Inaccessible static: m_starting */
 /* Inaccessible static: m_started */
 /* Inaccessible static: m_instance */
 /* Inaccessible static: m_hook */
@@ -133,6 +142,7 @@ extern "C" {
 /* Inaccessible static: m_useSystemTime */
 /* Inaccessible static: m_timerFastThreshold */
 /* Inaccessible static: m_timerSlowThreshold */
+/* Inaccessible static: m_listenerForceStop */
 /* Inaccessible static: m_jvmBits */
 /* Inaccessible static: m_ticks */
 /* Inaccessible static: m_listener */

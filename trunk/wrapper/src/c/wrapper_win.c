@@ -2894,7 +2894,7 @@ int wrapperStartService() {
     int msgCntr;
     int stopping;
     int result = 0;
-	
+    
     /* First, get a handle to the service control manager */
     schSCManager = OpenSCManager(
                                  NULL,                   
@@ -2977,12 +2977,12 @@ int wrapperStartService() {
             /* Close this service object's handle to the service control manager */
             CloseServiceHandle(schService);
         } else {
-			if (GetLastError() == ERROR_ACCESS_DENIED) {
-		        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
-			} else {
-	            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
-    	            wrapperData->serviceName, getLastErrorText());
-			}
+            if (GetLastError() == ERROR_ACCESS_DENIED) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
+                    wrapperData->serviceName, getLastErrorText());
+            }
             result = 1;
         }
         
@@ -3090,12 +3090,12 @@ int wrapperStopService(int command) {
             /* Close this service object's handle to the service control manager */
             CloseServiceHandle(schService);
         } else {
-			if (GetLastError() == ERROR_ACCESS_DENIED) {
-		        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
-			} else {
-	            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
-	                wrapperData->serviceName, getLastErrorText());
-			}
+            if (GetLastError() == ERROR_ACCESS_DENIED) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
+                    wrapperData->serviceName, getLastErrorText());
+            }
             result = 1;
         }
         
@@ -3201,12 +3201,12 @@ int wrapperPauseService() {
             /* Close this service object's handle to the service control manager */
             CloseServiceHandle(schService);
         } else {
-			if (GetLastError() == ERROR_ACCESS_DENIED) {
-		        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
-			} else {
-	            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
-	                wrapperData->serviceName, getLastErrorText());
-			}
+            if (GetLastError() == ERROR_ACCESS_DENIED) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
+                    wrapperData->serviceName, getLastErrorText());
+            }
             result = 1;
         }
         
@@ -3317,12 +3317,12 @@ int wrapperContinueService() {
             /* Close this service object's handle to the service control manager */
             CloseServiceHandle(schService);
         } else {
-			if (GetLastError() == ERROR_ACCESS_DENIED) {
-		        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
-			} else {
-	            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
-	                wrapperData->serviceName, getLastErrorText());
-			}
+            if (GetLastError() == ERROR_ACCESS_DENIED) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
+                    wrapperData->serviceName, getLastErrorText());
+            }
             result = 1;
         }
         
@@ -3400,12 +3400,12 @@ int sendServiceControlCodeInner(int controlCode) {
             /* Close this service object's handle to the service control manager */
             CloseServiceHandle(schService);
         } else {
-			if (GetLastError() == ERROR_ACCESS_DENIED) {
-		        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
-			} else {
-	            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
-	                wrapperData->serviceName, getLastErrorText());
-			}
+            if (GetLastError() == ERROR_ACCESS_DENIED) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
+                    wrapperData->serviceName, getLastErrorText());
+            }
             result = 1;
         }
         
@@ -3594,14 +3594,14 @@ int wrapperServiceStatus(int consoleOutput) {
             /* Close this service object's handle to the service control manager */
             CloseServiceHandle(schService);
         } else {
-			if (GetLastError() == ERROR_ACCESS_DENIED) {
-		        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
-			} else {
-	            if (consoleOutput) {
-	                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-	                    "The %s Service is not installed.", wrapperData->serviceDisplayName);
-	            }
-			}
+            if (GetLastError() == ERROR_ACCESS_DENIED) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
+            } else {
+                if (consoleOutput) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                        "The %s Service is not installed.", wrapperData->serviceDisplayName);
+                }
+            }
         }
         
         /* Finally, close the handle to the service control manager's database */
@@ -3653,12 +3653,12 @@ int wrapperRemove() {
             /* Close this service object's handle to the service control manager */
             CloseServiceHandle(schService);
         } else {
-			if (GetLastError() == ERROR_ACCESS_DENIED) {
-		        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
-			} else {
-	            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
-	                wrapperData->serviceName, getLastErrorText());
-			}
+            if (GetLastError() == ERROR_ACCESS_DENIED) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
+                    wrapperData->serviceName, getLastErrorText());
+            }
             result = 1;
         }
         
@@ -3906,6 +3906,8 @@ void main(int argc, char **argv) {
             appExit(1);
             return; /* For clarity. */
         }
+        
+        wrapperLoadHostName();
         
         /* At this point, we have a command, confFile, and possibly additional arguments. */
         if (!strcmpIgnoreCase(wrapperData->argCommand,"?") || !strcmpIgnoreCase(wrapperData->argCommand,"-help")) {
