@@ -250,6 +250,7 @@ struct WrapperConfig {
     char    *serviceName;           /* Name of the service. */
     char    *serviceDisplayName;    /* Display name of the service. */
     char    *serviceDescription;    /* Description for service. */
+    char    *hostName;              /* The name of the current host. */
 
 #ifdef WIN32
     int     isSingleInvocation;     /* TRUE if only a single invocation of an application should be allowed to launch. */
@@ -346,6 +347,8 @@ extern int wrapperProtocolRead();
 /******************************************************************************
  * Utility Functions
  *****************************************************************************/
+extern void wrapperLoadHostName();
+
 extern void wrapperAddDefaultProperties();
 
 extern int wrapperLoadConfigurationProperties();

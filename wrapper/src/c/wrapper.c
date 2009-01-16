@@ -3340,6 +3340,23 @@ int validateTimeout(const char* propertyName, int value) {
     }
 }
 
+void wrapperLoadHostName()
+{
+    char hostName[80];
+    
+    if (gethostname(hostName, sizeof(hostName))) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Unable to obtain host name. %s",
+            getLastErrorText());
+    } else {
+        wrapperData->hostName = malloc(strlen(hostName) + 1);
+        if (!wrapperData->hostName) {
+            outOfMemory("LHN", 1);
+            return;
+        }
+        sprintf(wrapperData->hostName, "%s", hostName);
+    }
+}
+
 /**
  * Return FALSE if successful, TRUE if there were problems.
  */
