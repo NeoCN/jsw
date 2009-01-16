@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2008 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -1167,7 +1167,7 @@ void wrapperVersionBanner() {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
         "Java Service Wrapper Community Edition %s", wrapperVersionRoot);
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-        "  Copyright (C) 1999-2008 Tanuki Software, Ltd.  All Rights Reserved.");
+        "  Copyright (C) 1999-2009 Tanuki Software, Ltd.  All Rights Reserved.");
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
         "    http://wrapper.tanukisoftware.org");
 }
@@ -2091,7 +2091,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     if (maxMemory > 0) {
         if (strings) {
             maxMemory = __max(maxMemory, initMemory);  /* initMemory <= n */
-            strings[index] = malloc(sizeof(char) * (5 + 4 + 1));  /* Allow up to 4 digits. */
+            strings[index] = malloc(sizeof(char) * (5 + 10 + 1));  /* Allow up to 10 digits. */
             if (!strings[index]) {
                 outOfMemory("WBJCAI", 10);
                 return -1;
