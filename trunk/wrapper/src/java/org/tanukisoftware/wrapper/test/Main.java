@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper.test;
 
 /*
- * Copyright (c) 1999, 2008 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -43,6 +43,8 @@ import java.awt.ScrollPane;
 import java.awt.TextField;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 
 import org.tanukisoftware.wrapper.WrapperActionServer;
 import org.tanukisoftware.wrapper.WrapperManager;
@@ -80,7 +82,7 @@ public class Main
     private Main() {
     }
     
-    private class MainFrame extends Frame implements ActionListener
+    private class MainFrame extends Frame implements ActionListener, WindowListener
     {
         /**
          * Serial Version UID.
@@ -226,6 +228,8 @@ public class Main
             buildCommand( panel, gridBag, c, "Is Professional?", "is_professional", "Prints true if this is a Professional Edition." );
             
             buildCommand( panel, gridBag, c, "Is Standard?", "is_standard", "Prints true if this is a Standard Edition." );
+			
+			addWindowListener( this );
         }
         
         private void buildCommand( Container container,
@@ -263,6 +267,9 @@ public class Main
             container.add( desc );
         }
         
+	    /**************************************************************************
+	     * ActionListener Methods
+	     *************************************************************************/
         public void actionPerformed( ActionEvent event )
         {
             String action = event.getActionCommand();
@@ -295,6 +302,38 @@ public class Main
             
             Main.this.doAction( action );
         }
+		
+	    /**************************************************************************
+	     * WindowListener Methods
+	     *************************************************************************/
+		public void windowOpened( WindowEvent e )
+		{
+		}
+		
+		public void windowClosing( WindowEvent e )
+		{
+			WrapperManager.stopAndReturn( 0 );
+		}
+		
+		public void windowClosed( WindowEvent e )
+		{
+		}
+		
+		public void windowIconified( WindowEvent e )
+		{
+		}
+		
+		public void windowDeiconified( WindowEvent e )
+		{
+		}
+		
+		public void windowActivated( WindowEvent e )
+		{
+		}
+		
+		public void windowDeactivated( WindowEvent e )
+		{
+		}
     }
     
     /**************************************************************************

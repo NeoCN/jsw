@@ -63,6 +63,11 @@ Java Service Wrapper Revision History.
   when a lower permission should have been possible.  The Wrapper should now
   allow service control to do whatever is possible from the Services control
   panel.
+* Fix a memory corruption error if the value of wrapper.java.maxmemory was more
+  than 4 digits in length.  wrapper.java.initmemory did not have any problems.
+* Add a new wrapper.event.<event_name>.email.client.host property which makes
+  it possible to configure the host name sent in EHLO and HELO commands to the
+  SMTP server.
 
 3.3.1
 * Add debug output showing the current os name and architecture to aid in
