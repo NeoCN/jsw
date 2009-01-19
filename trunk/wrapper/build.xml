@@ -909,6 +909,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                 <include name="lib/wrappertest.jar" />
                 <include name="jdoc/**" />
                 <include name="doc/**" />
+                <include name="doc/*.doc" />
                 <include name="src/bin/**" />
                 <include name="src/conf/**" />
                 <include name="src/c/*.bat" />
