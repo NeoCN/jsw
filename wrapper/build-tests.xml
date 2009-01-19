@@ -79,7 +79,7 @@
     <!-- =================================================================== -->
     <!-- Initialize build.                                                   -->
     <!-- =================================================================== -->
-    <target name="init" depends="init-windows, init-linux, init-solaris, init-macosx, init-osf1, init-freebsd, init-irix">
+    <target name="init" depends="init-windows, init-linux, init-solaris, init-aix, init-hpux, init-macosx, init-osf1, init-freebsd, init-irix">
     </target>
     
     <!-- =================================================================== -->
