@@ -85,11 +85,13 @@ public class TestAction
     public void controlEvent(int event) {
         System.out.println("controlEvent(" + event + ")");
         if (event == WrapperManager.WRAPPER_CTRL_C_EVENT) {
-            //WrapperManager.stop(0);
-            
-            // May be called before the runner is started.
-            if (m_actionRunner != null) {
-                m_actionRunner.endThread();
+            if ( !ignoreControlEvents() ) {
+                //WrapperManager.stop(0);
+                
+                // May be called before the runner is started.
+                if (m_actionRunner != null) {
+                    m_actionRunner.endThread();
+                }
             }
         }
     }
@@ -163,6 +165,7 @@ public class TestAction
         System.err.println( "   restart                  : Calls WrapperManager.restart()" );
         System.err.println( "   restartandreturn         : Calls WrapperManager.restartAndReturn()" );
         System.err.println( "  Additional Tests:" );
+        System.err.println( "   ignore_events            : Makes this application ignore control events." );
         System.err.println( "   dump                     : Calls WrapperManager.requestThreadDump()" );
         System.err.println( "   deadlock_out             : Deadlocks the JVM's System.out and err streams." );
         System.err.println( "   users                    : Start polling the current and interactive users." );

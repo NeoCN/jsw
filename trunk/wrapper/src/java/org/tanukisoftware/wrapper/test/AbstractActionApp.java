@@ -56,6 +56,7 @@ public abstract class AbstractActionApp
     private Thread m_runner;
     private Thread m_consoleRunner;
     
+    private boolean m_ignoreControlEvents;
     private boolean m_users;
     private boolean m_groups;
     
@@ -128,6 +129,11 @@ public abstract class AbstractActionApp
     /*---------------------------------------------------------------
      * Methods
      *-------------------------------------------------------------*/
+    protected boolean ignoreControlEvents()
+    {
+        return m_ignoreControlEvents;
+    }
+    
     protected boolean isNestedExit()
     {
         return m_nestedExit;
@@ -278,6 +284,10 @@ public abstract class AbstractActionApp
         {
             WrapperManager.appearHung();
             
+        }
+        else if ( action.equals( "ignore_events" ) )
+        {
+            m_ignoreControlEvents = true;
         }
         else if ( action.equals( "dump" ) )
         {

@@ -56,6 +56,10 @@ FARPROC OptionalThread32Next = NULL;
 FARPROC OptionalCreateToolhelp32Snapshot = NULL;
 
 int wrapperLockControlEventQueue() {
+#ifdef _DEBUG
+        printf(" wrapperLockControlEventQueue()\n");
+        fflush(NULL);
+#endif
     if (!controlEventQueueMutexHandle) {
         /* Not initialized so fail quietly.  A message was shown on startup. */
         return -1;
@@ -85,6 +89,10 @@ int wrapperLockControlEventQueue() {
 }
 
 int wrapperReleaseControlEventQueue() {
+#ifdef _DEBUG
+        printf(" wrapperReleaseControlEventQueue()\n");
+        fflush(NULL);
+#endif
     if (!ReleaseMutex(controlEventQueueMutexHandle)) {
         printf( "WrapperJNI Error: Failed to release Control Event mutex. %s\n", getLastErrorText());
         fflush(NULL);

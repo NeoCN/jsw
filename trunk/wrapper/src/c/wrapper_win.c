@@ -442,7 +442,7 @@ int wrapperConsoleHandler(int key) {
         case CTRL_C_EVENT:
         case CTRL_CLOSE_EVENT:
             /* The user hit CTRL-C.  Can only happen when run as a console. */
-            if (wrapperData->ignoreSignals) {
+            if (wrapperData->ignoreSignals & WRAPPER_IGNORE_SIGNALS_WRAPPER) {
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     "CTRL-C trapped, but ignored.");
             } else {
