@@ -1,5 +1,8 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.3.3
+*
+
 3.3.2
 * Add a file information record to the wrapper.exe and wrapperw.exe binaries
   so the Version tab will be displayed correctly in the Properties dialog of
