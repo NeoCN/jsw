@@ -284,7 +284,7 @@ void sigActionCommon(int sigNum, const char *sigName, siginfo_t *sigInfo, int mo
                 "%s trapped, but signals for timer thread are ignored.", sigName);
         }
     } else {
-        if (wrapperData->ignoreSignals) {
+        if (wrapperData->ignoreSignals & WRAPPER_IGNORE_SIGNALS_WRAPPER) {
             log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                 "%s trapped, but ignored.", sigName);
         } else {

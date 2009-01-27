@@ -5,6 +5,7 @@
 #  from the following line:
 ##include.debug
 #include ../conf/wrapper-license.conf
+#include ../conf/wrapper-license-%WRAPPER_HOST_NAME%.conf
 
 #********************************************************************
 # Wrapper Java Properties

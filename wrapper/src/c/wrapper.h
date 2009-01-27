@@ -128,6 +128,9 @@
  *  20 days.  Or 1728000. */
 #define WRAPPER_TIMEOUT_MAX      1728000
 
+#define WRAPPER_IGNORE_SIGNALS_WRAPPER 1
+#define WRAPPER_IGNORE_SIGNALS_JAVA    2
+
 /* Type definitions */
 typedef struct WrapperConfig WrapperConfig;
 struct WrapperConfig {
@@ -245,7 +248,7 @@ struct WrapperConfig {
     int     statusFileUmask;        /* Umask to use when creating the status file. */
     int     javaStatusFileUmask;    /* Umask to use when creating the java status file. */
     int     anchorFileUmask;        /* Umask to use when creating the anchor file. */
-    int     ignoreSignals;          /* True if the Wrapper should ignore any catchable system signals and inform its JVM to do the same. */
+    int     ignoreSignals;          /* Mask that determines where the Wrapper should ignore any catchable system signals.  Can be ingored in the Wrapper and/or JVM. */
     char    *consoleTitle;          /* Text to set the console title to. */
     char    *serviceName;           /* Name of the service. */
     char    *serviceDisplayName;    /* Display name of the service. */

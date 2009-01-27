@@ -2733,7 +2733,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     index++;
 
     /* Store the ignore signals flag if configured to do so */
-    if (wrapperData->ignoreSignals) {
+    if (wrapperData->ignoreSignals & WRAPPER_IGNORE_SIGNALS_JAVA) {
         if (strings) {
             strings[index] = malloc(sizeof(char) * (31 + 1));
             if (!strings[index]) {
@@ -3745,7 +3745,17 @@ int loadConfiguration() {
     setLogfileUmask(getIntProperty(properties, "wrapper.logfile.umask", wrapperData->umask));
 
     /** Flag controlling whether or not system signals should be ignored. */
-    wrapperData->ignoreSignals = getBooleanProperty(properties, "wrapper.ignore_signals", FALSE);
+    val = getStringProperty(properties, "wrapper.ignore_signals", "FALSE");
+    if ( ( strcmpIgnoreCase( val, "TRUE" ) == 0 ) || ( strcmpIgnoreCase( val, "BOTH" ) == 0 ) ) {
+        wrapperData->ignoreSignals = WRAPPER_IGNORE_SIGNALS_WRAPPER + WRAPPER_IGNORE_SIGNALS_JAVA;
+    } else if ( strcmpIgnoreCase( val, "WRAPPER" ) == 0 ) {
+        wrapperData->ignoreSignals = WRAPPER_IGNORE_SIGNALS_WRAPPER;
+    } else if ( strcmpIgnoreCase( val, "JAVA" ) == 0 ) {
+        wrapperData->ignoreSignals = WRAPPER_IGNORE_SIGNALS_JAVA;
+    } else {
+        wrapperData->ignoreSignals = 0;
+    }
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "ignoreSignals=%d", wrapperData->ignoreSignals);
 
     /* Obtain the Console Title. */
     sprintf(propName, "wrapper.console.title.%s", wrapperOS);

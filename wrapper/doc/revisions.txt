@@ -1,7 +1,8 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 3.3.3
-*
+* Modify the wrapper.ignore_signals property so it now takes the values
+  WRAPPER, JAVA, and BOTH, in addition to TRUE and FALSE.
 
 3.3.2
 * Add a file information record to the wrapper.exe and wrapperw.exe binaries
