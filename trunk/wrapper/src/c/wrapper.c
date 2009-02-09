@@ -3755,7 +3755,6 @@ int loadConfiguration() {
     } else {
         wrapperData->ignoreSignals = 0;
     }
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "ignoreSignals=%d", wrapperData->ignoreSignals);
 
     /* Obtain the Console Title. */
     sprintf(propName, "wrapper.console.title.%s", wrapperOS);

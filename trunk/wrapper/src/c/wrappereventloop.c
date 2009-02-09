@@ -1652,6 +1652,10 @@ void wrapperEventLoop() {
         }
         maintainLogger();
 
+#ifdef WIN32
+        wrapperCheckConsoleWindows();
+#endif
+
         /* Check the stout pipe of the child process. */
         if (wrapperData->isLoopOutputEnabled) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Loop: process jvm output");

@@ -256,6 +256,17 @@ wrapper.listener.force_stop=TRUE]]></replacevalue>
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.ShutdownHook" />
         
+        <!-- Shutdown Lock Test -->
+        <delete file="${test.dir}/shutdownlock.conf"/>
+        <filter token="app.name"          value="shutdownlock"/>
+        <filter token="app.long.name"     value="Shutdown Lock Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/shutdownlock.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/shutdownlock.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.ShutdownLock" />
+        
         <!-- OutputLoader Test -->
         <delete file="${test.dir}/outputloader.conf"/>
         <filter token="app.name"          value="outputloader"/>
@@ -550,6 +561,18 @@ set ENV_VAR_4=d]]></replacevalue>
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\shutdownhook.conf' />
         
+        <!-- Shutdown Lock Test -->
+        <delete file="${test.dir}/TestShutdownLock.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestShutdownLock.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestShutdownLock.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestShutdownLock.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\shutdownlock.conf' />
+        
         <!-- Output Loader Test -->
         <delete file="${test.dir}/TestOutputLoader.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
@@ -818,6 +841,14 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/shutdownhook"
               filtering="on"/>
         <chmod file="${test.dir}/shutdownhook" perm="+x"/> 
+        
+        <!-- Shutdown Lock Test -->
+        <filter token="app.name"          value="shutdownlock"/>
+        <filter token="app.long.name"     value="Shutdown Lock Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/shutdownlock"
+              filtering="on"/>
+        <chmod file="${test.dir}/shutdownlock" perm="+x"/> 
         
         <!-- Output Loader Test -->
         <filter token="app.name"          value="outputloader"/>
