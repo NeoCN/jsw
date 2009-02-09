@@ -40,6 +40,7 @@
 #include <process.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <windows.h>
 #include <sys/timeb.h>
 #include <conio.h>
@@ -707,52 +708,68 @@ int wrapperBuildJavaCommand() {
     return FALSE;
 }
 
-void hideConsoleWindow(HWND consoleHandle) {
-    int tries;
+int hideConsoleWindow(HWND consoleHandle, const char *name) {
     WINDOWPLACEMENT consolePlacement;
     
     memset(&consolePlacement, 0, sizeof(WINDOWPLACEMENT));
     consolePlacement.length = sizeof(WINDOWPLACEMENT);
     
-    tries = 0;
-    while (tries < 100) {
+    if (IsWindowVisible(consoleHandle)) {
+#ifdef _DEBUG
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "%s console window is visible, attempt to hide.", name);
+#endif
+
+        /* Hide the Window. */
+        consolePlacement.showCmd = SW_HIDE;
+
+        if (!SetWindowPlacement(consoleHandle, &consolePlacement)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                "Unable to set window placement information: %s", getLastErrorText());
+        }
+        
         if (IsWindowVisible(consoleHandle)) {
-            if (tries > 0) {
-                /* Sleep before the second try. */
-                wrapperSleep(FALSE, 10);
+            if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Failed to hide the %s console window.", name);
             }
-
-            /* Hide the Window. */
-            consolePlacement.showCmd = SW_HIDE;
-
-            if (!SetWindowPlacement(consoleHandle, &consolePlacement)) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                    "Unable to set window placement information: %s", getLastErrorText());
-            }
-            tries++;
+            return FALSE;
         } else {
-            break;
+            if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "%s console window hidden successfully.", name);
+            }
+            return TRUE;
+        }
+    } else {
+        /* Already hidden */
+        return TRUE;
+    }
+}
+
+/**
+ * Look for and hide the wrapper or JVM console windows if they should be hidden.
+ * Some users have reported that if the user logs on to windows quickly after booting up,
+ *  the console window will be redisplayed even though it was hidden once.  The forceCheck
+ *  will continue to attempt to check and hide the window if this does happen for up to a
+ *  predetermined period of time.
+ */
+void wrapperCheckConsoleWindows() {
+    int forceCheck = TRUE;
+    
+    /* See if the Wrapper console needs to be hidden. */
+    if (wrapperData->wrapperConsoleHide && (wrapperData->wrapperConsoleHandle != NULL) && (wrapperData->wrapperConsoleVisible || forceCheck)) {
+        if (hideConsoleWindow(wrapperData->wrapperConsoleHandle, "Wrapper")) {
+            wrapperData->wrapperConsoleVisible = FALSE;
         }
     }
     
-    //if (GetWindowPlacement(consoleHandle, &consolePlacement)) {
-    //    /* Hide the Window. */
-    //    consolePlacement.showCmd = SW_HIDE;
-    //
-    //    /* If we hide the window too soon after it is shown, it sometimes sticks, so wait a moment. */
-    //    wrapperSleep(FALSE, 1000);
-    //
-    //    if (!SetWindowPlacement(consoleHandle, &consolePlacement)) {
-    //        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-    //            "Unable to set window placement information: %s", getLastErrorText());
-    //    }
-    //} else {
-    //    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-    //        "Unable to obtain window placement information: %s", getLastErrorText());
-    //}
+    /* See if the Java console needs to be hidden. */
+    if ((wrapperData->jvmConsoleHandle != NULL) && (wrapperData->jvmConsoleVisible || forceCheck)) {
+        if (hideConsoleWindow(wrapperData->jvmConsoleHandle, "JVM")) {
+            wrapperData->jvmConsoleVisible = FALSE;
+        }
+    }
 }
 
-HWND findAndHideConsoleWindow( char *title ) {
+HWND findConsoleWindow( char *title ) {
     HWND consoleHandle;
     int i = 0;
 
@@ -764,16 +781,16 @@ HWND findAndHideConsoleWindow( char *title ) {
         consoleHandle = FindWindow("ConsoleWindowClass", title);
         i++;
     }
-    if (consoleHandle != NULL) {
-        hideConsoleWindow(consoleHandle);
-    }
     
     return consoleHandle;
 }
 
-void showConsoleWindow(HWND consoleHandle) {
+void showConsoleWindow(HWND consoleHandle, const char *name) {
     WINDOWPLACEMENT consolePlacement;
     
+    if (wrapperData->isDebugging) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Show %s console window which JVM is launched.", name);
+    }
     if (GetWindowPlacement(consoleHandle, &consolePlacement)) {
         /* Show the Window. */
         consolePlacement.showCmd = SW_SHOW;
@@ -900,6 +917,13 @@ int initializeWinSock() {
  */
 int wrapperInitializeRun() {
     HANDLE hStdout;
+#ifdef WIN32
+    struct _timeb timebNow;
+#else
+    struct timeval timevalNow;
+#endif
+    time_t      now;
+    int         nowMillis;
     int res;
     char titleBuffer[80];
 
@@ -909,6 +933,18 @@ int wrapperInitializeRun() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
             "Unable to set the process priority:  %s", getLastErrorText());
     }
+
+    /* Initialize the random seed. */
+#ifdef WIN32
+    _ftime( &timebNow );
+    now = (time_t)timebNow.time;
+    nowMillis = timebNow.millitm;
+#else
+    gettimeofday( &timevalNow, NULL );
+    now = (time_t)timevalNow.tv_sec;
+    nowMillis = timevalNow.tv_usec / 1000;
+#endif
+    srand(nowMillis);
 
     /* Initialize the pipe to capture the child process output */
     if ((res = wrapperInitChildPipe()) != 0) {
@@ -941,16 +977,28 @@ int wrapperInitializeRun() {
 
         if (wrapperData->ntHideWrapperConsole) {
             /* A console needed to be allocated for the process but it should be hidden. */
-#ifdef _DEBUG
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Hiding the console.");
-#endif
-
+            
             /* Generate a unique time for the console so we can look for it below. */
-            sprintf(titleBuffer, "Wrapper Console ID %d%d (Do not close)", rand(), rand());
+            sprintf(titleBuffer, "Wrapper Console ID %d-%d (Do not close)", wrapperData->wrapperPID, rand());
+#ifdef _DEBUG
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Wrapper console title: %s", titleBuffer);
+#endif
 
             SetConsoleTitle( titleBuffer );
 
-            wrapperData->wrapperConsoleHandle = findAndHideConsoleWindow( titleBuffer );
+            wrapperData->wrapperConsoleHide = TRUE;
+            if (wrapperData->wrapperConsoleHandle = findConsoleWindow(titleBuffer)) {
+                wrapperData->wrapperConsoleVisible = TRUE;
+                if (wrapperData->isDebugging) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Found console window.");
+                }
+                
+                /* Attempt to hide the console window here once so it goes away as quickly as possible.
+                 *  This may not succeed yet however.  If the system is still coming up. */
+                wrapperCheckConsoleWindows();
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Failed to locate the console window so it can be hidden.");
+            }
         }
     }
 
@@ -1418,6 +1466,9 @@ void wrapperExecute() {
 
     FILE *pid_fp = NULL;
 
+    /* Initialize the random seed. */
+    srand((unsigned)time(NULL));
+
     /* Reset the exit code when we launch a new JVM. */
     wrapperData->exitCode = 0;
 
@@ -1440,7 +1491,7 @@ void wrapperExecute() {
     process_attributes.bInheritHandle = TRUE;
 
     /* Generate a unique time for the console so we can look for it below. */
-    sprintf(titleBuffer, "Wrapper Controlled JVM Console ID %d%d (Do not close)", rand(), rand());
+    sprintf(titleBuffer, "Wrapper Controlled JVM Console ID %d-%d (Do not close)", wrapperData->wrapperPID, rand());
 
     /* Initialize a STARTUPINFO structure to use for the new process. */
     startup_info.cb=sizeof(STARTUPINFO);
@@ -1471,7 +1522,9 @@ void wrapperExecute() {
                 if (!wrapperData->ntHideJVMConsole) {
                     /* In order to support older JVMs we need to show the console when the
                      *  JVM is launched.  We need to remember to hide it below. */
-                    showConsoleWindow(wrapperData->wrapperConsoleHandle);
+                    showConsoleWindow(wrapperData->wrapperConsoleHandle, "Wrapper");
+                    wrapperData->wrapperConsoleVisible = TRUE;
+                    wrapperData->wrapperConsoleHide = FALSE;
                     hideConsole = TRUE;
                 }
             }
@@ -1601,11 +1654,14 @@ void wrapperExecute() {
          *  is using. */
         if (wrapperData->wrapperConsoleHandle) {
             /* The wrapper's console needs to be hidden. */
-            hideConsoleWindow(wrapperData->wrapperConsoleHandle);
+            wrapperData->wrapperConsoleHide = TRUE;
+            wrapperCheckConsoleWindows();
         } else {
             /* We need to locate the console that was created by the JVM on launch
              *  and hide it. */
-            findAndHideConsoleWindow(titleBuffer);
+            wrapperData->jvmConsoleHandle = findConsoleWindow(titleBuffer);
+            wrapperData->jvmConsoleVisible = TRUE;
+            wrapperCheckConsoleWindows();
         }
     }
 

@@ -3,6 +3,21 @@ Java Service Wrapper Revision History.
 3.3.3
 * Modify the wrapper.ignore_signals property so it now takes the values
   WRAPPER, JAVA, and BOTH, in addition to TRUE and FALSE.
+* Modify the WrapperManager so it is now careful never to poll the native
+  library once the JVM is flagged as being ready to shutdown.  This is to
+  make sure that the JVM never exits in the middle of a call as that could
+  lead to the JVM crashing.
+* Add a pair of methods to allow threads to request and release locks which
+  will prevent the Wrapper from letting the JVM exit while certain operations
+  are in progress.  See WrapperManager.requestShutdownLock() and
+  WrapperManager.releaseShutdownLock().
+* Fix a problem where interactive services would sometimes leave a console
+  window visible when after starting up.  The Wrapper is now more resilient
+  about closing the window even if it fails to do so initially.
+* Fix a problem where the random generator was not being seeded correctly
+  before naming the Wrapper's console window when running as a Windows
+  service.  This was leading to problems identifying the wrapper's console
+  when more than one service was running on the same machine.
 
 3.3.2
 * Add a file information record to the wrapper.exe and wrapperw.exe binaries

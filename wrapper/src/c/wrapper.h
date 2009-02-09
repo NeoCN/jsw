@@ -272,7 +272,11 @@ struct WrapperConfig {
     int     ntServicePausableStopJVM; /* Should the JVM be stopped when the service is paused? */
     int     ntHideJVMConsole;       /* Should the JVMs Console window be hidden when run as a service.  True by default but GUIs will not be visible for JVMs prior to 1.4.0. */
     int     ntHideWrapperConsole;   /* Should the Wrapper Console window be hidden when run as a service. */
+    int     wrapperConsoleHide;     /* True if the Wrapper Console window should be hidden. */
     HWND    wrapperConsoleHandle;   /* Pointer to the Wrapper Console handle if it exists.  This will only be set if the console was allocated then hidden. */
+    int     wrapperConsoleVisible;  /* True if the Wrapper Console window is visible. */
+    HWND    jvmConsoleHandle;       /* Pointer to the JVM Console handle if it exists. */
+    int     jvmConsoleVisible;      /* True if the JVM Console window is visible. */
     int     ntAllocConsole;         /* True if a console should be allocated for the Service. */
     int     generateConsole;        /* Make sure that a console is always generated to support thread dumps */
     int     threadDumpControlCode;  /* Control code which can be used to trigger a thread dump. */
@@ -448,6 +452,8 @@ extern void wrapperSetJavaState(int useLoggerQueue, int jState, DWORD nowTicks, 
  * Platform specific methods
  *****************************************************************************/
 #ifdef WIN32
+extern void wrapperCheckConsoleWindows();
+
 extern int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers);
 #endif
 

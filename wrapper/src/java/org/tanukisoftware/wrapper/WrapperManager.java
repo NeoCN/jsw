@@ -50,8 +50,10 @@ import java.security.AccessControlException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
@@ -252,6 +254,12 @@ public final class WrapperManager
     /* Flag which records when the shutdownJVM method has completed. */
     private static boolean m_shutdownJVMComplete = false;
     
+    /** Map which stores shutdown locks for each thread. */
+    private static Map m_shutdownLockMap = new HashMap();
+    
+    /** Tracks the total number of outstanding shutdown locks. */
+    private static int m_shutdownLocks = 0;
+    
     private static String[] m_args;
     private static int m_port    = DEFAULT_PORT;
     private static int m_jvmPort;
@@ -318,7 +326,6 @@ public final class WrapperManager
     private static int m_lastPingTicks;
     private static ServerSocket m_serverSocket;
     private static Socket m_socket;
-    private static boolean m_shuttingDown = false;
     private static boolean m_appearHung = false;
     
     private static Method m_addShutdownHookMethod = null;
@@ -698,7 +705,9 @@ public final class WrapperManager
                     int lastTickOffset = 0;
                     boolean first = true;
                     
-                    while ( !m_shuttingDown )
+                    // This loop should never exit because the tick counting is required
+                    //  for the life of the JVM.
+                    while ( true )
                     {
                         int offsetDiff;
                         if ( !m_useSystemTime )
@@ -783,18 +792,22 @@ public final class WrapperManager
                         
                         if ( m_libraryOK )
                         {
-                            // Look for control events in the wrapper library.
-                            //  There may be more than one.
-                            int event = 0;
-                            do
+                            // To avoid the JVM shutting down while we are in the middle of a JNI call, 
+                            if ( !isShuttingDown() )
                             {
-                                event = WrapperManager.nativeGetControlEvent();
-                                if ( event != 0 )
+                                // Look for control events in the wrapper library.
+                                //  There may be more than one.
+                                int event = 0;
+                                do
                                 {
-                                    WrapperManager.controlEvent( event );
+                                    event = WrapperManager.nativeGetControlEvent();
+                                    if ( event != 0 )
+                                    {
+                                        WrapperManager.controlEvent( event );
+                                    }
                                 }
+                                while ( event != 0 );
                             }
-                            while ( event != 0 );
                         }
                         
                         // Wait before checking for another control event.
@@ -2041,6 +2054,144 @@ public final class WrapperManager
     }
     
     /**
+     * Returns true if the JVM is in the process of shutting down.  This can be
+     *  useful to avoid starting long running processes when it is known that the
+     *  JVM will be shutting down shortly.
+     *
+     * @return true if the JVM is shutting down.
+     */
+    public static boolean isShuttingDown()
+    {
+        return m_stopping;
+    }
+    
+    private static class ShutdownLock
+        extends Object
+    {
+        private final Thread m_thread;
+        private int m_count;
+        
+        private ShutdownLock( Thread thread )
+        {
+            m_thread = thread;
+        }
+    }
+    
+    /**
+     * Increase the number of locks which will prevent the Wrapper from letting
+     *  the JVM process exit on shutdown.   This is primarily useful around
+     *  calls to native JNI functions in daemon threads where it has been shown
+     *  that premature JVM exits can cause the JVM process to crash on shutdown.
+     * <p>
+     * Normal non-daemon threads should not require these locks as the very
+     *  fact that the non-daemon thread is still running will prevent the JVM
+     *  from shutting down.
+     * <p>
+     * It is possible to make multiple calls within a single thread.  Each call
+     *  should always be paired with a call to releaseShutdownLock().
+     *
+     * @throws WrapperShuttingDownException If called after the Wrapper has
+     *                                      already begun the shutdown of the
+     *                                      JVM.
+     */
+    public static void requestShutdownLock()
+        throws WrapperShuttingDownException
+    {
+        synchronized( WrapperManager.class )
+        {
+            if ( m_stopping )
+            {
+                throw new WrapperShuttingDownException();
+            }
+            
+            Thread thisThread = Thread.currentThread();
+            ShutdownLock lock = (ShutdownLock)m_shutdownLockMap.get( thisThread );
+            if ( lock == null )
+            {
+                lock = new ShutdownLock( thisThread );
+                m_shutdownLockMap.put( thisThread, lock );
+            }
+            lock.m_count++;
+            m_shutdownLocks++;
+            
+            if ( m_debug )
+            {
+                m_outDebug.println( "WrapperManager.requestShutdownLock() called by thread: "
+                    + thisThread.getName() + ". New thread lock count: " + lock.m_count
+                    + ", total lock count: " + m_shutdownLocks );
+            }
+        }
+    }
+    
+    /**
+     * Called by a thread which has previously called requestShutdownLock().
+     *
+     * @throws IllgalStateException If called without first calling requestShutdownLock() from
+     *                              the same thread.
+     */
+    public static void releaseShutdownLock()
+        throws IllegalStateException
+    {
+        synchronized( WrapperManager.class )
+        {
+            Thread thisThread = Thread.currentThread();
+            ShutdownLock lock = (ShutdownLock)m_shutdownLockMap.get( thisThread );
+            if ( lock == null )
+            {
+                throw new IllegalStateException( "requestShutdownLock was not called from this thread." );
+            }
+            
+            lock.m_count--;
+            m_shutdownLocks--;
+            
+            if ( m_debug )
+            {
+                m_outDebug.println( "WrapperManager.releaseShutdownLock() called by thread: "
+                    + thisThread.getName() + ". New thread lock count: " + lock.m_count
+                    + ", total lock count: " + m_shutdownLocks );
+            }
+            
+            if ( lock.m_count <= 0 )
+            {
+                m_shutdownLockMap.remove( thisThread );
+            }
+            
+            WrapperManager.class.notify();
+        }
+    }
+    
+    /**
+     * Waits for any outstanding locks to be released before shutting down.
+     */
+    private static void waitForShutdownLocks()
+    {
+        synchronized( WrapperManager.class )
+        {
+            if ( m_debug )
+            {
+                m_outDebug.println( "wait for " + m_shutdownLocks + " shutdown locs to be released." );
+            }
+            
+            while ( m_shutdownLocks > 0 )
+            {
+                try
+                {
+                    WrapperManager.class.wait( 5000 );
+                }
+                catch ( InterruptedException e )
+                {
+                    // Ignore and continue.
+                }
+                
+                if ( m_shutdownLocks > 0 )
+                {
+                    m_outInfo.println( "Waiting for " + m_shutdownLocks + " shutdown locks to be released..." );
+                }
+            }
+        }
+    }
+    
+    /**
      * Tells the native wrapper that the JVM wants to restart, then informs
      *  all listeners that the JVM is about to shutdown before killing the JVM.
      * <p>
@@ -3155,33 +3306,29 @@ public final class WrapperManager
                 "shutdownJVM(" + exitCode + ") Thread:" + Thread.currentThread().getName() );
         }
         
+        // Make sure that any shutdown locks are released.
+        waitForShutdownLocks();
+        
+        // Signal that the application has stopped and the JVM is about to shutdown.
+        signalStopped( exitCode );
+        
+        // Dispose the wrapper.
+        dispose();
+        
+        m_shutdownJVMComplete = true;
+        
         // Do not call System.exit if this is the ShutdownHook
         if ( Thread.currentThread() == m_hook )
         {
-            // Signal that the application has stopped and the JVM is about to shutdown.
-            signalStopped( exitCode );
-            
-            // Dispose the wrapper.  (If the hook runs, it will do this.)
-            dispose();
-            
             // This is the shutdown hook, so fall through because things are
             //  already shutting down.
-            
-            m_shutdownJVMComplete = true;
         }
         else
         {
-            // Signal that the application has stopped and the JVM is about to shutdown.
-            signalStopped( exitCode );
-            
-            // Dispose the wrapper.  (If the hook runs, it will do this.)
-            dispose();
-            
             if ( m_debug )
             {
                 m_outDebug.println( "calling System.exit(" + exitCode + ")" );
             }
-            m_shutdownJVMComplete = true;
             safeSystemExit( exitCode );
         }
     }
@@ -4434,7 +4581,7 @@ public final class WrapperManager
             }
             catch ( Throwable t )
             {
-                if ( !m_shuttingDown )
+                if ( !isShuttingDown() )
                 {
                     // Show a stack trace here because this is fairly critical
                     m_outError.println( m_error.format( "SERVER_DAEMON_DIED" ) );
