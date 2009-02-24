@@ -122,6 +122,8 @@ extern "C" {
 /* Inaccessible static: m_hook */
 /* Inaccessible static: m_hookTriggered */
 /* Inaccessible static: m_shutdownJVMComplete */
+/* Inaccessible static: m_shutdownLockMap */
+/* Inaccessible static: m_shutdownLocks */
 /* Inaccessible static: m_args */
 /* Inaccessible static: m_port */
 /* Inaccessible static: m_jvmPort */
@@ -149,7 +151,6 @@ extern "C" {
 /* Inaccessible static: m_lastPingTicks */
 /* Inaccessible static: m_serverSocket */
 /* Inaccessible static: m_socket */
-/* Inaccessible static: m_shuttingDown */
 /* Inaccessible static: m_appearHung */
 /* Inaccessible static: m_addShutdownHookMethod */
 /* Inaccessible static: m_removeShutdownHookMethod */
