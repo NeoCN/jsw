@@ -379,6 +379,44 @@ wrapper.java.additional.7.stripquotes=TRUE]]></replacevalue>
         <replace file="${test.dir}/systemproperty.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.SystemProperty" />
+        
+        <!-- ExecutableJar Test -->
+        <delete file="${test.dir}/executablejar.conf"/>
+        <filter token="app.name"          value="executablejar"/>
+        <filter token="app.long.name"     value="Executable Jar Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/executablejar.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/executablejar.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperJarApp" />
+        <replace file="${test.dir}/executablejar.conf">
+            <replacetoken><![CDATA[wrapper.java.classpath.1=../lib/wrappertest.jar
+wrapper.java.classpath.2=../lib/wrapper.jar]]></replacetoken>
+            <replacevalue>wrapper.java.classpath.1=../lib/wrapper.jar</replacevalue>
+        </replace>
+        <replace file="${test.dir}/executablejar.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=../lib/wrappertest.jar" />
+        
+        <!-- ExecutableJarCP Test -->
+        <delete file="${test.dir}/executablejarcp.conf"/>
+        <filter token="app.name"          value="executablejarcp"/>
+        <filter token="app.long.name"     value="Executable Jar w/Classpath Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/executablejarcp.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/executablejarcp.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperJarApp" />
+        <replace file="${test.dir}/executablejarcp.conf">
+            <replacetoken><![CDATA[wrapper.java.classpath.1=../lib/wrappertest.jar
+wrapper.java.classpath.2=../lib/wrapper.jar]]></replacetoken>
+            <replacevalue>wrapper.java.classpath.1=../lib/wrapper.jar</replacevalue>
+        </replace>
+        <replace file="${test.dir}/executablejarcp.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=../lib/wrappertest2.jar" />
     </target>
     
     <!-- =================================================================== -->
@@ -644,6 +682,42 @@ set ENV_VAR_4=d]]></replacevalue>
         <replace file="${test.dir}/TestSystemProperty.bat"
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\systemproperty.conf' />
+        
+        <!-- ExecutableJar Test -->
+        <delete file="${test.dir}/TestExecutableJar.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestExecutableJar.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestExecutableJar.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestExecutableJar.bat"
+                 token='set _WRAPPER_CONF="%~f1"'
+                 value='set _WRAPPER_CONF=""' />
+        <replace file="${test.dir}/TestExecutableJar.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\executablejar.conf' />
+        <replace file="${test.dir}/TestExecutableJar.bat"
+                 token='"%_WRAPPER_EXE%" -c %_WRAPPER_CONF%'
+                 value='"%_WRAPPER_EXE%" -c %_WRAPPER_CONF% wrapper.app.parameter.2=%1' />
+        
+        <!-- ExecutableJarCP Test -->
+        <delete file="${test.dir}/TestExecutableJarCP.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestExecutableJarCP.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestExecutableJarCP.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestExecutableJarCP.bat"
+                 token='set _WRAPPER_CONF="%~f1"'
+                 value='set _WRAPPER_CONF=""' />
+        <replace file="${test.dir}/TestExecutableJarCP.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\executablejarcp.conf' />
+        <replace file="${test.dir}/TestExecutableJarCP.bat"
+                 token='"%_WRAPPER_EXE%" -c %_WRAPPER_CONF%'
+                 value='"%_WRAPPER_EXE%" -c %_WRAPPER_CONF% wrapper.app.parameter.2=%1' />
     </target>
     
     <!-- =================================================================== -->
@@ -652,8 +726,11 @@ set ENV_VAR_4=d]]></replacevalue>
     <target name="test-setup-sh" depends="test-setup-common" if="is.shell.sh">
         <!-- Create a template script to make this easier -->
         <delete file="${test.dir}/temp.script.in"/>
+        <delete file="${test.dir}/action.script.in"/>
         <copy file="${src.dir}/bin/sh.script.in"
               tofile="${test.dir}/temp.script.in"/>
+        <copy file="${src.dir}/bin/sh.script.in"
+              tofile="${test.dir}/action.script.in"/>
     </target>
     
     <!-- =================================================================== -->
@@ -670,6 +747,73 @@ set ENV_VAR_4=d]]></replacevalue>
         <replace file="${test.dir}/temp.script.in"
                  token="SCRIPT=`$$SCRIPT_DIR/realpath $$0`"
                  value="SCRIPT=`$$SCRIPT_DIR/../bin/realpath $$0`" />
+
+        <!-- Create the action test specific script files -->
+        <replace file="${test.dir}/action.script.in"
+                 token='WRAPPER_CMD="./wrapper"'
+                 value='WRAPPER_CMD="../bin/wrapper"' />
+        <replace file="${test.dir}/action.script.in"
+                 token='WRAPPER_CONF="../conf/wrapper.conf"'
+                 value='WRAPPER_CONF="../test/@app.name@.conf"' />
+        <replace file="${test.dir}/action.script.in"
+                 token="SCRIPT=`$$SCRIPT_DIR/realpath $$0`"
+                 value="SCRIPT=`$$SCRIPT_DIR/../bin/realpath $$0`" />
+        <replace file="${test.dir}/action.script.in">
+            <replacetoken><![CDATA[\"$REALPATH\" $2]]></replacetoken>
+            <replacevalue><![CDATA[\"$REALPATH\" $2 $3]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/action.script.in">
+            <replacetoken><![CDATA['console')
+        checkUser touchlock $1
+        console
+        ;;]]></replacetoken>
+            <replacevalue><![CDATA['console')
+        checkUser touchlock $1 $2
+        console $2
+        ;;]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/action.script.in">
+            <replacetoken><![CDATA['start')
+        checkUser touchlock $1
+        start
+        ;;]]></replacetoken>
+            <replacevalue><![CDATA['start')
+        checkUser touchlock $1 $2
+        start $2
+        ;;]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/action.script.in">
+            <replacetoken><![CDATA['restart')
+        checkUser touchlock $1
+        stopit
+        start
+        ;;]]></replacetoken>
+            <replacevalue><![CDATA['restart')
+        checkUser touchlock $1 $2
+        stopit
+        start $2
+        ;;]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/action.script.in">
+            <replacetoken><![CDATA[checkUser "" $1]]></replacetoken>
+            <replacevalue><![CDATA[checkUser "" $1 $2]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/action.script.in">
+            <replacetoken><![CDATA[Running $APP_LONG_NAME]]></replacetoken>
+            <replacevalue><![CDATA[Running $APP_LONG_NAME with test action: $1]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/action.script.in">
+            <replacetoken><![CDATA[Starting $APP_LONG_NAME]]></replacetoken>
+            <replacevalue><![CDATA[Starting $APP_LONG_NAME with test action: $1]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/action.script.in">
+            <replacetoken><![CDATA[\"$WRAPPER_CMD\" \"$WRAPPER_CONF\"]]></replacetoken>
+            <replacevalue><![CDATA[\"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.app.parameter.1=$1]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/action.script.in">
+            <replacetoken><![CDATA[Usage: $0 { console | start | stop | restart | status | dump }]]></replacetoken>
+            <replacevalue><![CDATA[Usage: $0 { console <action> | start <action> | stop | restart <action> | status | dump }]]></replacevalue>
+        </replace>
         
         <!-- Background Threads Test -->
         <filter token="app.name"          value="backgroundthreads"/>
@@ -773,65 +917,9 @@ export ENV_VAR_4=d]]></replacevalue>
         <!-- Action Test -->
         <filter token="app.name"          value="action"/>
         <filter token="app.long.name"     value="Action Test Case" />
-        <copy file="${test.dir}/temp.script.in"
+        <copy file="${test.dir}/action.script.in"
               tofile="${test.dir}/action"
               filtering="on"/>
-        <replace file="${test.dir}/action">
-            <replacetoken><![CDATA[\"$REALPATH\" $2]]></replacetoken>
-            <replacevalue><![CDATA[\"$REALPATH\" $2 $3]]></replacevalue>
-        </replace>
-        <replace file="${test.dir}/action">
-            <replacetoken><![CDATA['console')
-        checkUser touchlock $1
-        console
-        ;;]]></replacetoken>
-            <replacevalue><![CDATA['console')
-        checkUser touchlock $1 $2
-        console $2
-        ;;]]></replacevalue>
-        </replace>
-        <replace file="${test.dir}/action">
-            <replacetoken><![CDATA['start')
-        checkUser touchlock $1
-        start
-        ;;]]></replacetoken>
-            <replacevalue><![CDATA['start')
-        checkUser touchlock $1 $2
-        start $2
-        ;;]]></replacevalue>
-        </replace>
-        <replace file="${test.dir}/action">
-            <replacetoken><![CDATA['restart')
-        checkUser touchlock $1
-        stopit
-        start
-        ;;]]></replacetoken>
-            <replacevalue><![CDATA['restart')
-        checkUser touchlock $1 $2
-        stopit
-        start $2
-        ;;]]></replacevalue>
-        </replace>
-        <replace file="${test.dir}/action">
-            <replacetoken><![CDATA[checkUser "" $1]]></replacetoken>
-            <replacevalue><![CDATA[checkUser "" $1 $2]]></replacevalue>
-        </replace>
-        <replace file="${test.dir}/action">
-            <replacetoken><![CDATA[Running $APP_LONG_NAME]]></replacetoken>
-            <replacevalue><![CDATA[Running $APP_LONG_NAME with test action: $1]]></replacevalue>
-        </replace>
-        <replace file="${test.dir}/action">
-            <replacetoken><![CDATA[Starting $APP_LONG_NAME]]></replacetoken>
-            <replacevalue><![CDATA[Starting $APP_LONG_NAME with test action: $1]]></replacevalue>
-        </replace>
-        <replace file="${test.dir}/action">
-            <replacetoken><![CDATA[\"$WRAPPER_CMD\" \"$WRAPPER_CONF\"]]></replacetoken>
-            <replacevalue><![CDATA[\"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.app.parameter.1=$1]]></replacevalue>
-        </replace>
-        <replace file="${test.dir}/action">
-            <replacetoken><![CDATA[Usage: $0 { console | start | stop | restart | status | dump }]]></replacetoken>
-            <replacevalue><![CDATA[Usage: $0 { console <action> | start <action> | stop | restart <action> | status | dump }]]></replacevalue>
-        </replace>
         <chmod file="${test.dir}/action" perm="+x"/> 
         
         <!-- Shutdown Hook Test -->
@@ -898,8 +986,25 @@ export ENV_VAR_4=d]]></replacevalue>
               filtering="on"/>
         <chmod file="${test.dir}/systemproperty" perm="+x"/> 
         
+        <!-- ExecutableJar Test -->
+        <filter token="app.name"          value="executablejar"/>
+        <filter token="app.long.name"     value="Executable Jar Case" />
+        <copy file="${test.dir}/action.script.in"
+              tofile="${test.dir}/executablejar"
+              filtering="on"/>
+        <chmod file="${test.dir}/executablejar" perm="+x"/> 
+        
+        <!-- ExecutableJarCP Test -->
+        <filter token="app.name"          value="executablejarcp"/>
+        <filter token="app.long.name"     value="Executable Jar w/Classpath Case" />
+        <copy file="${test.dir}/action.script.in"
+              tofile="${test.dir}/executablejarcp"
+              filtering="on"/>
+        <chmod file="${test.dir}/executablejarcp" perm="+x"/> 
+        
         <!-- Get rid of the temp script file -->
         <delete file="${test.dir}/temp.script.in"/>
+        <delete file="${test.dir}/action.script.in"/>
     </target>
     
     <!-- =================================================================== -->

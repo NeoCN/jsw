@@ -584,10 +584,10 @@ void *timerRunner(void *arg) {
         lastTickOffset = tickOffset;
     }
 
-    /* Will never get here.  Solaris warns if the return is there.  Others warn if it is not. */
-#if !defined(SOLARIS)
+    /* Will never get here.  Solaris warns if the return is there (some on x86, not sparc).  Others warn if it is not. */
+/* #if !defined(SOLARIS) */
     return NULL;
-#endif
+/* #endif */
 }
 
 /**

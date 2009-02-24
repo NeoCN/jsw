@@ -14,6 +14,8 @@ Java Service Wrapper Revision History.
 * Fix a problem where interactive services would sometimes leave a console
   window visible when after starting up.  The Wrapper is now more resilient
   about closing the window even if it fails to do so initially.
+* Add a new integration method (#4), which makes it easy to configure the
+  Wrapper to execute an executable jar file.
 * Fix a problem where the random generator was not being seeded correctly
   before naming the Wrapper's console window when running as a Windows
   service.  This was leading to problems identifying the wrapper's console
