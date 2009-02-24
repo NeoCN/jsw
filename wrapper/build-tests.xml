@@ -55,7 +55,7 @@
         <property name="is.Unix" value="true"/>
         <property name="is.shell.sh" value="true"/>
     </target>
-    <target name="init-hpux" if="is.HPUX">
+    <target name="init-hpux" if="is.HP-UX">
         <property name="is.Unix" value="true"/>
         <property name="is.shell.sh" value="true"/>
     </target>
