@@ -23,20 +23,20 @@ LIB = ../../lib
 all: init wrapper libwrapper.sl
 
 clean:
-    rm -f *.o
+	rm -f *.o
 
 cleanall: clean
-    rm -rf *~ .deps
-    rm -f $(BIN)/wrapper $(LIB)/libwrapper.sl
+	rm -rf *~ .deps
+	rm -f $(BIN)/wrapper $(LIB)/libwrapper.sl
 
 init:
-    if test ! -d .deps; then mkdir .deps; fi
+	if test ! -d .deps; then mkdir .deps; fi
 
 wrapper: $(wrapper_SOURCE)
-    $(COMPILE) $(wrapper_SOURCE) -lm -lpthread -o $(BIN)/wrapper
+	$(COMPILE) $(wrapper_SOURCE) -lm -lpthread -o $(BIN)/wrapper
 
 libwrapper.sl: $(libwrapper_sl_SOURCE)
-    ${COMPILE} ${DEFS} $(libwrapper_sl_SOURCE) -b -lm -lpthread -o $(LIB)/libwrapper.sl
+	${COMPILE} ${DEFS} $(libwrapper_sl_SOURCE) -b -lm -lpthread -o $(LIB)/libwrapper.sl
 
 %.o: %.c
-    ${COMPILE} -c ${DEFS} $<
+	${COMPILE} -c ${DEFS} $<
