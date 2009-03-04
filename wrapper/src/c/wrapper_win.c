@@ -3552,7 +3552,7 @@ int wrapperServiceStatus(int consoleOutput) {
     if (schSCManager){
 
         /* Next get the handle to this service... */
-        schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_QUERY_STATUS);
+        schService = OpenService(schSCManager, wrapperData->serviceName, SERVICE_QUERY_STATUS | SERVICE_QUERY_CONFIG);
 
         if (schService){
             /* Service is installed, so set that bit. */
