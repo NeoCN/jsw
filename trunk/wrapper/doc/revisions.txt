@@ -1,5 +1,11 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.3.4
+* Fix a problem introduced in 3.3.2 where querying a the status of a Windows
+  service with the -q or -qs commands resulted in an access violation.  The
+  running status of the service was reported correctly but additional
+  configuration information was failing.  Bug #2644515.
+
 3.3.3
 * Modify the wrapper.ignore_signals property so it now takes the values
   WRAPPER, JAVA, and BOTH, in addition to TRUE and FALSE.
