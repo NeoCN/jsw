@@ -472,7 +472,7 @@ void protocolStartServer() {
         wrapperProtocolClose();
         protocolStopServer();
         wrapperData->exitRequested = TRUE;
-        wrapperData->restartRequested = FALSE;
+        wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_NO;
         return;
     }
 
@@ -1079,7 +1079,7 @@ int wrapperInitialize() {
     wrapperData->lastLoggedPingTicks = wrapperGetTicks();
     wrapperData->jvmCommand = NULL;
     wrapperData->exitRequested = FALSE;
-    wrapperData->restartRequested = TRUE; /* The first JVM needs to be started. */
+    wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_INITIAL; /* The first JVM needs to be started. */
     wrapperData->exitCode = 0;
     wrapperData->jvmRestarts = 0;
     wrapperData->jvmLaunchTicks = wrapperGetTicks();
@@ -1426,7 +1426,7 @@ void wrapperKillProcessNow() {
         wrapperData->exitCode = 1;
     }
 
-    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, -1, -1);
+    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, 0, -1);
 
     /* Remove java pid file if it was registered and created by this process. */
     if (wrapperData->javaPidFilename) {
@@ -1499,7 +1499,7 @@ int wrapperRunConsole() {
 
     /* Setup the wrapperData structure. */
     wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STARTING);
-    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, -1, -1);
+    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, 0, -1);
     wrapperData->isConsole = TRUE;
 
     /* Initialize the wrapper */
@@ -1564,7 +1564,7 @@ int wrapperRunService() {
 
     /* Setup the wrapperData structure. */
     wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STARTING);
-    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, -1, -1);
+    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, 0, -1);
     wrapperData->isConsole = FALSE;
 
     /* Initialize the wrapper */
@@ -1633,7 +1633,7 @@ void wrapperStopProcess(int useLoggerQueue, int exitCode) {
         wrapperData->exitCode = exitCode;
 
         /* Make sure that further restarts are disabled. */
-        wrapperData->restartRequested = FALSE;
+        wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_NO;
 
         /* Do not call wrapperSetWrapperState(useLoggerQueue, WRAPPER_WSTATE_STOPPING) here.
          *  It will be called by the wrappereventloop.c.jStateDown once the
@@ -1643,7 +1643,7 @@ void wrapperStopProcess(int useLoggerQueue, int exitCode) {
 }
 
 /**
- * Used to ask the state engine to shut down the JVM.
+ * Used to ask the state engine to shut down the JVM.  This are always intentional restart requests.
  */
 void wrapperRestartProcess(int useLoggerQueue) {
     /* If it has not already been set, set the restart request flag in the wrapper data. */
@@ -1667,7 +1667,7 @@ void wrapperRestartProcess(int useLoggerQueue) {
         }
 
         wrapperData->exitRequested = TRUE;
-        wrapperData->restartRequested = TRUE;
+        wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_CONFIGURED;
     }
 }
 
@@ -1815,9 +1815,13 @@ int wrapperCheckQuotes(const char *value, const char *propName) {
             /* Decide whether or not this '"' is escaped. */
             in2 = in - 1;
             escaped = FALSE;
-            while ((in2 >= 0) && (value[in2] == '\\')) {
+            while (value[in2] == '\\') {
                 escaped = !escaped;
-                in2--;
+                if (in2 > 0) {
+                    in2--;
+                } else {
+                    break;
+                }
             }
             if (!escaped) {
                 inQuote = !inQuote;
@@ -3008,26 +3012,26 @@ void wrapperJVMProcessExited(int useLoggerQueue, DWORD nowTicks, int exitCode) {
         break;
 
     case WRAPPER_JSTATE_LAUNCHING:
-        wrapperData->restartRequested = TRUE;
+        wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_AUTOMATIC;
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
             "JVM exited while loading the application.");
         break;
 
     case WRAPPER_JSTATE_LAUNCHED:
         /* Shouldn't be called in this state, but just in case. */
-        wrapperData->restartRequested = TRUE;
+        wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_AUTOMATIC;
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
             "JVM exited before starting the application.");
         break;
 
     case WRAPPER_JSTATE_STARTING:
-        wrapperData->restartRequested = TRUE;
+        wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_AUTOMATIC;
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
             "JVM exited while starting the application.");
         break;
 
     case WRAPPER_JSTATE_STARTED:
-        wrapperData->restartRequested = TRUE;
+        wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_AUTOMATIC;
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
             "JVM exited unexpectedly.");
         break;
@@ -3059,7 +3063,7 @@ void wrapperJVMProcessExited(int useLoggerQueue, DWORD nowTicks, int exitCode) {
 
     /* Only set the state to DOWN if we are not already in a state which reflects this. */
     if (setState) {
-        wrapperSetJavaState(useLoggerQueue, WRAPPER_JSTATE_DOWN, nowTicks, -1);
+        wrapperSetJavaState(useLoggerQueue, WRAPPER_JSTATE_DOWN, 0, -1);
     }
 
     wrapperProtocolClose();
@@ -3566,6 +3570,7 @@ int loadConfiguration() {
     
     /* Get the disable restart flag */
     wrapperData->isRestartDisabled = getBooleanProperty(properties, "wrapper.disable_restarts", FALSE);
+    wrapperData->isAutoRestartDisabled = getBooleanProperty(properties, "wrapper.disable_restarts.automatic", wrapperData->isRestartDisabled);
 
     /* Get the timeout settings */
     wrapperData->cpuTimeout = getIntProperty(properties, "wrapper.cpu.timeout", 10);
@@ -3971,7 +3976,7 @@ void wrapperKeyRegistered(char *key) {
         if (strcmp(key, wrapperData->key) == 0) {
             /* This is the correct key. */
             /* We now know that the Java side wrapper code has started. */
-            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCHED, -1, -1);
+            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCHED, 0, -1);
 
             /* Send the low log level to the JVM so that it can control output via the log method. */
             sprintf(buffer, "%d", getLowLogLevel());
@@ -4013,7 +4018,7 @@ void wrapperKeyRegistered(char *key) {
         /* We got a key registration.  This means that the JVM thinks it was
          *  being launched but the Wrapper is trying to stop.  Now that the
          *  connection to the JVM has been opened, tell it to stop cleanly. */
-        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOP, wrapperGetTicks(), -1);
+        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOP, 0, -1);
         break;
 
     default:
@@ -4069,7 +4074,7 @@ void wrapperStopPendingSignalled(int waitHint) {
 
     if (wrapperData->jState == WRAPPER_JSTATE_STARTED) {
         /* Change the state to STOPPING */
-        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, -1, -1);
+        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, 0, -1);
         /* Don't need to set the timeout here because it will be set below. */
     }
 
@@ -4098,7 +4103,7 @@ void wrapperStoppedSignalled() {
     if (wrapperData->jvmExitTimeout > 0) {
         wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPED, wrapperGetTicks(), 5 + wrapperData->jvmExitTimeout);
     } else {
-        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPED, wrapperGetTicks(), -1);
+        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPED, 0, -1);
     }
 }
 
@@ -4143,7 +4148,7 @@ void wrapperStartedSignalled() {
         if (wrapperData->pingTimeout > 0) {
             wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STARTED, wrapperGetTicks(), 5 + wrapperData->pingTimeout);
         } else {
-            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STARTED, wrapperGetTicks(), -1);
+            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STARTED, 0, -1);
         }
 
         /* Is the wrapper state STARTING? */
@@ -4159,6 +4164,6 @@ void wrapperStartedSignalled() {
         /* This will happen if the Wrapper was asked to stop as the JVM is being launched. */
     } else if (wrapperData->jState == WRAPPER_JSTATE_STOPPING) {
         /* This will happen if the Wrapper was asked to stop as the JVM is being launched. */
-        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOP, wrapperGetTicks(), -1);
+        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOP, 0, -1);
     }
 }

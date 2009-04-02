@@ -5,6 +5,10 @@ Java Service Wrapper Revision History.
   service with the -q or -qs commands resulted in an access violation.  The
   running status of the service was reported correctly but additional
   configuration information was failing.  Bug #2644515.
+* Add a new wrapper.disable_restarts.automatic property to disable only
+  restarts caused by JVM timeouts, crashes, etc.  Manual or configured
+  restarts will still be allowed.
+* Switch to using make for HPUX IA 32/64 builds.
 
 3.3.3
 * Modify the wrapper.ignore_signals property so it now takes the values

@@ -365,10 +365,6 @@
                 <isset property="is.freebsd"/>
                 <isset property="is.irix"/>
                 <isset property="is.solaris"/>
-                <and>
-                    <isset property="is.hpux"/>
-                    <equals arg1="${dist.arch}" arg2="ia"/>
-                </and>
             </or>
         </condition>
         <property name="make.name" value="make"/>
