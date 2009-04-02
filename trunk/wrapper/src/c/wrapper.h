@@ -131,6 +131,11 @@
 #define WRAPPER_IGNORE_SIGNALS_WRAPPER 1
 #define WRAPPER_IGNORE_SIGNALS_JAVA    2
 
+#define WRAPPER_RESTART_REQUESTED_NO 0
+#define WRAPPER_RESTART_REQUESTED_INITIAL 1
+#define WRAPPER_RESTART_REQUESTED_AUTOMATIC 2
+#define WRAPPER_RESTART_REQUESTED_CONFIGURED 4
+
 /* Type definitions */
 typedef struct WrapperConfig WrapperConfig;
 struct WrapperConfig {
@@ -214,11 +219,12 @@ struct WrapperConfig {
     int     startupDelayService;    /* Delay in seconds before starting the first JVM in service mode. */
     int     exitCode;               /* Code which the wrapper will exit with */
     int     exitRequested;          /* TRUE if the current JVM should be shutdown. */
-    int     restartRequested;       /* TRUE if the another JVM should be launched after the current JVM is shutdown. Only set if exitRequested is set. */
+    int     restartRequested;       /* WRAPPER_RESTART_REQUESTED_NO, WRAPPER_RESTART_REQUESTED_AUTOMATIC, or WRAPPER_RESTART_REQUESTED_CONFIGURED if the another JVM should be launched after the current JVM is shutdown. Only set if exitRequested is set. */
     int     jvmRestarts;            /* Number of times that a JVM has been launched since the wrapper was started. */
     int     restartDelay;           /* Delay in seconds before restarting a new JVM. */
     int     restartReloadConf;      /* TRUE if the configuration should be reloaded before a JVM restart. */
     int     isRestartDisabled;      /* TRUE if restarts should be disabled. */
+    int     isAutoRestartDisabled;  /* TRUE if automatic restarts should be disabled. */
     int     requestThreadDumpOnFailedJVMExit; /* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
     DWORD   jvmLaunchTicks;         /* The tick count at which the previous or current JVM was launched. */
     int     failedInvocationCount;  /* The number of times that the JVM exited in less than successfulInvocationTime in a row. */
