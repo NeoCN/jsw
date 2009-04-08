@@ -9,6 +9,11 @@ Java Service Wrapper Revision History.
   restarts caused by JVM timeouts, crashes, etc.  Manual or configured
   restarts will still be allowed.
 * Switch to using make for HPUX IA 32/64 builds.
+* Add Advice comments when the Wrapper fails to launch the JVM process.
+* Fix a problem on UNIX platforms where log entries made by the forked Wrapper
+  process would result in two blocks of log entries in the log file because
+  the parent Wrapper process would think they were console output from the JVM
+  process.
 
 3.3.3
 * Modify the wrapper.ignore_signals property so it now takes the values

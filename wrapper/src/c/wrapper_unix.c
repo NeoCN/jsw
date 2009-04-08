@@ -837,14 +837,14 @@ void wrapperExecute() {
             /* Send output to the pipe by dupicating the pipe fd and setting the copy as the stdout fd. */
             if (dup2(pipedes[STDOUT_FILENO], STDOUT_FILENO) < 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                           "Unable to set JVM's stdout: %s", getLastErrorText());
+                    "%sUnable to set JVM's stdout: %s", LOG_FORK_MARKER, getLastErrorText());
                 return;
             }
         
             /* Send errors to the pipe by dupicating the pipe fd and setting the copy as the stderr fd. */
             if (dup2(pipedes[STDOUT_FILENO], STDERR_FILENO) < 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                           "Unable to set JVM's stderr: %s", getLastErrorText());
+                    "%sUnable to set JVM's stderr: %s", LOG_FORK_MARKER, getLastErrorText());
                 return;
             }
 
@@ -855,7 +855,28 @@ void wrapperExecute() {
             
             /* We reached this point...meaning we were unable to start. */
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "Unable to start JVM: %s (%d)", getLastErrorText(), errno);
+                "%sUnable to start JVM: %s (%d)", LOG_FORK_MARKER, getLastErrorText(), errno);
+            
+            if (wrapperData->isAdviserEnabled) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "%s", LOG_FORK_MARKER );
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                    "%s------------------------------------------------------------------------", LOG_FORK_MARKER );
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                    "%sAdvice:", LOG_FORK_MARKER );
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                    "%sUsually when the Wrapper fails to start the JVM process, it is because", LOG_FORK_MARKER );
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                    "%sof a problem with the value of the configured hava command.  Currently:", LOG_FORK_MARKER );
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                    "%swrapper.java.command=%s", LOG_FORK_MARKER, getStringProperty(properties, "wrapper.java.command", "java"));
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                    "%sPlease make sure that the PATH or any other referenced environment", LOG_FORK_MARKER );
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                    "%svariables are correctly defined for the current environment.", LOG_FORK_MARKER );
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                    "%s------------------------------------------------------------------------" );
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "%s", LOG_FORK_MARKER );
+            }
             
             /* This process needs to end. */
             exit(1);
