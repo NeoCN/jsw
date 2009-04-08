@@ -1611,7 +1611,28 @@ void wrapperExecute() {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "    %s", commandline);
             wrapperData->javaProcess = NULL;
             
-            if (err == ERROR_ACCESS_DENIED) {
+            if ((err == ERROR_FILE_NOT_FOUND) || (err == ERROR_PATH_NOT_FOUND)) {
+                if (wrapperData->isAdviserEnabled) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "" );
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                        "------------------------------------------------------------------------" );
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                        "Advice:" );
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                        "Usually when the Wrapper fails to start the JVM process, it is because" );
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                        "of a problem with the value of the configured hava command.  Currently:" );
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                        "wrapper.java.command=%s", getStringProperty(properties, "wrapper.java.command", "java"));
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                        "Please make sure that the PATH or any other referenced environment" );
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                        "variables are correctly defined for the current environment." );
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                        "------------------------------------------------------------------------" );
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "" );
+                }
+            } else if (err == ERROR_ACCESS_DENIED) {
                 if (wrapperData->isAdviserEnabled) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "" );
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
