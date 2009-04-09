@@ -694,7 +694,7 @@ int getLowLogLevel() {
     return lowLogLevel;
 }
 
-char* preparePrintBuffer(int reqSize) {
+char* preparePrintBuffer(size_t reqSize) {
     if (threadPrintBuffer == NULL) {
         threadPrintBuffer = (char *)malloc(reqSize * sizeof(char));
         if (!threadPrintBuffer) {

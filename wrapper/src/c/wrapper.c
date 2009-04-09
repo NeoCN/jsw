@@ -1061,6 +1061,9 @@ int wrapperInitialize() {
     /* Initialize the properties variable. */
     properties = NULL;
 
+    /* Initialize the random seed. */
+    srand((unsigned)time(NULL));
+    
     /* Make sure all values are reliably set to 0. All required values should also be
      *  set below, but this extra step will protect against future changes.  Some
      *  platforms appear to initialize maloc'd memory to 0 while others do not. */
