@@ -46,6 +46,7 @@
 #else
 #include <strings.h>
 #include <limits.h>
+#include <sys/time.h>
 #if defined(IRIX)
 #define PATH_MAX FILENAME_MAX
 #endif
@@ -58,6 +59,9 @@
 #define MAX_INCLUDE_DEPTH 10
 
 int debugIncludes = FALSE;
+
+/** Stores the time that the property file began to be loaded. */
+struct tm loadPropertiesTM;
 
 void setInnerProperty(Property *property, const char *propertyValue);
 
@@ -179,6 +183,53 @@ void disposeInnerProperty(Property *property) {
     property = NULL;
 }
 
+char generateValueBuffer[256];
+
+char* generateTimeValue(const char* format) {
+    if (strcmpIgnoreCase(format, "YYYYMMDDHHIISS") == 0) {
+        sprintf(generateValueBuffer, "%04d%02d%02d%02d%02d%02d",
+            loadPropertiesTM.tm_year + 1900, loadPropertiesTM.tm_mon + 1, loadPropertiesTM.tm_mday, 
+                loadPropertiesTM.tm_hour, loadPropertiesTM.tm_min, loadPropertiesTM.tm_sec );
+    } else if (strcmpIgnoreCase(format, "YYYYMMDD_HHIISS") == 0) {
+        sprintf(generateValueBuffer, "%04d%02d%02d_%02d%02d%02d",
+            loadPropertiesTM.tm_year + 1900, loadPropertiesTM.tm_mon + 1, loadPropertiesTM.tm_mday, 
+                loadPropertiesTM.tm_hour, loadPropertiesTM.tm_min, loadPropertiesTM.tm_sec );
+    } else if (strcmpIgnoreCase(format, "YYYYMMDDHHII") == 0) {
+        sprintf(generateValueBuffer, "%04d%02d%02d%02d%02d",
+            loadPropertiesTM.tm_year + 1900, loadPropertiesTM.tm_mon + 1, loadPropertiesTM.tm_mday, 
+                loadPropertiesTM.tm_hour, loadPropertiesTM.tm_min );
+    } else if (strcmpIgnoreCase(format, "YYYYMMDDHH") == 0) {
+        sprintf(generateValueBuffer, "%04d%02d%02d%02d",
+            loadPropertiesTM.tm_year + 1900, loadPropertiesTM.tm_mon + 1, loadPropertiesTM.tm_mday, 
+                loadPropertiesTM.tm_hour );
+    } else if (strcmpIgnoreCase(format, "YYYYMMDD") == 0) {
+        sprintf(generateValueBuffer, "%04d%02d%02d",
+            loadPropertiesTM.tm_year + 1900, loadPropertiesTM.tm_mon + 1, loadPropertiesTM.tm_mday );
+    } else {
+        sprintf(generateValueBuffer, "{INVALID}");
+    }
+    return generateValueBuffer;
+}
+
+char* generateRandValue(const char* format) {
+    if (strcmpIgnoreCase(format, "N") == 0) {
+        sprintf(generateValueBuffer, "%01d", rand() % 10);
+    } else if (strcmpIgnoreCase(format, "NN") == 0) {
+        sprintf(generateValueBuffer, "%02d", rand() % 100);
+    } else if (strcmpIgnoreCase(format, "NNN") == 0) {
+        sprintf(generateValueBuffer, "%03d", rand() % 1000);
+    } else if (strcmpIgnoreCase(format, "NNNN") == 0) {
+        sprintf(generateValueBuffer, "%04d", rand() % 10000);
+    } else if (strcmpIgnoreCase(format, "NNNNN") == 0) {
+        sprintf(generateValueBuffer, "%04d%01d", rand() % 10000, rand() % 10);
+    } else if (strcmpIgnoreCase(format, "NNNNNN") == 0) {
+        sprintf(generateValueBuffer, "%04d%02d", rand() % 10000, rand() % 100);
+    } else {
+        sprintf(generateValueBuffer, "{INVALID}");
+    }
+    return generateValueBuffer;
+}
+
 /**
  * Parses a property value and populates any environment variables.  If the expanded
  *  environment variable would result in a string that is longer than bufferLength
@@ -220,9 +271,19 @@ void evaluateEnvironmentVariables(const char *propertyValue, char *buffer, int b
                 len = (int)(end - start - 1);
                 memcpy(envName, start + 1, len);
                 envName[len] = '\0';
+                
+                /* See if it is a special dynamic environment variable */
+                if (strstr(envName, "WRAPPER_TIME_") == envName) {
+                    /* Found a time value. */
+                    envValue = generateTimeValue(envName + 13);
+                } else if (strstr(envName, "WRAPPER_RAND_") == envName) {
+                    /* Found a time value. */
+                    envValue = generateRandValue(envName + 13);
+                } else {
+                    /* Try looking up the environment variable. */
+                    envValue = getenv(envName);
+                }
 
-                /* Look up the environment variable */
-                envValue = getenv(envName);
                 if (envValue != NULL) {
                     /* An envvar value was found. */
                     /* Copy over any text before the envvar */
@@ -575,6 +636,25 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
 }
 
 int loadProperties(Properties *properties, const char* filename) {
+    /* Store the time that the property file began to be loaded. */
+#ifdef WIN32
+    struct _timeb timebNow;
+#else
+    struct timeval timevalNow;
+#endif
+    time_t      now;
+    struct tm   *nowTM;
+    
+#ifdef WIN32
+    _ftime( &timebNow );
+    now = (time_t)timebNow.time;
+#else
+    gettimeofday( &timevalNow, NULL );
+    now = (time_t)timevalNow.tv_sec;
+#endif
+    nowTM = localtime( &now );
+    memcpy(&loadPropertiesTM, nowTM, sizeof(struct tm));
+    
     return loadPropertiesInner(properties, filename, 0);
 }
 

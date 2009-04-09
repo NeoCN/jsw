@@ -1466,9 +1466,6 @@ void wrapperExecute() {
 
     FILE *pid_fp = NULL;
 
-    /* Initialize the random seed. */
-    srand((unsigned)time(NULL));
-
     /* Reset the exit code when we launch a new JVM. */
     wrapperData->exitCode = 0;
 
