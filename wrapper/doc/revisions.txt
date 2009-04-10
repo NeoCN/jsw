@@ -18,6 +18,9 @@ Java Service Wrapper Revision History.
   wrapper.conf file to generate random numbers, or timestamps for use in
   generating unique file names, etc. See the Default Environment Variable
   definitions section for more details.
+* (Standard, Professional) Fix a problem with Development licenses being
+  able to authorize applications using Integration Method #4 which was
+  added in version 3.3.3.
 
 3.3.3
 * Modify the wrapper.ignore_signals property so it now takes the values
