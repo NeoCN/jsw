@@ -35,7 +35,7 @@ init:
 	if test ! -d .deps; then mkdir .deps; fi
 
 wrapper: $(wrapper_OBJECTS)
-	$(COMPILE) $(wrapper_OBJECTS) -o $(BIN)/wrapper -lm
+	$(COMPILE) $(wrapper_OBJECTS) -o $(BIN)/wrapper -lm -lpthread
 
 libwrapper.so: $(libwrapper_so_OBJECTS)
 	${COMPILE} -shared -no_unresolved -n32 -all $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
