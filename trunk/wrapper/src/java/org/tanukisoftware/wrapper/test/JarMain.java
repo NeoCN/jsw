@@ -23,6 +23,15 @@ public class JarMain
      *-------------------------------------------------------------*/
     public static void main(String[] args)
     {
+        if ( args.length > 0 )
+        {
+            System.out.println( "Arguments:" );
+            for ( int i = 0; i < args.length; i++ )
+            {
+                System.out.println( "  args[" + i + "]=" + args[i] );
+            }
+        }
+        
         System.out.println( "Loop for 10 seconds." );
         
         for ( int i = 0; i < 10; i++ )
