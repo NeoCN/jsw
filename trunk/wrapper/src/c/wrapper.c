@@ -1171,7 +1171,7 @@ void wrapperGetFileBase(const char *fileName, char *baseName) {
  */
 void wrapperVersionBanner() {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-        "Java Service Wrapper Community Edition %s", wrapperVersionRoot);
+        "Java Service Wrapper Community Edition %s-bit %s", wrapperBits, wrapperVersionRoot);
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
         "  Copyright (C) 1999-2009 Tanuki Software, Ltd.  All Rights Reserved.");
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,

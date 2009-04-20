@@ -21,6 +21,8 @@ Java Service Wrapper Revision History.
 * (Standard, Professional) Fix a problem with Development licenses being
   able to authorize applications using Integration Method #4 which was
   added in version 3.3.3.
+* Add the number of bits of the current Wrapper to the startup banner to aid
+  in support requests.
 
 3.3.3
 * Modify the wrapper.ignore_signals property so it now takes the values
