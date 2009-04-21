@@ -280,9 +280,15 @@ void logRegisterThread( int thread_id ) {
     threadId = pthread_self();
 #endif
 
+#ifdef _DEBUG
+    printf("logRegisterThread(%d)\n", thread_id);
+#endif
     if ( thread_id >= 0 && thread_id < WRAPPER_THREAD_COUNT )
     {
         threadIds[thread_id] = threadId;
+#ifdef _DEBUG
+        printf("logRegisterThread(%d) => %d\n", thread_id, threadId);
+#endif
     }
 }
 
@@ -1005,6 +1011,7 @@ void log_printf_message( int source_id, int level, int threadId, int queued, con
 
     if ( threadId < 0 )
     {
+        /* The current thread was specified.  Resolve what thread this actually is. */
         threadId = getThreadId();
     }
     
@@ -1953,12 +1960,12 @@ void log_printf_queueInner( int source_id, int level, char *buffer ) {
     int localWriteIndex;
     int localReadIndex;
 
-#ifdef _DEBUG
-    printf( "LOG ENQUEUE[%d]: %s\n", queueWriteIndex, buffer );
-#endif
-
     /* Get the thread id here to keep the time below to a minimum. */
     threadId = getThreadId();
+
+#ifdef _DEBUG
+    printf( "LOG ENQUEUE[%d]: %s\n", queueWriteIndex[threadId], buffer );
+#endif
 
     /* NOTE - This function is not synchronized.  So be very careful and think
      *        about what would happen if the queueWrapped and or queueWriteIndex
