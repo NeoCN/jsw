@@ -1,6 +1,13 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 3.3.4
+* (Standard, Professional) Update the development license to version 1.1
+  so that a new copyright notice file can be shipped with user applications
+  rather than the full license text.
+* The Community Edition may be licensed under either the GPL2 based Community
+  License, or the Development License.  The source for the Standard and
+  Professional Editions of the Wrapper are proprietary.
+  http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
 * Fix a problem introduced in 3.3.2 where querying a the status of a Windows
   service with the -q or -qs commands resulted in an access violation.  The
   running status of the service was reported correctly but additional
@@ -23,6 +30,8 @@ Java Service Wrapper Revision History.
   added in version 3.3.3.
 * Add the number of bits of the current Wrapper to the startup banner to aid
   in support requests.
+* (Standard, Professional) Fix a crash problem on HPUX versions which would
+  reliably happen on some machines at startup.
 
 3.3.3
 * Modify the wrapper.ignore_signals property so it now takes the values
@@ -127,15 +136,8 @@ Java Service Wrapper Revision History.
   because the console title does not get reset correctly when the Wrapper
   process terminates.
 * Add support for HP-UX IA64 CPUs.
-* (Standard, Professional) Update the development license to version 1.1
-  so that a new copyright notice file can be shipped with user applications
-  rather than the full license text.
 * Update the license banner in source files so it is clearer that the user
-  is restricted by the license they agreed to.  The Community Edition may
-  be licensed under either the GPL2 based Community License, or the
-  Development License.  The source for the Standard and Professional Editions
-  of the Wrapper are proprietary.
-  http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
+  is restricted by the license they agreed to.
 * Modify the Community edition so it will now display a Licensed to banner
   on startup if shipped with a Development License.  This is required to
   enable the distribution of the Community Edition under the Development
@@ -298,12 +300,11 @@ Java Service Wrapper Revision History.
   output more consistently.
 * Branch the code to support Community, Standard, and Professional Editions
   of the Java Service Wrapper.
-* (Professional) Development and testing of the new Windows 64-bit version
-  required the purchase of 64-bit hardware and software.   We have decided
-  to delay the release of the Windows 64-bit Community edition until these
-  costs have been recouped.
-* (Professional) Add support for Server (Fixed) as well as Development
-  (OEM based) licenses.
+* (Standard, Professional) Add support for Server (Fixed) as well as
+  Development (OEM based) licenses.
+* (Standard, Professional) Add 64-bit versions of the Windows version.  The
+  64-bit Community Edition will not be distributed initially to support
+  ongoing development costs.
 * (Professional) Add event handling callbacks for Wrapper start/stop, JVM
   start/stop, JVM started/stopped, JVM restart, JVM killed, and JVM unexpected
   exit events.
