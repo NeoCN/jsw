@@ -874,7 +874,7 @@ void wrapperExecute() {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
                     "%svariables are correctly defined for the current environment.", LOG_FORK_MARKER );
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                    "%s------------------------------------------------------------------------" );
+                    "%s------------------------------------------------------------------------", LOG_FORK_MARKER );
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "%s", LOG_FORK_MARKER );
             }
             

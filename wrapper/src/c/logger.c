@@ -287,7 +287,7 @@ void logRegisterThread( int thread_id ) {
     {
         threadIds[thread_id] = threadId;
 #ifdef _DEBUG
-        printf("logRegisterThread(%d) => %d\n", thread_id, threadId);
+        printf("logRegisterThread(%d) => %lu\n", thread_id, threadId);
 #endif
     }
 }
@@ -304,7 +304,11 @@ int getThreadId() {
     /* printf( "threadId=%lu\n", threadId ); */
 
     for ( i = 0; i < WRAPPER_THREAD_COUNT; i++ ) {
+#ifdef WIN32
         if ( threadIds[i] == threadId ) {
+#else
+        if ( pthread_equal(threadIds[i],threadId) ) {
+#endif
             return i;
         }
     }
