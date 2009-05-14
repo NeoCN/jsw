@@ -697,9 +697,6 @@ set ENV_VAR_4=d]]></replacevalue>
         <replace file="${test.dir}/TestExecutableJar.bat"
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\executablejar.conf' />
-        <replace file="${test.dir}/TestExecutableJar.bat"
-                 token='"%_WRAPPER_EXE%" -c %_WRAPPER_CONF%'
-                 value='"%_WRAPPER_EXE%" -c %_WRAPPER_CONF% wrapper.app.parameter.2=%1' />
         
         <!-- ExecutableJarCP Test -->
         <delete file="${test.dir}/TestExecutableJarCP.bat"/>
@@ -715,9 +712,6 @@ set ENV_VAR_4=d]]></replacevalue>
         <replace file="${test.dir}/TestExecutableJarCP.bat"
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\executablejarcp.conf' />
-        <replace file="${test.dir}/TestExecutableJarCP.bat"
-                 token='"%_WRAPPER_EXE%" -c %_WRAPPER_CONF%'
-                 value='"%_WRAPPER_EXE%" -c %_WRAPPER_CONF% wrapper.app.parameter.2=%1' />
     </target>
     
     <!-- =================================================================== -->
@@ -989,7 +983,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <!-- ExecutableJar Test -->
         <filter token="app.name"          value="executablejar"/>
         <filter token="app.long.name"     value="Executable Jar Case" />
-        <copy file="${test.dir}/action.script.in"
+        <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/executablejar"
               filtering="on"/>
         <chmod file="${test.dir}/executablejar" perm="+x"/> 
@@ -997,7 +991,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <!-- ExecutableJarCP Test -->
         <filter token="app.name"          value="executablejarcp"/>
         <filter token="app.long.name"     value="Executable Jar w/Classpath Case" />
-        <copy file="${test.dir}/action.script.in"
+        <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/executablejarcp"
               filtering="on"/>
         <chmod file="${test.dir}/executablejarcp" perm="+x"/> 
