@@ -1,5 +1,17 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.3.5
+* Fix a problem on some UNIX platforms introduced in 3.3.4 where the Wrapper
+  would crash on startup if the configured JVM could not be found.
+* Fix a problem introduced in 3.3.2 where the Wrapper could crash if the
+  system host name was longer than 27 characters in length.
+* Fix a potential problem with the way thread ids were being compared on UNIX
+  systems.
+* Add a new wrapper.java.additional.auto_bits property which will automatically
+  add the -d32 or -d64 arguments to the JVM for platforms whose JVMs typically
+  expect the argument.
+* (Professional) Fix a problem with the Date field of outgoing event emails.
+
 3.3.4
 * (Standard, Professional) Update the development license to version 1.1
   so that a new copyright notice file can be shipped with user applications

@@ -113,7 +113,20 @@ SOCKET sd = INVALID_SOCKET;
 int loadConfiguration();
 
 void wrapperAddDefaultProperties() {
-    char buffer[50];
+    size_t bufferLen;
+    char* buffer;
+    
+    /* IMPORTANT - If any new values are added here, this work buffer length may need to be calculated differently. */
+    bufferLen = 1;
+    bufferLen = __max(bufferLen, strlen("set.WRAPPER_ARCH=") + strlen(wrapperArch) + 1);
+    bufferLen = __max(bufferLen, strlen("set.WRAPPER_OS=") + strlen(wrapperOS) + 1);
+    bufferLen = __max(bufferLen, strlen("set.WRAPPER_HOST_NAME=") + strlen(wrapperData->hostName) + 1);
+    
+    buffer = malloc(bufferLen);
+    if (!buffer) {
+        outOfMemory("WADP", 1);
+        return;
+    }
 
     sprintf(buffer, "set.WRAPPER_BITS=%s", wrapperBits);
     addPropertyPair(properties, buffer, TRUE, FALSE);
@@ -134,6 +147,8 @@ void wrapperAddDefaultProperties() {
     addPropertyPair(properties, "set.WRAPPER_FILE_SEPARATOR=/", TRUE, FALSE);
     addPropertyPair(properties, "set.WRAPPER_PATH_SEPARATOR=:", TRUE, FALSE);
 #endif
+
+    free(buffer);
 }
 
 /**
@@ -1856,6 +1871,8 @@ int wrapperCheckQuotes(const char *value, const char *propName) {
  * Loops over and stores all necessary commands into an array which
  *  can be used to launch a process.
  * This method will only count the elements if stringsPtr is NULL.
+ *
+ * Note - Next Out Of Memory is #47
  */
 int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     int index;
@@ -2000,6 +2017,21 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         }
     }
     index++;
+    
+    /* See if the auto bits parameter is set.  Ignored by all but the following platforms. */
+#if defined(HPUX) || defined(MACOSX) || defined(SOLARIS) || defined(FREEBSD)
+    if (getBooleanProperty(properties, "wrapper.java.additional.auto_bits", FALSE)) {
+        if (strings) {
+            strings[index] = malloc(sizeof(char) * 5);
+            if (!strings[index]) {
+                outOfMemory("WBJCAI", 46);
+                return -1;
+            }
+            sprintf(strings[index], "-d%s", wrapperBits);
+        }
+        index++;
+    }
+#endif
 
     /* Store additional java parameters */
     i = 0;

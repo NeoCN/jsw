@@ -30,8 +30,6 @@
 #ifndef _WRAPPER_H
 #define _WRAPPER_H
 
-#include <sys/timeb.h>
-
 #ifdef WIN32
 #include <winsock.h>
 
@@ -50,6 +48,8 @@
 #ifndef DWORD
 #define DWORD unsigned long
 #endif
+
+#include <sys/timeb.h>
 
 #include "property.h"
 
