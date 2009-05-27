@@ -636,10 +636,14 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass cl
     }
 
     /* Make sure that the handling of CTRL-C signals is enabled for this process. */
-    SetConsoleCtrlHandler(NULL, FALSE);
+    if (!SetConsoleCtrlHandler(NULL, FALSE)) {
+        printf("WrapperJNI Error; Attempt to reset control signal handlers failed. %s\n", getLastErrorText());
+    }
 
     /* Initialize the CTRL-C handler */
-    SetConsoleCtrlHandler((PHANDLER_ROUTINE)wrapperConsoleHandler, TRUE);
+    if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)wrapperConsoleHandler, TRUE)) {
+        printf("WrapperJNI Error; Attempt to register a control signal handler failed. %s\n", getLastErrorText());
+    }
 
     /* Store the current process Id */
     wrapperProcessId = GetCurrentProcessId();

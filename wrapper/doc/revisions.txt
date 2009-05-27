@@ -1,5 +1,10 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.3.6
+* Fix a potential problem on Windows platforms where a failure to register the
+  control handler was not being logged.  If this happened, user logoffs would
+  not be trapped correctly but no other problems would have occurred.
+
 3.3.5
 * Fix a problem on some UNIX platforms introduced in 3.3.4 where the Wrapper
   would crash on startup if the configured JVM could not be found.
