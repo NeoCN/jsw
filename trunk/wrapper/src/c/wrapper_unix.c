@@ -866,7 +866,7 @@ void wrapperExecute() {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
                     "%sUsually when the Wrapper fails to start the JVM process, it is because", LOG_FORK_MARKER );
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                    "%sof a problem with the value of the configured hava command.  Currently:", LOG_FORK_MARKER );
+                    "%sof a problem with the value of the configured Java command.  Currently:", LOG_FORK_MARKER );
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
                     "%swrapper.java.command=%s", LOG_FORK_MARKER, getStringProperty(properties, "wrapper.java.command", "java"));
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
