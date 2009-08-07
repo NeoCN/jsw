@@ -66,13 +66,37 @@ struct tm loadPropertiesTM;
 
 void setInnerProperty(Property *property, const char *propertyValue);
 
+void prepareProperty(Property *property) {
+    char *oldValue;
+    
+    if (strstr(property->value, "%")) {
+        /* Reset the property.  If the unreplaced environment variables are now available
+         *  setting it again will cause it to be replaced correctly.  If not this will
+         *  only waste time.  The value will be freed in the process so we need to
+         *  keep it around. */
+#ifdef _DEBUG
+        printf( "Unreplaced property %s=%s\n", property->name, property->value );
+#endif
+        oldValue = malloc(strlen(property->value) + 1);
+        if (!oldValue) {
+            outOfMemory("PP", 1);
+        } else {
+            strcpy(oldValue, property->value);
+            setInnerProperty(property, oldValue);
+            free(oldValue);
+        }
+#ifdef _DEBUG
+        printf( "        -> property %s=%s\n", property->name, property->value );
+#endif
+    }
+}
+
 /**
  * Private function to find a Property structure.
  */
 Property* getInnerProperty(Properties *properties, const char *propertyName) {
     Property *property;
     int cmp;
-    char *oldValue;
 
     /* Loop over the properties which are in order and look for the specified property. */
     property = properties->first;
@@ -83,27 +107,7 @@ Property* getInnerProperty(Properties *properties, const char *propertyName) {
             return NULL;
         } else if (cmp == 0) {
             /* We found it. */
-
-            if (strstr(property->value, "%")) {
-                /* Reset the property.  If the unreplaced environment variables are now available
-                 *  setting it again will cause it to be replaced correctly.  If not this will
-                 *  only waste time.  The value will be freed in the process so we need to
-                 *  keep it around. */
-#ifdef _DEBUG
-                printf( "Unreplaced property %s=%s\n", property->name, property->value );
-#endif
-                oldValue = malloc(strlen(property->value) + 1);
-                if (!oldValue) {
-                    outOfMemory("GIP", 1);
-                } else {
-                    strcpy(oldValue, property->value);
-                    setInnerProperty(property, oldValue);
-                    free(oldValue);
-                }
-#ifdef _DEBUG
-                printf( "        -> property %s=%s\n", property->name, property->value );
-#endif
-            }
+            prepareProperty(property);
 
             return property;
         }
@@ -743,6 +747,7 @@ int setEnv( const char *name, const char *value )
     oldVal = getenv(name);
     if (value == NULL) {
         /*printf("clear %s=\n", name);*/
+        /* Only clear the variable if it is actually set to avoid unnecessary leaks. */
         if (oldVal != NULL) {
             /* Allocate a block of memory for the environment variable.  The system uses
              *  this memory so it is not freed after we set it. We only call this on
@@ -963,6 +968,248 @@ const char* getStringProperty(Properties *properties, const char *propertyName, 
         return property->value;
     }
 }
+
+/**
+ * Does a quick sort of the property values, keeping the values together.
+ */
+void sortStringProperties(long unsigned int *propertyIndices, char **propertyNames, char **propertyValues, int low, int high) {
+    int i = low;
+    int j = high;
+    long int tempIndex;
+    char *tempName;
+    char *tempValue;
+    long unsigned int x = propertyIndices[(low + high)/2];
+
+    do {    
+        while (propertyIndices[i] < x) {
+            i++;
+        }
+        while (propertyIndices[j] > x) {
+            j--;
+        }
+        if (i <= j) {
+            /* Swap i and j values. */
+            tempIndex = propertyIndices[i];
+            tempName = propertyNames[i];
+            tempValue = propertyValues[i];
+            
+            propertyIndices[i] = propertyIndices[j];
+            propertyNames[i] = propertyNames[j];
+            propertyValues[i] = propertyValues[j];
+            
+            propertyIndices[j] = tempIndex;
+            propertyNames[j] = tempName;
+            propertyValues[j] = tempValue;
+            
+            i++;
+            j--;
+        }
+    } while (i <= j);
+
+    /* Recurse */
+    if (low < j) {
+        sortStringProperties(propertyIndices, propertyNames, propertyValues, low, j);
+    }
+    if (i < high) {
+        sortStringProperties(propertyIndices, propertyNames, propertyValues, i, high);
+    }
+}
+
+/**
+ * Returns a sorted array of all properties beginning with {propertyNameBase}.
+ *@ Only numerical characters can be returned between@the two.
+ *
+ * @param properties The full properties structure.
+ * @param propertyNameHead All matching properties must begin with this value.
+ * @param propertyNameTail All matching properties must end with this value.
+ * @param all If FALSE then the array will start with #1 and loop up until the
+ *            next property is not found, if TRUE then all properties will be
+ *            returned, even if there are gaps in the series.
+ * @param propertyNames Returns a pointer to a NULL terminated array of
+ *                      property names.
+ * @param propertyValues Returns a pointer to a NULL terminated array of
+ *                       property values.
+ *
+ * @return 0 if successful, -1 if there was an error.
+ */
+int getStringProperties(Properties *properties, const char *propertyNameHead, const char *propertyNameTail, int all, char ***propertyNames, char ***propertyValues, long unsigned int **propertyIndices) {
+    int j;
+    size_t headLen;
+    size_t tailLen;
+    size_t thisLen;
+    char *thisHead;
+    char *thisTail;
+    //int pos;
+    int i;
+    Property *property;
+    size_t indexLen;
+    char indexS[11];
+    int ok;
+    char c;
+    int count;
+
+    *propertyIndices = NULL;
+    
+    headLen = strlen(propertyNameHead);
+    tailLen = strlen(propertyNameTail);
+    
+    for (j = 0; j < 2; j++) {
+        count = 0;
+        property = properties->first;
+        while (property != NULL) {
+            thisLen = strlen(property->name);
+            
+            if (thisLen < headLen + 1 + tailLen) {
+                /* Too short, not what we are looking for. */
+            } else {
+                thisHead = malloc(headLen + 1);
+                if (!thisHead) {
+                    outOfMemory("GSPS", 1);
+                } else {
+                    memcpy(thisHead, property->name, headLen);
+                    thisHead[headLen] = 0;
+                    
+                    if (strcmpIgnoreCase(thisHead, propertyNameHead) == 0) {
+                        /* Head matches. */
+                            
+                        thisTail = malloc(tailLen + 1);
+                        if (!thisTail) {
+                            outOfMemory("GSPS", 2);
+                        } else {
+                            strcpy(thisTail, property->name + thisLen - tailLen);
+                            
+                            if (strcmpIgnoreCase(thisTail, propertyNameTail) == 0) {
+                                /* Tail matches. */
+                                
+                                indexLen = thisLen - headLen - tailLen; 
+                                if (indexLen <= 10) {
+                                    memcpy(indexS, property->name + headLen, indexLen);
+                                    indexS[indexLen] = 0;
+                                    
+                                    ok = TRUE;
+                                    for (i = 0; i < indexLen; i++) {
+                                        c = indexS[i];
+                                        if ((c < '0') || (c > '9')) {
+                                            ok = FALSE;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    if (ok) {
+                                        if (*propertyIndices) {
+                                            /* We found it. */
+                                            prepareProperty(property);
+                                            
+                                            (*propertyIndices)[count] = strtoul(indexS, NULL, 10);
+                                            (*propertyNames)[count] = property->name;
+                                            (*propertyValues)[count] = property->value;
+                                        }
+                                        
+                                        count++;
+                                    }
+                                }
+                            }
+                            
+                            free(thisTail);
+                        }
+                    }
+                    
+                    free(thisHead);
+                }
+            }
+            
+            /* Keep looking */
+            property = property->next;
+        }
+        
+        if (*propertyIndices == NULL) {
+            /* First pass */
+            
+            *propertyNames = malloc(sizeof(char *) * (count + 1));
+            if (!(*propertyNames)) {
+                outOfMemory("GSPS", 3);
+                *propertyNames = NULL;
+                *propertyValues = NULL;
+                *propertyIndices = NULL;
+                return -1;
+            }
+            
+            *propertyValues = malloc(sizeof(char *) * (count + 1));
+            if (!(*propertyValues)) {
+                outOfMemory("GSPS", 4);
+                free(*propertyNames);
+                *propertyNames = NULL;
+                *propertyValues = NULL;
+                *propertyIndices = NULL;
+                return -1;
+            }
+            
+            *propertyIndices = malloc(sizeof(long unsigned int) * (count + 1));
+            if (!(*propertyIndices)) {
+                outOfMemory("GSPS", 5);
+                free(*propertyNames);
+                free(*propertyValues);
+                *propertyNames = NULL;
+                *propertyValues = NULL;
+                *propertyIndices = NULL;
+                return -1;
+            }
+            
+            if (count == 0) {
+                /* The count is 0 so no need to continue through the loop again. */
+                (*propertyNames)[0] = NULL;
+                (*propertyValues)[0] = NULL;
+                (*propertyIndices)[0] = 0;
+                return 0;
+            }
+        } else {
+            /* Second pass */
+            (*propertyNames)[count] = NULL;
+            (*propertyValues)[count] = NULL;
+            (*propertyIndices)[count] = 0;
+            
+            sortStringProperties(*propertyIndices, *propertyNames, *propertyValues, 0, count - 1);
+            
+            /* If we don't want all of the properties then we need to remove the extra ones.
+             *  Names and values are not allocated, so setting them to NULL is fine.*/
+            if (!all) {
+                for (i = 0; i < count; i++) {
+                    if ((*propertyIndices)[i] != i + 1) {
+                        (*propertyNames)[i] = NULL;
+                        (*propertyValues)[i] = NULL;
+                        (*propertyIndices)[i] = 0;
+                    }
+                }
+            }
+            /*
+            for (i = 0; i < count; i++) {
+                if ((*propertyNames)[i]) {
+                    printf("[%d] #%lu: %s=%s\n", i, (*propertyIndices)[i], (*propertyNames)[i], (*propertyValues)[i]);
+                }
+            }
+            */
+            
+            return 0;
+        }
+    }
+    
+    /* For compiler */
+    return 0;
+}
+
+/**
+ * Frees up an array of properties previously returned by getStringProperties().
+ */
+void freeStringProperties(char **propertyNames, char **propertyValues, long unsigned int *propertyIndices) {
+    /* The property names are not malloced. */
+    free(propertyNames);
+    
+    /* The property values are not malloced. */
+    free(propertyValues);
+    
+    free(propertyIndices);
+}
+
 
 /**
  * Performs a case insensitive check of the property value against the value provided.

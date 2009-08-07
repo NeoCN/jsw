@@ -1,9 +1,68 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 3.3.6
+* Introduce the wrapper.timezone property. This property allows to set the
+  timezone in which the wrapper will be executed. This property is available 
+  in the standard and the professional Edition of the Java Service Wrapper.
 * Fix a potential problem on Windows platforms where a failure to register the
   control handler was not being logged.  If this happened, user logoffs would
   not be trapped correctly but no other problems would have occurred.
+* Fixed a problem in the shell script on Solaris platforms where a deep
+  directory structure would cause the script to incorrectly report that the
+  Wrapper was not running.  That could lead to multiple zombie copies of the
+  Wrapper and its application running in memory.
+  Bug #1664303.
+* Fixed a problem in the shell script on HP-UX platforms where a deep
+  directory structure would cause the script to incorrectly report that the
+  Wrapper was not running.  That could lead to multiple zombie copies of the
+  Wrapper and its application running in memory.
+  Bug #2812207.
+* Improve the error message displayed when there are problems initializing the
+  main class specified for the WrapperSimpleApp, WrapperStartStopApp, or
+  WrapperJarApp helper classes.
+* (Professional) Add new wrapper.event.<event_name>.loglevel and
+  wrapper.event.<event_name>.message properties which can be used to output
+  a customizable message like "Event: <event_name>" to the logs at an arbitrary
+  log level.
+* Add debug output in the Windows version to log the full path of the native
+  library.
+* Add a new wrapper.java.detect_debug_jvm property which will control whether
+  or not the Wrapper disabled timeouts when java's debugger is in use.  The
+  Wrapper has automatically disabled timeouts in this case since version 3.2.1.
+  Thanks to Ruslan Gainutdinov for the patch.
+* Fix a buffer overflow problem for values of wrapper.ntservice.name.
+* Fix a problem with where the wrapper.syslog.ident property was not working
+  as documented.  It had been necessary to use wrapper.ntservice.name in its
+  place.
+* Add a new wrapper.ignore_sequence_gaps property which makes it possible to
+  have non sequential numbered property values.  This affects the
+  wrapper.app.parameter.<n>, wrapper.event.<event_name>.command.argv.<n>,
+  wrapper.filter.trigger.<n>, wrapper.java.additional.<n>,
+  wrapper.java.classpath.<n>, wrapper.java.library.path.<n>,
+  wrapper.ntservice.dependency.<n>, and wrapper.timer.<n>.interval, 
+  properties.  The default value maintains past functionality.
+  Feature Request #1930298.
+* (Professional) Fix a problem where the Event Handler Variables
+  were not being set correctly in the values of the
+  wrapper.event.<event_name>.command.argv.<n> properties.
+* (Professional) Fix a potential access violation if memory allocations fail
+  while sending event mails or executing event commands.
+* Add a new WRAPPER_HOSTNAME default environment variable as an alias of the
+  existing WRAPPER_HOST_NAME variable.
+* (Professional) Deprecate the use of the wrapper.event.<event_name>.set_environment
+  property.  It will remain in the product for compatibility but its use is
+  discouraged as it does not always work correctly when the configuration
+  file is reloaded.  See the property's documentation for more details.
+* Add a new DUMP action to the wrapper.filter.action.<n> property to make it
+  possible to invoke a thread dump in response to a specific string in the
+  JVM's console output.
+* Fix a problem where the WrapperManager.stopAndReturn method was dead locking
+  if called when the JVM was being run in standalone mode without the Wrapper.
+  Bug #2711872.
+* (Standard, Professional) Modify the way the licensing times work so the
+  Wrapper compares the License Upgrade Term to an official release date
+  rather than the build date.  This makes it possible to release additional
+  platforms at a later date while keeping the use of a license consistent.
 
 3.3.5
 * Fix a problem on some UNIX platforms introduced in 3.3.4 where the Wrapper

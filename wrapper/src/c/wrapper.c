@@ -112,14 +112,66 @@ SOCKET sd = INVALID_SOCKET;
 
 int loadConfiguration();
 
+struct tm getInfoTime(const char *date, const char *time) {
+    struct tm buildTM;
+    char temp[5];
+
+    memset(&buildTM, 0, sizeof(struct tm));
+
+    /* Year */
+    memcpy( temp, date, 4 );
+    temp[4] = 0;
+    buildTM.tm_year = atoi( temp ) - 1900;
+
+    /* Month */
+    memcpy( temp, date + 4, 2 );
+    temp[2] = 0;
+    buildTM.tm_mon = atoi( temp ) - 1;
+
+    /* Day */
+    memcpy( temp, date + 6, 2 );
+    temp[2] = 0;
+    buildTM.tm_mday = atoi( temp );
+    
+    /* Hour */
+    memcpy( temp, time, 2 );
+    temp[2] = 0;
+    buildTM.tm_hour = atoi( temp );
+    
+    /* Minute */
+    memcpy( temp, time + 2, 2 );
+    temp[2] = 0;
+    buildTM.tm_min = atoi( temp );
+
+    return buildTM;
+    //return mktime( &buildTM );
+}
+
+struct tm wrapperGetReleaseTime() {
+    return getInfoTime( wrapperReleaseDate, wrapperReleaseTime );
+}
+
+struct tm wrapperGetBuildTime() {
+    return getInfoTime( wrapperBuildDate, wrapperBuildTime );
+}
+
+/**
+ * Adds default properties used to set global environment variables.
+ *
+ * These are done by setting properties rather than call setEnv directly
+ *  so that it will be impossible for users to override their values by
+ *  creating a "set.XXX=NNN" property in the configuration file.
+ */
 void wrapperAddDefaultProperties() {
     size_t bufferLen;
     char* buffer;
     
     /* IMPORTANT - If any new values are added here, this work buffer length may need to be calculated differently. */
     bufferLen = 1;
+    bufferLen = __max(bufferLen, strlen("set.WRAPPER_BITS=") + strlen(wrapperBits) + 1);
     bufferLen = __max(bufferLen, strlen("set.WRAPPER_ARCH=") + strlen(wrapperArch) + 1);
     bufferLen = __max(bufferLen, strlen("set.WRAPPER_OS=") + strlen(wrapperOS) + 1);
+    bufferLen = __max(bufferLen, strlen("set.WRAPPER_HOSTNAME=") + strlen(wrapperData->hostName) + 1);
     bufferLen = __max(bufferLen, strlen("set.WRAPPER_HOST_NAME=") + strlen(wrapperData->hostName) + 1);
     
     buffer = malloc(bufferLen);
@@ -135,6 +187,9 @@ void wrapperAddDefaultProperties() {
     addPropertyPair(properties, buffer, TRUE, FALSE);
 
     sprintf(buffer, "set.WRAPPER_OS=%s", wrapperOS);
+    addPropertyPair(properties, buffer, TRUE, FALSE);
+
+    sprintf(buffer, "set.WRAPPER_HOSTNAME=%s", wrapperData->hostName);
     addPropertyPair(properties, buffer, TRUE, FALSE);
 
     sprintf(buffer, "set.WRAPPER_HOST_NAME=%s", wrapperData->hostName);
@@ -161,7 +216,7 @@ int wrapperLoadConfigurationProperties() {
     int work;
 #endif
     const char* prop;
-
+    
     /* Unless this is the first call, we need to dispose the previous properties object. */
     if (properties) {
         firstCall = FALSE;
@@ -1228,7 +1283,7 @@ void wrapperUsage(char *appName) {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -p  --stop    stoP a running NT service");
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -i  --install Install as an NT service");
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -it --installstart Install and sTart as an NT service");
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -r  --remove  Remove as an NT service");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -r  --remove  Uninstall/Remove as an NT service");
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -l=<code> --controlcode=<code> send a user controL Code to a running NT service");
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -d  --dump    request a thread Dump");
     /** Return mask: installed:1 running:2 interactive:4 automatic:8 manual:16 disabled:32 */
@@ -1372,6 +1427,11 @@ void wrapperLogChildOutput(const char* log) {
                 wrapperStopProcess(FALSE, 1); /* Exit with an error code. */
                 break;
 
+            case FILTER_ACTION_DUMP:
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Filter trigger matched.  Requesting Thread dump.");
+                wrapperRequestDumpJVMState(FALSE);
+                break;
+                
             default: /* FILTER_ACTION_NONE*/
                 /* Do nothing but masks later filters */
                 break;
@@ -1514,6 +1574,7 @@ void wrapperKillProcess(int useLoggerQueue) {
 int wrapperRunConsole() {
     int res;
     const char *prop;
+    struct tm timeTM;
 
     /* Setup the wrapperData structure. */
     wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STARTING);
@@ -1555,6 +1616,16 @@ int wrapperRunConsole() {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "");
     
     if (wrapperData->isDebugging) {
+        timeTM = wrapperGetReleaseTime();
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Release time: %04d/%02d/%02d %02d:%02d:%02d",
+                timeTM.tm_year + 1900, timeTM.tm_mon + 1, timeTM.tm_mday, 
+                timeTM.tm_hour, timeTM.tm_min, timeTM.tm_sec );
+        
+        timeTM = wrapperGetBuildTime();
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Build time:   %04d/%02d/%02d %02d:%02d:%02d",
+                timeTM.tm_year + 1900, timeTM.tm_mon + 1, timeTM.tm_mday, 
+                timeTM.tm_hour, timeTM.tm_min, timeTM.tm_sec );
+        
         if (wrapperData->useSystemTime) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Using system timer.");
         } else {
@@ -1867,43 +1938,14 @@ int wrapperCheckQuotes(const char *value, const char *propName) {
     return 0;
 }
 
-/**
- * Loops over and stores all necessary commands into an array which
- *  can be used to launch a process.
- * This method will only count the elements if stringsPtr is NULL.
- *
- * Note - Next Out Of Memory is #47
- */
-int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
-    int index;
+int wrapperBuildJavaCommandArrayJavaCommand(char **strings, int addQuotes, int detectDebugJVM, int index) {
     const char *prop;
-    char *propStripped;
-    int stripQuote;
-    int initMemory = 0, maxMemory;
-    char paramBuffer[128];
-    char paramBuffer2[128];
-    int quotable;
-    int i, j;
-    size_t len, len2;
-    size_t cpLen, cpLenAlloc;
-    char *tmpString;
-    struct stat statBuffer;
-    char *systemPath;
     char *c;
 #ifdef WIN32
-    int cnt;
     char cpPath[512];
-    intptr_t handle;
     int found;
-    struct _finddata_t fblock;
-#else
-    glob_t g;
-    int findex;
 #endif
-
-    index = 0;
     
-    /* Java commnd */
     if (strings) {
         prop = getStringProperty(properties, "wrapper.java.command", "java");
 
@@ -1966,7 +2008,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         if (found) {
             strings[index] = malloc(sizeof(char) * (strlen(cpPath) + 2 + 1));
             if (!strings[index]) {
-                outOfMemory("WBJCAI", 1);
+                outOfMemory("WBJCAJC", 1);
                 return -1;
             }
             if (addQuotes) {
@@ -1977,7 +2019,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         } else {
             strings[index] = malloc(sizeof(char) * (strlen(prop) + 2 + 1));
             if (!strings[index]) {
-                outOfMemory("WBJCAI", 2);
+                outOfMemory("WBJCAJC", 2);
                 return -1;
             }
             if (addQuotes) {
@@ -1995,7 +2037,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
 
         strings[index] = malloc(sizeof(char) * (strlen(prop) + 2 + 1));
         if (!strings[index]) {
-            outOfMemory("WBJCAI", 3);
+            outOfMemory("WBJCAJC", 3);
             return -1;
         }
         if (addQuotes) {
@@ -2004,40 +2046,46 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             sprintf(strings[index], "%s", prop);
         }
 #endif
-        c = strstr(strings[index], "jdb");
-        if (c && ((unsigned int)(c - strings[index]) == strlen(strings[index]) - 3 - 1)) {
-            /* Ends with "jdb".  The jdb debugger is being used directly.  go into debug JVM mode. */
-            wrapperData->debugJVM = TRUE;
-        } else {
-            c = strstr(strings[index], "jdb.exe");
-            if (c && ((unsigned int)(c - strings[index]) == strlen(strings[index]) - 7 - 1)) {
+        if (detectDebugJVM) {
+            c = strstr(strings[index], "jdb");
+            if (c && ((unsigned int)(c - strings[index]) == strlen(strings[index]) - 3 - 1)) {
                 /* Ends with "jdb".  The jdb debugger is being used directly.  go into debug JVM mode. */
                 wrapperData->debugJVM = TRUE;
+            } else {
+                c = strstr(strings[index], "jdb.exe");
+                if (c && ((unsigned int)(c - strings[index]) == strlen(strings[index]) - 7 - 1)) {
+                    /* Ends with "jdb".  The jdb debugger is being used directly.  go into debug JVM mode. */
+                    wrapperData->debugJVM = TRUE;
+                }
             }
         }
     }
     index++;
     
-    /* See if the auto bits parameter is set.  Ignored by all but the following platforms. */
-#if defined(HPUX) || defined(MACOSX) || defined(SOLARIS) || defined(FREEBSD)
-    if (getBooleanProperty(properties, "wrapper.java.additional.auto_bits", FALSE)) {
-        if (strings) {
-            strings[index] = malloc(sizeof(char) * 5);
-            if (!strings[index]) {
-                outOfMemory("WBJCAI", 46);
-                return -1;
-            }
-            sprintf(strings[index], "-d%s", wrapperBits);
-        }
-        index++;
-    }
-#endif
+    return index;
+}
 
-    /* Store additional java parameters */
+int wrapperBuildJavaCommandArrayJavaAdditional(char **strings, int addQuotes, int detectDebugJVM, int index) {
+    const char *prop;
+    int i;
+    size_t len;
+    char paramBuffer[128];
+    char paramBuffer2[128];
+    int quotable;
+    int stripQuote;
+    char *propStripped;
+    char **propertyNames;
+    char **propertyValues;
+    long unsigned int *propertyIndices;
+    
+    if (getStringProperties(properties, "wrapper.java.additional.", "", wrapperData->ignoreSequenceGaps, &propertyNames, &propertyValues, &propertyIndices)) {
+        /* Failed */
+        return -1;
+    }
+    
     i = 0;
-    do {
-        sprintf(paramBuffer, "wrapper.java.additional.%d", i + 1);
-        prop = getStringProperty(properties, paramBuffer, NULL);
+    while (propertyNames[i]) {
+        prop = propertyValues[i];
         if (prop) {
             if (strlen(prop) > 0) {
                 if (strings) {
@@ -2049,13 +2097,13 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                             paramBuffer, prop );
                         strings[index] = malloc(sizeof(char) * 1);
                         if (!strings[index]) {
-                            outOfMemory("WBJCAI", 4);
+                            outOfMemory("WBJCAJA", 1);
                             return -1;
                         }
                         strings[index][0] = '\0';
                     } else {
                         quotable = isQuotableProperty(properties, paramBuffer);
-                        sprintf(paramBuffer2, "wrapper.java.additional.%d.stripquotes", i + 1);
+                        sprintf(paramBuffer2, "wrapper.java.additional.%lu.stripquotes", propertyIndices[i]);
                         if (addQuotes) {
                             stripQuote = FALSE;
                         } else {
@@ -2064,7 +2112,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         if (stripQuote) {
                             propStripped = malloc(sizeof(char) * (strlen(prop) + 1));
                             if (!propStripped) {
-                                outOfMemory("WBJCAI", 5);
+                                outOfMemory("WBJCAJA", 2);
                                 return -1;
                             }
                             wrapperStripQuotes(prop, propStripped);
@@ -2076,14 +2124,14 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                             len = wrapperQuoteValue(propStripped, NULL, 0);
                             strings[index] = malloc(len);
                             if (!strings[index]) {
-                                outOfMemory("WBJCAI", 6);
+                                outOfMemory("WBJCAJA", 3);
                                 return -1;
                             }
                             wrapperQuoteValue(propStripped, strings[index], len);
                         } else {
                             strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1));
                             if (!strings[index]) {
-                                outOfMemory("WBJCAI", 7);
+                                outOfMemory("WBJCAJA", 4);
                                 return -1;
                             }
                             sprintf(strings[index], "%s", propStripped);
@@ -2100,50 +2148,34 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                     }
 
                     /* Set if this paremeter enables debugging. */
-                    if (strstr(strings[index], "-Xdebug") == strings[index]) {
-                        wrapperData->debugJVM = TRUE;
+                    if (detectDebugJVM) {
+                        if (strstr(strings[index], "-Xdebug") == strings[index]) {
+                            wrapperData->debugJVM = TRUE;
+                        }
                     }
                 }
                 index++;
             }
             i++;
         }
-    } while (prop);
+    };
+    
+    freeStringProperties(propertyNames, propertyValues, propertyIndices);
+    
+    return index;
+}
 
-    /* Initial JVM memory */
-    initMemory = getIntProperty(properties, "wrapper.java.initmemory", 0);
-    if (initMemory > 0 ) {
-        if (strings) {
-            initMemory = __max(initMemory, 1); /* 1 <= n */
-            strings[index] = malloc(sizeof(char) * (5 + 10 + 1));  /* Allow up to 10 digits. */
-            if (!strings[index]) {
-                outOfMemory("WBJCAI", 8);
-                return -1;
-            }
-            sprintf(strings[index], "-Xms%dm", initMemory);
-        }
-        index++;
-    } else {
-            /* Set the initMemory so the checks in the maxMemory section below will work correctly. */
-            initMemory = 3;
-    }
-
-    /* Maximum JVM memory */
-    maxMemory = getIntProperty(properties, "wrapper.java.maxmemory", 0);
-    if (maxMemory > 0) {
-        if (strings) {
-            maxMemory = __max(maxMemory, initMemory);  /* initMemory <= n */
-            strings[index] = malloc(sizeof(char) * (5 + 10 + 1));  /* Allow up to 10 digits. */
-            if (!strings[index]) {
-                outOfMemory("WBJCAI", 10);
-                return -1;
-            }
-            sprintf(strings[index], "-Xmx%dm", maxMemory);
-        }
-        index++;
-    }
-
-    /* Library Path */
+int wrapperBuildJavaCommandArrayLibraryPath(char **strings, int addQuotes, int index) {
+    const char *prop;
+    int i, j;
+    size_t len2;
+    size_t cpLen, cpLenAlloc;
+    char *tmpString;
+    char *systemPath;
+    char **propertyNames;
+    char **propertyValues;
+    long unsigned int *propertyIndices;
+    
     if (strings) {
         if (wrapperData->libraryPathAppendPath) {
             /* We are going to want to append the full system path to
@@ -2183,7 +2215,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             if (systemPath) {
                 strings[index] = malloc(sizeof(char) * (22 + strlen(prop) + 1 + strlen(systemPath) + 1 + 1));
                 if (!strings[index]) {
-                    outOfMemory("WBJCAI", 12);
+                    outOfMemory("WBJCALP", 1);
                     return -1;
                 }
                 if (addQuotes) {
@@ -2198,7 +2230,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             } else {
                 strings[index] = malloc(sizeof(char) * (22 + strlen(prop) + 1 + 1));
                 if (!strings[index]) {
-                    outOfMemory("WBJCAI", 13);
+                    outOfMemory("WBJCALP", 2);
                     return -1;
                 }
                 if (addQuotes) {
@@ -2221,7 +2253,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             cpLenAlloc = 1024;
             strings[index] = malloc(sizeof(char) * cpLenAlloc);
             if (!strings[index]) {
-                outOfMemory("WBJCAI", 14);
+                outOfMemory("WBJCALP", 3);
                 return -1;
             }
             
@@ -2236,11 +2268,15 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             }
             
             /* Loop over the library path entries adding each one */
+            if (getStringProperties(properties, "wrapper.java.library.path.", "", wrapperData->ignoreSequenceGaps, &propertyNames, &propertyValues, &propertyIndices)) {
+                /* Failed */
+                return -1;
+            }
+            
             i = 0;
             j = 0;
-            do {
-                sprintf(paramBuffer, "wrapper.java.library.path.%d", i + 1);
-                prop = getStringProperty(properties, paramBuffer, NULL);
+            while (propertyNames[i]) {
+                prop = propertyValues[i];
                 if (prop) {
                     len2 = strlen(prop);
                     if (len2 > 0) {
@@ -2251,7 +2287,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                             cpLenAlloc += 1024;
                             strings[index] = malloc(sizeof(char) * cpLenAlloc);
                             if (!strings[index]) {
-                                outOfMemory("WBJCAI", 15);
+                                outOfMemory("WBJCALP", 4);
                                 return -1;
                             }
                             sprintf(strings[index], "%s", tmpString);
@@ -2268,7 +2304,8 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                     }
                     i++;
                 }
-            } while (prop);
+            }
+            freeStringProperties(propertyNames, propertyValues, propertyIndices);
 
             if (systemPath) {
                 /* We need to append the system path. */
@@ -2281,7 +2318,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         cpLenAlloc += 1024;
                         strings[index] = malloc(sizeof(char) * cpLenAlloc);
                         if (!strings[index]) {
-                            outOfMemory("WBJCAI", 16);
+                            outOfMemory("WBJCALP", 5);
                             return -1;
                         }
                         sprintf(strings[index], "%s", tmpString);
@@ -2321,12 +2358,39 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         }
     }
     index++;
+    
+    return index;
+}
 
+int wrapperBuildJavaCommandArrayClasspath(char **strings, int addQuotes, int index) {
+    const char *prop;
+    char *propStripped;
+    char paramBuffer[128];
+    int i, j;
+    size_t cpLen, cpLenAlloc;
+    size_t len2;
+    char *tmpString;
+    struct stat statBuffer;
+    char **propertyNames;
+    char **propertyValues;
+    long unsigned int *propertyIndices;
+#ifdef WIN32
+    size_t len;
+    char *c;
+    int cnt;
+    char cpPath[512];
+    intptr_t handle;
+    struct _finddata_t fblock;
+#else
+    glob_t g;
+    int findex;
+#endif
+    
     /* Store the classpath */
     if (strings) {
         strings[index] = malloc(sizeof(char) * (10 + 1));
         if (!strings[index]) {
-            outOfMemory("WBJCAI", 17);
+            outOfMemory("WBJCAC", 1);
             return -1;
         }
         sprintf(strings[index], "-classpath");
@@ -2338,7 +2402,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         cpLenAlloc = 1024;
         strings[index] = malloc(sizeof(char) * cpLenAlloc);
         if (!strings[index]) {
-            outOfMemory("WBJCAI", 18);
+            outOfMemory("WBJCAC", 2);
             return -1;
         }
         
@@ -2347,35 +2411,67 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             sprintf(&(strings[index][cpLen]), "\"");
             cpLen++;
         }
-
-        /* Loop over the classpath entries adding each one */
+        
+        /* Loop over the classpath entries adding each one. */
+        if (getStringProperties(properties, "wrapper.java.classpath.", "", wrapperData->ignoreSequenceGaps, &propertyNames, &propertyValues, &propertyIndices)) {
+            /* Failed */
+            return -1;
+        }
+        
         i = 0;
         j = 0;
-        do {
-            sprintf(paramBuffer, "wrapper.java.classpath.%d", i + 1);
-            prop = getStringProperty(properties, paramBuffer, NULL);
-            if (prop) {
-                len2 = strlen(prop);
-                if (len2 > 0) {
-                    /* Does this contain wildcards? */
-                    if ((strchr(prop, '*') != NULL) || (strchr(prop, '?') != NULL)) {
-                        /* Need to do a wildcard search */
+        while (propertyNames[i]) {
+            prop = propertyValues[i];
+            len2 = strlen(prop);
+            if (len2 > 0) {
+                /* Does this contain wildcards? */
+                if ((strchr(prop, '*') != NULL) || (strchr(prop, '?') != NULL)) {
+                    /* Need to do a wildcard search */
 #ifdef WIN32
-                        /* Extract any path information from the beginning of the file */
-                        strcpy(cpPath, prop);
-                        c = max(strrchr(cpPath, '\\'), strrchr(cpPath, '/'));
-                        if (c == NULL) {
-                            cpPath[0] = '\0';
-                        } else {
-                            c[1] = '\0'; /* terminate after the slash */
-                        }
-                        len = strlen(cpPath);
+                    /* Extract any path information from the beginning of the file */
+                    strcpy(cpPath, prop);
+                    c = max(strrchr(cpPath, '\\'), strrchr(cpPath, '/'));
+                    if (c == NULL) {
+                        cpPath[0] = '\0';
+                    } else {
+                        c[1] = '\0'; /* terminate after the slash */
+                    }
+                    len = strlen(cpPath);
 
-                        cnt = 0;
-                        if ((handle = _findfirst(prop, &fblock)) > 0) {
+                    cnt = 0;
+                    if ((handle = _findfirst(prop, &fblock)) > 0) {
+                        if ((strcmp(fblock.name, ".") != 0) && (strcmp(fblock.name, "..") != 0)) {
+                            len2 = strlen(fblock.name);
+
+                            /* Is there room for the entry? */
+                            while (cpLen + len + len2 + 3 > cpLenAlloc) {
+                                /* Resize the buffer */
+                                tmpString = strings[index];
+                                cpLenAlloc += 1024;
+                                strings[index] = malloc(sizeof(char) * cpLenAlloc);
+                                if (!strings[index]) {
+                                    outOfMemory("WBJCAC", 3);
+                                    return -1;
+                                }
+                                sprintf(strings[index], "%s", tmpString);
+                                free(tmpString);
+                                tmpString = NULL;
+                            }
+
+                            if (j > 0) {
+                                strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
+                            }
+                            sprintf(&(strings[index][cpLen]), "%s%s", cpPath, fblock.name);
+                            cpLen += (len + len2);
+                            j++;
+                            cnt++;
+                        }
+
+                        /* Look for additional entries */
+                        while (_findnext(handle, &fblock) == 0) {
                             if ((strcmp(fblock.name, ".") != 0) && (strcmp(fblock.name, "..") != 0)) {
                                 len2 = strlen(fblock.name);
-    
+
                                 /* Is there room for the entry? */
                                 while (cpLen + len + len2 + 3 > cpLenAlloc) {
                                     /* Resize the buffer */
@@ -2383,14 +2479,14 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                                     cpLenAlloc += 1024;
                                     strings[index] = malloc(sizeof(char) * cpLenAlloc);
                                     if (!strings[index]) {
-                                        outOfMemory("WBJCAI", 19);
+                                        outOfMemory("WBJCAC", 4);
                                         return -1;
                                     }
                                     sprintf(strings[index], "%s", tmpString);
                                     free(tmpString);
                                     tmpString = NULL;
                                 }
-    
+
                                 if (j > 0) {
                                     strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
                                 }
@@ -2399,150 +2495,121 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                                 j++;
                                 cnt++;
                             }
-
-                            /* Look for additional entries */
-                            while (_findnext(handle, &fblock) == 0) {
-                                if ((strcmp(fblock.name, ".") != 0) && (strcmp(fblock.name, "..") != 0)) {
-                                    len2 = strlen(fblock.name);
-    
-                                    /* Is there room for the entry? */
-                                    while (cpLen + len + len2 + 3 > cpLenAlloc) {
-                                        /* Resize the buffer */
-                                        tmpString = strings[index];
-                                        cpLenAlloc += 1024;
-                                        strings[index] = malloc(sizeof(char) * cpLenAlloc);
-                                        if (!strings[index]) {
-                                            outOfMemory("WBJCAI", 20);
-                                            return -1;
-                                        }
-                                        sprintf(strings[index], "%s", tmpString);
-                                        free(tmpString);
-                                        tmpString = NULL;
-                                    }
-    
-                                    if (j > 0) {
-                                        strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
-                                    }
-                                    sprintf(&(strings[index][cpLen]), "%s%s", cpPath, fblock.name);
-                                    cpLen += (len + len2);
-                                    j++;
-                                    cnt++;
-                                }
-                            }
-
-                            /* Close the file search */
-                            _findclose(handle);
                         }
 
-                        if (cnt <= 0) {
-                            if (errno == ENOENT) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                                    "Classpath element, %s, does not match any files: %s", paramBuffer, prop);
-                            } else {
-                                /* Encountered an error of some kind. */
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                                    "Error in findfirst for classpath element: %s", prop);
-                            }
-                        }
-#else
-                        /* Wildcard support for unix */
-                        glob(prop, GLOB_MARK | GLOB_NOSORT, NULL, &g);
+                        /* Close the file search */
+                        _findclose(handle);
+                    }
 
-                        if( g.gl_pathc > 0 ) {
-                            for( findex=0; findex<g.gl_pathc; findex++ ) {
-                                len2 = strlen(g.gl_pathv[findex]);
-
-                                /* Is there room for the entry? */
-                                while (cpLen + len2 + 3 > cpLenAlloc) {
-                                    /* Resize the buffer */
-                                    tmpString = strings[index];
-                                    cpLenAlloc += 1024;
-                                    strings[index] = malloc(sizeof(char) * cpLenAlloc);
-                                    if (!strings[index]) {
-                                        outOfMemory("WBJCAI", 21);
-                                        return -1;
-                                    }
-                                    sprintf(strings[index], "%s", tmpString);
-                                    free(tmpString);
-                                    tmpString = NULL;
-                                }
-
-                                if (j > 0) {
-                                    strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
-                                }
-                                sprintf(&(strings[index][cpLen]), "%s", g.gl_pathv[findex]);
-                                cpLen += len2;
-                                j++;
-                            }
-                        } else {
+                    if (cnt <= 0) {
+                        if (errno == ENOENT) {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                                 "Classpath element, %s, does not match any files: %s", paramBuffer, prop);
-                        }
-
-                        globfree(&g);
-#endif
-                    } else {
-                        /* This classpath entry does not contain any wildcards. */
-
-                        /* If the path element is a directory then we want to strip the trailing slash if it exists. */
-                        propStripped = (char *)prop;
-                        if ((prop[strlen(prop) - 1] == '/') || (prop[strlen(prop) - 1] == '\\')) {
-                            propStripped = malloc(sizeof(char) * strlen(prop));
-                            if (!propStripped) {
-                                outOfMemory("WBJCAI", 22);
-                                return -1;
-                            }
-                            memcpy(propStripped, prop, strlen(prop) - 1);
-                            propStripped[strlen(prop) - 1] = '\0';
-                        }
-
-                        /* See if it exists so we can display a debug warning if it does not. */
-                        if (stat(propStripped, &statBuffer)) {
-                            /* Encountered an error of some kind. */
-                            if ((errno == ENOENT) || (errno == 3)) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                                    "Classpath element, %s, does not exist: %s", paramBuffer, prop);
-                            } else {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                                    "Unable to get information of classpath element: %s (%s)",
-                                    prop, getLastErrorText());
-                            }
                         } else {
-                            /* Got the stat info. */
+                            /* Encountered an error of some kind. */
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                                "Error in findfirst for classpath element: %s", prop);
                         }
-
-                        /* If we allocated the propStripped buffer then free it up. */
-                        if (propStripped != prop) {
-                            free(propStripped);
-                        }
-                        propStripped = NULL;
-
-                        /* Is there room for the entry? */
-                        while (cpLen + len2 + 3 > cpLenAlloc) {
-                            /* Resize the buffer */
-                            tmpString = strings[index];
-                            cpLenAlloc += 1024;
-                            strings[index] = malloc(sizeof(char) * cpLenAlloc);
-                            if (!strings[index]) {
-                                outOfMemory("WBJCAI", 23);
-                                return -1;
-                            }
-                            sprintf(strings[index], "%s", tmpString);
-                            free(tmpString);
-                            tmpString = NULL;
-                        }
-
-                        if (j > 0) {
-                            strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
-                        }
-                        sprintf(&(strings[index][cpLen]), "%s", prop);
-                        cpLen += len2;
-                        j++;
                     }
+#else
+                    /* Wildcard support for unix */
+                    glob(prop, GLOB_MARK | GLOB_NOSORT, NULL, &g);
+
+                    if( g.gl_pathc > 0 ) {
+                        for( findex=0; findex<g.gl_pathc; findex++ ) {
+                            len2 = strlen(g.gl_pathv[findex]);
+
+                            /* Is there room for the entry? */
+                            while (cpLen + len2 + 3 > cpLenAlloc) {
+                                /* Resize the buffer */
+                                tmpString = strings[index];
+                                cpLenAlloc += 1024;
+                                strings[index] = malloc(sizeof(char) * cpLenAlloc);
+                                if (!strings[index]) {
+                                    outOfMemory("WBJCAC", 5);
+                                    return -1;
+                                }
+                                sprintf(strings[index], "%s", tmpString);
+                                free(tmpString);
+                                tmpString = NULL;
+                            }
+
+                            if (j > 0) {
+                                strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
+                            }
+                            sprintf(&(strings[index][cpLen]), "%s", g.gl_pathv[findex]);
+                            cpLen += len2;
+                            j++;
+                        }
+                    } else {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                            "Classpath element, %s, does not match any files: %s", paramBuffer, prop);
+                    }
+
+                    globfree(&g);
+#endif
+                } else {
+                    /* This classpath entry does not contain any wildcards. */
+
+                    /* If the path element is a directory then we want to strip the trailing slash if it exists. */
+                    propStripped = (char *)prop;
+                    if ((prop[strlen(prop) - 1] == '/') || (prop[strlen(prop) - 1] == '\\')) {
+                        propStripped = malloc(sizeof(char) * strlen(prop));
+                        if (!propStripped) {
+                            outOfMemory("WBJCAC", 6);
+                            return -1;
+                        }
+                        memcpy(propStripped, prop, strlen(prop) - 1);
+                        propStripped[strlen(prop) - 1] = '\0';
+                    }
+
+                    /* See if it exists so we can display a debug warning if it does not. */
+                    if (stat(propStripped, &statBuffer)) {
+                        /* Encountered an error of some kind. */
+                        if ((errno == ENOENT) || (errno == 3)) {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                                "Classpath element, %s, does not exist: %s", paramBuffer, prop);
+                        } else {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                                "Unable to get information of classpath element: %s (%s)",
+                                prop, getLastErrorText());
+                        }
+                    } else {
+                        /* Got the stat info. */
+                    }
+
+                    /* If we allocated the propStripped buffer then free it up. */
+                    if (propStripped != prop) {
+                        free(propStripped);
+                    }
+                    propStripped = NULL;
+
+                    /* Is there room for the entry? */
+                    while (cpLen + len2 + 3 > cpLenAlloc) {
+                        /* Resize the buffer */
+                        tmpString = strings[index];
+                        cpLenAlloc += 1024;
+                        strings[index] = malloc(sizeof(char) * cpLenAlloc);
+                        if (!strings[index]) {
+                            outOfMemory("WBJCAC", 7);
+                            return -1;
+                        }
+                        sprintf(strings[index], "%s", tmpString);
+                        free(tmpString);
+                        tmpString = NULL;
+                    }
+
+                    if (j > 0) {
+                        strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
+                    }
+                    sprintf(&(strings[index][cpLen]), "%s", prop);
+                    cpLen += len2;
+                    j++;
                 }
-                i++;
             }
-        } while (prop);
+            i++;
+        }
+        freeStringProperties(propertyNames, propertyValues, propertyIndices);
         if (j == 0) {
             /* No classpath, use default. always room */
             sprintf(&(strings[index][cpLen++]), "./");
@@ -2565,6 +2632,168 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         }
     }
     index++;
+    
+    return index;
+}
+
+int wrapperBuildJavaCommandArrayAppParameters(char **strings, int addQuotes, int index) {
+    const char *prop;
+    int i;
+    int quotable;
+    char *propStripped;
+    int stripQuote;
+    char paramBuffer2[128];
+    size_t len;
+    char **propertyNames;
+    char **propertyValues;
+    long unsigned int *propertyIndices;
+    
+    if (getStringProperties(properties, "wrapper.app.parameter.", "", wrapperData->ignoreSequenceGaps, &propertyNames, &propertyValues, &propertyIndices)) {
+        /* Failed */
+        return -1;
+    }
+    i = 0;
+    while (propertyNames[i]) {
+        prop = propertyValues[i];
+        if (strlen(prop) > 0) {
+            if (strings) {
+                quotable = isQuotableProperty(properties, propertyNames[i]);
+                sprintf(paramBuffer2, "wrapper.app.parameter.%lu.stripquotes", propertyIndices[i]);
+                if (addQuotes) {
+                    stripQuote = FALSE;
+                } else {
+                    stripQuote = getBooleanProperty(properties, paramBuffer2, FALSE);
+                }
+                if (stripQuote) {
+                    propStripped = malloc(sizeof(char) * (strlen(prop) + 1));
+                    if (!propStripped) {
+                        outOfMemory("WBJCAAP", 1);
+                        return -1;
+                    }
+                    wrapperStripQuotes(prop, propStripped);
+                } else {
+                    propStripped = (char *)prop;
+                }
+
+                if (addQuotes && quotable && strchr(propStripped, ' ')) {
+                    len = wrapperQuoteValue(propStripped, NULL, 0);
+                    strings[index] = malloc(len);
+                    if (!strings[index]) {
+                        outOfMemory("WBJCAAP", 2);
+                        return -1;
+                    }
+                    wrapperQuoteValue(propStripped, strings[index], len);
+                } else {
+                    strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1));
+                    if (!strings[index]) {
+                        outOfMemory("WBJCAAP", 3);
+                        return -1;
+                    }
+                    sprintf(strings[index], "%s", propStripped);
+                }
+
+                if (addQuotes) {
+                    wrapperCheckQuotes(strings[index], propertyNames[i]);
+                }
+
+                if (stripQuote) {
+                    free(propStripped);
+                    propStripped = NULL;
+                }
+            }
+            index++;
+        }
+        i++;
+    }
+    freeStringProperties(propertyNames, propertyValues, propertyIndices);
+    
+    return index;
+}
+
+/**
+ * Loops over and stores all necessary commands into an array which
+ *  can be used to launch a process.
+ * This method will only count the elements if stringsPtr is NULL.
+ *
+ * Note - Next Out Of Memory is #47
+ */
+int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
+    int index;
+    int detectDebugJVM;
+    const char *prop;
+    int initMemory = 0, maxMemory;
+        
+    index = 0;
+    
+    detectDebugJVM = getBooleanProperty(properties, "wrapper.java.detect_debug_jvm", TRUE);
+    
+    /* Java commnd */
+    if ((index = wrapperBuildJavaCommandArrayJavaCommand(strings, addQuotes, detectDebugJVM, index)) < 0) {
+        return -1;
+    }
+    
+    /* See if the auto bits parameter is set.  Ignored by all but the following platforms. */
+#if defined(HPUX) || defined(MACOSX) || defined(SOLARIS) || defined(FREEBSD)
+    if (getBooleanProperty(properties, "wrapper.java.additional.auto_bits", FALSE)) {
+        if (strings) {
+            strings[index] = malloc(sizeof(char) * 5);
+            if (!strings[index]) {
+                outOfMemory("WBJCAI", 46);
+                return -1;
+            }
+            sprintf(strings[index], "-d%s", wrapperBits);
+        }
+        index++;
+    }
+#endif
+
+    /* Store additional java parameters */
+    if ((index = wrapperBuildJavaCommandArrayJavaAdditional(strings, addQuotes, detectDebugJVM, index)) < 0) {
+        return -1;
+    }
+
+    /* Initial JVM memory */
+    initMemory = getIntProperty(properties, "wrapper.java.initmemory", 0);
+    if (initMemory > 0 ) {
+        if (strings) {
+            initMemory = __max(initMemory, 1); /* 1 <= n */
+            strings[index] = malloc(sizeof(char) * (5 + 10 + 1));  /* Allow up to 10 digits. */
+            if (!strings[index]) {
+                outOfMemory("WBJCAI", 8);
+                return -1;
+            }
+            sprintf(strings[index], "-Xms%dm", initMemory);
+        }
+        index++;
+    } else {
+            /* Set the initMemory so the checks in the maxMemory section below will work correctly. */
+            initMemory = 3;
+    }
+
+    /* Maximum JVM memory */
+    maxMemory = getIntProperty(properties, "wrapper.java.maxmemory", 0);
+    if (maxMemory > 0) {
+        if (strings) {
+            maxMemory = __max(maxMemory, initMemory);  /* initMemory <= n */
+            strings[index] = malloc(sizeof(char) * (5 + 10 + 1));  /* Allow up to 10 digits. */
+            if (!strings[index]) {
+                outOfMemory("WBJCAI", 10);
+                return -1;
+            }
+            sprintf(strings[index], "-Xmx%dm", maxMemory);
+        }
+        index++;
+    }
+
+    /* Library Path */
+    if ((index = wrapperBuildJavaCommandArrayLibraryPath(strings, addQuotes, index)) < 0) {
+        return -1;
+    }
+
+    /* Classpath */
+    if ((index = wrapperBuildJavaCommandArrayClasspath(strings, addQuotes, index)) < 0) {
+        return -1;
+    }
 
     /* Store the Wrapper key */
     if (strings) {
@@ -2866,62 +3095,9 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     index++;
 
     /* Store any application parameters */
-    i = 0;
-    do {
-        sprintf(paramBuffer, "wrapper.app.parameter.%d", i + 1);
-        prop = getStringProperty(properties, paramBuffer, NULL);
-        if (prop) {
-            if (strlen(prop) > 0) {
-                if (strings) {
-                    quotable = isQuotableProperty(properties, paramBuffer);
-                    sprintf(paramBuffer2, "wrapper.app.parameter.%d.stripquotes", i + 1);
-                    if (addQuotes) {
-                        stripQuote = FALSE;
-                    } else {
-                        stripQuote = getBooleanProperty(properties, paramBuffer2, FALSE);
-                    }
-                    if (stripQuote) {
-                        propStripped = malloc(sizeof(char) * (strlen(prop) + 1));
-                        if (!propStripped) {
-                            outOfMemory("WBJCAI", 43);
-                            return -1;
-                        }
-                        wrapperStripQuotes(prop, propStripped);
-                    } else {
-                        propStripped = (char *)prop;
-                    }
-
-                    if (addQuotes && quotable && strchr(propStripped, ' ')) {
-                        len = wrapperQuoteValue(propStripped, NULL, 0);
-                        strings[index] = malloc(len);
-                        if (!strings[index]) {
-                            outOfMemory("WBJCAI", 44);
-                            return -1;
-                        }
-                        wrapperQuoteValue(propStripped, strings[index], len);
-                    } else {
-                        strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1));
-                        if (!strings[index]) {
-                            outOfMemory("WBJCAI", 45);
-                            return -1;
-                        }
-                        sprintf(strings[index], "%s", propStripped);
-                    }
-
-                    if (addQuotes) {
-                        wrapperCheckQuotes(strings[index], paramBuffer);
-                    }
-
-                    if (stripQuote) {
-                        free(propStripped);
-                        propStripped = NULL;
-                    }
-                }
-                index++;
-            }
-            i++;
-        }
-    } while (prop);
+    if ((index = wrapperBuildJavaCommandArrayAppParameters(strings, addQuotes, index)) < 0) {
+        return -1;
+    }
 
     return index;
 }
@@ -3176,30 +3352,32 @@ void updateStringValue(char **ptr, const char *value) {
  * Return FALSE if successful, TRUE if there were problems.
  */
 int wrapperBuildNTServiceInfo() {
-    char dependencyKey[32]; /* Length of "wrapper.ntservice.dependency.nn" + '\0' */
-    const char *dependencies[10];
     char *work;
     const char *priority;
-    size_t len;
+    size_t len, valLen;
     int i;
+    char **propertyNames;
+    char **propertyValues;
+    long unsigned int *propertyIndices;
 
     if (!wrapperData->configured) {
         /* Load the service load order group */
         updateStringValue(&wrapperData->ntServiceLoadOrderGroup, getStringProperty(properties, "wrapper.ntservice.load_order_group", ""));
 
-        /* *** Build the dependency list *** */
+        if (getStringProperties(properties, "wrapper.ntservice.dependency.", "", wrapperData->ignoreSequenceGaps, &propertyNames, &propertyValues, &propertyIndices)) {
+            /* Failed */
+            return TRUE;
+        }
+        
+        /* Build the dependency list.  Decide how large the list needs to be */
         len = 0;
-        for (i = 0; i < 10; i++) {
-            sprintf(dependencyKey, "wrapper.ntservice.dependency.%d", i + 1);
-            dependencies[i] = getStringProperty(properties, dependencyKey, NULL);
-            if (dependencies[i] != NULL) {
-                if (strlen(dependencies[i]) > 0) {
-                    len += strlen(dependencies[i]) + 1;
-                } else {
-                    /* Ignore empty values. */
-                    dependencies[i] = NULL;
-                }
+        i = 0;
+        while (propertyNames[i]) {
+            valLen = strlen(propertyValues[i]);
+            if (valLen > 0) {
+                len += valLen + 1;
             }
+            i++;
         }
         /* List must end with a double '\0'.  If the list is not empty then it will end with 3.  But that is fine. */
         len += 2;
@@ -3215,19 +3393,25 @@ int wrapperBuildNTServiceInfo() {
             outOfMemory("WBNTSI", 1);
             return TRUE;
         }
-        for (i = 0; i < 10; i++) {
-            if (dependencies[i] != NULL) {
-                strcpy(work, dependencies[i]);
-                work += strlen(dependencies[i]) + 1;
+        
+        /* Now actually build up the list. Each value is separated with a '\0'. */
+        i = 0;
+        while (propertyNames[i]) {
+            valLen = strlen(propertyValues[i]);
+            if (valLen > 0) {
+                strcpy(work, propertyValues[i]);
+                work += valLen + 1;
             }
+            i++;
         }
         /* Add two more nulls to the end of the list. */
         work[0] = '\0';
         work[1] = '\0';
-        /* *** Dependency list completed *** */
+        
         /* Memory allocated in work is stored in wrapperData.  The memory should not be released here. */
         work = NULL;
-
+        
+        freeStringProperties(propertyNames, propertyValues, propertyIndices);
 
         /* Set the service start type */
         if (strcmpIgnoreCase(getStringProperty(properties, "wrapper.ntservice.starttype", "DEMAND_START"), "AUTO_START") == 0) {
@@ -3235,7 +3419,6 @@ int wrapperBuildNTServiceInfo() {
         } else {
             wrapperData->ntServiceStartType = SERVICE_DEMAND_START;
         }
-
 
         /* Set the service priority class */
         priority = getStringProperty(properties, "wrapper.ntservice.process_priority", "NORMAL");
@@ -3356,16 +3539,6 @@ int wrapperBuildUnixDaemonInfo() {
 }
 #endif
 
-int getOutputFilterActionForName( const char *actionName ) {
-    if (strcmpIgnoreCase(actionName, "RESTART") == 0) {
-        return FILTER_ACTION_RESTART;
-    } else if (strcmpIgnoreCase(actionName, "SHUTDOWN") == 0) {
-        return FILTER_ACTION_SHUTDOWN;
-    } else {
-        return FILTER_ACTION_NONE;
-    }
-}
-
 int validateTimeout(const char* propertyName, int value) {
     if (value <= 0) {
         return 0;
@@ -3396,6 +3569,89 @@ void wrapperLoadHostName()
     }
 }
 
+int getOutputFilterActionForName( const char *actionName ) {
+    if (strcmpIgnoreCase(actionName, "RESTART") == 0) {
+        return FILTER_ACTION_RESTART;
+    } else if (strcmpIgnoreCase(actionName, "SHUTDOWN") == 0) {
+        return FILTER_ACTION_SHUTDOWN;
+    } else if (strcmpIgnoreCase(actionName, "DUMP") == 0) {
+        return FILTER_ACTION_DUMP;
+    } else {
+        return FILTER_ACTION_NONE;
+    }
+}
+
+int loadConfigurationTriggers() {
+    const char *prop;
+    char propName[256];
+    int i;
+    char **propertyNames;
+    char **propertyValues;
+    long unsigned int *propertyIndices;
+    
+    /* To support reloading, we need to free up any previously loaded filters. */
+    if (wrapperData->outputFilterCount > 0) {
+        for (i = 0; i < wrapperData->outputFilterCount; i++) {
+            free(wrapperData->outputFilters[i]);
+            wrapperData->outputFilters[i] = NULL;
+        }
+        free(wrapperData->outputFilters);
+        wrapperData->outputFilters = NULL;
+        free(wrapperData->outputFilterActions);
+        wrapperData->outputFilterActions = NULL;
+    }
+    
+    wrapperData->outputFilterCount = 0;
+    if (getStringProperties(properties, "wrapper.filter.trigger.", "", wrapperData->ignoreSequenceGaps, &propertyNames, &propertyValues, &propertyIndices)) {
+        /* Failed */
+        return -1;
+    }
+    i = 0;
+    while (propertyNames[i]) {
+        wrapperData->outputFilterCount++;
+        i++;
+    }
+    
+    /* Now that a count is known, allocate memory to hold the filters and actions and load them in. */
+    if (wrapperData->outputFilterCount > 0) {
+        wrapperData->outputFilters = malloc(sizeof(char *) * wrapperData->outputFilterCount);
+        if (!wrapperData->outputFilters) {
+            outOfMemory("LC", 1);
+            return -1;
+        }
+        wrapperData->outputFilterActions = malloc(sizeof(int) * wrapperData->outputFilterCount);
+        if (!wrapperData->outputFilterActions) {
+            outOfMemory("LC", 2);
+            return -1;
+        }
+        
+        i = 0;
+        while (propertyNames[i]) {
+            prop = propertyValues[i];
+            
+            wrapperData->outputFilters[i] = malloc(sizeof(char) * (strlen(prop) + 1));
+            if (!wrapperData->outputFilters[i]) {
+                outOfMemory("LC", 3);
+                return -1;
+            }
+            strcpy(wrapperData->outputFilters[i], prop);
+
+            /* Get the action */
+            sprintf(propName, "wrapper.filter.action.%lu", propertyIndices[i]);
+            prop = getStringProperty(properties, propName, "RESTART");
+            wrapperData->outputFilterActions[i] = getOutputFilterActionForName(prop);
+
+#ifdef _DEBUG
+            printf("filter #%d, action=%d, filter='%s'\n", propertyIndices[i], wrapperData->outputFilterActions[i], wrapperData->outputFilters[i]);
+#endif
+            i++;
+        }
+    }
+    freeStringProperties(propertyNames, propertyValues, propertyIndices);
+    
+    return 0;
+}
+
 /**
  * Return FALSE if successful, TRUE if there were problems.
  */
@@ -3404,12 +3660,14 @@ int loadConfiguration() {
     int logfileRollMode;
     char propName[256];
     const char* val;
-    int i;
     int startupDelay;
 
     /* Load log file */
     logfilePath = getStringProperty(properties, "wrapper.logfile", "wrapper.log");
     setLogfilePath(logfilePath);
+    
+    /* Decide how sequence gaps should be handled before any other properties are loaded. */
+    wrapperData->ignoreSequenceGaps = getBooleanProperty(properties, "wrapper.ignore_sequence_gaps", FALSE);
     
     logfileRollMode = getLogfileRollModeForName(getStringProperty(properties, "wrapper.logfile.rollmode", "SIZE"));
     if (logfileRollMode == ROLL_MODE_UNKNOWN) {
@@ -3460,11 +3718,7 @@ int loadConfiguration() {
 #endif
 
     /* Load syslog event source name */
-#ifdef WIN32
-    setSyslogEventSourceName(getStringProperty(properties, "wrapper.ntservice.name", "wrapper"));
-#else
-    setSyslogEventSourceName(getStringProperty(properties, "wrapper.unix.name", getStringProperty(properties, "wrapper.ntservice.name", "wrapper")));
-#endif
+    setSyslogEventSourceName(getStringProperty(properties, "wrapper.syslog.ident", getStringProperty(properties, "wrapper.name", getStringProperty(properties, "wrapper.ntservice.name", "wrapper"))));
 
     /* Register the syslog message file if syslog is enabled */
     if (getSyslogLevelInt() < LEVEL_NONE) {
@@ -3676,58 +3930,8 @@ int loadConfiguration() {
     wrapperData->requestThreadDumpOnFailedJVMExit = getBooleanProperty(properties, "wrapper.request_thread_dump_on_failed_jvm_exit", FALSE);
 
     /* Load the output filters. */
-    /* To support reloading, we need to free up any previously loaded filters. */
-    if (wrapperData->outputFilterCount > 0) {
-        for (i = 0; i < wrapperData->outputFilterCount; i++) {
-            free(wrapperData->outputFilters[i]);
-            wrapperData->outputFilters[i] = NULL;
-        }
-        free(wrapperData->outputFilters);
-        wrapperData->outputFilters = NULL;
-        free(wrapperData->outputFilterActions);
-        wrapperData->outputFilterActions = NULL;
-    }
-    /* Count the number available */
-    wrapperData->outputFilterCount = 0;
-    do {
-        sprintf(propName, "wrapper.filter.trigger.%d", wrapperData->outputFilterCount + 1);
-        val = getStringProperty(properties, propName, NULL);
-        if (val) {
-            wrapperData->outputFilterCount++;
-        }
-    } while (val);
-    /* Now that a count is known, allocate memory to hold the filters and actions and load them in. */
-    if (wrapperData->outputFilterCount > 0) {
-        wrapperData->outputFilters = malloc(sizeof(char *) * wrapperData->outputFilterCount);
-        if (!wrapperData->outputFilters) {
-            outOfMemory("LC", 1);
-            return TRUE;
-        }
-        wrapperData->outputFilterActions = malloc(sizeof(int) * wrapperData->outputFilterCount);
-        if (!wrapperData->outputFilterActions) {
-            outOfMemory("LC", 2);
-            return TRUE;
-        }
-        for (i = 0; i < wrapperData->outputFilterCount; i++) {
-            /* Get the filter */
-            sprintf(propName, "wrapper.filter.trigger.%d", i + 1);
-            val = getStringProperty(properties, propName, NULL);
-            wrapperData->outputFilters[i] = malloc(sizeof(char) * (strlen(val) + 1));
-            if (!wrapperData->outputFilters[i]) {
-                outOfMemory("LC", 3);
-                return TRUE;
-            }
-            strcpy(wrapperData->outputFilters[i], val);
-
-            /* Get the action */
-            sprintf(propName, "wrapper.filter.action.%d", i + 1);
-            val = getStringProperty(properties, propName, "RESTART");
-            wrapperData->outputFilterActions[i] = getOutputFilterActionForName(val);
-
-#ifdef _DEBUG
-            printf("filter #%d, action=%d, filter='%s'\n", i + 1, wrapperData->outputFilterActions[i], wrapperData->outputFilters[i]);
-#endif
-        }
+    if (loadConfigurationTriggers()) {
+        return TRUE;
     }
 
     /** Get the pid files if any.  May be NULL */
@@ -3801,7 +4005,7 @@ int loadConfiguration() {
     updateStringValue(&wrapperData->consoleTitle, getStringProperty(properties, propName, getStringProperty(properties, "wrapper.console.title", NULL)));
 
     /* Load the service name (Used to be windows specific so use those properties if set.) */
-    updateStringValue(&wrapperData->serviceName, getStringProperty(properties, "wrapper.name", getStringProperty(properties, "wrapper.ntservice.name", "Wrapper")));
+    updateStringValue(&wrapperData->serviceName, getStringProperty(properties, "wrapper.name", getStringProperty(properties, "wrapper.ntservice.name", "wrapper")));
 
     /* Load the service display name (Used to be windows specific so use those properties if set.) */
     updateStringValue(&wrapperData->serviceDisplayName, getStringProperty(properties, "wrapper.displayname", getStringProperty(properties, "wrapper.ntservice.displayname", wrapperData->serviceName)));

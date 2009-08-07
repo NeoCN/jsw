@@ -120,6 +120,7 @@
 #define FILTER_ACTION_NONE       90
 #define FILTER_ACTION_RESTART    91
 #define FILTER_ACTION_SHUTDOWN   92
+#define FILTER_ACTION_DUMP       93
 
 
 /* Because of the way time is converted to ticks, the largest possible timeout that
@@ -152,6 +153,7 @@ struct WrapperConfig {
     int     timerFastThreshold;     /* If the difference between the system time based tick count and the timer tick count ever falls by more than this value then a warning will be displayed. */
     int     timerSlowThreshold;     /* If the difference between the system time based tick count and the timer tick count ever grows by more than this value then a warning will be displayed. */
 
+    int     ignoreSequenceGaps;     /* TRUE if all sequence properties should be used. */
     int     port;                   /* Port number which the Wrapper is configured to be listening on */
     int     portMin;                /* Minimum port to use when looking for a port to bind to. */
     int     portMax;                /* Maximum port to use when looking for a port to bind to. */
@@ -360,6 +362,9 @@ extern int wrapperProtocolRead();
 /******************************************************************************
  * Utility Functions
  *****************************************************************************/
+extern struct tm wrapperGetReleaseTime();
+extern struct tm wrapperGetBuildTime();
+
 extern void wrapperLoadHostName();
 
 extern void wrapperAddDefaultProperties();
