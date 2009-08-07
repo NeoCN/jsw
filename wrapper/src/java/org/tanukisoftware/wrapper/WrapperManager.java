@@ -704,6 +704,7 @@ public final class WrapperManager
                     WrapperTickEventImpl tickEvent = new WrapperTickEventImpl();
                     int lastTickOffset = 0;
                     boolean first = true;
+                    boolean stoppingLogged = false;
                     
                     // This loop should never exit because the tick counting is required
                     //  for the life of the JVM.
@@ -807,6 +808,14 @@ public final class WrapperManager
                                     }
                                 }
                                 while ( event != 0 );
+                            }
+                            else if ( !stoppingLogged )
+                            {
+                                stoppingLogged = true;
+                                if ( m_debug )
+                                {
+                                    m_outDebug.println( "Stopped checking for control events." );
+                                }
                             }
                         }
                         
@@ -1967,7 +1976,7 @@ public final class WrapperManager
      *                 application being started.
      * @param args The argument list passed to the JVM when it was launched.
      */
-    public static synchronized void start( final WrapperListener listener, final String[] args )
+    public static void start( final WrapperListener listener, final String[] args )
     {
         // As was done in the static initializer, we need to execute the following
         //  code in a privileged action so it is not necessary for the calling code
@@ -2023,33 +2032,36 @@ public final class WrapperManager
                 + "called by thread: " + Thread.currentThread().getName() );
         }
         
-        // Make sure that the class has not already been disposed.
-        if ( m_disposed)
+        synchronized( WrapperManager.class )
         {
-            throw new IllegalStateException( "WrapperManager has already been disposed." );
-        }
-        
-        if ( m_listener != null )
-        {
-            throw new IllegalStateException(
-                "WrapperManager has already been started with a WrapperListener." );
-        }
-        if ( listener == null )
-        {
-            throw new IllegalStateException( "A WrapperListener must be specified." );
-        }
-        m_listener = listener;
-        
-        m_args = args;
-        
-        startRunner();
-        
-        // If this JVM is being controlled by a native wrapper, then we want to
-        //  wait for the command to start.  However, if this is a standalone
-        //  JVM, then we want to start now.
-        if ( !isControlledByNativeWrapper() )
-        {
-            startInner( true );
+            // Make sure that the class has not already been disposed.
+            if ( m_disposed)
+            {
+                throw new IllegalStateException( "WrapperManager has already been disposed." );
+            }
+            
+            if ( m_listener != null )
+            {
+                throw new IllegalStateException(
+                    "WrapperManager has already been started with a WrapperListener." );
+            }
+            if ( listener == null )
+            {
+                throw new IllegalStateException( "A WrapperListener must be specified." );
+            }
+            m_listener = listener;
+            
+            m_args = args;
+            
+            startRunner();
+            
+            // If this JVM is being controlled by a native wrapper, then we want to
+            //  wait for the command to start.  However, if this is a standalone
+            //  JVM, then we want to start now.
+            if ( !isControlledByNativeWrapper() )
+            {
+                startInner( true );
+            }
         }
     }
     
@@ -3146,29 +3158,35 @@ public final class WrapperManager
     
     /**
      * Called by startInner when the WrapperListner.start method has completed.
+     *
+     * Only called when WrapperManager.class is synchronized.
      */
     private static void startCompleted()
     {
-        synchronized( WrapperManager.class )
-        {
-            m_startedTicks = getTicks();
-            
-            // Let the startup thread die since the application has been started.
-            m_startupRunner = null;
-            
-            // Check the SecurityManager here as it is possible that it was set in the
-            //  listener's start method.
-            checkSecurityManager();
-            
-            // Signal that the application has started.
-            signalStarted();
-        }
+        m_startedTicks = getTicks();
+        
+        // Let the startup thread die since the application has been started.
+        m_startupRunner = null;
+        
+        // Check the SecurityManager here as it is possible that it was set in the
+        //  listener's start method.
+        checkSecurityManager();
+        
+        // Signal that the application has started.
+        signalStarted();
+        
+        // Wake up any threads waiting for this.
+        WrapperManager.class.notifyAll();
     }
     
     /**
      * Informs the listener that it should start.
      *
-     * @param block True if this call should block for the WrapperListener.start method to complete.
+     * WrapperManager.class will be synchronized when called.
+     *
+     * @param block True if this call should block for the WrapperListener.start
+     *              method to complete.  This is true when java is being run in
+     *              standalone mode without the Wrapper.
      */
     private static void startInner( boolean block )
     {
@@ -3259,7 +3277,11 @@ public final class WrapperManager
                             // Won't make it here.
                             return;
                         }
-                        startCompleted();
+                        
+                        synchronized( WrapperManager.class )
+                        {
+                            startCompleted();
+                        }
                         
                         if ( m_debug )
                         {
@@ -3286,8 +3308,7 @@ public final class WrapperManager
                 {
                     try
                     {
-                        startRunner.join();
-                        startRunner = null;
+                        WrapperManager.class.wait();
                     }
                     catch ( InterruptedException e )
                     {
