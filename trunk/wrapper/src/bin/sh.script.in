@@ -162,17 +162,21 @@ LOCKFILE="$LOCKDIR/$APP_NAME"
 pid=""
 
 # Resolve the location of the 'ps' command
-PSEXE="/usr/bin/ps"
-if [ ! -x "$PSEXE" ]
-then
-    PSEXE="/bin/ps"
+PSEXE="/usr/ucb/ps"
     if [ ! -x "$PSEXE" ]
     then
-        echo "Unable to locate 'ps'."
-        echo "Please report this message along with the location of the command on your system."
-        exit 1
+        PSEXE="/usr/bin/ps"
+        if [ ! -x "$PSEXE" ]
+        then
+            PSEXE="/bin/ps"
+            if [ ! -x "$PSEXE" ]
+            then
+                echo "Unable to locate 'ps'."
+                echo "Please report this message along with the location of the command on your system."
+                exit 1
+            fi
+        fi
     fi
-fi
 
 # Resolve the os
 DIST_OS=`uname -s | tr [:upper:] [:lower:] | tr -d [:blank:]`
@@ -407,6 +411,12 @@ getpid() {
                     'macosx')
                         pidtest=`$PSEXE -ww -p $pid -o command | grep "$WRAPPER_CMD" | tail -1`
                         ;;
+                    'solaris')
+                        pidtest=`$PSEXE -auxww  $pid | grep "$WRAPPER_CMD" | tail -1`
+                        ;;                    
+                    'hpux')
+                        pidtest=`$PSEXE -p $pid -x -o args | grep "$WRAPPER_CMD" | tail -1`
+                        ;;
                     *)
                         pidtest=`$PSEXE -p $pid -o args | grep "$WRAPPER_CMD" | tail -1`
                         ;;
@@ -456,7 +466,14 @@ getstatus() {
 }
 
 testpid() {
-    pid=`$PSEXE -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
+    case "$DIST_OS" in
+        'solaris')
+            pid=`$PSEXE  $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
+            ;;
+        *)
+            pid=`$PSEXE -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
+            ;;
+    esac
     if [ "X$pid" = "X" ]
     then
         # Process is gone so remove the pid file.
