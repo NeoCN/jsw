@@ -133,6 +133,20 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.DaemonThreads" />
         
+        <!-- Runtime Exec Test -->
+        <delete file="${test.dir}/runtimeexec.conf"/>
+        <filter token="app.name"          value="runtimeexec"/>
+        <filter token="app.long.name"     value="Runtime Exec Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/runtimeexec.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/runtimeexec.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.RuntimeExec" />
+        <replace file="${test.dir}/runtimeexec.conf"
+                 token="wrapper.ntservice.interactive=false"
+                 value="wrapper.ntservice.interactive=true" />
+        
         <!-- No Return Test -->
         <delete file="${test.dir}/noreturn.conf"/>
         <filter token="app.name"          value="noreturn"/>
@@ -399,6 +413,28 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacetoken>
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=../lib/wrappertest.jar" />
         
+        <!-- ExecutableJarInitFail Test -->
+        <delete file="${test.dir}/executablejarinitfail.conf"/>
+        <filter token="app.name"          value="executablejarinitfail"/>
+        <filter token="app.long.name"     value="Executable Jar Init Fail Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/executablejarinitfail.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/executablejarinitfail.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperJarApp" />
+        <replace file="${test.dir}/executablejarinitfail.conf">
+            <replacetoken><![CDATA[wrapper.java.classpath.1=../lib/wrappertest.jar
+wrapper.java.classpath.2=../lib/wrapper.jar]]></replacetoken>
+            <replacevalue>wrapper.java.classpath.1=../lib/wrapper.jar</replacevalue>
+        </replace>
+        <replace file="${test.dir}/executablejarinitfail.conf"
+                 token="#wrapper.java.additional.1="
+                 value="wrapper.java.additional.1=-DJarMain.init.fail=TRUE" />
+        <replace file="${test.dir}/executablejarinitfail.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=../lib/wrappertest.jar" />
+        
         <!-- ExecutableJarCP Test -->
         <delete file="${test.dir}/executablejarcp.conf"/>
         <filter token="app.name"          value="executablejarcp"/>
@@ -460,6 +496,18 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacetoken>
         <replace file="${test.dir}/TestDaemonThreads.bat"
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\daemonthreads.conf' />
+        
+        <!-- Runtime Exec Test -->
+        <delete file="${test.dir}/TestRuntimeExec.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestRuntimeExec.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestRuntimeExec.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestRuntimeExec.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\runtimeexec.conf' />
         
         <!-- No Return Test -->
         <delete file="${test.dir}/TestNoReturn.bat"/>
@@ -698,6 +746,21 @@ set ENV_VAR_4=d]]></replacevalue>
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\executablejar.conf' />
         
+        <!-- ExecutableJarInitFail Test -->
+        <delete file="${test.dir}/TestExecutableJarInitFail.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestExecutableJarInitFail.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestExecutableJarInitFail.bat"
+                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
+                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
+        <replace file="${test.dir}/TestExecutableJarInitFail.bat"
+                 token='set _WRAPPER_CONF="%~f1"'
+                 value='set _WRAPPER_CONF=""' />
+        <replace file="${test.dir}/TestExecutableJarInitFail.bat"
+                 token='%_REALPATH%..\conf\wrapper.conf'
+                 value='%_REALPATH%..\test\executablejarinitfail.conf' />
+        
         <!-- ExecutableJarCP Test -->
         <delete file="${test.dir}/TestExecutableJarCP.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
@@ -832,6 +895,14 @@ set ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/daemonthreads"
               filtering="on"/>
         <chmod file="${test.dir}/daemonthreads" perm="+x"/> 
+        
+        <!-- Runtime Exec Test -->
+        <filter token="app.name"          value="runtimeexec"/>
+        <filter token="app.long.name"     value="Runtime Exec Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/runtimeexec"
+              filtering="on"/>
+        <chmod file="${test.dir}/runtimeexec" perm="+x"/> 
         
         <!-- No Return Test -->
         <filter token="app.name"          value="noreturn"/>
@@ -987,6 +1058,14 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/executablejar"
               filtering="on"/>
         <chmod file="${test.dir}/executablejar" perm="+x"/> 
+        
+        <!-- ExecutableJarInitFail Test -->
+        <filter token="app.name"          value="executablejarinitfail"/>
+        <filter token="app.long.name"     value="Executable Jar Init Fail Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/executablejarinitfail"
+              filtering="on"/>
+        <chmod file="${test.dir}/executablejarinitfail" perm="+x"/> 
         
         <!-- ExecutableJarCP Test -->
         <filter token="app.name"          value="executablejarcp"/>

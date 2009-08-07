@@ -17,6 +17,8 @@ extern char *wrapperVersion;
 extern char *wrapperBits;
 extern char *wrapperArch;
 extern char *wrapperOS;
+extern char *wrapperReleaseDate;
+extern char *wrapperReleaseTime;
 extern char *wrapperBuildDate;
 extern char *wrapperBuildTime;
 

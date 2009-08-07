@@ -101,6 +101,29 @@ extern int addPropertyPair(Properties *properties, const char *propertyNameValue
 
 extern const char* getStringProperty(Properties *properties, const char *propertyName, const char *defaultValue);
 
+/**
+ * Returns a sorted array of all properties beginning with {propertyNameBase}.
+ *Å@ Only numerical characters can be returned betweenÅ@the two.
+ *
+ * @param properties The full properties structure.
+ * @param propertyNameHead All matching properties must begin with this value.
+ * @param all If FALSE then the array will start with #1 and loop up until the
+ *            next property is not found, if TRUE then all properties will be
+ *            returned, even if there are gaps in the series.
+ * @param propertyNames Returns a pointer to a NULL terminated array of
+ *                      property names.
+ * @param propertyValues Returns a pointer to a NULL terminated array of
+ *                       property values.
+ *
+ * @return 0 if successful, -1 if there was an error.
+ */
+extern int getStringProperties(Properties *properties, const char *propertyNameHead, const char *propertyNameTail, int all, char ***propertyNames, char ***propertyValues, long unsigned int **propertyIndices);
+
+/**
+ * Frees up an array of properties previously returned by getStringProperties().
+ */
+extern void freeStringProperties(char **propertyNames, char **propertyValues, long unsigned int *propertyIndices);
+
 extern int checkPropertyEqual(Properties *properties, const char *propertyName, const char *defaultValue, const char *value);
 
 extern int getIntProperty(Properties *properties, const char *propertyName, int defaultValue);

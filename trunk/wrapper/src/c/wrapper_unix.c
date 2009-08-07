@@ -46,6 +46,7 @@
 #include <limits.h>
 #include <pthread.h>
 #include <pwd.h>
+#include <sys/resource.h>
 #include <sys/timeb.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -950,7 +951,37 @@ void wrapperDumpMemoryBanner() {
  *  Wrapper and its JVM.
  */
 void wrapperDumpMemory() {
-    /* Not yet implemented on UNIX platforms. */
+    struct rusage wUsage;
+    struct rusage jUsage;
+
+    if (getrusage(RUSAGE_SELF, &wUsage)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            "Call to getrusage failed for Wrapper process: %s", getLastErrorText());
+        return;
+    }
+    /* The Children is only going to show the value for terminated children. */
+    if (getrusage(RUSAGE_CHILDREN, &jUsage)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            "Call to getrusage failed for Java process: %s", getLastErrorText());
+        return;
+    }
+
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+        "Wrapper Memory: maxrss=%ld, ixrss=%ld, idrss=%ld, isrss=%ld, minflt=%ld, majflt=%ld, nswap=%ld, inblock=%ld, oublock=%ld, msgsnd=%ld, msgrcv=%ld, nsignals=%ld, nvcsw=%ld, nvcsw=%ld",
+        wUsage.ru_maxrss,
+        wUsage.ru_ixrss,
+        wUsage.ru_idrss,
+        wUsage.ru_isrss,
+        wUsage.ru_minflt,
+        wUsage.ru_majflt,
+        wUsage.ru_nswap,
+        wUsage.ru_inblock,
+        wUsage.ru_oublock,
+        wUsage.ru_msgsnd,
+        wUsage.ru_msgrcv,
+        wUsage.ru_nsignals,
+        wUsage.ru_nvcsw,
+        wUsage.ru_nvcsw);
 }
 
 /**
@@ -966,6 +997,7 @@ void wrapperDumpCPUUsage() {
             "Call to getrusage failed for Wrapper process: %s", getLastErrorText());
         return;
     }
+    /* The Children is only going to show the value for terminated children. */
     if (getrusage(RUSAGE_CHILDREN, &jUsage)) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
             "Call to getrusage failed for Java process: %s", getLastErrorText());

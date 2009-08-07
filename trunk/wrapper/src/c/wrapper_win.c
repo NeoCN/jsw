@@ -428,6 +428,10 @@ int wrapperInitChildPipe() {
 /**
  * Handler to take care of the case where the user hits CTRL-C when the wrapper 
  * is being run as a console.
+ *
+ * Handlers are called in the reverse order that they are registered until one
+ *  returns TRUE.  So last registered is called first until the default handler
+ *  is called.
  */
 int wrapperConsoleHandler(int key) {
     int quit = FALSE;
@@ -1504,8 +1508,8 @@ void wrapperExecute() {
     startup_info.dwFillAttribute=0;
     
     /* Set the default flags which will not hide any windows opened by the JVM. */
-    startup_info.dwFlags=STARTF_USESTDHANDLES;
-    startup_info.wShowWindow=0;
+    startup_info.dwFlags=STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
+    startup_info.wShowWindow=SW_HIDE;
     hideConsole = FALSE;
     if (wrapperData->isConsole) {
         /* We are running as a console so no special console handling needs to be done. */
@@ -2177,7 +2181,7 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
 void WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
     /*
     if (wrapperData->isDebugging) {
-        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "ServiceControlHandler(%d)", dwCtrlCode);
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Service(%d)", dwCtrlCode);
     }
     */
     wrapperServiceControlHandlerEx(dwCtrlCode, 0, NULL, NULL);
