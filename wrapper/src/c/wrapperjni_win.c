@@ -45,6 +45,9 @@ barf
  *  Fixing them all would be a big headache for UNIX versions. */
 #pragma warning(disable : 4996)
 
+/* Reference to HINSTANCE of this DLL */
+EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+
 static DWORD wrapperProcessId = 0;
 
 HANDLE controlEventQueueMutexHandle = NULL;
@@ -107,6 +110,11 @@ int wrapperReleaseControlEventQueue() {
  *  is being run as a console.  If this is not done, then the Java process
  *  would exit due to a CTRL_LOGOFF_EVENT when a user logs off even if the
  *  application is installed as a service.
+ *
+ * Handlers are called in the reverse order that they are registered until one
+ *  returns TRUE.  So last registered is called first until the default handler
+ *  is called.  This means that if we return FALSE, the JVM'S handler will then
+ *  be called.
  */
 int wrapperConsoleHandler(int key) {
     int event;
@@ -606,11 +614,19 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass cl
         printf("WrapperJNI Debug: Initializing WrapperManager native library.\n");
         flushall();
 
-        if (GetModuleFileName(NULL, szPath, 512) == 0){
+        if (GetModuleFileName(NULL, szPath, 512) == 0) {
             printf("WrapperJNI Debug: Unable to retrieve the Java process file name.\n");
             flushall();
         } else {
             printf("WrapperJNI Debug: Java Executable: %s\n", szPath);
+            flushall();
+        }
+
+        if (GetModuleFileName((HINSTANCE)&__ImageBase, szPath, 512) == 0) {
+            printf("WrapperJNI Debug: Unable to retrieve the native library file name.\n");
+            flushall();
+        } else {
+            printf("WrapperJNI Debug: Native Library: %s\n", szPath);
             flushall();
         }
     }
@@ -637,14 +653,16 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass cl
 
     /* Make sure that the handling of CTRL-C signals is enabled for this process. */
     if (!SetConsoleCtrlHandler(NULL, FALSE)) {
-        printf("WrapperJNI Error; Attempt to reset control signal handlers failed. %s\n", getLastErrorText());
+        printf("WrapperJNI Error: Attempt to reset control signal handlers failed. %s\n", getLastErrorText());
+        flushall();
     }
 
     /* Initialize the CTRL-C handler */
     if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)wrapperConsoleHandler, TRUE)) {
-        printf("WrapperJNI Error; Attempt to register a control signal handler failed. %s\n", getLastErrorText());
+        printf("WrapperJNI Error: Attempt to register a control signal handler failed. %s\n", getLastErrorText());
+        flushall();
     }
-
+    
     /* Store the current process Id */
     wrapperProcessId = GetCurrentProcessId();
 
