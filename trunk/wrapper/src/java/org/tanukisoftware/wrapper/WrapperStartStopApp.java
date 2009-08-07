@@ -582,10 +582,16 @@ public class WrapperStartStopApp
             WrapperManager.stop( 1 );
             return null;  // Will not get here
         }
+        catch ( ExceptionInInitializerError e )
+        {
+            m_outError.println( "Class " + className + " found but could not be initialized due to:" );
+            e.printStackTrace( m_outError );
+            WrapperManager.stop( 1 );
+            return null;  // Will not get here
+        }
         catch ( LinkageError e )
         {
-            m_outError.println( "Unable to locate the class " + className + ": " + e );
-            showUsage();
+            m_outError.println( "Class " + className + " found but could not be initialized: " + e );
             WrapperManager.stop( 1 );
             return null;  // Will not get here
         }
