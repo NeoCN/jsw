@@ -18,6 +18,15 @@ package org.tanukisoftware.wrapper.test;
  */
 public class JarMain
 {
+    static
+    {
+        if ( System.getProperty( "JarMain.init.fail" ) != null )
+        {
+            System.out.println( "About to throw exception in initializer..." );
+            throw new IllegalStateException( "This is an intentional error in the initializer." );
+        }
+    }
+    
     /*---------------------------------------------------------------
      * Main Method
      *-------------------------------------------------------------*/
