@@ -95,7 +95,8 @@ char *workLogFileName;
 int logFileRollMode = ROLL_MODE_SIZE;
 int logFileUmask = 0022;
 char *logLevelNames[] = { "NONE  ", "DEBUG ", "INFO  ", "STATUS", "WARN  ", "ERROR ", "FATAL ", "ADVICE" };
-char loginfoSourceName[ 1024 ];
+char *defaultLoginfoSourceName = "wrapper";
+char *loginfoSourceName = NULL;
 int  logFileMaxSize = -1;
 int  logFileMaxLogFiles = -1;
 
@@ -232,6 +233,8 @@ int initLogging() {
     }
 #endif
     
+    loginfoSourceName = defaultLoginfoSourceName;
+
     logFileAccessed = FALSE;
     logFileLastNowDate[0] = '\0';
 
@@ -694,8 +697,19 @@ void setSyslogFacility( const char *loginfo_level ) {
 #endif
 
 void setSyslogEventSourceName( const char *event_source_name ) {
-    if( event_source_name != NULL )
-        strcpy( loginfoSourceName, event_source_name );
+    if (event_source_name != NULL) {
+        if (loginfoSourceName != defaultLoginfoSourceName) {
+            free(loginfoSourceName);
+        }
+        loginfoSourceName = malloc(strlen(event_source_name) + 1);
+        if (!loginfoSourceName) {
+            printf("Out of memory in logging code (SSESN)\n");
+            loginfoSourceName = defaultLoginfoSourceName;
+            return;
+        }
+
+        strcpy(loginfoSourceName, event_source_name);
+    }
 }
 
 int getLowLogLevel() {
@@ -708,7 +722,7 @@ char* preparePrintBuffer(size_t reqSize) {
     if (threadPrintBuffer == NULL) {
         threadPrintBuffer = (char *)malloc(reqSize * sizeof(char));
         if (!threadPrintBuffer) {
-            printf("Out of memory is logging code (PPB1)\n");
+            printf("Out of memory in logging code (PPB1)\n");
             threadPrintBufferSize = 0;
             return NULL;
         }
@@ -717,7 +731,7 @@ char* preparePrintBuffer(size_t reqSize) {
         free(threadPrintBuffer);
         threadPrintBuffer = (char *)malloc(reqSize * sizeof(char));
         if (!threadPrintBuffer) {
-            printf("Out of memory is logging code (PPB2)\n");
+            printf("Out of memory in logging code (PPB2)\n");
             threadPrintBufferSize = 0;
             return NULL;
         }
@@ -1157,7 +1171,7 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
             threadMessageBufferSize = 100;
             threadMessageBuffer = (char*)malloc( threadMessageBufferSize * sizeof(char) );
             if (!threadMessageBuffer) {
-                printf("Out of memory is logging code (P1)\n");
+                printf("Out of memory in logging code (P1)\n");
                 threadMessageBufferSize = 0;
                 return;
             }
@@ -1195,7 +1209,7 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
 
             threadMessageBuffer = (char*)malloc( threadMessageBufferSize * sizeof(char) );
             if (!threadMessageBuffer) {
-                printf("Out of memory is logging code (P2)\n");
+                printf("Out of memory in logging code (P2)\n");
                 threadMessageBufferSize = 0;
                 return;
             }
@@ -1342,7 +1356,7 @@ void sendEventlogMessage( int source_id, int level, const char *szBuff ) {
 
     strings = (char **) malloc( 3 * sizeof( char * ) );
     if (!strings) {
-        printf("Out of memory is logging code (SEM1)\n");
+        printf("Out of memory in logging code (SEM1)\n");
         return;
     }
 
@@ -1443,7 +1457,7 @@ void sendEventlogMessage( int source_id, int level, const char *szBuff ) {
     result = ReportEvent(
         handle,                   /* handle to event log */
         eventType,                /* event type */
-        categoryID,                  /* event category */
+        categoryID,               /* event category */
         MSG_EVENT_LOG_MESSAGE,    /* event identifier */
         NULL,                     /* user security identifier */
         2,                        /* number of strings to merge */
@@ -1520,7 +1534,7 @@ void vWriteToConsole( char *lpszFmt, va_list vargs ) {
     if ( vWriteToConsoleBuffer == NULL ) {
         vWriteToConsoleBuffer = (char *)malloc( vWriteToConsoleBufferSize * sizeof(char) );
         if (!vWriteToConsoleBuffer) {
-            printf("Out of memory is logging code (WTC1)\n");
+            printf("Out of memory in logging code (WTC1)\n");
             return;
         }
     }
@@ -1544,7 +1558,7 @@ void vWriteToConsole( char *lpszFmt, va_list vargs ) {
         vWriteToConsoleBufferSize += 100;
         vWriteToConsoleBuffer = (char *)malloc( vWriteToConsoleBufferSize * sizeof(char) );
         if (!vWriteToConsoleBuffer) {
-            printf("Out of memory is logging code (WTC2)\n");
+            printf("Out of memory in logging code (WTC2)\n");
             return;
         }
     }
@@ -1691,7 +1705,7 @@ void limitLogFileCountHandleFile(const char *currentFile, const char *testFile, 
 #endif
             latestFiles[i] = malloc(sizeof(char) * (strlen(testFile) + 1));
             if (!latestFiles[i]) {
-                printf("Out of memory is logging code (LLFCHF1)\n");
+                printf("Out of memory in logging code (LLFCHF1)\n");
                 return;
             }
             strcpy(latestFiles[i], testFile);
@@ -1732,7 +1746,7 @@ void limitLogFileCountHandleFile(const char *currentFile, const char *testFile, 
 #endif
                 latestFiles[i] = malloc(sizeof(char) * (strlen(testFile) + 1));
                 if (!latestFiles[i]) {
-                    printf("Out of memory is logging code (LLFCHF2)\n");
+                    printf("Out of memory in logging code (LLFCHF2)\n");
                     return;
                 }
                 strcpy(latestFiles[i], testFile);
@@ -1774,7 +1788,7 @@ void limitLogFileCount(const char *current, const char *pattern, int count) {
 
     latestFiles = malloc(sizeof(char *) * count);
     if (!latestFiles) {
-        printf("Out of memory is logging code (LLFC1)\n");
+        printf("Out of memory in logging code (LLFC1)\n");
         return;
     }
     for (i = 0; i < count; i++) {
@@ -1784,7 +1798,7 @@ void limitLogFileCount(const char *current, const char *pattern, int count) {
      *  exists. */
     latestFiles[0] = malloc(sizeof(char) * (strlen(current) + 1));
     if (!latestFiles[0]) {
-        printf("Out of memory is logging code (LLFC2)\n");
+        printf("Out of memory in logging code (LLFC2)\n");
         return;
     }
     strcpy(latestFiles[0], current);
@@ -1792,7 +1806,7 @@ void limitLogFileCount(const char *current, const char *pattern, int count) {
 #ifdef WIN32
     path = malloc(sizeof(char) * (strlen(pattern) + 1));
     if (!path) {
-        printf("Out of memory is logging code (LLFC3)\n");
+        printf("Out of memory in logging code (LLFC3)\n");
         return;
     }
 
@@ -1816,7 +1830,7 @@ void limitLogFileCount(const char *current, const char *pattern, int count) {
     } else {
         testFile = malloc(sizeof(char) * (strlen(path) + strlen(fblock.name) + 1));
         if (!testFile) {
-            printf("Out of memory is logging code (LLFC4)\n");
+            printf("Out of memory in logging code (LLFC4)\n");
             return;
         }
         sprintf(testFile, "%s%s", path, fblock.name);
@@ -1828,7 +1842,7 @@ void limitLogFileCount(const char *current, const char *pattern, int count) {
         while (_findnext(handle, &fblock) == 0) {
             testFile = malloc(sizeof(char) * (strlen(path) + strlen(fblock.name) + 1));
             if (!testFile) {
-                printf("Out of memory is logging code (LLFC5)\n");
+                printf("Out of memory in logging code (LLFC5)\n");
                 return;
             }
             sprintf(testFile, "%s%s", path, fblock.name);
@@ -2021,7 +2035,7 @@ void log_printf_queue( int useQueue, int source_id, int level, const char *lpszF
     do {
         buffer = malloc( sizeof( char ) * bufferSize );
         if (!buffer) {
-            printf("Out of memory is logging code (PQ1)\n");
+            printf("Out of memory in logging code (PQ1)\n");
             return;
         }
 
