@@ -315,6 +315,7 @@ public class Main
         
         public void windowClosing( WindowEvent e )
         {
+            System.out.println( "TestWrapper: close button clicked." );
             WrapperManager.stopAndReturn( 0 );
         }
         
