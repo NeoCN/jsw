@@ -1034,13 +1034,13 @@ void sortStringProperties(long unsigned int *propertyIndices, char **propertyNam
  */
 int getStringProperties(Properties *properties, const char *propertyNameHead, const char *propertyNameTail, int all, char ***propertyNames, char ***propertyValues, long unsigned int **propertyIndices) {
     int j;
+    int k;
     size_t headLen;
     size_t tailLen;
     size_t thisLen;
     char *thisHead;
     char *thisTail;
-    //int pos;
-    int i;
+    size_t i;
     Property *property;
     size_t indexLen;
     char indexS[11];
@@ -1173,18 +1173,18 @@ int getStringProperties(Properties *properties, const char *propertyNameHead, co
             /* If we don't want all of the properties then we need to remove the extra ones.
              *  Names and values are not allocated, so setting them to NULL is fine.*/
             if (!all) {
-                for (i = 0; i < count; i++) {
-                    if ((*propertyIndices)[i] != i + 1) {
-                        (*propertyNames)[i] = NULL;
-                        (*propertyValues)[i] = NULL;
-                        (*propertyIndices)[i] = 0;
+                for (k = 0; k < count; k++) {
+                    if ((*propertyIndices)[k] != k + 1) {
+                        (*propertyNames)[k] = NULL;
+                        (*propertyValues)[k] = NULL;
+                        (*propertyIndices)[k] = 0;
                     }
                 }
             }
             /*
-            for (i = 0; i < count; i++) {
-                if ((*propertyNames)[i]) {
-                    printf("[%d] #%lu: %s=%s\n", i, (*propertyIndices)[i], (*propertyNames)[i], (*propertyValues)[i]);
+            for (k = 0; k < count; k++) {
+                if ((*propertyNames)[k]) {
+                    printf("[%d] #%lu: %s=%s\n", k, (*propertyIndices)[k], (*propertyNames)[k], (*propertyValues)[k]);
                 }
             }
             */

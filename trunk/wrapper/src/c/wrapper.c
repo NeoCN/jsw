@@ -144,7 +144,6 @@ struct tm getInfoTime(const char *date, const char *time) {
     buildTM.tm_min = atoi( temp );
 
     return buildTM;
-    //return mktime( &buildTM );
 }
 
 struct tm wrapperGetReleaseTime() {
