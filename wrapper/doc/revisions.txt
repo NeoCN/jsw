@@ -63,6 +63,12 @@ Java Service Wrapper Revision History.
   Wrapper compares the License Upgrade Term to an official release date
   rather than the build date.  This makes it possible to release additional
   platforms at a later date while keeping the use of a license consistent.
+* (Standard, Professional) Make it possible to obfuscate the upgrade term in
+  License Key files for development licenses so it is not visible to an end
+  user what the development license holder's upgrade term is.  This feature
+  is accessed from the License Management Page when downloading a new or
+  existing License Key file.
+
 
 3.3.5
 * Fix a problem on some UNIX platforms introduced in 3.3.4 where the Wrapper
