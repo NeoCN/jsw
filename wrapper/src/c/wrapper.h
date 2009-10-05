@@ -320,6 +320,8 @@ struct WrapperConfig {
 /** Log commands are actually 116 + the LOG LEVEL. */
 #define WRAPPER_MSG_LOG           (char)116
 
+#define WRAPPER_MSG_LOGFILE       (char)134
+
 #define WRAPPER_PROCESS_DOWN      200
 #define WRAPPER_PROCESS_UP        201
 

@@ -60,6 +60,7 @@ import java.util.StringTokenizer;
 import org.tanukisoftware.wrapper.event.WrapperControlEvent;
 import org.tanukisoftware.wrapper.event.WrapperEvent;
 import org.tanukisoftware.wrapper.event.WrapperEventListener;
+import org.tanukisoftware.wrapper.event.WrapperLogFileChangedEvent;
 import org.tanukisoftware.wrapper.event.WrapperPingEvent;
 import org.tanukisoftware.wrapper.event.WrapperServiceControlEvent;
 import org.tanukisoftware.wrapper.event.WrapperTickEvent;
@@ -120,6 +121,8 @@ public final class WrapperManager
     
     /** Log commands are actually 116 + the LOG LEVEL. */
     private static final byte WRAPPER_MSG_LOG            = (byte)116;
+
+    private static final byte WRAPPER_MSG_LOGFILE        = (byte)134;
     
     /** Received when the user presses CTRL-C in the console on Windows or UNIX platforms. */
     public static final int WRAPPER_CTRL_C_EVENT         = 200;
@@ -341,6 +344,7 @@ public final class WrapperManager
     private static int m_exitCode;
     private static boolean m_libraryOK = false;
     private static byte[] m_commandBuffer = new byte[512];
+    private static File m_logFile = null;
     
     /** The contents of the wrapper configuration. */
     private static WrapperProperties m_properties;
@@ -2950,6 +2954,24 @@ public final class WrapperManager
         updateWrapperEventListenerFlags();
     }
     
+    /**
+     * Returns the Log file currently being used by the Wrapper.  If log file
+     *  rolling is enabled in the Wrapper then this file may change over time.
+     *
+     * @throws IllegalStateException If this method is called before the Wrapper
+     *                               instructs this class to start the user
+     *                               application.
+     */
+    public static File getWrapperLogFile()
+    {
+        File logFile = m_logFile;
+        if ( logFile == null )
+        {
+            throw new IllegalStateException( "Not yet initialized." );
+        }
+        return logFile;
+    }
+    
     /*---------------------------------------------------------------
      * Constructors
      *-------------------------------------------------------------*/
@@ -4114,6 +4136,10 @@ public final class WrapperManager
             name ="LOG(ADVICE)";
             break;
     
+        case WRAPPER_MSG_LOGFILE:
+            name ="LOGFILE";
+            break;
+    
         default:
             name = "UNKNOWN(" + code + ")";
             break;
@@ -4382,6 +4408,12 @@ public final class WrapperManager
                             
                         case WRAPPER_MSG_PROPERTIES:
                             readProperties( msg );
+                            break;
+                            
+                        case WRAPPER_MSG_LOGFILE:
+                            m_logFile = new File( msg );
+                            WrapperLogFileChangedEvent event = new WrapperLogFileChangedEvent( m_logFile );
+                            fireWrapperEvent( event );
                             break;
                             
                         default:

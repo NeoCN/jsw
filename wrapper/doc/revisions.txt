@@ -1,5 +1,19 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.3.7
+* (Professional and Standard) Added the possility to create a new wrapper
+  executable with a custom icon in windows.
+  wrapper --icon <icon> <new executable>
+* Fix issue about SELinux where strict security policy could lead the wrapper
+  fail to load the libwrapper library. Thanks to Jean for the hint.
+* Fixed a bug in the obfuscated license date, which caused a license error if 
+  the wrapper was run. Thanks to Leo for the hint.
+* Added a new WRAPPER_PID environment variable. Feature Request #2870136.
+* Added a new WrapperManager.getWrapperLogFile() method and
+  WrapperLogFileChangedEvent class that can be used to receive notifications
+  of changes to the Wrapper log file currently in use.
+  Feature Request #2870133.
+
 3.3.6
 * Introduce the wrapper.timezone property. This property allows to set the
   timezone in which the wrapper will be executed. This property is available 
