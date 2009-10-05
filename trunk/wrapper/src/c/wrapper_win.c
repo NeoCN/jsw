@@ -3961,6 +3961,9 @@ void main(int argc, char **argv) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Wrapper DEBUG build!");
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Logging initialized.");
 #endif
+        /* Get the current process. */
+        wrapperData->wrapperProcess = GetCurrentProcess();
+        wrapperData->wrapperPID = GetCurrentProcessId();
         
         if (initializeWinSock()) {
             appExit(1);
@@ -4126,10 +4129,6 @@ void main(int argc, char **argv) {
                 appExit(1);
                 return; /* For clarity. */
             }
-            
-            /* Get the current process. */
-            wrapperData->wrapperProcess = GetCurrentProcess();
-            wrapperData->wrapperPID = GetCurrentProcessId();
             
             /* See if the logs should be rolled on Wrapper startup. */
             if ((getLogfileRollMode() & ROLL_MODE_WRAPPER) ||

@@ -167,6 +167,7 @@ void wrapperAddDefaultProperties() {
     
     /* IMPORTANT - If any new values are added here, this work buffer length may need to be calculated differently. */
     bufferLen = 1;
+    bufferLen = __max(bufferLen, strlen("set.WRAPPER_PID=") + 10 + 1); /* 32-bit PID would be max of 10 characters */
     bufferLen = __max(bufferLen, strlen("set.WRAPPER_BITS=") + strlen(wrapperBits) + 1);
     bufferLen = __max(bufferLen, strlen("set.WRAPPER_ARCH=") + strlen(wrapperArch) + 1);
     bufferLen = __max(bufferLen, strlen("set.WRAPPER_OS=") + strlen(wrapperOS) + 1);
@@ -178,6 +179,9 @@ void wrapperAddDefaultProperties() {
         outOfMemory("WADP", 1);
         return;
     }
+
+    sprintf(buffer, "set.WRAPPER_PID=%d", wrapperData->wrapperPID);
+    addPropertyPair(properties, buffer, TRUE, FALSE);
 
     sprintf(buffer, "set.WRAPPER_BITS=%s", wrapperBits);
     addPropertyPair(properties, buffer, TRUE, FALSE);
@@ -743,6 +747,10 @@ char *wrapperProtocolGetCodeName(char code) {
     case WRAPPER_MSG_LOG + LEVEL_FATAL:
         name ="LOG(FATAL)";
         break;
+        
+    case WRAPPER_MSG_LOGFILE:
+        name = "LOGFILE";
+        break;
 
     default:
         sprintf(unknownBuffer, "UNKNOWN(%d)", code);
@@ -1122,7 +1130,15 @@ int wrapperProtocolRead() {
 /******************************************************************************
  * Wrapper inner methods.
  *****************************************************************************/
-
+/**
+ * IMPORTANT - Any logging done in here needs to be queued or it would cause a recursion problem.
+ */
+void wrapperLogFileChanged(const char *logFile) {
+    if (wrapperData->isDebugging) {
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "active log file changed: %s", logFile);
+    }
+    wrapperProtocolFunction(FALSE, WRAPPER_MSG_LOGFILE, logFile);
+}
 /**
  * Pre initialize the wrapper.
  */
@@ -1157,7 +1173,7 @@ int wrapperInitialize() {
     wrapperData->jvmLaunchTicks = wrapperGetTicks();
     wrapperData->failedInvocationCount = 0;
         
-    if (initLogging()) {
+    if (initLogging(wrapperLogFileChanged)) {
         return 1;
     }
 
@@ -1442,6 +1458,14 @@ void wrapperLogChildOutput(const char* log) {
     }
 }
 
+/**
+ * Immediately after a JVM is launched and whenever the log file name changes,
+ *  the log file name is sent to the JVM where it can be referenced by applications.
+ */
+void sendLogFileName()
+{
+    wrapperProtocolFunction(FALSE, WRAPPER_MSG_LOGFILE, getLogfilePath());
+}
 
 /**
  * Immediately after a JVM is launched, the wrapper configuration is sent to the
@@ -4229,6 +4253,9 @@ void wrapperKeyRegistered(char *key) {
             }
             wrapperProtocolFunction(FALSE, WRAPPER_MSG_PING_TIMEOUT, buffer);
             
+            /* Send the log file name. */
+            sendLogFileName();
+            
             /* Send the properties. */
             sendProperties();
         } else {
@@ -4405,3 +4432,4 @@ void wrapperStartedSignalled() {
         wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOP, 0, -1);
     }
 }
+

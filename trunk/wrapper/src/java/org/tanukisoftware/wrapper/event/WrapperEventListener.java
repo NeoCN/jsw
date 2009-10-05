@@ -28,11 +28,19 @@ public interface WrapperEventListener
     
     /**
      * Enabling control events will cause the listener to receive
-     *  WrapperControlEvents.  There events are thrown whenever the
+     *  WrapperControlEvents.  These events are thrown whenever the
      *  Java process receives control events from the system.  These
      *  include CTRL-C, HALT, TERM signals etc.
      */
     static long EVENT_FLAG_CONTROL = 0x2;
+    
+    /**
+     * Enabling logging events will cause the listener to receive
+     *  WrapperLoggingEvents.  These events are thrown in response
+     *  to certain logging events such as updates to the log file
+     *  name.
+     */
+    static long EVENT_FLAG_LOGGING = 0x4;
     
     /**
      * Enabling core events will cause the listener to receive

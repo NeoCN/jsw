@@ -191,6 +191,7 @@ public class Main
             m_listenerFlags = new List( 2, true );
             m_listenerFlags.add( "Service" );
             m_listenerFlags.add( "Control" );
+            m_listenerFlags.add( "Logging" );
             m_listenerFlags.add( "Core" );
             
             Panel flagPanel = new Panel();
@@ -292,6 +293,10 @@ public class Main
                     {
                         mask |= WrapperEventListener.EVENT_FLAG_CONTROL;
                     }
+                    else if ( flag.equals( "Logging" ) )
+                    {
+                        mask |= WrapperEventListener.EVENT_FLAG_LOGGING;
+                    }
                     else if ( flag.equals( "Core" ) )
                     {
                         mask |= WrapperEventListener.EVENT_FLAG_CORE;
@@ -315,7 +320,6 @@ public class Main
         
         public void windowClosing( WindowEvent e )
         {
-            System.out.println( "TestWrapper: close button clicked." );
             WrapperManager.stopAndReturn( 0 );
         }
         

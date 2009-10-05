@@ -1400,6 +1400,8 @@ int main(int argc, char **argv) {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Wrapper DEBUG build!");
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Logging initialized.");
 #endif
+    /* Get the current process. */
+    wrapperData->wrapperPID = getpid();
 
     if (setWorkingDir(argv[0])) {
         appExit(1);
@@ -1466,9 +1468,6 @@ int main(int argc, char **argv) {
             daemonize();
         }
         
-        /* Get the current process. */
-        wrapperData->wrapperPID = getpid();
-
         /* See if the logs should be rolled on Wrapper startup. */
         if ((getLogfileRollMode() & ROLL_MODE_WRAPPER) ||
             (getLogfileRollMode() & ROLL_MODE_JVM)) {

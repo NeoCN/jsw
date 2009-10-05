@@ -89,6 +89,9 @@ int currentLoginfoLevel = LEVEL_UNKNOWN;
 int currentLogfacilityLevel = LOG_USER;
 #endif
 
+/* Callback notified whenever the active logfile changes. */
+void (*logFileChangedCallback)(const char *logFile);
+
 char *logFilePath;
 char *currentLogFileName;
 char *workLogFileName;
@@ -223,8 +226,10 @@ char *replaceStringLongWithShort(char *string, const char *oldToken, const char 
 /**
  * Initializes the logger.  Returns 0 if the operation was successful.
  */
-int initLogging() {
+int initLogging(void (*logFileChanged)(const char *logFile)) {
     int threadId, i;
+    
+    logFileChangedCallback = logFileChanged;
 
 #ifdef WIN32
     if (!(log_printfMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
@@ -611,9 +616,7 @@ void closeLogfile() {
         
         fclose(logfileFP);
         logfileFP = NULL;
-        if (currentLogFileName) {
-            currentLogFileName[0] = '\0';
-        }
+        /* Do not clean the currentLogFileName here as the name is not actually changing. */
     }
 
     /* Release the lock we have on this function so that other threads can get in. */
@@ -1026,7 +1029,7 @@ void log_printf_message( int source_id, int level, int threadId, int queued, con
     nowMillis = timevalNow.tv_usec / 1000;
 #endif
     nowTM = localtime( &now );
-
+   
     if ( threadId < 0 )
     {
         /* The current thread was specified.  Resolve what thread this actually is. */
@@ -1073,11 +1076,14 @@ void log_printf_message( int source_id, int level, int threadId, int queued, con
             
             /* If the file needs to be opened then do so. */
             if (logfileFP == NULL) {
-                /* Generate the log file name. */
-                if (logFileRollMode & ROLL_MODE_DATE) {
-                    generateLogFileName(currentLogFileName, logFilePath, nowDate, NULL);
-                } else {
-                    generateLogFileName(currentLogFileName, logFilePath, NULL, NULL);
+                /* Generate the log file name if it is not already set. */
+                if (currentLogFileName[0] == '\0') {
+                    if (logFileRollMode & ROLL_MODE_DATE) {
+                        generateLogFileName(currentLogFileName, logFilePath, nowDate, NULL);
+                    } else {
+                        generateLogFileName(currentLogFileName, logFilePath, NULL, NULL);
+                    }
+                    logFileChangedCallback(currentLogFileName);
                 }
                 
                 old_umask = umask( logFileUmask );
@@ -1121,7 +1127,7 @@ void log_printf_message( int source_id, int level, int threadId, int queued, con
                         
                         fclose(logfileFP);
                         logfileFP = NULL;
-                        currentLogFileName[0] = '\0';
+                        /* Do not clear the currentLogFileName here as we are not changing its name. */
                     }
                     
                     /* Leave the file open.  It will be closed later after a period of inactivity. */
@@ -1676,6 +1682,8 @@ void rollLogs() {
         printf("Renamed %s to %s\n", currentLogFileName, workLogFileName);
     }
 #endif
+    /* The log file was rolled and is being set again.  This will cause an event to be fired even if the name is he same. */
+    logFileChangedCallback(currentLogFileName);
 }
 
 void limitLogFileCountHandleFile(const char *currentFile, const char *testFile, char **latestFiles, int count) {
@@ -1944,12 +1952,14 @@ void checkAndRollLogs(const char *nowDate) {
         
                 fclose(logfileFP);
                 logfileFP = NULL;
-                currentLogFileName[0] = '\0';
             }
+            /* Always reset the name so the the log file name will be regenerated correctly. */
+            currentLogFileName[0] = '\0';
             
             /* This will happen just before a new log file is created.
              *  Check the maximum file count. */
             if (logFileMaxLogFiles > 0) {
+                /* We will check for too many files here and then clear the current log file name so it will be set later. */
                 generateLogFileName(currentLogFileName, logFilePath, nowDate, NULL);
                 generateLogFileName(workLogFileName, logFilePath, "????????", NULL);
                 
