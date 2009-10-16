@@ -27,10 +27,9 @@
  * included in all copies or substantial portions of the Software.
  */
 
-#ifndef MACOSX
-#ifndef FREEBSD
+#if defined(MACOSX) || defined(FREEBSD)
+#else
 #include <malloc.h>
-#endif
 #endif
 
 #include <stdio.h>
@@ -1017,7 +1016,7 @@ void sortStringProperties(long unsigned int *propertyIndices, char **propertyNam
 
 /**
  * Returns a sorted array of all properties beginning with {propertyNameBase}.
- *Å@ Only numerical characters can be returned betweenÅ@the two.
+ *  Only numerical characters can be returned between the two.
  *
  * @param properties The full properties structure.
  * @param propertyNameHead All matching properties must begin with this value.

@@ -828,7 +828,7 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const char *messa
     if (lockProtocolMutex()) {
         return -1;
     }
-
+    
     /* We don't want to show the full properties log message.  It is quite long and distracting. */
     if (function == WRAPPER_MSG_PROPERTIES) {
         logMsg = "(Property Values)";
@@ -1137,7 +1137,13 @@ void wrapperLogFileChanged(const char *logFile) {
     if (wrapperData->isDebugging) {
         log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "active log file changed: %s", logFile);
     }
-    wrapperProtocolFunction(FALSE, WRAPPER_MSG_LOGFILE, logFile);
+    
+    /* On startup, this function will always be called the first time the log file is set,
+     *  we don't want to send the command in this case as it clutters the debug log output.
+     *  Besides, the JVM will not be running anyway. */
+    if (wrapperData->jState != WRAPPER_JSTATE_DOWN) {
+        wrapperProtocolFunction(FALSE, WRAPPER_MSG_LOGFILE, logFile);
+    }
 }
 /**
  * Pre initialize the wrapper.
@@ -1304,6 +1310,7 @@ void wrapperUsage(char *appName) {
     /** Return mask: installed:1 running:2 interactive:4 automatic:8 manual:16 disabled:32 */
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -q  --query   Query the current status of the service");
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -qs --querysilent Silently Query the current status of the service");
+
     /* Omit '-s' option from help as it is only used by the service manager. */
     /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  -s  --service used by service manager"); */
 #endif
@@ -1316,6 +1323,9 @@ void wrapperUsage(char *appName) {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "[configuration properties] are configuration name-value pairs which override values");
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  in wrapper.conf.  For example:");
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  wrapper.debug=true");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Please note that any file references must be absolute or relative to the location");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  of the Wrapper executable." );
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "");
 
     free(confFileBase);
@@ -1662,7 +1672,6 @@ int wrapperRunConsole() {
     /* Clean up any open sockets. */
     wrapperProtocolClose();
     protocolStopServer();
-
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "<-- Wrapper Stopped");
 
     return wrapperData->exitCode;
@@ -1706,7 +1715,6 @@ int wrapperRunService() {
     /* Clean up any open sockets. */
     wrapperProtocolClose();
     protocolStopServer();
-
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "<-- Wrapper Stopped");
 
     return wrapperData->exitCode;
@@ -3326,7 +3334,14 @@ void wrapperBuildKey() {
     for (i = 0; i < 16; i++) {
         /* The way rand works, this will sometimes equal num, which is too big.
          *  This is rare so just round those cases down. */
-        kcNum = (size_t)(rand() * num / RAND_MAX);
+        
+        /* Some platforms use very large RAND_MAX values that cause overflow problems in our math */
+        if (RAND_MAX > 0x10000) {
+            kcNum = (size_t)((rand() >> 8) * num / (RAND_MAX >> 8));
+        } else {
+            kcNum = (size_t)(rand() * num / RAND_MAX);
+        }
+        
         if (kcNum >= num) {
             kcNum = num - 1;
         }
@@ -3336,7 +3351,7 @@ void wrapperBuildKey() {
     wrapperData->key[16] = '\0';
     
     /*
-    printf("  Key=%s Len=%d\n", wrapperData->key, strlen(wrapperData->key));
+    printf("  Key=%s Len=%lu\n", wrapperData->key, strlen(wrapperData->key));
     */
 }
 
@@ -3461,8 +3476,7 @@ int wrapperBuildNTServiceInfo() {
 
         /* Account name */
         updateStringValue(&wrapperData->ntServiceAccount, getStringProperty(properties, "wrapper.ntservice.account", NULL));
-        if ( wrapperData->ntServiceAccount && ( strlen( wrapperData->ntServiceAccount ) <= 0 ) )
-        {
+        if (wrapperData->ntServiceAccount && (strlen(wrapperData->ntServiceAccount) <= 0)) {
             wrapperData->ntServiceAccount = NULL;
         }
 
@@ -3470,12 +3484,10 @@ int wrapperBuildNTServiceInfo() {
         wrapperData->ntServicePasswordPrompt = getBooleanProperty( properties, "wrapper.ntservice.password.prompt", FALSE );
         wrapperData->ntServicePasswordPromptMask = getBooleanProperty( properties, "wrapper.ntservice.password.prompt.mask", TRUE );
         updateStringValue(&wrapperData->ntServicePassword, getStringProperty(properties, "wrapper.ntservice.password", NULL));
-        if ( wrapperData->ntServicePassword && ( strlen( wrapperData->ntServicePassword ) <= 0 ) )
-        {
+        if ( wrapperData->ntServicePassword && ( strlen( wrapperData->ntServicePassword ) <= 0 ) ) {
             wrapperData->ntServicePassword = NULL;
         }
-        if ( !wrapperData->ntServiceAccount )
-        {
+        if ( !wrapperData->ntServiceAccount ) {
             /* If there is not account name, then the password must not be set. */
             wrapperData->ntServicePassword = NULL;
         }
@@ -3665,7 +3677,7 @@ int loadConfigurationTriggers() {
             wrapperData->outputFilterActions[i] = getOutputFilterActionForName(prop);
 
 #ifdef _DEBUG
-            printf("filter #%d, action=%d, filter='%s'\n", propertyIndices[i], wrapperData->outputFilterActions[i], wrapperData->outputFilters[i]);
+            printf("filter #%lu, action=%d, filter='%s'\n", propertyIndices[i], wrapperData->outputFilterActions[i], wrapperData->outputFilters[i]);
 #endif
             i++;
         }
@@ -4303,6 +4315,7 @@ void wrapperPingResponded() {
         } else {
             wrapperUpdateJavaStateTimeout(wrapperGetTicks(), -1);
         }
+
         break;
 
     default:
@@ -4407,6 +4420,7 @@ void wrapperStartedSignalled() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM signalled that it was started.");
     }
 
+ 
     if (wrapperData->jState == WRAPPER_JSTATE_STARTING) {
         /* We got a response to a ping.  Allow 5 + <pingTimeout> more seconds before the JVM
          *  is considered to be dead. */
@@ -4415,7 +4429,6 @@ void wrapperStartedSignalled() {
         } else {
             wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STARTED, 0, -1);
         }
-
         /* Is the wrapper state STARTING? */
         if (wrapperData->wState == WRAPPER_WSTATE_STARTING) {
             wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STARTED);
@@ -4423,6 +4436,7 @@ void wrapperStartedSignalled() {
             if (!wrapperData->isConsole) {
                 /* Tell the service manager that we started */
                 wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTED, 0, 0);
+                    
             }
         }
     } else if (wrapperData->jState == WRAPPER_JSTATE_STOP) {

@@ -105,10 +105,10 @@ FARPROC OptionalGetProcessTimes = NULL;
 FARPROC OptionalGetProcessMemoryInfo = NULL;
 FTRegisterServiceCtrlHandlerEx OptionalRegisterServiceCtrlHandlerEx = NULL;
 
+
 /******************************************************************************
  * Windows specific code
  ******************************************************************************/
-
 /**
  * Tests whether or not the current OS is at or below the version of Windows NT.
  *
@@ -1601,7 +1601,6 @@ void wrapperExecute() {
     
     /* As soon as the new process is created, restore the auto close flag. */
     setLogfileAutoClose(wrapperData->logfileInactivityTimeout <= 0);
-
     /* Check if virtual machine started */
     if (ret==FALSE) {
         int err=GetLastError();
@@ -1659,7 +1658,7 @@ void wrapperExecute() {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "" );
                 }
             }
-            
+
             return;
         }
     }
@@ -3752,7 +3751,6 @@ int wrapperRemove() {
         /* Do this here to unregister the syslog on uninstall of a resource. */
         /* unregisterSyslogMessageFile( ); */
     }
-
     return result;
 }
 
@@ -3789,7 +3787,6 @@ int setWorkingDir() {
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Executable Name: %s", szPath);
 #endif
-
     /* To get the path, strip everything off after the last '\' */
     pos = strrchr(szPath, '\\');
     if (pos == NULL) {
@@ -3800,14 +3797,10 @@ int setWorkingDir() {
         /* Clip the path at the position of the last backslash */
         pos[0] = (char)0;
     }
-
     /* Set a variable to the location of the binary. */
     setEnv("WRAPPER_BIN_DIR", szPath);
-
     result = wrapperSetWorkingDir(szPath);
-
     free(szPath);
-
     return result;
 }
 

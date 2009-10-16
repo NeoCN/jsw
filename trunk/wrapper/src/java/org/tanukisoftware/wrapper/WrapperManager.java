@@ -455,6 +455,10 @@ public final class WrapperManager
         
         // Decide whether this is a 32 or 64 bit version of Java.
         m_jvmBits = Integer.getInteger( "sun.arch.data.model", -1 ).intValue();
+        if ( m_jvmBits == -1 )
+        {
+            m_jvmBits = Integer.getInteger( "com.ibm.vm.bitmode", -1 ).intValue();
+        }
         if ( m_debug )
         {
             if ( m_jvmBits > 0 )
@@ -1154,6 +1158,10 @@ public final class WrapperManager
         else if ( os.equals( "os/400" ) )
         {
             os = "os400";
+        }
+        else if ( os.equals( "z/os" ) )
+        {
+            os = "zos";
         }
         
         // Generate an architecture name.
