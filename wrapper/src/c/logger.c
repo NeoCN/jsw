@@ -138,6 +138,7 @@ int queueSourceIds[WRAPPER_THREAD_COUNT][QUEUE_SIZE];
 int queueLevels[WRAPPER_THREAD_COUNT][QUEUE_SIZE];
 
 /* Thread specific work buffers. */
+int threadSets[WRAPPER_THREAD_COUNT];
 #ifdef WIN32
 DWORD threadIds[WRAPPER_THREAD_COUNT];
 #else
@@ -244,7 +245,8 @@ int initLogging(void (*logFileChanged)(const char *logFile)) {
     logFileLastNowDate[0] = '\0';
 
     for ( threadId = 0; threadId < WRAPPER_THREAD_COUNT; threadId++ ) {
-        threadIds[threadId] = 0;
+        threadSets[threadId] = FALSE;
+        /* threadIds[threadId] = 0; */
     
         for ( i = 0; i < QUEUE_SIZE; i++ )
         {
@@ -293,9 +295,10 @@ void logRegisterThread( int thread_id ) {
 #endif
     if ( thread_id >= 0 && thread_id < WRAPPER_THREAD_COUNT )
     {
+        threadSets[thread_id] = TRUE;
         threadIds[thread_id] = threadId;
 #ifdef _DEBUG
-        printf("logRegisterThread(%d) => %lu\n", thread_id, threadId);
+        printf("logRegisterThread(%d) found\n", thread_id);
 #endif
     }
 }
@@ -313,15 +316,17 @@ int getThreadId() {
 
     for ( i = 0; i < WRAPPER_THREAD_COUNT; i++ ) {
 #ifdef WIN32
-        if ( threadIds[i] == threadId ) {
+        if (threadSets[i] && (threadIds[i] == threadId)) {
 #else
-        if ( pthread_equal(threadIds[i],threadId) ) {
+        if (threadSets[i] && pthread_equal(threadIds[i], threadId)) {
 #endif
             return i;
         }
     }
     
-    printf( "WARNING - Encountered an unknown thread %ld in getThreadId().\n", (long int)threadId );
+    printf( "WARNING - Encountered an unknown thread %ld in getThreadId().\n",
+        (long int)threadId
+        );
     return 0; /* WRAPPER_THREAD_SIGNAL */
 }
 
@@ -958,8 +963,11 @@ void generateLogFileName(char *buffer, const char *template, const char *nowDate
  * Prints the contents of a buffer to all configured targets.
  *
  * Must be called while locked.
+ *
+ * @return True if the logfile name changed.
  */
-void log_printf_message( int source_id, int level, int threadId, int queued, const char *message ) {
+int log_printf_message( int source_id, int level, int threadId, int queued, const char *message ) {
+    int         logFileChanged = FALSE;
     char        *printBuffer;
     int         old_umask;
     char        nowDate[9];
@@ -984,12 +992,12 @@ void log_printf_message( int source_id, int level, int threadId, int queued, con
          *  will be decoded below and displayed appropriately. */
         reqSize = strlen(LOG_SPECIAL_MARKER) + 1 + 2 + 1 + 2 + 1 + 2 + 1 + strlen(message) - strlen(LOG_FORK_MARKER) + 1;
         if (!(printBuffer = preparePrintBuffer(reqSize))) {
-            return;
+            return FALSE;
         }
         sprintf(printBuffer, "%s|%02d|%02d|%02d|%s", LOG_SPECIAL_MARKER, source_id, level, threadId, message + strlen(LOG_FORK_MARKER));
         fprintf(stdout, "%s\n", printBuffer);
         fflush(stdout );
-        return;
+        return FALSE;
     } else if ((strstr(message, LOG_SPECIAL_MARKER) == message) && (strlen(message) >= strlen(LOG_SPECIAL_MARKER) + 10)) {
         /* Got a special encoded log message from the child process.   Parse it and continue as if the log
          *  message came from this process. */ 
@@ -1083,7 +1091,7 @@ void log_printf_message( int source_id, int level, int threadId, int queued, con
                     } else {
                         generateLogFileName(currentLogFileName, logFilePath, NULL, NULL);
                     }
-                    logFileChangedCallback(currentLogFileName);
+                    logFileChanged = TRUE;
                 }
                 
                 old_umask = umask( logFileUmask );
@@ -1149,6 +1157,7 @@ void log_printf_message( int source_id, int level, int threadId, int queued, con
             sendLoginfoMessage( source_id, level, message );
         }
     }
+    return logFileChanged;
 }
 
 
@@ -1157,6 +1166,8 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
     va_list     vargs;
     int         count;
     int         threadId;
+    int         logFileChanged;
+    char        *logFileCopy;
 
     /* We need to be very careful that only one thread is allowed in here
      *  at a time.  On Windows this is done using a Mutex object that is
@@ -1225,11 +1236,26 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
         }
     } while ( count < 0 );
 
-    log_printf_message( source_id, level, threadId, FALSE, threadMessageBuffer );
+    logFileCopy = NULL;
+    logFileChanged = log_printf_message( source_id, level, threadId, FALSE, threadMessageBuffer );
+    if (logFileChanged) {
+        logFileCopy = malloc(sizeof(char) * (strlen(currentLogFileName) + 1));
+        if (!logFileCopy) {
+            printf("Out of memory in logging code (P3)\n");
+        } else {
+            strcpy(logFileCopy, currentLogFileName);
+        }
+    }
 
     /* Release the lock we have on this function so that other threads can get in. */
     if (releaseLoggingMutex()) {
         return;
+    }
+
+    /* Now that we are no longer in the semaphore, register the change of the logfile. */
+    if (logFileChanged && logFileCopy) {
+        logFileChangedCallback(logFileCopy);
+        free(logFileCopy);
     }
 }
 
@@ -1682,8 +1708,7 @@ void rollLogs() {
         printf("Renamed %s to %s\n", currentLogFileName, workLogFileName);
     }
 #endif
-    /* The log file was rolled and is being set again.  This will cause an event to be fired even if the name is he same. */
-    logFileChangedCallback(currentLogFileName);
+    currentLogFileName[0] = '\0';
 }
 
 void limitLogFileCountHandleFile(const char *currentFile, const char *testFile, char **latestFiles, int count) {
@@ -2117,12 +2142,17 @@ void maintainLogger() {
     int level;
     int threadId;
     char *buffer;
+    int logFileChanged;
+    char *logFileCopy;
 
     for ( threadId = 0; threadId < WRAPPER_THREAD_COUNT; threadId++ ) {
         /* NOTE - The queue variables are not synchronized so we need to access them
          *        carefully and assume that data could possibly be corrupted. */
         localWriteIndex = queueWriteIndex[threadId]; /* Snapshot the value to maintain a constant reference. */
         if ( queueReadIndex[threadId] != localWriteIndex ) {
+            logFileChanged = FALSE;
+            logFileCopy = NULL;
+            
             /* Lock the logging mutex. */
             if (lockLoggingMutex()) {
                 return;
@@ -2145,7 +2175,15 @@ void maintainLogger() {
                     printf( "LOG QUEUED[%d]: %s\n", queueReadIndex[threadId], buffer );
 #endif
 
-                    log_printf_message( source_id, level, threadId, TRUE, buffer );
+                    logFileChanged = log_printf_message( source_id, level, threadId, TRUE, buffer );
+                    if (logFileChanged) {
+                        logFileCopy = malloc(sizeof(char) * (strlen(currentLogFileName) + 1));
+                        if (!logFileCopy) {
+                            printf("Out of memory in logging code (%s)\n", "ML1");
+                        } else {
+                            strcpy(logFileCopy, currentLogFileName);
+                        }
+                    }
                     /*
                     printf("  Queue lw=%d, qw=%d, qr=%d\n", localWriteIndex, queueWriteIndex[threadId], queueReadIndex[threadId]);
                     */
@@ -2163,6 +2201,12 @@ void maintainLogger() {
             /* Release the lock we have on the logging mutex so that other threads can get in. */
             if (releaseLoggingMutex()) {
                 return;
+            }
+        
+            /* Now that we are no longer in the semaphore, register the change of the logfile. */
+            if (logFileChanged && logFileCopy) {
+                logFileChangedCallback(logFileCopy);
+                free(logFileCopy);
             }
         }
     }

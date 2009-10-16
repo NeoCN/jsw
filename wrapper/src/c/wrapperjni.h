@@ -45,4 +45,7 @@ extern int wrapperJNIDebugging;
 extern int wrapperLockControlEventQueue();
 extern int wrapperReleaseControlEventQueue();
 extern void wrapperJNIHandleSignal(int signal);
+extern void throwThrowable(JNIEnv *env, char *throwableClassName, const char *lpszFmt, ...);
+extern jstring JNU_NewStringNative(JNIEnv *env, const char *str);
+extern char* JNU_GetStringNativeChars(JNIEnv *env, jstring jstr);
 #endif

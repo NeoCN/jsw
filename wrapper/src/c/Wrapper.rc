@@ -97,6 +97,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 #pragma code_page(1252)
 #endif //_WIN32
 
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // Icon
@@ -108,7 +109,7 @@ IDI_WRAPPER             ICON    DISCARDABLE     "wrapper.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// 11
+// Messages
 //
 
 1                       11      DISCARDABLE     "MSG00001.bin"

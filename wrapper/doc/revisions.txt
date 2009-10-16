@@ -1,18 +1,24 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 3.3.7
-* (Professional and Standard) Added the possility to create a new wrapper
-  executable with a custom icon in windows.
-  wrapper --icon <icon> <new executable>
-* Fix issue about SELinux where strict security policy could lead the wrapper
-  fail to load the libwrapper library. Thanks to Jean for the hint.
-* Fixed a bug in the obfuscated license date, which caused a license error if 
-  the wrapper was run. Thanks to Leo for the hint.
+* (Professional and Standard) Added the ability to customize the wrapper.exe
+  and wrapperw.exe binaries on Windows with a user specified icon and splash
+  screen.
+* (Professional and Standard) Added a new wrapper.splashscreen.mode property
+  to control how long the splashscreen is visible.
+* Fix a problem on SELinux where a strict security policy could lead the
+  Wrapper fail to load the libwrapper library.  Thanks to Jean for the hint.
+* Fixed a problem in the obfuscated license date, which caused a license to
+  be reported as invalid if run in a timezone west of Japan.  This feature
+  was implemented in 3.3.6, but disabled on the site until the release of
+  version 3.3.7.  Thanks to Leo for the hint.
 * Added a new WRAPPER_PID environment variable. Feature Request #2870136.
 * Added a new WrapperManager.getWrapperLogFile() method and
   WrapperLogFileChangedEvent class that can be used to receive notifications
   of changes to the Wrapper log file currently in use.
   Feature Request #2870133.
+* (Profesional) Improved the wrapper.event.<event_name>.email.to property
+  so it now supports the ability to specify multiple recipients.
 
 3.3.6
 * Introduce the wrapper.timezone property. This property allows to set the

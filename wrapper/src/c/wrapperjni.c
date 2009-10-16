@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <stdlib.h>
 #ifdef WIN32
 #include <windows.h>
 #include <tchar.h>
@@ -84,6 +85,157 @@ char* getLastErrorText() {
 }
 #endif
 
+
+jstring JNU_NewStringNative(JNIEnv *env, const char *str) {
+    jstring result;
+
+    jclass Class_java_lang_String;
+    jmethodID MID_String_init;
+    jbyteArray bytes = 0;
+    size_t len;
+    
+    if ((*env)->EnsureLocalCapacity(env, 2) < 0) {
+        return NULL; /* out of memory error */
+    }
+    len = strlen(str);
+    bytes = (*env)->NewByteArray(env, (jsize)len);
+    if (bytes != NULL) {
+        (*env)->SetByteArrayRegion(env, bytes, 0, (jsize)len,(jbyte *)str);
+        Class_java_lang_String = (*env)->FindClass(env,"java/lang/String");
+        MID_String_init = (*env)->GetMethodID(env, Class_java_lang_String,"<init>", "([B)V");
+        result = (*env)->NewObject(env, Class_java_lang_String, MID_String_init, bytes);
+        (*env)->DeleteLocalRef(env, bytes);
+        return result;
+    } /* else fall through */
+    
+    return NULL;
+}
+
+char *JNU_GetStringNativeChars(JNIEnv *env, jstring jstr) {
+    jbyteArray bytes = 0;
+    jthrowable exc;
+    jclass Class_java_lang_String = NULL;
+    jmethodID MID_String_getBytes = NULL;
+
+    char *result = 0;
+    if ((*env)->EnsureLocalCapacity(env, 2) < 0) {
+        return 0; /* out of memory error */
+    }
+    if ((Class_java_lang_String = (*env)->FindClass(env,"java/lang/String")) != NULL &&
+            (MID_String_getBytes = (*env)->GetMethodID(env, Class_java_lang_String,"<getBytes>", "()[B")) != NULL){
+        bytes = (*env)->CallObjectMethod(env, jstr, MID_String_getBytes);
+        exc = (*env)->ExceptionOccurred(env);
+        if (!exc) {
+            jint len = (*env)->GetArrayLength(env, bytes);
+            result = (char *)malloc(len + 1);
+            if (!result) {
+                throwThrowable(env, "java/lang/OutOfMemoryError", gettext("WrapperJNI Error: %s"), getLastErrorText());
+                (*env)->DeleteLocalRef(env, bytes);
+                return 0;
+            }
+            (*env)->GetByteArrayRegion(env, bytes, 0, len, (jbyte *)result);
+            result[len] = 0; /* NULL-terminate */
+        } else {
+            (*env)->DeleteLocalRef(env, exc);
+        }
+        (*env)->DeleteLocalRef(env, bytes);
+    }
+    return result;
+}
+
+
+
+void throwThrowable(JNIEnv *env, char *throwableClassName, const char *lpszFmt, ...) {
+    va_list vargs;
+    int messageBufferSize = 0;
+    char *messageBuffer = NULL;
+    int count;
+    jclass jThrowableClass;
+    jmethodID constructor;
+    jstring jMessageBuffer;
+    jobject jThrowable;
+
+    do {
+        if ( messageBufferSize == 0 )
+        {
+            /* No buffer yet. Allocate one to get started. */
+            messageBufferSize = 100;
+            messageBuffer = (char*)malloc( messageBufferSize * sizeof(char));
+            if (!messageBuffer) {
+                printf("Out of memory TIOE(1)\n");fflush(NULL);
+                return;
+            }
+        }
+
+        /* Try writing to the buffer. */
+        va_start( vargs, lpszFmt );
+        #ifdef WIN32
+        count = _vsnprintf(messageBuffer, messageBufferSize, lpszFmt, vargs);
+        #else
+        count = vsnprintf(messageBuffer, messageBufferSize, lpszFmt, vargs);
+        #endif
+        va_end( vargs );
+        if ((count < 0) || (count >= (int)messageBufferSize)) {
+            /* If the count is exactly equal to the buffer size then a null char was not written.
+             *  It must be larger.
+             * Windows will return -1 if the buffer is too small. If the number is
+             *  exact however, we still need to expand it to have room for the null.
+             * UNIX will return the required size. */
+
+            /* Free the old buffer for starters. */
+            free(messageBuffer);
+
+            /* Decide on a new buffer size. */
+            if (count <= (int)messageBufferSize) {
+                messageBufferSize += 50;
+            } else if (count + 1 <= (int)messageBufferSize + 50) {
+                messageBufferSize += 50;
+            } else {
+                messageBufferSize = count + 1;
+            }
+
+            messageBuffer = (char*)malloc(messageBufferSize * sizeof(char));
+            if (!messageBuffer) {
+                printf(gettext("Out of memory %s\n"), "TIOE(2)");fflush(NULL);
+                messageBufferSize = 0;
+                return;
+            }
+
+            /* Always set the count to -1 so we will loop again. */
+            count = -1;
+        }
+    } while ( count < 0 );
+
+    /* We have the messageBuffer */
+    if ((jThrowableClass = (*env)->FindClass(env, throwableClassName)) != NULL) {
+        if ((constructor = (*env)->GetMethodID(env, jThrowableClass, "<init>", "(Ljava/lang/String;)V")) != NULL) {
+            if ((jMessageBuffer = JNU_NewStringNative(env, messageBuffer)) != NULL) {
+                if ((jThrowable = (*env)->NewObject(env, jThrowableClass, constructor, jMessageBuffer)) != NULL) {
+                    if ((*env)->Throw(env, jThrowable)){
+                        printf(gettext("WrapperJNI Error: Unable to throw %s with message: %s"), throwableClassName, messageBuffer); fflush(NULL);
+                    }
+                    (*env)->DeleteLocalRef(env, jThrowable);
+                } else {
+                    printf(gettext("WrapperJNI Error: Unable to create instance of class, '%s' to report exception: %s"),
+                        throwableClassName, messageBuffer); fflush(NULL);
+                }
+                (*env)->DeleteLocalRef(env, jMessageBuffer);
+            } else {
+                printf(gettext("WrapperJNI Error: Unable to create string to report '%s' exception: %s"),
+                    throwableClassName, messageBuffer); fflush(NULL);
+            }
+        } else {
+            printf(gettext("WrapperJNI Error: Unable to find constructor for class, '%s' to report exception: %s"),
+                throwableClassName, messageBuffer); fflush(NULL);
+        }
+        (*env)->DeleteLocalRef(env, jThrowableClass);
+    } else {
+        printf(gettext("WrapperJNI Error: Unable to load class, '%s' to report exception: %s"),
+            throwableClassName, messageBuffer); fflush(NULL);
+    }
+    free(messageBuffer);
+}
+
 void wrapperJNIHandleSignal(int signal) {
     if (wrapperLockControlEventQueue()) {
         /* Failed.  Should have been reported. */
@@ -121,7 +273,7 @@ JNIEXPORT jstring JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetLibraryVersion(JNIEnv *env, jclass clazz) {
     jstring version;
 
-    version = (*env)->NewStringUTF(env, wrapperVersion);
+    version = JNU_NewStringNative(env, wrapperVersion);
 
     return version;
 }
