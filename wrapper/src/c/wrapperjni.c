@@ -46,6 +46,10 @@ int controlEventQueue[CONTROL_EVENT_QUEUE_SIZE];
 int controlEventQueueLastReadIndex = 0;
 int controlEventQueueLastWriteIndex = 0;
 
+/* Temporary placeholder until 3.5.0 */
+const char *gettext(const char *message) {
+    return message;
+}
 /**
  * Create an error message from GetLastError() using the
  *  FormatMessage API Call...

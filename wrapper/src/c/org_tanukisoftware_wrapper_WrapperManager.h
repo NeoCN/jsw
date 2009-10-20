@@ -49,6 +49,8 @@ extern "C" {
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_PROPERTIES 115L
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_LOG
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_LOG 116L
+#undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_LOGFILE
+#define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_MSG_LOGFILE -122L
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_C_EVENT
 #define org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_C_EVENT 200L
 #undef org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_CLOSE_EVENT
@@ -163,6 +165,7 @@ extern "C" {
 /* Inaccessible static: m_exitCode */
 /* Inaccessible static: m_libraryOK */
 /* Inaccessible static: m_commandBuffer */
+/* Inaccessible static: m_logFile */
 /* Inaccessible static: m_properties */
 /* Inaccessible static: m_wrapperEventListenerMaskList */
 /* Inaccessible static: m_wrapperEventListenerMasks */

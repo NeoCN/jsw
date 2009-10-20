@@ -114,7 +114,7 @@ public class EnvironmentVariables {
             p = Runtime.getRuntime().exec("cmd.exe /c set");
         } else if  (os.indexOf("unix") > -1) {
             p = Runtime.getRuntime().exec("/bin/env");
-        } else if  ((os.indexOf("linux") > -1) || (os.indexOf("mac os x") > -1)) {
+        } else if  ((os.indexOf("linux") > -1) || (os.indexOf("mac os x") > -1) || (os.indexOf("freebsd") > -1)) {
             p = Runtime.getRuntime().exec("/usr/bin/env");
         }
         
