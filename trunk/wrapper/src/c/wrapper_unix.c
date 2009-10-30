@@ -1485,6 +1485,27 @@ int main(int argc, char **argv) {
         /* fork to a Daemonized process if configured to do so. */
         if (wrapperData->daemonize) {
             daemonize();
+            
+            /* When we daemonize the Wrapper, its PID changes. Because of the
+             *  WRAPPER_PID environment variable, we need to set it again here
+             *  and then reload the configuration in case the PID is referenced
+             *  in the configuration. */
+            
+            /* Get the current process. */
+            wrapperData->wrapperPID = getpid();
+            
+            /* Load the properties. */
+            if (wrapperLoadConfigurationProperties()) {
+                /* Unable to load the configuration.  Any errors will have already
+                 *  been reported. */
+                if (wrapperData->argConfFileDefault && !wrapperData->argConfFileFound) {
+                    /* The config file that was being looked for was default and
+                     *  it did not exist.  Show the usage. */
+                    wrapperUsage(argv[0]);
+                }
+                appExit(1);
+                return 1; /* For compiler. */
+            }
         }
         
         /* See if the logs should be rolled on Wrapper startup. */
