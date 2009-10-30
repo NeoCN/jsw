@@ -4241,7 +4241,6 @@ void wrapperKeyRegistered(char *key) {
     if (wrapperData->isDebugging) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Got key from JVM: %s", key);
     }
-
     switch (wrapperData->jState) {
     case WRAPPER_JSTATE_LAUNCHING:
         /* We now know that the Java side wrapper code has started and

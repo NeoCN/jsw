@@ -1601,6 +1601,7 @@ void wrapperExecute() {
     
     /* As soon as the new process is created, restore the auto close flag. */
     setLogfileAutoClose(wrapperData->logfileInactivityTimeout <= 0);
+    
     /* Check if virtual machine started */
     if (ret==FALSE) {
         int err=GetLastError();
@@ -4113,7 +4114,6 @@ void main(int argc, char **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand,"c") || !strcmpIgnoreCase(wrapperData->argCommand,"-console")) {
             /* Run as a console application */
-            
             /* Load any dynamic functions. */
             loadDLLProcs();
             
