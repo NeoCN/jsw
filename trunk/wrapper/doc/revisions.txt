@@ -9,6 +9,9 @@ Java Service Wrapper Revision History.
 * Changed the timing for the wrapper's splashscreen when the splash screen 
   mode was set to JVM_STARTING. Now the splashscreen will disappear when the 
   JVM has been initialized.
+* Fix a problem where the splashscreen was being shown when starting a service
+  or performing other command line operations.
+* Remove some extra debug output on startup for Mac versions.
 
 3.3.7
 * (Professional and Standard) Added the ability to customize the wrapper.exe
