@@ -1,5 +1,15 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.3.8
+* Fix a problem where the Wrapper's PID file was not being set to the correct
+  PID when the wrapper was launched daemonized.  With the shell scripts that
+  ship with the Wrapper, this means that it would not be possible to stop the
+  Wrapper using the script because the expected PID did not exist.  This was
+  a problem introduced in 3.3.7.
+* Changed the timing for the wrapper's splashscreen when the splash screen 
+  mode was set to JVM_STARTING. Now the splashscreen will disappear when the 
+  JVM has been initialized.
+
 3.3.7
 * (Professional and Standard) Added the ability to customize the wrapper.exe
   and wrapperw.exe binaries on Windows with a user specified icon and splash
