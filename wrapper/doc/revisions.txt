@@ -12,6 +12,10 @@ Java Service Wrapper Revision History.
 * Fix a problem where the splashscreen was being shown when starting a service
   or performing other command line operations.
 * Remove some extra debug output on startup for Mac versions.
+* Fix a crash in the Community Edition on PPC platforms of the Mac OSX version.
+  This crash has been reproduced in all versions starting with 3.3.1.  The OSX
+  distribution is a universal binary but does not appear to result in a crash
+  on x86 servers.  Standard and Professional Editions were not affected.
 
 3.3.7
 * (Professional and Standard) Added the ability to customize the wrapper.exe
