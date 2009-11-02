@@ -800,22 +800,25 @@ void trim(const char *in, char *out)
     size_t last;
 
     len = strlen(in);
-    first = 0;
-    last = len - 1;
+    if (len > 0) {                                     
+        first = 0;
+        last = -1;
+        last = len - 1;                                    
+    
+        /* Right Trim */
+        while (((in[first] == ' ') || (in[first] == '\t')) && (first < last)) {
+            first++;
+        }
+        /* Left Trim */
+        while ((last > first) && ((in[last] == ' ') || (in[last] == '\t'))) {
+            last--;
+        }
 
-    /* Right Trim */
-    while (((in[first] == ' ') || (in[first] == '\t')) && (first < last)) {
-        first++;
-    }
-    /* Left Trim */
-    while (((in[last] == ' ') || (in[last] == '\t')) && (last > first)) {
-        last--;
-    }
-
-    /* Copy over what is left. */
-    len = last - first + 1;
-    if (len > 0) {
-        memcpy(out, in + first, len);
+        /* Copy over what is left. */
+        len = last - first + 1;
+        if (len > 0) {
+            memcpy(out, in + first, len);
+        }                                                  
     }
     out[len] = '\0';
 }
