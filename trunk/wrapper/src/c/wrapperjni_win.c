@@ -318,6 +318,8 @@ fileTimeToTimeT(FILETIME *filetime) {
  */
 time_t
 getUserLoginTime(TCHAR *sidText) {
+    LONG     result;
+    LPSTR    pBuffer = NULL;
     HKEY     userKey;
     int      i;
     TCHAR    userKeyName[MAX_PATH];
@@ -328,16 +330,19 @@ getUserLoginTime(TCHAR *sidText) {
     loginTime = 0;
 
     /* Open a key to the HKRY_USERS registry. */
-    if (RegOpenKey(HKEY_USERS, NULL, &userKey) != ERROR_SUCCESS) {
-        printf("WrapperJNI Error: Error opening registry for HKEY_USERS: %s\n", getLastErrorText());
+    result = RegOpenKey(HKEY_USERS, NULL, &userKey);
+    if (result != ERROR_SUCCESS) {
+        FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
+        printf("WrapperJNI Error: Error opening registry for HKEY_USERS: %d : %s\n", result, pBuffer);
         flushall();
+        LocalFree(pBuffer);
         return loginTime;
     }
 
     /* Loop over the users */
     i = 0;
     userKeyNameSize = sizeof(userKeyName);
-    while (RegEnumKeyEx(userKey, i, userKeyName, &userKeyNameSize, NULL, NULL, NULL, &lastTime) == ERROR_SUCCESS) {
+    while ((result = RegEnumKeyEx(userKey, i, userKeyName, &userKeyNameSize, NULL, NULL, NULL, &lastTime)) == ERROR_SUCCESS) {
         if (stricmp(sidText, userKeyName) == 0) {
             /* We found the SID! */
 
@@ -350,9 +355,21 @@ getUserLoginTime(TCHAR *sidText) {
         userKeyNameSize = sizeof(userKeyName);
         i++;
     }
+    if (result != ERROR_SUCCESS) {
+        FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
+        printf("WrapperJNI Error: Unable to enumerate the registry: %d : %s", result, pBuffer);
+        flushall();
+        LocalFree(pBuffer);
+    }
 
     /* Always close the userKey. */
-    RegCloseKey(userKey);
+    result = RegCloseKey(userKey);
+    if (result != ERROR_SUCCESS) {
+        FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
+        printf("WrapperJNI Error: Unable to close the registry: %d : %s", result, pBuffer);
+        flushall();
+        LocalFree(pBuffer);
+    }
 
     return loginTime;
 }

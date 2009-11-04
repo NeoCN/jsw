@@ -2490,6 +2490,17 @@ int wrapperInstall() {
     return result;
 }
 
+void closeRegistryKey(HKEY hKey) {
+    LONG result;
+    LPSTR pBuffer = NULL;
+    
+    result = RegCloseKey(hKey);
+    if (result != ERROR_SUCCESS) {
+        FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to close the registry: %d : %s", result, pBuffer);
+        LocalFree(pBuffer);
+    }
+}
 /**
  * Sets any environment variables stored in the system registry to the current
  *  environment.  The NT service environment only has access to the environment
@@ -2503,6 +2514,8 @@ int wrapperInstall() {
  * Return TRUE if there were any problems.
  */
 int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appendPath) {
+    LONG result;
+    LPSTR pBuffer = NULL;
     int envCount = 0;
     int ret;
     HKEY hKey;
@@ -2512,7 +2525,6 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
     DWORD maxValueLength;
     char *valueName;
     char *value;
-    LONG err;
     DWORD thisValueNameLength;
     DWORD thisValueLength;
     DWORD thisValueType;
@@ -2524,7 +2536,8 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
      *        before the wrapper.conf is loaded. */
 
     /* Open the registry entry where the current environment variables are stored. */
-    if (RegOpenKeyEx(baseHKey, regPath, 0, KEY_ENUMERATE_SUB_KEYS | KEY_QUERY_VALUE, (PHKEY) &hKey) == ERROR_SUCCESS) {
+    result = RegOpenKeyEx(baseHKey, regPath, 0, KEY_ENUMERATE_SUB_KEYS | KEY_QUERY_VALUE, (PHKEY) &hKey);
+    if (result == ERROR_SUCCESS) {
         /* Read in each of the environment variables and set them into the environment.
          *  These values will be set as is without doing any environment variable
          *  expansion.  In order for the ExpandEnvironmentStrings function to work all
@@ -2534,10 +2547,12 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
 
         /* Query the registry to find out how many values there are as well as info about how
          *  large the values names and data are. */
-        err = RegQueryInfoKey(hKey, NULL, NULL, NULL, NULL, NULL, NULL, &valueCount, &maxValueNameLength, &maxValueLength, NULL, NULL);
-        if ( err != ERROR_SUCCESS) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to query the registry to get the environment: %d : %s", err, getLastErrorText());
-            RegCloseKey(hKey);
+        result = RegQueryInfoKey(hKey, NULL, NULL, NULL, NULL, NULL, NULL, &valueCount, &maxValueNameLength, &maxValueLength, NULL, NULL);
+        if (result != ERROR_SUCCESS) {
+            FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to query the registry to get the environment: %d : %s", result, pBuffer);
+            LocalFree(pBuffer);
+            closeRegistryKey(hKey);
             return TRUE;
         }
 
@@ -2554,13 +2569,13 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
         valueName = malloc(maxValueNameLength);
         if (!valueName) {
             outOfMemory("WLEFRI", 1);
-            RegCloseKey(hKey);
+            closeRegistryKey(hKey);
             return TRUE;
         }
         value = malloc(maxValueLength);
         if (!valueName) {
             outOfMemory("WLEFRI", 2);
-            RegCloseKey(hKey);
+            closeRegistryKey(hKey);
             return TRUE;
         }
 
@@ -2570,8 +2585,8 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
             thisValueNameLength = maxValueNameLength;
             thisValueLength = maxValueLength;
 
-            err = RegEnumValue(hKey, dwIndex, valueName, &thisValueNameLength, NULL, &thisValueType, value, &thisValueLength);
-            if (err == ERROR_SUCCESS) {
+            result = RegEnumValue(hKey, dwIndex, valueName, &thisValueNameLength, NULL, &thisValueType, value, &thisValueLength);
+            if (result == ERROR_SUCCESS) {
                 if ((thisValueType == REG_SZ) || (thisValueType = REG_EXPAND_SZ))  {
                     /* Got a value. */
 #ifdef _DEBUG
@@ -2584,14 +2599,14 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
                             newVal = malloc(strlen(oldVal) + 1 + strlen(value) + 1);
                             if (!newVal) {
                                 outOfMemory("WLEFRI", 3);
-                                RegCloseKey(hKey);
+                                closeRegistryKey(hKey);
                                 return TRUE;
                             }
                             sprintf(newVal, "%s;%s", oldVal, value);
                             if (setEnv(valueName, newVal)) {
                                 /* Already reported. */
                                 free(newVal);
-                                RegCloseKey(hKey);
+                                closeRegistryKey(hKey);
                                 return TRUE;
                             }
 #ifdef _DEBUG
@@ -2602,14 +2617,14 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
                             /* Did not exist, set normally. */
                             if (setEnv(valueName, value)) {
                                 /* Already reported. */
-                                RegCloseKey(hKey);
+                                closeRegistryKey(hKey);
                                 return TRUE;
                             }
                         }
                     } else {
                         if (setEnv(valueName, value)) {
                             /* Already reported. */
-                            RegCloseKey(hKey);
+                            closeRegistryKey(hKey);
                             return TRUE;
                         }
                     }
@@ -2621,16 +2636,18 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Loaded var name=\"%s\" but type is invalid: %d, skipping.", valueName, thisValueType);
 #endif
                 }
-            } else if (err = ERROR_NO_MORE_ITEMS) {
+            } else if (result = ERROR_NO_MORE_ITEMS) {
                 /* This means we are at the end.  Fall through. */
             } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to query the registry to get environment variable #%d: %d : %s", dwIndex, err, getLastErrorText());
-                RegCloseKey(hKey);
+                FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to query the registry to get environment variable #%d: %d : %s", dwIndex, result, pBuffer);
+                LocalFree(pBuffer);
+                closeRegistryKey(hKey);
                 return TRUE;
             }
 
             dwIndex++;
-        } while (err != ERROR_NO_MORE_ITEMS);
+        } while (result != ERROR_NO_MORE_ITEMS);
 
 #ifdef _DEBUG
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "All environment variables loaded.  Loop back over them to evaluate any nested variables.");
@@ -2644,8 +2661,8 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
             dwIndex = 0;
             do {
                 thisValueNameLength = maxValueNameLength;
-                err = RegEnumValue(hKey, dwIndex, valueName, &thisValueNameLength, NULL, &thisValueType, NULL, NULL);
-                if (err == ERROR_SUCCESS) {
+                result = RegEnumValue(hKey, dwIndex, valueName, &thisValueNameLength, NULL, &thisValueType, NULL, NULL);
+                if (result == ERROR_SUCCESS) {
                     /* Found an environment variable in the registry.  Variables that contain references have a different type. */
                     if (thisValueType = REG_EXPAND_SZ)  {
 #ifdef _DEBUG
@@ -2666,7 +2683,7 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
                                 ret = ExpandEnvironmentStrings(oldVal, NULL, 0);
                                 if (ret == 0) {
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to expand \"%s\": %s", valueName, getLastErrorText());
-                                    RegCloseKey(hKey);
+                                    closeRegistryKey(hKey);
                                     return TRUE;
                                 }
 
@@ -2674,7 +2691,7 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
                                 newVal = malloc(ret + 2);
                                 if (!newVal) {
                                     outOfMemory("WLEFRI", 4);
-                                    RegCloseKey(hKey);
+                                    closeRegistryKey(hKey);
                                     return TRUE;
                                 }
 
@@ -2683,7 +2700,7 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
                                 if (ret == 0) {
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to expand \"%s\" (2): %s", valueName, getLastErrorText());
                                     free(newVal);
-                                    RegCloseKey(hKey);
+                                    closeRegistryKey(hKey);
                                     return TRUE;
                                 }
 
@@ -2703,7 +2720,7 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
                                     if (setEnv(valueName, newVal)) {
                                         /* Already reported. */
                                         free(newVal);
-                                        RegCloseKey(hKey);
+                                        closeRegistryKey(hKey);
                                         return TRUE;
                                     }
                                 }
@@ -2712,15 +2729,17 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
                             }
                         }
                     }
-                } else if (err == ERROR_NO_MORE_ITEMS) {
+                } else if (result == ERROR_NO_MORE_ITEMS) {
                     /* No more environment variables. */
                 } else {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to read registry - %s", getLastErrorText());
-                    RegCloseKey(hKey);
+                    FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to read registry: %d : %s", result, pBuffer);
+                    LocalFree(pBuffer);
+                    closeRegistryKey(hKey);
                     return TRUE;
                 }
                 dwIndex++;
-            } while (err != ERROR_NO_MORE_ITEMS);
+            } while (result != ERROR_NO_MORE_ITEMS);
 
 #ifdef _DEBUG
             if (expanded) {
@@ -2734,9 +2753,11 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
 #endif
 
         /* Close the registry entry */
-        RegCloseKey(hKey);
+        closeRegistryKey(hKey);
     } else {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to access registry to obtain environment variables - %s", getLastErrorText());
+        FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to access registry to obtain environment variables - %s", pBuffer);
+        LocalFree(pBuffer);
         return TRUE;
     }
 
@@ -2773,6 +2794,8 @@ int wrapperLoadEnvFromRegistry() {
  * Gets the JavaHome absolute path from the windows registry
  */
 int wrapperGetJavaHomeFromWindowsRegistry(char *javaHome) {
+    LONG result;
+    LPSTR pBuffer = NULL;
     const char *prop;
     char *c;
     char subKey[512];       /* Registry subkey that jvm creates when is installed */
@@ -2826,39 +2849,48 @@ int wrapperGetJavaHomeFromWindowsRegistry(char *javaHome) {
         /*
          * Opens the Registry Key needed to query the jvm version
          */
-        if (RegOpenKeyEx(baseHKey, subKey, 0, KEY_QUERY_VALUE, &openHKey) != ERROR_SUCCESS) {
+        result = RegOpenKeyEx(baseHKey, subKey, 0, KEY_QUERY_VALUE, &openHKey);
+        if (result != ERROR_SUCCESS) {
+            FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "Unable to access configured registry location for JAVA_HOME: %s - (%d)", subKey, errno);
+                "Unable to access configured registry location for JAVA_HOME: %s : %d : %s", subKey, result, pBuffer);
+            LocalFree(pBuffer);
             return 0;
         }
 
-        if (RegQueryValueEx(openHKey, valueKey, NULL, &valueType, NULL, &valueSize) != ERROR_SUCCESS) {
+        result = RegQueryValueEx(openHKey, valueKey, NULL, &valueType, NULL, &valueSize);
+        if (result != ERROR_SUCCESS) {
+            FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "Unable to access configured registry location for JAVA_HOME: %s - (%d)", prop, errno);
-            RegCloseKey(openHKey);
+                "Unable to access configured registry location for JAVA_HOME: %s : %d : %s", prop, result, pBuffer);
+            LocalFree(pBuffer);
+            closeRegistryKey(openHKey);
             return 0;
         }
         if (valueType != REG_SZ) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 "Configured JAVA_HOME registry location is not of type REG_SZ: %s", prop);
-            RegCloseKey(openHKey);
+            closeRegistryKey(openHKey);
             return 0;
         }
         value = malloc(valueSize);
         if (!value) {
             outOfMemory("WGJFWR", 1);
-            RegCloseKey(openHKey);
+            closeRegistryKey(openHKey);
             return 0;
         }
-        if (RegQueryValueEx(openHKey, valueKey, NULL, &valueType, value, &valueSize) != ERROR_SUCCESS) {
+        result = RegQueryValueEx(openHKey, valueKey, NULL, &valueType, value, &valueSize);
+        if (result != ERROR_SUCCESS) {
+            FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "Unable to access configured registry location %s - (%d)", prop, errno);
+                "Unable to access configured registry location %s : %d : %s", prop, result, pBuffer);
+            LocalFree(pBuffer);
             free(value);
-            RegCloseKey(openHKey);
+            closeRegistryKey(openHKey);
             return 0;
         }
 
-        RegCloseKey(openHKey);
+        closeRegistryKey(openHKey);
 
         /* Returns the JavaHome path */
         strcpy(javaHome, value);
@@ -2874,7 +2906,9 @@ int wrapperGetJavaHomeFromWindowsRegistry(char *javaHome) {
         /*
          * Opens the Registry Key needed to query the jvm version
          */
-        if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, subKey, 0, KEY_QUERY_VALUE, &openHKey) != ERROR_SUCCESS) {
+        result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, subKey, 0, KEY_QUERY_VALUE, &openHKey);
+        if (result != ERROR_SUCCESS) {
+            /* Not found.  continue. */
             return 0;
         }
 
@@ -2883,12 +2917,13 @@ int wrapperGetJavaHomeFromWindowsRegistry(char *javaHome) {
          */
 
         valueSize = sizeof(jreversion);
-        if (RegQueryValueEx(openHKey, "CurrentVersion", NULL, &valueType, jreversion, &valueSize) != ERROR_SUCCESS) {
-            RegCloseKey(openHKey);
+        result = RegQueryValueEx(openHKey, "CurrentVersion", NULL, &valueType, jreversion, &valueSize);
+        if (result != ERROR_SUCCESS) {
+            closeRegistryKey(openHKey);
             return 0;
         }
 
-        RegCloseKey(openHKey);
+        closeRegistryKey(openHKey);
 
 
         /* adds the jvm version to the subkey */
@@ -2898,29 +2933,32 @@ int wrapperGetJavaHomeFromWindowsRegistry(char *javaHome) {
         /*
          * Opens the Registry Key needed to query the JavaHome
          */
-        if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, subKey, 0, KEY_QUERY_VALUE, &openHKey) != ERROR_SUCCESS) {
+        result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, subKey, 0, KEY_QUERY_VALUE, &openHKey);
+        if (result != ERROR_SUCCESS) {
             return 0;
         }
 
         /*
          * Queries for the JavaHome
          */
-        if (RegQueryValueEx(openHKey, "JavaHome", NULL, &valueType, NULL, &valueSize) != ERROR_SUCCESS) {
-            RegCloseKey(openHKey);
+        result = RegQueryValueEx(openHKey, "JavaHome", NULL, &valueType, NULL, &valueSize);
+        if (result != ERROR_SUCCESS) {
+            closeRegistryKey(openHKey);
             return 0;
         }
         value = malloc(valueSize);
         if (!value) {
             outOfMemory("WGJFWR", 2);
-            RegCloseKey(openHKey);
+            closeRegistryKey(openHKey);
             return 0;
         }
-        if (RegQueryValueEx(openHKey, "JavaHome", NULL, &valueType, value, &valueSize) != ERROR_SUCCESS) {
-            RegCloseKey(openHKey);
+        result = RegQueryValueEx(openHKey, "JavaHome", NULL, &valueType, value, &valueSize);
+        if (result != ERROR_SUCCESS) {
+            closeRegistryKey(openHKey);
             return 0;
         }
 
-        RegCloseKey(openHKey);
+        closeRegistryKey(openHKey);
 
         /* Returns the JavaHome path */
         strcpy(javaHome, value);

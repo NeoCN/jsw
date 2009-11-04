@@ -16,6 +16,9 @@ Java Service Wrapper Revision History.
   This crash has been reproduced in all versions starting with 3.3.1.  The OSX
   distribution is a universal binary but does not appear to result in a crash
   on x86 servers.  Standard and Professional Editions were not affected.
+* Fix a problem on Windows versions where problems accessing the registry were
+  not reporting the correct error message.  This did not cause any problems in
+  and of itself, but it made it difficult to track the down the cause.
 
 3.3.7
 * (Professional and Standard) Added the ability to customize the wrapper.exe
