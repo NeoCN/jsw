@@ -107,7 +107,7 @@ wrapper.description=@app.description@
 # Service dependencies.  Add dependencies as needed starting from 1
 wrapper.ntservice.dependency.1=
 
-# Mode in which the service is installed.  AUTO_START or DEMAND_START
+# Mode in which the service is installed.  AUTO_START, DELAY_START or DEMAND_START
 wrapper.ntservice.starttype=AUTO_START
 
 # Allow the service to interact with the desktop.

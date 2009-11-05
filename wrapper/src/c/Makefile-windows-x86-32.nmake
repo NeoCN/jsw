@@ -15,7 +15,7 @@ RC = rc
 
 # EXE Definitions
 EXE_OUTDIR = $(PROJ)32_VC8__Win32_Release
-EXE_OBJS = $(EXE_OUTDIR)\logger.obj $(EXE_OUTDIR)\property.obj $(EXE_OUTDIR)\wrapper.obj $(EXE_OUTDIR)\wrapper_win.obj $(EXE_OUTDIR)\wrappereventloop.obj $(EXE_OUTDIR)\wrapperinfo.obj
+EXE_OBJS = $(EXE_OUTDIR)\logger.obj $(EXE_OUTDIR)\property.obj $(EXE_OUTDIR)\wrapper.obj $(EXE_OUTDIR)\wrapper_win.obj $(EXE_OUTDIR)\wrappereventloop.obj $(EXE_OUTDIR)\wrapper_file.obj $(EXE_OUTDIR)\wrapperinfo.obj
 EXE_LIBS = wsock32.lib shlwapi.lib advapi32.lib user32.lib
 EXE_COMPILE_OPTS = /O2 /GL /D "_CONSOLE" /Wp64
 EXE_LINK_OPTS = /INCREMENTAL:NO /SUBSYSTEM:CONSOLE /MANIFESTFILE:"$(EXE_OUTDIR)\$(PROJ).exe.intermediate.manifest" /PDB:"$(EXE_OUTDIR)\$(PROJ).pdb" /OPT:REF /OPT:ICF /OPT:WIN98 /LTCG 

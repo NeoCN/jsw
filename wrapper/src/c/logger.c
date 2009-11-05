@@ -40,6 +40,7 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <errno.h>
+#include "wrapper_file.h"
 
 #ifdef WIN32
 #include <io.h>
@@ -60,7 +61,6 @@ typedef long intptr_t;
 #endif
 
 #else
-#include <glob.h>
 #include <syslog.h>
 #include <strings.h>
 #include <pthread.h>
@@ -102,6 +102,8 @@ char *defaultLoginfoSourceName = "wrapper";
 char *loginfoSourceName = NULL;
 int  logFileMaxSize = -1;
 int  logFileMaxLogFiles = -1;
+char *logFilePurgePattern = NULL;
+int  logFilePurgeSortMode = WRAPPER_FILE_SORT_MODE_TIMES;
 
 char logFileLastNowDate[9];
 
@@ -177,6 +179,15 @@ void setConsoleStdoutHandle( HANDLE stdoutHandle ) {
 
 void outOfMemory(const char *context, int id) {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Out of memory (%s%02d). %s",
+        context, id, getLastErrorText());
+}
+
+/* This can be called from within logging code that would otherwise get stuck in recursion.
+ *  Log to the console exactly when it happens and then also try to get it into the log
+ *  file at the next oportunity. */
+void outOfMemoryQueued(const char *context, int id) {
+    printf("Out of memory (%s%02d). %s", context, id, getLastErrorText());
+    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Out of memory (%s%02d). %s",
         context, id, getLastErrorText());
 }
 
@@ -429,14 +440,14 @@ void setLogfilePath( const char *log_file_path ) {
 
     logFilePath = malloc(sizeof(char) * (len + 1));
     if (!logFilePath) {
-        outOfMemory("SLP", 1);
+        outOfMemoryQueued("SLP", 1);
         return;
     }
     strcpy(logFilePath, log_file_path);
 
     currentLogFileName = malloc(sizeof(char) * (len + 10 + 1));
     if (!currentLogFileName) {
-        outOfMemory("SLP", 2);
+        outOfMemoryQueued("SLP", 2);
         free(logFilePath);
         logFilePath = NULL;
         return;
@@ -444,7 +455,7 @@ void setLogfilePath( const char *log_file_path ) {
     currentLogFileName[0] = '\0';
     workLogFileName = malloc(sizeof(char) * (len + 10 + 1));
     if (!workLogFileName) {
-        outOfMemory("SLP", 3);
+        outOfMemoryQueued("SLP", 3);
         free(logFilePath);
         logFilePath = NULL;
         free(currentLogFileName);
@@ -506,7 +517,7 @@ void setLogfileMaxFileSize( const char *max_file_size ) {
         /* Allocate buffer */
         tmpFileSizeBuff = (char *) malloc(sizeof(char) * (strlen( max_file_size ) + 1));
         if (!tmpFileSizeBuff) {
-            outOfMemory("SLMFS", 1);
+            outOfMemoryQueued("SLMFS", 1);
             return;
         }
 
@@ -549,6 +560,29 @@ void setLogfileMaxFileSizeInt( int max_file_size ) {
 
 void setLogfileMaxLogFiles( int max_log_files ) {
     logFileMaxLogFiles = max_log_files;
+}
+
+void setLogfilePurgePattern(const char *pattern) {
+    size_t len;
+    
+    if (logFilePurgePattern) {
+        free(logFilePurgePattern);
+        logFilePurgePattern = NULL;
+    }
+
+    len = strlen(pattern);
+    if (len > 0) {
+        logFilePurgePattern = malloc(sizeof(char) * (len + 1));
+        if (!logFilePurgePattern) {
+            outOfMemoryQueued("SLPP", 1);
+            return;
+        }
+        strcpy(logFilePurgePattern, pattern);
+    }
+}
+
+void setLogfilePurgeSortMode(int sortMode) {
+    logFilePurgeSortMode = sortMode;
 }
 
 /** Returns the number of lines of log file activity since the last call. */
@@ -922,7 +956,7 @@ void forceFlush(FILE *fp) {
  */
 void generateLogFileName(char *buffer, const char *template, const char *nowDate, const char *rollNum ) {
     /* Copy the template to the buffer to get started. */
-    sprintf(buffer, template);
+    strcpy(buffer, template);
     
     /* Handle the date token. */
     if (strstr(buffer, "YYYYMMDD")) {
@@ -1098,7 +1132,7 @@ int log_printf_message( int source_id, int level, int threadId, int queued, cons
                 logfileFP = fopen( currentLogFileName, "a" );
                 if (logfileFP == NULL) {
                     /* The log file could not be opened.  Try the default file location. */
-                    sprintf(currentLogFileName, "wrapper.log");
+                    strcpy(currentLogFileName, "wrapper.log");
                     logfileFP = fopen( "wrapper.log", "a" );
                 }
                 umask(old_umask);
@@ -1608,6 +1642,73 @@ void writeToConsole( char *lpszFmt, ... ) {
 #endif
 
 /**
+ * Does a search for all files matching the specified pattern and deletes all
+ *  but the most recent 'count' files.  The files are sorted by their names.
+ */
+void limitLogFileCount(const char *current, const char *pattern, int sortMode, int count) {
+    char **files;
+    int index;
+    int foundCurrent;
+    
+#ifdef _DEBUG
+    printf("limitLogFileCount(%s, %s, %d, %d)\n", current, pattern, sortMode, count);
+#endif
+    
+    files = wrapperFileGetFiles(pattern, sortMode);
+    if (!files) {
+        /* Failed */
+        return;
+    }
+    
+    foundCurrent = FALSE;
+    index = 0;
+    while (files[index]) {
+        if (index < count) {
+#ifdef _DEBUG
+            printf("Keep files[%d] %s\n", index, files[index]);
+#endif
+            if (strcmp(current, files[index]) == 0) {
+                /* This is the current file, as expected. */
+#ifdef _DEBUG
+                printf("  Current\n");
+#endif
+                foundCurrent = TRUE;
+            }
+        } else {
+#ifdef _DEBUG
+            printf("Delete files[%d] %s\n", index, files[index]);
+#endif
+            if (strcmp(current, files[index]) == 0) {
+                /* This is the current file, we don't want to delete it. */
+                printf("Log file sort order would result in current log file being deleted: %s\n", current);
+                foundCurrent = TRUE;
+            } else if (remove(files[index])) {
+                printf("Unable to delete old log file: %s (%s)\n", files[index], getLastErrorText());
+            }
+        }
+        
+        index++;
+    }
+    
+    /* Now if we did not find the current file, and there are <count> files
+       still in the directory, then we want to also delete the oldest one.
+       Otherwise, the addition of the current file would result in too many
+       files. */
+    if (!foundCurrent) {
+        if (index >= count) {
+#ifdef _DEBUG
+            printf("Delete files[%d] %s\n", count - 1, files[count - 1]);
+#endif
+            if (remove(files[count - 1])) {
+                printf("Unable to delete old log file: %s (%s)\n", files[count - 1], getLastErrorText());
+            }
+        }
+    }
+    
+    wrapperFileFreeFiles(files);
+}
+
+/**
  * Rolls log files using the ROLLNUM system.
  */
 void rollLogs() {
@@ -1616,6 +1717,9 @@ void rollLogs() {
     struct stat fileStat;
     int result;
 
+#ifdef _DEBUG
+    printf("rollLogs()\n");
+#endif
     if (!logFilePath) {
         return;
     }
@@ -1647,18 +1751,7 @@ void rollLogs() {
             printf("Rolled log file %s exists.\n", workLogFileName);
         }
 #endif
-    } while((result == 0) && ((logFileMaxLogFiles <= 0) || (i < logFileMaxLogFiles)));
-    
-    /* Remove the file with the highest index if it exists */
-    if (remove(workLogFileName)) {
-        if (getLastError() == 2) {
-            /* The file did not exist. */
-        } else if (getLastError() == 3) {
-            /* The path did not exist. */
-        } else {
-            printf("Unable to delete old log file: %s (%s)\n", workLogFileName, getLastErrorText());
-        }
-    }
+    } while (result == 0);
     
     /* Now, starting at the highest file rename them up by one index. */
     for (; i > 1; i--) {
@@ -1708,218 +1801,17 @@ void rollLogs() {
         printf("Renamed %s to %s\n", currentLogFileName, workLogFileName);
     }
 #endif
+    
+    /* Now limit the number of files using the standard method. */
+    if (logFilePurgePattern) {
+        limitLogFileCount(currentLogFileName, logFilePurgePattern, logFilePurgeSortMode, logFileMaxLogFiles + 1);
+    } else {
+        generateLogFileName(workLogFileName, logFilePath, NULL, "*");
+        limitLogFileCount(currentLogFileName, workLogFileName, WRAPPER_FILE_SORT_MODE_NAMES_ASC, logFileMaxLogFiles + 1);
+    }
+    
+    /* Reset the current log file name as it is not being used yet. */
     currentLogFileName[0] = '\0';
-}
-
-void limitLogFileCountHandleFile(const char *currentFile, const char *testFile, char **latestFiles, int count) {
-    int i, j;
-    int result;
-
-#ifdef _DEBUG
-    printf("  limitLogFileCountHandleFile(%s, %s, latestFiles, %d)\n", currentFile, testFile, count);
-#endif
-
-    if (strcmp(testFile, currentFile) > 0) {
-        /* Newer than the current file.  Ignore it. */
-#ifdef _DEBUG
-        printf("    Newer Ignore\n");
-#endif
-        return;
-    }
-    
-    /* Decide where in the array of files the file should be located. */
-    for (i = 0; i < count; i++) {
-#ifdef _DEBUG
-        printf("    i=%d\n", i);
-#endif
-        if (latestFiles[i] == NULL) {
-#ifdef _DEBUG
-            printf("    Store at index  %d\n", i);
-#endif
-            latestFiles[i] = malloc(sizeof(char) * (strlen(testFile) + 1));
-            if (!latestFiles[i]) {
-                printf("Out of memory in logging code (LLFCHF1)\n");
-                return;
-            }
-            strcpy(latestFiles[i], testFile);
-            return;
-        } else {
-            result = strcmp(latestFiles[i], testFile);
-            if (result == 0) {
-                /* Ignore. */
-#ifdef _DEBUG
-                printf("    Duplicate at index  %d\n", i);
-#endif
-                return;
-            } else if (result < 0) {
-                /* test file is newer than the one in the list, shift all files up in the array. */
-                for (j = count - 1; j >= i; j--) {
-                    if (latestFiles[j] != NULL) {
-                        if (j < count - 1) {
-                            /* Move the file up. */
-                            latestFiles[j + 1] = latestFiles[j];
-                            latestFiles[j] = NULL;
-                        } else {
-                            /* File needs to be deleted as it can't be moved up. */
-#ifdef _DEBUG
-                            printf("    Delete old %s\n", latestFiles[j]);
-#endif
-                            if (remove(latestFiles[j])) {
-                                printf("Unable to delete old log file: %s (%s)\n",
-                                    latestFiles[j], getLastErrorText());
-                            }
-                            free(latestFiles[j]);
-                            latestFiles[j] = NULL;
-                        }
-                    }
-                }
-
-#ifdef _DEBUG
-                printf("    Insert at index  %d\n", i);
-#endif
-                latestFiles[i] = malloc(sizeof(char) * (strlen(testFile) + 1));
-                if (!latestFiles[i]) {
-                    printf("Out of memory in logging code (LLFCHF2)\n");
-                    return;
-                }
-                strcpy(latestFiles[i], testFile);
-                return;
-            }
-        }
-    }
-    
-    /* File could not be added to the list because it was too old.  Delete. */
-#ifdef _DEBUG
-    printf("    Delete %s\n", testFile);
-#endif
-    if (remove(testFile)) {
-        printf("Unable to delete old log file: %s (%s)\n",
-            testFile, getLastErrorText());
-    }
-}
-
-/**
- * Does a search for all files matching the specified pattern and deletes all
- *  but the most recent 'count' files.  The files are sorted by their names.
- */
-void limitLogFileCount(const char *current, const char *pattern, int count) {
-    char** latestFiles;
-    int i;
-#ifdef WIN32
-    char* path;
-    char* c;
-    intptr_t handle;
-    struct _finddata_t fblock;
-    char* testFile;
-#else
-    glob_t g;
-#endif
-
-#ifdef _DEBUG
-    printf("limitLogFileCount(%s, %d)\n", pattern, count);
-#endif
-
-    latestFiles = malloc(sizeof(char *) * count);
-    if (!latestFiles) {
-        printf("Out of memory in logging code (LLFC1)\n");
-        return;
-    }
-    for (i = 0; i < count; i++) {
-        latestFiles[i] = NULL;
-    }
-    /* Set the first element to the current file so things will work correctly if it already
-     *  exists. */
-    latestFiles[0] = malloc(sizeof(char) * (strlen(current) + 1));
-    if (!latestFiles[0]) {
-        printf("Out of memory in logging code (LLFC2)\n");
-        return;
-    }
-    strcpy(latestFiles[0], current);
-
-#ifdef WIN32
-    path = malloc(sizeof(char) * (strlen(pattern) + 1));
-    if (!path) {
-        printf("Out of memory in logging code (LLFC3)\n");
-        return;
-    }
-
-    /* Extract any path information from the beginning of the file */
-    strcpy(path, pattern);
-    c = max(strrchr(path, '\\'), strrchr(path, '/'));
-    if (c == NULL) {
-        path[0] = '\0';
-    } else {
-        c[1] = '\0'; /* terminate after the slash */
-    }
-
-    if ((handle = _findfirst(pattern, &fblock)) <= 0) {
-        if (errno == ENOENT) {
-            /* No matching files found. */
-        } else {
-            /* Encountered an error of some kind. */
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "Error in findfirst for log file purge: %s", pattern);
-        }
-    } else {
-        testFile = malloc(sizeof(char) * (strlen(path) + strlen(fblock.name) + 1));
-        if (!testFile) {
-            printf("Out of memory in logging code (LLFC4)\n");
-            return;
-        }
-        sprintf(testFile, "%s%s", path, fblock.name);
-        limitLogFileCountHandleFile(current, testFile, latestFiles, count);
-        free(testFile);
-        testFile = NULL;
-
-        /* Look for additional entries */
-        while (_findnext(handle, &fblock) == 0) {
-            testFile = malloc(sizeof(char) * (strlen(path) + strlen(fblock.name) + 1));
-            if (!testFile) {
-                printf("Out of memory in logging code (LLFC5)\n");
-                return;
-            }
-            sprintf(testFile, "%s%s", path, fblock.name);
-            limitLogFileCountHandleFile(current, testFile, latestFiles, count);
-            free(testFile);
-            testFile = NULL;
-        }
-
-        /* Close the file search */
-        _findclose(handle);
-    }
-
-    free(path);
-#else
-    /* Wildcard support for unix */
-    glob(pattern, GLOB_MARK | GLOB_NOSORT, NULL, &g);
-
-    if (g.gl_pathc > 0) {
-        for (i = 0; i < g.gl_pathc; i++) {
-            limitLogFileCountHandleFile(current, g.gl_pathv[i], latestFiles, count);
-        }
-    } else {
-        /* No matching files. */
-    }
-
-    globfree(&g);
-#endif
-
-#ifdef _DEBUG
-    printf("  Sorted file list:\n");
-#endif
-    for (i = 0; i < count; i++) {
-        if (latestFiles[i]) {
-#ifdef _DEBUG
-            printf("    latestFiles[%d]=%s\n", i, latestFiles[i]);
-#endif
-            free(latestFiles[i]);
-        } else {
-#ifdef _DEBUG
-            printf("    latestFiles[%d]=NULL\n", i);
-#endif
-        }
-    }
-    free(latestFiles);
 }
 
 /**
@@ -1986,9 +1878,13 @@ void checkAndRollLogs(const char *nowDate) {
             if (logFileMaxLogFiles > 0) {
                 /* We will check for too many files here and then clear the current log file name so it will be set later. */
                 generateLogFileName(currentLogFileName, logFilePath, nowDate, NULL);
-                generateLogFileName(workLogFileName, logFilePath, "????????", NULL);
                 
-                limitLogFileCount(currentLogFileName, workLogFileName, logFileMaxLogFiles + 1);
+                if (logFilePurgePattern) {
+                    limitLogFileCount(currentLogFileName, logFilePurgePattern, logFilePurgeSortMode, logFileMaxLogFiles + 1);
+                } else {
+                    generateLogFileName(workLogFileName, logFilePath, "????????", NULL);
+                    limitLogFileCount(currentLogFileName, workLogFileName, WRAPPER_FILE_SORT_MODE_NAMES_DEC, logFileMaxLogFiles + 1);
+                }
                 
                 currentLogFileName[0] = '\0';
                 workLogFileName[0] = '\0';

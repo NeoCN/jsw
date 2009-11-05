@@ -971,6 +971,33 @@ const char* getStringProperty(Properties *properties, const char *propertyName, 
     }
 }
 
+const char* getFileSafeStringProperty(Properties *properties, const char *propertyName, const char *defaultValue) {
+    Property *property;
+    char *buffer;
+    int i;
+    
+    property = getInnerProperty(properties, propertyName);
+    if (property == NULL) {
+        if (defaultValue != NULL) {
+            addProperty(properties, propertyName, defaultValue, FALSE, FALSE);
+        }
+
+        return defaultValue;
+    } else {
+        buffer = property->value;
+        if (strchr(buffer, '%')) {
+            i = 0;
+            while (buffer[i]) {
+                if (buffer[i] == '%') {
+                    buffer[i] = '_';
+                }
+                i++;
+            }
+        }
+        return buffer;
+    }
+}
+
 /**
  * Does a quick sort of the property values, keeping the values together.
  */

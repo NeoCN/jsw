@@ -123,6 +123,11 @@ extern void setConsoleStdoutHandle( HANDLE stdoutHandle );
 
 extern void outOfMemory(const char *context, int id);
 
+/* This can be called from within logging code that would otherwise get stuck in recursion.
+ *  Log to the console exactly when it happens and then also try to get it into the log
+ *  file at the next oportunity. */
+extern void outOfMemoryQueued(const char *context, int id);
+
 extern void setSimpleLogLevels();
 
 /* * Logfile functions * */
@@ -140,6 +145,8 @@ extern void setLogfileLevel( const char *log_file_level );
 extern void setLogfileMaxFileSize( const char *max_file_size );
 extern void setLogfileMaxFileSizeInt( int max_file_size );
 extern void setLogfileMaxLogFiles( int max_log_files );
+extern void setLogfilePurgePattern(const char *pattern);
+extern void setLogfilePurgeSortMode(int sortMode);
 extern DWORD getLogfileActivity();
 extern void closeLogfile();
 extern void setLogfileAutoClose(int autoClose);

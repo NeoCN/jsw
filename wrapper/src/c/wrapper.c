@@ -42,10 +42,10 @@
 #include "wrapperinfo.h"
 #include "wrapper.h"
 #include "logger.h"
+#include "wrapper_file.h"
 
 #ifdef WIN32
 #include <direct.h>
-#include <io.h>
 #include <winsock.h>
 #include <shlwapi.h>
 #include <windows.h>
@@ -67,10 +67,7 @@ typedef long intptr_t;
 
 #else /* UNIX */
 #include <string.h>
-#include <glob.h>
-#include <sys/types.h>
 #include <sys/wait.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <signal.h>
@@ -1665,6 +1662,10 @@ int wrapperRunConsole() {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Using tick timer.");
         }
     }
+    
+#ifdef WRAPPER_FILE_DEBUG
+    wrapperFileTests();
+#endif
 
     /* Enter main event loop */
     wrapperEventLoop();
@@ -2405,17 +2406,8 @@ int wrapperBuildJavaCommandArrayClasspath(char **strings, int addQuotes, int ind
     char **propertyNames;
     char **propertyValues;
     long unsigned int *propertyIndices;
-#ifdef WIN32
-    size_t len;
-    char *c;
+    char **files;
     int cnt;
-    char cpPath[512];
-    intptr_t handle;
-    struct _finddata_t fblock;
-#else
-    glob_t g;
-    int findex;
-#endif
     
     /* Store the classpath */
     if (strings) {
@@ -2458,127 +2450,43 @@ int wrapperBuildJavaCommandArrayClasspath(char **strings, int addQuotes, int ind
                 /* Does this contain wildcards? */
                 if ((strchr(prop, '*') != NULL) || (strchr(prop, '?') != NULL)) {
                     /* Need to do a wildcard search */
-#ifdef WIN32
-                    /* Extract any path information from the beginning of the file */
-                    strcpy(cpPath, prop);
-                    c = max(strrchr(cpPath, '\\'), strrchr(cpPath, '/'));
-                    if (c == NULL) {
-                        cpPath[0] = '\0';
-                    } else {
-                        c[1] = '\0'; /* terminate after the slash */
+                    files = wrapperFileGetFiles(prop, WRAPPER_FILE_SORT_MODE_NAMES_ASC);
+                    if (!files) {
+                        /* Failed */
+                        return -1;
                     }
-                    len = strlen(cpPath);
-
+                    
+                    /* Loop over the files. */
                     cnt = 0;
-                    if ((handle = _findfirst(prop, &fblock)) > 0) {
-                        if ((strcmp(fblock.name, ".") != 0) && (strcmp(fblock.name, "..") != 0)) {
-                            len2 = strlen(fblock.name);
+                    while (files[cnt]) {
+                        len2 = strlen(files[cnt]);
 
-                            /* Is there room for the entry? */
-                            while (cpLen + len + len2 + 3 > cpLenAlloc) {
-                                /* Resize the buffer */
-                                tmpString = strings[index];
-                                cpLenAlloc += 1024;
-                                strings[index] = malloc(sizeof(char) * cpLenAlloc);
-                                if (!strings[index]) {
-                                    outOfMemory("WBJCAC", 3);
-                                    return -1;
-                                }
-                                sprintf(strings[index], "%s", tmpString);
-                                free(tmpString);
-                                tmpString = NULL;
+                        /* Is there room for the entry? */
+                        while (cpLen + len2 + 3 > cpLenAlloc) {
+                            /* Resize the buffer */
+                            tmpString = strings[index];
+                            cpLenAlloc += 1024;
+                            strings[index] = malloc(sizeof(char) * cpLenAlloc);
+                            if (!strings[index]) {
+                                outOfMemory("WBJCAC", 3);
+                                return -1;
                             }
-
-                            if (j > 0) {
-                                strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
-                            }
-                            sprintf(&(strings[index][cpLen]), "%s%s", cpPath, fblock.name);
-                            cpLen += (len + len2);
-                            j++;
-                            cnt++;
+                            sprintf(strings[index], "%s", tmpString);
+                            free(tmpString);
+                            tmpString = NULL;
                         }
 
-                        /* Look for additional entries */
-                        while (_findnext(handle, &fblock) == 0) {
-                            if ((strcmp(fblock.name, ".") != 0) && (strcmp(fblock.name, "..") != 0)) {
-                                len2 = strlen(fblock.name);
-
-                                /* Is there room for the entry? */
-                                while (cpLen + len + len2 + 3 > cpLenAlloc) {
-                                    /* Resize the buffer */
-                                    tmpString = strings[index];
-                                    cpLenAlloc += 1024;
-                                    strings[index] = malloc(sizeof(char) * cpLenAlloc);
-                                    if (!strings[index]) {
-                                        outOfMemory("WBJCAC", 4);
-                                        return -1;
-                                    }
-                                    sprintf(strings[index], "%s", tmpString);
-                                    free(tmpString);
-                                    tmpString = NULL;
-                                }
-
-                                if (j > 0) {
-                                    strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
-                                }
-                                sprintf(&(strings[index][cpLen]), "%s%s", cpPath, fblock.name);
-                                cpLen += (len + len2);
-                                j++;
-                                cnt++;
-                            }
+                        if (j > 0) {
+                            strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
                         }
-
-                        /* Close the file search */
-                        _findclose(handle);
+                        sprintf(&(strings[index][cpLen]), "%s", files[cnt]);
+                        cpLen += len2;
+                        j++;
+                        
+                        cnt++;
                     }
-
-                    if (cnt <= 0) {
-                        if (errno == ENOENT) {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                                "Classpath element, %s, does not match any files: %s", paramBuffer, prop);
-                        } else {
-                            /* Encountered an error of some kind. */
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                                "Error in findfirst for classpath element: %s", prop);
-                        }
-                    }
-#else
-                    /* Wildcard support for unix */
-                    glob(prop, GLOB_MARK | GLOB_NOSORT, NULL, &g);
-
-                    if( g.gl_pathc > 0 ) {
-                        for( findex=0; findex<g.gl_pathc; findex++ ) {
-                            len2 = strlen(g.gl_pathv[findex]);
-
-                            /* Is there room for the entry? */
-                            while (cpLen + len2 + 3 > cpLenAlloc) {
-                                /* Resize the buffer */
-                                tmpString = strings[index];
-                                cpLenAlloc += 1024;
-                                strings[index] = malloc(sizeof(char) * cpLenAlloc);
-                                if (!strings[index]) {
-                                    outOfMemory("WBJCAC", 5);
-                                    return -1;
-                                }
-                                sprintf(strings[index], "%s", tmpString);
-                                free(tmpString);
-                                tmpString = NULL;
-                            }
-
-                            if (j > 0) {
-                                strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
-                            }
-                            sprintf(&(strings[index][cpLen]), "%s", g.gl_pathv[findex]);
-                            cpLen += len2;
-                            j++;
-                        }
-                    } else {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                            "Classpath element, %s, does not match any files: %s", paramBuffer, prop);
-                    }
-
-                    globfree(&g);
-#endif
+                    
+                    wrapperFileFreeFiles(files);
                 } else {
                     /* This classpath entry does not contain any wildcards. */
 
@@ -2587,7 +2495,7 @@ int wrapperBuildJavaCommandArrayClasspath(char **strings, int addQuotes, int ind
                     if ((prop[strlen(prop) - 1] == '/') || (prop[strlen(prop) - 1] == '\\')) {
                         propStripped = malloc(sizeof(char) * strlen(prop));
                         if (!propStripped) {
-                            outOfMemory("WBJCAC", 6);
+                            outOfMemory("WBJCAC", 4);
                             return -1;
                         }
                         memcpy(propStripped, prop, strlen(prop) - 1);
@@ -2622,7 +2530,7 @@ int wrapperBuildJavaCommandArrayClasspath(char **strings, int addQuotes, int ind
                         cpLenAlloc += 1024;
                         strings[index] = malloc(sizeof(char) * cpLenAlloc);
                         if (!strings[index]) {
-                            outOfMemory("WBJCAC", 7);
+                            outOfMemory("WBJCAC", 5);
                             return -1;
                         }
                         sprintf(strings[index], "%s", tmpString);
@@ -3452,7 +3360,9 @@ int wrapperBuildNTServiceInfo() {
         freeStringProperties(propertyNames, propertyValues, propertyIndices);
 
         /* Set the service start type */
-        if (strcmpIgnoreCase(getStringProperty(properties, "wrapper.ntservice.starttype", "DEMAND_START"), "AUTO_START") == 0) {
+        if (strcmpIgnoreCase(getStringProperty(properties, "wrapper.ntservice.starttype", "DEMAND_START"), "DELAY_START") == 0) {
+            wrapperData->ntServiceStartType = WRAPPER_DELAY_START;
+        } else if (strcmpIgnoreCase(getStringProperty(properties, "wrapper.ntservice.starttype", "DEMAND_START"), "AUTO_START") == 0) {
             wrapperData->ntServiceStartType = SERVICE_AUTO_START;
         } else {
             wrapperData->ntServiceStartType = SERVICE_DEMAND_START;
@@ -3698,7 +3608,7 @@ int loadConfiguration() {
     int startupDelay;
 
     /* Load log file */
-    logfilePath = getStringProperty(properties, "wrapper.logfile", "wrapper.log");
+    logfilePath = getFileSafeStringProperty(properties, "wrapper.logfile", "wrapper.log");
     setLogfilePath(logfilePath);
     
     /* Decide how sequence gaps should be handled before any other properties are loaded. */
@@ -3730,6 +3640,12 @@ int loadConfiguration() {
 
     /* Load log files level */
     setLogfileMaxLogFiles(getIntProperty(properties, "wrapper.logfile.maxfiles", 0));
+
+    /* Load log file purge pattern */
+    setLogfilePurgePattern(getFileSafeStringProperty(properties, "wrapper.logfile.purge.pattern", ""));
+
+    /* Load log file purge sort */
+    setLogfilePurgeSortMode(wrapperFileGetSortMode(getStringProperty(properties, "wrapper.logfile.purge.sort", "TIMES")));
     
     /* Get the memory output status. */
     wrapperData->logfileInactivityTimeout = __max(getIntProperty(properties, "wrapper.logfile.inactivity.timeout", 1), 0);
@@ -3971,32 +3887,32 @@ int loadConfiguration() {
 
     /** Get the pid files if any.  May be NULL */
     if (!wrapperData->configured) {
-        updateStringValue(&wrapperData->pidFilename, getStringProperty(properties, "wrapper.pidfile", NULL));
+        updateStringValue(&wrapperData->pidFilename, getFileSafeStringProperty(properties, "wrapper.pidfile", NULL));
         correctWindowsPath(wrapperData->pidFilename);
     }
-    updateStringValue(&wrapperData->javaPidFilename, getStringProperty(properties, "wrapper.java.pidfile", NULL));
+    updateStringValue(&wrapperData->javaPidFilename, getFileSafeStringProperty(properties, "wrapper.java.pidfile", NULL));
     correctWindowsPath(wrapperData->javaPidFilename);
     
     /** Get the lock file if any.  May be NULL */
     if (!wrapperData->configured) {
-        updateStringValue(&wrapperData->lockFilename, getStringProperty(properties, "wrapper.lockfile", NULL));
+        updateStringValue(&wrapperData->lockFilename, getFileSafeStringProperty(properties, "wrapper.lockfile", NULL));
         correctWindowsPath(wrapperData->lockFilename);
     }
     
     /** Get the java id file.  May be NULL */
-    updateStringValue(&wrapperData->javaIdFilename, getStringProperty(properties, "wrapper.java.idfile", NULL));
+    updateStringValue(&wrapperData->javaIdFilename, getFileSafeStringProperty(properties, "wrapper.java.idfile", NULL));
     correctWindowsPath(wrapperData->javaIdFilename);
     
     /** Get the status files if any.  May be NULL */
     if (!wrapperData->configured) {
-        updateStringValue(&wrapperData->statusFilename, getStringProperty(properties, "wrapper.statusfile", NULL));
+        updateStringValue(&wrapperData->statusFilename, getFileSafeStringProperty(properties, "wrapper.statusfile", NULL));
         correctWindowsPath(wrapperData->statusFilename);
     }
-    updateStringValue(&wrapperData->javaStatusFilename, getStringProperty(properties, "wrapper.java.statusfile", NULL));
+    updateStringValue(&wrapperData->javaStatusFilename, getFileSafeStringProperty(properties, "wrapper.java.statusfile", NULL));
     correctWindowsPath(wrapperData->javaStatusFilename);
     
     /** Get the command file if any. May be NULL */
-    updateStringValue(&wrapperData->commandFilename, getStringProperty(properties, "wrapper.commandfile", NULL));
+    updateStringValue(&wrapperData->commandFilename, getFileSafeStringProperty(properties, "wrapper.commandfile", NULL));
     correctWindowsPath(wrapperData->commandFilename);
 
     /** Get the interval at which the command file will be polled. */
@@ -4004,7 +3920,7 @@ int loadConfiguration() {
 
     /** Get the anchor file if any.  May be NULL */
     if (!wrapperData->configured) {
-        updateStringValue(&wrapperData->anchorFilename, getStringProperty(properties, "wrapper.anchorfile", NULL));
+        updateStringValue(&wrapperData->anchorFilename, getFileSafeStringProperty(properties, "wrapper.anchorfile", NULL));
         correctWindowsPath(wrapperData->anchorFilename);
     }
 
