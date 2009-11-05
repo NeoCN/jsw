@@ -69,19 +69,24 @@ public class Main
     extends AbstractActionApp
     implements WrapperListener
 {
+    private WrapperActionServer m_actionServer;
+    
     private MainFrame m_frame;
     
-    private WrapperActionServer m_actionServer;
+    private ActionRunner m_actionRunner;
     
     private List m_listenerFlags;
     private TextField m_serviceName;
     
-    /**************************************************************************
+    /*---------------------------------------------------------------
      * Constructors
-     *************************************************************************/
+     *-------------------------------------------------------------*/
     private Main() {
     }
     
+    /*---------------------------------------------------------------
+     * Inner Classes
+     *-------------------------------------------------------------*/
     private class MainFrame extends Frame implements ActionListener, WindowListener
     {
         /**
@@ -343,40 +348,69 @@ public class Main
         {
         }
     }
+
+    private class ActionRunner implements Runnable {
+        private String m_action;
+        private boolean m_alive;
+        
+        public ActionRunner(String action) {
+            m_action = action;
+            m_alive = true;
+        }
     
-    /**************************************************************************
+        public void run() {
+            // Wait for a second so that the startup will complete.
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {}
+            
+            if (!Main.this.doAction(m_action)) {
+                printHelp("\"" + m_action + "\" is an unknown action.");
+                WrapperManager.stop(0);
+                return;
+            }
+    
+            while (m_alive) {
+                // Idle some
+                try {
+                    Thread.sleep(500);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    
+        public void endThread( ) {
+            m_alive = false;
+        }
+    }
+    
+    /*---------------------------------------------------------------
      * WrapperListener Methods
-     *************************************************************************/
+     *-------------------------------------------------------------*/
     public Integer start( String[] args )
     {
+        String command;
+        
         System.out.println( "TestWrapper: start()" );
 
         prepareSystemOutErr();
         
-        try
+        if ( args.length <= 0 )
         {
-            m_frame = new MainFrame();
-            m_frame.setVisible( true );
+            System.out.println( "TestWrapper: An action was not specified.  Default to \"dialog\".  Use \"help\" for list of actions." );
+            command = "dialog";
         }
-        catch ( java.lang.InternalError e )
+        else
         {
-            System.out.println( "TestWrapper: " );
-            System.out.println( "TestWrapper: ERROR - Unable to display the Swing GUI:" );
-            System.out.println( "TestWrapper:           " + e.toString() );
-            System.out.println( "TestWrapper: Exiting" );
-            System.out.println( "TestWrapper: " );
-            return new Integer( 1 );
+            command = args[0];
         }
-        catch ( java.awt.AWTError e )
-        {
-            System.out.println( "TestWrapper: " );
-            System.out.println( "TestWrapper: ERROR - Unable to display the Swing GUI:" );
-            System.out.println( "TestWrapper:           " + e.toString() );
-            System.out.println( "TestWrapper: Exiting" );
-            System.out.println( "TestWrapper: " );
-            return new Integer( 1 );
+        
+        if ( command.equals( "help" ) ) {
+            printHelp( null );
+            return null;
         }
-
+        
         try
         {
             int port = 9999;
@@ -400,10 +434,49 @@ public class Main
             System.out.println( "TestWrapper:     U: Unexpected Halt (Simulate crash)" );
             System.out.println( "TestWrapper:     V: Access Violation (Actual crash)" );
             System.out.println( "TestWrapper:     G: Make the JVM appear to be hung." );
+            System.out.println( "TestWrapper:" );
         }
         catch ( java.io.IOException e )
         {
             System.out.println( "TestWrapper: Unable to open the action server socket: " + e.getMessage() );
+            System.out.println( "TestWrapper:" );
+        }
+        
+        if ( command.equals( "dialog" ) )
+        {
+            System.out.println( "TestWrapper: Showing dialog..." );
+            
+            try
+            {
+                m_frame = new MainFrame();
+                m_frame.setVisible( true );
+            }
+            catch ( java.lang.InternalError e )
+            {
+                System.out.println( "TestWrapper: " );
+                System.out.println( "TestWrapper: ERROR - Unable to display the GUI:" );
+                System.out.println( "TestWrapper:           " + e.toString() );
+                System.out.println( "TestWrapper: " );
+                System.out.println( "TestWrapper: Fall back to the \"console\" action." );
+                command = "console";
+            }
+            catch ( java.awt.AWTError e )
+            {
+                System.out.println( "TestWrapper: " );
+                System.out.println( "TestWrapper: ERROR - Unable to display the GUI:" );
+                System.out.println( "TestWrapper:           " + e.toString() );
+                System.out.println( "TestWrapper: " );
+                System.out.println( "TestWrapper: Fall back to the \"console\" action." );
+                command = "console";
+            }
+        }
+        
+        if ( !command.equals( "dialog" ) )
+        {
+            // * * Start the action thread
+            m_actionRunner = new ActionRunner( command );
+            Thread actionThread = new Thread( m_actionRunner );
+            actionThread.start();
         }
         
         return null;
@@ -448,23 +521,69 @@ public class Main
     {
         System.out.println( "TestWrapper: controlEvent(" + event + ")" );
         
-        if ( ( event == WrapperManager.WRAPPER_CTRL_LOGOFF_EVENT )
-            && ( WrapperManager.isLaunchedAsService() || WrapperManager.isIgnoreUserLogoffs() ) )
+        if ( event == WrapperManager.WRAPPER_CTRL_LOGOFF_EVENT )
         {
-            System.out.println( "TestWrapper:   Ignoring logoff event" );
-            // Ignore
+            if ( WrapperManager.isLaunchedAsService() || WrapperManager.isIgnoreUserLogoffs() )
+            {
+                System.out.println( "TestWrapper:   Ignoring logoff event" );
+                // Ignore
+            }
+            else if ( !ignoreControlEvents() )
+            {
+                WrapperManager.stop( 0 );
+            }
+        }
+        else if ( event == WrapperManager.WRAPPER_CTRL_C_EVENT )
+        {
+            if ( !ignoreControlEvents() ) {
+                //WrapperManager.stop(0);
+                
+                // May be called before the runner is started.
+                if (m_actionRunner != null) {
+                    m_actionRunner.endThread();
+                }
+            }
         }
         else
         {
-            if ( !ignoreControlEvents() ) {
+            if ( !ignoreControlEvents() )
+            {
                 WrapperManager.stop( 0 );
             }
         }
     }
     
-    /**************************************************************************
+    /*---------------------------------------------------------------
+     * Static Methods
+     *-------------------------------------------------------------*/
+    /**
+     * Prints the usage text.
+     *
+     * @param error_msg Error message to write with usage text
+     */
+    private static void printHelp( String errorMsg )
+    {
+        System.err.println( "USAGE" );
+        System.err.println( "" );
+        System.err.println( "TestWrapper <action>" );
+        printActions();
+        System.err.println( "  Interactive:" );
+        System.err.println( "   dialog                   : Shows the dialog interface" );
+        System.err.println( "[EXAMPLE]" );
+        System.err.println( "   TestAction access_violation_native " );
+        System.err.println( "" );
+        if ( errorMsg != null )
+        {
+            System.err.println( "ERROR: " + errorMsg );
+            System.err.println( "" );
+        }
+        
+        System.exit( 1 );
+    }
+    
+    /*---------------------------------------------------------------
      * Main Method
-     *************************************************************************/
+     *-------------------------------------------------------------*/
     /**
      * IMPORTANT: Please read the Javadocs for this class at the top of the
      *  page before you start to use this class as a template for integrating

@@ -1,6 +1,8 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 3.3.8
+* Add the new start type DELAY_START for NT Services, which startes the service 
+  after other auto-start services are started plus a short delay.
 * Fix a problem where the Wrapper's PID file was not being set to the correct
   PID when the wrapper was launched daemonized.  With the shell scripts that
   ship with the Wrapper, this means that it would not be possible to stop the
@@ -19,6 +21,31 @@ Java Service Wrapper Revision History.
 * Fix a problem on Windows versions where problems accessing the registry were
   not reporting the correct error message.  This did not cause any problems in
   and of itself, but it made it difficult to track the down the cause.
+* When wildcards are used in the classpath elements, the list of matching jar
+  files included in the classpath are now sorted to ensure that their order
+  is consistent across installations.  Normally it would not matter, but if
+  certain classes or resources are redefined in multiple jars this will ensure
+  that the application now always works the same.
+* Fix a problem where wrapper.logfile.maxfiles was being ignored when
+  wrapper.logfile.rollmode=JVM was set.
+* Changed the way the wrapper.logfile.maxfiles property works with the ROLLNUM
+  token.  Now when the log files are rolled, all files greater than maxfiles
+  count will be deleted.  Previously, the Wrapper would roll within the maxfiles
+  count and ignore extra files if they existed.  This would cause extra files to
+  be left around if the maxfiles property value was decreased.
+* Add new wrapper.logfile.purge.pattern and wrapper.logfile.purge.sort
+  properties which make it possible to limit the number of log files in some
+  advanced cases.  Be sure to read the documentation before playing with them.
+* Fix a potential crash when referencing non-existent environment variables
+  in the value of wrapper.logfile.
+* Modify the way all properties used to define file names behave so that
+  undefined environment variable references will now have their '%' characters
+  replaced by '_'.  This is to avoid problems caused by file names containing
+  '%' characters on some platforms.
+* Fix a problem introduced in 3.3.6 where the windows shown by the JVM or its
+  child processes could not be displayed when running in iteractive mode.
+* Rework the TestWrapper application a bit so it can now be run in headless
+  mode for testing.
 
 3.3.7
 * (Professional and Standard) Added the ability to customize the wrapper.exe

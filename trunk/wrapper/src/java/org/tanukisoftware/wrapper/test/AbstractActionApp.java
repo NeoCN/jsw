@@ -360,16 +360,20 @@ public abstract class AbstractActionApp
                             try
                             {
                                 do {
-                                    System.out.println("Input an action (return stops prompting):");
+                                    System.out.println("Input an action ('help' for a list of actions):");
                                     line = r.readLine();
                                     if ((line != null) && (!line.equals(""))) {
                                         System.out.println("Read action: " + line );
                                         if ( !doAction( line ) )
                                         {
-                                            System.out.println( "Unknown action: " + line );
+                                            if ( !line.equals( "help" ) )
+                                            {
+                                                System.out.println( "Unknown action: " + line );
+                                            }
+                                            printActions();
                                         }
                                     }
-                                } while ((line != null) && (!line.equals("")));
+                                } while (true);
                             }
                             catch ( IOException e )
                             {
@@ -531,6 +535,45 @@ public abstract class AbstractActionApp
         }
         
         return true;
+    }
+    
+    /*---------------------------------------------------------------
+     * Static Methods
+     *-------------------------------------------------------------*/
+    protected static void printActions()
+    {
+        System.err.println( "" );
+        System.err.println( "[ACTIONS]" );
+        System.err.println( "   help                     : Shows this help message" );
+        System.err.println( "  Actions which should cause the Wrapper to exit cleanly:" );
+        System.err.println( "   stop0                    : Calls WrapperManager.stop(0)" );
+        System.err.println( "   exit0                    : Calls System.exit(0)" );
+        System.err.println( "   stopimmediate0           : Calls WrapperManager.stopImmediate(0)" );
+        System.err.println( "   stopandreturn0           : Calls WrapperManager.stopAndReturn(0)" );
+        System.err.println( "  Actions which should cause the Wrapper to exit in an error state:" );
+        System.err.println( "   stop1                    : Calls WrapperManager.stop(1)" );
+        System.err.println( "   exit1                    : Calls System.exit(1)" );
+        System.err.println( "   nestedexit1              : Calls System.exit(1) within WrapperListener.stop(1) callback" );
+        System.err.println( "   stopimmediate1           : Calls WrapperManager.stopImmediate(1)" );
+        System.err.println( "  Actions which should cause the Wrapper to restart the JVM:" );
+        System.err.println( "   access_violation         : Calls WrapperManager.accessViolation" );
+        System.err.println( "   access_violation_native  : Calls WrapperManager.accessViolationNative()" );
+        System.err.println( "   appear_hung              : Calls WrapperManager.appearHung()" );
+        System.err.println( "   halt0                    : Calls Runtime.getRuntime().halt(0)" );
+        System.err.println( "   halt1                    : Calls Runtime.getRuntime().halt(1)" );
+        System.err.println( "   restart                  : Calls WrapperManager.restart()" );
+        System.err.println( "   restartandreturn         : Calls WrapperManager.restartAndReturn()" );
+        System.err.println( "  Additional Tests:" );
+        System.err.println( "   ignore_events            : Makes this application ignore control events." );
+        System.err.println( "   dump                     : Calls WrapperManager.requestThreadDump()" );
+        System.err.println( "   deadlock_out             : Deadlocks the JVM's System.out and err streams." );
+        System.err.println( "   users                    : Start polling the current and interactive users." );
+        System.err.println( "   groups                   : Start polling the current and interactive users with groups." );
+        System.err.println( "   console                  : Prompt for actions in the console." );
+        System.err.println( "   idle                     : Do nothing just run in idle mode." );
+        System.err.println( "   properties               : Dump all System Properties to the console." );
+        System.err.println( "   configuration            : Dump all Wrapper Configuration Properties to the console." );
+        System.err.println( "" );
     }
 }
 

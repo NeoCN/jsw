@@ -728,9 +728,25 @@
         <copy file="${src.dir}/bin/App.bat.in"
               tofile="${bin.dir}/${app.caps.name}.bat"
               filtering="on"/>
-        <copy file="${src.dir}/bin/AppNoWrapper.bat.in"
-              tofile="${bin.dir}/${app.caps.name}NoWrapper.bat"
+        <replace file="${bin.dir}/${app.caps.name}.bat"
+                 token='set _WRAPPER_CONF="%~f1"'
+                 value='set _WRAPPER_CONF=""' />
+        <replace file="${bin.dir}/${app.caps.name}.bat"
+                 token='"%_WRAPPER_EXE%" -c %_WRAPPER_CONF%'
+                 value='"%_WRAPPER_EXE%" -c %_WRAPPER_CONF% wrapper.app.parameter.1=%1' />
+        
+        <!-- This isn't working on XP
+        <copy file="${src.dir}/bin/AppCommand.bat.in"
+              tofile="${bin.dir}/${app.caps.name}Command.bat"
               filtering="on"/>
+        <replace file="${bin.dir}/${app.caps.name}Command.bat"
+                 token=' : remove }'
+                 value=' : remove } [command]' />
+        <replace file="${bin.dir}/${app.caps.name}Command.bat"
+                 token='%_WRAPPER_CONF%'
+                 value='%_WRAPPER_CONF% wrapper.app.parameter.1=%2' />
+        -->
+        
         <copy file="${src.dir}/bin/InstallApp-NT.bat.in"
               tofile="${bin.dir}/Install${app.caps.name}-NT.bat"
               filtering="on"/>
@@ -758,7 +774,63 @@
         <copy file="${src.dir}/bin/sh.script.in"
             tofile="${bin.dir}/${app.name}"
             filtering="on"/>
-        <chmod file="${bin.dir}/${app.name}" perm="+x"/> 
+        <replace file="${bin.dir}/${app.name}">
+            <replacetoken><![CDATA[\"$REALPATH\" $2]]></replacetoken>
+            <replacevalue><![CDATA[\"$REALPATH\" $2 $3]]></replacevalue>
+        </replace>
+        <replace file="${bin.dir}/${app.name}">
+            <replacetoken><![CDATA['console')
+        checkUser touchlock $1
+        console
+        ;;]]></replacetoken>
+            <replacevalue><![CDATA['console')
+        checkUser touchlock $1 $2
+        console $2
+        ;;]]></replacevalue>
+        </replace>
+        <replace file="${bin.dir}/${app.name}">
+            <replacetoken><![CDATA['start')
+        checkUser touchlock $1
+        start
+        ;;]]></replacetoken>
+            <replacevalue><![CDATA['start')
+        checkUser touchlock $1 $2
+        start $2
+        ;;]]></replacevalue>
+        </replace>
+        <replace file="${bin.dir}/${app.name}">
+            <replacetoken><![CDATA['restart')
+        checkUser touchlock $1
+        stopit
+        start
+        ;;]]></replacetoken>
+            <replacevalue><![CDATA['restart')
+        checkUser touchlock $1 $2
+        stopit
+        start $2
+        ;;]]></replacevalue>
+        </replace>
+        <replace file="${bin.dir}/${app.name}">
+            <replacetoken><![CDATA[checkUser "" $1]]></replacetoken>
+            <replacevalue><![CDATA[checkUser "" $1 $2]]></replacevalue>
+        </replace>
+        <replace file="${bin.dir}/${app.name}">
+            <replacetoken><![CDATA[Running $APP_LONG_NAME]]></replacetoken>
+            <replacevalue><![CDATA[Running $APP_LONG_NAME with test action: $1]]></replacevalue>
+        </replace>
+        <replace file="${bin.dir}/${app.name}">
+            <replacetoken><![CDATA[Starting $APP_LONG_NAME]]></replacetoken>
+            <replacevalue><![CDATA[Starting $APP_LONG_NAME with test action: $1]]></replacevalue>
+        </replace>
+        <replace file="${bin.dir}/${app.name}">
+            <replacetoken><![CDATA[\"$WRAPPER_CMD\" \"$WRAPPER_CONF\"]]></replacetoken>
+            <replacevalue><![CDATA[\"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.app.parameter.1=$1]]></replacevalue>
+        </replace>
+        <replace file="${bin.dir}/${app.name}">
+            <replacetoken><![CDATA[Usage: $0 { console | start | stop | restart | status | dump }]]></replacetoken>
+            <replacevalue><![CDATA[Usage: $0 { console <action> | start <action> | stop | restart <action> | status | dump }]]></replacevalue>
+        </replace>
+        <chmod file="${bin.dir}/${app.name}" perm="+x"/> 		
     </target>
     
     <!-- =================================================================== -->

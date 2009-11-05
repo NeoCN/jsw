@@ -248,17 +248,6 @@ wrapper.on_exit.99=RESTART
 wrapper.listener.force_stop=TRUE]]></replacevalue>
         </replace>
         
-        <!-- Action Test -->
-        <delete file="${test.dir}/action.conf"/>
-        <filter token="app.name"          value="action"/>
-        <filter token="app.long.name"     value="Action Test Case" />
-        <copy file="${test.dir}/template.conf"
-              tofile="${test.dir}/action.conf"
-              filtering="on"/>
-        <replace file="${test.dir}/action.conf"
-                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
-                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.TestAction" />
-        
         <!-- Shutdown Hook Test -->
         <delete file="${test.dir}/shutdownhook.conf"/>
         <filter token="app.name"          value="shutdownhook"/>
@@ -617,24 +606,6 @@ set ENV_VAR_4=d]]></replacevalue>
                  token='%_REALPATH%..\conf\wrapper.conf'
                  value='%_REALPATH%..\test\stopwhilestartingforcestop.conf' />
         
-        <!-- Action Test -->
-        <delete file="${test.dir}/TestAction.bat"/>
-        <copy file="${src.dir}/bin/App.bat.in"
-              tofile="${test.dir}/TestAction.bat"
-              filtering="on"/>
-        <replace file="${test.dir}/TestAction.bat"
-                 token='set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%'
-                 value='set _WRAPPER_EXE=%_REALPATH%..\bin\%_WRAPPER_BASE%' />
-        <replace file="${test.dir}/TestAction.bat"
-                 token='set _WRAPPER_CONF="%~f1"'
-                 value='set _WRAPPER_CONF=""' />
-        <replace file="${test.dir}/TestAction.bat"
-                 token='%_REALPATH%..\conf\wrapper.conf'
-                 value='%_REALPATH%..\test\action.conf' />
-        <replace file="${test.dir}/TestAction.bat"
-                 token='"%_WRAPPER_EXE%" -c %_WRAPPER_CONF%'
-                 value='"%_WRAPPER_EXE%" -c %_WRAPPER_CONF% wrapper.app.parameter.1=%1' />
-        
         <!-- Shutdown Hook Test -->
         <delete file="${test.dir}/TestShutdownHook.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
@@ -978,14 +949,6 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/stopwhilestartingforcestop"
               filtering="on"/>
         <chmod file="${test.dir}/stopwhilestartingforcestop" perm="+x"/> 
-        
-        <!-- Action Test -->
-        <filter token="app.name"          value="action"/>
-        <filter token="app.long.name"     value="Action Test Case" />
-        <copy file="${test.dir}/action.script.in"
-              tofile="${test.dir}/action"
-              filtering="on"/>
-        <chmod file="${test.dir}/action" perm="+x"/> 
         
         <!-- Shutdown Hook Test -->
         <filter token="app.name"          value="shutdownhook"/>

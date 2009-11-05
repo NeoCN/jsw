@@ -27,6 +27,9 @@
  * included in all copies or substantial portions of the Software.
  */
 
+#ifndef _PROPERTY_H
+#define _PROPERTY_H
+
 #ifndef TRUE
 #define TRUE -1
 #endif
@@ -34,9 +37,6 @@
 #ifndef FALSE
 #define FALSE 0
 #endif
-
-#ifndef _PROPERTY_H
-#define _PROPERTY_H
 
 /* This defines the largest environment variable that we are able
  *  to work with.  It can be expanded if needed. */
@@ -100,6 +100,8 @@ extern void addProperty(Properties *properties, const char *propertyName, const 
 extern int addPropertyPair(Properties *properties, const char *propertyNameValue, int finalValue, int quotable);
 
 extern const char* getStringProperty(Properties *properties, const char *propertyName, const char *defaultValue);
+
+extern const char* getFileSafeStringProperty(Properties *properties, const char *propertyName, const char *defaultValue);
 
 /**
  * Returns a sorted array of all properties beginning with {propertyNameBase}.

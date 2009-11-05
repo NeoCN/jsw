@@ -1508,8 +1508,13 @@ void wrapperExecute() {
     startup_info.dwFillAttribute=0;
     
     /* Set the default flags which will not hide any windows opened by the JVM. */
+    /* Using Show Window and SW_HIDE seems to make it impossible to show any windows when the 32-bit version runs as a service.
     startup_info.dwFlags=STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
     startup_info.wShowWindow=SW_HIDE;
+    */
+    startup_info.dwFlags=STARTF_USESTDHANDLES;
+    startup_info.wShowWindow=0;
+    
     hideConsole = FALSE;
     if (wrapperData->isConsole) {
         /* We are running as a console so no special console handling needs to be done. */
@@ -2339,7 +2344,7 @@ int wrapperInstall() {
     SC_HANDLE   schService;
     SC_HANDLE   schSCManager;
     DWORD       serviceType;
-
+    DWORD       startType;
     char szPath[512];
     char binaryPath[4096];
     int i;
@@ -2439,14 +2444,14 @@ int wrapperInstall() {
         if ((ntServicePassword != NULL) && (strlen(ntServicePassword) <= 0)) {
             ntServicePassword = NULL;
         }
-        
+        startType = wrapperData->ntServiceStartType;
         schService = CreateService(
                                    schSCManager,                       /* SCManager database */
                                    wrapperData->serviceName,           /* name of service */
                                    wrapperData->serviceDisplayName,    /* name to display */
                                    0,                                  /* desired access */
                                    serviceType,                        /* service type */
-                                   wrapperData->ntServiceStartType,    /* start type */
+                                   startType,                          /* start type */
                                    SERVICE_ERROR_NORMAL,               /* error control type */
                                    binaryPath,                         /* service's binary */
                                    wrapperData->ntServiceLoadOrderGroup, /* load ordering group */
@@ -2471,7 +2476,7 @@ int wrapperInstall() {
             /* Service was installed. */
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s installed.",
                 wrapperData->serviceDisplayName);
-
+            
             /* Close the handle to this service object */
             CloseServiceHandle(schService);
         } else {
