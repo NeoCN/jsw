@@ -196,6 +196,9 @@ case "$DIST_OS" in
     'unix_sv')
         DIST_OS="unixware"
         ;;
+    'FreeBSD')
+        DIST_OS="freebsd"
+        ;;
 esac
 
 # Resolve the architecture
@@ -244,6 +247,15 @@ then
     if [ -z "$JAVA_HOME" ]; then
         JAVA_HOME="/Library/Java/Home"; export JAVA_HOME
     fi
+fi
+
+# Test Echo
+ECHOTEST=`echo -n "x"`
+if [ "$ECHOTEST" = "x" ]
+then
+    ECHOOPT="-n "
+else
+    ECHOOPT=""
 fi
 
 outputFile() {
@@ -408,6 +420,13 @@ getpid() {
                 # The ps statement below looks for the specific wrapper command running as
                 #  the pid.  If it is not found then the pid file is considered to be stale.
                 case "$DIST_OS" in
+                    'freebsd')
+                        pidtest=`$PSEXE -p $pid -o args | tail -1`
+                        if [ "X$pidtest" = "XCOMMAND" ]
+                        then 
+                            pidtest=""
+                        fi
+                        ;;
                     'macosx')
                         pidtest=`$PSEXE -ww -p $pid -o command | grep "$WRAPPER_CMD" | tail -1`
                         ;;
@@ -497,7 +516,7 @@ console() {
 }
  
 start() {
-    echo -n "Starting $APP_LONG_NAME..."
+    echo $ECHOOPT"Starting $APP_LONG_NAME..."
     getpid
     if [ "X$pid" = "X" ]
     then
@@ -516,7 +535,7 @@ start() {
     while [ $i -lt $WAIT_AFTER_STARTUP ]
     do
         sleep 1
-        echo -n "."
+        echo $ECHOOPT"."
         i=`expr $i + 1`
     done
     if [ $WAIT_AFTER_STARTUP -gt 0 ]

@@ -20,7 +20,14 @@
 /*#define WRAPPER_FILE_DEBUG*/
 
 #define WRAPPER_FILE_SORT_MODE_TIMES 100
-#define WRAPPER_FILE_SORT_MODE_NAMES 101
+#define WRAPPER_FILE_SORT_MODE_NAMES_ASC 101
+#define WRAPPER_FILE_SORT_MODE_NAMES_DEC 102
+
+/**
+ * Returns a valid sort mode given a name: "TIMES", "NAMES_ASC", "NAMES_DEC".
+ *  In the event of an invalid value, TIMES will be returned.
+ */
+extern int wrapperFileGetSortMode(const char *modeName);
 
 /**
  * Returns a NULL terminated list of file names within the specified pattern.

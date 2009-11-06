@@ -46,6 +46,11 @@ Java Service Wrapper Revision History.
   child processes could not be displayed when running in iteractive mode.
 * Rework the TestWrapper application a bit so it can now be run in headless
   mode for testing.
+* Fix a problem on some UNIX platforms where the shell script was showing an
+  extra '-n' when run with the "start" command.
+* Fix a problem for FreeBSD which could cause the wrapper being unable to stop
+  the wrapper daemon if the ps command buffer size (kern.ps_arg_cache_limit) 
+  was too small to contain the wrapper command line.
 
 3.3.7
 * (Professional and Standard) Added the ability to customize the wrapper.exe
