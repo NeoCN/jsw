@@ -17,6 +17,7 @@
 #include "wrapper_file.h"
 #include "logger.h"
 
+#include <stdio.h>
 #ifdef WIN32
 #include <errno.h>
 #include <tchar.h>
@@ -39,6 +40,21 @@
 #ifndef FALSE
 #define FALSE 0
 #endif
+
+/**
+ * Returns a valid sort mode given a name: "TIMES", "NAMES_ASC", "NAMES_DEC".
+ *  In the event of an invalid value, TIMES will be returned.
+ */
+int wrapperFileGetSortMode(const char *modeName) {
+    if (strcmpIgnoreCase(modeName, "NAMES_ASC") == 0) {
+        return WRAPPER_FILE_SORT_MODE_NAMES_ASC;
+    } else if (strcmpIgnoreCase(modeName, "NAMES_DEC") == 0) {
+        return WRAPPER_FILE_SORT_MODE_NAMES_DEC;
+    } else {
+        return WRAPPER_FILE_SORT_MODE_TIMES;
+    }
+}
+
 
 #ifdef WIN32
 int sortFilesTimes(char **files, __time64_t *fileTimes, int cnt) {
@@ -87,7 +103,7 @@ int compareFileNames(const char *file1, const char *file2) {
     while (TRUE) {
         c1 = file1[pos1];
         c2 = file2[pos2];
-        /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "     file1[%d]=%d, file2[%d]=%d", pos1, c1, pos2, c2);*/
+        /*printf("     file1[%d]=%d, file2[%d]=%d\n", pos1, c1, pos2, c2);*/
         
         /* Did we find the null. */
         if (c1 == 0) {
@@ -128,7 +144,7 @@ int compareFileNames(const char *file1, const char *file2) {
                     c2 = file2[pos2 + 1];
                 }
                 
-                /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "     num1=%ld, num2=%ld", num1, num2);*/
+                /*printf("     num1=%ld, num2=%ld\n", num1, num2);*/
                 if (num1 > num2) {
                     return -1;
                 } else if (num2 > num1 ) {
@@ -176,7 +192,7 @@ int compareFileNames(const char *file1, const char *file2) {
     }
 }
 
-int sortFilesNames(char **files, int cnt) {
+int sortFilesNamesAsc(char **files, int cnt) {
     int i, j;
     char *temp;
     int cmp;
@@ -184,12 +200,26 @@ int sortFilesNames(char **files, int cnt) {
     for (i = 0; i < cnt; i++) {
         for (j = 0; j < cnt - 1; j++) {
             cmp = compareFileNames(files[j], files[j+1]);
-            /*
-            #ifdef WRAPPER_FILE_DEBUG
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "    compareFileNames(%s, %s) -> %d", files[j], files[j+1], cmp);
-            #endif
-            */
             if (cmp < 0) {
+                temp = files[j + 1];
+                files[j + 1] = files[j];
+                files[j] = temp;
+            }
+        }
+    }
+    
+    return TRUE;
+}
+
+int sortFilesNamesDec(char **files, int cnt) {
+    int i, j;
+    char *temp;
+    int cmp;
+    
+    for (i = 0; i < cnt; i++) {
+        for (j = 0; j < cnt - 1; j++) {
+            cmp = compareFileNames(files[j], files[j+1]);
+            if (cmp > 0) {
                 temp = files[j + 1];
                 files[j + 1] = files[j];
                 files[j] = temp;
@@ -232,7 +262,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
 #endif
 
 #ifdef WRAPPER_FILE_DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "wrapperFileGetFiles(%s, %d)", pattern, sortMode);
+    printf("wrapperFileGetFiles(%s, %d)\n", pattern, sortMode);
 #endif
     
 #ifdef WIN32
@@ -241,14 +271,14 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
     filesSize = FILES_CHUNK;
     files = malloc(sizeof(char *) * filesSize);
     if (!files) {
-        outOfMemory("WFGF", 1);
+        outOfMemoryQueued("WFGF", 1);
         return NULL;
     }
     memset(files, 0, sizeof(char *) * filesSize);
     
     fileTimes = malloc(sizeof(__time64_t) * filesSize);
     if (!fileTimes) {
-        outOfMemory("WFGF", 2);
+        outOfMemoryQueued("WFGF", 2);
         free(files);
         return NULL;
     }
@@ -260,7 +290,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
         /* No directory component */
         dirPart = malloc(sizeof(char) * 1);
         if (!dirPart) {
-            outOfMemory("WFGF", 3);
+            outOfMemoryQueued("WFGF", 3);
             return NULL;
         }
         dirPart[0] = '\0';
@@ -270,7 +300,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
         dirLen = c - pattern + 1;
         dirPart = malloc(dirLen + 1);
         if (!dirPart) {
-            outOfMemory("WFGF", 4);
+            outOfMemoryQueued("WFGF", 4);
             return NULL;
         }
         memcpy(dirPart, pattern, dirLen);
@@ -278,7 +308,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
     }
 
 #ifdef WRAPPER_FILE_DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "  dirPart=[%s]", dirPart);
+    printf("  dirPart=[%s]\n", dirPart);
 #endif
     
     /* Get the first file. */
@@ -287,7 +317,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
             fileLen = _tcslen(fblock.name);
             files[cnt] = malloc((_tcslen(fblock.name) + 1 ) * sizeof(TCHAR));
             if (!files[cnt]) {
-                outOfMemory("WFGF", 5);
+                outOfMemoryQueued("WFGF", 5);
                 free(fileTimes);
                 wrapperFileFreeFiles(files);
                 free(dirPart);
@@ -296,7 +326,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
             _tcscpy(files[cnt], fblock.name);
             fileTimes[cnt] = fblock.time_write;
 #ifdef WRAPPER_FILE_DEBUG
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "  files[%d]=%s, %ld", cnt, files[cnt], fileTimes[cnt]);
+            printf("  files[%d]=%s, %ld\n", cnt, files[cnt], fileTimes[cnt]);
 #endif
             
             cnt++;
@@ -309,7 +339,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
                 if (cnt >= filesSize - 1) {
                     newFiles = malloc(sizeof(char *) * (filesSize + FILES_CHUNK));
                     if (!newFiles) {
-                        outOfMemory("WFGF", 6);
+                        outOfMemoryQueued("WFGF", 6);
                         free(fileTimes);
                         wrapperFileFreeFiles(files);
                         free(dirPart);
@@ -318,7 +348,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
                     memset(newFiles, 0, sizeof(char *) * (filesSize + FILES_CHUNK));
                     newFileTimes = malloc(sizeof(__time64_t) * (filesSize + FILES_CHUNK));
                     if (!newFileTimes) {
-                        outOfMemory("WFGF", 7);
+                        outOfMemoryQueued("WFGF", 7);
                         free(newFiles);
                         free(fileTimes);
                         wrapperFileFreeFiles(files);
@@ -337,14 +367,14 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
                     fileTimes = newFileTimes;
                     filesSize += FILES_CHUNK;
 #ifdef WRAPPER_FILE_DEBUG
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "  increased files to %d", filesSize);
+                    printf("  increased files to %d\n", filesSize);
 #endif
                 }
                 
                 fileLen = strlen(fblock.name);
                 files[cnt] = malloc((_tcslen(fblock.name) + 1 ) * sizeof(TCHAR));
                 if (!files[cnt]) {
-                    outOfMemory("WFGF", 8);
+                    outOfMemoryQueued("WFGF", 8);
                     free(fileTimes);
                     wrapperFileFreeFiles(files);
                     free(dirPart);
@@ -354,7 +384,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
                 fileTimes[cnt] = fblock.time_write;
                 
 #ifdef WRAPPER_FILE_DEBUG
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "  files[%d]=%s, %ld", cnt, files[cnt], fileTimes[cnt]);
+                printf("  files[%d]=%s, %ld\n", cnt, files[cnt], fileTimes[cnt]);
 #endif
                 cnt++;
             }
@@ -368,11 +398,11 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
         if (errno == ENOENT) {
             /* No files matched. */
 #ifdef WRAPPER_FILE_DEBUG
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "  No files matched.");
+            printf("  No files matched.\n");
 #endif
         } else {
             /* Encountered an error of some kind. */
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Error listing files, %s: %s", pattern, getLastErrorText());
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Error listing files, %s: %s", pattern, getLastErrorText());
             free(fileTimes);
             wrapperFileFreeFiles(files);
             return NULL;
@@ -386,14 +416,14 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
             filesSize = g.gl_pathc + 1;
             files = malloc(sizeof(char *) * filesSize);
             if (!files) {
-                outOfMemory("WFGF", 9);
+                outOfMemoryQueued("WFGF", 9);
                 return NULL;
             }
             memset(files, 0, sizeof(char *) * filesSize);
             
             fileTimes = malloc(sizeof(time_t) * filesSize);
             if (!fileTimes) {
-                outOfMemory("WFGF", 10);
+                outOfMemoryQueued("WFGF", 10);
                 wrapperFileFreeFiles(files);
                 return NULL;
             }
@@ -402,7 +432,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
             for (findex=0; findex < g.gl_pathc; findex++) {
                 files[cnt] = malloc(strlen(g.gl_pathv[findex]) + 1);
                 if (!files[cnt]) {
-                    outOfMemory("WFGF", 11);
+                    outOfMemoryQueued("WFGF", 11);
                     free(fileTimes);
                     wrapperFileFreeFiles(files);
                     return NULL;
@@ -414,30 +444,30 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
                     if (!stat(files[cnt], &fileStat)) {
                         fileTimes[cnt] = fileStat.st_mtime;
                     } else {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Failed to stat %s: %s", files[cnt], getLastErrorText());
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Failed to stat %s: %s", files[cnt], getLastErrorText());
                     }
                 }
 #ifdef WRAPPER_FILE_DEBUG
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "  files[%d]=%s, %ld", cnt, files[cnt], fileTimes[cnt]);
+                printf("  files[%d]=%s, %ld\n", cnt, files[cnt], fileTimes[cnt]);
 #endif
                 cnt++;
             }
         } else {
 #ifdef WRAPPER_FILE_DEBUG
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "  No files matched.");
+            printf("  No files matched.\n");
 #endif
             /* No files, but we still need the array. */
             filesSize = 1;
             files = malloc(sizeof(char *) * filesSize);
             if (!files) {
-                outOfMemory("WFGF", 12);
+                outOfMemoryQueued("WFGF", 12);
                 return NULL;
             }
             memset(files, 0, sizeof(char *) * filesSize);
             
             fileTimes = malloc(sizeof(time_t) * filesSize);
             if (!fileTimes) {
-                outOfMemory("WFGF", 13);
+                outOfMemoryQueued("WFGF", 13);
                 return NULL;
             }
             memset(fileTimes, 0, sizeof(time_t) * filesSize);
@@ -446,26 +476,26 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
         globfree(&g);
     } else if (result == GLOB_NOMATCH) {
 #ifdef WRAPPER_FILE_DEBUG
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "  No files matched.");
+        printf("  No files matched.\n");
 #endif
         /* No files, but we still need the array. */
         filesSize = 1;
         files = malloc(sizeof(char *) * filesSize);
         if (!files) {
-            outOfMemory("WFGF", 14);
+            outOfMemoryQueued("WFGF", 14);
             return NULL;
         }
         memset(files, 0, sizeof(char *) * filesSize);
         
         fileTimes = malloc(sizeof(time_t) * filesSize);
         if (!fileTimes) {
-            outOfMemory("WFGF", 15);
+            outOfMemoryQueued("WFGF", 15);
             return NULL;
         }
         memset(fileTimes, 0, sizeof(time_t) * filesSize);
     } else {
         /* Encountered an error of some kind. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Error listing files, %s: %s", pattern, getLastErrorText());
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Error listing files, %s: %s", pattern, getLastErrorText());
         return NULL;
     }
 #endif
@@ -477,8 +507,15 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
             wrapperFileFreeFiles(files);
             return NULL;
         }
+    } else if (sortMode == WRAPPER_FILE_SORT_MODE_NAMES_DEC) {
+        if (!sortFilesNamesDec(files, cnt)) {
+            /* Failed. Reported. */
+            free(fileTimes);
+            wrapperFileFreeFiles(files);
+            return NULL;
+        }
     } else {
-        if (!sortFilesNames(files, cnt)) {
+        if (!sortFilesNamesAsc(files, cnt)) {
             /* Failed. Reported. */
             free(fileTimes);
             wrapperFileFreeFiles(files);
@@ -487,11 +524,11 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
     }
     
 #ifdef WRAPPER_FILE_DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "  Sorted:");
+    printf("  Sorted:\n");
     for (i = 0; i < cnt; i++) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "  files[%d]=%s, %ld", i, files[i], fileTimes[i]);
+        printf("  files[%d]=%s, %ld\n", i, files[i], fileTimes[i]);
     }
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "END");
+    printf("wrapperFileGetFiles(%s, %d) END\n", pattern, sortMode);
 #endif
 
     free(fileTimes);
@@ -522,7 +559,12 @@ void wrapperFileTests() {
         wrapperFileFreeFiles(files);
     }
     
-    files = wrapperFileGetFiles("../logs/*.log*", WRAPPER_FILE_SORT_MODE_NAMES);
+    files = wrapperFileGetFiles("../logs/*.log*", WRAPPER_FILE_SORT_MODE_NAMES_ASC);
+    if (files) {
+        wrapperFileFreeFiles(files);
+    }
+    
+    files = wrapperFileGetFiles("../logs/*.log*", WRAPPER_FILE_SORT_MODE_NAMES_DEC);
     if (files) {
         wrapperFileFreeFiles(files);
     }
