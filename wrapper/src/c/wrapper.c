@@ -3360,9 +3360,7 @@ int wrapperBuildNTServiceInfo() {
         freeStringProperties(propertyNames, propertyValues, propertyIndices);
 
         /* Set the service start type */
-        if (strcmpIgnoreCase(getStringProperty(properties, "wrapper.ntservice.starttype", "DEMAND_START"), "DELAY_START") == 0) {
-            wrapperData->ntServiceStartType = WRAPPER_DELAY_START;
-        } else if (strcmpIgnoreCase(getStringProperty(properties, "wrapper.ntservice.starttype", "DEMAND_START"), "AUTO_START") == 0) {
+        if (strcmpIgnoreCase(getStringProperty(properties, "wrapper.ntservice.starttype", "DEMAND_START"), "AUTO_START") == 0) {
             wrapperData->ntServiceStartType = SERVICE_AUTO_START;
         } else {
             wrapperData->ntServiceStartType = SERVICE_DEMAND_START;

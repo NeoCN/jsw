@@ -255,6 +255,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
 #ifdef WRAPPER_FILE_DEBUG
     int i;
 #endif
+    int result;
     glob_t g;
     int findex;
     time_t *fileTimes;
@@ -410,7 +411,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
     }
 #else
     cnt = 0;
-    int result = glob(pattern, GLOB_MARK | GLOB_NOSORT, NULL, &g);
+    result = glob(pattern, GLOB_MARK | GLOB_NOSORT, NULL, &g);
     if (!result) {
         if (g.gl_pathc > 0) {
             filesSize = g.gl_pathc + 1;
