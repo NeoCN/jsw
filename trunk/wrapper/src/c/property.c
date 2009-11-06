@@ -802,7 +802,6 @@ void trim(const char *in, char *out)
     len = strlen(in);
     if (len > 0) {                                     
         first = 0;
-        last = -1;
         last = len - 1;                                    
     
         /* Right Trim */
