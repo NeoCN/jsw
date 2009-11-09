@@ -1,5 +1,13 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.3.9
+* Fix a problem introduced in 3.3.8 where relative configuration file includes
+  were failing to resolve correctly when the wrapper.working.dir and
+  wrapper.daemonize properties were used together.  The wrapper.daemonize
+  property causes the configuration to be loaded twice on startup and the
+  working directly was not being reset correctly before it was loaded the
+  second time.
+
 3.3.8
 * Add the new start type DELAY_START for NT Services, which startes the service 
   after other auto-start services are started plus a short delay.
