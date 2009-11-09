@@ -1494,6 +1494,21 @@ int main(int argc, char **argv) {
             /* Get the current process. */
             wrapperData->wrapperPID = getpid();
             
+            if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Reloading configuration after daemonization.");
+            }
+            
+            /* If the working dir has been changed then we need to restore it before
+             *  the configuration can be reloaded.  This is needed to support relative
+             *  references to include files. */
+            if (wrapperData->workingDir && wrapperData->originalWorkingDir) {
+                if (wrapperSetWorkingDir(wrapperData->originalWorkingDir)) {
+                    /* Failed to restore the working dir.  Shutdown the Wrapper */
+                    appExit(1);
+                    return 1; /* For compiler. */
+                }
+            }
+            
             /* Load the properties. */
             if (wrapperLoadConfigurationProperties()) {
                 /* Unable to load the configuration.  Any errors will have already
@@ -1503,6 +1518,12 @@ int main(int argc, char **argv) {
                      *  it did not exist.  Show the usage. */
                     wrapperUsage(argv[0]);
                 }
+                appExit(1);
+                return 1; /* For compiler. */
+            }
+        
+            /* Change the working directory if configured to do so. */
+            if (wrapperData->workingDir && wrapperSetWorkingDir(wrapperData->workingDir)) {
                 appExit(1);
                 return 1; /* For compiler. */
             }
