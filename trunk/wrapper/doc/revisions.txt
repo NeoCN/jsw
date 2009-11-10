@@ -1,20 +1,23 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 3.3.9
-* Fix a problem introduced in 3.3.8 where relative configuration file includes
-  were failing to resolve correctly when the wrapper.working.dir and
-  wrapper.daemonize properties were used together.  The wrapper.daemonize
-  property causes the configuration to be loaded twice on startup and the
-  working directly was not being reset correctly before it was loaded the
-  second time.
 * Modify the way JNI functions are called from within the native library so
   they work correctly on platforms which are not ASCII based.
 * (Professional) Add support for IBM z/OS 390 servers.  This is still an alpha
   release and will be made available on request.
 * Improve the message displayed when a server license key is used on a
   different server.
+* Fix a problem introduced in 3.3.8 where relative configuration file includes
+  were failing to resolve correctly when the wrapper.working.dir and
+  wrapper.daemonize properties were used together.  The wrapper.daemonize
+  property causes the configuration to be loaded twice on startup and the
+  working directly was not being reset correctly before it was loaded the
+  second time.
 * Fix a problem introduced in 3.3.8 where wildcard selection of files on
   Windows failed in some cases.
+* Fix a problem introduced in 3.3.8 where setting the wrapper.logfile.maxfiles
+  property to 0 was causing all log files to be deleted rather than none when
+  the ROLLNUM file pattern was used.
 
 3.3.8
 * Add the new start type DELAY_START for NT Services, which startes the service 
