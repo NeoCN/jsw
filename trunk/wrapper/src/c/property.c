@@ -478,13 +478,12 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
             /* Always strip both ^M and ^J off the end of the line, this is done rather
              *  than simply checking for \n so that files will work on all platforms
              *  even if their line feeds are incorrect. */
-            if ((d = strchr(buffer, 13 /* ^M */)) != NULL) { 
+            if ((d = strchr(buffer, 0x0d /* ^M */)) != NULL) { 
                 d[0] = '\0';
             }
-            if ((d = strchr(buffer, 10 /* ^J */)) != NULL) { 
+            if ((d = strchr(buffer, 0x0a /* ^J */)) != NULL) { 
                 d[0] = '\0';
             }
-
             /* Strip any whitespace from the front of the line. */
             trimmedBuffer = buffer;
             while ((trimmedBuffer[0] == ' ') || (trimmedBuffer[0] == 0x08)) {

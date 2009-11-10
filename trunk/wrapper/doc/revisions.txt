@@ -7,6 +7,10 @@ Java Service Wrapper Revision History.
   property causes the configuration to be loaded twice on startup and the
   working directly was not being reset correctly before it was loaded the
   second time.
+* Modify the way JNI functions are called from within the native library so
+  they work correctly on platforms which are not ASCII based.
+* (Professional) Add support for IBM z/OS 390 servers.  This is still an alpha
+  release and will be made available on request.
 
 3.3.8
 * Add the new start type DELAY_START for NT Services, which startes the service 

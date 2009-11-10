@@ -156,6 +156,9 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass cl
     signal(SIGUSR1, handleUsr1);
     signal(SIGUSR2, handleUsr2);
     */
+    
+    initUTF8Strings(env);
+    
 
     /* Store the current process Id */
     wrapperProcessId = getpid();
@@ -230,10 +233,10 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
     jbyteArray jGroupName;
 
     /* Look for the WrapperUser class. Ignore failures as JNI throws an exception. */
-    if ((wrapperUserClass = (*env)->FindClass(env, "org/tanukisoftware/wrapper/WrapperUNIXUser")) != NULL) {
+    if ((wrapperUserClass = (*env)->FindClass(env, utf8ClassOrgTanukisoftwareWrapperWrapperUNIXUser)) != NULL) {
 
         /* Look for the constructor. Ignore failures. */
-        if ((constructor = (*env)->GetMethodID(env, wrapperUserClass, "<init>", "(II[B[B[B[B)V")) != NULL) {
+        if ((constructor = (*env)->GetMethodID(env, wrapperUserClass, utf8MethodInit, utf8SigII_B_B_B_BrV)) != NULL) {
 
             uid = geteuid();
             pw = getpwuid(uid);
@@ -268,7 +271,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
             /* If the caller requested the user's groups then look them up. */
             if (groups) {
                 /* Set the user group. */
-                if ((setGroup = (*env)->GetMethodID(env, wrapperUserClass, "setGroup", "(I[B)V")) != NULL) {
+                if ((setGroup = (*env)->GetMethodID(env, wrapperUserClass, utf8MethodSetGroup, utf8SigI_BrV)) != NULL) {
                     if ((aGroup = getgrgid(ugid)) != NULL) {
                         ggid = aGroup->gr_gid;
 
@@ -284,7 +287,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
                 }
 
                 /* Look for the addGroup method. Ignore failures. */
-                if ((addGroup = (*env)->GetMethodID(env, wrapperUserClass, "addGroup", "(I[B)V")) != NULL) {
+                if ((addGroup = (*env)->GetMethodID(env, wrapperUserClass, utf8MethodAddGroup, utf8SigI_BrV)) != NULL) {
                     setgrent();
                     while ((aGroup = getgrent()) != NULL) {
                         /* Search the member list to decide whether or not the user is a member. */
