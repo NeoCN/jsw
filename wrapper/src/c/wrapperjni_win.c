@@ -647,6 +647,8 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass cl
             flushall();
         }
     }
+    
+    initUTF8Strings(env);
 
     osVer.dwOSVersionInfoSize = sizeof(osVer);
     if (GetVersionEx(&osVer)) {
