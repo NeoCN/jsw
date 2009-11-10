@@ -40,6 +40,19 @@
 #define FALSE 0
 #endif
 
+
+/* UTF8 String references for support on non-ASCII platforms. */
+extern const char utf8MethodInit[];
+#ifdef WIN32
+#else
+extern char *utf8ClassOrgTanukisoftwareWrapperWrapperUNIXUser;
+extern char *utf8MethodSetGroup;
+extern char *utf8MethodAddGroup;
+extern char *utf8SigII_B_B_B_BrV;
+extern char *utf8SigI_BrV;
+#endif
+
+extern void initUTF8Strings();
 extern char* getLastErrorText();
 extern int wrapperJNIDebugging;
 extern int wrapperLockControlEventQueue();

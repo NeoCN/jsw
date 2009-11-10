@@ -104,9 +104,9 @@ jstring JNU_NewStringNative(JNIEnv *env, const char *str) {
     len = strlen(str);
     bytes = (*env)->NewByteArray(env, (jsize)len);
     if (bytes != NULL) {
-        (*env)->SetByteArrayRegion(env, bytes, 0, (jsize)len,(jbyte *)str);
-        Class_java_lang_String = (*env)->FindClass(env,"java/lang/String");
-        MID_String_init = (*env)->GetMethodID(env, Class_java_lang_String,"<init>", "([B)V");
+        (*env)->SetByteArrayRegion(env, bytes, 0, (jsize)len, (jbyte *)str);
+        Class_java_lang_String = (*env)->FindClass(env, utf8ClassJavaLangString);
+        MID_String_init = (*env)->GetMethodID(env, Class_java_lang_String, utf8MethodInit, utf8Sig_BrV);
         result = (*env)->NewObject(env, Class_java_lang_String, MID_String_init, bytes);
         (*env)->DeleteLocalRef(env, bytes);
         return result;
@@ -125,15 +125,15 @@ char *JNU_GetStringNativeChars(JNIEnv *env, jstring jstr) {
     if ((*env)->EnsureLocalCapacity(env, 2) < 0) {
         return 0; /* out of memory error */
     }
-    if ((Class_java_lang_String = (*env)->FindClass(env,"java/lang/String")) != NULL &&
-            (MID_String_getBytes = (*env)->GetMethodID(env, Class_java_lang_String,"<getBytes>", "()[B")) != NULL){
+    if ((Class_java_lang_String = (*env)->FindClass(env, utf8ClassJavaLangString)) != NULL &&
+            (MID_String_getBytes = (*env)->GetMethodID(env, Class_java_lang_String, utf8MethodGetBytes, utf8Sigr_B)) != NULL){
         bytes = (*env)->CallObjectMethod(env, jstr, MID_String_getBytes);
         exc = (*env)->ExceptionOccurred(env);
         if (!exc) {
             jint len = (*env)->GetArrayLength(env, bytes);
             result = (char *)malloc(len + 1);
             if (!result) {
-                throwThrowable(env, "java/lang/OutOfMemoryError", gettext("WrapperJNI Error: %s"), getLastErrorText());
+                throwThrowable(env, utf8ClassJavaLangOutOfMemoryError, gettext("WrapperJNI Error: %s"), getLastErrorText());
                 (*env)->DeleteLocalRef(env, bytes);
                 return 0;
             }
@@ -147,7 +147,66 @@ char *JNU_GetStringNativeChars(JNIEnv *env, jstring jstr) {
     return result;
 }
 
+/**
+ * Returns a new buffer containing the UTF8 characters for the specified native string.
+ *
+ * It is the responsibility of the caller to free the returned buffer.
+ */
+char *getUTF8Chars(JNIEnv *env, const char *nativeChars) {
+    jstring js;
+    jsize jlen;
+    const char *stringChars;
+    jboolean isCopy;
+    char *utf8Chars = NULL;
+    
+    js = JNU_NewStringNative(env, nativeChars);
+    if (js != NULL) {
+        jlen = (*env)->GetStringUTFLength(env, js);
+        utf8Chars = malloc(jlen + 1);
+        if (!utf8Chars) {
+            printf("Out of memory GUC(1)\n");fflush(NULL);
+            return NULL;
+        }
 
+        stringChars = ((*env)->GetStringUTFChars(env, js, &isCopy));
+        if (stringChars != NULL) {
+            memcpy(utf8Chars, stringChars, jlen);
+            utf8Chars[jlen] = '\0';
+            
+            (*env)->ReleaseStringUTFChars(env, js, stringChars);
+        } else {
+            printf("Out of memory GUC(2)\n");fflush(NULL);
+            free(utf8Chars);
+            return NULL;
+        }
+        
+        (*env)->DeleteLocalRef(env, js);
+    }
+    
+    return utf8Chars;
+}
+
+void initUTF8Strings(JNIEnv *env) {
+    /* Now do the rest of the strings using our helper function. */
+    utf8ClassJavaLangSystem = getUTF8Chars(env, "java/lang/System");
+    utf8ClassOrgTanukisoftwareWrapperWrapperManager = getUTF8Chars(env, "org/tanukisoftware/wrapper/WrapperManager");
+    utf8ClassJavaLangOutOfMemoryError = getUTF8Chars(env, "java/lang/OutOfMemoryError");
+    utf8MethodGetProperty = getUTF8Chars(env, "getProperty");
+    utf8MethodStopAndReturn = getUTF8Chars(env, "stopAndReturn");
+    utf8MethodGetBytes = getUTF8Chars(env, "<getBytes>");
+    utf8SigLjavaLangStringrLjavaLangString = getUTF8Chars(env, "(Ljava/lang/String;)Ljava/lang/String;");
+    utf8SigLjavaLangStringrV = getUTF8Chars(env, "(Ljava/lang/String;)V");
+    utf8SigIrV = getUTF8Chars(env, "(I)V");
+    utf8Sigr_B = getUTF8Chars(env, "()[B");
+#ifdef WIN32
+#else
+    utf8ClassOrgTanukisoftwareWrapperWrapperUNIXUser = getUTF8Chars(env, "org/tanukisoftware/wrapper/WrapperUNIXUser");
+    utf8MethodSetGroup = getUTF8Chars(env, "setGroup");
+    utf8MethodAddGroup = getUTF8Chars(env, "addGroup");
+    utf8SigII_B_B_B_BrV = getUTF8Chars(env, "(II[B[B[B[B)V");
+    utf8SigI_BrV = getUTF8Chars(env, "(I[B)V");
+#endif
+}
 
 void throwThrowable(JNIEnv *env, char *throwableClassName, const char *lpszFmt, ...) {
     va_list vargs;
@@ -212,7 +271,7 @@ void throwThrowable(JNIEnv *env, char *throwableClassName, const char *lpszFmt, 
 
     /* We have the messageBuffer */
     if ((jThrowableClass = (*env)->FindClass(env, throwableClassName)) != NULL) {
-        if ((constructor = (*env)->GetMethodID(env, jThrowableClass, "<init>", "(Ljava/lang/String;)V")) != NULL) {
+        if ((constructor = (*env)->GetMethodID(env, jThrowableClass, utf8MethodInit, utf8SigLjavaLangStringrV)) != NULL) {
             if ((jMessageBuffer = JNU_NewStringNative(env, messageBuffer)) != NULL) {
                 if ((jThrowable = (*env)->NewObject(env, jThrowableClass, constructor, jMessageBuffer)) != NULL) {
                     if ((*env)->Throw(env, jThrowable)){
