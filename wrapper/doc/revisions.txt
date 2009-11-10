@@ -11,6 +11,10 @@ Java Service Wrapper Revision History.
   they work correctly on platforms which are not ASCII based.
 * (Professional) Add support for IBM z/OS 390 servers.  This is still an alpha
   release and will be made available on request.
+* Improve the message displayed when a server license key is used on a
+  different server.
+* Fix a problem introduced in 3.3.8 where wildcard selection of files on
+  Windows failed in some cases.
 
 3.3.8
 * Add the new start type DELAY_START for NT Services, which startes the service 

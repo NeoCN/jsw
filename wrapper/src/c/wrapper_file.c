@@ -316,7 +316,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
     if ((handle = _tfindfirst64(pattern, &fblock)) > 0) {
         if ((strcmp(fblock.name, ".") != 0) && (strcmp(fblock.name, "..") != 0)) {
             fileLen = _tcslen(fblock.name);
-            files[cnt] = malloc((_tcslen(fblock.name) + 1 ) * sizeof(TCHAR));
+            files[cnt] = malloc((_tcslen(dirPart) + _tcslen(fblock.name) + 1 ) * sizeof(TCHAR));
             if (!files[cnt]) {
                 outOfMemoryQueued("WFGF", 5);
                 free(fileTimes);
@@ -324,7 +324,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
                 free(dirPart);
                 return NULL;
             }
-            _tcscpy(files[cnt], fblock.name);
+            sprintf(files[cnt], "%s%s", dirPart, fblock.name);
             fileTimes[cnt] = fblock.time_write;
 #ifdef WRAPPER_FILE_DEBUG
             printf("  files[%d]=%s, %ld\n", cnt, files[cnt], fileTimes[cnt]);
@@ -373,7 +373,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
                 }
                 
                 fileLen = strlen(fblock.name);
-                files[cnt] = malloc((_tcslen(fblock.name) + 1 ) * sizeof(TCHAR));
+                files[cnt] = malloc((_tcslen(dirPart) + _tcslen(fblock.name) + 1 ) * sizeof(TCHAR));
                 if (!files[cnt]) {
                     outOfMemoryQueued("WFGF", 8);
                     free(fileTimes);
@@ -381,7 +381,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
                     free(dirPart);
                     return NULL;
                 }
-                _tcscpy(files[cnt], fblock.name);
+                sprintf(files[cnt], "%s%s", dirPart, fblock.name);
                 fileTimes[cnt] = fblock.time_write;
                 
 #ifdef WRAPPER_FILE_DEBUG
