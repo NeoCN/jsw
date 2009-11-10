@@ -144,7 +144,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass cl
 
     if (wrapperJNIDebugging) {
         /* This is useful for making sure that the JNI call is working. */
-        printf("WrapperJNI Debug: Inside native WrapperManager initialization method\n");
+        printf("WrapperJNI Debug: Initializing WrapperManager native library.\n");
         fflush(NULL);
     }
 
