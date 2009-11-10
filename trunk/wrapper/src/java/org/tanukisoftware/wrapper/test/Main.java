@@ -469,6 +469,15 @@ public class Main
                 System.out.println( "TestWrapper: Fall back to the \"console\" action." );
                 command = "console";
             }
+            catch ( java.awt.HeadlessException e )
+            {
+                System.out.println( "TestWrapper: " );
+                System.out.println( "TestWrapper: ERROR - Unable to display the GUI:" );
+                System.out.println( "TestWrapper:           " + e.toString() );
+                System.out.println( "TestWrapper: " );
+                System.out.println( "TestWrapper: Fall back to the \"console\" action." );
+                command = "console";
+            }
         }
         
         if ( !command.equals( "dialog" ) )
