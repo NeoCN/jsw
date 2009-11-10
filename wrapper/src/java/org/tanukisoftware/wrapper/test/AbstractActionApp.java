@@ -517,7 +517,9 @@ public abstract class AbstractActionApp
         }
         else if ( action.equals( "gc" ) )
         {
+            System.out.println( "Begin GC..." );
             System.gc();
+            System.out.println( "GC complete." );
         }
         else if ( action.equals( "is_professional" ) )
         {
@@ -573,6 +575,7 @@ public abstract class AbstractActionApp
         System.err.println( "   idle                     : Do nothing just run in idle mode." );
         System.err.println( "   properties               : Dump all System Properties to the console." );
         System.err.println( "   configuration            : Dump all Wrapper Configuration Properties to the console." );
+        System.err.println( "   gc                       : Perform a GC sweep." );
         System.err.println( "" );
     }
 }
