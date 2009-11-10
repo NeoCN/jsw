@@ -1803,11 +1803,13 @@ void rollLogs() {
 #endif
     
     /* Now limit the number of files using the standard method. */
-    if (logFilePurgePattern) {
-        limitLogFileCount(currentLogFileName, logFilePurgePattern, logFilePurgeSortMode, logFileMaxLogFiles + 1);
-    } else {
-        generateLogFileName(workLogFileName, logFilePath, NULL, "*");
-        limitLogFileCount(currentLogFileName, workLogFileName, WRAPPER_FILE_SORT_MODE_NAMES_ASC, logFileMaxLogFiles + 1);
+    if (logFileMaxLogFiles > 0) {
+        if (logFilePurgePattern) {
+            limitLogFileCount(currentLogFileName, logFilePurgePattern, logFilePurgeSortMode, logFileMaxLogFiles + 1);
+        } else {
+            generateLogFileName(workLogFileName, logFilePath, NULL, "*");
+            limitLogFileCount(currentLogFileName, workLogFileName, WRAPPER_FILE_SORT_MODE_NAMES_ASC, logFileMaxLogFiles + 1);
+        }
     }
     
     /* Reset the current log file name as it is not being used yet. */
