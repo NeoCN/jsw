@@ -18,6 +18,15 @@ Java Service Wrapper Revision History.
 * Fix a problem introduced in 3.3.8 where setting the wrapper.logfile.maxfiles
   property to 0 was causing all log files to be deleted rather than none when
   the ROLLNUM file pattern was used.
+* Revert the way rolled log files are deleted when using the ROLLNUM file
+  pattern to the functionality used in versions 3.3.7 and earlier.  Files such
+  as wrapper.log.bak or other files manually created with the same log file
+  base name were also being deleted with 3.3.8.
+* (Standard, Professional) Fix a problem where the close window button in the
+  title of the WrapperW log dialog was not correctly cancelling the dialog.
+* (Standard, Professional) Fix a problem where the WrapperW log dialog would
+  sometimes fail to show itself on top of other windows if the splashscreen
+  had been displayed on startup.
 
 3.3.8
 * Add the new start type DELAY_START for NT Services, which startes the service 
