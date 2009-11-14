@@ -1758,24 +1758,44 @@ void rollLogs() {
         strcpy(currentLogFileName, workLogFileName);
         sprintf(rollNum, "%d", i - 1);
         generateLogFileName(workLogFileName, logFilePath, NULL, rollNum);
-
-        if (rename(workLogFileName, currentLogFileName) != 0) {
-            if (errno == 13) {
-                /* Don't log this as with other errors as that would cause recursion. */
-                printf("Unable to rename log file %s to %s.  File is in use by another application.\n",
-                    workLogFileName, currentLogFileName);
-            } else {
-                /* Don't log this as with other errors as that would cause recursion. */
-                printf("Unable to rename log file %s to %s. (%s)\n",
-                    workLogFileName, currentLogFileName, getLastErrorText());
+        
+        if ((i > logFileMaxLogFiles) && (!logFilePurgePattern)) {
+            /* The file needs to be deleted rather than rolled.   If a purge pattern was not specified,
+             *  then the files will be deleted here.  Otherwise they will be deleted below. */
+            
+            if (remove(workLogFileName)) {
+                if (getLastError() == 2) {
+                    /* The file did not exist. */
+                } else if (getLastError() == 3) {
+                    /* The path did not exist. */
+                } else {
+                    printf("Unable to delete old log file: %s (%s)\n", workLogFileName, getLastErrorText());
+                }
             }
-            return;
-        }
 #ifdef _DEBUG
-        else {
-            printf("Renamed %s to %s\n", workLogFileName, currentLogFileName);
-        }
+            else {
+                printf("Deleted %s\n", workLogFileName);
+            }
 #endif
+        } else {
+            if (rename(workLogFileName, currentLogFileName) != 0) {
+                if (errno == 13) {
+                    /* Don't log this as with other errors as that would cause recursion. */
+                    printf("Unable to rename log file %s to %s.  File is in use by another application.\n",
+                        workLogFileName, currentLogFileName);
+                } else {
+                    /* Don't log this as with other errors as that would cause recursion. */
+                    printf("Unable to rename log file %s to %s. (%s)\n",
+                        workLogFileName, currentLogFileName, getLastErrorText());
+                }
+                return;
+            }
+#ifdef _DEBUG
+            else {
+                printf("Renamed %s to %s\n", workLogFileName, currentLogFileName);
+            }
+#endif
+        }
     }
 
     /* Rename the current file to the #1 index position */
@@ -1806,9 +1826,6 @@ void rollLogs() {
     if (logFileMaxLogFiles > 0) {
         if (logFilePurgePattern) {
             limitLogFileCount(currentLogFileName, logFilePurgePattern, logFilePurgeSortMode, logFileMaxLogFiles + 1);
-        } else {
-            generateLogFileName(workLogFileName, logFilePath, NULL, "*");
-            limitLogFileCount(currentLogFileName, workLogFileName, WRAPPER_FILE_SORT_MODE_NAMES_ASC, logFileMaxLogFiles + 1);
         }
     }
     
