@@ -37,10 +37,15 @@ public class RuntimeExec
             // Windows
             command = "notepad.exe";
         }
+        else if ( os.indexOf( "linux" ) >= 0 )
+        {
+            // Linux
+            command = "vmstat 1";
+        }
         else
         {
             // UNIX
-            command = "vmstat 1";
+            command = "ls -al";
         }
         
         Runtime runtime = Runtime.getRuntime();
