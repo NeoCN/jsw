@@ -50,6 +50,23 @@ int controlEventQueueLastWriteIndex = 0;
 const char *gettext(const char *message) {
     return message;
 }
+
+const char utf8ClassJavaLangString[] = {106, 97,118, 97, 47,108, 97,110,103, 47, 83,116,114,105,110,103,  0}; /* "java/lang/String" */
+const char utf8MethodInit[] = { 60,105,110,105,116, 62,  0}; /* "<init>" */
+const char utf8Sig_BrV[] = { 40, 91, 66, 41, 86,  0}; /* "([B)V" */
+
+char *utf8ClassJavaLangOutOfMemoryError;
+char *utf8MethodGetBytes;
+char *utf8SigLjavaLangStringrV;
+char *utf8Sigr_B;
+#ifdef WIN32
+#else
+char *utf8ClassOrgTanukisoftwareWrapperWrapperUNIXUser;
+char *utf8MethodSetGroup;
+char *utf8MethodAddGroup;
+char *utf8SigII_B_B_B_BrV;
+char *utf8SigI_BrV;
+#endif
 /**
  * Create an error message from GetLastError() using the
  *  FormatMessage API Call...
@@ -188,15 +205,9 @@ char *getUTF8Chars(JNIEnv *env, const char *nativeChars) {
 
 void initUTF8Strings(JNIEnv *env) {
     /* Now do the rest of the strings using our helper function. */
-    utf8ClassJavaLangSystem = getUTF8Chars(env, "java/lang/System");
-    utf8ClassOrgTanukisoftwareWrapperWrapperManager = getUTF8Chars(env, "org/tanukisoftware/wrapper/WrapperManager");
     utf8ClassJavaLangOutOfMemoryError = getUTF8Chars(env, "java/lang/OutOfMemoryError");
-    utf8MethodGetProperty = getUTF8Chars(env, "getProperty");
-    utf8MethodStopAndReturn = getUTF8Chars(env, "stopAndReturn");
     utf8MethodGetBytes = getUTF8Chars(env, "<getBytes>");
-    utf8SigLjavaLangStringrLjavaLangString = getUTF8Chars(env, "(Ljava/lang/String;)Ljava/lang/String;");
     utf8SigLjavaLangStringrV = getUTF8Chars(env, "(Ljava/lang/String;)V");
-    utf8SigIrV = getUTF8Chars(env, "(I)V");
     utf8Sigr_B = getUTF8Chars(env, "()[B");
 #ifdef WIN32
 #else
