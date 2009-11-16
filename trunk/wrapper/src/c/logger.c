@@ -513,7 +513,7 @@ void setLogfileMaxFileSize( const char *max_file_size ) {
     char *tmpFileSizeBuff;
     char chr;
 
-    if( max_file_size != NULL ) {
+    if ( max_file_size != NULL ) {
         /* Allocate buffer */
         tmpFileSizeBuff = (char *) malloc(sizeof(char) * (strlen( max_file_size ) + 1));
         if (!tmpFileSizeBuff) {
@@ -551,6 +551,12 @@ void setLogfileMaxFileSize( const char *max_file_size ) {
         /* Free memory */
         free( tmpFileSizeBuff );
         tmpFileSizeBuff = NULL;
+        
+        if ((logFileMaxSize > 0) && (logFileMaxSize < 1024)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                "wrapper.logfile.maxsize must be 0 or at least 1024.  Changing to %d.", logFileMaxSize);
+            logFileMaxSize = 1024;
+        }
     }
 }
 
@@ -1132,6 +1138,8 @@ int log_printf_message( int source_id, int level, int threadId, int queued, cons
                 logfileFP = fopen( currentLogFileName, "a" );
                 if (logfileFP == NULL) {
                     /* The log file could not be opened.  Try the default file location. */
+                    printf("WARNING - Unable to write to the configured log file location: %s  Falling back to the default file in current working directory: %s  Cause was: %s\n",
+                        currentLogFileName, "wrapper.log", getLastErrorText());
                     strcpy(currentLogFileName, "wrapper.log");
                     logfileFP = fopen( "wrapper.log", "a" );
                 }
