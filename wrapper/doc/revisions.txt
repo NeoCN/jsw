@@ -7,6 +7,12 @@ Java Service Wrapper Revision History.
   release and will be made available on request.
 * Improve the message displayed when a server license key is used on a
   different server.
+* Add a minimum max file size of 1024 bytes to the wrapper.logfile.maxsize
+  property to avoid the log file rotating too often if the user enters a
+  very small value.
+* Add a message that shows up in the console when the Wrapper fails to write
+  to the configured log file.  As with previous versions, it will then fall
+  back to writing to wrapper.log in the current working directory.
 * Fix a problem introduced in 3.3.8 where relative configuration file includes
   were failing to resolve correctly when the wrapper.working.dir and
   wrapper.daemonize properties were used together.  The wrapper.daemonize
