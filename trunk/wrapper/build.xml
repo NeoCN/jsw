@@ -1041,6 +1041,10 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <touch file="${build.dir}/${intermmarker}"/>
         <touch file="${intermdir}/build/${intermmarker}"/>
         
+        <!-- Create a logs dir so the prerelease file can easily be tested. -->
+        <mkdir dir="${intermdir}/logs"/>
+        <touch file="${intermdir}/logs/wrapper.log"/>
+        
         <!-- Make the intermediate build for Windows -->
         
         <!-- Set files to windows line feeds for .zip files -->
