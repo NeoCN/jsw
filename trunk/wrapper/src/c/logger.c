@@ -1759,7 +1759,7 @@ void rollLogs() {
         sprintf(rollNum, "%d", i - 1);
         generateLogFileName(workLogFileName, logFilePath, NULL, rollNum);
         
-        if ((i > logFileMaxLogFiles) && (!logFilePurgePattern)) {
+        if ((logFileMaxLogFiles > 0) && (i > logFileMaxLogFiles) && (!logFilePurgePattern)) {
             /* The file needs to be deleted rather than rolled.   If a purge pattern was not specified,
              *  then the files will be deleted here.  Otherwise they will be deleted below. */
             
