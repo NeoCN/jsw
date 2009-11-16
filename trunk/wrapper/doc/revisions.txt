@@ -36,6 +36,9 @@ Java Service Wrapper Revision History.
 * Fix a problem on 32-bit Windows versions where starting with he Wrapper,
   the WrapperManager.getUser() and getInteractiveUser() methods were always
   returning null.  This problem was introduced in version 3.3.6.
+* (Professional) Fix a buffer overflow when sending alert emails to multiple
+  addresses.  This did not appear to cause any crashes, but some platforms
+  would report it because they have overflow checking enabled.
 
 3.3.8
 * Add the new start type DELAY_START for NT Services, which startes the service 
