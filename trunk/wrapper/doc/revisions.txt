@@ -27,6 +27,9 @@ Java Service Wrapper Revision History.
 * (Standard, Professional) Fix a problem where the WrapperW log dialog would
   sometimes fail to show itself on top of other windows if the splashscreen
   had been displayed on startup.
+* Fix a problem on 32-bit Windows versions where starting with he Wrapper,
+  the WrapperManager.getUser() and getInteractiveUser() methods were always
+  returning null.  This problem was introduced in version 3.3.6.
 
 3.3.8
 * Add the new start type DELAY_START for NT Services, which startes the service 

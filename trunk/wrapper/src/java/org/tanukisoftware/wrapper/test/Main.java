@@ -469,14 +469,22 @@ public class Main
                 System.out.println( "TestWrapper: Fall back to the \"console\" action." );
                 command = "console";
             }
-            catch ( java.awt.HeadlessException e )
+           catch ( java.lang.UnsupportedOperationException e )
             {
-                System.out.println( "TestWrapper: " );
-                System.out.println( "TestWrapper: ERROR - Unable to display the GUI:" );
-                System.out.println( "TestWrapper:           " + e.toString() );
-                System.out.println( "TestWrapper: " );
-                System.out.println( "TestWrapper: Fall back to the \"console\" action." );
-                command = "console";
+                // java.awt.HeadlessException does not exist in Java versions prior to 1.4
+                if ( e.getClass().getName().equals( "java.awt.HeadlessException" ) ) 
+                {
+                    System.out.println( "TestWrapper: " );
+                    System.out.println( "TestWrapper: ERROR - Unable to display the GUI:" );
+                    System.out.println( "TestWrapper:           " + e.toString() );
+                    System.out.println( "TestWrapper: " );
+                    System.out.println( "TestWrapper: Fall back to the \"console\" action." );
+                    command = "console";
+                }
+                else 
+                {
+                    throw e;
+                }
             }
         }
         
