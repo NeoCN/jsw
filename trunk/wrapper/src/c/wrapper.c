@@ -2810,7 +2810,13 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     }
     
     /* Store the Wrapper disable console input flag. */
-    if (getBooleanProperty(properties, "wrapper.disable_console_input", FALSE)) {
+    if (getBooleanProperty(properties, "wrapper.disable_console_input",
+#ifdef WIN32
+            FALSE
+#else
+            wrapperData->daemonize /* We want to disable console input by default when daemonized. */
+#endif
+        )) {
         if (strings) {
             strings[index] = malloc(sizeof(char) * (38 + 1));
             if (!strings[index]) {
