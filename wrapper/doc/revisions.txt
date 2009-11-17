@@ -13,6 +13,8 @@ Java Service Wrapper Revision History.
 * Add a message that shows up in the console when the Wrapper fails to write
   to the configured log file.  As with previous versions, it will then fall
   back to writing to wrapper.log in the current working directory.
+* On UNIX platforms, automatically set the wrapper.disable_console_input
+  property when wrapper.daemonize is set.
 * Fix a problem introduced in 3.3.8 where relative configuration file includes
   were failing to resolve correctly when the wrapper.working.dir and
   wrapper.daemonize properties were used together.  The wrapper.daemonize
