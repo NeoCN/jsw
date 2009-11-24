@@ -775,6 +775,18 @@
             tofile="${bin.dir}/${app.name}"
             filtering="on"/>
         <replace file="${bin.dir}/${app.name}">
+            <replacetoken><![CDATA[of the Wrapper.]]></replacetoken>
+            <replacevalue><![CDATA[of the Wrapper.
+
+#********************************************************************
+# NOTE - This script has been modified to run the TestWrapper sample
+#        application and should NOT be used as a base for your own
+#        applications.  All of the documentation assumes that you are
+#        working from the default source script:
+#        WRAPPER_HOME/src/bin/sh.script.in
+#********************************************************************]]></replacevalue>
+        </replace>
+        <replace file="${bin.dir}/${app.name}">
             <replacetoken><![CDATA[\"$REALPATH\" $2]]></replacetoken>
             <replacevalue><![CDATA[\"$REALPATH\" $2 $3]]></replacevalue>
         </replace>
