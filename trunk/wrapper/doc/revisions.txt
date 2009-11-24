@@ -1,5 +1,12 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.4.0
+* Add a note in the TestWrapper shell script to make it clear that the user
+  should always use the scripts in the WRAPPER_HOME/src/bin/ directory when
+  generating scripts for their own applications.  This became more of an
+  issue because of changes to the TestWrapper script starting with 3.3.8.
+  Bug #2902843.
+
 3.3.9
 * Modify the way JNI functions are called from within the native library so
   they work correctly on platforms which are not ASCII based.
