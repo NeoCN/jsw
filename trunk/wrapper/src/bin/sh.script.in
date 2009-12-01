@@ -271,12 +271,24 @@ outputFile() {
 # If a 32-bit wrapper binary exists then it will work on 32 or 64 bit
 #  platforms, if the 64-bit binary exists then the distribution most
 #  likely wants to use long names.  Otherwise, look for the default.
+echo `uname -m` | grep .*64.*
+if [ $? -eq 0 ] 
+then
+WRAPPER_TEST_CMD="$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-64"
+else
 WRAPPER_TEST_CMD="$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-32"
+fi
 if [ -x "$WRAPPER_TEST_CMD" ]
 then
     WRAPPER_CMD="$WRAPPER_TEST_CMD"
 else
-    WRAPPER_TEST_CMD="$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-64"
+    echo `uname -m` | grep .*64.*
+    if [ $? -eq 0 ] 
+    then
+        WRAPPER_TEST_CMD="$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-32"
+    else
+        WRAPPER_TEST_CMD="$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-64"
+    fi
     if [ -x "$WRAPPER_TEST_CMD" ]
     then
         WRAPPER_CMD="$WRAPPER_TEST_CMD"
