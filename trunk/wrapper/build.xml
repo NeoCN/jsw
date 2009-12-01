@@ -728,6 +728,18 @@
         <copy file="${src.dir}/bin/App.bat.in"
               tofile="${bin.dir}/${app.caps.name}.bat"
               filtering="on"/>
+        <replace file="${bin.dir}/${app.caps.name}.bat">
+            <replacetoken><![CDATA[of the Wrapper.]]></replacetoken>
+            <replacevalue><![CDATA[of the Wrapper.
+rem
+rem ********************************************************************
+rem  NOTE - This script has been modified to run the TestWrapper sample
+rem         application and should NOT be used as a base for your own
+rem         applications.  All of the documentation assumes that you are
+rem         working from the default source script:
+rem         WRAPPER_HOME/src/bin/App.bat.in
+rem ********************************************************************]]></replacevalue>
+        </replace>
         <replace file="${bin.dir}/${app.caps.name}.bat"
                  token='set _WRAPPER_CONF="%~f1"'
                  value='set _WRAPPER_CONF=""' />
