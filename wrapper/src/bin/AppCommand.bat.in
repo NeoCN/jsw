@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-rem Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+rem Copyright (c) 1999, 2010 Tanuki Software, Ltd.
 rem http://www.tanukisoftware.com
 rem All rights reserved.
 rem
@@ -11,51 +11,62 @@ rem license agreement you entered into with Tanuki Software.
 rem http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
 rem
 rem Java Service Wrapper command based script.
+
+rem -----------------------------------------------------------------------------
+rem These settings can be modified to fit the needs of your application
 rem Optimized for use with version 3.4.0-a of the Wrapper.
-rem
+
+rem The base name for the Wrapper binary.
+set _WRAPPER_BASE=wrapper
+
+rem The name and location of the Wrapper configuration file.
+rem  (Do not remove quotes.)
+set _WRAPPER_CONF="../conf/wrapper.conf"
+
+rem Do not modify anything beyond this point
+rem -----------------------------------------------------------------------------
 
 if "%OS%"=="Windows_NT" goto nt
 echo This script only works with NT-based versions of Windows.
 goto :eof
 
 :nt
-rem
 rem Find the application home.
-rem
 rem %~dp0 is location of current script under NT
 set _REALPATH=%~dp0
 
-rem Decide on the wrapper binary.
-set _WRAPPER_BASE=wrapper
-echo %PROCESSOR_ARCHITECTURE% | findstr /R "^.*64.*$" >NULL
-If %ERRORLEVEL% EQU 0 (
-    set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%-windows-x86-64.exe
-) else (
-    set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%-windows-x86-32.exe
-)
-if exist "%_WRAPPER_EXE%" goto validate
-echo %PROCESSOR_ARCHITECTURE% | findstr /R "^.*64.*$" >NULL
-If %ERRORLEVEL% EQU 0 (
-    set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%-windows-x86-32.exe
-) else (
-    set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%-windows-x86-64.exe
-)
+rem
+rem Decide on the specific Wrapper binary to use (See delta-pack)
+rem
+if "%PROCESSOR_ARCHITECTURE%"=="AMD64" goto amd64
+if "%PROCESSOR_ARCHITECTURE%"=="IA64" goto ia64
+set _WRAPPER_L_EXE=%_REALPATH%%_WRAPPER_BASE%-windows-x86-32.exe
+goto search
+:amd64
+set _WRAPPER_L_EXE=%_REALPATH%%_WRAPPER_BASE%-windows-x86-64.exe
+goto search
+:ia64
+set _WRAPPER_L_EXE=%_REALPATH%%_WRAPPER_BASE%-windows-ia-64.exe
+goto search
+:search
+set _WRAPPER_EXE=%_WRAPPER_L_EXE%
 if exist "%_WRAPPER_EXE%" goto validate
 set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%.exe
 if exist "%_WRAPPER_EXE%" goto validate
 echo Unable to locate a Wrapper executable using any of the following names:
-echo %_REALPATH%%_WRAPPER_BASE%-windows-x86-32.exe
-echo %_REALPATH%%_WRAPPER_BASE%-windows-x86-64.exe
-echo %_REALPATH%%_WRAPPER_BASE%.exe
+echo %_WRAPPER_L_EXE%
+echo %_WRAPPER_EXE%
 pause
 goto :eof
 
 :validate
+rem
 rem Find the requested command.
-for /F %%v in ('echo %1^|findstr "^console$ ^start$ ^pause$ ^resume$ ^stop$ ^restart$ ^install$ ^remove"') do call :exec set COMMAND=%%v
+rem
+for /F %%v in ('echo %1^|findstr "^console$ ^start$ ^pause$ ^resume$ ^stop$ ^restart$ ^install$ ^reinstall ^remove$"') do call :exec set COMMAND=%%v
 
 if "%COMMAND%" == "" (
-    echo Usage: %0 { console : start : pause : resume : stop : restart : install : remove }
+    echo Usage: %0 { console : start : pause : resume : stop : restart : install : reinstall : remove }
     pause
     goto :eof
 ) else (
@@ -63,16 +74,16 @@ if "%COMMAND%" == "" (
 )
 
 rem
-rem Find the wrapper.conf
-rem
-set _WRAPPER_CONF="%_REALPATH%..\conf\wrapper.conf"
-
-rem
 rem Run the application.
 rem At runtime, the current directory will be that of wrapper.exe
 rem
 call :%COMMAND%
-if errorlevel 1 pause
+if errorlevel 1 goto callerror
+goto :eof
+
+:callerror
+echo An error occurred in the process.
+pause
 goto :eof
 
 :console
@@ -99,6 +110,11 @@ goto :eof
 "%_WRAPPER_EXE%" -i %_WRAPPER_CONF%
 goto :eof
 
+:reinstall
+call :remove
+call :install
+goto :eof
+
 :remove
 "%_WRAPPER_EXE%" -r %_WRAPPER_CONF%
 goto :eof
@@ -111,4 +127,3 @@ goto :eof
 :exec
 %*
 goto :eof
-
