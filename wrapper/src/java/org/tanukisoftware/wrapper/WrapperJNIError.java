@@ -12,36 +12,53 @@ package org.tanukisoftware.wrapper;
  */
 
 /**
- * A WrapperGroup contains information about a group which a user
- *  belongs to.  A WrapperGroup is obtained via a WrapperUser.
+ * WrapperJNIErrors are thrown when user code encounters problems accessing
+ *  native Wrapper features.
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
  */
-public abstract class WrapperGroup
+public class WrapperJNIError
+    extends Error
 {
-    /* The name of the group. */
-    private String m_group;
-    
+    /**
+     * Serial Version UID.
+     */
+    private static final long serialVersionUID = 4163224795268336447L;
+
     /*---------------------------------------------------------------
      * Constructors
      *-------------------------------------------------------------*/
-    WrapperGroup( byte[] group )
+    /**
+     * Creates a new WrapperJNIError.
+     *
+     * @param message Message describing the exception.
+     */
+    WrapperJNIError( String message )
     {
-        // Decode the parameters using the default system encoding.
-        m_group = new String( group );
+        super( message );
     }
     
+    /**
+     * Creates a new WrapperJNIError.
+     *
+     * @param message Message describing the exception.
+     */
+    WrapperJNIError( byte[] message )
+    {
+        this( new String( message ) );
+    }
+
     /*---------------------------------------------------------------
      * Methods
      *-------------------------------------------------------------*/
     /**
-     * Returns the name of the group.
+     * Return string representation of the Error.
      *
-     * @return The name of the group.
+     * @return String representation of the Error.
      */
-    public String getGroup()
+    public String toString()
     {
-        return m_group;
+        return this.getClass().getName() + " " + getMessage(); 
     }
 }
 

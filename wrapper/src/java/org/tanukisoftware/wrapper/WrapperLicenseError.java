@@ -1,4 +1,4 @@
-package org.tanukisoftware.wrapper.test2;
+package org.tanukisoftware.wrapper;
 
 /*
  * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
@@ -11,25 +11,15 @@ package org.tanukisoftware.wrapper.test2;
  * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
  */
 
-import org.tanukisoftware.wrapper.test.JarMain;
-
-/**
- *
- *
- * @author Leif Mortenson <leif@tanukisoftware.com>
- */
-public class Jar2Main
+public class WrapperLicenseError
+    extends Error
 {
     /*---------------------------------------------------------------
-     * Main Method
+     * Constructors
      *-------------------------------------------------------------*/
-    public static void main( String[] args )
+    WrapperLicenseError( String message )
     {
-        System.out.println( "Calling JarMain.main." );
-        
-        JarMain.main( args );
-        
-        System.out.println( "Returned from JarMain.main." );
+        super( message );
     }
 }
-
+    

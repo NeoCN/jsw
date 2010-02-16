@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper;
 
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -49,13 +49,17 @@ import java.net.UnknownHostException;
 import java.security.AccessControlException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.tanukisoftware.wrapper.event.WrapperControlEvent;
 import org.tanukisoftware.wrapper.event.WrapperEvent;
@@ -118,6 +122,8 @@ public final class WrapperManager
     private static final byte WRAPPER_MSG_PING_TIMEOUT   = (byte)113;
     private static final byte WRAPPER_MSG_SERVICE_CONTROL_CODE = (byte)114;
     private static final byte WRAPPER_MSG_PROPERTIES     = (byte)115;
+    private static final byte WRAPPER_MSG_CHILD_LAUNCH   = (byte)132;
+    private static final byte WRAPPER_MSG_CHILD_TERM     = (byte)133;
     
     /** Log commands are actually 116 + the LOG LEVEL. */
     private static final byte WRAPPER_MSG_LOG            = (byte)116;
@@ -239,6 +245,9 @@ public final class WrapperManager
     
     /** Debug level log channel */
     private static WrapperPrintStream m_outDebug;
+    
+    /** Flag to remember whether or not this is Windows. */
+    private static boolean m_windows = false;
     
     /** Flag that will be set to true once a SecurityManager has been detected and tested. */
     private static boolean m_securityManagerChecked = false;
@@ -934,7 +943,8 @@ public final class WrapperManager
     private static native WrapperUser nativeGetInteractiveUser( boolean groups );
     private static native WrapperWin32Service[] nativeListServices();
     private static native WrapperWin32Service nativeSendServiceControlCode( byte[] serviceName, int controlCode );
-    
+    private static native WrapperProcess nativeExec( String[] cmdArray, WrapperProcessConfig config, boolean allowCWDOnSpawn );
+    private static native String nativeWrapperGetEnv( String val ) throws NullPointerException;
     /*---------------------------------------------------------------
      * Methods
      *-------------------------------------------------------------*/
@@ -1138,6 +1148,7 @@ public final class WrapperManager
         if ( os.startsWith( "windows" ) )
         {
             os = "windows";
+            m_windows = true;
         }
         else if ( os.equals( "sunos" ) )
         {
@@ -1194,6 +1205,10 @@ public final class WrapperManager
             else if ( arch.startsWith( "pa_risc" ) || arch.startsWith( "pa-risc" ) )
             {
                 arch = "parisc";
+            }
+            else if ( arch.equals( "s390" ) || arch.equals( "s390x" ) )
+            {
+                arch = "390";
             }
         }
         
@@ -1516,6 +1531,320 @@ public final class WrapperManager
         return m_jvmId;
     }
     
+
+    
+    private static String[] parseCommandLine( String commandLine )
+    {
+        Pattern pattern = Pattern.compile( "(\".*?\"|\\S+)", Pattern.CASE_INSENSITIVE );
+        Matcher match = pattern.matcher( commandLine );
+        List tokenList = new LinkedList();
+        String[] result;
+        int j = 0;
+        while ( match.find() )
+        {
+            tokenList.add( match.group(1) );
+            j++;
+        }
+        result = new String[j];
+        Iterator iterator = tokenList.iterator();
+        String quoteString = "\"";
+        for ( int i = 0; i < j ; i++ )
+        {
+            String field = ( String ) iterator.next();
+            if ( field.startsWith("\"") || true ) // ie: unix
+            {
+                result[i] = field;
+            } else
+            {
+                result[i] = new String ( quoteString + field + quoteString );
+            }
+        }
+        return result;
+    }
+
+    /**
+     * A more powerful replacement to the java.lang.Runtime.exec method.
+     * <p>
+     * When the JVM exits or is terminated for any reason, the Wrapper will
+     *  clean up any child processes launched with this method automatically
+     *  before shutting down or launching a new JVM.
+     * <p>
+     * This method is the same as calling <code><pre>WrapperManger.exec(command, new WrapperProcessConfig());</pre></code>
+     * <p>
+     * The returned WrapperProcess object can be used to control the child
+     *  process, supply input, or process output.
+     * <p>
+     * Professional Edition feature.
+     *
+     * @param command A specified system command in one String.
+     *
+     * @return A new WrapperProcess object for managing the subprocess.
+     *
+     * @throws IOException Will be thrown if an I/O error occurs 
+     * @throws NullPointerException If command is null.
+     * @throws IllegalArgumentException If command is empty
+     * @throws SecurityException If a SecurityManager is present and its
+     *                           checkExec method doesn't allow creation of a
+     *                           subprocess.    
+     * @throws WrapperJNIError If the native library has not been loaded.
+     * @throws WrapperLicenseError If the function is called other than in
+     *                             the Professional Edition.
+     * @throws UnsatisfiedLinkError If the posix_spawn function couldn't be found
+     *
+     * @see #isProfessionalEdition()
+     * @see #exec(String command, WrapperProcessConfig config)
+     * @see WrapperProcessConfig
+     * @since Wrapper 3.4.0
+     */
+    public static WrapperProcess exec( String command )
+        throws SecurityException, IOException, NullPointerException, IllegalArgumentException, WrapperJNIError, WrapperLicenseError, UnsatisfiedLinkError
+    {
+        WrapperProcess proc = exec( command, new WrapperProcessConfig() );
+        return proc;
+    }
+
+    /**
+     * A more powerful replacement to the java.lang.Runtime.exec method.
+     * <p>
+     * By configuring the WrapperProcessConfig object, it is possible to
+     *  control whether or not the child process will be automatically
+     *  cleaned up when the JVM exits or is terminated.  It is also possible
+     *  to control how the child process is launched to work around memory
+     *  issues on some platforms.
+     * <p>
+     * For example, on Solaris when the JVM is very large, doing a fork will
+     *  duplicate the entire JVM's memory space and cause an out of memory
+     *  error or JVM crash, to avoid such memory problems the child process
+     *  can be launched using posix spawn as follows:<p>
+     * <code><pre>WrapperManger.exec( command, new WrapperProcessConfig().setStartType( WrapperProcessConfig.POSIX_SPAWN ) );</pre></code>
+     * <p>
+     * Please review the WrapperProcessConfig class for a full list of
+     *  options.
+     * <p>
+     * The returned WrapperProcess object can be used to control the child
+     *  process, supply input, or process output.
+     * <p>
+     * Professional Edition feature.
+     *
+     * @param command A specified system command in one String.
+     * @param config A WrapperProcessConfig object representing the Start/Run
+     *               Configurations of the subprocess
+     *
+     * @return A new WrapperProcess object for managing the subprocess.
+     *
+     * @throws IOException Will be thrown if an I/O error occurs 
+     * @throws NullPointerException If command is null.
+     * @throws IllegalArgumentException If command is empty or the configuration is invalid
+
+     * @throws SecurityException If a SecurityManager is present and its
+     *                           checkExec method doesn't allow creation of a
+     *                           subprocess.
+     * @throws WrapperJNIError If the native library has not been loaded.
+     * @throws WrapperLicenseError If the function is called other than in
+     *                             the Professional Edition.
+     * @throws UnsatisfiedLinkError If the posix_spawn function couldn't be found
+     *
+     * @see #isProfessionalEdition()
+     * @see WrapperProcessConfig
+     * @since Wrapper 3.4.0
+     */
+    public static WrapperProcess exec( String command, WrapperProcessConfig config )
+        throws SecurityException, IOException, NullPointerException, IllegalArgumentException, WrapperJNIError, WrapperLicenseError, UnsatisfiedLinkError
+    {  
+        if ( command == null || command.length() == 0 )
+        {
+            throw new IllegalArgumentException( "no command specified." );
+        }
+
+        return exec( parseCommandLine( command ), config );
+    }
+
+    /**
+     * A more powerful replacement to the java.lang.Runtime.exec method.
+     * <p>
+     * When the JVM exits or is terminated for any reason, the Wrapper will
+     *  clean up any child processes launched with this method automatically
+     *  before shutting down or launching a new JVM.
+     * <p>
+     * This method is the same as calling <code><pre>WrapperManger.exec(cmdArray, new WrapperProcessConfig());</pre></code>
+     * <p>
+     * The returned WrapperProcess object can be used to control the child
+     *  process, supply input, or process output.
+     * <p>
+     * Professional Edition feature.
+     *
+     * @param cmdArray A specified system command in array format for each
+     *               parameter a single element.
+     *
+     * @return A new WrapperProcess object for managing the subprocess 
+     *
+     * @throws IOException Will be thrown at any error realated with Memory
+     *                     allocation, or if the command does not exist.
+     * @throws NullPointerException If cmdarray is null, or one of the elements
+     *                              of cmdarray is null.
+     * @throws IndexOutOfBoundsException If cmdarray is an empty array (has
+     *                                   length 0) 
+
+     * @throws SecurityException If a SecurityManager is present and its
+     *                           checkExec method doesn't allow creation of a
+     *                           subprocess.    
+     * @throws IllegalArgumentException If there are any problems with the
+     *                                  WrapperProcessConfig object.
+     * @throws WrapperJNIError If the native library has not been loaded.
+     * @throws WrapperLicenseError If the function is called other than in
+     *                             the Professional Edition.
+     * @throws UnsatisfiedLinkError If the posix_spawn function couldn't be found
+     *
+     * @see #isProfessionalEdition()
+     * @since Wrapper 3.4.0
+     */
+    public static WrapperProcess exec( String[] cmdArray )
+        throws SecurityException, IOException, NullPointerException, IndexOutOfBoundsException, IllegalArgumentException, WrapperJNIError, UnsatisfiedLinkError, WrapperLicenseError
+    {
+        WrapperProcess proc = exec( cmdArray, new WrapperProcessConfig() );
+        return proc;
+    }
+    
+    
+
+    /**
+     * A more powerful replacement to the java.lang.Runtime.exec method.
+     * <p>
+     * By configuring the WrapperProcessConfig object, it is possible to
+     *  control whether or not the child process will be automatically
+     *  cleaned up when the JVM exits or is terminated.  It is also possible
+     *  to control how the child process is launched to work around memory
+     *  issues on some platforms.
+     * <p>
+     * For example, on Solaris when the JVM is very large, doing a fork will
+     *  duplicate the entire JVM's memory space and cause an out of memory
+     *  error or JVM crash, to avoid such memory problems the child process
+     *  can be launched using posix spawn as follows:<p>
+     * <code><pre>WrapperManger.exec( cmdArray, new WrapperProcessConfig().setStartType( WrapperProcessConfig.POSIX_SPAWN ) );</pre></code>
+     * <p>
+     * Please review the WrapperProcessConfig class for a full list of
+     *  options.
+     * <p>
+     * The returned WrapperProcess object can be used to control the child
+     *  process, supply input, or process output.
+     * <p>
+     * Professional Edition feature.
+     *
+     * @param cmdArray A specified system command in array format, for each
+     *               parameter a single element.
+     * @param config A WrapperProcessConfig object representing the Start/Run
+     *               Configurations of the subprocess
+     *
+     * @return A new WrapperProcess object for managing the subprocess.
+     *
+     * @throws IOException Will be thrown if an I/O error occurs  
+     * @throws NullPointerException If cmdarray is null, or one of the elements
+     *                              of cmdarray is null.
+     * @throws IndexOutOfBoundsException If cmdarray is an empty array (has
+     *                                   length 0)
+     * @throws SecurityException If a SecurityManager is present and its
+     *                           checkExec method doesn't allow creation of a
+     *                           subprocess.
+     * @throws IllegalArgumentException If there are any problems with the
+     *                                  WrapperProcessConfig object.
+     * @throws WrapperJNIError If the native library has not been loaded.
+     * @throws WrapperLicenseError If the function is called other than in
+     *                             the Professional Edition.
+     * @throws UnsatisfiedLinkError If the posix_spawn function couldn't be found
+     *
+     * @see #isProfessionalEdition()
+     * @since Wrapper 3.4.0
+     */
+    public static WrapperProcess exec( String[] cmdArray, WrapperProcessConfig config )
+        throws SecurityException, IOException, NullPointerException, IndexOutOfBoundsException, IllegalArgumentException, WrapperJNIError, WrapperLicenseError, UnsatisfiedLinkError
+    {
+        if ( !isProfessionalEdition() )
+        {
+            throw new WrapperLicenseError( "Requires the Professional Edition." );
+        }
+        
+        if ( cmdArray == null )
+        {
+            throw new NullPointerException( "cmdArray is null" );
+
+        }
+        else if ( cmdArray.length == 0 )
+        {
+            throw new IndexOutOfBoundsException( "cmdArray is empty" );
+        }
+        
+        if ( config == null )
+        {
+            throw new NullPointerException( "config is null" );
+        }
+        
+        // Make sure the call stack has permission to execute this command.
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkExec( cmdArray[0] );
+        }
+        
+        if ( m_libraryOK )
+        {
+            for ( int i = 0; i < cmdArray.length; i++ )
+            {
+                if ( cmdArray[i] == null )
+                {
+                    throw new NullPointerException( MessageFormat.format( 
+                            "cmdarray[{0}]: Invalid element (isNull)." , 
+                            new Object[]{ new Integer( i) } ) );
+                }
+            }
+            
+            // On UNIX platforms, we want to try and make sure the command is
+            //  valid before we run it to avoid problems later.  Not necessary
+            //  on Windows.
+            if ( !m_windows )
+            {
+                if ( !new File( cmdArray[0] ).exists() )
+                {
+                    boolean found = false;
+                    String path = nativeWrapperGetEnv( "PATH" );
+                    if ( path != null )
+                    {
+                        String[] paths = path.split( File.pathSeparator );
+                        
+                        for ( int i = 0; i < paths.length; i++ )
+                        {
+                            File file = new File( paths[i] + File.separator + cmdArray[0] );
+                            // m_outInfo.println( blu.getPath() );
+                            if ( file.exists() ) 
+                            {
+                                cmdArray[0] = file.getPath();
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                    if ( !found )
+                    {
+                        throw new IOException(MessageFormat.format( 
+                                "''{0}'' not found.",
+                                new Object[]{ cmdArray[0] } ) ); 
+                    }
+                }
+            }
+            if ( m_debug ) 
+            {
+                for ( int j = 0; j < cmdArray.length; j++ )
+                {
+                    m_outDebug.println( "args[" + j+ "] = " + cmdArray[j] );
+                }
+            }
+            return nativeExec( cmdArray, config.setEnvironment(config.getEnvironment()), WrapperSystemPropertyUtil.getBooleanProperty("wrapper.child.allowCWDOnSpawn", false ) );
+        }
+        else
+        {
+            throw new WrapperJNIError( "Wrapper native library not loaded." );
+        }
+    }
+
     /**
      * Returns true if the current Wrapper edition has support for Professional
      *  Edition features.
@@ -4146,6 +4475,14 @@ public final class WrapperManager
     
         case WRAPPER_MSG_LOGFILE:
             name ="LOGFILE";
+            break;
+           
+        case WRAPPER_MSG_CHILD_LAUNCH:
+            name ="CHILD_LAUNCH";
+            break;
+    
+        case WRAPPER_MSG_CHILD_TERM:
+            name ="CHILD_TERM";
             break;
     
         default:
