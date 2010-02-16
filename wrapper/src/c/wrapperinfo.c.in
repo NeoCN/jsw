@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -23,7 +23,7 @@ char *wrapperVersion = "@version@";
 char *wrapperBits = "@bits@";
 char *wrapperArch = "@dist.arch@";
 char *wrapperOS = "@dist.os@";
-char *wrapperReleaseDate = "20091116";
+char *wrapperReleaseDate = "20100212";
 char *wrapperReleaseTime = "0000";
 char *wrapperBuildDate = "@build.date@";
 char *wrapperBuildTime = "@build.time@";
