@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -68,22 +68,22 @@ int sortFilesTimes(char **files, time_t *fileTimes, int cnt) {
 #else
     time_t tempTime;
 #endif
-    
+
     for (i = 0; i < cnt; i++) {
         for (j = 0; j < cnt - 1; j++) {
             if (fileTimes[j] < fileTimes[j + 1]) {
                 temp = files[j + 1];
                 tempTime = fileTimes[j + 1];
-                
+
                 files[j + 1] = files[j];
                 fileTimes[j + 1] = fileTimes[j];
-                
+
                 files[j] = temp;
                 fileTimes[j] = tempTime;
             }
         }
     }
-    
+
     return TRUE;
 }
 
@@ -96,15 +96,15 @@ int compareFileNames(const char *file1, const char *file2) {
     int numeric1, numeric2;
     long int num1, num2;
     int afterNumber = FALSE;
-    
+
     pos1 = 0;
     pos2 = 0;
-    
+
     while (TRUE) {
         c1 = file1[pos1];
         c2 = file2[pos2];
         /*printf("     file1[%d]=%d, file2[%d]=%d\n", pos1, c1, pos2, c2);*/
-        
+
         /* Did we find the null. */
         if (c1 == 0) {
             if (c2 == 0) {
@@ -119,11 +119,11 @@ int compareFileNames(const char *file1, const char *file2) {
                 /* Continue. */
             }
         }
-        
+
         /* We have two characters. */
         numeric1 = (c1 >= '0' && c1 <= '9');
         numeric2 = (c2 >= '0' && c2 <= '9');
-        
+
         /* See if one or both of the strings is numeric. */
         if (numeric1) {
             if (numeric2) {
@@ -135,7 +135,7 @@ int compareFileNames(const char *file1, const char *file2) {
                     pos1++;
                     c1 = file1[pos1 + 1];
                 }
-                
+
                 num2 = c2 - '0';
                 c2 = file2[pos2 + 1];
                 while (c2 >= '0' && c2 <= '9') {
@@ -143,11 +143,11 @@ int compareFileNames(const char *file1, const char *file2) {
                     pos2++;
                     c2 = file2[pos2 + 1];
                 }
-                
+
                 /*printf("     num1=%ld, num2=%ld\n", num1, num2);*/
                 if (num1 > num2) {
                     return -1;
-                } else if (num2 > num1 ) {
+                } else if (num2 > num1) {
                     return 1;
                 } else {
                     /* Equal, continue. */
@@ -173,7 +173,7 @@ int compareFileNames(const char *file1, const char *file2) {
                 /* Neither is numeric. */
             }
         }
-        
+
         /* Compare the characters as is. */
         if (c1 > c2) {
             return -1;
@@ -186,7 +186,7 @@ int compareFileNames(const char *file1, const char *file2) {
                 afterNumber = FALSE;
             }
         }
-        
+
         pos1++;
         pos2++;
     }
@@ -196,7 +196,7 @@ int sortFilesNamesAsc(char **files, int cnt) {
     int i, j;
     char *temp;
     int cmp;
-    
+
     for (i = 0; i < cnt; i++) {
         for (j = 0; j < cnt - 1; j++) {
             cmp = compareFileNames(files[j], files[j+1]);
@@ -207,7 +207,7 @@ int sortFilesNamesAsc(char **files, int cnt) {
             }
         }
     }
-    
+
     return TRUE;
 }
 
@@ -215,7 +215,7 @@ int sortFilesNamesDec(char **files, int cnt) {
     int i, j;
     char *temp;
     int cmp;
-    
+
     for (i = 0; i < cnt; i++) {
         for (j = 0; j < cnt - 1; j++) {
             cmp = compareFileNames(files[j], files[j+1]);
@@ -226,7 +226,7 @@ int sortFilesNamesDec(char **files, int cnt) {
             }
         }
     }
-    
+
     return TRUE;
 }
 
@@ -265,7 +265,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
 #ifdef WRAPPER_FILE_DEBUG
     printf("wrapperFileGetFiles(%s, %d)\n", pattern, sortMode);
 #endif
-    
+
 #ifdef WIN32
     cnt = 0;
     /* Initialize the files array. */
@@ -276,7 +276,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
         return NULL;
     }
     memset(files, 0, sizeof(char *) * filesSize);
-    
+
     fileTimes = malloc(sizeof(__time64_t) * filesSize);
     if (!fileTimes) {
         outOfMemoryQueued("WFGF", 2);
@@ -284,7 +284,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
         return NULL;
     }
     memset(fileTimes, 0, sizeof(__time64_t) * filesSize);
-    
+
     /* Extract any path information from the beginning of the file */
     c = max(strrchr(pattern, '\\'), strrchr(pattern, '/'));
     if (c == NULL) {
@@ -311,12 +311,12 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
 #ifdef WRAPPER_FILE_DEBUG
     printf("  dirPart=[%s]\n", dirPart);
 #endif
-    
+
     /* Get the first file. */
     if ((handle = _tfindfirst64(pattern, &fblock)) > 0) {
         if ((strcmp(fblock.name, ".") != 0) && (strcmp(fblock.name, "..") != 0)) {
             fileLen = _tcslen(fblock.name);
-            files[cnt] = malloc((_tcslen(dirPart) + _tcslen(fblock.name) + 1 ) * sizeof(TCHAR));
+            files[cnt] = malloc((_tcslen(dirPart) + _tcslen(fblock.name) + 1) * sizeof(TCHAR));
             if (!files[cnt]) {
                 outOfMemoryQueued("WFGF", 5);
                 free(fileTimes);
@@ -329,10 +329,10 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
 #ifdef WRAPPER_FILE_DEBUG
             printf("  files[%d]=%s, %ld\n", cnt, files[cnt], fileTimes[cnt]);
 #endif
-            
+
             cnt++;
         }
-        
+
         /* Look for additional files. */
         while (_tfindnext64(handle, &fblock) == 0) {
             if ((strcmp(fblock.name, ".") != 0) && (strcmp(fblock.name, "..") != 0)) {
@@ -371,9 +371,9 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
                     printf("  increased files to %d\n", filesSize);
 #endif
                 }
-                
+
                 fileLen = strlen(fblock.name);
-                files[cnt] = malloc((_tcslen(dirPart) + _tcslen(fblock.name) + 1 ) * sizeof(TCHAR));
+                files[cnt] = malloc((_tcslen(dirPart) + _tcslen(fblock.name) + 1) * sizeof(TCHAR));
                 if (!files[cnt]) {
                     outOfMemoryQueued("WFGF", 8);
                     free(fileTimes);
@@ -383,18 +383,18 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
                 }
                 sprintf(files[cnt], "%s%s", dirPart, fblock.name);
                 fileTimes[cnt] = fblock.time_write;
-                
+
 #ifdef WRAPPER_FILE_DEBUG
                 printf("  files[%d]=%s, %ld\n", cnt, files[cnt], fileTimes[cnt]);
 #endif
                 cnt++;
             }
         }
-        
+
         /* Close the file search */
         _findclose(handle);
     }
-    
+
     if (cnt <= 0) {
         if (errno == ENOENT) {
             /* No files matched. */
@@ -429,7 +429,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
                 return NULL;
             }
             memset(fileTimes, 0, sizeof(time_t) * filesSize);
-            
+
             for (findex=0; findex < g.gl_pathc; findex++) {
                 files[cnt] = malloc(strlen(g.gl_pathv[findex]) + 1);
                 if (!files[cnt]) {
@@ -439,7 +439,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
                     return NULL;
                 }
                 strcpy(files[cnt], g.gl_pathv[findex]);
-                
+
                 /* Only try to get the modified time if it is really necessary. */
                 if (sortMode == WRAPPER_FILE_SORT_MODE_TIMES) {
                     if (!stat(files[cnt], &fileStat)) {
@@ -473,7 +473,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
             }
             memset(fileTimes, 0, sizeof(time_t) * filesSize);
         }
-        
+
         globfree(&g);
     } else if (result == GLOB_NOMATCH) {
 #ifdef WRAPPER_FILE_DEBUG
@@ -487,7 +487,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
             return NULL;
         }
         memset(files, 0, sizeof(char *) * filesSize);
-        
+
         fileTimes = malloc(sizeof(time_t) * filesSize);
         if (!fileTimes) {
             outOfMemoryQueued("WFGF", 15);
@@ -515,7 +515,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
             wrapperFileFreeFiles(files);
             return NULL;
         }
-    } else {
+    } else { /* WRAPPER_FILE_SORT_MODE_NAMES_ASC */
         if (!sortFilesNamesAsc(files, cnt)) {
             /* Failed. Reported. */
             free(fileTimes);
@@ -523,7 +523,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
             return NULL;
         }
     }
-    
+
 #ifdef WRAPPER_FILE_DEBUG
     printf("  Sorted:\n");
     for (i = 0; i < cnt; i++) {
@@ -533,7 +533,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
 #endif
 
     free(fileTimes);
-    
+
     return files;
 }
 
@@ -542,7 +542,7 @@ char** wrapperFileGetFiles(const char* pattern, int sortMode) {
  */
 void wrapperFileFreeFiles(char** files) {
     int i;
-    
+
     i = 0;
     while (files[i]) {
         free(files[i]);
@@ -551,23 +551,68 @@ void wrapperFileFreeFiles(char** files) {
     free(files);
 }
 
+
+/**
+ * @param path to check.
+ * @param advice 0 if advice should be displayed.
+ *
+ * @return advice or advice + 1 if advice was logged.
+ */
+int wrapperGetUNCFilePath(const char *path, int advice) {
+#ifdef WIN32   
+    char drive[4];
+    DWORD result;
+
+    /* See if the path starts with a drive.  Some users use forward slashes in the paths. */
+    if ((path != NULL) && (strlen(path) >= 3) && (path[1] == ':') && ((path[2] == '\\') || (path[2] == '/'))) {
+        memcpy(drive, path, 2);
+        drive[2] = '\\';
+        drive[3] = '\0';
+        result = GetDriveType(drive);
+        if (result == DRIVE_REMOTE) {
+            if (advice == 0) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "The following path in your Wrapper configuration file is to a mapped Network");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, " Drive.  Using mapped network drives is not recommeded as they will fail to");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, " be resolved correctly under certain circumstances.  Please consider using");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, " UNC paths (\\\\<host>\\<share>\\path). Additional refrences will be ignored.");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, " Path: %s", path);
+                advice++;
+            }
+        } else if (result == DRIVE_NO_ROOT_DIR) {
+            if (advice == 0) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "The following path in your Wrapper configuration file could not be resolved.");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, " Please make sure the path exists.  If the path is a network share, it may be");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, " that the current user is unable to resolve it.  Please consider using UNC");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, " paths (\\\\<host>\\<share>\\path) or run the service as another user");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, " (see wrapper.ntservice.account). Additional refrences will be ignored.");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, " Path: %s", path);
+                advice++;
+            }
+        }
+    }
+#endif
+    return advice;
+}
+
 #ifdef WRAPPER_FILE_DEBUG
 void wrapperFileTests() {
     char** files;
-    
+
+    printf("Start wrapperFileTests\n");
     files = wrapperFileGetFiles("../logs/*.log*", WRAPPER_FILE_SORT_MODE_TIMES);
     if (files) {
         wrapperFileFreeFiles(files);
     }
-    
+
     files = wrapperFileGetFiles("../logs/*.log*", WRAPPER_FILE_SORT_MODE_NAMES_ASC);
     if (files) {
         wrapperFileFreeFiles(files);
     }
-    
+
     files = wrapperFileGetFiles("../logs/*.log*", WRAPPER_FILE_SORT_MODE_NAMES_DEC);
     if (files) {
         wrapperFileFreeFiles(files);
     }
+    printf("End wrapperFileTests\n");
 }
 #endif

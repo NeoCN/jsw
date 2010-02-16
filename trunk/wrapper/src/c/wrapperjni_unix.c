@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -17,8 +17,8 @@
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without 
- * restriction, including without limitation the rights to use, 
- * copy, modify, merge, publish, distribute, sub-license, and/or 
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sub-license, and/or
  * sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following 
  * conditions:
@@ -38,6 +38,7 @@
 #include <signal.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include "wrapperjni.h"
 
@@ -45,15 +46,16 @@ static pid_t wrapperProcessId = -1;
 
 pthread_mutex_t controlEventQueueMutex = PTHREAD_MUTEX_INITIALIZER;
 
+
 int wrapperLockControlEventQueue() {
     int count = 0;
     struct timespec ts;
-    
+
     /* Only wait for up to 30 seconds to make sure we don't get into a deadlock situation.
      *  This could happen if a signal is encountered while locked. */
     while (pthread_mutex_trylock(&controlEventQueueMutex) == EBUSY) {
         if (count >= 3000) {
-            printf("WrapperJNI Error: Timed out waiting for control event queue lock.\n");
+            printf(gettext("WrapperJNI Error: Timed out waiting for control event queue lock.\n"));
             fflush(NULL);
             return -1;
         }
@@ -64,10 +66,10 @@ int wrapperLockControlEventQueue() {
         count++;
     }
 
-    if ( count > 0 ) {
+    if (count > 0) {
         if (wrapperJNIDebugging) {
             /* This is useful for making sure that the JNI call is working. */
-            printf("WrapperJNI Debug: wrapperLockControlEventQueue looped %d times before lock.\n", count);
+            printf(gettext("WrapperJNI Debug: wrapperLockControlEventQueue looped %d times before lock.\n"), count);
             fflush(NULL);
         }
     }
@@ -77,7 +79,7 @@ int wrapperLockControlEventQueue() {
 
 int wrapperReleaseControlEventQueue() {
     if (pthread_mutex_unlock(&controlEventQueueMutex)) {
-        printf("WrapperJNI Error: Failed to unlock the event queue mutex.\n");
+        printf(gettext("WrapperJNI Error: Failed to unlock the event queue mutex.\n"));
         fflush(NULL);
     }
     return 0;
@@ -96,7 +98,7 @@ void handleInterrupt(int sig_num) {
  */
 void handleTermination(int sig_num) {
     wrapperJNIHandleSignal(org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_TERM_EVENT);
-    signal(SIGTERM, handleTermination); 
+    signal(SIGTERM, handleTermination);
 }
 
 /**
@@ -104,7 +106,7 @@ void handleTermination(int sig_num) {
  */
 void handleHangup(int sig_num) {
     wrapperJNIHandleSignal(org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_HUP_EVENT);
-    signal(SIGHUP, handleHangup); 
+    signal(SIGHUP, handleHangup);
 }
 
 /**
@@ -116,9 +118,9 @@ void handleHangup(int sig_num) {
 /*
 void handleUsr1(int sig_num) {
     wrapperJNIHandleSignal(org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_USR1_EVENT);
-    signal(SIGUSR1, handleUsr1); 
+    signal(SIGUSR1, handleUsr1);
 }
-*/
+ */
 
 /**
  * Handle usr2 signals.
@@ -129,7 +131,7 @@ void handleUsr1(int sig_num) {
 /*
 void handleUsr2(int sig_num) {
     wrapperJNIHandleSignal(org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_USR2_EVENT);
-    signal(SIGUSR2, handleUsr2); 
+    signal(SIGUSR2, handleUsr2);
 }
 */
 
@@ -144,7 +146,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass cl
 
     if (wrapperJNIDebugging) {
         /* This is useful for making sure that the JNI call is working. */
-        printf("WrapperJNI Debug: Initializing WrapperManager native library.\n");
+        printf(gettext("WrapperJNI Debug: Inside native WrapperManager initialization method\n"));
         fflush(NULL);
     }
 
@@ -156,9 +158,9 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass cl
     signal(SIGUSR1, handleUsr1);
     signal(SIGUSR2, handleUsr2);
     */
-    
+
     initUTF8Strings(env);
-    
+
 
     /* Store the current process Id */
     wrapperProcessId = getpid();
@@ -170,8 +172,9 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass cl
  * Signature: ()I
  */
 JNIEXPORT jint JNICALL
-Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetJavaPID(JNIEnv *env, jclass clazz) {
-    return (int)getpid();
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetJavaPID(JNIEnv *env,
+        jclass clazz) {
+    return (int) getpid();
 }
 
 /*
@@ -180,14 +183,15 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetJavaPID(JNIEnv *env, jcl
  * Signature: ()V
  */
 JNIEXPORT void JNICALL
-Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump(JNIEnv *env, jclass clazz) {
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump(
+        JNIEnv *env, jclass clazz) {
     if (wrapperJNIDebugging) {
-        printf("WrapperJNI Debug: Sending SIGQUIT event to process group %d.\n",
+        printf(gettext("WrapperJNI Debug: Sending SIGQUIT event to process group %d.\n"),
             (int)wrapperProcessId);
         fflush(NULL);
     }
     if (kill(wrapperProcessId, SIGQUIT) < 0) {
-        printf("WrapperJNI Error: Unable to send SIGQUIT to JVM process: %s\n",
+        printf(gettext("WrapperJNI Error: Unable to send SIGQUIT to JVM process: %s\n"),
             getLastErrorText());
         fflush(NULL);
     }
@@ -199,9 +203,10 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump(JNIEnv *e
  * Signature: ([B)V
  */
 JNIEXPORT void JNICALL
-Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle(JNIEnv *env, jclass clazz, jbyteArray jTitleBytes) {
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle(
+        JNIEnv *env, jclass clazz, jbyteArray jTitleBytes) {
     if (wrapperJNIDebugging) {
-        printf("WrapperJNI Debug: Setting the console title not supported on UNIX platforms.\n");
+        printf(gettext("WrapperJNI Debug: Setting the console title not supported on UNIX platforms.\n"));
         fflush(NULL);
     }
 }
@@ -246,7 +251,8 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
 
             /* User byte array */
             jUser = (*env)->NewByteArray(env, strlen(pw->pw_name));
-            (*env)->SetByteArrayRegion(env, jUser, 0, strlen(pw->pw_name), (jbyte*)pw->pw_name);
+            (*env)->SetByteArrayRegion(env, jUser, 0, strlen(pw->pw_name),
+                    (jbyte*) pw->pw_name);
 
             /* Real Name byte array */
             jRealName = (*env)->NewByteArray(env, strlen(pw->pw_gecos));
@@ -302,7 +308,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
 
                         if (member) {
                             ggid = aGroup->gr_gid;
-                            
+
                             /* Group name byte array */
                             jGroupName = (*env)->NewByteArray(env, strlen(aGroup->gr_name));
                             (*env)->SetByteArrayRegion(env, jGroupName, 0, strlen(aGroup->gr_name), (jbyte*)aGroup->gr_name);
