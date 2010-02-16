@@ -1,4 +1,4 @@
-# Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+# Copyright (c) 1999, 2010 Tanuki Software, Ltd.
 # http://www.tanukisoftware.com
 # All rights reserved.
 #
@@ -11,7 +11,7 @@ COMPILE = gcc -DIRIX
 
 INCLUDE=$(JAVA_HOME)/include
 
-DEFS = -I$(INCLUDE) -I$(INCLUDE)/irix 
+DEFS = -I$(INCLUDE) -I$(INCLUDE)/irix
 
 wrapper_OBJECTS = wrapper.o wrapperinfo.o wrappereventloop.o wrapper_unix.o property.o logger.o wrapper_file.o
 
