@@ -1,4 +1,4 @@
-# Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+# Copyright (c) 1999, 2010 Tanuki Software, Ltd.
 # http://www.tanukisoftware.com
 # All rights reserved.
 #
@@ -9,7 +9,7 @@
 
 # Makefile for SGI IRIX 6.5 (may work on other versions as well but not tested)
 # MIPSpro Compilers: Version 7.3.1.3m
-COMPILE = cc -DIRIX -KPIC
+COMPILE = cc -DIRIX -KPIC 
 
 INCLUDE=$(JAVA_HOME)/include
 
