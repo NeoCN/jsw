@@ -14,7 +14,7 @@ rem Java Service Wrapper command based script.
 
 rem -----------------------------------------------------------------------------
 rem These settings can be modified to fit the needs of your application
-rem Optimized for use with version 3.4.0-a of the Wrapper.
+rem Optimized for use with version 3.4.0-b of the Wrapper.
 
 rem The base name for the Wrapper binary.
 set _WRAPPER_BASE=wrapper
@@ -63,10 +63,10 @@ goto :eof
 rem
 rem Find the requested command.
 rem
-for /F %%v in ('echo %1^|findstr "^console$ ^start$ ^pause$ ^resume$ ^stop$ ^restart$ ^install$ ^reinstall ^remove$"') do call :exec set COMMAND=%%v
+for /F %%v in ('echo %1^|findstr "^console$ ^start$ ^pause$ ^resume$ ^stop$ ^restart$ ^install$ ^remove$"') do call :exec set COMMAND=%%v
 
 if "%COMMAND%" == "" (
-    echo Usage: %0 { console : start : pause : resume : stop : restart : install : reinstall : remove }
+    echo Usage: %0 { console : start : pause : resume : stop : restart : install : remove }
     pause
     goto :eof
 ) else (
@@ -108,11 +108,6 @@ goto :eof
 
 :install
 "%_WRAPPER_EXE%" -i %_WRAPPER_CONF%
-goto :eof
-
-:reinstall
-call :remove
-call :install
 goto :eof
 
 :remove
