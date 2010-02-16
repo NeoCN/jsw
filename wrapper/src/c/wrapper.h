@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -85,10 +85,13 @@
 #define WRAPPER_WSTATE_STOPPED   57 /* The wrapper enters this state just before
                                      *  it exits. */
 
-
-#define WRAPPER_JSTATE_DOWN      71 /* JVM is confirmed to be down.  This is the 
-                                     *  initial state and the state after the JVM
-                                     *  process has gone away. */
+#define WRAPPER_JSTATE_DOWN_CHECK 70 /* JVM is confirmed to be down, but we still need
+                                     *  to do our cleanup work.  This is the state after
+                                     *  a JVM process has gone away. */
+#define WRAPPER_JSTATE_DOWN_CLEAN 71 /* JVM is confirmed to be down and we have cleaned
+                                     *  up.  This is the initial state and the state
+                                     *  after the JVM process has gone away and and
+                                     *  cleanup has been done. */
 #define WRAPPER_JSTATE_LAUNCH_DELAY 72 /* Set from the DOWN state to launch a JVM.  The
                                      *  timeout will be the time to actually launch
                                      *  the JVM after any required delay. */
@@ -182,6 +185,7 @@ struct WrapperConfig {
     int     pingIntervalLogged;     /* Number of seconds between pings which can be logged to debug output. */
     int     shutdownTimeout;        /* Number of seconds the wrapper will wait for a JVM to shutdown */
     int     jvmExitTimeout;         /* Number of seconds the wrapper will wait for a JVM to process to terminate */
+    int     jvmCleanupTimeout;      /* Number of seconds the wrapper will allow for its post JVM shudown cleanup. */
 
 #ifdef WIN32
     int     ignoreUserLogoffs;      /* If TRUE, the Wrapper will ignore logoff events when run in the background as an in console mode. */
@@ -262,7 +266,7 @@ struct WrapperConfig {
     char    *serviceDisplayName;    /* Display name of the service. */
     char    *serviceDescription;    /* Description for service. */
     char    *hostName;              /* The name of the current host. */
-
+    
 #ifdef WIN32
     int     isSingleInvocation;     /* TRUE if only a single invocation of an application should be allowed to launch. */
     char    *ntServiceLoadOrderGroup; /* Load order group name. */
@@ -317,7 +321,7 @@ struct WrapperConfig {
 #define WRAPPER_MSG_SERVICE_CONTROL_CODE (char)114
 #define WRAPPER_MSG_PROPERTIES    (char)115
 
-/** Log commands are actually 116 + the LOG LEVEL. */
+/** Log commands are actually 116 + the LOG LEVEL (LEVEL_UNKNOWN ~ LEVEL_NONE), (116 ~ 124). */
 #define WRAPPER_MSG_LOG           (char)116
 
 #define WRAPPER_MSG_LOGFILE       (char)134
@@ -367,6 +371,7 @@ extern int wrapperProtocolRead();
 extern struct tm wrapperGetReleaseTime();
 extern struct tm wrapperGetBuildTime();
 
+extern int showHostIds(int logLevel);
 extern void wrapperLoadHostName();
 
 extern void wrapperAddDefaultProperties();
@@ -425,11 +430,17 @@ extern int wrapperParseArguments(int argc, char **argv);
  */
 extern void wrapperJVMProcessExited(int useLoggerQueue, DWORD nowTicks, int exitCode);
 
+/*#define DEBUG_CHILD_OUTPUT*/
 /**
- * Logs a single line of child output allowing any filtering
- *  to be done in a common location.
+ * Read and process any output from the child JVM Process.
+ * Most output should be logged to the wrapper log file.
+ *
+ * This function will only be allowed to run for 250ms before returning.  This is to
+ *  make sure that the main loop gets CPU.  If there is more data in the pipe, then
+ *  the function returns TRUE, otherwise FALSE.  This is a hint to the mail loop not to
+ *  sleep.
  */
-extern void wrapperLogChildOutput(const char* log);
+extern int wrapperReadChildOutput();
 
 /**
  * Changes the current Wrapper state.
@@ -497,10 +508,16 @@ extern void wrapperSleep(int useLoggerQueue, int ms);
 extern void wrapperReportStatus(int useLoggerQueue, int status, int errorCode, int waitHint);
 
 /**
- * Read and process any output from the child JVM Process.
- * Most output should be logged to the wrapper log file.
+ * Reads a single block of data from the child pipe.
+ *
+ * @param blockBuffer Pointer to the buffer where the block will be read.
+ * @param blockSize Maximum number of bytes to read.
+ * @param readCount Pointer to an int which will hold the number of bytes
+ *                  actually read by the call.
+ *
+ * Returns TRUE if there were any problems, FALSE otherwise.
  */
-extern int wrapperReadChildOutput();
+extern int wrapperReadChildOutputBlock(char *blockBuffer, int blockSize, int *readCount);
 
 /**
  * Checks on the status of the JVM Process.
