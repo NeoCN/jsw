@@ -155,16 +155,10 @@
         </condition>
         
         <!-- Java version. -->
-        <condition property="javac.target.version" value="1.2">
-            <or>
-                <equals arg1="${java.specification.version}" arg2="1.2"/>
-                <equals arg1="${java.specification.version}" arg2="1.3"/>
-            </or>
-        </condition>
         <property name="javac.target.version" value="1.4"/>
         <condition property="javac.target.warn" value="true">
             <not>
-                <equals arg1="${javac.target.version}" arg2="1.2"/>
+                <equals arg1="${java.specification.version}" arg2="1.4"/>
             </not>
         </condition>
         <condition property="src.java.missing" value="true">
@@ -184,7 +178,7 @@
         <condition property="pre-release.disable" value="true">
             <and>
                 <not>
-                    <equals arg1="${javac.target.version}" arg2="1.2"/>
+                    <equals arg1="${java.specification.version}" arg2="1.4"/>
                 </not>
                 <not>
                     <isset property="disable.java.version.check"/>
@@ -509,6 +503,26 @@
             <class name="org.tanukisoftware.wrapper.WrapperManager"/>
         </javah>
         <fixcrlf srcdir="${src.dir}/c" includes="org_tanukisoftware_wrapper_WrapperManager.h" eol="lf" />
+        <javah
+            destdir="${src.dir}/c"
+            classpath="${build.classes}">
+            <class name="org.tanukisoftware.wrapper.WrapperProcessInputStream"/>
+        </javah>
+        <fixcrlf srcdir="${src.dir}/c" includes="org_tanukisoftware_wrapper_WrapperProcessInputStream.h" eol="lf" />
+        <javah
+            destdir="${src.dir}/c"
+            classpath="${build.classes}">
+            <class name="org.tanukisoftware.wrapper.WrapperProcessOutputStream"/>
+        </javah>
+        <fixcrlf srcdir="${src.dir}/c" includes="org_tanukisoftware_wrapper_WrapperProcessOutputStream.h" eol="lf" />
+        <javah
+            destdir="${src.dir}/c"
+            classpath="${build.classes}">
+            <class name="org.tanukisoftware.wrapper.WrapperProcessConfig"/>
+        </javah>
+        <fixcrlf srcdir="${src.dir}/c" includes="org_tanukisoftware_wrapper_WrapperProcessConfig.h" eol="lf" />
+
+
 
         <available property="junit.present"
             classname="junit.framework.TestCase">
@@ -747,7 +761,6 @@ rem ********************************************************************]]></rep
                  token='"%_WRAPPER_EXE%" -c %_WRAPPER_CONF%'
                  value='"%_WRAPPER_EXE%" -c %_WRAPPER_CONF% wrapper.app.parameter.1=%1' />
         
-        <!-- This isn't working on XP
         <copy file="${src.dir}/bin/AppCommand.bat.in"
               tofile="${bin.dir}/${app.caps.name}Command.bat"
               filtering="on"/>
@@ -757,7 +770,6 @@ rem ********************************************************************]]></rep
         <replace file="${bin.dir}/${app.caps.name}Command.bat"
                  token='%_WRAPPER_CONF%'
                  value='%_WRAPPER_CONF% wrapper.app.parameter.1=%2' />
-        -->
         
         <copy file="${src.dir}/bin/InstallApp-NT.bat.in"
               tofile="${bin.dir}/Install${app.caps.name}-NT.bat"
@@ -777,6 +789,9 @@ rem ********************************************************************]]></rep
         <copy file="${src.dir}/bin/ResumeApp-NT.bat.in"
               tofile="${bin.dir}/Resume${app.caps.name}-NT.bat"
               filtering="on"/>
+        <copy file="${src.dir}/bin/QueryApp-NT.bat.in"
+              tofile="${bin.dir}/Query${app.caps.name}-NT.bat"
+              filtering="on"/>
     </target>
     
     <!-- =================================================================== -->
@@ -785,6 +800,7 @@ rem ********************************************************************]]></rep
     <target name="bin-sh" depends="init" if="is.shell.sh">
         <copy file="${src.dir}/bin/sh.script.in"
             tofile="${bin.dir}/${app.name}"
+            overwrite="true"
             filtering="on"/>
         <replace file="${bin.dir}/${app.name}">
             <replacetoken><![CDATA[of the Wrapper.]]></replacetoken>
@@ -1005,7 +1021,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <echo/>
         <echo>**********************************************************</echo>
         <echo>* Pre-release distributions can only be generated using  *</echo>
-        <echo>* Java 1.3 JVMs to guarantee that the resulting jars     *</echo>
+        <echo>* Java 1.4 JVMs to guarantee that the resulting jars     *</echo>
         <echo>* will run on all platforms.                             *</echo>
         <echo>* This is a ${java.specification.version} JVM.                                     *</echo>
         <echo>**********************************************************</echo>
