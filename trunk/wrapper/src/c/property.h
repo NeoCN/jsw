@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -60,7 +60,7 @@ struct Properties {
     Property *last;          /* Pointer to the last property.  */
 };
 
-extern int setEnv( const char *name, const char *value );
+extern int setEnv(const char *name, const char *value);
 
 /**
  * Create a Properties structure loaded in from the specified file.
@@ -87,9 +87,40 @@ extern void disposeProperties(Properties *properties);
 extern void removeProperty(Properties *properties, const char *propertyName);
 
 /**
+ * Used to set a NULL terminated list of property names whose values should be
+ *  escaped when read in from a file.   '\\' will become '\' and '\n' will
+ *  become '^J', all other characters following '\' will be left as is.
  *
+ * @param propertyNames NULL terminated list of property names.  Property names
+ *                      can contain a single '*' wildcard which will match 0 or
+ *                      more characters.
  */
-extern void addProperty(Properties *properties, const char *propertyName, const char *propertyValue, int finalValue, int quotable);
+extern void setEscapedProperties(const char **propertyNames);
+
+/**
+ * Returns true if the specified property matches one of the property names
+ *  previosly set in a call to setEscapableProperties()
+ *
+ * @param propertyName Property name to test.
+ *
+ * @return TRUE if the property should be escaped.  FALSE otherwise.
+ */
+extern int isEscapedProperty(const char *propertyName);
+
+/**
+ * Adds a single property to the properties structure.
+ *
+ * @param properties Properties structure to add to.
+ * @param propertyName Name of the new Property.
+ * @param propertyValue Initial property value.
+ * @param finalValue True if the property should be set as static.
+ * @param quotable True if the property could contain quotes.
+ * @param escapable True if the propertyValue can be escaped if its propertyName
+ *                  is in the list set with setEscapableProperties().
+ *
+ * @return The newly created Property, or NULL if there was a reported error.
+ */
+extern Property* addProperty(Properties *properties, const char *propertyName, const char *propertyValue, int finalValue, int quotable, int escapable);
 
 /**
  * Takes a name/value pair in the form <name>=<value> and attempts to add
@@ -105,7 +136,7 @@ extern const char* getFileSafeStringProperty(Properties *properties, const char 
 
 /**
  * Returns a sorted array of all properties beginning with {propertyNameBase}.
- *Å@ Only numerical characters can be returned betweenÅ@the two.
+ *  Only numerical characters can be returned between the two.
  *
  * @param properties The full properties structure.
  * @param propertyNameHead All matching properties must begin with this value.
@@ -119,7 +150,7 @@ extern const char* getFileSafeStringProperty(Properties *properties, const char 
  *
  * @return 0 if successful, -1 if there was an error.
  */
-extern int getStringProperties(Properties *properties, const char *propertyNameHead, const char *propertyNameTail, int all, char ***propertyNames, char ***propertyValues, long unsigned int **propertyIndices);
+extern int getStringProperties(Properties *properties, const char *propertyNameHead, const char *propertyNameTail, int all, int matchAny, char ***propertyNames, char ***propertyValues, long unsigned int **propertyIndices);
 
 /**
  * Frees up an array of properties previously returned by getStringProperties().

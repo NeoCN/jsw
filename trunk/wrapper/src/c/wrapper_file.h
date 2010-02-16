@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -41,6 +41,14 @@ extern char** wrapperFileGetFiles(const char* pattern, int sortMode);
  * Frees the array of file names returned by wrapperFileGetFiles()
  */
 extern void wrapperFileFreeFiles(char** files);
+
+/**
+ * @param path to check.
+ * @param advice 0 if advice should be displayed.
+ *
+ * @return advice or advice + 1 if advice was logged.
+ */
+extern int wrapperGetUNCFilePath(const char *path, int advice);
 
 #ifdef WRAPPER_FILE_DEBUG
 extern void wrapperFileTests();

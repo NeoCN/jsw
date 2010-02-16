@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -50,10 +50,29 @@ extern char *utf8MethodSetGroup;
 extern char *utf8MethodAddGroup;
 extern char *utf8SigII_B_B_B_BrV;
 extern char *utf8SigI_BrV;
+extern char *utf8ClassOrgTanukisoftwareWrapperWrapperProcess;
+extern char *utf8VrV;
+extern char *utf8m_ptr;
+extern char *utf8SigJ;
+extern char* utf8SigBLJavaLangStringrV;
+extern char* utf8MethodSendCommand;
+extern char *utf8javaIOIOException;  /*java/io/IOException*/
+extern char* utf8ClassJavaLangOutOfMemoryError;
+extern char* utf8javaLangNullPointerException;
+extern char* utf8javalangIllegalArgumentException;
+extern char* utf8javalangUnsatisfiedLinkError;
+
+
 #endif
+
+/* temporally used as placeholder */
+extern const char *gettext(const char *message);
+
 
 extern void initUTF8Strings();
 extern char* getLastErrorText();
+extern int getLastError();
+extern void throwJNIError(JNIEnv *env, const char *message);
 extern int wrapperJNIDebugging;
 extern int wrapperLockControlEventQueue();
 extern int wrapperReleaseControlEventQueue();

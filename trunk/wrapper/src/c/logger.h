@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -111,7 +111,7 @@
 #define ROLL_MODE_DATE_TOKEN      "YYYYMMDD"
 
 #ifdef WIN32
-extern void setConsoleStdoutHandle( HANDLE stdoutHandle );
+extern void setConsoleStdoutHandle(HANDLE stdoutHandle);
 #endif
 
 /* * * Function predeclaration * * */
@@ -132,19 +132,19 @@ extern void setSimpleLogLevels();
 
 /* * Logfile functions * */
 extern int isLogfileAccessed();
-extern void setLogfilePath( const char *log_file_path );
+extern void setLogfilePath(const char *log_file_path);
 extern const char *getLogfilePath();
-extern int getLogfileRollModeForName( const char *logfileRollName );
-extern void setLogfileRollMode( int log_file_roll_mode );
+extern int getLogfileRollModeForName(const char *logfileRollName);
+extern void setLogfileRollMode(int log_file_roll_mode);
 extern int getLogfileRollMode();
-extern void setLogfileUmask( int log_file_umask );
-extern void setLogfileFormat( const char *log_file_format );
-extern void setLogfileLevelInt( int log_file_level );
+extern void setLogfileUmask(int log_file_umask);
+extern void setLogfileFormat(const char *log_file_format);
+extern void setLogfileLevelInt(int log_file_level);
 extern int getLogfileLevelInt();
-extern void setLogfileLevel( const char *log_file_level );
-extern void setLogfileMaxFileSize( const char *max_file_size );
-extern void setLogfileMaxFileSizeInt( int max_file_size );
-extern void setLogfileMaxLogFiles( int max_log_files );
+extern void setLogfileLevel(const char *log_file_level);
+extern void setLogfileMaxFileSize(const char *max_file_size);
+extern void setLogfileMaxFileSizeInt(int max_file_size);
+extern void setLogfileMaxLogFiles(int max_log_files);
 extern void setLogfilePurgePattern(const char *pattern);
 extern void setLogfilePurgeSortMode(int sortMode);
 extern DWORD getLogfileActivity();
@@ -153,22 +153,23 @@ extern void setLogfileAutoClose(int autoClose);
 extern void flushLogfile();
 
 /* * Console functions * */
-extern void setConsoleLogFormat( const char *console_log_format );
-extern void setConsoleLogLevelInt( int console_log_level );
+extern void setConsoleLogFormat(const char *console_log_format);
+extern void setConsoleLogLevelInt(int console_log_level);
 extern int getConsoleLogLevelInt();
-extern void setConsoleLogLevel( const char *console_log_level );
-extern void setConsoleFlush( int flush );
+extern void setConsoleLogLevel(const char *console_log_level);
+extern void setConsoleFlush(int flush);
 
 /* * Syslog/eventlog functions * */
-extern void setSyslogLevelInt( int loginfo_level );
+extern void setSyslogLevelInt(int loginfo_level);
 extern int getSyslogLevelInt();
-extern void setSyslogLevel( const char *loginfo_level );
+extern void setSyslogLevel(const char *loginfo_level);
 #ifndef WIN32
-extern void setSyslogFacility( const char *loginfo_level );
+extern void setSyslogFacility(const char *loginfo_level);
 #endif
-extern void setSyslogEventSourceName( const char *event_source_name );
-extern int registerSyslogMessageFile( );
-extern int unregisterSyslogMessageFile( );
+extern void setSyslogEventSourceName(const char *event_source_name);
+extern int registerSyslogMessageFile();
+extern int unregisterSyslogMessageFile();
+
 
 extern int getLowLogLevel();
 
@@ -176,11 +177,11 @@ extern int getLowLogLevel();
 extern int initLogging();
 extern int disposeLogging();
 extern void rollLogs();
-extern int getLogLevelForName( const char *logLevelName );
+extern int getLogLevelForName(const char *logLevelName);
 #ifndef WIN32
-extern int getLogFacilityForName( const char *logFacilityName );
+extern int getLogFacilityForName(const char *logFacilityName);
 #endif
-extern void logRegisterThread( int thread_id );
+extern void logRegisterThread(int thread_id);
 
 /**
  * The log_printf function logs a message to the configured log targets.
@@ -188,7 +189,7 @@ extern void logRegisterThread( int thread_id );
  * This method can be used safely in most cases.  See the log_printf_queue
  *  funtion for the exceptions.
  */
-extern void log_printf( int source_id, int level, const char *lpszFmt, ... );
+extern void log_printf(int source_id, int level, const char *lpszFmt, ...);
 
 /**
  * The log_printf_queue function is less efficient than the log_printf
@@ -201,7 +202,7 @@ extern void log_printf( int source_id, int level, const char *lpszFmt, ... );
  *  thread to have been suspended within a log_printf call.  If the signal
  *  thread then attempted to call log_printf, it would result in a deadlock.
  */
-extern void log_printf_queue( int useQueue, int source_id, int level, const char *lpszFmt, ... );
+extern void log_printf_queue(int useQueue, int source_id, int level, const char *lpszFmt, ...);
 
 extern char* getLastErrorText();
 extern int getLastError();
