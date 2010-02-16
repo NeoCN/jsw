@@ -1,11 +1,117 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 3.4.0
+* Increased the minimum supported Java version from 1.2 to 1.4.
 * Add a note in the TestWrapper shell script to make it clear that the user
   should always use the scripts in the WRAPPER_HOME/src/bin/ directory when
   generating scripts for their own applications.  This became more of an
   issue because of changes to the TestWrapper script starting with 3.3.8.
   Bug #2902843.
+* (Professional) Added new WrapperManager.exec methods and a new
+  WrapperProcess class to allow the launching and management of child
+  processes through the Wrapper rather than using the standard Runtime
+  class.  This makes it possible to clean up child processes when the
+  JVM crashes or is restarted, as well as solves severe memory issues with
+  the way processes are forked on some UNIX platforms.
+* (Professional) Added a new wrapper.child.status.loglevel property to make
+  it easier to debug the status of child processes.
+* (Professional) Added a new wrapper.child.count.interval property to control
+  the interval at which the number of waiting child processes is logged after
+  a JVM is shutdown.
+* (Professional) Added a new wrapper.jvm_cleanup.timeout property to control
+  the amount of time that managed child processes still running after the JVM
+  has exited are given to shutdown before being forcibly killed.
+* Fix a problem with WrapperManager.getUser() and getInteractiveUser() methods
+  which was preventing us from using the latest compiler on 32-bit Windows.
+  (The compiler used to build 32-bit Windows versions was rolled back to the
+  version used through the 3.3.5 release in 3.3.9 to work around the problem
+  that was causing these methods to always return null.)  The change in this
+  version should not affect how the Wrapper functions.
+* The old compiler used in 3.3.9 for Windows 32-bit builds was causing a false
+  hit on Symantec security software.  The new compiler causes the Wrapper to
+  once again pass without any warnings.
+* Added a warning while starting up the JVM which will be displayed if the
+  Java command in wrapper.java.command does not point to a valid java binary 
+  file.
+* [Changed the scripts and batch files to try to load the wrapper executable
+  according to the system, i.e. on 64-bit systems the 64bit binary of the 
+  wrapper is attempted to be executed first and after this fails the 32 bit 
+  gets attempted to be loaded. This behaviour is primaly useful with the 
+  delta-pack of the wrapper.]
+* Add some debug output logging the current timezone to assist supporting
+  time related problems.
+* (Standard, Professional) Added a new wrapper.license.debug property which
+  will log information about the license key(s) being tested on startup.
+* (Standard, Professional) Fix a problem where license validation was
+  failing at certain times of the day for servers with timezones east of
+  Japan.  Development license keys which have their update times obfuscated
+  were not affected.  This was a problem introduced in 3.3.7.
+* Fixed a bug in the wrapper shell script which occured when running the script
+  on a Solaris within a non singlebyte locale. Bug #2910327
+* Fixed a potential bug in the wrapper script where requesting a Thread Dump,
+  the shell is sending the wrapper console to the background and returning 
+  with a prompt.
+* Fix a problem where Java log output would sometimes get extra line feeds
+  when under heavy load.
+* Fix a problem which was leading to a resource not found error when trying
+  to start a service, if it was installed on a Mapped Network Drive under 
+  Windows.
+* Added some advice messages recommending the use of UNC paths if a resource
+  located on a Mapped Network Drive is used in the configuration file on
+  Windows versions.
+* (Standard, Professional) Fix a bug in the wrapper binary customization,
+  which occured when the source binary file was set to read only. 
+* Fixed a null string problem in the error message if a classpath value 
+  wasn't found.
+* (Professional) Added the option to include a logfile into the wrapper's 
+  EmailNotification mails via wrapper.event.default.attach_log=TRUE
+* Improve the message displayed when a user calls
+  WrapperManager.requestThreadDump() in JVM which does not have console
+  window on Windows.  This should never be an issue when run with the Wrapper,
+  but can happen if running standalone without the wrapper binary.
+* Update the Windows batch scripts so they now take AMD64 and IA64
+  architectures into account when deciding which version of the Wrapper to
+  run when using the delta pack.
+* Update the UNIX shell script so it now does a much better job of resolving
+  the ideal platform bits to run the correct version of the Wrapper when using
+  the delta pack.  Thanks to Leo Leung for the patch.
+* Add install and remove commands to the UNIX shell script so it is now much
+  easier to install and remove the Wrapper on many UNIX plattforms to start
+  and stop on system startup and shutdown.  Thanks to Leo Leung for the patch.
+* Update the Windows batch scripts so it is now easier to change the location
+  of the Wrapper configuration file or rename the Wrapper binary when using
+  the scripts.
+* Added a new QueryApp-NT.bat.in template script which can be used to query
+  the current running status of the service on Windows.
+* (Standard, Professional) Add a new "-u" or "--update" command to the Wrapper
+  which allows you to effectively reinstall the Wrapper as a service without
+  having to provide the account credentials if the service is running as a
+  specific user.  This is very useful for installers upgrading an application
+  to a new version.
+* Add a new "update" command to the Windows AppCommand.bat.in batch script.
+* Go through and clean up the messages displayed when controlling the Wrapper
+  as a service so the messages are consistent and more meaningful to the user.
+* Add wrapper.wait_for_hostid and wrapper.max_hostid_timeout property. 
+  This properties set if and how long the wrapper shall wait when starting up 
+  until the hostid is available.  This is important to make sure that server
+  licenses are validated correctly on UNIX platforms as the OS is booting up.
+* (Professional) Fix a problem where environment variables referenced in
+  property values were not being expanded correctly the first time they were
+  referenced if the property's value was a default value.  The underlying fix
+  was in all editions, but this was only causing a problem in the Professional
+  Edition where the WRAPPER_HOSTNAME variable was not being expanded in the
+  subject and body of emails sent out for the "wrapper_start" event if the
+  defaults were used.
+* (Professional) Fix a problem where backslashes in the body of emails,
+  configured with the wrapper.event.<event_name>.email.body property, were
+  not being handled correctly when displaying things like paths from
+  environment variable references.
+* Fix a problem on UNIX platforms where the Wrapper was displaying an error
+  about not being able to locate the configuration file when the Wrapper was
+  run without any arguments.
+* (Standard, Professional) Improve the message shown when a License Key is not
+  found.
+* Add a new message to the Community Edition when the user requests a HostId.
 
 3.3.9
 * Modify the way JNI functions are called from within the native library so
