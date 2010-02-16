@@ -1,4 +1,4 @@
-# Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+# Copyright (c) 1999, 2010 Tanuki Software, Ltd.
 # http://www.tanukisoftware.com
 # All rights reserved.
 #
@@ -23,20 +23,20 @@ LIB = ../../lib
 all: init wrapper libwrapper.a
 
 clean:
-	rm -f *.o
+    rm -f *.o
 
 cleanall: clean
-	rm -rf *~ .deps
-	rm -f $(BIN)/wrapper $(LIB)/libwrapper.a
+    rm -rf *~ .deps
+    rm -f $(BIN)/wrapper $(LIB)/libwrapper.a
 
 init:
-	if test ! -d .deps; then mkdir .deps; fi
+    if test ! -d .deps; then mkdir .deps; fi
 
 wrapper: $(wrapper_SOURCE)
-	$(COMPILE) -lpthread -lnsl -lm $(wrapper_SOURCE) -o $(BIN)/wrapper
+    $(COMPILE) -lpthread -lnsl -lm $(wrapper_SOURCE) -o $(BIN)/wrapper
 
 libwrapper.a: $(libwrapper_a_OBJECTS)
-	${COMPILE} -shared $(libwrapper_a_OBJECTS) -o $(LIB)/libwrapper.a
+    ${COMPILE} -shared $(libwrapper_a_OBJECTS) -o $(LIB)/libwrapper.a
 
 %.o: %.c
-	${COMPILE} -c ${DEFS} $<
+    ${COMPILE} -c ${DEFS} $<
