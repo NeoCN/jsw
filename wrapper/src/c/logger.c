@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -106,11 +106,9 @@ char *logFilePurgePattern = NULL;
 int  logFilePurgeSortMode = WRAPPER_FILE_SORT_MODE_TIMES;
 
 char logFileLastNowDate[9];
-
 /* Defualt formats (Must be 4 chars) */
 char consoleFormat[32];
 char logfileFormat[32];
-
 /* Flag to keep track of whether the console output should be flushed or not. */
 int consoleFlush = FALSE;
 
@@ -269,7 +267,6 @@ int initLogging(void (*logFileChanged)(const char *logFile)) {
             queueLevels[threadId][i] = 0;
         }
     }
-
     return 0;
 }
 
@@ -414,6 +411,7 @@ void setSimpleLogLevels() {
     /* Force the log levels to control output. */
     setConsoleLogFormat("M");
     setConsoleLogLevelInt(LEVEL_INFO);
+
     setLogfileLevelInt(LEVEL_NONE);
     setSyslogLevelInt(LEVEL_NONE);
 }
@@ -1064,7 +1062,7 @@ int log_printf_message( int source_id, int level, int threadId, int queued, cons
         /* message */
         message = pos;
     }
-#endif	
+#endif
 
     /* Build a timestamp */
 #ifdef WIN32
@@ -1668,6 +1666,7 @@ void limitLogFileCount(const char *current, const char *pattern, int sortMode, i
         return;
     }
     
+    /* When this loop runs we keep the first COUNT files in the list and everything thereafter is deleted. */
     foundCurrent = FALSE;
     index = 0;
     while (files[index]) {
