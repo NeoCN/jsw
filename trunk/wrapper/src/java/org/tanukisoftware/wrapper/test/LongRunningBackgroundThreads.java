@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper.test;
 
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -42,39 +42,47 @@ public class LongRunningBackgroundThreads implements Runnable {
     /*---------------------------------------------------------------
      * Runnable Method
      *-------------------------------------------------------------*/
-    public void run() {
+    public void run()
+    {
         ++_threadCount;
         int loops = 0;
-        
-        while(loops < 10) {
+
+        while ( loops < 10 )
+        {
             loops++;
-            System.out.println(Thread.currentThread().getName() + " loop #" + loops);
-            try {
+            System.out.println( Thread.currentThread().getName() + " loop #" + loops );
+            try
+            {
                 Thread.sleep(500);
-            } catch (InterruptedException e) {
+            }
+            catch ( InterruptedException e )
+            {
             }
         }
-        System.out.println(Thread.currentThread().getName() + " stopping.");
-        if(--_threadCount <= 0){
-            System.out.println("The JVM and then the wrapper should exit now.");
+        System.out.println( Thread.currentThread().getName() + " stopping." );
+        if ( --_threadCount <= 0 )
+        {
+            System.out.println( "The JVM and then the wrapper should exit now." );
         }
     }
     
     /*---------------------------------------------------------------
      * Main Method
      *-------------------------------------------------------------*/
-    public static void main(String[] args) {
-        System.out.println("Long-running Background Threads Running...");
-        
+    public static void main( String[] args )
+    {
+        System.out.println( "Long-running Background Threads Running..." );
+
         LongRunningBackgroundThreads app = new LongRunningBackgroundThreads();
-        for (int i = 0; i < 2; i++) {
-            Thread thread = new Thread(app, "App-Thread-" + i);
+        for ( int i = 0; i < 2; i++ )
+        {
+            Thread thread = new Thread( app, "App-Thread-" + i );
             thread.start();
         }
-        
-        System.out.println("Running as a service: " + WrapperManager.isLaunchedAsService());
-        System.out.println("Controlled by wrapper: " + WrapperManager.isControlledByNativeWrapper());
-        
-        System.out.println("Long-running Background Threads Main Done...");
+
+        System.out.println( "Running as a service: " + WrapperManager.isLaunchedAsService() );
+        System.out.println( "Controlled by wrapper: " + WrapperManager.isControlledByNativeWrapper()) ;
+
+        System.out.println( "Long-running Background Threads Main Done..." );
     }
 }

@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper.test;
 
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -38,6 +38,8 @@ import java.util.Enumeration;
 import java.util.Properties;
 
 import org.tanukisoftware.wrapper.WrapperManager;
+import org.tanukisoftware.wrapper.WrapperProcess;
+import org.tanukisoftware.wrapper.WrapperProcessConfig;
 import org.tanukisoftware.wrapper.WrapperServiceException;
 import org.tanukisoftware.wrapper.WrapperWin32Service;
 import org.tanukisoftware.wrapper.event.WrapperControlEvent;
@@ -64,6 +66,8 @@ public abstract class AbstractActionApp
     
     private long m_eventMask = 0xffffffffffffffffL;
     private String m_serviceName = "testWrapper";
+    private String m_childCommand = "ls";
+    private boolean m_childDetached = true;
     
     /*---------------------------------------------------------------
      * Constructors
@@ -147,6 +151,12 @@ public abstract class AbstractActionApp
     protected void setServiceName( String serviceName )
     {
         m_serviceName = serviceName;
+    }
+    
+    protected void setChildParams( String childCommand, boolean childDetached )
+    {
+        m_childCommand = childCommand;
+        m_childDetached = childDetached;
     }
     
     protected void prepareSystemOutErr()
@@ -514,6 +524,81 @@ public abstract class AbstractActionApp
             {
                 e.printStackTrace();
             }
+        }
+        else if ( action.equals( "child_exec" ) )
+        {
+            Thread childRunner = new Thread()
+            {
+                public void run()
+                {
+                    try
+                    {
+                        WrapperProcessConfig wpConfig = new WrapperProcessConfig();
+                        wpConfig.setDetached( m_childDetached );
+                        final WrapperProcess wProcess = WrapperManager.exec( m_childCommand, wpConfig );
+                        System.out.println( "Launched child with PID=" + wProcess.getPID() + " : " + m_childCommand );
+                        
+                        Thread outRunner = new Thread()
+                        {
+                            public void run()
+                            {
+                                try
+                                {
+                                    BufferedReader br = new BufferedReader( new InputStreamReader( wProcess.getInputStream() ) );
+                                    String line;
+                                    while( ( line = br.readLine( ) ) != null )
+                                    {
+                                        System.out.println( wProcess.getPID() + " out: " + line );
+                                    }
+                                    br.close();
+                                    System.out.println( wProcess.getPID() + " out EOF" );
+                                }
+                                catch ( IOException e )
+                                {
+                                    System.out.println( wProcess.getPID() + " read out failed:" );
+                                    e.printStackTrace();
+                                }
+                            }
+                        };
+                        Thread errRunner = new Thread()
+                        {
+                            public void run()
+                            {
+                                try
+                                {
+                                    BufferedReader br = new BufferedReader( new InputStreamReader( wProcess.getErrorStream() ) );
+                                    String line;
+                                    while( ( line = br.readLine( ) ) != null )
+                                    {
+                                        System.out.println( wProcess.getPID() + " err: " + line );
+                                    }
+                                    br.close();
+                                    System.out.println( wProcess.getPID() + " err EOF" );
+                                }
+                                catch ( IOException e )
+                                {
+                                    System.out.println( wProcess.getPID() + " read err failed:" );
+                                    e.printStackTrace();
+                                }
+                            }
+                        };
+                        
+                        outRunner.start();
+                        errRunner.start();
+                        
+                        // Wait for the stdout and stderr reader threads to complete before we say the process completed to avoid confusion.
+                        outRunner.join();
+                        errRunner.join();
+                        
+                        System.out.println( "Child with PID=" + wProcess.getPID() + " terminated with exitCode=" + wProcess.waitFor() + " : " + m_childCommand );
+                    }
+                    catch ( Throwable t )
+                    {
+                        t.printStackTrace();
+                    }
+                }
+            };
+            childRunner.start();
         }
         else if ( action.equals( "gc" ) )
         {

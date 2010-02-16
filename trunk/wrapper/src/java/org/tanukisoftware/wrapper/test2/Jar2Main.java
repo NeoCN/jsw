@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper.test2;
 
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -23,7 +23,7 @@ public class Jar2Main
     /*---------------------------------------------------------------
      * Main Method
      *-------------------------------------------------------------*/
-    public static void main(String[] args)
+    public static void main( String[] args )
     {
         System.out.println( "Calling JarMain.main." );
         

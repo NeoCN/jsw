@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper.test;
 
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -31,6 +31,7 @@ package org.tanukisoftware.wrapper.test;
 
 import java.awt.BorderLayout;
 import java.awt.Button;
+import java.awt.Checkbox;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Frame;
@@ -77,6 +78,8 @@ public class Main
     
     private List m_listenerFlags;
     private TextField m_serviceName;
+    private TextField m_childCommand;
+    private Checkbox m_childDetached;
     
     /*---------------------------------------------------------------
      * Constructors
@@ -214,16 +217,13 @@ public class Main
             buildCommand( panel, gridBag, c, "Service List", "service_list", "Displays a list of registered services on Windows." );
             
             m_serviceName = new TextField( "testwrapper" );
-            
             Panel servicePanel = new Panel();
             servicePanel.setLayout( new BorderLayout() );
             servicePanel.add( new Label( "Interrogate Service.  Service name: " ), BorderLayout.WEST );
             servicePanel.add( m_serviceName, BorderLayout.CENTER );
-            
             Panel servicePanel2 = new Panel();
             servicePanel2.setLayout( new BorderLayout() );
             servicePanel2.add( servicePanel, BorderLayout.WEST );
-            
             buildCommand( panel, gridBag, c, "Service Interrogate", "service_interrogate", servicePanel2 );
             
             buildCommand( panel, gridBag, c, "Service Start", "service_start", "Starts the above service." );
@@ -231,6 +231,18 @@ public class Main
             buildCommand( panel, gridBag, c, "Service Stop", "service_stop", "Stops the above service." );
             
             buildCommand( panel, gridBag, c, "Service User Code", "service_user", "Sends a series of user codes to the above service." );
+            
+            m_childCommand = new TextField( "(Please enter command)" );
+            m_childDetached = new Checkbox( "Detached", false);
+            Panel childPanel = new Panel();
+            childPanel.setLayout( new BorderLayout() );
+            childPanel.add( new Label( "Command: " ), BorderLayout.WEST );
+            childPanel.add( m_childCommand, BorderLayout.CENTER );
+            childPanel.add( m_childDetached, BorderLayout.EAST );
+            Panel childPanel2 = new Panel();
+            childPanel2.setLayout( new BorderLayout() );
+            childPanel2.add( childPanel, BorderLayout.WEST );
+            buildCommand( panel, gridBag, c, "Execute Child", "child_exec", childPanel2 );
             
             buildCommand( panel, gridBag, c, "GC", "gc", "Performs a GC sweep." );
             
@@ -312,6 +324,7 @@ public class Main
             }
             
             setServiceName( m_serviceName.getText() );
+            setChildParams( m_childCommand.getText(), m_childDetached.getState() );
             
             Main.this.doAction( action );
         }
@@ -440,6 +453,7 @@ public class Main
         {
             System.out.println( "TestWrapper: Unable to open the action server socket: " + e.getMessage() );
             System.out.println( "TestWrapper:" );
+            m_actionServer = null;
         }
         
         if ( command.equals( "dialog" ) )

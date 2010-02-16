@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper.test;
 
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -66,21 +66,27 @@ public class LogOutput {
         sleep();
         
         String sa = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+        
+        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO,   "Long log messages will be clipped at 4096 bytes when the Wrapper reads them.");
+        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO,   "");
+        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, "Output a 62 * 100 + 2 length string.");
         StringBuffer sb = new StringBuffer();
         for (int i = 0; i < 100; i++) {
             sb.append(sa);
         }
-        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, sb.toString());
+        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, "[" + sb + "]" );
         sleep();
 
+        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, "Output 100 62 character strings with line feeds between each one as a single log message.");
         sb = new StringBuffer();
         for (int i = 0; i < 100; i++) {
             sb.append(sa);
             sb.append("\n");
         }
-        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, sb.toString());
+        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, "[" + sb + "]");
         sleep();
         
+        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, "Output 100 62 character strings as individual log message.");
         for (int i = 0; i < 100; i++) {
             WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, sa);
         }
