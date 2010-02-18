@@ -16,7 +16,7 @@
 
 #-----------------------------------------------------------------------------
 # These settings can be modified to fit the needs of your application
-# Optimized for use with version 3.4.0-c of the Wrapper.
+# Optimized for use with version 3.4.0-d of the Wrapper.
 
 # Application
 APP_NAME="@app.name@"
@@ -46,6 +46,10 @@ PIDDIR="."
 #  (in seconds).
 # 
 WAIT_AFTER_STARTUP=0
+
+# If set, wait for the wrapper to report that the service has started
+WAIT_FOR_STARTED_STATUS=true
+WAIT_FOR_STARTED_TIMEOUT=120
 
 # If set, the status, start_msg and stop_msg commands will print out detailed
 #   state information on the Wrapper and Java processes.
@@ -184,7 +188,7 @@ PSEXE="/usr/ucb/ps"
     fi
 
 # Resolve the os
-DIST_OS=`uname -s | tr [:upper:] [:lower:] | tr -d [:blank:]`
+DIST_OS=`uname -s | tr [A-Z] [a-z] | tr -d ' '`
 case "$DIST_OS" in
     'sunos')
         DIST_OS="solaris"
@@ -212,7 +216,7 @@ then
     DIST_ARCH="universal"
 else
     DIST_ARCH=
-    DIST_ARCH=`uname -p 2>/dev/null | tr [:upper:] [:lower:] | tr -d [:blank:]`
+    DIST_ARCH=`uname -p 2>/dev/null | tr [A-Z] [a-z] | tr -d ' '`
     if [ "X$DIST_ARCH" = "X" ]
     then
         DIST_ARCH="unknown"
@@ -363,12 +367,23 @@ else
 fi
 
 # Build the status file clause.
-if [ "X$DETAIL_STATUS" = "X" ]
+if [ "X$DETAIL_STATUS$WAIT_FOR_STARTED_STATUS" = "X" ]
 then
    STATUSPROP=
 else
-   STATUSPROP="wrapper.statusfile=\"$STATUSFILE\" wrapper.java.statusfile=\"$JAVASTATUSFILE\""
+   STATUSPROP="wrapper.statusfile=\"$STATUSFILE\"
+   wrapper.java.statusfile=\"$JAVASTATUSFILE\""
 fi
+
+if [ ! -n "$WAIT_FOR_STARTED_STATUS" ]
+then
+    WAIT_FOR_STARTED_STATUS=true
+fi
+
+if [ $WAIT_FOR_STARTED_STATUS = true ] ; then
+    DETAIL_STATUS=true
+fi
+
 
 # Build the lock file clause.  Only create a lock file if the lock directory exists on this platform.
 LOCKPROP=
@@ -567,6 +582,24 @@ console() {
         exit 1
     fi
 }
+
+waitforjavastartup() {
+    getstatus
+    echo $ECHOOPT "\nWaiting for $APP_LONG_NAME"
+    if [ -n "$WAIT_FOR_STARTED_TIMEOUT" ]
+    then 
+        counter=$WAIT_FOR_STARTED_TIMEOUT
+    else
+        counter=120
+    fi
+    while [ "$JAVASTATUS" != "STARTED" -a "$JAVASTATUS" != "Unknown" -a $counter -gt 0 -a -n "$JAVASTATUS" ] 
+    do
+        echo $ECHOOPT "."
+        sleep 1
+        getstatus
+        counter=`expr $counter - 1`
+    done
+}
  
 start() {
     echo $ECHOOPT"Starting $APP_LONG_NAME..."
@@ -580,7 +613,10 @@ start() {
         echo "$APP_LONG_NAME is already running."
         exit 1
     fi
-
+    if [ $WAIT_FOR_STARTED_STATUS = true ]
+    then
+        waitforjavastartup
+    fi
     # Sleep for a few seconds to allow for intialization if required 
     #  then test to make sure we're still running.
     #
