@@ -112,6 +112,10 @@ Java Service Wrapper Revision History.
 * (Standard, Professional) Improve the message shown when a License Key is not
   found.
 * Add a new message to the Community Edition when the user requests a HostId.
+* Add WAIT_FOR_STARTED_STATUS and WAIT_FOR_STARTED_TIMEOUT to the script. This
+  lets the script wait (up to timeout sec.) when starting a daemonized process
+  until the process has been started.
+  Thanks to Dobes V. (Feature Requests 2917391)
 
 3.3.9
 * Modify the way JNI functions are called from within the native library so
