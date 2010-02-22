@@ -4308,8 +4308,16 @@ void main(int argc, char **argv) {
              *  if the service is started without problems.
              *  The ServiceControlDispatcher will call the wrapperServiceMain method. */
             if (!StartServiceCtrlDispatcher(serviceTable)) {
-                printf("\nStartServiceControlDispatcher failed!\n");
-                printf("\nFor help, type\n\n%s /?\n\n", argv[0]);
+                printf("\n");
+                printf("StartServiceControlDispatcher failed!\n");
+                printf("\n");
+                printf("The -s and --service commands should only be called by the Windows\n");
+                printf("ServiceManager to control the Wrapper as a service, and is not\n");
+                printf("designed to be run manually by the user.\n");
+                printf("\n");
+                printf("For help, type\n");
+                printf("%s -?\n", argv[0]);
+                printf("\n" );
                 appExit(1);
                 return; /* For clarity. */
             }
