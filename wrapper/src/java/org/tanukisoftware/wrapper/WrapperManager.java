@@ -460,10 +460,10 @@ public final class WrapperManager
         }
         
         // Decide whether this is a 32 or 64 bit version of Java.
-        m_jvmBits = Integer.getInteger( "sun.arch.data.model", -1 ).intValue();
+        m_jvmBits = WrapperSystemPropertyUtil.getIntProperty( "sun.arch.data.model", -1 );
         if ( m_jvmBits == -1 )
         {
-            m_jvmBits = Integer.getInteger( "com.ibm.vm.bitmode", -1 ).intValue();
+            m_jvmBits = WrapperSystemPropertyUtil.getIntProperty( "com.ibm.vm.bitmode", -1 );
         }
         if ( m_debug )
         {

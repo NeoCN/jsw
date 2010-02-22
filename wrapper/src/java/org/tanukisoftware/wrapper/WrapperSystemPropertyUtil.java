@@ -23,6 +23,25 @@ public final class WrapperSystemPropertyUtil
      * Static Methods
      *-------------------------------------------------------------*/
     /**
+     * Resolves a string property.
+     *
+     * @param name The name of the property to lookup.
+     * @param defaultValue The value to return if it is not set or is invalid.
+     *
+     * @return The requested property value.
+     */
+    public static String getStringProperty( String name, String defaultValue )
+    {
+        String val = System.getProperty( name );
+        if ( val == null )
+        {
+            return defaultValue;
+        }
+        
+        return val;
+    }
+    
+    /**
      * Resolves a boolean property.
      *
      * @param name The name of the property to lookup.
@@ -32,15 +51,13 @@ public final class WrapperSystemPropertyUtil
      */
     public static boolean getBooleanProperty( String name, boolean defaultValue )
     {
-        String val = System.getProperty( name );
-        if ( val != null )
+        String val = getStringProperty( name, null );
+        if ( val == null )
         {
-            if ( val.equalsIgnoreCase( "TRUE" ) )
-            {
-                return true;
-            }
+            return defaultValue;
         }
-        return false;
+        
+        return val.equalsIgnoreCase( "TRUE" );
     }
     
     /**
@@ -53,19 +70,17 @@ public final class WrapperSystemPropertyUtil
      */
     public static int getIntProperty( String name, int defaultValue )
     {
-        String val = System.getProperty( name );
-        if ( val != null )
+        String val = getStringProperty( name, null );
+        if ( val == null )
         {
-            try
-            {
-                return Integer.parseInt( val );
-            }
-            catch ( NumberFormatException e )
-            {
-                return defaultValue;
-            }
+            return defaultValue;
         }
-        else
+        
+        try
+        {
+            return Integer.parseInt( val );
+        }
+        catch ( NumberFormatException e )
         {
             return defaultValue;
         }
@@ -81,19 +96,17 @@ public final class WrapperSystemPropertyUtil
      */
     public static long getLongProperty( String name, long defaultValue )
     {
-        String val = System.getProperty( name );
-        if ( val != null )
+        String val = getStringProperty( name, null );
+        if ( val == null )
         {
-            try
-            {
-                return Long.parseLong( val );
-            }
-            catch ( NumberFormatException e )
-            {
-                return defaultValue;
-            }
+            return defaultValue;
         }
-        else
+        
+        try
+        {
+            return Long.parseLong( val );
+        }
+        catch ( NumberFormatException e )
         {
             return defaultValue;
         }

@@ -120,6 +120,9 @@ Java Service Wrapper Revision History.
   Thanks to Dobes V. (Feature Requests 2917391)
 * Improve the error message displayed when the user tries to run the Wrapper
   with the internal -s or --service commands.
+* Fix a problem where the WrapperSystemPropertyUtil.getBooleanValue() method
+  was not correctly returning the specified default value when the looked up
+  property was missing.  Also added a new getStringValue() method.
 
 3.3.9
 * Modify the way JNI functions are called from within the native library so
