@@ -2,6 +2,8 @@ Java Service Wrapper Revision History.
 --------------------------------------
 3.4.0
 * Increased the minimum supported Java version from 1.2 to 1.4.
+* Removed the reflection code used to manage the Wrapper's shutdown hook.
+  The Runtime methods are now called normally.
 * Add a note in the TestWrapper shell script to make it clear that the user
   should always use the scripts in the WRAPPER_HOME/src/bin/ directory when
   generating scripts for their own applications.  This became more of an
