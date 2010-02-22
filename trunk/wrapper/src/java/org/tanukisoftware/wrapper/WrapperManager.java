@@ -340,9 +340,6 @@ public final class WrapperManager
     private static Socket m_socket;
     private static boolean m_appearHung = false;
     
-    private static Method m_addShutdownHookMethod = null;
-    private static Method m_removeShutdownHookMethod = null;
-    
     private static boolean m_ignoreUserLogoffs = false;
     
     private static boolean m_service = false;
@@ -501,26 +498,6 @@ public final class WrapperManager
         m_listenerForceStop = WrapperSystemPropertyUtil.getBooleanProperty(
             "wrapper.listener.force_stop", false );
         
-        // Locate the add and remove shutdown hook methods using reflection so
-        //  that this class can be compiled on 1.2.x versions of java.
-        try
-        {
-            m_addShutdownHookMethod =
-                Runtime.class.getMethod( "addShutdownHook", new Class[] { Thread.class } );
-            m_removeShutdownHookMethod =
-                Runtime.class.getMethod( "removeShutdownHook", new Class[] { Thread.class } );
-        }
-        catch ( NoSuchMethodException e )
-        {
-            if ( m_debug )
-            {
-                m_outDebug.println( "Shutdown hooks not supported by current JVM." );
-            }
-            m_addShutdownHookMethod = null;
-            m_removeShutdownHookMethod = null;
-            disableShutdownHook = true;
-        }
-        
         // If the shutdown hook is not disabled, then register it.
         if ( !disableShutdownHook )
         {
@@ -556,25 +533,8 @@ public final class WrapperManager
                 }
             };
             
-            // Actually register the shutdown hook using reflection.
-            try
-            {
-                m_addShutdownHookMethod.invoke( Runtime.getRuntime(), new Object[] { m_hook } );
-            }
-            catch ( IllegalAccessException e )
-            {
-                m_outError.println( "Unable to register shutdown hook: " + e );
-            }
-            catch ( InvocationTargetException e )
-            {
-                Throwable t = e.getTargetException();
-                if ( t == null )
-                {
-                    t = e;
-                }
-                
-                m_outError.println( "Unable to register shutdown hook: " + t );
-            }
+            // Register the shutdown hook.
+            Runtime.getRuntime().addShutdownHook( m_hook );
         }
         
         // A key is required for the wrapper to work correctly.  If it is not
@@ -3865,26 +3825,8 @@ public final class WrapperManager
             //  method.
             if ( ( !m_hookTriggered ) && ( m_hook != null ) )
             {
-                // Remove the shutdown hook using reflection.
-                try
-                {
-                    m_removeShutdownHookMethod.invoke(
-                        Runtime.getRuntime(), new Object[] { m_hook } );
-                }
-                catch ( IllegalAccessException e )
-                {
-                    m_outError.println( "Unable to unregister shutdown hook: " + e );
-                }
-                catch ( InvocationTargetException e )
-                {
-                    Throwable t = e.getTargetException();
-                    if ( t == null )
-                    {
-                        t = e;
-                    }
-                    
-                    m_outError.println( "Unable to unregister shutdown hook: " + t );
-                }
+                // Remove the shutdown hook.
+                Runtime.getRuntime().removeShutdownHook( m_hook );
             }
         }
         
