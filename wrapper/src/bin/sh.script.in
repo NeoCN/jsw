@@ -205,8 +205,8 @@ case "$DIST_OS" in
     'unix_sv')
         DIST_OS="unixware"
         ;;
-    'FreeBSD')
-        DIST_OS="freebsd"
+    'os/390')
+        DIST_OS="zos"
         ;;
 esac
 
@@ -290,6 +290,10 @@ else
                 DIST_BITS="32"
             fi
             ;;
+        '2097')
+            DIST_ARCH="390"
+            DIST_BITS="32"
+            ;;
     esac
 fi
 
@@ -371,8 +375,7 @@ if [ "X$DETAIL_STATUS$WAIT_FOR_STARTED_STATUS" = "X" ]
 then
    STATUSPROP=
 else
-   STATUSPROP="wrapper.statusfile=\"$STATUSFILE\"
-   wrapper.java.statusfile=\"$JAVASTATUSFILE\""
+   STATUSPROP="wrapper.statusfile=\"$STATUSFILE\" wrapper.java.statusfile=\"$JAVASTATUSFILE\""
 fi
 
 if [ ! -n "$WAIT_FOR_STARTED_STATUS" ]

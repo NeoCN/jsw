@@ -132,21 +132,8 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <replace file="${test.dir}/daemonthreads.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.DaemonThreads" />
-        
-        <!-- Runtime Exec Test -->
-        <delete file="${test.dir}/runtimeexec.conf"/>
-        <filter token="app.name"          value="runtimeexec"/>
-        <filter token="app.long.name"     value="Runtime Exec Case" />
-        <copy file="${test.dir}/template.conf"
-              tofile="${test.dir}/runtimeexec.conf"
-              filtering="on"/>
-        <replace file="${test.dir}/runtimeexec.conf"
-                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
-                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.RuntimeExec" />
-        <replace file="${test.dir}/runtimeexec.conf"
-                 token="wrapper.ntservice.interactive=false"
-                 value="wrapper.ntservice.interactive=true" />
-        
+
+
         <!-- Simple WrapperListener Test -->
         <delete file="${test.dir}/simplewrapperlistener.conf"/>
         <filter token="app.name"          value="simplewrapperlistener"/>
@@ -510,19 +497,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacetoken>
         <replace file="${test.dir}/TestDaemonThreads.bat"
                  token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
                  value='set _WRAPPER_CONF_DEFAULT=../test/daemonthreads.conf' />
-        
-        <!-- Runtime Exec Test -->
-        <delete file="${test.dir}/TestRuntimeExec.bat"/>
-        <copy file="${src.dir}/bin/App.bat.in"
-              tofile="${test.dir}/TestRuntimeExec.bat"
-              filtering="on"/>
-        <replace file="${test.dir}/TestRuntimeExec.bat"
-                 token='set _WRAPPER_BASE=wrapper'
-                 value='set _WRAPPER_BASE=..\bin\wrapper' />
-        <replace file="${test.dir}/TestRuntimeExec.bat"
-                 token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
-                 value='set _WRAPPER_CONF_DEFAULT=../test/runtimeexec.conf' />
-        
+
         <!-- Simple WrapperListener Test -->
         <delete file="${test.dir}/TestSimpleWrapperListener.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
@@ -915,15 +890,7 @@ set ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/daemonthreads"
               filtering="on"/>
         <chmod file="${test.dir}/daemonthreads" perm="+x"/> 
-        
-        <!-- Runtime Exec Test -->
-        <filter token="app.name"          value="runtimeexec"/>
-        <filter token="app.long.name"     value="Runtime Exec Case" />
-        <copy file="${test.dir}/temp.script.in"
-              tofile="${test.dir}/runtimeexec"
-              filtering="on"/>
-        <chmod file="${test.dir}/runtimeexec" perm="+x"/> 
-        
+
         <!-- SimpleWrapperListener Test -->
         <filter token="app.name"          value="simplewrapperlistener"/>
         <filter token="app.long.name"     value="Simple WrapperListener Case" />
