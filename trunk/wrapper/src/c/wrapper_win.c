@@ -2144,6 +2144,43 @@ char *readPassword() {
     return buffer;
 }
 
+BOOL isVista() {
+    OSVERSIONINFO osver;
+
+    osver.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+
+    if (GetVersionEx(&osver) &&
+            osver.dwPlatformId == VER_PLATFORM_WIN32_NT &&
+            osver.dwMajorVersion >= 6) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
+
+BOOL isElevated() {
+    TOKEN_ELEVATION te = {0};
+    BOOL bIsElevated = FALSE;
+    HRESULT hResult = E_FAIL; // assume an error occured
+    HANDLE hToken   = NULL;
+    DWORD dwReturnLength = 0;
+    if (isVista()) {
+        if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken)) {
+            return bIsElevated ;
+        }
+        if (!GetTokenInformation(hToken, TokenElevation, &te, sizeof(te), &dwReturnLength)) {
+            ;
+        } else {
+            hResult = te.TokenIsElevated ? S_OK : S_FALSE;
+            bIsElevated = (te.TokenIsElevated != 0);
+        }
+        CloseHandle(hToken);
+        return bIsElevated;
+    } else {
+        return TRUE;
+    }
+}
+
 
 void wrapperCheckForMappedDrives() {
     char **propertyNames;
@@ -2534,6 +2571,9 @@ int wrapperInstall() {
     } else {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to install the %s service - %s",
             wrapperData->serviceDisplayName, getLastErrorText());
+        if (isVista() && !isElevated()) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Performing this action requires that you run as an elevated process.");
+        }
         result = 1;
     }
 
@@ -3140,6 +3180,9 @@ int wrapperStartService() {
             if (GetLastError() == ERROR_ACCESS_DENIED) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to start the %s service - %s",
                     wrapperData->serviceDisplayName, getLastErrorText());
+                if (isVista() && !isElevated()) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Performing this action requires that you run as an elevated process.");
+                }
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
                     wrapperData->serviceDisplayName, getLastErrorText());
@@ -3253,6 +3296,9 @@ int wrapperStopService(int command) {
             if (GetLastError() == ERROR_ACCESS_DENIED) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to stop the %s service - %s",
                     wrapperData->serviceDisplayName, getLastErrorText());
+                if (isVista() && !isElevated()) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Performing this action requires that you run as an elevated process.");
+                }
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
                     wrapperData->serviceDisplayName, getLastErrorText());
@@ -3376,6 +3422,9 @@ int wrapperPauseService() {
     } else {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to pause the %s service - %s",
             wrapperData->serviceDisplayName, getLastErrorText());
+        if (isVista() && !isElevated()) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Performing this action requires that you run as an elevated process.");
+        }
         result = 1;
     }
 
@@ -3478,8 +3527,11 @@ int wrapperContinueService() {
             CloseServiceHandle(schService);
         } else {
             if (GetLastError() == ERROR_ACCESS_DENIED) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to resume the %s service - %s",
-            wrapperData->serviceDisplayName, getLastErrorText());
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to resume the %s service - %s",
+                wrapperData->serviceDisplayName, getLastErrorText());
+                if (isVista() && !isElevated()) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Performing this action requires that you run as an elevated process.");
+                }
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
                     wrapperData->serviceDisplayName, getLastErrorText());
@@ -3564,6 +3616,9 @@ int sendServiceControlCodeInner(int controlCode) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to send control code to the %s service - %s",
                     wrapperData->serviceDisplayName, getLastErrorText());
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
+                if (isVista() && !isElevated()) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Performing this action requires that you run as an elevated process.");
+                }
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
                     wrapperData->serviceDisplayName, getLastErrorText());
@@ -3758,6 +3813,9 @@ int wrapperServiceStatus(int consoleOutput) {
             if (GetLastError() == ERROR_ACCESS_DENIED) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to query the status of the %s service - %s",
                     wrapperData->serviceDisplayName, getLastErrorText());
+                if (isVista() && !isElevated()) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Performing this action requires that you run as an elevated process.");
+                }
             } else {
                 if (consoleOutput) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
@@ -3815,6 +3873,9 @@ int wrapperRemove() {
             if (GetLastError() == ERROR_ACCESS_DENIED) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to remove the %s service - %s",
                     wrapperData->serviceDisplayName, getLastErrorText());
+                if (isVista() && !isElevated()) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Performing this action requires that you run as an elevated process.");
+                }
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
                     wrapperData->serviceDisplayName, getLastErrorText());

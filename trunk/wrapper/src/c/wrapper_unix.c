@@ -1046,9 +1046,17 @@ int wrapperGetProcessStatus(int useLoggerQueue, DWORD nowTicks, int sigChild) {
         res = WRAPPER_PROCESS_UP;
     } else if (retval < 0) {
         if (errno == ECHILD) {
-            /* Process is gone.  Happens after a SIGCHLD is handled. Normal. */
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                "JVM process is gone.");
+            if (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK ||
+                wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN ||
+                wrapperData->jState == WRAPPER_JSTATE_STOPPED) {
+                res = WRAPPER_PROCESS_DOWN;
+                wrapperJVMProcessExited(useLoggerQueue, nowTicks, 0);
+                return res;
+            } else {
+                /* Process is gone.  Happens after a SIGCHLD is handled. Normal. */
+                log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    "JVM process is gone.");
+            }
         } else {
             /* Error requesting the status. */
             log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
