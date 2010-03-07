@@ -123,6 +123,8 @@ Java Service Wrapper Revision History.
 * Fix a problem where the WrapperSystemPropertyUtil.getBooleanValue() method
   was not correctly returning the specified default value when the looked up
   property was missing.  Also added a new getStringValue() method.
+* Improve the error message displayed when the user tries to install and remove
+  the wrapper as Service on Windows Versions after Windows Vista.
 
 3.3.9
 * Modify the way JNI functions are called from within the native library so

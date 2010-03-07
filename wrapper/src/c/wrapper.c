@@ -2351,7 +2351,9 @@ void checkIfRegularExe(char** para) {
     char* path;
 #ifndef WIN32
     path = findpathof(*para);
-    if (path) {
+    if (!path) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "The following path couldn't be found: %s", *para);
+    } else {
         free(*para);
         *para = malloc((strlen(path) + 1)* sizeof(char));
         if (!(*para)) {
