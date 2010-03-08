@@ -54,6 +54,7 @@
 #include "wrapper_file.h"
 
 #ifndef TOKEN_ELEVATION
+/* The current SDK is pre-Vista.  Add the required definitions. */
 typedef struct _TOKEN_ELEVATION {
   DWORD TokenIsElevated;
 } TOKEN_ELEVATION, *PTOKEN_ELEVATION;
