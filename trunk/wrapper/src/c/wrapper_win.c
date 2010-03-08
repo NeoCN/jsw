@@ -53,6 +53,13 @@
 #include "logger.h"
 #include "wrapper_file.h"
 
+#ifndef TOKEN_ELEVATION
+typedef struct _TOKEN_ELEVATION {
+  DWORD TokenIsElevated;
+} TOKEN_ELEVATION, *PTOKEN_ELEVATION;
+#define TokenElevation TokenOrigin + 3
+#endif
+
 /*****************************************************************************
  * Win32 specific variables and procedures                                   *
  *****************************************************************************/
