@@ -830,25 +830,43 @@ rem ********************************************************************]]></rep
         ;;]]></replacevalue>
         </replace>
         <replace file="${bin.dir}/${app.name}">
-            <replacetoken><![CDATA['start')
-        checkUser touchlock $1
-        start
-        ;;]]></replacetoken>
-            <replacevalue><![CDATA['start')
-        checkUser touchlock $1 $2
-        start $2
-        ;;]]></replacevalue>
+            <replacetoken><![CDATA[macosxstart
+        else
+            checkUser touchlock $1
+            start]]></replacetoken>
+            <replacevalue><![CDATA[macosxstart $2
+        else
+            checkUser touchlock $1 $2
+            start $2]]></replacevalue>
         </replace>
         <replace file="${bin.dir}/${app.name}">
             <replacetoken><![CDATA['restart')
         checkUser touchlock $1
-        stopit
+        stopit "0"
         start
         ;;]]></replacetoken>
             <replacevalue><![CDATA['restart')
         checkUser touchlock $1 $2
-        stopit
+        stopit "0"
         start $2
+        ;;]]></replacevalue>
+        </replace>
+        <replace file="${bin.dir}/${app.name}">
+            <replacetoken><![CDATA['condrestart')
+        checkUser touchlock $1
+        stopit "1"
+        start
+        ;;]]></replacetoken>
+            <replacevalue><![CDATA['condrestart')
+        checkUser touchlock $1 $2
+        stopit "1"
+        start $2
+        ;;]]></replacevalue>
+        </replace>
+        <replace file="${bin.dir}/${app.name}">
+            <replacetoken><![CDATA['launchdinternal
+        ;;]]></replacetoken>
+            <replacevalue><![CDATA['launchdinternal $2
         ;;]]></replacevalue>
         </replace>
         <replace file="${bin.dir}/${app.name}">
@@ -868,10 +886,10 @@ rem ********************************************************************]]></rep
             <replacevalue><![CDATA[\"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.app.parameter.1=$1]]></replacevalue>
         </replace>
         <replace file="${bin.dir}/${app.name}">
-            <replacetoken><![CDATA[Usage: $0 { console | start | stop | restart | status | dump }]]></replacetoken>
-            <replacevalue><![CDATA[Usage: $0 { console <action> | start <action> | stop | restart <action> | status | dump }]]></replacevalue>
+            <replacetoken><![CDATA[Usage: $0 { console | start | stop | restart | condrestart | status | install | remove | dump }]]></replacetoken>
+            <replacevalue><![CDATA[Usage: $0 { console <action> | start <action> | stop | restart <action> | condrestart <action> | status | install | remove | dump }]]></replacevalue>
         </replace>
-        <chmod file="${bin.dir}/${app.name}" perm="+x"/> 		
+        <chmod file="${bin.dir}/${app.name}" perm="+x"/>         
     </target>
     
     <!-- =================================================================== -->
