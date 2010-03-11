@@ -1487,6 +1487,27 @@ void logChildOutput(const char* log) {
                 wrapperRequestDumpJVMState(FALSE);
                 break;
 
+#if defined(MACOSX)
+            case FILTER_ACTION_ADVICE_NIL_SERVER:
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                    "------------------------------------------------------------------------");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                    "Advice:");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                    "MACOSX is known to have problems displaying GUIs from processes running");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                    "as a daemon launched from launchd.  The above \"Returning nil _server\"");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                    "means that you are encountering this problem.  This usually results in");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                    "a long timeout which is affecting the performance of your application.");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                    "------------------------------------------------------------------------");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "");
+                break;
+#endif
+
             default: /* FILTER_ACTION_NONE*/
                 /* Do nothing but masks later filters */
                 break;
@@ -3970,6 +3991,10 @@ int loadConfigurationTriggers() {
         wrapperData->outputFilterCount++;
         i++;
     }
+#if defined(MACOSX)
+    wrapperData->outputFilterCount++;
+    i++;
+#endif
 
     /* Now that a count is known, allocate memory to hold the filters and actions and load them in. */
     if (wrapperData->outputFilterCount > 0) {
@@ -4005,6 +4030,17 @@ int loadConfigurationTriggers() {
 #endif
             i++;
         }
+
+#if defined(MACOSX)
+        wrapperData->outputFilters[i] = malloc(sizeof(char) * strlen(FILTER_TRIGGER_ADVICE_NIL_SERVER));
+        if (!wrapperData->outputFilters[i]) {
+            outOfMemory("LC", 4);
+            return -1;
+        }
+        strcpy(wrapperData->outputFilters[i], FILTER_TRIGGER_ADVICE_NIL_SERVER);
+        wrapperData->outputFilterActions[i] = FILTER_ACTION_ADVICE_NIL_SERVER;
+        i++;
+#endif
     }
     freeStringProperties(propertyNames, propertyValues, propertyIndices);
     

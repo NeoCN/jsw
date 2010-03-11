@@ -124,6 +124,10 @@
 #define FILTER_ACTION_RESTART    91
 #define FILTER_ACTION_SHUTDOWN   92
 #define FILTER_ACTION_DUMP       93
+#if defined(MACOSX)
+#define FILTER_TRIGGER_ADVICE_NIL_SERVER "****** Returning nil _server **********"
+#define FILTER_ACTION_ADVICE_NIL_SERVER 127
+#endif
 
 
 /* Because of the way time is converted to ticks, the largest possible timeout that

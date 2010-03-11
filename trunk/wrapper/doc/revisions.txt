@@ -125,6 +125,8 @@ Java Service Wrapper Revision History.
   property was missing.  Also added a new getStringValue() method.
 * Improve the error message displayed when the user tries to install and remove
   the wrapper as Service on Windows Versions after Windows Vista.
+* Add an advice message when MacOSX applications launched with launchd
+  encounter a "Returning nil _server" error when displaying a GUI.
 
 3.3.9
 * Modify the way JNI functions are called from within the native library so
