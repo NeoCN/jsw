@@ -399,10 +399,10 @@ Java Service Wrapper Revision History.
   linefeeds in the body of the email.
 * Add a warning if the leading '#' is missing from an '#include' in the
   configuration file to assist users with include file problems.
-* Added a new wrapper.ntservice.generate_console which will cause the Wrapper
-  to always generate a console when running as a service and then hide it
-  immediately.  This will cause a slight flicker but is needed to support
-  thread dumps.  Bug #2060181.
+* Added a new wrapper.ntservice.generate_console property which will cause
+  the Wrapper to always generate a console when running as a service and
+  then hide it immediately.  This will cause a slight flicker but is needed
+  to support thread dumps.  Bug #2060181.
 * Fix a problem in the Windows version where the console window would
   sometimes be left visible when running as an interactive service even when
   it was configured to be hidden.

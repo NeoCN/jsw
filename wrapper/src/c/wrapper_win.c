@@ -53,7 +53,7 @@
 #include "logger.h"
 #include "wrapper_file.h"
 
-#ifndef TOKEN_ELEVATION
+#ifndef POLICY_AUDIT_SUBCATEGORY_COUNT
 /* The current SDK is pre-Vista.  Add the required definitions. */
 typedef struct _TOKEN_ELEVATION {
   DWORD TokenIsElevated;
