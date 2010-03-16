@@ -563,10 +563,10 @@ getstatus() {
 testpid() {
     case "$DIST_OS" in
         'solaris')
-            pid=`$PSEXE  $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
+            pid=`$PSEXE  $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1` 2>/dev/null
             ;;
         *)
-            pid=`$PSEXE -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1`
+            pid=`$PSEXE -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1` 2>/dev/null
             ;;
     esac
     if [ "X$pid" = "X" ]
