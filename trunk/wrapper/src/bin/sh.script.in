@@ -702,7 +702,10 @@ macosxstart() {
     LOADED_PLIST=`launchctl list | grep ${APP_PLIST_BASE}`
     if [ "X${LOADED_PLIST}" = "X" ] ; then
         launchctl load /Library/LaunchDaemons/${APP_PLIST}
-    else
+    fi
+    # If launchd is set to run the daemon already at Load, we don't need to call start
+    getpid
+    if [ "X$pid" == "X" ] ; then
         launchctl start ${APP_PLIST_BASE}
     fi
     
