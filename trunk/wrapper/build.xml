@@ -982,6 +982,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                 <include name="src/c/*.plg" />
                 <include name="src/c/*.rc" />
                 <include name="src/c/*.ico" />
+                <include name="src/c/*.bmp" />
                 <include name="src/c/*.bin" />
                 <exclude name="**/CVS/*" />
             </fileset>
@@ -1084,6 +1085,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                 <include name="src/c/*.ico" />
                 <include name="src/c/*.bmp" />
                 <include name="src/c/*.bin" />
+                <exclude name="**/CVS/*" />
             </fileset>
         </copy>
         
