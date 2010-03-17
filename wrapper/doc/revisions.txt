@@ -167,8 +167,9 @@ Java Service Wrapper Revision History.
   the WrapperManager.getUser() and getInteractiveUser() methods were always
   returning null.  This problem was introduced in version 3.3.6.
 * (Professional) Fix a buffer overflow when sending alert emails to multiple
-  addresses.  This did not appear to cause any crashes, but some platforms
-  would report it because they have overflow checking enabled.
+  addresses.  This would sometimes cause crashes in versions 3.3.7 and 3.3.8
+  when sending alert emails to even a single recipient.  Because of the nature
+  of the overflow, in most cases did not cause any problems.
 
 3.3.8
 * Add the new start type DELAY_START for NT Services, which startes the service 
