@@ -4157,7 +4157,6 @@ void main(int argc, char **argv) {
             appExit(0);
             return; /* For clarity. */     
         }
-
         /* All 4 valid commands use the configuration file.  It is loaded here to
          *  reduce duplicate code.  But before loading the parameters, in the case
          *  of an NT service. the environment variables must first be loaded from

@@ -198,6 +198,8 @@ const char* getSignalName(int signo) {
             return "SIGUSR1";
         case SIGUSR2:
             return "SIGUSR2";
+        case SIGSEGV:
+            return "SIGSEGV";
         default:
             return "UNKNOWN";
     }

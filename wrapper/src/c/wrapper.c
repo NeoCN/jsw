@@ -2213,24 +2213,24 @@ int wrapperCheckQuotes(const char *value, const char *propName) {
     return 0;
 }
 #ifndef WIN32
-int checkifexecutable(const char *filename) {
+int checkIfExecutable(const char *filename) {
     int result;
-    struct stat statinfo;
-    result = stat(filename, &statinfo);
+    struct stat statInfo;
+    result = stat(filename, &statInfo);
     if (result < 0) {
         return 0;
     }
 
-    if (!S_ISREG(statinfo.st_mode)) {
+    if (!S_ISREG(statInfo.st_mode)) {
         return 0;
     }
-    if (statinfo.st_uid == geteuid()) {
-        return statinfo.st_mode & S_IXUSR;
+    if (statInfo.st_uid == geteuid()) {
+        return statInfo.st_mode & S_IXUSR;
     }
-    if (statinfo.st_gid == getegid()) {
-        return statinfo.st_mode & S_IXGRP;
+    if (statInfo.st_gid == getegid()) {
+        return statInfo.st_mode & S_IXGRP;
     }
-    return statinfo.st_mode & S_IXOTH;
+    return statInfo.st_mode & S_IXOTH;
 
 }
 #endif
@@ -2307,8 +2307,8 @@ char* resolveLinks(char* exe) {
 }
 
 
-char* findpathof(const char *exe) {
-    char *searchpath;
+char* findPathOf(const char *exe) {
+    char *searchPath;
     char *beg, *end;
     int stop, found;
     char pth[PATH_MAX];
@@ -2320,21 +2320,21 @@ char* findpathof(const char *exe) {
             return NULL;
         }
         strcpy(pth, resolvedPath);
-        if (checkifexecutable(pth)) {
+        if (checkIfExecutable(pth)) {
             ret = malloc((strlen(pth) + 1) * sizeof(char));
             strcpy(ret, pth);
             return ret;
         }
         return NULL;
     }
-    searchpath = getenv("PATH");
-    if (searchpath == NULL) {
+    searchPath = getenv("PATH");
+    if (searchPath == NULL) {
         return NULL;
     }
-    if (strlen(searchpath) <= 0) {
+    if (strlen(searchPath) <= 0) {
         return NULL;
     }
-    beg = searchpath;
+    beg = searchPath;
     stop = 0; found = 0;
     do {
         end = strchr(beg, ':');
@@ -2349,7 +2349,7 @@ char* findpathof(const char *exe) {
             strcat(pth, "/");
         }
         strcat(pth, exe);
-        found = checkifexecutable(pth);
+        found = checkIfExecutable(pth);
         if (!stop) {
             beg = end + 1;
         }
@@ -2371,9 +2371,9 @@ char* findpathof(const char *exe) {
 void checkIfRegularExe(char** para) {
     char* path;
 #ifndef WIN32
-    path = findpathof(*para);
+    path = findPathOf(*para);
     if (!path) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "The following path couldn't be found: %s", *para);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "The configured wrapper.java.command could not be found, attempting to launch anyway: %s", *para);
     } else {
         free(*para);
         *para = malloc((strlen(path) + 1)* sizeof(char));
