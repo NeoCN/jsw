@@ -801,7 +801,7 @@ void wrapperExecute() {
     /* Only allocate a pipe if we have not already done so. */
     if (!pipeInitialized) {
         /* Create the pipe. */
-        if (pipe (pipedes) < 0) {
+        if (pipe(pipedes) < 0) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                        "Could not init pipe: %s", getLastErrorText());
             return;
