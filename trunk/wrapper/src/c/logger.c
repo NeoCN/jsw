@@ -1816,12 +1816,13 @@ void rollLogs() {
             /* Don't log this as with other errors as that would cause recursion. */
             printf("Unable to rename log file %s to %s.  File is in use by another application.\n",
                 currentLogFileName, workLogFileName);
+            return;
         } else {
             /* Don't log this as with other errors as that would cause recursion. */
             printf("Unable to rename log file %s to %s. (%s)\n",
                 currentLogFileName, workLogFileName, getLastErrorText());
+            return;
         }
-        return;
     }
 #ifdef _DEBUG
     else {
