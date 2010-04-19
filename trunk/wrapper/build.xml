@@ -570,6 +570,7 @@
     <target name="compile-c-windows-vcvars" depends="msvc-missing" if="is.windows.msvc">
         <mkdir dir="${bin.dir}"/>        
         <mkdir dir="${lib.dir}"/>
+        <mkdir dir="${basedir}/test"/>
         
         <echo message="Java.vendor=${java.vendor}"/>
 
@@ -620,6 +621,7 @@
     <target name="compile-c-unix" depends="compile-c-unix-check" if="is.unix">
         <mkdir dir="${bin.dir}"/>        
         <mkdir dir="${lib.dir}"/>
+        <mkdir dir="${basedir}/test"/>
         
         <echo message="Build native components using '${make.name}' and Makefile: ${makefile.name}.${make.name}"/>
         <exec executable="${make.name}"
