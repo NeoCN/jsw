@@ -1,17 +1,24 @@
 Java Service Wrapper Revision History.
 --------------------------------------
-
 3.4.1
 * Fix a problem where the wrapper.app.parameter.1 property was always being
   set to an empty string when launched from launchd on Mac OSX.  It worked
   correctly with the testwrapper application, but would fail or most user
   applications.
-* Add a small debug message when running wrapperw.exe so it is clear which
-  wrapper binary is being used.
-* Log the name of the signal in the logs when a SIGSEGV is detected from the
-  JVM.   It had been logged as Unknown.
+* (Professional) Fix a potential synchronization problem in the log output
+  of the event command and event email code.  This had been in the code
+  since 3.3.0 without any reports of problems.
 * Improve the error message displayed when the configured wrapper.java.command
   can not be found on the path.
+* Log the name of the signal in the logs when a SIGSEGV is detected from the
+  JVM.   It had been logged as Unknown.
+* Add some comments to the wrapper.conf.in template to help users get started
+  with a new license key file.
+* Add some default properties to the wrapper.conf.in template file to make
+  it easier to get up and running with out of memory checks, as well as
+  sending out alert emails.
+* Add a small debug message when running wrapperw.exe so it is clear which
+  wrapper binary is being used.
 
 3.4.0
 * Increased the minimum supported Java version from 1.2 to 1.4.
