@@ -124,11 +124,11 @@ public final class WrapperManager
     private static final byte WRAPPER_MSG_PROPERTIES     = (byte)115;
     private static final byte WRAPPER_MSG_CHILD_LAUNCH   = (byte)132;
     private static final byte WRAPPER_MSG_CHILD_TERM     = (byte)133;
+    private static final byte WRAPPER_MSG_LOGFILE        = (byte)134;
+    private static final byte WRAPPER_MSG_APPEAR_ORPHAN  = (byte)137;
     
     /** Log commands are actually 116 + the LOG LEVEL. */
     private static final byte WRAPPER_MSG_LOG            = (byte)116;
-
-    private static final byte WRAPPER_MSG_LOGFILE        = (byte)134;
     
     /** Received when the user presses CTRL-C in the console on Windows or UNIX platforms. */
     public static final int WRAPPER_CTRL_C_EVENT         = 200;
@@ -747,6 +747,8 @@ public final class WrapperManager
                         // Attempt to detect whether or not we are being starved of CPU.
                         //  This will only have any effect if the m_useSystemTime flag is
                         //  set.
+                        // The tick timer will always result in an age of exactly one
+                        //  because it is incremented each time through this loop.
                         int nowTicks = getTicks();
                         long age = getTickAge( m_eventRunnerTicks, nowTicks );
                         if ( ( m_cpuTimeout > 0 ) && ( age > m_cpuTimeout ) )
@@ -2130,6 +2132,30 @@ public final class WrapperManager
         
         m_outInfo.println( "WARNING: Making JVM appear to be hung..." );
         m_appearHung = true;
+    }
+    
+    /**
+     * (Testing Method) Tells the Wrapper to stop responding to requests by the WrapperManager
+     *  to simulate the case where the Wrapper has crashed or been killed.  The WrapperManager
+     *  is designed to clean up the JVM in this case.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("test.appearHung") permission.
+     *
+     * @see WrapperPermission
+     * @since Wrapper 3.4.1
+     */
+    public static void appearOrphan()
+    {
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "test.appearOrphan" ) );
+        }requestOrphansimulateOrphan
+        
+        m_outInfo.println( "WARNING: Making JVM appear to be orphaned..." );
+        sendCommand( WRAPPER_MSG_APPEAR_ORPHAN, "" );
     }
     
     /**
@@ -4427,6 +4453,10 @@ public final class WrapperManager
             name ="CHILD_TERM";
             break;
     
+        case WRAPPER_MSG_APPEAR_ORPHAN:
+            name ="APPEAR_ORPHAN";
+            break;
+    
         default:
             name = "UNKNOWN(" + code + ")";
             break;
@@ -4731,7 +4761,9 @@ public final class WrapperManager
                             
                             // We may have timed out because the system was extremely busy or
                             //  suspended.  Only restart due to a lack of ping events if the
-                            //  event thread has been running.
+                            //  event thread has been running.  The eventRunnerAge can only be
+                            //  large if the m_useSystemTime flag is set.  With the tick timer
+                            //  it will never be larger than 1.
                             if ( eventRunnerAge < 10000 )
                             {
                                 // Only perform ping timeout checks if ping timeouts are enabled.
@@ -4773,6 +4805,7 @@ public final class WrapperManager
                                             }
                                             
                                             privilegedStopInner( 1 );
+                                            // Will not return.
                                         }
                                     }
                                 }

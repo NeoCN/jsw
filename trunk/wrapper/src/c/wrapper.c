@@ -782,6 +782,11 @@ char *wrapperProtocolGetCodeName(char code) {
     case WRAPPER_MSG_LOGFILE:
         name = "LOGFILE";
         break;
+        
+    case WRAPPER_MSG_APPEAR_ORPHAN:
+        name = "APPEAR_ORPHAN";
+        break;
+        
     default:
         sprintf(unknownBuffer, "UNKNOWN(%d)", code);
         name = unknownBuffer;
@@ -845,6 +850,15 @@ int releaseProtocolMutex() {
     return 0;
 }
 
+/**
+ * Sends a command to the JVM over the backend socket.
+ *
+ * @param useLoggerQueue TRUE if called from a signal where the logger queue needs to be used.
+ * @param function The function code to send.
+ * @param message The message to send.
+ *
+ * @return TRUE if there was an error, FALSE otherwise.
+ */
 size_t protocolSendBufferSize = 0;
 char *protocolSendBuffer = NULL;
 int wrapperProtocolFunction(int useLoggerQueue, char function, const char *message) {
@@ -856,7 +870,7 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const char *messa
 
     /* It is important than there is never more than one thread allowed in here at a time. */
     if (lockProtocolMutex()) {
-        return -1;
+        return TRUE;
     }
 
     /* We don't want to show the full properties log message.  It is quite long and distracting. */
@@ -864,6 +878,16 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const char *messa
         logMsg = "(Property Values)";
     } else {
         logMsg = message;
+    }
+    
+    /* If we are in the orphaned JVM test mode then don't do anything. */
+    if (wrapperData->isJVMOrphaned) {
+        if (wrapperData->isDebugging) {
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
+                "Orphan Mode.  Skip sending packet %s : %s",
+                wrapperProtocolGetCodeName(function), (message == NULL ? "NULL" : logMsg));
+        }
+        return FALSE;
     }
 
     /* Make sure the buffer is big enough for this message. */
@@ -879,7 +903,7 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const char *messa
         protocolSendBuffer = malloc(len);
         if (!protocolSendBuffer) {
             outOfMemory("WPF", 1);
-            return -1;
+            return TRUE;
         }
     }
 
@@ -890,7 +914,7 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const char *messa
                 "socket not open, so packet not sent %s : %s",
                 wrapperProtocolGetCodeName(function), (message == NULL ? "NULL" : logMsg));
         }
-        returnVal = -1;
+        returnVal = TRUE;
     } else {
         if (wrapperData->isDebugging) {
             if ((function == WRAPPER_MSG_PING) && (strcmp(message, "silent") == 0)) {
@@ -934,15 +958,15 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const char *messa
                 }
             }
             wrapperProtocolClose();
-            returnVal = -1;
+            returnVal = TRUE;
         } else {
-            returnVal = 1;
+            returnVal = FALSE;
         }
     }
 
     /* Always make sure the mutex is released. */
     if (releaseProtocolMutex()) {
-        returnVal = -1;
+        returnVal = TRUE;
     }
 
     return returnVal;
@@ -1134,6 +1158,12 @@ int wrapperProtocolRead() {
         case WRAPPER_MSG_LOG + LEVEL_ERROR:
         case WRAPPER_MSG_LOG + LEVEL_FATAL:
             wrapperLogSignalled(code - WRAPPER_MSG_LOG, packetBuffer);
+            break;
+            
+        case WRAPPER_MSG_APPEAR_ORPHAN:
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_STATUS, "Orphan the JVM and wait for it to exit on its own...",
+                wrapperProtocolGetCodeName(code), packetBuffer);
+            wrapperData->isJVMOrphaned = TRUE;
             break;
 
         default:
