@@ -1211,6 +1211,10 @@ void jStateLaunch(DWORD nowTicks, int nextSleep) {
     if ((wrapperData->wState == WRAPPER_WSTATE_STARTING) ||
         (wrapperData->wState == WRAPPER_WSTATE_STARTED) ||
         (wrapperData->wState == WRAPPER_WSTATE_CONTINUING)) {
+        
+        /* Always make sure that the orphan flag is reset before launching a new JVM. */
+        wrapperData->isJVMOrphaned = FALSE;
+        
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Launching a JVM...");
 
         wrapperExecute();
@@ -1295,7 +1299,7 @@ void jStateLaunched(DWORD nowTicks, int nextSleep) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Start Application.");
     }
     ret = wrapperProtocolFunction(FALSE, WRAPPER_MSG_START, "start");
-    if (ret < 0) {
+    if (ret) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to send the start command to the JVM.");
 
         /* Give up on the JVM and start trying to kill it. */
@@ -1375,9 +1379,11 @@ void jStateStarted(DWORD nowTicks, int nextSleep) {
     if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone.  Restart it. (Handled and logged) */
     } else {
-        /* Have we waited too long already.  The jStateTimeoutTicks is reset each time a ping
-         *  response is received from the JVM. */
-        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAgeSeconds(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
+        if (wrapperData->isJVMOrphaned) {
+            /* The JVM requested that it be orphaned so it is no longer desirable to ping or expect ping responses.  Do nothing.*/
+        } else if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAgeSeconds(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
+            /* Have we waited too long already.  The jStateTimeoutTicks is reset each time a ping
+             *  response is received from the JVM. */
             if (wrapperData->debugJVM) {
                 handleDebugJVMTimeout(nowTicks,
                     "Ping: Timed out waiting for signal from JVM.", "ping");
@@ -1405,7 +1411,7 @@ void jStateStarted(DWORD nowTicks, int nextSleep) {
                 }
                 ret = wrapperProtocolFunction(FALSE, WRAPPER_MSG_PING, "silent");
             }
-            if (ret < 0) {
+            if (ret) {
                 /* Failed to send the ping. */
                 if (wrapperData->isDebugging) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM Ping Failed.");

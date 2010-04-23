@@ -22,6 +22,15 @@ Java Service Wrapper Revision History.
 * Fix a problem where the wrapper.logfile.maxfiles was not being applied on
   startup when the current log file did not yet exist.  This was true for any
   wrapper.logfile value which contained a unique value like a PID.
+* (Professional) Fix a problem in the WrapperProcess.destroy() function, where
+  the function was failing to forcibly kill the child process.
+* (Standard, Professional) Add a new GetHostID.bat file for Windows platforms.
+  This file will open a dialog displaying the HostId of the machine to help
+  new users get up and running.
+* Add a new WrapperManager.appearOrphan() method which can be used to test
+  how the WrapperManager shuts down the JVM in the event that the Wrapper
+  process ever crashes or freezes.  This was not due to any particular problem
+  and was added to fill out our test coverage.
 
 3.4.0
 * Increased the minimum supported Java version from 1.2 to 1.4.

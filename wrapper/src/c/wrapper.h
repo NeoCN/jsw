@@ -190,6 +190,7 @@ struct WrapperConfig {
     int     shutdownTimeout;        /* Number of seconds the wrapper will wait for a JVM to shutdown */
     int     jvmExitTimeout;         /* Number of seconds the wrapper will wait for a JVM to process to terminate */
     int     jvmCleanupTimeout;      /* Number of seconds the wrapper will allow for its post JVM shudown cleanup. */
+    int     isJVMOrphaned;          /* If set to true, the Wrapper goes into a test more where it stops communicating with the JVM. */
 
 #ifdef WIN32
     int     ignoreUserLogoffs;      /* If TRUE, the Wrapper will ignore logoff events when run in the background as an in console mode. */
@@ -329,6 +330,7 @@ struct WrapperConfig {
 #define WRAPPER_MSG_LOG           (char)116
 
 #define WRAPPER_MSG_LOGFILE       (char)134
+#define WRAPPER_MSG_APPEAR_ORPHAN (char)137
 
 #define WRAPPER_PROCESS_DOWN      200
 #define WRAPPER_PROCESS_UP        201

@@ -170,6 +170,9 @@ public class Main
             buildCommand( panel, gridBag, c, "Simulate JVM Hang", "appear_hung",
                 "Makes the JVM appear to be hung as viewed from the Wrapper, it will be killed and restarted." );
             
+            buildCommand( panel, gridBag, c, "Simulate Wrapper Crash", "appear_orphan",
+                "Makes the JVM appear to have been orphaned to simulate the case where the Wrapper has crashed.  The JVM will shut itself down." );
+            
             buildCommand( panel, gridBag, c, "Ignore Control Events", "ignore_events",
                 "Makes this application ignore control events.  It will not shutdown in response to CTRL-C.  The Wrapper will still respond." );
             
