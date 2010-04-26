@@ -2152,7 +2152,7 @@ public final class WrapperManager
         if ( sm != null )
         {
             sm.checkPermission( new WrapperPermission( "test.appearOrphan" ) );
-        }requestOrphansimulateOrphan
+        }
         
         m_outInfo.println( "WARNING: Making JVM appear to be orphaned..." );
         sendCommand( WRAPPER_MSG_APPEAR_ORPHAN, "" );
