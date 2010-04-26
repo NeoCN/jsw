@@ -209,8 +209,8 @@ void wrapperSetWrapperState(int useLoggerQueue, int wState) {
  * delay - The delay in seconds, added to the nowTicks after which the state
  *         will time out, if negative will never time out.
  */
-void wrapperUpdateJavaStateTimeout(DWORD nowTicks, int delay) {
-    DWORD newTicks;
+void wrapperUpdateJavaStateTimeout(TICKS nowTicks, int delay) {
+    TICKS newTicks;
     int ignore;
     int tickAge;
 
@@ -263,7 +263,7 @@ void wrapperUpdateJavaStateTimeout(DWORD nowTicks, int delay) {
  * delay - The delay in seconds, added to the nowTicks after which the state
  *         will time out, if negative will never time out.
  */
-void wrapperSetJavaState(int useLoggerQueue, int jState, DWORD nowTicks, int delay) {
+void wrapperSetJavaState(int useLoggerQueue, int jState, TICKS nowTicks, int delay) {
     if (wrapperData->isStateOutputEnabled) {
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
             "      Set Java State %s -> %s",
@@ -341,7 +341,7 @@ void displayLaunchingTimeoutMessage() {
  * Handles a timeout for a DebugJVM by showing an appropriate message and
  *  resetting internal timeouts.
  */
-void handleDebugJVMTimeout(DWORD nowTicks, const char *message, const char *timer) {
+void handleDebugJVMTimeout(TICKS nowTicks, const char *message, const char *timer) {
     if (!wrapperData->debugJVMTimeoutNotified) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
             "------------------------------------------------------------------------");
@@ -371,7 +371,7 @@ void handleDebugJVMTimeout(DWORD nowTicks, const char *message, const char *time
  *
  * nowTicks: The tick counter value this time through the event loop.
  */
-void anchorPoll(DWORD nowTicks) {
+void anchorPoll(TICKS nowTicks) {
     struct stat fileStat;
     int result;
 
@@ -440,7 +440,7 @@ void anchorPoll(DWORD nowTicks) {
  * nowTicks: The tick counter value this time through the event loop.
  */
 #define MAX_COMMAND_LENGTH 80
-void commandPoll(DWORD nowTicks) {
+void commandPoll(TICKS nowTicks) {
     struct stat fileStat;
     int result;
     FILE *stream;
@@ -665,7 +665,7 @@ void commandPoll(DWORD nowTicks) {
  *
  * nowTicks: The tick counter value this time through the event loop.
  */
-void wStateStarting(DWORD nowTicks) {
+void wStateStarting(TICKS nowTicks) {
     int timeout;
 
     /* While the wrapper is starting up, we need to ping the service  */
@@ -697,7 +697,7 @@ void wStateStarting(DWORD nowTicks) {
  *
  * nowTicks: The tick counter value this time through the event loop.
  */
-void wStateStarted(DWORD nowTicks) {
+void wStateStarted(TICKS nowTicks) {
     /* Just keep running.  Nothing to do here. */
 }
 
@@ -710,7 +710,7 @@ void wStateStarted(DWORD nowTicks) {
  *
  * nowTicks: The tick counter value this time through the event loop.
  */
-void wStatePausing(DWORD nowTicks) {
+void wStatePausing(TICKS nowTicks) {
     int timeout;
 
     /* While the wrapper is pausing, we need to ping the service  */
@@ -768,7 +768,7 @@ void wStatePausing(DWORD nowTicks) {
  *
  * nowTicks: The tick counter value this time through the event loop.
  */
-void wStatePaused(DWORD nowTicks) {
+void wStatePaused(TICKS nowTicks) {
     /* Just keep running.  Nothing to do here. */
 }
 
@@ -780,7 +780,7 @@ void wStatePaused(DWORD nowTicks) {
  *
  * nowTicks: The tick counter value this time through the event loop.
  */
-void wStateContinuing(DWORD nowTicks) {
+void wStateContinuing(TICKS nowTicks) {
     int timeout;
 
     /* While the wrapper is continuing, we need to ping the service  */
@@ -814,7 +814,7 @@ void wStateContinuing(DWORD nowTicks) {
  *
  * nowTicks: The tick counter value this time through the event loop.
  */
-void wStateStopping(DWORD nowTicks) {
+void wStateStopping(TICKS nowTicks) {
     int timeout;
 
     /* The wrapper is stopping, we need to ping the service manager */
@@ -845,7 +845,7 @@ void wStateStopping(DWORD nowTicks) {
  *
  * nowTicks: The tick counter value this time through the event loop.
  */
-void wStateStopped(DWORD nowTicks) {
+void wStateStopped(TICKS nowTicks) {
     /* The wrapper is ready to stop.  Nothing to be done here.  This */
     /*  state will exit the event loop below. */
 }
@@ -867,7 +867,7 @@ void wStateStopped(DWORD nowTicks) {
  *            may make sense to avoid certain actions if it is known that the
  *            function will be called again immediately.
  */
-void jStateDownClean(DWORD nowTicks, int nextSleep) {
+void jStateDownClean(TICKS nowTicks, int nextSleep) {
     char onExitParamBuffer[16 + 10 + 1];
     int startupDelay;
     int restartMode;
@@ -1045,7 +1045,7 @@ void jStateDownClean(DWORD nowTicks, int nextSleep) {
  *            may make sense to avoid certain actions if it is known that the
  *            function will be called again immediately.
  */
-void jStateLaunchDelay(DWORD nowTicks, int nextSleep) {
+void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
     const char *mainClass;
     
     /* The Waiting state is set from the DOWN_CLEAN state if a JVM had
@@ -1180,7 +1180,7 @@ void jStateLaunchDelay(DWORD nowTicks, int nextSleep) {
  *            may make sense to avoid certain actions if it is known that the
  *            function will be called again immediately.
  */
-void jStateRestart(DWORD nowTicks, int nextSleep) {
+void jStateRestart(TICKS nowTicks, int nextSleep) {
     
     if ((wrapperData->wState == WRAPPER_WSTATE_STARTING) ||
         (wrapperData->wState == WRAPPER_WSTATE_STARTED) ||
@@ -1206,7 +1206,7 @@ void jStateRestart(DWORD nowTicks, int nextSleep) {
  *            may make sense to avoid certain actions if it is known that the
  *            function will be called again immediately.
  */
-void jStateLaunch(DWORD nowTicks, int nextSleep) {
+void jStateLaunch(TICKS nowTicks, int nextSleep) {
 
     if ((wrapperData->wState == WRAPPER_WSTATE_STARTING) ||
         (wrapperData->wState == WRAPPER_WSTATE_STARTED) ||
@@ -1253,7 +1253,7 @@ void jStateLaunch(DWORD nowTicks, int nextSleep) {
  *            may make sense to avoid certain actions if it is known that the
  *            function will be called again immediately.
  */
-void jStateLaunching(DWORD nowTicks, int nextSleep) {
+void jStateLaunching(TICKS nowTicks, int nextSleep) {
     /* Make sure that the JVM process is still up and running */
     if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone.  Restart it. (Handled and logged) */
@@ -1290,7 +1290,7 @@ void jStateLaunching(DWORD nowTicks, int nextSleep) {
  *            may make sense to avoid certain actions if it is known that the
  *            function will be called again immediately.
  */
-void jStateLaunched(DWORD nowTicks, int nextSleep) {
+void jStateLaunched(TICKS nowTicks, int nextSleep) {
     int ret;
 
     /* The Java side of the wrapper code has responded to a ping.
@@ -1332,7 +1332,7 @@ void jStateLaunched(DWORD nowTicks, int nextSleep) {
  *            may make sense to avoid certain actions if it is known that the
  *            function will be called again immediately.
  */
-void jStateStarting(DWORD nowTicks, int nextSleep) {
+void jStateStarting(TICKS nowTicks, int nextSleep) {
     /* Make sure that the JVM process is still up and running */
     if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone.  Restart it. (Handled and logged) */
@@ -1372,7 +1372,7 @@ void jStateStarting(DWORD nowTicks, int nextSleep) {
  *            may make sense to avoid certain actions if it is known that the
  *            function will be called again immediately.
  */
-void jStateStarted(DWORD nowTicks, int nextSleep) {
+void jStateStarted(TICKS nowTicks, int nextSleep) {
     int ret;
 
     /* Make sure that the JVM process is still up and running */
@@ -1437,7 +1437,7 @@ void jStateStarted(DWORD nowTicks, int nextSleep) {
  *            may make sense to avoid certain actions if it is known that the
  *            function will be called again immediately.
  */
-void jStateStop(DWORD nowTicks, int nextSleep) {
+void jStateStop(TICKS nowTicks, int nextSleep) {
 
     /* Make sure that the JVM process is still up and running */
     if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
@@ -1467,7 +1467,7 @@ void jStateStop(DWORD nowTicks, int nextSleep) {
  *            may make sense to avoid certain actions if it is known that the
  *            function will be called again immediately.
  */
-void jStateStopping(DWORD nowTicks, int nextSleep) {
+void jStateStopping(TICKS nowTicks, int nextSleep) {
     /* Make sure that the JVM process is still up and running */
     if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone. (Handled and logged)*/
@@ -1504,7 +1504,7 @@ void jStateStopping(DWORD nowTicks, int nextSleep) {
  *            may make sense to avoid certain actions if it is known that the
  *            function will be called again immediately.
  */
-void jStateStopped(DWORD nowTicks, int nextSleep) {
+void jStateStopped(TICKS nowTicks, int nextSleep) {
     if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone. This is what we were waiting for. */
     } else {
@@ -1539,7 +1539,7 @@ void jStateStopped(DWORD nowTicks, int nextSleep) {
  *            may make sense to avoid certain actions if it is known that the
  *            function will be called again immediately.
  */
-void jStateKilling(DWORD nowTicks, int nextSleep) {
+void jStateKilling(TICKS nowTicks, int nextSleep) {
     /* Make sure that the JVM process is still up and running */
     if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone. (Handled and logged) */
@@ -1564,7 +1564,7 @@ void jStateKilling(DWORD nowTicks, int nextSleep) {
  *            may make sense to avoid certain actions if it is known that the
  *            function will be called again immediately.
  */
-void jStateKill(DWORD nowTicks, int nextSleep) {
+void jStateKill(TICKS nowTicks, int nextSleep) {
 
     if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone. (Handled and logged) */
@@ -1585,7 +1585,7 @@ void jStateKill(DWORD nowTicks, int nextSleep) {
  *            may make sense to avoid certain actions if it is known that the
  *            function will be called again immediately.
  */
-void jStateDownCheck(DWORD nowTicks, int nextSleep) {
+void jStateDownCheck(TICKS nowTicks, int nextSleep) {
     wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN_CLEAN, nowTicks, -1);
 }
 
@@ -1598,8 +1598,8 @@ void logTickTimerStats() {
     struct tm when;
     time_t now, overflowTime;
 
-    DWORD sysTicks;
-    DWORD ticks;
+    TICKS sysTicks;
+    TICKS ticks;
 
     time(&now);
 
@@ -1639,8 +1639,8 @@ void logTickTimerStats() {
  */
 DWORD lastLogfileActivity = 0;
 void wrapperEventLoop() {
-    DWORD nowTicks;
-    DWORD lastCycleTicks = wrapperGetTicks();
+    TICKS nowTicks;
+    TICKS lastCycleTicks = wrapperGetTicks();
     int nextSleep;
     DWORD activity;
 

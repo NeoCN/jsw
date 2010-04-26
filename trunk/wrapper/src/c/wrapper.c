@@ -1262,6 +1262,13 @@ int wrapperInitialize() {
         return 1;
     }
 #endif
+    
+    /* This is a sanity check to make sure that the datatype used for tick counts is correct. */
+    if (sizeof(TICKS) != 4) {
+        printf("Tick size incorrect %ld != 4\n", sizeof(TICKS));
+        fflush(NULL);
+        return 1;
+    }
 
     return 0;
 }
@@ -3578,7 +3585,7 @@ void wrapperFreeJavaCommandArray(char **strings, int length) {
  * Called when the Wrapper detects that the JVM process has exited.
  *  Contains code common to all platforms.
  */
-void wrapperJVMProcessExited(int useLoggerQueue, DWORD nowTicks, int exitCode) {
+void wrapperJVMProcessExited(int useLoggerQueue, TICKS nowTicks, int exitCode) {
     int setState = TRUE;
 
     if (exitCode == 0) {
@@ -4483,17 +4490,18 @@ int loadConfiguration() {
  * We normally need 64 bits to do this calculation.  Play some games to get
  *  the correct values with 32 bit variables.
  */
-DWORD wrapperGetSystemTicks() {
+TICKS wrapperGetSystemTicks() {
     struct timeb timeBuffer;
-    DWORD high, low, sum;
+    DWORD high, low;
+    TICKS sum;
 #ifdef _DEBUG
-    DWORD assertSum;
+    TICKS assertSum;
 #endif
 
     wrapperGetCurrentTime(&timeBuffer);
 
     /* Break in half. */
-    high = (DWORD)(timeBuffer.time >> 16);
+    high = (DWORD)(timeBuffer.time >> 16) & 0xffff;
     low = (DWORD)(timeBuffer.time & 0xffff);
 
     /* Work on each half. */
@@ -4502,17 +4510,17 @@ DWORD wrapperGetSystemTicks() {
 
     /* Now combine them in such a way that the correct bits are truncated. */
     high = high + ((low >> 16) & 0xffff);
-    sum = ((high & 0xffff) << 16) + (low & 0xffff);
+    sum = (TICKS)(((high & 0xffff) << 16) + (low & 0xffff));
 
     /* Check the result. */
 #ifdef _DEBUG
 #ifdef WIN32
-    assertSum = (DWORD)((timeBuffer.time * 1000UI64 + timeBuffer.millitm) / WRAPPER_TICK_MS);
+    assertSum = (TICKS)((timeBuffer.time * 1000UI64 + timeBuffer.millitm) / WRAPPER_TICK_MS);
 #else
     /* This will produce the following warning on some compilers:
      *  warning: ANSI C forbids long long integer constants
      * Is there another way to do this? */
-    assertSum = (DWORD)((timeBuffer.time * 1000ULL + timeBuffer.millitm) / WRAPPER_TICK_MS);
+    assertSum = (TICKS)((timeBuffer.time * 1000ULL + timeBuffer.millitm) / WRAPPER_TICK_MS);
 #endif
     if (assertSum != sum) {
         printf("wrapperGetSystemTicks() resulted in %08lx rather than %08lx\n", sum, assertSum);
@@ -4529,7 +4537,7 @@ DWORD wrapperGetSystemTicks() {
  *
  * This can be done safely in 32 bits
  */
-int wrapperGetTickAgeSeconds(DWORD start, DWORD end) {
+int wrapperGetTickAgeSeconds(TICKS start, TICKS end) {
     /*
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "      wrapperGetTickAgeSeconds(%08lx, %08lx) -> %08lx", start, end, (int)((end - start) * WRAPPER_TICK_MS) / 1000);
     */
@@ -4549,7 +4557,7 @@ int wrapperGetTickAgeSeconds(DWORD start, DWORD end) {
  *
  * This can be done safely in 32 bits
  */
-int wrapperGetTickAgeTicks(DWORD start, DWORD end) {
+int wrapperGetTickAgeTicks(TICKS start, TICKS end) {
     /*
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "      wrapperGetTickAgeSeconds(%08lx, %08lx) -> %08lx", start, end, (int)(end - start));
     */
@@ -4566,7 +4574,7 @@ int wrapperGetTickAgeTicks(DWORD start, DWORD end) {
  * Returns TRUE if the specified tick timeout has expired relative to the
  *  specified tick count.
  */
-int wrapperTickExpired(DWORD nowTicks, DWORD timeoutTicks) {
+int wrapperTickExpired(TICKS nowTicks, TICKS timeoutTicks) {
     /* Convert to a signed value. */
     long int age = nowTicks - timeoutTicks;
 
@@ -4584,7 +4592,7 @@ int wrapperTickExpired(DWORD nowTicks, DWORD timeoutTicks) {
  * This calculation will work as long as the number of seconds is not large
  *  enough to require more than 32 bits when multiplied by 1000.
  */
-DWORD wrapperAddToTicks(DWORD start, int seconds) {
+TICKS wrapperAddToTicks(TICKS start, int seconds) {
     /*
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "      wrapperAddToTicks(%08lx, %08lx) -> %08lx", start, seconds, start + (seconds * 1000 / WRAPPER_TICK_MS));
     */

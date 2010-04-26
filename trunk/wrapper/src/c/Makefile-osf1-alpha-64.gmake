@@ -7,7 +7,7 @@
 # license agreement you entered into with Tanuki Software.
 # http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
 
-COMPILE = gcc -DOSF1 -D_REENTRANT
+COMPILE = gcc -DOSF1 -DJSW64 -D_REENTRANT
 
 INCLUDE=$(JAVA_HOME)/include
 

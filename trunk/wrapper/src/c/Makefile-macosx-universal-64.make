@@ -8,7 +8,7 @@
 # http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
 
 UNIVERSAL_SDK_HOME=/Developer/SDKs/MacOSX10.5.sdk
-COMPILE = gcc -O3 -m64 -Wall -DUSE_NANOSLEEP -DMACOSX -arch ppc64 -arch x86_64 -isysroot $(UNIVERSAL_SDK_HOME) -mmacosx-version-min=10.4
+COMPILE = gcc -O3 -m64 -Wall -DUSE_NANOSLEEP -DMACOSX -DJSW64 -arch ppc64 -arch x86_64 -isysroot $(UNIVERSAL_SDK_HOME) -mmacosx-version-min=10.4
 
 DEFS = -I$(UNIVERSAL_SDK_HOME)/System/Library/Frameworks/JavaVM.framework/Headers
 

@@ -144,6 +144,12 @@
 #define WRAPPER_RESTART_REQUESTED_AUTOMATIC 2
 #define WRAPPER_RESTART_REQUESTED_CONFIGURED 4
 
+#ifdef JSW64
+typedef unsigned int TICKS;
+#else
+typedef unsigned long TICKS;
+#endif
+
 /* Type definitions */
 typedef struct WrapperConfig WrapperConfig;
 struct WrapperConfig {
@@ -204,10 +210,10 @@ struct WrapperConfig {
 #endif
     int     wState;                 /* The current state of the wrapper */
     int     jState;                 /* The current state of the jvm */
-    DWORD   jStateTimeoutTicks;     /* Tick count until which the current jState is valid */
+    TICKS   jStateTimeoutTicks;     /* Tick count until which the current jState is valid */
     int     jStateTimeoutTicksSet;  /* 1 if the current jStateTimeoutTicks is set. */
-    DWORD   lastPingTicks;          /* Time that the last ping was sent */
-    DWORD   lastLoggedPingTicks;    /* Time that the last logged ping was sent */
+    TICKS   lastPingTicks;          /* Time that the last ping was sent */
+    TICKS   lastLoggedPingTicks;    /* Time that the last logged ping was sent */
 
     int     isDebugging;            /* TRUE if set in the configuration file */
     int     isAdviserEnabled;       /* TRUE if advice messages should be output. */
@@ -219,12 +225,12 @@ struct WrapperConfig {
     int     isSleepOutputEnabled;   /* TRUE if detailed sleep output should be included in debug output. */
     int     isMemoryOutputEnabled;  /* TRUE if detailed memory output should be included in status output. */
     int     memoryOutputInterval;   /* Interval in seconds at which memory usage is logged. */
-    DWORD   memoryOutputTimeoutTicks; /* Tick count at which memory will next be logged. */
+    TICKS   memoryOutputTimeoutTicks; /* Tick count at which memory will next be logged. */
     int     isCPUOutputEnabled;     /* TRUE if detailed CPU output should be included in status output. */
     int     cpuOutputInterval;      /* Interval in seconds at which CPU usage is logged. */
-    DWORD   cpuOutputTimeoutTicks;  /* Tick count at which CPU will next be logged. */
+    TICKS   cpuOutputTimeoutTicks;  /* Tick count at which CPU will next be logged. */
     int     logfileInactivityTimeout; /* The number of seconds of inactivity before the logfile will be closed. */
-    DWORD   logfileInactivityTimeoutTicks; /* Tick count at which the logfile will be considered inactive and closed. */
+    TICKS   logfileInactivityTimeoutTicks; /* Tick count at which the logfile will be considered inactive and closed. */
     int     isShutdownHookDisabled; /* TRUE if set in the configuration file */
     int     startupDelayConsole;    /* Delay in seconds before starting the first JVM in console mode. */
     int     startupDelayService;    /* Delay in seconds before starting the first JVM in service mode. */
@@ -237,7 +243,7 @@ struct WrapperConfig {
     int     isRestartDisabled;      /* TRUE if restarts should be disabled. */
     int     isAutoRestartDisabled;  /* TRUE if automatic restarts should be disabled. */
     int     requestThreadDumpOnFailedJVMExit; /* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
-    DWORD   jvmLaunchTicks;         /* The tick count at which the previous or current JVM was launched. */
+    TICKS   jvmLaunchTicks;         /* The tick count at which the previous or current JVM was launched. */
     int     failedInvocationCount;  /* The number of times that the JVM exited in less than successfulInvocationTime in a row. */
     int     successfulInvocationTime;/* Amount of time that a new JVM must be running so that the invocation will be considered to have been a success, leading to a reset of the restart count. */
     int     maxFailedInvocations;   /* Maximum number of failed invocations in a row before the Wrapper will give up and exit. */
@@ -252,10 +258,10 @@ struct WrapperConfig {
     char    *javaStatusFilename;    /* Name of file to store jvm status in */
     char    *commandFilename;       /* Name of a command file used to send commands to the Wrapper. */
     int     commandPollInterval;    /* Interval in seconds at which the existence of the command file is polled. */
-    DWORD   commandTimeoutTicks;    /* Tick count at which the command file will be checked next. */
+    TICKS   commandTimeoutTicks;    /* Tick count at which the command file will be checked next. */
     char    *anchorFilename;        /* Name of an anchor file used to control when the Wrapper should quit. */
     int     anchorPollInterval;     /* Interval in seconds at which the existence of the anchor file is polled. */
-    DWORD   anchorTimeoutTicks;     /* Tick count at which the anchor file will be checked next. */
+    TICKS   anchorTimeoutTicks;     /* Tick count at which the anchor file will be checked next. */
     int     umask;                  /* Default umask for all files. */
     int     javaUmask;              /* Default umask for the java process. */
     int     pidFileUmask;           /* Umask to use when creating the pid file. */
@@ -434,7 +440,7 @@ extern int wrapperParseArguments(int argc, char **argv);
  * Called when the Wrapper detects that the JVM process has exited.
  *  Contains code common to all platforms.
  */
-extern void wrapperJVMProcessExited(int useLoggerQueue, DWORD nowTicks, int exitCode);
+extern void wrapperJVMProcessExited(int useLoggerQueue, TICKS nowTicks, int exitCode);
 
 /*#define DEBUG_CHILD_OUTPUT*/
 /**
@@ -464,7 +470,7 @@ extern void wrapperSetWrapperState(int useLoggerQueue, int wState);
  * delay - The delay in seconds, added to the nowTicks after which the state
  *         will time out, if negative will never time out.
  */
-extern void wrapperUpdateJavaStateTimeout(DWORD nowTicks, int delay);
+extern void wrapperUpdateJavaStateTimeout(TICKS nowTicks, int delay);
 
 /**
  * Changes the current Java state.
@@ -476,7 +482,7 @@ extern void wrapperUpdateJavaStateTimeout(DWORD nowTicks, int delay);
  * delay - The delay in seconds, added to the nowTicks after which the state
  *         will time out, if negative will never time out.
  */
-extern void wrapperSetJavaState(int useLoggerQueue, int jState, DWORD nowTicks, int delay);
+extern void wrapperSetJavaState(int useLoggerQueue, int jState, TICKS nowTicks, int delay);
 
 /******************************************************************************
  * Platform specific methods
@@ -529,7 +535,7 @@ extern int wrapperReadChildOutputBlock(char *blockBuffer, int blockSize, int *re
  * Checks on the status of the JVM Process.
  * Returns WRAPPER_PROCESS_UP or WRAPPER_PROCESS_DOWN
  */
-extern int wrapperGetProcessStatus(int useLoggerQueue, DWORD nowTicks, int sigChild);
+extern int wrapperGetProcessStatus(int useLoggerQueue, TICKS nowTicks, int sigChild);
 
 /**
  * Pauses before launching a new JVM if necessary.
@@ -545,7 +551,7 @@ extern void wrapperExecute();
  * Returns a tick count that can be used in combination with the
  *  wrapperGetTickAgeSeconds() function to perform time keeping.
  */
-extern DWORD wrapperGetTicks();
+extern TICKS wrapperGetTicks();
 
 /**
  * Outputs a a log entry describing what the memory dump columns are.
@@ -660,14 +666,14 @@ extern int wrapperBuildJavaCommand();
 /**
  * Calculates a tick count using the system time.
  */
-extern DWORD wrapperGetSystemTicks();
+extern TICKS wrapperGetSystemTicks();
 
 /**
  * Returns difference in seconds between the start and end ticks.  This function
  *  handles cases where the tick counter has wrapped between when the start
  *  and end tick counts were taken.  See the wrapperGetTicks() function.
  */
-extern int wrapperGetTickAgeSeconds(DWORD start, DWORD end);
+extern int wrapperGetTickAgeSeconds(TICKS start, TICKS end);
 
 /**
  * Returns difference in ticks between the start and end ticks.  This function
@@ -676,19 +682,19 @@ extern int wrapperGetTickAgeSeconds(DWORD start, DWORD end);
  *
  * This can be done safely in 32 bits
  */
-extern int wrapperGetTickAgeTicks(DWORD start, DWORD end);
+extern int wrapperGetTickAgeTicks(TICKS start, TICKS end);
 
 /**
  * Returns TRUE if the specified tick timeout has expired relative to the
  *  specified tick count.
  */
-extern int wrapperTickExpired(DWORD nowTicks, DWORD timeoutTicks);
+extern int wrapperTickExpired(TICKS nowTicks, TICKS timeoutTicks);
 
 /**
  * Returns a tick count that is the specified number of seconds later than
  *  the base tick count.
  */
-extern DWORD wrapperAddToTicks(DWORD start, int seconds);
+extern TICKS wrapperAddToTicks(TICKS start, int seconds);
 
 /**
  * Sets the working directory of the Wrapper to the specified directory.

@@ -80,7 +80,7 @@ DWORD timerThreadId;
  *  always encounter the first rollover (256 * WRAPPER_MS / 1000) seconds
  *  after the Wrapper the starts, which means the rollover will be well
  *  tested. */
-DWORD timerTicks = 0xffffff00;
+TICKS timerTicks = 0xffffff00;
 
 /** Flag which keeps track of whether or not the CTRL-C key has been pressed. */
 int ctrlCTrapped = FALSE;
@@ -810,9 +810,9 @@ void showConsoleWindow(HWND consoleHandle, const char *name) {
  *  use the system time as a base for the tick counter.
  */
 DWORD WINAPI timerRunner(LPVOID parameter) {
-    DWORD sysTicks;
-    DWORD lastTickOffset = 0;
-    DWORD tickOffset;
+    TICKS sysTicks;
+    TICKS lastTickOffset = 0;
+    TICKS tickOffset;
     int offsetDiff;
     int first = 1;
 
@@ -851,7 +851,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
 
                 if (wrapperData->isTickOutputEnabled) {
                     log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        "    Timer: ticks=%lu, system ticks=%lu, offset=%lu, offsetDiff=%ld",
+                        "    Timer: ticks=%08lx, system ticks=%08lx, offset=%08lx, offsetDiff=%08lx",
                         timerTicks, sysTicks, tickOffset, offsetDiff);
                 }
             }
@@ -1199,7 +1199,7 @@ int wrapperReadChildOutputBlock(char *blockBuffer, int blockSize, int *readCount
  * Checks on the status of the JVM Process.
  * Returns WRAPPER_PROCESS_UP or WRAPPER_PROCESS_DOWN
  */
-int wrapperGetProcessStatus(int useLoggerQueue, DWORD nowTicks, int sigChild) {
+int wrapperGetProcessStatus(int useLoggerQueue, TICKS nowTicks, int sigChild) {
     int res;
     DWORD exitCode;
     char *exName;
@@ -1543,7 +1543,7 @@ void wrapperExecute() {
  * Returns a tick count that can be used in combination with the
  *  wrapperGetTickAgeSeconds() function to perform time keeping.
  */
-DWORD wrapperGetTicks() {
+TICKS wrapperGetTicks() {
     if (wrapperData->useSystemTime) {
         /* We want to return a tick count that is based on the current system time. */
         return wrapperGetSystemTicks();

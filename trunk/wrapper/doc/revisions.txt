@@ -33,6 +33,10 @@ Java Service Wrapper Revision History.
   and was added to fill out our test coverage.
 * (Professional) Fix a problem where event commands were being left in a
   defunct state after execution on UNIX platforms.
+* Fix a potential problem on 64-bit versions where the internal tick timer was
+  not rolling over in the same way as the 32-bit versions.  This has been in all
+  previous versions but is not known to have caused any problems.  It was fixed
+  for consistency.
 
 3.4.0
 * Increased the minimum supported Java version from 1.2 to 1.4.
