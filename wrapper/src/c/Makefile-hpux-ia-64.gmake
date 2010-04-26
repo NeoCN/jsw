@@ -7,7 +7,7 @@
 # license agreement you entered into with Tanuki Software.
 # http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
 
-COMPILE = gcc -O3 -Wall -mlp64 --pedantic -DHPUX -DARCH_IA -D_XOPEN_SOURCE_EXTENDED
+COMPILE = gcc -O3 -Wall -mlp64 --pedantic -DHPUX -DJSW64 -DARCH_IA -D_XOPEN_SOURCE_EXTENDED
 
 INCLUDE=$(JAVA_HOME)/include
 

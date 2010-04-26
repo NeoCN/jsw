@@ -7,7 +7,7 @@
 # license agreement you entered into with Tanuki Software.
 # http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
 
-COMPILE = gcc -O3 -fPIC --pedantic -DAIX -maix64 -D_FILE_OFFSET_BITS=64
+COMPILE = gcc -O3 -fPIC --pedantic -DAIX -DJSW64 -maix64 -D_FILE_OFFSET_BITS=64
 
 INCLUDE=$(JAVA_HOME)/include
 

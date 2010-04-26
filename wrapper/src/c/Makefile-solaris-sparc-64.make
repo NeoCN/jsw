@@ -7,7 +7,7 @@
 # license agreement you entered into with Tanuki Software.
 # http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
 
-COMPILE = gcc -m64 -O3 -Wall --pedantic -DSOLARIS
+COMPILE = gcc -m64 -O3 -Wall --pedantic -DSOLARIS -DJSW64
 
 INCLUDE=$(JAVA_HOME)/include
 

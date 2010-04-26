@@ -11,8 +11,8 @@
 #  due to a bug or simply a configuration problem.   We need to use cc here.
 #  see Bug #1992039 for details.
 # https://sourceforge.net/tracker/index.php?func=detail&aid=1992039&group_id=39428&atid=425187
-#COMPILE = gcc -m64 -O3 -Wall --pedantic -DSOLARIS
-COMPILE = /opt/studio11/SUNWspro/bin/cc -xarch=amd64 -Kpic -O -DSOLARIS
+#COMPILE = gcc -m64 -O3 -Wall --pedantic -DSOLARIS -DJSW64
+COMPILE = /opt/studio11/SUNWspro/bin/cc -xarch=amd64 -Kpic -O -DSOLARIS -DJSW64
 
 INCLUDE=$(JAVA_HOME)/include
 
