@@ -41,6 +41,10 @@ Java Service Wrapper Revision History.
   after 4 times the ping timeout in seconds since the last contact with the
   JVM.  This had been 90 seconds more than the ping timeout, which was not
   always long enough when the wrapper.ping.timeout was very large.
+* Shift the initial start point of the tick counter so it will roll over 50
+  seconds after startup.  This shouldn't be noticeable to the user, but makes
+  sure that this roll over is much better tested as it always happens the first
+  time on startup.
 * Add a new wrapper.java.classpath.use_environment property which makes it
   possible to set the classpath using the CLASSPATH environment variable rather
   than including it on the Java command line.
