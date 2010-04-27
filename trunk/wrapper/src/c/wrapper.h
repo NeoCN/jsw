@@ -184,6 +184,8 @@ struct WrapperConfig {
 #else /* UNIX */
     char    **jvmCommand;           /* Command used to launch the JVM */
 #endif
+    int     environmentClasspath;   /* TRUE if the classpath should be passed to the JVM in the environment. */
+    char    *classpath;             /* Classpath to pass to the JVM. */
     int     debugJVM;               /* True if the JVM is being launched with a debugger enabled. */
     int     debugJVMTimeoutNotified;/* True if the JVM is being launched with a debugger enabled and the user has already been notified of a timeout. */
     char    key[17];                /* Key which the JVM uses to authorize connections. (16 digits + \0) */
@@ -399,11 +401,13 @@ extern int wrapperGetJavaHomeFromWindowsRegistry(char *javaHome);
 
 extern int wrapperCheckRestartTimeOK();
 
+extern int wrapperBuildJavaClasspath(char **classpath);
+
 /**
  * command is a pointer to a pointer of an array of character strings.
  * length is the number of strings in the above array.
  */
-extern int wrapperBuildJavaCommandArray(char ***strings, int *length, int addQuotes);
+extern int wrapperBuildJavaCommandArray(char ***strings, int *length, int addQuotes, const char *classpath);
 extern void wrapperFreeJavaCommandArray(char **strings, int length);
 
 extern int wrapperInitialize();
