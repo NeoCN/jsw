@@ -1813,12 +1813,11 @@ void wrapperEventLoop() {
 
             if (wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN) {
                 /* A JVM is not currently running. Nothing to do.*/
-            } else if (wrapperData->jState == WRAPPER_JSTATE_LAUNCH_DELAY) {
+            } else if ((wrapperData->jState == WRAPPER_JSTATE_LAUNCH_DELAY) ||
+                (wrapperData->jState == WRAPPER_JSTATE_RESTART) ||
+                (wrapperData->jState == WRAPPER_JSTATE_LAUNCH)) {
                 /* A JVM is not yet running go back to the DOWN_CLEAN state. */
                 wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN_CLEAN, nowTicks, -1);
-            } else if ((wrapperData->jState == WRAPPER_JSTATE_RESTART) ||
-                (wrapperData->jState == WRAPPER_JSTATE_LAUNCH)) {
-                /* The JVM has not yet been launched. Nothing to do. */
             } else if ((wrapperData->jState == WRAPPER_JSTATE_STOP) ||
                 (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
                 (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
