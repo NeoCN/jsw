@@ -2864,7 +2864,7 @@ int wrapperBuildJavaCommandArrayLibraryPath(char **strings, int addQuotes, int i
     return index;
 }
 
-int wrapperBuildJavaCommandArrayClasspath(char **strings, int addQuotes, int index) {
+int wrapperBuildJavaClasspath(char **classpath) {
     const char *prop;
     char *propStripped;
     int i, j;
@@ -2877,6 +2877,139 @@ int wrapperBuildJavaCommandArrayClasspath(char **strings, int addQuotes, int ind
     long unsigned int *propertyIndices;
     char **files;
     int cnt;
+    
+    /* Build a classpath */
+    cpLen = 0;
+    cpLenAlloc = 1024;
+    *classpath = malloc(sizeof(char) * cpLenAlloc);
+    if (!*classpath) {
+        outOfMemory("WBJCP", 1);
+        return -1;
+    }
+    
+    /* Loop over the classpath entries adding each one. */
+    if (getStringProperties(properties, "wrapper.java.classpath.", "", wrapperData->ignoreSequenceGaps, FALSE, &propertyNames, &propertyValues, &propertyIndices)) {
+        /* Failed */
+        return -1;
+    }
+
+    i = 0;
+    j = 0;
+    while (propertyNames[i]) {
+        prop = propertyValues[i];
+        len2 = strlen(prop);
+        if (len2 > 0) {
+            /* Does this contain wildcards? */
+            if ((strchr(prop, '*') != NULL) || (strchr(prop, '?') != NULL)) {
+                /* Need to do a wildcard search */
+                files = wrapperFileGetFiles(prop, WRAPPER_FILE_SORT_MODE_NAMES_ASC);
+                if (!files) {
+                    /* Failed */
+                    return -1;
+                }
+
+                /* Loop over the files. */
+                cnt = 0;
+                while (files[cnt]) {
+                    len2 = strlen(files[cnt]);
+
+                    /* Is there room for the entry? */
+                    while (cpLen + len2 + 3 > cpLenAlloc) {
+                        /* Resize the buffer */
+                        tmpString = *classpath;
+                        cpLenAlloc += 1024;
+                        *classpath = malloc(sizeof(char) * cpLenAlloc);
+                        if (!*classpath) {
+                            outOfMemory("WBJCP", 2);
+                            return -1;
+                        }
+                        sprintf(*classpath, "%s", tmpString);
+                        free(tmpString);
+                        tmpString = NULL;
+                    }
+
+                    if (j > 0) {
+                        (*classpath)[cpLen++] = wrapperClasspathSeparator; /* separator */
+                    }
+                    sprintf(&((*classpath)[cpLen]), "%s", files[cnt]);
+                    cpLen += len2;
+                    j++;
+                    cnt++;
+                }
+                wrapperFileFreeFiles(files);
+            } else {
+                /* This classpath entry does not contain any wildcards. */
+
+                /* If the path element is a directory then we want to strip the trailing slash if it exists. */
+                propStripped = (char*)prop;
+                if ((prop[strlen(prop) - 1] == '/') || (prop[strlen(prop) - 1] == '\\')) {
+                    propStripped = malloc(sizeof(char) * strlen(prop));
+                    if (!propStripped) {
+                        outOfMemory("WBJCP", 3);
+                        return -1;
+                    }
+                    memcpy(propStripped, prop, strlen(prop) - 1);
+                    propStripped[strlen(prop) - 1] = '\0';
+                }
+
+                /* See if it exists so we can display a debug warning if it does not. */
+                if (stat(propStripped, &statBuffer)) {
+                    /* Encountered an error of some kind. */
+                    if ((errno == ENOENT) || (errno == 3)) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                            "Classpath element, %s, does not exist: %s", propertyNames[i], prop);
+                    } else {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                            "Unable to get information of classpath element: %s (%s)",
+                            prop, getLastErrorText());
+                    }
+                } else {
+                    /* Got the stat info. */
+                }
+
+                /* If we allocated the propStripped buffer then free it up. */
+                if (propStripped != prop) {
+                    free(propStripped);
+                }
+                propStripped = NULL;
+
+                /* Is there room for the entry? */
+                while (cpLen + len2 + 3 > cpLenAlloc) {
+                    /* Resize the buffer */
+                    tmpString = *classpath;
+                    cpLenAlloc += 1024;
+                    *classpath = malloc(sizeof(char) * cpLenAlloc);
+                    if (!*classpath) {
+                        outOfMemory("WBJCP", 4);
+                        return -1;
+                    }
+                    sprintf(*classpath, "%s", tmpString);
+                    free(tmpString);
+                    tmpString = NULL;
+                }
+
+                if (j > 0) {
+                    (*classpath)[cpLen++] = wrapperClasspathSeparator; /* separator */
+                }
+                sprintf(&((*classpath)[cpLen]), "%s", prop);
+                cpLen += len2;
+                j++;
+            }
+        }
+        i++;
+    }
+    freeStringProperties(propertyNames, propertyValues, propertyIndices);
+    if (j == 0) {
+        /* No classpath, use default. always room */
+        sprintf(&(*classpath[cpLen++]), "./");
+    }
+    
+    return 0;
+}
+
+int wrapperBuildJavaCommandArrayClasspath(char **strings, int addQuotes, int index, const char *classpath) {
+    size_t len;
+    size_t cpLen;
 
     /* Store the classpath */
     if (strings) {
@@ -2889,10 +3022,10 @@ int wrapperBuildJavaCommandArrayClasspath(char **strings, int addQuotes, int ind
     }
     index++;
     if (strings) {
-        /* Build a classpath */
         cpLen = 0;
-        cpLenAlloc = 1024;
-        strings[index] = malloc(sizeof(char) * cpLenAlloc);
+        
+        len = strlen(classpath);
+        strings[index] = malloc(sizeof(char) * (len + 4));
         if (!strings[index]) {
             outOfMemory("WBJCAC", 2);
             return -1;
@@ -2903,123 +3036,10 @@ int wrapperBuildJavaCommandArrayClasspath(char **strings, int addQuotes, int ind
             sprintf(&(strings[index][cpLen]), "\"");
             cpLen++;
         }
+        
+        sprintf(&(strings[index][cpLen]), "%s", classpath);
+        cpLen += len;
 
-        /* Loop over the classpath entries adding each one. */
-        if (getStringProperties(properties, "wrapper.java.classpath.", "", wrapperData->ignoreSequenceGaps, FALSE, &propertyNames, &propertyValues, &propertyIndices)) {
-            /* Failed */
-            return -1;
-        }
-
-        i = 0;
-        j = 0;
-        while (propertyNames[i]) {
-            prop = propertyValues[i];
-            len2 = strlen(prop);
-            if (len2 > 0) {
-                /* Does this contain wildcards? */
-                if ((strchr(prop, '*') != NULL) || (strchr(prop, '?') != NULL)) {
-                    /* Need to do a wildcard search */
-                    files = wrapperFileGetFiles(prop, WRAPPER_FILE_SORT_MODE_NAMES_ASC);
-                    if (!files) {
-                        /* Failed */
-                        return -1;
-                    }
-
-                    /* Loop over the files. */
-                    cnt = 0;
-                    while (files[cnt]) {
-                        len2 = strlen(files[cnt]);
-
-                        /* Is there room for the entry? */
-                        while (cpLen + len2 + 3 > cpLenAlloc) {
-                            /* Resize the buffer */
-                            tmpString = strings[index];
-                            cpLenAlloc += 1024;
-                            strings[index] = malloc(sizeof(char) * cpLenAlloc);
-                            if (!strings[index]) {
-                                outOfMemory("WBJCAC", 3);
-                                return -1;
-                            }
-                            sprintf(strings[index], "%s", tmpString);
-                            free(tmpString);
-                            tmpString = NULL;
-                        }
-
-                        if (j > 0) {
-                            strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
-                        }
-                        sprintf(&(strings[index][cpLen]), "%s", files[cnt]);
-                        cpLen += len2;
-                        j++;
-                        cnt++;
-                    }
-                    wrapperFileFreeFiles(files);
-                } else {
-                    /* This classpath entry does not contain any wildcards. */
-
-                    /* If the path element is a directory then we want to strip the trailing slash if it exists. */
-                    propStripped = (char *)prop;
-                    if ((prop[strlen(prop) - 1] == '/') || (prop[strlen(prop) - 1] == '\\')) {
-                        propStripped = malloc(sizeof(char) * strlen(prop));
-                        if (!propStripped) {
-                            outOfMemory("WBJCAC", 4);
-                            return -1;
-                        }
-                        memcpy(propStripped, prop, strlen(prop) - 1);
-                        propStripped[strlen(prop) - 1] = '\0';
-                    }
-
-                    /* See if it exists so we can display a debug warning if it does not. */
-                    if (stat(propStripped, &statBuffer)) {
-                        /* Encountered an error of some kind. */
-                        if ((errno == ENOENT) || (errno == 3)) {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                                "Classpath element, %s, does not exist: %s", propertyNames[i], prop);
-                        } else {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                                "Unable to get information of classpath element: %s (%s)",
-                                prop, getLastErrorText());
-                        }
-                    } else {
-                        /* Got the stat info. */
-                    }
-
-                    /* If we allocated the propStripped buffer then free it up. */
-                    if (propStripped != prop) {
-                        free(propStripped);
-                    }
-                    propStripped = NULL;
-
-                    /* Is there room for the entry? */
-                    while (cpLen + len2 + 3 > cpLenAlloc) {
-                        /* Resize the buffer */
-                        tmpString = strings[index];
-                        cpLenAlloc += 1024;
-                        strings[index] = malloc(sizeof(char) * cpLenAlloc);
-                        if (!strings[index]) {
-                            outOfMemory("WBJCAC", 5);
-                            return -1;
-                        }
-                        sprintf(strings[index], "%s", tmpString);
-                        free(tmpString);
-                        tmpString = NULL;
-                    }
-
-                    if (j > 0) {
-                        strings[index][cpLen++] = wrapperClasspathSeparator; /* separator */
-                    }
-                    sprintf(&(strings[index][cpLen]), "%s", prop);
-                    cpLen += len2;
-                    j++;
-                }
-            }
-            i++;
-        }
-        freeStringProperties(propertyNames, propertyValues, propertyIndices);
-        if (j == 0) {
-            /* No classpath, use default. always room */
-            sprintf(&(strings[index][cpLen++]), "./");
-        }
         /* Add ending quote.  If the previous character is a backslash then
          *  Windows will use it to escape the quote.  To make things work
          *  correctly, we need to add another backslash first so it will
@@ -3122,7 +3142,7 @@ int wrapperBuildJavaCommandArrayAppParameters(char **strings, int addQuotes, int
  *
  * Note - Next Out Of Memory is #47
  */
-int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
+int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes, const char *classpath) {
     int index;
     int detectDebugJVM;
     const char *prop;
@@ -3196,8 +3216,10 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     }
 
     /* Classpath */
-    if ((index = wrapperBuildJavaCommandArrayClasspath(strings, addQuotes, index)) < 0) {
-        return -1;
+    if (!wrapperData->environmentClasspath) {
+        if ((index = wrapperBuildJavaCommandArrayClasspath(strings, addQuotes, index, classpath)) < 0) {
+            return -1;
+        }
     }
 
     /* Store the Wrapper key */
@@ -3519,15 +3541,15 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
  *
  * @return TRUE if there were any problems.
  */
-int wrapperBuildJavaCommandArray(char ***stringsPtr, int *length, int addQuotes) {
+int wrapperBuildJavaCommandArray(char ***stringsPtr, int *length, int addQuotes, const char *classpath) {
     int reqLen;
 
     /* Reset the flag stating that the JVM is a debug JVM. */
     wrapperData->debugJVM = FALSE;
     wrapperData->debugJVMTimeoutNotified = FALSE;
-
+    
     /* Find out how long the array needs to be first. */
-    reqLen = wrapperBuildJavaCommandArrayInner(NULL, addQuotes);
+    reqLen = wrapperBuildJavaCommandArrayInner(NULL, addQuotes, classpath);
     if (reqLen < 0) {
         return TRUE;
     }
@@ -3541,7 +3563,7 @@ int wrapperBuildJavaCommandArray(char ***stringsPtr, int *length, int addQuotes)
     }
 
     /* Now actually fill in the strings */
-    reqLen = wrapperBuildJavaCommandArrayInner(*stringsPtr, addQuotes);
+    reqLen = wrapperBuildJavaCommandArrayInner(*stringsPtr, addQuotes, classpath);
     if (reqLen < 0) {
         return TRUE;
     }
@@ -4098,6 +4120,9 @@ int loadConfiguration() {
 
     logfilePath = getFileSafeStringProperty(properties, "wrapper.logfile", "wrapper.log");
     setLogfilePath(logfilePath);
+    
+    /* Decide whether the classpath should be passed via the environment. */
+    wrapperData->environmentClasspath = getBooleanProperty(properties, "wrapper.java.classpath.use_environment", FALSE);
 
     /* Decide how sequence gaps should be handled before any other properties are loaded. */
     wrapperData->ignoreSequenceGaps = getBooleanProperty(properties, "wrapper.ignore_sequence_gaps", FALSE);

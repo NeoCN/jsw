@@ -655,11 +655,20 @@ int wrapperBuildJavaCommand() {
         free(wrapperData->jvmCommand);
         wrapperData->jvmCommand = NULL;
     }
+    
+    /* First generate the classpath. */
+    if (wrapperData->classpath) {
+        free(wrapperData->classpath);
+        wrapperData->classpath = NULL;
+    }
+    if (wrapperBuildJavaClasspath(&wrapperData->classpath) < 0) {
+        return TRUE;
+    }
 
     /* Build the Java Command Strings */
     strings = NULL;
     length = 0;
-    if (wrapperBuildJavaCommandArray(&strings, &length, TRUE)) {
+    if (wrapperBuildJavaCommandArray(&strings, &length, TRUE, wrapperData->classpath)) {
         /* Failed. */
         return TRUE;
     }
@@ -1301,7 +1310,16 @@ void wrapperExecute() {
     commandline = wrapperData->jvmCommand;
     if (wrapperData->commandLogLevel != LEVEL_NONE) {
         log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel,
-            "command: %s", commandline);
+            "Command : %s", commandline);
+        
+        if (wrapperData->environmentClasspath) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel,
+                "Classpath in Environment : %s", wrapperData->classpath);
+        }
+    }
+    
+    if (wrapperData->environmentClasspath) {
+        setEnv("CLASSPATH", wrapperData->classpath);
     }
 
     /* Setup environment. Use parent's for now */

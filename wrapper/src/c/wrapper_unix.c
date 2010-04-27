@@ -751,11 +751,20 @@ int wrapperBuildJavaCommand() {
         free(wrapperData->jvmCommand);
         wrapperData->jvmCommand = NULL;
     }
+    
+    /* First generate the classpath. */
+    if (wrapperData->classpath) {
+        free(wrapperData->classpath);
+        wrapperData->classpath = NULL;
+    }
+    if (wrapperBuildJavaClasspath(&wrapperData->classpath) < 0) {
+        return TRUE;
+    }
 
     /* Build the Java Command Strings */
     strings = NULL;
     length = 0;
-    if (wrapperBuildJavaCommandArray(&strings, &length, FALSE)) {
+    if (wrapperBuildJavaCommandArray(&strings, &length, FALSE, wrapperData->classpath)) {
         return TRUE;
     }
 
@@ -764,6 +773,15 @@ int wrapperBuildJavaCommand() {
             log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel,
                 "Command[%d] : %s", i, strings[i]);
         }
+        
+        if (wrapperData->environmentClasspath) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel,
+                "Classpath in Environment : %s", wrapperData->classpath);
+        }
+    }
+    
+    if (wrapperData->environmentClasspath) {
+        setEnv("CLASSPATH", wrapperData->classpath);
     }
 
     /* Allocate memory to hold array of command strings.  The array is itself NULL terminated */
