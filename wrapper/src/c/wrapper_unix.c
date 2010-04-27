@@ -514,7 +514,7 @@ int registerSigAction(int sigNum, void (*sigAction)(int, siginfo_t *, void *)) {
     newAct.sa_flags = SA_SIGINFO;
 
     if (sigaction(sigNum, &newAct, NULL)) {
-        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
             "Unable to register signal handler for signal %d.  %s", sigNum, getLastErrorText());
         return 1;
     }
@@ -552,12 +552,11 @@ void *timerRunner(void *arg) {
     sigaddset(&signal_mask, SIGUSR2);
     rc = pthread_sigmask(SIG_BLOCK, &signal_mask, NULL);
     if (rc != 0) {
-        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-            "Could not mask signals for timer thread.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Could not mask signals for timer thread.");
     }
 
     if (wrapperData->isTickOutputEnabled) {
-        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Timer thread started.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Timer thread started.");
     }
 
     while (TRUE) {
@@ -574,20 +573,20 @@ void *timerRunner(void *arg) {
 
         /* The number we really want is the difference between this tickOffset and the previous one. */
         offsetDiff = tickOffset - lastTickOffset;
-
+        
         if (first) {
             first = 0;
         } else {
             if (offsetDiff > wrapperData->timerSlowThreshold) {
-                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
                     "The timer fell behind the system clock by %ldms.", offsetDiff * WRAPPER_TICK_MS);
             } else if (offsetDiff < -1 * wrapperData->timerFastThreshold) {
-                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
                     "The system clock fell behind the timer by %ldms.", -1 * offsetDiff * WRAPPER_TICK_MS);
             }
 
             if (wrapperData->isTickOutputEnabled) {
-                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     "    Timer: ticks=%08lx, system ticks=%08lx, offset=%08lx, offsetDiff=%08lx",
                     timerTicks, sysTicks, tickOffset, offsetDiff);
             }

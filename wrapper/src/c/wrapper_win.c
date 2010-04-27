@@ -831,10 +831,10 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
         logRegisterThread(WRAPPER_THREAD_TIMER);
 
         if (wrapperData->isTickOutputEnabled) {
-            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Timer thread started.");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Timer thread started.");
         }
 
-        while(TRUE) {
+        while (TRUE) {
             wrapperSleep(TRUE, WRAPPER_TICK_MS);
 
             /* Get the tick count based on the system time. */
@@ -853,13 +853,15 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
                 first = 0;
             } else {
                 if (offsetDiff > wrapperData->timerSlowThreshold) {
-                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The timer fell behind the system clock by %dms.", (int)(offsetDiff * WRAPPER_TICK_MS));
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
+                        "The timer fell behind the system clock by %dms.", (int)(offsetDiff * WRAPPER_TICK_MS));
                 } else if (offsetDiff < -1 * wrapperData->timerFastThreshold) {
-                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "The system clock fell behind the timer by %dms.", (int)(-1 * offsetDiff * WRAPPER_TICK_MS));
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
+                        "The system clock fell behind the timer by %dms.", (int)(-1 * offsetDiff * WRAPPER_TICK_MS));
                 }
 
                 if (wrapperData->isTickOutputEnabled) {
-                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         "    Timer: ticks=%08lx, system ticks=%08lx, offset=%08lx, offsetDiff=%08lx",
                         timerTicks, sysTicks, tickOffset, offsetDiff);
                 }
@@ -1124,7 +1126,7 @@ void wrapperReportStatus(int useLoggerQueue, int status, int errorCode, int wait
         }
         /*
         if (wrapperData->isDebugging) {
-            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                 "  Service %s accepting STOP=%s, SHUTDOWN=%s, PAUSE/CONTINUE=%s, POWEREVENT=%s",
                 natStateName,
                 (ssStatus.dwControlsAccepted & SERVICE_ACCEPT_STOP ? "True" : "False"),

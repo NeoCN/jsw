@@ -6,8 +6,8 @@ Java Service Wrapper Revision History.
   correctly with the testwrapper application, but would fail or most user
   applications.
 * (Professional) Fix a potential synchronization problem in the log output
-  of the event command and event email code.  This had been in the code
-  since 3.3.0 without any reports of problems.
+  of the tick timer, event command and event email code.  This had been in
+  the code since 3.3.0 without any reports of problems.
 * Improve the error message displayed when the configured wrapper.java.command
   can not be found on the path.
 * Log the name of the signal in the logs when a SIGSEGV is detected from the
