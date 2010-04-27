@@ -4548,7 +4548,7 @@ TICKS wrapperGetSystemTicks() {
     assertSum = (TICKS)((timeBuffer.time * 1000ULL + timeBuffer.millitm) / WRAPPER_TICK_MS);
 #endif
     if (assertSum != sum) {
-        printf("wrapperGetSystemTicks() resulted in %08lx rather than %08lx\n", sum, assertSum);
+        printf("wrapperGetSystemTicks() resulted in %08x rather than %08x\n", sum, assertSum);
     }
 #endif
 
@@ -4564,7 +4564,7 @@ TICKS wrapperGetSystemTicks() {
  */
 int wrapperGetTickAgeSeconds(TICKS start, TICKS end) {
     /*
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "      wrapperGetTickAgeSeconds(%08lx, %08lx) -> %08lx", start, end, (int)((end - start) * WRAPPER_TICK_MS) / 1000);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "      wrapperGetTickAgeSeconds(%08x, %08x) -> %08x", start, end, (int)((end - start) * WRAPPER_TICK_MS) / 1000);
     */
 
     /* Simply subtracting the values will always work even if end has wrapped
@@ -4584,7 +4584,7 @@ int wrapperGetTickAgeSeconds(TICKS start, TICKS end) {
  */
 int wrapperGetTickAgeTicks(TICKS start, TICKS end) {
     /*
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "      wrapperGetTickAgeSeconds(%08lx, %08lx) -> %08lx", start, end, (int)(end - start));
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "      wrapperGetTickAgeSeconds(%08x, %08x) -> %08x", start, end, (int)(end - start));
     */
 
     /* Simply subtracting the values will always work even if end has wrapped
@@ -4601,7 +4601,7 @@ int wrapperGetTickAgeTicks(TICKS start, TICKS end) {
  */
 int wrapperTickExpired(TICKS nowTicks, TICKS timeoutTicks) {
     /* Convert to a signed value. */
-    long int age = nowTicks - timeoutTicks;
+    int age = nowTicks - timeoutTicks;
 
     if (age >= 0) {
         return TRUE;
@@ -4619,7 +4619,7 @@ int wrapperTickExpired(TICKS nowTicks, TICKS timeoutTicks) {
  */
 TICKS wrapperAddToTicks(TICKS start, int seconds) {
     /*
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "      wrapperAddToTicks(%08lx, %08lx) -> %08lx", start, seconds, start + (seconds * 1000 / WRAPPER_TICK_MS));
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "      wrapperAddToTicks(%08x, %08x) -> %08x", start, seconds, start + (seconds * 1000 / WRAPPER_TICK_MS));
     */
     return start + (seconds * 1000 / WRAPPER_TICK_MS);
 }

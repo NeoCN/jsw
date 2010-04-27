@@ -87,10 +87,10 @@ char wrapperClasspathSeparator = ':';
 int timerThreadSet = FALSE;
 pthread_t timerThreadId;
 /* Initialize the timerTicks to a very high value.  This means that we will
- *  always encounter the first rollover (256 * WRAPPER_MS / 1000) seconds
+ *  always encounter the first rollover (512 * WRAPPER_MS / 1000) seconds
  *  after the Wrapper the starts, which means the rollover will be well
  *  tested. */
-TICKS timerTicks = 0xffffff00;
+TICKS timerTicks = 0xfffffe00;
 
 /******************************************************************************
  * Platform specific methods
@@ -587,7 +587,7 @@ void *timerRunner(void *arg) {
 
             if (wrapperData->isTickOutputEnabled) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    "    Timer: ticks=%08lx, system ticks=%08lx, offset=%08lx, offsetDiff=%08lx",
+                    "    Timer: ticks=%08x, system ticks=%08x, offset=%08x, offsetDiff=%08x",
                     timerTicks, sysTicks, tickOffset, offsetDiff);
             }
         }
