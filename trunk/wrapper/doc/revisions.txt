@@ -37,6 +37,24 @@ Java Service Wrapper Revision History.
   not rolling over in the same way as the 32-bit versions.  This has been in all
   previous versions but is not known to have caused any problems.  It was fixed
   for consistency.
+* Add a new wrapper.java.classpath.use_environment property which makes it
+  possible to set the classpath using the CLASSPATH environment variable rather
+  than including it on the Java command line.
+* Fix a problem where requests to shutdown the Wrapper when in the state where
+  it was just about to launch a JVM would being ignored.  This was fixed in all
+  editions, but was only an issue in the Professional Edition when the
+  wrapper.event.jvm_prelaunch.command.on_exit.<n>=SHUTDOWN property was being
+  used with the wrapper.event.jvm_prelaunch.command.block=TRUE property and the
+  command exited with a code that triggered the SHUTDOWN.
+* (Professional) Add a new wrapper.event.<event_type>.command.block.action
+  property to control how the Wrapper behaves when a command does not complete
+  execution within the configured timeout.
+* (Professional) Made it possible to use the "default" event type with the
+  wrapper.event.<event_type>.command.loglevel,
+  wrapper.event.<event_type>.command.block,
+  wrapper.event.<event_type>.command.block.timeout,
+  wrapper.event.<event_type>.command.on_exit.<n>, and
+  wrapper.event.<event_type>.command.on_exit.default properties.
 
 3.4.0
 * Increased the minimum supported Java version from 1.2 to 1.4.
