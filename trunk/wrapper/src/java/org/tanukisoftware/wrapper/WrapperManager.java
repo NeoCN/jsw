@@ -4771,9 +4771,9 @@ public final class WrapperManager
                                 {
                                     // How long has it been since we received the last ping
                                     //  from the Wrapper?
-                                    if ( lastPingAge > m_pingTimeout + 90000 )
+                                    if ( lastPingAge > 4 * m_pingTimeout )
                                     {
-                                        // It has been more than the ping timeout + 90 seconds,
+                                        // It has been more than the 4 x the ping timeout,
                                         //  so just give up and kill the JVM
                                         m_outInfo.println( "JVM did not exit.  Give up." );
                                         safeSystemExit(1);
