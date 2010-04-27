@@ -4776,7 +4776,7 @@ public final class WrapperManager
                                         // It has been more than the 4 x the ping timeout,
                                         //  so just give up and kill the JVM
                                         m_outInfo.println( "JVM did not exit.  Give up." );
-                                        safeSystemExit(1);
+                                        safeSystemExit( 1 );
                                     }
                                     else if ( lastPingAge > m_pingTimeout )
                                     {
@@ -4789,7 +4789,7 @@ public final class WrapperManager
                                         // Don't do anything if we are already stopping
                                         if ( !m_stopping )
                                         {
-                                            // Always send the stop command
+                                            // Always send the restart command
                                             sendCommand( WRAPPER_MSG_RESTART, "restart" );
                                             
                                             // Give the Wrapper a chance to register the stop
