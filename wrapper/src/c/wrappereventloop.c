@@ -230,7 +230,7 @@ void wrapperUpdateJavaStateTimeout(TICKS nowTicks, int delay) {
             /* The new value is meaningless. */
             if (wrapperData->isStateOutputEnabled) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    "      Set Java State %s (%d) Ignored Timeout %08lx",
+                    "      Set Java State %s (%d) Ignored Timeout %08x",
                     wrapperGetJState(wrapperData->jState),
                     delay,
                     wrapperData->jStateTimeoutTicks);
@@ -238,10 +238,11 @@ void wrapperUpdateJavaStateTimeout(TICKS nowTicks, int delay) {
         } else {
             if (wrapperData->isStateOutputEnabled) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    "      Set Java State %s (%d) Timeout %08lx -> %08lx",
+                    "      Set Java State %s (%d) Timeout %08x + %ds -> %08x",
                     wrapperGetJState(wrapperData->jState),
                     delay,
-                    wrapperData->jStateTimeoutTicks,
+                    nowTicks,
+                    delay,
                     newTicks);
             }
 
@@ -1775,7 +1776,7 @@ void wrapperEventLoop() {
         if (wrapperData->isStateOutputEnabled) {
             if (wrapperData->jStateTimeoutTicksSet) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                           "    Ticks=%08lx, WrapperState=%s, JVMState=%s JVMStateTimeoutTicks=%08lx (%ds), Exit=%s, RestartMode=%d",
+                           "    Ticks=%08x, WrapperState=%s, JVMState=%s JVMStateTimeoutTicks=%08x (%ds), Exit=%s, RestartMode=%d",
                            nowTicks,
                            wrapperGetWState(wrapperData->wState),
                            wrapperGetJState(wrapperData->jState),
@@ -1785,7 +1786,7 @@ void wrapperEventLoop() {
                            wrapperData->restartRequested);
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                           "    Ticks=%08lx, WrapperState=%s, JVMState=%s JVMStateTimeoutTicks=%08lx (N/A), Exit=%s, RestartMode=%d",
+                           "    Ticks=%08x, WrapperState=%s, JVMState=%s JVMStateTimeoutTicks=%08x (N/A), Exit=%s, RestartMode=%d",
                            nowTicks,
                            wrapperGetWState(wrapperData->wState),
                            wrapperGetJState(wrapperData->jState),
