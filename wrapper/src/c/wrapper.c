@@ -2428,7 +2428,7 @@ void checkIfRegularExe(char** para) {
         start = 0;
         len = (int)strlen(*para) * sizeof(char);
     }
-    path = malloc(sizeof(char) * len);
+    path = malloc(sizeof(char) * (len + 1));
     if (!path) {
         outOfMemory("CIRE", 1);
     } else {
