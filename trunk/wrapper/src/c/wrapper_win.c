@@ -102,6 +102,7 @@ FTRegisterServiceCtrlHandlerEx OptionalRegisterServiceCtrlHandlerEx = NULL;
 /******************************************************************************
  * Windows specific code
  ******************************************************************************/
+#define FILEPATHSIZE 1024
 /**
  * Tests whether or not the current OS is at or below the version of Windows NT.
  *
@@ -3119,11 +3120,25 @@ int wrapperStartService() {
     SC_HANDLE   schService;
     SC_HANDLE   schSCManager;
     SERVICE_STATUS serviceStatus;
+    const char *logfilePath;
+    TCHAR fullPath[FILEPATHSIZE]=TEXT("");
 
     char *status;
     int msgCntr;
     int stopping;
-    int result = 0;
+    int result;
+    
+    logfilePath = getLogfilePath();
+    result = GetFullPathName(logfilePath, FILEPATHSIZE, fullPath, NULL);
+    if (result >= FILEPATHSIZE) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "The full path of %s is too large. (%d)", logfilePath, result);
+        strcpy(fullPath, logfilePath);
+    } else if (result == 0) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Unable to resolve the full path of %s : %s", logfilePath, getLastErrorText());
+        strcpy(fullPath, logfilePath);
+    }
+    
+    result = 0;
 
     /* First, get a handle to the service control manager */
     schSCManager = OpenSCManager(NULL,
@@ -3183,6 +3198,7 @@ int wrapperStartService() {
                         } else {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service was launched, but failed to start.",
                                 wrapperData->serviceDisplayName);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Please check the log file more information: %s", fullPath);
                             result = 1;
                         }
                     } else {
