@@ -66,6 +66,8 @@ Java Service Wrapper Revision History.
   wrapper.event.<event_type>.command.on_exit.default properties.
 * Fixed a single byte buffer overflow which takes place just before the JVM is
   launched on Windows platforms.  This was introduced in 3.4.0.
+* Add a message pointing the user to the Wrapper's log file when the service
+  fails to start after it has been launched.
 
 3.4.0
 * Increased the minimum supported Java version from 1.2 to 1.4.
