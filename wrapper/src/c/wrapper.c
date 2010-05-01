@@ -1265,7 +1265,7 @@ int wrapperInitialize() {
     
     /* This is a sanity check to make sure that the datatype used for tick counts is correct. */
     if (sizeof(TICKS) != 4) {
-        printf("Tick size incorrect %ld != 4\n", sizeof(TICKS));
+        printf("Tick size incorrect %d != 4\n", (int)sizeof(TICKS));
         fflush(NULL);
         return 1;
     }
