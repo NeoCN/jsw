@@ -710,14 +710,14 @@ extern int wrapperSetWorkingDir(const char* dir);
 /******************************************************************************
  * Protocol callback functions
  *****************************************************************************/
-extern void wrapperLogSignalled(int logLevel, char *msg);
+extern void wrapperLogSignaled(int logLevel, char *msg);
 extern void wrapperKeyRegistered(char *key);
 extern void wrapperPingResponded();
 extern void wrapperStopRequested(int exitCode);
 extern void wrapperRestartRequested();
-extern void wrapperStopPendingSignalled(int waitHint);
-extern void wrapperStoppedSignalled();
-extern void wrapperStartPendingSignalled(int waitHint);
-extern void wrapperStartedSignalled();
+extern void wrapperStopPendingSignaled(int waitHint);
+extern void wrapperStoppedSignaled();
+extern void wrapperStartPendingSignaled(int waitHint);
+extern void wrapperStartedSignaled();
 
 #endif

@@ -4240,7 +4240,7 @@ public final class WrapperManager
                     //  to loop and try again.
                     if ( m_debug )
                     {
-                        m_outDebug.println( "Failed attempt to bind using local port " + tryPort );
+                        m_outDebug.println( "Unable to open socket to Wrapper from port " + tryPort + ", already in use." );
                     }
                     
                     if ( fixedPort )

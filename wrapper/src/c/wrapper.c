@@ -1132,19 +1132,19 @@ int wrapperProtocolRead() {
             break;
 
         case WRAPPER_MSG_STOP_PENDING:
-            wrapperStopPendingSignalled(atoi(packetBuffer));
+            wrapperStopPendingSignaled(atoi(packetBuffer));
             break;
 
         case WRAPPER_MSG_STOPPED:
-            wrapperStoppedSignalled();
+            wrapperStoppedSignaled();
             break;
 
         case WRAPPER_MSG_START_PENDING:
-            wrapperStartPendingSignalled(atoi(packetBuffer));
+            wrapperStartPendingSignaled(atoi(packetBuffer));
             break;
 
         case WRAPPER_MSG_STARTED:
-            wrapperStartedSignalled();
+            wrapperStartedSignaled();
             break;
 
         case WRAPPER_MSG_KEY:
@@ -1157,7 +1157,7 @@ int wrapperProtocolRead() {
         case WRAPPER_MSG_LOG + LEVEL_WARN:
         case WRAPPER_MSG_LOG + LEVEL_ERROR:
         case WRAPPER_MSG_LOG + LEVEL_FATAL:
-            wrapperLogSignalled(code - WRAPPER_MSG_LOG, packetBuffer);
+            wrapperLogSignaled(code - WRAPPER_MSG_LOG, packetBuffer);
             break;
             
         case WRAPPER_MSG_APPEAR_ORPHAN:
@@ -4656,7 +4656,7 @@ int wrapperSetWorkingDir(const char* dir) {
 /******************************************************************************
  * Protocol callback functions
  *****************************************************************************/
-void wrapperLogSignalled(int logLevel, char *msg) {
+void wrapperLogSignaled(int logLevel, char *msg) {
     /* */
     if (wrapperData->isDebugging) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Got a log message from JVM: %s", msg);
@@ -4776,9 +4776,9 @@ void wrapperRestartRequested() {
  *  extend the time that the wrapper will wait for a STOPPED message before
  *  giving up on the JVM and killing it.
  */
-void wrapperStopPendingSignalled(int waitHint) {
+void wrapperStopPendingSignaled(int waitHint) {
     if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM signalled a stop pending with waitHint of %d millis.", waitHint);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM signaled a stop pending with waitHint of %d millis.", waitHint);
     }
 
     if (wrapperData->jState == WRAPPER_JSTATE_STARTED) {
@@ -4802,12 +4802,12 @@ void wrapperStopPendingSignalled(int waitHint) {
  *  STOPPED.  It is possible to get this request after the Wrapper has given up
  *  waiting for the JVM.  In this case, the message is ignored.
  */
-void wrapperStoppedSignalled() {
+void wrapperStoppedSignaled() {
     if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM signalled that it was stopped.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM signaled that it was stopped.");
     }
 
-    /* The Java side of the wrapper signalled that it stopped
+    /* The Java side of the wrapper signaled that it stopped
      *  allow 5 + jvmExitTimeout seconds for the JVM to exit. */
     if (wrapperData->jvmExitTimeout > 0) {
         wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPED, wrapperGetTicks(), 5 + wrapperData->jvmExitTimeout);
@@ -4821,9 +4821,9 @@ void wrapperStoppedSignalled() {
  *  extend the time that the wrapper will wait for a STARTED message before
  *  giving up on the JVM and killing it.
  */
-void wrapperStartPendingSignalled(int waitHint) {
+void wrapperStartPendingSignaled(int waitHint) {
     if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM signalled a start pending with waitHint of %d millis.", waitHint);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM signaled a start pending with waitHint of %d millis.", waitHint);
     }
 
     /* Only process the start pending signal if the JVM state is starting or
@@ -4846,9 +4846,9 @@ void wrapperStartPendingSignalled(int waitHint) {
  *  STARTED.  It is possible to get this request after the Wrapper has given up
  *  waiting for the JVM.  In this case, the message is ignored.
  */
-void wrapperStartedSignalled() {
+void wrapperStartedSignaled() {
     if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM signalled that it was started.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM signaled that it was started.");
     }
 
  
