@@ -321,7 +321,7 @@ void sigActionCommon(int sigNum, const char *sigName, siginfo_t *sigInfo, int mo
                     (wrapperData->jState == WRAPPER_JSTATE_KILL) ||
                     (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK)) {
 
-                    /* Signalled while we were already shutting down. */
+                    /* Signaled while we were already shutting down. */
                     log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         "%s trapped.  Forcing immediate shutdown.", sigName);
 
