@@ -1125,7 +1125,7 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
             }
 
             /* Set the launch time to the curent time */
-            wrapperData->jvmLaunchTicks = wrapperGetTicks();
+            wrapperData->jvmLaunchTicks = nowTicks;
 
             /* Generate a unique key to use when communicating with the JVM */
             wrapperBuildKey();
@@ -1450,9 +1450,9 @@ void jStateStop(TICKS nowTicks, int nextSleep) {
         /* Allow up to 5 + <shutdownTimeout> seconds for the application to stop itself. */
         /* Already in this state. */
         if (wrapperData->shutdownTimeout > 0) {
-            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, wrapperGetTicks(), 5 + wrapperData->shutdownTimeout);
+            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, nowTicks, 5 + wrapperData->shutdownTimeout);
         } else {
-            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, wrapperGetTicks(), -1);
+            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, nowTicks, -1);
         }
     }
 }
@@ -1548,7 +1548,7 @@ void jStateKilling(TICKS nowTicks, int nextSleep) {
         /* Have we waited long enough */
         if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAgeSeconds(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
             /* It is time to actually kill the JVM. */
-            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_KILL, wrapperGetTicks(), -1);
+            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_KILL, nowTicks, -1);
         } else {
             /* Keep waiting. */
         }
@@ -1619,7 +1619,7 @@ void logTickTimerStats() {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Next system time tick overflow at: %s", buffer);
 
     if (!wrapperData->useSystemTime) {
-        ticks = wrapperGetTicks(); 
+        ticks = wrapperGetTicks();
 
         overflowTime = (time_t)(now - (ticks / (1000 / WRAPPER_TICK_MS)));
         when = *localtime(&overflowTime);
@@ -1776,23 +1776,25 @@ void wrapperEventLoop() {
         if (wrapperData->isStateOutputEnabled) {
             if (wrapperData->jStateTimeoutTicksSet) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                           "    Ticks=%08x, WrapperState=%s, JVMState=%s JVMStateTimeoutTicks=%08x (%ds), Exit=%s, RestartMode=%d",
+                           "    Ticks=%08x, WrapperState=%s, JVMState=%s JVMStateTimeoutTicks=%08x (%ds), Exit=%s, RestartMode=%d, Orphan=%s",
                            nowTicks,
                            wrapperGetWState(wrapperData->wState),
                            wrapperGetJState(wrapperData->jState),
                            wrapperData->jStateTimeoutTicks,
                            wrapperGetTickAgeSeconds(nowTicks, wrapperData->jStateTimeoutTicks),
                            (wrapperData->exitRequested ? "true" : "false"),
-                           wrapperData->restartRequested);
+                           wrapperData->restartRequested,
+                           (wrapperData->isJVMOrphaned ? "true" : "false"));
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                           "    Ticks=%08x, WrapperState=%s, JVMState=%s JVMStateTimeoutTicks=%08x (N/A), Exit=%s, RestartMode=%d",
+                           "    Ticks=%08x, WrapperState=%s, JVMState=%s JVMStateTimeoutTicks=%08x (N/A), Exit=%s, RestartMode=%d, Orphan=%s",
                            nowTicks,
                            wrapperGetWState(wrapperData->wState),
                            wrapperGetJState(wrapperData->jState),
                            wrapperData->jStateTimeoutTicks,
                            (wrapperData->exitRequested ? "true" : "false"),
-                           wrapperData->restartRequested);
+                           wrapperData->restartRequested,
+                           (wrapperData->isJVMOrphaned ? "true" : "false"));
             }
         }
 

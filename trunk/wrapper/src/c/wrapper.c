@@ -867,6 +867,7 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const char *messa
     size_t len;
     const char *logMsg;
     int returnVal;
+    int ok = TRUE;
 
     /* It is important than there is never more than one thread allowed in here at a time. */
     if (lockProtocolMutex()) {
@@ -887,80 +888,86 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const char *messa
                 "Orphan Mode.  Skip sending packet %s : %s",
                 wrapperProtocolGetCodeName(function), (message == NULL ? "NULL" : logMsg));
         }
-        return FALSE;
+        returnVal = FALSE;
+        ok = FALSE;
     }
 
-    /* Make sure the buffer is big enough for this message. */
-    if (message == NULL) {
-        len = 2;
-    } else {
-        len = 1 + strlen(message) + 1;
-    }
-    if (protocolSendBufferSize < len) {
-        if (protocolSendBuffer) {
-            free(protocolSendBuffer);
+    if (ok) {
+        /* Make sure the buffer is big enough for this message. */
+        if (message == NULL) {
+            len = 2;
+        } else {
+            len = 1 + strlen(message) + 1;
         }
-        protocolSendBuffer = malloc(len);
-        if (!protocolSendBuffer) {
-            outOfMemory("WPF", 1);
-            return TRUE;
+        if (protocolSendBufferSize < len) {
+            if (protocolSendBuffer) {
+                free(protocolSendBuffer);
+            }
+            protocolSendBuffer = malloc(len);
+            if (!protocolSendBuffer) {
+                outOfMemory("WPF", 1);
+                returnVal = TRUE;
+                ok = FALSE;
+            }
         }
     }
 
-    if (sd == INVALID_SOCKET) {
-        /* A socket was not opened */
-        if (wrapperData->isDebugging) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
-                "socket not open, so packet not sent %s : %s",
-                wrapperProtocolGetCodeName(function), (message == NULL ? "NULL" : logMsg));
-        }
-        returnVal = TRUE;
-    } else {
-        if (wrapperData->isDebugging) {
-            if ((function == WRAPPER_MSG_PING) && (strcmp(message, "silent") == 0)) {
-                /*
+    if (ok) {
+        if (sd == INVALID_SOCKET) {
+            /* A socket was not opened */
+            if (wrapperData->isDebugging) {
                 log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
-                    "send a silent ping packet");
-                */
-            } else {
-                log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
-                    "send a packet %s : %s",
+                    "socket not open, so packet not sent %s : %s",
                     wrapperProtocolGetCodeName(function), (message == NULL ? "NULL" : logMsg));
             }
-        }
-
-        /* Build the packet */
-        protocolSendBuffer[0] = function;
-        if (message == NULL) {
-            protocolSendBuffer[1] = '\0';
-        } else {
-            strcpy((char*)(protocolSendBuffer + 1), message);
-        }
-
-        /* Send the packet */
-        cnt = 0;
-        do {
-            if (cnt > 0) {
-                wrapperSleep(useLoggerQueue, 10);
-            }
-            rc = send(sd, protocolSendBuffer, (int)len, 0);
-            cnt++;
-        } while ((rc == SOCKET_ERROR) && (wrapperGetLastError() == EWOULDBLOCK) && (cnt < 200));
-        if (rc == SOCKET_ERROR) {
-            if (wrapperGetLastError() == EWOULDBLOCK) {
-                log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
-                    "socket send failed.  Blocked for 2 seconds.  %s",
-                    getLastErrorText());
-            } else {
-                if (wrapperData->isDebugging) {
-                    log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
-                        "socket send failed.  %s", getLastErrorText());
-                }
-            }
-            wrapperProtocolClose();
             returnVal = TRUE;
         } else {
-            returnVal = FALSE;
+            if (wrapperData->isDebugging) {
+                if ((function == WRAPPER_MSG_PING) && (strcmp(message, "silent") == 0)) {
+                    /*
+                    log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
+                        "send a silent ping packet");
+                    */
+                } else {
+                    log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
+                        "send a packet %s : %s",
+                        wrapperProtocolGetCodeName(function), (message == NULL ? "NULL" : logMsg));
+                }
+            }
+    
+            /* Build the packet */
+            protocolSendBuffer[0] = function;
+            if (message == NULL) {
+                protocolSendBuffer[1] = '\0';
+            } else {
+                strcpy((char*)(protocolSendBuffer + 1), message);
+            }
+    
+            /* Send the packet */
+            cnt = 0;
+            do {
+                if (cnt > 0) {
+                    wrapperSleep(useLoggerQueue, 10);
+                }
+                rc = send(sd, protocolSendBuffer, (int)len, 0);
+                cnt++;
+            } while ((rc == SOCKET_ERROR) && (wrapperGetLastError() == EWOULDBLOCK) && (cnt < 200));
+            if (rc == SOCKET_ERROR) {
+                if (wrapperGetLastError() == EWOULDBLOCK) {
+                    log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
+                        "socket send failed.  Blocked for 2 seconds.  %s",
+                        getLastErrorText());
+                } else {
+                    if (wrapperData->isDebugging) {
+                        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
+                            "socket send failed.  %s", getLastErrorText());
+                    }
+                }
+                wrapperProtocolClose();
+                returnVal = TRUE;
+            } else {
+                returnVal = FALSE;
+            }
         }
     }
 
