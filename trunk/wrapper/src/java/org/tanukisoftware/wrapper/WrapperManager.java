@@ -1339,9 +1339,9 @@ public final class WrapperManager
                     m_outInfo.println(
                         "            " + libFile.getAbsolutePath() );
                     m_outInfo.println(
-                        "          Please verify that the file is readable by the current user" );
+                        "          Please verify that the file is both readable and executable by the" );
                     m_outInfo.println(
-                        "          and that the file has not been corrupted in any way." );
+                        "          current user and that the file has not been corrupted in any way." );
                     m_outInfo.println(
                         "          One common cause of this problem is running a 32-bit version" );
                     m_outInfo.println(
