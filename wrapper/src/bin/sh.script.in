@@ -175,21 +175,19 @@ LOCKFILE="$LOCKDIR/$APP_NAME"
 pid=""
 
 # Resolve the location of the 'ps' command
-PSEXE="/usr/ucb/ps"
+
+    PSEXE="/usr/bin/ps"
     if [ ! -x "$PSEXE" ]
     then
-        PSEXE="/usr/bin/ps"
+        PSEXE="/bin/ps"
         if [ ! -x "$PSEXE" ]
         then
-            PSEXE="/bin/ps"
-            if [ ! -x "$PSEXE" ]
-            then
-                echo "Unable to locate 'ps'."
-                echo "Please report this message along with the location of the command on your system."
-                exit 1
-            fi
+            echo "Unable to locate 'ps'."
+            echo "Please report this message along with the location of the command on your system."
+            exit 1
         fi
     fi
+    
 
 # Resolve the os
 DIST_OS=`uname -s | tr [A-Z] [a-z] | tr -d ' '`
@@ -423,7 +421,7 @@ checkUser() {
                 exit 1
             fi
         fi
-    
+
         if [ "`$IDEXE -u -n`" = "$RUN_AS_USER" ]
         then
             # Already running as the configured user.  Avoid password prompts by not calling su.
@@ -507,8 +505,8 @@ getpid() {
                         pidtest=`$PSEXE -ww -p $pid -o command | grep "$WRAPPER_CMD" | tail -1`
                         ;;
                     'solaris')
-                        pidtest=`$PSEXE -auxww  $pid | grep "$WRAPPER_CMD" | tail -1`
-                        ;;                    
+                        pidtest=`pargs $pid | grep "$WRAPPER_CMD" | tail -1`
+                        ;;
                     'hpux')
                         pidtest=`$PSEXE -p $pid -x -o args | grep "$WRAPPER_CMD" | tail -1`
                         ;;
@@ -562,12 +560,12 @@ getstatus() {
 
 testpid() {
     case "$DIST_OS" in
-        'solaris')
-            pid=`$PSEXE  $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1` 2>/dev/null
-            ;;
-        *)
-            pid=`$PSEXE -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1` 2>/dev/null
-            ;;
+    'solaris')
+        pid=`$PSEXE -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1` 2>/dev/null
+        ;;
+    *)
+        pid=`$PSEXE -p $pid | grep $pid | grep -v grep | awk '{print $1}' | tail -1` 2>/dev/null
+        ;;
     esac
     if [ "X$pid" = "X" ]
     then
