@@ -1905,6 +1905,11 @@ int wrapperRunConsole() {
 
     /* Log a startup banner. */
     wrapperVersionBanner();
+    
+    /* Make sure the tick timer is working correctly. */
+    if (wrapperTickAssertions()) {
+        return 1;
+    }
 
     /* The following code will display a licensed to block if a license key is found
      *  in the Wrapper configuration.  This piece of code is required as is for
@@ -4629,6 +4634,130 @@ TICKS wrapperAddToTicks(TICKS start, int seconds) {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "      wrapperAddToTicks(%08x, %08x) -> %08x", start, seconds, start + (seconds * 1000 / WRAPPER_TICK_MS));
     */
     return start + (seconds * 1000 / WRAPPER_TICK_MS);
+}
+
+/**
+ * Do some sanity checks on the tick timer math.
+ */
+int wrapperTickAssertions() {
+    int result = FALSE;
+    TICKS ticks1, ticks2, ticksR, ticksE;
+    int value1, valueR, valueE;
+    
+    /** wrapperGetTickAgeTicks test. */
+    ticks1 = 0xfffffffe;
+    ticks2 = 0xffffffff;
+    valueE = 1;
+    valueR = wrapperGetTickAgeTicks(ticks1, ticks2);
+    if (valueR != valueE) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Assert Failed: wrapperGetTickAgeTicks(%08x, %08x) == %0d != %0d", ticks1, ticks2, valueR, valueE);
+        result = TRUE;
+    }
+    
+    ticks1 = 0xffffffff;
+    ticks2 = 0xfffffffe;
+    valueE = -1;
+    valueR = wrapperGetTickAgeTicks(ticks1, ticks2);
+    if (valueR != valueE) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Assert Failed: wrapperGetTickAgeTicks(%08x, %08x) == %0d != %0d", ticks1, ticks2, valueR, valueE);
+        result = TRUE;
+    }
+    
+    ticks1 = 0xffffffff;
+    ticks2 = 0x00000000;
+    valueE = 1;
+    valueR = wrapperGetTickAgeTicks(ticks1, ticks2);
+    if (valueR != valueE) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Assert Failed: wrapperGetTickAgeTicks(%08x, %08x) == %0d != %0d", ticks1, ticks2, valueR, valueE);
+        result = TRUE;
+    }
+    
+    ticks1 = 0x00000000;
+    ticks2 = 0xffffffff;
+    valueE = -1;
+    valueR = wrapperGetTickAgeTicks(ticks1, ticks2);
+    if (valueR != valueE) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Assert Failed: wrapperGetTickAgeTicks(%08x, %08x) == %0d != %0d", ticks1, ticks2, valueR, valueE);
+        result = TRUE;
+    }
+    
+    /** wrapperGetTickAgeSeconds test. */
+    ticks1 = 0xfffffff0;
+    ticks2 = 0xffffffff;
+    valueE = 1;
+    valueR = wrapperGetTickAgeSeconds(ticks1, ticks2);
+    if (valueR != valueE) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Assert Failed: wrapperGetTickAgeSeconds(%08x, %08x) == %0d != %0d", ticks1, ticks2, valueR, valueE);
+        result = TRUE;
+    }
+    
+    ticks1 = 0xffffffff;
+    ticks2 = 0x0000000f;
+    valueE = 1;
+    valueR = wrapperGetTickAgeSeconds(ticks1, ticks2);
+    if (valueR != valueE) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Assert Failed: wrapperGetTickAgeSeconds(%08x, %08x) == %0d != %0d", ticks1, ticks2, valueR, valueE);
+        result = TRUE;
+    }
+    
+    ticks1 = 0x0000000f;
+    ticks2 = 0xffffffff;
+    valueE = -1;
+    valueR = wrapperGetTickAgeSeconds(ticks1, ticks2);
+    if (valueR != valueE) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Assert Failed: wrapperGetTickAgeSeconds(%08x, %08x) == %0d != %0d", ticks1, ticks2, valueR, valueE);
+        result = TRUE;
+    }
+    
+    
+    /** wrapperTickExpired test. */
+    ticks1 = 0xfffffffe;
+    ticks2 = 0xffffffff;
+    valueE = FALSE;
+    valueR = wrapperTickExpired(ticks1, ticks2);
+    if (valueR != valueE) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Assert Failed: wrapperTickExpired(%08x, %08x) == %0d != %0d", ticks1, ticks2, valueR, valueE);
+        result = TRUE;
+    }
+    
+    ticks1 = 0xffffffff;
+    ticks2 = 0xffffffff;
+    valueE = TRUE;
+    valueR = wrapperTickExpired(ticks1, ticks2);
+    if (valueR != valueE) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Assert Failed: wrapperTickExpired(%08x, %08x) == %0d != %0d", ticks1, ticks2, valueR, valueE);
+        result = TRUE;
+    }
+    
+    ticks1 = 0xffffffff;
+    ticks2 = 0x00000001;
+    valueE = FALSE;
+    valueR = wrapperTickExpired(ticks1, ticks2);
+    if (valueR != valueE) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Assert Failed: wrapperTickExpired(%08x, %08x) == %0d != %0d", ticks1, ticks2, valueR, valueE);
+        result = TRUE;
+    }
+    
+    ticks1 = 0x00000001;
+    ticks2 = 0xffffffff;
+    valueE = TRUE;
+    valueR = wrapperTickExpired(ticks1, ticks2);
+    if (valueR != valueE) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Assert Failed: wrapperTickExpired(%08x, %08x) == %0d != %0d", ticks1, ticks2, valueR, valueE);
+        result = TRUE;
+    }
+    
+    /** wrapperAddToTicks test. */
+    ticks1 = 0xffffffff;
+    value1 = 1;
+    ticksE = 0x00000009;
+    ticksR = wrapperAddToTicks(ticks1, value1);
+    if (ticksR != ticksE) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Assert Failed: wrapperAddToTicks(%08x, %d) == %08x != %08x", ticks1, value1, ticksR, ticksE);
+        result = TRUE;
+    }
+    
+    return result;
 }
 
 /**
