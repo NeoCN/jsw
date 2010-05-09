@@ -824,7 +824,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
     TICKS lastTickOffset = 0;
     TICKS tickOffset;
     int offsetDiff;
-    int first = 1;
+    int first = TRUE;
 
     /* In case there are ever any problems in this thread, enclose it in a try catch block. */
     __try {
@@ -848,10 +848,10 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
             tickOffset = sysTicks - timerTicks;
 
             /* The number we really want is the difference between this tickOffset and the previous one. */
-            offsetDiff = (int)(tickOffset - lastTickOffset);
+            offsetDiff = wrapperGetTickAgeTicks(lastTickOffset, tickOffset);
 
             if (first) {
-                first = 0;
+                first = FALSE;
             } else {
                 if (offsetDiff > wrapperData->timerSlowThreshold) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,

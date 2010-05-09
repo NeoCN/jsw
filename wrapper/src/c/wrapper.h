@@ -558,6 +558,11 @@ extern void wrapperExecute();
 extern TICKS wrapperGetTicks();
 
 /**
+ * Runs some assertion checks on the tick timer logic.
+ */
+extern int wrapperTickAssertions();
+
+/**
  * Outputs a a log entry describing what the memory dump columns are.
  */
 extern void wrapperDumpMemoryBanner();

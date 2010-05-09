@@ -533,8 +533,8 @@ void *timerRunner(void *arg) {
     TICKS sysTicks;
     TICKS lastTickOffset = 0;
     TICKS tickOffset;
-    long int offsetDiff;
-    int first = 1;
+    int offsetDiff;
+    int first = TRUE;
     sigset_t signal_mask;
     int rc;
 
@@ -572,10 +572,10 @@ void *timerRunner(void *arg) {
         tickOffset = sysTicks - timerTicks;
 
         /* The number we really want is the difference between this tickOffset and the previous one. */
-        offsetDiff = tickOffset - lastTickOffset;
+        offsetDiff = wrapperGetTickAgeTicks(lastTickOffset, tickOffset);
         
         if (first) {
-            first = 0;
+            first = FALSE;
         } else {
             if (offsetDiff > wrapperData->timerSlowThreshold) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
