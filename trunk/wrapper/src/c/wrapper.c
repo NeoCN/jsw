@@ -2332,27 +2332,21 @@ int checkIfBinary(const char *filename) {
 
 #ifndef WIN32
 char* resolveLinks(char* exe) {
-    int length;
-    char fullpath[200];
-    char *res;
-
-    length = readlink(exe, fullpath, sizeof(char) * 200);
-    /* Catch some errors: */
-    if (length < 0) {
-    /* No more links */
-        return exe;
-    } else if (length >= 200 * sizeof(char)) {
+    char resolvedPath[PATH_MAX];
+    char* returnVal;
+    if (realpath(exe, resolvedPath) == NULL) {
         return NULL;
+    } else {
+        returnVal = malloc( (strlen(resolvedPath) + 1) * sizeof(char));
+        if (!returnVal) {
+            outOfMemory("RL", 1);
+            return(NULL);
+        } else {
+            strcpy(returnVal, resolvedPath);
+            return returnVal;
+        }
     }
-    free(exe);
-    res = malloc((length + 1) * sizeof(char));
-    if (!res) {
-        outOfMemory("RL", 1);
-        return NULL;
-    }
-    strncpy(res, fullpath, length);
-    res[length] = '\0';
-    return resolveLinks(res);
+    return NULL;
 }
 
 
@@ -2425,7 +2419,7 @@ void checkIfRegularExe(char** para) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "The configured wrapper.java.command could not be found, attempting to launch anyway: %s", *para);
     } else {
         free(*para);
-        *para = malloc((strlen(path) + 1)* sizeof(char));
+        *para = malloc((strlen(path) + 1) * sizeof(char));
         if (!(*para)) {
             outOfMemory("CIRE", 2);
             return;
@@ -2451,6 +2445,7 @@ void checkIfRegularExe(char** para) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "The value of wrapper.java.command does not appear to be a java binary.");
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "The use of scripts is not supported. Trying to continue, but some features may not work correctly..");
         }
+        free(path);
     }
 }
 
