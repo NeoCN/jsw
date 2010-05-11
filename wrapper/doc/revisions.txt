@@ -73,6 +73,10 @@ Java Service Wrapper Revision History.
   with another port.
 * Work around an issue on some Solaris problems where the shell script would fail
   if /usr/ucb/ps wasn't installed.
+* Fix a problem on UNIX versions where the Wrapper would fail to resolve the
+  correct location of java if it was located using the sytem PATH, and that PATH
+  element pointed to a binary via a relative symbolic link.  This was introduced
+  in 3.4.0.
 
 3.4.0
 * Increased the minimum supported Java version from 1.2 to 1.4.
