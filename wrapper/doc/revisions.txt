@@ -1,5 +1,9 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.4.2
+* Add a check for wrapper.java.classpath.<n> entries containing quotes.  The
+  quotes are now stripped and a debug warning logged.
+
 3.4.1
 * Fix a problem where the wrapper.app.parameter.1 property was always being
   set to an empty string when launched from launchd on Mac OSX.  It worked
