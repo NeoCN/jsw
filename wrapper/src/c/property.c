@@ -617,7 +617,7 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
                 } else if (strstr(trimmedBuffer, "include") == trimmedBuffer) {
                     /* Users sometimes remove the '#' from include statements.  Add a warning to help them notice the problem. */
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                    "Include file reference missing leading '#': %s", trimmedBuffer);
+                        "Include file reference missing leading '#': %s", trimmedBuffer);
                 } else if (trimmedBuffer[0] != '#') {
                     /* printf("%s\n", trimmedBuffer); */
 
