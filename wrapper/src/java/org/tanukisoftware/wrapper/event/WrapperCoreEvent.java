@@ -45,7 +45,7 @@ public abstract class WrapperCoreEvent
      *  WrapperEventListener is registered to decide which listeners should
      *  receive the event.
      * <p>
-     * If a subclassed, the return value of the super class should usually
+     * If subclassed, the return value of the super class should usually
      *  be ORed with any additional flags.
      *
      * @return a set of event flags.
