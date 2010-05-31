@@ -7,6 +7,13 @@ Java Service Wrapper Revision History.
   so it is a little easier to read.  Also changed the font for the same reason.
 * (Standard, Professional) Modify the title of the wrapperw.exe error dialog
   so it now includes the value of the wrapper.displayname property.
+* Add a new check for the writability of the configured Java temporary
+  directory.  When running on Vista, it will not be writable and can lead to
+  errors.
+* Added new wrapper.java.tmpdir.required and wrapper.java.tmpdir.warn_silently
+  properties to control whether the temporary directory is required.
+* Add a note in Wrapper conf template showing users how to configure a specific
+  Java version to use.
 
 3.4.1
 * Fix a problem where the wrapper.app.parameter.1 property was always being
