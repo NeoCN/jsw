@@ -360,7 +360,7 @@ public final class WrapperManager
     
     /** Array of registered WrapperEventListeners and their registered masks.
      *   Should not be referenced directly.  Access by calling
-     *   getWrapperEventListenerMasks(). */ 
+     *   getWrapperEventListenerMasks(). */
     private static WrapperEventListenerMask[] m_wrapperEventListenerMasks = null;
     
     /** Flag used to tell whether or not WrapperCoreEvents should be produced. */
@@ -1459,6 +1459,64 @@ public final class WrapperManager
             m_outInfo.println(
                 "          and is not supported." );
             m_outInfo.println();
+        }
+    }
+    
+    /**
+     * Checks to make sure that the configured temp directory is writable.  Failures are only logged
+     *  to debug output.
+     */
+    private static void checkTmpDir()
+    {
+        File tmpDir = new File( System.getProperty( "java.io.tmpdir" ) );
+        boolean tmpDirRequired = getProperties().getProperty("wrapper.java.tmpdir.required", "FALSE").equalsIgnoreCase( "TRUE" );
+        boolean tmpDirWarnSilently = getProperties().getProperty("wrapper.java.tmpdir.warn_silently", "TRUE").equalsIgnoreCase( "TRUE" );
+        Exception ex = null;
+        try
+        {
+            tmpDir = tmpDir.getCanonicalFile();
+            File tempFile = File.createTempFile( "wrapper", null );
+            if ( !tempFile.delete() )
+            {
+                m_outError.println( "Unable to delete temporary file: " + tempFile );
+            }
+        }
+        catch ( IOException e )
+        {
+            ex = e;
+        }
+        catch ( SecurityException e )
+        {
+            ex = e;
+        }
+        
+        if ( ex != null )
+        {
+            if ( tmpDirRequired )
+            {
+                m_outError.println( "Unable to write to the configured Java temporary directory: " + tmpDir + " : " + ex.toString() );
+                m_outError.println( "Shutting down." );
+                System.exit( 1 );
+            }
+            else
+            {
+                if ( tmpDirWarnSilently )
+                {
+                    if ( m_debug )
+                    {
+                        m_outDebug.println( "Unable to write to the configured Java temporary directory: " + tmpDir + " : " + ex.toString() );
+                    }
+                }
+                else
+                {
+                    m_outInfo.println( "Unable to write to the configured Java temporary directory: " + tmpDir + " : " + ex.toString() );
+                }
+                if ( m_debug )
+                {
+                    m_outDebug.println( "  The lack of a temp directory could lead to problems with features that store temporary data, including remote jar class loading." );
+                    m_outDebug.println( "  The Java temporary directory can be redefined with the java.io.tmpdir system property." );
+                }
+            }
         }
     }
     
@@ -3541,6 +3599,9 @@ public final class WrapperManager
         Thread.currentThread().setPriority( Thread.NORM_PRIORITY );
 
         m_starting = true;
+        
+        // Do any setup which shoul happen just before we actually start the application.
+        checkTmpDir();
         
         // This method can be called from the connection thread which must be a
         //  daemon thread by design.  We need to call the WrapperListener.start method
