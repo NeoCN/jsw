@@ -627,6 +627,13 @@ void commandPoll(TICKS nowTicks) {
                                 } else {
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Command '%s'. Disable %s.", command, command);
                                 }
+                            } else if (strcmpIgnoreCase(command, "CLOSE_SOCKET") == 0) {
+                                if (wrapperData->commandFileTests) {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Command '%s'.  Closing backend socket to JVM...", command);
+                                    wrapperProtocolClose();
+                                } else {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Command '%s'.  Tests disabled.", command);
+                                }
                             } else {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Command '%s' is unknown, ignoring.", command);
                             }

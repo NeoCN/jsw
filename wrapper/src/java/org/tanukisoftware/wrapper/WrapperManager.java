@@ -4395,19 +4395,25 @@ public final class WrapperManager
         {
             if ( m_debug )
             {
-                m_outDebug.println( "Closing socket." );
+                m_outDebug.println( "Closing backend socket." );
             }
             
             try
             {
-                m_socket.close();
+                // Store the socket in a local variable while we close so other threads
+                //  will handle the closing of the thread correctly and know that it was
+                //  expected.
+                Socket socket = m_socket;
+                m_socket = null;
+                
+                socket.close();
             }
             catch ( IOException e )
             {
-            }
-            finally
-            {
-                m_socket = null;
+                if ( m_debug )
+                {
+                    m_outDebug.println( "Unable to close backend socket: " + e.toString() );
+                }
             }
         }
     }
@@ -5007,6 +5013,12 @@ public final class WrapperManager
                 {
                     // Always close the socket here.
                     closeSocket();
+                    if ( !isShuttingDown() )
+                    {
+                        m_outError.println( "The backend socket was closed unexpectedly.  Restart to resync with the Wrapper." );
+                        restart();
+                        /* Will not get here. */
+                    }
                 }
             }
             catch ( ThreadDeath td )
