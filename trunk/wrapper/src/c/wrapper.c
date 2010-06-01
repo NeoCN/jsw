@@ -103,9 +103,9 @@ char         *keyChars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQR
 Properties              *properties;
 
 /* Server Socket. */
-SOCKET ssd = INVALID_SOCKET;
+SOCKET protocolActiveServerSD = INVALID_SOCKET;
 /* Client Socket. */
-SOCKET sd = INVALID_SOCKET;
+SOCKET protocolActiveBackendSD = INVALID_SOCKET;
 int loadConfiguration();
 
 /**
@@ -444,18 +444,21 @@ void protocolStopServer() {
     int rc;
     
     /* Close the socket. */
-    if (ssd != INVALID_SOCKET) {
+    if (protocolActiveServerSD != INVALID_SOCKET) {
+        if (wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "closing backend server.");
+        }
 #ifdef WIN32
-        rc = closesocket(ssd);
+        rc = closesocket(protocolActiveServerSD);
 #else /* UNIX */
-        rc = close(ssd);
+        rc = close(protocolActiveServerSD);
 #endif
         if (rc == SOCKET_ERROR) {
             if (wrapperData->isDebugging) {
                 log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "server socket close failed. (%d)", wrapperGetLastError());
             }
         }
-        ssd = INVALID_SOCKET;
+        protocolActiveServerSD = INVALID_SOCKET;
     }
 
     wrapperData->actualPort = 0;
@@ -473,8 +476,8 @@ void protocolStartServer() {
 #endif
 
     /* Create the server socket. */
-    ssd = socket(AF_INET, SOCK_STREAM, 0);
-    if (ssd == INVALID_SOCKET) {
+    protocolActiveServerSD = socket(AF_INET, SOCK_STREAM, 0);
+    if (protocolActiveServerSD == INVALID_SOCKET) {
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR,
             "server socket creation failed. (%s)", getLastErrorText());
         return;
@@ -483,13 +486,14 @@ void protocolStartServer() {
     /* Make sure the socket is reused. */
     /* We actually do not want to do this as it makes it possible for more than one Wrapper
      *  instance to bind to the same port.  The second instance succeeds to bind, but any
-     *  attempts to connect to that port will go to the dirst Wrapper.  This would of course
+     *  attempts to connect to that port will go to the first Wrapper.  This would of course
      *  cause attempts to launch the second JVM to fail.
+     * Leave this code here as a future development note.
     optVal = 1;
 #ifdef WIN32
-    if (setsockopt(ssd, SOL_SOCKET, SO_REUSEADDR, (char *)&optVal, sizeof(optVal)) < 0) {
+    if (setsockopt(protocolActiveServerSD, SOL_SOCKET, SO_REUSEADDR, (char *)&optVal, sizeof(optVal)) < 0) {
 #else
-    if (setsockopt(ssd, SOL_SOCKET, SO_REUSEADDR, &optVal, sizeof(optVal)) < 0) {
+    if (setsockopt(protocolActiveServerSD, SOL_SOCKET, SO_REUSEADDR, &optVal, sizeof(optVal)) < 0) {
 #endif
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR,
             "server socket SO_REUSEADDR failed. (%s)", getLastErrorText());
@@ -501,9 +505,9 @@ void protocolStartServer() {
 
     /* Make the socket non-blocking */
 #ifdef WIN32
-    rc = ioctlsocket(ssd, FIONBIO, &dwNoBlock);
+    rc = ioctlsocket(protocolActiveServerSD, FIONBIO, &dwNoBlock);
 #else /* UNIX  */
-    rc = fcntl(ssd, F_SETFL, O_NONBLOCK);
+    rc = fcntl(protocolActiveServerSD, F_SETFL, O_NONBLOCK);
 #endif
 
     if (rc == SOCKET_ERROR) {
@@ -537,9 +541,9 @@ void protocolStartServer() {
     addr_srv.sin_addr.s_addr = inet_addr("127.0.0.1");
     addr_srv.sin_port = htons((u_short)port);
 #ifdef WIN32
-    rc = bind(ssd, (struct sockaddr FAR *)&addr_srv, sizeof(addr_srv));
+    rc = bind(protocolActiveServerSD, (struct sockaddr FAR *)&addr_srv, sizeof(addr_srv));
 #else /* UNIX */
-    rc = bind(ssd, (struct sockaddr *)&addr_srv, sizeof(addr_srv));
+    rc = bind(protocolActiveServerSD, (struct sockaddr *)&addr_srv, sizeof(addr_srv));
 #endif
     
     if (rc == SOCKET_ERROR) {
@@ -591,7 +595,7 @@ void protocolStartServer() {
     }
 
     /* Tell the socket to start listening. */
-    rc = listen(ssd, 1);
+    rc = listen(protocolActiveServerSD, 1);
     if (rc == SOCKET_ERROR) {
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, "server socket listen failed. (%d)", wrapperGetLastError());
         wrapperProtocolClose();
@@ -614,26 +618,22 @@ void protocolOpen() {
 #else
     socklen_t addr_srv_len;
 #endif
+    SOCKET newBackendSD = INVALID_SOCKET;
 
     /* Is the server socket open? */
-    if (ssd == INVALID_SOCKET) {
+    if (protocolActiveServerSD == INVALID_SOCKET) {
         /* can't do anything yet. */
         return;
     }
-
-    /* Is it already open? */
-    if (sd != INVALID_SOCKET) {
-        return;
-    }
-
+    
     /* Try accepting a socket. */
     addr_srv_len = sizeof(addr_srv);
 #ifdef WIN32
-    sd = accept(ssd, (struct sockaddr FAR *)&addr_srv, &addr_srv_len);
+    newBackendSD = accept(protocolActiveServerSD, (struct sockaddr FAR *)&addr_srv, &addr_srv_len);
 #else /* UNIX */
-    sd = accept(ssd, (struct sockaddr *)&addr_srv, &addr_srv_len);
+    newBackendSD = accept(protocolActiveServerSD, (struct sockaddr *)&addr_srv, &addr_srv_len);
 #endif
-    if (sd == INVALID_SOCKET) {
+    if (newBackendSD == INVALID_SOCKET) {
         rc = wrapperGetLastError();
         /* EWOULDBLOCK != EAGAIN on some platforms. */
         if ((rc == EWOULDBLOCK) || (rc == EAGAIN)) {
@@ -648,6 +648,26 @@ void protocolOpen() {
         }
     }
 
+    /* Is it already open? */
+    if (protocolActiveBackendSD != INVALID_SOCKET) {
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN, "Ignoring unexpected backend socket connection from %s on port %d",
+                 (char *)inet_ntoa(addr_srv.sin_addr), ntohs(addr_srv.sin_port));
+#ifdef WIN32
+        rc = closesocket(newBackendSD);
+#else /* UNIX */
+        rc = close(newBackendSD);
+#endif
+        if (rc == SOCKET_ERROR) {
+            if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket close failed. (%d)", wrapperGetLastError());
+            }
+        }
+        return;
+    }
+    
+    /* New connection, so continue. */
+    protocolActiveBackendSD = newBackendSD;
+    
     if (wrapperData->isDebugging) {
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "accepted a socket from %s on port %d",
                  (char *)inet_ntoa(addr_srv.sin_addr), ntohs(addr_srv.sin_port));
@@ -655,9 +675,9 @@ void protocolOpen() {
 
     /* Make the socket non-blocking */
 #ifdef WIN32
-    rc = ioctlsocket(sd, FIONBIO, &dwNoBlock);
+    rc = ioctlsocket(protocolActiveBackendSD, FIONBIO, &dwNoBlock);
 #else /* UNIX */
-    rc = fcntl(sd, F_SETFL, O_NONBLOCK);
+    rc = fcntl(protocolActiveBackendSD, F_SETFL, O_NONBLOCK);
 #endif
     if (rc == SOCKET_ERROR) {
         if (wrapperData->isDebugging) {
@@ -668,7 +688,7 @@ void protocolOpen() {
         return;
     }
     
-    /* We got an incoming connection, so close down the listener for security reasons. */
+    /* We got an incoming connection, so close down the listener to prevent further connections. */
     protocolStopServer();
 }
 
@@ -676,18 +696,21 @@ void wrapperProtocolClose() {
     int rc;
 
     /* Close the socket. */
-    if (sd != INVALID_SOCKET) {
+    if (protocolActiveBackendSD != INVALID_SOCKET) {
+        if (wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "closing backend socket.");
+        }
 #ifdef WIN32
-        rc = closesocket(sd);
+        rc = closesocket(protocolActiveBackendSD);
 #else /* UNIX */
-        rc = close(sd);
+        rc = close(protocolActiveBackendSD);
 #endif
         if (rc == SOCKET_ERROR) {
             if (wrapperData->isDebugging) {
                 log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, "socket close failed. (%d)", wrapperGetLastError());
             }
         }
-        sd = INVALID_SOCKET;
+        protocolActiveBackendSD = INVALID_SOCKET;
     }
 }
 
@@ -913,7 +936,7 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const char *messa
     }
 
     if (ok) {
-        if (sd == INVALID_SOCKET) {
+        if (protocolActiveBackendSD == INVALID_SOCKET) {
             /* A socket was not opened */
             if (wrapperData->isDebugging) {
                 log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
@@ -949,7 +972,7 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const char *messa
                 if (cnt > 0) {
                     wrapperSleep(useLoggerQueue, 10);
                 }
-                rc = send(sd, protocolSendBuffer, (int)len, 0);
+                rc = send(protocolActiveBackendSD, protocolSendBuffer, (int)len, 0);
                 cnt++;
             } while ((rc == SOCKET_ERROR) && (wrapperGetLastError() == EWOULDBLOCK) && (cnt < 200));
             if (rc == SOCKET_ERROR) {
@@ -991,7 +1014,7 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const char *messa
  * Returns TRUE if the socket is open and ready on return, FALSE if not.
  */
 int wrapperCheckServerSocket(int forceOpen) {
-    if (ssd == INVALID_SOCKET) {
+    if (protocolActiveServerSD == INVALID_SOCKET) {
         /* The socket is not currently open and needs to be started,
          *  unless the JVM is DOWN or in a state where it is not needed. */
         if ((!forceOpen) &&
@@ -1007,7 +1030,7 @@ int wrapperCheckServerSocket(int forceOpen) {
         } else {
             /* The socket should be open, try doing so. */
             protocolStartServer();
-            if (ssd == INVALID_SOCKET) {
+            if (protocolActiveServerSD == INVALID_SOCKET) {
                 /* Failed. */
                 return FALSE;
             } else {
@@ -1053,7 +1076,7 @@ int wrapperProtocolRead() {
         */
 
         /* If we have an open client socket, then use it. */
-        if (sd == INVALID_SOCKET) {
+        if (protocolActiveBackendSD == INVALID_SOCKET) {
             /* A Client socket is not open */
 
             /* Is the server socket open? */
@@ -1064,13 +1087,13 @@ int wrapperProtocolRead() {
 
             /* Try accepting a socket */
             protocolOpen();
-            if (sd == INVALID_SOCKET) {
+            if (protocolActiveBackendSD == INVALID_SOCKET) {
                 return 0;
             }
         }
 
         /* Try receiving a packet code */
-        len = recv(sd, &c, 1, 0);
+        len = recv(protocolActiveBackendSD, &c, 1, 0);
         if (len == SOCKET_ERROR) {
             err = wrapperGetLastError();
             if ((err != EWOULDBLOCK) && (err != EAGAIN)
@@ -1098,7 +1121,7 @@ int wrapperProtocolRead() {
         /* Read in any message */
         pos = 0;
         do {
-            len = recv(sd, &c, 1, 0);
+            len = recv(protocolActiveBackendSD, &c, 1, 0);
             if (len == 1) {
                 if (c == 0) {
                     /* End of string */
@@ -4464,6 +4487,7 @@ int loadConfiguration() {
     /** Get the command file if any. May be NULL */
     updateStringValue(&wrapperData->commandFilename, getFileSafeStringProperty(properties, "wrapper.commandfile", NULL));
     correctWindowsPath(wrapperData->commandFilename);
+    wrapperData->commandFileTests = getBooleanProperty(properties, "wrapper.commandfile.enable_tests", FALSE);
 
     /** Get the interval at which the command file will be polled. */
     wrapperData->commandPollInterval = __min(__max(getIntProperty(properties, "wrapper.command.poll_interval", 5), 1), 3600);

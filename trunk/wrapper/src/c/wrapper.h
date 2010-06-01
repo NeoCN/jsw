@@ -259,6 +259,7 @@ struct WrapperConfig {
     char    *statusFilename;        /* Name of file to store wrapper status in */
     char    *javaStatusFilename;    /* Name of file to store jvm status in */
     char    *commandFilename;       /* Name of a command file used to send commands to the Wrapper. */
+    int     commandFileTests;       /* True if test commands will be accepted via the command file. */
     int     commandPollInterval;    /* Interval in seconds at which the existence of the command file is polled. */
     TICKS   commandTimeoutTicks;    /* Tick count at which the command file will be checked next. */
     char    *anchorFilename;        /* Name of an anchor file used to control when the Wrapper should quit. */

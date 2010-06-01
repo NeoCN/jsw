@@ -14,6 +14,11 @@ Java Service Wrapper Revision History.
   properties to control whether the temporary directory is required.
 * Add a note in Wrapper conf template showing users how to configure a specific
   Java version to use.
+* Add a new CLOSE_SOCKET command to the wrapper.commandfile property and added
+  a new wrapper.commandfile.enable_tests property to control whether it can be
+  used.
+* Fix a debug warning while shutting down caused by one thread closing the
+  backend socket when another expected it to be open.
 
 3.4.1
 * Fix a problem where the wrapper.app.parameter.1 property was always being
