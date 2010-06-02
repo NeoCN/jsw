@@ -823,6 +823,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
     TICKS sysTicks;
     TICKS lastTickOffset = 0;
     TICKS tickOffset;
+    TICKS nowTicks;
     int offsetDiff;
     int first = TRUE;
 
@@ -841,11 +842,20 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
             /* Get the tick count based on the system time. */
             sysTicks = wrapperGetSystemTicks();
 
+            /* Lock the tick mutex whenever the "timerTicks" variable is accessed. */
+            if (wrapperData->useTickMutex && wrapperLockTickMutex()) {
+                return 1;
+            }
+            
             /* Advance the timer tick count. */
-            timerTicks++;
+            nowTicks = timerTicks++;
+            
+            if (wrapperData->useTickMutex && wrapperReleaseTickMutex()) {
+                return 1;
+            }
 
             /* Calculate the offset between the two tick counts. This will always work due to overflow. */
-            tickOffset = sysTicks - timerTicks;
+            tickOffset = sysTicks - nowTicks;
 
             /* The number we really want is the difference between this tickOffset and the previous one. */
             offsetDiff = wrapperGetTickAgeTicks(lastTickOffset, tickOffset);
@@ -864,7 +874,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
                 if (wrapperData->isTickOutputEnabled) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         "    Timer: ticks=%08x, system ticks=%08x, offset=%08x, offsetDiff=%08x",
-                        timerTicks, sysTicks, tickOffset, offsetDiff);
+                        nowTicks, sysTicks, tickOffset, offsetDiff);
                 }
             }
 
@@ -1565,14 +1575,27 @@ void wrapperExecute() {
  *  wrapperGetTickAgeSeconds() function to perform time keeping.
  */
 TICKS wrapperGetTicks() {
+    TICKS ticks;
+    
     if (wrapperData->useSystemTime) {
         /* We want to return a tick count that is based on the current system time. */
-        return wrapperGetSystemTicks();
+        ticks = wrapperGetSystemTicks();
 
     } else {
+        /* Lock the tick mutex whenever the "timerTicks" variable is accessed. */
+        if (wrapperData->useTickMutex && wrapperLockTickMutex()) {
+            return 0;
+        }
+        
         /* Return a snapshot of the current tick count. */
-        return timerTicks;
+        ticks = timerTicks;
+        
+        if (wrapperData->useTickMutex && wrapperReleaseTickMutex()) {
+            return 0;
+        }
     }
+    
+    return ticks;
 }
 
 /**

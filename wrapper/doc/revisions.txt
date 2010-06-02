@@ -19,6 +19,11 @@ Java Service Wrapper Revision History.
   used.
 * Fix a debug warning while shutting down caused by one thread closing the
   backend socket when another expected it to be open.
+* If the backend socket between the JVM and Wrapper is somehow closed, make the
+  JVM respond promptly by restarting the JVM immediately to resync with the
+  Wrapper.  Added log information to make it clear when this happens.
+* Add a new wrapper.use_tick_mutex property to control whether or not the
+  internal tick timer is protected by a mutex. (Experimental)
 
 3.4.1
 * Fix a problem where the wrapper.app.parameter.1 property was always being

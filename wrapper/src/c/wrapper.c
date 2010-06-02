@@ -102,6 +102,13 @@ char         *keyChars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQR
 /* Properties structure loaded in from the configuration file. */
 Properties              *properties;
 
+/* Mutex for syncronization of the tick timer. */
+#ifdef WIN32
+HANDLE tickMutexHandle = NULL;
+#else
+pthread_mutex_t tickMutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
+
 /* Server Socket. */
 SOCKET protocolActiveServerSD = INVALID_SOCKET;
 /* Client Socket. */
@@ -1271,6 +1278,13 @@ int wrapperInitialize() {
     wrapperData->jvmLaunchTicks = wrapperGetTicks();
     wrapperData->failedInvocationCount = 0;
         
+#ifdef WIN32
+    if (!(tickMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
+        printf("Failed to create tick mutex. %s\n", getLastErrorText());
+        return 1;
+    }
+#endif
+    
     if (initLogging(wrapperLogFileChanged)) {
         return 1;
     }
@@ -4326,6 +4340,10 @@ int loadConfiguration() {
     if (!wrapperData->configured) {
         wrapperData->useSystemTime = getBooleanProperty(properties, "wrapper.use_system_time", FALSE);
     }
+    /* Decide whether or not a mutex should be used to protect the tick timer. */
+    if (!wrapperData->configured) {
+        wrapperData->useTickMutex = getBooleanProperty(properties, "wrapper.use_tick_mutex", FALSE);
+    }
     /* Get the timer thresholds. Properties are in seconds, but internally we use ticks. */
     wrapperData->timerFastThreshold = getIntProperty(properties, "wrapper.timer_fast_threshold", WRAPPER_TIMER_FAST_THRESHOLD * WRAPPER_TICK_MS / 1000) * 1000 / WRAPPER_TICK_MS;
     wrapperData->timerSlowThreshold = getIntProperty(properties, "wrapper.timer_slow_threshold", WRAPPER_TIMER_SLOW_THRESHOLD * WRAPPER_TICK_MS / 1000) * 1000 / WRAPPER_TICK_MS;
@@ -4567,6 +4585,53 @@ int loadConfiguration() {
     wrapperData->configured = TRUE;
 
     return FALSE;
+}
+
+/**
+ * Requests a lock on the tick mutex.
+ */
+int wrapperLockTickMutex() {
+#ifdef WIN32
+    switch (WaitForSingleObject(tickMutexHandle, INFINITE)) {
+    case WAIT_ABANDONED:
+        printf("Tick was abandoned.\n");
+        return -1;
+    case WAIT_FAILED:
+        printf("Tick wait failed.\n");
+        return -1;
+    case WAIT_TIMEOUT:
+        printf("Tick wait timed out.\n");
+        return -1;
+    default:
+        /* Ok */
+        break;
+    }
+#else
+    if (pthread_mutex_lock(&tickMutex)) {
+        printf("Failed to lock the Tick mutex. %s\n", getLastErrorText());
+        return -1;
+    }
+#endif
+    
+    return 0;
+}
+
+/**
+ * Releases a lock on the tick mutex.
+ */
+int wrapperReleaseTickMutex() {
+#ifdef WIN32
+    if (!ReleaseMutex(tickMutexHandle)) {
+        printf( "Failed to release tick mutex. %s\n", getLastErrorText());
+        return -1;
+    }
+#else
+    if (pthread_mutex_unlock(&tickMutex)) {
+        printf("Failed to unlock the tick mutex. %s\n", getLastErrorText());
+        return -1;
+    }
+#endif
+    return 0;
 }
 
 /**

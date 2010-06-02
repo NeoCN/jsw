@@ -165,6 +165,7 @@ struct WrapperConfig {
     int     useSystemTime;          /* TRUE if the wrapper should use the system clock for timing, FALSE if a tick counter should be used. */
     int     timerFastThreshold;     /* If the difference between the system time based tick count and the timer tick count ever falls by more than this value then a warning will be displayed. */
     int     timerSlowThreshold;     /* If the difference between the system time based tick count and the timer tick count ever grows by more than this value then a warning will be displayed. */
+    int     useTickMutex;           /* TRUE if access to the tick count should be protected by a mutex. */
 
     int     ignoreSequenceGaps;     /* TRUE if all sequence properties should be used. */
     int     port;                   /* Port number which the Wrapper is configured to be listening on */
@@ -672,6 +673,16 @@ extern void wrapperRequestDumpJVMState(int useLoggerQueue);
  * @return TRUE if there were any problems.
  */
 extern int wrapperBuildJavaCommand();
+
+/**
+ * Requests a lock on the tick mutex.
+ */
+extern int wrapperLockTickMutex();
+
+/**
+ * Releases a lock on the tick mutex.
+ */
+extern int wrapperReleaseTickMutex();
 
 /**
  * Calculates a tick count using the system time.
