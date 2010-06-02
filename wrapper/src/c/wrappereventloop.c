@@ -1659,6 +1659,10 @@ void wrapperEventLoop() {
     wrapperData->cpuOutputTimeoutTicks = lastCycleTicks;
     wrapperData->logfileInactivityTimeoutTicks = lastCycleTicks;
 
+    if (wrapperData->isDebugging) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Use tick timer mutex=%s", wrapperData->useTickMutex ? "TRUE" : "FALSE");
+    }
+    
     if (wrapperData->isTickOutputEnabled) {
         logTickTimerStats();
     }
