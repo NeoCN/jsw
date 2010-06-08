@@ -896,7 +896,7 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const char *messa
     int cnt;
     size_t len;
     const char *logMsg;
-    int returnVal;
+    int returnVal = FALSE;
     int ok = TRUE;
 
     /* It is important than there is never more than one thread allowed in here at a time. */
