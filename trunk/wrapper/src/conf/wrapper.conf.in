@@ -108,12 +108,6 @@ wrapper.console.title=@app.long.name@
 #********************************************************************
 # Wrapper JVM Checks
 #********************************************************************
-# Detect DeadLocked Threads in the JVM. (Requires Standard Edition)
-wrapper.check.deadlock=TRUE
-wrapper.check.deadlock.interval=60
-wrapper.check.deadlock.action=RESTART
-wrapper.check.deadlock.output=FULL
-
 # Out Of Memory detection.
 wrapper.filter.trigger.1000=java.lang.OutOfMemoryError
 wrapper.filter.action.1000=RESTART
