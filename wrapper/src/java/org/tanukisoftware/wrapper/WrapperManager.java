@@ -4881,6 +4881,10 @@ public final class WrapperManager
                     }
                 }
             }
+            if ( m_debug )
+            {
+                m_outDebug.println( "Socket handler loop completed.  Disposed: " + ( m_disposed ? "True" : "False" ) );
+            }
             return;
 
         }
@@ -4893,6 +4897,7 @@ public final class WrapperManager
                     // This error happens if the socket is closed while reading:
                     // java.net.SocketException: Descriptor not a socket: JVM_recv in socket
                     //                           input stream read
+                    m_outDebug.println( "Closed socket (Normal): " + e );
                 }
                 else
                 {
@@ -4904,8 +4909,10 @@ public final class WrapperManager
         catch ( IOException e )
         {
             // This means that the connection was closed.  Allow this to return.
-            //m_outInfo.println( e );
-            //e.printStackTrace( m_outInfo );
+            if ( m_debug )
+            {
+                m_outDebug.println( "Closed socket (Normal): " + e );
+            }
             return;
         }
     }
@@ -4977,47 +4984,33 @@ public final class WrapperManager
         {
             try
             {
-                try
+                openSocket();
+                
+                // After the socket has been opened the first time, mark the thread as
+                //  started.  This must be done here to make sure that exits work correctly
+                //  when called on startup.
+                if ( !m_commRunnerStarted )
                 {
-                    openSocket();
-                    
-                    // After the socket has been opened the first time, mark the thread as
-                    //  started.  This must be done here to make sure that exits work correctly
-                    //  when called on startup.
-                    if ( !m_commRunnerStarted )
+                    synchronized( WrapperManager.class )
                     {
-                        synchronized( WrapperManager.class )
-                        {
-                            m_commRunnerStarted = true;
-                            WrapperManager.class.notifyAll();
-                        }
-                    }
-                    
-                    if ( m_socket != null )
-                    {
-                        handleSocket();
-                    }
-                    else
-                    {
-                        // Failed, so wait for just a moment
-                        try
-                        {
-                            Thread.sleep( 100 );
-                        }
-                        catch ( InterruptedException e )
-                        {
-                        }
+                        m_commRunnerStarted = true;
+                        WrapperManager.class.notifyAll();
                     }
                 }
-                finally
+                
+                if ( m_socket != null )
                 {
-                    // Always close the socket here.
-                    closeSocket();
-                    if ( !isShuttingDown() )
+                    handleSocket();
+                }
+                else
+                {
+                    // Failed, so wait for just a moment
+                    try
                     {
-                        m_outError.println( "The backend socket was closed unexpectedly.  Restart to resync with the Wrapper." );
-                        restart();
-                        /* Will not get here. */
+                        Thread.sleep( 100 );
+                    }
+                    catch ( InterruptedException e )
+                    {
                     }
                 }
             }
@@ -5032,6 +5025,29 @@ public final class WrapperManager
                     // Show a stack trace here because this is fairly critical
                     m_outError.println( m_error.format( "SERVER_DAEMON_DIED" ) );
                     t.printStackTrace( m_outError );
+                }
+                else
+                {
+                    if ( m_debug )
+                    {
+                        m_outDebug.println( "Server daemon died!" );
+                        t.printStackTrace( m_outDebug );
+                    }
+                }
+            }
+            finally
+            {
+                if ( m_debug )
+                {
+                    m_outDebug.println( "Returned from socket handler." ); 
+                }
+                // Always close the socket here.
+                closeSocket();
+                if ( !isShuttingDown() )
+                {
+                    m_outError.println( "The backend socket was closed unexpectedly.  Restart to resync with the Wrapper." );
+                    restart();
+                    /* Will not get here. */
                 }
             }
         }
