@@ -5,16 +5,16 @@
 # This software is the proprietary information of Tanuki Software.
 # You shall use it only in accordance with the terms of the
 # license agreement you entered into with Tanuki Software.
-# http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
+# http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
 
 UNIVERSAL_SDK_HOME=/Developer/SDKs/MacOSX10.5.sdk
-COMPILE = gcc -O3 -Wall -DUSE_NANOSLEEP -DMACOSX -arch ppc -arch i386 -isysroot $(UNIVERSAL_SDK_HOME) -mmacosx-version-min=10.4
+COMPILE = gcc -O3 -Wall -DUSE_NANOSLEEP -DMACOSX -arch ppc -arch i386 -isysroot $(UNIVERSAL_SDK_HOME) -mmacosx-version-min=10.4 -DUNICODE -D_UNICODE
 
 DEFS = -I$(UNIVERSAL_SDK_HOME)/System/Library/Frameworks/JavaVM.framework/Headers
 
-wrapper_SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c wrapper_file.c
+wrapper_SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c wrapper_file.c wrapper_i18n.c
 
-libwrapper_so_OBJECTS = wrapperjni_unix.o wrapperinfo.o wrapperjni.o
+libwrapper_so_OBJECTS = wrapper_i18n.o wrapperjni_unix.o wrapperinfo.o wrapperjni.o
 
 BIN = ../../bin
 LIB = ../../lib
@@ -32,10 +32,10 @@ init:
 	if test ! -d .deps; then mkdir .deps; fi
 
 wrapper: $(wrapper_SOURCE)
-	$(COMPILE) -DMACOSX $(wrapper_SOURCE) -o $(BIN)/wrapper
+	$(COMPILE) -DMACOSX $(wrapper_SOURCE) -liconv -o $(BIN)/wrapper
 
 libwrapper.jnilib: $(libwrapper_so_OBJECTS)
-	$(COMPILE) -bundle -o $(LIB)/libwrapper.jnilib $(libwrapper_so_OBJECTS)
+	$(COMPILE) -bundle -liconv -o $(LIB)/libwrapper.jnilib $(libwrapper_so_OBJECTS)
 
 %.o: %.c
 	$(COMPILE) -c $(DEFS) $<

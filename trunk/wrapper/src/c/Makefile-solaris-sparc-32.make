@@ -5,17 +5,17 @@
 # This software is the proprietary information of Tanuki Software.
 # You shall use it only in accordance with the terms of the
 # license agreement you entered into with Tanuki Software.
-# http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
+# http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
 
-COMPILE = gcc -O3 -Wall --pedantic -DSOLARIS
+COMPILE = gcc -O3 -Wall --pedantic -DSOLARIS -DUNICODE -D_UNICODE
 
 INCLUDE=$(JAVA_HOME)/include
 
 DEFS = -I$(INCLUDE) -I$(INCLUDE)/solaris
 
-wrapper_SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c wrapper_file.c
+wrapper_SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c wrapper_file.c wrapper_i18n.c
 
-libwrapper_so_OBJECTS = wrapperjni_unix.o wrapperinfo.o wrapperjni.o
+libwrapper_so_OBJECTS =  wrapper_i18n.o wrapperjni_unix.o wrapperinfo.o wrapperjni.o
 
 BIN = ../../bin
 LIB = ../../lib

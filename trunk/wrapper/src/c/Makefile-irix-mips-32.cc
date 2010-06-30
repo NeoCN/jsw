@@ -5,19 +5,19 @@
 # This software is the proprietary information of Tanuki Software.
 # You shall use it only in accordance with the terms of the
 # license agreement you entered into with Tanuki Software.
-# http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
+# http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
 
 # Makefile for SGI IRIX 6.5 (may work on other versions as well but not tested)
 # MIPSpro Compilers: Version 7.3.1.3m
-COMPILE = cc -DIRIX -KPIC 
+COMPILE = cc -DIRIX -KPIC  -DUNICODE -D_UNICODE
 
 INCLUDE=$(JAVA_HOME)/include
 
-DEFS = -I$(INCLUDE) -I$(INCLUDE)/irix 
+DEFS = -I$(INCLUDE) -I$(INCLUDE)/irix
 
-wrapper_OBJECTS = wrapper.o wrapperinfo.o wrappereventloop.o wrapper_unix.o property.o logger.o wrapper_file.o
+wrapper_OBJECTS = wrapper.o wrapperinfo.o wrappereventloop.o wrapper_unix.o property.o logger.o wrapper_file.o wrapper_i18n.o
 
-libwrapper_so_OBJECTS = wrapperjni_unix.o wrapperinfo.o wrapperjni.o
+libwrapper_so_OBJECTS = wrapperjni_unix.o wrapperinfo.o wrapperjni.o wrapper_i18n.o
 
 BIN = ../../bin
 LIB = ../../lib

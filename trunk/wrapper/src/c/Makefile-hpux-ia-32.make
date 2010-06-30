@@ -5,17 +5,19 @@
 # This software is the proprietary information of Tanuki Software.
 # You shall use it only in accordance with the terms of the
 # license agreement you entered into with Tanuki Software.
-# http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
+# http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
 
-COMPILE = cc -DHPUX -Ae +Z
+
+COMPILE = cc -DHPUX -Ae +Z -D_INCLUDE__STDC_A1_SOURCE -DUNICODE -D_UNICODE
 
 INCLUDE=$(JAVA_HOME)/include
 
 DEFS = -I$(INCLUDE) -I$(INCLUDE)/hp-ux
 
-wrapper_SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c wrapper_file.c
 
-libwrapper_so_SOURCE = wrapperjni_unix.c wrapperinfo.c wrapperjni.c
+wrapper_SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c wrapper_file.c wrapper_i18n.c
+
+libwrapper_so_SOURCE = wrapper_i18n.c wrapperjni_unix.c wrapperinfo.c wrapperjni.c
 
 BIN = ../../bin
 LIB = ../../lib
