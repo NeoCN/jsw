@@ -39,9 +39,9 @@ public class QuickComplete {
      * Main Method
      *-------------------------------------------------------------*/
     public static void main(String[] args) {
-        System.out.println("Quick Complete Running...");
+        System.out.println( Main.getRes().getString( "Quick Complete Running...") );
         
-        System.out.println("Quick Complete Done...");
+        System.out.println( Main.getRes().getString( "Quick Complete Done...") );
     }
 }
 

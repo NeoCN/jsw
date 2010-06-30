@@ -65,7 +65,7 @@ public class WrapperProcessOutputStream
             }
             else
             {
-                throw new IOException( "Stream is closed." );
+                throw new IOException( WrapperManager.getRes().getString( "Stream is closed." ) );
             }
         }
     }

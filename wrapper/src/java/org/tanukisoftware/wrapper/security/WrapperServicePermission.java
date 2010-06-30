@@ -17,6 +17,8 @@ import java.util.Enumeration;
 import java.util.Vector;
 import java.util.StringTokenizer;
 
+import org.tanukisoftware.wrapper.WrapperManager;
+
 /**
  * WrapperServicePermissions are used to grant the right to start, stop,
  *  pause, continue, interrogate, or send custom codes to other services
@@ -427,8 +429,8 @@ public class WrapperServicePermission
             }
             else
             {
-                throw new IllegalArgumentException(
-                    "Invalid permission action: \"" + action + "\"" );
+                throw new IllegalArgumentException( WrapperManager.getRes().getString(
+                    "Invalid permission action: \"{0}\"" , action ) );
             }
         }
         
@@ -475,12 +477,13 @@ final class WSCollection
     {
         if ( !( permission instanceof WrapperServicePermission ) )
         {
-            throw new IllegalArgumentException( "invalid permission: " + permission );
+            throw new IllegalArgumentException(WrapperManager.getRes().getString(
+                    "invalid permission: {0}", permission ) );
         }
         
         if ( isReadOnly() )
         {
-            throw new SecurityException( "Collection is read-only.");
+            throw new SecurityException( WrapperManager.getRes().getString("Collection is read-only." ) );
         }
         
         m_permissions.add( permission );

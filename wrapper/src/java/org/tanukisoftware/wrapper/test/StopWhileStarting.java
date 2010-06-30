@@ -35,27 +35,27 @@ public class StopWhileStarting implements WrapperListener {
         
         switch ( WrapperManager.getJVMId() ) {
         case 1:
-            System.out.println( "start() request restart" );
+            System.out.println( Main.getRes().getString( "start() request restart" ) );
             WrapperManager.restart();
             break;
             
         case 2:
-            System.out.println( "start() request halt(0)" );
+            System.out.println( Main.getRes().getString( "start() request halt(0)" ) );
             Runtime.getRuntime().halt( 0 );
             break;
             
         case 3:
-            System.out.println( "start() request System.exit(99).  Will restart due to on_exit configuration" );
+            System.out.println( Main.getRes().getString( "start() request System.exit(99).  Will restart due to on_exit configuration" ) );
             System.exit( 99 );
             break;
             
         default:
-            System.out.println("start() request stop(0)");
+            System.out.println( Main.getRes().getString( "start() request stop(0)") );
             WrapperManager.stop( 0 );
             break;
         }
         
-        System.out.println("start() END - Should not get here.");
+        System.out.println( Main.getRes().getString( "start() END - Should not get here.") );
         
         return null;
     }
@@ -77,7 +77,7 @@ public class StopWhileStarting implements WrapperListener {
      * Main Method
      *************************************************************************/
     public static void main(String[] args) {
-        System.out.println("Initializing...");
+        System.out.println( Main.getRes().getString( "Initializing..." ) );
         
         // Start the application.  If the JVM was launched from the native
         //  Wrapper then the application will wait for the native Wrapper to

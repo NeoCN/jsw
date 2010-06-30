@@ -56,9 +56,9 @@ public class SimpleWrapperListener
      *************************************************************************/
     public static void main( String[] args )
     {
-        System.out.println( "SimpleWrapperListener.Initializing..." );
+        System.out.println( Main.getRes().getString( "SimpleWrapperListener.Initializing..." ) );
         
-        System.out.println( "This test should simply 'start()' and 'stop()'." );
+        System.out.println( Main.getRes().getString( "This test should simply 'start()' and 'stop()'." ) );
         
        // Start the application.  If the JVM was launched from the native
         //  Wrapper then the application will wait for the native Wrapper to

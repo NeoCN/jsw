@@ -46,9 +46,9 @@ public class LoadedWrapperListener
      *-------------------------------------------------------------*/
     /**
      * The start method is called when the WrapperManager is signaled by the 
-     *	native wrapper code that it can start its application.  This
-     *	method call is expected to return, so a new thread should be launched
-     *	if necessary.
+     * native wrapper code that it can start its application.  This
+     * method call is expected to return, so a new thread should be launched
+     * if necessary.
      *
      * @param args List of arguments used to initialize the application.
      *
@@ -60,7 +60,7 @@ public class LoadedWrapperListener
     {
         if ( WrapperManager.isDebugEnabled() )
         {
-            System.out.println( "LoadedWrapperListener: start(args)" );
+            System.out.println( Main.getRes().getString( "LoadedWrapperListener: start(args)" ) );
         }
 
         Thread mainThread = new Thread( this, "LoadedWrapperListenerMain" );
@@ -78,8 +78,9 @@ public class LoadedWrapperListener
 
             if ( WrapperManager.isDebugEnabled() )
             {
-                System.out.println( "LoadedWrapperListener: start(args) end.  Main Completed=" +
-                    m_mainComplete + ", exitCode=" + m_mainExitCode );
+                System.out.println(  Main.getRes().getString( 
+                		"LoadedWrapperListener: start(args) end.  Main Completed={0}, exitCode={1}",
+                		new Object[]{ new Boolean( m_mainComplete ), m_mainExitCode } ) );
             }
             return m_mainExitCode;
         }
@@ -105,7 +106,7 @@ public class LoadedWrapperListener
     {
         if ( WrapperManager.isDebugEnabled() )
         {
-            System.out.println( "LoadedWrapperListener: stop(" + exitCode + ")" );
+            System.out.println( Main.getRes().getString( "LoadedWrapperListener: stop({0})", new Integer( exitCode ) ) );
         }
         
         return exitCode;
@@ -126,7 +127,7 @@ public class LoadedWrapperListener
         {
             if ( WrapperManager.isDebugEnabled() )
             {
-                System.out.println( "LoadedWrapperListener: controlEvent(" + event + ") Ignored" );
+                System.out.println( Main.getRes().getString( "LoadedWrapperListener: controlEvent({0}) Ignored", new Integer( event ) ) );
             }
             // Ignore the event as the native wrapper will handle it.
         }
@@ -134,7 +135,7 @@ public class LoadedWrapperListener
         {
             if ( WrapperManager.isDebugEnabled() )
             {
-                System.out.println( "LoadedWrapperListener: controlEvent(" + event + ") Stopping" );
+                System.out.println( Main.getRes().getString( "LoadedWrapperListener: controlEvent({0}) Stopping", new Integer(event) ) );
             }
 
             // Not being run under a wrapper, so this isn't an NT service and should always exit.
@@ -157,12 +158,12 @@ public class LoadedWrapperListener
         {
             if ( WrapperManager.isDebugEnabled() )
             {
-                System.out.println( "LoadedWrapperListener: invoking start main method" );
+                System.out.println( Main.getRes().getString( "LoadedWrapperListener: invoking start main method" ) );
             }
             appMain( m_startMainArgs );
             if ( WrapperManager.isDebugEnabled() )
             {
-                System.out.println( "LoadedWrapperListener: start main method completed" );
+                System.out.println( Main.getRes().getString( "LoadedWrapperListener: start main method completed" ) );
             }
 
             synchronized ( this )
@@ -183,7 +184,7 @@ public class LoadedWrapperListener
 
         // If we get here, then an error was thrown.  If this happened quickly
         // enough, the start method should be allowed to shut things down.
-        System.out.println( "Encountered an error running start main: " + t );
+        System.out.println( Main.getRes().getString( "Encountered an error running start main: {0}", t ) );
         t.printStackTrace();
 
         synchronized( this )
@@ -213,7 +214,7 @@ public class LoadedWrapperListener
      */
     private void appMain( String[] args )
     {
-        System.out.println( "App Main Starting." );
+        System.out.println( Main.getRes().getString( "App Main Starting." ) );
         System.out.println();
         
         // Loop and display 500 long lines of text to place to dump a lot of
@@ -221,7 +222,7 @@ public class LoadedWrapperListener
         //  the Wrapper just as the CPU suddenly hpegs at 100%.
         for ( int i = 0; i < 500; i++ )
         {
-            System.out.println( new Date() + "  Pre " + i + " of output. "
+            System.out.println( new Date() + Main.getRes().getString( "  Pre {0} of output. " , new Integer( i ) )
                 + "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" );
         }
         
@@ -267,7 +268,7 @@ public class LoadedWrapperListener
                 + "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" );
         }
         System.out.println();
-        System.out.println( "App Main Complete." );
+        System.out.println( Main.getRes().getString( "App Main Complete." ) );
     }
     
     private void performDiskThrashing()
@@ -282,7 +283,7 @@ public class LoadedWrapperListener
                 {
                     for ( int i = 0; i < 100; i++ )
                     {
-                        w.println( new Date() + "  Row " + i + " of output. "
+                        w.println( new Date() + Main.getRes().getString( "  Row {0} of output. ", new Integer( i ) )
                             + "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" );
                     }
                 }
@@ -314,8 +315,8 @@ public class LoadedWrapperListener
             Runtime runtime = Runtime.getRuntime();
             long totalMemory = runtime.totalMemory();
             long freeMemory = runtime.freeMemory();
-            System.out.println( "Total Memory=" + totalMemory + ", "
-                + "Used Memory=" + ( totalMemory - freeMemory ) );
+            System.out.println( Main.getRes().getString( "Total Memory=" ) + totalMemory + ", "
+                + Main.getRes().getString( "Used Memory=" ) + ( totalMemory - freeMemory ) );
         }
     }
     

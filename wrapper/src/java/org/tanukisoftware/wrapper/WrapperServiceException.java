@@ -65,7 +65,7 @@ public class WrapperServiceException
      */
     public String toString()
     {
-        return this.getClass().getName() + " " + getMessage() + " Error Code: " + getErrorCode(); 
+        return this.getClass().getName() + " " + getMessage() + WrapperManager.getRes().getString( " Error Code: " ) + getErrorCode(); 
     }
 }
 

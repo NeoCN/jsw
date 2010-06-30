@@ -42,22 +42,22 @@ public class OutputLoader {
      * Main Method
      *-------------------------------------------------------------*/
     public static void main(String[] args) {
-        System.out.println("Start outputting lots of data.");
+        System.out.println( Main.getRes().getString( "Start outputting lots of data.") );
         
         long start = System.currentTimeMillis();
         int count = 0;
         while ((System.currentTimeMillis()) < start + 20000) {
-            System.out.println("Testing line Out #" + (++count));
-            System.err.println("Testing line Err #" + (++count));
+            System.out.println( Main.getRes().getString( "Testing line Out #{0}", new Integer( ++count ) ) );
+            System.err.println( Main.getRes().getString( "Testing line Err #{0}", new Integer( ++count ) ) );
         }
         
-        System.out.println("Printed " + count + " lines of output in 20 seconds");
+        System.out.println( Main.getRes().getString( "Printed {0} lines of output in 20 seconds", new Integer( count ) ) );
         
         // Write the output to a file as well, so we can see the results
         //  when output is disabled.
         try {
             FileWriter fw = new FileWriter("OutputLoader.log", true);
-            fw.write("Printed " + count + " lines of output in 20 seconds\n");
+            fw.write( Main.getRes().getString( "Printed {0} lines of output in 20 seconds", new Integer( count ) ) );
             fw.close();
         } catch (IOException e) {
             e.printStackTrace();

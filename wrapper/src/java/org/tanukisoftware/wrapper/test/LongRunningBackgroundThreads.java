@@ -50,19 +50,18 @@ public class LongRunningBackgroundThreads implements Runnable {
         while ( loops < 10 )
         {
             loops++;
-            System.out.println( Thread.currentThread().getName() + " loop #" + loops );
-            try
-            {
+            System.out.println( Main.getRes().getString( "{0} loop #{1}", new Object[]{ Thread.currentThread().getName(), new Integer( loops ) } ) );
+            try {
                 Thread.sleep(500);
             }
             catch ( InterruptedException e )
             {
             }
         }
-        System.out.println( Thread.currentThread().getName() + " stopping." );
+        System.out.println(Main.getRes().getString( "{0} stopping", Thread.currentThread().getName() ) );
         if ( --_threadCount <= 0 )
         {
-            System.out.println( "The JVM and then the wrapper should exit now." );
+            System.out.println( Main.getRes().getString( "The JVM and then the wrapper should exit now.") );
         }
     }
     
@@ -71,18 +70,18 @@ public class LongRunningBackgroundThreads implements Runnable {
      *-------------------------------------------------------------*/
     public static void main( String[] args )
     {
-        System.out.println( "Long-running Background Threads Running..." );
-
+        System.out.println( Main.getRes().getString( "Long-running Background Threads Running..." ) );
+        
         LongRunningBackgroundThreads app = new LongRunningBackgroundThreads();
         for ( int i = 0; i < 2; i++ )
         {
             Thread thread = new Thread( app, "App-Thread-" + i );
             thread.start();
         }
-
-        System.out.println( "Running as a service: " + WrapperManager.isLaunchedAsService() );
-        System.out.println( "Controlled by wrapper: " + WrapperManager.isControlledByNativeWrapper()) ;
-
-        System.out.println( "Long-running Background Threads Main Done..." );
+        
+        System.out.println( Main.getRes().getString( "Running as a service: {0}", new Boolean( WrapperManager.isLaunchedAsService() ) ) );
+        System.out.println( Main.getRes().getString( "Controlled by wrapper: {0}", new Boolean( WrapperManager.isControlledByNativeWrapper() ) ) );
+        
+        System.out.println( Main.getRes().getString( "Long-running Background Threads Main Done...") ) ;
     }
 }

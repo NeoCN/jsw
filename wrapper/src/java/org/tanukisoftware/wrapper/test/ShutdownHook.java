@@ -49,20 +49,20 @@ public class ShutdownHook {
             addShutdownHookMethod =
                 Runtime.class.getMethod("addShutdownHook", new Class[] {Thread.class});
         } catch (NoSuchMethodException e) {
-            System.out.println("Shutdown hooks not supported by current JVM.");
+            System.out.println( Main.getRes().getString( "Shutdown hooks not supported by current JVM.") );
             return;
         }
         
-        System.out.println("This application registers a shutdown hook which");
-        System.out.println("should be executed after the JVM has told the Wrapper");
-        System.out.println("it is exiting.");
-        System.out.println("This is to test the wrapper.jvm_exit.timeout property");
+        System.out.println( Main.getRes().getString( "This application registers a shutdown hook which") );
+        System.out.println( Main.getRes().getString( "should be executed after the JVM has told the Wrapper") );
+        System.out.println( Main.getRes().getString( "it is exiting." ) );
+        System.out.println( Main.getRes().getString( "This is to test the wrapper.jvm_exit.timeout property" ) );
         
         Runtime runtime = Runtime.getRuntime();
         Thread hook = new Thread() {
                 public void run() {
-                    System.out.println("Starting shutdown hook. Loop for 25 seconds.");
-                    System.out.println("Should timeout unless this property is set: wrapper.jvm_exit.timeout=30");
+                    System.out.println( Main.getRes().getString( "Starting shutdown hook. Loop for 25 seconds.") );
+                    System.out.println( Main.getRes().getString( "Should timeout unless this property is set: wrapper.jvm_exit.timeout=30" ) );
 
                     long start = System.currentTimeMillis();
                     while(System.currentTimeMillis() - start < 25000)
@@ -76,18 +76,18 @@ public class ShutdownHook {
                             // Ignore
                         }
                     }
-                    System.out.println("Shutdown hook complete. Should exit now.");
+                    System.out.println( Main.getRes().getString( "Shutdown hook complete. Should exit now." ) );
                 }
             };
         try {
             addShutdownHookMethod.invoke(runtime, new Object[] {hook});
         } catch (IllegalAccessException e) {
-            System.out.println("Unable to register shutdown hook: " + e.getMessage());
+            System.out.println( Main.getRes().getString( "Unable to register shutdown hook: {0}", e.getMessage() ) );
         } catch (InvocationTargetException e) {
-            System.out.println("Unable to register shutdown hook: " + e.getMessage());
+            System.out.println( Main.getRes().getString( "Unable to register shutdown hook: {0}", e.getMessage() ) );
         }
         
-        System.out.println("Application complete.  Wrapper should stop, invoking the shutdown hooks.");
+        System.out.println( Main.getRes().getString( "Application complete.  Wrapper should stop, invoking the shutdown hooks." ) );
         System.out.println();
     }
 }

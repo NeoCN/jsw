@@ -121,7 +121,7 @@ public class WrapperJarApp
         
         // Set up some log channels
         m_outInfo = new WrapperPrintStream( System.out, "WrapperJarApp: " );
-        m_outError = new WrapperPrintStream( System.out, "WrapperJarApp: " );
+        m_outError = new WrapperPrintStream( System.out, "WrapperJarApp Error: " );
         m_outDebug = new WrapperPrintStream( System.out, "WrapperJarApp Debug: " );
         
         // Get the class name of the application
@@ -136,7 +136,8 @@ public class WrapperJarApp
         File file = new File( args[0] );
         if ( !file.exists() )
         {
-            m_outError.println( "Unable to locate the jar file " + args[0] );
+            m_outError.println( WrapperManager.getRes().getString(
+                    "Unable to locate the jar file {0}", args[0] ) );
             showUsage();
             WrapperManager.stop( 1 );
             return;  // Will not get here
@@ -150,7 +151,8 @@ public class WrapperJarApp
         }
         catch ( IOException e )
         {
-            m_outError.println( "Unable to open the jar file " + args[0] + " : " + e );
+            m_outError.println( WrapperManager.getRes().getString(
+                    "Unable to open the jar file {0} : {1}", args[0], e ) );
             showUsage();
             WrapperManager.stop( 1 );
             return;  // Will not get here
@@ -163,7 +165,8 @@ public class WrapperJarApp
         }
         catch ( IOException e )
         {
-            m_outError.println( "Unable to access the jar's manifest file " + args[0] + " : " + e );
+            m_outError.println( WrapperManager.getRes().getString(
+                    "Unable to access the jar''s manifest file {0} : {1}", args[0], e ) );
             showUsage();
             WrapperManager.stop( 1 );
             return;  // Will not get here
@@ -183,7 +186,7 @@ public class WrapperJarApp
         {
             if ( WrapperManager.isDebugEnabled() )
             {
-                m_outDebug.println( "Jar Class-Path: " + classPath );
+                m_outDebug.println( WrapperManager.getRes().getString("Jar Class-Path: {0}", classPath ) );
             }
             
             StringTokenizer st = new StringTokenizer( classPath, " \n\r" );
@@ -196,14 +199,15 @@ public class WrapperJarApp
             }
             catch ( MalformedURLException e )
             {
-                m_outError.println( "Unable to add jar to classpath: " + e );
+                m_outError.println( WrapperManager.getRes().getString(
+                        "Unable to add jar to classpath: {0}", e ) );
                 showUsage();
                 WrapperManager.stop( 1 );
                 return;  // Will not get here
             }
             if ( WrapperManager.isDebugEnabled() )
             {
-                m_outDebug.println( "    Classpath[0]=" + classURLs[0] );
+                m_outDebug.println( WrapperManager.getRes().getString("    Classpath[0]=") + classURLs[0] );
             }
             
             // Add any other jars in the manifest classpath relative to the location of the main jar.
@@ -216,14 +220,15 @@ public class WrapperJarApp
                 }
                 catch ( MalformedURLException e )
                 {
-                    m_outError.println( "Malformed classpath in the jar's manifest file " + args[0] + " : " + e );
+                    m_outError.println( WrapperManager.getRes().getString(
+                            "Malformed classpath in the jar''s manifest file {0} : {1}", args[0], e ) );
                     showUsage();
                     WrapperManager.stop( 1 );
                     return;  // Will not get here
                 }
                 if ( WrapperManager.isDebugEnabled() )
                 {
-                    m_outDebug.println( "    Classpath[" + i + "]=" + classURLs[i] );
+                    m_outDebug.println( WrapperManager.getRes().getString("    Classpath[{0}]=", new Integer( i ) ) + classURLs[i] );
                 }
             }
         }
@@ -231,7 +236,7 @@ public class WrapperJarApp
         {
             if ( WrapperManager.isDebugEnabled() )
             {
-                m_outDebug.println( "Jar Class-Path: Not specified." );
+                m_outDebug.println( WrapperManager.getRes().getString("Jar Class-Path: Not specified." ) );
             }
             
             classURLs = new URL[1];
@@ -243,14 +248,15 @@ public class WrapperJarApp
             }
             catch ( MalformedURLException e )
             {
-                m_outError.println( "Unable to add jar to classpath: " + e );
+                m_outError.println( WrapperManager.getRes().getString(
+                        "Unable to add jar to classpath: {0}", e ) );
                 showUsage();
                 WrapperManager.stop( 1 );
                 return;  // Will not get here
             }
             if ( WrapperManager.isDebugEnabled() )
             {
-                m_outDebug.println( "    Classpath[0]=" + classURLs[0] );
+                m_outDebug.println( WrapperManager.getRes().getString( "    Classpath[0]=" ) + classURLs[0] );
             }
         }
         
@@ -264,21 +270,24 @@ public class WrapperJarApp
         }
         catch ( ClassNotFoundException e )
         {
-            m_outError.println( "Unable to locate the class " + mainClassName + ": " + e );
+            m_outError.println( WrapperManager.getRes().getString(
+                    "Unable to locate the class {0} : {1}", mainClassName, e ) );
             showUsage();
             WrapperManager.stop( 1 );
             return;  // Will not get here
         }
         catch ( ExceptionInInitializerError e )
         {
-            m_outError.println( "Class " + mainClassName + " found but could not be initialized due to:" );
+            m_outError.println( WrapperManager.getRes().getString(
+                    "Class {0} found but could not be initialized due to:", mainClassName ) );
             e.printStackTrace( m_outError );
             WrapperManager.stop( 1 );
             return;  // Will not get here
         }
         catch ( LinkageError e )
         {
-            m_outError.println( "Class " + mainClassName + " found but could not be initialized: " + e );
+            m_outError.println( WrapperManager.getRes().getString(
+                    "Class {0} found but could not be initialized: {1}", mainClassName,  e ) );
             WrapperManager.stop( 1 );
             return;  // Will not get here
         }
@@ -293,16 +302,16 @@ public class WrapperJarApp
         }
         catch ( NoSuchMethodException e )
         {
-            m_outError.println(
-                "Unable to locate a public static main method in class " + args[0] + ": " + e );
+            m_outError.println( WrapperManager.getRes().getString(
+                "Unable to locate a public static main method in class {0} : {1}", args[0] , e ) );
             showUsage();
             WrapperManager.stop( 1 );
             return;  // Will not get here
         }
         catch ( SecurityException e )
         {
-            m_outError.println(
-                "Unable to locate a public static main method in class " + args[0] + ": " + e );
+            m_outError.println( WrapperManager.getRes().getString(
+                "Unable to locate a public static main method in class {0} : {1}", args[0], e ) );
             showUsage();
             WrapperManager.stop( 1 );
             return;  // Will not get here
@@ -312,8 +321,8 @@ public class WrapperJarApp
         int modifiers = m_mainMethod.getModifiers();
         if ( !( Modifier.isPublic( modifiers ) && Modifier.isStatic( modifiers ) ) )
         {
-            m_outError.println(
-                "The main method in class " + args[0] + " must be declared public and static." );
+            m_outError.println( WrapperManager.getRes().getString(
+                "The main method in class {0} must be declared public and static.", args[0] ) );
             showUsage();
             WrapperManager.stop( 1 );
             return;  // Will not get here
@@ -353,12 +362,12 @@ public class WrapperJarApp
         {
             if ( WrapperManager.isDebugEnabled() )
             {
-                m_outDebug.println( "invoking main method" );
+                m_outDebug.println( WrapperManager.getRes().getString("invoking main method" ) );
             }
             m_mainMethod.invoke( null, new Object[] { m_appArgs } );
             if ( WrapperManager.isDebugEnabled() )
             {
-                m_outDebug.println( "main method completed" );
+                m_outDebug.println(  WrapperManager.getRes().getString("main method completed" ) );
             }
             
             synchronized(this)
@@ -391,7 +400,7 @@ public class WrapperJarApp
         // If we get here, then an error was thrown.  If this happened quickly 
         // enough, the start method should be allowed to shut things down.
         m_outInfo.println();
-        m_outError.println( "Encountered an error running main:" );
+        m_outError.println( WrapperManager.getRes().getString( "Encountered an error running main:" ) );
 
         // We should print a stack trace here, because in the case of an 
         // InvocationTargetException, the user needs to know what exception
@@ -422,12 +431,12 @@ public class WrapperJarApp
      *-------------------------------------------------------------*/
     /**
      * The start method is called when the WrapperManager is signalled by the 
-     *	native wrapper code that it can start its application.  This
-     *	method call is expected to return, so a new thread should be launched
-     *	if necessary.
+     * native wrapper code that it can start its application.  This
+     * method call is expected to return, so a new thread should be launched
+     * if necessary.
      * If there are any problems, then an Integer should be returned, set to
-     *	the desired exit code.  If the application should continue,
-     *	return null.
+     * the desired exit code.  If the application should continue,
+     * return null.
      */
     public Integer start( String[] args )
     {
@@ -445,8 +454,8 @@ public class WrapperJarApp
             maxLoops = Integer.MAX_VALUE;
             if ( WrapperManager.isDebugEnabled() )
             {
-                m_outDebug.println(
-                    "start(args) Will wait indefinitely for the main method to complete." );
+                m_outDebug.println( WrapperManager.getRes().getString(
+                    "start(args) Will wait indefinitely for the main method to complete." ) );
             }
         }
         else
@@ -454,8 +463,8 @@ public class WrapperJarApp
             maxLoops = maxStartMainWait; // 1s loops.
             if ( WrapperManager.isDebugEnabled() )
             {
-                m_outDebug.println( "start(args) Will wait up to " + maxLoops
-                    + " seconds for the main method to complete." );
+                m_outDebug.println( WrapperManager.getRes().getString(
+                        "start(args) Will wait up to {0} seconds for the main method to complete.", new Integer( maxLoops ) ) );
             }
         }
         
@@ -512,8 +521,9 @@ public class WrapperJarApp
             //  main method.
             if ( WrapperManager.isDebugEnabled() )
             {
-                m_outDebug.println( "start(args) end.  Main Completed=" + m_mainComplete
-                    + ", exitCode=" + m_mainExitCode );
+                m_outDebug.println( WrapperManager.getRes().getString(
+                        "start(args) end.  Main Completed={0}, exitCode={1}",
+                        new Boolean( m_mainComplete ),  m_mainExitCode ) );
             }
             return m_mainExitCode;
         }
@@ -548,13 +558,14 @@ public class WrapperJarApp
             && ( WrapperManager.isLaunchedAsService() || WrapperManager.isIgnoreUserLogoffs() ) )
         {
             // Ignore
-            m_outInfo.println( "User logged out.  Ignored." );
+            m_outInfo.println( WrapperManager.getRes().getString("User logged out.  Ignored." ) );
         }
         else
         {
             if ( WrapperManager.isDebugEnabled() )
             {
-                m_outDebug.println( "controlEvent(" + event + ") Stopping" );
+                m_outDebug.println(WrapperManager.getRes().getString(
+                        "controlEvent({0}) Stopping", new Integer( event ) ) );
             }
             WrapperManager.stop( 0 );
             // Will not get here.
@@ -571,19 +582,19 @@ public class WrapperJarApp
     {
         // Show this output without headers.
         System.out.println();
-        System.out.println(
-            "WrapperJarApp Usage:" );
-        System.out.println(
-            "  java org.tanukisoftware.wrapper.WrapperJarApp {jar_file} [app_arguments]" );
+        System.out.println( WrapperManager.getRes().getString(
+            "WrapperJarApp Usage:" ) );
+        System.out.println( WrapperManager.getRes().getString(
+            "  java org.tanukisoftware.wrapper.WrapperJarApp {jar_file} [app_arguments]" ) );
         System.out.println();
-        System.out.println(
-            "Where:" );
-        System.out.println(
-            "  jar_file:       The jar file to run." );
-        System.out.println(
-            "  app_arguments:  The arguments that would normally be passed to the" );
-        System.out.println(
-            "                  application." );
+        System.out.println( WrapperManager.getRes().getString(
+            "Where:" ) );
+        System.out.println( WrapperManager.getRes().getString(
+            "  jar_file:       The jar file to run." ) );
+        System.out.println( WrapperManager.getRes().getString(
+            "  app_arguments:  The arguments that would normally be passed to the" ) );
+        System.out.println( WrapperManager.getRes().getString(
+            "                  application." ) );
     }
     
     /*---------------------------------------------------------------

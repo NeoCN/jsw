@@ -13,7 +13,6 @@ package org.tanukisoftware.wrapper;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.MessageFormat;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.HashMap;
@@ -94,7 +93,7 @@ public final class WrapperProcessConfig
     {
         if ( !WrapperManager.isProfessionalEdition() )
         {
-            throw new WrapperLicenseError( "Requires the professional Edition" );
+            throw new WrapperLicenseError(  WrapperManager.getRes().getString( "Requires the Professional Edition." ) );
         }
         verifyStartType( startType );
         return isSupportedNative( startType );
@@ -215,11 +214,11 @@ public final class WrapperProcessConfig
         {
             if ( !workingDirectory.exists() )
             {
-                throw new IllegalArgumentException( "Working directory does not exist." );
+                throw new IllegalArgumentException( WrapperManager.getRes().getString( "Working directory does not exist." ) );
             }
             else if ( !workingDirectory.isDirectory() )
             {
-                throw new IllegalArgumentException( "Must be a directory." );
+                throw new IllegalArgumentException( WrapperManager.getRes().getString( "Must be a directory." ) );
             }
         }
 
@@ -272,20 +271,20 @@ public final class WrapperProcessConfig
                 Object key = entry.getKey();
                 if ( !( key instanceof String ) )
                 {
-                    throw new IllegalArgumentException( "Map entry names must be Strings." );
+                    throw new IllegalArgumentException( WrapperManager.getRes().getString( "Map entry names must be Strings." ) );
                 } 
                 else if ( ( (String)key ).length() <= 0 )
                 {
-                    throw new IllegalArgumentException( "Map entry names must not be empty Strings." );
+                    throw new IllegalArgumentException( WrapperManager.getRes().getString( "Map entry names must not be empty Strings." ) );
                 }
                 else if ( ( (String)key ).indexOf( '=' ) != -1 )
                 {
-                    throw new IllegalArgumentException( "Map entry names must not contain an equal sign ('=')." );
+                    throw new IllegalArgumentException( WrapperManager.getRes().getString( "Map entry names must not contain an equal sign ('=')." ) );
                 }
                 Object value = entry.getKey();
                 if ( !( value instanceof String ) )
                 {
-                    throw new IllegalArgumentException( "Map entry values must be Strings." );
+                    throw new IllegalArgumentException( WrapperManager.getRes().getString( "Map entry values must be Strings." ) );
                 }
             }
         }
@@ -316,8 +315,8 @@ public final class WrapperProcessConfig
             break;
             
         default:
-            throw new IllegalArgumentException( MessageFormat.format( "Unknown start type: {0}", 
-                    new Object[]{ new Integer( startType ) } ) );
+            throw new IllegalArgumentException( WrapperManager.getRes().getString( "Unknown start type: {0}", 
+                    new Integer( startType ) ) );
         }
     }
     
@@ -328,7 +327,6 @@ public final class WrapperProcessConfig
     {
         Map environment = new HashMap();
         String[] nativeEnv = nativeGetEnv();
-
         for ( int i = 0; i < nativeEnv.length; i++ )
         {
             int pos = nativeEnv[i].indexOf( '=' );

@@ -22,8 +22,8 @@ public class JarMain
     {
         if ( System.getProperty( "JarMain.init.fail" ) != null )
         {
-            System.out.println( "About to throw exception in initializer..." );
-            throw new IllegalStateException( "This is an intentional error in the initializer." );
+            System.out.println( Main.getRes().getString( "About to throw exception in initializer..." ) );
+            throw new IllegalStateException( Main.getRes().getString( "This is an intentional error in the initializer." ) );
         }
     }
     
@@ -34,14 +34,14 @@ public class JarMain
     {
         if ( args.length > 0 )
         {
-            System.out.println( "Arguments:" );
+            System.out.println( Main.getRes().getString( "Arguments:" ) );
             for ( int i = 0; i < args.length; i++ )
             {
                 System.out.println( "  args[" + i + "]=" + args[i] );
             }
         }
         
-        System.out.println( "Loop for 10 seconds." );
+        System.out.println( Main.getRes().getString( "Loop for 10 seconds." ) );
         
         for ( int i = 0; i < 10; i++ )
         {
@@ -52,10 +52,10 @@ public class JarMain
             catch ( InterruptedException e )
             {
             }
-            System.out.println( "Counting..." + i );
+            System.out.println( Main.getRes().getString( "Counting...{0}", new Integer( i ) ) );
         }
         
-        System.out.println( "Loop complete." );
+        System.out.println( Main.getRes().getString( "Loop complete." ) );
     }
 }
 

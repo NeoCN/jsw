@@ -1,0 +1,39 @@
+<html>
+    <b>
+        Wrapperでは、あるイベントに反応して、アラート通知をメールで送ることができます。 使い方などのさらに詳しくは、個別のプロパティの説明をご覧ください。 
+    </b>
+    <table cellspacing="0" cellpadding="0" width="100%" border="0" class="listing">
+        <tr>
+            <td class="listingcaption">
+                <i>
+                    例 (JVM再起動に応じてメール通知を送信する例)：
+                </i>
+            </td>
+        </tr>
+        <tr>
+            <td bgcolor="#eeeeee" class="listingcell">
+                <font color="#444444">
+                    <pre class="listingpre"># Common Event Email settings.
+#wrapper.event.default.email.debug=TRUE
+wrapper.event.default.email.smtp.host=smtp.mycompany.com
+wrapper.event.default.email.smtp.port=25
+wrapper.event.default.email.subject=[%WRAPPER_HOSTNAME%:%WRAPPER_NAME%:%WRAPPER_EVENT_NAME%] Event Notification
+wrapper.event.default.email.sender=myapp-noreply@mycompany.com
+wrapper.event.default.email.recipient=myapp-admin@mycompany.com
+# Event specific settings.
+wrapper.event.jvm_restart.email=TRUE
+wrapper.event.jvm_restart.email.body=The JVM was restarted.\n\nPlease check on its status.\n</pre>
+                </font>
+            </td>
+        </tr>
+    </table>
+    <p>
+            このプロパティは、［<b><tt>wrapper.event.&lt;x&gt;.email*</tt></b>］形式で、
+            「<tt>x</tt>」の部は、上記で定義された<a href="props-event.html#events">イベントの種類の一つ</a>、
+            あるいは、「<tt>default</tt>（デフォルト）」のキーワードが入ります。
+    </p>
+    <p>
+            プロパティに何もイベント名が特別には定義されていない時はいつでも、デフォルト値が適用されます。
+            全てのイベント・メールに対して一般的な値を設定するのに便利です。
+    </p>
+ </html>

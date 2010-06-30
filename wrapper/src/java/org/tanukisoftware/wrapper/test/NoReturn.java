@@ -39,14 +39,14 @@ public class NoReturn {
      * Main Method
      *-------------------------------------------------------------*/
     public static void main(String[] args) {
-        System.out.println("Main starting loop that will not return");
+        System.out.println(Main.getRes().getString( "Main starting loop that will not return" ) );
         
         while(true) {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
             }
-            System.out.println("NoReturn.main() running...");
+            System.out.println(Main.getRes().getString( "NoReturn.main() running...") );
         }
     }
 }

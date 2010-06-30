@@ -57,9 +57,9 @@ public class NestedWrapperListener
      *************************************************************************/
     public static void main( String[] args )
     {
-        System.out.println( "NestedWrapperListener.Initializing..." );
+        System.out.println( Main.getRes().getString( "NestedWrapperListener.Initializing..." ) );
         
-        System.out.println( "An error saying that the WrapperManager has already been started should be displayed and the JVM will exit." );
+        System.out.println( Main.getRes().getString("An error saying that the WrapperManager has already been started should be displayed and the JVM will exit." ));
         
         // Start the application.  If the JVM was launched from the native
         //  Wrapper then the application will wait for the native Wrapper to

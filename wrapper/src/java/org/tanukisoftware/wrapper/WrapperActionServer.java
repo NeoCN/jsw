@@ -155,7 +155,7 @@ public class WrapperActionServer
     {
         if ( Thread.currentThread() != m_runner )
         {
-            throw new IllegalStateException( "Private method." );
+            throw new IllegalStateException(WrapperManager.getRes().getString( "Private method." ) );
         }
         
         try
@@ -196,7 +196,7 @@ public class WrapperActionServer
                             }
                             catch ( Throwable t )
                             {
-                                m_out.println( "Error processing action." );
+                                m_out.println( WrapperManager.getRes().getString( "Error processing action." ) );
                                 t.printStackTrace( m_out );
                             }
                         }
@@ -216,7 +216,7 @@ public class WrapperActionServer
                     }
                     else
                     {
-                        m_out.println( "Unexpeced error." );
+                        m_out.println( WrapperManager.getRes().getString( "Unexpeced error." ) );
                         t.printStackTrace( m_out );
                         
                         // Avoid tight thrashing
@@ -457,7 +457,7 @@ public class WrapperActionServer
                         }
                         catch ( NoSuchMethodException e )
                         {
-                            m_out.println( "halt not supported by current JVM." );
+                            m_out.println( WrapperManager.getRes().getString( "halt not supported by current JVM." ) );
                             haltMethod = null;
                         }
                         
@@ -470,13 +470,13 @@ public class WrapperActionServer
                             }
                             catch ( IllegalAccessException e )
                             {
-                                m_out.println(
-                                    "Unable to call runitme.halt: " + e.getMessage() );
+                                m_out.println( WrapperManager.getRes().getString(
+                                    "Unable to call runitme.halt: {0}", e.getMessage() ) );
                             }
                             catch ( InvocationTargetException e )
                             {
-                                m_out.println(
-                                    "Unable to call runitme.halt: " + e.getMessage() );
+                                m_out.println( WrapperManager.getRes().getString( 
+                                    "Unable to call runitme.halt: {0}", e.getMessage() ) );
                             }
                         }
                     }
