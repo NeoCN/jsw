@@ -46,10 +46,11 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
-
 import org.tanukisoftware.wrapper.WrapperActionServer;
-import org.tanukisoftware.wrapper.WrapperManager;
 import org.tanukisoftware.wrapper.WrapperListener;
+import org.tanukisoftware.wrapper.WrapperManager;
+import org.tanukisoftware.wrapper.WrapperResources;
+import org.tanukisoftware.wrapper.WrapperSystemPropertyUtil;
 import org.tanukisoftware.wrapper.event.WrapperEventListener;
 
 /**
@@ -75,7 +76,7 @@ public class Main
     private MainFrame m_frame;
     
     private ActionRunner m_actionRunner;
-    
+    private static WrapperResources m_res;
     private List m_listenerFlags;
     private TextField m_serviceName;
     private TextField m_childCommand;
@@ -99,7 +100,7 @@ public class Main
 
         MainFrame()
         {
-            super( "Wrapper Test Application" );
+            super( getRes().getString( "Wrapper Test Application" ) );
             
             init();
             
@@ -126,77 +127,83 @@ public class Main
             add( scrollPane, BorderLayout.CENTER );
             
             buildCommand( panel, gridBag, c, "Stop(0)", "stop0",
-                "Calls WrapperManager.stop( 0 ) to shutdown the JVM and Wrapper with a success exit code." );
+                    getRes().getString( "Calls WrapperManager.stop( 0 ) to shutdown the JVM and Wrapper with a success exit code." ) );
             
             buildCommand( panel, gridBag, c, "Stop(1)", "stop1",
-                "Calls WrapperManager.stop( 1 ) to shutdown the JVM and Wrapper with a failure exit code." );
+                    getRes().getString( "Calls WrapperManager.stop( 1 ) to shutdown the JVM and Wrapper with a failure exit code." ) );
             
             buildCommand( panel, gridBag, c, "Exit(0)", "exit0",
-                "Calls System.exit( 0 ) to shutdown the JVM and Wrapper with a success exit code." );
+                    getRes().getString( "Calls System.exit( 0 ) to shutdown the JVM and Wrapper with a success exit code." ) );
             
             buildCommand( panel, gridBag, c, "Exit(1)", "exit1",
-                "Calls System.exit( 1 ) to shutdown the JVM and Wrapper with a failure exit code." );
+                    getRes().getString( "Calls System.exit( 1 ) to shutdown the JVM and Wrapper with a failure exit code." ) );
             
             buildCommand( panel, gridBag, c, "StopImmediate(0)", "stopimmediate0",
-                "Calls WrapperManager.stopImmediate( 0 ) to immediately shutdown the JVM and Wrapper with a success exit code." );
+                    getRes().getString( "Calls WrapperManager.stopImmediate( 0 ) to immediately shutdown the JVM and Wrapper with a success exit code." ) );
             
             buildCommand( panel, gridBag, c, "StopImmediate(1)", "stopimmediate1",
-                "Calls WrapperManager.stopImmediate( 1 ) to immediately shutdown the JVM and Wrapper with a failure exir code." );
+                    getRes().getString(" Calls WrapperManager.stopImmediate( 1 ) to immediately shutdown the JVM and Wrapper with a failure exir code." ) );
             
             buildCommand( panel, gridBag, c, "StopAndReturn(0)", "stopandreturn0",
-                "Calls WrapperManager.stopAndReturn( 0 ) to shutdown the JVM and Wrapper with a success exit code." );
+                    getRes().getString( "Calls WrapperManager.stopAndReturn( 0 ) to shutdown the JVM and Wrapper with a success exit code." ) );
             
             buildCommand( panel, gridBag, c, "Nested Exit(1)", "nestedexit1",
-                "Calls System.exit(1) within WrapperListener.stop(1) callback." );
+                    getRes().getString( "Calls System.exit(1) within WrapperListener.stop(1) callback." ) );
             
             buildCommand( panel, gridBag, c, "Halt(0)", "halt0",
-                "Calls Runtime.getRuntime().halt(0) to kill the JVM, the Wrapper will restart it." );
+                    getRes().getString( "Calls Runtime.getRuntime().halt(0) to kill the JVM, the Wrapper will restart it." ) );
             
             buildCommand( panel, gridBag, c, "Halt(1)", "halt1",
-                "Calls Runtime.getRuntime().halt(1) to kill the JVM, the Wrapper will restart it." );
+                    getRes().getString( "Calls Runtime.getRuntime().halt(1) to kill the JVM, the Wrapper will restart it." ) );
             
             buildCommand( panel, gridBag, c, "Restart()", "restart",
-                "Calls WrapperManager.restart() to shutdown the current JVM and start a new one." );
+                    getRes().getString( "Calls WrapperManager.restart() to shutdown the current JVM and start a new one." ) );
             
             buildCommand( panel, gridBag, c, "RestartAndReturn()", "restartandreturn",
-                "Calls WrapperManager.restartAndReturn() to shutdown the current JVM and start a new one." );
+                    getRes().getString( "Calls WrapperManager.restartAndReturn() to shutdown the current JVM and start a new one." ) );
             
-            buildCommand( panel, gridBag, c, "Access Violation", "access_violation",
-                "Attempts to cause an access violation within the JVM, relies on a JVM bug and may not work." );
+            buildCommand( panel, gridBag, c, getRes().getString("Access Violation" ), "access_violation",
+                    getRes().getString( "Attempts to cause an access violation within the JVM, relies on a JVM bug and may not work." ) );
             
-            buildCommand( panel, gridBag, c, "Native Access Violation", "access_violation_native",
-                "Causes an access violation using native code, the JVM will crash and be restarted." );
+            buildCommand( panel, gridBag, c, getRes().getString("Native Access Violation" ), "access_violation_native",
+                    getRes().getString( "Causes an access violation using native code, the JVM will crash and be restarted." ) );
             
-            buildCommand( panel, gridBag, c, "Simulate JVM Hang", "appear_hung",
-                "Makes the JVM appear to be hung as viewed from the Wrapper, it will be killed and restarted." );
+            buildCommand( panel, gridBag, c, getRes().getString( "Simulate JVM Hang" ), "appear_hung",
+                    getRes().getString( "Makes the JVM appear to be hung as viewed from the Wrapper, it will be killed and restarted." ) );
             
-            buildCommand( panel, gridBag, c, "Simulate Wrapper Crash", "appear_orphan",
-                "Makes the JVM appear to have been orphaned to simulate the case where the Wrapper has crashed.  The JVM will shut itself down." );
+            buildCommand( panel, gridBag, c, getRes().getString( "Create DeadLock" ), "deadlock",
+                    getRes().getString( "Creates two new threads which intentionally go into a DeadLock situation.  (Standard, Professional)" ) );
             
-            buildCommand( panel, gridBag, c, "Ignore Control Events", "ignore_events",
-                "Makes this application ignore control events.  It will not shutdown in response to CTRL-C.  The Wrapper will still respond." );
+            buildCommand( panel, gridBag, c, getRes().getString( "Simulate Wrapper Crash" ), "appear_orphan",
+                    getRes().getString( "Makes the JVM appear to have been orphaned to simulate the case where the Wrapper has crashed.  The JVM will shut itself down." ) );
             
-            buildCommand( panel, gridBag, c, "Request Thread Dump", "dump",
-                "Calls WrapperManager.requestThreadDump() to cause the JVM to dump its current thread state." );
+            buildCommand( panel, gridBag, c, getRes().getString("Simulate Out Of Memory" ), "outofmemory",
+                    getRes().getString( "Throws an OutOfMemoryError to demonstrate the Trigger feature." ) );
             
-            buildCommand( panel, gridBag, c, "System.out Deadlock", "deadlock_out",
-                "Simulates a failure mode where the System.out object has become deadlocked." );
+            buildCommand( panel, gridBag, c, getRes().getString( "Ignore Control Events" ), "ignore_events",
+                    getRes().getString( "Makes this application ignore control events.  It will not shutdown in response to CTRL-C.  The Wrapper will still respond." ) );
             
-            buildCommand( panel, gridBag, c, "Poll Users", "users",
-                "Begins calling WrapperManager.getUser() and getInteractiveUser() to monitor the current and interactive users." );
+            buildCommand( panel, gridBag, c,getRes().getString( "Request Thread Dump" ), "dump",
+                    getRes().getString( "Calls WrapperManager.requestThreadDump() to cause the JVM to dump its current thread state." ) );
             
-            buildCommand( panel, gridBag, c, "Poll Users with Groups", "groups",
-                "Same as above, but includes information about the user's groups." );
+            buildCommand( panel, gridBag, c, getRes().getString( "System.out Deadlock" ), "deadlock_out",
+                    getRes().getString( "Simulates a failure mode where the System.out object has become deadlocked." ) );
             
-            buildCommand( panel, gridBag, c, "Console", "console", "Prompt for Actions in the console." );
+            buildCommand( panel, gridBag, c, getRes().getString( "Poll Users" ), "users",
+                    getRes().getString( "Begins calling WrapperManager.getUser() and getInteractiveUser() to monitor the current and interactive users." ) );
             
-            buildCommand( panel, gridBag, c, "Idle", "idle", "Run idly." );
+            buildCommand( panel, gridBag, c, getRes().getString( "Poll Users with Groups" ), "groups",
+                    getRes().getString( "Same as above, but includes information about the user's groups." ) );
             
-            buildCommand( panel, gridBag, c, "Dump Properties", "properties",
-                "Dumps all System Properties to the console." );
+            buildCommand( panel, gridBag, c, getRes().getString( "Console" ), "console", getRes().getString( "Prompt for Actions in the console." ) );
             
-            buildCommand( panel, gridBag, c, "Dump Configuration", "configuration",
-                "Dumps all Wrapper Configuration Properties to the console." );
+            buildCommand( panel, gridBag, c, getRes().getString( "Idle" ), "idle", getRes().getString( "Run idly." ) );
+            
+            buildCommand( panel, gridBag, c, getRes().getString( "Dump Properties" ), "properties",
+                    getRes().getString( "Dumps all System Properties to the console." ) );
+            
+            buildCommand( panel, gridBag, c, getRes().getString( "Dump Configuration" ), "configuration",
+                    getRes().getString( "Dumps all Wrapper Configuration Properties to the console." ) );
             
             
             m_listenerFlags = new List( 2, true );
@@ -215,43 +222,43 @@ public class Main
             flagPanel2.setLayout( new BorderLayout() );
             flagPanel2.add( flagPanel, BorderLayout.WEST );
             
-            buildCommand( panel, gridBag, c, "Update Event Listener", "listener", flagPanel2 );
+            buildCommand( panel, gridBag, c, getRes().getString( "Update Event Listener" ), "listener", flagPanel2 );
             
-            buildCommand( panel, gridBag, c, "Service List", "service_list", "Displays a list of registered services on Windows." );
+            buildCommand( panel, gridBag, c, getRes().getString( "Service List" ), "service_list", getRes().getString( "Displays a list of registered services on Windows." ) );
             
             m_serviceName = new TextField( "testwrapper" );
             Panel servicePanel = new Panel();
             servicePanel.setLayout( new BorderLayout() );
-            servicePanel.add( new Label( "Interrogate Service.  Service name: " ), BorderLayout.WEST );
+            servicePanel.add( new Label( getRes().getString( "Interrogate Service.  Service name: " ) ), BorderLayout.WEST );
             servicePanel.add( m_serviceName, BorderLayout.CENTER );
             Panel servicePanel2 = new Panel();
             servicePanel2.setLayout( new BorderLayout() );
             servicePanel2.add( servicePanel, BorderLayout.WEST );
-            buildCommand( panel, gridBag, c, "Service Interrogate", "service_interrogate", servicePanel2 );
+            buildCommand( panel, gridBag, c, getRes().getString( "Service Interrogate" ), "service_interrogate", servicePanel2 );
             
-            buildCommand( panel, gridBag, c, "Service Start", "service_start", "Starts the above service." );
+            buildCommand( panel, gridBag, c, getRes().getString( "Service Start" ), "service_start", getRes().getString( "Starts the above service." ) );
             
-            buildCommand( panel, gridBag, c, "Service Stop", "service_stop", "Stops the above service." );
+            buildCommand( panel, gridBag, c, getRes().getString( "Service Stop" ), "service_stop", getRes().getString( "Stops the above service." ) );
             
-            buildCommand( panel, gridBag, c, "Service User Code", "service_user", "Sends a series of user codes to the above service." );
+            buildCommand( panel, gridBag, c, getRes().getString( "Service User Code" ), "service_user", getRes().getString( "Sends a series of user codes to the above service." ) );
             
-            m_childCommand = new TextField( "(Please enter command)" );
-            m_childDetached = new Checkbox( "Detached", false);
+            m_childCommand = new TextField( getRes().getString( "(Please enter command)" ) );
+            m_childDetached = new Checkbox( getRes().getString( "Detached  (Professional)" ), false);
             Panel childPanel = new Panel();
             childPanel.setLayout( new BorderLayout() );
-            childPanel.add( new Label( "Command: " ), BorderLayout.WEST );
+            childPanel.add( new Label( getRes().getString( "Command: " ) ), BorderLayout.WEST );
             childPanel.add( m_childCommand, BorderLayout.CENTER );
             childPanel.add( m_childDetached, BorderLayout.EAST );
             Panel childPanel2 = new Panel();
             childPanel2.setLayout( new BorderLayout() );
             childPanel2.add( childPanel, BorderLayout.WEST );
-            buildCommand( panel, gridBag, c, "Execute Child", "child_exec", childPanel2 );
+            buildCommand( panel, gridBag, c, getRes().getString( "Execute Child" ), "child_exec", childPanel2 );
             
-            buildCommand( panel, gridBag, c, "GC", "gc", "Performs a GC sweep." );
+            buildCommand( panel, gridBag, c, getRes().getString( "GC" ), "gc", getRes().getString( "Performs a GC sweep." ) );
             
-            buildCommand( panel, gridBag, c, "Is Professional?", "is_professional", "Prints true if this is a Professional Edition." );
+            buildCommand( panel, gridBag, c, getRes().getString( "Is Professional?" ), "is_professional", getRes().getString( "Prints true if this is a Professional Edition." ) );
             
-            buildCommand( panel, gridBag, c, "Is Standard?", "is_standard", "Prints true if this is a Standard Edition." );
+            buildCommand( panel, gridBag, c, getRes().getString( "Is Standard?" ), "is_standard", getRes().getString( "Prints true if this is a Standard Edition." ) );
             
             addWindowListener( this );
         }
@@ -381,8 +388,8 @@ public class Main
             } catch (InterruptedException e) {}
             
             if (!Main.this.doAction(m_action)) {
-                printHelp("\"" + m_action + "\" is an unknown action.");
-                WrapperManager.stop(0);
+                printHelp("\"" + m_action + getRes().getString( "\" is an unknown action." ) );
+                WrapperManager.stop( 0 );
                 return;
             }
     
@@ -407,19 +414,23 @@ public class Main
     public Integer start( String[] args )
     {
         String command;
-        
-        System.out.println( "TestWrapper: start()" );
+        System.out.println( getRes().getString( "TestWrapper: start()" ) );
 
         prepareSystemOutErr();
         
         if ( args.length <= 0 )
         {
-            System.out.println( "TestWrapper: An action was not specified.  Default to \"dialog\".  Use \"help\" for list of actions." );
+            System.out.println( getRes().getString( "TestWrapper: An action was not specified.  Default to \"dialog\".  Use \"help\" for list of actions." ) );
             command = "dialog";
         }
         else
         {
             command = args[0];
+
+
+
+
+
         }
         
         if ( command.equals( "help" ) ) {
@@ -440,28 +451,30 @@ public class Main
             m_actionServer.enableAppearHungAction( true );
             m_actionServer.start();
             
-            System.out.println( "TestWrapper: ActionServer Enabled. " );
-            System.out.println( "TestWrapper:   Telnet localhost 9999" );
-            System.out.println( "TestWrapper:   Commands: " );
-            System.out.println( "TestWrapper:     S: Shutdown" );
-            System.out.println( "TestWrapper:     H: Expected Halt" );
-            System.out.println( "TestWrapper:     R: Restart" );
-            System.out.println( "TestWrapper:     D: Thread Dump" );
-            System.out.println( "TestWrapper:     U: Unexpected Halt (Simulate crash)" );
-            System.out.println( "TestWrapper:     V: Access Violation (Actual crash)" );
-            System.out.println( "TestWrapper:     G: Make the JVM appear to be hung." );
+            System.out.println( getRes().getString( "TestWrapper: ActionServer Enabled. " ) );
+            System.out.println( getRes().getString( "TestWrapper:   Telnet localhost 9999" ) );
+            System.out.println( getRes().getString( "TestWrapper:   Commands: " ) );
+            System.out.println( getRes().getString( "TestWrapper:     S: Shutdown" ) );
+            System.out.println( getRes().getString( "TestWrapper:     H: Expected Halt" ) );
+            System.out.println( getRes().getString( "TestWrapper:     R: Restart" ) );
+            System.out.println( getRes().getString( "TestWrapper:     D: Thread Dump" ) );
+            System.out.println( getRes().getString( "TestWrapper:     U: Unexpected Halt (Simulate crash)" ) );
+            System.out.println( getRes().getString( "TestWrapper:     V: Access Violation (Actual crash)" ) );
+            System.out.println( getRes().getString( "TestWrapper:     G: Make the JVM appear to be hung." ) );
             System.out.println( "TestWrapper:" );
         }
         catch ( java.io.IOException e )
         {
-            System.out.println( "TestWrapper: Unable to open the action server socket: " + e.getMessage() );
+            System.out.println( getRes().getString( "TestWrapper: Unable to open the action server socket: {0}", e.getMessage() ) );
+            System.out.println( "TestWrapper:" );
+            m_actionServer = null;
             System.out.println( "TestWrapper:" );
             m_actionServer = null;
         }
         
         if ( command.equals( "dialog" ) )
         {
-            System.out.println( "TestWrapper: Showing dialog..." );
+            System.out.println( getRes().getString( "TestWrapper: Showing dialog..." ) );
             
             try
             {
@@ -471,19 +484,19 @@ public class Main
             catch ( java.lang.InternalError e )
             {
                 System.out.println( "TestWrapper: " );
-                System.out.println( "TestWrapper: ERROR - Unable to display the GUI:" );
-                System.out.println( "TestWrapper:           " + e.toString() );
+                System.out.println( getRes().getString( "TestWrapper: ERROR - Unable to display the GUI:" ) );
+                System.out.println( "TestWrapper:           "  + e.toString() );
                 System.out.println( "TestWrapper: " );
-                System.out.println( "TestWrapper: Fall back to the \"console\" action." );
+                System.out.println( getRes().getString( "TestWrapper: Fall back to the \"console\" action." ) );
                 command = "console";
             }
             catch ( java.awt.AWTError e )
             {
                 System.out.println( "TestWrapper: " );
-                System.out.println( "TestWrapper: ERROR - Unable to display the GUI:" );
+                System.out.println( getRes().getString( "TestWrapper: ERROR - Unable to display the GUI:" ) );
                 System.out.println( "TestWrapper:           " + e.toString() );
                 System.out.println( "TestWrapper: " );
-                System.out.println( "TestWrapper: Fall back to the \"console\" action." );
+                System.out.println( getRes().getString( "TestWrapper: Fall back to the \"console\" action." ) );
                 command = "console";
             }
            catch ( java.lang.UnsupportedOperationException e )
@@ -492,10 +505,10 @@ public class Main
                 if ( e.getClass().getName().equals( "java.awt.HeadlessException" ) ) 
                 {
                     System.out.println( "TestWrapper: " );
-                    System.out.println( "TestWrapper: ERROR - Unable to display the GUI:" );
+                    System.out.println( getRes().getString( "TestWrapper: ERROR - Unable to display the GUI:" ) );
                     System.out.println( "TestWrapper:           " + e.toString() );
                     System.out.println( "TestWrapper: " );
-                    System.out.println( "TestWrapper: Fall back to the \"console\" action." );
+                    System.out.println( getRes().getString( "TestWrapper: Fall back to the \"console\" action." ) );
                     command = "console";
                 }
                 else 
@@ -518,7 +531,7 @@ public class Main
     
     public int stop( int exitCode )
     {
-        System.out.println( "TestWrapper: stop(" + exitCode + ")" );
+        System.out.println( getRes().getString( "TestWrapper: stop({0})", new Integer( exitCode ) ) );
         
         if ( m_actionServer != null )
         {
@@ -528,7 +541,7 @@ public class Main
             }
             catch ( Exception e )
             {
-                System.out.println( "TestWrapper: Unable to stop the action server: " + e.getMessage() );
+                System.out.println( getRes().getString( "TestWrapper: Unable to stop the action server: {0}", e.getMessage() ) );
             }
         }
         
@@ -544,7 +557,7 @@ public class Main
         
         if ( isNestedExit() )
         {
-            System.out.println( "TestWrapper: calling System.exit(" + exitCode + ") within stop." );
+            System.out.println( getRes().getString( "TestWrapper: calling System.exit({0}) within stop.", String.valueOf(exitCode) ) );
             System.exit( exitCode );
         }
         
@@ -553,14 +566,14 @@ public class Main
     
     public void controlEvent( int event )
     {
-        System.out.println( "TestWrapper: controlEvent(" + event + ")" );
+        System.out.println( getRes().getString( "TestWrapper: controlEvent({0})",  new Integer( event ) ) );
         
         if ( event == WrapperManager.WRAPPER_CTRL_LOGOFF_EVENT )
         {
             if ( WrapperManager.isLaunchedAsService() || WrapperManager.isIgnoreUserLogoffs() )
             {
-                System.out.println( "TestWrapper:   Ignoring logoff event" );
-                // Ignore
+            System.out.println( getRes().getString( "TestWrapper:   Ignoring logoff event" ) );
+            // Ignore
             }
             else if ( !ignoreControlEvents() )
             {
@@ -597,22 +610,42 @@ public class Main
      */
     private static void printHelp( String errorMsg )
     {
-        System.err.println( "USAGE" );
+        System.err.println( getRes().getString( "USAGE" ) );
         System.err.println( "" );
-        System.err.println( "TestWrapper <action>" );
+        System.err.println( getRes().getString( "TestWrapper <action>" ) );
         printActions();
-        System.err.println( "  Interactive:" );
-        System.err.println( "   dialog                   : Shows the dialog interface" );
-        System.err.println( "[EXAMPLE]" );
-        System.err.println( "   TestAction access_violation_native " );
+        System.err.println( getRes().getString( "  Interactive:" ) );
+        System.err.println( getRes().getString( "   dialog                   : Shows the dialog interface" ) );
+        System.err.println( getRes().getString( "[EXAMPLE]" ) );
+        System.err.println( getRes().getString( "   TestAction access_violation_native " ) );
         System.err.println( "" );
         if ( errorMsg != null )
         {
-            System.err.println( "ERROR: " + errorMsg );
+            System.err.println( getRes().getString( "ERROR: " ) + errorMsg );
             System.err.println( "" );
         }
         
         System.exit( 1 );
+    }
+    
+    /**
+     * Request the Resources object for this application.
+     */
+    public static WrapperResources getRes()
+    {
+        if ( m_res == null )
+        {
+            // Synchronize and then recheck to avoid this method always synchronizing.
+            synchronized( Main.class )
+            {
+                if ( m_res == null )
+                {
+                    m_res = WrapperManager.loadWrapperResources( "wrapperTestApp",
+                        WrapperSystemPropertyUtil.getStringProperty( "wrapper.lang.folder", "../lang" ) );
+                }
+            }
+        }
+        return m_res;
     }
     
     /*---------------------------------------------------------------
@@ -625,13 +658,15 @@ public class Main
      */
     public static void main( String[] args )
     {
-        System.out.println( "TestWrapper: Initializing..." );
+       System.out.println( getRes().getString( "TestWrapper: Initializing..." ));
         
+       // System.out.println(wrm.getString("test 0 = {0} String = {1} double = {2} object = {3}", new Object[]{ String.valueOf(99), "test",String.valueOf(34.33), "testob"}) );
         // Start the application.  If the JVM was launched from the native
         //  Wrapper then the application will wait for the native Wrapper to
         //  call the application's start method.  Otherwise the start method
         //  will be called immediately.
         WrapperManager.start( new Main(), args );
+        
     }
 }
 

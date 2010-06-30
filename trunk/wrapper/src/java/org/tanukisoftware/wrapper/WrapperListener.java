@@ -41,9 +41,9 @@ public interface WrapperListener
 {
     /**
      * The start method is called when the WrapperManager is signaled by the 
-     *	native wrapper code that it can start its application.  This
-     *	method call is expected to return, so a new thread should be launched
-     *	if necessary.
+     * native wrapper code that it can start its application.  This
+     * method call is expected to return, so a new thread should be launched
+     * if necessary.
      * <p>
      * If this method throws an exception the Wrapper will shutdown the current
      *  JVM in an error state and then relaunch a new JVM.  It is the

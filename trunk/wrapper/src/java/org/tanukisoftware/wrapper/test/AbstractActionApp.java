@@ -73,7 +73,7 @@ public abstract class AbstractActionApp
      * Constructors
      *-------------------------------------------------------------*/
     protected AbstractActionApp() {
-        m_runner = new Thread( "WrapperActionTest_Runner" )
+        m_runner = new Thread( Main.getRes().getString( "WrapperActionTest_Runner" ) )
         {
             public void run()
             {
@@ -81,10 +81,8 @@ public abstract class AbstractActionApp
                 {
                     if ( m_users )
                     {
-                        System.out.println( "The current user is: "
-                            + WrapperManager.getUser( m_groups ) );
-                        System.out.println( "The current interactive user is: "
-                            + WrapperManager.getInteractiveUser( m_groups ) );
+                        System.out.println( Main.getRes().getString( "The current user is: {0}", WrapperManager.getUser( m_groups ) ) );
+                        System.out.println( Main.getRes().getString( "The current interactive user is: {0}" , WrapperManager.getInteractiveUser( m_groups ) ) );
                     }
                     synchronized( AbstractActionApp.class )
                     {
@@ -122,10 +120,10 @@ public abstract class AbstractActionApp
      */
     public void fired( WrapperEvent event )
     {
-        System.out.println( "Received event: " + event );
+        System.out.println( Main.getRes().getString( "Received event: {0}", event ) );
         if ( event instanceof WrapperControlEvent )
         {
-            System.out.println( "  Consume and ignore." );
+            System.out.println( Main.getRes().getString( "  Consume and ignore." ) );
             ((WrapperControlEvent)event).consume();
         }
     }
@@ -217,7 +215,7 @@ public abstract class AbstractActionApp
             }
             catch ( NoSuchMethodException e )
             {
-                System.out.println( "halt not supported by current JVM." );
+                System.out.println( Main.getRes().getString( "halt not supported by current JVM." ) );
                 haltMethod = null;
             }
             
@@ -230,11 +228,11 @@ public abstract class AbstractActionApp
                 }
                 catch ( IllegalAccessException e )
                 {
-                    System.out.println( "Unable to call runitme.halt: " + e.getMessage() );
+                    System.out.println( Main.getRes().getString( "Unable to call runtime.halt: {0}", e.getMessage() ) );
                 }
                 catch ( InvocationTargetException e )
                 {
-                    System.out.println( "Unable to call runitme.halt: " + e.getMessage() );
+                    System.out.println( Main.getRes().getString( "Unable to call runtime.halt: {0}", e.getMessage() ) );
                 }
             }
         }
@@ -249,7 +247,7 @@ public abstract class AbstractActionApp
             }
             catch ( NoSuchMethodException e )
             {
-                System.out.println( "halt not supported by current JVM." );
+                System.out.println( Main.getRes().getString( "halt not supported by current JVM." ) );
                 haltMethod = null;
             }
             
@@ -262,11 +260,11 @@ public abstract class AbstractActionApp
                 }
                 catch ( IllegalAccessException e )
                 {
-                    System.out.println( "Unable to call runitme.halt: " + e.getMessage() );
+                    System.out.println( Main.getRes().getString( "Unable to call runtime.halt: {0}", e.getMessage() ) );
                 }
                 catch ( InvocationTargetException e )
                 {
-                    System.out.println( "Unable to call runitme.halt: " + e.getMessage() );
+                    System.out.println( Main.getRes().getString( "Unable to call runtime.halt: {0}", e.getMessage() ) );
                 }
             }
         }
@@ -300,6 +298,22 @@ public abstract class AbstractActionApp
             WrapperManager.appearOrphan();
             
         }
+        else if ( action.equals( "deadlock" ) )
+        {
+            if ( WrapperManager.isStandardEdition() )
+            {
+                System.out.println( Main.getRes().getString( "Creating a 2-object dead lock...") );
+                DeadLock.create2ObjectDeadlock();
+            }
+            else
+            {
+                System.out.println( Main.getRes().getString( "Deadlock checks require the Standard Edition.") );
+            }
+        }
+        else if ( action.equals( "outofmemory" ) )
+        {
+            throw new OutOfMemoryError();
+        }
         else if ( action.equals( "ignore_events" ) )
         {
             m_ignoreControlEvents = true;
@@ -311,7 +325,7 @@ public abstract class AbstractActionApp
         }
         else if ( action.equals( "deadlock_out" ) )
         {
-            System.out.println( "Deadlocking System.out and System.err ..." );
+            System.out.println( Main.getRes().getString( "Deadlocking System.out and System.err ..." ) );
             m_out.setDeadlock( true );
             m_err.setDeadlock( true );
             
@@ -320,17 +334,17 @@ public abstract class AbstractActionApp
         {
             if ( !m_users )
             {
-                System.out.println( "Begin polling the current and interactive users." );
+                System.out.println( Main.getRes().getString( "Begin polling the current and interactive users." ) );
                 m_users = true;
             }
             else if ( m_groups )
             {
-                System.out.println( "Stop polling for group info." );
+                System.out.println( Main.getRes().getString("Stop polling for group info." ) );
                 m_groups = false;
             }
             else
             {
-                System.out.println( "Stop polling the current and interactive users." );
+                System.out.println( Main.getRes().getString("Stop polling the current and interactive users." ) );
                 m_users = false;
             }
             
@@ -343,13 +357,13 @@ public abstract class AbstractActionApp
         {
             if ( ( !m_users ) || ( !m_groups ) )
             {
-                System.out.println( "Begin polling the current and interactive users with group info." );
+                System.out.println( Main.getRes().getString( "Begin polling the current and interactive users with group info." ) );
                 m_users = true;
                 m_groups = true;
             }
             else
             {
-                System.out.println( "Stop polling for group info." );
+                System.out.println( Main.getRes().getString( "Stop polling for group info." ) );
                 m_groups = false;
             }
             
@@ -367,7 +381,7 @@ public abstract class AbstractActionApp
                     public void run()
                     {
                         System.out.println();
-                        System.out.println( "Start prompting for actions." );
+                        System.out.println( Main.getRes().getString( "Start prompting for actions." ) );
                         try
                         {
                             BufferedReader r = new BufferedReader(new InputStreamReader(System.in));
@@ -375,15 +389,15 @@ public abstract class AbstractActionApp
                             try
                             {
                                 do {
-                                    System.out.println("Input an action ('help' for a list of actions):");
+                                    System.out.println( Main.getRes().getString( "Input an action ('help' for a list of actions):") );
                                     line = r.readLine();
                                     if ((line != null) && (!line.equals(""))) {
-                                        System.out.println("Read action: " + line );
+                                        System.out.println(Main.getRes().getString( "Read action: {0}", line ) );
                                         if ( !doAction( line ) )
                                         {
                                             if ( !line.equals( "help" ) )
                                             {
-                                                System.out.println( "Unknown action: " + line );
+                                            System.out.println( Main.getRes().getString( "Unknown action: {0}", line ) );
                                             }
                                             printActions();
                                         }
@@ -397,7 +411,7 @@ public abstract class AbstractActionApp
                         }
                         finally
                         {
-                            System.out.println( "Stop prompting for actions." );
+                            System.out.println( Main.getRes().getString( "Stop prompting for actions." ) );
                             System.out.println();
                             m_consoleRunner = null;
                         }
@@ -409,7 +423,7 @@ public abstract class AbstractActionApp
         }
         else if ( action.equals( "idle" ) )
         {
-            System.out.println( "Run idle." );
+            System.out.println( Main.getRes().getString( "Run idle." ) );
             m_users = false;
             m_groups = false;
             
@@ -420,7 +434,7 @@ public abstract class AbstractActionApp
         }
         else if ( action.equals( "properties" ) )
         {
-            System.out.println( "Dump System Properties:" );
+            System.out.println( Main.getRes().getString( "Dump System Properties:" ) );
             Properties props = System.getProperties();
             for ( Enumeration en = props.propertyNames(); en.hasMoreElements(); )
             {
@@ -431,7 +445,7 @@ public abstract class AbstractActionApp
         }
         else if ( action.equals( "configuration" ) )
         {
-            System.out.println( "Dump Wrapper Properties:" );
+            System.out.println( Main.getRes().getString( "Dump Wrapper Properties:" ) );
             Properties props = WrapperManager.getProperties();
             for ( Enumeration en = props.propertyNames(); en.hasMoreElements(); )
             {
@@ -442,7 +456,7 @@ public abstract class AbstractActionApp
         }
         else if ( action.equals( "listener" ) )
         {
-            System.out.println( "Updating Event Listeners:" );
+            System.out.println( Main.getRes().getString( "Updating Event Listeners:" ) );
             WrapperManager.removeWrapperEventListener( this );
             WrapperManager.addWrapperEventListener( this, m_eventMask );
         }
@@ -457,11 +471,11 @@ public abstract class AbstractActionApp
             WrapperWin32Service[] services = WrapperManager.listServices();
             if ( services == null )
             {
-                System.out.println( "Services not supported by current platform." );
+                System.out.println( Main.getRes().getString( "Services not supported by current platform." ) );
             }
             else
             {
-                System.out.println( "Registered Services:" );
+                System.out.println( Main.getRes().getString( "Registered Services:" ) );
                 for ( int i = 0; i < services.length; i++ )
                 {
                     System.out.println( "  " + services[i] );
@@ -481,7 +495,7 @@ public abstract class AbstractActionApp
                 */
                 WrapperWin32Service service = WrapperManager.sendServiceControlCode(
                     m_serviceName, WrapperManager.SERVICE_CONTROL_CODE_INTERROGATE );
-                System.out.println( "Service after interrogate: " + service );
+                System.out.println( Main.getRes().getString( "Service after interrogate: {0}", service ) );
             }
             catch ( WrapperServiceException e )
             {
@@ -494,7 +508,7 @@ public abstract class AbstractActionApp
             {
                 WrapperWin32Service service = WrapperManager.sendServiceControlCode(
                     m_serviceName, WrapperManager.SERVICE_CONTROL_CODE_START );
-                System.out.println( "Service after start: " + service );
+                System.out.println( Main.getRes().getString( "Service after start: {0}", service ) );
             }
             catch ( WrapperServiceException e )
             {
@@ -507,7 +521,7 @@ public abstract class AbstractActionApp
             {
                 WrapperWin32Service service = WrapperManager.sendServiceControlCode(
                     m_serviceName, WrapperManager.SERVICE_CONTROL_CODE_STOP );
-                System.out.println( "Service after stop: " + service );
+                System.out.println( Main.getRes().getString( "Service after stop: {0}", service ) );
             }
             catch ( WrapperServiceException e )
             {
@@ -522,7 +536,7 @@ public abstract class AbstractActionApp
                 {
                     WrapperWin32Service service = WrapperManager.sendServiceControlCode(
                         m_serviceName, i );
-                    System.out.println( "Service after user code " + i + ": " + service );
+                    System.out.println( Main.getRes().getString( "Service after user code {0} : {1}", new Integer( i ), service ) );
                 }
             }
             catch ( WrapperServiceException e )
@@ -541,7 +555,7 @@ public abstract class AbstractActionApp
                         WrapperProcessConfig wpConfig = new WrapperProcessConfig();
                         wpConfig.setDetached( m_childDetached );
                         final WrapperProcess wProcess = WrapperManager.exec( m_childCommand, wpConfig );
-                        System.out.println( "Launched child with PID=" + wProcess.getPID() + " : " + m_childCommand );
+                        System.out.println( Main.getRes().getString( "Launched child with PID={0} : {1}", new Integer( wProcess.getPID() ), m_childCommand ) );
                         
                         Thread outRunner = new Thread()
                         {
@@ -556,11 +570,11 @@ public abstract class AbstractActionApp
                                         System.out.println( wProcess.getPID() + " out: " + line );
                                     }
                                     br.close();
-                                    System.out.println( wProcess.getPID() + " out EOF" );
+                                    System.out.println( wProcess.getPID() + Main.getRes().getString( " out EOF" ) );
                                 }
                                 catch ( IOException e )
                                 {
-                                    System.out.println( wProcess.getPID() + " read out failed:" );
+                                    System.out.println( wProcess.getPID() + Main.getRes().getString( " read stdout failed:" ) );
                                     e.printStackTrace();
                                 }
                             }
@@ -578,11 +592,11 @@ public abstract class AbstractActionApp
                                         System.out.println( wProcess.getPID() + " err: " + line );
                                     }
                                     br.close();
-                                    System.out.println( wProcess.getPID() + " err EOF" );
+                                    System.out.println( wProcess.getPID() + Main.getRes().getString( " err EOF" ) );
                                 }
                                 catch ( IOException e )
                                 {
-                                    System.out.println( wProcess.getPID() + " read err failed:" );
+                                    System.out.println( wProcess.getPID() + Main.getRes().getString( " read stderr failed:" ) );
                                     e.printStackTrace();
                                 }
                             }
@@ -595,7 +609,7 @@ public abstract class AbstractActionApp
                         outRunner.join();
                         errRunner.join();
                         
-                        System.out.println( "Child with PID=" + wProcess.getPID() + " terminated with exitCode=" + wProcess.waitFor() + " : " + m_childCommand );
+                        System.out.println( Main.getRes().getString( "Child with PID={0} terminated with exitCode={1} : {2} ", new Integer( wProcess.getPID() ), new Integer( wProcess.waitFor() ), m_childCommand ) );
                     }
                     catch ( Throwable t )
                     {
@@ -607,17 +621,17 @@ public abstract class AbstractActionApp
         }
         else if ( action.equals( "gc" ) )
         {
-            System.out.println( "Begin GC..." );
+            System.out.println( Main.getRes().getString( "Begin GC..." ) );
             System.gc();
-            System.out.println( "GC complete." );
+            System.out.println( Main.getRes().getString( "GC complete." ) );
         }
         else if ( action.equals( "is_professional" ) )
         {
-            System.out.println( "Professional Edition: " + WrapperManager.isProfessionalEdition() );
+            System.out.println( Main.getRes().getString( "Professional Edition: " ) + WrapperManager.isProfessionalEdition() );
         }
         else if ( action.equals( "is_standard" ) )
         {
-            System.out.println( "Standard Edition: " + WrapperManager.isStandardEdition() );
+            System.out.println( Main.getRes().getString( "Standard Edition: " ) + WrapperManager.isStandardEdition() );
         }
         else
         {
@@ -635,37 +649,37 @@ public abstract class AbstractActionApp
     protected static void printActions()
     {
         System.err.println( "" );
-        System.err.println( "[ACTIONS]" );
-        System.err.println( "   help                     : Shows this help message" );
-        System.err.println( "  Actions which should cause the Wrapper to exit cleanly:" );
-        System.err.println( "   stop0                    : Calls WrapperManager.stop(0)" );
-        System.err.println( "   exit0                    : Calls System.exit(0)" );
-        System.err.println( "   stopimmediate0           : Calls WrapperManager.stopImmediate(0)" );
-        System.err.println( "   stopandreturn0           : Calls WrapperManager.stopAndReturn(0)" );
-        System.err.println( "  Actions which should cause the Wrapper to exit in an error state:" );
-        System.err.println( "   stop1                    : Calls WrapperManager.stop(1)" );
-        System.err.println( "   exit1                    : Calls System.exit(1)" );
-        System.err.println( "   nestedexit1              : Calls System.exit(1) within WrapperListener.stop(1) callback" );
-        System.err.println( "   stopimmediate1           : Calls WrapperManager.stopImmediate(1)" );
-        System.err.println( "  Actions which should cause the Wrapper to restart the JVM:" );
-        System.err.println( "   access_violation         : Calls WrapperManager.accessViolation" );
-        System.err.println( "   access_violation_native  : Calls WrapperManager.accessViolationNative()" );
-        System.err.println( "   appear_hung              : Calls WrapperManager.appearHung()" );
-        System.err.println( "   halt0                    : Calls Runtime.getRuntime().halt(0)" );
-        System.err.println( "   halt1                    : Calls Runtime.getRuntime().halt(1)" );
-        System.err.println( "   restart                  : Calls WrapperManager.restart()" );
-        System.err.println( "   restartandreturn         : Calls WrapperManager.restartAndReturn()" );
-        System.err.println( "  Additional Tests:" );
-        System.err.println( "   ignore_events            : Makes this application ignore control events." );
-        System.err.println( "   dump                     : Calls WrapperManager.requestThreadDump()" );
-        System.err.println( "   deadlock_out             : Deadlocks the JVM's System.out and err streams." );
-        System.err.println( "   users                    : Start polling the current and interactive users." );
-        System.err.println( "   groups                   : Start polling the current and interactive users with groups." );
-        System.err.println( "   console                  : Prompt for actions in the console." );
-        System.err.println( "   idle                     : Do nothing just run in idle mode." );
-        System.err.println( "   properties               : Dump all System Properties to the console." );
-        System.err.println( "   configuration            : Dump all Wrapper Configuration Properties to the console." );
-        System.err.println( "   gc                       : Perform a GC sweep." );
+        System.err.println( Main.getRes().getString( "[ACTIONS]" ) );
+        System.err.println( Main.getRes().getString( "   help                     : Shows this help message" ) );
+        System.err.println( Main.getRes().getString( "  Actions which should cause the Wrapper to exit cleanly:" ) );
+        System.err.println( Main.getRes().getString( "   stop0                    : Calls WrapperManager.stop(0)" ) );
+        System.err.println( Main.getRes().getString( "   exit0                    : Calls System.exit(0)" ) );
+        System.err.println( Main.getRes().getString( "   stopimmediate0           : Calls WrapperManager.stopImmediate(0)" ) );
+        System.err.println( Main.getRes().getString( "   stopandreturn0           : Calls WrapperManager.stopAndReturn(0)" ) );
+        System.err.println( Main.getRes().getString( "  Actions which should cause the Wrapper to exit in an error state:" ) );
+        System.err.println( Main.getRes().getString( "   stop1                    : Calls WrapperManager.stop(1)" ) );
+        System.err.println( Main.getRes().getString( "   exit1                    : Calls System.exit(1)" ) );
+        System.err.println( Main.getRes().getString( "   nestedexit1              : Calls System.exit(1) within WrapperListener.stop(1) callback" ) );
+        System.err.println( Main.getRes().getString( "   stopimmediate1           : Calls WrapperManager.stopImmediate(1)" ) );
+        System.err.println( Main.getRes().getString( "  Actions which should cause the Wrapper to restart the JVM:" ) );
+        System.err.println( Main.getRes().getString( "   access_violation         : Calls WrapperManager.accessViolation" ) );
+        System.err.println( Main.getRes().getString( "   access_violation_native  : Calls WrapperManager.accessViolationNative()" ) );
+        System.err.println( Main.getRes().getString( "   appear_hung              : Calls WrapperManager.appearHung()" ) );
+        System.err.println( Main.getRes().getString( "   halt0                    : Calls Runtime.getRuntime().halt(0)" ) );
+        System.err.println( Main.getRes().getString( "   halt1                    : Calls Runtime.getRuntime().halt(1)" ) );
+        System.err.println( Main.getRes().getString( "   restart                  : Calls WrapperManager.restart()" ) );
+        System.err.println( Main.getRes().getString( "   restartandreturn         : Calls WrapperManager.restartAndReturn()" ) );
+        System.err.println( Main.getRes().getString( "  Additional Tests:" ) );
+        System.err.println( Main.getRes().getString( "   ignore_events            : Makes this application ignore control events." ) );
+        System.err.println( Main.getRes().getString( "   dump                     : Calls WrapperManager.requestThreadDump()" ) );
+        System.err.println( Main.getRes().getString( "   deadlock_out             : Deadlocks the JVM's System.out and err streams." ) );
+        System.err.println( Main.getRes().getString( "   users                    : Start polling the current and interactive users." ) );
+        System.err.println( Main.getRes().getString( "   groups                   : Start polling the current and interactive users with groups." ) );
+        System.err.println( Main.getRes().getString( "   console                  : Prompt for actions in the console." ) );
+        System.err.println( Main.getRes().getString( "   idle                     : Do nothing just run in idle mode." ) );
+        System.err.println( Main.getRes().getString( "   properties               : Dump all System Properties to the console." ) );
+        System.err.println( Main.getRes().getString( "   configuration            : Dump all Wrapper Configuration Properties to the console." ) );
+        System.err.println( Main.getRes().getString( "   gc                       : Perform a GC sweep." ) );
         System.err.println( "" );
     }
 }

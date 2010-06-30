@@ -48,7 +48,7 @@ class WrapperProperties
     {
         if ( m_locked )
         {
-            throw new IllegalStateException( "Read Only" );
+            throw new IllegalStateException( WrapperManager.getRes().getString( "Read Only" ) );
         }
         super.load( inStream );
     }
@@ -57,7 +57,7 @@ class WrapperProperties
     {
         if ( m_locked )
         {
-            throw new IllegalStateException( "Read Only" );
+            throw new IllegalStateException( WrapperManager.getRes().getString( "Read Only" ) );
         }
         return super.setProperty( key, value );
     }
@@ -66,7 +66,7 @@ class WrapperProperties
     {
         if ( m_locked )
         {
-            throw new IllegalStateException( "Read Only" );
+            throw new IllegalStateException( WrapperManager.getRes().getString( "Read Only" ) );
         }
         super.clear();
     }
@@ -99,7 +99,7 @@ class WrapperProperties
     {
         if ( m_locked )
         {
-            throw new IllegalStateException( "Read Only" );
+            throw new IllegalStateException( WrapperManager.getRes().getString( "Read Only" ) );
         }
         return super.put( key, value );
     }
@@ -108,7 +108,7 @@ class WrapperProperties
     {
         if ( m_locked )
         {
-            throw new IllegalStateException( "Read Only" );
+            throw new IllegalStateException( WrapperManager.getRes().getString( "Read Only" ) );
         }
         super.putAll( map );
     }
@@ -117,7 +117,7 @@ class WrapperProperties
     {
         if ( m_locked )
         {
-            throw new IllegalStateException( "Read Only" );
+            throw new IllegalStateException( WrapperManager.getRes().getString( "Read Only" ) );
         }
         return super.remove( key );
     }
@@ -134,4 +134,3 @@ class WrapperProperties
         }
     }
 }
-

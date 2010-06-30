@@ -47,29 +47,29 @@ public class LogOutput {
      * Main Method
      *-------------------------------------------------------------*/
     public static void main(String[] args) {
-        System.out.println("Test the various log levels...");
-        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_DEBUG,  "Debug output");
-        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO,   "Info output");
-        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_STATUS, "Status output");
-        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_WARN,   "Warn output");
-        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_ERROR,  "Error output");
-        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_FATAL,  "Fatal output");
+        System.out.println( Main.getRes().getString( "Test the various log levels...") );
+        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_DEBUG, Main.getRes().getString( "Debug output" ) );
+        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, Main.getRes().getString( "Info output" ) );
+        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_STATUS, Main.getRes().getString( "Status output" ) );
+        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_WARN, Main.getRes().getString( "Warn output" ) );
+        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_ERROR, Main.getRes().getString( "Error output" ) );
+        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_FATAL, Main.getRes().getString( "Fatal output" ) );
         
         // Let things catch up as the timing of WrapperManager.log output and System.out
         //  output can not be guaranteed.
         sleep();
         
-        System.out.println("Put the logger through its paces...");
-        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO,  "Special C characters in %s %d % %%");
+        System.out.println(Main.getRes().getString( "Put the logger through its paces..." ) );
+        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO,  Main.getRes().getString( "Special C characters in %s %d % %%" ) );
         sleep();
         WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO,   "");
         sleep();
         
         String sa = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
         
-        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO,   "Long log messages will be clipped at 4096 bytes when the Wrapper reads them.");
+        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO,   Main.getRes().getString("Long log messages will be clipped at 4096 bytes when the Wrapper reads them.") );
         WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO,   "");
-        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, "Output a 62 * 100 + 2 length string.");
+        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, Main.getRes().getString("Output a 62 * 100 + 2 length string."));
         StringBuffer sb = new StringBuffer();
         for (int i = 0; i < 100; i++) {
             sb.append(sa);
@@ -77,7 +77,7 @@ public class LogOutput {
         WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, "[" + sb + "]" );
         sleep();
 
-        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, "Output 100 62 character strings with line feeds between each one as a single log message.");
+        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, Main.getRes().getString("Output 100 62 character strings with line feeds between each one as a single log message.") );
         sb = new StringBuffer();
         for (int i = 0; i < 100; i++) {
             sb.append(sa);
@@ -86,7 +86,7 @@ public class LogOutput {
         WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, "[" + sb + "]");
         sleep();
         
-        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, "Output 100 62 character strings as individual log message.");
+        WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, Main.getRes().getString("Output 100 62 character strings as individual log message."));
         for (int i = 0; i < 100; i++) {
             WrapperManager.log(WrapperManager.WRAPPER_LOG_LEVEL_INFO, sa);
         }

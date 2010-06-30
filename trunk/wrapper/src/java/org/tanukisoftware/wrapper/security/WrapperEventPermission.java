@@ -17,6 +17,8 @@ import java.util.Enumeration;
 import java.util.Vector;
 import java.util.StringTokenizer;
 
+import org.tanukisoftware.wrapper.WrapperManager;
+
 /**
  * WrapperEventPermissions are used to grant the right to register to start
  *  receiving events from the Wrapper.
@@ -313,8 +315,7 @@ public class WrapperEventPermission
             }
             else
             {
-                throw new IllegalArgumentException(
-                    "Invalid permission eventType: \"" + eventType + "\"" );
+                throw new IllegalArgumentException( WrapperManager.getRes().getString("Invalid permission eventType: \"{0}\"", eventType ) );
             }
         }
         
@@ -361,12 +362,13 @@ final class WECollection
     {
         if ( !( permission instanceof WrapperEventPermission ) )
         {
-            throw new IllegalArgumentException( "invalid permission: " + permission );
+            throw new IllegalArgumentException( WrapperManager.getRes().getString(
+                    "invalid permission: {0}", permission ) );
         }
         
         if ( isReadOnly() )
         {
-            throw new SecurityException( "Collection is read-only.");
+            throw new SecurityException( WrapperManager.getRes().getString("Collection is read-only.") );
         }
         
         m_permissions.add( permission );

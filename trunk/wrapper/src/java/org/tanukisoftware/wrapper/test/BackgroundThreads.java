@@ -43,7 +43,7 @@ public class BackgroundThreads implements Runnable {
     public void run() {
         m_started = true;
         while(true) {
-            System.out.println(Thread.currentThread().getName() + " running...");
+            System.out.println(Main.getRes().getString( "{0} running", Thread.currentThread().getName() ) );
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
@@ -55,8 +55,8 @@ public class BackgroundThreads implements Runnable {
      * Main Method
      *-------------------------------------------------------------*/
     public static void main(String[] args) {
-        System.out.println("Background Thread Test Running...");
-        System.out.println("Launching background non-daemon threads...");
+        System.out.println(Main.getRes().getString( "Background Thread Test Running..." ) );
+        System.out.println(Main.getRes().getString( "Launching background non-daemon threads...") );
         
         BackgroundThreads app = new BackgroundThreads();
         for (int i = 0; i < 2; i++) {
@@ -79,9 +79,9 @@ public class BackgroundThreads implements Runnable {
             }
         }
         
-        System.out.println("The JVM should now continue to run indefinitely.");
+        System.out.println( Main.getRes().getString( "The JVM should now continue to run indefinitely.") );
         
-        System.out.println("Background Thread Test Main Done...");
+        System.out.println(Main.getRes().getString( "Background Thread Test Main Done..." ) );
     }
 }
 

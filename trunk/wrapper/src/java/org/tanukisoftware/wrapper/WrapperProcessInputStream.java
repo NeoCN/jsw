@@ -90,8 +90,7 @@ public class WrapperProcessInputStream
     public int read()
         throws IOException
     {
-        synchronized( this )
-        {
+        
             if ( !m_closed )
             {
                 return nativeRead( true );
@@ -104,10 +103,10 @@ public class WrapperProcessInputStream
                 }
                 else
                 {
-                    throw new IOException( "Stream is closed." );
+                    throw new IOException(WrapperManager.getRes().getString( "Stream is closed." ) );
                 }
             }
-        }
+        
     }
 
     public int read( byte b[ ]) throws IOException 
@@ -189,9 +188,11 @@ public class WrapperProcessInputStream
             }
             catch( IOException ioe )
             {
-                System.out.println( "WrapperProcessStream encountered a ReadError: ");
+                System.out.println( WrapperManager.getRes().getString( "WrapperProcessStream encountered a ReadError: " ) );
                 ioe.printStackTrace();
             }
         }
     }
 }
+
+  

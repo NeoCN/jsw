@@ -29,9 +29,9 @@ public class ShutdownLock {
     public static void main(String[] args) {
         Thread daemon = new Thread() {
             public void run() {
-                System.out.println( "Daemon thread started." );
+                System.out.println(  Main.getRes().getString( "Daemon thread started." ) );
                 
-                System.out.println( "Requesting a shutdown lock." );
+                System.out.println(  Main.getRes().getString( "Requesting a shutdown lock." ) );
                 try
                 {
                     WrapperManager.requestShutdownLock();
@@ -41,7 +41,7 @@ public class ShutdownLock {
                     System.out.println( e );
                 }
             
-                System.out.println( "Waiting for 20 seconds." );
+                System.out.println(  Main.getRes().getString( "Waiting for 20 seconds." ) );
                 try
                 {
                     Thread.sleep( 20000 );
@@ -50,15 +50,15 @@ public class ShutdownLock {
                 {
                 }
             
-                System.out.println( "Freeing up shutdown lock." );
+                System.out.println( Main.getRes().getString( "Freeing up shutdown lock." ) );
                 WrapperManager.releaseShutdownLock();
                 
-                System.out.println( "Daemon thread completed." );
+                System.out.println( Main.getRes().getString( "Daemon thread completed." ) );
             }
         };
         daemon.setDaemon( true );
 
-        System.out.println( "Starting daemon thread." );
+        System.out.println( Main.getRes().getString( "Starting daemon thread." ) );
         daemon.start();
 
         try
@@ -69,7 +69,7 @@ public class ShutdownLock {
         {
         }
 
-        System.out.println("Application complete.  Wrapper should stop when shutdown lock is released.");
+        System.out.println( Main.getRes().getString( "Application complete.  Wrapper should stop when shutdown lock is released.") );
         System.out.println();
     }
 }

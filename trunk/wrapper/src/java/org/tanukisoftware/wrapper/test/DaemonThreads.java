@@ -43,7 +43,7 @@ public class DaemonThreads implements Runnable {
     public void run() {
         m_started = true;
         while(true) {
-            System.out.println(Thread.currentThread().getName() + " running...");
+        	System.out.println( Main.getRes().getString( "{0} running", Thread.currentThread().getName() ) );
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
@@ -55,8 +55,8 @@ public class DaemonThreads implements Runnable {
      * Main Method
      *-------------------------------------------------------------*/
     public static void main(String[] args) {
-        System.out.println("Daemon Thread Test Running...");
-        System.out.println("Launching background daemon threads...");
+        System.out.println( Main.getRes().getString( "Daemon Thread Test Running..." ) );
+        System.out.println( Main.getRes().getString( "Launching background daemon threads..." ) );
         
         DaemonThreads app = new DaemonThreads();
         for (int i = 0; i < 2; i++) {
@@ -80,9 +80,9 @@ public class DaemonThreads implements Runnable {
             }
         }
         
-        System.out.println("The JVM should exit momentarily.");
+        System.out.println( Main.getRes().getString( "The JVM should exit momentarily.") );
         
-        System.out.println("Daemon Thread Test Main Done...");
+        System.out.println( Main.getRes().getString( "Daemon Thread Test Main Done...") );
     }
 }
 

@@ -51,8 +51,8 @@ public class EnvironmentVariables {
     public static void main(String[] args) {
         System.out.println("user.language=" + System.getProperty("user.language"));
         System.out.println("user.region=" + System.getProperty("user.region"));
-        System.out.println("Locale=" + java.util.Locale.getDefault());        
-        System.out.println("Looking for environment variables...");
+        System.out.println(Main.getRes().getString( "Locale=" ) + java.util.Locale.getDefault());
+        System.out.println(Main.getRes().getString( "Looking for environment variables..." ) );
         
         try {
             getEnvironmentVariables();
@@ -73,12 +73,12 @@ public class EnvironmentVariables {
         }
         
         if (passed) {
-            System.out.println("Environment variables test passed.");
+            System.out.println( Main.getRes().getString( "Environment variables test passed." ) );
         } else {
-            System.out.println("Environment variables test FAILED.");
+            System.out.println( Main.getRes().getString( "Environment variables test FAILED." ) );
         }
 
-        System.out.println("Request a JVM restart.");
+        System.out.println( Main.getRes().getString( "Request a JVM restart." ) );
         WrapperManager.restart();
     }
 
@@ -93,7 +93,7 @@ public class EnvironmentVariables {
             return true;
         }
         
-        System.out.println("FAILED (expected: " + expected + ")");
+        System.out.println(Main.getRes().getString( "FAILED (expected: {0})", expected ) );
         return false;
     }
 
@@ -101,7 +101,7 @@ public class EnvironmentVariables {
         
         String os = System.getProperty("os.name").toLowerCase();
         
-        System.out.println("Platform is " + os + ".");
+        System.out.println(Main.getRes().getString( "Platform is {0}.", os ) );
         
         Process p = null;
         
@@ -119,8 +119,8 @@ public class EnvironmentVariables {
         }
         
         if (p == null) {
-            System.out.println(
-                "Don't know how to read environment variables on this platform: " + os);
+            System.out.println(Main.getRes().getString( 
+                "Don't know how to read environment variables on this platform: {0}", os ) );
             return;
         }
         

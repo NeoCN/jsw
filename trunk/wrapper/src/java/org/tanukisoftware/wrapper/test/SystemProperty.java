@@ -34,26 +34,26 @@ public class SystemProperty
         testProperty( "VAR6", "\\\\" );
         testProperty( "VAR7", "\"" );
 
-        System.out.println("Main complete.");
+        System.out.println( Main.getRes().getString( "Main complete.") );
         
         System.exit( m_exitCode );
     }
     
     private static void testProperty( String name, String expectedValue )
     {
-        System.out.println( "Testing system property: " + name );
-        System.out.println( "  Expected:" + expectedValue );
+        System.out.println( Main.getRes().getString( "Testing system property: ", name ) );
+        System.out.println( Main.getRes().getString( "  Expected:", expectedValue ) );
         
         String value = System.getProperty( name );
-        System.out.println( "  Value   :" + value );
+        System.out.println( Main.getRes().getString( "  Value   :", value ) );
         
         if ( expectedValue.equals( value ) )
         {
-            System.out.println( "  OK" );
+            System.out.println( Main.getRes().getString( "  OK" ) );
         }
         else
         {
-            System.out.println( " FAILED!!!" );
+            System.out.println( Main.getRes().getString( " FAILED!!!" ) );
             m_exitCode = 1;
         }
         

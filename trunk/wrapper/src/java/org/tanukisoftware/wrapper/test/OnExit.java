@@ -23,10 +23,10 @@ public class OnExit {
      * Main Method
      *-------------------------------------------------------------*/
     public static void main(String[] args) {
-        System.out.println("Test the handling of on exit handlers.");
-        System.out.println("The Wrapper should restart the JVM when it detects and exit code of ");
-        System.out.println("  1, 2, or any code except 3.  It will then shutdown if it detects ");
-        System.out.println("  an exit code of 3.");
+        System.out.println( Main.getRes().getString( "Test the handling of on exit handlers." ) );
+        System.out.println( Main.getRes().getString( "The Wrapper should restart the JVM when it detects and exit code of " ) );
+        System.out.println( Main.getRes().getString( "  1, 2, or any code except 3.  It will then shutdown if it detects " ) );
+        System.out.println( Main.getRes().getString( "  an exit code of 3." ) );
         System.out.println();
         
         int exitCode = WrapperManager.getJVMId();
@@ -34,18 +34,16 @@ public class OnExit {
         {
         case 1:
         case 2:
-            System.out.println( "Stopping the JVM with an exit code of " + exitCode + ", the " );
-            System.out.println( " Wrapper should restart." );
+            System.out.println( Main.getRes().getString( "Stopping the JVM with an exit code of {0},\nthe Wrapper should restart.", new Integer( exitCode ) ) );
             break;
             
         case 3:
-            System.out.println( "Stopping the JVM with an exit code of " + exitCode + ", the " );
-            System.out.println( " Wrapper should stop." );
+        	System.out.println( Main.getRes().getString( "Stopping the JVM with an exit code of {0},\nthe Wrapper should stop.", new Integer( exitCode ) ) );
             break;
             
         default:
-            System.out.println( "The Wrapper should have stopped on the previous exitCode 3." );
-            System.out.println( " We should not be here." );
+            System.out.println( Main.getRes().getString( "The Wrapper should have stopped on the previous exitCode 3." ) );
+            System.out.println( Main.getRes().getString( "We should not be here." ) );
             break;
         }
         WrapperManager.stop( exitCode );

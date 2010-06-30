@@ -129,7 +129,7 @@ public interface WrapperManagerMBean
     
     /**
      * Tells the native wrapper that the JVM wants to restart, then informs
-     *	all listeners that the JVM is about to shutdown before killing the JVM.
+     * all listeners that the JVM is about to shutdown before killing the JVM.
      * <p>
      * The restart is actually performed in a background thread allowing JMX
      *  a chance to respond to the client.
@@ -138,7 +138,7 @@ public interface WrapperManagerMBean
     
     /**
      * Tells the native wrapper that the JVM wants to shut down, then informs
-     *	all listeners that the JVM is about to shutdown before killing the JVM.
+     * all listeners that the JVM is about to shutdown before killing the JVM.
      * <p>
      * The stop is actually performed in a background thread allowing JMX
      *  a chance to respond to the client.

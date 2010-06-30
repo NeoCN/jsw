@@ -14,7 +14,6 @@ package org.tanukisoftware.wrapper;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.text.MessageFormat;
 
 /**
  * A WrapperProcess is returned by a call to WrapperManager.exec and can
@@ -186,8 +185,8 @@ public class WrapperProcess
         if ( m_exitcode == Integer.MIN_VALUE )
         {
             throw new IllegalThreadStateException( 
-                    MessageFormat.format( "The process {0} has not finished yet.",
-                            new Object[]{ new Integer( m_pid ) } ) );
+                    WrapperManager.getRes().getString( "The process {0} has not finished yet.",
+                            new Integer( m_pid ) ) );
         }
         else
         {

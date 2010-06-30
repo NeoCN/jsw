@@ -57,7 +57,7 @@ public class Memory implements Runnable
         }
         else
         {
-            System.out.println("Stopping..." );
+            System.out.println(Main.getRes().getString( "Stopping..." ) );
             // This is the shutdown hook.  Sloppy code, but simple :-)
             m_runner = null;
             return;
@@ -67,13 +67,13 @@ public class Memory implements Runnable
         long lastTest = startTime;
         try
         {
-            m_writer.write( "--> Starting Memory Log\n" );
+            m_writer.write( Main.getRes().getString( "--> Starting Memory Log\n" ) );
             m_writer.flush();
     
             while( m_runner != null )
             {
                 long now = System.currentTimeMillis();
-                System.out.println( "Running for " + ( now - startTime ) + "ms..." );
+                System.out.println( Main.getRes().getString( "Running for {0}ms...", new Long( now - startTime ) ) );
                 
                 if ( now - lastTest > 15000 )
                 {
@@ -83,9 +83,9 @@ public class Memory implements Runnable
                     long freeMemory = rt.freeMemory();
                     long usedMemory = totalMemory - freeMemory;
                     
-                    m_writer.write( "total memory=" + pad( totalMemory, 10 )
-                        + ", used=" + pad( usedMemory, 10 )
-                        + ", free=" + pad( freeMemory, 10 ) + "\n" );
+                    m_writer.write( Main.getRes().getString( "total memory=" ) + pad( totalMemory, 10 )
+                        + Main.getRes().getString( ", used=" ) + pad( usedMemory, 10 )
+                        + Main.getRes().getString( ", free=" ) + pad( freeMemory, 10 ) + "\n" );
                     m_writer.flush();
                     
                     lastTest = now;
@@ -100,7 +100,7 @@ public class Memory implements Runnable
                 }
             }
             
-            m_writer.write( "<-- Stopping Memory Log\n" );
+            m_writer.write( Main.getRes().getString( "<-- Stopping Memory Log\n" ) );
             m_writer.flush();
             m_writer.close();
         }
@@ -129,7 +129,7 @@ public class Memory implements Runnable
      *-------------------------------------------------------------*/
     public static void main(String[] args)
     {
-        System.out.println("Memory Tester Running...");
+        System.out.println( Main.getRes().getString( "Memory Tester Running...") );
         
         // Locate the add and remove shutdown hook methods using reflection so
         //  that this class can be compiled on 1.2.x versions of java.
@@ -138,7 +138,7 @@ public class Memory implements Runnable
             addShutdownHookMethod =
                 Runtime.class.getMethod("addShutdownHook", new Class[] {Thread.class});
         } catch (NoSuchMethodException e) {
-            System.out.println("Shutdown hooks not supported by current JVM.");
+            System.out.println( Main.getRes().getString( "Shutdown hooks not supported by current JVM.") );
             addShutdownHookMethod = null;
         }
         
@@ -162,9 +162,9 @@ public class Memory implements Runnable
             try {
                 addShutdownHookMethod.invoke(runtime, new Object[] {hook});
             } catch (IllegalAccessException e) {
-                System.out.println("Unable to register shutdown hook: " + e.getMessage());
+                System.out.println( Main.getRes().getString( "Unable to register shutdown hook: {0}", e.getMessage() ) );
             } catch (InvocationTargetException e) {
-                System.out.println("Unable to register shutdown hook: " + e.getMessage());
+                System.out.println( Main.getRes().getString( "Unable to register shutdown hook: {0}", e.getMessage() ) );
             }
         }
         

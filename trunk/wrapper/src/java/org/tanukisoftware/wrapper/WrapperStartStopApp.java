@@ -147,13 +147,13 @@ public class WrapperStartStopApp
         
         // Set up some log channels
         m_outInfo = new WrapperPrintStream( System.out, "WrapperStartStopApp: " );
-        m_outError = new WrapperPrintStream( System.out, "WrapperStartStopApp: " );
+        m_outError = new WrapperPrintStream( System.out, "WrapperStartStopApp Error: " );
         m_outDebug = new WrapperPrintStream( System.out, "WrapperStartStopApp Debug: " );
         
         // Get the class name of the application
         if ( args.length < 5 )
         {
-            m_outError.println( "Not enough argments.  Minimum 5 required." );
+            m_outError.println( WrapperManager.getRes().getString( "Not enough argments.  Minimum 5 required." ) );
             showUsage();
             WrapperManager.stop( 1 );
             return;  // Will not get here
@@ -170,7 +170,7 @@ public class WrapperStartStopApp
         int stopArgBase = 2 + startArgs.length;
         if ( args.length < stopArgBase + 3 )
         {
-            m_outError.println( "Not enough argments. Minimum 3 after start arguments." );
+            m_outError.println( WrapperManager.getRes().getString( "Not enough argments. Minimum 3 after start arguments." ) );
             showUsage();
             WrapperManager.stop( 1 );
             return;  // Will not get here
@@ -188,7 +188,8 @@ public class WrapperStartStopApp
         }
         else
         {
-            m_outError.println( "The stop_wait argument must be either true or false." );
+            m_outError.println( WrapperManager.getRes().getString(
+                    "The stop_wait argument must be either true or false." ) );
             showUsage();
             WrapperManager.stop( 1 );
             return;  // Will not get here
@@ -238,12 +239,12 @@ public class WrapperStartStopApp
         {
             if ( WrapperManager.isDebugEnabled() )
             {
-                m_outDebug.println( "invoking start main method" );
+                m_outDebug.println( WrapperManager.getRes().getString( "invoking start main method" ) );
             }
             m_startMainMethod.invoke( null, new Object[] { m_startMainArgs } );
             if ( WrapperManager.isDebugEnabled() )
             {
-                m_outDebug.println( "start main method completed" );
+                m_outDebug.println( WrapperManager.getRes().getString( "start main method completed" ) );
             }
             
             synchronized(this)
@@ -276,7 +277,8 @@ public class WrapperStartStopApp
         // If we get here, then an error was thrown.  If this happened quickly 
         // enough, the start method should be allowed to shut things down.
         m_outInfo.println();
-        m_outError.println( "Encountered an error running start main: " + t );
+        m_outError.println( WrapperManager.getRes().getString(
+                "Encountered an error running start main: {0}", t ) );
 
         // We should print a stack trace here, because in the case of an 
         // InvocationTargetException, the user needs to know what exception
@@ -330,8 +332,8 @@ public class WrapperStartStopApp
             maxLoops = Integer.MAX_VALUE;
             if ( WrapperManager.isDebugEnabled() )
             {
-                m_outDebug.println(
-                    "start(args) Will wait indefinitely for the main method to complete." );
+                m_outDebug.println( WrapperManager.getRes().getString(
+                    "start(args) Will wait indefinitely for the main method to complete." ) );
             }
         }
         else
@@ -339,8 +341,9 @@ public class WrapperStartStopApp
             maxLoops = maxStartMainWait; // 1s loops.
             if ( WrapperManager.isDebugEnabled() )
             {
-                m_outDebug.println( "start(args) Will wait up to " + maxLoops
-                    + " seconds for the main method to complete." );
+                m_outDebug.println( WrapperManager.getRes().getString(
+                "start(args) Will wait up to {0} seconds for the main method to complete.",
+                    new Integer(maxLoops) ) );
             }
         }
         
@@ -397,8 +400,9 @@ public class WrapperStartStopApp
             //  main method.
             if ( WrapperManager.isDebugEnabled() )
             {
-                m_outDebug.println( "start(args) end.  Main Completed="
-                    + m_mainComplete + ", exitCode=" + m_mainExitCode );
+                m_outDebug.println( WrapperManager.getRes().getString(
+                        "start(args) end.  Main Completed={0}, exitCode={1}",
+                        new Boolean(m_mainComplete), m_mainExitCode ) );
             }
             return m_mainExitCode;
         }
@@ -411,7 +415,7 @@ public class WrapperStartStopApp
     {
         if ( WrapperManager.isDebugEnabled() )
         {
-            m_outDebug.println( "stop(" + exitCode + ")" );
+            m_outDebug.println(WrapperManager.getRes().getString( "stop({0})", new Integer( exitCode ) ) );
         }
         
         // Execute the main method in the stop class
@@ -420,12 +424,12 @@ public class WrapperStartStopApp
         {
             if ( WrapperManager.isDebugEnabled() )
             {
-                m_outDebug.println( "invoking stop main method" );
+                m_outDebug.println( WrapperManager.getRes().getString( "invoking stop main method" ) );
             }
             m_stopMainMethod.invoke( null, new Object[] { m_stopMainArgs } );
             if ( WrapperManager.isDebugEnabled() )
             {
-                m_outDebug.println( "stop main method completed" );
+                m_outDebug.println( WrapperManager.getRes().getString( "stop main method completed" ) );
             }
             
             if ( m_stopWait )
@@ -444,8 +448,9 @@ public class WrapperStartStopApp
                 {
                     if ( WrapperManager.isDebugEnabled() )
                     {
-                        m_outDebug.println( "stopping.  Waiting for "
-                            + ( threadCnt - systemThreadCount ) + " threads to complete." );
+                        m_outDebug.println( WrapperManager.getRes().getString(
+                                "stopping.  Waiting for {0} threads to complete.",
+                            new Integer( threadCnt - systemThreadCount ) ) );
                     }
                     try
                     {
@@ -474,7 +479,8 @@ public class WrapperStartStopApp
         }
         
         // If we get here, then an error was thrown.
-        m_outError.println( "Encountered an error running stop main: " + t );
+        m_outError.println( WrapperManager.getRes().getString(
+                "Encountered an error running stop main: {0}", t ) );
 
         // We should print a stack trace here, because in the case of an 
         // InvocationTargetException, the user needs to know what exception
@@ -498,13 +504,14 @@ public class WrapperStartStopApp
             && ( WrapperManager.isLaunchedAsService() || WrapperManager.isIgnoreUserLogoffs() ) )
         {
             // Ignore
-            m_outInfo.println( "User logged out.  Ignored." );
+            m_outInfo.println( WrapperManager.getRes().getString( "User logged out.  Ignored." ) );
         }
         else
         {
             if ( WrapperManager.isDebugEnabled() )
             {
-                m_outDebug.println( "controlEvent(" + event + ") Stopping" );
+                m_outDebug.println( WrapperManager.getRes().getString(
+                        "controlEvent({0}) Stopping", new Integer( event ) ) );
             }
             WrapperManager.stop( 0 );
             // Will not get here.
@@ -577,21 +584,24 @@ public class WrapperStartStopApp
         }
         catch ( ClassNotFoundException e )
         {
-            m_outError.println( "Unable to locate the class " + className + ": " + e );
+            m_outError.println( WrapperManager.getRes().getString(
+                    "Unable to locate the class {0}: {1}", className, e ) );
             showUsage();
             WrapperManager.stop( 1 );
             return null;  // Will not get here
         }
         catch ( ExceptionInInitializerError e )
         {
-            m_outError.println( "Class " + className + " found but could not be initialized due to:" );
+            m_outError.println( WrapperManager.getRes().getString(
+                    "Class {0} found but could not be initialized due to:", className ) );
             e.printStackTrace( m_outError );
             WrapperManager.stop( 1 );
             return null;  // Will not get here
         }
         catch ( LinkageError e )
         {
-            m_outError.println( "Class " + className + " found but could not be initialized: " + e );
+            m_outError.println( WrapperManager.getRes().getString(
+                    "Class {0} found but could not be initialized: {1}", className , e ) );
             WrapperManager.stop( 1 );
             return null;  // Will not get here
         }
@@ -607,16 +617,16 @@ public class WrapperStartStopApp
         }
         catch ( NoSuchMethodException e )
         {
-            m_outError.println( "Unable to locate a public static main method in "
-                + "class " + className + ": " + e );
+            m_outError.println( WrapperManager.getRes().getString(
+                    "Unable to locate a public static main method in class {0}: {1}", className, e ) );
             showUsage();
             WrapperManager.stop( 1 );
             return null;  // Will not get here
         }
         catch ( SecurityException e )
         {
-            m_outError.println( "Unable to locate a public static main method in "
-                + "class " + className + ": " + e );
+            m_outError.println( WrapperManager.getRes().getString(
+                    "Unable to locate a public static main method in class {0}: {1}", className, e ) );
             showUsage();
             WrapperManager.stop( 1 );
             return null;  // Will not get here
@@ -626,8 +636,9 @@ public class WrapperStartStopApp
         int modifiers = mainMethod.getModifiers();
         if ( !( Modifier.isPublic( modifiers ) && Modifier.isStatic( modifiers ) ) )
         {
-            m_outError.println( "The main method in class " + className
-                + " must be declared public and static." );
+            m_outError.println( WrapperManager.getRes().getString(
+                    "The main method in class {0} must be declared public and static.",
+                     className  ) );
             showUsage();
             WrapperManager.stop( 1 );
             return null;  // Will not get here
@@ -646,14 +657,16 @@ public class WrapperStartStopApp
         }
         catch ( NumberFormatException e )
         {
-            m_outError.println( "Illegal argument count: " + args[argBase] );
+            m_outError.println( WrapperManager.getRes().getString(
+                    "Illegal argument count: {0}", args[argBase] ) );
             showUsage();
             WrapperManager.stop( 1 );
             return null;  // Will not get here
         }
         if ( argCount < 0 )
         {
-            m_outError.println( "Illegal argument count: " + args[argBase] );
+            m_outError.println( WrapperManager.getRes().getString(
+                    "Illegal argument count: {0}", args[argBase] ) );
             showUsage();
             WrapperManager.stop( 1 );
             return null;  // Will not get here
@@ -662,8 +675,9 @@ public class WrapperStartStopApp
         // Make sure that there are enough arguments in the array.
         if ( args.length < argBase + 1 + argCount )
         {
-            m_outError.println( "Not enough argments.  Argument count of "
-                + argCount + " was specified." );
+            m_outError.println( WrapperManager.getRes().getString(
+                    "Not enough argments.  Argument count of {0} was specified.",
+                new Integer( argCount) ) );
             showUsage();
             WrapperManager.stop( 1 );
             return null;  // Will not get here
@@ -683,42 +697,41 @@ public class WrapperStartStopApp
     {
         // Show this output without headers.
         System.out.println();
-        System.out.println(
-            "WrapperStartStopApp Usage:" );
-        System.out.println(
-            "  java org.tanukisoftware.wrapper.WrapperStartStopApp {start_class} {start_arg_count} "
-            + "[start_arguments] {stop_class} {stop_wait} {stop_arg_count} [stop_arguments]" );
+        System.out.println( WrapperManager.getRes().getString(
+            "WrapperStartStopApp Usage:" ) );
+        System.out.println( WrapperManager.getRes().getString(
+            "  java org.tanukisoftware.wrapper.WrapperStartStopApp {start_class} {start_arg_count} [start_arguments] {stop_class} {stop_wait} {stop_arg_count} [stop_arguments]" ) );
         System.out.println();
-        System.out.println(
-            "Where:" );
-        System.out.println(
-            "  start_class:     The fully qualified class name to run to start the " );
-        System.out.println(
-            "                   application." );
-        System.out.println(
-            "  start_arg_count: The number of arguments to be passed to the start class's " );
-        System.out.println(
-            "                   main method." );
-        System.out.println(
-            "  start_arguments: The arguments that would normally be passed to the start " );
-        System.out.println(
-            "                   class application." );
-        System.out.println(
-            "  stop_class:      The fully qualified class name to run to stop the " );
-        System.out.println(
-            "                   application." );
-        System.out.println(
-            "  stop_wait:       When stopping, should the Wrapper wait for all threads to " );
-        System.out.println(
-            "                   complete before exiting (true/false)." );
-        System.out.println(
-            "  stop_arg_count:  The number of arguments to be passed to the stop class's " );
-        System.out.println(
-            "                   main method." );
-        System.out.println(
-            "  stop_arguments:  The arguments that would normally be passed to the stop " );
-        System.out.println(
-            "                   class application." );
+        System.out.println( WrapperManager.getRes().getString(
+            "Where:" ) );
+        System.out.println( WrapperManager.getRes().getString(
+            "  start_class:     The fully qualified class name to run to start the " ) );
+        System.out.println( WrapperManager.getRes().getString(
+            "                   application." ) );
+        System.out.println( WrapperManager.getRes().getString(
+            "  start_arg_count: The number of arguments to be passed to the start class's " ) );
+        System.out.println( WrapperManager.getRes().getString(
+            "                   main method." ) );
+        System.out.println( WrapperManager.getRes().getString(
+            "  start_arguments: The arguments that would normally be passed to the start " ) );
+        System.out.println( WrapperManager.getRes().getString(
+            "                   class application." ) );
+        System.out.println( WrapperManager.getRes().getString(
+            "  stop_class:      The fully qualified class name to run to stop the " ) );
+        System.out.println( WrapperManager.getRes().getString(
+            "                   application." ) );
+        System.out.println( WrapperManager.getRes().getString(
+            "  stop_wait:       When stopping, should the Wrapper wait for all threads to " ) );
+        System.out.println( WrapperManager.getRes().getString(
+            "                   complete before exiting (true/false)." ) );
+        System.out.println( WrapperManager.getRes().getString(
+            "  stop_arg_count:  The number of arguments to be passed to the stop class's " ) );
+        System.out.println( WrapperManager.getRes().getString(
+            "                   main method." ) );
+        System.out.println( WrapperManager.getRes().getString(
+            "  stop_arguments:  The arguments that would normally be passed to the stop " ) );
+        System.out.println( WrapperManager.getRes().getString(
+            "                   class application." ) );
     }
     
     /*---------------------------------------------------------------

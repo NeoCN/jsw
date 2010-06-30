@@ -40,13 +40,13 @@ public class PercentOutput {
      * Main Method
      *-------------------------------------------------------------*/
     public static void main(String[] args) {
-        System.out.println("Starting Test...");
-        System.out.println("%");
+        System.out.println( Main.getRes().getString( "Starting Test..." ) );
+        System.out.println( "%");
         System.out.println("%%");
         System.out.println("%s");
         System.out.println("%d");
         System.out.println("\\%s%%");
-        System.out.println("Test Complete...");
+        System.out.println( Main.getRes().getString( "Test Complete..." ) );
     }
 }
 
