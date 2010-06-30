@@ -89,11 +89,11 @@ public class MailDialog extends JDialog
 
         this.getContentPane().setLayout( new java.awt.GridBagLayout() );
 
-        this.setTitle( "Wrapper Demo App: Event Mails" );
+        this.setTitle( DemoApp.getRes().getString( "Wrapper Demo App: Event Mails" ) );
 
         jPanel1.setLayout( new java.awt.GridBagLayout() );
 
-        jPanel2.setBorder( javax.swing.BorderFactory.createTitledBorder( "EventTypes" ) );
+        jPanel2.setBorder( javax.swing.BorderFactory.createTitledBorder( DemoApp.getRes().getString( "EventTypes" ) ) );
         jPanel2.setAlignmentX( 0.0F );
         jPanel2.setAlignmentY( 0.0F );
         jPanel2.setMinimumSize( new java.awt.Dimension( 350, 61 ) );
@@ -196,7 +196,7 @@ public class MailDialog extends JDialog
 
         jPanel1.add( jPanel2, new java.awt.GridBagConstraints() );
 
-        jPanel3.setBorder( javax.swing.BorderFactory.createTitledBorder( "Mail Setup" ) );
+        jPanel3.setBorder( javax.swing.BorderFactory.createTitledBorder( DemoApp.getRes().getString( "Mail Setup" ) ) );
         jPanel3.setLayout( new java.awt.GridBagLayout() );
 
         jTextField1.setColumns( 20 );
@@ -208,14 +208,14 @@ public class MailDialog extends JDialog
         gridBagConstraints.gridy = 0;
         jPanel3.add( jTextField1, gridBagConstraints );
 
-        jLabel1.setText( "Sender:" );
+        jLabel1.setText( DemoApp.getRes().getString( "Sender:" ) );
 
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 0;
         jPanel3.add( jLabel1, gridBagConstraints );
 
-        jCheckBox8.setText( "Attach Logfile" );
+        jCheckBox8.setText( DemoApp.getRes().getString( "Attach Logfile" ) );
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 2;
         gridBagConstraints.gridy = 0;
@@ -223,7 +223,7 @@ public class MailDialog extends JDialog
         gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
         jPanel3.add( jCheckBox8, gridBagConstraints );
 
-        jLabel2.setText( "Recipient:" );
+        jLabel2.setText( DemoApp.getRes().getString( "Recipient:" ) );
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 1;
@@ -231,7 +231,7 @@ public class MailDialog extends JDialog
 
         jTextField2.setColumns( 30 );
         jTextField2.setText( WrapperManager.getProperties().getProperty( "wrapper.event.default.email.recipient" ) );
-        jTextField2.setToolTipText( "Please separate mulitple recipients with a semicolon ';'" );
+        jTextField2.setToolTipText( DemoApp.getRes().getString( "Please separate mulitple recipients with a semicolon '';''" ) );
 
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
@@ -269,7 +269,7 @@ public class MailDialog extends JDialog
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 1;
         jPanel1.add( jPanel3, gridBagConstraints );
-        jButton1.setText( "OK" );
+        jButton1.setText( DemoApp.getRes().getString( "OK" ) );
         jButton1.addActionListener( new ActionListener()
         {
             public void actionPerformed( ActionEvent e )
@@ -280,7 +280,7 @@ public class MailDialog extends JDialog
                 {
                     if ( jTextField1.getText().length() == 0 || jTextField2.getText().length() == 0 || jTextField3.getText().length() == 0 || jTextField4.getText().length() == 0 )
                     {
-                        JOptionPane.showMessageDialog( MailDialog.this, "All text fields need to be filled out!", "Input missing!", JOptionPane.OK_OPTION );
+                        JOptionPane.showMessageDialog( MailDialog.this, DemoApp.getRes().getString( "All text fields need to be filled out!" ), DemoApp.getRes().getString( "Input missing!" ), JOptionPane.OK_OPTION );
                     }
                     else
                     {
@@ -352,13 +352,13 @@ public class MailDialog extends JDialog
                 }
                 else
                 {
-                    JOptionPane.showMessageDialog( MailDialog.this, "Please select at least one event!", "Input missing!", JOptionPane.OK_OPTION );
+                    JOptionPane.showMessageDialog( MailDialog.this, DemoApp.getRes().getString( "Please select at least one event!" ), DemoApp.getRes().getString( "Input missing!" ), JOptionPane.OK_OPTION );
                 }
             }
         } );
         jPanel4.add( jButton1 );
 
-        jButton2.setText( "Cancel" );
+        jButton2.setText( DemoApp.getRes().getString( "Cancel" ) );
         jButton2.addActionListener( new ActionListener()
         {
 

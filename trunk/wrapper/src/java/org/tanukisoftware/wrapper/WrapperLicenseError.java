@@ -8,7 +8,7 @@ package org.tanukisoftware.wrapper;
  * This software is the proprietary information of Tanuki Software.
  * You shall use it only in accordance with the terms of the
  * license agreement you entered into with Tanuki Software.
- * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
+ * http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
  */
 
 public class WrapperLicenseError

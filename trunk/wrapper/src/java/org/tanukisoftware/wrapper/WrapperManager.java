@@ -8,7 +8,7 @@ package org.tanukisoftware.wrapper;
  * This software is the proprietary information of Tanuki Software.
  * You shall use it only in accordance with the terms of the
  * license agreement you entered into with Tanuki Software.
- * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
+ * http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
  * 
  * 
  * Portions of the Software have been derived from source code
@@ -28,12 +28,6 @@ package org.tanukisoftware.wrapper;
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
  */
-
-import java.lang.management.LockInfo;
-import java.lang.management.MonitorInfo;
-import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadInfo;
-import java.lang.management.ThreadMXBean;
 
 import java.io.DataInputStream;
 import java.io.File;
@@ -186,6 +180,8 @@ public final class WrapperManager
     public static final int WRAPPER_LOG_LEVEL_FATAL      = 6;
     /** Log message at advice log level. */
     public static final int WRAPPER_LOG_LEVEL_ADVICE     = 7;
+    /** Log message at notice log level. */
+    public static final int WRAPPER_LOG_LEVEL_NOTICE     = 8;
     
     /** Service Control code which can be sent to start a service. */
     public static final int SERVICE_CONTROL_CODE_START       = 0x10000;
@@ -306,7 +302,7 @@ public final class WrapperManager
     /** The lowest configured log level in the Wrapper's configuration.  This 
      *   is set to a high value by default to disable all logging if the
      *   Wrapper does not register its low level or is not present. */
-    private static int m_lowLogLevel = WRAPPER_LOG_LEVEL_ADVICE + 1;
+    private static int m_lowLogLevel = WRAPPER_LOG_LEVEL_NOTICE + 1;
     
     /** The maximum amount of time in ms to allow to pass without the JVM
      *   pinging the server before the JVM is terminated to allow a resynch. */
@@ -1013,7 +1009,8 @@ public final class WrapperManager
     private static native WrapperWin32Service nativeSendServiceControlCode( byte[] serviceName, int controlCode );
     private static native WrapperProcess nativeExec( String[] cmdArray, String cmdLine, WrapperProcessConfig config, boolean allowCWDOnSpawn );
     private static native String nativeWrapperGetEnv( String val ) throws NullPointerException;
-    private static native WrapperResources nativeLoadWrapperResources(String domain, String folder);
+    private static native WrapperResources nativeLoadWrapperResources(String domain, String folder, boolean makeActive);
+    private static native boolean nativeCheckDeadLocks();
     
     /*---------------------------------------------------------------
      * Methods
@@ -1154,12 +1151,12 @@ public final class WrapperManager
             Class classMBeanServer = Class.forName( "javax.management.MBeanServer" );
             Class classObjectName = Class.forName( "javax.management.ObjectName" );
             Method methodGetPlatformMBeanServer =
-                classManagementFactory.getMethod( "getPlatformMBeanServer", null );
+                classManagementFactory.getMethod( "getPlatformMBeanServer", (Class[])null );
             Constructor constructorObjectName =
                 classObjectName.getConstructor( new Class[] {String.class} );
             Method methodRegisterMBean = classMBeanServer.getMethod(
                 "registerMBean", new Class[] {Object.class, classObjectName} );
-            Object mbs = methodGetPlatformMBeanServer.invoke( null, null );
+            Object mbs = methodGetPlatformMBeanServer.invoke( (Object)null, (Object[])null );
             Object oName = constructorObjectName.newInstance( new Object[] {name} );
             methodRegisterMBean.invoke( mbs, new Object[] {mbean, oName} );
             
@@ -1354,8 +1351,8 @@ public final class WrapperManager
         if ( m_libraryOK )
         {
             // Try reloading the resources once the library is initialized so we get actual localized content.
-            m_res = loadWrapperResources( System.getProperty( "wrapper.lang.domain") + "jni",
-                WrapperSystemPropertyUtil.getStringProperty( "wrapper.lang.folder", "../lang" ) );
+            m_res = loadWrapperResourcesInner( System.getProperty( "wrapper.lang.domain") + "jni",
+                WrapperSystemPropertyUtil.getStringProperty( "wrapper.lang.folder", "../lang" ), true );
             
             if ( m_debug )
             {
@@ -1645,16 +1642,29 @@ public final class WrapperManager
      *
      * @return The requested resource.
      */
-    public static WrapperResources loadWrapperResources( String domain, String folder )
+    private static WrapperResources loadWrapperResourcesInner( String domain, String folder, boolean makeActive )
     {
         try 
         {
-            return nativeLoadWrapperResources( domain, folder );
+            return nativeLoadWrapperResources( domain, folder, makeActive );
         }
         catch ( UnsatisfiedLinkError e )
         {
             return new WrapperResources();
         }
+    }
+    
+    /**
+     * Loads a WrapperResources based on the current locale of the JVM.
+     *
+     * @param domain Domain of the resource.
+     * @param folder Location of the resource.
+     *
+     * @return The requested resource.
+     */
+    public static WrapperResources loadWrapperResources( String domain, String folder )
+    {
+        return loadWrapperResourcesInner( domain, folder, false );
     }
     
     /**
@@ -1848,12 +1858,12 @@ public final class WrapperManager
     public static WrapperProcess exec( String command, WrapperProcessConfig config )
         throws SecurityException, IOException, NullPointerException, IllegalArgumentException, WrapperJNIError, WrapperLicenseError, UnsatisfiedLinkError
     {  
-        if ( command == null || command.length() == 0 )
+        if ( ( command == null ) || ( command.length() == 0 ) )
         {
-            throw new IllegalArgumentException( getRes().getString( "no command specified." ) );
+            throw new IllegalArgumentException( getRes().getString( "No command specified." ) );
         }
 
-        return exec( null,command, config );
+        return exec( null, command, config );
     }
 
     /**
@@ -1955,31 +1965,35 @@ public final class WrapperManager
     public static WrapperProcess exec( String[] cmdArray, WrapperProcessConfig config )
         throws SecurityException, IOException, NullPointerException, IndexOutOfBoundsException, IllegalArgumentException, WrapperJNIError, WrapperLicenseError, UnsatisfiedLinkError
     {
-       
             return exec( cmdArray, null, config );
-        
-
     }
 
-    private static WrapperProcess exec(String[] cmdArray, String cmdLine, WrapperProcessConfig config )
+    /**
+     * Executes an external command.
+     */
+    private static WrapperProcess exec( String[] cmdArray, String cmdLine, WrapperProcessConfig config )
         throws SecurityException, IOException, NullPointerException, IndexOutOfBoundsException, IllegalArgumentException, WrapperJNIError, WrapperLicenseError, UnsatisfiedLinkError {
+        
+        // If the cmdArray parameter is null then the cmdLine will be parsed into an a cmdArray.
+        //  Then both the cmdArray and cmdLine will be passed off to the native code.
+        //  The cmdLine may be null.
         
         if ( !isProfessionalEdition() )
         {
             throw new WrapperLicenseError( getRes().getString( "Requires the Professional Edition." ) );
         }
         
-        if ( cmdArray == null && cmdLine == null )
+        if ( ( cmdArray == null ) && ( cmdLine == null ) )
         {
             throw new NullPointerException( getRes().getString( "No command specified" ) );
 
         }
-        else if ( cmdArray != null && cmdArray.length == 0 )
+        else if ( ( cmdArray != null) && ( cmdArray.length == 0 ) )
         {
             throw new IndexOutOfBoundsException( getRes().getString( "cmdArray is empty" ) );
         }
         
-        if (cmdArray == null && cmdLine != null) {
+        if ( ( cmdArray == null ) && ( cmdLine != null ) ) {
             cmdArray = parseCommandLine( cmdLine );
         }
         
@@ -2044,7 +2058,7 @@ public final class WrapperManager
                     m_outDebug.println( "args[" + j+ "] = " + cmdArray[j] );
                 }
             }
-            return nativeExec( cmdArray, cmdLine, config.setEnvironment(config.getEnvironment()), WrapperSystemPropertyUtil.getBooleanProperty("wrapper.child.allowCWDOnSpawn", false ) );
+            return nativeExec( cmdArray, cmdLine, config.setEnvironment( config.getEnvironment() ), WrapperSystemPropertyUtil.getBooleanProperty( "wrapper.child.allowCWDOnSpawn", false ) );
         } else {
             throw new WrapperJNIError( getRes().getString( "Wrapper native library not loaded." ) );
         }
@@ -2430,7 +2444,7 @@ public final class WrapperManager
         try
         {
             Class c = Class.forName( "java.lang.String" );
-            java.lang.reflect.Method m = c.getDeclaredMethod( null, null );
+            java.lang.reflect.Method m = c.getDeclaredMethod( (String)null, (Class[])null );
         }
         catch( NoSuchMethodException ex )
         {
@@ -3273,7 +3287,7 @@ public final class WrapperManager
         // Make sure that the logLevel is valid to avoid problems with the
         //  command sent to the server.
         
-        if ( ( logLevel < WRAPPER_LOG_LEVEL_DEBUG ) || ( logLevel > WRAPPER_LOG_LEVEL_ADVICE ) )
+        if ( ( logLevel < WRAPPER_LOG_LEVEL_DEBUG ) || ( logLevel > WRAPPER_LOG_LEVEL_NOTICE ) )
         {
             throw new IllegalArgumentException( getRes().getString( "The specified logLevel is not valid." ) );
         }
@@ -4717,6 +4731,10 @@ public final class WrapperManager
         case WRAPPER_MSG_LOG + WRAPPER_LOG_LEVEL_ADVICE:
             name ="LOG(ADVICE)";
             break;
+    
+        case WRAPPER_MSG_LOG + WRAPPER_LOG_LEVEL_NOTICE:
+            name ="LOG(NOTICE)";
+            break;
 
         case WRAPPER_MSG_LOGFILE:
             name ="LOGFILE";
@@ -5158,17 +5176,10 @@ public final class WrapperManager
                     }
                 }
             }
-<<<<<<< .mine
             if ( m_debug )
             {
                 m_outDebug.println( getRes().getString( "Socket handler loop completed.  Disposed: {0}", ( m_disposed ? "True" : "False" ) ) );
             }
-=======
-            if ( m_debug )
-            {
-                m_outDebug.println( "Socket handler loop completed.  Disposed: " + ( m_disposed ? "True" : "False" ) );
-            }
->>>>>>> .r1581
             return;
 
         }
@@ -5181,11 +5192,7 @@ public final class WrapperManager
                     // This error happens if the socket is closed while reading:
                     // java.net.SocketException: Descriptor not a socket: JVM_recv in socket
                     //                           input stream read
-<<<<<<< .mine
                     m_outDebug.println( getRes().getString( "Closed socket (Normal): {0}", e ) );
-=======
-                    m_outDebug.println( "Closed socket (Normal): " + e );
->>>>>>> .r1581
                 }
                 else
                 {
@@ -5197,17 +5204,10 @@ public final class WrapperManager
         catch ( IOException e )
         {
             // This means that the connection was closed.  Allow this to return.
-<<<<<<< .mine
             if ( m_debug )
             {
                 m_outDebug.println( getRes().getString( "Closed socket (Normal): {0}", e ) );
             }
-=======
-            if ( m_debug )
-            {
-                m_outDebug.println( "Closed socket (Normal): " + e );
-            }
->>>>>>> .r1581
             return;
         }
     }
@@ -5321,7 +5321,6 @@ public final class WrapperManager
                     m_outError.println( getRes().getString( "Server daemon died!" ) );
                     t.printStackTrace( m_outError );
                 }
-<<<<<<< .mine
                 else
                 {
                     if ( m_debug )
@@ -5330,18 +5329,7 @@ public final class WrapperManager
                         t.printStackTrace( m_outDebug );
                     }
                 }
-=======
-                else
-                {
-                    if ( m_debug )
-                    {
-                        m_outDebug.println( "Server daemon died!" );
-                        t.printStackTrace( m_outDebug );
-                    }
-                }
->>>>>>> .r1581
             }
-<<<<<<< .mine
             finally
             {
                 if ( m_debug )
@@ -5357,23 +5345,6 @@ public final class WrapperManager
                     /* Will not get here. */
                 }
             }
-=======
-            finally
-            {
-                if ( m_debug )
-                {
-                    m_outDebug.println( "Returned from socket handler." ); 
-                }
-                // Always close the socket here.
-                closeSocket();
-                if ( !isShuttingDown() )
-                {
-                    m_outError.println( "The backend socket was closed unexpectedly.  Restart to resync with the Wrapper." );
-                    restart();
-                    /* Will not get here. */
-                }
-            }
->>>>>>> .r1581
         }
         
         // Make sure that noone is ever left waiting for this thread to start.
@@ -5493,9 +5464,7 @@ public final class WrapperManager
             boolean result = false;
             try
             {
-                m_outError.println( "Calling nativeCheckDeadLocks()..." );
-                result = innerCheckDeadLocks();
-                result |= nativeCheckDeadLocks();
+                result = nativeCheckDeadLocks();
             }
             catch ( UnsatisfiedLinkError e )
             {
@@ -5505,313 +5474,11 @@ public final class WrapperManager
                 }
                 result = false;
             }
-            finally
-            {
-                m_outError.println( "Back from nativeCheckDeadLocks() -> " + result );
-            }
             return result;
         }
         else
         {
             return false;
-        }
-    }
-    private static String INDENT = "    ";
-    private static native boolean nativeCheckDeadLocks();
-    private static boolean innerCheckDeadLocks()
-    {
-        long start = System.currentTimeMillis();
-        boolean result;
-        
-        // Resolve the output level
-        boolean fullOutput = true;
-        boolean simpleOutput = true;
-        String outputMode = getProperties().getProperty( "wrapper.check.deadlock.output" );
-        if ( outputMode != null )
-        {
-            if ( outputMode.equalsIgnoreCase( "NONE" ) )
-            {
-                fullOutput = false;
-                simpleOutput = false;
-            }
-            else if ( outputMode.equalsIgnoreCase( "SIMPLE" ) )
-            {
-                fullOutput = false;
-            }
-        }
-        
-        String jvmVersion = System.getProperty( "java.specification.version" );
-        if ( jvmVersion.compareTo( "1.5" ) >= 0 )
-        {
-            ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
-            
-            if ( ( jvmVersion.compareTo( "1.6" ) >= 0 ) && threadMXBean.isSynchronizerUsageSupported() )
-            {
-                // Java 1.6+
-                long[] threadIds = threadMXBean.findDeadlockedThreads(); // 1.6
-                if ( threadIds == null )
-                {
-                    result = false;
-                }
-                else
-                {
-                    if ( simpleOutput )
-                    {
-                        m_outError.println( getRes().getString("Found {0} deadlocked threads!", new Integer( threadIds.length ) ) );
-                        m_outError.println( "=============================" );
-                        
-                        ThreadInfo[] threadInfos = threadMXBean.getThreadInfo( threadIds, true, true );
-                        ThreadInfo threadInfo;
-                        for ( int i = 0; i < threadInfos.length; i++ )
-                        {
-                            threadInfo = threadInfos[i];
-                            if ( fullOutput )
-                            {
-                                printThreadInfo( threadInfo, jvmVersion );
-                                printLockInfo( threadInfo.getLockedSynchronizers() );
-                                m_outError.println();
-                            }
-                            else
-                            {
-                                printThreadInfoSimple( threadInfo, jvmVersion );
-                            }
-                        }
-                        
-                        m_outError.println( "=============================" );
-                    }
-                    
-                    result = true;
-                }
-                if ( m_debug )
-                {
-                    m_outDebug.println( getRes().getString("Deadlock check completed in {0} ms", new Long( System.currentTimeMillis() - start ) ) ); 
-                }
-            }
-            else
-            {
-                // Java 1.5+
-                long[] threadIds = threadMXBean.findMonitorDeadlockedThreads();
-                if ( threadIds == null )
-                {
-                    result = false;
-                }
-                else
-                {
-                    if ( simpleOutput )
-                    {
-                        m_outError.println( getRes().getString("Found {0} deadlocked threads!", new Integer( threadIds.length ) ) );
-                        m_outError.println( "=============================" );
-                        
-                        ThreadInfo[] threadInfos = threadMXBean.getThreadInfo( threadIds, Integer.MAX_VALUE );
-                        ThreadInfo threadInfo;
-                        for ( int i = 0; i < threadInfos.length; i++ )
-                        {
-                            threadInfo = threadInfos[i];
-                            if ( fullOutput )
-                            {
-                                printThreadInfo( threadInfo, jvmVersion );
-                                m_outError.println();
-                            }
-                            else
-                            {
-                                printThreadInfoSimple( threadInfo, jvmVersion );
-                            }
-                        }
-                        
-                        m_outError.println( "=============================" );
-                    }
-                    
-                    result = true;
-                }
-                if ( m_debug )
-                {
-                    m_outDebug.println( getRes().getString( "Deadlock check completed in {0} ms", new Long( System.currentTimeMillis() - start ) ) ); 
-                }
-            }
-        }
-        else
-        {
-            // Java < 1.5
-            m_outError.println( getRes().getString( "Deadlock detection not supported." ) );
-            result = false;
-        }
-        
-        return result;
-    }
-    
-    private static final String HEXPAD = "0000000000000000";
-    private static String toPaddedHexStr( String hex )
-    {
-        int hexChars = ( m_jvmBits == 64 ? 16 : 8 );
-        int len = hex.length();
-        if ( len < hexChars )
-        {
-            return HEXPAD.substring(0, hexChars - len) + hex;
-        }
-        else
-        {
-            return hex;
-        }
-    }
-    private static String toPaddedHex( int i )
-    {
-        String hex = Integer.toHexString( i );
-        return toPaddedHexStr( hex );
-    }
-    
-    private static void printThreadInfoSimple( ThreadInfo threadInfo, String jvmVersion )
-    {
-        StringBuffer sb = new StringBuffer();
-        sb.append( "\"" + threadInfo.getThreadName() + "\"" );
-        if ( threadInfo.isSuspended() )
-        {
-            sb.append( " (suspended)" );
-        }
-        if ( threadInfo.isInNative() )
-        {
-            sb.append( " (native)" );
-        }
-        sb.append( " " + threadInfo.getThreadState() );
-        
-        String lockName = threadInfo.getLockName();
-        if ( lockName != null )
-        {
-            sb.append( " waiting on" );
-            String[] lockNameParts = lockName.split( "@" );
-            if ( lockNameParts.length > 1 )
-            {
-                sb.append( " a " );
-                sb.append( lockNameParts[0] );
-            }
-            else
-            {
-                sb.append( " " );
-                sb.append( lockName );
-            }
-            
-            if ( threadInfo.getLockOwnerName() != null )
-            {
-                sb.append( " owned by \"" );
-                sb.append( threadInfo.getLockOwnerName() );
-                sb.append( "\"" );
-            }
-        }
-        
-        m_outError.println( sb.toString() );
-    }
-    
-    private static void printThread( ThreadInfo threadInfo )
-    {
-        StringBuffer sb = new StringBuffer();
-        sb.append( "\"" + threadInfo.getThreadName() + "\" tid=" + threadInfo.getThreadId() );
-        if ( threadInfo.isSuspended() )
-        {
-            sb.append( " (suspended)" );
-        }
-        if ( threadInfo.isInNative() )
-        {
-            sb.append( " (native)" );
-        }
-        m_outError.println( sb.toString() );
-        
-        sb = new StringBuffer();
-        sb.append( "  java.lang.Thread.State: " + threadInfo.getThreadState() );
-        
-        m_outError.println( sb.toString() );
-    }
-    
-    private static void printThreadInfo( ThreadInfo threadInfo, String jvmVersion )
-    {
-        printThread( threadInfo );
-        
-        Object[] monitorInfos = null;
-        if ( jvmVersion.compareTo( "1.6" ) >= 0 )
-        {
-            monitorInfos = threadInfo.getLockedMonitors();
-            if ( monitorInfos.length == 0 )
-            {
-                m_outError.println( INDENT + "(No Monitors)" );
-            }
-        }
-        
-        StackTraceElement[] stackTraceElements = threadInfo.getStackTrace();
-        for ( int i = 0; i < stackTraceElements.length; i++ )
-        {
-            StackTraceElement stackTraceElement = stackTraceElements[i];
-            m_outError.println( INDENT + "at " + stackTraceElement.toString() );
-            
-            if ( i == 0 )
-            {
-                String lockName = threadInfo.getLockName();
-                if ( lockName != null )
-                {
-                    StringBuffer sb = new StringBuffer();
-                    sb.append( INDENT + "  - waiting on" );
-                    String[] lockNameParts = lockName.split( "@" );
-                    if ( lockNameParts.length > 1 )
-                    {
-                        sb.append( " <0x" );
-                        sb.append( toPaddedHexStr( lockNameParts[1] ) );
-                        sb.append( "> (a " );
-                        sb.append( lockNameParts[0] );
-                        sb.append( ")" );
-                    }
-                    else
-                    {
-                        sb.append( " " );
-                        sb.append( lockName );
-                    }
-                    
-                    if ( threadInfo.getLockOwnerName() != null )
-                    {
-                        sb.append( " owned by \"" );
-                        sb.append( threadInfo.getLockOwnerName() );
-                        sb.append( "\" tid=" );
-                        sb.append( threadInfo.getLockOwnerId() );
-                    }
-                    
-                    m_outError.println( sb.toString() );
-                }
-            }
-            
-            if ( monitorInfos != null )
-            {
-                // 1.6
-                MonitorInfo monitorInfo;
-                for ( int j = 0; j < monitorInfos.length; j++ )
-                {
-                    monitorInfo = (MonitorInfo)monitorInfos[j];
-                    if ( monitorInfo.getLockedStackDepth() == i )
-                    {
-                        m_outError.println( INDENT + "  - locked <0x" + toPaddedHex( monitorInfo.getIdentityHashCode() ) + "> (a " + monitorInfo.getClassName() + ")" );
-                    }
-                }
-            }
-        }
-    }
-    
-    private static void printLockInfo( LockInfo[] lockInfos )
-    {
-        if ( lockInfos.length <= 0 )
-        {
-            return;
-        }
-        m_outError.println( INDENT + getRes().getString( "Locked synchronizers: count = ") + lockInfos.length );
-        
-        LockInfo lockInfo;
-        for ( int i = 0; i < lockInfos.length; i++ )
-        {
-            lockInfo = lockInfos[i];
-            
-            StringBuffer sb = new StringBuffer();
-            sb.append( INDENT );
-            sb.append( "  - locked <0x" );
-            sb.append( toPaddedHex( lockInfo.getIdentityHashCode() ) );
-            sb.append( "> (a " );
-            sb.append( lockInfo.getClassName() );
-            sb.append( ")" );
-            
-            m_outError.println( sb.toString() );
         }
     }
 }

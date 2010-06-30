@@ -18,7 +18,7 @@ public class DeadLock
         {
             public void run()
             {
-                System.out.println( "Locker-" + m_id + ": Started" );
+                System.out.println( DemoApp.getRes().getString( "Locker-{0}: Started", new Integer( m_id ) ) );
 
                 try
                 {
@@ -30,7 +30,7 @@ public class DeadLock
 
                 }
 
-                System.out.println( "Locker-" + m_id + ": Complete" );
+                System.out.println( DemoApp.getRes().getString( "Locker-{0}: Complete", new Integer( m_id ) ) );
             }
         };
         runner.start();
@@ -41,10 +41,10 @@ public class DeadLock
      *-------------------------------------------------------------*/
     private void lockSecond()
     {
-        System.out.println( "Locker-" + m_id + ": Try locking " + m_obj2.toString() + "..." );
+        System.out.println( DemoApp.getRes().getString( "Locker-{0}: Try locking {1}...", new Integer( m_id ), m_obj2.toString() ) );
         synchronized ( m_obj2 )
         {
-            System.out.println( "Locker-" + m_id + ": Oops! Locked " + m_obj2.toString() );
+            System.out.println( DemoApp.getRes().getString( "Locker-{0}: Oops! Locked {1}", new Integer( m_id ), m_obj2.toString() ) );
         }
     }
 
@@ -70,10 +70,10 @@ public class DeadLock
 
     private void lockFirst()
     {
-        System.out.println( "Locker-" + m_id + ": Locking " + m_obj1.toString() + "..." );
+        System.out.println( DemoApp.getRes().getString( "Locker-{0}: Locking {1}...", new Integer( m_id ), m_obj1.toString() ) );
         synchronized ( m_obj1 )
         {
-            System.out.println( "Locker-" + m_id + ": Locked " + m_obj1.toString() );
+            System.out.println( DemoApp.getRes().getString( "Locker-{0}: Locked {1}", new Integer( m_id ), m_obj1.toString() ) );
 
             try
             {

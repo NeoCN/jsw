@@ -8,7 +8,7 @@ package org.tanukisoftware.wrapper.test;
  * This software is the proprietary information of Tanuki Software.
  * You shall use it only in accordance with the terms of the
  * license agreement you entered into with Tanuki Software.
- * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
+ * http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
  * 
  * 
  * Portions of the Software have been derived from source code
@@ -32,34 +32,39 @@ package org.tanukisoftware.wrapper.test;
 import org.tanukisoftware.wrapper.WrapperManager;
 
 /**
- *
+ * Test case which launched several threads and lets them run for 30 seconds.
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
  */
-public class LongRunningBackgroundThreads implements Runnable {
-    private volatile int _threadCount;
+public class LongRunningBackgroundThreads
+    implements Runnable
+{
+    private volatile int m_threadCount;
     
     /*---------------------------------------------------------------
      * Runnable Method
      *-------------------------------------------------------------*/
     public void run()
     {
-        ++_threadCount;
+        m_threadCount++;
         int loops = 0;
 
-        while ( loops < 10 )
+        while ( loops < 60 )
         {
             loops++;
             System.out.println( Main.getRes().getString( "{0} loop #{1}", new Object[]{ Thread.currentThread().getName(), new Integer( loops ) } ) );
-            try {
+            try
+            {
                 Thread.sleep(500);
             }
             catch ( InterruptedException e )
             {
             }
         }
+        
         System.out.println(Main.getRes().getString( "{0} stopping", Thread.currentThread().getName() ) );
-        if ( --_threadCount <= 0 )
+        m_threadCount--;
+        if ( m_threadCount <= 0 )
         {
             System.out.println( Main.getRes().getString( "The JVM and then the wrapper should exit now.") );
         }
