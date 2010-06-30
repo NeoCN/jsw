@@ -28,7 +28,7 @@ public class AboutDialog extends JDialog
         b.add( new JLabel( "Demo Application for the Java Service Wrapper" ) );
         b.add( new JLabel( "By Tanuki Software Ltd." ) );
         final JLabel url = new JLabel();
-        url.setText( "<html><u>http://wrapper.tanukisoftware.org</u></html>" );
+        url.setText( "<html><u>http://wrapper.tanukisoftware.com</u></html>" );
         url.setForeground( Color.BLUE );
         url.addMouseListener( new MouseListener()
         {
@@ -60,13 +60,13 @@ public class AboutDialog extends JDialog
                 {
                     try
                     {
-                        Runtime.getRuntime().exec( "cmd.exe /c start http://wrapper.tanukisoftware.org" );
+                        Runtime.getRuntime().exec( "cmd.exe /c start http://wrapper.tanukisoftware.com" );
                     }
                     catch ( IOException ex )
                     {
                         try
                         {
-                            Runtime.getRuntime().exec( "firefox http://wrapper.tanukisoftware.org" );
+                            Runtime.getRuntime().exec( "firefox http://wrapper.tanukisoftware.com" );
                         }
                         catch ( IOException e1 )
                         {

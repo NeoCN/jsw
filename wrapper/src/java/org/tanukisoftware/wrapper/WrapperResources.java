@@ -8,7 +8,7 @@ package org.tanukisoftware.wrapper;
  * This software is the proprietary information of Tanuki Software.
  * You shall use it only in accordance with the terms of the
  * license agreement you entered into with Tanuki Software.
- * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
+ * http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
  */
 
 import java.text.MessageFormat;
@@ -52,7 +52,7 @@ public final class WrapperResources
         try
         {
             // close open files
-            destroyResource();
+            nativeDestroyResource();
         }
         catch ( UnsatisfiedLinkError e )
         {
@@ -67,8 +67,8 @@ public final class WrapperResources
     /*---------------------------------------------------------------
      * Native Methods
      *-------------------------------------------------------------*/
-    private native String getLocalizedString(String key);
-    private native void destroyResource();
+    private native String nativeGetLocalizedString(String key);
+    private native void nativeDestroyResource();
 
     /*---------------------------------------------------------------
      * Methods
@@ -84,7 +84,7 @@ public final class WrapperResources
     {
         try
         {
-            return this.getLocalizedString( key );
+            return nativeGetLocalizedString( key );
         }
         catch ( UnsatisfiedLinkError e )
         {

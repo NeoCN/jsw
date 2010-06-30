@@ -8,7 +8,7 @@ package org.tanukisoftware.wrapper.test;
  * This software is the proprietary information of Tanuki Software.
  * You shall use it only in accordance with the terms of the
  * license agreement you entered into with Tanuki Software.
- * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
+ * http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
  */
 
 import org.tanukisoftware.wrapper.WrapperManager;
@@ -38,7 +38,7 @@ public class OnExit {
             break;
             
         case 3:
-        	System.out.println( Main.getRes().getString( "Stopping the JVM with an exit code of {0},\nthe Wrapper should stop.", new Integer( exitCode ) ) );
+            System.out.println( Main.getRes().getString( "Stopping the JVM with an exit code of {0},\nthe Wrapper should stop.", new Integer( exitCode ) ) );
             break;
             
         default:

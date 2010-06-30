@@ -8,7 +8,7 @@ package org.tanukisoftware.wrapper.test;
  * This software is the proprietary information of Tanuki Software.
  * You shall use it only in accordance with the terms of the
  * license agreement you entered into with Tanuki Software.
- * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
+ * http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
  * 
  * 
  * Portions of the Software have been derived from source code
@@ -43,7 +43,7 @@ public class DaemonThreads implements Runnable {
     public void run() {
         m_started = true;
         while(true) {
-        	System.out.println( Main.getRes().getString( "{0} running", Thread.currentThread().getName() ) );
+            System.out.println( Main.getRes().getString( "{0} running", Thread.currentThread().getName() ) );
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {

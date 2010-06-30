@@ -8,7 +8,7 @@ package org.tanukisoftware.wrapper.test;
  * This software is the proprietary information of Tanuki Software.
  * You shall use it only in accordance with the terms of the
  * license agreement you entered into with Tanuki Software.
- * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
+ * http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
  */
 
 import java.io.File;
@@ -79,8 +79,8 @@ public class LoadedWrapperListener
             if ( WrapperManager.isDebugEnabled() )
             {
                 System.out.println(  Main.getRes().getString( 
-                		"LoadedWrapperListener: start(args) end.  Main Completed={0}, exitCode={1}",
-                		new Object[]{ new Boolean( m_mainComplete ), m_mainExitCode } ) );
+                        "LoadedWrapperListener: start(args) end.  Main Completed={0}, exitCode={1}",
+                        new Object[]{ new Boolean( m_mainComplete ), m_mainExitCode } ) );
             }
             return m_mainExitCode;
         }

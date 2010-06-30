@@ -63,7 +63,7 @@ public class DemoAppMainFrame extends JFrame implements ActionListener, WindowLi
     DemoAppMainFrame( DemoApp m_this )
     {
 
-        super( "Wrapper Demo Application" );
+        super( DemoApp.getRes().getString( "Wrapper Demo Application" ) );
         this.m_this = m_this;
         init();
         setLocationRelativeTo( null );
@@ -75,7 +75,7 @@ public class DemoAppMainFrame extends JFrame implements ActionListener, WindowLi
     {
         JMenuBar menuBar = new JMenuBar();
         JMenu menu = new JMenu( "?" );
-        JMenuItem about = new JMenuItem( "About.." );
+        JMenuItem about = new JMenuItem( DemoApp.getRes().getString( "About.." ) );
         // this.setLayout(new BorderLayout());
         about.setActionCommand( "about" );
         about.addActionListener( this );
@@ -83,10 +83,10 @@ public class DemoAppMainFrame extends JFrame implements ActionListener, WindowLi
         addWindowListener( this );
 
         JMenu jMenu1 = new JMenu();
-        jMenu1.setText( "Test" );
+        jMenu1.setText( DemoApp.getRes().getString( "Test" ) );
 
         JMenuItem jMenuItem1 = new JMenuItem();
-        jMenuItem1.setText( "Start Test" );
+        jMenuItem1.setText( DemoApp.getRes().getString( "Start Test" ) );
         jMenuItem1.setEnabled( false );
 
         jMenuItem1.setActionCommand( "start" );
@@ -94,7 +94,7 @@ public class DemoAppMainFrame extends JFrame implements ActionListener, WindowLi
         jMenu1.add( jMenuItem1 );
 
         JMenuItem jMenuItem2 = new JMenuItem();
-        jMenuItem2.setText( "Stop Test" );
+        jMenuItem2.setText( DemoApp.getRes().getString( "Stop Test" ) );
 
         jMenuItem2.setActionCommand( "finish" );
         jMenuItem2.addActionListener( this );
@@ -102,7 +102,7 @@ public class DemoAppMainFrame extends JFrame implements ActionListener, WindowLi
 
         JMenuItem jMenuItem3 = new JMenuItem();
         jMenuItem3.setAccelerator( javax.swing.KeyStroke.getKeyStroke( java.awt.event.KeyEvent.VK_F4, java.awt.event.InputEvent.ALT_MASK ) );
-        jMenuItem3.setText( "Close" );
+        jMenuItem3.setText( DemoApp.getRes().getString( "Close" ) );
         jMenuItem3.addActionListener( new ActionListener()
         {
 
@@ -135,33 +135,33 @@ public class DemoAppMainFrame extends JFrame implements ActionListener, WindowLi
 
         JTabbedPane tabbedPane = new JTabbedPane();
         // tabbedPane.setLayout(new BorderLayout());
-        tabbedPane.addTab( "Failure Detections", panel1 );
+        tabbedPane.addTab( DemoApp.getRes().getString( "Failure Detections" ), panel1 );
         tabbedPane.setMnemonicAt( 0, KeyEvent.VK_1 );
 
-        buildCommand( panel1, gridBag1, c1, "Crash", "crash", "Simulate a Application Crash" );
-        buildCommand( panel1, gridBag1, c1, "Out of Memory", "out_of_mem", "Simulate a Out Of Memory Error" );
-        buildCommand( panel1, gridBag1, c1, "Frozen", "frozen", "Simulate a Frozen JVM" );
-        buildCommand( panel1, gridBag1, c1, "DeadLock", "deadlock", "Simulate a ThreadDead Lock" );
+        buildCommand( panel1, gridBag1, c1, DemoApp.getRes().getString( "Crash" ), "crash", DemoApp.getRes().getString( "Simulate a Application Crash" ) );
+        buildCommand( panel1, gridBag1, c1, DemoApp.getRes().getString( "Out of Memory" ), "out_of_mem", DemoApp.getRes().getString( "Simulate a Out Of Memory Error" ) );
+        buildCommand( panel1, gridBag1, c1, DemoApp.getRes().getString( "Frozen" ), "frozen", DemoApp.getRes().getString( "Simulate a Frozen JVM" ) );
+        buildCommand( panel1, gridBag1, c1, DemoApp.getRes().getString( "DeadLock" ), "deadlock", DemoApp.getRes().getString( "Simulate a ThreadDead Lock" ) );
 
         JPanel panel2 = new JPanel();
         panel2.setLayout( gridBag2 );
         // panel2.setBackground( Color.yellow );
-        tabbedPane.addTab( "Feature Demo", panel2 );
+        tabbedPane.addTab( DemoApp.getRes().getString( "Feature Demo" ), panel2 );
         tabbedPane.setMnemonicAt( 1, KeyEvent.VK_2 );
-        buildCommand( panel2, gridBag2, c2, "Email", "mail", "Activates the email functionality" );
+        buildCommand( panel2, gridBag2, c2, DemoApp.getRes().getString( "Email" ), "mail", DemoApp.getRes().getString( "Activates the email functionality" ) );
 
-        buildCommand( panel2, gridBag2, c2, "WrapperExec", "exec", "Creates a managed Child Process" );
+        buildCommand( panel2, gridBag2, c2, DemoApp.getRes().getString( "WrapperExec" ), "exec", DemoApp.getRes().getString( "Creates a managed Child Process" ) );
         String os = System.getProperty( "os.name" );
 
-        if ( os.contains( "Windows" ) )
+        if ( os.indexOf( "Windows" ) >= 0 )
         {
 
-            buildCommand( panel2, gridBag2, c2, "Customization", "customize", "Creates a customized Binary of the wrapper" );
-            buildCommand( panel2, gridBag2, c2, "Service", "service", "Installs and starts this app as Windows Service" );
+            buildCommand( panel2, gridBag2, c2, DemoApp.getRes().getString( "Customization" ), "customize", DemoApp.getRes().getString( "Creates a customized Binary of the wrapper" ) );
+            buildCommand( panel2, gridBag2, c2, DemoApp.getRes().getString( "Service" ), "service", DemoApp.getRes().getString( "Installs and starts this app as Windows Service" ) );
         }
         else
         {
-            buildCommand( panel2, gridBag2, c2, "Daemon", "daemon", "Installs and starts this app as Daemon" );
+            buildCommand( panel2, gridBag2, c2, DemoApp.getRes().getString( "Daemon" ), "daemon", DemoApp.getRes().getString( "Installs and starts this app as Daemon" ) );
         }
 
         m_logTextArea = new JEditorPane();
@@ -172,7 +172,7 @@ public class DemoAppMainFrame extends JFrame implements ActionListener, WindowLi
 
         jEditorPane2.setContentType( "text/html; charset=UTF-8" );
 
-        jEditorPane2.putClientProperty( JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE );
+//        jEditorPane2.putClientProperty( JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE );
         jEditorPane2.setFont( new Font( "Dialog", 1, 14 ) );
         jEditorPane2.getDocument().putProperty( "IgnoreCharsetDirective", Boolean.TRUE );
 
@@ -181,14 +181,14 @@ public class DemoAppMainFrame extends JFrame implements ActionListener, WindowLi
         // jEditorPane2.setBackground( Color.gray );
         m_logTextArea.setEditable( false );
 
-        setMinimumSize( new java.awt.Dimension( 699, 300 ) );
+  //      setMinimumSize( new java.awt.Dimension( 699, 300 ) );
         jTabbedPane2 = new javax.swing.JTabbedPane();
         // tabbedPane.setPreferredSize(new java.awt.Dimension(400, 120));
         m_logPane = new JScrollPane( m_logTextArea );
         jScrollPane2 = new JScrollPane( jEditorPane2 );
         jTabbedPane2.setPreferredSize( new Dimension( this.getMinimumSize().width, 400 ) );
-        jTabbedPane2.addTab( "Description", jScrollPane2 );
-        jTabbedPane2.addTab( "Wrapper Output", m_logPane );
+        jTabbedPane2.addTab( DemoApp.getRes().getString( "Description" ), jScrollPane2 );
+        jTabbedPane2.addTab( DemoApp.getRes().getString( "Wrapper Output" ), m_logPane );
         getContentPane().setLayout( new BorderLayout() );
         getContentPane().add( tabbedPane, java.awt.BorderLayout.PAGE_START );
         getContentPane().add( jTabbedPane2, java.awt.BorderLayout.CENTER );
@@ -273,7 +273,7 @@ public class DemoAppMainFrame extends JFrame implements ActionListener, WindowLi
                 }
                 catch ( NullPointerException npe2 )
                 {
-                    return "<html>No description for " + action + " found...</html>";
+                    return "<html>" + DemoApp.getRes().getString( "No description for {0} found...", action ) + "</html>";
                 }
             }
             char[] buffer = new char[ 4096 ];
@@ -289,7 +289,7 @@ public class DemoAppMainFrame extends JFrame implements ActionListener, WindowLi
         {
             e.printStackTrace();
         }
-        return "<html>No description for " + action + " found...</html>";
+        return "<html>" + DemoApp.getRes().getString( "No description for {0} found...", action ) + "</html>";
     }
 
     /**************************************************************************
@@ -323,13 +323,12 @@ public class DemoAppMainFrame extends JFrame implements ActionListener, WindowLi
                 jEditorPane2.setText( getHTMLDescription( action ) );
                 jEditorPane2.setCaretPosition( 0 );
                 // Create the mask.
-                
+
                 this.jTabbedPane2.setSelectedIndex( 1 );
                 m_this.doAction( action );
             }
             else
             {
-
                 jEditorPane2.setText( getHTMLDescription( action ) );
                 jEditorPane2.setCaretPosition( 0 );
                 this.jTabbedPane2.setSelectedIndex( 1 );
@@ -361,9 +360,9 @@ public class DemoAppMainFrame extends JFrame implements ActionListener, WindowLi
     public void windowClosing( WindowEvent e )
     {
         if ( !m_this.isTestCaseRunning()
-                || JOptionPane.showConfirmDialog( this, "A test case is still running.\nDo you really want to exit and stop this one??" ) == JOptionPane.YES_OPTION )
+                || JOptionPane.showConfirmDialog( this, DemoApp.getRes().getString( "A test case is still running.\nDo you really want to exit and stop this one??" ) ) == JOptionPane.YES_OPTION )
         {
-            System.out.println( "Stopping..." );
+            System.out.println( DemoApp.getRes().getString( "Stopping..." ) );
             m_this.doAction( "finish" );
             WrapperManager.stopAndReturn( 0 );
         }

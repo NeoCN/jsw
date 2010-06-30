@@ -79,21 +79,21 @@ class CustomizeDialog extends JDialog
 
         setDefaultCloseOperation( javax.swing.WindowConstants.HIDE_ON_CLOSE );
         this.getContentPane().setLayout( new java.awt.GridBagLayout() );
-        this.setTitle( "Wrapper Demo App: Customize" );
+        this.setTitle( DemoApp.getRes().getString( "Wrapper Demo App: Customize" ) );
         jPanel1.setLayout( new java.awt.GridBagLayout() );
 
         jLabel1.setHorizontalAlignment( javax.swing.SwingConstants.RIGHT );
-        jLabel1.setText( "Target" );
+        jLabel1.setText( DemoApp.getRes().getString( "Source Binary" ) );
         jPanel1.add( jLabel1, new java.awt.GridBagConstraints() );
 
         jLabel2.setHorizontalAlignment( javax.swing.SwingConstants.RIGHT );
-        jLabel2.setText( "Icon" );
+        jLabel2.setText( DemoApp.getRes().getString(  "Icon" ) );
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 1;
         jPanel1.add( jLabel2, gridBagConstraints );
 
-        jLabel3.setText( "Splashscreen" );
+        jLabel3.setText( DemoApp.getRes().getString( "Splashscreen" ) );
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 2;
@@ -108,28 +108,25 @@ class CustomizeDialog extends JDialog
                 JFileChooser fd = new JFileChooser();
                 fd.setMultiSelectionEnabled( false );
                 fd.setCurrentDirectory( new File( "." ) );
-                fd.setDialogTitle( "Select Executable for cutomization" );
+                fd.setDialogTitle( DemoApp.getRes().getString( "Select Executable for customization" ) );
                 fd.setFileHidingEnabled( true );
-                fd.setApproveButtonText( "Load Executable" );
-                FileFilter filter = new ExtensionFilter( "Wrapper Executable (*.exe)", new String[] { "exe" } );
+                fd.setApproveButtonText( DemoApp.getRes().getString( "Load Executable" ) );
+                FileFilter filter = new ExtensionFilter( DemoApp.getRes().getString( "Wrapper Executable (*.exe)" ), new String[] { "exe" } );
                 fd.setFileFilter( filter );
                 int returnVal = fd.showOpenDialog( CustomizeDialog.this );
 
                 if ( returnVal == JFileChooser.APPROVE_OPTION )
                 {
-
                     try
                     {
                         selectedSource = fd.getSelectedFile().getCanonicalPath();
                         jTextField1.setText( selectedSource );
-                        // System.out.println( "opening " + selectedSource );
                     }
                     catch ( IOException e1 )
                     {
                         // TODO Auto-generated catch block
                         e1.printStackTrace();
                     }
-
                 }
             }
         } );
@@ -148,29 +145,25 @@ class CustomizeDialog extends JDialog
                 JFileChooser fd = new JFileChooser();
                 fd.setMultiSelectionEnabled( false );
                 fd.setCurrentDirectory( new File( "." ) );
-                fd.setDialogTitle( "Select Icon for cutomization" );
+                fd.setDialogTitle( DemoApp.getRes().getString( "Select Icon for customization" ) );
                 fd.setFileHidingEnabled( true );
-                fd.setApproveButtonText( "Load Icon" );
-                FileFilter filter = new ExtensionFilter( "Icon File (*.ico)", new String[] { "ico" } );
+                fd.setApproveButtonText( DemoApp.getRes().getString( "Load Icon" ) );
+                FileFilter filter = new ExtensionFilter( DemoApp.getRes().getString( "Icon File (*.ico)" ), new String[] { "ico" } );
                 fd.setFileFilter( filter );
                 int returnVal = fd.showOpenDialog( CustomizeDialog.this );
 
                 if ( returnVal == JFileChooser.APPROVE_OPTION )
                 {
-
                     try
                     {
                         selectedIcon = fd.getSelectedFile().getCanonicalPath();
                         jTextField2.setText( selectedIcon );
-                        // System.out.println( "opening " + selectedIcon );
-
                     }
                     catch ( IOException e1 )
                     {
                         // TODO Auto-generated catch block
                         e1.printStackTrace();
                     }
-
                 }
             }
         } );
@@ -188,28 +181,25 @@ class CustomizeDialog extends JDialog
                 JFileChooser fd = new JFileChooser();
                 fd.setMultiSelectionEnabled( false );
                 fd.setCurrentDirectory( new File( "." ) );
-                fd.setDialogTitle( "Select SplashScreen for cutomization" );
+                fd.setDialogTitle( DemoApp.getRes().getString( "Select SplashScreen for customization" ) );
                 fd.setFileHidingEnabled( true );
-                fd.setApproveButtonText( "Load SplashScreen" );
-                FileFilter filter = new ExtensionFilter( "SplashScreen File (*.bmp)", new String[] { "bmp" } );
+                fd.setApproveButtonText( DemoApp.getRes().getString( "Load SplashScreen" ) );
+                FileFilter filter = new ExtensionFilter( DemoApp.getRes().getString( "SplashScreen File (*.bmp)" ), new String[] { "bmp" } );
                 fd.setFileFilter( filter );
                 int returnVal = fd.showOpenDialog( CustomizeDialog.this );
 
                 if ( returnVal == JFileChooser.APPROVE_OPTION )
                 {
-
                     try
                     {
                         selectedSplashScreen = fd.getSelectedFile().getCanonicalPath();
                         jTextField3.setText( selectedSplashScreen );
-                        // System.out.println( "opening " + selectedIcon );
                     }
                     catch ( IOException e1 )
                     {
                         // TODO Auto-generated catch block
                         e1.printStackTrace();
                     }
-
                 }
             }
         } );
@@ -219,7 +209,7 @@ class CustomizeDialog extends JDialog
         gridBagConstraints.gridwidth = java.awt.GridBagConstraints.REMAINDER;
         jPanel1.add( jButton3, gridBagConstraints );
 
-        jButton4.setText( "Customize" );
+        jButton4.setText( DemoApp.getRes().getString( "Customize" ) );
         jButton4.addActionListener( new ActionListener()
         {
             public void actionPerformed( ActionEvent e )
@@ -228,29 +218,29 @@ class CustomizeDialog extends JDialog
                 if ( jTextField1.getText().length() == 0 || !new File( jTextField1.getText() ).exists() )
                 {
                     jTextField1.setBackground( Color.red );
-                    errorMsg = errorMsg.concat( "No valid Target Specified\n" );
+                    errorMsg = errorMsg.concat( DemoApp.getRes().getString( "No valid Source Binary Specified\n" ) );
                 }
 
                 if ( jTextField2.getText().length() != 0 && !new File( jTextField2.getText() ).exists() )
                 {
                     jTextField2.setBackground( Color.red );
-                    errorMsg = errorMsg.concat( "No valid Icon File Specified\n" );
+                    errorMsg = errorMsg.concat( DemoApp.getRes().getString( "No valid Icon File Specified\n" ) );
                 }
                 if ( jTextField3.getText().length() != 0 && !new File( jTextField3.getText() ).exists() )
                 {
                     jTextField3.setBackground( Color.red );
-                    errorMsg = errorMsg.concat( "No valid SplashScreen File Specified\n" );
+                    errorMsg = errorMsg.concat( DemoApp.getRes().getString( "No valid SplashScreen File Specified\n" ) );
                 }
                 if ( jTextField2.getText().length() == 0 && jTextField3.getText().length() == 0 )
                 {
-                    errorMsg = errorMsg.concat( "Please input at least a Icon or SplashScreen File.\n" );
+                    errorMsg = errorMsg.concat( DemoApp.getRes().getString( "Please input at least a Icon or SplashScreen File.\n" ) );
                     jTextField2.setBackground( Color.yellow );
                     jTextField3.setBackground( Color.yellow );
                 }
 
                 if ( errorMsg.length() > 0 )
                 {
-                    JOptionPane.showMessageDialog( CustomizeDialog.this, "See the following list of errors:\n" + errorMsg, "Error", JOptionPane.ERROR_MESSAGE );
+                    JOptionPane.showMessageDialog( CustomizeDialog.this, DemoApp.getRes().getString( "See the following list of errors:\n" ) + errorMsg, DemoApp.getRes().getString( "Error" ), JOptionPane.ERROR_MESSAGE );
                     return;
                 }
 
@@ -258,11 +248,11 @@ class CustomizeDialog extends JDialog
                 fd.setMultiSelectionEnabled( false );
 
                 fd.setCurrentDirectory( new File( "." ) );
-                fd.setDialogTitle( "Select destination file of the cutomization" );
+                fd.setDialogTitle( DemoApp.getRes().getString( "Select destination file of the customization" ) );
                 fd.setFileHidingEnabled( true );
 
-                fd.setApproveButtonText( "Custimize app" );
-                FileFilter filter = new ExtensionFilter( "Executable File (*.exe)", new String[] { "exe" } );
+                fd.setApproveButtonText( DemoApp.getRes().getString( "Custimize Binary" ) );
+                FileFilter filter = new ExtensionFilter( DemoApp.getRes().getString( "Executable File (*.exe)" ), new String[] { "exe" } );
                 fd.setFileFilter( filter );
 
                 int returnVal = fd.showSaveDialog( CustomizeDialog.this );
@@ -279,7 +269,7 @@ class CustomizeDialog extends JDialog
 
                         if ( selectedDestination.equals( jTextField1.getText() ) )
                         {
-                            JOptionPane.showMessageDialog( CustomizeDialog.this, "You cannot set the Source and Destination to the same File", "Error", JOptionPane.ERROR_MESSAGE );
+                            JOptionPane.showMessageDialog( CustomizeDialog.this, DemoApp.getRes().getString( "You cannot set the Source and Destination to the same File" ), DemoApp.getRes().getString( "Error" ), JOptionPane.ERROR_MESSAGE );
                             selectedDestination = "";
                         }
                         else

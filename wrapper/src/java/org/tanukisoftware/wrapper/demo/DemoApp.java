@@ -8,7 +8,7 @@ package org.tanukisoftware.wrapper.demo;
  * This software is the proprietary information of Tanuki Software.
  * You shall use it only in accordance with the terms of the
  * license agreement you entered into with Tanuki Software.
- * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
+ * http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
  * 
  * 
  * Portions of the Software have been derived from source code
@@ -52,6 +52,8 @@ import org.tanukisoftware.wrapper.WrapperManager;
 import org.tanukisoftware.wrapper.WrapperListener;
 import org.tanukisoftware.wrapper.WrapperProcess;
 import org.tanukisoftware.wrapper.WrapperProcessConfig;
+import org.tanukisoftware.wrapper.WrapperResources;
+import org.tanukisoftware.wrapper.WrapperSystemPropertyUtil;
 
 /**
  * This is a Test / Example program which can be used to test the main features
@@ -62,7 +64,7 @@ import org.tanukisoftware.wrapper.WrapperProcessConfig;
  * <p>
  * <b>NOTE</b> that in most cases you will want to use Method #1, using the
  * WrapperSimpleApp helper class to integrate your application. Please see the
- * <a href="http://wrapper.tanukisoftware.org/doc/english/integrate.html">
+ * <a href="http://wrapper.tanukisoftware.com/doc/english/integrate.html">
  * integration</a> section of the documentation for more details.
  * 
  * @author Leif Mortenson <leif@tanukisoftware.com>
@@ -76,6 +78,7 @@ public class DemoApp implements WrapperListener
     private static boolean m_isTestCaseRunning;
     private static Process m_testCase;
     private static PrintStream m_childPrintStream;
+    private static WrapperResources m_res;
 
     /*---------------------------------------------------------------
      * Constructors
@@ -101,6 +104,24 @@ public class DemoApp implements WrapperListener
         return m_isTestCaseRunning;
     }
 
+
+    public static WrapperResources getRes()
+    {
+        if ( m_res == null )
+        {
+            // Synchronize and then recheck to avoid this method always synchronizing.
+            synchronized( DemoApp.class )
+            {
+                if ( m_res == null )
+                {
+                    m_res = WrapperManager.loadWrapperResources( "wrapperTestApp",
+                        WrapperSystemPropertyUtil.getStringProperty( "wrapper.lang.folder", "../lang" ) );
+                }
+            }
+        }
+        return m_res;
+    }
+
     /*---------------------------------------------------------------
      * Inner Classes
      *-------------------------------------------------------------*/
@@ -111,13 +132,13 @@ public class DemoApp implements WrapperListener
 
     public void controlEvent( int event )
     {
-        System.out.println( "TestWrapper: controlEvent(" + event + ")" );
+        System.out.println( getRes().getString( "TestWrapper: controlEvent({0})", new Integer( event ) ) );
 
         if ( event == WrapperManager.WRAPPER_CTRL_LOGOFF_EVENT )
         {
             if ( WrapperManager.isLaunchedAsService() || WrapperManager.isIgnoreUserLogoffs() )
             {
-                System.out.println( "TestWrapper:   Ignoring logoff event" );
+                System.out.println( getRes().getString( "TestWrapper:   Ignoring logoff event" ) );
                 // Ignore
             }
             else
@@ -147,7 +168,7 @@ public class DemoApp implements WrapperListener
 */
         if ( args.length <= 0 )
         {
-            System.out.println( "Demo: An action was not specified.  Default to \"dialog\".  Use \"help\" for list of actions." );
+            System.out.println( getRes().getString( "Demo: An action was not specified.  Default to \"dialog\"." ) );
             command = "dialog";
         }
         else
@@ -156,7 +177,7 @@ public class DemoApp implements WrapperListener
         }
         if ( command.equals( "dialog" ) )
         {
-            System.out.println( "Demo: Showing dialog..." );
+            System.out.println( getRes().getString( "Demo: Showing dialog..." ) );
             try
             {
                 m_frame = new DemoAppMainFrame( this );
@@ -173,20 +194,20 @@ public class DemoApp implements WrapperListener
             }
             catch ( java.lang.InternalError e )
             {
-                System.out.println( "Demo: " );
-                System.out.println( "Demo: ERROR - Unable to display the GUI:" );
+                System.out.println( getRes().getString( "Demo: " ) );
+                System.out.println( getRes().getString( "Demo: ERROR - Unable to display the GUI:" ) );
                 System.out.println( "Demo:           " + e.toString() );
                 System.out.println( "Demo: " );
-                System.out.println( "Demo: Fall back to the \"console\" action." );
+                System.out.println( getRes().getString( "Demo: Fall back to the \"console\" action." ) );
                 command = "console";
             }
             catch ( java.awt.AWTError e )
             {
                 System.out.println( "Demo: " );
-                System.out.println( "Demo: ERROR - Unable to display the GUI:" );
+                System.out.println( getRes().getString( "Demo: ERROR - Unable to display the GUI:" ) );
                 System.out.println( "Demo:           " + e.toString() );
                 System.out.println( "Demo: " );
-                System.out.println( "Demo: Fall back to the \"console\" action." );
+                System.out.println( getRes().getString( "Demo: Fall back to the \"console\" action." ) );
                 command = "console";
             }
             catch ( java.lang.UnsupportedOperationException e )
@@ -196,10 +217,10 @@ public class DemoApp implements WrapperListener
                 if ( e.getClass().getName().equals( "java.awt.HeadlessException" ) )
                 {
                     System.out.println( "Demo: " );
-                    System.out.println( "Demo: ERROR - Unable to display the GUI:" );
+                    System.out.println( getRes().getString( "Demo: ERROR - Unable to display the GUI:" ) );
                     System.out.println( "Demo:           " + e.toString() );
                     System.out.println( "Demo: " );
-                    System.out.println( "Demo: Fall back to the \"console\" action." );
+                    System.out.println( getRes().getString( "Demo: Fall back to the \"console\" action." ) );
                     command = "console";
                 }
                 else
@@ -223,7 +244,7 @@ public class DemoApp implements WrapperListener
             }
             catch ( Exception e )
             {
-                System.out.println( "Demo: Unable to stop the action server: " + e.getMessage() );
+                System.out.println( getRes().getString( "Demo: Unable to stop the action server: {0}", e.getMessage() ) );
             }
         }
         if ( m_frame != null )
@@ -255,7 +276,7 @@ public class DemoApp implements WrapperListener
                     Thread.sleep( 3000 );
                     if ( m_isTestCaseRunning )
                     {
-                        System.out.println( "destroy!!!" );
+                        System.out.println( getRes().getString( "destroy!" ) );
                         m_testCase.destroy();
                     }
                 }
@@ -285,7 +306,7 @@ public class DemoApp implements WrapperListener
         }
         else if ( action.equals( "daemon" ) )
         {
-            System.out.println("Going to install an application as daemon - this requires root privileges");
+            System.out.println( getRes().getString( "Going to install an application as daemon - this requires root privileges" ) );
             p = Runtime.getRuntime().exec( " ../bin/testwrapper install" );
             if ( p != null )
             {
@@ -473,7 +494,7 @@ public class DemoApp implements WrapperListener
     {
         try
         {
-            throw new java.lang.OutOfMemoryError( "BANG" );
+            throw new java.lang.OutOfMemoryError( getRes().getString( "BANG" ) );
         }
         catch ( OutOfMemoryError e )
         {
@@ -491,33 +512,31 @@ public class DemoApp implements WrapperListener
      */
     public static void main( String[] args )
     {
-        System.out.println( "DemoApp: Initializing..." );
-        // Locale.setDefault( Locale.JAPANESE );
-
+        System.out.println( getRes().getString( "DemoApp: Initializing..." ) );
         WrapperManager.start( ( new DemoApp() ), args );
         if ( args.length > 0 && args[args.length - 1].compareTo( "start" ) == 0 )
         {
             BufferedReader br = new BufferedReader( new InputStreamReader( System.in ) );
             String command = "";
-            System.out.println( "Started and waiting for a command from the Demo Application" );
+            System.out.println( getRes().getString( "Started and waiting for a command from the Demo Application" ) );
             while ( command.compareToIgnoreCase( "finish" ) != 0 )
             {
                 try
                 {
                     command = br.readLine();
-                    System.out.println( "Read action: " + command );
+                    System.out.println( getRes().getString( "Read action: {0}", command ) );
 
                     if ( command.equals( "crash" ) )
                     {
                         Thread.sleep( 5000 );
-                        System.out.println( "Going to cause the JVM to crash." );
+                        System.out.println( getRes().getString( "Going to cause the JVM to crash." ) );
 
                         WrapperManager.accessViolationNative();
                     }
                     else if ( command.equals( "frozen" ) )
                     {
                         WrapperManager.appearHung();
-                        System.out.println( "Waiting until wrapper stops this jvm." );
+                        System.out.println( getRes().getString( "Waiting until wrapper stops this jvm." ) );
                         while ( true )
                         {
                         }
@@ -525,14 +544,14 @@ public class DemoApp implements WrapperListener
                     else if ( command.equals( "out_of_mem" ) )
                     {
                         int ii = 5 - 3;
-                        System.out.println( "Going to cause a Out of Memory Error" );
+                        System.out.println( getRes().getString( "Going to cause a Out of Memory Error" ) );
                         Thread.sleep( 5000 );
                         // System.out.println("got java.lang.OutOfMemoryError");
                         if ( 5 > ii )
                         {
                             getOutOfMemError();
                         }
-                        System.out.println( "Application should get restarted now..." );
+                        System.out.println( getRes().getString( "Application should get restarted now..." ) );
                         try
                         {
                             Thread.sleep( 5000 );
@@ -545,7 +564,7 @@ public class DemoApp implements WrapperListener
                     }
                     else if ( command.equals( "deadlock" ) )
                     {
-                        System.out.println( "Dead Lock Tester Running..." );
+                        System.out.println( getRes().getString( "Dead Lock Tester Running..." ) );
                         Object obj1 = new Object();
                         Object obj2 = new Object();
                         int exitCode = 1;
@@ -553,11 +572,11 @@ public class DemoApp implements WrapperListener
                         switch ( exitCode )
                         {
                             case 1:
-                                System.out.println( "2-object dead lock." );
+                                System.out.println( getRes().getString( "2-object dead lock." ) );
                                 dl.create2ObjectDeadlock();
                                 break;
                             case 2:
-                                System.out.println( "Wait then 2-object dead lock." );
+                                System.out.println( getRes().getString( "Wait then 2-object dead lock." ) );
                                 try
                                 {
                                     Thread.sleep( 10000 );
@@ -568,47 +587,47 @@ public class DemoApp implements WrapperListener
                                 dl.create2ObjectDeadlock();
                                 break;
                             case 3:
-                                System.out.println( "3-object dead lock." );
+                                System.out.println( getRes().getString( "3-object dead lock." ) );
                                 dl.create3ObjectDeadlock();
                                 break;
 
                             default:
-                                System.out.println( "Done." );
+                                System.out.println( getRes().getString( "Done." ) );
                         }
                         // Always wait a couple seconds to make sure the above
                         // threads have time to start.
                         try
                         {
-                            System.out.println( "Sleeping for 5 sec..." );
+                            System.out.println( getRes().getString( "Sleeping for 5 sec..." ) );
                             Thread.sleep( 5000 );
                         }
                         catch ( InterruptedException e )
                         {
                         }
-                        System.out.println( "Main Complete." );
+                        System.out.println( getRes().getString( "Main Complete." ) );
                     }
                     else if ( command.equals( "exec" ) )
                     {
                         try
                         {
-                            System.out.println( "Starting a simple application." );
+                            System.out.println( getRes().getString( "Starting a simple application." ) );
                             String input = "";
                            
-                            if ( System.getProperty( "os.name" ).contains( "Windows" ) )
+                            if ( System.getProperty( "os.name" ).indexOf( "Windows" ) >= 0 )
                             {
-                                input = ( String )JOptionPane.showInputDialog( m_frame, "Please enter the Command, you wish to execute:", "Child Process Execution", JOptionPane.QUESTION_MESSAGE, null, null,
+                                input = ( String )JOptionPane.showInputDialog( m_frame, getRes().getString( "Please enter the Command, you wish to execute:" ), getRes().getString( "Child Process Execution" ), JOptionPane.QUESTION_MESSAGE, null, null,
                                         ( Object )"notepad" );
                             }
                             else
                             {
                                 
-                                input = ( String )JOptionPane.showInputDialog( m_frame, "Please enter the Command, you wish to execute:", "Child Process Execution", JOptionPane.QUESTION_MESSAGE, null, null,
+                                input = ( String )JOptionPane.showInputDialog( m_frame, getRes().getString( "Please enter the Command, you wish to execute:" ), getRes().getString( "Child Process Execution" ), JOptionPane.QUESTION_MESSAGE, null, null,
                                         ( Object )"xclock" );
                             }
                             if ( input != null && input.length() > 0 )
                             {
                                 WrapperManager.exec( input, new WrapperProcessConfig().setDetached( false ) );
-                                System.out.println("Successfully executed!");
+                                System.out.println( getRes().getString( "Successfully executed!") );
                             }
                         }
                         catch ( SecurityException e )
@@ -722,7 +741,7 @@ class LoggerThread implements Runnable
         StyleConstants.setFontSize( sas, 12 );
         StyleConstants.setBold( sas, true );
 
-        if ( insString.indexOf( "STATUS |" ) >= 0 )
+        if ( insString.indexOf( "STATUS |" ) >= 0 || insString.indexOf( "NOTICE |" ) >= 0)
         {
             StyleConstants.setForeground( sas, Color.black );
             returnVal = insString.substring( 9 );

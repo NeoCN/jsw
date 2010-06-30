@@ -8,7 +8,7 @@ package org.tanukisoftware.wrapper.test;
  * This software is the proprietary information of Tanuki Software.
  * You shall use it only in accordance with the terms of the
  * license agreement you entered into with Tanuki Software.
- * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
+ * http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
  * 
  * 
  * Portions of the Software have been derived from source code
@@ -62,7 +62,7 @@ import org.tanukisoftware.wrapper.event.WrapperEventListener;
  * <p>
  * <b>NOTE</b> that in most cases you will want to use Method #1, using the
  *  WrapperSimpleApp helper class to integrate your application.  Please
- *  see the <a href="http://wrapper.tanukisoftware.org/doc/english/integrate.html">integration</a>
+ *  see the <a href="http://wrapper.tanukisoftware.com/doc/english/integrate.html">integration</a>
  *  section of the documentation for more details.
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
@@ -426,11 +426,6 @@ public class Main
         else
         {
             command = args[0];
-
-
-
-
-
         }
         
         if ( command.equals( "help" ) ) {
