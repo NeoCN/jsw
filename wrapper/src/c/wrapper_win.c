@@ -6,23 +6,23 @@
  * This software is the proprietary information of Tanuki Software.
  * You shall use it only in accordance with the terms of the
  * license agreement you entered into with Tanuki Software.
- * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
- * 
- * 
+ * http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
+ *
+ *
  * Portions of the Software have been derived from source code
  * developed by Silver Egg Technology under the following license:
- * 
+ *
  * Copyright (c) 2001 Silver Egg Technology
- * 
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without 
- * restriction, including without limitation the rights to use, 
- * copy, modify, merge, publish, distribute, sub-license, and/or 
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sub-license, and/or
  * sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following 
+ * Software is furnished to do so, subject to the following
  * conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
  */
@@ -42,10 +42,12 @@
 #include <stdlib.h>
 #include <time.h>
 #include <windows.h>
+#include <winnt.h>
 #include <sys/timeb.h>
 #include <conio.h>
 #include "psapi.h"
 
+#include "wrapper_i18n.h"
 #include "resource.h"
 #include "wrapper.h"
 #include "wrapperinfo.h"
@@ -64,23 +66,19 @@ typedef struct _TOKEN_ELEVATION {
 /*****************************************************************************
  * Win32 specific variables and procedures                                   *
  *****************************************************************************/
-SERVICE_STATUS          ssStatus;       
+SERVICE_STATUS          ssStatus;
 SERVICE_STATUS_HANDLE   sshStatusHandle;
 
 #define SYSTEM_PATH_MAX_LEN 256
-static char *systemPath[SYSTEM_PATH_MAX_LEN];
+static TCHAR *systemPath[SYSTEM_PATH_MAX_LEN];
 static HANDLE wrapperChildStdoutWr = INVALID_HANDLE_VALUE;
 static HANDLE wrapperChildStdoutRd = INVALID_HANDLE_VALUE;
 
-char wrapperClasspathSeparator = ';';
+TCHAR wrapperClasspathSeparator = TEXT(';');
 
 HANDLE timerThreadHandle;
 DWORD timerThreadId;
-/* Initialize the timerTicks to a very high value.  This means that we will
- *  always encounter the first rollover (512 * WRAPPER_MS / 1000) seconds
- *  after the Wrapper the starts, which means the rollover will be well
- *  tested. */
-TICKS timerTicks = 0xfffffe00;
+TICKS timerTicks = WRAPPER_TICK_INITIAL;
 
 /** Flag which keeps track of whether or not the CTRL-C key has been pressed. */
 int ctrlCTrapped = FALSE;
@@ -88,7 +86,7 @@ int ctrlCTrapped = FALSE;
 /** Flag which keeps track of whether or not PID files should be deleted on shutdown. */
 int cleanUpPIDFilesOnExit = FALSE;
 
-char* getExceptionName(DWORD exCode);
+TCHAR* getExceptionName(DWORD exCode);
 
 /* Dynamically loadedfunction types. */
 typedef SERVICE_STATUS_HANDLE(*FTRegisterServiceCtrlHandlerEx)(LPCTSTR, LPHANDLER_FUNCTION_EX, LPVOID);
@@ -108,10 +106,11 @@ FTRegisterServiceCtrlHandlerEx OptionalRegisterServiceCtrlHandlerEx = NULL;
  *
  * @return TRUE if NT 4.0 or earlier, FALSE otherwise.
  */
-BOOL isWindowsNT4_0OrEarlier() {
-    OSVERSIONINFOEX osvi;
-    BOOL bOsVersionInfoEx;
-    BOOL retval;
+BOOL isWindowsNT4_0OrEarlier()
+{
+   OSVERSIONINFOEX osvi;
+   BOOL bOsVersionInfoEx;
+   BOOL retval;
 
    /* Try calling GetVersionEx using the OSVERSIONINFOEX structure.
     *  If that fails, try using the OSVERSIONINFO structure. */
@@ -147,35 +146,35 @@ void loadDLLProcs() {
     HMODULE advapi32Mod;
 
     /* The KERNEL32 module was added in NT 3.5. */
-    if ((kernel32Mod = GetModuleHandle("KERNEL32.DLL")) == NULL) {
+    if ((kernel32Mod = GetModuleHandle(TEXT("KERNEL32.DLL"))) == NULL) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-            "The KERNEL32.DLL was not found.  Some functions will be disabled.");
+            TEXT("The KERNEL32.DLL was not found.  Some functions will be disabled."));
     } else {
         if ((OptionalGetProcessTimes = GetProcAddress(kernel32Mod, "GetProcessTimes")) == NULL) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "The GetProcessTimes is not available in this KERNEL32.DLL version.  Some functions will be disabled.");
+                TEXT("The GetProcessTimes is not available in this KERNEL32.DLL version.  Some functions will be disabled."));
         }
     }
 
     /* The PSAPI module was added in NT 4.0. */
-    if ((psapiMod = LoadLibrary("PSAPI.DLL")) == NULL) {
+    if ((psapiMod = LoadLibrary(TEXT("PSAPI.DLL"))) == NULL) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-            "The PSAPI.DLL was not found.  Some functions will be disabled.");
+            TEXT("The PSAPI.DLL was not found.  Some functions will be disabled."));
     } else {
         if ((OptionalGetProcessMemoryInfo = GetProcAddress(psapiMod, "GetProcessMemoryInfo")) == NULL) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "The GetProcessMemoryInfo is not available in this PSAPI.DLL version.  Some functions will be disabled.");
+                TEXT("The GetProcessMemoryInfo is not available in this PSAPI.DLL version.  Some functions will be disabled."));
         }
     }
 
     /* The ADVAPI32 module was added in NT 5.0. */
-    if ((advapi32Mod = LoadLibrary("ADVAPI32.DLL")) == NULL) {
+    if ((advapi32Mod = LoadLibrary(TEXT("ADVAPI32.DLL"))) == NULL) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-            "The ADVAPI32.DLL was not found.  Some functions will be disabled.");
+            TEXT("The ADVAPI32.DLL was not found.  Some functions will be disabled."));
     } else {
         if ((OptionalRegisterServiceCtrlHandlerEx = (FTRegisterServiceCtrlHandlerEx)GetProcAddress(advapi32Mod, FUNCTION_NAME_RegisterServiceCtrlHandlerEx)) == NULL) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "The %s is not available in this ADVAPI32.DLL version.  Some functions will be disabled.",
+                TEXT("The %s is not available in this ADVAPI32.DLL version.  Some functions will be disabled."),
                 FUNCTION_NAME_RegisterServiceCtrlHandlerEx);
         }
     }
@@ -185,12 +184,12 @@ void loadDLLProcs() {
  * Builds an array in memory of the system path.
  */
 int buildSystemPath() {
-    char *envBuffer;
+    TCHAR *envBuffer;
     size_t len, i;
-    char *c, *lc;
+    TCHAR *c, *lc;
 
     /* Get the length of the PATH environment variable. */
-    len = GetEnvironmentVariable("PATH", NULL, 0);
+    len = GetEnvironmentVariable(TEXT("PATH"), NULL, 0);
     if (len == 0) {
         /* PATH not set on this system.  Not an error. */
         systemPath[0] = NULL;
@@ -198,15 +197,15 @@ int buildSystemPath() {
     }
 
     /* Allocate the memory to hold the PATH */
-    envBuffer = malloc(sizeof(char) * len);
+    envBuffer = malloc(sizeof(TCHAR) * len);
     if (!envBuffer) {
-        outOfMemory("BSP", 1);
+        outOfMemory(TEXT("BSP"), 1);
         return 1;
     }
-    GetEnvironmentVariable("PATH", envBuffer, (DWORD)len);
+    GetEnvironmentVariable(TEXT("PATH"), envBuffer, (DWORD)len);
 
 #ifdef _DEBUG
-    printf("Getting the system path: %s\n", envBuffer);
+    _tprintf(TEXT("Getting the system path: %s\n"), envBuffer);
 #endif
 
     /* Build an array of the path elements.  To make it easy, just
@@ -215,16 +214,16 @@ int buildSystemPath() {
     i = 0;
     lc = envBuffer;
     /* Get the elements ending in a ';' */
-    while (((c = strchr(lc, ';')) != NULL) && (i < SYSTEM_PATH_MAX_LEN - 2)) {
+    while (((c = _tcschr(lc, TEXT(';'))) != NULL) && (i < SYSTEM_PATH_MAX_LEN - 2)) {
         len = (int)(c - lc);
-        systemPath[i] = malloc(sizeof(char) * (len + 1));
+        systemPath[i] = malloc(sizeof(TCHAR) * (len + 1));
         if (!systemPath[i]) {
-            outOfMemory("BSP", 2);
+            outOfMemory(TEXT("BSP"), 2);
             return 1;
         }
 
         memcpy(systemPath[i], lc, len);
-        systemPath[i][len] = '\0';
+        systemPath[i][len] = TEXT('\0');
 #ifdef _DEBUG
         printf("PATH[%d]=%s\n", i, systemPath[i]);
 #endif
@@ -232,21 +231,21 @@ int buildSystemPath() {
         i++;
     }
     /* There should be one more value after the last ';' */
-    len = strlen(lc);
-    systemPath[i] = malloc(sizeof(char) * (len + 1));
+    len = _tcslen(lc);
+    systemPath[i] = malloc(sizeof(TCHAR) * (len + 1));
     if (!systemPath[i]) {
-        outOfMemory("BSP", 3);
+        outOfMemory(TEXT("BSP"), 3);
         return 1;
     }
-    strcpy(systemPath[i], lc);
+    _tcscpy(systemPath[i], lc);
 #ifdef _DEBUG
-    printf("PATH[%d]=%s\n", i, systemPath[i]);
+    _tprintf(TEXT("PATH[%d]=%s\n"), i, systemPath[i]);
 #endif
     i++;
     /* NULL terminate the array. */
     systemPath[i] = NULL;
 #ifdef _DEBUG
-    printf("PATH[%d]=<null>\n", i);
+    _tprintf(TEXT("PATH[%d]=<null>\n"), i);
 #endif
     i++;
 
@@ -255,8 +254,7 @@ int buildSystemPath() {
 
     return 0;
 }
-
-char** wrapperGetSystemPath() {
+TCHAR** wrapperGetSystemPath() {
     return systemPath;
 }
 
@@ -266,27 +264,27 @@ char** wrapperGetSystemPath() {
  */
 HANDLE invocationMutexHandle = NULL;
 int initInvocationMutex() {
-    char *mutexName;
+    TCHAR *mutexName;
     if (wrapperData->isSingleInvocation) {
-        mutexName = malloc(sizeof(char) * (23 + strlen(wrapperData->serviceName) + 1));
+        mutexName = malloc(sizeof(TCHAR) * (23 + _tcslen(wrapperData->serviceName) + 1));
         if (!mutexName) {
-            outOfMemory("IIM", 1);
+            outOfMemory(TEXT("IIM"), 1);
             return 1;
         }
-        sprintf(mutexName, "Java Service Wrapper - %s", wrapperData->serviceName);
-        
+        _sntprintf(mutexName, 23 + _tcslen(wrapperData->serviceName) + 1, TEXT("Java Service Wrapper - %s"), wrapperData->serviceName);
+
         if (!(invocationMutexHandle = CreateMutex(NULL, FALSE, mutexName))) {
             free(mutexName);
 
             if (GetLastError() == ERROR_ACCESS_DENIED) {
                 /* Most likely the app is running as a service and we tried to run it as a console. */
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                    "ERROR: Another instance of the %s application is already running.",
+                    TEXT("ERROR: Another instance of the %s application is already running."),
                     wrapperData->serviceName);
                 return 1;
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                    "ERROR: Unable to create the single invation mutex. %s",
+                    TEXT("ERROR: Unable to create the single invocation mutex. %s"),
                     getLastErrorText());
                 return 1;
             }
@@ -296,7 +294,7 @@ int initInvocationMutex() {
 
         if (GetLastError() == ERROR_ALREADY_EXISTS) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "ERROR: Another instance of the %s application is already running.",
+                TEXT("ERROR: Another instance of the %s application is already running."),
                 wrapperData->serviceName);
             return 1;
         }
@@ -315,32 +313,32 @@ void appExit(int exitCode) {
     if (cleanUpPIDFilesOnExit) {
         /* Remove pid file.  It may no longer exist. */
         if (wrapperData->pidFilename) {
-            _unlink(wrapperData->pidFilename);
+            _tunlink(wrapperData->pidFilename);
         }
 
         /* Remove lock file.  It may no longer exist. */
         if (wrapperData->lockFilename) {
-            _unlink(wrapperData->lockFilename);
+            _tunlink(wrapperData->lockFilename);
         }
 
         /* Remove status file.  It may no longer exist. */
         if (wrapperData->statusFilename) {
-            _unlink(wrapperData->statusFilename);
+            _tunlink(wrapperData->statusFilename);
         }
 
         /* Remove java status file if it was registered and created by this process. */
         if (wrapperData->javaStatusFilename) {
-            _unlink(wrapperData->javaStatusFilename);
+            _tunlink(wrapperData->javaStatusFilename);
         }
 
         /* Remove java id file if it was registered and created by this process. */
         if (wrapperData->javaIdFilename) {
-            _unlink(wrapperData->javaIdFilename);
+            _tunlink(wrapperData->javaIdFilename);
         }
 
         /* Remove anchor file.  It may no longer exist. */
         if (wrapperData->anchorFilename) {
-            _unlink(wrapperData->anchorFilename);
+            _tunlink(wrapperData->anchorFilename);
         }
     }
 
@@ -371,16 +369,16 @@ int wrapperGetLastError() {
  * filename: File to write to.
  * pid: pid to write in the file.
  */
-int writePidFile(const char *filename, DWORD pid, int newUmask) {
+int writePidFile(const TCHAR *filename, DWORD pid, int newUmask) {
     FILE *pid_fp = NULL;
     int old_umask;
 
     old_umask = _umask(newUmask);
-    pid_fp = fopen(filename, "w");
+    pid_fp = _tfopen(filename, TEXT("w"));
     _umask(old_umask);
 
     if (pid_fp != NULL) {
-        fprintf(pid_fp, "%d\n", pid);
+        _ftprintf(pid_fp, TEXT("%d\n"), pid);
         fclose(pid_fp);
     } else {
         return 1;
@@ -403,14 +401,14 @@ int wrapperInitChildPipe() {
 
     /* Create a pipe for the child process's STDOUT. */
     if (!CreatePipe(&childStdoutRd, &wrapperChildStdoutWr, &saAttr, 0)) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Stdout pipe creation failed  Err(%ld : %s)",
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Stdout pipe creation failed  Err(%ld : %s)"),
             GetLastError(), getLastErrorText());
         return -1;
     }
 
     /* Create a noninheritable read handle and close the inheritable read handle. */
     if (!DuplicateHandle(GetCurrentProcess(), childStdoutRd, GetCurrentProcess(), &wrapperChildStdoutRd, 0, FALSE, DUPLICATE_SAME_ACCESS)) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "DuplicateHandle failed");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("DuplicateHandle failed"));
         return -1;
     }
     CloseHandle(childStdoutRd);
@@ -419,7 +417,7 @@ int wrapperInitChildPipe() {
 }
 
 /**
- * Handler to take care of the case where the user hits CTRL-C when the wrapper 
+ * Handler to take care of the case where the user hits CTRL-C when the wrapper
  * is being run as a console.
  *
  * Handlers are called in the reverse order that they are registered until one
@@ -442,18 +440,18 @@ int wrapperConsoleHandler(int key) {
             /* The user hit CTRL-C.  Can only happen when run as a console. */
             if (wrapperData->ignoreSignals & WRAPPER_IGNORE_SIGNALS_WRAPPER) {
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    "CTRL-C trapped, but ignored.");
+                    TEXT("CTRL-C trapped, but ignored."));
             } else {
                 /*  Always quit.  If the user has pressed CTRL-C previously then we want to force
                  *   an immediate shutdown. */
                 if (ctrlCTrapped) {
                     /* Pressed CTRL-C more than once. */
                     log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        "CTRL-C trapped.  Forcing immediate shutdown.");
+                        TEXT("CTRL-C trapped.  Forcing immediate shutdown."));
                     halt = TRUE;
                 } else {
                     log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        "CTRL-C trapped.  Shutting down.");
+                        TEXT("CTRL-C trapped.  Shutting down."));
                     ctrlCTrapped = TRUE;
                 }
                 quit = TRUE;
@@ -463,7 +461,7 @@ int wrapperConsoleHandler(int key) {
         case CTRL_BREAK_EVENT:
             /* The user hit CTRL-BREAK */
             log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                "CTRL-BREAK/PAUSE trapped.  Asking the JVM to dump its state.");
+                TEXT("CTRL-BREAK/PAUSE trapped.  Asking the JVM to dump its state."));
 
             /* If the java process was launched using the same console, ie where
              *  processflags=CREATE_NEW_PROCESS_GROUP; then the java process will
@@ -480,24 +478,24 @@ int wrapperConsoleHandler(int key) {
             /*  console, but stay up when run as a service. */
             if ((wrapperData->isConsole) && (!wrapperData->ignoreUserLogoffs)) {
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    "User logged out.  Shutting down.");
+                    TEXT("User logged out.  Shutting down."));
                 quit = TRUE;
             } else {
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
-                    "User logged out.  Ignored.");
+                    TEXT("User logged out.  Ignored."));
                 quit = FALSE;
             }
             break;
         case CTRL_SHUTDOWN_EVENT:
             /* Happens when the machine is shutdown or rebooted.  Always quit. */
             log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                "Machine is shutting down.");
+                TEXT("Machine is shutting down."));
             quit = TRUE;
             break;
         default:
             /* Unknown.  Don't quit here. */
             log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "Trapped unexpected console signal (%d).  Ignored.", key);
+                TEXT("Trapped unexpected console signal (%d).  Ignored."), key);
             quit = FALSE;
         }
 
@@ -524,96 +522,11 @@ int wrapperConsoleHandler(int key) {
 
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            "<-- Wrapper Stopping due to error in console handler.");
+            TEXT("<-- Wrapper Stopping due to error in console handler."));
         appExit(1);
     }
 
     return TRUE; /* We handled the event. */
-}
-
-/**
- * Used to ask the state engine to pause the JVM and Wrapper
- */
-void wrapperPauseProcess(int useLoggerQueue) {
-    if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
-        (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
-        /* If we are already shutting down, then ignore and continue to do so. */
-
-        if (wrapperData->isDebugging) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "wrapperPauseProcess() called while stopping.  (IGNORED)");
-        }
-    } else if (wrapperData->wState == WRAPPER_WSTATE_PAUSING) {
-        /* If we are currently being paused, then ignore and continue to do so. */
-
-        if (wrapperData->isDebugging) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "wrapperPauseProcess() called while pausing.  (IGNORED)");
-        }
-    } else if (wrapperData->wState == WRAPPER_WSTATE_PAUSED) {
-        /* If we are currently paused, then ignore and continue to do so. */
-
-        if (wrapperData->isDebugging) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "wrapperPauseProcess() called while paused.  (IGNORED)");
-        }
-    } else {
-        if (wrapperData->isDebugging) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "wrapperPauseProcess() called.");
-        }
-
-        wrapperSetWrapperState(useLoggerQueue, WRAPPER_WSTATE_PAUSING);
-    }
-}
-
-/**
- * Used to ask the state engine to continue the JVM and Wrapper
- */
-void wrapperContinueProcess(int useLoggerQueue) {
-    if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
-        (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
-        /* If we are already shutting down, then ignore and continue to do so. */
-
-        if (wrapperData->isDebugging) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "wrapperContinueProcess() called while stopping.  (IGNORED)");
-        }
-    } else if (wrapperData->wState == WRAPPER_WSTATE_STARTING) {
-        /* If we are currently being started, then ignore and continue to do so. */
-
-        if (wrapperData->isDebugging) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "wrapperContinueProcess() called while starting.  (IGNORED)");
-        }
-    } else if (wrapperData->wState == WRAPPER_WSTATE_STARTED) {
-        /* If we are currently started, then ignore and continue to do so. */
-
-        if (wrapperData->isDebugging) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "wrapperContinueProcess() called while started.  (IGNORED)");
-        }
-    } else if (wrapperData->wState == WRAPPER_WSTATE_CONTINUING) {
-        /* If we are currently being continued, then ignore and continue to do so. */
-
-        if (wrapperData->isDebugging) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "wrapperContinueProcess() called while continuing.  (IGNORED)");
-        }
-    } else {
-        if (wrapperData->isDebugging) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                "wrapperContinueProcess() called.");
-        }
-
-        /* If we were configured to stop the JVM then we want to reset its failed
-         *  invocation count as the current stoppage was expected. */
-        if (wrapperData->ntServicePausableStopJVM) {
-            wrapperData->failedInvocationCount = 0;
-        }
-
-        wrapperSetWrapperState(useLoggerQueue, WRAPPER_WSTATE_CONTINUING);
-    }
 }
 
 /******************************************************************************
@@ -626,12 +539,12 @@ void wrapperContinueProcess(int useLoggerQueue) {
 void wrapperRequestDumpJVMState(int useLoggerQueue) {
     if (wrapperData->javaProcess != NULL) {
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-            "Dumping JVM state.");
+            TEXT("Dumping JVM state."));
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-            "Sending BREAK event to process group %ld.", wrapperData->javaPID);
+            TEXT("Sending BREAK event to process group %ld."), wrapperData->javaPID);
         if (GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, wrapperData->javaPID) == 0) {
             log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "Unable to send BREAK event to JVM process.  Err(%ld : %s)",
+                TEXT("Unable to send BREAK event to JVM process.  Err(%ld : %s)"),
                 GetLastError(), getLastErrorText());
         }
     }
@@ -644,19 +557,20 @@ void wrapperRequestDumpJVMState(int useLoggerQueue) {
  */
 int wrapperBuildJavaCommand() {
     size_t commandLen;
-    char **strings;
+    size_t commandLen2;
+    TCHAR **strings;
     int length, i;
 
     /* If this is not the first time through, then dispose the old command */
     if (wrapperData->jvmCommand) {
 #ifdef _DEBUG
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Clearing up old command line");
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Old Command Line \"%s\"", wrapperData->jvmCommand);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Clearing up old command line"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Old Command Line \"%s\""), wrapperData->jvmCommand);
 #endif
         free(wrapperData->jvmCommand);
         wrapperData->jvmCommand = NULL;
     }
-    
+
     /* First generate the classpath. */
     if (wrapperData->classpath) {
         free(wrapperData->classpath);
@@ -675,9 +589,9 @@ int wrapperBuildJavaCommand() {
     }
 
 #ifdef _DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM Command Line Parameters");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("JVM Command Line Parameters"));
     for (i = 0; i < length; i++) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "%d : %s", i, strings[i]);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%d : %s"), i, strings[i]);
     }
 #endif
 
@@ -688,25 +602,25 @@ int wrapperBuildJavaCommand() {
         if (i > 0) {
             commandLen++; /* Space */
         }
-        commandLen += strlen(strings[i]);
+        commandLen += _tcslen(strings[i]);
     }
     commandLen++; /* '\0' */
-
+    commandLen2 = commandLen;
     /* Build the actual command */
-    wrapperData->jvmCommand = malloc(sizeof(char) * commandLen);
+    wrapperData->jvmCommand = malloc(sizeof(TCHAR) * commandLen);
     if (!wrapperData->jvmCommand) {
-        outOfMemory("WBJC", 1);
+        outOfMemory(TEXT("WBJC"), 1);
         return TRUE;
     }
     commandLen = 0;
     for (i = 0; i < length; i++) {
         if (i > 0) {
-            wrapperData->jvmCommand[commandLen++] = ' ';
+            wrapperData->jvmCommand[commandLen++] = TEXT(' ');
         }
-        sprintf((char *)(&(wrapperData->jvmCommand[commandLen])), "%s", strings[i]);
-        commandLen += strlen(strings[i]);
+        _sntprintf(wrapperData->jvmCommand + commandLen, commandLen2 - commandLen, TEXT("%s"), strings[i]);
+        commandLen += _tcslen(strings[i]);
     }
-    wrapperData->jvmCommand[commandLen++] = '\0';
+    wrapperData->jvmCommand[commandLen++] = TEXT('\0');
 
     /* Free up the temporary command array */
     wrapperFreeJavaCommandArray(strings, length);
@@ -714,7 +628,7 @@ int wrapperBuildJavaCommand() {
     return FALSE;
 }
 
-int hideConsoleWindow(HWND consoleHandle, const char *name) {
+int hideConsoleWindow(HWND consoleHandle, const TCHAR *name) {
     WINDOWPLACEMENT consolePlacement;
 
     memset(&consolePlacement, 0, sizeof(WINDOWPLACEMENT));
@@ -722,7 +636,7 @@ int hideConsoleWindow(HWND consoleHandle, const char *name) {
 
     if (IsWindowVisible(consoleHandle)) {
 #ifdef _DEBUG
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "%s console window is visible, attempt to hide.", name);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s console window is visible, attempt to hide."), name);
 #endif
 
         /* Hide the Window. */
@@ -730,17 +644,17 @@ int hideConsoleWindow(HWND consoleHandle, const char *name) {
 
         if (!SetWindowPlacement(consoleHandle, &consolePlacement)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                "Unable to set window placement information: %s", getLastErrorText());
+                TEXT("Unable to set window placement information: %s"), getLastErrorText());
         }
 
         if (IsWindowVisible(consoleHandle)) {
             if (wrapperData->isDebugging) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Failed to hide the %s console window.", name);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Failed to hide the %s console window."), name);
             }
             return FALSE;
         } else {
             if (wrapperData->isDebugging) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "%s console window hidden successfully.", name);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s console window hidden successfully."), name);
             }
             return TRUE;
         }
@@ -762,20 +676,20 @@ void wrapperCheckConsoleWindows() {
 
     /* See if the Wrapper console needs to be hidden. */
     if (wrapperData->wrapperConsoleHide && (wrapperData->wrapperConsoleHandle != NULL) && (wrapperData->wrapperConsoleVisible || forceCheck)) {
-        if (hideConsoleWindow(wrapperData->wrapperConsoleHandle, "Wrapper")) {
+        if (hideConsoleWindow(wrapperData->wrapperConsoleHandle, TEXT("Wrapper"))) {
             wrapperData->wrapperConsoleVisible = FALSE;
         }
     }
 
     /* See if the Java console needs to be hidden. */
     if ((wrapperData->jvmConsoleHandle != NULL) && (wrapperData->jvmConsoleVisible || forceCheck)) {
-        if (hideConsoleWindow(wrapperData->jvmConsoleHandle, "JVM")) {
+        if (hideConsoleWindow(wrapperData->jvmConsoleHandle, TEXT("JVM"))) {
             wrapperData->jvmConsoleVisible = FALSE;
         }
     }
 }
 
-HWND findConsoleWindow(char *title) {
+HWND findConsoleWindow( TCHAR *title ) {
     HWND consoleHandle;
     int i = 0;
 
@@ -784,18 +698,18 @@ HWND findConsoleWindow(char *title) {
     consoleHandle = NULL;
     while ((!consoleHandle) && (i < 200)) {
         wrapperSleep(FALSE, 10);
-        consoleHandle = FindWindow("ConsoleWindowClass", title);
+        consoleHandle = FindWindow(TEXT("ConsoleWindowClass"), title);
         i++;
     }
 
     return consoleHandle;
 }
 
-void showConsoleWindow(HWND consoleHandle, const char *name) {
+void showConsoleWindow(HWND consoleHandle, const TCHAR *name) {
     WINDOWPLACEMENT consolePlacement;
 
     if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Show %s console window which JVM is launched.", name);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Show %s console window which JVM is launched."), name);
     }
     if (GetWindowPlacement(consoleHandle, &consolePlacement)) {
         /* Show the Window. */
@@ -803,11 +717,11 @@ void showConsoleWindow(HWND consoleHandle, const char *name) {
 
         if (!SetWindowPlacement(consoleHandle, &consolePlacement)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                "Unable to set window placement information: %s", getLastErrorText());
+                TEXT("Unable to set window placement information: %s"), getLastErrorText());
         }
     } else {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-            "Unable to obtain window placement information: %s", getLastErrorText());
+            TEXT("Unable to obtain window placement information: %s"), getLastErrorText());
     }
 }
 
@@ -833,7 +747,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
         logRegisterThread(WRAPPER_THREAD_TIMER);
 
         if (wrapperData->isTickOutputEnabled) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Timer thread started.");
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Timer thread started."));
         }
 
         while (TRUE) {
@@ -864,16 +778,16 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
                 first = FALSE;
             } else {
                 if (offsetDiff > wrapperData->timerSlowThreshold) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
-                        "The timer fell behind the system clock by %dms.", (int)(offsetDiff * WRAPPER_TICK_MS));
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT(
+                        "The timer fell behind the system clock by %dms."), (int)(offsetDiff * WRAPPER_TICK_MS));
                 } else if (offsetDiff < -1 * wrapperData->timerFastThreshold) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
-                        "The system clock fell behind the timer by %dms.", (int)(-1 * offsetDiff * WRAPPER_TICK_MS));
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT(
+                        "The system clock fell behind the timer by %dms."), (int)(-1 * offsetDiff * WRAPPER_TICK_MS));
                 }
 
                 if (wrapperData->isTickOutputEnabled) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        "    Timer: ticks=%08x, system ticks=%08x, offset=%08x, offsetDiff=%08x",
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT(
+                        "    Timer: ticks=%08x, system ticks=%08x, offset=%08x, offsetDiff=%08x"),
                         nowTicks, sysTicks, tickOffset, offsetDiff);
                 }
             }
@@ -883,7 +797,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
         }
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
         /* This call is not queued to make sure it makes it to the log prior to a shutdown. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Fatal error in the Timer thread.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Fatal error in the Timer thread."));
         appExit(1);
         return 1; /* For the compiler, we will never get here. */
     }
@@ -896,7 +810,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
  */
 int initializeTimer() {
     if (wrapperData->isTickOutputEnabled) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Launching Timer thread.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Launching Timer thread."));
     }
 
     timerThreadHandle = CreateThread(
@@ -908,7 +822,7 @@ int initializeTimer() {
         &timerThreadId);
     if (!timerThreadHandle) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            "Unable to create a timer thread: %s", getLastErrorText());
+            TEXT("Unable to create a timer thread: %s"), getLastErrorText());
         return 1;
     } else {
         return 0;
@@ -922,7 +836,7 @@ int initializeWinSock() {
 
     /* Initialize Winsock */
     if ((res = WSAStartup(ws_version, &ws_data)) != 0) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Cannot initialize Windows socket DLLs.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Cannot initialize Windows socket DLLs."));
         return res;
     }
 
@@ -942,13 +856,13 @@ int wrapperInitializeRun() {
     time_t      now;
     int         nowMillis;
     int res;
-    char titleBuffer[80];
+    TCHAR titleBuffer[80];
 
     /* Set the process priority. */
     HANDLE process = GetCurrentProcess();
     if (!SetPriorityClass(process, wrapperData->ntServicePriorityClass)) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-            "Unable to set the process priority:  %s", getLastErrorText());
+            TEXT("Unable to set the process priority:  %s"), getLastErrorText());
     }
 
     /* Initialize the random seed. */
@@ -975,30 +889,30 @@ int wrapperInitializeRun() {
      *  to create one here. */
     if ((!wrapperData->isConsole) && (wrapperData->ntAllocConsole)) {
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Allocating a console for the service.");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Allocating a console for the service."));
         }
 
         if (!AllocConsole()) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "ERROR: Unable to allocate a console for the service: %s", getLastErrorText());
+                TEXT("ERROR: Unable to allocate a console for the service: %s"), getLastErrorText());
             return 1;
         }
 
         hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
         if (hStdout == INVALID_HANDLE_VALUE) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "ERROR: Unable to get the new stdout handle: %s", getLastErrorText());
+                TEXT("ERROR: Unable to get the new stdout handle: %s"), getLastErrorText());
            return 1;
         }
         setConsoleStdoutHandle(hStdout);
 
         if (wrapperData->ntHideWrapperConsole) {
             /* A console needed to be allocated for the process but it should be hidden. */
-            
+
             /* Generate a unique time for the console so we can look for it below. */
-            sprintf(titleBuffer, "Wrapper Console ID %d-%d (Do not close)", wrapperData->wrapperPID, rand());
+            _sntprintf(titleBuffer, 80, TEXT("Wrapper Console ID %d-%d (Do not close)"), wrapperData->wrapperPID, rand());
 #ifdef _DEBUG
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Wrapper console title: %s", titleBuffer);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Wrapper console title: %s"), titleBuffer);
 #endif
 
             SetConsoleTitle(titleBuffer);
@@ -1007,14 +921,14 @@ int wrapperInitializeRun() {
             if (wrapperData->wrapperConsoleHandle = findConsoleWindow(titleBuffer)) {
                 wrapperData->wrapperConsoleVisible = TRUE;
                 if (wrapperData->isDebugging) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Found console window.");
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Found console window."));
                 }
 
                 /* Attempt to hide the console window here once so it goes away as quickly as possible.
                  *  This may not succeed yet however.  If the system is still coming up. */
                 wrapperCheckConsoleWindows();
             } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Failed to locate the console window so it can be hidden.");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Failed to locate the console window so it can be hidden."));
             }
         }
     }
@@ -1025,7 +939,7 @@ int wrapperInitializeRun() {
             /* The console should be visible. */
             if (!SetConsoleTitle(wrapperData->consoleTitle)) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                    "Attempt to set the console title failed: %s", getLastErrorText());
+                    TEXT("Attempt to set the console title failed: %s"), getLastErrorText());
             }
         }
     }
@@ -1055,13 +969,13 @@ int wrapperInitializeRun() {
 void wrapperSleep(int useLoggerQueue, int ms) {
     if (wrapperData->isSleepOutputEnabled) {
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-            "    Sleep: sleep %dms", ms);
+            TEXT("    Sleep: sleep %dms"), ms);
     }
 
     Sleep(ms);
 
     if (wrapperData->isSleepOutputEnabled) {
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Sleep: awake");
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Sleep: awake"));
     }
 }
 
@@ -1072,13 +986,13 @@ void wrapperSleep(int useLoggerQueue, int ms) {
  *   WRAPPER_WSTATE_STARTED
  *   WRAPPER_WSTATE_PAUSING
  *   WRAPPER_WSTATE_PAUSED
- *   WRAPPER_WSTATE_CONTINUING
+ *   WRAPPER_WSTATE_RESUMING
  *   WRAPPER_WSTATE_STOPPING
  *   WRAPPER_WSTATE_STOPPED
  */
 void wrapperReportStatus(int useLoggerQueue, int status, int errorCode, int waitHint) {
     int natState;
-    char *natStateName;
+    TCHAR *natStateName;
     static DWORD dwCheckPoint = 1;
     BOOL bResult = TRUE;
 
@@ -1090,34 +1004,34 @@ void wrapperReportStatus(int useLoggerQueue, int status, int errorCode, int wait
     switch (status) {
     case WRAPPER_WSTATE_STARTING:
         natState = SERVICE_START_PENDING;
-        natStateName = "SERVICE_START_PENDING";
+        natStateName = TEXT("SERVICE_START_PENDING");
         break;
     case WRAPPER_WSTATE_STARTED:
         natState = SERVICE_RUNNING;
-        natStateName = "SERVICE_RUNNING";
+        natStateName = TEXT("SERVICE_RUNNING");
         break;
     case WRAPPER_WSTATE_PAUSING:
         natState = SERVICE_PAUSE_PENDING;
-        natStateName = "SERVICE_PAUSE_PENDING";
+        natStateName = TEXT("SERVICE_PAUSE_PENDING");
         break;
     case WRAPPER_WSTATE_PAUSED:
         natState = SERVICE_PAUSED;
-        natStateName = "SERVICE_PAUSED";
+        natStateName = TEXT("SERVICE_PAUSED");
         break;
-    case WRAPPER_WSTATE_CONTINUING:
+    case WRAPPER_WSTATE_RESUMING:
         natState = SERVICE_CONTINUE_PENDING;
-        natStateName = "SERVICE_CONTINUE_PENDING";
+        natStateName = TEXT("SERVICE_CONTINUE_PENDING");
         break;
     case WRAPPER_WSTATE_STOPPING:
         natState = SERVICE_STOP_PENDING;
-        natStateName = "SERVICE_STOP_PENDING";
+        natStateName = TEXT("SERVICE_STOP_PENDING");
         break;
     case WRAPPER_WSTATE_STOPPED:
         natState = SERVICE_STOPPED;
-        natStateName = "SERVICE_STOPPED";
+        natStateName = TEXT("SERVICE_STOPPED");
         break;
     default:
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unknown status: %d", status);
+        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unknown status: %d"), status);
         return;
     }
 
@@ -1125,7 +1039,7 @@ void wrapperReportStatus(int useLoggerQueue, int status, int errorCode, int wait
         ssStatus.dwControlsAccepted = 0;
         if (natState != SERVICE_START_PENDING) {
             ssStatus.dwControlsAccepted |= SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN;
-            if (wrapperData->ntServicePausable) {
+            if (wrapperData->pausable) {
                 ssStatus.dwControlsAccepted |= SERVICE_ACCEPT_PAUSE_CONTINUE;
             }
         }
@@ -1165,12 +1079,12 @@ void wrapperReportStatus(int useLoggerQueue, int status, int errorCode, int wait
 
         if (wrapperData->isStateOutputEnabled) {
             log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                "calling SetServiceStatus with status=%s, waitHint=%d, checkPoint=%u, errorCode=%d",
+                TEXT("calling SetServiceStatus with status=%s, waitHint=%d, checkPoint=%u, errorCode=%d"),
                 natStateName, waitHint, dwCheckPoint, errorCode);
         }
 
         if (!(bResult = SetServiceStatus(sshStatusHandle, &ssStatus))) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "SetServiceStatus failed");
+            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("SetServiceStatus failed"));
         }
     }
 }
@@ -1191,7 +1105,7 @@ int wrapperReadChildOutputBlock(char *blockBuffer, int blockSize, int *readCount
     /* See how many characters are available in the pipe so we can say how much to read. */
     if (!PeekNamedPipe(wrapperChildStdoutRd, NULL, 0, NULL, &currentBlockAvail, NULL)) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-            "Failed to peek at output from the JVM: %s", getLastErrorText());
+            TEXT("Failed to peek at output from the JVM: %s"), getLastErrorText());
         return TRUE;
     }
 
@@ -1203,12 +1117,11 @@ int wrapperReadChildOutputBlock(char *blockBuffer, int blockSize, int *readCount
         /* Attempt to read in an additional CHILD_BLOCK_SIZE characters. */
         if (!ReadFile(wrapperChildStdoutRd, blockBuffer, blockSize, readCount, NULL)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                    "Failed to read output from the JVM: %s", getLastErrorText());
+                    TEXT("Failed to read output from the JVM: %s"), getLastErrorText());
             return TRUE;
         }
-
 #ifdef DEBUG_CHILD_OUTPUT
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Read %d chars from pipe.", *readCount);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Read %d chars from pipe."), *readCount);
 #endif
     } else {
         *readCount = 0;
@@ -1224,7 +1137,7 @@ int wrapperReadChildOutputBlock(char *blockBuffer, int blockSize, int *readCount
 int wrapperGetProcessStatus(int useLoggerQueue, TICKS nowTicks, int sigChild) {
     int res;
     DWORD exitCode;
-    char *exName;
+    TCHAR *exName;
 
     switch (WaitForSingleObject(wrapperData->javaProcess, 0)) {
     case WAIT_ABANDONED:
@@ -1234,21 +1147,21 @@ int wrapperGetProcessStatus(int useLoggerQueue, TICKS nowTicks, int sigChild) {
         /* Get the exit code of the process. */
         if (!GetExitCodeProcess(wrapperData->javaProcess, &exitCode)) {
             log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                "Critical error: unable to obtain the exit code of the JVM process: %s", getLastErrorText());
+                TEXT("Critical error: unable to obtain the exit code of the JVM process: %s"), getLastErrorText());
             appExit(1);
         }
 
         if (exitCode == STILL_ACTIVE) {
             /* Should never happen, but check for it. */
             log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                "The JVM returned JVM exit code was STILL_ACTIVE.");
+                TEXT("The JVM returned JVM exit code was STILL_ACTIVE.") );
         }
 
         /* If the JVM crashed then GetExitCodeProcess could have returned an uncaught exception. */
         exName = getExceptionName(exitCode);
         if (exName != NULL) {
             log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "The JVM process terminated due to an uncaught exception: %s (0x%08x)", exName, exitCode);
+                TEXT("The JVM process terminated due to an uncaught exception: %s (0x%08x)"), exName, exitCode);
 
             /* Reset the exit code as the exeption value will confuse users. */
             exitCode = 1;
@@ -1258,7 +1171,7 @@ int wrapperGetProcessStatus(int useLoggerQueue, TICKS nowTicks, int sigChild) {
 
         if (!CloseHandle(wrapperData->javaProcess)) {
             log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "Failed to close the Java process handle: %s", getLastErrorText());
+                TEXT("Failed to close the Java process handle: %s"), getLastErrorText());
         }
         wrapperData->javaProcess = NULL;
         wrapperData->javaPID = 0;
@@ -1271,7 +1184,7 @@ int wrapperGetProcessStatus(int useLoggerQueue, TICKS nowTicks, int sigChild) {
 
     default:
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            "Critical error: wait for JVM process failed");
+            TEXT("Critical error: wait for JVM process failed"));
         appExit(1);
     }
 
@@ -1283,7 +1196,7 @@ int wrapperGetProcessStatus(int useLoggerQueue, TICKS nowTicks, int sigChild) {
  */
 void wrapperExecute() {
     SECURITY_ATTRIBUTES process_attributes;
-    STARTUPINFO startup_info; 
+    STARTUPINFO startup_info;
     PROCESS_INFORMATION process_info;
     int ret;
     /* Do not show another console for the new process */
@@ -1299,15 +1212,15 @@ void wrapperExecute() {
     /* Show a console for the new process */
     /*int processflags=CREATE_NEW_PROCESS_GROUP | CREATE_NEW_CONSOLE; */
 
-    char *commandline=NULL;
-    char *environment=NULL;
-    char *binparam=NULL;
+    TCHAR *commandline=NULL;
+    TCHAR *environment=NULL;
+    TCHAR *binparam=NULL;
     int char_block_size = 8196;
     int string_size = 0;
     int temp_int = 0;
-    char szPath[512];
-    char *c;
-    char titleBuffer[80];
+    TCHAR szPath[512];
+    TCHAR *c;
+    TCHAR titleBuffer[80];
     int hideConsole;
     int old_umask;
 
@@ -1323,16 +1236,16 @@ void wrapperExecute() {
     commandline = wrapperData->jvmCommand;
     if (wrapperData->commandLogLevel != LEVEL_NONE) {
         log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel,
-            "Command : %s", commandline);
-        
+            TEXT("Command: %s"), commandline);
+
         if (wrapperData->environmentClasspath) {
             log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel,
-                "Classpath in Environment : %s", wrapperData->classpath);
+                TEXT("Classpath in Environment : %s"), wrapperData->classpath);
         }
     }
-    
+
     if (wrapperData->environmentClasspath) {
-        setEnv("CLASSPATH", wrapperData->classpath);
+        setEnv(TEXT("CLASSPATH"), wrapperData->classpath, ENV_SOURCE_WRAPPER);
     }
 
     /* Setup environment. Use parent's for now */
@@ -1344,7 +1257,7 @@ void wrapperExecute() {
     process_attributes.bInheritHandle = TRUE;
 
     /* Generate a unique time for the console so we can look for it below. */
-    sprintf(titleBuffer, "Wrapper Controlled JVM Console ID %d-%d (Do not close)", wrapperData->wrapperPID, rand());
+    _sntprintf(titleBuffer, 80, TEXT("Wrapper Controlled JVM Console ID %d-%d (Do not close)"), wrapperData->wrapperPID, rand());
 
     /* Initialize a STARTUPINFO structure to use for the new process. */
     startup_info.cb=sizeof(STARTUPINFO);
@@ -1380,7 +1293,7 @@ void wrapperExecute() {
                 if (!wrapperData->ntHideJVMConsole) {
                     /* In order to support older JVMs we need to show the console when the
                      *  JVM is launched.  We need to remember to hide it below. */
-                    showConsoleWindow(wrapperData->wrapperConsoleHandle, "Wrapper");
+                    showConsoleWindow(wrapperData->wrapperConsoleHandle, TEXT("Wrapper"));
                     wrapperData->wrapperConsoleVisible = TRUE;
                     wrapperData->wrapperConsoleHide = FALSE;
                     hideConsole = TRUE;
@@ -1408,7 +1321,7 @@ void wrapperExecute() {
     startup_info.hStdOutput = wrapperChildStdoutWr;
     startup_info.hStdError = wrapperChildStdoutWr;
 
-    /* Initialize a PROCESS_INFORMATION structure to use for the new process */ 
+    /* Initialize a PROCESS_INFORMATION structure to use for the new process */
     process_info.hProcess = NULL;
     process_info.hThread = NULL;
     process_info.dwProcessId = 0;
@@ -1418,16 +1331,16 @@ void wrapperExecute() {
     /*    Note, the current directory when run as an NT service is the windows system directory. */
     /* Get the full path and filename of this program */
     if (GetModuleFileName(NULL, szPath, 512) == 0) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to launch %s -%s",
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to launch %s -%s"),
                      wrapperData->serviceDisplayName, getLastErrorText());
         wrapperData->javaProcess = NULL;
         return;
     }
-    c = strrchr(szPath, '\\');
+    c = _tcsrchr(szPath, TEXT('\\'));
     if (c == NULL) {
-        szPath[0] = '\0';
+        szPath[0] = TEXT('\0');
     } else {
-        c[1] = '\0'; /* terminate after the slash */
+        c[1] = TEXT('\0'); /* terminate after the slash */
     }
 
     /* Make sure the log file is closed before the Java process is created.  Failure to do
@@ -1442,7 +1355,7 @@ void wrapperExecute() {
     old_umask = _umask(wrapperData->javaUmask);
 
     /* Create the new process */
-    ret=CreateProcess(NULL, 
+    ret=CreateProcess(NULL,
                       commandline,    /* the command line to start */
                       NULL,           /* process security attributes */
                       NULL,           /* primary thread security attributes */
@@ -1465,55 +1378,43 @@ void wrapperExecute() {
         /* Make sure the process was launched correctly. */
         if (err!=NO_ERROR) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                "Unable to execute Java command.  %s", getLastErrorText());
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "    %s", commandline);
+                TEXT("Unable to execute Java command.  %s"), getLastErrorText());
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("    %s"), commandline);
             wrapperData->javaProcess = NULL;
 
             if ((err == ERROR_FILE_NOT_FOUND) || (err == ERROR_PATH_NOT_FOUND)) {
                 if (wrapperData->isAdviserEnabled) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "");
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("") );
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                        "------------------------------------------------------------------------");
+                        TEXT("------------------------------------------------------------------------") );
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                        "Advice:");
+                        TEXT("Advice:" ));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                        "Usually when the Wrapper fails to start the JVM process, it is because");
+                        TEXT("Usually when the Wrapper fails to start the JVM process, it is because\nof a problem with the value of the configured Java command.  Currently:" ));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                        "of a problem with the value of the configured Java command.  Currently:");
+                        TEXT("wrapper.java.command=%s"), getStringProperty(properties, TEXT("wrapper.java.command"), TEXT("java")));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                        "wrapper.java.command=%s", getStringProperty(properties, "wrapper.java.command", "java"));
+                        TEXT("Please make sure that the PATH or any other referenced environment\nvariables are correctly defined for the current environment." ));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                        "Please make sure that the PATH or any other referenced environment");
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                        "variables are correctly defined for the current environment.");
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                        "------------------------------------------------------------------------");
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "");
+                        TEXT("------------------------------------------------------------------------") );
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("") );
                 }
             } else if (err == ERROR_ACCESS_DENIED) {
                 if (wrapperData->isAdviserEnabled) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "");
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("") );
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                        "------------------------------------------------------------------------");
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                        "Advice:");
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                        "Access denied errors when attempting to launch the Java process are");
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                        "usually caused by strict access permissions assigned to the directory");
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                        "in which Java is installed.");
+                        TEXT("------------------------------------------------------------------------") );
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(
+                        "Advice:" ));
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(
+                        "Access denied errors when attempting to launch the Java process are\nusually caused by strict access permissions assigned to the directory\nin which Java is installed." ));
                     if (!wrapperData->isConsole) {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                            "Unless you have configured the Wrapper to run as a different user with");
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                            "wrapper.ntservice.account property, the Wrapper and its JVM will be");
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                            "as the SYSTEM user by default when run as a service.");
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(
+                            "Unless you have configured the Wrapper to run as a different user with\nwrapper.ntservice.account property, the Wrapper and its JVM will be\nas the SYSTEM user by default when run as a service." ));
                     }
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                        "------------------------------------------------------------------------");
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "");
+                        TEXT("------------------------------------------------------------------------") );
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("") );
                 }
             }
 
@@ -1523,7 +1424,7 @@ void wrapperExecute() {
 
     /* Now check if we have a process handle again for the Swedish WinNT bug */
     if (process_info.hProcess == NULL) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "can not execute \"%s\"", commandline);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("can not execute \"%s\""), commandline);
         wrapperData->javaProcess = NULL;
         return;
     }
@@ -1545,7 +1446,7 @@ void wrapperExecute() {
     }
 
     if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "JVM started (PID=%d)", process_info.dwProcessId);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("JVM started (PID=%d)"), process_info.dwProcessId);
     }
 
     /* We keep a reference to the process handle, but need to close the thread handle. */
@@ -1557,7 +1458,7 @@ void wrapperExecute() {
     if (wrapperData->javaPidFilename) {
         if (writePidFile(wrapperData->javaPidFilename, wrapperData->javaPID, wrapperData->javaPidFileUmask)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                "Unable to write the Java PID file: %s", wrapperData->javaPidFilename);
+                TEXT("Unable to write the Java PID file: %s"), wrapperData->javaPidFilename);
         }
     }
 
@@ -1565,7 +1466,7 @@ void wrapperExecute() {
     if (wrapperData->javaIdFilename) {
         if (writePidFile(wrapperData->javaIdFilename, wrapperData->jvmRestarts, wrapperData->javaIdFileUmask)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                "Unable to write the Java ID file: %s", wrapperData->javaIdFilename);
+                TEXT("Unable to write the Java ID file: %s"), wrapperData->javaIdFilename);
         }
     }
 }
@@ -1603,7 +1504,7 @@ TICKS wrapperGetTicks() {
  */
 void wrapperDumpMemoryBanner() {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-        "Wrapper memory: PageFaultcount, WorkingSetSize (Peak), QuotaPagePoolUsage (Peak), QuotaNonPagedPoolUsage (Peak), PageFileUsage (Peak)  Java memory: PageFaultcount, WorkingSetSize (Peak), QuotaPagePoolUsage (Peak), QuotaNonPagedPoolUsage (Peak), PageFileUsage (Peak)  System memory: MemoryLoad, Available/PhysicalSize (%%), Available/PageFileSize (%%), Available/VirtualSize (%%), ExtendedVirtualSize");
+        TEXT("Wrapper memory: PageFaultcount, WorkingSetSize (Peak), QuotaPagePoolUsage (Peak), QuotaNonPagedPoolUsage (Peak), PageFileUsage (Peak)  Java memory: PageFaultcount, WorkingSetSize (Peak), QuotaPagePoolUsage (Peak), QuotaNonPagedPoolUsage (Peak), PageFileUsage (Peak)  System memory: MemoryLoad, Available/PhysicalSize (%%), Available/PageFileSize (%%), Available/VirtualSize (%%), ExtendedVirtualSize"));
 }
 
 /**
@@ -1619,7 +1520,7 @@ void wrapperDumpMemory() {
         /* Start with the Wrapper process. */
         if (OptionalGetProcessMemoryInfo(wrapperData->wrapperProcess, &wCounters, sizeof(wCounters)) == 0) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "Call to GetProcessMemoryInfo failed for Wrapper process %08x: %s",
+                TEXT("Call to GetProcessMemoryInfo failed for Wrapper process %08x: %s"),
                 wrapperData->wrapperPID, getLastErrorText());
             return;
         }
@@ -1628,7 +1529,7 @@ void wrapperDumpMemory() {
             /* Next the Java process. */
             if (OptionalGetProcessMemoryInfo(wrapperData->javaProcess, &jCounters, sizeof(jCounters)) == 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                    "Call to GetProcessMemoryInfo failed for Java process %08x: %s",
+                    TEXT("Call to GetProcessMemoryInfo failed for Java process %08x: %s"),
                     wrapperData->javaPID, getLastErrorText());
                 return;
             }
@@ -1640,7 +1541,7 @@ void wrapperDumpMemory() {
         GlobalMemoryStatusEx(&statex);
 
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-            "Wrapper memory: %lu, %lu (%lu), %lu (%lu), %lu (%lu), %lu (%lu)  Java memory: %lu, %lu (%lu), %lu (%lu), %lu (%lu), %lu (%lu)  System memory: %lu%%, %I64u/%I64u (%u%%), %I64u/%I64u (%u%%), %I64u/%I64u (%u%%), %I64u",
+            TEXT("Wrapper memory: %lu, %lu (%lu), %lu (%lu), %lu (%lu), %lu (%lu)  Java memory: %lu, %lu (%lu), %lu (%lu), %lu (%lu), %lu (%lu)  System memory: %lu%%, %I64u/%I64u (%u%%), %I64u/%I64u (%u%%), %I64u/%I64u (%u%%), %I64u"),
             wCounters.PageFaultCount,
             wCounters.WorkingSetSize, wCounters.PeakWorkingSetSize,
             wCounters.QuotaPagedPoolUsage, wCounters.QuotaPeakPagedPoolUsage,
@@ -1727,11 +1628,11 @@ void wrapperDumpCPUUsage() {
         }
 
         performanceCount = count.QuadPart;
-        
+
         /* Start with the Wrapper process. */
         if (!OptionalGetProcessTimes(wrapperData->wrapperProcess, &creationTime, &exitTime, &wKernelTime, &wUserTime)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "Call to GetProcessTimes failed for Wrapper process %08x: %s",
+                TEXT("Call to GetProcessTimes failed for Wrapper process %08x: %s"),
                 wrapperData->wrapperPID, getLastErrorText());
             return;
         }
@@ -1740,7 +1641,7 @@ void wrapperDumpCPUUsage() {
             /* Next the Java process. */
             if (!OptionalGetProcessTimes(wrapperData->javaProcess, &creationTime, &exitTime, &jKernelTime, &jUserTime)) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                    "Call to GetProcessTimes failed for Java process %08x: %s",
+                    TEXT("Call to GetProcessTimes failed for Java process %08x: %s"),
                     wrapperData->javaPID, getLastErrorText());
                 return;
             }
@@ -1750,6 +1651,7 @@ void wrapperDumpCPUUsage() {
             lastJavaKernelTime = 0;
             lastJavaUserTime = 0;
         }
+
 
         /* Convert the times to ms. */
         wKernelTimeMs = filetimeToMS(&wKernelTime);
@@ -1784,7 +1686,7 @@ void wrapperDumpCPUUsage() {
         jPercent = jKernelPercent + jUserPercent;
 
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-            "Wrapper CPU: kernel %ldms (%5.2f%%), user %ldms (%5.2f%%), total %ldms (%5.2f%%)  Java CPU: kernel %ldms (%5.2f%%), user %ldms (%5.2f%%), total %ldms (%5.2f%%)",
+            TEXT("Wrapper CPU: kernel %ldms (%5.2f%%), user %ldms (%5.2f%%), total %ldms (%5.2f%%)  Java CPU: kernel %ldms (%5.2f%%), user %ldms (%5.2f%%), total %ldms (%5.2f%%)"),
             wKernelTimeMs, wKernelPercent, wUserTimeMs, wUserPercent, wTimeMs, wPercent,
             jKernelTimeMs, jKernelPercent, jUserTimeMs, jUserPercent, jTimeMs, jPercent);
 
@@ -1798,17 +1700,17 @@ void wrapperDumpCPUUsage() {
 
 /**
  * The service control handler is called by the service manager when there are
- *    events for the service.  registered using a call to 
+ *    events for the service.  registered using a call to
  *    RegisterServiceCtrlHandler in wrapperServiceMain.
  *
  * Note on PowerEvents prior to win2k: http://blogs.msdn.com/heaths/archive/2005/05/18/419791.aspx
  */
 DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
-                                            DWORD dwEvtType, 
+                                            DWORD dwEvtType,
                                             LPVOID lpEvtData,
                                             LPVOID lpCntxt) {
     /* Allow for a large integer + \0 */
-    char buffer[11];
+    TCHAR buffer[11];
 
     DWORD result = result = NO_ERROR;
 
@@ -1820,7 +1722,7 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
     __try {
         /*
         if (wrapperData->isDebugging) {
-            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "ServiceControlHandlerEx(%d, %d, %p, %p)", dwCtrlCode, dwEvtType, lpEvtData, lpCntxt);
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("ServiceControlHandlerEx(%d, %d, %p, %p)"), dwCtrlCode, dwEvtType, lpEvtData, lpCntxt);
         }
         */
 
@@ -1834,7 +1736,7 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
                     /* system is hiberating
                      * send off power resume event */
                     if (wrapperData->isDebugging) {
-                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_POWEREVENT(PBT_APMQUERYSUSPEND)");
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_POWEREVENT(PBT_APMQUERYSUSPEND)"));
                     }
                     controlCode = 0x0D00;
                     break;
@@ -1843,7 +1745,7 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
                     /* system is waking up
                      * send off power resume event */
                     if (wrapperData->isDebugging) {
-                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_POWEREVENT(PBT_APMQUERYSUSPENDFAILED)");
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_POWEREVENT(PBT_APMQUERYSUSPENDFAILED)"));
                     }
                     controlCode = 0x0D02;
                     break;
@@ -1852,16 +1754,16 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
                     /* system is waking up
                      * send off power resume event */
                     if (wrapperData->isDebugging) {
-                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_POWEREVENT(PBT_APMSUSPEND)");
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_POWEREVENT(PBT_APMSUSPEND)"));
                     }
                     controlCode = 0x0D04;
                     break;
-                
+
                 case PBT_APMRESUMECRITICAL: /* 0x6 */
                     /* system is waking up
                      * send off power resume event */
                     if (wrapperData->isDebugging) {
-                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_POWEREVENT(PBT_APMRESUMECRITICAL)");
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_POWEREVENT(PBT_APMRESUMECRITICAL)"));
                     }
                     controlCode = 0x0D06;
                     break;
@@ -1870,7 +1772,7 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
                     /* system is waking up
                      * send off power resume event */
                     if (wrapperData->isDebugging) {
-                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_POWEREVENT(PBT_APMRESUMESUSPEND)");
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_POWEREVENT(PBT_APMRESUMESUSPEND)"));
                     }
                     controlCode = 0x0D07;
                     break;
@@ -1878,7 +1780,7 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
                 case PBT_APMBATTERYLOW: /* 0x9 */
                     /* batter is low warning. */
                     if (wrapperData->isDebugging) {
-                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_POWEREVENT(PBT_APMBATTERYLOW)");
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_POWEREVENT(PBT_APMBATTERYLOW)"));
                     }
                     controlCode = 0x0D09;
                     break;
@@ -1886,7 +1788,7 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
                 case PBT_APMPOWERSTATUSCHANGE: /* 0xA */
                     /* the status of system power changed. */
                     if (wrapperData->isDebugging) {
-                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_POWEREVENT(PBT_APMPOWERSTATUSCHANGE)");
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_POWEREVENT(PBT_APMPOWERSTATUSCHANGE)"));
                     }
                     controlCode = 0x0D0A;
                     break;
@@ -1894,7 +1796,7 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
                 case PBT_APMOEMEVENT: /* 0xB */
                     /* there was an OEM event. */
                     if (wrapperData->isDebugging) {
-                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_POWEREVENT(PBT_APMOEMEVENT)");
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_POWEREVENT(PBT_APMOEMEVENT)"));
                     }
                     controlCode = 0x0D0B;
                     break;
@@ -1902,7 +1804,7 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
                 case PBT_APMRESUMEAUTOMATIC: /* 0x12 */
                     /* system is waking up */
                     if (wrapperData->isDebugging) {
-                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_POWEREVENT(PBT_APMRESUMEAUTOMATIC)");
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_POWEREVENT(PBT_APMRESUMEAUTOMATIC)"));
                     }
                     controlCode = 0x0D12;
                     break;
@@ -1916,40 +1818,40 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
                 default:
                     /* Unexpected generic powerevent code */
                     if (wrapperData->isDebugging) {
-                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_POWEREVENT(%d)", dwEvtType);
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_POWEREVENT(%d)"), dwEvtType);
                     }
                     break;
             }
         }
 
         /* Forward the control code off to the JVM. */
-        sprintf(buffer, "%d", controlCode);
+        _sntprintf(buffer, 11, TEXT("%d"), controlCode);
         wrapperProtocolFunction(TRUE, WRAPPER_MSG_SERVICE_CONTROL_CODE, buffer);
 
         switch(dwCtrlCode) {
         case SERVICE_CONTROL_PAUSE:
             if (wrapperData->isDebugging) {
-                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_PAUSE");
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_PAUSE"));
             }
 
             /* Tell the wrapper to pause */
-            wrapperPauseProcess(TRUE);
+            wrapperPauseProcess(TRUE, WRAPPER_ACTION_SOURCE_CODE_WINDOWS_SERVICE_MANAGER);
 
             break;
 
         case SERVICE_CONTROL_CONTINUE:
             if (wrapperData->isDebugging) {
-                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_CONTINUE");
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_CONTINUE"));
             }
 
-            /* Tell the wrapper to continue */
-            wrapperContinueProcess(TRUE);
+            /* Tell the wrapper to resume */
+            wrapperResumeProcess(TRUE, WRAPPER_ACTION_SOURCE_CODE_WINDOWS_SERVICE_MANAGER);
 
             break;
 
         case SERVICE_CONTROL_STOP:
             if (wrapperData->isDebugging) {
-                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_STOP");
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_STOP"));
             }
 
             /* Request to stop the service. Report SERVICE_STOP_PENDING */
@@ -1974,7 +1876,7 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
 
         case SERVICE_CONTROL_INTERROGATE:
             if (wrapperData->isDebugging) {
-                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_INTERROGATE");
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_INTERROGATE"));
             }
 
             /* This case MUST be processed, even though we are not */
@@ -1982,15 +1884,15 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
             break;
 
         case SERVICE_CONTROL_POWEREVENT:
-            // we handled it 
+            // we handled it
             if (wrapperData->isDebugging) {
-                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_POWEREVENT (handled)");
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_POWEREVENT (handled)"));
             }
             break;
 
         case SERVICE_CONTROL_SHUTDOWN:
             if (wrapperData->isDebugging) {
-                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_SHUTDOWN");
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_SHUTDOWN"));
             }
 
             /* Request to stop the service. Report SERVICE_STOP_PENDING */
@@ -2015,13 +1917,13 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
         default:
             if ((wrapperData->threadDumpControlCode > 0) && (dwCtrlCode == wrapperData->threadDumpControlCode)) {
                 if (wrapperData->isDebugging) {
-                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_(%d) Request Thread Dump.", dwCtrlCode);
+                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_(%d) Request Thread Dump."), dwCtrlCode);
                 }
                 wrapperRequestDumpJVMState(TRUE);
             } else {
                 /* Any other cases... Did not handle */
                 if (wrapperData->isDebugging) {
-                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "  SERVICE_CONTROL_(%d) Not handled.", dwCtrlCode);
+                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_(%d) Not handled."), dwCtrlCode);
                 }
                 result = ERROR_CALL_NOT_IMPLEMENTED;
             }
@@ -2035,7 +1937,7 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
 
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            "<-- Wrapper Stopping due to error in service control handler.");
+            TEXT("<-- Wrapper Stopping due to error in service control handler."));
         appExit(1);
     }
 
@@ -2044,13 +1946,13 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
 
 /**
  * The service control handler is called by the service manager when there are
- *    events for the service.  registered using a call to 
+ *    events for the service.  registered using a call to
  *    RegisterServiceCtrlHandler in wrapperServiceMain.
  */
 void WINAPI wrapperServiceControlHandler(DWORD dwCtrlCode) {
     /*
     if (wrapperData->isDebugging) {
-        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Service(%d)", dwCtrlCode);
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Service(%d)"), dwCtrlCode);
     }
     */
     wrapperServiceControlHandlerEx(dwCtrlCode, 0, NULL, NULL);
@@ -2067,7 +1969,7 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
      *  display and log useful information should the need arise. */
     __try {
 #ifdef _DEBUG
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "wrapperServiceMain()");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("wrapperServiceMain()"));
 #endif
 
         /* Immediately register this thread with the logger. */
@@ -2079,20 +1981,21 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
         if (OptionalRegisterServiceCtrlHandlerEx) {
             /* Use RegisterServiceCtrlHandlerEx if available. */
             sshStatusHandle = OptionalRegisterServiceCtrlHandlerEx(
-                TEXT(wrapperData->serviceName), wrapperServiceControlHandlerEx, (LPVOID)1);
+                wrapperData->serviceName, wrapperServiceControlHandlerEx, (LPVOID)1);
         } else {
             sshStatusHandle = RegisterServiceCtrlHandler(
-                TEXT(wrapperData->serviceName), wrapperServiceControlHandler);
+                wrapperData->serviceName, wrapperServiceControlHandler);
         }
         if (!sshStatusHandle) {
             goto finally;
         }
-    
+
         /* The global ssStatus SERVICE_STATUS structure contains information about the */
         /* service, and is used throughout the program in calls made to SetStatus through */
         /* the ReportStatus function. */
-        ssStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS; 
+        ssStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
         ssStatus.dwServiceSpecificExitCode = 0;
+
 
         /* If we could guarantee that all initialization would occur in less than one */
         /* second, we would not have to report our status to the service control manager. */
@@ -2104,20 +2007,20 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
             timeout = 86400000; // Set infinity at 1 day.
         }
         wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTING, 0, timeout);
-    
+
         /* Now actually start the service */
         wrapperRunService();
-    
+
  finally:
 
         /* Report that the service has stopped and set the correct exit code. */
         wrapperReportStatus(FALSE, WRAPPER_WSTATE_STOPPED, wrapperData->exitCode, 1000);
-        
+
 #ifdef _DEBUG
         /* The following message will not always appear on the screen if the STOPPED
          *  status was set above.  But the code in the appExit function below always
          *  appears to be getting executed.  Looks like some kind of a timing issue. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Exiting service process.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Exiting service process."));
 #endif
 
         /* Actually exit the process, returning the current exit code. */
@@ -2125,7 +2028,7 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
 
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            "<-- Wrapper Stopping due to error in service main.");
+            TEXT("<-- Wrapper Stopping due to error in service main."));
         appExit(1);
     }
 }
@@ -2134,14 +2037,14 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
  * Reads a password from the console and then returns it as a malloced string.
  *  This is only called once so the memory can leak.
  */
-char *readPassword() {
-    char *buffer;
-    char c;
+TCHAR *readPassword() {
+    TCHAR *buffer;
+    TCHAR c;
     int cnt = 0;
 
-    buffer = malloc(sizeof(char) * 65);
+    buffer = malloc(sizeof(TCHAR) * 65);
     if (!buffer) {
-        outOfMemory("RP", 1);
+        outOfMemory(TEXT("RP"), 1);
         appExit(0);
         return NULL;
     }
@@ -2151,13 +2054,13 @@ char *readPassword() {
         c = _getch();
         switch (c) {
         case 0x03: /* Ctrl-C */
-            printf("\n");
+            _tprintf(TEXT("\n") );
             appExit(0);
             break;
 
         case 0x08: /* Backspace */
             if (cnt > 0) {
-                printf("%c %c", 0x08, 0x08);
+                _tprintf(TEXT("%c %c"), 0x08, 0x08);
                 cnt--;
                 buffer[cnt] = 0;
             }
@@ -2180,7 +2083,7 @@ char *readPassword() {
                     if (wrapperData->ntServicePasswordPromptMask) {
                         printf("*");
                     } else {
-                        printf("%c", c);
+                        _tprintf(TEXT("%c"), c);
                     }
                     buffer[cnt] = c;
                     buffer[cnt + 1] = 0;
@@ -2191,7 +2094,7 @@ char *readPassword() {
         }
         /*printf("(%02x)", c);*/
     } while ((c != 0x0d) && (c != 0x0a));
-    printf("\n");
+    _tprintf(TEXT("\n"));
 
     return buffer;
 }
@@ -2235,24 +2138,24 @@ BOOL isElevated() {
 
 
 void wrapperCheckForMappedDrives() {
-    char **propertyNames;
-    char **propertyValues;
+    TCHAR **propertyNames;
+    TCHAR **propertyValues;
     long unsigned int *propertyIndices;
     int i;
     int advice = 0;
     if (!wrapperData->ntServiceAccount) {
-        advice = wrapperGetUNCFilePath(getFileSafeStringProperty(properties, "wrapper.logfile", "wrapper.log"), advice);
-        advice = wrapperGetUNCFilePath(getFileSafeStringProperty(properties, "wrapper.logfile.purge.pattern", ""), advice);
-        advice = wrapperGetUNCFilePath(getFileSafeStringProperty(properties, "wrapper.pidfile", NULL), advice);
-        advice = wrapperGetUNCFilePath(getFileSafeStringProperty(properties, "wrapper.java.pidfile", NULL), advice);
-        advice = wrapperGetUNCFilePath(getFileSafeStringProperty(properties, "wrapper.lockfile", NULL), advice);
-        advice = wrapperGetUNCFilePath(getFileSafeStringProperty(properties, "wrapper.java.idfile", NULL), advice);
-        advice = wrapperGetUNCFilePath(getFileSafeStringProperty(properties, "wrapper.statusfile", NULL), advice);
-        advice = wrapperGetUNCFilePath(getFileSafeStringProperty(properties, "wrapper.java.statusfile", NULL), advice);
-        advice = wrapperGetUNCFilePath(getFileSafeStringProperty(properties, "wrapper.commandfile", NULL), advice);
-        advice = wrapperGetUNCFilePath(getFileSafeStringProperty(properties, "wrapper.anchorfile", NULL), advice);
+        advice = wrapperGetUNCFilePath(getFileSafeStringProperty(properties, TEXT("wrapper.logfile"), TEXT("wrapper.log")), advice);
+        advice = wrapperGetUNCFilePath(getFileSafeStringProperty(properties, TEXT("wrapper.logfile.purge.pattern"), TEXT("")), advice);
+        advice = wrapperGetUNCFilePath(getFileSafeStringProperty(properties, TEXT("wrapper.pidfile"), NULL), advice);
+        advice = wrapperGetUNCFilePath(getFileSafeStringProperty(properties, TEXT("wrapper.java.pidfile"), NULL), advice);
+        advice = wrapperGetUNCFilePath(getFileSafeStringProperty(properties, TEXT("wrapper.lockfile"), NULL), advice);
+        advice = wrapperGetUNCFilePath(getFileSafeStringProperty(properties, TEXT("wrapper.java.idfile"), NULL), advice);
+        advice = wrapperGetUNCFilePath(getFileSafeStringProperty(properties, TEXT("wrapper.statusfile"), NULL), advice);
+        advice = wrapperGetUNCFilePath(getFileSafeStringProperty(properties, TEXT("wrapper.java.statusfile"), NULL), advice);
+        advice = wrapperGetUNCFilePath(getFileSafeStringProperty(properties, TEXT("wrapper.commandfile"), NULL), advice);
+        advice = wrapperGetUNCFilePath(getFileSafeStringProperty(properties, TEXT("wrapper.anchorfile"), NULL), advice);
         i = 0;
-        if (getStringProperties(properties, "wrapper.java.library.path.", "", wrapperData->ignoreSequenceGaps, FALSE, &propertyNames, &propertyValues, &propertyIndices)) {
+        if (getStringProperties(properties, TEXT("wrapper.java.library.path."), TEXT(""), wrapperData->ignoreSequenceGaps, FALSE, &propertyNames, &propertyValues, &propertyIndices)) {
                 /* Failed */
             return ;
         }
@@ -2264,7 +2167,7 @@ void wrapperCheckForMappedDrives() {
 
         }
         i = 0;
-        if (getStringProperties(properties, "wrapper.java.classpath.", "", wrapperData->ignoreSequenceGaps, FALSE, &propertyNames, &propertyValues, &propertyIndices)) {
+        if (getStringProperties(properties, TEXT("wrapper.java.classpath."), TEXT(""), wrapperData->ignoreSequenceGaps, FALSE, &propertyNames, &propertyValues, &propertyIndices)) {
                 /* Failed */
             return ;
         }
@@ -2288,35 +2191,35 @@ void wrapperCheckForMappedDrives() {
  *
  * @return 0 if succeeded.
  */
-int buildServiceBinaryPath(char *buffer, size_t *reqBufferSize) {
+int buildServiceBinaryPath(TCHAR *buffer, size_t *reqBufferSize) {
     DWORD moduleFileNameSize;
-    char *moduleFileName;
-    char drive[4];
+    TCHAR *moduleFileName;
+    TCHAR drive[4];
+    TCHAR* uncTempBuffer;
     DWORD uncSize;
     int pathMapped;
     int pathMapFailed = FALSE;
     UNIVERSAL_NAME_INFO* unc;
     int i;
+    int k;
 
     /* We will calculate the size used. */
     if (buffer) {
-        buffer[0] = '\0';
+        buffer[0] = TEXT('\0');
     }
-    *reqBufferSize = 1;
-
+    *reqBufferSize = sizeof(TCHAR);
     /* Get the full path and filename of this program.  Need to loop to make sure we get it all. */
     moduleFileNameSize = 0;
     moduleFileName = NULL;
     do {
         moduleFileNameSize += 100;
-        moduleFileName = malloc(sizeof(char) * moduleFileNameSize);
+        moduleFileName = malloc(sizeof(TCHAR) * moduleFileNameSize);
         if (!moduleFileName) {
-            outOfMemory("BSBP", 1);
+            outOfMemory(TEXT("BSBP"), 1);
             return 1;
         }
-
         if (GetModuleFileName(NULL, moduleFileName, moduleFileNameSize) == 0) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to resolve the full Wrapper path - %s", getLastErrorText());
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to resolve the full Wrapper path - %s"), getLastErrorText());
             return 1;
         } else if (getLastError() == ERROR_INSUFFICIENT_BUFFER) {
             /* Buffer too small.  Loop again. */
@@ -2324,150 +2227,153 @@ int buildServiceBinaryPath(char *buffer, size_t *reqBufferSize) {
             moduleFileName = NULL;
         }
     } while (!moduleFileName);
-
     /* Always start with the full path to the binary. */
     /* If the moduleFileName contains spaces, it needs to be quoted */
     /* Resolve to UNC-Name if we are on a mapped drive */
-    if ((strlen(moduleFileName) >= 3) && (moduleFileName[1] == ':') && (moduleFileName[2] == '\\')) {
+    if ((_tcslen(moduleFileName) >= 3) && (moduleFileName[1] == TEXT(':')) && (moduleFileName[2] == TEXT('\\'))) {
         memcpy(drive, moduleFileName, 3);
-        drive[3] = '\0';
+        drive[3] = TEXT('\0');
     } else {
-        drive[0] = '\0';
+        drive[0] = TEXT('\0');
     }
     pathMapped = FALSE;
-    if ((drive[0] != '\0') && (GetDriveType(drive) == DRIVE_REMOTE)) {
+    if ((drive[0] != TEXT('\0')) && (GetDriveType(drive) == DRIVE_REMOTE)) {
         /* The Wrapper binary is located on a Network Drive.  Try to resolve the original Universal path.  We need to get a buffer big enough. */
         uncSize = 0;
-        WNetGetUniversalName(moduleFileName, UNIVERSAL_NAME_INFO_LEVEL, NULL, &uncSize);
-        if (getLastError() != ERROR_MORE_DATA) {
+        moduleFileNameSize = 100;
+        do{
+            uncTempBuffer = malloc((moduleFileNameSize) * sizeof(TCHAR));
+            if (!uncTempBuffer) {
+                outOfMemory(TEXT("BSBP"), 2);
+                return 1;
+            }
+            unc = (UNIVERSAL_NAME_INFO *) uncTempBuffer;
+            k = WNetGetUniversalName(moduleFileName, UNIVERSAL_NAME_INFO_LEVEL, unc, &moduleFileNameSize);
+            if (k == ERROR_MORE_DATA) {
+                free(uncTempBuffer);
+            }
+        } while (k == ERROR_MORE_DATA);
+        uncSize = moduleFileNameSize;
+        if (k != NO_ERROR) {
             if (buffer) { /* Otherwise logged on the next pass. */
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Unable to resolve Universal Path of mapped network path: %s (%s)", moduleFileName, getLastErrorText());
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to resolve Universal Path of mapped network path: %s (%s)"), moduleFileName, getLastErrorText());
             }
             pathMapFailed = TRUE;
         } else {
             /* Now we know the size.  Create the unc buffer. */
-            unc = malloc(uncSize);
-            if (!unc) {
-                outOfMemory("BSBP", 2);
-                free(moduleFileName);
-                return 1;
-            }
-            if (WNetGetUniversalName(moduleFileName, UNIVERSAL_NAME_INFO_LEVEL, (LPVOID)unc, &uncSize) == NO_ERROR) {
-                if (strchr(unc->lpUniversalName, ' ') == NULL) {
-                    if (buffer) {
-                        strcat(buffer, unc->lpUniversalName);
-                    }
-                    *reqBufferSize += strlen(unc->lpUniversalName);
-                } else {
-                    if (buffer) {
-                        strcat(buffer, "\"");
-                        strcat(buffer, unc->lpUniversalName);
-                        strcat(buffer, "\"");
-                    }
-                    *reqBufferSize += 1 + strlen(unc->lpUniversalName) + 1;
+            if (_tcschr(unc->lpUniversalName, TEXT(' ')) == NULL) {
+                if (buffer) {
+                    _tcscat(buffer, unc->lpUniversalName);
                 }
-                pathMapped = TRUE;
+            *reqBufferSize += _tcslen(unc->lpUniversalName) * sizeof(TCHAR);
             } else {
-                if (buffer) { /* Otherwise logged on the next pass. */
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Unable to resolve Universal Path of mapped network path: %s (%s)", moduleFileName, getLastErrorText());
+                if (buffer) {
+                    _tcscat(buffer, TEXT("\""));
+                    _tcscat(buffer, unc->lpUniversalName);
+                    _tcscat(buffer, TEXT("\""));
                 }
-                pathMapFailed = TRUE;
+                *reqBufferSize += (1 + _tcslen(unc->lpUniversalName) + 1) * sizeof(TCHAR);
             }
-            free(unc);
+            pathMapped = TRUE;
+            free(uncTempBuffer);
         }
     }
+
     if (!pathMapped) {
-        if (strchr(moduleFileName, ' ') == NULL) {
+        if (_tcschr(moduleFileName, TEXT(' ')) == NULL) {
             if (buffer) {
-                strcat(buffer, moduleFileName);
+                _tcscat(buffer, moduleFileName);
             }
-            *reqBufferSize += strlen(moduleFileName);
+            *reqBufferSize += _tcslen(moduleFileName) * sizeof(TCHAR);
         } else {
             if (buffer) {
-                strcat(buffer, "\"");
-                strcat(buffer, moduleFileName);
-                strcat(buffer, "\"");
+                _tcscat(buffer, TEXT("\""));
+                _tcscat(buffer, moduleFileName);
+                _tcscat(buffer, TEXT("\""));
             }
-            *reqBufferSize += 1 + strlen(moduleFileName) + 1;
+            *reqBufferSize += (1 + _tcslen(moduleFileName) + 1)  * sizeof(TCHAR);
         }
     }
     free(moduleFileName);
 
     /* Next write the command to start the service. */
     if (buffer) {
-        strcat(buffer, " -s ");
+        _tcscat(buffer, TEXT(" -s "));
     }
-    *reqBufferSize += 4;
+    *reqBufferSize += 4  * sizeof(TCHAR);
 
     /* Third, the configuration file. */
     /* If the wrapperData->configFile contains spaces, it needs to be quoted */
     /* Try to convert the config file to a UNC path as well. */
-    if ((strlen(wrapperData->configFile) >= 3) && (wrapperData->configFile[1] == ':') && (wrapperData->configFile[2] == '\\')) {
-        memcpy(drive, wrapperData->configFile, 3);
-        drive[3] = '\0';
+    if ((_tcslen(wrapperData->configFile) >= 3) && (wrapperData->configFile[1] == TEXT(':')) && (wrapperData->configFile[2] == TEXT('\\'))) {
+        _tcsncpy(drive, wrapperData->configFile, 3);
+        drive[3] = TEXT('\0');
     } else {
-        drive[0] = '\0';
+        drive[0] = TEXT('\0');
     }
     pathMapped = FALSE;
-    if ((drive[0] != '\0') && (GetDriveType(drive) == DRIVE_REMOTE)) {
+    if ((drive[0] != TEXT('\0')) && (GetDriveType(drive) == DRIVE_REMOTE)) {
         /* The Wrapper config file is located on a Network Drive.  Try to resolve the original Universal path.  We need to get a buffer big enough. */
+        moduleFileNameSize = 100;
         uncSize = 0;
-        WNetGetUniversalName(wrapperData->configFile, UNIVERSAL_NAME_INFO_LEVEL, NULL, &uncSize);
-        if (getLastError() != ERROR_MORE_DATA) {
+        do {
+            uncTempBuffer = malloc((moduleFileNameSize) * sizeof(TCHAR));
+            if (!uncTempBuffer) {
+                outOfMemory(TEXT("BSBP"), 3);
+                return 1;
+            }
+
+            unc = (UNIVERSAL_NAME_INFO *) uncTempBuffer;
+
+            k = WNetGetUniversalName(wrapperData->configFile, UNIVERSAL_NAME_INFO_LEVEL, unc, &moduleFileNameSize);
+            if (k == ERROR_MORE_DATA) {
+                free(uncTempBuffer);
+            }
+        } while (k == ERROR_MORE_DATA);
+        if (k != NO_ERROR) {
             if (buffer) { /* Otherwise logged on the next pass. */
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Unable to resolve Universal Path of mapped network path: %s (%s)", wrapperData->configFile, getLastErrorText());
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to resolve Universal Path of mapped network path: %s (%s)"), wrapperData->configFile, getLastErrorText());
             }
             pathMapFailed = TRUE;
         } else {
-            /* Now we know the size.  Create the unc buffer. */
-            unc = malloc(uncSize);
-            if (!unc) {
-                outOfMemory("BSBP", 3);
-                return 1;
-            }
-            if (WNetGetUniversalName(wrapperData->configFile, UNIVERSAL_NAME_INFO_LEVEL, (LPVOID)unc, &uncSize) == NO_ERROR) {
-                if (strchr(unc->lpUniversalName, ' ') == NULL) {
-                    if (buffer) {
-                        strcat(buffer, unc->lpUniversalName);
-                    }
-                    *reqBufferSize += strlen(unc->lpUniversalName);
-                } else {
-                    if (buffer) {
-                        strcat(buffer, "\"");
-                        strcat(buffer, unc->lpUniversalName);
-                        strcat(buffer, "\"");
-                    }
-                    *reqBufferSize += 1 + strlen(unc->lpUniversalName) + 1;
+           /* Now we know the size.  Create the unc buffer. */
+            if (_tcschr(unc->lpUniversalName, TEXT(' ')) == NULL) {
+                if (buffer) {
+                    _tcscat(buffer, unc->lpUniversalName);
                 }
-                pathMapped = TRUE;
+                *reqBufferSize += _tcslen(unc->lpUniversalName) * sizeof(TCHAR);
             } else {
-                if (buffer) { /* Otherwise logged on the next pass. */
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Unable to resolve Universal Path of mapped network path: %s (%s)", wrapperData->configFile, getLastErrorText());
+                if (buffer) {
+                    _tcscat(buffer, TEXT("\""));
+                    _tcscat(buffer, unc->lpUniversalName);
+                    _tcscat(buffer, TEXT("\""));
                 }
-                pathMapFailed = TRUE;
+                *reqBufferSize += (1 + _tcslen(unc->lpUniversalName) + 1) * sizeof(TCHAR);
             }
-            free(unc);
+            pathMapped = TRUE;
+            free(uncTempBuffer);
+            unc = NULL;
         }
     }
     if (!pathMapped) {
-        if (strchr(wrapperData->configFile, ' ') == NULL) {
+        if (_tcschr(wrapperData->configFile, TEXT(' ')) == NULL) {
             if (buffer) {
-                strcat(buffer, wrapperData->configFile);
+                _tcscat(buffer, wrapperData->configFile);
             }
-            *reqBufferSize += strlen(wrapperData->configFile);
+            *reqBufferSize += _tcslen(wrapperData->configFile) * sizeof(TCHAR);;
         } else {
             if (buffer) {
-                strcat(buffer, "\"");
-                strcat(buffer, wrapperData->configFile);
-                strcat(buffer, "\"");
+                _tcscat(buffer, TEXT("\""));
+                _tcscat(buffer, wrapperData->configFile);
+                _tcscat(buffer, TEXT("\""));
             }
-            *reqBufferSize += 1 + strlen(wrapperData->configFile) + 1;
+            *reqBufferSize += (1 + _tcslen(wrapperData->configFile) + 1) * sizeof(TCHAR);
         }
     }
 
     if (pathMapFailed) {
         if (buffer) { /* Otherwise logged on the next pass. */
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "There were problems converting mapped network paths the Universal Path format.  This may cause the service to fail to start now or when the system is rebooted.");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("There were problems converting mapped network paths the Universal Path format.  This may cause the service to fail to start now or when the system is rebooted."));
         }
     }
 
@@ -2478,30 +2384,29 @@ int buildServiceBinaryPath(char *buffer, size_t *reqBufferSize) {
          *  command line.  They will not be needed  once the service is
          *  installed.  Having them in the registry would be an obvious
          *  security leak. */
-        if ((strstr(wrapperData->argValues[i], "wrapper.ntservice.account") == NULL) &&
-            (strstr(wrapperData->argValues[i], "wrapper.ntservice.password") == NULL)) {
+        if ((_tcsstr(wrapperData->argValues[i], TEXT("wrapper.ntservice.account")) == NULL) &&
+            (_tcsstr(wrapperData->argValues[i], TEXT("wrapper.ntservice.password")) == NULL)) {
             if (buffer) {
-                strcat(buffer, " ");
+                _tcscat(buffer, TEXT(" "));
             }
-            *reqBufferSize += 1;
+            *reqBufferSize += 1 * sizeof(TCHAR);
 
             /* If the argument contains spaces, it needs to be quoted */
-            if (strchr(wrapperData->argValues[i], ' ') == NULL) {
+            if (_tcschr(wrapperData->argValues[i], TEXT(' ')) == NULL) {
                 if (buffer) {
-                    strcat(buffer, wrapperData->argValues[i]);
+                    _tcscat(buffer, wrapperData->argValues[i]);
                 }
-                *reqBufferSize += strlen(wrapperData->argValues[i]);
+                *reqBufferSize += _tcslen(wrapperData->argValues[i]) * sizeof(TCHAR);
             } else {
                 if (buffer) {
-                    strcat(buffer, "\"");
-                    strcat(buffer, wrapperData->argValues[i]);
-                    strcat(buffer, "\"");
+                    _tcscat(buffer, TEXT("\""));
+                    _tcscat(buffer, wrapperData->argValues[i]);
+                    _tcscat(buffer, TEXT("\""));
                 }
-                *reqBufferSize += 1 + strlen(wrapperData->argValues[i]) + 1;
+                *reqBufferSize += 1 + _tcslen(wrapperData->argValues[i]) + 1;
             }
         }
     }
-
     return 0;
 }
 
@@ -2518,43 +2423,43 @@ int wrapperInstall() {
     DWORD       serviceType;
     DWORD       startType;
     size_t binaryPathSize;
-    char *binaryPath;
+    TCHAR *binaryPath;
     int result = 0;
     HKEY hKey;
-    char regPath[ 1024 ];
-    char *ntServicePassword;
+    TCHAR regPath[ 1024 ];
+    TCHAR *ntServicePassword;
     DWORD dsize = 1024;
 
     /* Generate the service binary path.  We need to figure out how big the buffer needs to be. */
     if (buildServiceBinaryPath(NULL, &binaryPathSize)) {
         /* Failed a reason should have been given. But show result. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to install the %s service", wrapperData->serviceDisplayName);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to install the %s service"), wrapperData->serviceDisplayName);
         return 1;
     }
     binaryPath = malloc(binaryPathSize);
     if (!binaryPath) {
-        outOfMemory("WI", 1);
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to install the %s service", wrapperData->serviceDisplayName);
+        outOfMemory(TEXT("WI"), 1);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to install the %s service"), wrapperData->serviceDisplayName);
         return 1;
     }
     if (buildServiceBinaryPath(binaryPath, &binaryPathSize)) {
         /* Failed a reason should have been given. But show result. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to install the %s service", wrapperData->serviceDisplayName);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to install the %s service"), wrapperData->serviceDisplayName);
         free(binaryPath);
         return 1;
     }
 
     if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Service command: %s", binaryPath);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Service command: %s"), binaryPath);
     }
 
     if (wrapperData->ntServiceAccount && wrapperData->ntServicePasswordPrompt) {
         /* Prompt the user for a password. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Prompting for account password...");
-        printf("Please input the password for account '%s': ", wrapperData->ntServiceAccount);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Prompting for account password..."));
+        _tprintf(TEXT("Please input the password for account '%s': "), wrapperData->ntServiceAccount);
         wrapperData->ntServicePassword = readPassword();
 #ifdef _DEBUG
-        printf("Password=[%s]\n", wrapperData->ntServicePassword);
+        _tprintf(TEXT("Password=[%s]\n"), wrapperData->ntServicePassword);
 #endif
     }
 
@@ -2565,15 +2470,27 @@ int wrapperInstall() {
         serviceType = SERVICE_WIN32_OWN_PROCESS;
     }
 
+
+    /* elevate the process*/
+    /*if (!isElevated()){
+
+        runElevated( binaryPath  , parameter , NULL);
+      //  _tprintf(TEXT("bin %s/t para %s\n") , binaryPath, parameter);fflush(NULL);
+       return 0;
+
+    }*/
+
     /* Next, get a handle to the service control manager */
-    schSCManager = OpenSCManager(NULL,
+    schSCManager = OpenSCManager(
                                  NULL,
-                                 SC_MANAGER_CONNECT | SC_MANAGER_CREATE_SERVICE);
+                                 NULL,
+                                 SC_MANAGER_CONNECT | SC_MANAGER_CREATE_SERVICE
+                                 );
 
     if (schSCManager) {
         /* Make sure that an empty length password is null. */
         ntServicePassword = wrapperData->ntServicePassword;
-        if ((ntServicePassword != NULL) && (strlen(ntServicePassword) <= 0)) {
+        if ((ntServicePassword != NULL) && (_tcslen(ntServicePassword) <= 0)) {
             ntServicePassword = NULL;
         }
 
@@ -2592,28 +2509,28 @@ int wrapperInstall() {
                                    wrapperData->ntServiceDependencies, /* dependencies */
                                    wrapperData->ntServiceAccount,      /* LocalSystem account if NULL */
                                    ntServicePassword);                 /* NULL or empty for no password */
-        
+
         if (schService) {
             /* Have the service, add a description to the registry. */
-            sprintf(regPath, "SYSTEM\\CurrentControlSet\\Services\\%s", wrapperData->serviceName);
-            if ((wrapperData->serviceDescription != NULL && strlen(wrapperData->serviceDescription) > 0)
-                && (RegOpenKeyEx(HKEY_LOCAL_MACHINE, regPath, 0, KEY_WRITE, (PHKEY)&hKey) == ERROR_SUCCESS)) {
+            _sntprintf(regPath, 1024, TEXT("SYSTEM\\CurrentControlSet\\Services\\%s"), wrapperData->serviceName);
+            if ((wrapperData->serviceDescription != NULL && _tcslen(wrapperData->serviceDescription) > 0)
+                && (RegOpenKeyEx(HKEY_LOCAL_MACHINE, regPath, 0, KEY_WRITE, (PHKEY) &hKey) == ERROR_SUCCESS)) {
 
                 /* Set Description key in registry */
-                RegSetValueEx(hKey, "Description", (DWORD)0, (DWORD)REG_SZ,
-                    (const unsigned char *)wrapperData->serviceDescription,
-                    (int)(strlen(wrapperData->serviceDescription) + 1));
+                RegSetValueEx(hKey, TEXT("Description"), (DWORD) 0, (DWORD) REG_SZ,
+                    (LPBYTE)wrapperData->serviceDescription,
+                    (int)(sizeof(TCHAR) * (_tcslen(wrapperData->serviceDescription) + 1)));
                 RegCloseKey(hKey);
             }
 
             /* Service was installed. */
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s service installed.",
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s service installed."),
                 wrapperData->serviceDisplayName);
 
             /* Close the handle to this service object */
             CloseServiceHandle(schService);
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to install the %s service - %s",
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to install the %s service - %s"),
                 wrapperData->serviceDisplayName, getLastErrorText());
             result = 1;
         }
@@ -2621,10 +2538,10 @@ int wrapperInstall() {
         /* Close the handle to the service control manager database */
         CloseServiceHandle(schSCManager);
     } else {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to install the %s service - %s",
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to install the %s service - %s"),
             wrapperData->serviceDisplayName, getLastErrorText());
         if (isVista() && !isElevated()) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Performing this action requires that you run as an elevated process.");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Performing this action requires that you run as an elevated process."));
         }
         result = 1;
     }
@@ -2639,7 +2556,7 @@ void closeRegistryKey(HKEY hKey) {
     result = RegCloseKey(hKey);
     if (result != ERROR_SUCCESS) {
         FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to close the registry: %d : %s", result, pBuffer);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to close the registry: %d : %s"), result, pBuffer);
         LocalFree(pBuffer);
     }
 }
@@ -2656,7 +2573,7 @@ void closeRegistryKey(HKEY hKey) {
  *
  * Return TRUE if there were any problems.
  */
-int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appendPath) {
+int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const TCHAR *regPath, int appendPath, int source) {
     LONG result;
     LPSTR pBuffer = NULL;
     int envCount = 0;
@@ -2666,13 +2583,13 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
     DWORD valueCount;
     DWORD maxValueNameLength;
     DWORD maxValueLength;
-    char *valueName;
-    char *value;
+    TCHAR *valueName;
+    TCHAR *value;
     DWORD thisValueNameLength;
     DWORD thisValueLength;
     DWORD thisValueType;
-    const char *oldVal;
-    char *newVal;
+    const TCHAR *oldVal;
+    TCHAR *newVal;
     BOOL expanded;
 
     /* NOTE - Any log output here will be placed in the default log file as it happens
@@ -2693,14 +2610,14 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
         result = RegQueryInfoKey(hKey, NULL, NULL, NULL, NULL, NULL, NULL, &valueCount, &maxValueNameLength, &maxValueLength, NULL, NULL);
         if (result != ERROR_SUCCESS) {
             FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to query the registry to get the environment: %d : %s", result, pBuffer);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to query the registry to get the environment: %d : %s"), result, pBuffer);
             LocalFree(pBuffer);
             closeRegistryKey(hKey);
             return TRUE;
         }
 
 #ifdef _DEBUG
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Registry contains %d variables.  Longest name=%d, longest value=%d", valueCount, maxValueNameLength, maxValueLength);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  Registry contains %d variables.  Longest name=%d, longest value=%d"), valueCount, maxValueNameLength, maxValueLength);
 #endif
         /* Add space for the null. */
         maxValueNameLength++;
@@ -2709,15 +2626,15 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
         /* Allocate buffers to get the value names and values from the registry.  These can
          *  be reused because we are using the setEnv function to store the values into the
          *  environment.  setEnv allocates the memory required by the environment. */
-        valueName = malloc(maxValueNameLength);
+        valueName = malloc(sizeof(TCHAR) * maxValueNameLength);
         if (!valueName) {
-            outOfMemory("WLEFRI", 1);
+            outOfMemory(TEXT("WLEFRI"), 1);
             closeRegistryKey(hKey);
             return TRUE;
         }
-        value = malloc(maxValueLength);
+        value = malloc(sizeof(TCHAR) * maxValueLength);
         if (!valueName) {
-            outOfMemory("WLEFRI", 2);
+            outOfMemory(TEXT("WLEFRI"), 2);
             closeRegistryKey(hKey);
             return TRUE;
         }
@@ -2728,62 +2645,62 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
             thisValueNameLength = maxValueNameLength;
             thisValueLength = maxValueLength;
 
-            result = RegEnumValue(hKey, dwIndex, valueName, &thisValueNameLength, NULL, &thisValueType, value, &thisValueLength);
+            result = RegEnumValue(hKey, dwIndex, valueName, &thisValueNameLength, NULL, &thisValueType, (LPBYTE)value, &thisValueLength);
             if (result == ERROR_SUCCESS) {
                 if ((thisValueType == REG_SZ) || (thisValueType = REG_EXPAND_SZ)) {
                     /* Got a value. */
 #ifdef _DEBUG
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Loaded var name=\"%s\", value=\"%s\"", valueName, value);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  Loaded var name=\"%s\", value=\"%s\""), valueName, value);
 #endif
-                    if (appendPath && (strcmpIgnoreCase("path", valueName) == 0)) {
+                    if (appendPath && (strcmpIgnoreCase(TEXT("path"), valueName) == 0)) {
                         /* The PATH variable is special, it needs to be appended to the existing value. */
-                        oldVal = getenv("PATH");
+                        oldVal = _tgetenv(TEXT("PATH"));
                         if (oldVal) {
-                            newVal = malloc(strlen(oldVal) + 1 + strlen(value) + 1);
+                            newVal = malloc(sizeof(TCHAR) * (_tcslen(oldVal) + 1 + _tcslen(value) + 1));
                             if (!newVal) {
-                                outOfMemory("WLEFRI", 3);
+                                outOfMemory(TEXT("WLEFRI"), 3);
                                 closeRegistryKey(hKey);
                                 return TRUE;
                             }
-                            sprintf(newVal, "%s;%s", oldVal, value);
-                            if (setEnv(valueName, newVal)) {
+                            _sntprintf(newVal, _tcslen(oldVal) + 1 + _tcslen(value) + 1, TEXT("%s;%s"), oldVal, value);
+                            if (setEnv(valueName, newVal, source)) {
                                 /* Already reported. */
                                 free(newVal);
                                 closeRegistryKey(hKey);
                                 return TRUE;
                             }
 #ifdef _DEBUG
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    Appended to existing value: %s=%s", valueName, newVal);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Appended to existing value: %s=%s"), valueName, newVal);
 #endif
                             free(newVal);
                         } else {
                             /* Did not exist, set normally. */
-                            if (setEnv(valueName, value)) {
+                            if (setEnv(valueName, value, source)) {
                                 /* Already reported. */
                                 closeRegistryKey(hKey);
                                 return TRUE;
                             }
                         }
                     } else {
-                        if (setEnv(valueName, value)) {
+                        if (setEnv(valueName, value, source)) {
                             /* Already reported. */
                             closeRegistryKey(hKey);
                             return TRUE;
                         }
                     }
 #ifdef _DEBUG
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Set to local environment.");
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  Set to local environment."));
 #endif
                 } else {
 #ifdef _DEBUG
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Loaded var name=\"%s\" but type is invalid: %d, skipping.", valueName, thisValueType);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  Loaded var name=\"%s\" but type is invalid: %d, skipping."), valueName, thisValueType);
 #endif
                 }
             } else if (result = ERROR_NO_MORE_ITEMS) {
                 /* This means we are at the end.  Fall through. */
             } else {
                 FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to query the registry to get environment variable #%d: %d : %s", dwIndex, result, pBuffer);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to query the registry to get environment variable #%d: %d : %s"), dwIndex, result, getLastErrorText());
                 LocalFree(pBuffer);
                 closeRegistryKey(hKey);
                 return TRUE;
@@ -2793,7 +2710,7 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
         } while (result != ERROR_NO_MORE_ITEMS);
 
 #ifdef _DEBUG
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "All environment variables loaded.  Loop back over them to evaluate any nested variables.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("All environment variables loaded.  Loop back over them to evaluate any nested variables."));
 #endif
         /* Go back and loop over the environment variables we just set and expand any
          *  variables which contain % characters. Loop until we make a pass which does
@@ -2809,31 +2726,31 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
                     /* Found an environment variable in the registry.  Variables that contain references have a different type. */
                     if (thisValueType = REG_EXPAND_SZ) {
 #ifdef _DEBUG
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Get the current local value of variable \"%s\"", valueName);
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  Get the current local value of variable \"%s\""), valueName);
 #endif
-                        oldVal = getenv(valueName);
+                        oldVal = _tgetenv(valueName);
                         if (oldVal == NULL) {
 #ifdef _DEBUG
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  The current local value of variable \"%s\" is null, meaning it was not in the registry.  Skipping.", valueName);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  The current local value of variable \"%s\" is null, meaning it was not in the registry.  Skipping."), valueName);
 #endif
                         } else {
 #ifdef _DEBUG
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "     \"%s\"=\"%s\"", valueName, oldVal);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("     \"%s\"=\"%s\""), valueName, oldVal);
 #endif
-                            if (strchr(oldVal, '%')) {
+                            if (_tcschr(oldVal, TEXT('%'))) {
                                 /* This variable contains tokens which need to be expanded. */
                                 /* Find out how much space is required to store the expanded value. */
                                 ret = ExpandEnvironmentStrings(oldVal, NULL, 0);
                                 if (ret == 0) {
-                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to expand \"%s\": %s", valueName, getLastErrorText());
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to expand \"%s\": %s"), valueName, getLastErrorText());
                                     closeRegistryKey(hKey);
                                     return TRUE;
                                 }
 
                                 /* Allocate a buffer to hold to the expanded value. */
-                                newVal = malloc(ret + 2);
+                                newVal = malloc(sizeof(TCHAR) * (ret + 2));
                                 if (!newVal) {
-                                    outOfMemory("WLEFRI", 4);
+                                    outOfMemory(TEXT("WLEFRI"), 4);
                                     closeRegistryKey(hKey);
                                     return TRUE;
                                 }
@@ -2841,26 +2758,26 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
                                 /* Actually expand the variable. */
                                 ret = ExpandEnvironmentStrings(oldVal, newVal, ret + 2);
                                 if (ret == 0) {
-                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to expand \"%s\" (2): %s", valueName, getLastErrorText());
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to expand \"%s\" (2): %s"), valueName, getLastErrorText());
                                     free(newVal);
                                     closeRegistryKey(hKey);
                                     return TRUE;
                                 }
 
                                 /* Was anything changed? */
-                                if (strcmp(oldVal, newVal) == 0) {
+                                if (_tcscmp(oldVal, newVal) == 0) {
 #ifdef _DEBUG
-                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "       Value unchanged.  Referenced environment variable not set.");
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("       Value unchanged.  Referenced environment variable not set."));
 #endif
                                 } else {
                                     /* Set the expanded environment variable */
                                     expanded = TRUE;
 #ifdef _DEBUG
-                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Update local environment variable.  \"%s\"=\"%s\"", valueName, newVal);
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  Update local environment variable.  \"%s\"=\"%s\""), valueName, newVal);
 #endif
 
                                     /* Update the environment. */
-                                    if (setEnv(valueName, newVal)) {
+                                    if (setEnv(valueName, newVal, source)) {
                                         /* Already reported. */
                                         free(newVal);
                                         closeRegistryKey(hKey);
@@ -2875,7 +2792,7 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
                     /* No more environment variables. */
                 } else {
                     FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to read registry: %d : %s", result, pBuffer);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to read registry - %s"), getLastErrorText());
                     LocalFree(pBuffer);
                     closeRegistryKey(hKey);
                     return TRUE;
@@ -2885,20 +2802,20 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
 
 #ifdef _DEBUG
             if (expanded) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Rescan environment variables to varify that there are no more expansions necessary.");
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Rescan environment variables to varify that there are no more expansions necessary."));
             }
 #endif
         } while (expanded);
 
 #ifdef _DEBUG
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Done loading environment variables.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  Done loading environment variables."));
 #endif
 
         /* Close the registry entry */
         closeRegistryKey(hKey);
     } else {
         FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to access registry to obtain environment variables - %s", pBuffer);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to access registry to obtain environment variables - %s"), getLastErrorText());
         LocalFree(pBuffer);
         return TRUE;
     }
@@ -2906,85 +2823,92 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const char *regPath, int appe
     return FALSE;
 }
 
+/**
+ * Loads the environment stored in the registry.
+ *
+ *
+ * Return TRUE if there were any problems.
+ */
 int wrapperLoadEnvFromRegistry() {
+    /* We can't access any properties here as they are not yet loaded when called. */
     /* Always load in the system wide variables. */
 #ifdef _DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Loading System environment variables from Registry:");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Loading System environment variables from Registry:"));
 #endif
 
-    if (wrapperLoadEnvFromRegistryInner(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment\\", FALSE)) {
-        return 1;
+    if (wrapperLoadEnvFromRegistryInner(HKEY_LOCAL_MACHINE, TEXT("SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment\\"), FALSE, ENV_SOURCE_REG_SYSTEM)) {
+        return TRUE;
     }
 
     /* Only load in the user specific variables if the USERNAME environment variable is set. */
-    if (getenv("USERNAME")) {
+    if (_tgetenv(TEXT("USERNAME"))) {
 #ifdef _DEBUG
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Loading Account environment variables from Registry:");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Loading Account environment variables from Registry:"));
 #endif
 
-        if (wrapperLoadEnvFromRegistryInner(HKEY_CURRENT_USER, "Environment\\", TRUE)) {
-            return 1;
+        if (wrapperLoadEnvFromRegistryInner(HKEY_CURRENT_USER, TEXT("Environment\\"), TRUE, ENV_SOURCE_REG_ACCOUNT)){
+            return TRUE;
         }
     }
 
-    return 0;
+    return FALSE;
 }
 
 /**
  * Gets the JavaHome absolute path from the windows registry
  */
-int wrapperGetJavaHomeFromWindowsRegistry(char *javaHome) {
+int wrapperGetJavaHomeFromWindowsRegistry(TCHAR *javaHome) {
     LONG result;
     LPSTR pBuffer = NULL;
-    const char *prop;
-    char *c;
-    char subKey[512];       /* Registry subkey that jvm creates when is installed */
-    char *valueKey;
-    char jreversion[10];    /* Will receive a registry value that has jvm version */
+    const TCHAR *prop;
+    TCHAR *c;
+    TCHAR subKey[512];       /* Registry subkey that jvm creates when is installed */
+    TCHAR *valueKey;
+    TCHAR jreversion[10];    /* Will receive a registry value that has jvm version */
     HKEY baseHKey;
     HKEY openHKey = NULL; /* Will receive the handle to the opened registry key */
     DWORD valueType;
     DWORD valueSize;
-    char *value;
+    TCHAR *value;
 
-    prop = getStringProperty(properties, "wrapper.registry.java_home", NULL);
+    prop = getStringProperty(properties, TEXT("wrapper.registry.java_home"), NULL);
     if (prop) {
         /* A registry location was specified. */
-        if (strstr(prop, "HKEY_CLASSES_ROOT\\") == prop) {
+        if (_tcsstr(prop, TEXT("HKEY_CLASSES_ROOT\\")) == prop) {
             baseHKey = HKEY_CLASSES_ROOT;
-            strcpy(subKey, prop + 18);
-        } else if (strstr(prop, "HKEY_CURRENT_CONFIG\\") == prop) {
+            _tcscpy(subKey, prop + 18);
+        } else if (_tcsstr(prop, TEXT("HKEY_CURRENT_CONFIG\\")) == prop) {
             baseHKey = HKEY_CURRENT_USER;
-            strcpy(subKey, prop + 20);
-        } else if (strstr(prop, "HKEY_CURRENT_USER\\") == prop) {
+            _tcscpy(subKey, prop + 20);
+        } else if (_tcsstr(prop, TEXT("HKEY_CURRENT_USER\\")) == prop) {
             baseHKey = HKEY_CURRENT_USER;
-            strcpy(subKey, prop + 18);
-        } else if (strstr(prop, "HKEY_LOCAL_MACHINE\\") == prop) {
+            _tcscpy(subKey, prop + 18);
+        } else if (_tcsstr(prop, TEXT("HKEY_LOCAL_MACHINE\\")) == prop) {
             baseHKey = HKEY_LOCAL_MACHINE;
-            strcpy(subKey, prop + 19);
-        } else if (strstr(prop, "HKEY_USERS\\") == prop) {
+            _tcscpy(subKey, prop + 19);
+        } else if (_tcsstr(prop, TEXT("HKEY_USERS\\")) == prop) {
             baseHKey = HKEY_USERS;
-            strcpy(subKey, prop + 11);
+            _tcscpy(subKey, prop + 11);
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "wrapper.registry.java_home does not begin with a known root key: %s", prop);
+                TEXT("wrapper.registry.java_home does not begin with a known root key: %s"), prop);
             return 0;
         }
 
-        /* log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "subKey=%s", subKey); */
+        /* log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("subKey=%s"), subKey); */
 
         /* We need to split the value from the key.  Find the last \ */
-        c = strrchr(subKey, '\\');
+        c = _tcsrchr(subKey, TEXT('\\'));
         if (!c) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "wrapper.registry.java_home is an invalid key: %s", prop);
+                TEXT("wrapper.registry.java_home is an invalid key: %s"), prop);
             return 0;
         }
         valueKey = c + 1;
         /* Truncate the subKey. */
-        *c = '\0';
+        *c = TEXT('\0');
 
-        /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "subKey=%s valueKey=%s", subKey, valueKey); */
+        /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("subKey=%s valueKey=%s"), subKey, valueKey); */
 
         /*
          * Opens the Registry Key needed to query the jvm version
@@ -2993,7 +2917,7 @@ int wrapperGetJavaHomeFromWindowsRegistry(char *javaHome) {
         if (result != ERROR_SUCCESS) {
             FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "Unable to access configured registry location for JAVA_HOME: %s : %d : %s", subKey, result, pBuffer);
+                TEXT("Unable to access configured registry location for JAVA_HOME: %s - (%d)"), subKey, errno);
             LocalFree(pBuffer);
             return 0;
         }
@@ -3002,28 +2926,28 @@ int wrapperGetJavaHomeFromWindowsRegistry(char *javaHome) {
         if (result != ERROR_SUCCESS) {
             FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "Unable to access configured registry location for JAVA_HOME: %s : %d : %s", prop, result, pBuffer);
+                TEXT("Unable to access configured registry location for JAVA_HOME: %s - (%d)"), prop, errno);
             LocalFree(pBuffer);
             closeRegistryKey(openHKey);
             return 0;
         }
         if (valueType != REG_SZ) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "Configured JAVA_HOME registry location is not of type REG_SZ: %s", prop);
+                TEXT("Configured JAVA_HOME registry location is not of type REG_SZ: %s"), prop);
             closeRegistryKey(openHKey);
             return 0;
         }
-        value = malloc(valueSize);
+        value = malloc(sizeof(TCHAR) * valueSize);
         if (!value) {
-            outOfMemory("WGJFWR", 1);
+            outOfMemory(TEXT("WGJFWR"), 1);
             closeRegistryKey(openHKey);
             return 0;
         }
-        result = RegQueryValueEx(openHKey, valueKey, NULL, &valueType, value, &valueSize);
+        result = RegQueryValueEx(openHKey, valueKey, NULL, &valueType, (LPBYTE)value, &valueSize);
         if (result != ERROR_SUCCESS) {
             FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "Unable to access configured registry location %s : %d : %s", prop, result, pBuffer);
+                TEXT("Unable to access configured registry location %s - (%d)"), prop, errno);
             LocalFree(pBuffer);
             free(value);
             closeRegistryKey(openHKey);
@@ -3033,7 +2957,7 @@ int wrapperGetJavaHomeFromWindowsRegistry(char *javaHome) {
         closeRegistryKey(openHKey);
 
         /* Returns the JavaHome path */
-        strcpy(javaHome, value);
+        _tcscpy(javaHome, value);
 
         free(value);
         return 1;
@@ -3041,7 +2965,7 @@ int wrapperGetJavaHomeFromWindowsRegistry(char *javaHome) {
         /* Look for the java_home in the default location. */
 
         /* SubKey containing the jvm version */
-        strcpy(subKey, "SOFTWARE\\JavaSoft\\Java Runtime Environment");
+        _tcscpy(subKey, TEXT("SOFTWARE\\JavaSoft\\Java Runtime Environment"));
 
         /*
          * Opens the Registry Key needed to query the jvm version
@@ -3057,7 +2981,7 @@ int wrapperGetJavaHomeFromWindowsRegistry(char *javaHome) {
          */
 
         valueSize = sizeof(jreversion);
-        result = RegQueryValueEx(openHKey, "CurrentVersion", NULL, &valueType, jreversion, &valueSize);
+        result = RegQueryValueEx(openHKey, TEXT("CurrentVersion"), NULL, &valueType, (LPBYTE)jreversion, &valueSize);
         if (result != ERROR_SUCCESS) {
             closeRegistryKey(openHKey);
             return 0;
@@ -3066,8 +2990,8 @@ int wrapperGetJavaHomeFromWindowsRegistry(char *javaHome) {
         closeRegistryKey(openHKey);
 
         /* adds the jvm version to the subkey */
-        strcat(subKey, "\\");
-        strcat(subKey, jreversion);
+        _tcscat(subKey, TEXT("\\"));
+        _tcscat(subKey, jreversion);
 
         /*
          * Opens the Registry Key needed to query the JavaHome
@@ -3080,18 +3004,18 @@ int wrapperGetJavaHomeFromWindowsRegistry(char *javaHome) {
         /*
          * Queries for the JavaHome
          */
-        result = RegQueryValueEx(openHKey, "JavaHome", NULL, &valueType, NULL, &valueSize);
+        result = RegQueryValueEx(openHKey, TEXT("JavaHome"), NULL, &valueType, NULL, &valueSize);
         if (result != ERROR_SUCCESS) {
             closeRegistryKey(openHKey);
             return 0;
         }
-        value = malloc(valueSize);
+        value = malloc(sizeof(TCHAR) * valueSize);
         if (!value) {
-            outOfMemory("WGJFWR", 2);
+            outOfMemory(TEXT("WGJFWR"), 2);
             closeRegistryKey(openHKey);
             return 0;
         }
-        result = RegQueryValueEx(openHKey, "JavaHome", NULL, &valueType, value, &valueSize);
+        result = RegQueryValueEx(openHKey, TEXT("JavaHome"), NULL, &valueType, (LPBYTE)value, &valueSize);
         if (result != ERROR_SUCCESS) {
             closeRegistryKey(openHKey);
             return 0;
@@ -3100,39 +3024,39 @@ int wrapperGetJavaHomeFromWindowsRegistry(char *javaHome) {
         closeRegistryKey(openHKey);
 
         /* Returns the JavaHome path */
-        strcpy(javaHome, value);
+        _tcscpy(javaHome, value);
         free(value);
 
         return 1;
     }
 }
 
-char *getNTServiceStatusName(int status) {
-    char *name;
+TCHAR *getNTServiceStatusName(int status) {
+    TCHAR *name;
     switch(status) {
     case SERVICE_STOPPED:
-        name = "STOPPED";
+        name = TEXT("STOPPED");
         break;
     case SERVICE_START_PENDING:
-        name = "START_PENDING";
+        name = TEXT("START_PENDING");
         break;
     case SERVICE_STOP_PENDING:
-        name = "STOP_PENDING";
+        name = TEXT("STOP_PENDING");
         break;
     case SERVICE_RUNNING:
-        name = "RUNNING";
+        name = TEXT("RUNNING");
         break;
     case SERVICE_CONTINUE_PENDING:
-        name = "CONTINUE_PENDING";
+        name = TEXT("CONTINUE_PENDING");
         break;
     case SERVICE_PAUSE_PENDING:
-        name = "PAUSE_PENDING";
+        name = TEXT("PAUSE_PENDING");
         break;
     case SERVICE_PAUSED:
-        name = "PAUSED";
+        name = TEXT("PAUSED");
         break;
     default:
-        name = "UNKNOWN";
+        name = TEXT("UNKNOWN");
         break;
     }
     return name;
@@ -3143,24 +3067,24 @@ int wrapperStartService() {
     SC_HANDLE   schService;
     SC_HANDLE   schSCManager;
     SERVICE_STATUS serviceStatus;
-    const char *logfilePath;
+    const TCHAR *logfilePath;
     TCHAR fullPath[FILEPATHSIZE]=TEXT("");
 
-    char *status;
+    TCHAR *status;
     int msgCntr;
     int stopping;
     int result;
-    
+
     logfilePath = getLogfilePath();
     result = GetFullPathName(logfilePath, FILEPATHSIZE, fullPath, NULL);
     if (result >= FILEPATHSIZE) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "The full path of %s is too large. (%d)", logfilePath, result);
-        strcpy(fullPath, logfilePath);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("The full path of %s is too large. (%d)"), logfilePath, result);
+        _tcscpy(fullPath, logfilePath);
     } else if (result == 0) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Unable to resolve the full path of %s : %s", logfilePath, getLastErrorText());
-        strcpy(fullPath, logfilePath);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to resolve the full path of %s : %s"), logfilePath, getLastErrorText());
+        _tcscpy(fullPath, logfilePath);
     }
-    
+
     result = 0;
 
     /* First, get a handle to the service control manager */
@@ -3176,7 +3100,7 @@ int wrapperStartService() {
             if (QueryServiceStatus(schService, &serviceStatus)) {
                 if (serviceStatus.dwCurrentState == SERVICE_STOPPED) {
                     /* The service is stopped, so try starting it. */
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Starting the %s service...",
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Starting the %s service..."),
                         wrapperData->serviceDisplayName);
                     if (StartService(schService, 0, NULL)) {
                         /* We will get here immediately if the service process was launched.
@@ -3191,12 +3115,12 @@ int wrapperStartService() {
                                         msgCntr = 5; /* Trigger a message */
                                     }
                                     if (msgCntr >= 5) {
-                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Stopping...");
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Stopping..."));
                                         msgCntr = 0;
                                     }
                                 } else {
                                     if (msgCntr >= 5) {
-                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Waiting to start...");
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Waiting to start..."));
                                         msgCntr = 0;
                                     }
                                 }
@@ -3204,7 +3128,7 @@ int wrapperStartService() {
                                 msgCntr++;
                             } else {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                                    "Unable to query the status of the %s service - %s",
+                                    TEXT("Unable to query the status of the %s service - %s"),
                                     wrapperData->serviceDisplayName, getLastErrorText());
                                 result = 1;
                                 break;
@@ -3215,28 +3139,28 @@ int wrapperStartService() {
 
                         /* Was the service started? */
                         if (serviceStatus.dwCurrentState == SERVICE_RUNNING) {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s started.", wrapperData->serviceDisplayName);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s started."), wrapperData->serviceDisplayName);
                         } else if (serviceStatus.dwCurrentState == SERVICE_PAUSED) {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s started, but immediately paused.", wrapperData->serviceDisplayName);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s started but immediately paused.."), wrapperData->serviceDisplayName);
                         } else {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service was launched, but failed to start.",
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("The %s service was launched, but failed to start."),
                                 wrapperData->serviceDisplayName);
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Please check the log file more information: %s", fullPath);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Please check the log file more information: %s"), fullPath);
                             result = 1;
                         }
                     } else {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to start the %s service - %s",
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to start the %s service - %s"),
                             wrapperData->serviceDisplayName, getLastErrorText());
                         result = 1;
                     }
                 } else {
                     status = getNTServiceStatusName(serviceStatus.dwCurrentState);
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is already running with status: %s",
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("The %s service is already running with status: %s"),
                         wrapperData->serviceDisplayName, status);
                     result = 1;
                 }
             } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to query the status of the %s service - %s",
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to query the status of the %s service - %s"),
                     wrapperData->serviceDisplayName, getLastErrorText());
                 result = 1;
             }
@@ -3245,13 +3169,13 @@ int wrapperStartService() {
             CloseServiceHandle(schService);
         } else {
             if (GetLastError() == ERROR_ACCESS_DENIED) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to start the %s service - %s",
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to start the %s service - %s"),
                     wrapperData->serviceDisplayName, getLastErrorText());
                 if (isVista() && !isElevated()) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Performing this action requires that you run as an elevated process.");
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Performing this action requires that you run as an elevated process."));
                 }
             } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("The %s service is not installed - %s"),
                     wrapperData->serviceDisplayName, getLastErrorText());
             }
             result = 1;
@@ -3260,7 +3184,7 @@ int wrapperStartService() {
         /* Finally, close the handle to the service control manager's database */
         CloseServiceHandle(schSCManager);
     } else {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to start the %s service - %s",
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to start the %s service - %s"),
             wrapperData->serviceDisplayName, getLastErrorText());
         result = 1;
     }
@@ -3274,7 +3198,7 @@ int wrapperStopService(int command) {
     SC_HANDLE   schSCManager;
     SERVICE_STATUS serviceStatus;
 
-    char *status;
+    TCHAR *status;
     int msgCntr;
     int result = 0;
 
@@ -3292,32 +3216,32 @@ int wrapperStopService(int command) {
             if (QueryServiceStatus(schService, &serviceStatus)) {
                 if (serviceStatus.dwCurrentState == SERVICE_STOPPED) {
                     if (command) {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "The %s service was not running.",
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("The %s service was not running."),
                             wrapperData->serviceDisplayName);
                     }
                 } else {
                     if (serviceStatus.dwCurrentState == SERVICE_STOP_PENDING) {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                            "The %s service was already in the process of stopping.",
+                            TEXT("The %s service was already in the process of stopping."),
                             wrapperData->serviceDisplayName);
                     } else {
                         /* Stop the service. */
                         if (ControlService(schService, SERVICE_CONTROL_STOP, &serviceStatus)) {
                             if (command) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Stopping the %s service...",
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Stopping the %s service..."),
                                     wrapperData->serviceDisplayName);
                             } else {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Service is running.  Stopping it...");
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Service is running.  Stopping it..."));
                             }
                         } else {
                             if (serviceStatus.dwCurrentState == SERVICE_START_PENDING) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                                    "The %s service was in the process of starting.  Stopping it...",
+                                    TEXT("The %s service was in the process of starting.  Stopping it..."),
                                     wrapperData->serviceDisplayName);
                             } else {
                                 status = getNTServiceStatusName(serviceStatus.dwCurrentState);
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                                    "Attempt to stop the %s service failed.  Status: %s",
+                                    TEXT("Attempt to stop the %s service failed.  Status: %s"),
                                     wrapperData->serviceDisplayName, status);
                                 result = 1;
                             }
@@ -3329,14 +3253,14 @@ int wrapperStopService(int command) {
                         do {
                             if (QueryServiceStatus(schService, &serviceStatus)) {
                                 if (msgCntr >= 5) {
-                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Waiting to stop...");
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Waiting to stop..."));
                                     msgCntr = 0;
                                 }
                                 wrapperSleep(FALSE, 1000);
                                 msgCntr++;
                             } else {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                                    "Unable to query the status of the %s service - %s",
+                                    TEXT("Unable to query the status of the %s service - %s"),
                                     wrapperData->serviceDisplayName, getLastErrorText());
                                 result = 1;
                                 break;
@@ -3344,15 +3268,15 @@ int wrapperStopService(int command) {
                         } while (serviceStatus.dwCurrentState != SERVICE_STOPPED);
 
                         if (serviceStatus.dwCurrentState == SERVICE_STOPPED) {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s service stopped.", wrapperData->serviceDisplayName);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s stopped."), wrapperData->serviceDisplayName);
                         } else {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Failed to stop the %s service.", wrapperData->serviceDisplayName);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Failed to stop the %s service."), wrapperData->serviceDisplayName);
                             result = 1;
                         }
                     }
                 }
             } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to query the status of the %s service - %s",
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to query the status of the %s service - %s"),
                     wrapperData->serviceDisplayName, getLastErrorText());
                 result = 1;
             }
@@ -3361,13 +3285,13 @@ int wrapperStopService(int command) {
             CloseServiceHandle(schService);
         } else {
             if (GetLastError() == ERROR_ACCESS_DENIED) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to stop the %s service - %s",
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to stop the %s service - %s"),
                     wrapperData->serviceDisplayName, getLastErrorText());
                 if (isVista() && !isElevated()) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Performing this action requires that you run as an elevated process.");
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Performing this action requires that you run as an elevated process."));
                 }
             } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("The %s service is not installed - %s"),
                     wrapperData->serviceDisplayName, getLastErrorText());
             }
             result = 1;
@@ -3376,7 +3300,7 @@ int wrapperStopService(int command) {
         /* Finally, close the handle to the service control manager's database */
         CloseServiceHandle(schSCManager);
     } else {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to stop the %s service - %s",
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to stop the %s service - %s"),
             wrapperData->serviceDisplayName, getLastErrorText());
         result = 1;
     }
@@ -3390,7 +3314,7 @@ int wrapperPauseService() {
     SC_HANDLE   schSCManager;
     SERVICE_STATUS serviceStatus;
 
-    char *status;
+    TCHAR *status;
     int msgCntr;
     int result = 0;
 
@@ -3406,31 +3330,31 @@ int wrapperPauseService() {
             /* Make sure that the service is in a state that can be paused. */
             if (QueryServiceStatus(schService, &serviceStatus)) {
                 if (serviceStatus.dwCurrentState == SERVICE_STOPPED) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "The %s service was not running.",
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("The %s service was not running."),
                         wrapperData->serviceDisplayName);
                     result = 1;
                 } else if (serviceStatus.dwCurrentState == SERVICE_STOP_PENDING) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        "The %s service was in the process of stopping.",
+                        TEXT("The %s service was in the process of stopping."),
                         wrapperData->serviceDisplayName);
                     result = 1;
                 } else if (serviceStatus.dwCurrentState == SERVICE_PAUSED) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        "The %s service was already paused.",
+                        TEXT("The %s service was already paused."),
                         wrapperData->serviceDisplayName);
                 } else if (serviceStatus.dwCurrentState == SERVICE_PAUSE_PENDING) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        "The %s service was in the process of being paused.",
+                        TEXT("The %s service was in the process of being paused."),
                         wrapperData->serviceDisplayName);
                 } else {
-                    /* The service is started, starting, or continuing, so try pausing it. */
+                    /* The service is started, starting, or resuming, so try pausing it. */
                     if (ControlService(schService, SERVICE_CONTROL_PAUSE, &serviceStatus)) {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Pausing the %s service...",
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Pausing the %s service..."),
                             wrapperData->serviceDisplayName);
                     } else {
                         status = getNTServiceStatusName(serviceStatus.dwCurrentState);
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                            "Attempt to pause the %s service failed.  Status: %s",
+                            TEXT("Attempt to pause the %s service failed.  Status: %s"),
                             wrapperData->serviceDisplayName, status);
                         result = 1;
                     }
@@ -3441,14 +3365,14 @@ int wrapperPauseService() {
                     do {
                         if (QueryServiceStatus(schService, &serviceStatus)) {
                             if (msgCntr >= 5) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Waiting to pause...");
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Waiting to pause..."));
                                 msgCntr = 0;
                             }
                             wrapperSleep(FALSE, 1000);
                             msgCntr++;
                         } else {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                                "Unable to query the status of the %s service - %s",
+                                TEXT("Unable to query the status of the %s service - %s"),
                                 wrapperData->serviceDisplayName, getLastErrorText());
                             result = 1;
                             break;
@@ -3456,17 +3380,17 @@ int wrapperPauseService() {
                     } while (!((serviceStatus.dwCurrentState == SERVICE_PAUSED) || (serviceStatus.dwCurrentState == SERVICE_STOPPED)));
 
                     if (serviceStatus.dwCurrentState == SERVICE_PAUSED) {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s service paused.", wrapperData->serviceDisplayName);
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s service paused."), wrapperData->serviceDisplayName);
                     } else {
                         status = getNTServiceStatusName(serviceStatus.dwCurrentState);
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                            "Failed to pause %s service.  Status: %s",
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
+                            "Failed to pause %s service.  Status: %s"),
                             wrapperData->serviceDisplayName, status);
                         result = 1;
                     }
                 }
             } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to query the status of the %s service - %s",
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to query the status of the %s service - %s"),
                     wrapperData->serviceDisplayName, getLastErrorText());
                 result = 1;
             }
@@ -3475,10 +3399,10 @@ int wrapperPauseService() {
             CloseServiceHandle(schService);
         } else {
             if (GetLastError() == ERROR_ACCESS_DENIED) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to pause the %s service - %s",
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to pause the %s service - %s"),
                     wrapperData->serviceDisplayName, getLastErrorText());
             } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("The %s service is not installed - %s"),
                     wrapperData->serviceDisplayName, getLastErrorText());
             }
             result = 1;
@@ -3487,10 +3411,10 @@ int wrapperPauseService() {
         /* Finally, close the handle to the service control manager's database */
         CloseServiceHandle(schSCManager);
     } else {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to pause the %s service - %s",
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to pause the %s service - %s"),
             wrapperData->serviceDisplayName, getLastErrorText());
         if (isVista() && !isElevated()) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Performing this action requires that you run as an elevated process.");
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Performing this action requires that you run as an elevated process."));
         }
         result = 1;
     }
@@ -3499,12 +3423,12 @@ int wrapperPauseService() {
 }
 
 /** Resume a Wrapper instance running as an NT Service. */
-int wrapperContinueService() {
+int wrapperResumeService() {
     SC_HANDLE   schService;
     SC_HANDLE   schSCManager;
     SERVICE_STATUS serviceStatus;
 
-    char *status;
+    TCHAR *status;
     int msgCntr;
     int result = 0;
 
@@ -3520,36 +3444,36 @@ int wrapperContinueService() {
             /* Make sure that the service is in a state that can be resumed. */
             if (QueryServiceStatus(schService, &serviceStatus)) {
                 if (serviceStatus.dwCurrentState == SERVICE_STOPPED) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "The %s service was not running.",
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("The %s service was not running."),
                         wrapperData->serviceDisplayName);
                     result = 1;
                 } else if (serviceStatus.dwCurrentState == SERVICE_STOP_PENDING) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        "The %s service was in the process of stopping.",
+                        TEXT("The %s service was in the process of stopping."),
                         wrapperData->serviceDisplayName);
                     result = 1;
                 } else if (serviceStatus.dwCurrentState == SERVICE_PAUSE_PENDING) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        "The %s service was in the process of being paused.",
+                        TEXT("The %s service was in the process of being paused."),
                         wrapperData->serviceDisplayName);
                     result = 1;
                 } else if (serviceStatus.dwCurrentState == SERVICE_CONTINUE_PENDING) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        "The %s service was in the process of being resumed.",
+                        TEXT("The %s service was in the process of being resumed."),
                         wrapperData->serviceDisplayName);
                 } else if (serviceStatus.dwCurrentState == SERVICE_RUNNING) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        "The %s service was already started.",
+                        TEXT("The %s service was already started."),
                         wrapperData->serviceDisplayName);
                 } else {
                     /* The service is paused, so try resuming it. */
                     if (ControlService(schService, SERVICE_CONTROL_CONTINUE, &serviceStatus)) {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Resuming the %s service...",
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Resuming the %s service..."),
                             wrapperData->serviceDisplayName);
                     } else {
                         status = getNTServiceStatusName(serviceStatus.dwCurrentState);
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                            "Attempt to resume the %s service failed.  Status: %s",
+                            TEXT("Attempt to resume the %s service failed.  Status: %s"),
                             wrapperData->serviceDisplayName, status);
                         result = 1;
                     }
@@ -3560,14 +3484,14 @@ int wrapperContinueService() {
                     do {
                         if (QueryServiceStatus(schService, &serviceStatus)) {
                             if (msgCntr >= 5) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Waiting to resume...");
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Waiting to resume..."));
                                 msgCntr = 0;
                             }
                             wrapperSleep(FALSE, 1000);
                             msgCntr++;
                         } else {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                                "Unable to query the status of the %s service - %s",
+                                TEXT("Unable to query the status of the %s service - %s"),
                                 wrapperData->serviceDisplayName, getLastErrorText());
                             result = 1;
                             break;
@@ -3575,17 +3499,17 @@ int wrapperContinueService() {
                     } while (!((serviceStatus.dwCurrentState == SERVICE_RUNNING) || (serviceStatus.dwCurrentState == SERVICE_STOPPED)));
 
                     if (serviceStatus.dwCurrentState == SERVICE_RUNNING) {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s service resumed.", wrapperData->serviceDisplayName);
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s service resumed."), wrapperData->serviceDisplayName);
                     } else {
                         status = getNTServiceStatusName(serviceStatus.dwCurrentState);
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                            "Failed to resume %s service.  Status: %s",
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
+                            "Failed to resume %s service.  Status: %s"),
                             wrapperData->serviceDisplayName, status);
                         result = 1;
                     }
                 }
             } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to query the status of the %s service - %s",
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to query the status of the %s service - %s"),
                     wrapperData->serviceDisplayName, getLastErrorText());
                 result = 1;
             }
@@ -3594,13 +3518,13 @@ int wrapperContinueService() {
             CloseServiceHandle(schService);
         } else {
             if (GetLastError() == ERROR_ACCESS_DENIED) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to resume the %s service - %s",
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to resume the %s service - %s"),
                 wrapperData->serviceDisplayName, getLastErrorText());
                 if (isVista() && !isElevated()) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Performing this action requires that you run as an elevated process.");
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Performing this action requires that you run as an elevated process."));
                 }
             } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("The %s service is not installed - %s"),
                     wrapperData->serviceDisplayName, getLastErrorText());
             }
             result = 1;
@@ -3609,7 +3533,7 @@ int wrapperContinueService() {
         /* Finally, close the handle to the service control manager's database */
         CloseServiceHandle(schSCManager);
     } else {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to resume the %s service - %s",
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to resume the %s service - %s"),
             wrapperData->serviceDisplayName, getLastErrorText());
         result = 1;
     }
@@ -3621,7 +3545,7 @@ int sendServiceControlCodeInner(int controlCode) {
     SC_HANDLE   schService;
     SC_HANDLE   schSCManager;
     SERVICE_STATUS serviceStatus;
-    char *status;
+    TCHAR *status;
     int result = 0;
 
     /* First, get a handle to the service control manager */
@@ -3636,27 +3560,27 @@ int sendServiceControlCodeInner(int controlCode) {
             /* Make sure that the service is in a state that can be resumed. */
             if (QueryServiceStatus(schService, &serviceStatus)) {
                 if (serviceStatus.dwCurrentState == SERVICE_STOPPED) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "The %s service was not running.",
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("The %s service was not running."),
                         wrapperData->serviceDisplayName);
                     result = 1;
                 } else if (serviceStatus.dwCurrentState == SERVICE_STOP_PENDING) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        "The %s service was in the process of stopping.",
+                        TEXT("The %s service was in the process of stopping."),
                         wrapperData->serviceDisplayName);
                     result = 1;
                 } else if (serviceStatus.dwCurrentState == SERVICE_PAUSED) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        "The %s service was currently paused.",
+                        TEXT("The %s service was currently paused."),
                         wrapperData->serviceDisplayName);
                     result = 1;
                 } else if (serviceStatus.dwCurrentState == SERVICE_PAUSE_PENDING) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        "The %s service was in the process of being paused.",
+                        TEXT("The %s service was in the process of being paused."),
                         wrapperData->serviceDisplayName);
                     result = 1;
                 } else if (serviceStatus.dwCurrentState == SERVICE_CONTINUE_PENDING) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        "The %s service was in the process of being resumed.",
+                        TEXT("The %s service was in the process of being resumed."),
                         wrapperData->serviceDisplayName);
                 } else {
                     /* The service is running, so try sending the code. */
@@ -3665,13 +3589,13 @@ int sendServiceControlCodeInner(int controlCode) {
                     } else {
                         status = getNTServiceStatusName(serviceStatus.dwCurrentState);
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                            "Attempt to send the %s service control code %d failed.  Status: %s",
+                            TEXT("Attempt to send the %s service control code %d failed.  Status: %s"),
                             wrapperData->serviceDisplayName, controlCode, status);
                         result = 1;
                     }
                 }
             } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to query the status of the %s service - %s",
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to query the status of the %s service - %s"),
                     wrapperData->serviceDisplayName, getLastErrorText());
                 result = 1;
             }
@@ -3680,14 +3604,14 @@ int sendServiceControlCodeInner(int controlCode) {
             CloseServiceHandle(schService);
         } else {
             if (GetLastError() == ERROR_ACCESS_DENIED) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to send control code to the %s service - %s",
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to send control code to the %s service - %s"),
                     wrapperData->serviceDisplayName, getLastErrorText());
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "OpenService failed - %s", getLastErrorText());
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("OpenService failed - %s"), getLastErrorText());
                 if (isVista() && !isElevated()) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Performing this action requires that you run as an elevated process.");
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Performing this action requires that you run as an elevated process."));
                 }
             } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("The %s service is not installed - %s"),
                     wrapperData->serviceDisplayName, getLastErrorText());
             }
             result = 1;
@@ -3696,7 +3620,7 @@ int sendServiceControlCodeInner(int controlCode) {
         /* Finally, close the handle to the service control manager's database */
         CloseServiceHandle(schSCManager);
     } else {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to send control code to the %s service - %s",
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to send control code to the %s service - %s"),
             wrapperData->serviceDisplayName, getLastErrorText());
         result = 1;
     }
@@ -3705,25 +3629,25 @@ int sendServiceControlCodeInner(int controlCode) {
 }
 
 /** Sends a service control code to a running as an NT Service. */
-int wrapperSendServiceControlCode(char **argv, char *controlCodeS) {
+int wrapperSendServiceControlCode(TCHAR **argv, TCHAR *controlCodeS) {
     int controlCode;
     int result;
 
     /* Make sure the control code is valid. */
     if (controlCodeS == NULL) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Control code to send is missing.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Control code to send is missing."));
         wrapperUsage(argv[0]);
         return 1;
     }
-    controlCode = atoi(controlCodeS);
+    controlCode = _ttoi(controlCodeS);
     if ((controlCode < 128) || (controlCode > 255)) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The service control code must be in the range 128-255.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("The service control code must be in the range 128-255."));
         return 1;
     }
 
     result = sendServiceControlCodeInner(controlCode);
     if (!result) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Sent the %s service control code %d.",
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Sent the %s service control code %d."),
             wrapperData->serviceDisplayName, controlCode);
     }
 
@@ -3737,13 +3661,13 @@ int wrapperRequestThreadDump() {
     int result;
 
     if (wrapperData->threadDumpControlCode <= 0) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The thread dump control code is disabled.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("The thread dump control code is disabled."));
         return 1;
     }
 
     result = sendServiceControlCodeInner(wrapperData->threadDumpControlCode);
     if (!result) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Requested that the %s service perform a thread dump.",
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Requested that the %s service perform a thread dump."),
             wrapperData->serviceDisplayName);
     }
 
@@ -3772,7 +3696,7 @@ int wrapperServiceStatus(int consoleOutput) {
     DWORD reqSize;
 
     int result = 0;
-    
+
     schSCManager = OpenSCManager(NULL,
                                  NULL,
                                  SC_MANAGER_CONNECT);
@@ -3785,7 +3709,7 @@ int wrapperServiceStatus(int consoleOutput) {
             /* Service is installed, so set that bit. */
             if (consoleOutput) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    "The %s service is installed.", wrapperData->serviceDisplayName);
+                    TEXT("The %s Service is installed."), wrapperData->serviceDisplayName);
             }
             result |= 1;
 
@@ -3793,7 +3717,7 @@ int wrapperServiceStatus(int consoleOutput) {
             QueryServiceConfig(schService, NULL, 0, &reqSize);
             pQueryServiceConfig = malloc(reqSize);
             if (!pQueryServiceConfig) {
-                outOfMemory("WSS", 1);
+                outOfMemory(TEXT("WSS"), 1);
                 CloseServiceHandle(schSCManager);
                 return 0;
             }
@@ -3803,28 +3727,28 @@ int wrapperServiceStatus(int consoleOutput) {
                 case SERVICE_SYSTEM_START: /* Possible? */
                 case SERVICE_AUTO_START:
                     if (consoleOutput) {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Start Type: Automatic");
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  Start Type: Automatic"));
                     }
                     result |= 8;
                     break;
 
                 case SERVICE_DEMAND_START:
                     if (consoleOutput) {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Start Type: Manual");
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  Start Type: Manual"));
                     }
                     result |= 16;
                     break;
 
                 case SERVICE_DISABLED:
                     if (consoleOutput) {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Start Type: Disabled");
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  Start Type: Disabled"));
                     }
                     result |= 32;
                     break;
 
                 default:
                     if (consoleOutput) {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "  Start Type: Unknown");
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("  Start Type: Unknown"));
                     }
                     break;
                 }
@@ -3832,18 +3756,18 @@ int wrapperServiceStatus(int consoleOutput) {
                 if (pQueryServiceConfig->dwServiceType & SERVICE_INTERACTIVE_PROCESS) {
                     /* This is an interactive service, so set that bit. */
                     if (consoleOutput) {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Interactive: Yes");
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  Interactive: Yes"));
                     }
                     result |= 4;
                 } else {
                     if (consoleOutput) {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Interactive: No");
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  Interactive: No"));
                     }
                 }
-                
+
                 free(pQueryServiceConfig);
             } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to query the configuration of the %s service - %s",
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to query the configuration of the %s service - %s"),
                     wrapperData->serviceDisplayName, getLastErrorText());
             }
 
@@ -3852,25 +3776,25 @@ int wrapperServiceStatus(int consoleOutput) {
                 if (serviceStatus.dwCurrentState == SERVICE_STOPPED) {
                     /* The service is stopped. */
                     if (consoleOutput) {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Running: No");
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  Running: No"));
                     }
                 } else {
                     /* Any other state, it is running. Set that bit. */
                     if (consoleOutput) {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Running: Yes");
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  Running: Yes"));
                     }
                     result |= 2;
 
                     if (serviceStatus.dwCurrentState == SERVICE_PAUSED) {
                         if (consoleOutput) {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  Paused: Yes");
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  Paused: Yes"));
                         }
                         result |= 64;
                     }
                 }
 
             } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to query the status of the %s service - %s",
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to query the status of the %s service - %s"),
                     wrapperData->serviceDisplayName, getLastErrorText());
             }
 
@@ -3878,15 +3802,15 @@ int wrapperServiceStatus(int consoleOutput) {
             CloseServiceHandle(schService);
         } else {
             if (GetLastError() == ERROR_ACCESS_DENIED) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to query the status of the %s service - %s",
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to query the status of the %s service - %s"),
                     wrapperData->serviceDisplayName, getLastErrorText());
                 if (isVista() && !isElevated()) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Performing this action requires that you run as an elevated process.");
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Performing this action requires that you run as an elevated process."));
                 }
             } else {
                 if (consoleOutput) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        "The %s service is not installed.", wrapperData->serviceDisplayName);
+                        TEXT("The %s Service is not installed."), wrapperData->serviceDisplayName);
                 }
             }
         }
@@ -3894,7 +3818,7 @@ int wrapperServiceStatus(int consoleOutput) {
         /* Finally, close the handle to the service control manager's database */
         CloseServiceHandle(schSCManager);
     } else {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to query the status of the %s service - %s",
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to query the status of the %s service - %s"),
             wrapperData->serviceDisplayName, getLastErrorText());
     }
 
@@ -3927,9 +3851,9 @@ int wrapperRemove() {
         if (schService) {
             /* Now try to remove the service... */
             if (DeleteService(schService)) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "%s service removed.", wrapperData->serviceDisplayName);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s service removed."), wrapperData->serviceDisplayName);
             } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to remove the %s service - %s",
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to remove the %s service - %s"),
                     wrapperData->serviceDisplayName, getLastErrorText());
                 result = 1;
             }
@@ -3938,13 +3862,13 @@ int wrapperRemove() {
             CloseServiceHandle(schService);
         } else {
             if (GetLastError() == ERROR_ACCESS_DENIED) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to remove the %s service - %s",
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to remove the %s service - %s"),
                     wrapperData->serviceDisplayName, getLastErrorText());
                 if (isVista() && !isElevated()) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Performing this action requires that you run as an elevated process.");
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Performing this action requires that you run as an elevated process."));
                 }
             } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "The %s service is not installed - %s",
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("The %s service is not installed - %s"),
                     wrapperData->serviceDisplayName, getLastErrorText());
             }
             result = 1;
@@ -3953,7 +3877,7 @@ int wrapperRemove() {
         /* Finally, close the handle to the service control manager's database */
         CloseServiceHandle(schSCManager);
     } else {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to remove the %s service - %s",
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to remove the %s service - %s"),
             wrapperData->serviceDisplayName, getLastErrorText());
         result = 1;
     }
@@ -3971,21 +3895,21 @@ int wrapperRemove() {
  */
 int setWorkingDir() {
     int size = 128;
-    char* szPath = NULL;
+    TCHAR* szPath = NULL;
     int result;
-    char* pos;
+    TCHAR* pos;
 
     /* How large a buffer is needed? The GetModuleFileName function doesn't tell us how much
      *  is needed, only if it is too short. */
     do {
         szPath = malloc(sizeof(TCHAR) * size);
         if (!szPath) {
-            outOfMemory("SWD", 1);
+            outOfMemory(TEXT("SWD"), 1);
             return 1;
         }
         result = GetModuleFileName(NULL, szPath, size);
         if (result <= 0) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to get the path-%s", getLastErrorText());
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to get the path-%s"), getLastErrorText());
             return 1;
         } else if (result >= size) {
             /* Too small. */
@@ -3997,20 +3921,20 @@ int setWorkingDir() {
 
     /* The wrapperData->isDebugging flag will never be set here, so we can't really use it. */
 #ifdef _DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, "Executable Name: %s", szPath);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Executable Name: %s"), szPath);
 #endif
     /* To get the path, strip everything off after the last '\' */
-    pos = strrchr(szPath, '\\');
+    pos = _tcsrchr(szPath, TEXT('\\'));
     if (pos == NULL) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Unable to extract path from: %s", szPath);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to extract path from: %s"), szPath);
         free(szPath);
         return 1;
     } else {
         /* Clip the path at the position of the last backslash */
-        pos[0] = (char)0;
+        pos[0] = (TCHAR)0;
     }
     /* Set a variable to the location of the binary. */
-    setEnv("WRAPPER_BIN_DIR", szPath);
+    setEnv(TEXT("WRAPPER_BIN_DIR"), szPath, ENV_SOURCE_WRAPPER);
     result = wrapperSetWorkingDir(szPath);
     free(szPath);
     return result;
@@ -4021,69 +3945,69 @@ int setWorkingDir() {
  *****************************************************************************/
 
 /** Attempts to resolve the name of an exception.  Returns null if it is unknown. */
-char* getExceptionName(DWORD exCode) {
-    char *exName;
+TCHAR* getExceptionName(DWORD exCode) {
+    TCHAR *exName;
 
     switch (exCode) {
     case EXCEPTION_ACCESS_VIOLATION:
-        exName = "EXCEPTION_ACCESS_VIOLATION";
+        exName = TEXT("EXCEPTION_ACCESS_VIOLATION");
         break;
     case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
-        exName = "EXCEPTION_ARRAY_BOUNDS_EXCEEDED";
+        exName = TEXT("EXCEPTION_ARRAY_BOUNDS_EXCEEDED");
         break;
     case EXCEPTION_BREAKPOINT:
-        exName = "EXCEPTION_BREAKPOINT";
+        exName = TEXT("EXCEPTION_BREAKPOINT");
         break;
     case EXCEPTION_DATATYPE_MISALIGNMENT:
-        exName = "EXCEPTION_DATATYPE_MISALIGNMENT";
+        exName = TEXT("EXCEPTION_DATATYPE_MISALIGNMENT");
         break;
     case EXCEPTION_FLT_DENORMAL_OPERAND:
-        exName = "EXCEPTION_FLT_DENORMAL_OPERAND";
+        exName = TEXT("EXCEPTION_FLT_DENORMAL_OPERAND");
         break;
     case EXCEPTION_FLT_DIVIDE_BY_ZERO:
-        exName = "EXCEPTION_FLT_DIVIDE_BY_ZERO";
+        exName = TEXT("EXCEPTION_FLT_DIVIDE_BY_ZERO");
         break;
     case EXCEPTION_FLT_INEXACT_RESULT:
-        exName = "EXCEPTION_FLT_INEXACT_RESULT";
+        exName = TEXT("EXCEPTION_FLT_INEXACT_RESULT");
         break;
     case EXCEPTION_FLT_INVALID_OPERATION:
-        exName = "EXCEPTION_FLT_INVALID_OPERATION";
+        exName = TEXT("EXCEPTION_FLT_INVALID_OPERATION");
         break;
     case EXCEPTION_FLT_OVERFLOW:
-        exName = "EXCEPTION_FLT_OVERFLOW";
+        exName = TEXT("EXCEPTION_FLT_OVERFLOW");
         break;
     case EXCEPTION_FLT_STACK_CHECK:
-        exName = "EXCEPTION_FLT_STACK_CHECK";
+        exName = TEXT("EXCEPTION_FLT_STACK_CHECK");
         break;
     case EXCEPTION_FLT_UNDERFLOW:
-        exName = "EXCEPTION_FLT_UNDERFLOW";
+        exName = TEXT("EXCEPTION_FLT_UNDERFLOW");
         break;
     case EXCEPTION_ILLEGAL_INSTRUCTION:
-        exName = "EXCEPTION_ILLEGAL_INSTRUCTION";
+        exName = TEXT("EXCEPTION_ILLEGAL_INSTRUCTION");
         break;
     case EXCEPTION_IN_PAGE_ERROR:
-        exName = "EXCEPTION_IN_PAGE_ERROR";
+        exName = TEXT("EXCEPTION_IN_PAGE_ERROR");
         break;
     case EXCEPTION_INT_DIVIDE_BY_ZERO:
-        exName = "EXCEPTION_INT_DIVIDE_BY_ZERO";
+        exName = TEXT("EXCEPTION_INT_DIVIDE_BY_ZERO");
         break;
     case EXCEPTION_INT_OVERFLOW:
-        exName = "EXCEPTION_INT_OVERFLOW";
+        exName = TEXT("EXCEPTION_INT_OVERFLOW");
         break;
     case EXCEPTION_INVALID_DISPOSITION:
-        exName = "EXCEPTION_INVALID_DISPOSITION";
+        exName = TEXT("EXCEPTION_INVALID_DISPOSITION");
         break;
     case EXCEPTION_NONCONTINUABLE_EXCEPTION:
-        exName = "EXCEPTION_NONCONTINUABLE_EXCEPTION";
+        exName = TEXT("EXCEPTION_NONCONTINUABLE_EXCEPTION");
         break;
     case EXCEPTION_PRIV_INSTRUCTION:
-        exName = "EXCEPTION_PRIV_INSTRUCTION";
+        exName = TEXT("EXCEPTION_PRIV_INSTRUCTION");
         break;
     case EXCEPTION_SINGLE_STEP:
-        exName = "EXCEPTION_SINGLE_STEP";
+        exName = TEXT("EXCEPTION_SINGLE_STEP");
         break;
     case EXCEPTION_STACK_OVERFLOW:
-        exName = "EXCEPTION_STACK_OVERFLOW";
+        exName = TEXT("EXCEPTION_STACK_OVERFLOW");
         break;
     default:
         exName = NULL;
@@ -4095,34 +4019,34 @@ char* getExceptionName(DWORD exCode) {
 
 int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
     DWORD exCode;
-    char *exName;
+    TCHAR *exName;
     int i;
 
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "encountered a fatal error in Wrapper");
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("encountered a fatal error in Wrapper"));
     exCode = exceptionPointers->ExceptionRecord->ExceptionCode;
     exName = getExceptionName(exCode);
     if (exName == NULL) {
-        exName = malloc(sizeof(char) * 64);  /* Let this leak.  It only happens once before shutdown. */
+        exName = malloc(sizeof(TCHAR) * 64);  /* Let this leak.  It only happens once before shutdown. */
         if (exName) {
-            sprintf(exName, "Unknown Exception (%ld)", exCode);
+            _sntprintf(exName, 64, TEXT("Unknown Exception (%ld)"), exCode);
         }
     }
 
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "  exceptionCode    = %s", exName);
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "  exceptionFlag    = %s",
-        (exceptionPointers->ExceptionRecord->ExceptionFlags == EXCEPTION_NONCONTINUABLE ? "EXCEPTION_NONCONTINUABLE" : "EXCEPTION_NONCONTINUABLE_EXCEPTION"));
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "  exceptionAddress = %p", exceptionPointers->ExceptionRecord->ExceptionAddress);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  exceptionCode    = %s"), exName);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  exceptionFlag    = %s"),
+        (exceptionPointers->ExceptionRecord->ExceptionFlags == EXCEPTION_NONCONTINUABLE ? TEXT("EXCEPTION_NONCONTINUABLE") : TEXT("EXCEPTION_NONCONTINUABLE_EXCEPTION")));
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  exceptionAddress = %p"), exceptionPointers->ExceptionRecord->ExceptionAddress);
     if (exCode == EXCEPTION_ACCESS_VIOLATION) {
         if (exceptionPointers->ExceptionRecord->ExceptionInformation[0] == 0) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "  Read access exception from %p",
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  Read access exception from %p"),
                 exceptionPointers->ExceptionRecord->ExceptionInformation[1]);
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "  Write access exception to %p",
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  Write access exception to %p"),
                 exceptionPointers->ExceptionRecord->ExceptionInformation[1]);
         }
     } else {
         for (i = 0; i < (int)exceptionPointers->ExceptionRecord->NumberParameters; i++) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "  exceptionInformation[%d] = %ld", i,
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  exceptionInformation[%d] = %ld"), i,
                 exceptionPointers->ExceptionRecord->ExceptionInformation[i]);
         }
     }
@@ -4130,7 +4054,7 @@ int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
-void main(int argc, char **argv) {
+void _tmain(int argc, TCHAR **argv) {
     int result;
 #ifdef _DEBUG
     int i;
@@ -4140,7 +4064,7 @@ void main(int argc, char **argv) {
      * the ServiceMain function to run in the calling process. The first
      * member in this example is actually ignored, since we will install
      * our service as a SERVICE_WIN32_OWN_PROCESS service type. The NULL
-     * members of the last entry are necessary to indicate the end of 
+     * members of the last entry are necessary to indicate the end of
      * the table; */
     SERVICE_TABLE_ENTRY serviceTable[2];
 
@@ -4154,8 +4078,7 @@ void main(int argc, char **argv) {
         return; /* For clarity. */
     }
 
-    /* Immediately register this thread with the logger. */
-    logRegisterThread(WRAPPER_THREAD_MAIN);
+    /* Main thread initialized in wrapperInitialize. */
 
     /* Enclose the rest of the program in a try catch block so we can
      *  display and log useful information should the need arise.  This
@@ -4163,8 +4086,8 @@ void main(int argc, char **argv) {
      *  block makes use of the logger. */
     __try {
 #ifdef _DEBUG
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Wrapper DEBUG build!");
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Logging initialized.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Wrapper DEBUG build!"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Logging initialized."));
 #endif
         /* Get the current process. */
         wrapperData->wrapperProcess = GetCurrentProcess();
@@ -4180,10 +4103,10 @@ void main(int argc, char **argv) {
             return; /* For clarity. */
         }
 #ifdef _DEBUG
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Working directory set.");
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Arguments:");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Working directory set."));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Arguments:"));
         for (i = 0; i < argc; i++) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  argv[%d]=%s", i, argv[i]);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  argv[%d]=%s"), i, argv[i]);
         }
 #endif
 
@@ -4192,37 +4115,36 @@ void main(int argc, char **argv) {
             appExit(1);
             return; /* For clarity. */
         }
-
         wrapperLoadHostName();
 
         /* At this point, we have a command, confFile, and possibly additional arguments. */
-        if (!strcmpIgnoreCase(wrapperData->argCommand, "?") || !strcmpIgnoreCase(wrapperData->argCommand, "-help")) {
+        if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("?")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-help"))) {
             /* User asked for the usage. */
             setSimpleLogLevels();
             wrapperUsage(argv[0]);
             appExit(0);
             return; /* For clarity. */
-        } else if (!strcmpIgnoreCase(wrapperData->argCommand, "v") || !strcmpIgnoreCase(wrapperData->argCommand, "-version")) {
+        } else if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("v")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-version"))) {
             /* User asked for version. */
             setSimpleLogLevels();
             wrapperVersionBanner();
             appExit(0);
             return; /* For clarity. */
-        } else if (!strcmpIgnoreCase(wrapperData->argCommand, "h") || !strcmpIgnoreCase(wrapperData->argCommand, "-hostid")) {
+        } else if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("h")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-hostid"))) {
             /* Print out a banner containing the host id. */
             setSimpleLogLevels();
             wrapperVersionBanner();
             showHostIds(LEVEL_STATUS);
             appExit(0);
-            return; /* For clarity. */     
+            return; /* For clarity. */
         }
-
         /* All 4 valid commands use the configuration file.  It is loaded here to
          *  reduce duplicate code.  But before loading the parameters, in the case
          *  of an NT service. the environment variables must first be loaded from
          *  the registry. */
-        if (!strcmpIgnoreCase(wrapperData->argCommand, "s") || !strcmpIgnoreCase(wrapperData->argCommand, "-service")) {
-            if (wrapperLoadEnvFromRegistry()) {
+        if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("s")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-service"))) {
+            if (wrapperLoadEnvFromRegistry())
+            {
                 appExit(1);
                 return; /* For clarity. */
             }
@@ -4246,19 +4168,19 @@ void main(int argc, char **argv) {
             appExit(1);
             return; /* For clarity. */
         }
-        
+
         /* Set the default umask of the Wrapper process. */
         _umask(wrapperData->umask);
-
+        
         /* Perform the specified command */
-        if (!strcmpIgnoreCase(wrapperData->argCommand, "i") || !strcmpIgnoreCase(wrapperData->argCommand, "-install")) {
+        if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("i")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-install"))) {
             /* Install an NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             wrapperCheckForMappedDrives();
             appExit(wrapperInstall());
             return; /* For clarity. */
-        } else if (!strcmpIgnoreCase(wrapperData->argCommand, "it") || !strcmpIgnoreCase(wrapperData->argCommand, "-installstart")) {
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("it")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-installstart"))) {
             /* Install and Start an NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
@@ -4269,62 +4191,62 @@ void main(int argc, char **argv) {
             }
             appExit(result);
             return; /* For clarity. */
-        } else if (!strcmpIgnoreCase(wrapperData->argCommand, "r") || !strcmpIgnoreCase(wrapperData->argCommand, "-remove")) {
+        } else if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("r")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-remove"))) {
             /* Remove an NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             appExit(wrapperRemove());
             return; /* For clarity. */
-        } else if (!strcmpIgnoreCase(wrapperData->argCommand, "t") || !strcmpIgnoreCase(wrapperData->argCommand, "-start")) {
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("t")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-start"))) {
             /* Start an NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             wrapperCheckForMappedDrives();
             appExit(wrapperStartService());
             return; /* For clarity. */
-        } else if (!strcmpIgnoreCase(wrapperData->argCommand, "a") || !strcmpIgnoreCase(wrapperData->argCommand, "-pause")) {
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("a")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-pause"))) {
             /* Pause a started NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             appExit(wrapperPauseService());
             return; /* For clarity. */
-        } else if (!strcmpIgnoreCase(wrapperData->argCommand, "e") || !strcmpIgnoreCase(wrapperData->argCommand, "-resume")) {
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("e")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-resume"))) {
             /* Resume a paused NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
-            appExit(wrapperContinueService());
+            appExit(wrapperResumeService());
             return; /* For clarity. */
-        } else if (!strcmpIgnoreCase(wrapperData->argCommand, "p") || !strcmpIgnoreCase(wrapperData->argCommand, "-stop")) {
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("p")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-stop"))) {
             /* Stop an NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             appExit(wrapperStopService(TRUE));
             return; /* For clarity. */
-        } else if (!strcmpIgnoreCase(wrapperData->argCommand, "l") || !strcmpIgnoreCase(wrapperData->argCommand, "-controlcode")) {
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("l")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-controlcode"))) {
             /* Send a control code to an NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             appExit(wrapperSendServiceControlCode(argv, wrapperData->argCommandArg));
             return; /* For clarity. */
-        } else if (!strcmpIgnoreCase(wrapperData->argCommand, "d") || !strcmpIgnoreCase(wrapperData->argCommand, "-dump")) {
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("d")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-dump"))) {
             /* Request a thread dump */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             appExit(wrapperRequestThreadDump(argv));
             return; /* For clarity. */
-        } else if (!strcmpIgnoreCase(wrapperData->argCommand, "q") || !strcmpIgnoreCase(wrapperData->argCommand, "-query")) {
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("q")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-query"))) {
             /* Return service status with console output. */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             appExit(wrapperServiceStatus(TRUE));
             return; /* For clarity. */
-        } else if (!strcmpIgnoreCase(wrapperData->argCommand, "qs") || !strcmpIgnoreCase(wrapperData->argCommand, "-querysilent")) {
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("qs")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-querysilent"))) {
             /* Return service status without console output. */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             appExit(wrapperServiceStatus(FALSE));
             return; /* For clarity. */
-        } else if (!strcmpIgnoreCase(wrapperData->argCommand, "c") || !strcmpIgnoreCase(wrapperData->argCommand, "-console")) {
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("c")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-console"))) {
             /* Run as a console application */
             /* Load any dynamic functions. */
             loadDLLProcs();
@@ -4348,7 +4270,7 @@ void main(int argc, char **argv) {
                 if (writePidFile(wrapperData->anchorFilename, wrapperData->wrapperPID, wrapperData->anchorFileUmask)) {
                     log_printf
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                         "ERROR: Could not write anchor file %s: %s",
+                         TEXT("ERROR: Could not write anchor file %s: %s"),
                          wrapperData->anchorFilename, getLastErrorText());
                     appExit(1);
                     return; /* For clarity. */
@@ -4358,7 +4280,7 @@ void main(int argc, char **argv) {
                 if (writePidFile(wrapperData->pidFilename, wrapperData->wrapperPID, wrapperData->pidFileUmask)) {
                     log_printf
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                         "ERROR: Could not write pid file %s: %s",
+                         TEXT("ERROR: Could not write pid file %s: %s"),
                          wrapperData->pidFilename, getLastErrorText());
                     appExit(1);
                     return; /* For clarity. */
@@ -4368,7 +4290,7 @@ void main(int argc, char **argv) {
                 if (writePidFile(wrapperData->lockFilename, wrapperData->wrapperPID, wrapperData->lockFileUmask)) {
                     log_printf
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                         "ERROR: Could not write lock file %s: %s",
+                         TEXT("ERROR: Could not write lock file %s: %s"),
                          wrapperData->lockFilename, getLastErrorText());
                     appExit(1);
                     return; /* For clarity. */
@@ -4377,7 +4299,7 @@ void main(int argc, char **argv) {
 
             appExit(wrapperRunConsole());
             return; /* For clarity. */
-        } else if (!strcmpIgnoreCase(wrapperData->argCommand, "s") || !strcmpIgnoreCase(wrapperData->argCommand, "-service")) {
+        } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("s")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-service"))) {
             /* Run as a service */
             wrapperCheckForMappedDrives();
             /* Load any dynamic functions. */
@@ -4392,13 +4314,13 @@ void main(int argc, char **argv) {
             /* Get the current process. */
             wrapperData->wrapperProcess = GetCurrentProcess();
             wrapperData->wrapperPID = GetCurrentProcessId();
-            
+
             /* See if the logs should be rolled on Wrapper startup. */
             if ((getLogfileRollMode() & ROLL_MODE_WRAPPER) ||
                 (getLogfileRollMode() & ROLL_MODE_JVM)) {
                 rollLogs();
             }
-            
+
             /* Write pid and anchor files as requested.  If they are the same file the file is
              *  simply overwritten. */
             cleanUpPIDFilesOnExit = TRUE;
@@ -4406,7 +4328,7 @@ void main(int argc, char **argv) {
                 if (writePidFile(wrapperData->anchorFilename, wrapperData->wrapperPID, wrapperData->anchorFileUmask)) {
                     log_printf
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                         "ERROR: Could not write anchor file %s: %s",
+                         TEXT("ERROR: Could not write anchor file %s: %s"),
                          wrapperData->anchorFilename, getLastErrorText());
                     appExit(1);
                     return; /* For clarity. */
@@ -4416,7 +4338,7 @@ void main(int argc, char **argv) {
                 if (writePidFile(wrapperData->pidFilename, wrapperData->wrapperPID, wrapperData->pidFileUmask)) {
                     log_printf
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                         "ERROR: Could not write pid file %s: %s",
+                         TEXT("ERROR: Could not write pid file %s: %s"),
                          wrapperData->pidFilename, getLastErrorText());
                     appExit(1);
                     return; /* For clarity. */
@@ -4429,41 +4351,61 @@ void main(int argc, char **argv) {
             serviceTable[1].lpServiceName = NULL;
             serviceTable[1].lpServiceProc = NULL;
 
-            printf("Attempting to start %s as an NT service.\n", wrapperData->serviceDisplayName);
-            printf("\nCalling StartServiceCtrlDispatcher...please wait.\n");
+            _tprintf(TEXT("Attempting to start %s as an NT service.\n"), wrapperData->serviceDisplayName);
+            _tprintf(TEXT("\nCalling StartServiceCtrlDispatcher...please wait.\n"));
 
             /* Start the service control dispatcher.  This will not return
              *  if the service is started without problems.
              *  The ServiceControlDispatcher will call the wrapperServiceMain method. */
             if (!StartServiceCtrlDispatcher(serviceTable)) {
-                printf("\n");
-                printf("StartServiceControlDispatcher failed!\n");
-                printf("\n");
-                printf("The -s and --service commands should only be called by the Windows\n");
-                printf("ServiceManager to control the Wrapper as a service, and is not\n");
-                printf("designed to be run manually by the user.\n");
-                printf("\n");
-                printf("For help, type\n");
-                printf("%s -?\n", argv[0]);
-                printf("\n" );
+                _tprintf(TEXT("\n"));
+                _tprintf(TEXT("StartServiceControlDispatcher failed!\n"));
+                _tprintf(TEXT("\n"));
+                _tprintf(TEXT("The -s and --service commands should only be called by the Windows\n"));
+                _tprintf(TEXT("ServiceManager to control the Wrapper as a service, and is not\n"));
+                _tprintf(TEXT("designed to be run manually by the user.\n"));
+                _tprintf(TEXT("\n"));
+                _tprintf(TEXT("For help, type\n"));
+                _tprintf(TEXT("%s -?\n"), argv[0]);
+                _tprintf(TEXT("\n"));
                 appExit(1);
                 return; /* For clarity. */
             }
             appExit(0);
             return; /* For clarity. */
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "");
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Unrecognized option: -%s", wrapperData->argCommand);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT(""));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unrecognized option: -%s"), wrapperData->argCommand);
             wrapperUsage(argv[0]);
             appExit(1);
             return; /* For clarity. */
         }
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "<-- Wrapper Stopping due to error");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("<-- Wrapper Stopping due to error"));
         appExit(1);
         return; /* For clarity. */
     }
 }
+BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParameters, LPCTSTR pszDirectory) {
 
+    SHELLEXECUTEINFO shex;
+
+    memset(&shex, 0, sizeof(shex));
+
+    shex.cbSize         = sizeof( SHELLEXECUTEINFO );
+    shex.fMask          = 0;
+    shex.hwnd           = hwnd;
+    shex.lpVerb         = pszVerb;
+    shex.lpFile         = pszPath;
+    shex.lpParameters   = pszParameters;
+    shex.lpDirectory    = pszDirectory;
+    shex.nShow          = SW_SHOWNORMAL;
+
+    return ShellExecuteEx(&shex);
+}
+
+BOOL runElevated(__in LPCTSTR pszPath, __in_opt LPCTSTR pszParameters, __in_opt LPCTSTR pszDirectory ) {
+
+    return myShellExec(NULL, TEXT("runas"), pszPath, pszParameters, pszDirectory);
+}
 #endif /* ifdef WIN32 */
-

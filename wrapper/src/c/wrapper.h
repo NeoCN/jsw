@@ -6,29 +6,34 @@
  * This software is the proprietary information of Tanuki Software.
  * You shall use it only in accordance with the terms of the
  * license agreement you entered into with Tanuki Software.
- * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
- * 
- * 
+ * http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
+ *
+ *
  * Portions of the Software have been derived from source code
  * developed by Silver Egg Technology under the following license:
- * 
+ *
  * Copyright (c) 2001 Silver Egg Technology
- * 
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without 
- * restriction, including without limitation the rights to use, 
- * copy, modify, merge, publish, distribute, sub-license, and/or 
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sub-license, and/or
  * sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following 
+ * Software is furnished to do so, subject to the following
  * conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
  */
 
 #ifndef _WRAPPER_H
 #define _WRAPPER_H
+#ifdef WIN32
+#include <tchar.h>
+#endif
+
+#include <locale.h>
 
 #ifdef WIN32
 #include <winsock.h>
@@ -53,6 +58,12 @@
 
 #include "property.h"
 
+/* Initialize the timerTicks to a very high value.  This means that we will
+ *  always encounter the first rollover (512 * WRAPPER_MS / 1000) seconds
+ *  after the Wrapper the starts, which means the rollover will be well
+ *  tested. */
+#define WRAPPER_TICK_INITIAL 0xfffffe00
+
 #define WRAPPER_TICK_MS 100 /* The number of ms that are represented by a single
                              *  tick.  Ticks are used as an alternative time
                              *  keeping method. See the wrapperGetTicks() and
@@ -60,8 +71,11 @@
                              * Some code assumes that this number can be evenly
                              *  divided into 1000. */
 
-#define WRAPPER_TIMER_FAST_THRESHOLD 2 * 24 * 3600 * 1000 / WRAPPER_TICK_MS /* Default to 2 days. */
-#define WRAPPER_TIMER_SLOW_THRESHOLD 2 * 24 * 3600 * 1000 / WRAPPER_TICK_MS /* Default to 2 days. */
+#define WRAPPER_MAX_UPTIME_SECONDS 365 * 24 * 3600 /* Maximum uptime count. 1 year. */
+#define WRAPPER_MAX_UPTIME_TICKS (WRAPPER_MAX_UPTIME_SECONDS * (1000 / WRAPPER_TICK_MS)) /* The paranthesis are important to avoid overflow. */
+
+#define WRAPPER_TIMER_FAST_THRESHOLD (2 * 24 * 3600 * 1000 / WRAPPER_TICK_MS) /* Default to 2 days. */
+#define WRAPPER_TIMER_SLOW_THRESHOLD (2 * 24 * 3600 * 1000 / WRAPPER_TICK_MS) /* Default to 2 days. */
 
 #define WRAPPER_WSTATE_STARTING  51 /* Wrapper is starting.  Remains in this state
                                      *  until the JVM enters the STARTED state or
@@ -73,12 +87,10 @@
                                      *  until the wrapper decides to shut down.
                                      *  This is true even when the JVM process
                                      *  is being restarted. */
-#define WRAPPER_WSTATE_PAUSING   53 /* The wrapper enters this state when a PAUSE signal
-                                     *  is received from the service control manager. */
+#define WRAPPER_WSTATE_PAUSING   53 /* The wrapper enters this state when asked to Pause. */
 #define WRAPPER_WSTATE_PAUSED    54 /* The wrapper enters this state when the Wrapper
                                      *  has actually paused. */
-#define WRAPPER_WSTATE_CONTINUING 55 /* The wrapper enters this state when a CONTINUE signal
-                                     *  is received from the service control manager. */
+#define WRAPPER_WSTATE_RESUMING  55 /* The wrapper enters this state when asked to Resume. */
 #define WRAPPER_WSTATE_STOPPING  56 /* The wrapper is shutting down.  Will be in
                                      *  this state until the JVM enters the DOWN
                                      *  state. */
@@ -120,15 +132,24 @@
                                      *  state. */
 #define WRAPPER_JSTATE_KILL      83 /* The Wrapper is about ready to kill the JVM process. */
 
-#define FILTER_ACTION_NONE       90
-#define FILTER_ACTION_RESTART    91
-#define FILTER_ACTION_SHUTDOWN   92
-#define FILTER_ACTION_DUMP       93
+/* Defined Action types.  Registered actions are negative.  Custom types are positive. */
+#define ACTION_LIST_END          0
+#define ACTION_NONE              -1
+#define ACTION_RESTART           -2
+#define ACTION_SHUTDOWN          -3
+#define ACTION_DUMP              -4
+#define ACTION_DEBUG             -5
+#define ACTION_PAUSE             -6
+#define ACTION_RESUME            -7
 #if defined(MACOSX)
-#define FILTER_TRIGGER_ADVICE_NIL_SERVER "****** Returning nil _server **********"
-#define FILTER_ACTION_ADVICE_NIL_SERVER 127
+#define TRIGGER_ADVICE_NIL_SERVER TEXT("****** Returning nil _server **********")
+#define ACTION_ADVICE_NIL_SERVER -32
 #endif
 
+#define WRAPPER_ACTION_SOURCE_CODE_FILTER                  1  /* Action originated with a filter. */
+#define WRAPPER_ACTION_SOURCE_CODE_COMMANDFILE             2  /* Action originated from a commandfile. */
+#define WRAPPER_ACTION_SOURCE_CODE_WINDOWS_SERVICE_MANAGER 3  /* Action originated from the Windows Service Manager. */
+#define WRAPPER_ACTION_SOURCE_CODE_ON_EXIT                 4  /* Action originated from an on_exit configuration. */
 
 /* Because of the way time is converted to ticks, the largest possible timeout that
  *  can be specified without causing 32-bit overflows is (2^31 / 1000) - 5 = 2147478
@@ -150,22 +171,35 @@ typedef unsigned int TICKS;
 typedef unsigned long TICKS;
 #endif
 
+#define WRAPPER_ENV_SOURCE_PARENT      1
+#define WRAPPER_ENV_SOURCE_WRAPPER     2
+#ifdef WIN32
+#define WRAPPER_ENV_SOURCE_REG_SYSTEM  4
+#define WRAPPER_ENV_SOURCE_REG_ACCOUNT 8
+#endif
+
+
 /* Type definitions */
 typedef struct WrapperConfig WrapperConfig;
 struct WrapperConfig {
-    char*   argCommand;             /* The command used to launch the wrapper. */
-    char*   argCommandArg;          /* The argument to the command used to launch the wrapper. */
-    char*   argConfFile;            /* The name of the config file from the command line. */
+    TCHAR*   argCommand;             /* The command used to launch the wrapper. */
+    TCHAR*   argCommandArg;          /* The argument to the command used to launch the wrapper. */
+    TCHAR*   argConfFile;            /* The name of the config file from the command line. */
     int     argConfFileDefault;     /* True if the config file was not specified. */
     int     argConfFileFound;       /* True if the config file was found. */
     int     argCount;               /* The total argument count. */
-    char**  argValues;              /* Argument values. */
-    
+    TCHAR**  argValues;              /* Argument values. */
+
+    TCHAR*   language;               /* The language */
+    TCHAR*   language_domain;
+    TCHAR*   language_folder;
+    TCHAR*   language_encoding;
     int     configured;             /* TRUE if loadConfiguration has been called. */
     int     useSystemTime;          /* TRUE if the wrapper should use the system clock for timing, FALSE if a tick counter should be used. */
     int     timerFastThreshold;     /* If the difference between the system time based tick count and the timer tick count ever falls by more than this value then a warning will be displayed. */
     int     timerSlowThreshold;     /* If the difference between the system time based tick count and the timer tick count ever grows by more than this value then a warning will be displayed. */
     int     useTickMutex;           /* TRUE if access to the tick count should be protected by a mutex. */
+    int     uptimeFlipped;          /* TRUE when the maximum uptime has been flipped. (Overflown) */
 
     int     ignoreSequenceGaps;     /* TRUE if all sequence properties should be used. */
     int     port;                   /* Port number which the Wrapper is configured to be listening on */
@@ -176,20 +210,20 @@ struct WrapperConfig {
     int     jvmPortMin;             /* Minimum port which the JVM should bind to when connecting back to the wrapper. */
     int     jvmPortMax;             /* Maximum port which the JVM should bind to when connecting back to the wrapper. */
     int     sock;                   /* Socket number. if open. */
-    char    *originalWorkingDir;    /* Original Wrapper working directory. */
-    char    *workingDir;            /* Configured working directory. */
-    char    *configFile;            /* Name of the configuration file */
+    TCHAR    *originalWorkingDir;    /* Original Wrapper working directory. */
+    TCHAR    *workingDir;            /* Configured working directory. */
+    TCHAR    *configFile;            /* Name of the configuration file */
     int     commandLogLevel;        /* The log level to use when logging the java command. */
 #ifdef WIN32
-    char    *jvmCommand;            /* Command used to launch the JVM */
+    TCHAR    *jvmCommand;            /* Command used to launch the JVM */
 #else /* UNIX */
-    char    **jvmCommand;           /* Command used to launch the JVM */
+    TCHAR    **jvmCommand;           /* Command used to launch the JVM */
 #endif
     int     environmentClasspath;   /* TRUE if the classpath should be passed to the JVM in the environment. */
-    char    *classpath;             /* Classpath to pass to the JVM. */
+    TCHAR    *classpath;             /* Classpath to pass to the JVM. */
     int     debugJVM;               /* True if the JVM is being launched with a debugger enabled. */
     int     debugJVMTimeoutNotified;/* True if the JVM is being launched with a debugger enabled and the user has already been notified of a timeout. */
-    char    key[17];                /* Key which the JVM uses to authorize connections. (16 digits + \0) */
+    TCHAR    key[17];                /* Key which the JVM uses to authorize connections. (16 digits + \0) */
     int     isConsole;              /* TRUE if the wrapper was launched as a console. */
     int     cpuTimeout;             /* Number of seconds without CPU before the JVM will issue a warning and extend timeouts */
     int     startupTimeout;         /* Number of seconds the wrapper will wait for a JVM to startup */
@@ -220,7 +254,7 @@ struct WrapperConfig {
 
     int     isDebugging;            /* TRUE if set in the configuration file */
     int     isAdviserEnabled;       /* TRUE if advice messages should be output. */
-    const char *nativeLibrary;      /* The base name of the native library loaded by the WrapperManager. */
+    const TCHAR *nativeLibrary;      /* The base name of the native library loaded by the WrapperManager. */
     int     libraryPathAppendPath;  /* TRUE if the PATH environment variable should be appended to the java library path. */
     int     isStateOutputEnabled;   /* TRUE if set in the configuration file.  Shows output on the state of the state engine. */
     int     isTickOutputEnabled;    /* TRUE if detailed tick timer output should be included in debug output. */
@@ -251,19 +285,20 @@ struct WrapperConfig {
     int     successfulInvocationTime;/* Amount of time that a new JVM must be running so that the invocation will be considered to have been a success, leading to a reset of the restart count. */
     int     maxFailedInvocations;   /* Maximum number of failed invocations in a row before the Wrapper will give up and exit. */
     int     outputFilterCount;      /* Number of registered output filters. */
-    char**  outputFilters;          /* Array of output filters. */
-    int*    outputFilterActions;    /* Array of output filter actions. */
-    char    *pidFilename;           /* Name of file to store wrapper pid in */
-    char    *lockFilename;          /* Name of file to store wrapper lock in */
-    char    *javaPidFilename;       /* Name of file to store jvm pid in */
-    char    *javaIdFilename;        /* Name of file to store jvm id in */
-    char    *statusFilename;        /* Name of file to store wrapper status in */
-    char    *javaStatusFilename;    /* Name of file to store jvm status in */
-    char    *commandFilename;       /* Name of a command file used to send commands to the Wrapper. */
+    TCHAR**  outputFilters;          /* Array of output filters. */
+    int**   outputFilterActionLists;/* Array of output filter action lists. */
+    TCHAR**  outputFilterMessages;   /* Array of output filter messages. */
+    TCHAR    *pidFilename;           /* Name of file to store wrapper pid in */
+    TCHAR    *lockFilename;          /* Name of file to store wrapper lock in */
+    TCHAR    *javaPidFilename;       /* Name of file to store jvm pid in */
+    TCHAR    *javaIdFilename;        /* Name of file to store jvm id in */
+    TCHAR    *statusFilename;        /* Name of file to store wrapper status in */
+    TCHAR    *javaStatusFilename;    /* Name of file to store jvm status in */
+    TCHAR    *commandFilename;       /* Name of a command file used to send commands to the Wrapper. */
     int     commandFileTests;       /* True if test commands will be accepted via the command file. */
     int     commandPollInterval;    /* Interval in seconds at which the existence of the command file is polled. */
     TICKS   commandTimeoutTicks;    /* Tick count at which the command file will be checked next. */
-    char    *anchorFilename;        /* Name of an anchor file used to control when the Wrapper should quit. */
+    TCHAR    *anchorFilename;        /* Name of an anchor file used to control when the Wrapper should quit. */
     int     anchorPollInterval;     /* Interval in seconds at which the existence of the anchor file is polled. */
     TICKS   anchorTimeoutTicks;     /* Tick count at which the anchor file will be checked next. */
     int     umask;                  /* Default umask for all files. */
@@ -276,27 +311,27 @@ struct WrapperConfig {
     int     javaStatusFileUmask;    /* Umask to use when creating the java status file. */
     int     anchorFileUmask;        /* Umask to use when creating the anchor file. */
     int     ignoreSignals;          /* Mask that determines where the Wrapper should ignore any catchable system signals.  Can be ingored in the Wrapper and/or JVM. */
-    char    *consoleTitle;          /* Text to set the console title to. */
-    char    *serviceName;           /* Name of the service. */
-    char    *serviceDisplayName;    /* Display name of the service. */
-    char    *serviceDescription;    /* Description for service. */
-    char    *hostName;              /* The name of the current host. */
-    
+    TCHAR    *consoleTitle;          /* Text to set the console title to. */
+    TCHAR    *serviceName;           /* Name of the service. */
+    TCHAR    *serviceDisplayName;    /* Display name of the service. */
+    TCHAR    *serviceDescription;    /* Description for service. */
+    TCHAR    *hostName;              /* The name of the current host. */
+    int     pausable;               /* Should the service be allowed to be paused? */
+    int     pausableStopJVM;        /* Should the JVM be stopped when the service is paused? */
+
 #ifdef WIN32
     int     isSingleInvocation;     /* TRUE if only a single invocation of an application should be allowed to launch. */
-    char    *ntServiceLoadOrderGroup; /* Load order group name. */
-    char    *ntServiceDependencies; /* List of Dependencies */
-    int     ntServiceStartType;     /* Mode in which the Service is installed. 
+    TCHAR    *ntServiceLoadOrderGroup; /* Load order group name. */
+    TCHAR    *ntServiceDependencies; /* List of Dependencies */
+    int     ntServiceStartType;     /* Mode in which the Service is installed.
                                      * {SERVICE_AUTO_START | SERVICE_DEMAND_START} */
     DWORD   ntServicePriorityClass; /* Priority at which the Wrapper and its JVMS will run.
                                      * {HIGH_PRIORITY_CLASS | IDLE_PRIORITY_CLASS | NORMAL_PRIORITY_CLASS | REALTIME_PRIORITY_CLASS} */
-    char    *ntServiceAccount;      /* Account name to use when running as a service.  NULL to use the LocalSystem account. */
-    char    *ntServicePassword;     /* Password to use when running as a service.  NULL means no password. */
+    TCHAR    *ntServiceAccount;      /* Account name to use when running as a service.  NULL to use the LocalSystem account. */
+    TCHAR    *ntServicePassword;     /* Password to use when running as a service.  NULL means no password. */
     int     ntServicePasswordPrompt; /* If true then the user will be prompted for a password when installing as a service. */
     int     ntServicePasswordPromptMask; /* If true then the password will be masked as it is input. */
     int     ntServiceInteractive;   /* Should the service be allowed to interact with the desktop? */
-    int     ntServicePausable;      /* Should the service be allowed to be paused? */
-    int     ntServicePausableStopJVM; /* Should the JVM be stopped when the service is paused? */
     int     ntHideJVMConsole;       /* Should the JVMs Console window be hidden when run as a service.  True by default but GUIs will not be visible for JVMs prior to 1.4.0. */
     int     ntHideWrapperConsole;   /* Should the Wrapper Console window be hidden when run as a service. */
     int     wrapperConsoleHide;     /* True if the Wrapper Console window should be hidden. */
@@ -335,12 +370,12 @@ struct WrapperConfig {
 #define WRAPPER_MSG_PING_TIMEOUT  (char)113
 #define WRAPPER_MSG_SERVICE_CONTROL_CODE (char)114
 #define WRAPPER_MSG_PROPERTIES    (char)115
-
 /** Log commands are actually 116 + the LOG LEVEL (LEVEL_UNKNOWN ~ LEVEL_NONE), (116 ~ 124). */
 #define WRAPPER_MSG_LOG           (char)116
-
 #define WRAPPER_MSG_LOGFILE       (char)134
 #define WRAPPER_MSG_APPEAR_ORPHAN (char)137
+#define WRAPPER_MSG_PAUSE         (char)138
+#define WRAPPER_MSG_RESUME        (char)139
 
 #define WRAPPER_PROCESS_DOWN      200
 #define WRAPPER_PROCESS_UP        201
@@ -348,7 +383,7 @@ struct WrapperConfig {
 extern WrapperConfig *wrapperData;
 extern Properties    *properties;
 
-extern char wrapperClasspathSeparator;
+extern TCHAR wrapperClasspathSeparator;
 
 /* Protocol Functions */
 /**
@@ -357,7 +392,17 @@ extern char wrapperClasspathSeparator;
  * @return TRUE if there were any problems.
  */
 extern void wrapperProtocolClose();
-extern int wrapperProtocolFunction(int useLoggerQueue, char function, const char *message);
+
+/**
+ * Sends a command to the JVM process.
+ *
+ * @param useLoggerQueue TRUE if any internal logging should be queued.
+ * @param function The command to send.  (This is intentionally an 8-bit char.)
+ * @param message Message to send along with the command.
+ *
+ * @return TRUE if there were any problems.
+ */
+extern int wrapperProtocolFunction(int useLoggerQueue, char function, const TCHAR *message);
 
 /**
  * Checks the status of the server socket.
@@ -390,6 +435,30 @@ extern struct tm wrapperGetBuildTime();
 extern int showHostIds(int logLevel);
 extern void wrapperLoadHostName();
 
+/**
+ * Parses a list of actions for an action property.
+ *
+ * @param actionNameList A space separated list of action names.
+ * @param propertyName The name of the property where the action name originated.
+ *
+ * @return an array of integer action ids, or NULL if there were any problems.
+ */
+extern int *wrapperGetActionListForNames(const TCHAR *actionNameList, const TCHAR *propertyName);
+
+/**
+ * Performs the specified action,
+ *
+ * @param actionList An array of action Ids ending with a value ACTION_LIST_END.
+ *                   Negative values are standard actions, positive are user
+ *                   custom events.
+ * @param triggerMsg The reason the actions are being fired.
+ * @param actionCode Tracks where the action originated.
+ * @param logForActionNone Flag stating whether or not a message should be logged
+ *                         for the NONE action.
+ * @param exitCode Error code to use in case the action results in a shutdown.
+ */
+extern void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int actionCode, int logForActionNone, int exitCode);
+
 extern void wrapperAddDefaultProperties();
 
 extern int wrapperLoadConfigurationProperties();
@@ -397,32 +466,31 @@ extern int wrapperLoadConfigurationProperties();
 extern void wrapperGetCurrentTime(struct timeb *timeBuffer);
 
 #ifdef WIN32
-extern char** wrapperGetSystemPath();
-extern int wrapperGetJavaHomeFromWindowsRegistry(char *javaHome);
+extern TCHAR** wrapperGetSystemPath();
+extern int wrapperGetJavaHomeFromWindowsRegistry(TCHAR *javaHome);
 #endif
-
 extern int wrapperCheckRestartTimeOK();
 
-extern int wrapperBuildJavaClasspath(char **classpath);
+extern int wrapperBuildJavaClasspath(TCHAR **classpath);
 
 /**
  * command is a pointer to a pointer of an array of character strings.
  * length is the number of strings in the above array.
  */
-extern int wrapperBuildJavaCommandArray(char ***strings, int *length, int addQuotes, const char *classpath);
-extern void wrapperFreeJavaCommandArray(char **strings, int length);
+extern int wrapperBuildJavaCommandArray(TCHAR ***strings, int *length, int addQuotes, const TCHAR *classpath);
+extern void wrapperFreeJavaCommandArray(TCHAR **strings, int length);
 
 extern int wrapperInitialize();
 extern void wrapperDispose();
 
 /**
- * Returns the file name base as a newly malloced char *.  The resulting
+ * Returns the file name base as a newly malloced TCHAR *.  The resulting
  *  base file name will have any path and extension stripped.
  *
  * baseName should be long enough to always contain the base name.
  *  (strlen(fileName) + 1) is safe.
  */
-extern void wrapperGetFileBase(const char *fileName, char *baseName);
+extern void wrapperGetFileBase(const TCHAR *fileName, TCHAR *baseName);
 
 /**
  * Output the version.
@@ -432,7 +500,7 @@ extern void wrapperVersionBanner();
 /**
  * Output the application usage.
  */
-extern void wrapperUsage(char *appName);
+extern void wrapperUsage(TCHAR *appName);
 
 /**
  * Parse the main arguments.
@@ -440,7 +508,7 @@ extern void wrapperUsage(char *appName);
  * Returns FALSE if the application should exit with an error.  A message will
  *  already have been logged.
  */
-extern int wrapperParseArguments(int argc, char **argv);
+extern int wrapperParseArguments(int argc, TCHAR **argv);
 
 /**
  * Called when the Wrapper detects that the JVM process has exited.
@@ -478,6 +546,7 @@ extern void wrapperSetWrapperState(int useLoggerQueue, int wState);
  */
 extern void wrapperUpdateJavaStateTimeout(TICKS nowTicks, int delay);
 
+
 /**
  * Changes the current Java state.
  *
@@ -497,6 +566,10 @@ extern void wrapperSetJavaState(int useLoggerQueue, int jState, TICKS nowTicks, 
 extern void wrapperCheckConsoleWindows();
 
 extern int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers);
+BOOL extern myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParameters, LPCTSTR pszDirectory);
+BOOL extern runElevated( __in LPCTSTR pszPath, __in_opt LPCTSTR pszParameters, __in_opt LPCTSTR pszDirectory);
+BOOL extern isElevated();
+BOOL extern isVista();
 #endif
 
 /**
@@ -608,17 +681,21 @@ extern int wrapperRunConsole();
  */
 extern int wrapperRunService();
 
-#ifdef WIN32
 /**
  * Used to ask the state engine to pause the JVM and Wrapper
+ *
+ * @param TRUE if queued logging should be used.
+ * @param actionCode Tracks where the action originated.
  */
-extern void wrapperPauseProcess(int useLoggerQueue);
+extern void wrapperPauseProcess(int useLoggerQueue, int actionCode);
 
 /**
  * Used to ask the state engine to resume the JVM and Wrapper
+ *
+ * @param TRUE if queued logging should be used.
+ * @param actionCode Tracks where the action originated.
  */
-extern void wrapperContinueProcess(int useLoggerQueue);
-#endif
+extern void wrapperResumeProcess(int useLoggerQueue, int actionCode);
 
 /**
  * Used to ask the state engine to shut down the JVM and Wrapper
@@ -640,20 +717,20 @@ extern void wrapperRestartProcess(int useLoggerQueue);
  * If two backslashes are found in a row, then the first escapes the
  *  second and the second is removed.
  */
-extern void wrapperStripQuotes(const char *prop, char *propStripped);
+extern void wrapperStripQuotes(const TCHAR *prop, TCHAR *propStripped);
 
 /**
  * Adds quotes around the specified string in such a way that everything is
  *  escaped correctly.  If the bufferSize is not large enough then the
  *  required size will be returned.  0 is returned if successful.
  */
-extern size_t wrapperQuoteValue(const char* value, char *buffer, size_t bufferSize);
+extern size_t wrapperQuoteValue(const TCHAR* value, TCHAR *buffer, size_t bufferSize);
 
 /**
  * Checks the quotes in the value and displays an error if there are any problems.
  * This can be useful to help users debug quote problems.
  */
-extern int wrapperCheckQuotes(const char *value, const char *propName);
+extern int wrapperCheckQuotes(const TCHAR *value, const TCHAR *propName);
 
 /**
  * The main event loop for the wrapper.  Handles all state changes and events.
@@ -722,13 +799,13 @@ extern TICKS wrapperAddToTicks(TICKS start, int seconds);
  *  The directory can be relative or absolute.
  * If there are any problems then a non-zero value will be returned.
  */
-extern int wrapperSetWorkingDir(const char* dir);
+extern int wrapperSetWorkingDir(const TCHAR* dir);
 
 /******************************************************************************
  * Protocol callback functions
  *****************************************************************************/
-extern void wrapperLogSignaled(int logLevel, char *msg);
-extern void wrapperKeyRegistered(char *key);
+extern void wrapperLogSignaled(int logLevel, TCHAR *msg);
+extern void wrapperKeyRegistered(TCHAR *key);
 extern void wrapperPingResponded();
 extern void wrapperStopRequested(int exitCode);
 extern void wrapperRestartRequested();
@@ -736,5 +813,6 @@ extern void wrapperStopPendingSignaled(int waitHint);
 extern void wrapperStoppedSignaled();
 extern void wrapperStartPendingSignaled(int waitHint);
 extern void wrapperStartedSignaled();
+extern TCHAR* wrapperGetLocalizedMessage(char *msg);
 
 #endif

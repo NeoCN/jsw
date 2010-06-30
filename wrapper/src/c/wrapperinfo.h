@@ -6,20 +6,25 @@
  * This software is the proprietary information of Tanuki Software.
  * You shall use it only in accordance with the terms of the
  * license agreement you entered into with Tanuki Software.
- * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
+ * http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
  */
 
 #ifndef _WRAPPERINFO_H
 #define _WRAPPERINFO_H
+#ifdef WIN32
+#include <tchar.h>
+#endif
 
-extern char *wrapperVersionRoot;
-extern char *wrapperVersion;
-extern char *wrapperBits;
-extern char *wrapperArch;
-extern char *wrapperOS;
-extern char *wrapperReleaseDate;
-extern char *wrapperReleaseTime;
-extern char *wrapperBuildDate;
-extern char *wrapperBuildTime;
+
+
+extern TCHAR *wrapperVersionRoot;
+extern TCHAR *wrapperVersion;
+extern TCHAR *wrapperBits;
+extern TCHAR *wrapperArch;
+extern TCHAR *wrapperOS;
+extern TCHAR *wrapperReleaseDate;
+extern TCHAR *wrapperReleaseTime;
+extern TCHAR *wrapperBuildDate;
+extern TCHAR *wrapperBuildTime;
 
 #endif

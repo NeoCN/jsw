@@ -1,6 +1,75 @@
 Java Service Wrapper Revision History.
 --------------------------------------
-3.4.2
+
+3.5.0
+* (Standard) Added the ability to detect and react to thread dead locks in
+  the JVM.  Requires at Java 1.5.  Added wrapper.check.deadlock,
+  wrapper.check.deadlock.interval, wrapper.check.deadlock.action, and
+  wrapper.check.deadlock.output properties to configure the detection.
+* (Professional) Add a new jvm_deadlock event which is fired in response to
+  a thread deadlock being detected within the JVM.
+* Fix a problem where the intervals like wrapper.ping.interval were all
+  rounding down causing them to function at a rate one second shorter than
+  configured.
+* Fix a minor memory leak calling WrapperManager.exec.
+* Add a new wrapper.filter.message.<n> property which can be used to control
+  the message which is logged when a wrapper.filter.trigger.<n> is matched.
+* Rework the way actions are fired for the wrapper.filter.<n>.action and
+  wrapper.timer.<n>.action properties so there is no longer any duplicate
+  code.
+* Modify the way the wrapper.filter.<n>.action and wrapper.timer.<n>.action
+  properties work so it is now possible to specify a list of actions which will
+  happen in the order specified.  This makes it possible to do a thread dump
+  and then restart in response to an error.
+* Add the DEBUG action to the wrapper.filter.<n>.action property for
+  consistency.
+* (Professional) Implement the ability to fire user defined events as actions
+  of the wrapper.filter.<n>.action, wrapper.timer.<n>.action, and
+  wrapper.check.deadlock.action properties.
+* Fix a problem in the WrapperProcess.destroy() function, when a child process
+  couldn't have been forcibly killed.
+* Add GetHosdID.bat file for Windows platforms. This file will open a dialog 
+  displaying the HostId of the machine.
+* Fix a problem in the shell script which, on a rc based OS, could lead to
+  problems starting the Wrapper when the APP_NAME in the script contained
+  capital letters.
+* (Standard, Professional) Added a set of wrapper.share.<n>.* properties which
+  makes it possible to configure the Wrapper to map specific network resources
+  before launching the JVM on Windows.
+* Corrected the way the Wrapper is installing itself as a Windows service when
+  the binary and/or conf file are located on a Mapped Drive.
+* Add new wrapper.pausable and wrapper.pausable.stop_jvm properties to control
+  whether the JVM can be paused or not, and deprecate the use of the Windows
+  specific wrapper.ntservice.pausable and wrapper.ntservice.pausable.stop_jvm
+  properties.
+* Modified the wrapper.commandfile property so PAUSE and RESUME commands are
+  now supported on all platforms at any time.
+* Modified the wrapper.filter.action.<n> property so PAUSE, RESUME, and DEBUG
+  actions are now supported.
+* (Professional) Modified the wrapper.timer.<n>.action property so PAUSE and
+  RESUME actions are now supported.
+* (Professional) Modified the wrapper.event.<event_name>.command.block.action
+  property so PAUSE and RESUME actions are now supported.
+* Added new WrapperServicePauseEvent and WrapperServiceResumeEvent classes to
+  make it possible to notify an application that it has been paused or resumed.
+  To date, this was only possible when the Windows service was paused or
+  resumed
+* (Professional) Add new "wrapper_pause" and "wrapper_resume" event types that
+  are fired whenever the Wrapper is paused or resumed.
+* Enhance the command line parsing for the WrapperManager.exec() command. The
+  single commandLine version of the exec call will handle quotes more
+  sophisticated.
+* Modified the wrapper.syslog.ident property so its value is now silently
+  trimmed to 32 characters in length.  This is needed to avoid problems with
+  syslog servers.  (See RFC 3164 section 4.1.3)
+* (Standard, Professional) Add new wrapper.syslog.remote.host,
+  wrapper.syslog.remote.port, and wrapper.syslog.local.host properties which
+  can be used to redirect all syslog (UNIX) or Event Log (Windows) output to
+  a remote syslog server.
+* Add support for the wrapper.syslog.facility property on Windows so remote
+  syslog entries can be sent from Windows versions of the Wrapper.
+* Add debug output from the WrapperManager class which shows information about
+  the current wrapper.jar, including its size, location, and MD5 hash.
 * Add a check for wrapper.java.classpath.<n> entries containing quotes.  The
   quotes are now stripped and a debug warning logged.
 * (Standard, Professional) Increase the size of the wrapperw.exe error dialog
@@ -24,7 +93,55 @@ Java Service Wrapper Revision History.
   Wrapper.  Added log information to make it clear when this happens.
 * Add a new wrapper.use_tick_mutex property to control whether or not the
   internal tick timer is protected by a mutex. (Experimental)
-* (Professional) Add support for zLinux 32 and 64-bit of s390 systems.
+* (Standard, Professional) Add support for zLinux 32 and 64-bit on s390 and
+  s390x systems.
+* Change the internal encoding of the wrapper from native characters to
+  UNICODE.  This will allow the wrapper to handle correctly any characters in
+  its configuration file and internally.
+* (Standard, Professional) Implement a new WrapperResources class which makes
+  it possible for user applications to localize their applications using the
+  same methods common to native applications.  The Wrapper uses this internally
+  to provide localized versions of the Wrapper.
+* Remove the old org.tanukisoftware.wrapper.resources package as it is no
+  longer being used.
+* (Standard, Professional) Add Japanese language pack to localize the Wrapper
+  to Japanese.
+* Fix a problem in the WrapperManager class where unexpected exceptions thrown
+  in the main socket loop were being thrown away without being logged.
+* Make the Wrapper more robust against failures removing the Wrapper's shutdown
+  hook on shutdown.  It had been causing the clean shutdown of the JVM to fail
+  as an unexpected exit.
+* Fixed a problem in the wrapper customize code where customized multi layer
+  icons may get scaled incorrectly by Windows.  Bug #3015848
+* Modify the wrapper.on_exit.<n> property so it is now possible to PAUSE the
+  Wrapper when a JVM exits.  This delays the restart of the JVM until the
+  Wrapper is resumed.
+* Add a new log format, 'U', which logs the approximate time in seconds since
+  the Wrapper was launched.  It is based on the internal tick timer and will
+  be a few percent lower than the actual number of seconds that have elapsed.
+  Added to the wrapper.console.format, wrapper.logfile.format, and
+  wrapper.logdialog.format properties.
+* Fix a problem where deleting the configured anchor file was not recognized
+  if the JVM was not running at the time.  The Wrapper was not noticing that
+  it was missing until the next JVM was launched.
+* (Standard, Professional) Add a new NOTICE log level which is used to log
+  license related message.  These will only show up trial license log output.
+* (Standard, Professional) Add a new default 15 minute trial license which
+  can be used out of the box on any machine without the need to register and
+  obtain a trial license or purchase a license.
+* Add a new wrapper.environment.dump property which will dump all of the
+  environment variables to the log, along with where the variables originated.
+* Force the Wrapper to flush all logfile output for each line until the
+  configuration file has been loaded.  There is normally no output up to this
+  point anyway, but this ensures that any errors are logged in a consistent
+  location.
+* Move the registration of the main thread with the logging system up a bit
+  to make it possible to perform low level debug logging earlier.
+* Add a set of checks to display an error and prevent the Wrapper from starting
+  if the batch or shell scripts being used are based on the TestWrapper demo
+  application.  It is important that the user start with the default template
+  files in the distribution src/bin and src/conf directories to make sure the
+  integration goes smoothly.
 
 3.4.1
 * Fix a problem where the wrapper.app.parameter.1 property was always being

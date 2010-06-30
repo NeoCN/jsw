@@ -6,23 +6,23 @@
  * This software is the proprietary information of Tanuki Software.
  * You shall use it only in accordance with the terms of the
  * license agreement you entered into with Tanuki Software.
- * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
- * 
- * 
+ * http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
+ *
+ *
  * Portions of the Software have been derived from source code
  * developed by Silver Egg Technology under the following license:
- * 
+ *
  * Copyright (c) 2001 Silver Egg Technology
- * 
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without 
- * restriction, including without limitation the rights to use, 
- * copy, modify, merge, publish, distribute, sub-license, and/or 
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sub-license, and/or
  * sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following 
+ * Software is furnished to do so, subject to the following
  * conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
  */
@@ -41,7 +41,9 @@ barf
 #include <tlhelp32.h>
 #include <windows.h>
 #include <winnt.h>
+#include "wrapper_i18n.h"
 #include "wrapperjni.h"
+
 
 /* MS Visual Studio 8 went and deprecated the POXIX names for functions.
  *  Fixing them all would be a big headache for UNIX versions. */
@@ -62,7 +64,7 @@ FARPROC OptionalCreateToolhelp32Snapshot = NULL;
 
 int wrapperLockControlEventQueue() {
 #ifdef _DEBUG
-        printf(" wrapperLockControlEventQueue()\n");
+        _tprintf(TEXT(" wrapperLockControlEventQueue()\n"));
         fflush(NULL);
 #endif
     if (!controlEventQueueMutexHandle) {
@@ -74,32 +76,31 @@ int wrapperLockControlEventQueue() {
      *  This could happen if a signal is encountered while locked. */
     switch (WaitForSingleObject(controlEventQueueMutexHandle, 30000)) {
     case WAIT_ABANDONED:
-        printf(gettext("WrapperJNI Error: Control Event mutex was abandoned.\n"));
+        _tprintf(TEXT("WrapperJNI Error: Control Event mutex was abandoned.\n"));
         fflush(NULL);
         return -1;
     case WAIT_FAILED:
-        printf(gettext("WrapperJNI Error: Control Event mutex wait failed.\n"));
+        _tprintf(TEXT("WrapperJNI Error: Control Event mutex wait failed.\n"));
         fflush(NULL);
         return -1;
     case WAIT_TIMEOUT:
-        printf(gettext("WrapperJNI Error: Control Event mutex wait timed out.\n"));
+        _tprintf(TEXT("WrapperJNI Error: Control Event mutex wait timed out.\n"));
         fflush(NULL);
         return -1;
     default:
         /* Ok */
         break;
     }
-
     return 0;
 }
 
 int wrapperReleaseControlEventQueue() {
-#ifdef _DEBUG
-        printf(" wrapperReleaseControlEventQueue()\n");
+    #ifdef _DEBUG
+        _tprintf(TEXT(" wrapperReleaseControlEventQueue()\n"));
         fflush(NULL);
-#endif
+    #endif
     if (!ReleaseMutex(controlEventQueueMutexHandle)) {
-        printf(gettext("WrapperJNI Error: Failed to release Control Event mutex. %s\n"), getLastErrorText());
+        _tprintf(TEXT( "WrapperJNI Error: Failed to release Control Event mutex. %s\n"), getLastErrorText());
         fflush(NULL);
         return -1;
     }
@@ -142,14 +143,14 @@ int wrapperConsoleHandler(int key) {
         event = key;
     }
     if (wrapperJNIDebugging) {
-        printf(gettext("WrapperJNI Debug: Got Control Signal %d->%d\n"), key, event);
+        _tprintf(TEXT("WrapperJNI Debug: Got Control Signal %d->%d\n"), key, event);
         flushall();
     }
 
     wrapperJNIHandleSignal(event);
 
     if (wrapperJNIDebugging) {
-        printf(gettext("WrapperJNI Debug: Handled signal\n"));
+        _tprintf(TEXT("WrapperJNI Debug: Handled signal\n"));
         flushall();
     }
 
@@ -160,14 +161,14 @@ int wrapperConsoleHandler(int key) {
  * Looks up the name of the explorer.exe file in the registry.  It may change
  *  in a future version of windows, so this is the safe thing to do.
  */
-char explorerExe[1024];
+TCHAR explorerExe[1024];
 void
 initExplorerExeName() {
     /* Location: "\\HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Shell" */
-    sprintf(explorerExe, "Explorer.exe");
+    _sntprintf(explorerExe, 1024, TEXT("Explorer.exe"));
 }
 
-void throwException(JNIEnv *env, const char *className, int jErrorCode, const char *message) {
+void throwException(JNIEnv *env, const char *className, int jErrorCode, const TCHAR *message) {
     jclass exceptionClass;
     jmethodID constructor;
     jbyteArray jMessage;
@@ -176,15 +177,15 @@ void throwException(JNIEnv *env, const char *className, int jErrorCode, const ch
     if (exceptionClass = (*env)->FindClass(env, className)) {
         /* Look for the constructor. Ignore failures. */
         if (constructor = (*env)->GetMethodID(env, exceptionClass, "<init>", "(I[B)V")) {
-            jMessage = (*env)->NewByteArray(env, (jsize)strlen(message));
+            jMessage = (*env)->NewByteArray(env, (jsize)_tcslen(message) * sizeof(TCHAR));
             /* The 1.3.1 jni.h file does not specify the message as const.  The cast is to
-             *  avoid compiler warnings trying to pass a (const char *) as a (char *). */
-            (*env)->SetByteArrayRegion(env, jMessage, 0, (jsize)strlen(message), (char *)message);
+             *  avoid compiler warnings trying to pass a (const TCHAR *) as a (TCHAR *). */
+            JNU_SetByteArrayRegion(env, &jMessage, 0, (jsize)_tcslen(message) * sizeof(TCHAR), message);
 
             exception = (*env)->NewObject(env, exceptionClass, constructor, jErrorCode, jMessage);
 
             if ((*env)->Throw(env, exception)) {
-                printf(gettext("WrapperJNI Error: Unable to throw exception of class '%s' with message: %s"),
+                _tprintf(TEXT("WrapperJNI Error: Unable to throw exception of class '%s' with message: %s"),
                     className, message);
                 flushall();
             }
@@ -195,13 +196,13 @@ void throwException(JNIEnv *env, const char *className, int jErrorCode, const ch
 
         (*env)->DeleteLocalRef(env, exceptionClass);
     } else {
-        printf(gettext("WrapperJNI Error: Unable to load class, '%s' to report exception: %s"),
+        _tprintf(TEXT("WrapperJNI Error: Unable to load class, '%s' to report exception: %s"),
             className, message);
         flushall();
     }
 }
 
-void throwServiceException(JNIEnv *env, int errorCode, const char *message) {
+void throwServiceException(JNIEnv *env, int errorCode, const TCHAR *message) {
     throwException(env, "org/tanukisoftware/wrapper/WrapperServiceException", errorCode, message);
 }
 
@@ -224,9 +225,7 @@ BOOL GetTextualSid(
     DWORD dwSidSize;
 
     /* Validate the binary SID. */
-
     if (!IsValidSid(pSid)) return FALSE;
-
     /* Get the identifier authority value from the SID. */
 
     psia = GetSidIdentifierAuthority(pSid);
@@ -239,7 +238,6 @@ BOOL GetTextualSid(
     /* S-SID_REVISION- + IdentifierAuthority- + subauthorities- + NULL */
 
     dwSidSize = (15 + 12 + (12 * dwSubAuthorities) + 1) * sizeof(TCHAR);
-
     /* Check input buffer length. */
     /* If too small, indicate the proper size and set last error. */
 
@@ -252,7 +250,6 @@ BOOL GetTextualSid(
     /* Add 'S' prefix and revision number to the string. */
 
     dwSidSize = wsprintf(TextualSid, TEXT("S-%lu-"), dwSidRev);
-
     /* Add SID identifier authority to the string. */
     if ((psia->Value[0] != 0) || (psia->Value[1] != 0)) {
         dwSidSize += wsprintf(TextualSid + lstrlen(TextualSid),
@@ -324,7 +321,7 @@ time_t getUserLoginTime(TCHAR *sidText) {
     result = RegOpenKey(HKEY_USERS, NULL, &userKey);
     if (result != ERROR_SUCCESS) {
         FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, result, 0, (LPTSTR)&pBuffer, 0, NULL);
-        printf(gettext("WrapperJNI Error: Error opening registry for HKEY_USERS: %d : %s\n"), result, pBuffer);
+        _tprintf(TEXT("WrapperJNI Error: Error opening registry for HKEY_USERS: %s\n"), getLastErrorText());
         flushall();
         LocalFree(pBuffer);
         return loginTime;
@@ -334,11 +331,10 @@ time_t getUserLoginTime(TCHAR *sidText) {
     i = 0;
     userKeyNameSize = sizeof(userKeyName);
     while ((result = RegEnumKeyEx(userKey, i, userKeyName, &userKeyNameSize, NULL, NULL, NULL, &lastTime)) == ERROR_SUCCESS) {
-        if (stricmp(sidText, userKeyName) == 0) {
+        if (_tcsicmp(sidText, userKeyName) == 0) {
             /* We found the SID! */
             /* Convert the FILETIME to UNIX time. */
             loginTime = fileTimeToTimeT(&lastTime);
-
             break;
         }
 
@@ -360,11 +356,15 @@ time_t getUserLoginTime(TCHAR *sidText) {
         flushall();
         LocalFree(pBuffer);
     }
-
     return loginTime;
 }
 
-void
+/**
+ * Sets group information in a user object.
+ *
+ * Returns TRUE if there were any problems.
+ */
+int
 setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HANDLE hProcessToken) {
     jmethodID addGroup;
 
@@ -384,67 +384,94 @@ setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HANDLE 
     jbyteArray jGroupName;
     jbyteArray jDomainName;
 
+    int result = FALSE;
+
     /* Look for the method used to add groups to the user. */
     if (addGroup = (*env)->GetMethodID(env, wrapperUserClass, "addGroup", "([B[B[B)V")) {
         /* Get the TokenGroups info from the token. */
         GetTokenInformation(hProcessToken, TokenGroups, NULL, 0, &tokenGroupsSize);
         tokenGroups = (TOKEN_GROUPS *)malloc(tokenGroupsSize);
-        if (GetTokenInformation(hProcessToken, TokenGroups, tokenGroups, tokenGroupsSize, &tokenGroupsSize)) {
-            /* Loop over each of the groups and add each one to the user. */
-            for (i = 0; i < tokenGroups->GroupCount; i++) {
-                /* Get the text representation of the sid. */
-                sidTextSize = 0;
-                GetTextualSid(tokenGroups->Groups[i].Sid, NULL, &sidTextSize);
-                sidText = (TCHAR*)malloc(sizeof(TCHAR) * sidTextSize);
-                GetTextualSid(tokenGroups->Groups[i].Sid, sidText, &sidTextSize);
-
-                /* We now have an SID, use it to lookup the account. */
-                groupNameSize = 0;
-                domainNameSize = 0;
-                LookupAccountSid(NULL, tokenGroups->Groups[i].Sid, NULL, &groupNameSize, NULL, &domainNameSize, &sidType);
-                groupName = (TCHAR*)malloc(sizeof(TCHAR) * groupNameSize);
-                domainName = (TCHAR*)malloc(sizeof(TCHAR) * domainNameSize);
-                if (LookupAccountSid(NULL, tokenGroups->Groups[i].Sid, groupName, &groupNameSize, domainName, &domainNameSize, &sidType)) {
-                    /*printf("WrapperJNI Debug: SID=%s, group=%s/%s\n", sidText, domainName, groupName);*/
-
-                    /* Create the arguments to the constructor as java objects */
-
-                    /* SID byte array */
-                    jSID = (*env)->NewByteArray(env, (jsize)strlen(sidText));
-                    (*env)->SetByteArrayRegion(env, jSID, 0, (jsize)strlen(sidText), sidText);
-
-                    /* GroupName byte array */
-                    jGroupName = (*env)->NewByteArray(env, (jsize)strlen(groupName));
-                    (*env)->SetByteArrayRegion(env, jGroupName, 0, (jsize)strlen(groupName), groupName);
-
-                    /* DomainName byte array */
-                    jDomainName = (*env)->NewByteArray(env, (jsize)strlen(domainName));
-                    (*env)->SetByteArrayRegion(env, jDomainName, 0, (jsize)strlen(domainName), domainName);
-
-                    /* Now actually add the group to the user. */
-                    (*env)->CallVoidMethod(env, wrapperUser, addGroup, jSID, jGroupName, jDomainName);
-
-                    (*env)->DeleteLocalRef(env, jSID);
-                    (*env)->DeleteLocalRef(env, jGroupName);
-                    (*env)->DeleteLocalRef(env, jDomainName);
-                } else {
-                    /* This is normal as some accounts do not seem to be mappable. */
-                    /*
-                    printf("WrapperJNI Debug: Unable to locate account for Sid, %s: %s\n", sidText, getLastErrorText());
-                    flushall();
-                    */
-                }
-                free(sidText);
-                free(groupName);
-                free(domainName);
-            }
+        if (!tokenGroups) {
+            throwOutOfMemoryError(env, TEXT("SUG1"));
+            result = TRUE;
         } else {
-            printf(gettext("WrapperJNI Error: Unable to get token information: %s\n"), getLastErrorText());
-            flushall();
-        }
+            if (GetTokenInformation(hProcessToken, TokenGroups, tokenGroups, tokenGroupsSize, &tokenGroupsSize)) {
+                /* Loop over each of the groups and add each one to the user. */
+                for (i = 0; i < tokenGroups->GroupCount; i++) {
+                    /* Get the text representation of the sid. */
+                    sidTextSize = 0;
+                    GetTextualSid(tokenGroups->Groups[i].Sid, NULL, &sidTextSize);
+                    sidText = (TCHAR*)malloc(sizeof(TCHAR) * sidTextSize);
+                    if (!sidText) {
+                        throwOutOfMemoryError(env, TEXT("SUG2"));
+                        result = TRUE;
+                    } else {
+                        GetTextualSid(tokenGroups->Groups[i].Sid, sidText, &sidTextSize);
 
-        free(tokenGroups);
+                        /* We now have an SID, use it to lookup the account. */
+                        groupNameSize = 0;
+                        domainNameSize = 0;
+                        LookupAccountSid(NULL, tokenGroups->Groups[i].Sid, NULL, &groupNameSize, NULL, &domainNameSize, &sidType);
+                        groupName = (TCHAR*)malloc(sizeof(TCHAR) * groupNameSize);
+                        if (!groupName) {
+                            throwOutOfMemoryError(env, TEXT("SUG3"));
+                            result = TRUE;
+                        } else {
+                            domainName = (TCHAR*)malloc(sizeof(TCHAR) * domainNameSize);
+                            if (!domainName) {
+                                throwOutOfMemoryError(env, TEXT("SUG4"));
+                                result = TRUE;
+                            } else {
+                                if (LookupAccountSid(NULL, tokenGroups->Groups[i].Sid, groupName, &groupNameSize, domainName, &domainNameSize, &sidType)) {
+                                    /*printf("WrapperJNI Debug: SID=%s, group=%s/%s\n", sidText, domainName, groupName);*/
+
+                                    /* Create the arguments to the constructor as java objects */
+
+                                    /* SID byte array */
+                                    jSID = (*env)->NewByteArray(env, (jsize)_tcslen(sidText));
+                                    JNU_SetByteArrayRegion(env, &jSID, 0, (jsize)_tcslen(sidText), sidText);
+
+                                    /* GroupName byte array */
+                                    jGroupName = (*env)->NewByteArray(env, (jsize)_tcslen(groupName));
+                                    JNU_SetByteArrayRegion(env, &jGroupName, 0, (jsize)_tcslen(groupName), groupName);
+
+                                    /* DomainName byte array */
+                                    jDomainName = (*env)->NewByteArray(env, (jsize)_tcslen(domainName));
+                                    JNU_SetByteArrayRegion(env, &jDomainName, 0, (jsize)_tcslen(domainName), domainName);
+
+                                    /* Now actually add the group to the user. */
+                                    (*env)->CallVoidMethod(env, wrapperUser, addGroup, jSID, jGroupName, jDomainName);
+
+                                    (*env)->DeleteLocalRef(env, jSID);
+                                    (*env)->DeleteLocalRef(env, jGroupName);
+                                    (*env)->DeleteLocalRef(env, jDomainName);
+                                } else {
+                                    /* This is normal as some accounts do not seem to be mappable. */
+                                    /*
+                                    _tprintf(TEXT("WrapperJNI Debug: Unable to locate account for Sid, %s: %s\n"), sidText, getLastErrorText());
+                                    flushall();
+                                    */
+                                }
+                                free(domainName);
+                            }
+
+                            free(groupName);
+                        }
+
+                        free(sidText);
+                    }
+                    free(groupName);
+                }
+            } else {
+                _tprintf(TEXT("WrapperJNI Error: Unable to get token information: %s\n"), getLastErrorText());
+                flushall();
+            }
+
+            free(tokenGroups);
+        }
     }
+
+    return result;
 }
 
 /**
@@ -478,85 +505,105 @@ createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean groups) {
         if (OpenProcessToken(hProcess, TOKEN_QUERY, &hProcessToken)) {
             GetTokenInformation(hProcessToken, TokenUser, NULL, 0, &tokenUserSize);
             tokenUser = (TOKEN_USER *)malloc(tokenUserSize);
-            if (GetTokenInformation(hProcessToken, TokenUser, tokenUser, tokenUserSize, &tokenUserSize)) {
+            if (!tokenUser) {
+                throwOutOfMemoryError(env, TEXT("CWUFP1"));
+            } else {
+                if (GetTokenInformation(hProcessToken, TokenUser, tokenUser, tokenUserSize, &tokenUserSize)) {
+                    /* Get the text representation of the sid. */
+                    sidTextSize = 0;
+                    GetTextualSid(tokenUser->User.Sid, NULL, &sidTextSize);
+                    sidText = (TCHAR*)malloc(sizeof(TCHAR) * sidTextSize);
+                    if (!sidText) {
+                        throwOutOfMemoryError(env, TEXT("CWUFP2"));
+                    } else {
+                        GetTextualSid(tokenUser->User.Sid, sidText, &sidTextSize);
 
-                /* Get the text representation of the sid. */
-                sidTextSize = 0;
-                GetTextualSid(tokenUser->User.Sid, NULL, &sidTextSize);
-                sidText = (TCHAR*)malloc(sizeof(TCHAR) * sidTextSize);
-                GetTextualSid(tokenUser->User.Sid, sidText, &sidTextSize);
+                        /* We now have an SID, use it to lookup the account. */
+                        userNameSize = 0;
+                        domainNameSize = 0;
+                        LookupAccountSid(NULL, tokenUser->User.Sid, NULL, &userNameSize, NULL, &domainNameSize, &sidType);
+                        userName = (TCHAR*)malloc(sizeof(TCHAR) * userNameSize);
+                        if (!userName) {
+                            throwOutOfMemoryError(env, TEXT("CWUFP3"));
+                        } else {
+                            domainName = (TCHAR*)malloc(sizeof(TCHAR) * domainNameSize);
+                            if (!domainName) {
+                                throwOutOfMemoryError(env, TEXT("CWUFP4"));
+                            } else {
+                                if (LookupAccountSid(NULL, tokenUser->User.Sid, userName, &userNameSize, domainName, &domainNameSize, &sidType)) {
 
-                /* We now have an SID, use it to lookup the account. */
-                userNameSize = 0;
-                domainNameSize = 0;
-                LookupAccountSid(NULL, tokenUser->User.Sid, NULL, &userNameSize, NULL, &domainNameSize, &sidType);
-                userName = (TCHAR*)malloc(sizeof(TCHAR) * userNameSize);
-                domainName = (TCHAR*)malloc(sizeof(TCHAR) * domainNameSize);
-                if (LookupAccountSid(NULL, tokenUser->User.Sid, userName, &userNameSize, domainName, &domainNameSize, &sidType)) {
+                                    /* Get the time that this user logged in. */
+                                    loginTime = getUserLoginTime(sidText);
 
-                    /* Get the time that this user logged in. */
-                    loginTime = getUserLoginTime(sidText);
+                                    /* Look for the WrapperUser class. Ignore failures as JNI throws an exception. */
+                                    if (wrapperUserClass = (*env)->FindClass(env, "org/tanukisoftware/wrapper/WrapperWin32User")) {
 
-                    /* Look for the WrapperUser class. Ignore failures as JNI throws an exception. */
-                    if (wrapperUserClass = (*env)->FindClass(env, "org/tanukisoftware/wrapper/WrapperWin32User")) {
+                                        /* Look for the constructor. Ignore failures. */
+                                        if (constructor = (*env)->GetMethodID(env, wrapperUserClass, "<init>", "([B[B[BI)V")) {
 
-                        /* Look for the constructor. Ignore failures. */
-                        if (constructor = (*env)->GetMethodID(env, wrapperUserClass, "<init>", "([B[B[BI)V")) {
+                                            /* Create the arguments to the constructor as java objects */
 
-                            /* Create the arguments to the constructor as java objects */
+                                            /* SID byte array */
+                                            jSID = (*env)->NewByteArray(env, (jsize)_tcslen(sidText));
+                                            JNU_SetByteArrayRegion(env, &jSID, 0, (jsize)_tcslen(sidText), sidText);
 
-                            /* SID byte array */
-                            jSID = (*env)->NewByteArray(env, (jsize)strlen(sidText));
-                            (*env)->SetByteArrayRegion(env, jSID, 0, (jsize)strlen(sidText), sidText);
+                                            /* UserName byte array */
+                                            jUserName = (*env)->NewByteArray(env, (jsize)_tcslen(userName));
+                                            JNU_SetByteArrayRegion(env, &jUserName, 0, (jsize)_tcslen(userName), userName);
 
-                            /* UserName byte array */
-                            jUserName = (*env)->NewByteArray(env, (jsize)strlen(userName));
-                            (*env)->SetByteArrayRegion(env, jUserName, 0, (jsize)strlen(userName), userName);
+                                            /* DomainName byte array */
+                                            jDomainName = (*env)->NewByteArray(env, (jsize)_tcslen(domainName));
+                                            JNU_SetByteArrayRegion(env, &jDomainName, 0, (jsize)_tcslen(domainName), domainName);
 
-                            /* DomainName byte array */
-                            jDomainName = (*env)->NewByteArray(env, (jsize)strlen(domainName));
-                            (*env)->SetByteArrayRegion(env, jDomainName, 0, (jsize)strlen(domainName), domainName);
+                                            /* Now create the new wrapperUser using the constructor arguments collected above. */
+                                            wrapperUser = (*env)->NewObject(env, wrapperUserClass, constructor, jSID, jUserName, jDomainName, loginTime);
 
-                            /* Now create the new wrapperUser using the constructor arguments collected above. */
-                            wrapperUser = (*env)->NewObject(env, wrapperUserClass, constructor, jSID, jUserName, jDomainName, loginTime);
+                                            /* If the caller requested the user's groups then look them up. */
+                                            if (groups) {
+                                                if (setUserGroups(env, wrapperUserClass, wrapperUser, hProcessToken)) {
+                                                    /* Failed. Just continue without groups. */
+                                                }
+                                            }
 
-                            /* If the caller requested the user's groups then look them up. */
-                            if (groups) {
-                                setUserGroups(env, wrapperUserClass, wrapperUser, hProcessToken);
+                                            (*env)->DeleteLocalRef(env, jSID);
+                                            (*env)->DeleteLocalRef(env, jUserName);
+                                            (*env)->DeleteLocalRef(env, jDomainName);
+                                        }
+
+                                        (*env)->DeleteLocalRef(env, wrapperUserClass);
+                                    }
+                                } else {
+                                    /* This is normal as some accounts do not seem to be mappable. */
+                                    /*
+                                    printf(TEXT("WrapperJNI Debug: Unable to locate account for Sid, %s: %s\n"), sidText, getLastErrorText());
+                                    flushall();
+                                    */
+                                }
+                                free(domainName);
                             }
 
-                            (*env)->DeleteLocalRef(env, jSID);
-                            (*env)->DeleteLocalRef(env, jUserName);
-                            (*env)->DeleteLocalRef(env, jDomainName);
+                            free(userName);
                         }
 
-                        (*env)->DeleteLocalRef(env, wrapperUserClass);
+                        free(sidText);
                     }
                 } else {
-                    /* This is normal as some accounts do not seem to be mappable. */
-                    /*
-                    printf("WrapperJNI Debug: Unable to locate account for Sid, %s: %s\n", sidText, getLastErrorText());
+                    _tprintf(TEXT("WrapperJNI Error: Unable to get token information: %s\n"), getLastErrorText());
                     flushall();
-                    */
                 }
-                free(sidText);
-                free(userName);
-                free(domainName);
-            } else {
-                printf(gettext("WrapperJNI Error: Unable to get token information: %s\n"), getLastErrorText());
-                flushall();
+
+                free(tokenUser);
             }
-            free(tokenUser);
 
             CloseHandle(hProcessToken);
         } else {
-            printf(gettext("WrapperJNI Error: Unable to open process token: %s\n"), getLastErrorText());
+            _tprintf(TEXT("WrapperJNI Error: Unable to open process token: %s\n"), getLastErrorText());
             flushall();
         }
 
         CloseHandle(hProcess);
     } else {
-        printf(gettext("WrapperJNI Error: Unable to open process: %s\n"), getLastErrorText());
+        _tprintf(TEXT("WrapperJNI Error: Unable to open process: %s\n"), getLastErrorText());
         flushall();
     }
 
@@ -566,38 +613,46 @@ createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean groups) {
 void loadDLLProcs() {
     HMODULE kernel32Mod;
 
-    if ((kernel32Mod = GetModuleHandle("KERNEL32.DLL")) == NULL) {
-        printf(gettext("WrapperJNI Error: Unable to load KERNEL32.DLL: %s\n"), getLastErrorText());
+    if ((kernel32Mod = GetModuleHandle(TEXT("KERNEL32.DLL"))) == NULL) {
+        _tprintf(TEXT("WrapperJNI Error: Unable to load KERNEL32.DLL: %s\n"), getLastErrorText());
         flushall();
         return;
     }
+#ifdef UNICODE
+    if ((OptionalProcess32First = GetProcAddress(kernel32Mod, "Process32FirstW")) == NULL) {
+#else
     if ((OptionalProcess32First = GetProcAddress(kernel32Mod, "Process32First")) == NULL) {
+#endif
         if (wrapperJNIDebugging) {
-            printf(gettext("WrapperJNI Debug: The Process32First function is not available on this version of Windows.\n"));
+            _tprintf(TEXT("WrapperJNI Debug: The Process32First function is not available on this version of Windows.\n"));
             flushall();
         }
     }
+#ifdef UNICODE
+    if ((OptionalProcess32Next = GetProcAddress(kernel32Mod, "Process32NextW")) == NULL) {
+#else
     if ((OptionalProcess32Next = GetProcAddress(kernel32Mod, "Process32Next")) == NULL) {
+#endif
         if (wrapperJNIDebugging) {
-            printf(gettext("WrapperJNI Debug: The Process32Next function is not available on this version of Windows.\n"));
+            _tprintf(TEXT("WrapperJNI Debug: The Process32Next function is not available on this version of Windows.\n"));
             flushall();
         }
     }
     if ((OptionalThread32First = GetProcAddress(kernel32Mod, "Thread32First")) == NULL) {
         if (wrapperJNIDebugging) {
-            printf(gettext("WrapperJNI Debug: The Thread32First function is not available on this version of Windows.\n"));
+            _tprintf(TEXT("WrapperJNI Debug: The Thread32First function is not available on this version of Windows.\n"));
             flushall();
         }
     }
     if ((OptionalThread32Next = GetProcAddress(kernel32Mod, "Thread32Next")) == NULL) {
         if (wrapperJNIDebugging) {
-            printf(gettext("WrapperJNI Debug: The Thread32Next function is not available on this version of Windows.\n"));
+            _tprintf(TEXT("WrapperJNI Debug: The Thread32Next function is not available on this version of Windows.\n"));
             flushall();
         }
     }
     if ((OptionalCreateToolhelp32Snapshot = GetProcAddress(kernel32Mod, "CreateToolhelp32Snapshot")) == NULL) {
         if (wrapperJNIDebugging) {
-            printf(gettext("WrapperJNI Debug: The CreateToolhelp32Snapshot function is not available on this version of Windows.\n"));
+            _tprintf(TEXT("WrapperJNI Debug: The CreateToolhelp32Snapshot function is not available on this version of Windows.\n"));
             flushall();
         }
     }
@@ -610,64 +665,64 @@ void loadDLLProcs() {
  * Signature: (Z)V
  */
 JNIEXPORT void JNICALL
-Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass clazz, jboolean debugging) {
-    char szPath[512];
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jClassWrapperManager, jboolean debugging) {
+    TCHAR szPath[512];
     OSVERSIONINFO osVer;
     wrapperJNIDebugging = debugging;
-
+    
+    /* Set the locale so we can display MultiByte characters. */
+    _tsetlocale(LC_ALL, TEXT(""));
+    
     if (wrapperJNIDebugging) {
         /* This is useful for making sure that the JNI call is working. */
-        printf(gettext("WrapperJNI Debug: Initializing WrapperManager native library.\n"));
+        _tprintf(TEXT("WrapperJNI Debug: Initializing WrapperManager native library.\n"));
         flushall();
 
         if (GetModuleFileName(NULL, szPath, 512) == 0) {
-            printf(gettext("WrapperJNI Debug: Unable to retrieve the Java process file name.\n"));
+            _tprintf(TEXT("WrapperJNI Debug: Unable to retrieve the Java process file name.\n"));
             flushall();
         } else {
-            printf(gettext("WrapperJNI Debug: Java Executable: %s\n"), szPath);
+            _tprintf(TEXT("WrapperJNI Debug: Java Executable: %s\n"), szPath);
             flushall();
         }
 
         if (GetModuleFileName((HINSTANCE)&__ImageBase, szPath, 512) == 0) {
-            printf(gettext("WrapperJNI Debug: Unable to retrieve the native library file name.\n"));
+            _tprintf(TEXT("WrapperJNI Debug: Unable to retrieve the native library file name.\n"));
             flushall();
         } else {
-            printf(gettext("WrapperJNI Debug: Native Library: %s\n"), szPath);
+            _tprintf(TEXT("WrapperJNI Debug: Native Library: %s\n"), szPath);
             flushall();
         }
     }
-
-    initUTF8Strings(env);
+    initCommon(env, jClassWrapperManager);
 
     osVer.dwOSVersionInfoSize = sizeof(osVer);
     if (GetVersionEx(&osVer)) {
         if (wrapperJNIDebugging) {
-            printf(gettext("WrapperJNI Debug: Windows version: %ld.%ld.%ld\n"),
+            _tprintf(TEXT("WrapperJNI Debug: Windows version: %ld.%ld.%ld\n"),
                 osVer.dwMajorVersion, osVer.dwMinorVersion, osVer.dwBuildNumber);
             flushall();
         }
     } else {
-        printf(gettext("WrapperJNI Error: Unable to retrieve the Windows version information.\n"));
+        _tprintf(TEXT("WrapperJNI Error: Unable to retrieve the Windows version information.\n"));
         flushall();
     }
-
     loadDLLProcs();
-
     if (!(controlEventQueueMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
-        printf(gettext("WrapperJNI Error: Failed to create control event queue mutex. Signals will be ignored. %s\n"), getLastErrorText());
+        _tprintf(TEXT("WrapperJNI Error: Failed to create control event queue mutex. Signals will be ignored. %s\n"), getLastErrorText());
         flushall();
         controlEventQueueMutexHandle = NULL;
     }
 
     /* Make sure that the handling of CTRL-C signals is enabled for this process. */
     if (!SetConsoleCtrlHandler(NULL, FALSE)) {
-        printf(gettext("WrapperJNI Error: Attempt to reset control signal handlers failed. %s\n"), getLastErrorText());
+        _tprintf(TEXT("WrapperJNI Error: Attempt to reset control signal handlers failed. %s\n"), getLastErrorText());
         flushall();
     }
 
     /* Initialize the CTRL-C handler */
     if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)wrapperConsoleHandler, TRUE)) {
-        printf(gettext("WrapperJNI Error: Attempt to register a control signal handler failed. %s\n"), getLastErrorText());
+        _tprintf(TEXT("WrapperJNI Error: Attempt to register a control signal handler failed. %s\n"), getLastErrorText());
         flushall();
     }
 
@@ -696,15 +751,15 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetJavaPID(JNIEnv *env, jcl
 JNIEXPORT void JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump(JNIEnv *env, jclass clazz) {
     if (wrapperJNIDebugging) {
-        printf(gettext("WrapperJNI Debug: Sending BREAK event to process group %ld.\n"), wrapperProcessId);
+        _tprintf(TEXT("WrapperJNI Debug: Sending BREAK event to process group %ld.\n"), wrapperProcessId);
         flushall();
     }
     if (GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, wrapperProcessId) == 0) {
         if (getLastError() == 6) {
-            printf(gettext("WrapperJNI Error: Unable to send BREAK event to JVM process because it does not have a console.\n"));
+            _tprintf(TEXT("WrapperJNI Error: Unable to send BREAK event to JVM process because it does not have a console.\n"));
             flushall();
         } else {
-            printf(gettext("WrapperJNI Error: Unable to send BREAK event to JVM process: %s\n"),
+            _tprintf(TEXT("WrapperJNI Error: Unable to send BREAK event to JVM process: %s\n"),
                 getLastErrorText());
             flushall();
         }
@@ -719,25 +774,29 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump(JNIEnv *e
 JNIEXPORT void JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle(JNIEnv *env, jclass clazz, jbyteArray jTitleBytes) {
     int len;
-    char *title;
+    TCHAR *title;
     jbyte *titleBytes;
 
     /* The array we get from JNI is not null terminated so build our own string. */
-    len = (*env)->GetArrayLength(env, jTitleBytes);
+    len = (*env)->GetArrayLength(env, jTitleBytes) * sizeof(TCHAR);
     title = malloc(len + 1);
-    titleBytes = (*env)->GetByteArrayElements(env, jTitleBytes, 0);
-    memcpy(title, titleBytes, len);
-    title[len] = 0;
-    (*env)->ReleaseByteArrayElements(env, jTitleBytes, titleBytes, JNI_ABORT);
+    if (!title) {
+        throwOutOfMemoryError(env, TEXT("NSCT1"));
+    } else {
+        titleBytes = (*env)->GetByteArrayElements(env, jTitleBytes, 0);
+        memcpy(title, titleBytes, len);
+        title[len] = 0;
+        (*env)->ReleaseByteArrayElements(env, jTitleBytes, titleBytes, JNI_ABORT);
 
-    if (wrapperJNIDebugging) {
-        printf(gettext("WrapperJNI Debug: Setting the console title to: %s\n"), title);
-        flushall();
+        if (wrapperJNIDebugging) {
+            _tprintf(TEXT("WrapperJNI Debug: Setting the console title to: %s\n"), title);
+            flushall();
+        }
+
+        SetConsoleTitle(title);
+
+        free(title);
     }
-
-    SetConsoleTitle(title);
-    
-    free(title);
 }
 
 /*
@@ -751,7 +810,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
     DWORD processId;
 
 #ifdef UVERBOSE
-    printf(gettext("WrapperJNI Debug: nativeGetUser()\n"));
+    _tprintf(TEXT("WrapperJNI Debug: nativeGetUser()\n"));
     flushall();
 #endif
 
@@ -775,11 +834,10 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
     THREADENTRY32 threadEntry;
     BOOL foundThread;
     HDESK desktop;
-
     jobject wrapperUser = NULL;
 
 #ifdef IUVERBOSE
-    printf(gettext("WrapperJNI Debug: nativeGetInteractiveUser()\n"));
+    _tprintf(TEXT("WrapperJNI Debug: nativeGetInteractiveUser()\n"));
     flushall();
 #endif
 
@@ -787,9 +845,8 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
     if ((OptionalProcess32First == NULL) || (OptionalProcess32Next == NULL) ||
         (OptionalThread32First == NULL) || (OptionalThread32Next == NULL) ||
         (OptionalCreateToolhelp32Snapshot == NULL)) {
-
         if (wrapperJNIDebugging) {
-            printf(gettext("WrapperJNI Debug: getInteractiveUser not supported on this platform.\n"));
+            _tprintf(TEXT("WrapperJNI Debug: getInteractiveUser not supported on this platform.\n"));
             flushall();
         }
         return NULL;
@@ -805,9 +862,9 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
         if (OptionalProcess32First(snapshot, &processEntry)) {
             do {
                 /* We are only interrested in the Explorer processes. */
-                if (stricmp(explorerExe, processEntry.szExeFile) == 0) {
+                if (_tcsicmp(explorerExe, processEntry.szExeFile) == 0) {
 #ifdef IUVERBOSE
-                    printf(gettext("WrapperJNI Debug: Process size=%ld, cnt=%ld, id=%ld, parentId=%ld, moduleId=%ld, threads=%ld, exe=%s\n"),
+                    _tprintf(TEXT("WrapperJNI Debug: Process size=%ld, cnt=%ld, id=%ld, parentId=%ld, moduleId=%ld, threads=%ld, exe=%s\n"),
                         processEntry.dwSize, processEntry.cntUsage, processEntry.th32ProcessID,
                         processEntry.th32ParentProcessID, processEntry.th32ModuleID, processEntry.cntThreads,
                         processEntry.szExeFile);
@@ -822,7 +879,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
                             /* We are only interrested in threads that belong to the current Explorer process. */
                             if (threadEntry.th32OwnerProcessID == processEntry.th32ProcessID) {
 #ifdef IUVERBOSE
-                                printf(gettext("WrapperJNI Debug:   Thread id=%ld\n"), threadEntry.th32ThreadID);
+                                _tprintf(TEXT("WrapperJNI Debug:   Thread id=%ld\n"), threadEntry.th32ThreadID);
                                 flushall();
 #endif
 
@@ -837,7 +894,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
                                     wrapperUser = createWrapperUserForProcess(env, processEntry.th32ProcessID, groups);
                                 } else {
 #ifdef IUVERBOSE
-                                    printf(gettext("WrapperJNI Debug: GetThreadDesktop failed: %s\n"), getLastErrorText());
+                                    _tprintf(TEXT("WrapperJNI Debug: GetThreadDesktop failed: %s\n"), getLastErrorText());
                                     flushall();
 #endif
                                 }
@@ -850,12 +907,12 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
 
                         if (!foundThread && (GetLastError() != ERROR_NO_MORE_FILES)) {
 #ifdef IUVERBOSE
-                            printf(gettext("WrapperJNI Debug: Unable to get next thread entry: %s\n"), getLastErrorText());
+                            _tprintf(TEXT("WrapperJNI Debug: Unable to get next thread entry: %s\n"), getLastErrorText());
                             flushall();
 #endif
                         }
                     } else if (GetLastError() != ERROR_NO_MORE_FILES) {
-                        printf(gettext("WrapperJNI Debug: Unable to get first thread entry: %s\n"), getLastErrorText());
+                        _tprintf(TEXT("WrapperJNI Debug: Unable to get first thread entry: %s\n"), getLastErrorText());
                         flushall();
                     }
                 }
@@ -863,21 +920,20 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
 
 #ifdef IUVERBOSE
             if (GetLastError() != ERROR_NO_MORE_FILES) {
-                printf(gettext("WrapperJNI Debug: Unable to get next process entry: %s\n"), getLastErrorText());
+                _tprintf(TEXT("WrapperJNI Debug: Unable to get next process entry: %s\n"), getLastErrorText());
                 flushall();
             }
 #endif
         } else if (GetLastError() != ERROR_NO_MORE_FILES) {
-            printf(gettext("WrapperJNI Error: Unable to get first process entry: %s\n"), getLastErrorText());
+            _tprintf(TEXT("WrapperJNI Error: Unable to get first process entry: %s\n"), getLastErrorText());
             flushall();
         }
 
         CloseHandle(snapshot);
     } else {
-        printf(gettext("WrapperJNI Error: Toolhelp snapshot failed: %s\n"), getLastErrorText());
+        _tprintf(TEXT("WrapperJNI Error: Toolhelp snapshot failed: %s\n"), getLastErrorText());
         flushall();
     }
-
     return wrapperUser;
 }
 
@@ -888,7 +944,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
  */
 JNIEXPORT jobjectArray JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, jclass clazz) {
-    char buffer[512];
+    TCHAR buffer[512];
     SC_HANDLE hSCManager;
     DWORD size, sizeNeeded, servicesReturned, resumeHandle;
     DWORD err;
@@ -915,17 +971,23 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, j
                 /* Allocate the needed memory and call again. */
                 size = sizeNeeded;
                 services = malloc(size);
-                if (!EnumServicesStatus(hSCManager, SERVICE_WIN32, SERVICE_STATE_ALL, services, size, &sizeNeeded, &servicesReturned, &resumeHandle)) {
-                    /* Failed to get the services. */
-                    sprintf(buffer, gettext("Unable to enumerate the system services: %s"),
-                        getLastErrorText());
-                    throwServiceException(env, GetLastError(), buffer);
-                    threwError = TRUE;
+                if (!services) {
+                    throwOutOfMemoryError(env, TEXT("NLS1"));
                 } else {
-                    /* Success. */
+                    if (!EnumServicesStatus(hSCManager, SERVICE_WIN32, SERVICE_STATE_ALL, services, size, &sizeNeeded, &servicesReturned, &resumeHandle)) {
+                        /* Failed to get the services. */
+                        _sntprintf(buffer, 512, TEXT("Unable to enumerate the system services: %s"),
+                            getLastErrorText());
+                        throwServiceException(env, GetLastError(), buffer);
+                        threwError = TRUE;
+                    } else {
+                        /* Success. */
+                    }
+
+                    /* free(services) is done below. */
                 }
             } else {
-                sprintf(buffer, gettext("Unable to enumerate the system services: %s"),
+                _sntprintf(buffer, 512, TEXT("Unable to enumerate the system services: %s"),
                     getLastErrorText());
                 throwServiceException(env, GetLastError(), buffer);
                 threwError = TRUE;
@@ -941,11 +1003,11 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, j
                     serviceArray = (*env)->NewObjectArray(env, servicesReturned, serviceClass, NULL);
 
                     for (i = 0; i < servicesReturned; i++) {
-                        jName = (*env)->NewByteArray(env, (jsize)strlen(services[i].lpServiceName));
-                        (*env)->SetByteArrayRegion(env, jName, 0, (jsize)strlen(services[i].lpServiceName), services[i].lpServiceName);
+                        jName = (*env)->NewByteArray(env, (jsize)_tcslen(services[i].lpServiceName) * sizeof(TCHAR));
+                        JNU_SetByteArrayRegion(env, &jName, 0, (jsize)_tcslen(services[i].lpServiceName) * sizeof(TCHAR), services[i].lpServiceName);
 
-                        jDisplayName = (*env)->NewByteArray(env, (jsize)strlen(services[i].lpDisplayName));
-                        (*env)->SetByteArrayRegion(env, jDisplayName, 0, (jsize)strlen(services[i].lpDisplayName), services[i].lpDisplayName);
+                        jDisplayName = (*env)->NewByteArray(env, (jsize)_tcslen(services[i].lpDisplayName) * sizeof(TCHAR));
+                        JNU_SetByteArrayRegion(env, &jDisplayName, 0, (jsize)_tcslen(services[i].lpDisplayName) * sizeof(TCHAR), services[i].lpDisplayName);
 
                         state = services[i].ServiceStatus.dwCurrentState;
 
@@ -956,7 +1018,6 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, j
 
                         service = (*env)->NewObject(env, serviceClass, constructor, jName, jDisplayName, state, exitCode);
                         (*env)->SetObjectArrayElement(env, serviceArray, i, service);
-
                         (*env)->DeleteLocalRef(env, jDisplayName);
                         (*env)->DeleteLocalRef(env, jName);
                         (*env)->DeleteLocalRef(env, service);
@@ -966,7 +1027,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, j
                 (*env)->DeleteLocalRef(env, serviceClass);
             } else {
                 /* Unable to load the service class. */
-                sprintf(buffer, gettext("Unable to locate class org.tanukisoftware.wrapper.WrapperWin32Service"));
+                _sntprintf(buffer, 512, TEXT("Unable to locate class org.tanukisoftware.wrapper.WrapperWin32Service"));
                 throwServiceException(env, 1, buffer);
             }
         }
@@ -979,7 +1040,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, j
         CloseServiceHandle(hSCManager);
     } else {
         /* Unable to open the service manager. */
-        sprintf(buffer, gettext("Unable to open the Windows service control manager database: %s"),
+        _sntprintf(buffer, 512, TEXT("Unable to open the Windows service control manager database: %s"),
             getLastErrorText());
         throwServiceException(env, GetLastError(), buffer);
     }
@@ -994,10 +1055,10 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, j
  */
 JNIEXPORT jobject JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIEnv *env, jclass clazz, jbyteArray serviceName, jint controlCode) {
-    char buffer[512];
+    TCHAR buffer[512];
     int len;
     jbyte *jServiceNameBytes;
-    char *serviceNameBytes;
+    TCHAR *serviceNameBytes;
     SC_HANDLE hSCManager;
     SC_HANDLE hService;
     int serviceAccess;
@@ -1007,7 +1068,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
     jclass serviceClass;
     jmethodID constructor;
     jobject service = NULL;
-    char displayBuffer[512];
+    TCHAR displayBuffer[512];
     DWORD displayBufferSize = 512;
     jbyteArray jDisplayName;
     DWORD state;
@@ -1036,7 +1097,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
             wControlCode = controlCode;
         } else {
             /* Illegal control code. */
-            sprintf(buffer, gettext("Illegal Control code specified: %d"), controlCode);
+            _sntprintf(buffer, 512, TEXT("Illegal Control code specified: %d"), controlCode);
             throwServiceException(env, 1, buffer);
             threwError = TRUE;
         }
@@ -1045,101 +1106,105 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
             /* The array we get from JNI is not null terminated so build our own string. */
             len = (*env)->GetArrayLength(env, serviceName);
             serviceNameBytes = malloc(len + 1);
-            jServiceNameBytes = (*env)->GetByteArrayElements(env, serviceName, 0);
-            memcpy(serviceNameBytes, jServiceNameBytes, len);
-            serviceNameBytes[len] = 0;
-            (*env)->ReleaseByteArrayElements(env, serviceName, jServiceNameBytes, JNI_ABORT);
+            if (!serviceNameBytes) {
+                throwOutOfMemoryError(env, TEXT("NSSCC1"));
+            } else {
+                jServiceNameBytes = (*env)->GetByteArrayElements(env, serviceName, 0);
+                memcpy(serviceNameBytes, jServiceNameBytes, len);
+                serviceNameBytes[len] = 0;
+                (*env)->ReleaseByteArrayElements(env, serviceName, jServiceNameBytes, JNI_ABORT);
 
-            hService = OpenService(hSCManager, serviceNameBytes, serviceAccess);
-            if (hService) {
-                /* If we are trying to start a service, it needs to be handled specially. */
-                if (controlCode == org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_START) {
-                    if (StartService(hService, 0, NULL)) {
-                        /* Started the service. Continue on and interrogate the service. */
-                    } else {
-                        /* Failed. */
-                        sprintf(buffer, gettext("Unable to start service \"%s\": %s"), serviceNameBytes,
-                            getLastErrorText());
-                        throwServiceException(env, GetLastError(), buffer);
-                        threwError = TRUE;
-                    }
-                }
-
-                if (!threwError) {
-                    if (ControlService(hService, wControlCode, &serviceStatus)) {
-                        /* Success.  fall through. */
-                    } else {
-                        /* Failed to send the control code.   See if the service is running. */
-                        if (GetLastError() == ERROR_SERVICE_NOT_ACTIVE) {
-                            /* Service is not running, so get its status information. */
-                            if (QueryServiceStatus(hService, &serviceStatus)) {
-                                /* We got the status.  fall through. */
-                            } else {
-                                /* Actual failure. */
-                                sprintf(buffer, gettext("Unable to query status of service \"%s\": %s"),
-                                    serviceNameBytes, getLastErrorText());
-                                throwServiceException(env, GetLastError(), buffer);
-                                threwError = TRUE;
-                            }
+                hService = OpenService(hSCManager, serviceNameBytes, serviceAccess);
+                if (hService) {
+                    /* If we are trying to start a service, it needs to be handled specially. */
+                    if (controlCode == org_tanukisoftware_wrapper_WrapperManager_SERVICE_CONTROL_CODE_START) {
+                        if (StartService(hService, 0, NULL)) {
+                            /* Started the service. Continue on and interrogate the service. */
                         } else {
-                            /* Actual failure. */
-                            sprintf(buffer, gettext("Unable to send control code to service \"%s\": %s"),
-                                serviceNameBytes, getLastErrorText());
+                           /* Failed. */
+                            _sntprintf(buffer, 512, TEXT("Unable to start service \"%s\": %s"), serviceNameBytes,
+                                getLastErrorText());
                             throwServiceException(env, GetLastError(), buffer);
                             threwError = TRUE;
                         }
                     }
 
                     if (!threwError) {
-                        /* Build up a service object to return. */
-                        if (serviceClass = (*env)->FindClass(env, "org/tanukisoftware/wrapper/WrapperWin32Service")) {
-                            /* Look for the constructor. Ignore failures. */
-                            if (constructor = (*env)->GetMethodID(env, serviceClass, "<init>", "([B[BII)V")) {
-
-                                if (!GetServiceDisplayName(hSCManager, serviceNameBytes, displayBuffer, &displayBufferSize)) {
-                                    strcpy(displayBuffer, serviceNameBytes);
-                                }
-                                jDisplayName = (*env)->NewByteArray(env, (jsize)strlen(displayBuffer));
-                                (*env)->SetByteArrayRegion(env, jDisplayName, 0, (jsize)strlen(displayBuffer), displayBuffer);
-
-                                state = serviceStatus.dwCurrentState;
-
-                                exitCode = serviceStatus.dwWin32ExitCode;
-                                if (exitCode == ERROR_SERVICE_SPECIFIC_ERROR) {
-                                    exitCode = serviceStatus.dwServiceSpecificExitCode;
-                                }
-
-                                service = (*env)->NewObject(env, serviceClass, constructor, serviceName, jDisplayName, state, exitCode);
-
-                                (*env)->DeleteLocalRef(env, jDisplayName);
-                            }
-
-                            (*env)->DeleteLocalRef(env, serviceClass);
+                        if (ControlService(hService, wControlCode, &serviceStatus)) {
+                            /* Success.  fall through. */
                         } else {
-                            /* Unable to load the service class. */
-                            sprintf(buffer, gettext("Unable to locate class org.tanukisoftware.wrapper.WrapperWin32Service"));
-                            throwServiceException(env, 1, buffer);
+                            /* Failed to send the control code.   See if the service is running. */
+                            if (GetLastError() == ERROR_SERVICE_NOT_ACTIVE) {
+                                /* Service is not running, so get its status information. */
+                                if (QueryServiceStatus(hService, &serviceStatus)) {
+                                    /* We got the status.  fall through. */
+                                } else {
+                                    /* Actual failure. */
+                                    _sntprintf(buffer, 512, TEXT("Unable to query status of service \"%s\": %s"),
+                                        serviceNameBytes, getLastErrorText());
+                                    throwServiceException(env, GetLastError(), buffer);
+                                    threwError = TRUE;
+                                }
+                            } else {
+                                /* Actual failure. */
+                                _sntprintf(buffer, 512, TEXT("Unable to query status of service \"%s\": %s"),
+                                    serviceNameBytes, getLastErrorText());
+                                throwServiceException(env, GetLastError(), buffer);
+                                threwError = TRUE;
+                            }
+                        }
+
+                        if (!threwError) {
+                            /* Build up a service object to return. */
+                            if (serviceClass = (*env)->FindClass(env, "org/tanukisoftware/wrapper/WrapperWin32Service")) {
+                                /* Look for the constructor. Ignore failures. */
+                                if (constructor = (*env)->GetMethodID(env, serviceClass, "<init>", "([B[BII)V")) {
+
+                                    if (!GetServiceDisplayName(hSCManager, serviceNameBytes, displayBuffer, &displayBufferSize)) {
+                                        _tcscpy(displayBuffer, serviceNameBytes);
+                                    }
+                                    jDisplayName = (*env)->NewByteArray(env, (jsize)_tcslen(displayBuffer));
+                                    JNU_SetByteArrayRegion(env, &jDisplayName, 0, (jsize)_tcslen(displayBuffer), displayBuffer);
+
+                                    state = serviceStatus.dwCurrentState;
+
+                                    exitCode = serviceStatus.dwWin32ExitCode;
+                                    if (exitCode == ERROR_SERVICE_SPECIFIC_ERROR) {
+                                        exitCode = serviceStatus.dwServiceSpecificExitCode;
+                                    }
+
+                                    service = (*env)->NewObject(env, serviceClass, constructor, serviceName, jDisplayName, state, exitCode);
+
+                                    (*env)->DeleteLocalRef(env, jDisplayName);
+                                }
+
+                                (*env)->DeleteLocalRef(env, serviceClass);
+                            } else {
+                                /* Unable to load the service class. */
+                                _sntprintf(buffer, 512, TEXT("Unable to locate class org.tanukisoftware.wrapper.WrapperWin32Service"));
+                                throwServiceException(env, 1, buffer);
+                            }
                         }
                     }
+
+                    CloseServiceHandle(hService);
+                } else {
+                    /* Unable to open service. */
+                    _sntprintf(buffer, 512, TEXT("Unable to open the service '%s': %s"),
+                        serviceNameBytes, getLastErrorText());
+                    throwServiceException(env, GetLastError(), buffer);
+                    threwError = TRUE;
                 }
 
-                CloseServiceHandle(hService);
-            } else {
-                /* Unable to open service. */
-                sprintf(buffer, gettext("Unable to open the service '%s': %s"),
-                    serviceNameBytes, getLastErrorText());
-                throwServiceException(env, GetLastError(), buffer);
-                threwError = TRUE;
+                free(serviceNameBytes);
             }
-
-            free(serviceNameBytes);
         }
 
         /* Close the handle to the service control manager database */
         CloseServiceHandle(hSCManager);
     } else {
         /* Unable to open the service manager. */
-        sprintf(buffer, gettext("Unable to open the Windows service control manager database: %s"),
+        _sntprintf(buffer, 512, TEXT("Unable to open the Windows service control manager database: %s"),
             getLastErrorText());
         throwServiceException(env, GetLastError(), buffer);
         threwError = TRUE;

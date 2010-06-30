@@ -6,23 +6,23 @@
  * This software is the proprietary information of Tanuki Software.
  * You shall use it only in accordance with the terms of the
  * license agreement you entered into with Tanuki Software.
- * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
- * 
- * 
+ * http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
+ *
+ *
  * Portions of the Software have been derived from source code
  * developed by Silver Egg Technology under the following license:
- * 
+ *
  * Copyright (c) 2001 Silver Egg Technology
- * 
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without 
- * restriction, including without limitation the rights to use, 
- * copy, modify, merge, publish, distribute, sub-license, and/or 
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sub-license, and/or
  * sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following 
+ * Software is furnished to do so, subject to the following
  * conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
  */
@@ -44,10 +44,26 @@
 #define MAX_PROPERTY_VALUE_LENGTH 16384
 #define MAX_PROPERTY_NAME_VALUE_LENGTH MAX_PROPERTY_NAME_LENGTH + 1 + MAX_PROPERTY_VALUE_LENGTH
 
+#define ENV_SOURCE_PARENT      1
+#define ENV_SOURCE_WRAPPER     2
+#define ENV_SOURCE_CONFIG      4
+#ifdef WIN32
+#define ENV_SOURCE_REG_SYSTEM  8
+#define ENV_SOURCE_REG_ACCOUNT 16
+#endif
+
+typedef struct EnvSrc EnvSrc;
+struct EnvSrc {
+    int     source;                 /* Source of the variable. */
+    TCHAR*  name;                   /* Name of the environment variable. */
+    EnvSrc *next;                   /* Next variable in the chain. */
+};
+extern EnvSrc *baseEnvSrc;
+
 typedef struct Property Property;
 struct Property {
-    char *name;              /* The name of the property. */
-    char *value;             /* The value of the property. */
+    TCHAR *name;              /* The name of the property. */
+    TCHAR *value;             /* The value of the property. */
     int finalValue;          /* TRUE if the Property can not be changed. */
     int quotable;            /* TRUE if quotes can be optionally added around the value. */
     Property *next;          /* Pointer to the next Property in a linked list */
@@ -60,13 +76,26 @@ struct Properties {
     Property *last;          /* Pointer to the last property.  */
 };
 
-extern int setEnv(const char *name, const char *value);
+/**
+ * Sets an environment variable with the specified value.
+ *  The function will only set the variable if its value is changed, but if
+ *  it does, the call will result in a memory leak the size of the string:
+ *   "name=value".
+ *
+ * @param name Name of the variable being set.
+ * @param value Value to be set, NULL to clear it.
+ * @param source Where the variable came from.  If value is WRAPPER_ENV_SOURCE_PARENT
+ *               then the value may be NULL and will never be set to the environment.
+ *
+ * Return TRUE if there were any problems, FALSE otherwise.
+ */
+extern int setEnv(const TCHAR *name, const TCHAR *value, int source);
 
 /**
  * Create a Properties structure loaded in from the specified file.
  *  Must call disposeProperties to free up allocated memory.
  */
-extern int loadProperties(Properties *properties, const char* filename);
+extern int loadProperties(Properties *properties, const TCHAR* filename);
 
 /**
  * Create a Properties structure.  Must call disposeProperties to free up
@@ -84,7 +113,7 @@ extern void disposeProperties(Properties *properties);
  * Remove a single Property from a Properties.  All associated memory is
  *  freed up.
  */
-extern void removeProperty(Properties *properties, const char *propertyName);
+extern void removeProperty(Properties *properties, const TCHAR *propertyName);
 
 /**
  * Used to set a NULL terminated list of property names whose values should be
@@ -95,7 +124,7 @@ extern void removeProperty(Properties *properties, const char *propertyName);
  *                      can contain a single '*' wildcard which will match 0 or
  *                      more characters.
  */
-extern void setEscapedProperties(const char **propertyNames);
+extern void setEscapedProperties(const TCHAR **propertyNames);
 
 /**
  * Returns true if the specified property matches one of the property names
@@ -105,7 +134,7 @@ extern void setEscapedProperties(const char **propertyNames);
  *
  * @return TRUE if the property should be escaped.  FALSE otherwise.
  */
-extern int isEscapedProperty(const char *propertyName);
+extern int isEscapedProperty(const TCHAR *propertyName);
 
 /**
  * Adds a single property to the properties structure.
@@ -120,7 +149,7 @@ extern int isEscapedProperty(const char *propertyName);
  *
  * @return The newly created Property, or NULL if there was a reported error.
  */
-extern Property* addProperty(Properties *properties, const char *propertyName, const char *propertyValue, int finalValue, int quotable, int escapable);
+extern Property* addProperty(Properties *properties, const TCHAR *propertyName, const TCHAR *propertyValue, int finalValue, int quotable, int escapable, int internal);
 
 /**
  * Takes a name/value pair in the form <name>=<value> and attempts to add
@@ -128,11 +157,11 @@ extern Property* addProperty(Properties *properties, const char *propertyName, c
  *
  * Returns 0 if successful, otherwise 1
  */
-extern int addPropertyPair(Properties *properties, const char *propertyNameValue, int finalValue, int quotable);
+extern int addPropertyPair(Properties *properties, const TCHAR *propertyNameValue, int finalValue, int quotable, int internal);
 
-extern const char* getStringProperty(Properties *properties, const char *propertyName, const char *defaultValue);
+extern const TCHAR* getStringProperty(Properties *properties, const TCHAR *propertyName, const TCHAR *defaultValue);
 
-extern const char* getFileSafeStringProperty(Properties *properties, const char *propertyName, const char *defaultValue);
+extern const TCHAR* getFileSafeStringProperty(Properties *properties, const TCHAR *propertyName, const TCHAR *defaultValue);
 
 /**
  * Returns a sorted array of all properties beginning with {propertyNameBase}.
@@ -150,25 +179,26 @@ extern const char* getFileSafeStringProperty(Properties *properties, const char 
  *
  * @return 0 if successful, -1 if there was an error.
  */
-extern int getStringProperties(Properties *properties, const char *propertyNameHead, const char *propertyNameTail, int all, int matchAny, char ***propertyNames, char ***propertyValues, long unsigned int **propertyIndices);
+extern int getStringProperties(Properties *properties, const TCHAR *propertyNameHead, const TCHAR *propertyNameTail, int all, int matchAny, TCHAR ***propertyNames, TCHAR ***propertyValues, long unsigned int **propertyIndices);
 
 /**
  * Frees up an array of properties previously returned by getStringProperties().
  */
-extern void freeStringProperties(char **propertyNames, char **propertyValues, long unsigned int *propertyIndices);
+extern void freeStringProperties(TCHAR **propertyNames, TCHAR **propertyValues, long unsigned int *propertyIndices);
 
-extern int checkPropertyEqual(Properties *properties, const char *propertyName, const char *defaultValue, const char *value);
+extern int checkPropertyEqual(Properties *properties, const TCHAR *propertyName, const TCHAR *defaultValue, const TCHAR *value);
 
-extern int getIntProperty(Properties *properties, const char *propertyName, int defaultValue);
+extern int getIntProperty(Properties *properties, const TCHAR *propertyName, int defaultValue);
 
-extern int getBooleanProperty(Properties *properties, const char *propertyName, int defaultValue);
+extern int getBooleanProperty(Properties *properties, const TCHAR *propertyName, int defaultValue);
 
-extern int isQuotableProperty(Properties *properties, const char *propertyName);
+extern int isQuotableProperty(Properties *properties, const TCHAR *propertyName);
 
 extern void dumpProperties(Properties *properties);
 
 /** Creates a linearized representation of all of the properties.
  *  The returned buffer must be freed by the calling code. */
-extern char *linearizeProperties(Properties *properties, char separator);
+extern TCHAR *linearizeProperties(Properties *properties, TCHAR separator);
 
 #endif
+

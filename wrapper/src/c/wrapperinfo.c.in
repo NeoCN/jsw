@@ -9,8 +9,13 @@
  * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
  */
 
-#include "wrapperinfo.h"
 
+
+#include "wrapper_i18n.h"
+#ifdef WIN32
+#include <tchar.h>
+#include <windows.h>
+#endif
 /**
  * wrapperinfo.c is built as part of the build process.  Ant creates this
  *  file by making a copy of wrapperinfo.c.in, replacing tokens as it does
@@ -18,13 +23,13 @@
  *  always be made to wrapperinfo.c.in.
  */
 
-char *wrapperVersionRoot = "@version.root@";
-char *wrapperVersion = "@version@";
-char *wrapperBits = "@bits@";
-char *wrapperArch = "@dist.arch@";
-char *wrapperOS = "@dist.os@";
-char *wrapperReleaseDate = "20100602";
-char *wrapperReleaseTime = "0000";
-char *wrapperBuildDate = "@build.date@";
-char *wrapperBuildTime = "@build.time@";
+TCHAR *wrapperVersionRoot = TEXT("@version.root@");
+TCHAR *wrapperVersion = TEXT("@version@");
+TCHAR *wrapperBits = TEXT("@bits@");
+TCHAR *wrapperArch = TEXT("@dist.arch@");
+TCHAR *wrapperOS = TEXT("@dist.os@");
+TCHAR *wrapperReleaseDate = TEXT("20100701");
+TCHAR *wrapperReleaseTime = TEXT("0000");
+TCHAR *wrapperBuildDate = TEXT("@build.date@");
+TCHAR *wrapperBuildTime = TEXT("@build.time@");
 

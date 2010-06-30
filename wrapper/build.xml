@@ -324,6 +324,8 @@
                 <isset property="vcvars.bat"/>
             </not>
         </condition>
+        
+        <echo message="vcvars.bat=${vcvars.bat}"/>
     </target>
     <target name="init-unix" depends="init-setup" if="is.unix">
         <!-- Decide on the type of script to generate. -->
@@ -488,6 +490,11 @@
                 <include name="**/*.jpg" />
             </fileset> 
         </copy>
+        <copy todir="${build.classes}" encoding="UTF-8" outputencoding="UTF-8"> 
+            <fileset dir="${src.dir}/java" > 
+                <include name="**/*.html" />
+            </fileset> 
+        </copy>
 
         <!-- copy Manifests to build directory -->
         <copy todir="${build.classes}" > 
@@ -522,8 +529,12 @@
             <class name="org.tanukisoftware.wrapper.WrapperProcessConfig"/>
         </javah>
         <fixcrlf srcdir="${src.dir}/c" includes="org_tanukisoftware_wrapper_WrapperProcessConfig.h" eol="lf" />
-
-
+        <javah
+            destdir="${src.dir}/c"
+            classpath="${build.classes}">
+            <class name="org.tanukisoftware.wrapper.WrapperResources"/>
+        </javah>
+        <fixcrlf srcdir="${src.dir}/c" includes="org_tanukisoftware_wrapper_WrapperResources.h" eol="lf" />
 
         <available property="junit.present"
             classname="junit.framework.TestCase">
@@ -629,12 +640,6 @@
             failonerror="true">
             <arg line="-f ${makefile.name}.${make.name}" />
         </exec>
-        
-        <!--
-        <copy file="${bin.dir}/${wrapper.bin.name}" tofile="${bin.dir}/${wrapper.bin.long.name}" overwrite="true" preservelastmodified="true"/>
-        <copy file="${lib.dir}/${wrapper.lib.name}" tofile="${lib.dir}/${wrapper.lib.long.name}" overwrite="true" preservelastmodified="true"/>
-        <chmod file="${bin.dir}/${wrapper.bin.long.name}" perm="+x"/>
-        -->
     </target>
     <target name="compile-c" depends="compile-c-windows-check2,compile-c-unix">
     </target>
@@ -651,13 +656,14 @@
         <jar jarfile="${lib.dir}/wrapper.jar"
              basedir="${build.classes}"
              includes="**/*.class,**/*.properties"
-             excludes="**/test/*,**/test2/*">
+             excludes="**/test/*,**/test2/*,**/demo/*">
             <manifest>
                 <attribute name="Built-By" value="${user.name}"/>
                 <attribute name="Package" value="org.tanukisoftware.wrapper"/>
                 <attribute name="Extension-Name" value="wrapper"/>
                 <attribute name="Specification-Title" value="Java Service Wrapper"/>
                 <attribute name="Specification-Vendor" value="Tanuki Software, Ltd."/>
+                <attribute name="Specification-Version" value="${version.root}"/>
                 <attribute name="Implementation-Title" value="org.tanukisoftware.wrapper"/>
                 <attribute name="Implementation-Vendor" value="Tanuki Software, Ltd."/>
                 <attribute name="Implementation-Version" value="${version.root}"/>
@@ -672,10 +678,27 @@
                 <attribute name="Extension-Name" value="wrapper"/>
                 <attribute name="Specification-Title" value="Java Service Wrapper"/>
                 <attribute name="Specification-Vendor" value="Tanuki Software, Ltd."/>
+                <attribute name="Specification-Version" value="${version.root}"/>
                 <attribute name="Implementation-Title" value="org.tanukisoftware.wrapper"/>
                 <attribute name="Implementation-Vendor" value="Tanuki Software, Ltd."/>
                 <attribute name="Implementation-Version" value="${version.root}"/>
                 <attribute name="Main-Class" value="org.tanukisoftware.wrapper.test.JarMain"/>
+            </manifest>
+        </jar>
+        <jar jarfile="${lib.dir}/wrapperdemo.jar"
+             basedir="${build.classes}"
+             includes="**/demo/*,**/demo/html/*">
+            <manifest>
+                <attribute name="Built-By" value="${user.name}"/>
+                <attribute name="Package" value="org.tanukisoftware.wrapper"/>
+                <attribute name="Extension-Name" value="wrapper"/>
+                <attribute name="Specification-Title" value="Java Service Wrapper"/>
+                <attribute name="Specification-Vendor" value="Tanuki Software, Ltd."/>
+                <attribute name="Specification-Version" value="${version.root}"/>
+                <attribute name="Implementation-Title" value="org.tanukisoftware.wrapper"/>
+                <attribute name="Implementation-Vendor" value="Tanuki Software, Ltd."/>
+                <attribute name="Implementation-Version" value="${version.root}"/>
+                <attribute name="Main-Class" value="org.tanukisoftware.wrapper.demo.DemoApp"/>
             </manifest>
         </jar>
         <jar jarfile="${lib.dir}/wrappertest2.jar"
@@ -687,6 +710,7 @@
                 <attribute name="Extension-Name" value="wrapper"/>
                 <attribute name="Specification-Title" value="Java Service Wrapper"/>
                 <attribute name="Specification-Vendor" value="Tanuki Software, Ltd."/>
+                <attribute name="Specification-Version" value="${version.root}"/>
                 <attribute name="Implementation-Title" value="org.tanukisoftware.wrapper"/>
                 <attribute name="Implementation-Vendor" value="Tanuki Software, Ltd."/>
                 <attribute name="Implementation-Version" value="${version.root}"/>
@@ -743,6 +767,18 @@
     <target name="bin-bat" depends="init" if="is.shell.bat">
         <!-- Create batch files for the TestWrapper Sample Application -->
         <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${bin.dir}/DemoApp.bat"
+              filtering="on"/>
+        <replace file="${bin.dir}/DemoApp.bat"
+                 token='set _WRAPPER_CONF="%~f1"'
+                 value='set _WRAPPER_CONF=""' />
+        <replace file="${bin.dir}/DemoApp.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${bin.dir}/DemoApp.bat"
+                 token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
+                 value='set _WRAPPER_CONF_DEFAULT=../conf/demoApp.conf' />
+        <copy file="${src.dir}/bin/App.bat.in"
               tofile="${bin.dir}/${app.caps.name}.bat"
               filtering="on"/>
         <replace file="${bin.dir}/${app.caps.name}.bat">
@@ -762,7 +798,7 @@ rem ********************************************************************]]></rep
                  value='set _WRAPPER_CONF=""' />
         <replace file="${bin.dir}/${app.caps.name}.bat"
                  token='"%_WRAPPER_EXE%" -c %_WRAPPER_CONF%'
-                 value='"%_WRAPPER_EXE%" -c %_WRAPPER_CONF% wrapper.app.parameter.1=%1' />
+                 value='"%_WRAPPER_EXE%" -c %_WRAPPER_CONF% wrapper.app.parameter.1=%1 wrapper.app.parameter.2={{TestWrapperBat}}' />
         
         <copy file="${src.dir}/bin/AppCommand.bat.in"
               tofile="${bin.dir}/${app.caps.name}Command.bat"
@@ -772,7 +808,7 @@ rem ********************************************************************]]></rep
                  value=' : remove } [command]' />
         <replace file="${bin.dir}/${app.caps.name}Command.bat"
                  token='%_WRAPPER_CONF%'
-                 value='%_WRAPPER_CONF% wrapper.app.parameter.1=%2' />
+                 value='%_WRAPPER_CONF% wrapper.app.parameter.1=%2 wrapper.app.parameter.2={{TestWrapperBat}}' />
         
         <copy file="${src.dir}/bin/InstallApp-NT.bat.in"
               tofile="${bin.dir}/Install${app.caps.name}-NT.bat"
@@ -801,6 +837,23 @@ rem ********************************************************************]]></rep
     <!-- Bin target (sh scripts - Unix. Linux)                               -->
     <!-- =================================================================== -->
     <target name="bin-sh" depends="init" if="is.shell.sh">
+        <copy file="${src.dir}/bin/sh.script.in"
+              tofile="${bin.dir}/demoApp"
+              filtering="on"/>
+        <replace file="${bin.dir}/demoApp">
+            <replacetoken><![CDATA[WRAPPER_CONF="../conf/wrapper.conf"]]></replacetoken>
+            <replacevalue><![CDATA[WRAPPER_CONF="../conf/demoApp.conf"]]></replacevalue>
+        </replace>
+        <replace file="${bin.dir}/demoApp">
+            <replacetoken><![CDATA[APP_NAME="testwrapper"]]></replacetoken>
+            <replacevalue><![CDATA[APP_NAME="demoApp"]]></replacevalue>
+        </replace> 
+        <replace file="${bin.dir}/demoApp">
+            <replacetoken><![CDATA[APP_LONG_NAME="Test Wrapper Sample Application"]]></replacetoken>
+            <replacevalue><![CDATA[APP_LONG_NAME="Wrapper Demo Application"]]></replacevalue>
+        </replace>    
+        <chmod file="${bin.dir}/demoApp" perm="+x"/> 
+
         <copy file="${src.dir}/bin/sh.script.in"
             tofile="${bin.dir}/${app.name}"
             overwrite="true"
@@ -885,11 +938,11 @@ rem ********************************************************************]]></rep
         </replace>
         <replace file="${bin.dir}/${app.name}">
             <replacetoken><![CDATA[\"$WRAPPER_CMD\" \"$WRAPPER_CONF\"]]></replacetoken>
-            <replacevalue><![CDATA[\"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.app.parameter.1=$1]]></replacevalue>
+            <replacevalue><![CDATA[\"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.app.parameter.1=$1 wrapper.app.parameter.2={{TestWrapperSh}}]]></replacevalue>
         </replace>
         <replace file="${bin.dir}/${app.name}">
-            <replacetoken><![CDATA[Usage: $0 { console | start | stop | restart | condrestart | status | install | remove | dump }]]></replacetoken>
-            <replacevalue><![CDATA[Usage: $0 { console <action> | start <action> | stop | restart <action> | condrestart <action> | status | install | remove | dump }]]></replacevalue>
+            <replacetoken><![CDATA[{ console | start | stop | restart | condrestart | status | install | remove | dump }]]></replacetoken>
+            <replacevalue><![CDATA[{ console <action> | start <action> | stop | restart <action> | condrestart <action> | status | install | remove | dump }]]></replacevalue>
         </replace>
         <chmod file="${bin.dir}/${app.name}" perm="+x"/>         
     </target>
@@ -905,6 +958,26 @@ rem ********************************************************************]]></rep
     <!-- =================================================================== -->
     <target name="conf">
         <mkdir dir="${conf.dir}"/>
+        <delete file="${conf.dir}/demoApp.conf"/>
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${conf.dir}/demoApp.conf"
+              filtering="on"/>
+        <replace file="${conf.dir}/demoApp.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.demo.DemoApp" />
+        <replace file="${conf.dir}/demoApp.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=" />
+        <replace file="${conf.dir}/demoApp.conf">
+            <replacetoken>wrapper.check.deadlock.interval=60</replacetoken>
+            <replacevalue><![CDATA[wrapper.check.deadlock.interval=10
+wrapper.max_failed_invocations=99]]></replacevalue>
+        </replace>
+        <replace file="${conf.dir}/demoApp.conf">
+            <replacetoken>wrapper.java.classpath.1=../lib/wrapper.jar</replacetoken>
+            <replacevalue><![CDATA[wrapper.java.classpath.1=../lib/wrapperdemo.jar
+wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
+        </replace>
         
         <!-- Create wrapper.conf for the TestWrapper Sample Application -->
         <copy file="${src.dir}/conf/wrapper.conf.in"
@@ -929,6 +1002,9 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <replace file="${conf.dir}/wrapper.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="#wrapper.app.parameter.1=" />
+        <replace file="${conf.dir}/wrapper.conf"
+                 token="wrapper.check.deadlock.interval=60"
+                 value="wrapper.check.deadlock.interval=10" />
     </target>
 
     <!-- =================================================================== -->
@@ -1064,6 +1140,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                 <include name="project.dtd" />
                 <include name="lib/wrapper.jar" />
                 <include name="lib/wrappertest.jar" />
+                <include name="lib/wrapperdemo.jar" />
                 <include name="jdoc/**" />
                 <include name="doc/**" />
                 <include name="src/bin/**" />
@@ -1224,11 +1301,13 @@ original tar distribution due to a lack of support for long path names in some t
                 <include name="lib/${wrapper.lib.name}" />
                 <include name="lib/wrapper.jar" />
                 <include name="lib/wrappertest.jar" />
+                <include name="lib/wrapperdemo.jar" />
                 <include name="logs" />
                 <include name="src/bin/*.bat.in" />
                 <include name="src/conf/**" />
                 <include name="jdoc/**" />
                 <include name="doc/**" />
+                <include name="conf/demoApp.conf" />
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
@@ -1304,12 +1383,14 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                 <include name="bin/${app.name}" />
                 <include name="lib/wrapper.jar" />
                 <include name="lib/wrappertest.jar" />
+                <include name="lib/wrapperdemo.jar" />
                 <include name="lib/${wrapper.lib.name}" />
                 <include name="logs" />
                 <include name="src/conf/**" />
                 <include name="jdoc/**" />
                 <include name="doc/**" />
                 <include name="src/bin/*.script.in" />
+                <include name="conf/demoApp.conf" />
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
@@ -1490,6 +1571,7 @@ original tar distribution due to a lack of support for long path names in some t
                 <include name="bin/${app.name}"/>
                 <include name="lib/wrapper.jar"/>
                 <include name="lib/wrappertest.jar"/>
+                <include name="lib/wrapperdemo.jar"/>
                 <include name="logs"/>
                 <include name="src/bin/*.bat.in"/>
                 <include name="src/bin/sh.script.in"/>
@@ -1661,6 +1743,7 @@ original tar distribution due to a lack of support for long path names in some t
 
         <delete file="${lib.dir}/wrapper.jar"/>
         <delete file="${lib.dir}/wrappertest.jar"/>
+        <delete file="${lib.dir}/wrapperdemo.jar"/>
         
         <!-- Windows -->
         <delete><fileset dir="${bin.dir}" includes="*${app.caps.name}*.bat"/></delete>
