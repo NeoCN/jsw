@@ -6,23 +6,23 @@
  * This software is the proprietary information of Tanuki Software.
  * You shall use it only in accordance with the terms of the
  * license agreement you entered into with Tanuki Software.
- * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
- * 
- * 
+ * http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
+ *
+ *
  * Portions of the Software have been derived from source code
  * developed by Silver Egg Technology under the following license:
- * 
+ *
  * Copyright (c) 2001 Silver Egg Technology
- * 
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without 
- * restriction, including without limitation the rights to use, 
- * copy, modify, merge, publish, distribute, sub-license, and/or 
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sub-license, and/or
  * sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following 
+ * Software is furnished to do so, subject to the following
  * conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
  */
@@ -67,7 +67,16 @@ typedef long intptr_t;
 #include <sys/time.h>
 #endif
 
+#include "wrapper_i18n.h"
 #include "logger.h"
+
+/*
+There is a bug in gettext when using fprintf on Windows causing an Access violation.
+To avoid that we need to release the fprintf substitution of gettext, "libintl_fprintf"...
+*//*
+#ifdef WIN32
+#undef fprintf
+#endif*/
 
 #ifndef TRUE
 #define TRUE -1
@@ -84,41 +93,48 @@ int currentConsoleLevel = LEVEL_UNKNOWN;
 int currentLogfileLevel = LEVEL_UNKNOWN;
 int currentLoginfoLevel = LEVEL_UNKNOWN;
 
-#ifndef WIN32
 /* Default syslog facility is LOG_USER */
 int currentLogfacilityLevel = LOG_USER;
-#endif
 
 /* Callback notified whenever the active logfile changes. */
-void (*logFileChangedCallback)(const char *logFile);
+void (*logFileChangedCallback)(const TCHAR *logFile);
 
-char *logFilePath;
-char *currentLogFileName;
-char *workLogFileName;
+TCHAR *logFilePath;
+TCHAR *currentLogFileName;
+TCHAR *workLogFileName;
+size_t logFileNameSize;
 int logFileRollMode = ROLL_MODE_SIZE;
 int logFileUmask = 0022;
-char *logLevelNames[] = { "NONE  ", "DEBUG ", "INFO  ", "STATUS", "WARN  ", "ERROR ", "FATAL ", "ADVICE" };
-char *defaultLoginfoSourceName = "wrapper";
-char *loginfoSourceName = NULL;
+TCHAR *logLevelNames[] = { TEXT("NONE  "), TEXT("DEBUG "), TEXT("INFO  "), TEXT("STATUS"), TEXT("WARN  "), TEXT("ERROR "), TEXT("FATAL "), TEXT("ADVICE"), TEXT("NOTICE") };
+TCHAR *defaultLoginfoSourceName = TEXT("wrapper");
+TCHAR *loginfoSourceName = NULL;
 int  logFileMaxSize = -1;
 int  logFileMaxLogFiles = -1;
-char *logFilePurgePattern = NULL;
+TCHAR *logFilePurgePattern = NULL;
 int  logFilePurgeSortMode = WRAPPER_FILE_SORT_MODE_TIMES;
 
-char logFileLastNowDate[9];
+TCHAR logFileLastNowDate[9];
 /* Defualt formats (Must be 4 chars) */
-char consoleFormat[32];
-char logfileFormat[32];
+TCHAR consoleFormat[32];
+TCHAR logfileFormat[32];
 /* Flag to keep track of whether the console output should be flushed or not. */
 int consoleFlush = FALSE;
 
+/* Number of seconds since the Wrapper was launched. */
+int uptimeSeconds = 0;
+/* TRUE once the uptime is so large that it is meaningless. */
+int uptimeFlipped = FALSE;
+
 /* Internal function declaration */
-void sendEventlogMessage( int source_id, int level, const char *szBuff );
-void sendLoginfoMessage( int source_id, int level, const char *szBuff );
 #ifdef WIN32
-void writeToConsole( char *lpszFmt, ... );
+void sendEventlogMessage( int source_id, int level, const TCHAR *szBuff );
+#else
+void sendLoginfoMessage( int source_id, int level, const TCHAR *szBuff );
 #endif
-void checkAndRollLogs(const char *nowDate);
+#ifdef WIN32
+void writeToConsole( HANDLE hdl, TCHAR *lpszFmt, ...);
+#endif
+void checkAndRollLogs(const TCHAR *nowDate);
 
 /* Any log messages generated within signal handlers must be stored until we
  *  have left the signal handler to avoid deadlocks in the logging code.
@@ -133,7 +149,7 @@ void checkAndRollLogs(const char *nowDate);
 int queueWrapped[WRAPPER_THREAD_COUNT];
 int queueWriteIndex[WRAPPER_THREAD_COUNT];
 int queueReadIndex[WRAPPER_THREAD_COUNT];
-char *queueMessages[WRAPPER_THREAD_COUNT][QUEUE_SIZE];
+TCHAR *queueMessages[WRAPPER_THREAD_COUNT][QUEUE_SIZE];
 int queueSourceIds[WRAPPER_THREAD_COUNT][QUEUE_SIZE];
 int queueLevels[WRAPPER_THREAD_COUNT][QUEUE_SIZE];
 
@@ -144,9 +160,9 @@ DWORD threadIds[WRAPPER_THREAD_COUNT];
 #else
 pthread_t threadIds[WRAPPER_THREAD_COUNT];
 #endif
-char *threadMessageBuffer = NULL;
+TCHAR *threadMessageBuffer = NULL;
 size_t threadMessageBufferSize = 0;
-char *threadPrintBuffer = NULL;
+TCHAR *threadPrintBuffer = NULL;
 size_t threadPrintBufferSize = 0;
 
 /* Flag which gets set when a log entry is written to the log file. */
@@ -160,6 +176,7 @@ int autoCloseLogfile = 0;
 
 /* The number of lines sent to the log file since the getLogfileActivity method was last called. */
 DWORD logfileActivityCount;
+
 
 /* Mutex for syncronization of the log_printf function. */
 #ifdef WIN32
@@ -175,17 +192,23 @@ void setConsoleStdoutHandle( HANDLE stdoutHandle ) {
 }
 #endif
 
-void outOfMemory(const char *context, int id) {
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Out of memory (%s%02d). %s",
+void outOfMemory(const TCHAR *context, int id) {
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Out of memory (%s%02d). %s"),
         context, id, getLastErrorText());
 }
 
 /* This can be called from within logging code that would otherwise get stuck in recursion.
  *  Log to the console exactly when it happens and then also try to get it into the log
  *  file at the next oportunity. */
-void outOfMemoryQueued(const char *context, int id) {
-    printf("Out of memory (%s%02d). %s", context, id, getLastErrorText());
-    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, "Out of memory (%s%02d). %s",
+void outOfMemoryQueued(const TCHAR *context, int id) {
+    _tprintf(TEXT("Out of memory (%s%02d). %s\n"), context, id, getLastErrorText());
+    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Out of memory (%s%02d). %s"),
+        context, id, getLastErrorText());
+}
+
+
+void invalidMultiByteSequence(const TCHAR *context, int id) {
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Invalid multibyte Sequence found in (%s%02d). %s"),
         context, id, getLastErrorText());
 }
 
@@ -195,24 +218,24 @@ void outOfMemoryQueued(const char *context, int id) {
  *
  * newToken may be null, implying "".
  */
-char *replaceStringLongWithShort(char *string, const char *oldToken, const char *newToken) {
-    size_t oldLen = strlen(oldToken);
+TCHAR *replaceStringLongWithShort(TCHAR *string, const TCHAR *oldToken, const TCHAR *newToken) {
+    size_t oldLen = _tcslen(oldToken);
     size_t newLen;
-    char *in = string;
-    char *out = string;
-    
+    TCHAR *in = string;
+    TCHAR *out = string;
+
     if (newToken) {
-        newLen = strlen(newToken);
+        newLen = _tcslen(newToken);
     } else {
         newLen = 0;
     }
-    
+
     /* Assertion check. */
     if (newLen > oldLen) {
         return string;
     }
-    
-    while (in[0] != '\0') {
+
+    while (in[0] != L'\0') {
         if (memcmp(in, oldToken, oldLen) == 0) {
             /* Found the oldToken.  Replace it with the new. */
             if (newLen > 0) {
@@ -228,35 +251,35 @@ char *replaceStringLongWithShort(char *string, const char *oldToken, const char 
             out++;
         }
     }
-    out[0] = '\0';
-    
+    out[0] = L'\0';
+
     return string;
 }
 
 /**
  * Initializes the logger.  Returns 0 if the operation was successful.
  */
-int initLogging(void (*logFileChanged)(const char *logFile)) {
+int initLogging(void (*logFileChanged)(const TCHAR *logFile)) {
     int threadId, i;
-    
+
     logFileChangedCallback = logFileChanged;
 
 #ifdef WIN32
     if (!(log_printfMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
-        printf("Failed to create logging mutex. %s\n", getLastErrorText());
+        _tprintf(TEXT("Failed to create logging mutex. %s\n"), getLastErrorText());
         return 1;
     }
 #endif
-    
+
     loginfoSourceName = defaultLoginfoSourceName;
 
     logFileAccessed = FALSE;
-    logFileLastNowDate[0] = '\0';
+    logFileLastNowDate[0] = L'\0';
 
     for ( threadId = 0; threadId < WRAPPER_THREAD_COUNT; threadId++ ) {
         threadSets[threadId] = FALSE;
         /* threadIds[threadId] = 0; */
-    
+
         for ( i = 0; i < QUEUE_SIZE; i++ )
         {
             queueWrapped[threadId] = 0;
@@ -278,12 +301,12 @@ int disposeLogging() {
     if (log_printfMutexHandle) {
         if (!CloseHandle(log_printfMutexHandle))
         {
-            printf("Unable to close Logging Mutex handle. %s\n", getLastErrorText());
+            _tprintf(TEXT("Unable to close Logging Mutex handle. %s\n"), getLastErrorText());
             return 1;
         }
     }
 #endif
-    
+
     return 0;
 }
 
@@ -299,14 +322,14 @@ void logRegisterThread( int thread_id ) {
 #endif
 
 #ifdef _DEBUG
-    printf("logRegisterThread(%d)\n", thread_id);
+    _tprintf(TEXT("logRegisterThread(%d)\n"), thread_id);
 #endif
     if ( thread_id >= 0 && thread_id < WRAPPER_THREAD_COUNT )
     {
         threadSets[thread_id] = TRUE;
         threadIds[thread_id] = threadId;
 #ifdef _DEBUG
-        printf("logRegisterThread(%d) found\n", thread_id);
+        _tprintf(TEXT("logRegisterThread(%d) found\n"), thread_id);
 #endif
     }
 }
@@ -320,7 +343,7 @@ int getThreadId() {
     pthread_t threadId;
     threadId = pthread_self();
 #endif
-    /* printf( "threadId=%lu\n", threadId ); */
+    /*_tprintf(TEXT("threadId=%lu\n"), threadId );*/
 
     for ( i = 0; i < WRAPPER_THREAD_COUNT; i++ ) {
 #ifdef WIN32
@@ -331,49 +354,51 @@ int getThreadId() {
             return i;
         }
     }
-    
-    printf( "WARNING - Encountered an unknown thread %ld in getThreadId().\n",
+
+    _tprintf( TEXT("WARNING - Encountered an unknown thread %ld in getThreadId().\n"),
         (long int)threadId
         );
     return 0; /* WRAPPER_THREAD_SIGNAL */
 }
 
-int getLogfileRollModeForName( const char *logfileRollName ) {
-    if (strcmpIgnoreCase(logfileRollName, "NONE") == 0) {
+int getLogfileRollModeForName( const TCHAR *logfileRollName ) {
+    if (strcmpIgnoreCase(logfileRollName, TEXT("NONE")) == 0) {
         return ROLL_MODE_NONE;
-    } else if (strcmpIgnoreCase(logfileRollName, "SIZE") == 0) {
+    } else if (strcmpIgnoreCase(logfileRollName, TEXT("SIZE")) == 0) {
         return ROLL_MODE_SIZE;
-    } else if (strcmpIgnoreCase(logfileRollName, "WRAPPER") == 0) {
+    } else if (strcmpIgnoreCase(logfileRollName, TEXT("WRAPPER")) == 0) {
         return ROLL_MODE_WRAPPER;
-    } else if (strcmpIgnoreCase(logfileRollName, "JVM") == 0) {
+    } else if (strcmpIgnoreCase(logfileRollName, TEXT("JVM")) == 0) {
         return ROLL_MODE_JVM;
-    } else if (strcmpIgnoreCase(logfileRollName, "SIZE_OR_WRAPPER") == 0) {
+    } else if (strcmpIgnoreCase(logfileRollName, TEXT("SIZE_OR_WRAPPER")) == 0) {
         return ROLL_MODE_SIZE_OR_WRAPPER;
-    } else if (strcmpIgnoreCase(logfileRollName, "SIZE_OR_JVM") == 0) {
+    } else if (strcmpIgnoreCase(logfileRollName, TEXT("SIZE_OR_JVM")) == 0) {
         return ROLL_MODE_SIZE_OR_JVM;
-    } else if (strcmpIgnoreCase(logfileRollName, "DATE") == 0) {
+    } else if (strcmpIgnoreCase(logfileRollName, TEXT("DATE")) == 0) {
         return ROLL_MODE_DATE;
     } else {
         return ROLL_MODE_UNKNOWN;
     }
 }
 
-int getLogLevelForName( const char *logLevelName ) {
-    if (strcmpIgnoreCase(logLevelName, "NONE") == 0) {
+int getLogLevelForName( const TCHAR *logLevelName ) {
+    if (strcmpIgnoreCase(logLevelName, TEXT("NONE")) == 0) {
         return LEVEL_NONE;
-    } else if (strcmpIgnoreCase(logLevelName, "ADVICE") == 0) {
+    } else if (strcmpIgnoreCase(logLevelName, TEXT("NOTICE")) == 0) {
+        return LEVEL_NOTICE;
+    } else if (strcmpIgnoreCase(logLevelName, TEXT("ADVICE")) == 0) {
         return LEVEL_ADVICE;
-    } else if (strcmpIgnoreCase(logLevelName, "FATAL") == 0) {
+    } else if (strcmpIgnoreCase(logLevelName, TEXT("FATAL")) == 0) {
         return LEVEL_FATAL;
-    } else if (strcmpIgnoreCase(logLevelName, "ERROR") == 0) {
+    } else if (strcmpIgnoreCase(logLevelName, TEXT("ERROR")) == 0) {
         return LEVEL_ERROR;
-    } else if (strcmpIgnoreCase(logLevelName, "WARN") == 0) {
+    } else if (strcmpIgnoreCase(logLevelName, TEXT("WARN")) == 0) {
         return LEVEL_WARN;
-    } else if (strcmpIgnoreCase(logLevelName, "STATUS") == 0) {
+    } else if (strcmpIgnoreCase(logLevelName, TEXT("STATUS")) == 0) {
         return LEVEL_STATUS;
-    } else if (strcmpIgnoreCase(logLevelName, "INFO") == 0) {
+    } else if (strcmpIgnoreCase(logLevelName, TEXT("INFO")) == 0) {
         return LEVEL_INFO;
-    } else if (strcmpIgnoreCase(logLevelName, "DEBUG") == 0) {
+    } else if (strcmpIgnoreCase(logLevelName, TEXT("DEBUG")) == 0) {
         return LEVEL_DEBUG;
     } else {
         return LEVEL_UNKNOWN;
@@ -381,24 +406,24 @@ int getLogLevelForName( const char *logLevelName ) {
 }
 
 #ifndef WIN32
-int getLogFacilityForName( const char *logFacilityName ) {
-    if (strcmpIgnoreCase(logFacilityName, "USER") == 0) {
+int getLogFacilityForName( const TCHAR *logFacilityName ) {
+    if (strcmpIgnoreCase(logFacilityName, TEXT("USER")) == 0) {
       return LOG_USER;
-    } else if (strcmpIgnoreCase(logFacilityName, "LOCAL0") == 0) {
+    } else if (strcmpIgnoreCase(logFacilityName, TEXT("LOCAL0")) == 0) {
       return LOG_LOCAL0;
-    } else if (strcmpIgnoreCase(logFacilityName, "LOCAL1") == 0) {
+    } else if (strcmpIgnoreCase(logFacilityName, TEXT("LOCAL1")) == 0) {
       return LOG_LOCAL1;
-    } else if (strcmpIgnoreCase(logFacilityName, "LOCAL2") == 0) {
+    } else if (strcmpIgnoreCase(logFacilityName, TEXT("LOCAL2")) == 0) {
       return LOG_LOCAL2;
-    } else if (strcmpIgnoreCase(logFacilityName, "LOCAL3") == 0) {
+    } else if (strcmpIgnoreCase(logFacilityName, TEXT("LOCAL3")) == 0) {
       return LOG_LOCAL3;
-    } else if (strcmpIgnoreCase(logFacilityName, "LOCAL4") == 0) {
+    } else if (strcmpIgnoreCase(logFacilityName, TEXT("LOCAL4")) == 0) {
       return LOG_LOCAL4;
-    } else if (strcmpIgnoreCase(logFacilityName, "LOCAL5") == 0) {
+    } else if (strcmpIgnoreCase(logFacilityName, TEXT("LOCAL5")) == 0) {
       return LOG_LOCAL5;
-    } else if (strcmpIgnoreCase(logFacilityName, "LOCAL6") == 0) {
+    } else if (strcmpIgnoreCase(logFacilityName, TEXT("LOCAL6")) == 0) {
       return LOG_LOCAL6;
-    } else if (strcmpIgnoreCase(logFacilityName, "LOCAL7") == 0) {
+    } else if (strcmpIgnoreCase(logFacilityName, TEXT("LOCAL7")) == 0) {
       return LOG_LOCAL7;
     } else {
       return LOG_USER;
@@ -409,7 +434,7 @@ int getLogFacilityForName( const char *logFacilityName ) {
 /** Sets the console log levels to a simple format for help and usage messages. */
 void setSimpleLogLevels() {
     /* Force the log levels to control output. */
-    setConsoleLogFormat("M");
+    setConsoleLogFormat(TEXT("M"));
     setConsoleLogLevelInt(LEVEL_INFO);
 
     setLogfileLevelInt(LEVEL_NONE);
@@ -421,12 +446,12 @@ int isLogfileAccessed() {
     return logFileAccessed;
 }
 
-void setLogfilePath( const char *log_file_path ) {
-    size_t len = strlen(log_file_path);
+void setLogfilePath( const TCHAR *log_file_path ) {
+    size_t len = _tcslen(log_file_path);
 #ifdef WIN32
-    char *c;
+    TCHAR *c;
 #endif
-    
+    logFileNameSize = len + 10 + 1;
     if (logFilePath) {
         free(logFilePath);
         free(currentLogFileName);
@@ -436,43 +461,44 @@ void setLogfilePath( const char *log_file_path ) {
     currentLogFileName = NULL;
     workLogFileName = NULL;
 
-    logFilePath = malloc(sizeof(char) * (len + 1));
+    logFilePath = malloc(sizeof(TCHAR) * (len + 1));
     if (!logFilePath) {
-        outOfMemoryQueued("SLP", 1);
+        outOfMemoryQueued(TEXT("SLP"), 1);
         return;
     }
-    strcpy(logFilePath, log_file_path);
+    _tcscpy(logFilePath, log_file_path);
 
-    currentLogFileName = malloc(sizeof(char) * (len + 10 + 1));
+    currentLogFileName = (TCHAR*)malloc(sizeof(TCHAR) * (len + 10 + 1));
     if (!currentLogFileName) {
-        outOfMemoryQueued("SLP", 2);
+        outOfMemoryQueued(TEXT("SLP"), 2);
         free(logFilePath);
         logFilePath = NULL;
         return;
     }
-    currentLogFileName[0] = '\0';
-    workLogFileName = malloc(sizeof(char) * (len + 10 + 1));
+    currentLogFileName[0] = TEXT('\0');
+    workLogFileName = malloc(sizeof(TCHAR) * (len + 10 + 1));
     if (!workLogFileName) {
-        outOfMemoryQueued("SLP", 3);
+        outOfMemoryQueued(TEXT("SLP"), 3);
         free(logFilePath);
         logFilePath = NULL;
         free(currentLogFileName);
+        logFileNameSize = 0;
         currentLogFileName = NULL;
         return;
     }
-    workLogFileName[0] = '\0';
-    
-#ifdef WIN32    
+    workLogFileName[0] = TEXT('\0');
+
+#ifdef WIN32
     /* To avoid problems on some windows systems, the '/' characters must
      *  be replaced by '\' characters in the specified path. */
-    c = (char *)logFilePath;
-    while((c = strchr(c, '/')) != NULL) {
-        c[0] = '\\';
+    c = (TCHAR *)logFilePath;
+    while((c = _tcschr(c, TEXT('/'))) != NULL) {
+        c[0] = TEXT('\\');
     }
 #endif
 }
 
-const char *getLogfilePath()
+const TCHAR *getLogfilePath()
 {
     return logFilePath;
 }
@@ -489,9 +515,9 @@ void setLogfileUmask( int log_file_umask ) {
     logFileUmask = log_file_umask;
 }
 
-void setLogfileFormat( const char *log_file_format ) {
+void setLogfileFormat( const TCHAR *log_file_format ) {
     if( log_file_format != NULL )
-        strcpy( logfileFormat, log_file_format );
+        _tcscpy( logfileFormat, log_file_format );
 }
 
 void setLogfileLevelInt( int log_file_level ) {
@@ -502,57 +528,57 @@ int getLogfileLevelInt() {
     return currentLogfileLevel;
 }
 
-void setLogfileLevel( const char *log_file_level ) {
+void setLogfileLevel( const TCHAR *log_file_level ) {
     setLogfileLevelInt(getLogLevelForName(log_file_level));
 }
 
-void setLogfileMaxFileSize( const char *max_file_size ) {
+void setLogfileMaxFileSize( const TCHAR *max_file_size ) {
     int multiple, i, newLength;
-    char *tmpFileSizeBuff;
-    char chr;
+    TCHAR *tmpFileSizeBuff;
+    TCHAR chr;
 
     if ( max_file_size != NULL ) {
         /* Allocate buffer */
-        tmpFileSizeBuff = (char *) malloc(sizeof(char) * (strlen( max_file_size ) + 1));
+        tmpFileSizeBuff = (TCHAR *) malloc(sizeof(TCHAR) * (_tcslen( max_file_size ) + 1));
         if (!tmpFileSizeBuff) {
-            outOfMemoryQueued("SLMFS", 1);
+            outOfMemoryQueued(TEXT("SLMFS"), 1);
             return;
         }
 
         /* Generate multiple and remove unwanted chars */
         multiple = 1;
         newLength = 0;
-        for( i=0; i<(int) strlen(max_file_size); i++ ) {
+        for( i = 0; i < (int) _tcslen(max_file_size); i++ ) {
             chr = max_file_size[i];
 
             switch( chr ) {
-                case 'k': /* Kilobytes */
-                case 'K':
+                case TEXT('k'): /* Kilobytes */
+                case TEXT('K'):
                     multiple = 1024;
                 break;
 
-                case 'M': /* Megabytes */
-                case 'm':
+                case TEXT('M'): /* Megabytes */
+                case TEXT('m'):
                     multiple = 1048576;
                 break;
             }
 
-            if( (chr >= '0' && chr <= '9') || (chr == '-') )
+            if( (chr >= TEXT('0') && chr <= TEXT('9')) || (chr == TEXT('-')) )
                 tmpFileSizeBuff[newLength++] = max_file_size[i];
         }
-        tmpFileSizeBuff[newLength] = '\0';/* Crop string */
+        tmpFileSizeBuff[newLength] = TEXT('\0');/* Crop string */
 
-        logFileMaxSize = atoi( tmpFileSizeBuff );
+        logFileMaxSize = _ttoi( tmpFileSizeBuff );
         if( logFileMaxSize > 0 )
             logFileMaxSize *= multiple;
 
         /* Free memory */
         free( tmpFileSizeBuff );
         tmpFileSizeBuff = NULL;
-        
+
         if ((logFileMaxSize > 0) && (logFileMaxSize < 1024)) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                "wrapper.logfile.maxsize must be 0 or at least 1024.  Changing to %d.", logFileMaxSize);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT(
+                "wrapper.logfile.maxsize must be 0 or at least 1024.  Changing to %d."), logFileMaxSize);
             logFileMaxSize = 1024;
         }
     }
@@ -566,22 +592,22 @@ void setLogfileMaxLogFiles( int max_log_files ) {
     logFileMaxLogFiles = max_log_files;
 }
 
-void setLogfilePurgePattern(const char *pattern) {
+void setLogfilePurgePattern(const TCHAR *pattern) {
     size_t len;
-    
+
     if (logFilePurgePattern) {
         free(logFilePurgePattern);
         logFilePurgePattern = NULL;
     }
 
-    len = strlen(pattern);
+    len = _tcslen(pattern);
     if (len > 0) {
-        logFilePurgePattern = malloc(sizeof(char) * (len + 1));
+        logFilePurgePattern = malloc(sizeof(TCHAR) * (len + 1));
         if (!logFilePurgePattern) {
-            outOfMemoryQueued("SLPP", 1);
+            outOfMemoryQueued(TEXT("SLPP"), 1);
             return;
         }
-        strcpy(logFilePurgePattern, pattern);
+        _tcscpy(logFilePurgePattern, pattern);
     }
 }
 
@@ -592,11 +618,11 @@ void setLogfilePurgeSortMode(int sortMode) {
 /** Returns the number of lines of log file activity since the last call. */
 DWORD getLogfileActivity() {
     DWORD logfileLines;
-    
+
     /* Don't worry about synchronization here.  Any errors are not critical the way this is used. */
     logfileLines = logfileActivityCount;
     logfileActivityCount = 0;
-    
+
     return logfileLines;
 }
 
@@ -605,13 +631,13 @@ int lockLoggingMutex() {
 #ifdef WIN32
     switch (WaitForSingleObject(log_printfMutexHandle, INFINITE)) {
     case WAIT_ABANDONED:
-        printf("Logging mutex was abandoned.\n");
+        _tprintf(TEXT("Logging mutex was abandoned.\n"));
         return -1;
     case WAIT_FAILED:
-        printf("Logging mutex wait failed.\n");
+        _tprintf(TEXT("Logging mutex wait failed.\n"));
         return -1;
     case WAIT_TIMEOUT:
-        printf("Logging mutex wait timed out.\n");
+        _tprintf(TEXT("Logging mutex wait timed out.\n"));
         return -1;
     default:
         /* Ok */
@@ -619,11 +645,11 @@ int lockLoggingMutex() {
     }
 #else
     if (pthread_mutex_lock(&log_printfMutex)) {
-        printf("Failed to lock the Logging mutex. %s\n", getLastErrorText());
+        _tprintf(TEXT("Failed to lock the Logging mutex. %s\n"), getLastErrorText());
         return -1;
     }
 #endif
-    
+
     return 0;
 }
 
@@ -631,12 +657,12 @@ int lockLoggingMutex() {
 int releaseLoggingMutex() {
 #ifdef WIN32
     if (!ReleaseMutex(log_printfMutexHandle)) {
-        printf( "Failed to release logging mutex. %s\n", getLastErrorText());
+        _tprintf( TEXT("Failed to release logging mutex. %s\n"), getLastErrorText());
         return -1;
     }
 #else
     if (pthread_mutex_unlock(&log_printfMutex)) {
-        printf("Failed to unlock the Logging mutex. %s\n", getLastErrorText());
+        _tprintf(TEXT("Failed to unlock the Logging mutex. %s\n"), getLastErrorText());
         return -1;
     }
 #endif
@@ -651,12 +677,12 @@ void closeLogfile() {
     if (lockLoggingMutex()) {
         return;
     }
-    
+
     if (logfileFP != NULL) {
 #ifdef _DEBUG
-        printf("Closing logfile by request...\n");
+        _tprintf(TEXT("Closing logfile by request...\n"));
 #endif
-        
+
         fclose(logfileFP);
         logfileFP = NULL;
         /* Do not clean the currentLogFileName here as the name is not actually changing. */
@@ -684,7 +710,7 @@ void flushLogfile() {
 
     if (logfileFP != NULL) {
 #ifdef _DEBUG
-        printf("Flushing logfile by request...\n");
+        _tprintf(TEXT("Flushing logfile by request...\n"));
 #endif
 
         fflush(logfileFP);
@@ -697,9 +723,9 @@ void flushLogfile() {
 }
 
 /* Console functions */
-void setConsoleLogFormat( const char *console_log_format ) {
+void setConsoleLogFormat( const TCHAR *console_log_format ) {
     if( console_log_format != NULL )
-        strcpy( consoleFormat, console_log_format );
+        _tcscpy( consoleFormat, console_log_format );
 }
 
 void setConsoleLogLevelInt( int console_log_level ) {
@@ -710,7 +736,7 @@ int getConsoleLogLevelInt() {
     return currentConsoleLevel;
 }
 
-void setConsoleLogLevel( const char *console_log_level ) {
+void setConsoleLogLevel( const TCHAR *console_log_level ) {
     setConsoleLogLevelInt(getLogLevelForName(console_log_level));
 }
 
@@ -728,7 +754,7 @@ int getSyslogLevelInt() {
     return currentLoginfoLevel;
 }
 
-void setSyslogLevel( const char *loginfo_level ) {
+void setSyslogLevel( const TCHAR *loginfo_level ) {
     setSyslogLevelInt(getLogLevelForName(loginfo_level));
 }
 
@@ -737,24 +763,27 @@ void setSyslogFacilityInt( int logfacility_level ) {
     currentLogfacilityLevel = logfacility_level;
 }
 
-void setSyslogFacility( const char *loginfo_level ) {
+void setSyslogFacility( const TCHAR *loginfo_level ) {
     setSyslogFacilityInt(getLogFacilityForName(loginfo_level));
 }
 #endif
 
-void setSyslogEventSourceName( const char *event_source_name ) {
+void setSyslogEventSourceName( const TCHAR *event_source_name ) {
     if (event_source_name != NULL) {
         if (loginfoSourceName != defaultLoginfoSourceName) {
             free(loginfoSourceName);
         }
-        loginfoSourceName = malloc(strlen(event_source_name) + 1);
+        loginfoSourceName = malloc(sizeof(TCHAR) * (_tcslen(event_source_name) + 1));
         if (!loginfoSourceName) {
-            printf("Out of memory in logging code (SSESN)\n");
+            _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("SSESN"));
             loginfoSourceName = defaultLoginfoSourceName;
             return;
         }
 
-        strcpy(loginfoSourceName, event_source_name);
+        _tcscpy(loginfoSourceName, event_source_name);
+        if (_tcslen(loginfoSourceName) > 32) {
+            loginfoSourceName[32] = TEXT('\0');
+        }
     }
 }
 
@@ -764,75 +793,80 @@ int getLowLogLevel() {
     return lowLogLevel;
 }
 
-char* preparePrintBuffer(size_t reqSize) {
+TCHAR* preparePrintBuffer(size_t reqSize) {
     if (threadPrintBuffer == NULL) {
-        threadPrintBuffer = (char *)malloc(reqSize * sizeof(char));
+        threadPrintBuffer = (TCHAR *)malloc(reqSize * sizeof(TCHAR));
         if (!threadPrintBuffer) {
-            printf("Out of memory in logging code (PPB1)\n");
+            _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("PPB1"));
             threadPrintBufferSize = 0;
             return NULL;
         }
         threadPrintBufferSize = reqSize;
     } else if (threadPrintBufferSize < reqSize) {
         free(threadPrintBuffer);
-        threadPrintBuffer = (char *)malloc(reqSize * sizeof(char));
+        threadPrintBuffer = (TCHAR *)malloc(reqSize * sizeof(TCHAR));
         if (!threadPrintBuffer) {
-            printf("Out of memory in logging code (PPB2)\n");
+            _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("PPB2"));
             threadPrintBufferSize = 0;
             return NULL;
         }
         threadPrintBufferSize = reqSize;
     }
-    
+
     return threadPrintBuffer;
 }
 
 /* Writes to and then returns a buffer that is reused by the current thread.
  *  It should not be released. */
-char* buildPrintBuffer( int source_id, int level, int threadId, int queued, struct tm *nowTM, int nowMillis, const char *format, const char *message ) {
+TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, struct tm *nowTM, int nowMillis, const TCHAR *format, const TCHAR *message ) {
     int       i;
     size_t    reqSize;
     int       numColumns;
-    char      *pos;
+    TCHAR      *pos;
     int       currentColumn;
     int       handledFormat;
-    
+
     /* Decide the number of columns and come up with a required length for the printBuffer. */
     reqSize = 0;
-    for( i = 0, numColumns = 0; i < (int)strlen( format ); i++ ) {
+    for( i = 0, numColumns = 0; i < (int)_tcslen( format ); i++ ) {
         switch( format[i] ) {
-        case 'P':
+        case TEXT('P'):
             reqSize += 8 + 3;
             numColumns++;
             break;
 
-        case 'L':
+        case TEXT('L'):
             reqSize += 6 + 3;
             numColumns++;
             break;
 
-        case 'D':
+        case TEXT('D'):
             reqSize += 7 + 3;
             numColumns++;
             break;
 
-        case 'Q':
+        case TEXT('Q'):
             reqSize += 1 + 3;
             numColumns++;
             break;
 
-        case 'T':
+        case TEXT('T'):
             reqSize += 19 + 3;
             numColumns++;
             break;
 
-        case 'Z':
+        case TEXT('Z'):
             reqSize += 23 + 3;
             numColumns++;
             break;
 
-        case 'M':
-            reqSize += strlen( message ) + 3;
+        case TEXT('U'):
+            reqSize += 8 + 3;
+            numColumns++;
+            break;
+
+        case TEXT('M'):
+            reqSize += _tcslen( message ) + 3;
             numColumns++;
             break;
         }
@@ -840,92 +874,101 @@ char* buildPrintBuffer( int source_id, int level, int threadId, int queued, stru
 
     /* Always add room for the null. */
     reqSize += 1;
-    
+
     if ( !preparePrintBuffer(reqSize)) {
         return NULL;
     }
 
     /* Always start with a null terminated string in case there are no formats specified. */
-    threadPrintBuffer[0] = '\0';
-    
+    threadPrintBuffer[0] = TEXT('\0');
+
     /* Create a pointer to the beginning of the print buffer, it will be advanced
      *  as the formatted message is build up. */
     pos = threadPrintBuffer;
 
     /* We now have a buffer large enough to store the entire formatted message. */
-    for( i = 0, currentColumn = 0; i < (int)strlen( format ); i++ ) {
+    for( i = 0, currentColumn = 0; i < (int)_tcslen( format ); i++ ) {
         handledFormat = 1;
 
         switch( format[i] ) {
-        case 'P':
+        case TEXT('P'):
             switch ( source_id ) {
             case WRAPPER_SOURCE_WRAPPER:
-                pos += sprintf( pos, "wrapper " );
+                pos += _sntprintf( pos, reqSize, TEXT("wrapper ") );
                 break;
 
             case WRAPPER_SOURCE_PROTOCOL:
-                pos += sprintf( pos, "wrapperp" );
+                pos += _sntprintf( pos, reqSize, TEXT("wrapperp") );
                 break;
 
             default:
-                pos += sprintf( pos, "jvm %-4d", source_id );
+                pos += _sntprintf( pos, reqSize, TEXT("jvm %-4d"), source_id );
                 break;
             }
             currentColumn++;
             break;
 
-        case 'L':
-            pos += sprintf( pos, "%s", logLevelNames[ level ] );
+        case TEXT('L'):
+            pos += _sntprintf( pos, reqSize, TEXT("%s"), logLevelNames[ level ] );
             currentColumn++;
             break;
 
-        case 'D':
+        case TEXT('D'):
             switch ( threadId )
             {
             case WRAPPER_THREAD_SIGNAL:
-                pos += sprintf( pos, "signal " );
+                pos += _sntprintf( pos, reqSize, TEXT("signal ") );
                 break;
 
             case WRAPPER_THREAD_MAIN:
-                pos += sprintf( pos, "main   " );
+                pos += _sntprintf( pos, reqSize, TEXT("main   ") );
                 break;
 
             case WRAPPER_THREAD_SRVMAIN:
-                pos += sprintf( pos, "srvmain" );
+                pos += _sntprintf( pos, reqSize, TEXT("srvmain") );
                 break;
 
             case WRAPPER_THREAD_TIMER:
-                pos += sprintf( pos, "timer  " );
+                pos += _sntprintf( pos, reqSize, TEXT("timer  ") );
                 break;
 
             default:
-                pos += sprintf( pos, "unknown" );
+                pos += _sntprintf( pos, reqSize, TEXT("unknown") );
                 break;
             }
             currentColumn++;
             break;
 
-        case 'Q':
-            pos += sprintf( pos, "%c", ( queued ? 'Q' : ' ' ) );
+        case TEXT('Q'):
+            pos += _sntprintf( pos, reqSize, TEXT("%c"), ( queued ? TEXT('Q') : TEXT(' ')));
             currentColumn++;
             break;
 
-        case 'T':
-            pos += sprintf( pos, "%04d/%02d/%02d %02d:%02d:%02d",
-                nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday, 
+        case TEXT('T'):
+            pos += _sntprintf( pos, reqSize, TEXT("%04d/%02d/%02d %02d:%02d:%02d"),
+                nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday,
                 nowTM->tm_hour, nowTM->tm_min, nowTM->tm_sec );
             currentColumn++;
             break;
 
-        case 'Z':
-            pos += sprintf( pos, "%04d/%02d/%02d %02d:%02d:%02d.%03d",
-                nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday, 
+        case TEXT('Z'):
+            pos += _sntprintf( pos, reqSize, TEXT("%04d/%02d/%02d %02d:%02d:%02d.%03d"),
+                nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday,
                 nowTM->tm_hour, nowTM->tm_min, nowTM->tm_sec, nowMillis );
             currentColumn++;
             break;
+            
+        case TEXT('U'):
+            if (uptimeFlipped) {
+                pos += _sntprintf( pos, reqSize, TEXT("--------") );
+            } else {
+                pos += _sntprintf( pos, reqSize, TEXT("%8d"), uptimeSeconds);
+            }
+            currentColumn++;
+            break;
 
-        case 'M':
-            pos += sprintf( pos, "%s", message );
+        case TEXT('M'):
+            pos += _sntprintf( pos, reqSize, TEXT("%s"), message );
             currentColumn++;
             break;
 
@@ -935,7 +978,7 @@ char* buildPrintBuffer( int source_id, int level, int threadId, int queued, stru
 
         /* Add separator chars */
         if ( handledFormat && ( currentColumn != numColumns ) ) {
-            pos += sprintf( pos, " | " );
+            pos += _sntprintf( pos, reqSize, TEXT(" | ") );
         }
     }
 
@@ -945,7 +988,7 @@ char* buildPrintBuffer( int source_id, int level, int threadId, int queued, stru
 
 void forceFlush(FILE *fp) {
     int lastError;
-    
+
     fflush(fp);
     lastError = getLastError();
 }
@@ -953,46 +996,46 @@ void forceFlush(FILE *fp) {
 /**
  * Generates a log file name given.
  *
- * buffer - Buffer into which to sprintf the generated name.
+ * buffer - Buffer into which to _sntprintf the generated name.
  * template - Template from which the name is generated.
  * nowDate - Optional date used to replace any YYYYMMDD tokens.
  * rollNum - Optional roll number used to replace any ROLLNUM tokens.
  */
-void generateLogFileName(char *buffer, const char *template, const char *nowDate, const char *rollNum ) {
+void generateLogFileName(TCHAR *buffer, const TCHAR *template, const TCHAR *nowDate, const TCHAR *rollNum ) {
     /* Copy the template to the buffer to get started. */
-    strcpy(buffer, template);
-    
+    _tcscpy(buffer, template);
+
     /* Handle the date token. */
-    if (strstr(buffer, "YYYYMMDD")) {
+    if (_tcsstr(buffer, TEXT("YYYYMMDD"))) {
         if (nowDate == NULL) {
             /* The token needs to be removed. */
-            replaceStringLongWithShort(buffer, "-YYYYMMDD", NULL);
-            replaceStringLongWithShort(buffer, "_YYYYMMDD", NULL);
-            replaceStringLongWithShort(buffer, ".YYYYMMDD", NULL);
-            replaceStringLongWithShort(buffer, "YYYYMMDD", NULL);
+            replaceStringLongWithShort(buffer, TEXT("-YYYYMMDD"), NULL);
+            replaceStringLongWithShort(buffer, TEXT("_YYYYMMDD"), NULL);
+            replaceStringLongWithShort(buffer, TEXT(".YYYYMMDD"), NULL);
+            replaceStringLongWithShort(buffer, TEXT("YYYYMMDD"), NULL);
         } else {
             /* The token needs to be replaced. */
-            replaceStringLongWithShort(buffer, "YYYYMMDD", nowDate);
+            replaceStringLongWithShort(buffer, TEXT("YYYYMMDD"), nowDate);
         }
     }
-    
+
     /* Handle the roll number token. */
-    if (strstr(buffer, "ROLLNUM")) {
+    if (_tcsstr(buffer, TEXT("ROLLNUM"))) {
         if (rollNum == NULL ) {
             /* The token needs to be removed. */
-            replaceStringLongWithShort(buffer, "-ROLLNUM", NULL);
-            replaceStringLongWithShort(buffer, "_ROLLNUM", NULL);
-            replaceStringLongWithShort(buffer, ".ROLLNUM", NULL);
-            replaceStringLongWithShort(buffer, "ROLLNUM", NULL);
+            replaceStringLongWithShort(buffer, TEXT("-ROLLNUM"), NULL);
+            replaceStringLongWithShort(buffer, TEXT("_ROLLNUM"), NULL);
+            replaceStringLongWithShort(buffer, TEXT(".ROLLNUM"), NULL);
+            replaceStringLongWithShort(buffer, TEXT("ROLLNUM"), NULL);
         } else {
             /* The token needs to be replaced. */
-            replaceStringLongWithShort(buffer, "ROLLNUM", rollNum);
+            replaceStringLongWithShort(buffer, TEXT("ROLLNUM"), rollNum);
         }
     } else {
         /* The name did not contain a ROLLNUM token. */
         if (rollNum != NULL ) {
             /* Generate the name as if ".ROLLNUM" was appended to the template. */
-            sprintf(buffer + strlen(buffer), ".%s", rollNum);
+            _sntprintf(buffer + _tcslen(buffer), logFileNameSize, TEXT(".%s"), rollNum);
         }
     }
 }
@@ -1004,61 +1047,83 @@ void generateLogFileName(char *buffer, const char *template, const char *nowDate
  *
  * @return True if the logfile name changed.
  */
-int log_printf_message( int source_id, int level, int threadId, int queued, const char *message ) {
+int log_printf_message( int source_id, int level, int threadId, int queued, TCHAR *message ) {
     int         logFileChanged = FALSE;
-    char        *printBuffer;
+    TCHAR       *subMessage;
+    TCHAR       *nextLF;
+    TCHAR       *printBuffer;
     int         old_umask;
-    char        nowDate[9];
+    TCHAR       nowDate[9];
 #ifdef WIN32
     struct _timeb timebNow;
 #else
     size_t      reqSize;
     struct timeval timevalNow;
-    char        intBuffer[3];
-    char*       pos;
+    TCHAR       intBuffer[3];
+    TCHAR*      pos;
 #endif
     time_t      now;
     int         nowMillis;
     struct tm   *nowTM;
 
+    /* If the message contains line feeds then break up the line into substrings and recurse. */
+    subMessage = message;
+    nextLF = _tcschr(subMessage, TEXT('\n'));
+    if (nextLF) {
+        /* This string contains more than one line.   Loop over the strings.  It is Ok to corrupt this string because it is only used once. */
+        while (nextLF) {
+            nextLF[0] = TEXT('\0');
+            logFileChanged |= log_printf_message(source_id, level, threadId, queued, subMessage);
+            
+            /* Locate the next one. */
+            subMessage = &(nextLF[1]);
+            nextLF = _tcschr(subMessage, TEXT('\n'));
+        }
+        
+        /* The rest of the buffer will be the final line. */
+        logFileChanged |= log_printf_message(source_id, level, threadId, queued, subMessage);
+        
+        return logFileChanged;
+    }
+    
 #ifdef WIN32
 #else
     /* See if this is a special case log entry from the forked child. */
-    if (strstr(message, LOG_FORK_MARKER) == message) {
+    if (_tcsstr(message, LOG_FORK_MARKER) == message) {
         /* Found the marker.  We only want to log the message as is to the console with a special prefix.
          *  This is used to pass the log output through the pipe to the parent Wrapper process where it
          *  will be decoded below and displayed appropriately. */
-        reqSize = strlen(LOG_SPECIAL_MARKER) + 1 + 2 + 1 + 2 + 1 + 2 + 1 + strlen(message) - strlen(LOG_FORK_MARKER) + 1;
+        reqSize = _tcslen(LOG_SPECIAL_MARKER) + 1 + 2 + 1 + 2 + 1 + 2 + 1 + _tcslen(message) - _tcslen(LOG_FORK_MARKER) + 1;
         if (!(printBuffer = preparePrintBuffer(reqSize))) {
             return FALSE;
         }
-        sprintf(printBuffer, "%s|%02d|%02d|%02d|%s", LOG_SPECIAL_MARKER, source_id, level, threadId, message + strlen(LOG_FORK_MARKER));
-        fprintf(stdout, "%s\n", printBuffer);
+        _sntprintf(printBuffer, reqSize, TEXT("%s|%02d|%02d|%02d|%s"), LOG_SPECIAL_MARKER, source_id, level, threadId, message + _tcslen(LOG_FORK_MARKER));
+        _ftprintf(stdout, TEXT("%s\n"), printBuffer);
         fflush(stdout );
         return FALSE;
-    } else if ((strstr(message, LOG_SPECIAL_MARKER) == message) && (strlen(message) >= strlen(LOG_SPECIAL_MARKER) + 10)) {
+    } else if ((_tcsstr(message, LOG_SPECIAL_MARKER) == message) && (_tcslen(message) >= _tcslen(LOG_SPECIAL_MARKER) + 10)) {
         /* Got a special encoded log message from the child process.   Parse it and continue as if the log
-         *  message came from this process. */ 
-        pos = (char *)(message + strlen(LOG_SPECIAL_MARKER) + 1);
-        
+         *  message came from this process. */
+        pos = (TCHAR *)(message + _tcslen(LOG_SPECIAL_MARKER) + 1);
+
         /* source_id */
         memcpy(intBuffer, pos, 2);
-        intBuffer[2] = '\0';
-        source_id = atoi(intBuffer);
+        intBuffer[2] = TEXT('\0');
+        source_id = _ttoi(intBuffer);
         pos += 3;
-        
+
         /* level */
         memcpy(intBuffer, pos, 2);
-        intBuffer[2] = '\0';
-        level = atoi(intBuffer);
+        intBuffer[2] = TEXT('\0');
+        level = _ttoi(intBuffer);
         pos += 3;
-        
+
         /* threadId */
         memcpy(intBuffer, pos, 2);
-        intBuffer[2] = '\0';
-        threadId = atoi(intBuffer);
+        intBuffer[2] = TEXT('\0');
+        threadId = _ttoi(intBuffer);
         pos += 3;
-        
+
         /* message */
         message = pos;
     }
@@ -1075,13 +1140,12 @@ int log_printf_message( int source_id, int level, int threadId, int queued, cons
     nowMillis = timevalNow.tv_usec / 1000;
 #endif
     nowTM = localtime( &now );
-   
     if ( threadId < 0 )
     {
         /* The current thread was specified.  Resolve what thread this actually is. */
         threadId = getThreadId();
     }
-    
+
     /* Console output by format */
     if( level >= currentConsoleLevel ) {
         /* Build up the printBuffer. */
@@ -1090,10 +1154,12 @@ int log_printf_message( int source_id, int level, int threadId, int queued, cons
             /* Write the print buffer to the console. */
 #ifdef WIN32
             if ( consoleStdoutHandle != NULL ) {
-                writeToConsole( "%s\n", printBuffer );
-            } else {
+                writeToConsole( NULL, TEXT("%s\n"), printBuffer );
+            } /* else if (GetStdHandle(STD_OUTPUT_HANDLE) != NULL) {
+                writeToConsole(GetStdHandle(STD_OUTPUT_HANDLE), TEXT("%s\n"), printBuffer);
+            } */ else {
 #endif
-                fprintf( stdout, "%s\n", printBuffer );
+                _ftprintf( stdout, TEXT("%s\n"), printBuffer );
                 if ( consoleFlush ) {
                     fflush( stdout );
                 }
@@ -1104,26 +1170,26 @@ int log_printf_message( int source_id, int level, int threadId, int queued, cons
     }
 
     /* Logfile output by format */
-    
+
     /* Log the message to the log file */
     if (level >= currentLogfileLevel) {
         /* If the log file was set to a blank value then it will not be used. */
-        if ( logFilePath && ( strlen( logFilePath ) > 0 ) )
+        if ( logFilePath && ( _tcslen( logFilePath ) > 0 ) )
         {
             /* If this the roll mode is date then we need a nowDate for this log entry. */
             if (logFileRollMode & ROLL_MODE_DATE) {
-                sprintf(nowDate, "%04d%02d%02d", nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday );
+                _sntprintf(nowDate, 9, TEXT("%04d%02d%02d"), nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday );
             } else {
-                nowDate[0] = '\0';
+                nowDate[0] = TEXT('\0');
             }
-            
+
             /* Make sure that the log file does not need to be rolled. */
             checkAndRollLogs(nowDate);
-            
+
             /* If the file needs to be opened then do so. */
             if (logfileFP == NULL) {
                 /* Generate the log file name if it is not already set. */
-                if (currentLogFileName[0] == '\0') {
+                if (currentLogFileName[0] == TEXT('\0')) {
                     if (logFileRollMode & ROLL_MODE_DATE) {
                         generateLogFileName(currentLogFileName, logFilePath, nowDate, NULL);
                     } else {
@@ -1131,53 +1197,53 @@ int log_printf_message( int source_id, int level, int threadId, int queued, cons
                     }
                     logFileChanged = TRUE;
                 }
-                
+
                 old_umask = umask( logFileUmask );
-                logfileFP = fopen( currentLogFileName, "a" );
+                logfileFP = _tfopen( currentLogFileName, TEXT("a") );
                 if (logfileFP == NULL) {
                     /* The log file could not be opened.  Try the default file location. */
-                    printf("WARNING - Unable to write to the configured log file location: %s  Falling back to the default file in current working directory: %s  Cause was: %s\n",
-                        currentLogFileName, "wrapper.log", getLastErrorText());
-                    strcpy(currentLogFileName, "wrapper.log");
-                    logfileFP = fopen( "wrapper.log", "a" );
+                    _tprintf(TEXT("WARNING - Unable to write to the configured log file location: %s  Falling back to the default file in current working directory: %s  Cause was: %s\n"),
+                        currentLogFileName, TEXT("wrapper.log"), getLastErrorText());
+                    _sntprintf(currentLogFileName, logFileNameSize, TEXT("wrapper.log"));
+                    logfileFP = _tfopen( TEXT("wrapper.log"), TEXT("a") );
                 }
                 umask(old_umask);
-                
-#ifdef _DEBUG                
+
+#ifdef _DEBUG
                 if (logfileFP != NULL) {
-                    printf("Opened logfile\n");
+                    _tprintf(TEXT("Opened logfile\n"));
                 }
 #endif
             }
-            
+
             if (logfileFP == NULL) {
-                currentLogFileName[0] = '\0';
-                printf("Unable to open logfile %s: %s\n", logFilePath, getLastErrorText());
+                currentLogFileName[0] = TEXT('\0');
+                _tprintf(TEXT("Unable to open logfile %s: %s\n"), logFilePath, getLastErrorText());
             } else {
                 /* We need to store the date the file was opened for. */
-                strcpy(logFileLastNowDate, nowDate);
-                
+                _tcscpy(logFileLastNowDate, nowDate);
+
                 /* Build up the printBuffer. */
                 printBuffer = buildPrintBuffer( source_id, level, threadId, queued, nowTM, nowMillis, logfileFormat, message );
                 if (printBuffer) {
-                    fprintf( logfileFP, "%s\n", printBuffer );
+                    _ftprintf( logfileFP, TEXT("%s\n"), printBuffer );
                     logFileAccessed = TRUE;
-                    
+
                     /* Increment the activity counter. */
                     logfileActivityCount++;
-                    
+
                     /* Only close the file if autoClose is set.  Otherwise it will be closed later
                      *  after an appropriate period of inactivity. */
                     if (autoCloseLogfile) {
 #ifdef _DEBUG
-                        printf("Closing logfile immediately...\n");
+                        _tprintf(TEXT("Closing logfile immediately...\n"));
 #endif
-                        
+
                         fclose(logfileFP);
                         logfileFP = NULL;
                         /* Do not clear the currentLogFileName here as we are not changing its name. */
                     }
-                    
+
                     /* Leave the file open.  It will be closed later after a period of inactivity. */
                 }
             }
@@ -1186,15 +1252,19 @@ int log_printf_message( int source_id, int level, int threadId, int queued, cons
 
     /* Loginfo/Eventlog if levels match (not by format timecodes/status allready exists in evenlog) */
     switch ( level ) {
+    case LEVEL_NOTICE:
     case LEVEL_ADVICE:
-        /* Advice level messages are special in that they never get logged to the
+        /* Advice and Notice level messages are special in that they never get logged to the
          *  EventLog / SysLog. */
         break;
 
     default:
         if ( level >= currentLoginfoLevel ) {
-            sendEventlogMessage( source_id, level, message );
-            sendLoginfoMessage( source_id, level, message );
+#ifdef WIN32
+                sendEventlogMessage(source_id, level, message);
+#else
+                sendLoginfoMessage(source_id, level, message);
+#endif
         }
     }
     return logFileChanged;
@@ -1202,12 +1272,16 @@ int log_printf_message( int source_id, int level, int threadId, int queued, cons
 
 
 /* General log functions */
-void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
+void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
     va_list     vargs;
     int         count;
     int         threadId;
     int         logFileChanged;
-    char        *logFileCopy;
+    TCHAR        *logFileCopy;
+#if defined(UNICODE) && !defined(WIN32)
+    TCHAR *msg = NULL;
+    int i;
+#endif
 
     /* We need to be very careful that only one thread is allowed in here
      *  at a time.  On Windows this is done using a Mutex object that is
@@ -1215,7 +1289,20 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
     if (lockLoggingMutex()) {
         return;
     }
+#if defined(UNICODE) && !defined(WIN32)
+    msg = malloc(sizeof(wchar_t) * (wcslen(lpszFmt) + 1));
 
+    /* Loop over the format and convert all '%s' patterns to %S' so the UNICODE displays correctly. */
+    if (wcslen(lpszFmt) > 0) {
+        for (i = 0; i < _tcslen(lpszFmt); i++){
+            msg[i] = lpszFmt[i];
+            if ((lpszFmt[i] == TEXT('%')) && (i  < _tcslen(lpszFmt)) && (lpszFmt[i+1] == TEXT('s')) && ((i == 0) || (lpszFmt[i-1] != TEXT('%')))){
+                msg[i+1] = TEXT('S'); i++;
+            }
+        }
+    }
+    msg[wcslen(lpszFmt)] = TEXT('\0');
+#endif
     threadId = getThreadId();
 
     /* Loop until the buffer is large enough that we are able to successfully
@@ -1226,9 +1313,9 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
         {
             /* No buffer yet. Allocate one to get started. */
             threadMessageBufferSize = 100;
-            threadMessageBuffer = (char*)malloc( threadMessageBufferSize * sizeof(char) );
+            threadMessageBuffer = (TCHAR*)malloc( threadMessageBufferSize * sizeof(TCHAR) );
             if (!threadMessageBuffer) {
-                printf("Out of memory in logging code (P1)\n");
+                _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P1"));
                 threadMessageBufferSize = 0;
                 return;
             }
@@ -1236,17 +1323,17 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
 
         /* Try writing to the buffer. */
         va_start( vargs, lpszFmt );
-#ifdef WIN32
-        count = _vsnprintf( threadMessageBuffer, threadMessageBufferSize, lpszFmt, vargs );
+#if defined(UNICODE) && !defined(WIN32)
+        count = _vsntprintf( threadMessageBuffer, threadMessageBufferSize, msg, vargs );
 #else
-        count = vsnprintf( threadMessageBuffer, threadMessageBufferSize, lpszFmt, vargs );
+        count = _vsntprintf( threadMessageBuffer, threadMessageBufferSize, lpszFmt, vargs );
 #endif
         va_end( vargs );
         /*
-        printf( " vsnprintf->%d, size=%d\n", count, threadMessageBufferSize );
+        _tprintf(TEXT(" vsnprintf->%d, size=%d\n"), count, threadMessageBufferSize );
         */
         if ( ( count < 0 ) || ( count >= (int)threadMessageBufferSize ) ) {
-            /* If the count is exactly equal to the buffer size then a null char was not written.
+            /* If the count is exactly equal to the buffer size then a null TCHAR was not written.
              *  It must be larger.
              * Windows will return -1 if the buffer is too small. If the number is
              *  exact however, we still need to expand it to have room for the null.
@@ -1264,9 +1351,9 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
                 threadMessageBufferSize = count + 1;
             }
 
-            threadMessageBuffer = (char*)malloc( threadMessageBufferSize * sizeof(char) );
+            threadMessageBuffer = (TCHAR*)malloc( threadMessageBufferSize * sizeof(TCHAR) );
             if (!threadMessageBuffer) {
-                printf("Out of memory in logging code (P2)\n");
+                _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P2"));
                 threadMessageBufferSize = 0;
                 return;
             }
@@ -1275,15 +1362,17 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
             count = -1;
         }
     } while ( count < 0 );
-
+#if defined(UNICODE) && !defined(WIN32)
+    free(msg);
+#endif
     logFileCopy = NULL;
     logFileChanged = log_printf_message( source_id, level, threadId, FALSE, threadMessageBuffer );
     if (logFileChanged) {
-        logFileCopy = malloc(sizeof(char) * (strlen(currentLogFileName) + 1));
+        logFileCopy = malloc(sizeof(TCHAR) * (_tcslen(currentLogFileName) + 1));
         if (!logFileCopy) {
-            printf("Out of memory in logging code (P3)\n");
+            _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P3"));
         } else {
-            strcpy(logFileCopy, currentLogFileName);
+            _tcscpy(logFileCopy, currentLogFileName);
         }
     }
 
@@ -1307,16 +1396,16 @@ void log_printf( int source_id, int level, const char *lpszFmt, ... ) {
  */
 #ifdef WIN32
 TCHAR lastErrBuf[1024];
-char* getLastErrorText() {
+TCHAR* getLastErrorText() {
     DWORD dwRet;
-    LPTSTR lpszTemp = NULL;
+    TCHAR* lpszTemp = NULL;
 
-    dwRet = FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | 
+    dwRet = FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER |
                            FORMAT_MESSAGE_FROM_SYSTEM |FORMAT_MESSAGE_ARGUMENT_ARRAY,
                            NULL,
                            GetLastError(),
                            LANG_NEUTRAL,
-                           (LPTSTR)&lpszTemp,
+                           (TCHAR*)&lpszTemp,
                            0,
                            NULL);
 
@@ -1325,7 +1414,7 @@ char* getLastErrorText() {
         lastErrBuf[0] = TEXT('\0');
     } else {
         lpszTemp[lstrlen(lpszTemp)-2] = TEXT('\0');  /*remove cr and newline character */
-        _stprintf( lastErrBuf, TEXT("%s (0x%x)"), lpszTemp, GetLastError());
+        _sntprintf( lastErrBuf, 1024, TEXT("%s (0x%x)"), lpszTemp, GetLastError());
     }
 
     if (lpszTemp) {
@@ -1338,8 +1427,28 @@ int getLastError() {
     return GetLastError();
 }
 #else
-char* getLastErrorText() {
+TCHAR* getLastErrorText() {
+#ifdef UNICODE
+    char* c;
+    TCHAR* t;
+    size_t req;
+    c = strerror(errno);
+    req = mbstowcs(NULL, c, 0);
+    if (req < 0) {
+        invalidMultiByteSequence(TEXT("GLET"), 1);
+        return NULL;
+    }
+    t = malloc((req + 1) * sizeof(TCHAR));
+    if (!t) {
+        _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("GLET1"));
+        return NULL;
+    }
+    mbstowcs(t, c, req + 1);
+    return t;
+
+#else
     return strerror(errno);
+#endif
 }
 int getLastError() {
     return errno;
@@ -1348,41 +1457,41 @@ int getLastError() {
 
 int registerSyslogMessageFile( ) {
 #ifdef WIN32
-    char buffer[ 1024 ];
-    char regPath[ 1024 ];
+    TCHAR buffer[ 1024 ];
+    TCHAR regPath[ 1024 ];
     HKEY hKey;
     DWORD categoryCount, typesSupported;
 
     /* Get absolute path to service manager */
     if( GetModuleFileName( NULL, buffer, _MAX_PATH ) ) {
-        sprintf( regPath, "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application\\%s", loginfoSourceName );
+        _sntprintf( regPath, 1024, TEXT("SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application\\%s"), loginfoSourceName );
 
         if( RegCreateKey( HKEY_LOCAL_MACHINE, regPath, (PHKEY) &hKey ) == ERROR_SUCCESS ) {
             RegCloseKey( hKey );
 
             if( RegOpenKeyEx( HKEY_LOCAL_MACHINE, regPath, 0, KEY_WRITE, (PHKEY) &hKey ) == ERROR_SUCCESS ) {
                 /* Set EventMessageFile */
-                if( RegSetValueEx( hKey, "EventMessageFile", (DWORD) 0, (DWORD) REG_SZ, (const unsigned char *) buffer, (DWORD)(strlen(buffer) + 1) ) != ERROR_SUCCESS ) {
+                if( RegSetValueEx( hKey, TEXT("EventMessageFile"), (DWORD) 0, (DWORD) REG_SZ, (LPBYTE) buffer, (DWORD)(sizeof(TCHAR) * (_tcslen(buffer) + 1))) != ERROR_SUCCESS ) {
                     RegCloseKey( hKey );
                     return -1;
                 }
 
                 /* Set CategoryMessageFile */
-                if( RegSetValueEx( hKey, "CategoryMessageFile", (DWORD) 0, (DWORD) REG_SZ, (const unsigned char *) buffer, (DWORD)(strlen(buffer) + 1) ) != ERROR_SUCCESS ) {
+                if( RegSetValueEx( hKey, TEXT("CategoryMessageFile"), (DWORD) 0, (DWORD) REG_SZ, (LPBYTE) buffer, (DWORD)(sizeof(TCHAR) * (_tcslen(buffer) + 1))) != ERROR_SUCCESS ) {
                     RegCloseKey( hKey );
                     return -1;
                 }
 
                 /* Set CategoryCount */
                 categoryCount = 12;
-                if( RegSetValueEx( hKey, "CategoryCount", (DWORD) 0, (DWORD) REG_DWORD, (LPBYTE) &categoryCount, sizeof(DWORD) ) != ERROR_SUCCESS ) {
+                if( RegSetValueEx( hKey, TEXT("CategoryCount"), (DWORD) 0, (DWORD) REG_DWORD, (LPBYTE) &categoryCount, sizeof(DWORD) ) != ERROR_SUCCESS ) {
                     RegCloseKey( hKey );
                     return -1;
                 }
 
                 /* Set TypesSupported */
                 typesSupported = 7;
-                if( RegSetValueEx( hKey, "TypesSupported", (DWORD) 0, (DWORD) REG_DWORD, (LPBYTE) &typesSupported, sizeof(DWORD) ) != ERROR_SUCCESS ) {
+                if( RegSetValueEx( hKey, TEXT("TypesSupported"), (DWORD) 0, (DWORD) REG_DWORD, (LPBYTE) &typesSupported, sizeof(DWORD) ) != ERROR_SUCCESS ) {
                     RegCloseKey( hKey );
                     return -1;
                 }
@@ -1403,10 +1512,10 @@ int unregisterSyslogMessageFile( ) {
 #ifdef WIN32
     /* If we deregister this application, then the event viewer will not work when the program is not running. */
     /* Don't want to clutter up the Registry, but is there another way?  */
-    char regPath[ 1024 ];
+    TCHAR regPath[ 1024 ];
 
     /* Get absolute path to service manager */
-    sprintf( regPath, "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application\\%s", loginfoSourceName );
+    _sntprintf( regPath, 1024, TEXT("SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application\\%s"), loginfoSourceName );
 
     if( RegDeleteKey( HKEY_LOCAL_MACHINE, regPath ) == ERROR_SUCCESS )
         return 0;
@@ -1417,53 +1526,54 @@ int unregisterSyslogMessageFile( ) {
 #endif
 }
 
-void sendEventlogMessage( int source_id, int level, const char *szBuff ) {
 #ifdef WIN32
-    char   header[16];
-    const char   **strings;
+void sendEventlogMessage( int source_id, int level, const TCHAR *szBuff ) {
+    TCHAR   header[16];
+    const TCHAR   **strings;
     WORD   eventType;
     HANDLE handle;
     WORD   eventID, categoryID;
     int    result;
 
-    strings = (char **) malloc( 3 * sizeof( char * ) );
+    strings = (TCHAR **) malloc( 3 * sizeof(TCHAR *));
     if (!strings) {
-        printf("Out of memory in logging code (SEM1)\n");
+        _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("SEM1"));
         return;
     }
 
     /* Build the source header */
-    switch( source_id ) {
+    switch(source_id) {
     case WRAPPER_SOURCE_WRAPPER:
-        sprintf( header, "wrapper" );
-    break;
+        _sntprintf( header, 16, TEXT("wrapper") );
+        break;
 
     case WRAPPER_SOURCE_PROTOCOL:
-        sprintf( header, "wrapperp" );
-    break;
+        _sntprintf( header, 16, TEXT("wrapperp") );
+        break;
 
     default:
-        sprintf( header, "jvm %d", source_id );
-    break;
+        _sntprintf( header, 16, TEXT("jvm %d"), source_id );
+        break;
     }
 
     /* Build event type by level */
-    switch( level ) {
+    switch(level) {
+    case LEVEL_NOTICE: /* Will not get in here. */
     case LEVEL_ADVICE: /* Will not get in here. */
     case LEVEL_FATAL:
         eventType = EVENTLOG_ERROR_TYPE;
-    break;
+        break;
 
     case LEVEL_ERROR:
     case LEVEL_WARN:
         eventType = EVENTLOG_WARNING_TYPE;
-    break;
+        break;
 
     case LEVEL_STATUS:
     case LEVEL_INFO:
     case LEVEL_DEBUG:
         eventType = EVENTLOG_INFORMATION_TYPE;
-    break;
+        break;
     }
 
     /* Set the category id to the appropriate resource id. */
@@ -1534,7 +1644,7 @@ void sendEventlogMessage( int source_id, int level, const char *szBuff ) {
         NULL,                     /* user security identifier */
         2,                        /* number of strings to merge */
         0,                        /* size of binary data */
-        (const char **) strings,  /* array of strings to merge */
+        (const TCHAR**) strings,  /* array of strings to merge */
         NULL                      /* binary data buffer */
     );
     if (result == 0) {
@@ -1543,19 +1653,17 @@ void sendEventlogMessage( int source_id, int level, const char *szBuff ) {
 
         /* Recurse so this error gets set in the log file and console.  The syslog
          *  output has been disabled so we will not get back here. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Unable to write to the EventLog due to: %s", getLastErrorText());
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, "Internally setting wrapper.syslog.loglevel=NONE to prevent further messages.");
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to write to the EventLog due to: %s"), getLastErrorText());
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Internally setting wrapper.syslog.loglevel=NONE to prevent further messages."));
     }
 
     DeregisterEventSource( handle );
 
     free( (void *) strings );
     strings = NULL;
-#endif
 }
-
-void sendLoginfoMessage( int source_id, int level, const char *szBuff ) {
-#ifndef WIN32 /* If UNIX */
+#else
+void sendLoginfoMessage( int source_id, int level, const TCHAR *szBuff ) {
     int eventType;
 
     /* Build event type by level */
@@ -1585,28 +1693,28 @@ void sendLoginfoMessage( int source_id, int level, const char *szBuff ) {
             eventType = LOG_DEBUG;
     }
 
-    openlog( loginfoSourceName, LOG_PID | LOG_NDELAY, currentLogfacilityLevel );
-    syslog( eventType, "%s", szBuff );
+    _topenlog( loginfoSourceName, LOG_PID | LOG_NDELAY, currentLogfacilityLevel );
+    _tsyslog( eventType, szBuff );
     closelog( );
-#endif
 }
+#endif
 
 #ifdef WIN32
 int vWriteToConsoleBufferSize = 100;
-char *vWriteToConsoleBuffer = NULL;
-void vWriteToConsole( char *lpszFmt, va_list vargs ) {
+TCHAR *vWriteToConsoleBuffer = NULL;
+void vWriteToConsole( HANDLE hdl, TCHAR *lpszFmt, va_list vargs ) {
     int cnt;
     DWORD wrote;
 
     /* This should only be called if consoleStdoutHandle is set. */
-    if ( consoleStdoutHandle == NULL ) {
+    if ( consoleStdoutHandle == NULL && hdl == NULL) {
         return;
     }
 
     if ( vWriteToConsoleBuffer == NULL ) {
-        vWriteToConsoleBuffer = (char *)malloc( vWriteToConsoleBufferSize * sizeof(char) );
+        vWriteToConsoleBuffer = (TCHAR *)malloc( vWriteToConsoleBufferSize * sizeof(TCHAR) );
         if (!vWriteToConsoleBuffer) {
-            printf("Out of memory in logging code (WTC1)\n");
+            _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("WTC1"));
             return;
         }
     }
@@ -1623,26 +1731,30 @@ void vWriteToConsole( char *lpszFmt, va_list vargs ) {
      *  following loop will expand the global buffer to hold the current
      *  message.  It will grow as needed to handle any arbitrarily large
      *  user message.  The buffer needs to be able to hold all available
-     *  characters + a null char. */
-    while ( ( cnt = _vsnprintf( vWriteToConsoleBuffer, vWriteToConsoleBufferSize - 1, lpszFmt, vargs ) ) < 0 ) {
+     *  characters + a null TCHAR. */
+    while ( ( cnt = _vsntprintf( vWriteToConsoleBuffer, vWriteToConsoleBufferSize - 1, lpszFmt, vargs ) ) < 0 ) {
         /* Expand the size of the buffer */
         free( vWriteToConsoleBuffer );
         vWriteToConsoleBufferSize += 100;
-        vWriteToConsoleBuffer = (char *)malloc( vWriteToConsoleBufferSize * sizeof(char) );
+        vWriteToConsoleBuffer = (TCHAR *)malloc( vWriteToConsoleBufferSize * sizeof(TCHAR) );
         if (!vWriteToConsoleBuffer) {
-            printf("Out of memory in logging code (WTC2)\n");
+            _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("WTC2"));
             return;
         }
     }
 
     /* We can now write the message. */
-    WriteConsole(consoleStdoutHandle, vWriteToConsoleBuffer, (DWORD)strlen( vWriteToConsoleBuffer ), &wrote, NULL);
+    if (hdl == NULL) {
+        WriteConsole(consoleStdoutHandle, vWriteToConsoleBuffer, (DWORD)_tcslen( vWriteToConsoleBuffer ), &wrote, NULL);
+    } else {
+        WriteConsole(hdl, vWriteToConsoleBuffer, (DWORD)_tcslen( vWriteToConsoleBuffer ), &wrote, NULL);
+    }
 }
-void writeToConsole( char *lpszFmt, ... ) {
+void writeToConsole( HANDLE hdl, TCHAR *lpszFmt, ... ) {
     va_list        vargs;
 
     va_start( vargs, lpszFmt );
-    vWriteToConsole( lpszFmt, vargs );
+    vWriteToConsole( hdl, lpszFmt, vargs );
     va_end( vargs );
 }
 #endif
@@ -1651,52 +1763,52 @@ void writeToConsole( char *lpszFmt, ... ) {
  * Does a search for all files matching the specified pattern and deletes all
  *  but the most recent 'count' files.  The files are sorted by their names.
  */
-void limitLogFileCount(const char *current, const char *pattern, int sortMode, int count) {
-    char **files;
+void limitLogFileCount(const TCHAR *current, const TCHAR *pattern, int sortMode, int count) {
+    TCHAR **files;
     int index;
     int foundCurrent;
-    
+
 #ifdef _DEBUG
-    printf("limitLogFileCount(%s, %s, %d, %d)\n", current, pattern, sortMode, count);
+    _tprintf(TEXT("limitLogFileCount(%s, %s, %d, %d)\n"), current, pattern, sortMode, count);
 #endif
-    
+
     files = wrapperFileGetFiles(pattern, sortMode);
     if (!files) {
         /* Failed */
         return;
     }
-    
+
     /* When this loop runs we keep the first COUNT files in the list and everything thereafter is deleted. */
     foundCurrent = FALSE;
     index = 0;
     while (files[index]) {
         if (index < count) {
 #ifdef _DEBUG
-            printf("Keep files[%d] %s\n", index, files[index]);
+            _tprintf(TEXT("Keep files[%d] %s\n"), index, files[index]);
 #endif
-            if (strcmp(current, files[index]) == 0) {
+            if (_tcscmp(current, files[index]) == 0) {
                 /* This is the current file, as expected. */
 #ifdef _DEBUG
-                printf("  Current\n");
+                _tprintf(TEXT("  Current\n"));
 #endif
                 foundCurrent = TRUE;
             }
         } else {
 #ifdef _DEBUG
-            printf("Delete files[%d] %s\n", index, files[index]);
+            _tprintf(TEXT("Delete files[%d] %s\n"), index, files[index]);
 #endif
-            if (strcmp(current, files[index]) == 0) {
+            if (_tcscmp(current, files[index]) == 0) {
                 /* This is the current file, we don't want to delete it. */
-                printf("Log file sort order would result in current log file being deleted: %s\n", current);
+                _tprintf(TEXT("Log file sort order would result in current log file being deleted: %s\n"), current);
                 foundCurrent = TRUE;
-            } else if (remove(files[index])) {
-                printf("Unable to delete old log file: %s (%s)\n", files[index], getLastErrorText());
+            } else if (_tremove(files[index])) {
+                _tprintf(TEXT("Unable to delete old log file: %s (%s)\n"), files[index], getLastErrorText());
             }
         }
-        
+
         index++;
     }
-    
+
     /* Now if we did not find the current file, and there are <count> files
        still in the directory, then we want to also delete the oldest one.
        Otherwise, the addition of the current file would result in too many
@@ -1704,102 +1816,118 @@ void limitLogFileCount(const char *current, const char *pattern, int sortMode, i
     if (!foundCurrent) {
         if (index >= count) {
 #ifdef _DEBUG
-            printf("Delete files[%d] %s\n", count - 1, files[count - 1]);
+            _tprintf(TEXT("Delete files[%d] %s\n"), count - 1, files[count - 1]);
 #endif
-            if (remove(files[count - 1])) {
-                printf("Unable to delete old log file: %s (%s)\n", files[count - 1], getLastErrorText());
+            if (_tremove(files[count - 1])) {
+                _tprintf(TEXT("Unable to delete old log file: %s (%s)\n"), files[count - 1], getLastErrorText());
             }
         }
     }
-    
+
     wrapperFileFreeFiles(files);
 }
+
+/**
+ * Sets the current uptime in seconds.
+ *
+ * @param uptime Uptime in seconds.
+ * @param flipped TRUE when the uptime is no longer meaningful.
+ */
+void setUptime(int uptime, int flipped) {
+    uptimeSeconds = uptime;
+    uptimeFlipped = flipped;
+}
+
 
 /**
  * Rolls log files using the ROLLNUM system.
  */
 void rollLogs() {
     int i;
-    char rollNum[11];
+    TCHAR rollNum[11];
+#if defined(WIN32) && !defined(WIN64)
+    struct _stat64i32 fileStat;
+#else
     struct stat fileStat;
+#endif
     int result;
 
 #ifdef _DEBUG
-    printf("rollLogs()\n");
+    _tprintf(TEXT("rollLogs()\n"));
 #endif
     if (!logFilePath) {
         return;
     }
-    
+
     /* If the log file is currently open, it needs to be closed. */
     if (logfileFP != NULL) {
 #ifdef _DEBUG
-        printf("Closing logfile so it can be rolled...\n");
+        _tprintf(TEXT("Closing logfile so it can be rolled...\n"));
 #endif
 
         fclose(logfileFP);
         logfileFP = NULL;
-        currentLogFileName[0] = '\0';
+        currentLogFileName[0] = TEXT('\0');
     }
-    
+
 #ifdef _DEBUG
-    printf("Rolling log files...\n");
+    _tprintf(TEXT("Rolling log files...\n"));
 #endif
-    
+
     /* We don't know how many log files need to be rotated yet, so look. */
     i = 0;
     do {
         i++;
-        sprintf(rollNum, "%d", i);
+        _sntprintf(rollNum, 11, TEXT("%d"), i);
         generateLogFileName(workLogFileName, logFilePath, NULL, rollNum);
-        result = stat(workLogFileName, &fileStat);
+        result = _tstat(workLogFileName, &fileStat);
 #ifdef _DEBUG
         if (result == 0) {
-            printf("Rolled log file %s exists.\n", workLogFileName);
+            _tprintf(TEXT("Rolled log file %s exists.\n"), workLogFileName);
         }
 #endif
     } while (result == 0);
-    
+
     /* Now, starting at the highest file rename them up by one index. */
     for (; i > 1; i--) {
-        strcpy(currentLogFileName, workLogFileName);
-        sprintf(rollNum, "%d", i - 1);
+        _tcscpy(currentLogFileName, workLogFileName);
+        _sntprintf(rollNum, 11, TEXT("%d"), i - 1);
         generateLogFileName(workLogFileName, logFilePath, NULL, rollNum);
-        
+
         if ((logFileMaxLogFiles > 0) && (i > logFileMaxLogFiles) && (!logFilePurgePattern)) {
             /* The file needs to be deleted rather than rolled.   If a purge pattern was not specified,
              *  then the files will be deleted here.  Otherwise they will be deleted below. */
-            
-            if (remove(workLogFileName)) {
+
+            if (_tremove(workLogFileName)) {
                 if (getLastError() == 2) {
                     /* The file did not exist. */
                 } else if (getLastError() == 3) {
                     /* The path did not exist. */
                 } else {
-                    printf("Unable to delete old log file: %s (%s)\n", workLogFileName, getLastErrorText());
+                    _tprintf(TEXT("Unable to delete old log file: %s (%s)\n"), workLogFileName, getLastErrorText());
                 }
             }
 #ifdef _DEBUG
             else {
-                printf("Deleted %s\n", workLogFileName);
+                _tprintf(TEXT("Deleted %s\n"), workLogFileName);
             }
 #endif
         } else {
-            if (rename(workLogFileName, currentLogFileName) != 0) {
+            if (_trename(workLogFileName, currentLogFileName) != 0) {
                 if (errno == 13) {
                     /* Don't log this as with other errors as that would cause recursion. */
-                    printf("Unable to rename log file %s to %s.  File is in use by another application.\n",
+                    _tprintf(TEXT("Unable to rename log file %s to %s.  File is in use by another application.\n"),
                         workLogFileName, currentLogFileName);
                 } else {
                     /* Don't log this as with other errors as that would cause recursion. */
-                    printf("Unable to rename log file %s to %s. (%s)\n",
+                    _tprintf(TEXT("Unable to rename log file %s to %s. (%s)\n"),
                         workLogFileName, currentLogFileName, getLastErrorText());
                 }
                 return;
             }
 #ifdef _DEBUG
             else {
-                printf("Renamed %s to %s\n", workLogFileName, currentLogFileName);
+                _tprintf(TEXT("Renamed %s to %s\n"), workLogFileName, currentLogFileName);
             }
 #endif
         }
@@ -1807,65 +1935,69 @@ void rollLogs() {
 
     /* Rename the current file to the #1 index position */
     generateLogFileName(currentLogFileName, logFilePath, NULL, NULL);
-    if (rename(currentLogFileName, workLogFileName) != 0) {
+    if (_trename(currentLogFileName, workLogFileName) != 0) {
         if (getLastError() == 2) {
             /* File does not yet exist. */
         } else if (getLastError() == 3) {
             /* Path does not yet exist. */
         } else if (errno == 13) {
             /* Don't log this as with other errors as that would cause recursion. */
-            printf("Unable to rename log file %s to %s.  File is in use by another application.\n",
+            _tprintf(TEXT("Unable to rename log file %s to %s.  File is in use by another application.\n"),
                 currentLogFileName, workLogFileName);
             return;
         } else {
             /* Don't log this as with other errors as that would cause recursion. */
-            printf("Unable to rename log file %s to %s. (%s)\n",
+            _tprintf(TEXT("Unable to rename log file %s to %s. (%s)\n"),
                 currentLogFileName, workLogFileName, getLastErrorText());
             return;
         }
     }
 #ifdef _DEBUG
     else {
-        printf("Renamed %s to %s\n", currentLogFileName, workLogFileName);
+        _tprintf(TEXT("Renamed %s to %s\n"), currentLogFileName, workLogFileName);
     }
 #endif
-    
+
     /* Now limit the number of files using the standard method. */
     if (logFileMaxLogFiles > 0) {
         if (logFilePurgePattern) {
             limitLogFileCount(currentLogFileName, logFilePurgePattern, logFilePurgeSortMode, logFileMaxLogFiles + 1);
         }
     }
-    
+
     /* Reset the current log file name as it is not being used yet. */
-    currentLogFileName[0] = '\0';
+    currentLogFileName[0] = TEXT('\0');
 }
 
 /**
  * Check to see whether or not the log file needs to be rolled.
  *  This is only called when synchronized.
  */
-void checkAndRollLogs(const char *nowDate) {
+void checkAndRollLogs(const TCHAR *nowDate) {
     long position;
+#if defined(WIN32) && !defined(WIN64)
+    struct _stat64i32 fileStat;
+#else
     struct stat fileStat;
-    
+#endif
+
     /* Depending on the roll mode, decide how to roll the log file. */
     if (logFileRollMode & ROLL_MODE_SIZE) {
         /* Roll based on the size of the file. */
         if (logFileMaxSize <= 0)
             return;
-        
+
         /* Find out the current size of the file.  If the file is currently open then we need to
          *  use ftell to make sure that the buffered data is also included. */
         if (logfileFP != NULL) {
             /* File is open */
             if ((position = ftell(logfileFP)) < 0) {
-                printf("Unable to get the current logfile size with ftell: %s\n", getLastErrorText());
+                _tprintf(TEXT("Unable to get the current logfile size with ftell: %s\n"), getLastErrorText());
                 return;
             }
         } else {
             /* File is not open */
-            if (stat(logFilePath, &fileStat) != 0) {
+            if (_tstat(logFilePath, &fileStat) != 0) {
                 if (getLastError() == 2) {
                     /* File does not yet exist. */
                     position = 0;
@@ -1873,48 +2005,48 @@ void checkAndRollLogs(const char *nowDate) {
                     /* Path does not exist. */
                     position = 0;
                 } else {
-                    printf("Unable to get the current logfile size with stat: %s\n", getLastErrorText());
+                    _tprintf(TEXT("Unable to get the current logfile size with stat: %s\n"), getLastErrorText());
                     return;
                 }
             } else {
                 position = fileStat.st_size;
             }
         }
-        
+
         /* Does the log file need to rotated? */
         if (position >= logFileMaxSize) {
             rollLogs();
         }
     } else if (logFileRollMode & ROLL_MODE_DATE) {
         /* Roll based on the date of the log entry. */
-        if (strcmp(nowDate, logFileLastNowDate) != 0) {
+        if (_tcscmp(nowDate, logFileLastNowDate) != 0) {
             /* The date has changed.  Close the file. */
             if (logfileFP != NULL) {
 #ifdef _DEBUG
-                printf("Closing logfile because the date changed...\n");
+                _tprintf(TEXT("Closing logfile because the date changed...\n"));
 #endif
-        
+
                 fclose(logfileFP);
                 logfileFP = NULL;
             }
             /* Always reset the name so the the log file name will be regenerated correctly. */
-            currentLogFileName[0] = '\0';
-            
+            currentLogFileName[0] = TEXT('\0');
+
             /* This will happen just before a new log file is created.
              *  Check the maximum file count. */
             if (logFileMaxLogFiles > 0) {
                 /* We will check for too many files here and then clear the current log file name so it will be set later. */
                 generateLogFileName(currentLogFileName, logFilePath, nowDate, NULL);
-                
+
                 if (logFilePurgePattern) {
                     limitLogFileCount(currentLogFileName, logFilePurgePattern, logFilePurgeSortMode, logFileMaxLogFiles + 1);
                 } else {
-                    generateLogFileName(workLogFileName, logFilePath, "????????", NULL);
+                    generateLogFileName(workLogFileName, logFilePath, TEXT("????????"), NULL);
                     limitLogFileCount(currentLogFileName, workLogFileName, WRAPPER_FILE_SORT_MODE_NAMES_DEC, logFileMaxLogFiles + 1);
                 }
-                
-                currentLogFileName[0] = '\0';
-                workLogFileName[0] = '\0';
+
+                currentLogFileName[0] = TEXT('\0');
+                workLogFileName[0] = TEXT('\0');
             }
         }
     }
@@ -1931,7 +2063,7 @@ void checkAndRollLogs(const char *nowDate) {
  * Messages logged from signal handlers are relatively rare so this does not
  *  need to be all that efficient.
  */
-void log_printf_queueInner( int source_id, int level, char *buffer ) {
+void log_printf_queueInner(int source_id, int level, TCHAR *buffer) {
     int threadId;
     int localWriteIndex;
     int localReadIndex;
@@ -1940,7 +2072,7 @@ void log_printf_queueInner( int source_id, int level, char *buffer ) {
     threadId = getThreadId();
 
 #ifdef _DEBUG
-    printf( "LOG ENQUEUE[%d]: %s\n", queueWriteIndex[threadId], buffer );
+    _tprintf(TEXT("LOG ENQUEUE[%d]: %s\n"), queueWriteIndex[threadId], buffer );
 #endif
 
     /* NOTE - This function is not synchronized.  So be very careful and think
@@ -1950,12 +2082,12 @@ void log_printf_queueInner( int source_id, int level, char *buffer ) {
     localWriteIndex = queueWriteIndex[threadId];
     localReadIndex = queueReadIndex[threadId];
     if ((localWriteIndex == localReadIndex - 1) || ((localWriteIndex == QUEUE_SIZE - 1) && (localReadIndex == 0))) {
-        printf("WARNING log queue overflow for thread[%d]:%d:%d dropping entry. %s\n", threadId, localWriteIndex, localReadIndex, buffer);
+        _tprintf(TEXT("WARNING log queue overflow for thread[%d]:%d:%d dropping entry. %s\n"), threadId, localWriteIndex, localReadIndex, buffer);
         return;
     }
 
     /* Clear any old buffer, only necessary starting on the second time through the queue buffers. */
-    if ( queueWrapped[threadId] ) {
+    if (queueWrapped[threadId]) {
         free( queueMessages[threadId][queueWriteIndex[threadId]] );
         queueMessages[threadId][queueWriteIndex[threadId]] = NULL;
     }
@@ -1969,20 +2101,40 @@ void log_printf_queueInner( int source_id, int level, char *buffer ) {
 
     /* Lastly increment and wrap the write index. */
     queueWriteIndex[threadId]++;
-    if ( queueWriteIndex[threadId] >= QUEUE_SIZE ) {
+    if (queueWriteIndex[threadId] >= QUEUE_SIZE) {
         queueWriteIndex[threadId] = 0;
         queueWrapped[threadId] = 1;
     }
 }
 
-void log_printf_queue( int useQueue, int source_id, int level, const char *lpszFmt, ... ) {
+void log_printf_queue( int useQueue, int source_id, int level, const TCHAR *lpszFmt, ... ) {
     va_list     vargs;
     int         count;
-    char        *buffer;
+    TCHAR       *buffer;
     int         bufferSize = 100;
     int         itFit = 0;
 
     /* Start by processing any arguments so that we can store a simple string. */
+
+#if defined(UNICODE) && !defined(WIN32)
+    int i;
+    TCHAR* msg;
+    msg = malloc(sizeof(wchar_t) * (wcslen(lpszFmt) + 1));
+    if (!msg) {
+        _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("LPQ1"));
+        return;
+    }
+    if (wcslen(lpszFmt) > 0) {
+        for (i = 0; i < _tcslen(lpszFmt); i++){
+            msg[i] = lpszFmt[i];
+            if(lpszFmt[i] == TEXT('%') && i  < _tcslen(lpszFmt) && lpszFmt[i+1] == TEXT('s') && (i == 0 || lpszFmt[i-1] != TEXT('%'))){
+                msg[i+1] = TEXT('S'); i++;
+            }
+        }
+    }
+    msg[wcslen(lpszFmt)] = TEXT('\0');
+#endif
+
 
     /* This is a pain to do efficiently without using a static buffer.  But
      *  this call is only used in cases where we can not safely use such buffers.
@@ -1991,48 +2143,51 @@ void log_printf_queue( int useQueue, int source_id, int level, const char *lpszF
      *  that this function is called with, but not so big as to be any less
      *  efficient than necessary. */
     do {
-        buffer = malloc( sizeof( char ) * bufferSize );
+        buffer = malloc(sizeof(TCHAR) * bufferSize);
         if (!buffer) {
-            printf("Out of memory in logging code (PQ1)\n");
+            _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("PQ1"));
             return;
         }
 
         /* Before we can store the string, we need to know how much space is required to do so. */
-        va_start( vargs, lpszFmt );
-#ifdef WIN32
-        count = _vsnprintf( buffer, bufferSize, lpszFmt, vargs );
+        va_start(vargs, lpszFmt);
+#if defined(UNICODE) && !defined(WIN32)
+        count = _vsntprintf(buffer, bufferSize, msg, vargs);
+
 #else
-        count = vsnprintf( buffer, bufferSize, lpszFmt, vargs );
+        count = _vsntprintf(buffer, bufferSize, lpszFmt, vargs);
 #endif
-        va_end( vargs );
+        va_end(vargs);
 
         /*
-        printf( "count: %d bufferSize=%d\n", count, bufferSize );
+        _tprintf(TEXT("count: %d bufferSize=%d\n"), count, bufferSize );
         */
 
         /* On UNIX, the required size will be returned if it is too small.
          *  On Windows however, we always get -1.  Even worse, if the size
          *  is exactly correct then the buffer will not be null terminated.
          *  In either case, resize the buffer as best we can and retry. */
-        if ( count < 0 ) {
+        if (count < 0) {
             /* Not big enough, expand the buffer size and try again. */
             bufferSize += 100;
-        } else if ( count >= bufferSize ) {
+        } else if (count >= bufferSize) {
             /* Not big enough, but we know how big it will need to be. */
             bufferSize = count + 1;
         } else {
             itFit = 1;
         }
 
-        if ( !itFit ) {
+        if (!itFit) {
             /* Will need to try again, so free the buffer. */
             free( buffer );
             buffer = NULL;
         }
-    } while ( !itFit );
-
+    } while (!itFit);
+#if defined(UNICODE) && !defined(WIN32)
+      free(msg);
+#endif
     /* Now decide what to actually do with the message. */
-    if ( useQueue ) {
+    if (useQueue) {
         /* There is a risk here due to synchronization problems.  But these queued messages
          *  should only be called rarely and then only from signal threads so it should be
          *  ok.  If more than one thread gets into the following function at the same time
@@ -2040,15 +2195,15 @@ void log_printf_queue( int useQueue, int source_id, int level, const char *lpszF
          *  here as that could lead to deadlocks.  The contents of this function tries to
          *  be as careful as possible about checking its values to make sure that any
          *  synchronization issues result only in a malformed message and not a crash. */
-        log_printf_queueInner( source_id, level, buffer );
+        log_printf_queueInner(source_id, level, buffer);
         /* The buffer will be freed by the queue at a later point. */
     } else {
         /* Use the normal logging function.  There is some extra overhead
          *  here because the message is expanded twice, but this greatly
          *  simplifies the code over other options and makes it much less
          *  error prone. */
-        log_printf( source_id, level, "%s", buffer );
-        free( buffer );
+        log_printf(source_id, level, TEXT("%s"), buffer);
+        free(buffer);
     }
 }
 
@@ -2064,55 +2219,55 @@ void maintainLogger() {
     int source_id;
     int level;
     int threadId;
-    char *buffer;
+    TCHAR *buffer;
     int logFileChanged;
-    char *logFileCopy;
+    TCHAR *logFileCopy;
 
-    for ( threadId = 0; threadId < WRAPPER_THREAD_COUNT; threadId++ ) {
+    for (threadId = 0; threadId < WRAPPER_THREAD_COUNT; threadId++) {
         /* NOTE - The queue variables are not synchronized so we need to access them
          *        carefully and assume that data could possibly be corrupted. */
         localWriteIndex = queueWriteIndex[threadId]; /* Snapshot the value to maintain a constant reference. */
         if ( queueReadIndex[threadId] != localWriteIndex ) {
             logFileChanged = FALSE;
             logFileCopy = NULL;
-            
+
             /* Lock the logging mutex. */
             if (lockLoggingMutex()) {
                 return;
             }
-    
+
             /* Empty the queue of any logged messages. */
             localWriteIndex = queueWriteIndex[threadId]; /* Snapshot the value to maintain a constant reference. */
-            while ( queueReadIndex[threadId] != localWriteIndex ) {
+            while (queueReadIndex[threadId] != localWriteIndex) {
                 /* Snapshot the values in the queue at that index. */
                 source_id = queueSourceIds[threadId][queueReadIndex[threadId]];
                 level = queueLevels[threadId][queueReadIndex[threadId]];
                 buffer = queueMessages[threadId][queueReadIndex[threadId]];
-    
+
                 /* Now we have safe values.  Everything below this is thread safe. */
-    
+
                 if (buffer) {
                     /* non null, assume it is valid. */
-    
+
 #ifdef _DEBUG
-                    printf( "LOG QUEUED[%d]: %s\n", queueReadIndex[threadId], buffer );
+                    _tprintf(TEXT("LOG QUEUED[%d]: %s\n"), queueReadIndex[threadId], buffer );
 #endif
 
                     logFileChanged = log_printf_message( source_id, level, threadId, TRUE, buffer );
                     if (logFileChanged) {
-                        logFileCopy = malloc(sizeof(char) * (strlen(currentLogFileName) + 1));
+                        logFileCopy = malloc(sizeof(TCHAR) * (_tcslen(currentLogFileName) + 1));
                         if (!logFileCopy) {
-                            printf("Out of memory in logging code (%s)\n", "ML1");
+                            _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("ML1"));
                         } else {
-                            strcpy(logFileCopy, currentLogFileName);
+                            _tcscpy(logFileCopy, currentLogFileName);
                         }
                     }
                     /*
-                    printf("  Queue lw=%d, qw=%d, qr=%d\n", localWriteIndex, queueWriteIndex[threadId], queueReadIndex[threadId]);
+                    _tprintf(TEXT("  Queue lw=%d, qw=%d, qr=%d\n"), localWriteIndex, queueWriteIndex[threadId], queueReadIndex[threadId]);
                     */
                 } else {
 #ifdef _DEBUG
-                    printf( "LOG QUEUED[%d]: <NULL> SYNCHRONIZATION CONFLICT!\n", queueReadIndex[threadId] );
+                    _tprintf(TEXT("LOG QUEUED[%d]: <NULL> SYNCHRONIZATION CONFLICT!\n"), queueReadIndex[threadId] );
 #endif
                 }
                 queueReadIndex[threadId]++;
@@ -2120,12 +2275,12 @@ void maintainLogger() {
                     queueReadIndex[threadId] = 0;
                 }
             }
-    
+
             /* Release the lock we have on the logging mutex so that other threads can get in. */
             if (releaseLoggingMutex()) {
                 return;
             }
-        
+
             /* Now that we are no longer in the semaphore, register the change of the logfile. */
             if (logFileChanged && logFileCopy) {
                 logFileChangedCallback(logFileCopy);

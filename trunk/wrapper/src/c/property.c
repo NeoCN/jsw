@@ -6,23 +6,23 @@
  * This software is the proprietary information of Tanuki Software.
  * You shall use it only in accordance with the terms of the
  * license agreement you entered into with Tanuki Software.
- * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
- * 
- * 
+ * http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
+ *
+ *
  * Portions of the Software have been derived from source code
  * developed by Silver Egg Technology under the following license:
- * 
+ *
  * Copyright (c) 2001 Silver Egg Technology
- * 
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without 
- * restriction, including without limitation the rights to use, 
- * copy, modify, merge, publish, distribute, sub-license, and/or 
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sub-license, and/or
  * sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following 
+ * Software is furnished to do so, subject to the following
  * conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
  */
@@ -47,11 +47,12 @@
 #include <strings.h>
 #include <limits.h>
 #include <sys/time.h>
+#include <langinfo.h>
 #if defined(IRIX)
 #define PATH_MAX FILENAME_MAX
 #endif
 #endif
-
+#include "wrapper_i18n.h"
 #include "logger.h"
 #include "property.h"
 #include "wrapper.h"
@@ -60,34 +61,35 @@
 
 int debugIncludes = FALSE;
 
+EnvSrc *baseEnvSrc = NULL;
+
 /** Stores the time that the property file began to be loaded. */
 struct tm loadPropertiesTM;
 
-const char **escapedPropertyNames = NULL;
-
-void setInnerProperty(Property *property, const char *propertyValue);
+const TCHAR **escapedPropertyNames = NULL;
+void setInnerProperty(Property *property, const TCHAR *propertyValue);
 
 void prepareProperty(Property *property) {
-    char *oldValue;
+    TCHAR *oldValue;
 
-    if (strstr(property->value, "%")) {
+    if (_tcsstr(property->value, TEXT("%"))) {
         /* Reset the property.  If the unreplaced environment variables are now available
          *  setting it again will cause it to be replaced correctly.  If not this will
          *  only waste time.  The value will be freed in the process so we need to
          *  keep it around. */
 #ifdef _DEBUG
-        printf("Unreplaced property %s=%s\n", property->name, property->value);
+        _tprintf( TEXT("Unreplaced property %s=%s\n"), property->name, property->value );
 #endif
-        oldValue = malloc(strlen(property->value) + 1);
+        oldValue = malloc(sizeof(TCHAR) * (_tcslen(property->value) + 1));
         if (!oldValue) {
-            outOfMemory("PP", 1);
+            outOfMemory(TEXT("PP"), 1);
         } else {
-            strcpy(oldValue, property->value);
+            _tcscpy(oldValue, property->value);
             setInnerProperty(property, oldValue);
             free(oldValue);
         }
 #ifdef _DEBUG
-        printf("        -> property %s=%s\n", property->name, property->value);
+        _tprintf( TEXT("        -> property %s=%s\n"), property->name, property->value );
 #endif
     }
 }
@@ -95,7 +97,7 @@ void prepareProperty(Property *property) {
 /**
  * Private function to find a Property structure.
  */
-Property* getInnerProperty(Properties *properties, const char *propertyName) {
+Property* getInnerProperty(Properties *properties, const TCHAR *propertyName) {
     Property *property;
     int cmp;
 
@@ -164,7 +166,7 @@ Property* createInnerProperty() {
 
     property = malloc(sizeof(Property));
     if (!property) {
-        outOfMemory("CIP", 1);
+        outOfMemory(TEXT("CIP"), 1);
         return NULL;
     }
     property->name = NULL;
@@ -189,49 +191,49 @@ void disposeInnerProperty(Property *property) {
     free(property);
 }
 
-char generateValueBuffer[256];
+TCHAR generateValueBuffer[256];
 
-char* generateTimeValue(const char* format) {
-    if (strcmpIgnoreCase(format, "YYYYMMDDHHIISS") == 0) {
-        sprintf(generateValueBuffer, "%04d%02d%02d%02d%02d%02d",
+TCHAR* generateTimeValue(const TCHAR* format) {
+    if (strcmpIgnoreCase(format, TEXT("YYYYMMDDHHIISS")) == 0) {
+        _sntprintf(generateValueBuffer, 256, TEXT("%04d%02d%02d%02d%02d%02d"),
         loadPropertiesTM.tm_year + 1900, loadPropertiesTM.tm_mon + 1, loadPropertiesTM.tm_mday,
-        loadPropertiesTM.tm_hour, loadPropertiesTM.tm_min, loadPropertiesTM.tm_sec);
-    } else if (strcmpIgnoreCase(format, "YYYYMMDD_HHIISS") == 0) {
-        sprintf(generateValueBuffer, "%04d%02d%02d_%02d%02d%02d",
+        loadPropertiesTM.tm_hour, loadPropertiesTM.tm_min, loadPropertiesTM.tm_sec );
+    } else if (strcmpIgnoreCase(format, TEXT("YYYYMMDD_HHIISS")) == 0) {
+        _sntprintf(generateValueBuffer, 256, TEXT("%04d%02d%02d_%02d%02d%02d"),
         loadPropertiesTM.tm_year + 1900, loadPropertiesTM.tm_mon + 1, loadPropertiesTM.tm_mday,
-        loadPropertiesTM.tm_hour, loadPropertiesTM.tm_min, loadPropertiesTM.tm_sec);
-    } else if (strcmpIgnoreCase(format, "YYYYMMDDHHII") == 0) {
-        sprintf(generateValueBuffer, "%04d%02d%02d%02d%02d",
+        loadPropertiesTM.tm_hour, loadPropertiesTM.tm_min, loadPropertiesTM.tm_sec );
+    } else if (strcmpIgnoreCase(format, TEXT("YYYYMMDDHHII")) == 0) {
+        _sntprintf(generateValueBuffer, 256, TEXT("%04d%02d%02d%02d%02d"),
         loadPropertiesTM.tm_year + 1900, loadPropertiesTM.tm_mon + 1, loadPropertiesTM.tm_mday,
-        loadPropertiesTM.tm_hour, loadPropertiesTM.tm_min);
-    } else if (strcmpIgnoreCase(format, "YYYYMMDDHH") == 0) {
-        sprintf(generateValueBuffer, "%04d%02d%02d%02d",
+        loadPropertiesTM.tm_hour, loadPropertiesTM.tm_min );
+    } else if (strcmpIgnoreCase(format, TEXT("YYYYMMDDHH")) == 0) {
+        _sntprintf(generateValueBuffer, 256, TEXT("%04d%02d%02d%02d"),
         loadPropertiesTM.tm_year + 1900, loadPropertiesTM.tm_mon + 1, loadPropertiesTM.tm_mday,
-        loadPropertiesTM.tm_hour);
-    } else if (strcmpIgnoreCase(format, "YYYYMMDD") == 0) {
-        sprintf(generateValueBuffer, "%04d%02d%02d",
+        loadPropertiesTM.tm_hour );
+    } else if (strcmpIgnoreCase(format, TEXT("YYYYMMDD")) == 0) {
+        _sntprintf(generateValueBuffer, 256, TEXT("%04d%02d%02d"),
         loadPropertiesTM.tm_year + 1900, loadPropertiesTM.tm_mon + 1, loadPropertiesTM.tm_mday);
     } else {
-        sprintf(generateValueBuffer, "{INVALID}");
+        _sntprintf(generateValueBuffer, 256, TEXT("{INVALID}"));
     }
     return generateValueBuffer;
 }
 
-char* generateRandValue(const char* format) {
-    if (strcmpIgnoreCase(format, "N") == 0) {
-        sprintf(generateValueBuffer, "%01d", rand() % 10);
-    } else if (strcmpIgnoreCase(format, "NN") == 0) {
-        sprintf(generateValueBuffer, "%02d", rand() % 100);
-    } else if (strcmpIgnoreCase(format, "NNN") == 0) {
-        sprintf(generateValueBuffer, "%03d", rand() % 1000);
-    } else if (strcmpIgnoreCase(format, "NNNN") == 0) {
-        sprintf(generateValueBuffer, "%04d", rand() % 10000);
-    } else if (strcmpIgnoreCase(format, "NNNNN") == 0) {
-        sprintf(generateValueBuffer, "%04d%01d", rand() % 10000, rand() % 10);
-    } else if (strcmpIgnoreCase(format, "NNNNNN") == 0) {
-        sprintf(generateValueBuffer, "%04d%02d", rand() % 10000, rand() % 100);
+TCHAR* generateRandValue(const TCHAR* format) {
+    if (strcmpIgnoreCase(format, TEXT("N")) == 0) {
+        _sntprintf(generateValueBuffer, 256, TEXT("%01d"), rand() % 10);
+    } else if (strcmpIgnoreCase(format, TEXT("NN")) == 0) {
+        _sntprintf(generateValueBuffer, 256, TEXT("%02d"), rand() % 100);
+    } else if (strcmpIgnoreCase(format, TEXT("NNN")) == 0) {
+        _sntprintf(generateValueBuffer, 256, TEXT("%03d"), rand() % 1000);
+    } else if (strcmpIgnoreCase(format, TEXT("NNNN")) == 0) {
+        _sntprintf(generateValueBuffer, 256, TEXT("%04d"), rand() % 10000);
+    } else if (strcmpIgnoreCase(format, TEXT("NNNNN")) == 0) {
+        _sntprintf(generateValueBuffer, 256, TEXT("%04d%01d"), rand() % 10000, rand() % 10);
+    } else if (strcmpIgnoreCase(format, TEXT("NNNNNN")) == 0) {
+        _sntprintf(generateValueBuffer, 256, TEXT("%04d%02d"), rand() % 10000, rand() % 100);
     } else {
-        sprintf(generateValueBuffer, "{INVALID}");
+        _sntprintf(generateValueBuffer, 256, TEXT("{INVALID}"));
     }
     return generateValueBuffer;
 }
@@ -241,53 +243,53 @@ char* generateRandValue(const char* format) {
  *  environment variable would result in a string that is longer than bufferLength
  *  the value is truncated.
  */
-void evaluateEnvironmentVariables(const char *propertyValue, char *buffer, int bufferLength) {
-    const char *in;
-    char *out;
-    char envName[MAX_PROPERTY_NAME_LENGTH];
-    char *envValue;
-    char *start;
-    char *end;
+void evaluateEnvironmentVariables(const TCHAR *propertyValue, TCHAR *buffer, int bufferLength) {
+    const TCHAR *in;
+    TCHAR *out;
+    TCHAR envName[MAX_PROPERTY_NAME_LENGTH];
+    TCHAR *envValue;
+    TCHAR *start;
+    TCHAR *end;
     size_t len;
     size_t outLen;
     size_t bufferAvailable;
 
     #ifdef _DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "evaluateEnvironmentVariables('%s', buffer, %d)",
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("evaluateEnvironmentVariables('%s', buffer, %d)"),
     propertyValue, bufferLength);
     #endif
 
-    buffer[0] = '\0';
+    buffer[0] = TEXT('\0');
     in = propertyValue;
     out = buffer;
     bufferAvailable = bufferLength - 1; /* Reserver room for the null terminator */
 
     /* Loop until we hit the end of string. */
-    while (in[0] != '\0') {
+    while (in[0] != TEXT('\0')) {
         #ifdef _DEBUG
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    initial='%s', buffer='%s'", propertyValue, buffer);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    initial='%s', buffer='%s'"), propertyValue, buffer);
         #endif
 
-        start = strchr(in, '%');
+        start = _tcschr(in, TEXT('%'));
         if (start != NULL) {
-            end = strchr(start + 1, '%');
+            end = _tcschr(start + 1, TEXT('%'));
             if (end != NULL) {
                 /* A pair of '%' characters was found.  An environment */
                 /*  variable name should be between the two. */
                 len = (int)(end - start - 1);
-                memcpy(envName, start + 1, len);
-                envName[len] = '\0';
+                _tcsncpy(envName, start + 1, len);
+                envName[len] = TEXT('\0');
 
                 /* See if it is a special dynamic environment variable */
-                if (strstr(envName, "WRAPPER_TIME_") == envName) {
+                if (_tcsstr(envName, TEXT("WRAPPER_TIME_")) == envName) {
                     /* Found a time value. */
                     envValue = generateTimeValue(envName + 13);
-                } else if (strstr(envName, "WRAPPER_RAND_") == envName) {
+                } else if (_tcsstr(envName, TEXT("WRAPPER_RAND_")) == envName) {
                     /* Found a time value. */
                     envValue = generateRandValue(envName + 13);
                 } else {
                     /* Try looking up the environment variable. */
-                    envValue = getenv(envName);
+                    envValue = _tgetenv(envName);
                 }
 
                 if (envValue != NULL) {
@@ -298,24 +300,24 @@ void evaluateEnvironmentVariables(const char *propertyValue, char *buffer, int b
                         outLen = bufferAvailable;
                     }
                     if (outLen > 0) {
-                        memcpy(out, in, outLen);
+                        _tcsncpy(out, in, outLen);
                         out += outLen;
                         bufferAvailable -= outLen;
                     }
 
                     /* Copy over the env value */
-                    outLen = strlen(envValue);
+                    outLen = _tcslen(envValue);
                     if (bufferAvailable < outLen) {
                         outLen = bufferAvailable;
                     }
                     if (outLen > 0) {
-                        memcpy(out, envValue, outLen);
+                        _tcsncpy(out, envValue, outLen);
                         out += outLen;
                         bufferAvailable -= outLen;
                     }
 
                     /* Terminate the string */
-                    out[0] = '\0';
+                    out[0] = TEXT('\0');
 
                     /* Set the new in pointer */
                     in = end + 1;
@@ -328,58 +330,58 @@ void evaluateEnvironmentVariables(const char *propertyValue, char *buffer, int b
                         outLen = bufferAvailable;
                     }
                     if (outLen > 0) {
-                        memcpy(out, in, outLen);
+                        _tcsncpy(out, in, outLen);
                         out += outLen;
                         bufferAvailable -= outLen;
                     }
                     in += len;
 
                     /* Terminate the string */
-                    out[0] = '\0';
+                    out[0] = TEXT('\0');
                 }
             } else {
-                /* Only a single '%' char was found. Leave it as is. */
-                outLen = len = strlen(in);
+                /* Only a single '%' TCHAR was found. Leave it as is. */
+                outLen = len = _tcslen(in);
                 if (bufferAvailable < outLen) {
                     outLen = bufferAvailable;
                 }
                 if (outLen > 0) {
-                    memcpy(out, in, outLen);
+                    _tcsncpy(out, in, outLen);
                     out += outLen;
                     bufferAvailable -= outLen;
                 }
                 in += len;
 
                 /* Terminate the string */
-                out[0] = '\0';
+                out[0] = TEXT('\0');
             }
         } else {
             /* No more '%' chars in the string. Copy over the rest. */
-            outLen = len = strlen(in);
+            outLen = len = _tcslen(in);
             if (bufferAvailable < outLen) {
                 outLen = bufferAvailable;
             }
             if (outLen > 0) {
-                memcpy(out, in, outLen);
-                out += outLen;
+             _tcsncpy(out, in, outLen);
+              out += outLen;
                 bufferAvailable -= outLen;
             }
             in += len;
 
             /* Terminate the string */
-            out[0] = '\0';
+            out[0] = TEXT('\0');
         }
     }
     #ifdef _DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  final buffer='%s'", buffer);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  final buffer='%s'"), buffer);
     #endif
 }
 
-void setInnerProperty(Property *property, const char *propertyValue) {
+void setInnerProperty(Property *property, const TCHAR *propertyValue) {
     int i, count;
     /* The property value is expanded into a large buffer once, but that is temporary.  The actual
      *  value is stored in the minimum required size. */
-    char buffer[MAX_PROPERTY_VALUE_LENGTH];
+    TCHAR buffer[MAX_PROPERTY_VALUE_LENGTH];
 
     /* Free any existing value */
     if (property->value != NULL) {
@@ -393,16 +395,16 @@ void setInnerProperty(Property *property, const char *propertyValue) {
     } else {
         evaluateEnvironmentVariables(propertyValue, buffer, MAX_PROPERTY_VALUE_LENGTH);
 
-        property->value = malloc(sizeof(char) * (strlen(buffer) + 1));
+        property->value = malloc(sizeof(TCHAR) * (_tcslen(buffer) + 1));
         if (!property->value) {
-            outOfMemory("SIP", 1);
+            outOfMemory(TEXT("SIP"), 1);
         } else {
             /* Strip any non valid characters like control characters. Some valid characters are
-             *  less than 0 when the char is unsigned. */
-            for (i = 0, count = 0; i < (int)strlen(buffer); i++) {
+             *  less than 0 when the TCHAR is unsigned. */
+            for (i = 0, count = 0; i < (int)_tcslen(buffer); i++) {
                 /* Only add valid chars, skip control chars.  We want all chars other than those
                  *  in the range 1..31.  0 is not possible as that would be end of the string.
-                 *  On most platforms, char is signed, but on PowerPC, it is unsigned.  This
+                 *  On most platforms, TCHAR is signed, but on PowerPC, it is unsigned.  This
                  *  means that any comparison such as >= 0 will cause a compiler error as that
                  *  would always be true.
                  * The logic below is to get the correct behavior in either case assuming no 0. */
@@ -412,7 +414,7 @@ void setInnerProperty(Property *property, const char *propertyValue) {
             }
 
             /* Crop string to new size */
-            property->value[count] = '\0';
+            property->value[count] = TEXT('\0');
         }
     }
 }
@@ -422,72 +424,250 @@ void setInnerProperty(Property *property, const char *propertyValue) {
  *  Whenever a line which starts with #include is encountered, then the rest
  *  the line will be interpreted as a cascading include file.  If the file
  *  does not exist, the include definition is ignored.
+ *
+ * @return TRUE if there are any problems.   FALSE if all is OK.
  */
-int loadPropertiesInner(Properties* properties, const char* filename, int depth) {
+int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth) {
     FILE *stream;
-    char buffer[MAX_PROPERTY_NAME_VALUE_LENGTH];
-    char expBuffer[MAX_PROPERTY_NAME_VALUE_LENGTH];
-    char *trimmedBuffer;
+    char bufferMB[MAX_PROPERTY_NAME_VALUE_LENGTH];
+    TCHAR expBuffer[MAX_PROPERTY_NAME_VALUE_LENGTH];
+    TCHAR *trimmedBuffer;
     size_t trimmedBufferLen;
-    char *c;
-    char *d;
+    TCHAR *c;
+    TCHAR *d;
     size_t i, j;
     size_t len;
     int quoted;
-    char *absoluteBuffer;
-    #ifdef WIN32
-    int size;
-    #endif
+    TCHAR *absoluteBuffer;
+    int hadBOM;
+    int lineNumber;
 
-    #ifdef _DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "loadPropertiesInner(props, '%s', %d)", filename, depth);
-    #endif
+    char *encodingMB;
+#ifdef WIN32
+    int encoding;
+#else 
+    char* encoding;
+    char* interumEncoding;
+#endif
+    int ret;
+    TCHAR *bufferW;
+#ifdef WIN32
+    int size;
+#endif
+
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("loadPropertiesInner(props, '%s', %d)"), filename, depth);
+#endif
 
     /* Look for the specified file. */
-    if ((stream = fopen(filename, "rt")) == NULL) {
+    if ((stream = _tfopen(filename, TEXT("rb"))) == NULL) {
         /* Unable to open the file. */
         if (debugIncludes) {
             if (depth > 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                "  Included configuration file, %s, was not found.", filename);
+                    TEXT("  Included configuration file, %s, was not found."), filename);
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                "Configuration file, %s, was not found.", filename);
+                    TEXT("Configuration file, %s, was not found."), filename);
             }
         } else {
-            #ifdef _DEBUG
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "Properties file not found: %s", filename);
-            #endif
+#ifdef _DEBUG
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Properties file not found: %s"), filename);
+#endif
         }
-        return 1;
+        return TRUE;
     }
-
     if (debugIncludes) {
         if (depth > 0) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-            "  Loading included configuration file, %s", filename);
+                TEXT("  Loading included configuration file, %s"), filename);
         } else {
+            /* Will not actually get here because the debug includes can't be set until it is loaded.
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-            "Loading configuration file, %s", filename);
+                TEXT("Loading configuration file, %s"), filename);
+            */
         }
     }
 
+    /* Load in the first row of properties to check the encoding. */
+    if (fgets(bufferMB, MAX_PROPERTY_NAME_VALUE_LENGTH, stream)) {
+        /* If the file starts with a BOM (Byte Order Marker) then we want to skip over it. */
+        if ((bufferMB[0] == (char)0xef) && (bufferMB[1] == (char)0xbb) && (bufferMB[2] == (char)0xbf)) {
+            i = 3;
+            hadBOM = TRUE;
+        } else {
+            i = 0;
+            hadBOM = FALSE;
+        }
+
+        /* Does the file start with "#encoding="? */
+        if ((bufferMB[i++] == '#') && (bufferMB[i++] == 'e') && (bufferMB[i++] == 'n') && (bufferMB[i++] == 'c') &&
+            (bufferMB[i++] == 'o') && (bufferMB[i++] == 'd') && (bufferMB[i++] == 'i') &&
+            (bufferMB[i++] == 'n') && (bufferMB[i++] == 'g') && (bufferMB[i++] == '=')) {
+            encodingMB = bufferMB + i;
+            i = 0;
+            while ((encodingMB[i] != ' ') && (encodingMB[i] != '\n') && (encodingMB[i]  != '\r')) {
+               i++;
+            }
+            encodingMB[i] = '\0';
+            
+            if ((hadBOM) &&
+#ifdef WIN32
+                (stricmp(encodingMB, "UTF-8") != 0)
+#else
+                (strcasecmp(encodingMB, "UTF-8") != 0)
+#endif
+                ) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                    TEXT("The encoding type of configuration file:\n  %s\n  is specified as '%s', but the file has a BOM marker meaning that it is encoded as 'UTF-8'."), filename, encodingMB);
+            }
+
+#ifdef WIN32
+            if (stricmp(encodingMB, "Shift_JIS") == 0) {
+#else 
+            if (strcasecmp(encodingMB, "Shift_JIS") == 0) {
+#endif
+#if defined(FREEBSD) || defined (AIX) || defined(MACOSX)
+                encoding = "SJIS";
+#elif defined(WIN32)
+                encoding = 932;
+#else
+                encoding = "shiftjis";
+#endif
+#ifdef WIN32
+            } else if (stricmp(encodingMB, "eucJP") == 0) {
+#else
+            } else if (strcasecmp(encodingMB, "eucJP") == 0) {
+#endif
+#if defined(AIX)
+                encoding = "IBM-eucJP";
+#elif defined(WIN32)
+                encoding = 20932;
+#else
+                encoding = "eucJP";
+#endif
+#ifdef WIN32
+            } else if (stricmp(encodingMB, "UTF-8") == 0) {
+#else
+            } else if (strcasecmp(encodingMB, "UTF-8") == 0) {
+#endif
+#if defined(HPUX)
+                encoding = "utf8";
+#elif defined(WIN32)
+                encoding = 65001;
+#else
+                encoding = "UTF-8";
+#endif
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                    TEXT("The specified encoding type '%s' in configuration file:\n  %s\n  is not currently supported."), encodingMB, filename);
+                return TRUE;
+            }
+
+        } else {
+#ifdef WIN32
+            encoding = GetACP();
+#else 
+            encoding = nl_langinfo(CODESET);
+ #ifdef MACOSX
+            if (strlen(encoding) == 0) {
+                encoding = "UTF-8";
+            }
+ #endif
+#endif
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                TEXT("An encoding declaration is missing at the top of configuration file:\n  %s\n  trying the system encoding."), filename);
+        }
+        fclose(stream);
+    } else {
+        /* Failed to read the first line of the file. */
+#ifdef WIN32
+            encoding = GetACP();
+#else 
+            encoding = nl_langinfo(CODESET);
+ #ifdef MACOSX
+            if (strlen(encoding) == 0) {
+                encoding = "UTF-8";
+            }
+ #endif
+#endif
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            TEXT("An encoding declaration is missing from the top of configuration file:\n  %s\n  trying the system encoding."), filename);
+    }
+
+    if ((stream = _tfopen(filename, TEXT("rb"))) == NULL) {
+        /* Unable to open the file. */
+        if (debugIncludes) {
+            if (depth > 0) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    TEXT("  Included configuration file, %s, was not found."), filename);
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    TEXT("Configuration file, %s, was not found."), filename);
+            }
+        } else {
+#ifdef _DEBUG
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Properties file not found: %s"), filename);
+#endif
+        }
+        return TRUE;
+    }
+
     /* Load in all of the properties */
+    lineNumber = 1;
     do {
-        c = fgets(buffer, MAX_PROPERTY_NAME_VALUE_LENGTH, stream);
+        c = (TCHAR*)fgets(bufferMB, MAX_PROPERTY_NAME_VALUE_LENGTH, stream);
         if (c != NULL) {
+#ifdef WIN32
+            ret = multiByteToWideChar(bufferMB, encoding, &bufferW, TRUE);
+#else
+            interumEncoding = nl_langinfo(CODESET);
+ #ifdef MACOSX
+            if (strlen(interumEncoding) == 0) {
+                interumEncoding = "UTF-8";
+            }
+ #endif
+            ret = multiByteToWideChar(bufferMB, encoding, interumEncoding, &bufferW, TRUE);
+#endif
+            if (ret) {
+                if (bufferW) {
+                    /* bufferW contains an error message. */
+                    if (depth > 0) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                            TEXT("  Included configuration file, %s, contains a problem on line #%d and could not be read. (%s)"), filename, lineNumber, bufferW);
+                    } else {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                            TEXT("Configuration file, %s, contains a problem on line #%d and could not be read. (%s)"), filename, lineNumber, bufferW);
+                    }
+                    free(bufferW);
+                } else {
+                    outOfMemory(TEXT("LPI"), 1);
+                }
+                return TRUE;
+            }
+            
+#ifdef _DEBUG
+            /* The line feeds are not yet stripped here. */
+ #ifdef WIN32
+            wprintf(TEXT("%S:%d (%d): [%S]\n"), filename, lineNumber, encoding, bufferW);
+ #else
+            wprintf(TEXT("%S:%d (%s to %s): [%S]\n"), filename, lineNumber, encoding, interumEncoding, bufferW);
+ #endif
+#endif
+            
+            c = bufferW;
             /* Always strip both ^M and ^J off the end of the line, this is done rather
              *  than simply checking for \n so that files will work on all platforms
              *  even if their line feeds are incorrect. */
-            if ((d = strchr(buffer, 0x0d /* ^M */)) != NULL) {
-                d[0] = '\0';
+            if ((d = _tcschr(bufferW, 0x0d /* ^M */)) != NULL) {
+                d[0] = TEXT('\0');
             }
-            if ((d = strchr(buffer, 0x0a /* ^J */)) != NULL) { 
-                d[0] = '\0';
+            if ((d = _tcschr(bufferW, 0x0a /* ^J */)) != NULL) {
+                d[0] = TEXT('\0');
             }
             /* Strip any whitespace from the front of the line. */
-            trimmedBuffer = buffer;
-            while ((trimmedBuffer[0] == ' ') || (trimmedBuffer[0] == 0x08)) {
+            trimmedBuffer = bufferW;
+            while ((trimmedBuffer[0] == TEXT(' ')) || (trimmedBuffer[0] == 0x08)) {
                 trimmedBuffer++;
             }
 
@@ -495,17 +675,17 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
              *  any comment at the end of line are stripped.  If any any point, a
              *  double hash, '##', is encountered it should be interpreted as a
              *  hash in the actual property rather than the beginning of a comment. */
-            if (trimmedBuffer[0] != '#') {
-                len = strlen(trimmedBuffer);
+            if (trimmedBuffer[0] != TEXT('#')) {
+                len = _tcslen(trimmedBuffer);
                 i = 0;
                 quoted = 0;
                 while (i < len) {
-                    if (trimmedBuffer[i] == '"') {
+                    if (trimmedBuffer[i] == TEXT('"')) {
                         quoted = !quoted;
-                    } else if ((trimmedBuffer[i] == '#') && (!quoted)) {
+                    } else if ((trimmedBuffer[i] == TEXT('#')) && (!quoted)) {
                         /* Checking the next character will always be ok because it will be
                          *  '\0 at the end of the string. */
-                        if (trimmedBuffer[i + 1] == '#') {
+                        if (trimmedBuffer[i + 1] == TEXT('#')) {
                             /* We found an escaped #. Shift the rest of the string
                              *  down by one character to remove the second '#'.
                              *  Include the shifting of the '\0'. */
@@ -515,7 +695,7 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
                             len--;
                         } else {
                             /* We found a comment. So this is the end. */
-                            trimmedBuffer[i] = '\0';
+                            trimmedBuffer[i] = TEXT('\0');
                             len = i;
                         }
                     }
@@ -524,25 +704,25 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
             }
 
             /* Strip any whitespace from the end of the line. */
-            trimmedBufferLen = strlen(trimmedBuffer);
-            while ((trimmedBufferLen > 0) && ((trimmedBuffer[trimmedBufferLen - 1] == ' ')
+            trimmedBufferLen = _tcslen(trimmedBuffer);
+            while ((trimmedBufferLen > 0) && ((trimmedBuffer[trimmedBufferLen - 1] == TEXT(' '))
             || (trimmedBuffer[trimmedBufferLen - 1] == 0x08))) {
-                
-                trimmedBuffer[trimmedBufferLen - 1] = '\0';
+
+                trimmedBuffer[trimmedBufferLen - 1] = TEXT('\0');
                 trimmedBufferLen--;
             }
 
             /* Only look at lines which contain data and do not start with a '#'
              *  If the line starts with '#include' then recurse to the include file */
-            if (strlen(trimmedBuffer) > 0) {
-                if (strcmpIgnoreCase(trimmedBuffer, "#include.debug") == 0) {
+            if (_tcslen(trimmedBuffer) > 0) {
+                if (strcmpIgnoreCase(trimmedBuffer, TEXT("#include.debug")) == 0) {
                     /* Enable include file debugging. */
                     debugIncludes = TRUE;
-                } else if (strstr(trimmedBuffer, "#include") == trimmedBuffer) {
+                } else if (_tcsstr(trimmedBuffer, TEXT("#include")) == trimmedBuffer) {
                     /* Include file, if the file does not exist, then ignore it */
                     /* Strip any leading whitespace */
                     c = trimmedBuffer + 8;
-                    while ((c[0] != '\0') && (c[0] == ' ')) {
+                    while ((c[0] != TEXT('\0')) && (c[0] == TEXT(' '))) {
                         c++;
                     }
 
@@ -550,96 +730,100 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
                         /* The filename may contain environment variables, so expand them. */
                         if (debugIncludes) {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                            "Found #include file in %s: %s", filename, c);
+                                TEXT("Found #include file in %s: %s"), filename, c);
                         }
                         evaluateEnvironmentVariables(c, expBuffer, MAX_PROPERTY_NAME_VALUE_LENGTH);
 
-                        if (debugIncludes && (strcmp(c, expBuffer) != 0)) {
+                        if (debugIncludes && (_tcscmp(c, expBuffer) != 0)) {
                             /* Only show this log if there were any environment variables. */
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                            "  After environment variable replacements: %s", expBuffer);
+                                TEXT("  After environment variable replacements: %s"), expBuffer);
                         }
 
                         /* Now obtain the real absolute path to the include file. */
-                        #ifdef WIN32
+#ifdef WIN32
                         /* Find out how big the absolute path will be */
                         size = GetFullPathName(expBuffer, 0, NULL, NULL);
                         if (!size) {
                             if (debugIncludes) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                                "  Unable to resolve the full path of the configuration include file, %s: %s",
-                                expBuffer, getLastErrorText());
+                                    TEXT("  Unable to resolve the full path of the configuration include file, %s: %s"),
+                                    expBuffer, getLastErrorText());
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                                "  Current working directory is: %s", wrapperData->originalWorkingDir);
+                                    TEXT("  Current working directory is: %s"), wrapperData->originalWorkingDir);
                             }
                             absoluteBuffer = NULL;
                         } else {
-                            absoluteBuffer = malloc(sizeof(char) * size);
+                            absoluteBuffer = malloc(sizeof(TCHAR) * size);
                             if (!absoluteBuffer) {
-                                outOfMemory("LPI", 1);
+                                outOfMemory(TEXT("LPI"), 1);
                             } else {
                                 if (!GetFullPathName(expBuffer, size, absoluteBuffer, NULL)) {
                                     if (debugIncludes) {
-                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                                        "  Unable to resolve the full path of the configuration include file, %s: %s",
-                                        expBuffer, getLastErrorText());
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                                            TEXT("  Unable to resolve the full path of the configuration include file, %s: %s"),
+                                            expBuffer, getLastErrorText());
                                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                                        "  Current working directory is: %s", wrapperData->originalWorkingDir);
+                                            TEXT("  Current working directory is: %s"), wrapperData->originalWorkingDir);
                                     }
                                     free(absoluteBuffer);
                                     absoluteBuffer = NULL;
                                 }
                             }
                         }
-                        #else
-                        absoluteBuffer = malloc(PATH_MAX);
+#else
+                        absoluteBuffer = malloc(sizeof(TCHAR) * PATH_MAX);
                         if (!absoluteBuffer) {
-                            outOfMemory("LPI", 2);
+                            outOfMemory(TEXT("LPI"), 2);
                         } else {
-                            if (realpath(expBuffer, absoluteBuffer) == NULL) {
+                            if (_trealpath(expBuffer, absoluteBuffer) == NULL) {
                                 if (debugIncludes) {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                                        TEXT("  Unable to resolve the full path of the configuration include file, %s: %s"),
+                                        expBuffer, getLastErrorText());
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                                    "  Unable to resolve the full path of the configuration include file, %s: %s",
-                                    expBuffer, getLastErrorText());
-                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                                    "  Current working directory is: %s", wrapperData->originalWorkingDir);
+                                        TEXT("  Current working directory is: %s"), wrapperData->originalWorkingDir);
                                 }
                                 free(absoluteBuffer);
                                 absoluteBuffer = NULL;
                             }
                         }
-                        #endif
+#endif
                         if (absoluteBuffer) {
                             loadPropertiesInner(properties, absoluteBuffer, depth + 1);
                             free(absoluteBuffer);
                         }
                     }
-                } else if (strstr(trimmedBuffer, "include") == trimmedBuffer) {
+                } else if (_tcsstr(trimmedBuffer, TEXT("include")) == trimmedBuffer) {
                     /* Users sometimes remove the '#' from include statements.  Add a warning to help them notice the problem. */
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                        "Include file reference missing leading '#': %s", trimmedBuffer);
-                } else if (trimmedBuffer[0] != '#') {
-                    /* printf("%s\n", trimmedBuffer); */
+                        TEXT("Include file reference missing leading '#': %s"), trimmedBuffer);
+                } else if (trimmedBuffer[0] != TEXT('#')) {
+                    /*_tprintf(TEXT("%s\n"), trimmedBuffer);*/
 
                     /* Locate the first '=' in the line, ignore lines that do not contain a '=' */
-                    if ((d = strchr(trimmedBuffer, '=')) != NULL) {
+                    if ((d = _tcschr(trimmedBuffer, TEXT('='))) != NULL) {
                         /* Null terminate the first half of the line. */
-                        *d = '\0';
+                        *d = TEXT('\0');
                         d++;
-                        addProperty(properties, trimmedBuffer, d, FALSE, FALSE, TRUE);
+                        addProperty(properties, trimmedBuffer, d, FALSE, FALSE, TRUE, FALSE);
                     }
                 }
             }
+            
+            /* Always free each line read. */
+            free(bufferW);
         }
+        lineNumber++;
     } while (c != NULL);
 
     /* Close the file */
     fclose(stream);
 
-    return 0;
+    return FALSE;
 }
 
-int loadProperties(Properties *properties, const char* filename) {
+int loadProperties(Properties *properties, const TCHAR* filename) {
     /* Store the time that the property file began to be loaded. */
     #ifdef WIN32
     struct _timeb timebNow;
@@ -649,8 +833,8 @@ int loadProperties(Properties *properties, const char* filename) {
     time_t      now;
     struct tm   *nowTM;
 
-    #ifdef WIN32
-    _ftime(&timebNow);
+#ifdef WIN32
+    _ftime( &timebNow );
     now = (time_t)timebNow.time;
     #else
     gettimeofday(&timevalNow, NULL);
@@ -665,7 +849,7 @@ int loadProperties(Properties *properties, const char* filename) {
 Properties* createProperties() {
     Properties *properties = malloc(sizeof(Properties));
     if (!properties) {
-        outOfMemory("CP", 1);
+        outOfMemory(TEXT("CP"), 1);
         return NULL;
     }
     properties->first = NULL;
@@ -696,7 +880,7 @@ void disposeProperties(Properties *properties) {
     properties = NULL;
 }
 
-void removeProperty(Properties *properties, const char *propertyName) {
+void removeProperty(Properties *properties, const TCHAR *propertyName) {
     Property *property;
     Property *next;
     Property *previous;
@@ -734,52 +918,56 @@ void removeProperty(Properties *properties, const char *propertyName) {
  *  it does, the call will result in a memory leak the size of the string:
  *   "name=value".
  *
- * Return TRUE if there were any problems.
+ * @param name Name of the variable being set.
+ * @param value Value to be set, NULL to clear it.
+ *
+ * Return TRUE if there were any problems, FALSE otherwise.
  */
-int setEnv(const char *name, const char *value) {
-    char *oldVal;
-    char *envBuf;
+int setEnvInner(const TCHAR *name, const TCHAR *value)
+{
+    TCHAR *oldVal;
+    TCHAR *envBuf;
 
     /* Get the current environment variable value so we can avoid allocating and
      *  setting the variable if it has not changed its value. */
-    oldVal = getenv(name);
+    oldVal = _tgetenv(name);
     if (value == NULL) {
-        /*printf("clear %s=\n", name);*/
+        /*_tprintf("clear %s=\n", name);*/
         /* Only clear the variable if it is actually set to avoid unnecessary leaks. */
         if (oldVal != NULL) {
             /* Allocate a block of memory for the environment variable.  The system uses
              *  this memory so it is not freed after we set it. We only call this on
              *  startup, so the leak is minor. */
-            envBuf = malloc(sizeof(char) * (strlen(name) + 2));
+            envBuf = malloc(sizeof(TCHAR) * (_tcslen(name) + 2));
             if (!envBuf) {
-                outOfMemory("SE", 1);
+                outOfMemory(TEXT("SEI"), 1);
                 return TRUE;
             } else {
-                sprintf(envBuf, "%s=", name);
+                _sntprintf(envBuf, _tcslen(name) + 2, TEXT("%s="), name);
                 /* The memory pointed to by envBuf becomes part of the environment so it can
                  *  not be freed by us here. */
-                if (putenv(envBuf)) {
-                    printf("Unable to clear environment variable: %s\n", envBuf);
+                if (_tputenv(envBuf)) {
+                    _tprintf(TEXT("Unable to clear environment variable: %s\n"), envBuf);
                     return TRUE;
                 }
             }
         }
     } else {
-        /*printf("set %s=%s\n", name, value);*/
-        if ((oldVal == NULL) || (strcmp(oldVal, value) != 0)) {
+        /*_tprintf("set %s=%s\n", name, value);*/
+        if ((oldVal == NULL) || (_tcscmp(oldVal, value) != 0)) {
             /* Allocate a block of memory for the environment variable.  The system uses
              *  this memory so it is not freed after we set it. We only call this on
              *  startup, so the leak is minor. */
-            envBuf = malloc(sizeof(char) * (strlen(name) + strlen(value) + 2));
+            envBuf = malloc(sizeof(TCHAR) * (_tcslen(name) + _tcslen(value) + 2));
             if (!envBuf) {
-                outOfMemory("SE", 2);
+                outOfMemory(TEXT("SEI"), 2);
                 return TRUE;
             } else {
-                sprintf(envBuf, "%s=%s", name, value);
+                _sntprintf(envBuf, _tcslen(name) + _tcslen(value) + 2, TEXT("%s=%s"), name, value);
                 /* The memory pointed to by envBuf becomes part of the environment so it can
                  *  not be freed by us here. */
-                if (putenv(envBuf)) {
-                    printf("Unable to set environment variable: %s\n", envBuf);
+                if (_tputenv(envBuf)) {
+                    _tprintf(TEXT("Unable to set environment variable: %s\n"), envBuf);
                     return TRUE;
                 }
             }
@@ -789,15 +977,102 @@ int setEnv(const char *name, const char *value) {
     return FALSE;
 }
 
+/**
+ * Sets an environment variable with the specified value.
+ *  The function will only set the variable if its value is changed, but if
+ *  it does, the call will result in a memory leak the size of the string:
+ *   "name=value".
+ *
+ * @param name Name of the variable being set.
+ * @param value Value to be set, NULL to clear it.
+ * @param source Where the variable came from.  If value is WRAPPER_ENV_SOURCE_PARENT
+ *               then the value may be NULL and will never be set to the environment.
+ *
+ * Return TRUE if there were any problems, FALSE otherwise.
+ */
+int setEnv(const TCHAR *name, const TCHAR *value, int source)
+{
+    EnvSrc **thisEnvSrcRef;
+    EnvSrc *thisEnvSrc;
+    size_t len;
+    TCHAR *nameCopy;
+    EnvSrc *newEnvSrc;
+    int cmpRes;
+    
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("setEnv(%s, %s, %d)"), name, value, source);
+#endif
+    thisEnvSrcRef = &baseEnvSrc;
+    thisEnvSrc = baseEnvSrc;
+    
+    /* Create a copy of the name so we can store it. */
+    len = _tcslen(name) + 1;
+    nameCopy = malloc(sizeof(TCHAR) * len);
+    if (!nameCopy) {
+        outOfMemory(TEXT("SE"), 1);
+        return TRUE;
+    }
+    _sntprintf(nameCopy, len, TEXT("%s"), name);
+    
+    /* Figure out where we want to set the value. */
+    while (thisEnvSrc) {
+        cmpRes = strcmpIgnoreCase(thisEnvSrc->name, name);
+        if (cmpRes == 0) {
+            /* This is the same value.  It is being changed. */
+            /* The nameCopy is not needed so free it up. */
+            free(nameCopy);
+            thisEnvSrc->source |= source;
+            if (source != ENV_SOURCE_PARENT) {
+                return setEnvInner(name, value);
+            }
+            return FALSE;
+        } else if (cmpRes > 0) {
+            /* This EnvSrc would be after the one being set, so we need to insert it. */
+            newEnvSrc = malloc(sizeof(EnvSrc));
+            if (!newEnvSrc) {
+                outOfMemory(TEXT("SEV"), 2);
+                return TRUE;
+            }
+            newEnvSrc->source = source;
+            newEnvSrc->name = nameCopy;
+            newEnvSrc->next = thisEnvSrc;
+            *thisEnvSrcRef = newEnvSrc;
+            if (source != ENV_SOURCE_PARENT) {
+                return setEnvInner(name, value);
+            }
+            return FALSE;
+        } else {
+            /* This EnvSrc would be before the one being set, so keep looking. */
+            thisEnvSrcRef = &(thisEnvSrc->next);
+            thisEnvSrc = thisEnvSrc->next;
+        }
+    }
+    
+    /* If we get here then we are at the end of the list. */
+    thisEnvSrc = malloc(sizeof(EnvSrc));
+    if (!thisEnvSrc) {
+        outOfMemory(TEXT("SEV"), 3);
+        return TRUE;
+    }
+    thisEnvSrc->source = source;
+    thisEnvSrc->name = nameCopy;
+    thisEnvSrc->next = NULL;
+    *thisEnvSrcRef = thisEnvSrc;
+    if (source != ENV_SOURCE_PARENT) {
+        return setEnvInner(name, value);
+    }
+    return FALSE;
+}
+
 /* Trims any whitespace from the beginning and end of the in string
  *  and places the results in the out buffer.  Assumes that the out
  *  buffer is at least as large as the in buffer. */
-void trim(const char *in, char *out) {
+void trim(const TCHAR *in, TCHAR *out) {
     size_t len;
     size_t first;
     size_t last;
 
-    len = strlen(in);
+    len = _tcslen(in);
     if (len > 0) {
         first = 0;
         last = len - 1;
@@ -814,10 +1089,10 @@ void trim(const char *in, char *out) {
         /* Copy over what is left. */
         len = last - first + 1;
         if (len > 0) {
-            memcpy(out, in + first, len);
+            _tcsncpy(out, in + first, len);
         }
     }
-    out[len] = '\0';
+    out[len] = TEXT('\0');
 }
 
 /**
@@ -829,7 +1104,7 @@ void trim(const char *in, char *out) {
  *                      can contain a single '*' wildcard which will match 0 or
  *                      more characters.
  */
-void setEscapedProperties(const char **propertyNames) {
+void setEscapedProperties(const TCHAR **propertyNames) {
     escapedPropertyNames = propertyNames;
 }
 
@@ -841,11 +1116,11 @@ void setEscapedProperties(const char **propertyNames) {
  *
  * @return TRUE if the property should be escaped.  FALSE otherwise.
  */
-int isEscapedProperty(const char *propertyName) {
+int isEscapedProperty(const TCHAR *propertyName) {
     size_t nameLen;
     size_t i;
-    const char *pattern;
-    char *wildPos;
+    const TCHAR *pattern;
+    TCHAR *wildPos;
     size_t headLen;
     size_t tailLen;
     int matched;
@@ -853,18 +1128,18 @@ int isEscapedProperty(const char *propertyName) {
     size_t nameI;
 
     if (escapedPropertyNames) {
-        nameLen = strlen(propertyName);
+        nameLen = _tcslen(propertyName);
         i = 0;
         while (escapedPropertyNames[i]) {
             pattern = escapedPropertyNames[i];
             if (strcmpIgnoreCase(pattern, propertyName) == 0) {
                 /* Direct Match. */
 #ifdef _DEBUG
-                printf("Property %s matched pattern %s\n", propertyName, pattern);
+                _tprintf(TEXT("Property %s matched pattern %s\n"), propertyName, pattern);
 #endif
                 return TRUE;
             } else {
-                wildPos = strchr(pattern, '*');
+                wildPos = _tcschr(pattern, TEXT('*'));
                 if (wildPos) {
                     /* The string contains a wildcard. */
 
@@ -884,7 +1159,7 @@ int isEscapedProperty(const char *propertyName) {
                         }
 
                         if (matched) {
-                            tailLen = strlen(pattern) - headLen - 1;
+                            tailLen = _tcslen(pattern) - headLen - 1;
                             if (tailLen < nameLen - headLen) {
                                 matched = TRUE;
                                 patternI = headLen + 1;
@@ -899,7 +1174,7 @@ int isEscapedProperty(const char *propertyName) {
                                 }
                                 if (matched) {
 #ifdef _DEBUG
-                                    printf("Property %s matched pattern %s\n", propertyName, pattern);
+                                    _tprintf(TEXT("Property %s matched pattern %s\n"), propertyName, pattern);
 #endif
                                     return TRUE;
                                 }
@@ -926,12 +1201,12 @@ int isEscapedProperty(const char *propertyName) {
  *
  * @return The new expanded buffer.  It is the responsibility of the caller to free memory later.
  */
-char *expandEscapedCharacters(const char* buffer) {
+TCHAR *expandEscapedCharacters(const TCHAR* buffer) {
     size_t inPos;
     size_t outPos;
-    char *outBuffer;
+    TCHAR *outBuffer;
     int i;
-    char c1, c2;
+    TCHAR c1, c2;
 
     /* First count the length of the required output buffer to hold the current line. Use the same code twice to avoid maintenance problems.  */
     outBuffer = NULL;
@@ -940,28 +1215,29 @@ char *expandEscapedCharacters(const char* buffer) {
         outPos = 0;
         do {
             c1 = buffer[inPos];
-            if (c1 == '\\') {
+            /* The real backslash is #92.  The yen mark from files loaded from ShiftJIS is #165. */
+            if ((c1 == TEXT('\\')) || (c1 == 165)) {
                 /* Escape. */
                 c2 = buffer[inPos + 1];
-                if (c2 == 'n') {
+                if (c2 == TEXT('n')) {
                     /* Line feed. */
                     inPos++;
                     if (outBuffer) {
-                        outBuffer[outPos] = '\n';
+                        outBuffer[outPos] = TEXT('\n');
                     }
                     outPos++;
-                } else if (c2 == '\\') {
+                } else if ((c2 == TEXT('\\')) || (c2 == 165)) {
                     /* Back slash. */
                     inPos++;
 
                     if (outBuffer) {
-                        outBuffer[outPos] = '\\';
+                        outBuffer[outPos] = c1;
                     }
                     outPos++;
                 } else if (c2 == 0) {
                     /* Premature End of buffer.  Show the backslash. */
                     if (outBuffer) {
-                        outBuffer[outPos] = '\\';
+                        outBuffer[outPos] = c1;
                     }
                     outPos++;
                     c1 = 0;
@@ -970,7 +1246,7 @@ char *expandEscapedCharacters(const char* buffer) {
                     inPos++;
 
                     if (outBuffer) {
-                        outBuffer[outPos] = '\\';
+                        outBuffer[outPos] = c1;
                         outBuffer[outPos + 1] = c2;
                     }
                     outPos += 2;
@@ -990,7 +1266,7 @@ char *expandEscapedCharacters(const char* buffer) {
 
         /* string terminator. */
         if (outBuffer) {
-            outBuffer[outPos] = '\0';
+            outBuffer[outPos] = TEXT('\0');
         }
         outPos++;
 
@@ -998,14 +1274,13 @@ char *expandEscapedCharacters(const char* buffer) {
             /* We have have full outBuffer. Fall through. */
         } else {
             /* First pass. We need to allocate the outBuffer. */
-            outBuffer = malloc(outPos);
+            outBuffer = malloc(outPos * sizeof(TCHAR));
             if (!outBuffer) {
-                outOfMemory("ELF", 1);
+                outOfMemory(TEXT("ELF"), 1);
                 return NULL;
             }
         }
     }
-
     return outBuffer;
 }
 
@@ -1023,35 +1298,74 @@ char *expandEscapedCharacters(const char* buffer) {
  *
  * @return The newly created Property, or NULL if there was a reported error.
  */
-Property* addProperty(Properties *properties, const char *propertyName, const char *propertyValue, int finalValue, int quotable, int escapable) {
+Property* addProperty(Properties *properties, const TCHAR *propertyName, const TCHAR *propertyValue, int finalValue, int quotable, int escapable, int internal) {
     int setValue;
     Property *property;
-    char *propertyNameTrim;
-    char *propertyValueTrim;
-    char *propertyExpandedValue;
-
+    TCHAR *propertyNameTrim;
+    TCHAR *propertyValueTrim;
+    TCHAR *propertyExpandedValue;
+#if defined(UNICODE) && defined(WIN32)
+    char *temp1;
+    TCHAR* temp2;
+    size_t req1;
+    int req2;
+#endif
 #ifdef _DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "addProperty(%p, '%s', '%s', %d, %d)",
-        properties, propertyName, propertyValue, finalValue, quotable);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("addProperty(%p, '%s', '%s', %d, %d, %d, %d)"),
+        properties, propertyName, propertyValue, finalValue, quotable, escapable, internal);
 #endif
 
     /* It is possible that the propertyName and or properyValue contains extra spaces. */
-    propertyNameTrim = malloc(sizeof(char) * (strlen(propertyName) + 1));
+    propertyNameTrim = malloc(sizeof(TCHAR) * (_tcslen(propertyName) + 1));
     if (!propertyNameTrim) {
-        outOfMemory("AP", 1);
+        outOfMemory(TEXT("AP"), 1);
         return NULL;
     }
     trim(propertyName, propertyNameTrim);
-    propertyValueTrim = malloc(sizeof(char) * (strlen(propertyValue) + 1));
+#if defined(UNICODE) && defined(WIN32)
+    req1 = -1;
+    req1 = wcstombs(NULL, propertyValue, req1);
+    temp1 = malloc(req1 + 1);
+    if (!temp1) {
+        outOfMemory(TEXT("AP"), 2);
+        free(propertyNameTrim);
+        return NULL;
+    }
+    wcstombs(temp1, propertyValue, req1 + 1);
+
+    req2 = MultiByteToWideChar(CP_OEMCP, 0, temp1, -1, NULL, 0);
+    temp2 = malloc((req2 + 1) * sizeof(TCHAR));
+    if (!temp2) {
+        outOfMemory(TEXT("AP"), 4);
+        free(temp1);
+        free(propertyNameTrim);
+        return NULL;
+    }
+    MultiByteToWideChar(CP_OEMCP, 0, temp1, -1, temp2, (req2 + 1) * sizeof(TCHAR));
+
+    propertyValueTrim = malloc(sizeof(TCHAR) * ( _tcslen(temp2) + 1));
     if (!propertyValueTrim) {
-        outOfMemory("AP", 2);
+        outOfMemory(TEXT("AP"), 4);
+        free(temp1);
+        free(temp2);
+        free(propertyNameTrim);
+        return NULL;
+    }
+    trim(temp2, propertyValueTrim);
+    free(temp1); free(temp2);
+#else
+    propertyValueTrim = malloc(sizeof(TCHAR) * ( _tcslen(propertyValue) + 1));
+    if (!propertyValueTrim) {
+        outOfMemory(TEXT("AP"), 4);
         free(propertyNameTrim);
         return NULL;
     }
     trim(propertyValue, propertyValueTrim);
+#endif
+    
 
 #ifdef _DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  trimmed name='%s', value='%s'",
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  trimmed name='%s', value='%s'"),
         propertyNameTrim, propertyValueTrim);
 #endif
 
@@ -1068,15 +1382,15 @@ Property* addProperty(Properties *properties, const char *propertyName, const ch
         }
 
         /* Store a copy of the name */
-        property->name = malloc(sizeof(char) * (strlen(propertyNameTrim) + 1));
+        property->name = malloc(sizeof(TCHAR) * (_tcslen(propertyNameTrim) + 1));
         if (!property->name) {
-            outOfMemory("AP", 3);
+            outOfMemory(TEXT("AP"), 3);
             disposeInnerProperty(property);
             free(propertyNameTrim);
             free(propertyValueTrim);
             return NULL;
         }
-        strcpy(property->name, propertyNameTrim);
+        _tcscpy(property->name, propertyNameTrim);
 
         /* Insert this property at the correct location.  Value will still be null. */
         insertInnerProperty(properties, property);
@@ -1092,8 +1406,8 @@ Property* addProperty(Properties *properties, const char *propertyName, const ch
         if (escapable && isEscapedProperty(property->name)) {
             /* Expand the value. */
 #ifdef _DEBUG
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "expanding value of %s", property->name);
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  value   : %s", propertyValueTrim);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("expanding value of %s"), property->name);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  value   : %s"), propertyValueTrim);
 #endif
             propertyExpandedValue = expandEscapedCharacters(propertyValueTrim);
             if (!propertyExpandedValue) {
@@ -1101,7 +1415,7 @@ Property* addProperty(Properties *properties, const char *propertyName, const ch
                 return NULL;
             }
 #ifdef _DEBUG
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "  expanded: %s", propertyExpandedValue);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  expanded: %s"), propertyExpandedValue);
 #endif
 
             /* Set the property value. */
@@ -1123,33 +1437,33 @@ Property* addProperty(Properties *properties, const char *propertyName, const ch
         prepareProperty(property);
 
         /* See if this is a special property */
-        if ((strlen(property->name) > 12) && (strstr(property->name, "set.default.") == property->name)) {
+        if ((_tcslen(property->name) > 12) && (_tcsstr(property->name, TEXT("set.default.")) == property->name)) {
             /* This property is an environment variable definition that should only
              *  be set if the environment variable does not already exist.  Get the
              *  value back out of the property as it may have had environment
              *  replacements. */
-            if (getenv(property->name + 12) == NULL) {
+            if (_tgetenv(property->name + 12) == NULL) {
 #ifdef _DEBUG
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "set default env('%s', '%s')",
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("set default env('%s', '%s')"),
                     property->name + 12, property->value);
 #endif
-                setEnv(property->name + 12, property->value);
+                setEnv(property->name + 12, property->value, (internal ? ENV_SOURCE_WRAPPER : ENV_SOURCE_CONFIG));
             } else {
 #ifdef _DEBUG
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    "not setting default env('%s', '%s'), already set to '%s'",
-                    property->name + 12, property->value, getenv(property->name + 12));
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT(
+                    "not setting default env('%s', '%s'), already set to '%s'"),
+                    property->name + 12, property->value, _tgetenv(property->name + 12));
 #endif
             }
-        } else if ((strlen(property->name) > 4) && (strstr(property->name, "set.") == property->name)) {
+        } else if ((_tcslen(property->name) > 4) && (_tcsstr(property->name, TEXT("set.")) == property->name)) {
             /* This property is an environment variable definition.  Get the
              *  value back out of the property as it may have had environment
              *  replacements. */
 #ifdef _DEBUG
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "set env('%s', '%s')",
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("set env('%s', '%s')"),
                 property->name + 4, property->value);
 #endif
-            setEnv(property->name + 4, property->value);
+            setEnv(property->name + 4, property->value, (internal ? ENV_SOURCE_WRAPPER : ENV_SOURCE_CONFIG));
         }
     }
     free(propertyValueTrim);
@@ -1163,24 +1477,24 @@ Property* addProperty(Properties *properties, const char *propertyName, const ch
  *
  * Returns 0 if successful, otherwise 1
  */
-int addPropertyPair(Properties *properties, const char *propertyNameValue, int finalValue, int quotable) {
-    char buffer[MAX_PROPERTY_NAME_VALUE_LENGTH];
-    char *d;
+int addPropertyPair(Properties *properties, const TCHAR *propertyNameValue, int finalValue, int quotable, int internal) {
+    TCHAR buffer[MAX_PROPERTY_NAME_VALUE_LENGTH];
+    TCHAR *d;
 
     /* Make a copy of the pair that we can edit */
-    if (strlen(propertyNameValue) + 1 >= MAX_PROPERTY_NAME_VALUE_LENGTH) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, 
-        "The following property name value pair is too large.  Need to increase the internal buffer size: %s", propertyNameValue);
+    if (_tcslen(propertyNameValue) + 1 >= MAX_PROPERTY_NAME_VALUE_LENGTH) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+            TEXT("The following property name value pair is too large.  Need to increase the internal buffer size: %s"), propertyNameValue);
         return 1;
     }
-    strcpy(buffer, propertyNameValue);
+    _tcscpy(buffer, propertyNameValue);
 
     /* Locate the first '=' in the pair */
-    if ((d = strchr(buffer, '=')) != NULL) {
+    if ((d = _tcschr(buffer, TEXT('='))) != NULL) {
         /* Null terminate the first half of the line. */
-        *d = '\0';
+        *d = TEXT('\0');
         d++;
-        addProperty(properties, buffer, d, finalValue, quotable, FALSE);
+        addProperty(properties, buffer, d, finalValue, quotable, FALSE, internal);
 
         return 0;
     } else {
@@ -1188,12 +1502,12 @@ int addPropertyPair(Properties *properties, const char *propertyNameValue, int f
     }
 }
 
-const char* getStringProperty(Properties *properties, const char *propertyName, const char *defaultValue) {
+const TCHAR* getStringProperty(Properties *properties, const TCHAR *propertyName, const TCHAR *defaultValue) {
     Property *property;
     property = getInnerProperty(properties, propertyName);
     if (property == NULL) {
         if (defaultValue != NULL) {
-            property = addProperty(properties, propertyName, defaultValue, FALSE, FALSE, FALSE);
+            property = addProperty(properties, propertyName, defaultValue, FALSE, FALSE, FALSE, FALSE);
             if (property) {
                 return property->value;
             } else {
@@ -1207,25 +1521,25 @@ const char* getStringProperty(Properties *properties, const char *propertyName, 
     }
 }
 
-const char* getFileSafeStringProperty(Properties *properties, const char *propertyName, const char *defaultValue) {
+const TCHAR* getFileSafeStringProperty(Properties *properties, const TCHAR *propertyName, const TCHAR *defaultValue) {
     Property *property;
-    char *buffer;
+    TCHAR *buffer;
     int i;
 
     property = getInnerProperty(properties, propertyName);
     if (property == NULL) {
         if (defaultValue != NULL) {
-            addProperty(properties, propertyName, defaultValue, FALSE, FALSE, FALSE);
+            addProperty(properties, propertyName, defaultValue, FALSE, FALSE, FALSE, FALSE);
         }
 
         return defaultValue;
     } else {
         buffer = property->value;
-        if (strchr(buffer, '%')) {
+        if (_tcschr(buffer, TEXT('%'))) {
             i = 0;
             while (buffer[i]) {
-                if (buffer[i] == '%') {
-                    buffer[i] = '_';
+                if (buffer[i] == TEXT('%')) {
+                    buffer[i] = TEXT('_');
                 }
                 i++;
             }
@@ -1237,12 +1551,12 @@ const char* getFileSafeStringProperty(Properties *properties, const char *proper
 /**
  * Does a quick sort of the property values, keeping the values together.
  */
-void sortStringProperties(long unsigned int *propertyIndices, char **propertyNames, char **propertyValues, int low, int high) {
+void sortStringProperties(long unsigned int *propertyIndices, TCHAR **propertyNames, TCHAR **propertyValues, int low, int high) {
     int i = low;
     int j = high;
     long int tempIndex;
-    char *tempName;
-    char *tempValue;
+    TCHAR *tempName;
+    TCHAR *tempValue;
     long unsigned int x = propertyIndices[(low + high) / 2];
 
     do {
@@ -1298,62 +1612,62 @@ void sortStringProperties(long unsigned int *propertyIndices, char **propertyNam
  *
  * @return 0 if successful, -1 if there was an error.
  */
-int getStringProperties(Properties *properties, const char *propertyNameHead, const char *propertyNameTail, int all, int matchAny, char ***propertyNames, char ***propertyValues, long unsigned int **propertyIndices) {
+int getStringProperties(Properties *properties, const TCHAR *propertyNameHead, const TCHAR *propertyNameTail, int all, int matchAny, TCHAR ***propertyNames, TCHAR ***propertyValues, long unsigned int **propertyIndices) {
     int j;
     int k;
     size_t headLen;
     size_t tailLen;
     size_t thisLen;
-    char *thisHead;
-    char *thisTail;
+    TCHAR *thisHead;
+    TCHAR *thisTail;
     size_t i;
     Property *property;
     size_t indexLen;
-    char indexS[11];
+    TCHAR indexS[11];
     int ok;
-    char c;
+    TCHAR c;
     int count;
 
     *propertyIndices = NULL;
 
-    headLen = strlen(propertyNameHead);
-    tailLen = strlen(propertyNameTail);
+    headLen = _tcslen(propertyNameHead);
+    tailLen = _tcslen(propertyNameTail);
 
     for (j = 0; j < 2; j++) {
         count = 0;
         property = properties->first;
         while (property != NULL) {
-            thisLen = strlen(property->name);
+            thisLen = _tcslen(property->name);
             if (matchAny && thisLen < headLen +  tailLen - 1) {
                 /* Too short, not what we are looking for. */
             } else if (!matchAny && thisLen < headLen +  tailLen + 1) {
                 /* Too short, not what we are looking for. */
             } else {
-                thisHead = malloc(headLen + 1);
+                thisHead = malloc(sizeof(TCHAR) * (headLen + 1));
                 if (!thisHead) {
-                    outOfMemory("GSPS", 1);
+                    outOfMemory(TEXT("GSPS"), 1);
                 } else {
-                    memcpy(thisHead, property->name, headLen);
+                    _tcsncpy(thisHead, property->name, headLen);
                     thisHead[headLen] = 0;
 
                     if (strcmpIgnoreCase(thisHead, propertyNameHead) == 0) {
                         /* Head matches. */
-                        
-                        thisTail = malloc(tailLen + 1);
+
+                        thisTail = malloc(sizeof(TCHAR) * (tailLen + 1));
                         if (!thisTail) {
-                            outOfMemory("GSPS", 2);
+                            outOfMemory(TEXT("GSPS"), 2);
                         } else {
-                            strcpy(thisTail, property->name + thisLen - tailLen);
+                            _tcscpy(thisTail, property->name + thisLen - tailLen);
 
                             if (strcmpIgnoreCase(thisTail, propertyNameTail) == 0) {
                                 /* Tail matches. */
-                                if (matchAny) { 
-                                    indexLen = thisLen - headLen - tailLen + 1; 
+                                if (matchAny) {
+                                    indexLen = thisLen - headLen - tailLen + 1;
                                 } else {
                                     indexLen = thisLen - headLen - tailLen;
                                 }
                                 if (indexLen <= 10) {
-                                    memcpy(indexS, property->name + headLen, indexLen);
+                                    _tcsncpy(indexS, property->name + headLen, indexLen);
                                     indexS[indexLen] = 0;
 
                                     ok = TRUE;
@@ -1370,7 +1684,7 @@ int getStringProperties(Properties *properties, const char *propertyNameHead, co
                                             /* We found it. */
                                             prepareProperty(property);
 
-                                            (*propertyIndices)[count] = strtoul(indexS, NULL, 10);
+                                            (*propertyIndices)[count] = _tcstoul(indexS, NULL, 10);
                                             (*propertyNames)[count] = property->name;
                                             (*propertyValues)[count] = property->value;
                                         }
@@ -1395,18 +1709,18 @@ int getStringProperties(Properties *properties, const char *propertyNameHead, co
         if (*propertyIndices == NULL) {
             /* First pass */
 
-            *propertyNames = malloc(sizeof(char *) * (count + 1));
+            *propertyNames = malloc(sizeof(TCHAR *) * (count + 1));
             if (!(*propertyNames)) {
-                outOfMemory("GSPS", 3);
+                outOfMemory(TEXT("GSPS"), 3);
                 *propertyNames = NULL;
                 *propertyValues = NULL;
                 *propertyIndices = NULL;
                 return -1;
             }
 
-            *propertyValues = malloc(sizeof(char *) * (count + 1));
+            *propertyValues = malloc(sizeof(TCHAR *) * (count + 1));
             if (!(*propertyValues)) {
-                outOfMemory("GSPS", 4);
+                outOfMemory(TEXT("GSPS"), 4);
                 free(*propertyNames);
                 *propertyNames = NULL;
                 *propertyValues = NULL;
@@ -1416,7 +1730,7 @@ int getStringProperties(Properties *properties, const char *propertyNameHead, co
 
             *propertyIndices = malloc(sizeof(long unsigned int) * (count + 1));
             if (!(*propertyIndices)) {
-                outOfMemory("GSPS", 5);
+                outOfMemory(TEXT("GSPS"), 5);
                 free(*propertyNames);
                 free(*propertyValues);
                 *propertyNames = NULL;
@@ -1454,7 +1768,7 @@ int getStringProperties(Properties *properties, const char *propertyNameHead, co
             /*
             for (k = 0; k < count; k++) {
                 if ((*propertyNames)[k]) {
-                    printf("[%d] #%lu: %s=%s\n", k, (*propertyIndices)[k], (*propertyNames)[k], (*propertyValues)[k]);
+                    _tprintf("[%d] #%lu: %s=%s\n", k, (*propertyIndices)[k], (*propertyNames)[k], (*propertyValues)[k]);
                 }
             }
             */
@@ -1470,7 +1784,7 @@ int getStringProperties(Properties *properties, const char *propertyNameHead, co
 /**
  * Frees up an array of properties previously returned by getStringProperties().
  */
-void freeStringProperties(char **propertyNames, char **propertyValues, long unsigned int *propertyIndices) {
+void freeStringProperties(TCHAR **propertyNames, TCHAR **propertyValues, long unsigned int *propertyIndices) {
     /* The property names are not malloced. */
     free(propertyNames);
 
@@ -1485,9 +1799,9 @@ void freeStringProperties(char **propertyNames, char **propertyValues, long unsi
  * Performs a case insensitive check of the property value against the value provided.
  *  If the property is not set then it is compared with the defaultValue.
  */
-int checkPropertyEqual(Properties *properties, const char *propertyName, const char *defaultValue, const char *value) {
+int checkPropertyEqual(Properties *properties, const TCHAR *propertyName, const TCHAR *defaultValue, const TCHAR *value) {
     Property *property;
-    const char *propertyValue;
+    const TCHAR *propertyValue;
 
     property = getInnerProperty(properties, propertyName);
     if (property == NULL) {
@@ -1499,31 +1813,36 @@ int checkPropertyEqual(Properties *properties, const char *propertyName, const c
     return strcmpIgnoreCase(propertyValue, value) == 0;
 }
 
-int getIntProperty(Properties *properties, const char *propertyName, int defaultValue) {
-    char buffer[16];
+int getIntProperty(Properties *properties, const TCHAR *propertyName, int defaultValue) {
+    TCHAR buffer[16];
     Property *property;
 
     property = getInnerProperty(properties, propertyName);
     if (property == NULL) {
-        sprintf(buffer, "%d", defaultValue);
-        addProperty(properties, propertyName, buffer, FALSE, FALSE, FALSE);
+        _sntprintf(buffer, 16, TEXT("%d"), defaultValue);
+        addProperty(properties, propertyName, buffer, FALSE, FALSE, FALSE, FALSE);
 
         return defaultValue;
     } else {
-        return (int)strtol(property->value, NULL, 0);
+        return (int)_tcstol(property->value, NULL, 0);
     }
 }
 
-int getBooleanProperty(Properties *properties, const char *propertyName, int defaultValue) {
+int getBooleanProperty(Properties *properties, const TCHAR *propertyName, int defaultValue) {
+    TCHAR *defaultValueS;
+    
     if (defaultValue) {
-        return checkPropertyEqual(properties, propertyName, "true", "true");
+        defaultValueS = TEXT("true");
     } else {
-        return checkPropertyEqual(properties, propertyName, "false", "true");
+        defaultValueS = TEXT("false");
     }
+    
+    /* Return TRUE if the property value or the defaultValue == "TRUE". */
+    return checkPropertyEqual(properties, propertyName, defaultValueS, TEXT("true"));
 }
 
 
-int isQuotableProperty(Properties *properties, const char *propertyName) {
+int isQuotableProperty(Properties *properties, const TCHAR *propertyName) {
     Property *property;
     property = getInnerProperty(properties, propertyName);
     if (property == NULL) {
@@ -1537,38 +1856,38 @@ void dumpProperties(Properties *properties) {
     Property *property;
     property = properties->first;
     while (property != NULL) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "    name:%s value:%s", property->name, property->value);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    name:%s value:%s"), property->name, property->value);
         property = property->next;
     }
 }
 
 /** Creates a linearized representation of all of the properties.
  *  The returned buffer must be freed by the calling code. */
-char *linearizeProperties(Properties *properties, char separator) {
+TCHAR *linearizeProperties(Properties *properties, TCHAR separator) {
     Property *property;
     size_t size;
-    char *c;
-    char *fullBuffer;
-    char *buffer;
-    char *work;
+    TCHAR *c;
+    TCHAR *fullBuffer;
+    TCHAR *buffer;
+    TCHAR *work;
 
     /* First we need to figure out how large a buffer will be needed to linearize the properties. */
     size = 0;
     property = properties->first;
     while (property != NULL) {
         /* Add the length of the basic property. */
-        size += strlen(property->name);
+        size += _tcslen(property->name);
         size++; /* '=' */
-        size += strlen(property->value);
+        size += _tcslen(property->value);
 
         /* Handle any characters that will need to be escaped. */
         c = property->name;
-        while ((c = strchr(c, separator)) != NULL) {
+        while ((c = _tcschr(c, separator)) != NULL) {
             size++;
             c++;
         }
         c = property->value;
-        while ((c = strchr(c, separator)) != NULL) {
+        while ((c = _tcschr(c, separator)) != NULL) {
             size++;
             c++;
         }
@@ -1580,9 +1899,9 @@ char *linearizeProperties(Properties *properties, char separator) {
     size++; /* null terminated. */
 
     /* Now that we know how much space this will all take up, allocate a buffer. */
-    fullBuffer = buffer = malloc(size);
+    fullBuffer = buffer = malloc(sizeof(TCHAR) * size);
     if (!fullBuffer) {
-        outOfMemory("LP", 1);
+        outOfMemory(TEXT("LP"), 1);
         return NULL;
     }
 
@@ -1591,31 +1910,31 @@ char *linearizeProperties(Properties *properties, char separator) {
     while (property != NULL) {
         /* name */
         work = property->name;
-        while ((c = strchr(work, separator)) != NULL) {
-            memcpy(buffer, work, c - work + 1);
+        while ((c = _tcschr(work, separator)) != NULL) {
+            _tcsncpy(buffer, work, c - work + 1);
             buffer += c - work + 1;
             buffer[0] = separator;
             buffer++;
             work = c + 1;
         }
-        strcpy(buffer, work);
-        buffer += strlen(work);
+        _tcscpy(buffer, work);
+        buffer += _tcslen(work);
 
         /* equals */
-        buffer[0] = '=';
+        buffer[0] = TEXT('=');
         buffer++;
 
         /* value */
         work = property->value;
-        while ((c = strchr(work, separator)) != NULL) {
-            memcpy(buffer, work, c - work + 1);
+        while ((c = _tcschr(work, separator)) != NULL) {
+            _tcsncpy(buffer, work, c - work + 1);
             buffer += c - work + 1;
             buffer[0] = separator;
             buffer++;
             work = c + 1;
         }
-        strcpy(buffer, work);
-        buffer += strlen(work);
+        _tcscpy(buffer, work);
+        buffer += _tcslen(work);
 
         /* separator */
         buffer[0] = separator;

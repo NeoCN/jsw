@@ -99,6 +99,8 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <replace file="${test.dir}/template.conf"
                  token="wrapper.logfile=../logs/wrapper.log"
                  value="wrapper.logfile=../test/testwrapper.log" />
+
+       
         
         <!-- Background Threads Test -->
         <delete file="${test.dir}/backgroundthreads.conf"/>
@@ -132,8 +134,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <replace file="${test.dir}/daemonthreads.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.DaemonThreads" />
-
-
+        
         <!-- Simple WrapperListener Test -->
         <delete file="${test.dir}/simplewrapperlistener.conf"/>
         <filter token="app.name"          value="simplewrapperlistener"/>
@@ -473,6 +474,9 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacetoken>
         <replace file="${test.dir}/TestBackgroundThreads.bat"
                  token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
                  value='set _WRAPPER_CONF_DEFAULT=../test/backgroundthreads.conf' />
+
+      
+
         
         <!-- Long Running Background Threads Test -->
         <delete file="${test.dir}/TestLongRunningBackgroundThreads.bat"/>
@@ -497,7 +501,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacetoken>
         <replace file="${test.dir}/TestDaemonThreads.bat"
                  token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
                  value='set _WRAPPER_CONF_DEFAULT=../test/daemonthreads.conf' />
-
+        
         <!-- Simple WrapperListener Test -->
         <delete file="${test.dir}/TestSimpleWrapperListener.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
@@ -891,8 +895,7 @@ set ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/backgroundthreads"
               filtering="on"/>
-        <chmod file="${test.dir}/backgroundthreads" perm="+x"/> 
-        
+        <chmod file="${test.dir}/backgroundthreads" perm="+x"/>
         <!-- Long Running Background Threads Test -->
         <filter token="app.name"          value="longrunningbackgroundthreads"/>
         <filter token="app.long.name"     value="Long Running Background Threads Case" />
@@ -908,7 +911,7 @@ set ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/daemonthreads"
               filtering="on"/>
         <chmod file="${test.dir}/daemonthreads" perm="+x"/> 
-
+        
         <!-- SimpleWrapperListener Test -->
         <filter token="app.name"          value="simplewrapperlistener"/>
         <filter token="app.long.name"     value="Simple WrapperListener Case" />

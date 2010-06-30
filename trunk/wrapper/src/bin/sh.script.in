@@ -1288,7 +1288,7 @@ case "$1" in
 
     *)
         eval MSG=`gettext 'Usage: '`
-        echo "${MSG} $0 { console <action> | start <action> | stop | restart <action> | condrestart <action> | status | install | remove | dump }"
+        echo "${MSG} $0 { console | start | stop | restart | condrestart | status | install | remove | dump }"
         exit 1
         ;;
 esac

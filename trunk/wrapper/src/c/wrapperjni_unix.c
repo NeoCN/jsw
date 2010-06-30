@@ -6,29 +6,28 @@
  * This software is the proprietary information of Tanuki Software.
  * You shall use it only in accordance with the terms of the
  * license agreement you entered into with Tanuki Software.
- * http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
- * 
- * 
+ * http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
+ *
+ *
  * Portions of the Software have been derived from source code
  * developed by Silver Egg Technology under the following license:
- * 
+ *
  * Copyright (c) 2001 Silver Egg Technology
- * 
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without 
+ * files (the "Software"), to deal in the Software without
  * restriction, including without limitation the rights to use,
  * copy, modify, merge, publish, distribute, sub-license, and/or
  * sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following 
+ * Software is furnished to do so, subject to the following
  * conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
  */
 
 #ifndef WIN32
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -40,22 +39,21 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include "wrapper_i18n.h"
 #include "wrapperjni.h"
 
 static pid_t wrapperProcessId = -1;
-
 pthread_mutex_t controlEventQueueMutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 int wrapperLockControlEventQueue() {
     int count = 0;
     struct timespec ts;
-
     /* Only wait for up to 30 seconds to make sure we don't get into a deadlock situation.
      *  This could happen if a signal is encountered while locked. */
     while (pthread_mutex_trylock(&controlEventQueueMutex) == EBUSY) {
         if (count >= 3000) {
-            printf(gettext("WrapperJNI Error: Timed out waiting for control event queue lock.\n"));
+            _tprintf(TEXT("WrapperJNI Error: Timed out waiting for control event queue lock.\n"));
             fflush(NULL);
             return -1;
         }
@@ -69,17 +67,16 @@ int wrapperLockControlEventQueue() {
     if (count > 0) {
         if (wrapperJNIDebugging) {
             /* This is useful for making sure that the JNI call is working. */
-            printf(gettext("WrapperJNI Debug: wrapperLockControlEventQueue looped %d times before lock.\n"), count);
+            _tprintf(TEXT("WrapperJNI Debug: wrapperLockControlEventQueue looped %d times before lock.\n"), count);
             fflush(NULL);
         }
     }
-
     return 0;
 }
 
 int wrapperReleaseControlEventQueue() {
     if (pthread_mutex_unlock(&controlEventQueueMutex)) {
-        printf(gettext("WrapperJNI Error: Failed to unlock the event queue mutex.\n"));
+        _tprintf(TEXT("WrapperJNI Error: Failed to unlock the event queue mutex.\n"));
         fflush(NULL);
     }
     return 0;
@@ -116,7 +113,7 @@ void handleHangup(int sig_num) {
  *  These signals MUST be passed on to the JVM or the JVM will hang.
  */
 /*
-void handleUsr1(int sig_num) {
+ void handleUsr1(int sig_num) {
     wrapperJNIHandleSignal(org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_USR1_EVENT);
     signal(SIGUSR1, handleUsr1);
 }
@@ -129,7 +126,7 @@ void handleUsr1(int sig_num) {
  *  These signals MUST be passed on to the JVM or the JVM will hang.
  */
 /*
-void handleUsr2(int sig_num) {
+ void handleUsr2(int sig_num) {
     wrapperJNIHandleSignal(org_tanukisoftware_wrapper_WrapperManager_WRAPPER_CTRL_USR2_EVENT);
     signal(SIGUSR2, handleUsr2);
 }
@@ -141,12 +138,15 @@ void handleUsr2(int sig_num) {
  * Signature: (Z)V
  */
 JNIEXPORT void JNICALL
-Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass clazz, jboolean debugging) {
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jClassWrapperManager, jboolean debugging) {
     wrapperJNIDebugging = debugging;
+    
+    /* Set the locale so we can display MultiByte characters. */
+    _tsetlocale(LC_ALL, TEXT(""));
 
     if (wrapperJNIDebugging) {
         /* This is useful for making sure that the JNI call is working. */
-        printf(gettext("WrapperJNI Debug: Inside native WrapperManager initialization method\n"));
+        _tprintf(TEXT("WrapperJNI Debug: Inside native WrapperManager initialization method\n"));
         fflush(NULL);
     }
 
@@ -159,8 +159,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass cl
     signal(SIGUSR2, handleUsr2);
     */
 
-    initUTF8Strings(env);
-
+    initCommon(env, jClassWrapperManager);
 
     /* Store the current process Id */
     wrapperProcessId = getpid();
@@ -186,12 +185,12 @@ JNIEXPORT void JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump(
         JNIEnv *env, jclass clazz) {
     if (wrapperJNIDebugging) {
-        printf(gettext("WrapperJNI Debug: Sending SIGQUIT event to process group %d.\n"),
+        _tprintf(TEXT("WrapperJNI Debug: Sending SIGQUIT event to process group %d.\n"),
             (int)wrapperProcessId);
         fflush(NULL);
     }
     if (kill(wrapperProcessId, SIGQUIT) < 0) {
-        printf(gettext("WrapperJNI Error: Unable to send SIGQUIT to JVM process: %s\n"),
+        _tprintf(TEXT("WrapperJNI Error: Unable to send SIGQUIT to JVM process: %s\n"),
             getLastErrorText());
         fflush(NULL);
     }
@@ -206,7 +205,7 @@ JNIEXPORT void JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle(
         JNIEnv *env, jclass clazz, jbyteArray jTitleBytes) {
     if (wrapperJNIDebugging) {
-        printf(gettext("WrapperJNI Debug: Setting the console title not supported on UNIX platforms.\n"));
+        _tprintf(TEXT("WrapperJNI Debug: Setting the console title not supported on UNIX platforms.\n"));
         fflush(NULL);
     }
 }
@@ -256,18 +255,22 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
 
             /* Real Name byte array */
             jRealName = (*env)->NewByteArray(env, strlen(pw->pw_gecos));
-            (*env)->SetByteArrayRegion(env, jRealName, 0, strlen(pw->pw_gecos), (jbyte*)pw->pw_gecos);
+            (*env)->SetByteArrayRegion(env, jRealName, 0, strlen(pw->pw_gecos),
+                    (jbyte*) pw->pw_gecos);
 
             /* Home byte array */
             jHome = (*env)->NewByteArray(env, strlen(pw->pw_dir));
-            (*env)->SetByteArrayRegion(env, jHome, 0, strlen(pw->pw_dir), (jbyte*)pw->pw_dir);
+            (*env)->SetByteArrayRegion(env, jHome, 0, strlen(pw->pw_dir),
+                    (jbyte*) pw->pw_dir);
 
             /* Shell byte array */
             jShell = (*env)->NewByteArray(env, strlen(pw->pw_shell));
-            (*env)->SetByteArrayRegion(env, jShell, 0, strlen(pw->pw_shell), (jbyte*)pw->pw_shell);
+            (*env)->SetByteArrayRegion(env, jShell, 0, strlen(pw->pw_shell),
+                    (jbyte*) pw->pw_shell);
 
             /* Now create the new wrapperUser using the constructor arguments collected above. */
-            wrapperUser = (*env)->NewObject(env, wrapperUserClass, constructor, uid, ugid, jUser, jRealName, jHome, jShell);
+            wrapperUser = (*env)->NewObject(env, wrapperUserClass, constructor,
+                    uid, ugid, jUser, jRealName, jHome, jShell);
 
             (*env)->DeleteLocalRef(env, jUser);
             (*env)->DeleteLocalRef(env, jRealName);
@@ -282,11 +285,14 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
                         ggid = aGroup->gr_gid;
 
                         /* Group name byte array */
-                        jGroupName = (*env)->NewByteArray(env, strlen(aGroup->gr_name));
-                        (*env)->SetByteArrayRegion(env, jGroupName, 0, strlen(aGroup->gr_name), (jbyte*)aGroup->gr_name);
+                        jGroupName = (*env)->NewByteArray(env, strlen(
+                                aGroup->gr_name));
+                        (*env)->SetByteArrayRegion(env, jGroupName, 0, strlen(
+                                aGroup->gr_name), (jbyte*) aGroup->gr_name);
 
                         /* Add the group to the user. */
-                        (*env)->CallVoidMethod(env, wrapperUser, setGroup, ggid, jGroupName);
+                        (*env)->CallVoidMethod(env, wrapperUser, setGroup,
+                                ggid, jGroupName);
 
                         (*env)->DeleteLocalRef(env, jGroupName);
                     }
@@ -310,11 +316,15 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
                             ggid = aGroup->gr_gid;
 
                             /* Group name byte array */
-                            jGroupName = (*env)->NewByteArray(env, strlen(aGroup->gr_name));
-                            (*env)->SetByteArrayRegion(env, jGroupName, 0, strlen(aGroup->gr_name), (jbyte*)aGroup->gr_name);
+                            jGroupName = (*env)->NewByteArray(env, strlen(
+                                    aGroup->gr_name));
+                            (*env)->SetByteArrayRegion(env, jGroupName, 0,
+                                    strlen(aGroup->gr_name),
+                                    (jbyte*) aGroup->gr_name);
 
                             /* Add the group to the user. */
-                            (*env)->CallVoidMethod(env, wrapperUser, addGroup, ggid, jGroupName);
+                            (*env)->CallVoidMethod(env, wrapperUser, addGroup,
+                                    ggid, jGroupName);
 
                             (*env)->DeleteLocalRef(env, jGroupName);
                         }
@@ -329,7 +339,6 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
 
     return wrapperUser;
 }
-
 
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
@@ -371,5 +380,4 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
     /** Not supported on UNIX platforms. */
     return NULL;
 }
-
 #endif
