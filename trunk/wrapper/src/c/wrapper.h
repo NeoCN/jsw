@@ -191,9 +191,6 @@ struct WrapperConfig {
     TCHAR**  argValues;              /* Argument values. */
 
     TCHAR*   language;               /* The language */
-    TCHAR*   language_domain;
-    TCHAR*   language_folder;
-    TCHAR*   language_encoding;
     int     configured;             /* TRUE if loadConfiguration has been called. */
     int     useSystemTime;          /* TRUE if the wrapper should use the system clock for timing, FALSE if a tick counter should be used. */
     int     timerFastThreshold;     /* If the difference between the system time based tick count and the timer tick count ever falls by more than this value then a warning will be displayed. */

@@ -4170,25 +4170,6 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     }
     index++;
 
-    if (strings) {
-        strings[index] = malloc(sizeof(TCHAR) * 100);  /* jvmid up to 5 characters */
-        if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 41);
-            return -1;
-        }
-        _sntprintf(strings[index], 100, TEXT("-Dwrapper.lang.domain=%s"), wrapperData->language_domain);
-    }
-    index++;
-
-    if (strings) {
-        strings[index] = malloc(sizeof(TCHAR) * 100);  /* jvmid up to 5 characters */
-        if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 41);
-            return -1;
-        }
-        _sntprintf(strings[index], 100, TEXT("-Dwrapper.lang.folder=%s"), wrapperData->language_folder);
-    }
-    index++;
 
     /* Store the main class */
     thisIsTestWrapper = FALSE;
