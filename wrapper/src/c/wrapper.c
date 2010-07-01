@@ -2910,22 +2910,24 @@ int checkIfBinary(const TCHAR *filename) {
 #if defined(LINUX) || defined(FREEBSD) || defined(SOLARIS)
         if (head[1] == 'E' && head[2] == 'L' && head[3] == 'F') {
             return 1; /*ELF */
-#endif
-#ifdef AIX
-/* http://en.wikipedia.org/wiki/XCOFF */
+#elif defined(AIX)
+        /* http://en.wikipedia.org/wiki/XCOFF */
         if (head[0] == 1 && head[1] == 247 && head[2] == 0) {
             return 1; /*xcoff 64*/
         } else if (head[0] == 1 && head[1] == 223 && head[2] == 0) {
             return 1; /*xcoff 32*/
-#elif MACOSX
+#elif defined(MACOSX)
         if (head[0] == 202 && head[1] == 254 && head[2] == 186 && head[3] == 190) {
             return 1; /*MACOS*/
-#elif HPUX
+#elif defined(HPUX)
         if (head[0] == 2 && head[1] == 16 && head[2] == 1 && head[3] == 8) {
             return 1; /*HP UX PA RISC 32*/
-#elif WIN32
+#elif defined(WIN32)
         if (head[0] == 'M' && head[1] == 'Z') {
             return 1; /* MS */
+#else
+        if (FALSE) {
+ #error I dont know what to do for this host type. (in checkIfBinary())
 #endif
         } else {
             return 0;
