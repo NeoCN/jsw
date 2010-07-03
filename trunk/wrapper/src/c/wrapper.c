@@ -1451,6 +1451,9 @@ void wrapperLogFileChanged(const TCHAR *logFile) {
  */
 int wrapperInitialize() {
     TCHAR *retLocale;
+#ifdef WIN32
+    CPINFOEX cpInfo;
+#endif
     
     /* Initialize the properties variable. */
     properties = NULL;
@@ -1524,6 +1527,22 @@ int wrapperInitialize() {
         return 1;
     }
     
+    if (GetCPInfoEx(CP_ACP, 0, &cpInfo)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Code Page Info (ACP): MaxCharSize=%d CodePage=%d %s"), cpInfo.MaxCharSize, cpInfo.CodePage, cpInfo.CodePageName);
+    } else {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Failed to get information on the code page: %s"), getLastErrorText());
+    }
+    if (GetCPInfoEx(CP_OEMCP, 0, &cpInfo)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Code Page Info (OEMCP): MaxCharSize=%d CodePage=%d %s"), cpInfo.MaxCharSize, cpInfo.CodePage, cpInfo.CodePageName);
+    } else {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Failed to get information on the code page: %s"), getLastErrorText());
+    }
+    if (GetCPInfoEx(CP_THREAD_ACP, 0, &cpInfo)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Code Page Info (THREAD_ACP): MaxCharSize=%d CodePage=%d %s"), cpInfo.MaxCharSize, cpInfo.CodePage, cpInfo.CodePageName);
+    } else {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Failed to get information on the code page: %s"), getLastErrorText());
+    }
+    
     /* Set the default locale here so any startup error messages will have a chance of working.
      *  We will go back and try to set the actual locale again later once it is configured. */
     retLocale = _tsetlocale(LC_ALL, TEXT(""));
@@ -1542,6 +1561,36 @@ int wrapperInitialize() {
     if (loadEnvironment()) {
         return 1;
     }
+
+    /* Explore the environment */
+#ifdef WIN32
+    if (GetCPInfoEx(CP_ACP, 0, &cpInfo)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Code Page Info (ACP): MaxCharSize=%d CodePage=%d %s"), cpInfo.MaxCharSize, cpInfo.CodePage, cpInfo.CodePageName);
+    } else {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Failed to get information on the code page: %s"), getLastErrorText());
+    }
+    if (GetCPInfoEx(CP_OEMCP, 0, &cpInfo)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Code Page Info (OEMCP): MaxCharSize=%d CodePage=%d %s"), cpInfo.MaxCharSize, cpInfo.CodePage, cpInfo.CodePageName);
+    } else {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Failed to get information on the code page: %s"), getLastErrorText());
+    }
+    if (GetCPInfoEx(CP_THREAD_ACP, 0, &cpInfo)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Code Page Info (THREAD_ACP): MaxCharSize=%d CodePage=%d %s"), cpInfo.MaxCharSize, cpInfo.CodePage, cpInfo.CodePageName);
+    } else {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Failed to get information on the code page: %s"), getLastErrorText());
+    }
+    /*
+    if (!SetConsoleOutputCP(932)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Unable to set the console output CodePage: %s"), getLastErrorText());
+    }
+    
+    if (GetCPInfoEx(CP_THREAD_ACP, 0, &cpInfo)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Code Page Info (THREAD_ACP): MaxCharSize=%d CodePage=%d %s"), cpInfo.MaxCharSize, cpInfo.CodePage, cpInfo.CodePageName);
+    } else {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Failed to get information on the code page: %s"), getLastErrorText());
+    }
+    */
+#endif
     
     return 0;
 }
@@ -2305,7 +2354,7 @@ int wrapperRunCommon() {
     if (checkForTestWrapperScripts()) {
         return 1;
     }
-
+    
     /* The following code will display a licensed to block if a license key is found
      *  in the Wrapper configuration.  This piece of code is required as is for
      *  Development License owners to be in complience with their development license.

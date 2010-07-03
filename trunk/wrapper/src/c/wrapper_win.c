@@ -222,10 +222,10 @@ int buildSystemPath() {
             return 1;
         }
 
-        memcpy(systemPath[i], lc, len);
+        memcpy(systemPath[i], lc, sizeof(TCHAR) * len);
         systemPath[i][len] = TEXT('\0');
 #ifdef _DEBUG
-        printf("PATH[%d]=%s\n", i, systemPath[i]);
+        _tprintf(TEXT("PATH[%d]=%s\n"), i, systemPath[i]);
 #endif
         lc = c + 1;
         i++;
@@ -4068,6 +4068,8 @@ void _tmain(int argc, TCHAR **argv) {
      * the table; */
     SERVICE_TABLE_ENTRY serviceTable[2];
 
+    //SetThreadLocale(GetSystemDefaultLCID());
+    
     if (buildSystemPath()) {
         appExit(1);
         return; /* For clarity. */
@@ -4115,7 +4117,8 @@ void _tmain(int argc, TCHAR **argv) {
             appExit(1);
             return; /* For clarity. */
         }
-        wrapperLoadHostName();
+        _tprintf(TEXT("HERE M1\n"));
+        //wrapperLoadHostName();
 
         /* At this point, we have a command, confFile, and possibly additional arguments. */
         if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("?")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-help"))) {

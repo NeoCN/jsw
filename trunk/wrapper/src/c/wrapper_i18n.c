@@ -138,7 +138,7 @@ int multiByteToWideChar(char *multiByteChars, const char *multiByteEncoding, cha
 
     /* First we need to convert from the multi-byte string to native. */
     /* If the multiByteEncoding and interumEncoding encodings are equal then there is nothing to do. */
-    if (strcmp(multiByteEncoding, interumEncoding) != 0) {
+    if (strcmp(multiByteEncoding, interumEncoding) != 0 && strcmp(interumEncoding, "646") != 0) {
         conv_desc = iconv_open(interumEncoding, multiByteEncoding); /* convert multiByte encoding to interum-encoding*/
         if (conv_desc == (iconv_t)(-1)) {
             /* Initialization failure. */

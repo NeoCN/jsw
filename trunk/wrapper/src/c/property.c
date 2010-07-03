@@ -519,7 +519,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
 #endif
                 ) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                    TEXT("The encoding type of configuration file:\n  %s\n  is specified as '%s', but the file has a BOM marker meaning that it is encoded as 'UTF-8'."), filename, encodingMB);
+                    TEXT("The encoding type of configuration file:\n  %s\n  is not specified as 'UTF-8', but the file has a BOM marker meaning that it is encoded as 'UTF-8'."), filename);
             }
 
 #ifdef WIN32
@@ -560,7 +560,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
 #endif
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                    TEXT("The specified encoding type '%s' in configuration file:\n  %s\n  is not currently supported."), encodingMB, filename);
+                    TEXT("The specified encoding type in configuration file:\n  %s\n  is not currently supported. Please use 'UTF-8'."), filename);
                 return TRUE;
             }
 
