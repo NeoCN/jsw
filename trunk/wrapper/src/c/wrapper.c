@@ -1634,7 +1634,7 @@ void wrapperVersionBanner() {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
         TEXT("Java Service Wrapper %s Edition %s-bit %s"), TEXT("Community"), wrapperBits, wrapperVersionRoot);
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-        TEXT("  Copyright (C) 1999-%s Tanuki Software, Ltd.  All Rights Reserved."), TEXT("2010") );
+        TEXT("  Copyright (C) 1999-%s Tanuki Software, Ltd. All Rights Reserved."), TEXT("2010") );
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
         TEXT("    http://wrapper.tanukisoftware.com"));
 }
@@ -1858,13 +1858,13 @@ void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int acti
                     if (wrapperData->isAdviserEnabled) {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(""));
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(
-                            "------------------------------------------------------------------------"));
+                            "--------------------------------------------------------------------"));
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(
                             "Advice:"));
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(
-                            "MACOSX is known to have problems displaying GUIs from processes running\nas a daemon launched from launchd.  The above \"Returning nil _server\"\nmeans that you are encountering this problem.  This usually results in\na long timeout which is affecting the performance of your application."));
+                            "MACOSX is known to have problems displaying GUIs from processes\nrunning as a daemon launched from launchd.  The above\"Returning nil _server\" means that you are encountering this\nproblem.  This usually results in a long timeout which is affecting\nthe performance of your application."));
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(
-                            "------------------------------------------------------------------------"));
+                            "--------------------------------------------------------------------"));
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(""));
                     }
                     break;
@@ -2299,13 +2299,13 @@ int checkForTestWrapperScripts() {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
                         ""));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
-                        "------------------------------------------------------------------------"));
+                        "--------------------------------------------------------------------"));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
-                        "We have detected that you are making use of the sample batch files that\nare designed for the TestWrapper sample application.  When setting up\nyour own application, please copy fresh files over from the Wrapper's\nsrc\\bin directory."));
+                        "We have detected that you are making use of the sample batch files\nthat are designed for the TestWrapper sample application.  When\nsetting up your own application, please copy fresh files over from\nthe Wrapper's src\\bin directory."));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
                         ""));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
-                        "Shutting down as this will likely cause problems with your application\nstartup."));
+                        "Shutting down as this will likely cause problems with your\napplication startup."));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
                         ""));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
@@ -2313,19 +2313,19 @@ int checkForTestWrapperScripts() {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
                         "  http://wrapper.tanukisoftware.com/integrate"));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
-                        "------------------------------------------------------------------------"));
+                        "--------------------------------------------------------------------"));
                     return TRUE;
                 } else if (_tcscmp(prop, TEXT("{{TestWrapperSh}}")) == 0) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
                         ""));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
-                        "------------------------------------------------------------------------"));
+                        "--------------------------------------------------------------------"));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
-                        "We have detected that you are making use of the sample shell scripts\nthat are designed for the TestWrapper sample application.  When setting\nup your own application, please copy fresh files over from the Wrapper's\nsrc/bin directory."));
+                        "We have detected that you are making use of the sample shell scripts\nthat are designed for the TestWrapper sample application.  When\nsetting up your own application, please copy fresh files over from\nthe Wrapper's src/bin directory."));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
                         ""));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
-                        "Shutting down as this will likely cause problems with your application\nstartup."));
+                        "Shutting down as this will likely cause problems with your\napplication startup."));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
                         ""));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
@@ -2333,7 +2333,7 @@ int checkForTestWrapperScripts() {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
                         "  http://wrapper.tanukisoftware.com/integrate"));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
-                        "------------------------------------------------------------------------"));
+                        "--------------------------------------------------------------------"));
                     return TRUE;
                 }
             }
@@ -4294,7 +4294,8 @@ int wrapperBuildJavaCommandArray(TCHAR ***stringsPtr, int *length, int addQuotes
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 TEXT("---------------------------------------------------------------------") );
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                TEXT("The JVM is being launched with a debugger enabled and could possibly\nbe suspended.  To avoid unwanted shutdowns, timeouts will be\ndisabled, removing the ability to detect and restart frozen JVMs."));
+                TEXT(
+                     "The JVM is being launched with a debugger enabled and could possibly\nbe suspended.  To avoid unwanted shutdowns, timeouts will be\ndisabled, removing the ability to detect and restart frozen JVMs."));
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 TEXT("---------------------------------------------------------------------") );
         }
