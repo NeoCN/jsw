@@ -194,10 +194,10 @@ public class DemoAppMainFrame extends JFrame implements ActionListener, WindowLi
 
         //setMinimumSize( new java.awt.Dimension( 699, 300 ) );
         jTabbedPane2 = new javax.swing.JTabbedPane();
-        // tabbedPane.setPreferredSize(new java.awt.Dimension(400, 120));
         m_logPane = new JScrollPane( m_logTextArea );
         jScrollPane2 = new JScrollPane( jEditorPane2 );
-        jTabbedPane2.setPreferredSize( new Dimension( this.getMinimumSize().width, 400 ) );
+        //jTabbedPane2.setPreferredSize( new Dimension( this.getMinimumSize().width, 400 ) );
+        jTabbedPane2.setPreferredSize(new java.awt.Dimension(800, 400));
         jTabbedPane2.addTab( DemoApp.getRes().getString( "Description" ), jScrollPane2 );
         jTabbedPane2.addTab( DemoApp.getRes().getString( "Wrapper Output" ), m_logPane );
         getContentPane().setLayout( new BorderLayout() );

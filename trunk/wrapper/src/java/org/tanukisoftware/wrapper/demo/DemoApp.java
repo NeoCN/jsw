@@ -669,9 +669,7 @@ public class DemoApp implements WrapperListener
                         try
                         {
                             String input = command.substring(5);
-                            System.out.println( getRes().getString( "Starting a simple application. " ) + input );
-
-                           
+                            System.out.println( getRes().getString( "Starting a simple application: " ) + input );
                            
                             if ( input != null && input.length() > 0 )
                             {
