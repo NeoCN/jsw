@@ -436,6 +436,60 @@ public class DemoApp implements WrapperListener
                 // ps.close();
             }
         }
+        else if ( action.equals( "exec" ) )
+        { 
+ 
+            String input = "";
+            if ( System.getProperty( "os.name" ).indexOf( "Windows" ) >= 0 )
+            {
+                input = ( String )JOptionPane.showInputDialog( m_frame, getRes().getString( "Please enter the Command, you wish to execute:" ),
+                          getRes().getString( "Child Process Execution" ), JOptionPane.QUESTION_MESSAGE, null, null,
+                          ( Object )"notepad" );
+            }
+            else
+            {
+                input = ( String )JOptionPane.showInputDialog( m_frame, getRes().getString( "Please enter the Command, you wish to execute:" ),
+                          getRes().getString( "Child Process Execution" ), JOptionPane.QUESTION_MESSAGE, null, null,
+                          ( Object )"xclock" );
+            }
+            if ( input != null && input.length() > 0 )
+            {
+                String wrapperBin;
+                if ( WrapperManager.isWindows() )
+                {
+                    wrapperBin = "../bin/wrapper.exe";
+                }
+                else
+                {
+                    wrapperBin = "../bin/wrapper";
+                }
+                String arg = wrapperBin + " -c ../conf/demoApp.conf wrapper.console.flush=TRUE wrapper.console.format=LPM wrapper.app.parameter.1=start";
+                //System.out.println( "calling: " + arg );
+                if ( !m_isTestCaseRunning )
+                {
+                    p = Runtime.getRuntime().exec( arg );
+
+                    m_childPrintStream = new PrintStream( p.getOutputStream() );
+                    this.m_frame.getJMenuBar().getMenu( 0 ).getItem( 0 ).setEnabled( false );
+                    this.m_frame.getJMenuBar().getMenu( 0 ).getItem( 1 ).setEnabled( true );
+                }
+                if ( p != null )
+                {
+                    m_frame.jTabbedPane2.setSelectedIndex( 1 );
+                    m_isTestCaseRunning = true;
+                    BufferedReader br = new BufferedReader( new InputStreamReader( p.getInputStream() ) );
+                    Runnable setTextRun = new LoggerThread( br, this );
+                    Thread t = new Thread( setTextRun );
+                    t.start();
+                    // return true;
+                }
+
+                m_childPrintStream.println( action + " " + input);
+
+                m_childPrintStream.flush();
+            }
+
+        }
         else
         {
             String wrapperBin;
@@ -610,24 +664,15 @@ public class DemoApp implements WrapperListener
                         }
                         System.out.println( getRes().getString( "Main Complete." ) );
                     }
-                    else if ( command.equals( "exec" ) )
+                    else if ( command.indexOf( "exec" ) == 0 )
                     {
                         try
                         {
-                            System.out.println( getRes().getString( "Starting a simple application." ) );
-                            String input = "";
+                            String input = command.substring(5);
+                            System.out.println( getRes().getString( "Starting a simple application. " ) + input );
+
                            
-                            if ( System.getProperty( "os.name" ).indexOf( "Windows" ) >= 0 )
-                            {
-                                input = ( String )JOptionPane.showInputDialog( m_frame, getRes().getString( "Please enter the Command, you wish to execute:" ), getRes().getString( "Child Process Execution" ), JOptionPane.QUESTION_MESSAGE, null, null,
-                                        ( Object )"notepad" );
-                            }
-                            else
-                            {
-                                
-                                input = ( String )JOptionPane.showInputDialog( m_frame, getRes().getString( "Please enter the Command, you wish to execute:" ), getRes().getString( "Child Process Execution" ), JOptionPane.QUESTION_MESSAGE, null, null,
-                                        ( Object )"xclock" );
-                            }
+                           
                             if ( input != null && input.length() > 0 )
                             {
                                 WrapperManager.exec( input, new WrapperProcessConfig().setDetached( false ) );
