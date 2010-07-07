@@ -2064,6 +2064,19 @@ public final class WrapperManager
         }
         
     }
+    
+    /**
+     * Returns true if the current JVM is Windows.
+     *
+     * @return True if this is Windows.
+     *
+     * @since Wrapper 3.5.1
+     */
+    public static boolean isWindows()
+    {
+        return m_windows;
+    }
+    
     /**
      * Returns true if the current Wrapper edition has support for Professional
      *  Edition features.

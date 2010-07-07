@@ -9,24 +9,6 @@ package org.tanukisoftware.wrapper.demo;
  * You shall use it only in accordance with the terms of the
  * license agreement you entered into with Tanuki Software.
  * http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
- * 
- * 
- * Portions of the Software have been derived from source code
- * developed by Silver Egg Technology under the following license:
- * 
- * Copyright (c) 2001 Silver Egg Technology
- * 
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without 
- * restriction, including without limitation the rights to use, 
- * copy, modify, merge, publish, distribute, sub-license, and/or 
- * sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following 
- * conditions:
- * 
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
  */
 
 import java.awt.Color;
@@ -262,7 +244,7 @@ public class DemoApp implements WrapperListener
     private Process callAction( String action ) throws IOException
     {
         Process p = null;
-
+        
         if ( action.equals( "mail" ) )
         {
             MailDialog md = new MailDialog();
@@ -285,10 +267,19 @@ public class DemoApp implements WrapperListener
                     // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
-                String arg = "../bin/wrapper -c ../conf/demoApp.conf wrapper.console.flush=TRUE wrapper.console.format=LPM  wrapper.app.parameter.1=start " + md.getEvents()
+                String wrapperBin;
+                if ( WrapperManager.isWindows() )
+                {
+                    wrapperBin = "../bin/wrapper.exe";
+                }
+                else
+                {
+                    wrapperBin = "../bin/wrapper";
+                }
+                String arg = wrapperBin + " -c ../conf/demoApp.conf wrapper.console.flush=TRUE wrapper.console.format=LPM  wrapper.app.parameter.1=start " + md.getEvents()
                         + " wrapper.event.default.email.debug=TRUE wrapper.event.default.email.smtp.host=" + md.getServer() + " wrapper.event.default.email.smtp.port="
                         + md.getPort() + " wrapper.event.default.email.sender=" + md.getSender() + " wrapper.event.default.email.recipient=" + md.getRecipients();
-              //  System.out.println( "execing: " + arg );
+                // System.out.println( "execing: " + arg );
                 p = Runtime.getRuntime().exec( arg );
                 m_childPrintStream = new PrintStream( p.getOutputStream() );
 
@@ -355,8 +346,7 @@ public class DemoApp implements WrapperListener
         }
         else if ( action.equals( "service" ) )
         {
-
-            p = Runtime.getRuntime().exec( "..\\bin\\wrapper -it ..\\conf\\demoApp.conf wrapper.console.flush=TRUE" );
+            p = Runtime.getRuntime().exec( "..\\bin\\wrapper.exe -it ..\\conf\\demoApp.conf wrapper.console.flush=TRUE" );
             // WrapperManager.exec( "sudo ../test/demoapp remove" );
             if ( p != null )
             {
@@ -402,20 +392,24 @@ public class DemoApp implements WrapperListener
                 } 
                 p = null;
             }
-
-            // p = WrapperManager.exec( "sudo ../test/demoapp install" );
-
-            // WrapperManager.exec( "sudo ../test/demoapp remove" );
-
         }
         else if ( action.equals( "start" ) )
         {
-            String arg = "../bin/wrapper -c ../conf/demoApp.conf wrapper.console.flush=TRUE wrapper.console.format=LPM wrapper.app.parameter.1=" + action;
-          //  System.out.println( "calling: " + arg );
+            String wrapperBin;
+            if ( WrapperManager.isWindows() )
+            {
+                wrapperBin = "../bin/wrapper.exe";
+            }
+            else
+            {
+                wrapperBin = "../bin/wrapper";
+            }
+            String arg = wrapperBin + " -c ../conf/demoApp.conf wrapper.console.flush=TRUE wrapper.console.format=LPM wrapper.app.parameter.1=" + action;
+            // System.out.println( "calling: " + arg );
 
             if ( !m_isTestCaseRunning )
             {
-               // System.out.println( "execing: " + arg );
+                // System.out.println( "execing: " + arg );
                 p = Runtime.getRuntime().exec( arg );
 
                 m_childPrintStream = new PrintStream( p.getOutputStream() );
@@ -428,22 +422,32 @@ public class DemoApp implements WrapperListener
                 Runnable setTextRun = new LoggerThread( br, this );
                 Thread t = new Thread( setTextRun );
                 t.start();
-                // return true;
             }
             // ps.close();
         }
         else if ( action.equals( "finish" ) )
         {
-
-            m_childPrintStream.println( action );
-
-            m_childPrintStream.flush();
-            m_childPrintStream.close();
-            // ps.close();
+            if ( m_isTestCaseRunning )
+            {
+                m_childPrintStream.println( action );
+    
+                m_childPrintStream.flush();
+                m_childPrintStream.close();
+                // ps.close();
+            }
         }
         else
         {
-            String arg = "../bin/wrapper -c ../conf/demoApp.conf wrapper.console.flush=TRUE wrapper.console.format=LPM wrapper.app.parameter.1=start";
+            String wrapperBin;
+            if ( WrapperManager.isWindows() )
+            {
+                wrapperBin = "../bin/wrapper.exe";
+            }
+            else
+            {
+                wrapperBin = "../bin/wrapper";
+            }
+            String arg = wrapperBin + " -c ../conf/demoApp.conf wrapper.console.flush=TRUE wrapper.console.format=LPM wrapper.app.parameter.1=start";
             //System.out.println( "calling: " + arg );
             if ( !m_isTestCaseRunning )
             {
