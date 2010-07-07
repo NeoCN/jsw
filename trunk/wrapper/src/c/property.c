@@ -649,11 +649,13 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
             
 #ifdef _DEBUG
             /* The line feeds are not yet stripped here. */
+            /*
  #ifdef WIN32
-            wprintf(TEXT("%S:%d (%d): [%S]\n"), filename, lineNumber, encoding, bufferW);
+            wprintf(TEXT("%s:%d (%d): [%s]\n"), filename, lineNumber, encoding, bufferW);
  #else
             wprintf(TEXT("%S:%d (%s to %s): [%S]\n"), filename, lineNumber, encoding, interumEncoding, bufferW);
  #endif
+            */
 #endif
             
             c = bufferW;

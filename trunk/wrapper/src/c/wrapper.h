@@ -407,21 +407,18 @@ extern TCHAR wrapperClasspathSeparator;
 /* Protocol Functions */
 /**
  * Close the backend socket.
- *
- * @param useLoggerQueue TRUE if any internal logging should be queued.
  */
-extern void wrapperProtocolClose(int useLoggerQueue);
+extern void wrapperProtocolClose();
 
 /**
  * Sends a command to the JVM process.
  *
- * @param useLoggerQueue TRUE if any internal logging should be queued.
  * @param function The command to send.  (This is intentionally an 8-bit char.)
  * @param message Message to send along with the command.
  *
  * @return TRUE if there were any problems.
  */
-extern int wrapperProtocolFunction(int useLoggerQueue, char function, const TCHAR *message);
+extern int wrapperProtocolFunction(char function, const TCHAR *message);
 
 /**
  * Checks the status of the server socket.
@@ -567,7 +564,6 @@ extern void wrapperUpdateJavaStateTimeout(TICKS nowTicks, int delay);
 /**
  * Changes the current Java state.
  *
- * useLoggerQueue - True if the log entries should be queued.
  * jState - The new Java state.
  * nowTicks - The current tick count at the time of the call, may be -1 if
  *            delay is negative.
@@ -718,12 +714,12 @@ extern void wrapperResumeProcess(int actionCode);
 /**
  * Used to ask the state engine to shut down the JVM and Wrapper
  */
-extern void wrapperStopProcess(int useLoggerQueue, int exitCode);
+extern void wrapperStopProcess(int exitCode);
 
 /**
  * Used to ask the state engine to shut down the JVM.
  */
-extern void wrapperRestartProcess(int useLoggerQueue);
+extern void wrapperRestartProcess();
 
 /**
  * Loops over and strips all double quotes from prop and places the
@@ -760,7 +756,7 @@ extern void wrapperBuildKey();
 /**
  * Send a signal to the JVM process asking it to dump its JVM state.
  */
-extern void wrapperRequestDumpJVMState(int useLoggerQueue);
+extern void wrapperRequestDumpJVMState();
 
 /**
  * Build the java command line.

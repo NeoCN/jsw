@@ -645,7 +645,7 @@ void protocolStartServer() {
 #endif
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR,
             "server socket SO_REUSEADDR failed. (%s)", getLastErrorText());
-        wrapperProtocolClose(FALSE);
+        wrapperProtocolClose();
         protocolStopServer();
         return;
     }
@@ -661,7 +661,7 @@ void protocolStartServer() {
     if (rc == SOCKET_ERROR) {
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR,
             TEXT("server socket ioctlsocket failed. (%s)"), getLastErrorText());
-        wrapperProtocolClose(FALSE);
+        wrapperProtocolClose();
         protocolStopServer();
         return;
     }
@@ -724,8 +724,8 @@ void protocolStartServer() {
                 wrapperData->port, wrapperData->portMin, wrapperData->portMax, getLastErrorText());
         }
 
-        wrapperStopProcess(FALSE, getLastError());
-        wrapperProtocolClose(FALSE);
+        wrapperStopProcess(getLastError());
+        wrapperProtocolClose();
         protocolStopServer();
         wrapperData->exitRequested = TRUE;
         wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_NO;
@@ -746,7 +746,7 @@ void protocolStartServer() {
     rc = listen(protocolActiveServerSD, 1);
     if (rc == SOCKET_ERROR) {
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, TEXT("server socket listen failed. (%d)"), wrapperGetLastError());
-        wrapperProtocolClose(FALSE);
+        wrapperProtocolClose();
         protocolStopServer();
         return;
     }
@@ -859,7 +859,7 @@ void protocolOpen() {
             log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
                 TEXT("socket ioctlsocket failed. (%s)"), getLastErrorText());
         }
-        wrapperProtocolClose(FALSE);
+        wrapperProtocolClose();
         return;
     }
 
@@ -869,16 +869,14 @@ void protocolOpen() {
 
 /**
  * Close the backend socket.
- *
- * @param useLoggerQueue TRUE if any internal logging should be queued.
  */
-void wrapperProtocolClose(int useLoggerQueue) {
+void wrapperProtocolClose() {
     int rc;
 
     /* Close the socket. */
     if (protocolActiveBackendSD != INVALID_SOCKET) {
         if (wrapperData->isDebugging) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("closing backend socket."));
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("closing backend socket."));
         }
 #ifdef WIN32
         rc = closesocket(protocolActiveBackendSD);
@@ -887,7 +885,7 @@ void wrapperProtocolClose(int useLoggerQueue) {
 #endif
         if (rc == SOCKET_ERROR) {
             if (wrapperData->isDebugging) {
-                log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("socket close failed. (%d)"), wrapperGetLastError());
+                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("socket close failed. (%d)"), wrapperGetLastError());
             }
         }
         protocolActiveBackendSD = INVALID_SOCKET;
@@ -1059,13 +1057,12 @@ char *protocolSendBuffer = NULL;
 /**
  * Sends a command to the JVM process.
  *
- * @param useLoggerQueue TRUE if any internal logging should be queued.
  * @param function The command to send.  (This is intentionally an 8-bit char.)
  * @param message Message to send along with the command.
  *
  * @return TRUE if there were any problems.
  */
-int wrapperProtocolFunction(int useLoggerQueue, char function, const TCHAR *messageW) {
+int wrapperProtocolFunction(char function, const TCHAR *messageW) {
     int rc;
     int cnt;
     size_t len;
@@ -1089,7 +1086,7 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const TCHAR *mess
     /* If we are in the orphaned JVM test mode then don't do anything. */
     if (wrapperData->isJVMOrphaned) {
         if (wrapperData->isDebugging) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT(
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT(
                 "Orphan Mode.  Skip sending packet %s : %s"),
                 wrapperProtocolGetCodeName(function), (messageW == NULL ? TEXT("NULL") : logMsgW));
         }
@@ -1104,7 +1101,7 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const TCHAR *mess
  #ifdef WIN32
             len = WideCharToMultiByte(CP_OEMCP, 0, messageW, -1, NULL, 0, NULL, NULL);
             if (len <= 0) {
-                log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
+                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
                     TEXT("Invalid multibyte sequence in protocol message \"%s\" : %s"), messageW, getLastErrorText());
                 returnVal = TRUE;
                 ok = FALSE;
@@ -1121,7 +1118,7 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const TCHAR *mess
  #else
             len = wcstombs(NULL, messageW, 0) + 1;
             if (len < 0) {
-                log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
+                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
                     TEXT("Invalid multibyte sequence in protocol message \"%s\" : %s"), messageW, getLastErrorText());
                 returnVal = TRUE;
                 ok = FALSE;
@@ -1187,7 +1184,7 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const TCHAR *mess
         if (protocolActiveBackendSD == INVALID_SOCKET) {
             /* A socket was not opened */
             if (wrapperData->isDebugging) {
-                log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
+                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
                     TEXT("socket not open, so packet not sent %s : %s"),
                     wrapperProtocolGetCodeName(function), (logMsgW == NULL ? TEXT("NULL") : logMsgW));
             }
@@ -1196,11 +1193,11 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const TCHAR *mess
             if (wrapperData->isDebugging) {
                 if ((function == WRAPPER_MSG_PING) && messageW && (_tcscmp(messageW, TEXT("silent")) == 0)) {
                     /*
-                    log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT(
+                    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT(
                         "send a silent ping packet"));
                     */
                 } else {
-                    log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT(
+                    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT(
                         "send a packet %s : %s"),
                         wrapperProtocolGetCodeName(function), (logMsgW == NULL ? TEXT("NULL") : logMsgW));
                 }
@@ -1209,29 +1206,30 @@ int wrapperProtocolFunction(int useLoggerQueue, char function, const TCHAR *mess
             cnt = 0;
             do {
                 if (cnt > 0) {
-                    wrapperSleep(useLoggerQueue, 10);
+                    wrapperSleep(FALSE, 10);
                 }
                 rc = send(protocolActiveBackendSD, protocolSendBuffer, sizeof(char) * (int)len, 0);
                 cnt++;
             } while ((rc == SOCKET_ERROR) && (wrapperGetLastError() == EWOULDBLOCK) && (cnt < 200));
             if (rc == SOCKET_ERROR) {
                 if (wrapperGetLastError() == EWOULDBLOCK) {
-                    log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN, TEXT(
+                    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN, TEXT(
                         "socket send failed.  Blocked for 2 seconds.  %s"),
                         getLastErrorText());
                 } else {
                     if (wrapperData->isDebugging) {
-                        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT(
+                        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT(
                             "socket send failed.  %s"), getLastErrorText());
                     }
                 }
-                wrapperProtocolClose(useLoggerQueue);
+                wrapperProtocolClose();
                 returnVal = TRUE;
             } else {
                 returnVal = FALSE;
             }
         }
     }
+    
     /* Always make sure the mutex is released. */
     if (releaseProtocolMutex()) {
         returnVal = TRUE;
@@ -1340,7 +1338,7 @@ int wrapperProtocolRead() {
                     log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
                         TEXT("socket read failed. (%s)"), getLastErrorText());
                 }
-                wrapperProtocolClose(FALSE);
+                wrapperProtocolClose();
             }
             /*
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("no data"));
@@ -1350,7 +1348,7 @@ int wrapperProtocolRead() {
             if (wrapperData->isDebugging) {
                 log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("socket read no code (closed?)."));
             }
-            wrapperProtocolClose(FALSE);
+            wrapperProtocolClose();
             return 0;
         }
 
@@ -1473,7 +1471,7 @@ void wrapperLogFileChanged(const TCHAR *logFile) {
      *  we don't want to send the command in this case as it clutters the debug log output.
      *  Besides, the JVM will not be running anyway. */
     if (wrapperData->jState != WRAPPER_JSTATE_DOWN_CLEAN) {
-        wrapperProtocolFunction(FALSE, WRAPPER_MSG_LOGFILE, logFile);
+        wrapperProtocolFunction(WRAPPER_MSG_LOGFILE, logFile);
     }
 }
 /**
@@ -1826,17 +1824,17 @@ void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int acti
                 switch(action) {
                 case ACTION_RESTART:
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s  Restarting JVM."), triggerMsg);
-                    wrapperRestartProcess(FALSE);
+                    wrapperRestartProcess();
                     break;
 
                 case ACTION_SHUTDOWN:
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s  Shutting down."), triggerMsg);
-                    wrapperStopProcess(FALSE, exitCode);
+                    wrapperStopProcess(exitCode);
                     break;
 
                 case ACTION_DUMP:
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s  Requesting thread dump."), triggerMsg);
-                    wrapperRequestDumpJVMState(FALSE);
+                    wrapperRequestDumpJVMState();
                     break;
 
                 case ACTION_DEBUG:
@@ -1862,7 +1860,7 @@ void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int acti
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(
                             "Advice:"));
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(
-                            "MACOSX is known to have problems displaying GUIs from processes\nrunning as a daemon launched from launchd.  The above\"Returning nil _server\" means that you are encountering this\nproblem.  This usually results in a long timeout which is affecting\nthe performance of your application."));
+                            "MACOSX is known to have problems displaying GUIs from processes\nrunning as a daemon launched from launchd.  The above\n\"Returning nil _server\" means that you are encountering this\nproblem.  This usually results in a long timeout which is affecting\nthe performance of your application."));
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(
                             "--------------------------------------------------------------------"));
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(""));
@@ -2146,7 +2144,7 @@ int wrapperReadChildOutput() {
  *  the log file name is sent to the JVM where it can be referenced by applications.
  */
 void sendLogFileName() {
-    wrapperProtocolFunction(FALSE, WRAPPER_MSG_LOGFILE, getLogfilePath());
+    wrapperProtocolFunction(WRAPPER_MSG_LOGFILE, getLogfilePath());
 }
 
 /**
@@ -2158,7 +2156,7 @@ void sendProperties() {
 
     buffer = linearizeProperties(properties, TEXT('\t'));
     if (buffer) {
-        wrapperProtocolFunction(FALSE, WRAPPER_MSG_PROPERTIES, buffer);
+        wrapperProtocolFunction(WRAPPER_MSG_PROPERTIES, buffer);
 
         free(buffer);
     }
@@ -2235,7 +2233,7 @@ void wrapperKillProcessNow() {
 #endif
 
     /* Close any open socket to the JVM */
-    wrapperProtocolClose(FALSE);
+    wrapperProtocolClose();
 }
 
 /**
@@ -2269,7 +2267,7 @@ void wrapperKillProcess() {
 #endif
         /* JVM is still up when it should have already stopped itself. */
         if (wrapperData->requestThreadDumpOnFailedJVMExit) {
-            wrapperRequestDumpJVMState(FALSE);
+            wrapperRequestDumpJVMState();
 
             delay = 5;
         }
@@ -2514,7 +2512,7 @@ int wrapperRunConsole() {
     wrapperEventLoop();
 
     /* Clean up any open sockets. */
-    wrapperProtocolClose(FALSE);
+    wrapperProtocolClose();
     protocolStopServer();
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("<-- Wrapper Stopped"));
 
@@ -2549,7 +2547,7 @@ int wrapperRunService() {
     wrapperEventLoop();
 
     /* Clean up any open sockets. */
-    wrapperProtocolClose(FALSE);
+    wrapperProtocolClose();
     protocolStopServer();
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("<-- Wrapper Stopped"));
 
@@ -2559,17 +2557,17 @@ int wrapperRunService() {
 /**
  * Used to ask the state engine to shut down the JVM and Wrapper
  */
-void wrapperStopProcess(int useLoggerQueue, int exitCode) {
+void wrapperStopProcess(int exitCode) {
     /* If we are are not aready shutting down, then do so. */
     if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
         (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
         if (wrapperData->isDebugging) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                 TEXT("wrapperStopProcess(%d) called while stopping.  (IGNORED)"), exitCode);
         }
     } else {
         if (wrapperData->isDebugging) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                 TEXT("wrapperStopProcess(%d) called."), exitCode);
         }
         /* If it has not already been set, set the exit request flag. */
@@ -2600,7 +2598,7 @@ void wrapperStopProcess(int useLoggerQueue, int exitCode) {
 /**
  * Used to ask the state engine to shut down the JVM.  This are always intentional restart requests.
  */
-void wrapperRestartProcess(int useLoggerQueue) {
+void wrapperRestartProcess() {
     /* If it has not already been set, set the restart request flag in the wrapper data. */
     if (wrapperData->exitRequested || wrapperData->restartRequested ||
         (wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN) ||
@@ -2613,12 +2611,12 @@ void wrapperRestartProcess(int useLoggerQueue) {
         (wrapperData->jState == WRAPPER_JSTATE_LAUNCH_DELAY)) { /* Down but not yet restarted. */
 
         if (wrapperData->isDebugging) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                 TEXT("wrapperRestartProcess() called.  (IGNORED)"));
         }
     } else {
         if (wrapperData->isDebugging) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                 TEXT("wrapperRestartProcess() called."));
         }
 
@@ -2676,7 +2674,7 @@ void wrapperPauseProcess(int actionCode) {
         if (!wrapperData->pausableStopJVM) {
             /* Notify the Java process. */
             _sntprintf(msgBuffer, 10, TEXT("%d"), actionCode);
-            wrapperProtocolFunction(FALSE, WRAPPER_MSG_PAUSE, msgBuffer);
+            wrapperProtocolFunction(WRAPPER_MSG_PAUSE, msgBuffer);
         }
     }
 }
@@ -2735,7 +2733,7 @@ void wrapperResumeProcess(int actionCode) {
         if (!wrapperData->pausableStopJVM) {
             /* Notify the Java process. */
             _sntprintf(msgBuffer, 10, TEXT("%d"), actionCode);
-            wrapperProtocolFunction(FALSE, WRAPPER_MSG_RESUME, msgBuffer);
+            wrapperProtocolFunction(WRAPPER_MSG_RESUME, msgBuffer);
         }
     }
 }
@@ -4456,7 +4454,7 @@ void wrapperJVMProcessExited(TICKS nowTicks, int exitCode) {
         }
     }
 
-    wrapperProtocolClose(FALSE);
+    wrapperProtocolClose();
 
     /* Remove java pid file if it was registered and created by this process. */
     if (wrapperData->javaPidFilename) {
@@ -5812,7 +5810,7 @@ void wrapperKeyRegistered(TCHAR *key) {
 
             /* Send the low log level to the JVM so that it can control output via the log method. */
             _sntprintf(buffer, 11, TEXT("%d"), getLowLogLevel());
-            wrapperProtocolFunction(FALSE, WRAPPER_MSG_LOW_LOG_LEVEL, buffer);
+            wrapperProtocolFunction(WRAPPER_MSG_LOW_LOG_LEVEL, buffer);
 
             /* Send the ping timeout to the JVM. */
             if (wrapperData->pingTimeout >= WRAPPER_TIMEOUT_MAX) {
@@ -5821,7 +5819,7 @@ void wrapperKeyRegistered(TCHAR *key) {
             } else {
                 _sntprintf(buffer, 11, TEXT("%d"), wrapperData->pingTimeout);
             }
-            wrapperProtocolFunction(FALSE, WRAPPER_MSG_PING_TIMEOUT, buffer);
+            wrapperProtocolFunction(WRAPPER_MSG_PING_TIMEOUT, buffer);
 
             /* Send the log file name. */
             sendLogFileName();
@@ -5832,14 +5830,14 @@ void wrapperKeyRegistered(TCHAR *key) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Received a connection request with an incorrect key.  Waiting for another connection."));
 
             /* This was the wrong key.  Send a response. */
-            wrapperProtocolFunction(FALSE, WRAPPER_MSG_BADKEY, TEXT("Incorrect key.  Connection rejected."));
+            wrapperProtocolFunction(WRAPPER_MSG_BADKEY, TEXT("Incorrect key.  Connection rejected."));
 
             /* Close the current connection.  Assume that the real JVM
              *  is still out there trying to connect.  So don't change
              *  the state.  If for some reason, this was the correct
              *  JVM, but the key was wrong.  then this state will time
              *  out and recover. */
-            wrapperProtocolClose(FALSE);
+            wrapperProtocolClose();
         }
         break;
 
@@ -5892,12 +5890,12 @@ void wrapperStopRequested(int exitCode) {
 
     /* Get things stopping on this end.  Ask the JVM to stop again in case the
      *  user code on the Java side is not written correctly. */
-    wrapperStopProcess(FALSE, exitCode);
+    wrapperStopProcess(exitCode);
 }
 
 void wrapperRestartRequested() {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("JVM requested a restart."));
-    wrapperRestartProcess(FALSE);
+    wrapperRestartProcess();
 }
 
 /**

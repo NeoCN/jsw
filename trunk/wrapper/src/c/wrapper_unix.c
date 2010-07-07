@@ -167,11 +167,11 @@ int writePidFile(const TCHAR *filename, DWORD pid, int newUmask) {
 /**
  * Send a signal to the JVM process asking it to dump its JVM state.
  */
-void wrapperRequestDumpJVMState(int useLoggerQueue) {
-    log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+void wrapperRequestDumpJVMState() {
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
         TEXT("Dumping JVM state."));
     if (kill(wrapperData->javaPID, SIGQUIT) < 0) {
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                    TEXT("Could not dump JVM state: %s"), getLastErrorText());
     }
 }
@@ -193,7 +193,7 @@ void takeSignalAction(int sigNum, const TCHAR *sigName, int mode) {
         case WRAPPER_SIGNAL_MODE_RESTART:
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                 TEXT("%s trapped.  Restarting JVM."), sigName);
-            wrapperRestartProcess(FALSE);
+            wrapperRestartProcess();
             break;
 
         case WRAPPER_SIGNAL_MODE_SHUTDOWN:
@@ -217,7 +217,7 @@ void takeSignalAction(int sigNum, const TCHAR *sigName, int mode) {
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     TEXT("%s trapped.  Shutting down."), sigName);
-                wrapperStopProcess(FALSE, 0);
+                wrapperStopProcess(0);
             }
             /* Don't actually kill the process here.  Let the application shut itself down */
 
@@ -274,7 +274,7 @@ void wrapperMaintainSignals() {
     if (wrapperData->signalQuitTrapped) {
         wrapperData->signalQuitTrapped = FALSE;
         
-        wrapperRequestDumpJVMState(FALSE);
+        wrapperRequestDumpJVMState();
     }
     
     /* SIGCHLD */
@@ -622,6 +622,11 @@ int registerSigAction(int sigNum, void (*sigAction)(int, siginfo_t *, void *)) {
  *
  * This thread will only be started if we are configured NOT to
  *  use the system time as a base for the tick counter.
+ *
+ * All logging within this thread is intentionally using the Queued
+ *  logging.  This is not because of lock problems, but rather because
+ *  it is much faster and will be less likely to cause any delays in
+ *  the looping of the timer.
  */
 void *timerRunner(void *arg) {
     TICKS sysTicks;

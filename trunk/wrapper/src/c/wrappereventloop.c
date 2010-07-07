@@ -390,7 +390,7 @@ void anchorPoll(TICKS nowTicks) {
                     (wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN)) {
                     /* Already shutting down, so nothing more to do. */
                 } else {
-                    wrapperStopProcess(FALSE, 0);
+                    wrapperStopProcess(0);
                 }
                 
 
@@ -505,7 +505,7 @@ void commandPoll(TICKS nowTicks) {
                             /* Process the command. */
                             if (strcmpIgnoreCase(command, TEXT("RESTART")) == 0) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Restarting JVM."), command);
-                                wrapperRestartProcess(FALSE);
+                                wrapperRestartProcess();
                             } else if (strcmpIgnoreCase(command, TEXT("STOP")) == 0) {
                                 if (params == NULL) {
                                     exitCode = 0;
@@ -514,7 +514,7 @@ void commandPoll(TICKS nowTicks) {
                                 }
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Shutting down with exit code %d."), command, exitCode);
 
-                                wrapperStopProcess(FALSE, exitCode);
+                                wrapperStopProcess(exitCode);
                             } else if (strcmpIgnoreCase(command, TEXT("PAUSE")) == 0) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Pausing JVM."), command);
                                 wrapperPauseProcess(WRAPPER_ACTION_SOURCE_CODE_COMMANDFILE);
@@ -523,7 +523,7 @@ void commandPoll(TICKS nowTicks) {
                                 wrapperResumeProcess(WRAPPER_ACTION_SOURCE_CODE_COMMANDFILE);
                             } else if (strcmpIgnoreCase(command, TEXT("DUMP")) == 0) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Requesting a Thread Dump."), command);
-                                wrapperRequestDumpJVMState(FALSE);
+                                wrapperRequestDumpJVMState();
                             } else if ((strcmpIgnoreCase(command, TEXT("CONSOLE_LOGLEVEL")) == 0) ||
                                     (strcmpIgnoreCase(command, TEXT("LOGFILE_LOGLEVEL")) == 0) ||
                                     (strcmpIgnoreCase(command, TEXT("SYSLOG_LOGLEVEL")) == 0)) {
@@ -555,7 +555,7 @@ void commandPoll(TICKS nowTicks) {
                                             wrapperData->isDebugging = (newLowLogLevel <= LEVEL_DEBUG);
 
                                             _sntprintf(buffer, MAX_COMMAND_LENGTH, TEXT("%d"), getLowLogLevel());
-                                            wrapperProtocolFunction(FALSE, WRAPPER_MSG_LOW_LOG_LEVEL, buffer);
+                                            wrapperProtocolFunction(WRAPPER_MSG_LOW_LOG_LEVEL, buffer);
                                         }
                                     }
                                 }
@@ -587,7 +587,7 @@ void commandPoll(TICKS nowTicks) {
                             } else if (strcmpIgnoreCase(command, TEXT("CLOSE_SOCKET")) == 0) {
                                 if (wrapperData->commandFileTests) {
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s'.  Closing backend socket to JVM..."), command);
-                                    wrapperProtocolClose(FALSE);
+                                    wrapperProtocolClose();
                                 } else {
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s'.  Tests disabled."), command);
                                 }
@@ -1268,7 +1268,7 @@ void jStateLaunched(TICKS nowTicks, int nextSleep) {
     if (wrapperData->isDebugging) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Start Application."));
     }
-    ret = wrapperProtocolFunction(FALSE, WRAPPER_MSG_START, TEXT("start"));
+    ret = wrapperProtocolFunction(WRAPPER_MSG_START, TEXT("start"));
     if (ret) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to send the start command to the JVM."));
 
@@ -1373,13 +1373,13 @@ void jStateStarted(TICKS nowTicks, int nextSleep) {
                 if (wrapperData->isLoopOutputEnabled) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Loop: Sending a ping packet."));
                 }
-                ret = wrapperProtocolFunction(FALSE, WRAPPER_MSG_PING, TEXT("ping"));
+                ret = wrapperProtocolFunction(WRAPPER_MSG_PING, TEXT("ping"));
                 wrapperData->lastLoggedPingTicks = nowTicks;
             } else {
                 if (wrapperData->isLoopOutputEnabled) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Loop: Sending a silent ping packet."));
                 }
-                ret = wrapperProtocolFunction(FALSE, WRAPPER_MSG_PING, TEXT("silent"));
+                ret = wrapperProtocolFunction(WRAPPER_MSG_PING, TEXT("silent"));
             }
             if (ret) {
                 /* Failed to send the ping. */
@@ -1414,7 +1414,7 @@ void jStateStop(TICKS nowTicks, int nextSleep) {
         /* The process is gone. (Handled and logged)*/
     } else {
         /* Ask the JVM to shutdown. */
-        wrapperProtocolFunction(FALSE, WRAPPER_MSG_STOP, NULL);
+        wrapperProtocolFunction(WRAPPER_MSG_STOP, NULL);
 
         /* Allow up to 5 + <shutdownTimeout> seconds for the application to stop itself. */
         /* Already in this state. */
