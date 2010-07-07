@@ -496,14 +496,14 @@ int wrapperConsoleHandler(int key) {
 /**
  * Send a signal to the JVM process asking it to dump its JVM state.
  */
-void wrapperRequestDumpJVMState(int useLoggerQueue) {
+void wrapperRequestDumpJVMState() {
     if (wrapperData->javaProcess != NULL) {
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
             TEXT("Dumping JVM state."));
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
             TEXT("Sending BREAK event to process group %ld."), wrapperData->javaPID);
         if (GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, wrapperData->javaPID) == 0) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 TEXT("Unable to send BREAK event to JVM process.  Err(%ld : %s)"),
                 GetLastError(), getLastErrorText());
         }
@@ -692,6 +692,11 @@ void showConsoleWindow(HWND consoleHandle, const TCHAR *name) {
  *
  * This thread will only be started if we are configured NOT to
  *  use the system time as a base for the tick counter.
+ *
+ * All logging within this thread is intentionally using the Queued
+ *  logging.  This is not because of lock problems, but rather because
+ *  it is much faster and will be less likely to cause any delays in
+ *  the looping of the timer.
  */
 DWORD WINAPI timerRunner(LPVOID parameter) {
     TICKS sysTicks;
@@ -1741,7 +1746,7 @@ void wrapperMaintainControlCodes() {
         wrapperData->ctrlCodeLast = 0;
         
         _sntprintf(buffer, 11, TEXT("%d"), ctrlCodeLast);
-        wrapperProtocolFunction(FALSE, WRAPPER_MSG_SERVICE_CONTROL_CODE, buffer);
+        wrapperProtocolFunction(WRAPPER_MSG_SERVICE_CONTROL_CODE, buffer);
     }
     
     /* SERVICE_CONTROL_PAUSE */
@@ -1770,7 +1775,7 @@ void wrapperMaintainControlCodes() {
         wrapperReportStatus(FALSE, WRAPPER_WSTATE_STOPPING, 0, 0);
 
         /* Tell the wrapper to shutdown normally */
-        wrapperStopProcess(FALSE, 0);
+        wrapperStopProcess(0);
 
         /* To make sure that the JVM will not be restarted for any reason,
          *  start the Wrapper shutdown process as well.
@@ -1794,7 +1799,7 @@ void wrapperMaintainControlCodes() {
         wrapperReportStatus(FALSE, WRAPPER_WSTATE_STOPPING, 0, 0);
 
         /* Tell the wrapper to shutdown normally */
-        wrapperStopProcess(FALSE, 0);
+        wrapperStopProcess(0);
 
         /* To make sure that the JVM will not be restarted for any reason,
          *  start the Wrapper shutdown process as well. */
@@ -1810,7 +1815,7 @@ void wrapperMaintainControlCodes() {
     if (wrapperData->ctrlCodeDumpTrapped) {
         wrapperData->ctrlCodeDumpTrapped = FALSE;
         
-        wrapperRequestDumpJVMState(FALSE);
+        wrapperRequestDumpJVMState();
     }
 
     if (quit) {
@@ -1820,7 +1825,7 @@ void wrapperMaintainControlCodes() {
             wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
             wrapperKillProcess();
         } else {
-            wrapperStopProcess(FALSE, 0);
+            wrapperStopProcess(0);
         }
         /* Don't actually kill the process here.  Let the application shut itself down */
 
@@ -2046,7 +2051,7 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
         wrapperReportStatus(TRUE, wrapperData->wState, 0, 0);
 
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
             TEXT("<-- Wrapper Stopping due to error in service control handler."));
         appExit(1);
     }
