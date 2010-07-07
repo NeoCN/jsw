@@ -622,47 +622,54 @@ public class DemoApp implements WrapperListener
                     }
                     else if ( command.equals( "deadlock" ) )
                     {
-                        System.out.println( getRes().getString( "Dead Lock Tester Running..." ) );
-                        Object obj1 = new Object();
-                        Object obj2 = new Object();
-                        int exitCode = 1;
-                        DeadLock dl = new DeadLock( 1, obj1, obj2 );
-                        switch ( exitCode )
+                        if ( WrapperManager.isStandardEdition() )
                         {
-                            case 1:
-                                System.out.println( getRes().getString( "2-object dead lock." ) );
-                                dl.create2ObjectDeadlock();
-                                break;
-                            case 2:
-                                System.out.println( getRes().getString( "Wait then 2-object dead lock." ) );
-                                try
-                                {
-                                    Thread.sleep( 10000 );
-                                }
-                                catch ( InterruptedException e )
-                                {
-                                }
-                                dl.create2ObjectDeadlock();
-                                break;
-                            case 3:
-                                System.out.println( getRes().getString( "3-object dead lock." ) );
-                                dl.create3ObjectDeadlock();
-                                break;
-
-                            default:
-                                System.out.println( getRes().getString( "Done." ) );
+                            System.out.println( getRes().getString( "Dead Lock Tester Running..." ) );
+                            Object obj1 = new Object();
+                            Object obj2 = new Object();
+                            int exitCode = 1;
+                            DeadLock dl = new DeadLock( 1, obj1, obj2 );
+                            switch ( exitCode )
+                            {
+                                case 1:
+                                    System.out.println( getRes().getString( "2-object dead lock." ) );
+                                    dl.create2ObjectDeadlock();
+                                    break;
+                                case 2:
+                                    System.out.println( getRes().getString( "Wait then 2-object dead lock." ) );
+                                    try
+                                    {
+                                        Thread.sleep( 10000 );
+                                    }
+                                    catch ( InterruptedException e )
+                                    {
+                                    }
+                                    dl.create2ObjectDeadlock();
+                                    break;
+                                case 3:
+                                    System.out.println( getRes().getString( "3-object dead lock." ) );
+                                    dl.create3ObjectDeadlock();
+                                    break;
+    
+                                default:
+                                    System.out.println( getRes().getString( "Done." ) );
+                            }
+                            // Always wait a couple seconds to make sure the above
+                            // threads have time to start.
+                            try
+                            {
+                                System.out.println( getRes().getString( "Sleeping for 5 sec..." ) );
+                                Thread.sleep( 5000 );
+                            }
+                            catch ( InterruptedException e )
+                            {
+                            }
+                            System.out.println( getRes().getString( "Main Complete." ) );
                         }
-                        // Always wait a couple seconds to make sure the above
-                        // threads have time to start.
-                        try
+                        else
                         {
-                            System.out.println( getRes().getString( "Sleeping for 5 sec..." ) );
-                            Thread.sleep( 5000 );
+                            System.out.println( getRes().getString( "Deadlock checks require at least the Standard Edition." ) );
                         }
-                        catch ( InterruptedException e )
-                        {
-                        }
-                        System.out.println( getRes().getString( "Main Complete." ) );
                     }
                     else if ( command.indexOf( "exec" ) == 0 )
                     {
