@@ -1346,34 +1346,34 @@ void wrapperExecute() {
                 if (wrapperData->isAdviserEnabled) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("") );
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                        TEXT("------------------------------------------------------------------------") );
+                        TEXT("---------------------------------------------------------------------") );
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
                         TEXT("Advice:" ));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                        TEXT("Usually when the Wrapper fails to start the JVM process, it is because\nof a problem with the value of the configured Java command.  Currently:" ));
+                        TEXT("Usually when the Wrapper fails to start the JVM process, it is\nbecause of a problem with the value of the configured Java command.\nCurrently:" ));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
                         TEXT("wrapper.java.command=%s"), getStringProperty(properties, TEXT("wrapper.java.command"), TEXT("java")));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
                         TEXT("Please make sure that the PATH or any other referenced environment\nvariables are correctly defined for the current environment." ));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                        TEXT("------------------------------------------------------------------------") );
+                        TEXT("---------------------------------------------------------------------") );
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("") );
                 }
             } else if (err == ERROR_ACCESS_DENIED) {
                 if (wrapperData->isAdviserEnabled) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("") );
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                        TEXT("------------------------------------------------------------------------") );
+                        TEXT("---------------------------------------------------------------------") );
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(
                         "Advice:" ));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(
                         "Access denied errors when attempting to launch the Java process are\nusually caused by strict access permissions assigned to the directory\nin which Java is installed." ));
                     if (!wrapperData->isConsole) {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(
-                            "Unless you have configured the Wrapper to run as a different user with\nwrapper.ntservice.account property, the Wrapper and its JVM will be\nas the SYSTEM user by default when run as a service." ));
+                            "Unless you have configured the Wrapper to run as a different user\nwith wrapper.ntservice.account property, the Wrapper and its JVM will\nbe as the SYSTEM user by default when run as a service." ));
                     }
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                        TEXT("------------------------------------------------------------------------") );
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, 
+                        TEXT("---------------------------------------------------------------------") );
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("") );
                 }
             }

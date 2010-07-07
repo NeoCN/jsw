@@ -4292,11 +4292,11 @@ int wrapperBuildJavaCommandArray(TCHAR ***stringsPtr, int *length, int addQuotes
         if ((wrapperData->startupTimeout > 0) || (wrapperData->pingTimeout > 0) ||
             (wrapperData->shutdownTimeout > 0) || (wrapperData->jvmExitTimeout > 0)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                TEXT("------------------------------------------------------------------------") );
+                TEXT("---------------------------------------------------------------------") );
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                TEXT("The JVM is being launched with a debugger enabled and could possibly be\nsuspended.  To avoid unwanted shutdowns, timeouts will be disabled,\nremoving the ability to detect and restart frozen JVMs."));
+                TEXT("The JVM is being launched with a debugger enabled and could possibly\nbe suspended.  To avoid unwanted shutdowns, timeouts will be\ndisabled, removing the ability to detect and restart frozen JVMs."));
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                TEXT("------------------------------------------------------------------------") );
+                TEXT("---------------------------------------------------------------------") );
         }
     }
 

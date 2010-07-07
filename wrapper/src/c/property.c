@@ -577,7 +577,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
  #endif
 #endif
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                TEXT("An encoding declaration is missing at the top of configuration file:\n  %s\n  trying the system encoding."), filename);
+                TEXT("An encoding declaration is missing from the top of configuration file:\n  %s\n  trying the system encoding."), filename);
         }
         fclose(stream);
     } else {
