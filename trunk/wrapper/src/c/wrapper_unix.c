@@ -176,33 +176,176 @@ void wrapperRequestDumpJVMState(int useLoggerQueue) {
     }
 }
 
-const TCHAR* getSignalName(int signo) {
-    switch (signo) {
-        case SIGALRM:
-            return TEXT("SIGALRM");
-        case SIGINT:
-            return TEXT("SIGINT");
-        case SIGKILL:
-            return TEXT("SIGKILL");
-        case SIGQUIT:
-            return TEXT("SIGQUIT");
-        case SIGCHLD:
-            return TEXT("SIGCHLD");
-        case SIGTERM:
-            return TEXT("SIGTERM");
-        case SIGHUP:
-            return TEXT("SIGHUP");
-        case SIGUSR1:
-            return TEXT("SIGUSR1");
-        case SIGUSR2:
-            return TEXT("SIGUSR2");
-        case SIGSEGV:
-            return TEXT("SIGSEGV");
-        default:
-            return TEXT("UNKNOWN");
+/**
+ * Called when a signal is processed.  This is actually called from within the main event loop
+ *  and NOT the signal handler.  So it is safe to use the normal logging functions.
+ *
+ * @param sigNum Signal that was fired.
+ * @param sigName Name of the signal for logging.
+ * @param mode Action that should be taken.
+ */
+void takeSignalAction(int sigNum, const TCHAR *sigName, int mode) {
+    if (wrapperData->ignoreSignals & WRAPPER_IGNORE_SIGNALS_WRAPPER) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            TEXT("%s trapped, but ignored."), sigName);
+    } else {
+        switch (mode) {
+        case WRAPPER_SIGNAL_MODE_RESTART:
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                TEXT("%s trapped.  Restarting JVM."), sigName);
+            wrapperRestartProcess(FALSE);
+            break;
+
+        case WRAPPER_SIGNAL_MODE_SHUTDOWN:
+            if (wrapperData->exitRequested || wrapperData->restartRequested ||
+                (wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN) ||
+                (wrapperData->jState == WRAPPER_JSTATE_STOP) ||
+                (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
+                (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
+                (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
+                (wrapperData->jState == WRAPPER_JSTATE_KILL) ||
+                (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK)) {
+
+                /* Signaled while we were already shutting down. */
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    TEXT("%s trapped.  Forcing immediate shutdown."), sigName);
+
+                /* Disable the thread dump on exit feature if it is set because it
+                 *  should not be displayed when the user requested the immediate exit. */
+                wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
+                wrapperKillProcess();
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    TEXT("%s trapped.  Shutting down."), sigName);
+                wrapperStopProcess(FALSE, 0);
+            }
+            /* Don't actually kill the process here.  Let the application shut itself down */
+
+            /* To make sure that the JVM will not be restarted for any reason,
+             *  start the Wrapper shutdown process as well. */
+            if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
+                (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
+                /* Already stopping. */
+            } else {
+                wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
+            }
+            break;
+
+        case WRAPPER_SIGNAL_MODE_FORWARD:
+            if (wrapperData->javaPID > 0) {
+                if (wrapperData->isDebugging) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                        TEXT("%s trapped.  Forwarding to JVM process."), sigName);
+                }
+                if (kill(wrapperData->javaPID, sigNum)) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                        TEXT("Unable to forward %s signal to JVM process.  %s"), sigName, getLastErrorText());
+                }
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    TEXT("%s trapped.  Unable to forward signal to JVM because it is not running."), sigName);
+            }
+            break;
+
+        default: /* WRAPPER_SIGNAL_MODE_IGNORE */
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                TEXT("%s trapped, but ignored."), sigName);
+            break;
+        }
     }
 }
 
+/**
+ * This function goes through and checks flags for each of several signals to see if they
+ *  have been fired since the last time this function was called.  This is the only thread
+ *  which will ever clear these flags, but they can be set by other threads within the
+ *  signal handlers at ANY time.  So only check the value of each flag once and reset them
+ *  immediately to decrease the chance of missing duplicate signals.
+ */
+void wrapperMaintainSignals() {
+    /* SIGINT */
+    if (wrapperData->signalInterruptTrapped) {
+        wrapperData->signalInterruptTrapped = FALSE;
+        
+        takeSignalAction(SIGINT, TEXT("INT"), WRAPPER_SIGNAL_MODE_SHUTDOWN);
+    }
+    
+    /* SIGQUIT */
+    if (wrapperData->signalQuitTrapped) {
+        wrapperData->signalQuitTrapped = FALSE;
+        
+        wrapperRequestDumpJVMState(FALSE);
+    }
+    
+    /* SIGCHLD */
+    if (wrapperData->signalChildTrapped) {
+        wrapperData->signalChildTrapped = FALSE;
+        
+        wrapperGetProcessStatus(wrapperGetTicks(), TRUE);
+    }
+    
+    /* SIGTERM */
+    if (wrapperData->signalTermTrapped) {
+        wrapperData->signalTermTrapped = FALSE;
+        
+        takeSignalAction(SIGTERM, TEXT("TERM"), WRAPPER_SIGNAL_MODE_SHUTDOWN);
+    }
+    
+    /* SIGHUP */
+    if (wrapperData->signalHUPTrapped) {
+        wrapperData->signalHUPTrapped = FALSE;
+        
+        takeSignalAction(SIGHUP, TEXT("HUP"), wrapperData->signalHUPMode);
+    }
+    
+    /* SIGUSR1 */
+    if (wrapperData->signalUSR1Trapped) {
+        wrapperData->signalUSR1Trapped = FALSE;
+        
+        takeSignalAction(SIGUSR1, TEXT("USR1"), wrapperData->signalUSR1Mode);
+    }
+    
+    /* SIGUSR2 */
+    if (wrapperData->signalUSR2Trapped) {
+        wrapperData->signalUSR2Trapped = FALSE;
+        
+        takeSignalAction(SIGUSR2, TEXT("USR2"), wrapperData->signalUSR2Mode);
+    }
+}
+
+/**
+ * This is called from within signal handlers so NO MALLOCs are allowed here.
+ */
+const TCHAR* getSignalName(int signo) {
+    switch (signo) {
+    case SIGALRM:
+        return TEXT("SIGALRM");
+    case SIGINT:
+        return TEXT("SIGINT");
+    case SIGKILL:
+        return TEXT("SIGKILL");
+    case SIGQUIT:
+        return TEXT("SIGQUIT");
+    case SIGCHLD:
+        return TEXT("SIGCHLD");
+    case SIGTERM:
+        return TEXT("SIGTERM");
+    case SIGHUP:
+        return TEXT("SIGHUP");
+    case SIGUSR1:
+        return TEXT("SIGUSR1");
+    case SIGUSR2:
+        return TEXT("SIGUSR2");
+    case SIGSEGV:
+        return TEXT("SIGSEGV");
+    default:
+        return TEXT("UNKNOWN");
+    }
+}
+
+/**
+ * This is called from within signal handlers so NO MALLOCs are allowed here.
+ */
 const TCHAR* getSignalCodeDesc(int code) {
     switch (code) {
 #ifdef SI_USER
@@ -241,6 +384,9 @@ const TCHAR* getSignalCodeDesc(int code) {
     }
 }
 
+/**
+ * Describe a signal.  This is called from within signal handlers so NO MALLOCs are allowed here.
+ */
 void descSignal(siginfo_t *sigInfo) {
     struct passwd *pw;
 #ifdef UNICODE
@@ -260,14 +406,22 @@ void descSignal(siginfo_t *sigInfo) {
             TEXT("Signal trapped.  Details:"));
 
         log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+#if defined(UNICODE)
+            TEXT("  signal number=%d (%S), source=\"%S\""),
+#else
             TEXT("  signal number=%d (%s), source=\"%s\""),
+#endif
             sigInfo->si_signo,
             getSignalName(sigInfo->si_signo),
             getSignalCodeDesc(sigInfo->si_code));
 
         if (sigInfo->si_errno != 0) {
             log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+#if defined(UNICODE)
+                TEXT("  signal err=%d, \"%S\""),
+#else
                 TEXT("  signal err=%d, \"%s\""),
+#endif
                 sigInfo->si_errno,
                 strerror(sigInfo->si_errno));
         }
@@ -293,95 +447,17 @@ void descSignal(siginfo_t *sigInfo) {
 
             /* It appears that the getsid function was added in version 1.3.44 of the linux kernel. */
             log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+#ifdef UNICODE
+                TEXT("  signal generated by PID: %d (Session PID: %d), UID: %d (%S)"),
+#else
                 TEXT("  signal generated by PID: %d (Session PID: %d), UID: %d (%s)"),
+#endif
                 sigInfo->si_pid, getsid(sigInfo->si_pid), sigInfo->si_uid, uName);
 #ifdef UNICODE
             free(uName);
 #endif
         }
 #endif
-    }
-}
-
-void sigActionCommon(int sigNum, const TCHAR *sigName, siginfo_t *sigInfo, int mode) {
-    pthread_t threadId;
-    threadId = pthread_self();
-
-    /* All threads will receive a signal.  We want to ignore any signal sent to the timer thread. */
-    if (timerThreadSet && pthread_equal(threadId, timerThreadId)) {
-        if (wrapperData->isDebugging) {
-            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                TEXT("%s trapped, but signals for timer thread are ignored."), sigName);
-        }
-    } else {
-        if (wrapperData->ignoreSignals & WRAPPER_IGNORE_SIGNALS_WRAPPER) {
-            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                TEXT("%s trapped, but ignored."), sigName);
-        } else {
-            switch (mode) {
-            case WRAPPER_SIGNAL_MODE_RESTART:
-                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    TEXT("%s trapped.  Restarting JVM."), sigName);
-                wrapperRestartProcess(TRUE);
-                break;
-
-            case WRAPPER_SIGNAL_MODE_SHUTDOWN:
-                if (wrapperData->exitRequested || wrapperData->restartRequested ||
-                    (wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN) ||
-                    (wrapperData->jState == WRAPPER_JSTATE_STOP) ||
-                    (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
-                    (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
-                    (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
-                    (wrapperData->jState == WRAPPER_JSTATE_KILL) ||
-                    (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK)) {
-
-                    /* Signaled while we were already shutting down. */
-                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        TEXT("%s trapped.  Forcing immediate shutdown."), sigName);
-
-                    /* Disable the thread dump on exit feature if it is set because it
-                     *  should not be displayed when the user requested the immediate exit. */
-                    wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
-                    wrapperKillProcess(TRUE);
-                } else {
-                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        TEXT("%s trapped.  Shutting down."), sigName);
-                    wrapperStopProcess(TRUE, 0);
-                }
-                /* Don't actually kill the process here.  Let the application shut itself down */
-
-                /* To make sure that the JVM will not be restarted for any reason,
-                 *  start the Wrapper shutdown process as well. */
-                if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
-                    (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
-                    /* Already stopping. */
-                } else {
-                    wrapperSetWrapperState(TRUE, WRAPPER_WSTATE_STOPPING);
-                }
-                break;
-
-            case WRAPPER_SIGNAL_MODE_FORWARD:
-                if (wrapperData->javaPID > 0) {
-                    if (wrapperData->isDebugging) {
-                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                            TEXT("%s trapped.  Forwarding to JVM process."), sigName);
-                    }
-                    if (kill(wrapperData->javaPID, sigNum)) {
-                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                            TEXT("Unable to forward %s signal to JVM process.  %s"), sigName, getLastErrorText());
-                    }
-                } else {
-                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        TEXT("%s trapped.  Unable to forward signal to JVM because it is not running."), sigName);
-                }
-                break;
-
-            default: /* WRAPPER_SIGNAL_MODE_IGNORE */
-                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    TEXT("%s trapped, but ignored."), sigName);
-                break;
-            }
-        }
     }
 }
 
@@ -419,7 +495,7 @@ void sigActionInterrupt(int sigNum, siginfo_t *sigInfo, void *na) {
 
     descSignal(sigInfo);
 
-    sigActionCommon(sigNum, TEXT("INT"), sigInfo, WRAPPER_SIGNAL_MODE_SHUTDOWN);
+    wrapperData->signalInterruptTrapped = TRUE;
 }
 
 /**
@@ -441,7 +517,7 @@ void sigActionQuit(int sigNum, siginfo_t *sigInfo, void *na) {
                 TEXT("Timer thread received an Quit signal.  Ignoring."));
         }
     } else {
-        wrapperRequestDumpJVMState(TRUE);
+        wrapperData->signalQuitTrapped = TRUE;
     }
 }
 
@@ -468,8 +544,8 @@ void sigActionChildDeath(int sigNum, siginfo_t *sigInfo, void *na) {
             log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                 TEXT("Received SIGCHLD, checking JVM process status."));
         }
-        wrapperGetProcessStatus(TRUE, wrapperGetTicks(), TRUE);
-        /* Handled and logged. */
+        
+        wrapperData->signalChildTrapped = TRUE;
     }
 }
 
@@ -481,7 +557,8 @@ void sigActionTermination(int sigNum, siginfo_t *sigInfo, void *na) {
      *  so it has already been registered with logRegisterThread. */
 
     descSignal(sigInfo);
-    sigActionCommon(sigNum, TEXT("TERM"), sigInfo, WRAPPER_SIGNAL_MODE_SHUTDOWN);
+    
+    wrapperData->signalTermTrapped = TRUE;
 }
 
 /**
@@ -492,7 +569,8 @@ void sigActionHangup(int sigNum, siginfo_t *sigInfo, void *na) {
      *  so it has already been registered with logRegisterThread. */
 
     descSignal(sigInfo);
-    sigActionCommon(sigNum, TEXT("HUP"), sigInfo, wrapperData->signalHUPMode);
+    
+    wrapperData->signalHUPTrapped = TRUE;
 }
 
 /**
@@ -503,7 +581,8 @@ void sigActionUSR1(int sigNum, siginfo_t *sigInfo, void *na) {
      *  so it has already been registered with logRegisterThread. */
 
     descSignal(sigInfo);
-    sigActionCommon(sigNum, TEXT("USR1"), sigInfo, wrapperData->signalUSR1Mode);
+    
+    wrapperData->signalUSR1Trapped = TRUE;
 }
 
 /**
@@ -514,7 +593,8 @@ void sigActionUSR2(int sigNum, siginfo_t *sigInfo, void *na) {
      *  so it has already been registered with logRegisterThread. */
 
     descSignal(sigInfo);
-    sigActionCommon(sigNum, TEXT("USR2"), sigInfo, wrapperData->signalUSR2Mode);
+    
+    wrapperData->signalUSR2Trapped = TRUE;
 }
 
 /**
@@ -611,7 +691,7 @@ void *timerRunner(void *arg) {
 
             if (wrapperData->isTickOutputEnabled) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT(
-                    "    Timer: ticks=%08x, system ticks=%08x, offset=%08x, offsetDiff=%08x"),
+                    "    Timer: ticks=0x%08x, system ticks=0x%08x, offset=0x%08x, offsetDiff=0x%08x"),
                     nowTicks, sysTicks, tickOffset, offsetDiff);
             }
         }
@@ -847,7 +927,7 @@ void wrapperExecute() {
                        TEXT("Could not init pipe: %s"), getLastErrorText());
             return;
         }
-        pipeInitialized = 1;
+        pipeInitialized = TRUE;
     }
 
     /* Make sure the log file is closed before the Java process is created.  Failure to do
@@ -857,7 +937,6 @@ void wrapperExecute() {
      *  threads do not reopen the log file as the new process is being created. */
     setLogfileAutoClose(TRUE);
     closeLogfile();
-   /* printf("LANG = %s\n", getenv("LANG")); fflush(NULL);*/
     /* Fork off the child. */
     proc = fork();
 
@@ -1084,7 +1163,7 @@ void wrapperDumpCPUUsage() {
  * Checks on the status of the JVM Process.
  * Returns WRAPPER_PROCESS_UP or WRAPPER_PROCESS_DOWN
  */
-int wrapperGetProcessStatus(int useLoggerQueue, TICKS nowTicks, int sigChild) {
+int wrapperGetProcessStatus(TICKS nowTicks, int sigChild) {
     int retval;
     int status;
     int exitCode;
@@ -1094,8 +1173,7 @@ int wrapperGetProcessStatus(int useLoggerQueue, TICKS nowTicks, int sigChild) {
     if (retval == 0) {
         /* Up and running. */
         if (sigChild && wrapperData->jvmStopped) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                TEXT("JVM process was continued."));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("JVM process was continued."));
             wrapperData->jvmStopped = FALSE;
         }
         res = WRAPPER_PROCESS_UP;
@@ -1105,31 +1183,25 @@ int wrapperGetProcessStatus(int useLoggerQueue, TICKS nowTicks, int sigChild) {
                 wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN ||
                 wrapperData->jState == WRAPPER_JSTATE_STOPPED) {
                 res = WRAPPER_PROCESS_DOWN;
-                wrapperJVMProcessExited(useLoggerQueue, nowTicks, 0);
+                wrapperJVMProcessExited(nowTicks, 0);
                 return res;
             } else {
             /* Process is gone.  Happens after a SIGCHLD is handled. Normal. */
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                TEXT("JVM process is gone."));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("JVM process is gone."));
             }
         } else {
             /* Error requesting the status. */
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                TEXT("Unable to request JVM process status: %s"), getLastErrorText());
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to request JVM process status: %s"), getLastErrorText());
         }
         exitCode = 1;
         res = WRAPPER_PROCESS_DOWN;
-        wrapperJVMProcessExited(useLoggerQueue, nowTicks, exitCode);
+        wrapperJVMProcessExited(nowTicks, exitCode);
     } else {
 #ifdef _DEBUG
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-            TEXT("  WIFEXITED=%d"), WIFEXITED(status));
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-            TEXT("  WIFSTOPPED=%d"), WIFSTOPPED(status));
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-            TEXT("  WIFSIGNALED=%d"), WIFSIGNALED(status));
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-            TEXT("  WTERMSIG=%d"), WTERMSIG(status));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  WIFEXITED=%d"), WIFEXITED(status));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  WIFSTOPPED=%d"), WIFSTOPPED(status));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  WIFSIGNALED=%d"), WIFSIGNALED(status));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  WTERMSIG=%d"), WTERMSIG(status));
 #endif
 
         /* Get the exit code of the process. */
@@ -1138,18 +1210,18 @@ int wrapperGetProcessStatus(int useLoggerQueue, TICKS nowTicks, int sigChild) {
             exitCode = WEXITSTATUS(status);
             res = WRAPPER_PROCESS_DOWN;
 
-            wrapperJVMProcessExited(useLoggerQueue, nowTicks, exitCode);
+            wrapperJVMProcessExited(nowTicks, exitCode);
         } else if (WIFSIGNALED(status)) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                 TEXT("JVM received a signal %s (%d)."), getSignalName(WTERMSIG(status)), WTERMSIG(status));
             res = WRAPPER_PROCESS_UP;
         } else if (WIFSTOPPED(status)) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 TEXT("JVM process was stopped.  It will be killed if the ping timeout expires."));
             wrapperData->jvmStopped = TRUE;
             res = WRAPPER_PROCESS_UP;
         } else {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                 TEXT("JVM process signaled the Wrapper unexpectedly."));
             res = WRAPPER_PROCESS_UP;
         }

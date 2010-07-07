@@ -145,11 +145,13 @@ void checkAndRollLogs(const TCHAR *nowDate);
  *  that a signal could be fired while we are in maintainLogger, so case is
  *  taken to make sure that volatile changes are only made in log_printf_queue.
  */
-#define QUEUE_SIZE 100
+#define QUEUE_SIZE 20
+#define QUEUED_BUFFER_SIZE_USABLE (100 + 1)
+#define QUEUED_BUFFER_SIZE (QUEUED_BUFFER_SIZE_USABLE + 4)
 int queueWrapped[WRAPPER_THREAD_COUNT];
 int queueWriteIndex[WRAPPER_THREAD_COUNT];
 int queueReadIndex[WRAPPER_THREAD_COUNT];
-TCHAR *queueMessages[WRAPPER_THREAD_COUNT][QUEUE_SIZE];
+TCHAR queueMessages[WRAPPER_THREAD_COUNT][QUEUE_SIZE][QUEUED_BUFFER_SIZE];
 int queueSourceIds[WRAPPER_THREAD_COUNT][QUEUE_SIZE];
 int queueLevels[WRAPPER_THREAD_COUNT][QUEUE_SIZE];
 
@@ -285,7 +287,7 @@ int initLogging(void (*logFileChanged)(const TCHAR *logFile)) {
             queueWrapped[threadId] = 0;
             queueWriteIndex[threadId] = 0;
             queueReadIndex[threadId] = 0;
-            queueMessages[threadId][i] = NULL;
+            queueMessages[threadId][i][0] = TEXT('\0');
             queueSourceIds[threadId][i] = 0;
             queueLevels[threadId][i] = 0;
         }
@@ -468,7 +470,7 @@ void setLogfilePath( const TCHAR *log_file_path ) {
     }
     _tcscpy(logFilePath, log_file_path);
 
-    currentLogFileName = (TCHAR*)malloc(sizeof(TCHAR) * (len + 10 + 1));
+    currentLogFileName = malloc(sizeof(TCHAR) * (len + 10 + 1));
     if (!currentLogFileName) {
         outOfMemoryQueued(TEXT("SLP"), 2);
         free(logFilePath);
@@ -539,7 +541,7 @@ void setLogfileMaxFileSize( const TCHAR *max_file_size ) {
 
     if ( max_file_size != NULL ) {
         /* Allocate buffer */
-        tmpFileSizeBuff = (TCHAR *) malloc(sizeof(TCHAR) * (_tcslen( max_file_size ) + 1));
+        tmpFileSizeBuff = malloc(sizeof(TCHAR) * (_tcslen( max_file_size ) + 1));
         if (!tmpFileSizeBuff) {
             outOfMemoryQueued(TEXT("SLMFS"), 1);
             return;
@@ -548,7 +550,7 @@ void setLogfileMaxFileSize( const TCHAR *max_file_size ) {
         /* Generate multiple and remove unwanted chars */
         multiple = 1;
         newLength = 0;
-        for( i = 0; i < (int) _tcslen(max_file_size); i++ ) {
+        for( i = 0; i < (int)_tcslen(max_file_size); i++ ) {
             chr = max_file_size[i];
 
             switch( chr ) {
@@ -795,7 +797,7 @@ int getLowLogLevel() {
 
 TCHAR* preparePrintBuffer(size_t reqSize) {
     if (threadPrintBuffer == NULL) {
-        threadPrintBuffer = (TCHAR *)malloc(reqSize * sizeof(TCHAR));
+        threadPrintBuffer = malloc(sizeof(TCHAR) * reqSize);
         if (!threadPrintBuffer) {
             _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("PPB1"));
             threadPrintBufferSize = 0;
@@ -804,7 +806,7 @@ TCHAR* preparePrintBuffer(size_t reqSize) {
         threadPrintBufferSize = reqSize;
     } else if (threadPrintBufferSize < reqSize) {
         free(threadPrintBuffer);
-        threadPrintBuffer = (TCHAR *)malloc(reqSize * sizeof(TCHAR));
+        threadPrintBuffer = malloc(sizeof(TCHAR) * reqSize);
         if (!threadPrintBuffer) {
             _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("PPB2"));
             threadPrintBufferSize = 0;
@@ -1280,7 +1282,7 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
     TCHAR        *logFileCopy;
 #if defined(UNICODE) && !defined(WIN32)
     TCHAR *msg = NULL;
-    int i;
+    int i, flag;
 #endif
 
     /* We need to be very careful that only one thread is allowed in here
@@ -1290,18 +1292,28 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
         return;
     }
 #if defined(UNICODE) && !defined(WIN32)
-    msg = malloc(sizeof(wchar_t) * (wcslen(lpszFmt) + 1));
-
-    /* Loop over the format and convert all '%s' patterns to %S' so the UNICODE displays correctly. */
-    if (wcslen(lpszFmt) > 0) {
-        for (i = 0; i < _tcslen(lpszFmt); i++){
-            msg[i] = lpszFmt[i];
-            if ((lpszFmt[i] == TEXT('%')) && (i  < _tcslen(lpszFmt)) && (lpszFmt[i+1] == TEXT('s')) && ((i == 0) || (lpszFmt[i-1] != TEXT('%')))){
-                msg[i+1] = TEXT('S'); i++;
+    if (wcsstr(lpszFmt, TEXT("%s")) != NULL) {
+        msg = malloc(sizeof(wchar_t) * (wcslen(lpszFmt) + 1));
+        if (msg) {
+            /* Loop over the format and convert all '%s' patterns to %S' so the UNICODE displays correctly. */
+            if (wcslen(lpszFmt) > 0) {
+                for (i = 0; i < _tcslen(lpszFmt); i++){
+                    msg[i] = lpszFmt[i];
+                    if ((lpszFmt[i] == TEXT('%')) && (i  < _tcslen(lpszFmt)) && (lpszFmt[i+1] == TEXT('s')) && ((i == 0) || (lpszFmt[i-1] != TEXT('%')))){
+                        msg[i+1] = TEXT('S'); i++;
+                    }
+                }
             }
+            msg[wcslen(lpszFmt)] = TEXT('\0');
+        } else {
+            _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P0"));
+            return;
         }
+        flag = TRUE;
+    } else {
+        msg = (TCHAR*) lpszFmt;
+        flag = FALSE;
     }
-    msg[wcslen(lpszFmt)] = TEXT('\0');
 #endif
     threadId = getThreadId();
 
@@ -1313,7 +1325,7 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
         {
             /* No buffer yet. Allocate one to get started. */
             threadMessageBufferSize = 100;
-            threadMessageBuffer = (TCHAR*)malloc( threadMessageBufferSize * sizeof(TCHAR) );
+            threadMessageBuffer = malloc(sizeof(TCHAR) * threadMessageBufferSize);
             if (!threadMessageBuffer) {
                 _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P1"));
                 threadMessageBufferSize = 0;
@@ -1351,7 +1363,7 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
                 threadMessageBufferSize = count + 1;
             }
 
-            threadMessageBuffer = (TCHAR*)malloc( threadMessageBufferSize * sizeof(TCHAR) );
+            threadMessageBuffer = malloc(sizeof(TCHAR) * threadMessageBufferSize);
             if (!threadMessageBuffer) {
                 _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P2"));
                 threadMessageBufferSize = 0;
@@ -1363,7 +1375,9 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
         }
     } while ( count < 0 );
 #if defined(UNICODE) && !defined(WIN32)
-    free(msg);
+    if (flag == TRUE) {
+        free(msg);
+    }
 #endif
     logFileCopy = NULL;
     logFileChanged = log_printf_message( source_id, level, threadId, FALSE, threadMessageBuffer );
@@ -1438,7 +1452,7 @@ TCHAR* getLastErrorText() {
         invalidMultiByteSequence(TEXT("GLET"), 1);
         return NULL;
     }
-    t = malloc((req + 1) * sizeof(TCHAR));
+    t = malloc(sizeof(TCHAR) * (req + 1));
     if (!t) {
         _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("GLET1"));
         return NULL;
@@ -1535,7 +1549,7 @@ void sendEventlogMessage( int source_id, int level, const TCHAR *szBuff ) {
     WORD   eventID, categoryID;
     int    result;
 
-    strings = (TCHAR **) malloc( 3 * sizeof(TCHAR *));
+    strings = malloc(sizeof(TCHAR *) * 3);
     if (!strings) {
         _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("SEM1"));
         return;
@@ -1712,7 +1726,7 @@ void vWriteToConsole( HANDLE hdl, TCHAR *lpszFmt, va_list vargs ) {
     }
 
     if ( vWriteToConsoleBuffer == NULL ) {
-        vWriteToConsoleBuffer = (TCHAR *)malloc( vWriteToConsoleBufferSize * sizeof(TCHAR) );
+        vWriteToConsoleBuffer = malloc(sizeof(TCHAR) * vWriteToConsoleBufferSize);
         if (!vWriteToConsoleBuffer) {
             _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("WTC1"));
             return;
@@ -1736,7 +1750,7 @@ void vWriteToConsole( HANDLE hdl, TCHAR *lpszFmt, va_list vargs ) {
         /* Expand the size of the buffer */
         free( vWriteToConsoleBuffer );
         vWriteToConsoleBufferSize += 100;
-        vWriteToConsoleBuffer = (TCHAR *)malloc( vWriteToConsoleBufferSize * sizeof(TCHAR) );
+        vWriteToConsoleBuffer = malloc(sizeof(TCHAR) * vWriteToConsoleBufferSize);
         if (!vWriteToConsoleBuffer) {
             _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("WTC2"));
             return;
@@ -2052,157 +2066,94 @@ void checkAndRollLogs(const TCHAR *nowDate) {
     }
 }
 
-/*
- * Because of synchronization issues, it is not safe to immediately log messages
- *  that are logged from within signal handlers.  This is because it is possible
- *  that the signal was thrown while we were logging another message.
- *
- * To work around this, it is nessary to store such messages into a queue and
- *  then log them later when it is safe.
- *
- * Messages logged from signal handlers are relatively rare so this does not
- *  need to be all that efficient.
- */
-void log_printf_queueInner(int source_id, int level, TCHAR *buffer) {
+void log_printf_queue( int useQueue, int source_id, int level, const TCHAR *lpszFmt, ... ) {
     int threadId;
     int localWriteIndex;
     int localReadIndex;
-
-    /* Get the thread id here to keep the time below to a minimum. */
-    threadId = getThreadId();
-
-#ifdef _DEBUG
-    _tprintf(TEXT("LOG ENQUEUE[%d]: %s\n"), queueWriteIndex[threadId], buffer );
-#endif
-
-    /* NOTE - This function is not synchronized.  So be very careful and think
-     *        about what would happen if the queueWrapped and or queueWriteIndex
-     *        values were to be changed by another thread.  We need to be sure
-     *        that such changes would not result in a crash of any kind. */
-    localWriteIndex = queueWriteIndex[threadId];
-    localReadIndex = queueReadIndex[threadId];
-    if ((localWriteIndex == localReadIndex - 1) || ((localWriteIndex == QUEUE_SIZE - 1) && (localReadIndex == 0))) {
-        _tprintf(TEXT("WARNING log queue overflow for thread[%d]:%d:%d dropping entry. %s\n"), threadId, localWriteIndex, localReadIndex, buffer);
-        return;
-    }
-
-    /* Clear any old buffer, only necessary starting on the second time through the queue buffers. */
-    if (queueWrapped[threadId]) {
-        free( queueMessages[threadId][queueWriteIndex[threadId]] );
-        queueMessages[threadId][queueWriteIndex[threadId]] = NULL;
-    }
-
-    /* Store a reference to the buffer in the queue.  It will be freed later. */
-    queueMessages[threadId][queueWriteIndex[threadId]] = buffer;
-
-    /* Store additional information about the call. */
-    queueSourceIds[threadId][queueWriteIndex[threadId]] = source_id;
-    queueLevels[threadId][queueWriteIndex[threadId]] = level;
-
-    /* Lastly increment and wrap the write index. */
-    queueWriteIndex[threadId]++;
-    if (queueWriteIndex[threadId] >= QUEUE_SIZE) {
-        queueWriteIndex[threadId] = 0;
-        queueWrapped[threadId] = 1;
-    }
-}
-
-void log_printf_queue( int useQueue, int source_id, int level, const TCHAR *lpszFmt, ... ) {
     va_list     vargs;
     int         count;
     TCHAR       *buffer;
-    int         bufferSize = 100;
-    int         itFit = 0;
 
     /* Start by processing any arguments so that we can store a simple string. */
-
-#if defined(UNICODE) && !defined(WIN32)
-    int i;
-    TCHAR* msg;
-    msg = malloc(sizeof(wchar_t) * (wcslen(lpszFmt) + 1));
-    if (!msg) {
-        _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("LPQ1"));
-        return;
-    }
-    if (wcslen(lpszFmt) > 0) {
-        for (i = 0; i < _tcslen(lpszFmt); i++){
-            msg[i] = lpszFmt[i];
-            if(lpszFmt[i] == TEXT('%') && i  < _tcslen(lpszFmt) && lpszFmt[i+1] == TEXT('s') && (i == 0 || lpszFmt[i-1] != TEXT('%'))){
-                msg[i+1] = TEXT('S'); i++;
-            }
-        }
-    }
-    msg[wcslen(lpszFmt)] = TEXT('\0');
+#ifdef _DEBUG_QUEUE
+    _tprintf(TEXT("log_printf_queue(%d, %d, %d, %S)\n"), useQueue, source_id, level, lpszFmt);
 #endif
 
-
-    /* This is a pain to do efficiently without using a static buffer.  But
-     *  this call is only used in cases where we can not safely use such buffers.
-     *  We do not know how big a buffer we need, so loop, growing it until we get
-     *  a size that works.  The initial size will be big enough for most messages
-     *  that this function is called with, but not so big as to be any less
-     *  efficient than necessary. */
-    do {
-        buffer = malloc(sizeof(TCHAR) * bufferSize);
+#if defined(UNICODE) && !defined(WIN32)
+    if (wcsstr(lpszFmt, TEXT("%s")) != NULL) {
+        /* This is a coding error as strings coming into this function should NEVER use this format.
+         *  If the token below is not '%S' then this would recurse. */
+        log_printf_queue(useQueue, source_id, LEVEL_ERROR, TEXT("Coding Error.  String contains invalid string token for queued logging: %S"), lpszFmt);
+        return;
+    }
+#endif
+    
+    /** For queued logging, we have a fixed length buffer to work with.  Just to make it easy to catch
+     *   problems, always use the same sized fixed buffer even if we will be using the non-queued logging. */
+    if (useQueue) {
+        /* Care needs to be taken both with this code and the code below to get done as quick as possible.
+         *  It is generally safe because each thread has its own queue.  The only danger is if a message is
+         *  being queued while that thread is interupted by a signal.  If things are setup correctly however
+         *  then non-signal threads should not be here in the first place. */
+        threadId = getThreadId();
+        
+        localWriteIndex = queueWriteIndex[threadId];
+        localReadIndex = queueReadIndex[threadId];
+        
+        if ((localWriteIndex == localReadIndex - 1) || ((localWriteIndex == QUEUE_SIZE - 1) && (localReadIndex == 0))) {
+            _tprintf(TEXT("WARNING log queue overflow for thread[%d]:%d:%d dropping entry: %s\n"), threadId, localWriteIndex, localReadIndex, lpszFmt);
+            return;
+        }
+        
+        /* Get a reference to the message buffer we will use. */
+        buffer = queueMessages[threadId][queueWriteIndex[threadId]];
+    } else {
+        /* This will not be queued so we can use malloc to create a new buffer. */
+        buffer = malloc(sizeof(TCHAR) * QUEUED_BUFFER_SIZE);
         if (!buffer) {
             _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("PQ1"));
             return;
         }
-
-        /* Before we can store the string, we need to know how much space is required to do so. */
-        va_start(vargs, lpszFmt);
-#if defined(UNICODE) && !defined(WIN32)
-        count = _vsntprintf(buffer, bufferSize, msg, vargs);
-
-#else
-        count = _vsntprintf(buffer, bufferSize, lpszFmt, vargs);
-#endif
-        va_end(vargs);
-
-        /*
-        _tprintf(TEXT("count: %d bufferSize=%d\n"), count, bufferSize );
-        */
-
-        /* On UNIX, the required size will be returned if it is too small.
-         *  On Windows however, we always get -1.  Even worse, if the size
-         *  is exactly correct then the buffer will not be null terminated.
-         *  In either case, resize the buffer as best we can and retry. */
-        if (count < 0) {
-            /* Not big enough, expand the buffer size and try again. */
-            bufferSize += 100;
-        } else if (count >= bufferSize) {
-            /* Not big enough, but we know how big it will need to be. */
-            bufferSize = count + 1;
-        } else {
-            itFit = 1;
-        }
-
-        if (!itFit) {
-            /* Will need to try again, so free the buffer. */
-            free( buffer );
-            buffer = NULL;
-        }
-    } while (!itFit);
-#if defined(UNICODE) && !defined(WIN32)
-      free(msg);
-#endif
-    /* Now decide what to actually do with the message. */
+        
+        /* For compiler */
+        threadId = -1;
+        localWriteIndex = -1;
+    }
+    
+    /* Now actually generate our buffer. */
+    va_start(vargs, lpszFmt);
+    count = _vsntprintf(buffer, QUEUED_BUFFER_SIZE_USABLE, lpszFmt, vargs);
+    va_end(vargs);
+    
+    /* vswprintf returns -1 on overflow. */
+    if ((count < 0) || (count >= QUEUED_BUFFER_SIZE_USABLE - 1)) {
+        _tcscat(buffer, TEXT("..."));
+    }
+    
     if (useQueue) {
-        /* There is a risk here due to synchronization problems.  But these queued messages
-         *  should only be called rarely and then only from signal threads so it should be
-         *  ok.  If more than one thread gets into the following function at the same time
-         *  it would not be good.  But the problem is that we can not do synchronization
-         *  here as that could lead to deadlocks.  The contents of this function tries to
-         *  be as careful as possible about checking its values to make sure that any
-         *  synchronization issues result only in a malformed message and not a crash. */
-        log_printf_queueInner(source_id, level, buffer);
-        /* The buffer will be freed by the queue at a later point. */
+#ifdef _DEBUG_QUEUE
+        _tprintf(TEXT("LOG ENQUEUE[%d] Thread[%d]: %s\n"), localWriteIndex, threadId, buffer);
+#endif
+        /* Store additional information about the call. */
+        queueSourceIds[threadId][localWriteIndex] = source_id;
+        queueLevels[threadId][localWriteIndex] = level;
+    
+        /* Lastly increment and wrap the write index. */
+        queueWriteIndex[threadId]++;
+        if (queueWriteIndex[threadId] >= QUEUE_SIZE) {
+            queueWriteIndex[threadId] = 0;
+            queueWrapped[threadId] = 1;
+        }
     } else {
-        /* Use the normal logging function.  There is some extra overhead
-         *  here because the message is expanded twice, but this greatly
-         *  simplifies the code over other options and makes it much less
-         *  error prone. */
-        log_printf(source_id, level, TEXT("%s"), buffer);
+        /* Make a normal logging call with our new buffer.  Parameters are already expanded. */
+        log_printf(source_id, level,
+#if defined(UNICODE) && !defined(WIN32)
+            TEXT("%S"),
+#else
+            TEXT("%s"),
+#endif
+            buffer);
+        
         free(buffer);
     }
 }
@@ -2244,32 +2195,26 @@ void maintainLogger() {
                 level = queueLevels[threadId][queueReadIndex[threadId]];
                 buffer = queueMessages[threadId][queueReadIndex[threadId]];
 
-                /* Now we have safe values.  Everything below this is thread safe. */
-
-                if (buffer) {
-                    /* non null, assume it is valid. */
-
-#ifdef _DEBUG
-                    _tprintf(TEXT("LOG QUEUED[%d]: %s\n"), queueReadIndex[threadId], buffer );
+                /* The buffer is static in the queue and will be reused. */
+#ifdef _DEBUG_QUEUE
+                _tprintf(TEXT("LOG QUEUED[%d]: %s\n"), queueReadIndex[threadId], buffer );
 #endif
 
-                    logFileChanged = log_printf_message( source_id, level, threadId, TRUE, buffer );
-                    if (logFileChanged) {
-                        logFileCopy = malloc(sizeof(TCHAR) * (_tcslen(currentLogFileName) + 1));
-                        if (!logFileCopy) {
-                            _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("ML1"));
-                        } else {
-                            _tcscpy(logFileCopy, currentLogFileName);
-                        }
+                logFileChanged = log_printf_message( source_id, level, threadId, TRUE, buffer );
+                if (logFileChanged) {
+                    logFileCopy = malloc(sizeof(TCHAR) * (_tcslen(currentLogFileName) + 1));
+                    if (!logFileCopy) {
+                        _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("ML1"));
+                    } else {
+                        _tcscpy(logFileCopy, currentLogFileName);
                     }
-                    /*
-                    _tprintf(TEXT("  Queue lw=%d, qw=%d, qr=%d\n"), localWriteIndex, queueWriteIndex[threadId], queueReadIndex[threadId]);
-                    */
-                } else {
-#ifdef _DEBUG
-                    _tprintf(TEXT("LOG QUEUED[%d]: <NULL> SYNCHRONIZATION CONFLICT!\n"), queueReadIndex[threadId] );
-#endif
                 }
+#ifdef _DEBUG_QUEUE
+                _tprintf(TEXT("  Queue lw=%d, qw=%d, qr=%d\n"), localWriteIndex, queueWriteIndex[threadId], queueReadIndex[threadId]);
+#endif
+                /* Clear the string we just wrote. */
+                buffer[0] = TEXT('\0');
+                
                 queueReadIndex[threadId]++;
                 if ( queueReadIndex[threadId] >= QUEUE_SIZE ) {
                     queueReadIndex[threadId] = 0;

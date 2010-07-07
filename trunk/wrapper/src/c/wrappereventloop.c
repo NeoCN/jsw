@@ -181,12 +181,11 @@ void writeStateFile(const TCHAR *filename, const TCHAR *state, int newUmask) {
 /**
  * Changes the current Wrapper state.
  *
- * useLoggerQueue - True if the log entries should be queued.
  * wState - The new Wrapper state.
  */
-void wrapperSetWrapperState(int useLoggerQueue, int wState) {
+void wrapperSetWrapperState(int wState) {
     if (wrapperData->isStateOutputEnabled) {
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
             TEXT("      Set Wrapper State %s -> %s"),
             wrapperGetWState(wrapperData->wState),
             wrapperGetWState(wState));
@@ -262,10 +261,9 @@ void wrapperUpdateJavaStateTimeout(TICKS nowTicks, int delay) {
  * delay - The delay in seconds, added to the nowTicks after which the state
  *         will time out, if negative will never time out.
  */
-void wrapperSetJavaState(int useLoggerQueue, int jState, TICKS nowTicks, int delay) {
+void wrapperSetJavaState(int jState, TICKS nowTicks, int delay) {
     if (wrapperData->isStateOutputEnabled) {
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-            TEXT("      Set Java State %s -> %s"),
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("      Set Java State %s -> %s"),
             wrapperGetJState(wrapperData->jState),
             wrapperGetJState(jState));
     }
@@ -405,7 +403,7 @@ void anchorPoll(TICKS nowTicks) {
                     /* Start the shutdown process. */
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Anchor file deleted.  Shutting down."));
                     
-                    wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
+                    wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
                 }
             }
 
@@ -519,10 +517,10 @@ void commandPoll(TICKS nowTicks) {
                                 wrapperStopProcess(FALSE, exitCode);
                             } else if (strcmpIgnoreCase(command, TEXT("PAUSE")) == 0) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Pausing JVM."), command);
-                                wrapperPauseProcess(FALSE, WRAPPER_ACTION_SOURCE_CODE_COMMANDFILE);
+                                wrapperPauseProcess(WRAPPER_ACTION_SOURCE_CODE_COMMANDFILE);
                             } else if (strcmpIgnoreCase(command, TEXT("RESUME")) == 0) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Resuming JVM."), command);
-                                wrapperResumeProcess(FALSE, WRAPPER_ACTION_SOURCE_CODE_COMMANDFILE);
+                                wrapperResumeProcess(WRAPPER_ACTION_SOURCE_CODE_COMMANDFILE);
                             } else if (strcmpIgnoreCase(command, TEXT("DUMP")) == 0) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Requesting a Thread Dump."), command);
                                 wrapperRequestDumpJVMState(FALSE);
@@ -589,7 +587,7 @@ void commandPoll(TICKS nowTicks) {
                             } else if (strcmpIgnoreCase(command, TEXT("CLOSE_SOCKET")) == 0) {
                                 if (wrapperData->commandFileTests) {
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s'.  Closing backend socket to JVM..."), command);
-                                    wrapperProtocolClose();
+                                    wrapperProtocolClose(FALSE);
                                 } else {
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s'.  Tests disabled."), command);
                                 }
@@ -649,7 +647,7 @@ void wStateStarting(TICKS nowTicks) {
     /* If the JVM state is now STARTED, then change the wrapper state */
     /*  to be STARTED as well. */
     if (wrapperData->jState == WRAPPER_JSTATE_STARTED) {
-        wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STARTED);
+        wrapperSetWrapperState(WRAPPER_WSTATE_STARTED);
 
         /* Tell the service manager that we started */
         wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTED, 0, 0);
@@ -687,7 +685,7 @@ void wStatePausing(TICKS nowTicks) {
         /* If it has not already been set, set the exit request flag. */
         if (wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN) {
             /* JVM is now down.  We are now paused. */
-            wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_PAUSED);
+            wrapperSetWrapperState(WRAPPER_WSTATE_PAUSED);
 
             /* Tell the service manager that we are paused */
             wrapperReportStatus(FALSE, WRAPPER_WSTATE_PAUSED, 0, 0);
@@ -718,7 +716,7 @@ void wStatePausing(TICKS nowTicks) {
         }
     } else {
         /* We want to leave the JVM process as is.  We are now paused. */
-        wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_PAUSED);
+        wrapperSetWrapperState(WRAPPER_WSTATE_PAUSED);
 
         /* Tell the service manager that we are paused */
         wrapperReportStatus(FALSE, WRAPPER_WSTATE_PAUSED, 0, 0);
@@ -755,7 +753,7 @@ void wStateResuming(TICKS nowTicks) {
     /* If the JVM state is now STARTED, then change the wrapper state */
     /*  to be STARTED as well. */
     if (wrapperData->jState == WRAPPER_JSTATE_STARTED) {
-        wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STARTED);
+        wrapperSetWrapperState(WRAPPER_WSTATE_STARTED);
 
         /* Tell the service manager that we started */
         wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTED, 0, 0);
@@ -797,7 +795,7 @@ void wStateStopping(TICKS nowTicks) {
     /* If the JVM state is now DOWN_CLEAN, then change the wrapper state */
     /*  to be STOPPED as well. */
     if (wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN) {
-        wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPED);
+        wrapperSetWrapperState(WRAPPER_WSTATE_STOPPED);
 
         /* Don't tell the service manager that we stopped here.  That */
         /*    will be done when the application actually quits. */
@@ -859,15 +857,15 @@ void jStateDownClean(TICKS nowTicks, int nextSleep) {
                      *  immediately and reset the failed invocation count.
                      * This mode of restarts works even if restarts have been disabled. */
                     wrapperData->failedInvocationCount = 0;
-                    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCH_DELAY, nowTicks, 0);
+                    wrapperSetJavaState(WRAPPER_JSTATE_LAUNCH_DELAY, nowTicks, 0);
 
                 } else if ((restartMode == WRAPPER_RESTART_REQUESTED_AUTOMATIC) && wrapperData->isAutoRestartDisabled) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Automatic JVM Restarts disabled.  Shutting down."));
-                    wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
+                    wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
 
                 } else if (wrapperData->isRestartDisabled) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("JVM Restarts disabled.  Shutting down."));
-                    wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
+                    wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
 
                 } else if (wrapperGetTickAgeSeconds(wrapperData->jvmLaunchTicks, nowTicks) >= wrapperData->successfulInvocationTime) {
                     /* The previous JVM invocation was running long enough that its invocation */
@@ -876,7 +874,7 @@ void jStateDownClean(TICKS nowTicks, int nextSleep) {
                     wrapperData->failedInvocationCount = 0;
 
                     /* Set the state to launch after the restart delay. */
-                    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCH_DELAY, nowTicks, wrapperData->restartDelay);
+                    wrapperSetJavaState(WRAPPER_JSTATE_LAUNCH_DELAY, nowTicks, wrapperData->restartDelay);
 
                     if (wrapperData->restartDelay > 0) {
                         if (wrapperData->isDebugging) {
@@ -900,7 +898,7 @@ void jStateDownClean(TICKS nowTicks, int nextSleep) {
                         /* Try reslaunching the JVM */
 
                         /* Set the state to launch after the restart delay. */
-                        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCH_DELAY, nowTicks, wrapperData->restartDelay);
+                        wrapperSetJavaState(WRAPPER_JSTATE_LAUNCH_DELAY, nowTicks, wrapperData->restartDelay);
 
                         if (wrapperData->restartDelay > 0) {
                             if (wrapperData->isDebugging) {
@@ -915,7 +913,7 @@ void jStateDownClean(TICKS nowTicks, int nextSleep) {
                                    wrapperData->failedInvocationCount, wrapperData->successfulInvocationTime);
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                                    TEXT("  There may be a configuration problem: please check the logs."));
-                        wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
+                        wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
                     }
                 }
             } else {
@@ -928,7 +926,7 @@ void jStateDownClean(TICKS nowTicks, int nextSleep) {
                 } else {
                     startupDelay = wrapperData->startupDelayService;
                 }
-                wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCH_DELAY, nowTicks, startupDelay);
+                wrapperSetJavaState(WRAPPER_JSTATE_LAUNCH_DELAY, nowTicks, startupDelay);
 
                 if (startupDelay > 0) {
                     if (wrapperData->isDebugging) {
@@ -954,7 +952,7 @@ void jStateDownClean(TICKS nowTicks, int nextSleep) {
                 if (wrapperData->pausable) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         TEXT("on_exit trigger matched.  Pausing the Wrapper.  (Exit code: %d)"), wrapperData->exitCode);
-                    wrapperPauseProcess(FALSE, WRAPPER_ACTION_SOURCE_CODE_ON_EXIT);
+                    wrapperPauseProcess(WRAPPER_ACTION_SOURCE_CODE_ON_EXIT);
                 } else {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         TEXT("on_exit trigger matched.  Pausing not enabled.  Restarting the JVM.  (Exit code: %d)"), wrapperData->exitCode);
@@ -962,7 +960,7 @@ void jStateDownClean(TICKS nowTicks, int nextSleep) {
                 }
             } else {
                 /* We want to stop the Wrapper. */
-                wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
+                wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
             }
         }
     } else if (wrapperData->wState == WRAPPER_WSTATE_PAUSED) {
@@ -999,7 +997,7 @@ void jStateDownClean(TICKS nowTicks, int nextSleep) {
                     wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_CONFIGURED;
                 } else {
                     /* We want to stop the Wrapper. */
-                    wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
+                    wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
                 }
             }
         }
@@ -1057,7 +1055,7 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
                     if (wrapperData->workingDir && wrapperData->originalWorkingDir) {
                         if (wrapperSetWorkingDir(wrapperData->originalWorkingDir)) {
                             /* Failed to restore the working dir.  Shutdown the Wrapper */
-                            wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
+                            wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
                             wrapperData->exitCode = 1;
                             return;
                         }
@@ -1066,7 +1064,7 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
                     if (wrapperLoadConfigurationProperties()) {
                         /* Failed to reload the configuration.  This is bad.
                          *  The JVM is already down.  Shutdown the Wrapper. */
-                        wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
+                        wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
                         wrapperData->exitCode = 1;
                         return;
                     }
@@ -1074,7 +1072,7 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
                     /* Change the working directory if configured to do so. */
                     if (wrapperData->workingDir && wrapperSetWorkingDir(wrapperData->workingDir)) {
                         /* Failed to set the working dir.  Shutdown the Wrapper */
-                        wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
+                        wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
                         wrapperData->exitCode = 1;
                         return;
                     }
@@ -1088,7 +1086,7 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
                     TEXT("The com.silveregg.wrapper.WrapperSimpleApp class is no longer supported." ));
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                     TEXT("Please use the org.tanukisoftware.wrapper.WrapperSimpleApp class instead." ));
-                wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
+                wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
                 wrapperData->exitCode = 1;
                 return;
             } else if (_tcsstr(mainClass, TEXT("com.silveregg.wrapper.WrapperStartStopApp")) != NULL) {
@@ -1096,7 +1094,7 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
                     TEXT("The com.silveregg.wrapper.WrapperStartStopApp class is no longer supported." ));
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                     TEXT("Please use the org.tanukisoftware.wrapper.WrapperStartStopApp class instead." ));
-                wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
+                wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
                 wrapperData->exitCode = 1;
                 return;
             }
@@ -1112,7 +1110,7 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
             if (!wrapperCheckServerSocket(TRUE)) {
                 /* The socket is not up.  An error should have been reported.  But this means we
                  *  are unable to continue. */
-                wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
+                wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
                 wrapperData->exitCode = 1;
                 return;
             }
@@ -1120,7 +1118,7 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
             /* Generate the command used to launch the Java process */
             if (wrapperBuildJavaCommand()) {
                 /* Failed. Wrapper shutdown. */
-                wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
+                wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
                 wrapperData->exitCode = 1;
                 return;
             }
@@ -1133,18 +1131,18 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
             }
 
             if (wrapperData->jvmRestarts > 0) {
-                wrapperSetJavaState(FALSE, WRAPPER_JSTATE_RESTART, nowTicks, -1);
+                wrapperSetJavaState(WRAPPER_JSTATE_RESTART, nowTicks, -1);
             } else {
                 /* Increment the JVM restart Id to keep track of how many JVMs we have launched. */
                 wrapperData->jvmRestarts++;
 
-                wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCH, nowTicks, -1);
+                wrapperSetJavaState(WRAPPER_JSTATE_LAUNCH, nowTicks, -1);
             }
         }
     } else {
         /* The wrapper is shutting down, pausing or paused.  Switch to the
          *  down clean state because the JVM was never launched. */
-        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN_CLEAN, nowTicks, -1);
+        wrapperSetJavaState(WRAPPER_JSTATE_DOWN_CLEAN, nowTicks, -1);
     }
 }
 
@@ -1166,11 +1164,11 @@ void jStateRestart(TICKS nowTicks, int nextSleep) {
         /* Increment the JVM restart Id to keep track of how many JVMs we have launched. */
         wrapperData->jvmRestarts++;
 
-        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCH, nowTicks, -1);
+        wrapperSetJavaState(WRAPPER_JSTATE_LAUNCH, nowTicks, -1);
     } else {
         /* The wrapper is shutting down, pausing or paused.  Switch to the
          *  down clean state because the JVM was never launched. */
-        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN_CLEAN, nowTicks, -1);
+        wrapperSetJavaState(WRAPPER_JSTATE_DOWN_CLEAN, nowTicks, -1);
     }
 }
 
@@ -1197,24 +1195,18 @@ void jStateLaunch(TICKS nowTicks, int nextSleep) {
 
         wrapperExecute();
 
-        /* Check if the start was successful. */
-        if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
-            /* Failed to start the JVM.  Tell the wrapper to shutdown. */
-            wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STOPPING);
+        /* The JVM was launched.  We still do not know whether the
+         *  launch will be successful.  Allow <startupTimeout> seconds before giving up.
+         *  This can take quite a while if the system is heavily loaded.
+         *  (At startup for example) */
+        if (wrapperData->startupTimeout > 0) {
+            wrapperSetJavaState(WRAPPER_JSTATE_LAUNCHING, nowTicks, wrapperData->startupTimeout);
         } else {
-            /* The JVM was launched.  We still do not know whether the
-             *  launch will be successful.  Allow <startupTimeout> seconds before giving up.
-             *  This can take quite a while if the system is heavily loaded.
-             *  (At startup for example) */
-            if (wrapperData->startupTimeout > 0) {
-                wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCHING, nowTicks, wrapperData->startupTimeout);
-            } else {
-                wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCHING, nowTicks, -1);
-            }
+            wrapperSetJavaState(WRAPPER_JSTATE_LAUNCHING, nowTicks, -1);
         }
     } else {
         /* The wrapper is shutting down, pausing or paused.  Switch to the down clean state because the JVM was never launched. */
-        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN_CLEAN, nowTicks, -1);
+        wrapperSetJavaState(WRAPPER_JSTATE_DOWN_CLEAN, nowTicks, -1);
     }
 }
 
@@ -1233,7 +1225,7 @@ void jStateLaunch(TICKS nowTicks, int nextSleep) {
  */
 void jStateLaunching(TICKS nowTicks, int nextSleep) {
     /* Make sure that the JVM process is still up and running */
-    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
+    if (nextSleep && (wrapperGetProcessStatus(nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone.  Restart it. (Handled and logged) */
     } else {
         /* The process is up and running.
@@ -1248,7 +1240,7 @@ void jStateLaunching(TICKS nowTicks, int nextSleep) {
                 displayLaunchingTimeoutMessage();
 
                 /* Give up on the JVM and start trying to kill it. */
-                wrapperKillProcess(FALSE);
+                wrapperKillProcess();
 
                 /* Restart the JVM. */
                 wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_AUTOMATIC;
@@ -1281,7 +1273,7 @@ void jStateLaunched(TICKS nowTicks, int nextSleep) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to send the start command to the JVM."));
 
         /* Give up on the JVM and start trying to kill it. */
-        wrapperKillProcess(FALSE);
+        wrapperKillProcess();
 
         /* Restart the JVM. */
         wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_AUTOMATIC;
@@ -1291,9 +1283,9 @@ void jStateLaunched(TICKS nowTicks, int nextSleep) {
          *  giving up.  A good application will send starting signals back
          *  much sooner than this as a way to extend this time if necessary. */
         if (wrapperData->startupTimeout > 0) {
-            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STARTING, nowTicks, wrapperData->startupTimeout);
+            wrapperSetJavaState(WRAPPER_JSTATE_STARTING, nowTicks, wrapperData->startupTimeout);
         } else {
-            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STARTING, nowTicks, -1);
+            wrapperSetJavaState(WRAPPER_JSTATE_STARTING, nowTicks, -1);
         }
     }
 }
@@ -1312,7 +1304,7 @@ void jStateLaunched(TICKS nowTicks, int nextSleep) {
  */
 void jStateStarting(TICKS nowTicks, int nextSleep) {
     /* Make sure that the JVM process is still up and running */
-    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
+    if (nextSleep && (wrapperGetProcessStatus(nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone.  Restart it. (Handled and logged) */
     } else {
         /* Have we waited too long already */
@@ -1325,7 +1317,7 @@ void jStateStarting(TICKS nowTicks, int nextSleep) {
                            TEXT("Startup failed: Timed out waiting for signal from JVM."));
 
                 /* Give up on the JVM and start trying to kill it. */
-                wrapperKillProcess(FALSE);
+                wrapperKillProcess();
 
                 /* Restart the JVM. */
                 wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_AUTOMATIC;
@@ -1354,7 +1346,7 @@ void jStateStarted(TICKS nowTicks, int nextSleep) {
     int ret;
 
     /* Make sure that the JVM process is still up and running */
-    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
+    if (nextSleep && (wrapperGetProcessStatus(nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone.  Restart it. (Handled and logged) */
     } else {
         if (wrapperData->isJVMOrphaned) {
@@ -1370,7 +1362,7 @@ void jStateStarted(TICKS nowTicks, int nextSleep) {
                            TEXT("JVM appears hung: Timed out waiting for signal from JVM."));
 
                 /* Give up on the JVM and start trying to kill it. */
-                wrapperKillProcess(FALSE);
+                wrapperKillProcess();
 
                 /* Restart the JVM. */
                 wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_AUTOMATIC;
@@ -1418,7 +1410,7 @@ void jStateStarted(TICKS nowTicks, int nextSleep) {
 void jStateStop(TICKS nowTicks, int nextSleep) {
 
     /* Make sure that the JVM process is still up and running */
-    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
+    if (nextSleep && (wrapperGetProcessStatus(nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone. (Handled and logged)*/
     } else {
         /* Ask the JVM to shutdown. */
@@ -1427,9 +1419,9 @@ void jStateStop(TICKS nowTicks, int nextSleep) {
         /* Allow up to 5 + <shutdownTimeout> seconds for the application to stop itself. */
         /* Already in this state. */
         if (wrapperData->shutdownTimeout > 0) {
-            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, nowTicks, 5 + wrapperData->shutdownTimeout);
+            wrapperSetJavaState(WRAPPER_JSTATE_STOPPING, nowTicks, 5 + wrapperData->shutdownTimeout);
         } else {
-            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, nowTicks, -1);
+            wrapperSetJavaState(WRAPPER_JSTATE_STOPPING, nowTicks, -1);
         }
     }
 }
@@ -1447,7 +1439,7 @@ void jStateStop(TICKS nowTicks, int nextSleep) {
  */
 void jStateStopping(TICKS nowTicks, int nextSleep) {
     /* Make sure that the JVM process is still up and running */
-    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
+    if (nextSleep && (wrapperGetProcessStatus(nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone. (Handled and logged)*/
     } else {
         /* Have we waited too long already */
@@ -1460,7 +1452,7 @@ void jStateStopping(TICKS nowTicks, int nextSleep) {
                            TEXT("Shutdown failed: Timed out waiting for signal from JVM."));
 
                 /* Give up on the JVM and start trying to kill it. */
-                wrapperKillProcess(FALSE);
+                wrapperKillProcess();
             }
         } else {
             /* Keep waiting. */
@@ -1483,7 +1475,7 @@ void jStateStopping(TICKS nowTicks, int nextSleep) {
  *            function will be called again immediately.
  */
 void jStateStopped(TICKS nowTicks, int nextSleep) {
-    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
+    if (nextSleep && (wrapperGetProcessStatus(nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone. This is what we were waiting for. */
     } else {
         /* Have we waited too long already */
@@ -1496,7 +1488,7 @@ void jStateStopped(TICKS nowTicks, int nextSleep) {
                            TEXT("Shutdown failed: Timed out waiting for the JVM to terminate."));
 
                 /* Give up on the JVM and start trying to kill it. */
-                wrapperKillProcess(FALSE);
+                wrapperKillProcess();
             }
         } else {
             /* Keep waiting. */
@@ -1519,13 +1511,13 @@ void jStateStopped(TICKS nowTicks, int nextSleep) {
  */
 void jStateKilling(TICKS nowTicks, int nextSleep) {
     /* Make sure that the JVM process is still up and running */
-    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
+    if (nextSleep && (wrapperGetProcessStatus(nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone. (Handled and logged) */
     } else {
         /* Have we waited long enough */
         if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAgeSeconds(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
             /* It is time to actually kill the JVM. */
-            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_KILL, nowTicks, -1);
+            wrapperSetJavaState(WRAPPER_JSTATE_KILL, nowTicks, -1);
         } else {
             /* Keep waiting. */
         }
@@ -1544,7 +1536,7 @@ void jStateKilling(TICKS nowTicks, int nextSleep) {
  */
 void jStateKill(TICKS nowTicks, int nextSleep) {
 
-    if (nextSleep && (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
+    if (nextSleep && (wrapperGetProcessStatus(nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone. (Handled and logged) */
     } else {
         /* It is time to actually kill the JVM. */
@@ -1564,7 +1556,7 @@ void jStateKill(TICKS nowTicks, int nextSleep) {
  *            function will be called again immediately.
  */
 void jStateDownCheck(TICKS nowTicks, int nextSleep) {
-    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN_CLEAN, nowTicks, -1);
+    wrapperSetJavaState(WRAPPER_JSTATE_DOWN_CLEAN, nowTicks, -1);
 }
 
 /********************************************************************
@@ -1572,7 +1564,6 @@ void jStateDownCheck(TICKS nowTicks, int nextSleep) {
  *******************************************************************/
 
 void logTickTimerStats() {
-    TCHAR buffer[30];
     struct tm when;
     time_t now, overflowTime;
 
@@ -1585,32 +1576,37 @@ void logTickTimerStats() {
 
     overflowTime = (time_t)(now - (sysTicks / (1000 / WRAPPER_TICK_MS)));
     when = *localtime(&overflowTime);
-    _sntprintf(buffer, 30, TEXT("%s"), asctime(&when));
-    buffer[_tcslen(buffer) - 1] = TEXT('\0'); /* Remove the line feed. */
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Last system time tick overflow at: %s"), buffer);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+        TEXT("    Last system time tick overflow at: %04d/%02d/%02d %02d:%02d:%02d"),
+        when.tm_year + 1900, when.tm_mon + 1, when.tm_mday,
+        when.tm_hour, when.tm_min, when.tm_sec);
 
     overflowTime = (time_t)(now + ((0xffffffffUL - sysTicks) / (1000 / WRAPPER_TICK_MS)));
     when = *localtime(&overflowTime);
-    _sntprintf(buffer, 30, TEXT("%s"), asctime(&when));
-    buffer[_tcslen(buffer) - 1] = TEXT('\0'); /* Remove the line feed. */
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Next system time tick overflow at: %s"), buffer);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+        TEXT("    Next system time tick overflow at: %04d/%02d/%02d %02d:%02d:%02d"),
+        when.tm_year + 1900, when.tm_mon + 1, when.tm_mday,
+        when.tm_hour, when.tm_min, when.tm_sec);
 
     if (!wrapperData->useSystemTime) {
         ticks = wrapperGetTicks();
 
         overflowTime = (time_t)(now - (ticks / (1000 / WRAPPER_TICK_MS)));
         when = *localtime(&overflowTime);
-        _sntprintf(buffer, 30, TEXT("%s"), asctime(&when));
-        buffer[_tcslen(buffer) - 1] = TEXT('\0'); /* Remove the line feed. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Last tick overflow at: %s"), buffer);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            TEXT("    Last tick overflow at: %04d/%02d/%02d %02d:%02d:%02d"),
+            when.tm_year + 1900, when.tm_mon + 1, when.tm_mday,
+            when.tm_hour, when.tm_min, when.tm_sec);
 
         overflowTime = (time_t)(now + ((0xffffffffUL - ticks) / (1000 / WRAPPER_TICK_MS)));
         when = *localtime(&overflowTime);
-        _sntprintf(buffer, 30, TEXT("%s"), asctime(&when));
-        buffer[_tcslen(buffer) - 1] = TEXT('\0'); /* Remove the line feed. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Next tick overflow at: %s"), buffer);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            TEXT("    Next tick overflow at: %04d/%02d/%02d %02d:%02d:%02d"),
+            when.tm_year + 1900, when.tm_mon + 1, when.tm_mday,
+            when.tm_hour, when.tm_min, when.tm_sec);
     }
 }
+
 /**
  * The main event loop for the wrapper.  Handles all state changes and events.
  */
@@ -1665,6 +1661,13 @@ void wrapperEventLoop() {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Loop: maintain logger"));
         }
         maintainLogger();
+        
+        /* After we maintain the logger, see if there were any signals trapped. */
+#ifdef WIN32
+        wrapperMaintainControlCodes();
+#else
+        wrapperMaintainSignals();
+#endif
 
 #ifdef WIN32
         wrapperCheckConsoleWindows();
@@ -1811,7 +1814,7 @@ void wrapperEventLoop() {
                 (wrapperData->jState == WRAPPER_JSTATE_RESTART) ||
                 (wrapperData->jState == WRAPPER_JSTATE_LAUNCH)) {
                 /* A JVM is not yet running go back to the DOWN_CLEAN state. */
-                wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN_CLEAN, nowTicks, -1);
+                wrapperSetJavaState(WRAPPER_JSTATE_DOWN_CLEAN, nowTicks, -1);
             } else if ((wrapperData->jState == WRAPPER_JSTATE_STOP) ||
                 (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
                 (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
@@ -1821,7 +1824,7 @@ void wrapperEventLoop() {
                 /* The JVM is already being stopped, so nothing else needs to be done. */
             } else {
                 /* The JVM should be running or is in the process of launching, so it needs to be stopped. */
-                if (wrapperGetProcessStatus(FALSE, nowTicks, FALSE) == WRAPPER_PROCESS_DOWN) {
+                if (wrapperGetProcessStatus(nowTicks, FALSE) == WRAPPER_PROCESS_DOWN) {
                     /* The process is gone.  (Handled and logged) */
 
                     /* We never want to restart here. */
@@ -1833,7 +1836,7 @@ void wrapperEventLoop() {
                             TEXT("Sending stop signal to JVM"));
                     }
 
-                    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOP, nowTicks, -1);
+                    wrapperSetJavaState(WRAPPER_JSTATE_STOP, nowTicks, -1);
                 }
             }
         }

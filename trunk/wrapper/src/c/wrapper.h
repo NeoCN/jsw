@@ -29,25 +29,23 @@
 
 #ifndef _WRAPPER_H
 #define _WRAPPER_H
+
 #ifdef WIN32
-#include <tchar.h>
+ #include <tchar.h>
 #endif
 
 #include <locale.h>
 
 #ifdef WIN32
-#include <winsock.h>
+ #include <winsock.h>
 
 #else /* UNIX */
-#include <sys/types.h>
-#include <time.h>
-#include <unistd.h>
-#ifndef MACOSX
-#define u_short unsigned short
-#endif /* MACOSX */
-
-#define __max(x,y) (((x) > (y)) ? (x) : (y))
-#define __min(x,y) (((x) < (y)) ? (x) : (y))
+ #include <sys/types.h>
+ #include <time.h>
+ #include <unistd.h>
+ #ifndef MACOSX
+  #define u_short unsigned short
+ #endif /* MACOSX */
 #endif
 
 #ifndef DWORD
@@ -57,6 +55,9 @@
 #include <sys/timeb.h>
 
 #include "property.h"
+
+/* The following define will enable debug output of the code to parse the JVM output. */
+/*#define DEBUG_CHILD_OUTPUT*/
 
 /* Initialize the timerTicks to a very high value.  This means that we will
  *  always encounter the first rollover (512 * WRAPPER_MS / 1000) seconds
@@ -346,6 +347,27 @@ struct WrapperConfig {
     int     signalUSR2Mode;         /* Controls what happens when the Wrapper receives a USR2 signal. */
     int     jvmStopped;             /* Flag which remembers the the stopped state of the JVM process. */
 #endif
+
+#ifdef WIN32
+    int     ctrlEventCTRLCTrapped;  /* CTRL_C_EVENT trapped. */
+    int     ctrlEventCloseTrapped;  /* CTRL_CLOSE_EVENT trapped. */
+    int     ctrlEventLogoffTrapped; /* CTRL_LOGOFF_EVENT trapped. */
+    int     ctrlEventShutdownTrapped;/* CTRL_SHUTDOWN_EVENT trapped. */
+    int     ctrlCodeLast;           /* Id of the last control code trapped. */
+    int     ctrlCodePauseTrapped;   /* SERVICE_CONTROL_PAUSE was trapped. */
+    int     ctrlCodeContinueTrapped;/* SERVICE_CONTROL_CONTINUE was trapped. */
+    int     ctrlCodeStopTrapped;    /* SERVICE_CONTROL_STOP was trapped. */
+    int     ctrlCodeShutdownTrapped;/* SERVICE_CONTROL_SHUTDOWN was trapped. */
+    int     ctrlCodeDumpTrapped;    /* The configured thread dump control code was trapped. */
+#else
+    int     signalInterruptTrapped; /* SIGINT was trapped. */
+    int     signalQuitTrapped;      /* SIGQUIT was trapped. */
+    int     signalChildTrapped;     /* SIGCHLD was trapped. */
+    int     signalTermTrapped;      /* SIGTERM was trapped. */
+    int     signalHUPTrapped;       /* SIGHUP was trapped. */
+    int     signalUSR1Trapped;      /* SIGUSR1 was trapped. */
+    int     signalUSR2Trapped;      /* SIGUSR2 was trapped. */
+#endif
 };
 
 #define WRAPPER_SIGNAL_MODE_IGNORE   (char)100
@@ -384,11 +406,11 @@ extern TCHAR wrapperClasspathSeparator;
 
 /* Protocol Functions */
 /**
- * Build the java command line.
+ * Close the backend socket.
  *
- * @return TRUE if there were any problems.
+ * @param useLoggerQueue TRUE if any internal logging should be queued.
  */
-extern void wrapperProtocolClose();
+extern void wrapperProtocolClose(int useLoggerQueue);
 
 /**
  * Sends a command to the JVM process.
@@ -511,9 +533,8 @@ extern int wrapperParseArguments(int argc, TCHAR **argv);
  * Called when the Wrapper detects that the JVM process has exited.
  *  Contains code common to all platforms.
  */
-extern void wrapperJVMProcessExited(int useLoggerQueue, TICKS nowTicks, int exitCode);
+extern void wrapperJVMProcessExited(TICKS nowTicks, int exitCode);
 
-/*#define DEBUG_CHILD_OUTPUT*/
 /**
  * Read and process any output from the child JVM Process.
  * Most output should be logged to the wrapper log file.
@@ -528,10 +549,9 @@ extern int wrapperReadChildOutput();
 /**
  * Changes the current Wrapper state.
  *
- * useLoggerQueue - True if the log entries should be queued.
  * wState - The new Wrapper state.
  */
-extern void wrapperSetWrapperState(int useLoggerQueue, int wState);
+extern void wrapperSetWrapperState(int wState);
 
 /**
  * Updates the current state time out.
@@ -554,7 +574,7 @@ extern void wrapperUpdateJavaStateTimeout(TICKS nowTicks, int delay);
  * delay - The delay in seconds, added to the nowTicks after which the state
  *         will time out, if negative will never time out.
  */
-extern void wrapperSetJavaState(int useLoggerQueue, int jState, TICKS nowTicks, int delay);
+extern void wrapperSetJavaState(int jState, TICKS nowTicks, int delay);
 
 /******************************************************************************
  * Platform specific methods
@@ -567,6 +587,9 @@ BOOL extern myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR psz
 BOOL extern runElevated( __in LPCTSTR pszPath, __in_opt LPCTSTR pszParameters, __in_opt LPCTSTR pszDirectory);
 BOOL extern isElevated();
 BOOL extern isVista();
+extern void wrapperMaintainControlCodes();
+#else
+extern void wrapperMaintainSignals();
 #endif
 
 /**
@@ -611,7 +634,7 @@ extern int wrapperReadChildOutputBlock(char *blockBuffer, int blockSize, int *re
  * Checks on the status of the JVM Process.
  * Returns WRAPPER_PROCESS_UP or WRAPPER_PROCESS_DOWN
  */
-extern int wrapperGetProcessStatus(int useLoggerQueue, TICKS nowTicks, int sigChild);
+extern int wrapperGetProcessStatus(TICKS nowTicks, int sigChild);
 
 /**
  * Pauses before launching a new JVM if necessary.
@@ -666,7 +689,7 @@ extern void wrapperKillProcessNow();
  *  dump is to be requested.  This call wll always set the JVM state to
  *  WRAPPER_JSTATE_KILLING.
  */
-extern void wrapperKillProcess(int useLoggerQueue);
+extern void wrapperKillProcess();
 
 /**
  * Launch the wrapper as a console application.
@@ -681,18 +704,16 @@ extern int wrapperRunService();
 /**
  * Used to ask the state engine to pause the JVM and Wrapper
  *
- * @param TRUE if queued logging should be used.
  * @param actionCode Tracks where the action originated.
  */
-extern void wrapperPauseProcess(int useLoggerQueue, int actionCode);
+extern void wrapperPauseProcess(int actionCode);
 
 /**
  * Used to ask the state engine to resume the JVM and Wrapper
  *
- * @param TRUE if queued logging should be used.
  * @param actionCode Tracks where the action originated.
  */
-extern void wrapperResumeProcess(int useLoggerQueue, int actionCode);
+extern void wrapperResumeProcess(int actionCode);
 
 /**
  * Used to ask the state engine to shut down the JVM and Wrapper
@@ -810,6 +831,5 @@ extern void wrapperStopPendingSignaled(int waitHint);
 extern void wrapperStoppedSignaled();
 extern void wrapperStartPendingSignaled(int waitHint);
 extern void wrapperStartedSignaled();
-extern TCHAR* wrapperGetLocalizedMessage(char *msg);
 
 #endif

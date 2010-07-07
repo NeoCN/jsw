@@ -1,6 +1,43 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 
+3.5.1
+* Start using a system function to determine whether or not a character in the
+  configuration file is a control character or not.  This way it works on
+  non-ASCII platforms.
+* (Standard, Professional) Fix a crash on Windows platforms caused by freeing
+  up unallocated memory while loading the Wrapper's configuration.
+* Add debug output describing the system and current code pages on Windows
+  versions to help understand encoding and mojibake issues.
+* Add a Japanese localized src/conf/wrapper.conf.in_ja template configuration
+  file to assist Japanese users.
+* Fix an potential deadlock on UNIX platforms if the JVM exits while logging
+  is taking place and the wrapper.debug or undocumented wrapper.state_output
+  properties were set to TRUE.
+* Fix a problem where a failed JVM invocation that happened immediately after
+  being launched would cause the Wrapper to immediately give up and shutdown.
+  This should not have been possible with normal JVM configurations, but was
+  turned up in testing.
+* Fix a problem where some startup output of the tick timer debug output was
+  corrupted.  This was only an issue if the wrapper.tick_output property was
+  set.
+* (Standard, Professional) Rework the way text is localized so that mallocs
+  are all handled on initialization.  3.5.0 had problems with occassional
+  freezes and crashes caused by mallocs being made within signal handlers.
+  The problems were rare unless debug output was enabled.
+* Greatly simplify signal handlers on all platforms so they now do as little
+  as possible, actions are now queued and then processed by the main thread.
+* (Standard, Professional) Add debug output on Windows versions to help debug
+  localization and code page issues.
+* (Standard, Professional) Fix a localization problem on Windows where the
+  Wrapper was using the system-wide language rather than that of the current
+  process.  This was resulting in mojibake if the Wrapper was launched in a
+  new console if that new console did not support the required code page.
+  This was only an issue if the user had changed the active code page from the
+  default for their Windows desktop.
+* Fix a problem on Windows platforms where the JVM child output was being
+  logged with an extra line feed in some cases.
+
 3.5.0
 * (Standard) Added the ability to detect and react to thread dead locks in
   the JVM.  Requires at Java 1.5.  Added wrapper.check.deadlock,

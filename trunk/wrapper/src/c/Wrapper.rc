@@ -65,25 +65,11 @@ VS_VERSION_INFO VERSIONINFO
  FILETYPE 0x1L
  FILESUBTYPE 0x0L
 BEGIN
-    BLOCK "xStringFileInfo"
+    BLOCK "StringFileInfo"
     BEGIN
         BLOCK "000904b0"
         BEGIN
             VALUE "CompanyName", "Tanuki Software, Ltd."
-            VALUE "FileDescription", "Java Service Wrapper Community Edition 3.5.1-a"
-            VALUE "FileVersion", "3, 5, 1, 0"
-            VALUE "LegalCopyright", "Copyright (C) 1999, 2010 Tanuki Software, Ltd.  All rights reserved."
-            VALUE "InternalName", "wrapper"
-            VALUE "OriginalFilename", "wrapper.exe"
-            VALUE "ProductName", "Java Service Wrapper Community"
-            VALUE "ProductVersion", "3, 5, 1, 0"
-        END
-    END
-    BLOCK "StringFileInfo"
-    BEGIN
-        BLOCK "041103a4" //Japanese
-        BEGIN
-            VALUE "CompanyName", "タヌキソフトウェア有限会社"
             VALUE "FileDescription", "Java Service Wrapper Community Edition 3.5.1-a"
             VALUE "FileVersion", "3, 5, 1, 0"
             VALUE "LegalCopyright", "Copyright (C) 1999, 2010 Tanuki Software, Ltd.  All rights reserved."
@@ -101,9 +87,9 @@ BEGIN
         /*                                                                        */
         /* For example, a file might have values "0x409,1252" indicating that it  */
         /* supports English language (0x409) in the Windows ANSI codepage (1252). */
-//        VALUE "Translation", 0x9, 1200
-//        VALUE "Translation", 0x409, 1252
-        VALUE "Translation", 0x411, 932
+        VALUE "Translation", 0x9, 1200
+        //VALUE "Translation", 0x409, 1252
+        //VALUE "Translation", 0x411, 932
     END
 END
 

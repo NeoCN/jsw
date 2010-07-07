@@ -37,19 +37,23 @@
 #define _LOGGER_H
 
 #ifdef MACOSX
-#ifndef wcscasecmp
+ #ifndef wcscasecmp
 extern inline int wcscasecmp(const wchar_t* s1, const wchar_t* s2);
-#define MACOSX_ECSCASECMP
+  #define MACOSX_ECSCASECMP
+ #endif
 #endif
+
+#ifdef _DEBUG
+ #define _DEBUG_QUEUE
 #endif
 
 #ifdef WIN32
-#include <windows.h>
-#define LOG_USER    (1<<3)
+ #include <windows.h>
+ #define LOG_USER    (1<<3)
 #endif
 #include "wrapper_i18n.h"
 #ifndef DWORD
-#define DWORD unsigned long
+ #define DWORD unsigned long
 #endif
 
 /* * * Log source constants * * */

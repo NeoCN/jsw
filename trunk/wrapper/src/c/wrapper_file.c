@@ -447,33 +447,33 @@ TCHAR** wrapperFileGetFiles(const TCHAR* pattern, int sortMode) {
                 wrapperFileFreeFiles(files);
                 return NULL;
             }
-			memset(fileTimes, 0, sizeof(time_t) * filesSize);
+            memset(fileTimes, 0, sizeof(time_t) * filesSize);
 
-			for (findex = 0; findex < g.gl_pathc; findex++) {
+            for (findex = 0; findex < g.gl_pathc; findex++) {
 #ifdef UNICODE
-				req = mbstowcs(NULL, g.gl_pathv[findex], 0);
-				if (req < 0) {
-					invalidMultiByteSequence(TEXT("GLET"), 1);
-				}
-				files[cnt] = malloc((req + 1) * sizeof(TCHAR));
-				if (!files[cnt]) {
-					outOfMemoryQueued(TEXT("WFGF"), 11);
-					free(fileTimes);
-					wrapperFileFreeFiles(files);
-					return NULL;
-				}
-				mbstowcs(files[cnt], g.gl_pathv[findex], req + 1);
+                req = mbstowcs(NULL, g.gl_pathv[findex], 0);
+                if (req < 0) {
+                    invalidMultiByteSequence(TEXT("GLET"), 1);
+                }
+                files[cnt] = malloc((req + 1) * sizeof(TCHAR));
+                if (!files[cnt]) {
+                    outOfMemoryQueued(TEXT("WFGF"), 11);
+                    free(fileTimes);
+                    wrapperFileFreeFiles(files);
+                    return NULL;
+                }
+                mbstowcs(files[cnt], g.gl_pathv[findex], req + 1);
 
 #else
-				files[cnt] = malloc((strlen(g.gl_pathv[findex]) + 1));
-				if (!files[cnt]) {
-					outOfMemoryQueued(TEXT("WFGF"), 11);
-					free(fileTimes);
-					wrapperFileFreeFiles(files);
-					return NULL;
-				}
+                files[cnt] = malloc((strlen(g.gl_pathv[findex]) + 1));
+                if (!files[cnt]) {
+                    outOfMemoryQueued(TEXT("WFGF"), 11);
+                    free(fileTimes);
+                    wrapperFileFreeFiles(files);
+                    return NULL;
+                }
 
-				strcpy(files[cnt], g.gl_pathv[findex]);
+                strcpy(files[cnt], g.gl_pathv[findex]);
 #endif
 
                 /* Only try to get the modified time if it is really necessary. */
