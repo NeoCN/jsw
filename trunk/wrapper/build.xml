@@ -777,7 +777,8 @@
                  value='set _WRAPPER_BASE=..\bin\wrapper' />
         <replace file="${bin.dir}/DemoApp.bat"
                  token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
-                 value='set _WRAPPER_CONF_DEFAULT=../conf/demoApp.conf' />
+                 value='set _WRAPPER_CONF_DEFAULT=../conf/demoapp.conf' />
+        
         <copy file="${src.dir}/bin/App.bat.in"
               tofile="${bin.dir}/${app.caps.name}.bat"
               filtering="on"/>
@@ -838,21 +839,21 @@ rem ********************************************************************]]></rep
     <!-- =================================================================== -->
     <target name="bin-sh" depends="init" if="is.shell.sh">
         <copy file="${src.dir}/bin/sh.script.in"
-              tofile="${bin.dir}/demoApp"
+              tofile="${bin.dir}/demoapp"
               filtering="on"/>
-        <replace file="${bin.dir}/demoApp">
+        <replace file="${bin.dir}/demoapp">
             <replacetoken><![CDATA[WRAPPER_CONF="../conf/wrapper.conf"]]></replacetoken>
-            <replacevalue><![CDATA[WRAPPER_CONF="../conf/demoApp.conf"]]></replacevalue>
+            <replacevalue><![CDATA[WRAPPER_CONF="../conf/demoapp.conf"]]></replacevalue>
         </replace>
-        <replace file="${bin.dir}/demoApp">
+        <replace file="${bin.dir}/demoapp">
             <replacetoken><![CDATA[APP_NAME="testwrapper"]]></replacetoken>
-            <replacevalue><![CDATA[APP_NAME="demoApp"]]></replacevalue>
+            <replacevalue><![CDATA[APP_NAME="demoapp"]]></replacevalue>
         </replace> 
-        <replace file="${bin.dir}/demoApp">
+        <replace file="${bin.dir}/demoapp">
             <replacetoken><![CDATA[APP_LONG_NAME="Test Wrapper Sample Application"]]></replacetoken>
             <replacevalue><![CDATA[APP_LONG_NAME="Wrapper Demo Application"]]></replacevalue>
         </replace>    
-        <chmod file="${bin.dir}/demoApp" perm="+x"/> 
+        <chmod file="${bin.dir}/demoapp" perm="+x"/> 
 
         <copy file="${src.dir}/bin/sh.script.in"
             tofile="${bin.dir}/${app.name}"
@@ -958,22 +959,22 @@ rem ********************************************************************]]></rep
     <!-- =================================================================== -->
     <target name="conf">
         <mkdir dir="${conf.dir}"/>
-        <delete file="${conf.dir}/demoApp.conf"/>
+        <delete file="${conf.dir}/demoapp.conf"/>
         <copy file="${src.dir}/conf/wrapper.conf.in"
-              tofile="${conf.dir}/demoApp.conf"
+              tofile="${conf.dir}/demoapp.conf"
               filtering="on"/>
-        <replace file="${conf.dir}/demoApp.conf"
+        <replace file="${conf.dir}/demoapp.conf"
                  token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
                  value="wrapper.java.mainclass=org.tanukisoftware.wrapper.demo.DemoApp" />
-        <replace file="${conf.dir}/demoApp.conf"
+        <replace file="${conf.dir}/demoapp.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=" />
-        <replace file="${conf.dir}/demoApp.conf">
+        <replace file="${conf.dir}/demoapp.conf">
             <replacetoken>wrapper.check.deadlock.interval=60</replacetoken>
             <replacevalue><![CDATA[wrapper.check.deadlock.interval=10
 wrapper.max_failed_invocations=99]]></replacevalue>
         </replace>
-        <replace file="${conf.dir}/demoApp.conf">
+        <replace file="${conf.dir}/demoapp.conf">
             <replacetoken>wrapper.java.classpath.1=../lib/wrapper.jar</replacetoken>
             <replacevalue><![CDATA[wrapper.java.classpath.1=../lib/wrapperdemo.jar
 wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
@@ -1307,7 +1308,7 @@ original tar distribution due to a lack of support for long path names in some t
                 <include name="src/conf/**" />
                 <include name="jdoc/**" />
                 <include name="doc/**" />
-                <include name="conf/demoApp.conf" />
+                <include name="conf/demoapp.conf" />
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
@@ -1390,7 +1391,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                 <include name="jdoc/**" />
                 <include name="doc/**" />
                 <include name="src/bin/*.script.in" />
-                <include name="conf/demoApp.conf" />
+                <include name="conf/demoapp.conf" />
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
@@ -1567,8 +1568,10 @@ original tar distribution due to a lack of support for long path names in some t
         <copy todir="${releasedir}">
             <fileset dir="${basedir}">
                 <include name="index.html"/>
+                <!--
                 <include name="bin/*.bat"/>
                 <include name="bin/${app.name}"/>
+                -->
                 <include name="lib/wrapper.jar"/>
                 <include name="lib/wrappertest.jar"/>
                 <include name="lib/wrapperdemo.jar"/>

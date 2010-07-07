@@ -27,6 +27,9 @@ Java Service Wrapper Revision History.
   The problems were rare unless debug output was enabled.
 * Greatly simplify signal handlers on all platforms so they now do as little
   as possible, actions are now queued and then processed by the main thread.
+* (Standard, Professional) Fix a problem where the hostname in the 
+  wrapper.syslog.remote.host couldn't resolve a hostname (IP Address was
+  working).
 * (Standard, Professional) Add debug output on Windows versions to help debug
   localization and code page issues.
 * (Standard, Professional) Fix a localization problem on Windows where the
@@ -38,8 +41,13 @@ Java Service Wrapper Revision History.
 * Fix a problem on Windows platforms where the JVM child output was being
   logged with an extra line feed in some cases.
 * Fix a problem running the DemoApp from some Network shares on Windows.
-* Add a new WrapperManager.isWindows() method to make it easy to write such
-  conditional code.
+* Add a new WrapperManager.isWindows() and WrapperManager.isMacOSX() methods to
+  make it easy to write such conditional code as both platforms can require non
+  standard code.
+* (Standard, Professional) Make the GetHostId.bat file more robust so it can be
+  executed using a relative reference from the command line.  It also now
+  supports Delta-pack style Wrapper binary naming and falling back to use which
+  binaries are available.
 
 3.5.0
 * (Standard) Added the ability to detect and react to thread dead locks in

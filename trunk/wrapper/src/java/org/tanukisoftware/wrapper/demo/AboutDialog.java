@@ -25,14 +25,22 @@ import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.border.EmptyBorder;
 
-public class AboutDialog extends JDialog
+import org.tanukisoftware.wrapper.WrapperManager;
+
+public class AboutDialog
+    extends JDialog
 {
     private static final long serialVersionUID = 1L;
 
     public AboutDialog( JFrame parent )
     {
         super( parent, "About Dialog", true );
+        
+        JPanel main = new JPanel();
+        main.setBorder( new EmptyBorder( 10, 20, 10, 20 ) );
+        
         this.setResizable( false );
         Box b = Box.createVerticalBox();
         b.add( Box.createGlue() );
@@ -69,22 +77,33 @@ public class AboutDialog extends JDialog
 
                 if ( e.getClickCount() > 0 )
                 {
+                    String url = "http://wrapper.tanukisoftware.com";
+                    String cmd;
+                    if ( WrapperManager.isWindows() )
+                    {
+                        cmd = "cmd.exe /c start " + url;
+                    }
+                    else if ( WrapperManager.isMacOSX() )
+                    {
+                        cmd = "open " + url;
+                    }
+                    else
+                    {
+                        cmd = "firefox " + url;
+                    }
+                    
                     try
                     {
-                        Runtime.getRuntime().exec( "cmd.exe /c start http://wrapper.tanukisoftware.com" );
+                        Runtime.getRuntime().exec( cmd );
                     }
                     catch ( IOException ex )
                     {
-                        try
-                        {
-                            Runtime.getRuntime().exec( "firefox http://wrapper.tanukisoftware.com" );
-                        }
-                        catch ( IOException e1 )
-                        {
-
-                            System.out.println( ex.getMessage() );
-                            System.out.println();
-                        }
+                        System.out.println( "Failed to launch external browser to view web page using command:" );
+                        System.out.println( "    " + cmd );
+                        System.out.println( "  Error: " + ex.getMessage() );
+                        System.out.println();
+                        System.out.println( "Please enter URL into your browser: " + url );
+                        System.out.println();
                     }
                 }
 
@@ -93,12 +112,12 @@ public class AboutDialog extends JDialog
 
         b.add( url );
         b.add( Box.createGlue() );
-        getContentPane().add( b, "Center" );
+        main.add( b, "Center" );
 
         JPanel p2 = new JPanel();
         JButton ok = new JButton( "Ok " );
         p2.add( ok );
-        getContentPane().add( p2, "South" );
+        main.add( p2, "South" );
 
         ok.addActionListener( new ActionListener()
         {
@@ -107,8 +126,11 @@ public class AboutDialog extends JDialog
                 setVisible( false );
             }
         } );
+        
+        getContentPane().add( main, "Center" );
+        
         this.setLocation( this.getParent().getLocation() );
-        this.pack();// setSize(250, 150);
+        this.pack();
     }
 
 }

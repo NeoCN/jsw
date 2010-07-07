@@ -263,6 +263,9 @@ public final class WrapperManager
     /** Flag to remember whether or not this is Windows. */
     private static boolean m_windows = false;
     
+    /** Flag to remember whether or not this is MacOSX. */
+    private static boolean m_macosx = false;
+    
     /** Flag that will be set to true once a SecurityManager has been detected and tested. */
     private static boolean m_securityManagerChecked = false;
     
@@ -1231,6 +1234,7 @@ public final class WrapperManager
         else if ( os.equals( "mac os x" ) )
         {
             os = "macosx";
+            m_macosx = true;
         }
         else if ( os.equals( "unix_sv" ) )
         {
@@ -1247,7 +1251,7 @@ public final class WrapperManager
         
         // Generate an architecture name.
         String arch;
-        if ( os.equals( "macosx" ) )
+        if ( m_macosx )
         {
             arch = "universal";
         }
@@ -2075,6 +2079,18 @@ public final class WrapperManager
     public static boolean isWindows()
     {
         return m_windows;
+    }
+    
+    /**
+     * Returns true if the current JVM is Windows.
+     *
+     * @return True if this is Mac OSX.
+     *
+     * @since Wrapper 3.5.1
+     */
+    public static boolean isMacOSX()
+    {
+        return m_macosx;
     }
     
     /**

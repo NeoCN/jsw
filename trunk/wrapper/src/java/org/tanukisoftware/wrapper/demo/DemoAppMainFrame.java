@@ -183,7 +183,7 @@ public class DemoAppMainFrame extends JFrame implements ActionListener, WindowLi
 
         jEditorPane2.setContentType( "text/html; charset=UTF-8" );
 
-//        jEditorPane2.putClientProperty( JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE );
+        //jEditorPane2.putClientProperty( JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE );
         jEditorPane2.setFont( new Font( "Dialog", 1, 14 ) );
         jEditorPane2.getDocument().putProperty( "IgnoreCharsetDirective", Boolean.TRUE );
 
@@ -192,7 +192,7 @@ public class DemoAppMainFrame extends JFrame implements ActionListener, WindowLi
         // jEditorPane2.setBackground( Color.gray );
         m_logTextArea.setEditable( false );
 
-  //      setMinimumSize( new java.awt.Dimension( 699, 300 ) );
+        //setMinimumSize( new java.awt.Dimension( 699, 300 ) );
         jTabbedPane2 = new javax.swing.JTabbedPane();
         // tabbedPane.setPreferredSize(new java.awt.Dimension(400, 120));
         m_logPane = new JScrollPane( m_logTextArea );
