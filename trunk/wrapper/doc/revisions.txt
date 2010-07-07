@@ -37,6 +37,9 @@ Java Service Wrapper Revision History.
   default for their Windows desktop.
 * Fix a problem on Windows platforms where the JVM child output was being
   logged with an extra line feed in some cases.
+* Fix a problem running the DemoApp from some Network shares on Windows.
+* Add a new WrapperManager.isWindows() method to make it easy to write such
+  conditional code.
 
 3.5.0
 * (Standard) Added the ability to detect and react to thread dead locks in
