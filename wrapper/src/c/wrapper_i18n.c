@@ -46,8 +46,8 @@
  * @return TRUE if there were problems, FALSE if Ok.
  *
  */
-int multiByteToWideChar(char* multiByteChars, int encoding, TCHAR **outputBufferW, int localizeErrorMessage) {
-    TCHAR *errorTemplate;
+int multiByteToWideChar(const char *multiByteChars, int encoding, TCHAR **outputBufferW, int localizeErrorMessage) {
+    const TCHAR *errorTemplate;
     size_t errorTemplateLen;
     int req;
     
@@ -112,9 +112,9 @@ int multiByteToWideChar(char* multiByteChars, int encoding, TCHAR **outputBuffer
  *
  * @return TRUE if there were problems, FALSE if Ok.
  */
-int multiByteToWideChar(char *multiByteChars, const char *multiByteEncoding, char *interumEncoding, wchar_t **outputBufferW, int localizeErrorMessage)
+int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncoding, char *interumEncoding, wchar_t **outputBufferW, int localizeErrorMessage)
 {
-    TCHAR *errorTemplate;
+    const TCHAR *errorTemplate;
     size_t errorTemplateLen;
     size_t iconv_value;
     char *nativeChar;
@@ -183,7 +183,7 @@ int multiByteToWideChar(char *multiByteChars, const char *multiByteEncoding, cha
         do {
             redoIConv = FALSE;
             multiByteCharsLenStart = multiByteCharsLen;
-            multiByteCharsStart = multiByteChars;
+            multiByteCharsStart = (char *)multiByteChars;
             nativeChar = malloc(nativeCharLen);
             if (!nativeChar) {
                 /* Out of memory. */
@@ -260,7 +260,7 @@ int multiByteToWideChar(char *multiByteChars, const char *multiByteEncoding, cha
         }
         didIConv = TRUE;
     } else {
-        nativeCharStart = multiByteChars;
+        nativeCharStart = (char *)multiByteChars;
         didIConv = FALSE;
     }
 
@@ -363,7 +363,7 @@ TCHAR *_tsetlocale(int category, const TCHAR *locale) {
     if (req < 0) {
         return NULL;
     }
-    cLocale = malloc(req + 1);
+    cLocale = malloc(sizeof(char) * (req + 1));
     if (cLocale) {
         wcstombs(cLocale, locale, req + 1);
         cReturn = setlocale(category, cLocale);
@@ -375,7 +375,7 @@ TCHAR *_tsetlocale(int category, const TCHAR *locale) {
         if (req < 0) {
             return NULL;
         }
-        tReturn = malloc((req + 1) * sizeof(TCHAR));
+        tReturn = malloc(sizeof(TCHAR) * (req + 1));
         if (tReturn) {
             mbstowcs(tReturn, cReturn, req + 1);
         }
@@ -385,70 +385,100 @@ TCHAR *_tsetlocale(int category, const TCHAR *locale) {
 }
 
 int _tprintf(const wchar_t *fmt,...) {
-    int i;
+    int i, flag;
     wchar_t *msg;
     va_list args;
 
-    msg = malloc(sizeof(wchar_t) * (wcslen(fmt) + 1));
-    if (msg) {
-        wcscpy(msg, fmt);
-        for (i = 0; i < wcslen(fmt); i++){
-            if (fmt[i] == TEXT('%') && i  < wcslen(fmt) && fmt[i + 1] == TEXT('s') && (i == 0 || fmt[i - 1] != TEXT('%'))) {
-                msg[i + 1] = TEXT('S');
-                i++;
+    if (wcsstr(fmt, TEXT("%s")) != NULL) {
+        msg = malloc(sizeof(wchar_t) * (wcslen(fmt) + 1));
+        if (msg) {
+            wcscpy(msg, fmt);
+            for (i = 0; i < wcslen(fmt); i++){
+                if (fmt[i] == TEXT('%') && i  < wcslen(fmt) && fmt[i + 1] == TEXT('s') && (i == 0 || fmt[i - 1] != TEXT('%'))) {
+                    msg[i + 1] = TEXT('S');
+                    i++;
+                }
             }
+            msg[wcslen(fmt)] = TEXT('\0');
         }
-        msg[wcslen(fmt)] = TEXT('\0');
+        flag = TRUE;
+     } else {
+         msg = (wchar_t*)fmt;
+         flag = FALSE;
+     }
+     if (msg) {
         va_start(args, fmt);
         i = vwprintf(msg, args);
         va_end (args);
-        free(msg);
+        if (flag == TRUE) {
+            free(msg);
+        }
         return i;
     }
     return -1;
 }
 
 int _ftprintf(FILE *stream, const wchar_t *fmt, ...) {
-    int i;
+    int i, flag;
     wchar_t *msg;
     va_list args;
-    msg = malloc(sizeof(wchar_t) * (wcslen(fmt) + 1));
-    if (msg) {
-        wcscpy(msg, fmt);
-        for (i = 0; i < wcslen(fmt); i++){
-            if (fmt[i] == TEXT('%') && i  < wcslen(fmt) && fmt[i + 1] == TEXT('s') && (i == 0 || fmt[i - 1] != TEXT('%'))){
-                msg[i + 1] = TEXT('S');
-                i++;
+    if (wcsstr(fmt, TEXT("%s")) != NULL) {
+        msg = malloc(sizeof(wchar_t) * (wcslen(fmt) + 1));
+        if (msg) {
+            wcscpy(msg, fmt);
+            for (i = 0; i < wcslen(fmt); i++){
+                if (fmt[i] == TEXT('%') && i  < wcslen(fmt) && fmt[i + 1] == TEXT('s') && (i == 0 || fmt[i - 1] != TEXT('%'))) {
+                    msg[i + 1] = TEXT('S');
+                    i++;
+                }
             }
+            msg[wcslen(fmt)] = TEXT('\0');
         }
-        msg[wcslen(fmt)] = TEXT('\0');
+        flag = TRUE;
+     } else {
+         msg = (wchar_t*)fmt;
+         flag = FALSE;
+     }
+     if (msg) {
         va_start(args, fmt);
         i = vfwprintf(stream, msg, args);
         va_end (args);
-        free(msg);
+        if (flag == TRUE) {
+            free(msg);
+        }
         return i;
     }
     return -1;
 }
 
 int _sntprintf(TCHAR *str, size_t size, const TCHAR *fmt, ...) {
-    int i;
+    int i, flag;
     wchar_t *msg;
     va_list args;
-    msg = malloc(sizeof(wchar_t) * (wcslen(fmt) + 1));
-    if (msg) {
-        wcscpy(msg,fmt);
-        for (i = 0; i < wcslen(fmt); i++) {
-            if (fmt[i] == TEXT('%') && i  < wcslen(fmt) && fmt[i + 1] == TEXT('s') && (i == 0 || fmt[i - 1] != TEXT('%'))){
-                msg[i + 1] = TEXT('S');
-                i++;
+    if (wcsstr(fmt, TEXT("%s")) != NULL) {
+        msg = malloc(sizeof(wchar_t) * (wcslen(fmt) + 1));
+        if (msg) {
+            wcscpy(msg, fmt);
+            for (i = 0; i < wcslen(fmt); i++){
+                if (fmt[i] == TEXT('%') && i  < wcslen(fmt) && fmt[i + 1] == TEXT('s') && (i == 0 || fmt[i - 1] != TEXT('%'))) {
+                    msg[i + 1] = TEXT('S');
+                    i++;
+                }
             }
+            msg[wcslen(fmt)] = TEXT('\0');
         }
-        msg[wcslen(fmt)] = TEXT('\0');
+        flag = TRUE;
+     } else {
+         msg = (wchar_t*)fmt;
+         flag = FALSE;
+     }
+     if (msg) {
         va_start(args, fmt);
         i = vswprintf(str, size, msg, args);
         va_end (args);
-        free(msg);
+        if (flag == TRUE) {
+            free(msg);
+        }
         return i;
     }
     return -1;

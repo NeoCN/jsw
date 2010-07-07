@@ -381,8 +381,7 @@ void setInnerProperty(Property *property, const TCHAR *propertyValue) {
     int i, count;
     /* The property value is expanded into a large buffer once, but that is temporary.  The actual
      *  value is stored in the minimum required size. */
-    TCHAR buffer[MAX_PROPERTY_VALUE_LENGTH];
-
+    TCHAR *buffer;
     /* Free any existing value */
     if (property->value != NULL) {
         free(property->value);
@@ -393,28 +392,30 @@ void setInnerProperty(Property *property, const TCHAR *propertyValue) {
     if (propertyValue == NULL) {
         property->value = NULL;
     } else {
-        evaluateEnvironmentVariables(propertyValue, buffer, MAX_PROPERTY_VALUE_LENGTH);
+        buffer = malloc(MAX_PROPERTY_VALUE_LENGTH * sizeof(TCHAR));
+        if (buffer) {
+            evaluateEnvironmentVariables(propertyValue, buffer, MAX_PROPERTY_VALUE_LENGTH);
 
-        property->value = malloc(sizeof(TCHAR) * (_tcslen(buffer) + 1));
-        if (!property->value) {
-            outOfMemory(TEXT("SIP"), 1);
-        } else {
-            /* Strip any non valid characters like control characters. Some valid characters are
-             *  less than 0 when the TCHAR is unsigned. */
-            for (i = 0, count = 0; i < (int)_tcslen(buffer); i++) {
-                /* Only add valid chars, skip control chars.  We want all chars other than those
-                 *  in the range 1..31.  0 is not possible as that would be end of the string.
-                 *  On most platforms, TCHAR is signed, but on PowerPC, it is unsigned.  This
-                 *  means that any comparison such as >= 0 will cause a compiler error as that
-                 *  would always be true.
-                 * The logic below is to get the correct behavior in either case assuming no 0. */
-                if ((buffer[i] < 1) || (buffer[i] > 31) || (buffer[i] == '\n')) {
-                    property->value[count++] = buffer[i];
+            property->value = malloc(sizeof(TCHAR) * (_tcslen(buffer) + 1));
+            if (!property->value) {
+                outOfMemoryQueued(TEXT("SIP"), 1);
+            } else {
+                /* Strip any non valid characters like control characters. Some valid characters are
+                 *  less than 0 when the TCHAR is unsigned. */
+                for (i = 0, count = 0; i < (int)_tcslen(buffer); i++) {
+                    /* Only add valid characters, skipping any control characters EXCEPT for a line feed. */
+                    if ((buffer[i] == TEXT('\n')) || (!_istcntrl(buffer[i]))) {
+                        property->value[count++] = buffer[i];
+                    }
                 }
-            }
 
-            /* Crop string to new size */
-            property->value[count] = TEXT('\0');
+                /* Crop string to new size */
+                property->value[count] = TEXT('\0');
+
+            }
+            free(buffer); 
+        } else {
+            outOfMemoryQueued(TEXT("SIP"), 2);
         }
     }
 }
@@ -743,7 +744,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
                         /* Now obtain the real absolute path to the include file. */
 #ifdef WIN32
                         /* Find out how big the absolute path will be */
-                        size = GetFullPathName(expBuffer, 0, NULL, NULL);
+                        size = GetFullPathName(expBuffer, 0, NULL, NULL); /* Size includes '\0' */
                         if (!size) {
                             if (debugIncludes) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
@@ -1511,7 +1512,8 @@ const TCHAR* getStringProperty(Properties *properties, const TCHAR *propertyName
             if (property) {
                 return property->value;
             } else {
-                return NULL;
+                /* We failed to add the property, but still return the default. */
+                return defaultValue;
             }
         } else {
             return NULL;

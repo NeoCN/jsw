@@ -363,6 +363,7 @@ int wrapperGetLastError() {
     return WSAGetLastError();
 }
 
+
 /**
  * Writes a PID to disk.
  *
@@ -425,9 +426,6 @@ int wrapperInitChildPipe() {
  *  is called.
  */
 int wrapperConsoleHandler(int key) {
-    int quit = FALSE;
-    int halt = FALSE;
-
     /* Immediately register this thread with the logger. */
     logRegisterThread(WRAPPER_THREAD_SIGNAL);
 
@@ -436,25 +434,22 @@ int wrapperConsoleHandler(int key) {
     __try {
         switch (key) {
         case CTRL_C_EVENT:
-        case CTRL_CLOSE_EVENT:
             /* The user hit CTRL-C.  Can only happen when run as a console. */
             if (wrapperData->ignoreSignals & WRAPPER_IGNORE_SIGNALS_WRAPPER) {
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     TEXT("CTRL-C trapped, but ignored."));
             } else {
-                /*  Always quit.  If the user has pressed CTRL-C previously then we want to force
-                 *   an immediate shutdown. */
-                if (ctrlCTrapped) {
-                    /* Pressed CTRL-C more than once. */
-                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        TEXT("CTRL-C trapped.  Forcing immediate shutdown."));
-                    halt = TRUE;
-                } else {
-                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                        TEXT("CTRL-C trapped.  Shutting down."));
-                    ctrlCTrapped = TRUE;
-                }
-                quit = TRUE;
+                wrapperData->ctrlEventCTRLCTrapped = TRUE;
+            }
+            break;
+            
+        case CTRL_CLOSE_EVENT:
+            /* The user tried to close the console.  Can only happen when run as a console. */
+            if (wrapperData->ignoreSignals & WRAPPER_IGNORE_SIGNALS_WRAPPER) {
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    TEXT("Close trapped, but ignored."));
+            } else {
+                wrapperData->ctrlEventCloseTrapped = TRUE;
             }
             break;
 
@@ -467,59 +462,24 @@ int wrapperConsoleHandler(int key) {
              *  processflags=CREATE_NEW_PROCESS_GROUP; then the java process will
              *  also get this message, so it can be ignored here. */
             /*
-            wrapperRequestDumpJVMState(TRUE);
+            If we ever do something here, remember that this can't be called directly from here.
+            wrapperRequestDumpJVMState();
             */
-
-            quit = FALSE;
             break;
 
         case CTRL_LOGOFF_EVENT:
-            /* Happens when the user logs off.  We should quit when run as a */
-            /*  console, but stay up when run as a service. */
-            if ((wrapperData->isConsole) && (!wrapperData->ignoreUserLogoffs)) {
-                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    TEXT("User logged out.  Shutting down."));
-                quit = TRUE;
-            } else {
-                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
-                    TEXT("User logged out.  Ignored."));
-                quit = FALSE;
-            }
+            wrapperData->ctrlEventLogoffTrapped = TRUE;
             break;
+            
         case CTRL_SHUTDOWN_EVENT:
-            /* Happens when the machine is shutdown or rebooted.  Always quit. */
-            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                TEXT("Machine is shutting down."));
-            quit = TRUE;
+            wrapperData->ctrlEventShutdownTrapped = TRUE;
             break;
+            
         default:
             /* Unknown.  Don't quit here. */
             log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 TEXT("Trapped unexpected console signal (%d).  Ignored."), key);
-            quit = FALSE;
         }
-
-        if (quit) {
-            if (halt) {
-                /* Disable the thread dump on exit feature if it is set because it
-                 *  should not be displayed when the user requested the immediate exit. */
-                wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
-                wrapperKillProcess(TRUE);
-            } else {
-                wrapperStopProcess(TRUE, 0);
-            }
-            /* Don't actually kill the process here.  Let the application shut itself down */
-
-            /* To make sure that the JVM will not be restarted for any reason,
-             *  start the Wrapper shutdown process as well. */
-            if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
-                (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
-                /* Already stopping. */
-            } else {
-                wrapperSetWrapperState(TRUE, WRAPPER_WSTATE_STOPPING);
-            }
-        }
-
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
             TEXT("<-- Wrapper Stopping due to error in console handler."));
@@ -1110,7 +1070,7 @@ int wrapperReadChildOutputBlock(char *blockBuffer, int blockSize, int *readCount
     }
 
 #ifdef DEBUG_CHILD_OUTPUT
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, "Peeked %d chars from pipe.", currentBlockAvail);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Peeked %d chars from pipe."), currentBlockAvail);
 #endif
 
     if (currentBlockAvail > 0) {
@@ -1134,7 +1094,7 @@ int wrapperReadChildOutputBlock(char *blockBuffer, int blockSize, int *readCount
  * Checks on the status of the JVM Process.
  * Returns WRAPPER_PROCESS_UP or WRAPPER_PROCESS_DOWN
  */
-int wrapperGetProcessStatus(int useLoggerQueue, TICKS nowTicks, int sigChild) {
+int wrapperGetProcessStatus(TICKS nowTicks, int sigChild) {
     int res;
     DWORD exitCode;
     TCHAR *exName;
@@ -1146,31 +1106,31 @@ int wrapperGetProcessStatus(int useLoggerQueue, TICKS nowTicks, int sigChild) {
 
         /* Get the exit code of the process. */
         if (!GetExitCodeProcess(wrapperData->javaProcess, &exitCode)) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 TEXT("Critical error: unable to obtain the exit code of the JVM process: %s"), getLastErrorText());
             appExit(1);
         }
 
         if (exitCode == STILL_ACTIVE) {
             /* Should never happen, but check for it. */
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 TEXT("The JVM returned JVM exit code was STILL_ACTIVE.") );
         }
 
         /* If the JVM crashed then GetExitCodeProcess could have returned an uncaught exception. */
         exName = getExceptionName(exitCode);
         if (exName != NULL) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 TEXT("The JVM process terminated due to an uncaught exception: %s (0x%08x)"), exName, exitCode);
 
             /* Reset the exit code as the exeption value will confuse users. */
             exitCode = 1;
         }
 
-        wrapperJVMProcessExited(useLoggerQueue, nowTicks, exitCode);
+        wrapperJVMProcessExited(nowTicks, exitCode);
 
         if (!CloseHandle(wrapperData->javaProcess)) {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 TEXT("Failed to close the Java process handle: %s"), getLastErrorText());
         }
         wrapperData->javaProcess = NULL;
@@ -1183,7 +1143,7 @@ int wrapperGetProcessStatus(int useLoggerQueue, TICKS nowTicks, int sigChild) {
         break;
 
     default:
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
             TEXT("Critical error: wait for JVM process failed"));
         appExit(1);
     }
@@ -1699,6 +1659,183 @@ void wrapperDumpCPUUsage() {
  *****************************************************************************/
 
 /**
+ * This function goes through and checks flags for each of several signals to see if they
+ *  have been fired since the last time this function was called.  This is the only thread
+ *  which will ever clear these flags, but they can be set by other threads within the
+ *  signal handlers at ANY time.  So only check the value of each flag once and reset them
+ *  immediately to decrease the chance of missing duplicate signals.
+ */
+void wrapperMaintainControlCodes() {
+    /* Allow for a large integer + \0 */
+    TCHAR buffer[11];
+    int ctrlCodeLast;
+    int quit = FALSE;
+    int halt = FALSE;
+    
+    /* CTRL_C_EVENT */
+    if (wrapperData->ctrlEventCTRLCTrapped) {
+        wrapperData->ctrlEventCTRLCTrapped = FALSE;
+
+        /*  Always quit.  If the user has pressed CTRL-C previously then we want to force
+         *   an immediate shutdown. */
+        if (ctrlCTrapped) {
+            /* Pressed CTRL-C more than once. */
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                TEXT("CTRL-C trapped.  Forcing immediate shutdown."));
+            halt = TRUE;
+        } else {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                TEXT("CTRL-C trapped.  Shutting down."));
+            ctrlCTrapped = TRUE;
+        }
+        quit = TRUE;
+    }
+    
+    /* CTRL_CLOSE_EVENT */
+    if (wrapperData->ctrlEventCloseTrapped) {
+        wrapperData->ctrlEventCloseTrapped = FALSE;
+
+        /*  Always quit.  If the user has tried to close the console previously then we want to force
+         *   an immediate shutdown. */
+        if (ctrlCTrapped) {
+            /* Pressed Close or CTRL-C more than once. */
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                TEXT("Close trapped.  Forcing immediate shutdown."));
+            halt = TRUE;
+        } else {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                TEXT("Close trapped.  Shutting down."));
+            ctrlCTrapped = TRUE;
+        }
+        quit = TRUE;
+    }
+    
+    /* CTRL_LOGOFF_EVENT */
+    if (wrapperData->ctrlEventLogoffTrapped) {
+        wrapperData->ctrlEventLogoffTrapped = FALSE;
+        
+        /* Happens when the user logs off.  We should quit when run as a */
+        /*  console, but stay up when run as a service. */
+        if ((wrapperData->isConsole) && (!wrapperData->ignoreUserLogoffs)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("User logged out.  Shutting down."));
+            quit = TRUE;
+        } else {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("User logged out.  Ignored."));
+            quit = FALSE;
+        }
+    }
+    
+    /* CTRL_SHUTDOWN_EVENT */
+    if (wrapperData->ctrlEventShutdownTrapped) {
+        wrapperData->ctrlEventShutdownTrapped = FALSE;
+        
+        /* Happens when the machine is shutdown or rebooted.  Always quit. */
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            TEXT("Machine is shutting down."));
+        quit = TRUE;
+    }
+    
+    /* Last control code. */
+    ctrlCodeLast = wrapperData->ctrlCodeLast;
+    if (ctrlCodeLast) {
+        wrapperData->ctrlCodeLast = 0;
+        
+        _sntprintf(buffer, 11, TEXT("%d"), ctrlCodeLast);
+        wrapperProtocolFunction(FALSE, WRAPPER_MSG_SERVICE_CONTROL_CODE, buffer);
+    }
+    
+    /* SERVICE_CONTROL_PAUSE */
+    if (wrapperData->ctrlCodePauseTrapped) {
+        wrapperData->ctrlCodePauseTrapped = FALSE;
+
+        /* Tell the wrapper to pause */
+        wrapperPauseProcess(WRAPPER_ACTION_SOURCE_CODE_WINDOWS_SERVICE_MANAGER);
+    }
+
+    /* SERVICE_CONTROL_CONTINUE */
+    if (wrapperData->ctrlCodeContinueTrapped) {
+        wrapperData->ctrlCodeContinueTrapped = FALSE;
+
+        /* Tell the wrapper to resume */
+        wrapperResumeProcess(WRAPPER_ACTION_SOURCE_CODE_WINDOWS_SERVICE_MANAGER);
+    }
+
+    /* SERVICE_CONTROL_STOP */
+    if (wrapperData->ctrlCodeStopTrapped) {
+        wrapperData->ctrlCodeStopTrapped = FALSE;
+
+        /* Request to stop the service. Report SERVICE_STOP_PENDING */
+        /* to the service control manager before calling ServiceStop() */
+        /* to avoid a "Service did not respond" error. */
+        wrapperReportStatus(FALSE, WRAPPER_WSTATE_STOPPING, 0, 0);
+
+        /* Tell the wrapper to shutdown normally */
+        wrapperStopProcess(FALSE, 0);
+
+        /* To make sure that the JVM will not be restarted for any reason,
+         *  start the Wrapper shutdown process as well.
+         *  In this case we do not want to allow any exit filters to be used
+         *  so setting this here will force the shutdown. */
+        if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
+            (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
+            /* Already stopping. */
+        } else {
+            wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
+        }
+    }
+
+    /* SERVICE_CONTROL_SHUTDOWN */
+    if (wrapperData->ctrlCodeShutdownTrapped) {
+        wrapperData->ctrlCodeShutdownTrapped = FALSE;
+
+        /* Request to stop the service. Report SERVICE_STOP_PENDING */
+        /* to the service control manager before calling ServiceStop() */
+        /* to avoid a "Service did not respond" error. */
+        wrapperReportStatus(FALSE, WRAPPER_WSTATE_STOPPING, 0, 0);
+
+        /* Tell the wrapper to shutdown normally */
+        wrapperStopProcess(FALSE, 0);
+
+        /* To make sure that the JVM will not be restarted for any reason,
+         *  start the Wrapper shutdown process as well. */
+        if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
+            (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
+            /* Already stopping. */
+        } else {
+            wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
+        }
+    }
+
+    /* The configured thread dump control code */
+    if (wrapperData->ctrlCodeDumpTrapped) {
+        wrapperData->ctrlCodeDumpTrapped = FALSE;
+        
+        wrapperRequestDumpJVMState(FALSE);
+    }
+
+    if (quit) {
+        if (halt) {
+            /* Disable the thread dump on exit feature if it is set because it
+             *  should not be displayed when the user requested the immediate exit. */
+            wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
+            wrapperKillProcess();
+        } else {
+            wrapperStopProcess(FALSE, 0);
+        }
+        /* Don't actually kill the process here.  Let the application shut itself down */
+
+        /* To make sure that the JVM will not be restarted for any reason,
+         *  start the Wrapper shutdown process as well. */
+        if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
+            (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
+            /* Already stopping. */
+        } else {
+            wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
+        }
+    }
+}
+
+/**
  * The service control handler is called by the service manager when there are
  *    events for the service.  registered using a call to
  *    RegisterServiceCtrlHandler in wrapperServiceMain.
@@ -1709,8 +1846,8 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
                                             DWORD dwEvtType,
                                             LPVOID lpEvtData,
                                             LPVOID lpCntxt) {
-    /* Allow for a large integer + \0 */
-    TCHAR buffer[11];
+    
+    int ctrlCodeLast;
 
     DWORD result = result = NO_ERROR;
 
@@ -1824,18 +1961,22 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
             }
         }
 
-        /* Forward the control code off to the JVM. */
-        _sntprintf(buffer, 11, TEXT("%d"), controlCode);
-        wrapperProtocolFunction(TRUE, WRAPPER_MSG_SERVICE_CONTROL_CODE, buffer);
+        /* Forward the control code off to the JVM.  If we get more than one control code in rapid succession,
+         *  the first could get overwritten.  If this happens, make sure that we at least log it.  If this turns
+         *  out to be a problem then we will need to implement something more complicated. */
+        ctrlCodeLast = wrapperData->ctrlCodeLast;
+        if (ctrlCodeLast) {
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Previous control code (%d) was still in queue, overwriting with (%d)."), ctrlCodeLast, controlCode);
+        }
+        wrapperData->ctrlCodeLast = controlCode;
 
         switch(dwCtrlCode) {
         case SERVICE_CONTROL_PAUSE:
             if (wrapperData->isDebugging) {
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_PAUSE"));
             }
-
-            /* Tell the wrapper to pause */
-            wrapperPauseProcess(TRUE, WRAPPER_ACTION_SOURCE_CODE_WINDOWS_SERVICE_MANAGER);
+            
+            wrapperData->ctrlCodePauseTrapped = TRUE;
 
             break;
 
@@ -1844,8 +1985,7 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_CONTINUE"));
             }
 
-            /* Tell the wrapper to resume */
-            wrapperResumeProcess(TRUE, WRAPPER_ACTION_SOURCE_CODE_WINDOWS_SERVICE_MANAGER);
+            wrapperData->ctrlCodeContinueTrapped = TRUE;
 
             break;
 
@@ -1854,24 +1994,8 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_STOP"));
             }
 
-            /* Request to stop the service. Report SERVICE_STOP_PENDING */
-            /* to the service control manager before calling ServiceStop() */
-            /* to avoid a "Service did not respond" error. */
-            wrapperReportStatus(TRUE, WRAPPER_WSTATE_STOPPING, 0, 0);
-
-            /* Tell the wrapper to shutdown normally */
-            wrapperStopProcess(TRUE, 0);
-
-            /* To make sure that the JVM will not be restarted for any reason,
-             *  start the Wrapper shutdown process as well.
-             *  In this case we do not want to allow any exit filters to be used
-             *  so setting this here will force the shutdown. */
-            if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
-                (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
-                /* Already stopping. */
-            } else {
-                wrapperSetWrapperState(TRUE, WRAPPER_WSTATE_STOPPING);
-            }
+            wrapperData->ctrlCodeStopTrapped = TRUE;
+            
             break;
 
         case SERVICE_CONTROL_INTERROGATE:
@@ -1895,22 +2019,7 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_SHUTDOWN"));
             }
 
-            /* Request to stop the service. Report SERVICE_STOP_PENDING */
-            /* to the service control manager before calling ServiceStop() */
-            /* to avoid a "Service did not respond" error. */
-            wrapperReportStatus(TRUE, WRAPPER_WSTATE_STOPPING, 0, 0);
-
-            /* Tell the wrapper to shutdown normally */
-            wrapperStopProcess(TRUE, 0);
-
-            /* To make sure that the JVM will not be restarted for any reason,
-             *  start the Wrapper shutdown process as well. */
-            if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
-                (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
-                /* Already stopping. */
-            } else {
-                wrapperSetWrapperState(TRUE, WRAPPER_WSTATE_STOPPING);
-            }
+            wrapperData->ctrlCodeShutdownTrapped = TRUE;
 
             break;
 
@@ -1919,7 +2028,8 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
                 if (wrapperData->isDebugging) {
                     log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_(%d) Request Thread Dump."), dwCtrlCode);
                 }
-                wrapperRequestDumpJVMState(TRUE);
+                
+                wrapperData->ctrlCodeDumpTrapped = TRUE;
             } else {
                 /* Any other cases... Did not handle */
                 if (wrapperData->isDebugging) {
@@ -4068,8 +4178,6 @@ void _tmain(int argc, TCHAR **argv) {
      * the table; */
     SERVICE_TABLE_ENTRY serviceTable[2];
 
-    //SetThreadLocale(GetSystemDefaultLCID());
-    
     if (buildSystemPath()) {
         appExit(1);
         return; /* For clarity. */
@@ -4117,8 +4225,7 @@ void _tmain(int argc, TCHAR **argv) {
             appExit(1);
             return; /* For clarity. */
         }
-        _tprintf(TEXT("HERE M1\n"));
-        //wrapperLoadHostName();
+        wrapperLoadHostName();
 
         /* At this point, we have a command, confFile, and possibly additional arguments. */
         if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("?")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-help"))) {

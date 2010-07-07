@@ -10,43 +10,46 @@
  */
 
 #ifndef _LOCALIZE
-#define _LOCALIZE
-#include <stdio.h>
+ #define _LOCALIZE
+ #include <stdio.h>
 
 
-#ifndef WIN32
+ #ifndef WIN32
 
-#ifdef UNICODE
-#include <wchar.h>
-#ifdef _sntprintf
-#undef _sntprintf
-#endif
+  #ifdef UNICODE
+   #include <wchar.h>
+  #ifdef _sntprintf
+   #undef _sntprintf
+  #endif
 
-#include <stdarg.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <locale.h>
-#include <syslog.h>
-#include <time.h>
-#include <wctype.h>
+  #include <stdarg.h>
+  #include <stdlib.h>
+  #include <unistd.h>
+  #include <sys/types.h>
+  #include <sys/stat.h>
+  #include <locale.h>
+  #include <syslog.h>
+  #include <time.h>
+  #include <wctype.h>
+  
+  #define __max(x,y) (((x) > (y)) ? (x) : (y))
+  #define __min(x,y) (((x) < (y)) ? (x) : (y))
 
 
-#if defined(MACOSX) || defined(HPUX) || defined(FREEBSD) || defined(SOLARIS)
-#ifndef wcscasecmp
+  #if defined(MACOSX) || defined(HPUX) || defined(FREEBSD) || defined(SOLARIS)
+   #ifndef wcscasecmp
 extern int wcscasecmp(const wchar_t* s1, const wchar_t* s2);
-#define ECSCASECMP
-#endif
-#endif
+    #define ECSCASECMP
+   #endif
+  #endif
 
 
-#define TEXT(x) L##x
+  #define TEXT(x) L##x
 typedef wchar_t TCHAR;
 typedef wchar_t _TUCHAR;
 
 extern int _tprintf(const wchar_t *fmt,...) ;
-extern int multiByteToWideChar(char *multiByteChars, const char *multiByteEncoding, char *interumEncoding, wchar_t **outputBuffer, int localizeErrorMessage);
+extern int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncoding, char *interumEncoding, wchar_t **outputBuffer, int localizeErrorMessage);
 
 #define _taccess      _waccess
 #define _tstoi64      _wtoi64
@@ -418,6 +421,6 @@ typedef unsigned char _TUCHAR;
 #include <tchar.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-extern int multiByteToWideChar(char* multiByteChars, int encoding, TCHAR **outputBufferW, int localizeErrorMessage);
+extern int multiByteToWideChar(const char *multiByteChars, int encoding, TCHAR **outputBufferW, int localizeErrorMessage);
 #endif
 #endif
