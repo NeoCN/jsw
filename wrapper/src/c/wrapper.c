@@ -575,12 +575,6 @@ int wrapperLoadConfigurationProperties() {
         return TRUE;
     }
     
-    /* Load the language configuration.  This should be done before the rest of the configuration is loaded so
-     *  that any error messages are in the requested language. */
-    if (loadConfigurationLocData()) {
-        return TRUE;
-    }
-
     /* Load the configuration. */
     if (loadConfiguration()) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
