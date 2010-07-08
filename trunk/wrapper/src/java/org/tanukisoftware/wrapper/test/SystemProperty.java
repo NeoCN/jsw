@@ -41,11 +41,11 @@ public class SystemProperty
     
     private static void testProperty( String name, String expectedValue )
     {
-        System.out.println( Main.getRes().getString( "Testing system property: ", name ) );
-        System.out.println( Main.getRes().getString( "  Expected:", expectedValue ) );
+        System.out.println( Main.getRes().getString( "Testing system property: {0}", name ) );
+        System.out.println( Main.getRes().getString( "  Expected:{0}", expectedValue ) );
         
         String value = System.getProperty( name );
-        System.out.println( Main.getRes().getString( "  Value   :", value ) );
+        System.out.println( Main.getRes().getString( "  Value   :{0}", value ) );
         
         if ( expectedValue.equals( value ) )
         {
