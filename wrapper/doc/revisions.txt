@@ -48,6 +48,13 @@ Java Service Wrapper Revision History.
   executed using a relative reference from the command line.  It also now
   supports Delta-pack style Wrapper binary naming and falling back to use which
   binaries are available.
+* Change the timing of when the wrapper.working.dir is set so that any error
+  messages generated while loading the configuration will be logged to the
+  correct log file.  It is also needed for Standard and Professional Editions
+  to ensure that the language pack is loaded from the correct location so that
+  all such messages will be in the correct locale.
+* Fix a problem on UNIX platforms where the status command was failing with an
+  error due to the localization feature added in 3.5.0.
 
 3.5.0
 * (Standard) Added the ability to detect and react to thread dead locks in
