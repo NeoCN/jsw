@@ -505,7 +505,8 @@ int wrapperLoadConfigurationProperties() {
             return TRUE;
         }
     }
-    /* Now load the configuration file. */
+    /* Now load the configuration file.
+     *  When this happens, the working directory MUST be set to the original working dir. */
     if (loadProperties(properties, wrapperData->configFile)) {
         /* File not found. */
         /* If this was a default file name then we don't want to show this as
@@ -520,19 +521,6 @@ int wrapperLoadConfigurationProperties() {
 
     /* Config file found. */
     wrapperData->argConfFileFound = TRUE;
-
-#ifdef _DEBUG
-    /* Display the active properties */
-    _tprintf(TEXT("Debug Configuration Properties:\n"));
-    dumpProperties(properties);
-#endif
-
-    /* Load the configuration. */
-    if (loadConfiguration()) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            TEXT("Problem loading wrapper configuration file: %s"), wrapperData->configFile);
-        return TRUE;
-    }
 
     if (firstCall) {
         /* If the working dir was configured, we need to extract it and preserve its value.
@@ -572,6 +560,32 @@ int wrapperLoadConfigurationProperties() {
             }
 #endif
         }
+    }
+    
+#ifdef _DEBUG
+    /* Display the active properties */
+    _tprintf(TEXT("Debug Configuration Properties:\n"));
+    dumpProperties(properties);
+#endif
+    
+    /* Now that the configuration is loaded, we need to update the working directory if the user specified one.
+     *  This must be done now so that anything that references the working directory, including the log file
+     *  and language pack locations will work correctly. */
+    if (wrapperData->workingDir && wrapperSetWorkingDir(wrapperData->workingDir)) {
+        return TRUE;
+    }
+    
+    /* Load the language configuration.  This should be done before the rest of the configuration is loaded so
+     *  that any error messages are in the requested language. */
+    if (loadConfigurationLocData()) {
+        return TRUE;
+    }
+
+    /* Load the configuration. */
+    if (loadConfiguration()) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+            TEXT("Problem loading wrapper configuration file: %s"), wrapperData->configFile);
+        return TRUE;
     }
 
     return FALSE;
@@ -5059,7 +5073,6 @@ int loadConfiguration() {
     TCHAR propName[256];
     const TCHAR* val;
     int startupDelay;
-    
     
     /* Load log file */
     logfilePath = getFileSafeStringProperty(properties, TEXT("wrapper.logfile"), TEXT("wrapper.log"));
