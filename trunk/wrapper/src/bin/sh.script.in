@@ -316,11 +316,14 @@ else
 fi
 
 
+gettext() {
+    echo `$1` 
+}
 
 outputFile() {
     if [ -f "$1" ]
     then
-        eval echo  '  $1 (Found but not executable.)';
+        eval echo  '  $1  Found but not executable.';
     else
         echo "  $1"
     fi
@@ -717,7 +720,7 @@ startwait() {
             eval echo  ' WARNING: $APP_LONG_NAME may have failed to start.'
             exit 1
         else
-            eval echo  ' running ($pid).'
+            eval echo  ' running: PID:$pid'
         fi
     else 
         echo ""
@@ -845,10 +848,10 @@ status() {
     else
         if [ "X$DETAIL_STATUS" = "X" ]
         then
-            eval echo  '$APP_LONG_NAME is running (PID:$pid).'
+            eval echo  '$APP_LONG_NAME is running: PID:$pid'
         else
             getstatus
-            eval echo  '$APP_LONG_NAME is running (PID:$pid, Wrapper:$STATUS, Java:$JAVASTATUS)'
+            eval echo  '$APP_LONG_NAME is running: PID:$pid, Wrapper:$STATUS, Java:$JAVASTATUS'
         fi
         exit 0
     fi
@@ -1188,14 +1191,14 @@ startmsg() {
     getpid
     if [ "X$pid" = "X" ]
     then
-        eval echo  'Starting $APP_LONG_NAME... (Wrapper:Stopped)'
+        eval echo  'Starting $APP_LONG_NAME...  Wrapper:Stopped'
     else
         if [ "X$DETAIL_STATUS" = "X" ]
         then
-            eval echo  'Starting $APP_LONG_NAME... (Wrapper:Running)'
+            eval echo  'Starting $APP_LONG_NAME...  Wrapper:Running'
         else
             getstatus
-            eval echo  'Starting $APP_LONG_NAME... (Wrapper:$STATUS, Java:$JAVASTATUS)'
+            eval echo  'Starting $APP_LONG_NAME...  Wrapper:$STATUS, Java:$JAVASTATUS'
         fi
     fi
 }
@@ -1205,14 +1208,14 @@ stopmsg() {
     getpid
     if [ "X$pid" = "X" ]
     then
-        eval echo  'Stopping $APP_LONG_NAME... (Wrapper:Stopped)'
+        eval echo  'Stopping $APP_LONG_NAME...  Wrapper:Stopped'
     else
         if [ "X$DETAIL_STATUS" = "X" ]
         then
-            eval echo  'Stopping $APP_LONG_NAME... (Wrapper:Running)'
+            eval echo  'Stopping $APP_LONG_NAME...  Wrapper:Running'
         else
             getstatus
-            eval echo  'Stopping $APP_LONG_NAME... (Wrapper:$STATUS, Java:$JAVASTATUS)'
+            eval echo  'Stopping $APP_LONG_NAME...  Wrapper:$STATUS, Java:$JAVASTATUS'
         fi
     fi
 }
