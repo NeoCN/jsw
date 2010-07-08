@@ -4278,12 +4278,6 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         }
 
-        /* Change the working directory if configured to do so. */
-        if (wrapperData->workingDir && wrapperSetWorkingDir(wrapperData->workingDir)) {
-            appExit(1);
-            return; /* For clarity. */
-        }
-
         /* Set the default umask of the Wrapper process. */
         _umask(wrapperData->umask);
         

@@ -1537,11 +1537,6 @@ int main(int argc, char **argv) {
         appExit(1);
         return 1; /* For compiler. */
     }
-    /* Change the working directory if configured to do so. */
-    if (wrapperData->workingDir && wrapperSetWorkingDir(wrapperData->workingDir)) {
-        appExit(1);
-        return 1; /* For compiler. */
-    }
 
     /* Set the default umask of the Wrapper process. */
     umask(wrapperData->umask);
@@ -1585,12 +1580,6 @@ int main(int argc, char **argv) {
                      *  it did not exist.  Show the usage. */
                     wrapperUsage(argv[0]);
                 }
-                appExit(1);
-                return 1; /* For compiler. */
-            }
-
-            /* Change the working directory if configured to do so. */
-            if (wrapperData->workingDir && wrapperSetWorkingDir(wrapperData->workingDir)) {
                 appExit(1);
                 return 1; /* For compiler. */
             }
