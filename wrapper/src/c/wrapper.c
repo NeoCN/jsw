@@ -1075,7 +1075,7 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
     int cnt;
     size_t len;
     const TCHAR *logMsgW;
-    char *messageMB;
+    char *messageMB = NULL;
     int returnVal = FALSE;
     int ok = TRUE;
 

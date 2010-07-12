@@ -1307,17 +1307,11 @@ Property* addProperty(Properties *properties, const TCHAR *propertyName, const T
     TCHAR *propertyNameTrim;
     TCHAR *propertyValueTrim;
     TCHAR *propertyExpandedValue;
-#if defined(UNICODE) && defined(WIN32)
-    char *temp1;
-    TCHAR* temp2;
-    size_t req1;
-    int req2;
-#endif
+
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("addProperty(%p, '%s', '%s', %d, %d, %d, %d)"),
         properties, propertyName, propertyValue, finalValue, quotable, escapable, internal);
 #endif
-
     /* It is possible that the propertyName and or properyValue contains extra spaces. */
     propertyNameTrim = malloc(sizeof(TCHAR) * (_tcslen(propertyName) + 1));
     if (!propertyNameTrim) {
@@ -1325,38 +1319,6 @@ Property* addProperty(Properties *properties, const TCHAR *propertyName, const T
         return NULL;
     }
     trim(propertyName, propertyNameTrim);
-#if defined(UNICODE) && defined(WIN32)
-    req1 = -1;
-    req1 = wcstombs(NULL, propertyValue, req1);
-    temp1 = malloc(req1 + 1);
-    if (!temp1) {
-        outOfMemory(TEXT("AP"), 2);
-        free(propertyNameTrim);
-        return NULL;
-    }
-    wcstombs(temp1, propertyValue, req1 + 1);
-
-    req2 = MultiByteToWideChar(CP_OEMCP, 0, temp1, -1, NULL, 0);
-    temp2 = malloc((req2 + 1) * sizeof(TCHAR));
-    if (!temp2) {
-        outOfMemory(TEXT("AP"), 4);
-        free(temp1);
-        free(propertyNameTrim);
-        return NULL;
-    }
-    MultiByteToWideChar(CP_OEMCP, 0, temp1, -1, temp2, (req2 + 1) * sizeof(TCHAR));
-
-    propertyValueTrim = malloc(sizeof(TCHAR) * ( _tcslen(temp2) + 1));
-    if (!propertyValueTrim) {
-        outOfMemory(TEXT("AP"), 4);
-        free(temp1);
-        free(temp2);
-        free(propertyNameTrim);
-        return NULL;
-    }
-    trim(temp2, propertyValueTrim);
-    free(temp1); free(temp2);
-#else
     propertyValueTrim = malloc(sizeof(TCHAR) * ( _tcslen(propertyValue) + 1));
     if (!propertyValueTrim) {
         outOfMemory(TEXT("AP"), 4);
@@ -1364,8 +1326,6 @@ Property* addProperty(Properties *properties, const TCHAR *propertyName, const T
         return NULL;
     }
     trim(propertyValue, propertyValueTrim);
-#endif
-    
 
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  trimmed name='%s', value='%s'"),
