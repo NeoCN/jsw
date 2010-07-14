@@ -60,6 +60,13 @@
 #define MAX(a, b)  (((a) > (b)) ? (a) : (b))
 #endif
 
+/**
+ * Returns a constant text representation of the specified Wrapper State.
+ *
+ * @param wState The Wrapper State whose name is being requested.
+ *
+ * @return Thre requested Wrapper State.
+ */
 const TCHAR *wrapperGetWState(int wState) {
     const TCHAR *name;
     switch(wState) {
@@ -91,6 +98,13 @@ const TCHAR *wrapperGetWState(int wState) {
     return name;
 }
 
+/**
+ * Returns a constant text representation of the specified Java State.
+ *
+ * @param jState The Java State whose name is being requested.
+ *
+ * @return Thre requested Java State.
+ */
 const TCHAR *wrapperGetJState(int jState) {
     const TCHAR *name;
     switch(jState) {
@@ -439,6 +453,7 @@ void commandPoll(TICKS nowTicks) {
     int oldLowLogLevel;
     int newLowLogLevel;
     int flag;
+    int accessViolation = FALSE;
 
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
@@ -591,6 +606,15 @@ void commandPoll(TICKS nowTicks) {
                                 } else {
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s'.  Tests disabled."), command);
                                 }
+                            } else if (strcmpIgnoreCase(command, TEXT("ACCESS_VIOLATION")) == 0) {
+                                if (wrapperData->commandFileTests) {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Command '%s'.  Intentionally causing an Access Violation in Wrapper..."), command);
+                                    /* We can't do the access violation here because we want to make sure the
+                                     *  file is deleted first, otherwise it be executed again when the Wrapper is restarted. */
+                                    accessViolation = TRUE;
+                                } else {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s'.  Tests disabled."), command);
+                                }
                             } else {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s' is unknown, ignoring."), command);
                             }
@@ -605,6 +629,12 @@ void commandPoll(TICKS nowTicks) {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                             TEXT("Unable to delete the command file, %s: %s"),
                             wrapperData->commandFilename, getLastErrorText());
+                    }
+                    
+                    if (accessViolation) {
+                        c = NULL;
+                        c[0] = TEXT('\0');
+                        /* Should never get here. */
                     }
                 }
             } else {

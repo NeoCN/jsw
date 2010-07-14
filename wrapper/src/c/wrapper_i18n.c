@@ -402,11 +402,11 @@ int _tprintf(const wchar_t *fmt,...) {
             msg[wcslen(fmt)] = TEXT('\0');
         }
         flag = TRUE;
-     } else {
+    } else {
          msg = (wchar_t*)fmt;
          flag = FALSE;
-     }
-     if (msg) {
+    }
+    if (msg) {
         va_start(args, fmt);
         i = vwprintf(msg, args);
         va_end (args);
@@ -435,11 +435,11 @@ int _ftprintf(FILE *stream, const wchar_t *fmt, ...) {
             msg[wcslen(fmt)] = TEXT('\0');
         }
         flag = TRUE;
-     } else {
+    } else {
          msg = (wchar_t*)fmt;
          flag = FALSE;
-     }
-     if (msg) {
+    }
+    if (msg) {
         va_start(args, fmt);
         i = vfwprintf(stream, msg, args);
         va_end (args);
@@ -468,11 +468,11 @@ int _sntprintf(TCHAR *str, size_t size, const TCHAR *fmt, ...) {
             msg[wcslen(fmt)] = TEXT('\0');
         }
         flag = TRUE;
-     } else {
+    } else {
          msg = (wchar_t*)fmt;
          flag = FALSE;
-     }
-     if (msg) {
+    }
+    if (msg) {
         va_start(args, fmt);
         i = vswprintf(str, size, msg, args);
         va_end (args);
