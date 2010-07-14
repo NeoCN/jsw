@@ -42,11 +42,11 @@ public class WrapperWin32Service
     /*---------------------------------------------------------------
      * Constructors
      *-------------------------------------------------------------*/
-    WrapperWin32Service( byte[] name, byte[] displayName, int serviceState, int exitCode )
+    WrapperWin32Service( String name, String displayName, int serviceState, int exitCode )
     {
         // Decode the parameters using the default system encoding.
-        m_name = new String( name );
-        m_displayName = new String( displayName );
+        m_name = name;
+        m_displayName = displayName;
         
         m_serviceState = serviceState;
         m_exitCode = exitCode;
