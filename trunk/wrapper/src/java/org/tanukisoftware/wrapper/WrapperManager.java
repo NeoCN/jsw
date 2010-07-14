@@ -1009,7 +1009,7 @@ public final class WrapperManager
     private static native WrapperUser nativeGetUser( boolean groups );
     private static native WrapperUser nativeGetInteractiveUser( boolean groups );
     private static native WrapperWin32Service[] nativeListServices();
-    private static native WrapperWin32Service nativeSendServiceControlCode( byte[] serviceName, int controlCode );
+    private static native WrapperWin32Service nativeSendServiceControlCode( String serviceName, int controlCode );
     private static native WrapperProcess nativeExec( String[] cmdArray, String cmdLine, WrapperProcessConfig config, boolean allowCWDOnSpawn );
     private static native String nativeWrapperGetEnv( String val ) throws NullPointerException;
     private static native WrapperResources nativeLoadWrapperResources(String domain, String folder, boolean makeActive);
@@ -3455,7 +3455,7 @@ public final class WrapperManager
         WrapperWin32Service service = null;
         if ( m_libraryOK )
         {
-            service = nativeSendServiceControlCode( serviceName.getBytes(), controlCode );
+            service = nativeSendServiceControlCode( serviceName, controlCode );
         }
         return service;
     }

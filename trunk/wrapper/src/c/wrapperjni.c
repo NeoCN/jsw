@@ -226,6 +226,16 @@ void JNU_SetByteArrayRegion(JNIEnv *env, jbyteArray* jarray, jsize start, jsize 
 #endif
 }
 #endif
+
+/**
+ * Converts a jstring into a newly malloced TCHAR array.
+ *
+ * @param end The JNIEnv.
+ * @param jstr The jstring.
+ *
+ * @return The requested Wide String, or NULL if there was a problem.  It is
+ *         the responsibility of the caller to free up the returned string.
+ */
 TCHAR *JNU_GetStringNativeChars(JNIEnv *env, jstring jstr) {
     jbyteArray jByteArrayBytes = 0;
     jthrowable jThrowableE;
