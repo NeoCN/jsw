@@ -334,29 +334,56 @@ outputFile() {
 #  binary with the correct bits value.  If it doesn't exist, fall back
 #  and look for the 32-bit binary.  If that doesn't exist either then
 #  look for the default.
-WRAPPER_TEST_CMD="$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-$DIST_BITS"
-if [ -x "$WRAPPER_TEST_CMD" ]
+WRAPPER_TEST_CMD=""
+if [ -f "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-$DIST_BITS" ]
 then
-    WRAPPER_CMD="$WRAPPER_TEST_CMD"
-else
-    WRAPPER_TEST_CMD="$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-32"
-    if [ -x "$WRAPPER_TEST_CMD" ]
+    WRAPPER_TEST_CMD="$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-$DIST_BITS"
+    if [ ! -x "$WRAPPER_TEST_CMD" ]
     then
+        chmod +x "$WRAPPER_TEST_CMD" 2>/dev/null
+    fi
+    if [ -x "$WRAPPER_TEST_CMD" ]
+    then 
         WRAPPER_CMD="$WRAPPER_TEST_CMD"
     else
-        if [ ! -x "$WRAPPER_CMD" ]
-        then
-            echo "Unable to locate any of the following binaries:"
-            outputFile "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-$DIST_BITS"
-            if [ ! "$DIST_BITS" = "32" ]
-            then
-                outputFile "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-32"
-            fi
-            outputFile "$WRAPPER_CMD"
-            exit 1
-        fi
+        outputFile "$WRAPPER_TEST_CMD"
+        $WRAPPER_TEST_CMD=""
     fi
 fi
+if [ -f "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-32" -a -z "$WRAPPER_TEST_CMD" ]
+then
+    WRAPPER_TEST_CMD="$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-32"
+    if [ ! -x "$WRAPPER_TEST_CMD" ]
+    then
+        chmod +x "$WRAPPER_TEST_CMD" 2>/dev/null
+    fi
+    if [ ! -x "$WRAPPER_TEST_CMD" ]
+    then 
+        WRAPPER_CMD="$WRAPPER_TEST_CMD"
+    else
+        outputFile "$WRAPPER_TEST_CMD"
+        $WRAPPER_TEST_CMD=""
+    fi
+fi
+if [ -f "$WRAPPER_CMD" -a -z "$WRAPPER_TEST_CMD" ]
+then
+    WRAPPER_TEST_CMD="$WRAPPER_CMD"
+    if [ ! -x "$WRAPPER_TEST_CMD" ]
+    then
+        chmod +x "$WRAPPER_TEST_CMD" 2>/dev/null
+    fi
+    if [ -x "$WRAPPER_TEST_CMD" ]
+    then 
+        WRAPPER_CMD="$WRAPPER_TEST_CMD"
+    else
+        outputFile "$WRAPPER_TEST_CMD"
+        $WRAPPER_TEST_CMD=""
+    fi
+fi
+if [ -z $WRAPPER_TEST_CMD ] ; then
+    exit 1
+fi
+
 
 # Build the nice clause
 if [ "X$PRIORITY" = "X" ]
@@ -694,7 +721,6 @@ waitforjavastartup() {
     if [ "X$ECHOOPT" != "X" ] ; then
         echo ""
     fi
-    eval echo  '$APP_LONG_NAME started.'
 }
  
 startwait() {
@@ -712,7 +738,7 @@ startwait() {
         echo $ECHOOPT"."
         i=`expr $i + 1`
     done
-    if [ $WAIT_AFTER_STARTUP -gt 0 ]
+    if [ $WAIT_AFTER_STARTUP -gt 0 -o $WAIT_FOR_STARTED_STATUS = true ]
     then
         getpid
         if [ "X$pid" = "X" ]

@@ -1299,7 +1299,7 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
             if (wcslen(lpszFmt) > 0) {
                 for (i = 0; i < _tcslen(lpszFmt); i++){
                     msg[i] = lpszFmt[i];
-                    if ((lpszFmt[i] == TEXT('%')) && (i  < _tcslen(lpszFmt)) && (lpszFmt[i+1] == TEXT('s')) && ((i == 0) || (lpszFmt[i-1] != TEXT('%')))){
+                    if ((lpszFmt[i] == TEXT('%')) && (i  < _tcslen(lpszFmt)) && (lpszFmt[i + 1] == TEXT('s')) && ((i == 0) || (lpszFmt[i - 1] != TEXT('%')))){
                         msg[i+1] = TEXT('S'); i++;
                     }
                 }

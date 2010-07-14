@@ -1691,6 +1691,7 @@ void wrapperUsage(TCHAR *appName) {
 #endif
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -v  --version print the wrapper's version information."));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -?  --help    print this help message"));
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -- <args>     end of wrapper arguments, precede the following arguments and\n                pass them through the wrapper to the java application"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT(""));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("<configuration file> is the wrapper.conf to use.  Name must be absolute or relative"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  to the location of %s"), appName);
@@ -1715,8 +1716,26 @@ void wrapperUsage(TCHAR *appName) {
 int wrapperParseArguments(int argc, TCHAR **argv) {
     TCHAR *argConfFileBase;
     TCHAR *c;
+    int delimiter, wrapperArgCount;
 
+    delimiter = 1;
+    wrapperData->javaArgValueCount = 0;
     if (argc > 1) {
+        for (delimiter = 0; delimiter < argc ; delimiter++) {
+            if ( _tcscmp(argv[delimiter], TEXT("--")) == 0) {
+                argv[delimiter] = NULL;
+                wrapperData->javaArgValueCount = argc - delimiter - 1;
+                if (delimiter + 1 < argc) {
+                    wrapperData->javaArgValues = &argv[delimiter + 1];
+                }
+                break;
+            }
+        }
+    }
+    
+    wrapperArgCount = delimiter ;
+    if (wrapperArgCount > 1) {
+
         if (argv[1][0] == TEXT('-')) {
             /* Syntax 1 or 3 */
 
@@ -1736,17 +1755,17 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
                 c[0] = TEXT('\0');
             }
 
-            if (argc > 2) {
-                if (_tcsncmp(wrapperData->argCommand, TEXT("translate"), 5) == 0) {
+            if (wrapperArgCount > 2) {
+                if (_tcsncmp(wrapperData->argCommand, TEXT("-translate"), 5) == 0) {
                     wrapperData->argConfFile = argv[3];
-                    wrapperData->argCount = argc - 2;
+                    wrapperData->argCount = wrapperArgCount - 2;
                     wrapperData->argValues = &argv[2];
                     return TRUE;
                 }
                 /* Syntax 1 */
                 /* A command and conf file were specified. */
                 wrapperData->argConfFile = argv[2];
-                wrapperData->argCount = argc - 3;
+                wrapperData->argCount = wrapperArgCount - 3;
                 wrapperData->argValues = &argv[3];
             } else {
                 /* Syntax 3 */
@@ -1767,7 +1786,7 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
                 }
                 _sntprintf(wrapperData->argConfFile, _tcslen(argConfFileBase) + 5 + 1, TEXT("%s.conf"), argConfFileBase);
                 wrapperData->argConfFileDefault = TRUE;
-                wrapperData->argCount = argc - 2;
+                wrapperData->argCount = wrapperArgCount - 2;
                 wrapperData->argValues = &argv[2];
                 free(argConfFileBase);
             }
@@ -1777,7 +1796,7 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
             wrapperData->argCommand = TEXT("c");
             wrapperData->argCommandArg = NULL;
             wrapperData->argConfFile = argv[1];
-            wrapperData->argCount = argc - 2;
+            wrapperData->argCount = wrapperArgCount - 2;
             wrapperData->argValues = &argv[2];
         }
     } else {
@@ -1802,7 +1821,7 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
         }
         _sntprintf(wrapperData->argConfFile, _tcslen(argConfFileBase) + 5 + 1, TEXT("%s.conf"), argConfFileBase);
         wrapperData->argConfFileDefault = TRUE;
-        wrapperData->argCount = argc - 1;
+        wrapperData->argCount = wrapperArgCount - 1;
         wrapperData->argValues = &argv[1];
         free(argConfFileBase);
     }
@@ -2424,7 +2443,7 @@ int wrapperRunCommon() {
             outOfMemory(TEXT("LHN"), 1);
             req = -1;
         } else {
-            MultiByteToWideChar(CP_OEMCP,0, tzname[0],-1, tz1, (int)req);
+            MultiByteToWideChar(CP_OEMCP,0, tzname[0], -1, tz1, (int)req);
             req = MultiByteToWideChar(CP_OEMCP, 0, tzname[1], -1, NULL, 0);
             tz2 = malloc(req * sizeof(TCHAR));
             if (!tz2) {
@@ -2432,7 +2451,7 @@ int wrapperRunCommon() {
                 free(tz1);
                 outOfMemory(TEXT("LHN"), 2);
             } else {
-                MultiByteToWideChar(CP_OEMCP,0, tzname[1],-1, tz2, (int)req);
+                MultiByteToWideChar(CP_OEMCP,0, tzname[1], -1, tz2, (int)req);
 #endif
 
 #else
@@ -3122,6 +3141,12 @@ void checkIfRegularExe(TCHAR** para) {
     }
 }
 
+
+/**
+ * Builds up the java command section of the Java command line.
+ *
+ * @return The final index into the strings array, or -1 if there were any problems.
+ */
 int wrapperBuildJavaCommandArrayJavaCommand(TCHAR **strings, int addQuotes, int detectDebugJVM, int index) {
     const TCHAR *prop;
     TCHAR *c;
@@ -3251,6 +3276,11 @@ int wrapperBuildJavaCommandArrayJavaCommand(TCHAR **strings, int addQuotes, int 
     return index;
 }
 
+/**
+ * Builds up the additional section of the Java command line.
+ *
+ * @return The final index into the strings array, or -1 if there were any problems.
+ */
 int wrapperBuildJavaCommandArrayJavaAdditional(TCHAR **strings, int addQuotes, int detectDebugJVM, int index) {
     const TCHAR *prop;
     int i;
@@ -3350,6 +3380,12 @@ int wrapperBuildJavaCommandArrayJavaAdditional(TCHAR **strings, int addQuotes, i
     return index;
 }
 
+
+/**
+ * Builds up the library path section of the Java command line.
+ *
+ * @return The final index into the strings array, or -1 if there were any problems.
+ */
 int wrapperBuildJavaCommandArrayLibraryPath(TCHAR **strings, int addQuotes, int index) {
     const TCHAR *prop;
     int i, j;
@@ -3545,6 +3581,12 @@ int wrapperBuildJavaCommandArrayLibraryPath(TCHAR **strings, int addQuotes, int 
     return index;
 }
 
+
+/**
+ * Builds up the java classpath.
+ *
+ * @return 0 if successful, or -1 if there were any problems.
+ */
 int wrapperBuildJavaClasspath(TCHAR **classpath) {
     const TCHAR *prop;
     TCHAR *propStripped;
@@ -3721,6 +3763,12 @@ int wrapperBuildJavaClasspath(TCHAR **classpath) {
     return 0;
 }
 
+
+/**
+ * Builds up the java classpath section of the Java command line.
+ *
+ * @return The final index into the strings array, or -1 if there were any problems.
+ */
 int wrapperBuildJavaCommandArrayClasspath(TCHAR **strings, int addQuotes, int index, const TCHAR *classpath) {
     size_t len;
     size_t cpLen;
@@ -3776,6 +3824,12 @@ int wrapperBuildJavaCommandArrayClasspath(TCHAR **strings, int addQuotes, int in
     return index;
 }
 
+
+/**
+ * Builds up the app parameters section of the Java command line.
+ *
+ * @return The final index into the strings array, or -1 if there were any problems.
+ */
 int wrapperBuildJavaCommandArrayAppParameters(TCHAR **strings, int addQuotes, int index, int thisIsTestWrapper) {
     const TCHAR *prop;
     int i;
@@ -3851,6 +3905,20 @@ int wrapperBuildJavaCommandArrayAppParameters(TCHAR **strings, int addQuotes, in
     }
     freeStringProperties(propertyNames, propertyValues, propertyIndices);
 
+    /* precede command line parameters */
+    if (wrapperData->javaArgValueCount > 0) {
+        for (i = 0; i < wrapperData->javaArgValueCount; i++) {
+            if (strings) {
+                strings[index] = malloc(sizeof(TCHAR) * (_tcslen(wrapperData->javaArgValues[i]) + 1));
+                if (!strings[index]) {
+                    outOfMemory(TEXT("WBJCAAP"), 4);
+                    return -1;
+                }
+                _sntprintf(strings[index], _tcslen(wrapperData->javaArgValues[i]) + 1, TEXT("%s"), wrapperData->javaArgValues[i]);
+            }
+            index++;    
+        }
+    }
     return index;
 }
 
@@ -3860,6 +3928,8 @@ int wrapperBuildJavaCommandArrayAppParameters(TCHAR **strings, int addQuotes, in
  * This method will only count the elements if stringsPtr is NULL.
  *
  * Note - Next Out Of Memory is #47
+ *
+ * @return The final index into the strings array, or -1 if there were any problems.
  */
 int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHAR *classpath) {
     int index;
@@ -4755,7 +4825,7 @@ void wrapperLoadHostName() {
             outOfMemory(TEXT("LHN"), 1);
             return;
         }
-        MultiByteToWideChar(CP_OEMCP,0, hostName,-1, hostName2, len + 1);
+        MultiByteToWideChar(CP_OEMCP,0, hostName, -1, hostName2, len + 1);
 #else
         len = mbstowcs(NULL, hostName, 0) + 1;
         hostName2 = malloc(len * sizeof(TCHAR));
@@ -4929,6 +4999,11 @@ int *wrapperGetActionListForNames(const TCHAR *actionNameList, const TCHAR *prop
     return actionList;
 }
 
+/**
+ * Loads in the configuration triggers.
+ *
+ * @return Returns FALSE if successful, TRUE if there were any problems.
+ */
 int loadConfigurationTriggers() {
     const TCHAR *prop;
     TCHAR propName[256];
@@ -4965,7 +5040,7 @@ int loadConfigurationTriggers() {
     wrapperData->outputFilterCount = 0;
     if (getStringProperties(properties, TEXT("wrapper.filter.trigger."), TEXT(""), wrapperData->ignoreSequenceGaps, FALSE, &propertyNames, &propertyValues, &propertyIndices)) {
         /* Failed */
-        return -1;
+        return TRUE;
     }
     i = 0;
     while (propertyNames[i]) {
@@ -4981,20 +5056,20 @@ int loadConfigurationTriggers() {
         wrapperData->outputFilters = malloc(sizeof(TCHAR *) * wrapperData->outputFilterCount);
         if (!wrapperData->outputFilters) {
             outOfMemory(TEXT("LC"), 1);
-            return -1;
+            return TRUE;
         }
 
         wrapperData->outputFilterActionLists = malloc(sizeof(int*) * wrapperData->outputFilterCount);
         if (!wrapperData->outputFilterActionLists) {
             outOfMemory(TEXT("LC"), 2);
-            return -1;
+            return TRUE;
         }
         memset(wrapperData->outputFilterActionLists, 0, sizeof(int*) * wrapperData->outputFilterCount);
 
         wrapperData->outputFilterMessages = malloc(sizeof(TCHAR *) * wrapperData->outputFilterCount);
         if (!wrapperData->outputFilterMessages) {
             outOfMemory(TEXT("LC"), 1);
-            return -1;
+            return TRUE;
         }
 
         i = 0;
@@ -5004,7 +5079,7 @@ int loadConfigurationTriggers() {
             wrapperData->outputFilters[i] = malloc(sizeof(TCHAR) * (_tcslen(prop) + 1));
             if (!wrapperData->outputFilters[i]) {
                 outOfMemory(TEXT("LC"), 3);
-                return -1;
+                return TRUE;
             }
             _tcscpy(wrapperData->outputFilters[i], prop);
 
@@ -5039,13 +5114,13 @@ int loadConfigurationTriggers() {
         wrapperData->outputFilters[i] = malloc(sizeof(TCHAR) * _tcslen(TRIGGER_ADVICE_NIL_SERVER));
         if (!wrapperData->outputFilters[i]) {
             outOfMemory(TEXT("LC"), 4);
-            return -1;
+            return TRUE;
         }
         _tcscpy(wrapperData->outputFilters[i], TRIGGER_ADVICE_NIL_SERVER);
         wrapperData->outputFilterActionLists[i] = malloc(sizeof(int) * 2);
         if (!wrapperData->outputFilters[i]) {
             outOfMemory(TEXT("LC"), 5);
-            return -1;
+            return TRUE;
         }
         wrapperData->outputFilterActionLists[i][0] = ACTION_ADVICE_NIL_SERVER;
         wrapperData->outputFilterActionLists[i][1] = ACTION_LIST_END;
@@ -5055,7 +5130,7 @@ int loadConfigurationTriggers() {
     }
     freeStringProperties(propertyNames, propertyValues, propertyIndices);
 
-    return 0;
+    return FALSE;
 }
 
 /**
@@ -5472,19 +5547,21 @@ int loadConfiguration() {
 
 /**
  * Requests a lock on the tick mutex.
+ *
+ * @return TRUE if there were any problems, FALSE if successful.
  */
 int wrapperLockTickMutex() {
 #ifdef WIN32
     switch (WaitForSingleObject(tickMutexHandle, INFINITE)) {
     case WAIT_ABANDONED:
         _tprintf(TEXT("Tick was abandoned.\n"));
-        return -1;
+        return TRUE;
     case WAIT_FAILED:
         _tprintf(TEXT("Tick wait failed.\n"));
-        return -1;
+        return TRUE;
     case WAIT_TIMEOUT:
         _tprintf(TEXT("Tick wait timed out.\n"));
-        return -1;
+        return TRUE;
     default:
         /* Ok */
         break;
@@ -5492,29 +5569,31 @@ int wrapperLockTickMutex() {
 #else
     if (pthread_mutex_lock(&tickMutex)) {
         _tprintf(TEXT("Failed to lock the Tick mutex. %s\n"), getLastErrorText());
-        return -1;
+        return TRUE;
     }
 #endif
     
-    return 0;
+    return FALSE;
 }
 
 /**
  * Releases a lock on the tick mutex.
+ *
+ * @return TRUE if there were any problems, FALSE if successful.
  */
 int wrapperReleaseTickMutex() {
 #ifdef WIN32
     if (!ReleaseMutex(tickMutexHandle)) {
         _tprintf(TEXT("Failed to release tick mutex. %s\n"), getLastErrorText());
-        return -1;
+        return TRUE;
     }
 #else
     if (pthread_mutex_unlock(&tickMutex)) {
         _tprintf(TEXT("Failed to unlock the tick mutex. %s\n"), getLastErrorText());
-        return -1;
+        return TRUE;
     }
 #endif
-    return 0;
+    return FALSE;
 }
 
 /**

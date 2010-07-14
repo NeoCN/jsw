@@ -1375,6 +1375,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                 <include name="index.html" />
                 <include name="bin/${wrapper.bin.name}" />
                 <include name="bin/${app.name}" />
+                <include name="bin/demoapp" />
                 <include name="lib/wrapper.jar" />
                 <include name="lib/wrappertest.jar" />
                 <include name="lib/wrapperdemo.jar" />
@@ -1567,6 +1568,7 @@ original tar distribution due to a lack of support for long path names in some t
                 <include name="lib/wrappertest.jar"/>
                 <include name="lib/wrapperdemo.jar"/>
                 <include name="logs"/>
+                <include name="conf/wrapper-license.conf" />
                 <include name="src/bin/*.bat.in"/>
                 <include name="src/bin/sh.script.in"/>
                 <include name="src/conf/**"/>

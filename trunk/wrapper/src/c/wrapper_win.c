@@ -45,6 +45,7 @@
 #include <winnt.h>
 #include <sys/timeb.h>
 #include <conio.h>
+#include <DbgHelp.h>
 #include "psapi.h"
 
 #include "wrapper_i18n.h"
@@ -4132,11 +4133,22 @@ TCHAR* getExceptionName(DWORD exCode) {
     return exName;
 }
 
+/**
+ * Logs some dump information to the log output and then generate a minidump file.
+ */
 int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
     DWORD exCode;
     TCHAR *exName;
     int i;
+    size_t len;
+    TCHAR curDir[MAX_PATH];
+    TCHAR dumpFile[MAX_PATH];
+    BOOL dumpSuccessful;
+    HANDLE hDumpFile;
+    SYSTEMTIME stLocalTime;
+    MINIDUMP_EXCEPTION_INFORMATION expParam;
 
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("--------------------------------------------------------------------") );
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("encountered a fatal error in Wrapper"));
     exCode = exceptionPointers->ExceptionRecord->ExceptionCode;
     exName = getExceptionName(exCode);
@@ -4165,7 +4177,51 @@ int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
                 exceptionPointers->ExceptionRecord->ExceptionInformation[i]);
         }
     }
-
+    
+    if (wrapperData) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  Wrapper Main Loop Status:"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("    Current Ticks: 0x%08x"), wrapperGetTicks());
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("    Wrapper State: %s"), wrapperGetWState(wrapperData->wState));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("    Java State: %s (Timeout: 0x%08x)"), wrapperGetJState(wrapperData->jState), wrapperData->jStateTimeoutTicks);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("    Exit Requested: %s"), (wrapperData->exitRequested ? TEXT("true") : TEXT("false")));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("    Restart Mode: %d"), wrapperData->restartRequested);
+    }
+    
+    /* Get the current directory. */
+    len = GetCurrentDirectory(MAX_PATH, curDir);
+    if (len == 0) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  Unable to request current directory.  %s"), getLastErrorText());
+        _sntprintf(curDir, MAX_PATH, TEXT("."));
+    }
+    /* Generate the minidump. */
+    GetLocalTime(&stLocalTime);
+    
+    _sntprintf(dumpFile, MAX_PATH, TEXT("wrapper-%s-%s-%s-%s-%04d%02d%02d%02d%02d%02d-%ld-%ld.dmp"),
+        wrapperOS, wrapperArch, wrapperBits, wrapperVersion,
+        stLocalTime.wYear, stLocalTime.wMonth, stLocalTime.wDay, 
+        stLocalTime.wHour, stLocalTime.wMinute, stLocalTime.wSecond, 
+        GetCurrentProcessId(), GetCurrentThreadId());
+    
+    hDumpFile = CreateFile(dumpFile, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE | FILE_SHARE_READ, 0, CREATE_ALWAYS, 0, 0);
+    if (hDumpFile == INVALID_HANDLE_VALUE) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  Failed to create dump file:\n    %s\\%s : %s"), curDir, dumpFile, getLastErrorText());
+    } else {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  Writing dump file: %s\\%s"), curDir, dumpFile);
+        
+        expParam.ThreadId = GetCurrentThreadId();
+        expParam.ExceptionPointers = exceptionPointers;
+        expParam.ClientPointers = TRUE;
+    
+        dumpSuccessful = MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hDumpFile, MiniDumpWithDataSegs, &expParam, NULL, NULL);
+        if (dumpSuccessful) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("    Dump completed."));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  Please send the dump file to support@tanukisoftware.com along with\n    your wrapper.conf and wrapper.log files."));
+        } else {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("    Failed to generate dump file.  %s"), getLastErrorText());
+        }
+    }
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("--------------------------------------------------------------------") );
+    
     return EXCEPTION_EXECUTE_HANDLER;
 }
 

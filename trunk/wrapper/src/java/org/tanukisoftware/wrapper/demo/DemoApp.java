@@ -61,6 +61,7 @@ public class DemoApp implements WrapperListener
     private static Process m_testCase;
     private static PrintStream m_childPrintStream;
     private static WrapperResources m_res;
+    private String m_confFile;
 
     /*---------------------------------------------------------------
      * Constructors
@@ -68,6 +69,7 @@ public class DemoApp implements WrapperListener
     private DemoApp()
     {
         m_isTestCaseRunning = false;
+        m_confFile = "../conf/demoapp.conf";
 
     }
 
@@ -180,7 +182,6 @@ public class DemoApp implements WrapperListener
                 System.out.println( getRes().getString( "Demo: ERROR - Unable to display the GUI:" ) );
                 System.out.println( "Demo:           " + e.toString() );
                 System.out.println( "Demo: " );
-                System.out.println( getRes().getString( "Demo: Fall back to the \"console\" action." ) );
                 command = "console";
             }
             catch ( java.awt.AWTError e )
@@ -189,7 +190,6 @@ public class DemoApp implements WrapperListener
                 System.out.println( getRes().getString( "Demo: ERROR - Unable to display the GUI:" ) );
                 System.out.println( "Demo:           " + e.toString() );
                 System.out.println( "Demo: " );
-                System.out.println( getRes().getString( "Demo: Fall back to the \"console\" action." ) );
                 command = "console";
             }
             catch ( java.lang.UnsupportedOperationException e )
@@ -202,7 +202,6 @@ public class DemoApp implements WrapperListener
                     System.out.println( getRes().getString( "Demo: ERROR - Unable to display the GUI:" ) );
                     System.out.println( "Demo:           " + e.toString() );
                     System.out.println( "Demo: " );
-                    System.out.println( getRes().getString( "Demo: Fall back to the \"console\" action." ) );
                     command = "console";
                 }
                 else
@@ -276,7 +275,7 @@ public class DemoApp implements WrapperListener
                 {
                     wrapperBin = "../bin/wrapper";
                 }
-                String arg = wrapperBin + " -c ../conf/demoApp.conf wrapper.console.flush=TRUE wrapper.console.format=LPM  wrapper.app.parameter.1=start " + md.getEvents()
+                String arg = wrapperBin + " -c " + m_confFile + " wrapper.console.flush=TRUE wrapper.console.format=LPM  wrapper.app.parameter.1=start " + md.getEvents()
                         + " wrapper.event.default.email.debug=TRUE wrapper.event.default.email.smtp.host=" + md.getServer() + " wrapper.event.default.email.smtp.port="
                         + md.getPort() + " wrapper.event.default.email.sender=" + md.getSender() + " wrapper.event.default.email.recipient=" + md.getRecipients();
                 // System.out.println( "execing: " + arg );
@@ -346,7 +345,7 @@ public class DemoApp implements WrapperListener
         }
         else if ( action.equals( "service" ) )
         {
-            p = Runtime.getRuntime().exec( "..\\bin\\wrapper.exe -it ..\\conf\\demoApp.conf wrapper.console.flush=TRUE" );
+            p = Runtime.getRuntime().exec( "..\\bin\\wrapper.exe -it " + m_confFile + " wrapper.console.flush=TRUE" );
             // WrapperManager.exec( "sudo ../test/demoapp remove" );
             if ( p != null )
             {
@@ -404,7 +403,7 @@ public class DemoApp implements WrapperListener
             {
                 wrapperBin = "../bin/wrapper";
             }
-            String arg = wrapperBin + " -c ../conf/demoApp.conf wrapper.console.flush=TRUE wrapper.console.format=LPM wrapper.app.parameter.1=" + action;
+            String arg = wrapperBin + " -c " + m_confFile + " wrapper.console.flush=TRUE wrapper.console.format=LPM wrapper.app.parameter.1=" + action;
             // System.out.println( "calling: " + arg );
 
             if ( !m_isTestCaseRunning )
@@ -463,7 +462,7 @@ public class DemoApp implements WrapperListener
                 {
                     wrapperBin = "../bin/wrapper";
                 }
-                String arg = wrapperBin + " -c ../conf/demoApp.conf wrapper.console.flush=TRUE wrapper.console.format=LPM wrapper.app.parameter.1=start";
+                String arg = wrapperBin + " -c " + m_confFile + " wrapper.console.flush=TRUE wrapper.console.format=LPM wrapper.app.parameter.1=start";
                 //System.out.println( "calling: " + arg );
                 if ( !m_isTestCaseRunning )
                 {
@@ -501,7 +500,7 @@ public class DemoApp implements WrapperListener
             {
                 wrapperBin = "../bin/wrapper";
             }
-            String arg = wrapperBin + " -c ../conf/demoApp.conf wrapper.console.flush=TRUE wrapper.console.format=LPM wrapper.app.parameter.1=start";
+            String arg = wrapperBin + " -c " + m_confFile + " wrapper.console.flush=TRUE wrapper.console.format=LPM wrapper.app.parameter.1=start";
             //System.out.println( "calling: " + arg );
             if ( !m_isTestCaseRunning )
             {

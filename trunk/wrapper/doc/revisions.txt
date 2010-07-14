@@ -1,6 +1,21 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 
+3.5.2
+* Added new command line argument "--" . All arguments following will be preceded
+  and passed to the java application. The arguments are attached after the 
+  arguments used in wrapper.app.parameter.<n>
+* Fixed a problem in the shell script which could lead to report failed starts 
+  of a daemon incorrectly on the command line. 
+* Implemented some small logic in the wrapper script which tries to change the
+  permissions of the wrapper binary to executable if it wasn't set.
+* The Demo Application had problems locating the right conf file on Unix platforms
+  and failed to launch the internal demonstration wrapper process.
+* Improved the error message logged if the Windows version of the Wrapper exits
+  with an internal error.  It now logs more information about the internal state
+  of the Wrapper as well as saving a mini dump file which can be sent to support
+  to make it easier to diagnose the cause of the problem.
+
 3.5.1
 * Start using a system function to determine whether or not a character in the
   configuration file is a control character or not.  This way it works on

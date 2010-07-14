@@ -186,10 +186,13 @@ struct WrapperConfig {
     TCHAR*   argCommand;             /* The command used to launch the wrapper. */
     TCHAR*   argCommandArg;          /* The argument to the command used to launch the wrapper. */
     TCHAR*   argConfFile;            /* The name of the config file from the command line. */
-    int     argConfFileDefault;     /* True if the config file was not specified. */
-    int     argConfFileFound;       /* True if the config file was found. */
-    int     argCount;               /* The total argument count. */
+    int     argConfFileDefault;      /* True if the config file was not specified. */
+    int     argConfFileFound;        /* True if the config file was found. */
+    int     argCount;                /* The total argument count. */
     TCHAR**  argValues;              /* Argument values. */
+    TCHAR**  javaArgValues;          /* Arguments getting passed over to the java application */
+    int      javaArgValueCount;      /* Number of the arguments getting passed over to the java application */
+
 
     TCHAR*   language;               /* The language */
     int     configured;             /* TRUE if loadConfiguration has been called. */
@@ -445,6 +448,24 @@ extern int wrapperProtocolRead();
 /******************************************************************************
  * Utility Functions
  *****************************************************************************/
+/**
+ * Returns a constant text representation of the specified Wrapper State.
+ *
+ * @param wState The Wrapper State whose name is being requested.
+ *
+ * @return Thre requested Wrapper State.
+ */
+extern const TCHAR *wrapperGetWState(int wState);
+
+/**
+ * Returns a constant text representation of the specified Java State.
+ *
+ * @param jState The Java State whose name is being requested.
+ *
+ * @return Thre requested Java State.
+ */
+extern const TCHAR *wrapperGetJState(int jState);
+
 extern struct tm wrapperGetReleaseTime();
 extern struct tm wrapperGetBuildTime();
 
