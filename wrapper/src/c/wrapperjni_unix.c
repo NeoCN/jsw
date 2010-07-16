@@ -225,113 +225,124 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
     uid_t uid;
     struct passwd *pw;
     gid_t ugid;
-    jbyteArray jUser;
-    jbyteArray jRealName;
-    jbyteArray jHome;
-    jbyteArray jShell;
+    jstring jstringUser;
+    jstring jstringRealName;
+    jstring jstringHome;
+    jstring jstringShell;
     jobject wrapperUser = NULL;
     struct group *aGroup;
     int member;
     int i;
     gid_t ggid;
-    jbyteArray jGroupName;
+    jstring jstringGroupName;
 
     /* Look for the WrapperUser class. Ignore failures as JNI throws an exception. */
     if ((wrapperUserClass = (*env)->FindClass(env, utf8ClassOrgTanukisoftwareWrapperWrapperUNIXUser)) != NULL) {
 
         /* Look for the constructor. Ignore failures. */
-        if ((constructor = (*env)->GetMethodID(env, wrapperUserClass, utf8MethodInit, utf8SigII_B_B_B_BrV)) != NULL) {
+        if ((constructor = (*env)->GetMethodID(env, wrapperUserClass, utf8MethodInit, utf8SigIIStringStringStringStringrV)) != NULL) {
 
             uid = geteuid();
             pw = getpwuid(uid);
             ugid = pw->pw_gid;
 
             /* Create the arguments to the constructor as java objects */
-
-            /* User byte array */
-            jUser = (*env)->NewByteArray(env, strlen(pw->pw_name));
-            (*env)->SetByteArrayRegion(env, jUser, 0, strlen(pw->pw_name),
-                    (jbyte*) pw->pw_name);
-
-            /* Real Name byte array */
-            jRealName = (*env)->NewByteArray(env, strlen(pw->pw_gecos));
-            (*env)->SetByteArrayRegion(env, jRealName, 0, strlen(pw->pw_gecos),
-                    (jbyte*) pw->pw_gecos);
-
-            /* Home byte array */
-            jHome = (*env)->NewByteArray(env, strlen(pw->pw_dir));
-            (*env)->SetByteArrayRegion(env, jHome, 0, strlen(pw->pw_dir),
-                    (jbyte*) pw->pw_dir);
-
-            /* Shell byte array */
-            jShell = (*env)->NewByteArray(env, strlen(pw->pw_shell));
-            (*env)->SetByteArrayRegion(env, jShell, 0, strlen(pw->pw_shell),
-                    (jbyte*) pw->pw_shell);
-
-            /* Now create the new wrapperUser using the constructor arguments collected above. */
-            wrapperUser = (*env)->NewObject(env, wrapperUserClass, constructor,
-                    uid, ugid, jUser, jRealName, jHome, jShell);
-
-            (*env)->DeleteLocalRef(env, jUser);
-            (*env)->DeleteLocalRef(env, jRealName);
-            (*env)->DeleteLocalRef(env, jHome);
-            (*env)->DeleteLocalRef(env, jShell);
-
-            /* If the caller requested the user's groups then look them up. */
-            if (groups) {
-                /* Set the user group. */
-                if ((setGroup = (*env)->GetMethodID(env, wrapperUserClass, utf8MethodSetGroup, utf8SigI_BrV)) != NULL) {
-                    if ((aGroup = getgrgid(ugid)) != NULL) {
-                        ggid = aGroup->gr_gid;
-
-                        /* Group name byte array */
-                        jGroupName = (*env)->NewByteArray(env, strlen(
-                                aGroup->gr_name));
-                        (*env)->SetByteArrayRegion(env, jGroupName, 0, strlen(
-                                aGroup->gr_name), (jbyte*) aGroup->gr_name);
-
-                        /* Add the group to the user. */
-                        (*env)->CallVoidMethod(env, wrapperUser, setGroup,
-                                ggid, jGroupName);
-
-                        (*env)->DeleteLocalRef(env, jGroupName);
-                    }
-                }
-
-                /* Look for the addGroup method. Ignore failures. */
-                if ((addGroup = (*env)->GetMethodID(env, wrapperUserClass, utf8MethodAddGroup, utf8SigI_BrV)) != NULL) {
-                    setgrent();
-                    while ((aGroup = getgrent()) != NULL) {
-                        /* Search the member list to decide whether or not the user is a member. */
-                        member = 0;
-                        i = 0;
-                        while ((member == 0) && aGroup->gr_mem[i]) {
-                            if (strcmp(aGroup->gr_mem[i], pw->pw_name) == 0) {
-                               member = 1;
+            /* User */
+            jstringUser = JNU_NewStringFromNativeChar(env, pw->pw_name);
+            if (jstringUser) {
+                /* Real Name */
+                jstringRealName = JNU_NewStringFromNativeChar(env, pw->pw_gecos);
+                if (jstringRealName) {
+                    /* Home */
+                    jstringHome = JNU_NewStringFromNativeChar(env, pw->pw_dir);
+                    if (jstringHome) {
+                        /* Shell */
+                        jstringShell = JNU_NewStringFromNativeChar(env, pw->pw_shell);
+                        if (jstringShell) {
+                            /* Now create the new wrapperUser using the constructor arguments collected above. */
+                            wrapperUser = (*env)->NewObject(env, wrapperUserClass, constructor,
+                                    uid, ugid, jstringUser, jstringRealName, jstringHome, jstringShell);
+                            
+                            /* If the caller requested the user's groups then look them up. */
+                            if (groups) {
+                                /* Set the user group. */
+                                if ((setGroup = (*env)->GetMethodID(env, wrapperUserClass, utf8MethodSetGroup, utf8SigIStringrV)) != NULL) {
+                                    if ((aGroup = getgrgid(ugid)) != NULL) {
+                                        ggid = aGroup->gr_gid;
+                                        
+                                        /* Group name */
+                                        jstringGroupName = JNU_NewStringFromNativeChar(env, aGroup->gr_name);
+                                        if (jstringGroupName) {
+                                            /* Add the group to the user. */
+                                            (*env)->CallVoidMethod(env, wrapperUser, setGroup,
+                                                    ggid, jstringGroupName);
+                                            
+                                            (*env)->DeleteLocalRef(env, jstringGroupName);
+                                        } else {
+                                            /* Exception Thrown */
+                                        }
+                                    }
+                                } else {
+                                    /* Exception Thrown */
+                                }
+                
+                                /* Look for the addGroup method. Ignore failures. */
+                                if ((addGroup = (*env)->GetMethodID(env, wrapperUserClass, utf8MethodAddGroup, utf8SigIStringrV)) != NULL) {
+                                    setgrent();
+                                    while ((aGroup = getgrent()) != NULL) {
+                                        /* Search the member list to decide whether or not the user is a member. */
+                                        member = 0;
+                                        i = 0;
+                                        while ((member == 0) && aGroup->gr_mem[i]) {
+                                            if (strcmp(aGroup->gr_mem[i], pw->pw_name) == 0) {
+                                               member = 1;
+                                            }
+                                            i++;
+                                        }
+                
+                                        if (member) {
+                                            ggid = aGroup->gr_gid;
+                                            
+                                            /* Group name */
+                                            jstringGroupName = JNU_NewStringFromNativeChar(env, aGroup->gr_name);
+                                            if (jstringGroupName) {
+                                                /* Add the group to the user. */
+                                                (*env)->CallVoidMethod(env, wrapperUser, addGroup,
+                                                        ggid, jstringGroupName);
+                                                
+                                                (*env)->DeleteLocalRef(env, jstringGroupName);
+                                            } else {
+                                                /* Exception Thrown */
+                                            }
+                                        }
+                                    }
+                                    endgrent();
+                                } else {
+                                    /* Exception Thrown */
+                                }
                             }
-                            i++;
+                            
+                            (*env)->DeleteLocalRef(env, jstringShell);
+                        } else {
+                            /* Exception Thrown */
                         }
-
-                        if (member) {
-                            ggid = aGroup->gr_gid;
-
-                            /* Group name byte array */
-                            jGroupName = (*env)->NewByteArray(env, strlen(
-                                    aGroup->gr_name));
-                            (*env)->SetByteArrayRegion(env, jGroupName, 0,
-                                    strlen(aGroup->gr_name),
-                                    (jbyte*) aGroup->gr_name);
-
-                            /* Add the group to the user. */
-                            (*env)->CallVoidMethod(env, wrapperUser, addGroup,
-                                    ggid, jGroupName);
-
-                            (*env)->DeleteLocalRef(env, jGroupName);
-                        }
+                        
+                        (*env)->DeleteLocalRef(env, jstringHome);
+                    } else {
+                        /* Exception Thrown */
                     }
-                    endgrent();
+                    
+                    (*env)->DeleteLocalRef(env, jstringRealName);
+                } else {
+                    /* Exception Thrown */
                 }
+                                                        
+                (*env)->DeleteLocalRef(env, jstringUser);
+            } else {
+                /* Exception Thrown */
             }
+        } else {
+            /* Exception Thrown */
         }
 
         (*env)->DeleteLocalRef(env, wrapperUserClass);
@@ -373,7 +384,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, j
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeSendServiceControlCode
- * Signature: ([BI)Lorg/tanukisoftware/wrapper/WrapperWin32Service;
+ * Signature: (Ljava/lang/String;I)Lorg/tanukisoftware/wrapper/WrapperWin32Service;
  */
 JNIEXPORT jobject JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIEnv *env, jclass clazz, jbyteArray serviceName, jint controlCode) {

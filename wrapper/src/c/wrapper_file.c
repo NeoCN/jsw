@@ -265,7 +265,7 @@ TCHAR** wrapperFileGetFiles(const TCHAR* pattern, int sortMode) {
 #endif
 
 #ifdef WRAPPER_FILE_DEBUG
-    printf("wrapperFileGetFiles(%s, %d)\n", pattern, sortMode);
+    _tprintf(TEXT("wrapperFileGetFiles(%s, %d)\n"), pattern, sortMode);
 #endif
 
 #ifdef WIN32
@@ -301,17 +301,17 @@ TCHAR** wrapperFileGetFiles(const TCHAR* pattern, int sortMode) {
     } else {
         /* extract the directory. */
         dirLen = c - pattern + 1;
-        dirPart = malloc(dirLen + 1);
+        dirPart = malloc(sizeof(TCHAR) * (dirLen + 1));
         if (!dirPart) {
             outOfMemoryQueued(TEXT("WFGF"), 4);
             return NULL;
         }
-        memcpy(dirPart, pattern, dirLen);
+        _tcsncpy(dirPart, pattern, dirLen);
         dirPart[dirLen] = TEXT('\0');
     }
 
 #ifdef WRAPPER_FILE_DEBUG
-    printf("  dirPart=[%s]\n", dirPart);
+    _tprintf(TEXT("  dirPart=[%s]\n"), dirPart);
 #endif
 
     /* Get the first file. */
@@ -329,7 +329,7 @@ TCHAR** wrapperFileGetFiles(const TCHAR* pattern, int sortMode) {
             _sntprintf(files[cnt], _tcslen(dirPart) + _tcslen(fblock.name) + 1, TEXT("%s%s"), dirPart, fblock.name);
             fileTimes[cnt] = fblock.time_write;
 #ifdef WRAPPER_FILE_DEBUG
-            printf("  files[%d]=%s, %ld\n", cnt, files[cnt], fileTimes[cnt]);
+            _tprintf(TEXT("  files[%d]=%s, %ld\n"), cnt, files[cnt], fileTimes[cnt]);
 #endif
 
             cnt++;
@@ -370,7 +370,7 @@ TCHAR** wrapperFileGetFiles(const TCHAR* pattern, int sortMode) {
                     fileTimes = newFileTimes;
                     filesSize += FILES_CHUNK;
 #ifdef WRAPPER_FILE_DEBUG
-                    printf("  increased files to %d\n", filesSize);
+                    _tprintf(TEXT("  increased files to %d\n"), filesSize);
 #endif
                 }
 
@@ -387,7 +387,7 @@ TCHAR** wrapperFileGetFiles(const TCHAR* pattern, int sortMode) {
                 fileTimes[cnt] = fblock.time_write;
 
 #ifdef WRAPPER_FILE_DEBUG
-                printf("  files[%d]=%s, %ld\n", cnt, files[cnt], fileTimes[cnt]);
+                _tprintf(TEXT("  files[%d]=%s, %ld\n"), cnt, files[cnt], fileTimes[cnt]);
 #endif
                 cnt++;
             }
@@ -401,7 +401,7 @@ TCHAR** wrapperFileGetFiles(const TCHAR* pattern, int sortMode) {
         if (errno == ENOENT) {
             /* No files matched. */
 #ifdef WRAPPER_FILE_DEBUG
-            printf("  No files matched.\n");
+            _tprintf(TEXT("  No files matched.\n"));
 #endif
         } else {
             /* Encountered an error of some kind. */
@@ -561,11 +561,11 @@ TCHAR** wrapperFileGetFiles(const TCHAR* pattern, int sortMode) {
     }
 
 #ifdef WRAPPER_FILE_DEBUG
-    printf("  Sorted:\n");
+    _tprintf(TEXT("  Sorted:\n"));
     for (i = 0; i < cnt; i++) {
-        printf("  files[%d]=%s, %ld\n", i, files[i], fileTimes[i]);
+        _tprintf(TEXT("  files[%d]=%s, %ld\n"), i, files[i], fileTimes[i]);
     }
-    printf("wrapperFileGetFiles(%s, %d) END\n", pattern, sortMode);
+    _tprintf(TEXT("wrapperFileGetFiles(%s, %d) END\n"), pattern, sortMode);
 #endif
 
     free(fileTimes);
