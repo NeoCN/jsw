@@ -25,10 +25,10 @@ public abstract class WrapperGroup
     /*---------------------------------------------------------------
      * Constructors
      *-------------------------------------------------------------*/
-    WrapperGroup( byte[] group )
+    WrapperGroup( String group )
     {
         // Decode the parameters using the default system encoding.
-        m_group = new String( group );
+        m_group = group;
     }
     
     /*---------------------------------------------------------------

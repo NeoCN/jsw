@@ -147,57 +147,94 @@ int getLastError() {
 }
 #endif
 
-
-jstring JNU_NewStringNative(JNIEnv *env, const TCHAR *str) {
+/**
+ * Create a jstring from a Wide Char string.  The jstring must be freed up by caller.
+ *
+ * @param env The current JNIEnv.
+ * @param strW The Wide string to convert.
+ *
+ * @return The new jstring or NULL if there were any exceptions thrown.
+ */
+jstring JNU_NewStringNative(JNIEnv *env, const TCHAR *strW) {
     jstring result;
 
     jclass jClassString;
     jmethodID MID_String_init;
-    jbyteArray bytes = 0;
+    jbyteArray jBytes;
     size_t len;
-    char* msg;
+    char* msgMB;
 #ifdef UNICODE
     int size;
-#ifdef WIN32
-    size = WideCharToMultiByte(CP_OEMCP, 0, str,-1, NULL, 0, NULL, NULL);
-    msg = malloc(size);
-    if(!msg) {
-        throwOutOfMemoryError(env, TEXT("JNSN1"));
-        return NULL;
-    }
-    WideCharToMultiByte(CP_OEMCP, 0,str,-1, msg, size, NULL, NULL);
-#else
-    size = wcstombs(NULL, str, 0) + 1;
-    msg = malloc(size);
-    if(!msg) {
-        throwOutOfMemoryError(env, TEXT("JNSN1"));
-        return NULL;
-    }
-    wcstombs(msg, str, size);
 #endif
+#ifdef UNICODE
+    /* We need to special case empty strings as some of the functions don't work correctly for them. */
+    len = _tcslen(strW);
+    if (len > 0) {
+ #ifdef WIN32
+        size = WideCharToMultiByte(CP_OEMCP, 0, strW, -1, NULL, 0, NULL, NULL);
+        if (size == 0) {
+            /* Failed. */
+            _tprintf(TEXT("WrapperJNI Warn: Failed to convert string \"%s\": %s\n"), strW, GetLastError()); fflush(NULL);
+            return NULL;
+        }
+        msgMB = malloc(sizeof(char) * size);
+        if (!msgMB) {
+            throwOutOfMemoryError(env, TEXT("JNSN1"));
+            return NULL;
+        }
+        WideCharToMultiByte(CP_OEMCP, 0, strW, -1, msgMB, size, NULL, NULL);
+ #else
+        size = wcstombs(NULL, strW, 0) + 1;
+        msgMB = malloc(sizeof(char) * size);
+        if (!msgMB) {
+            throwOutOfMemoryError(env, TEXT("JNSN2"));
+            return NULL;
+        }
+        wcstombs(msgMB, strW, size);
+ #endif
+    } else {
+        /* Empty string. */
+        msgMB = malloc(sizeof(char) * 1);
+        if (!msgMB) {
+            throwOutOfMemoryError(env, TEXT("JNSN3"));
+            return NULL;
+        }
+        msgMB[0] = '\0';
+    }
 #else
-    msg = (TCHAR*)str;
+    msgMB = (TCHAR*)strW;
 #endif
     result = NULL;
     if ((*env)->EnsureLocalCapacity(env, 2) < 0) {
-        throwOutOfMemoryError(env, TEXT("JNSN2"));
+        throwOutOfMemoryError(env, TEXT("JNSN4"));
         return NULL; /* out of memory error */
     }
-    len = strlen(msg);
-    bytes = (*env)->NewByteArray(env, (jsize)len);
-    if (bytes != NULL) {
-        (*env)->SetByteArrayRegion(env, bytes, 0, (jsize)len,(jbyte*) msg);
-        jClassString = (*env)->FindClass(env, utf8ClassJavaLangString);
-        MID_String_init = (*env)->GetMethodID(env, jClassString, utf8MethodInit, utf8Sig_BrV);
-        result = (*env)->NewObject(env, jClassString, MID_String_init, bytes);
-        (*env)->DeleteLocalRef(env, bytes);
-
-    } /* else fall through */
+    len = strlen(msgMB);
+    if (jBytes = (*env)->NewByteArray(env, (jsize)len)) {
+        (*env)->SetByteArrayRegion(env, jBytes, 0, (jsize)len, (jbyte*)msgMB);
+        if (jClassString = (*env)->FindClass(env, utf8ClassJavaLangString)) {
+            if (MID_String_init = (*env)->GetMethodID(env, jClassString, utf8MethodInit, utf8Sig_BrV)) {
+                result = (*env)->NewObject(env, jClassString, MID_String_init, jBytes);
+            } else {
+                /* Exception Thrown */
+            }
+            
+            (*env)->DeleteLocalRef(env, jClassString);
+        } else {
+            /* Exception Thrown */
+        }
+        
+        (*env)->DeleteLocalRef(env, jBytes);
+    } else {
+        /* Exception Thrown */
+    }
+    
 #ifdef UNICODE
-    if(msg) {
-        free(msg);
+    if (msgMB) {
+        free(msgMB);
     }
 #endif
+    
     return result;
 }
 
@@ -252,7 +289,7 @@ TCHAR *JNU_GetStringNativeChars(JNIEnv *env, jstring jstr) {
         return NULL; /* out of memory error */
     }
     if ((jClassString = (*env)->FindClass(env, utf8ClassJavaLangString)) != NULL &&
-            (jMethodIdStringGetBytes = (*env)->GetMethodID(env, jClassString,utf8MethodGetBytes, utf8Sigr_B)) != NULL){
+            (jMethodIdStringGetBytes = (*env)->GetMethodID(env, jClassString, utf8MethodGetBytes, utf8Sigr_B)) != NULL){
         jByteArrayBytes = (*env)->CallObjectMethod(env, jstr, jMethodIdStringGetBytes);
         jThrowableE = (*env)->ExceptionOccurred(env);
         if (!jThrowableE) {

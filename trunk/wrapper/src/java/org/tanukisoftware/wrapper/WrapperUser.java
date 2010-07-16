@@ -32,10 +32,10 @@ public abstract class WrapperUser
     /*---------------------------------------------------------------
      * Constructors
      *-------------------------------------------------------------*/
-    WrapperUser( byte[] user )
+    WrapperUser( String user )
     {
         // Decode the parameters using the default system encoding.
-        m_user = new String( user );
+        m_user = user;
     }
     
     /*---------------------------------------------------------------

@@ -35,13 +35,13 @@ public class WrapperWin32User
     /*---------------------------------------------------------------
      * Constructors
      *-------------------------------------------------------------*/
-    WrapperWin32User( byte[] sid, byte[] user, byte[] domain, int loginTime)
+    WrapperWin32User( String sid, String user, String domain, int loginTime)
     {
         super( user );
         
         // Decode the parameters using the default system encoding.
-        m_sid = new String( sid );
-        m_domain = new String( domain );
+        m_sid = sid;
+        m_domain = domain;
         
         // Convert the login time to milliseconds.
         m_loginTime = loginTime * 1000L;
@@ -90,7 +90,10 @@ public class WrapperWin32User
         return m_loginTime;
     }
     
-    void addGroup( byte[] sid, byte[] user, byte[] domain )
+    /**
+     * Called by native code to add a Group to the User.
+     */
+    private void addGroup( String sid, String user, String domain )
     {
         addGroup( new WrapperWin32Group( sid, user, domain ) );
     }
