@@ -199,11 +199,10 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump(
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeSetConsoleTitle
- * Signature: ([B)V
+ * Signature: (Ljava/lang/String;)V
  */
 JNIEXPORT void JNICALL
-Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle(
-        JNIEnv *env, jclass clazz, jbyteArray jTitleBytes) {
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle(JNIEnv *env, jclass clazz, jstring jstringTitle) {
     if (wrapperJNIDebugging) {
         _tprintf(TEXT("WrapperJNI Debug: Setting the console title not supported on UNIX platforms.\n"));
         fflush(NULL);

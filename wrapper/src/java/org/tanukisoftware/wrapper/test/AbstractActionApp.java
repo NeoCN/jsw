@@ -66,6 +66,7 @@ public abstract class AbstractActionApp
     
     private long m_eventMask = 0xffffffffffffffffL;
     private String m_serviceName = "testWrapper";
+    private String m_consoleTitle = "Java Service Wrapper";
     private String m_childCommand = "ls";
     private boolean m_childDetached = true;
     
@@ -149,6 +150,11 @@ public abstract class AbstractActionApp
     protected void setServiceName( String serviceName )
     {
         m_serviceName = serviceName;
+    }
+    
+    protected void setConsoleTitle( String consoleTitle )
+    {
+        m_consoleTitle = consoleTitle;
     }
     
     protected void setChildParams( String childCommand, boolean childDetached )
@@ -543,6 +549,16 @@ public abstract class AbstractActionApp
             {
                 e.printStackTrace();
             }
+        }
+        else if ( action.equals( "console_title" ) )
+        {
+            if ( !WrapperManager.isWindows() )
+            {
+                System.out.println( Main.getRes().getString( "Setting the console title not supported on UNIX platforms." ) );
+                // The call is fine but it doesn't do anything.
+            }
+            
+            WrapperManager.setConsoleTitle( m_consoleTitle );
         }
         else if ( action.equals( "child_exec" ) )
         {
