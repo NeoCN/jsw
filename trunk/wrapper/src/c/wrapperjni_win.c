@@ -707,30 +707,21 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump(JNIEnv *e
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeSetConsoleTitle
- * Signature: ([B)V
+ * Signature: (Ljava/lang/String;)V
  */
 JNIEXPORT void JNICALL
-Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle(JNIEnv *env, jclass clazz, jbyteArray jTitleBytes) {
-    int len;
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle(JNIEnv *env, jclass clazz, jstring jstringTitle) {
     TCHAR *title;
-    jbyte *titleBytes;
 
-    /* The array we get from JNI is not null terminated so build our own string. */
-    len = (*env)->GetArrayLength(env, jTitleBytes) * sizeof(TCHAR);
-    title = malloc(len + 1);
+    title = JNU_GetStringNativeChars(env, jstringTitle);
     if (!title) {
         throwOutOfMemoryError(env, TEXT("NSCT1"));
     } else {
-        titleBytes = (*env)->GetByteArrayElements(env, jTitleBytes, 0);
-        memcpy(title, titleBytes, len);
-        title[len] = 0;
-        (*env)->ReleaseByteArrayElements(env, jTitleBytes, titleBytes, JNI_ABORT);
-
         if (wrapperJNIDebugging) {
             _tprintf(TEXT("WrapperJNI Debug: Setting the console title to: %s\n"), title);
             flushall();
         }
-
+        
         SetConsoleTitle(title);
 
         free(title);

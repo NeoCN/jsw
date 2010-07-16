@@ -1005,7 +1005,7 @@ public final class WrapperManager
     private static native int nativeGetControlEvent();
     private static native void nativeRequestThreadDump();
     private static native void accessViolationInner();
-    private static native void nativeSetConsoleTitle( byte[] titleBytes );
+    private static native void nativeSetConsoleTitle( String titleBytes );
     private static native WrapperUser nativeGetUser( boolean groups );
     private static native WrapperUser nativeGetInteractiveUser( boolean groups );
     private static native WrapperWin32Service[] nativeListServices();
@@ -2183,16 +2183,7 @@ public final class WrapperManager
         
         if ( m_libraryOK )
         {
-            // Convert the unicode string to a string of bytes using the default
-            //  platform encoding.
-            byte[] titleBytes = title.getBytes();
-            
-            // We need a null terminated string.
-            byte[] nullTermBytes = new byte[titleBytes.length + 1];
-            System.arraycopy( titleBytes, 0, nullTermBytes, 0, titleBytes.length );
-            nullTermBytes[titleBytes.length] = 0;
-            
-            nativeSetConsoleTitle( nullTermBytes );
+            nativeSetConsoleTitle( title );
         }
     }
     

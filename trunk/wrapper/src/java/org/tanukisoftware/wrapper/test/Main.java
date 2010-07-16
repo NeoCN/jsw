@@ -79,6 +79,7 @@ public class Main
     private static WrapperResources m_res;
     private List m_listenerFlags;
     private TextField m_serviceName;
+    private TextField m_consoleTitle;
     private TextField m_childCommand;
     private Checkbox m_childDetached;
     
@@ -162,10 +163,10 @@ public class Main
             buildCommand( panel, gridBag, c, "RestartAndReturn()", "restartandreturn",
                     getRes().getString( "Calls WrapperManager.restartAndReturn() to shutdown the current JVM and start a new one." ) );
             
-            buildCommand( panel, gridBag, c, getRes().getString("Access Violation" ), "access_violation",
+            buildCommand( panel, gridBag, c, getRes().getString( "Access Violation" ), "access_violation",
                     getRes().getString( "Attempts to cause an access violation within the JVM, relies on a JVM bug and may not work." ) );
             
-            buildCommand( panel, gridBag, c, getRes().getString("Native Access Violation" ), "access_violation_native",
+            buildCommand( panel, gridBag, c, getRes().getString( "Native Access Violation" ), "access_violation_native",
                     getRes().getString( "Causes an access violation using native code, the JVM will crash and be restarted." ) );
             
             buildCommand( panel, gridBag, c, getRes().getString( "Simulate JVM Hang" ), "appear_hung",
@@ -241,6 +242,16 @@ public class Main
             buildCommand( panel, gridBag, c, getRes().getString( "Service Stop" ), "service_stop", getRes().getString( "Stops the above service." ) );
             
             buildCommand( panel, gridBag, c, getRes().getString( "Service User Code" ), "service_user", getRes().getString( "Sends a series of user codes to the above service." ) );
+            
+            m_consoleTitle = new TextField( getRes().getString( "Java Service Wrapper" ) );
+            Panel titlePanel = new Panel();
+            titlePanel.setLayout( new BorderLayout() );
+            titlePanel.add( new Label( getRes().getString( "Console Title: " ) ), BorderLayout.WEST );
+            titlePanel.add( m_consoleTitle, BorderLayout.CENTER );
+            Panel titlePanel2 = new Panel();
+            titlePanel2.setLayout( new BorderLayout() );
+            titlePanel2.add( titlePanel, BorderLayout.WEST );
+            buildCommand( panel, gridBag, c, getRes().getString( "Set Console Title" ), "console_title", titlePanel2 );
             
             m_childCommand = new TextField( getRes().getString( "(Please enter command)" ) );
             m_childDetached = new Checkbox( getRes().getString( "Detached  (Professional)" ), false);
@@ -334,6 +345,7 @@ public class Main
             }
             
             setServiceName( m_serviceName.getText() );
+            setConsoleTitle( m_consoleTitle.getText() );
             setChildParams( m_childCommand.getText(), m_childDetached.getState() );
             
             Main.this.doAction( action );
