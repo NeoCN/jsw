@@ -41,6 +41,7 @@ barf
 #include <tlhelp32.h>
 #include <windows.h>
 #include <winnt.h>
+#include <Sddl.h>
 #include "wrapper_i18n.h"
 #include "wrapperjni.h"
 
@@ -207,76 +208,6 @@ void throwServiceException(JNIEnv *env, int errorCode, const TCHAR *message) {
 }
 
 /**
- * Generates a text representation of an SID.
- *
- * Code in this function is based on public domain example code on the Microsoft site:
- * http://msdn.microsoft.com/library/default.asp?url=/library/en-us/secauthz/security/converting_a_binary_sid_to_string_format_in_c__.asp
- * Use of this code has no affect on the license of this source file.
- */
-BOOL GetTextualSid(
-    PSID pSid,            /* binary Sid */
-    LPTSTR TextualSid,    /* buffer for Textual representation of Sid */
-    LPDWORD lpdwBufferLen /* required/provided TextualSid buffersize */
-    ) {
-    PSID_IDENTIFIER_AUTHORITY psia;
-    DWORD dwSubAuthorities;
-    DWORD dwSidRev=SID_REVISION;
-    DWORD dwCounter;
-    DWORD dwSidSize;
-
-    /* Validate the binary SID. */
-    if (!IsValidSid(pSid)) return FALSE;
-    /* Get the identifier authority value from the SID. */
-
-    psia = GetSidIdentifierAuthority(pSid);
-
-    /* Get the number of subauthorities in the SID. */
-
-    dwSubAuthorities = *GetSidSubAuthorityCount(pSid);
-
-    /* Compute the buffer length. */
-    /* S-SID_REVISION- + IdentifierAuthority- + subauthorities- + NULL */
-
-    dwSidSize = (15 + 12 + (12 * dwSubAuthorities) + 1) * sizeof(TCHAR);
-    /* Check input buffer length. */
-    /* If too small, indicate the proper size and set last error. */
-
-    if (*lpdwBufferLen < dwSidSize) {
-        *lpdwBufferLen = dwSidSize;
-        SetLastError(ERROR_INSUFFICIENT_BUFFER);
-        return FALSE;
-    }
-
-    /* Add 'S' prefix and revision number to the string. */
-
-    dwSidSize = wsprintf(TextualSid, TEXT("S-%lu-"), dwSidRev);
-    /* Add SID identifier authority to the string. */
-    if ((psia->Value[0] != 0) || (psia->Value[1] != 0)) {
-        dwSidSize += wsprintf(TextualSid + lstrlen(TextualSid),
-                    TEXT("0x%02hx%02hx%02hx%02hx%02hx%02hx"),
-                    (USHORT)psia->Value[0],
-                    (USHORT)psia->Value[1],
-                    (USHORT)psia->Value[2],
-                    (USHORT)psia->Value[3],
-                    (USHORT)psia->Value[4],
-                    (USHORT)psia->Value[5]);
-    } else {
-        dwSidSize += wsprintf(TextualSid + lstrlen(TextualSid),
-                    TEXT("%lu"),
-                    (ULONG)(psia->Value[5]) +
-                    (ULONG)(psia->Value[4] <<  8) +
-                    (ULONG)(psia->Value[3] << 16) +
-                    (ULONG)(psia->Value[2] << 24));
-    }
-    /* Add SID subauthorities to the string. */
-    for (dwCounter = 0 ; dwCounter < dwSubAuthorities ; dwCounter++) {
-        dwSidSize += wsprintf(TextualSid + dwSidSize, TEXT("-%lu"),
-                    *GetSidSubAuthority(pSid, dwCounter));
-    }
-    return TRUE;
-}
-
-/**
  * Converts a FILETIME to a time_t structure.
  */
 time_t fileTimeToTimeT(FILETIME *filetime) {
@@ -372,7 +303,6 @@ setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HANDLE 
     DWORD tokenGroupsSize;
     DWORD i;
 
-    DWORD sidTextSize;
     TCHAR *sidText;
     TCHAR *groupName;
     DWORD groupNameSize;
@@ -380,14 +310,14 @@ setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HANDLE 
     DWORD domainNameSize;
     SID_NAME_USE sidType;
 
-    jbyteArray jSID;
-    jbyteArray jGroupName;
-    jbyteArray jDomainName;
+    jstring jstringSID;
+    jstring jstringGroupName;
+    jstring jstringDomainName;
 
     int result = FALSE;
 
     /* Look for the method used to add groups to the user. */
-    if (addGroup = (*env)->GetMethodID(env, wrapperUserClass, "addGroup", "([B[B[B)V")) {
+    if (addGroup = (*env)->GetMethodID(env, wrapperUserClass, "addGroup", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V")) {
         /* Get the TokenGroups info from the token. */
         GetTokenInformation(hProcessToken, TokenGroups, NULL, 0, &tokenGroupsSize);
         tokenGroups = (TOKEN_GROUPS *)malloc(tokenGroupsSize);
@@ -399,15 +329,10 @@ setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HANDLE 
                 /* Loop over each of the groups and add each one to the user. */
                 for (i = 0; i < tokenGroups->GroupCount; i++) {
                     /* Get the text representation of the sid. */
-                    sidTextSize = 0;
-                    GetTextualSid(tokenGroups->Groups[i].Sid, NULL, &sidTextSize);
-                    sidText = (TCHAR*)malloc(sizeof(TCHAR) * sidTextSize);
-                    if (!sidText) {
-                        throwOutOfMemoryError(env, TEXT("SUG2"));
+                    if (ConvertSidToStringSid(tokenGroups->Groups[i].Sid, &sidText) == 0) {
+                        _tprintf(TEXT("Failed to Convert SId to String: %s\n"), getLastErrorText());
                         result = TRUE;
                     } else {
-                        GetTextualSid(tokenGroups->Groups[i].Sid, sidText, &sidTextSize);
-
                         /* We now have an SID, use it to lookup the account. */
                         groupNameSize = 0;
                         domainNameSize = 0;
@@ -423,28 +348,36 @@ setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HANDLE 
                                 result = TRUE;
                             } else {
                                 if (LookupAccountSid(NULL, tokenGroups->Groups[i].Sid, groupName, &groupNameSize, domainName, &domainNameSize, &sidType)) {
-                                    /*printf("WrapperJNI Debug: SID=%s, group=%s/%s\n", sidText, domainName, groupName);*/
-
                                     /* Create the arguments to the constructor as java objects */
-
                                     /* SID byte array */
-                                    jSID = (*env)->NewByteArray(env, (jsize)_tcslen(sidText));
-                                    JNU_SetByteArrayRegion(env, &jSID, 0, (jsize)_tcslen(sidText), sidText);
-
-                                    /* GroupName byte array */
-                                    jGroupName = (*env)->NewByteArray(env, (jsize)_tcslen(groupName));
-                                    JNU_SetByteArrayRegion(env, &jGroupName, 0, (jsize)_tcslen(groupName), groupName);
-
-                                    /* DomainName byte array */
-                                    jDomainName = (*env)->NewByteArray(env, (jsize)_tcslen(domainName));
-                                    JNU_SetByteArrayRegion(env, &jDomainName, 0, (jsize)_tcslen(domainName), domainName);
-
-                                    /* Now actually add the group to the user. */
-                                    (*env)->CallVoidMethod(env, wrapperUser, addGroup, jSID, jGroupName, jDomainName);
-
-                                    (*env)->DeleteLocalRef(env, jSID);
-                                    (*env)->DeleteLocalRef(env, jGroupName);
-                                    (*env)->DeleteLocalRef(env, jDomainName);
+                                    jstringSID = JNU_NewStringNative(env, sidText);
+                                    if (jstringSID) {
+                                        /* GroupName byte array */
+                                        jstringGroupName = JNU_NewStringNative(env, groupName);
+                                        if (jstringGroupName) {
+                                            /* DomainName byte array */
+                                            jstringDomainName = JNU_NewStringNative(env, domainName);
+                                            if (jstringDomainName) {
+                                                /* Now actually add the group to the user. */
+                                                (*env)->CallVoidMethod(env, wrapperUser, addGroup, jstringSID, jstringGroupName, jstringDomainName);
+                                                
+                                                (*env)->DeleteLocalRef(env, jstringDomainName);
+                                            } else {
+                                                /* Exception Thrown */
+                                                break;
+                                            }
+                                            
+                                            (*env)->DeleteLocalRef(env, jstringGroupName);
+                                        } else {
+                                            /* Exception Thrown */
+                                            break;
+                                        }
+                                        
+                                        (*env)->DeleteLocalRef(env, jstringSID);
+                                    } else {
+                                        /* Exception Thrown */
+                                        break;
+                                    }
                                 } else {
                                     /* This is normal as some accounts do not seem to be mappable. */
                                     /*
@@ -457,10 +390,9 @@ setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HANDLE 
 
                             free(groupName);
                         }
-
-                        free(sidText);
+                        
+                        LocalFree(sidText);
                     }
-                    free(groupName);
                 }
             } else {
                 _tprintf(TEXT("WrapperJNI Error: Unable to get token information: %s\n"), getLastErrorText());
@@ -469,6 +401,8 @@ setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HANDLE 
 
             free(tokenGroups);
         }
+    } else {
+        /* Exception Thrown */
     }
 
     return result;
@@ -485,7 +419,6 @@ createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean groups) {
     TOKEN_USER *tokenUser;
     DWORD tokenUserSize;
 
-    DWORD sidTextSize;
     TCHAR *sidText;
     TCHAR *userName;
     DWORD userNameSize;
@@ -496,9 +429,9 @@ createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean groups) {
 
     jclass wrapperUserClass;
     jmethodID constructor;
-    jbyteArray jSID;
-    jbyteArray jUserName;
-    jbyteArray jDomainName;
+    jstring jstringSID;
+    jstring jstringUserName;
+    jstring jstringDomainName;
     jobject wrapperUser = NULL;
 
     if (hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, processId)) {
@@ -510,14 +443,9 @@ createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean groups) {
             } else {
                 if (GetTokenInformation(hProcessToken, TokenUser, tokenUser, tokenUserSize, &tokenUserSize)) {
                     /* Get the text representation of the sid. */
-                    sidTextSize = 0;
-                    GetTextualSid(tokenUser->User.Sid, NULL, &sidTextSize);
-                    sidText = (TCHAR*)malloc(sizeof(TCHAR) * sidTextSize);
-                    if (!sidText) {
-                        throwOutOfMemoryError(env, TEXT("CWUFP2"));
+                    if (ConvertSidToStringSid(tokenUser->User.Sid, &sidText) == 0) {
+                        _tprintf(TEXT("Failed to Convert SId to String: %s\n"), getLastErrorText());
                     } else {
-                        GetTextualSid(tokenUser->User.Sid, sidText, &sidTextSize);
-
                         /* We now have an SID, use it to lookup the account. */
                         userNameSize = 0;
                         domainNameSize = 0;
@@ -531,7 +459,6 @@ createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean groups) {
                                 throwOutOfMemoryError(env, TEXT("CWUFP4"));
                             } else {
                                 if (LookupAccountSid(NULL, tokenUser->User.Sid, userName, &userNameSize, domainName, &domainNameSize, &sidType)) {
-
                                     /* Get the time that this user logged in. */
                                     loginTime = getUserLoginTime(sidText);
 
@@ -539,38 +466,49 @@ createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean groups) {
                                     if (wrapperUserClass = (*env)->FindClass(env, "org/tanukisoftware/wrapper/WrapperWin32User")) {
 
                                         /* Look for the constructor. Ignore failures. */
-                                        if (constructor = (*env)->GetMethodID(env, wrapperUserClass, "<init>", "([B[B[BI)V")) {
+                                        if (constructor = (*env)->GetMethodID(env, wrapperUserClass, "<init>", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V")) {
 
                                             /* Create the arguments to the constructor as java objects */
-
                                             /* SID byte array */
-                                            jSID = (*env)->NewByteArray(env, (jsize)_tcslen(sidText));
-                                            JNU_SetByteArrayRegion(env, &jSID, 0, (jsize)_tcslen(sidText), sidText);
-
-                                            /* UserName byte array */
-                                            jUserName = (*env)->NewByteArray(env, (jsize)_tcslen(userName));
-                                            JNU_SetByteArrayRegion(env, &jUserName, 0, (jsize)_tcslen(userName), userName);
-
-                                            /* DomainName byte array */
-                                            jDomainName = (*env)->NewByteArray(env, (jsize)_tcslen(domainName));
-                                            JNU_SetByteArrayRegion(env, &jDomainName, 0, (jsize)_tcslen(domainName), domainName);
-
-                                            /* Now create the new wrapperUser using the constructor arguments collected above. */
-                                            wrapperUser = (*env)->NewObject(env, wrapperUserClass, constructor, jSID, jUserName, jDomainName, loginTime);
-
-                                            /* If the caller requested the user's groups then look them up. */
-                                            if (groups) {
-                                                if (setUserGroups(env, wrapperUserClass, wrapperUser, hProcessToken)) {
-                                                    /* Failed. Just continue without groups. */
+                                            jstringSID = JNU_NewStringNative(env, sidText);
+                                            if (jstringSID) {
+                                                /* UserName byte array */
+                                                jstringUserName = JNU_NewStringNative(env, userName);
+                                                if (jstringUserName) {
+                                                    /* DomainName byte array */
+                                                    jstringDomainName = JNU_NewStringNative(env, domainName);
+                                                    if (jstringDomainName) {
+                                                        /* Now create the new wrapperUser using the constructor arguments collected above. */
+                                                        wrapperUser = (*env)->NewObject(env, wrapperUserClass, constructor, jstringSID, jstringUserName, jstringDomainName, loginTime);
+                                                        
+                                                        /* If the caller requested the user's groups then look them up. */
+                                                        if (groups) {
+                                                            if (setUserGroups(env, wrapperUserClass, wrapperUser, hProcessToken)) {
+                                                                /* Failed. Just continue without groups. */
+                                                            }
+                                                        }
+                                                        
+                                                        (*env)->DeleteLocalRef(env, jstringDomainName);
+                                                    } else {
+                                                        /* Exception Thrown */
+                                                    }
+                                                    
+                                                    (*env)->DeleteLocalRef(env, jstringUserName);
+                                                } else {
+                                                    /* Exception Thrown */
                                                 }
+                                                
+                                                (*env)->DeleteLocalRef(env, jstringSID);
+                                            } else {
+                                                /* Exception Thrown */
                                             }
-
-                                            (*env)->DeleteLocalRef(env, jSID);
-                                            (*env)->DeleteLocalRef(env, jUserName);
-                                            (*env)->DeleteLocalRef(env, jDomainName);
+                                        } else {
+                                            /* Exception Thrown */
                                         }
 
                                         (*env)->DeleteLocalRef(env, wrapperUserClass);
+                                    } else {
+                                        /* Exception Thrown */
                                     }
                                 } else {
                                     /* This is normal as some accounts do not seem to be mappable. */
@@ -585,7 +523,7 @@ createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean groups) {
                             free(userName);
                         }
 
-                        free(sidText);
+                        LocalFree(sidText);
                     }
                 } else {
                     _tprintf(TEXT("WrapperJNI Error: Unable to get token information: %s\n"), getLastErrorText());
@@ -1167,8 +1105,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
                                             threwError = TRUE;
                                         } else {
                                             /* Now get the display name for real. */
-                                            GetServiceDisplayName(hSCManager, serviceName, displayName, &displayNameSize);
-                                            if (GetLastError()) {
+                                            if ((GetServiceDisplayName(hSCManager, serviceName, displayName, &displayNameSize) == 0) && GetLastError()) {
                                                 _sntprintf(buffer, bufferSize, TEXT("Unable to obtain the display name of service \"%s\": %s"), serviceName, getLastErrorText());
                                                 throwServiceException(env, GetLastError(), buffer);
                                                 threwError = TRUE;

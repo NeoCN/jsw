@@ -42,15 +42,15 @@ public class WrapperUNIXUser
     /*---------------------------------------------------------------
      * Constructors
      *-------------------------------------------------------------*/
-    WrapperUNIXUser( int uid, int gid, byte[] user, byte[] realName, byte[] home, byte[] shell )
+    WrapperUNIXUser( int uid, int gid, String user, String realName, String home, String shell )
     {
         super( user );
         
         m_uid = uid;
         m_gid = gid;
-        m_realName = new String( realName );
-        m_home = new String( home );
-        m_shell = new String( shell );
+        m_realName = realName;
+        m_home = home;
+        m_shell = shell;
 
         // The real name field appears to contain several fields, we only want the first.
         int pos = m_realName.indexOf( ',' );
@@ -129,13 +129,19 @@ public class WrapperUNIXUser
         return m_shell;
     }
     
-    void setGroup( int gid, byte[] name )
+    /**
+     * Called by native code to set the primary Group of the User.
+     */
+    private void setGroup( int gid, String name )
     {
         m_group = new WrapperUNIXGroup( gid, name );
         addGroup( m_group );
     }
 
-    void addGroup( int gid, byte[] name )
+    /**
+     * Called by native code to add a Group to the User.
+     */
+    private void addGroup( int gid, String name )
     {
         addGroup( new WrapperUNIXGroup( gid, name ) );
     }

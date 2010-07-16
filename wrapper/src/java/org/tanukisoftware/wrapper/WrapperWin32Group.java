@@ -29,13 +29,13 @@ public class WrapperWin32Group
     /*---------------------------------------------------------------
      * Constructors
      *-------------------------------------------------------------*/
-    WrapperWin32Group( byte[] sid, byte[] user, byte[] domain )
+    WrapperWin32Group( String sid, String user, String domain )
     {
         super( user );
         
         // Decode the parameters using the default system encoding.
-        m_sid = new String( sid );
-        m_domain = new String( domain );
+        m_sid = sid;
+        m_domain = domain;
     }
     
     /*---------------------------------------------------------------

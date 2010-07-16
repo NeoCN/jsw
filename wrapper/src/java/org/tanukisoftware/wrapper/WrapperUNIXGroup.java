@@ -26,7 +26,7 @@ public class WrapperUNIXGroup
     /*---------------------------------------------------------------
      * Constructors
      *-------------------------------------------------------------*/
-    WrapperUNIXGroup( int gid, byte[] name )
+    WrapperUNIXGroup( int gid, String name )
     {
         super( name );
 

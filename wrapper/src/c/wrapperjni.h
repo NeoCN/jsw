@@ -90,8 +90,19 @@ extern int wrapperLockControlEventQueue();
 extern int wrapperReleaseControlEventQueue();
 extern void wrapperJNIHandleSignal(int signal);
 extern void throwThrowable(JNIEnv *env, char *throwableClassName, const TCHAR *lpszFmt, ...);
-extern jstring JNU_NewStringNative(JNIEnv *env, const TCHAR *str);
+
+/**
+ * Create a jstring from a Wide Char string.  The jstring must be freed up by caller.
+ *
+ * @param env The current JNIEnv.
+ * @param strW The Wide string to convert.
+ *
+ * @return The new jstring or NULL if there were any exceptions thrown.
+ */
+extern jstring JNU_NewStringNative(JNIEnv *env, const TCHAR *strW);
+
 extern TCHAR* JNU_GetStringNativeChars(JNIEnv *env, jstring jstr);
+
 extern void JNU_SetByteArrayRegion(JNIEnv *env, jbyteArray *jarray, jsize start, jsize len, const TCHAR *buffer);
 
 /**
