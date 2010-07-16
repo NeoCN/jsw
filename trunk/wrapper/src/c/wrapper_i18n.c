@@ -266,6 +266,25 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
 
     /* now store the result into a wchar_t */
     wideCharLen = mbstowcs(NULL, nativeCharStart, 0);
+    if (wideCharLen == -1) {
+        if (didIConv) {
+            free(nativeCharStart);
+        }
+        if (errno == EILSEQ) {
+            errorTemplate = (localizeErrorMessage ? TEXT("Invalid multibyte sequence.") : TEXT("Invalid multibyte sequence."));
+            errorTemplateLen = _tcslen(errorTemplate) + 1;
+        } else {
+            errorTemplate = (localizeErrorMessage ? TEXT("Unexpected iconv error: %d") : TEXT("Unexpected iconv error: %d"));
+            errorTemplateLen = _tcslen(errorTemplate) + 10 + 1;
+        }
+        *outputBufferW = malloc(sizeof(TCHAR) * errorTemplateLen);
+        if (*outputBufferW) {
+            _sntprintf(*outputBufferW, errorTemplateLen, errorTemplate, errno);
+        } else {
+            /* Out of memory. *outputBufferW already NULL. */
+        }
+        return TRUE;
+    }
     *outputBufferW = malloc(sizeof(wchar_t) * (wideCharLen + 1));
     if (!(*outputBufferW)) {
         /* Out of memory. *outputBufferW already NULL. */

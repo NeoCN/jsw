@@ -23,6 +23,15 @@ Java Service Wrapper Revision History.
 * Fix a problem on Windows where wildcards would sometimes fail to be resolved
   or cause the Wrapper to crash.  This affected the generation of classpaths
   and logfile rolling.  Introduced in 3.5.0.
+* Fix a problem on UNIX platforms where some error messages related to a failed
+  fork to launch the JVM were not being logged correctly.  Introduced in 3.5.0.
+* Fix a problem where invalid characters in configuration files that did not
+  declare an encoding could cause the Wrapper to crash on startup.  This could
+  be issue for users upgrading from versions prior to 3.5.0 as older versions
+  did not do any character set translations and would not have had a problem.
+* Fix a problem in code to check whether a drive was a mapped network drive or
+  not was failing.  This would sometimes lead to a false warning that the drive
+  could not be identified.  Introduced in 3.5.0.
 
 3.5.1
 * Start using a system function to determine whether or not a character in the

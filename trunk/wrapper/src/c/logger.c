@@ -238,10 +238,10 @@ TCHAR *replaceStringLongWithShort(TCHAR *string, const TCHAR *oldToken, const TC
     }
 
     while (in[0] != L'\0') {
-        if (memcmp(in, oldToken, oldLen) == 0) {
+        if (_tcsncmp(in, oldToken, oldLen) == 0) {
             /* Found the oldToken.  Replace it with the new. */
             if (newLen > 0) {
-                memcpy(out, newToken, newLen);
+                _tcsncpy(out, newToken, newLen);
             }
             in += oldLen;
             out += newLen;
@@ -1109,19 +1109,19 @@ int log_printf_message( int source_id, int level, int threadId, int queued, TCHA
         pos = (TCHAR *)(message + _tcslen(LOG_SPECIAL_MARKER) + 1);
 
         /* source_id */
-        memcpy(intBuffer, pos, 2);
+        _tcsncpy(intBuffer, pos, 2);
         intBuffer[2] = TEXT('\0');
         source_id = _ttoi(intBuffer);
         pos += 3;
 
         /* level */
-        memcpy(intBuffer, pos, 2);
+        _tcsncpy(intBuffer, pos, 2);
         intBuffer[2] = TEXT('\0');
         level = _ttoi(intBuffer);
         pos += 3;
 
         /* threadId */
-        memcpy(intBuffer, pos, 2);
+        _tcsncpy(intBuffer, pos, 2);
         intBuffer[2] = TEXT('\0');
         threadId = _ttoi(intBuffer);
         pos += 3;

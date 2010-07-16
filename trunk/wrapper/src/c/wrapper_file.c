@@ -601,7 +601,7 @@ int wrapperGetUNCFilePath(const TCHAR *path, int advice) {
 
     /* See if the path starts with a drive.  Some users use forward slashes in the paths. */
     if ((path != NULL) && (_tcslen(path) >= 3) && (path[1] == TEXT(':')) && ((path[2] == TEXT('\\')) || (path[2] == TEXT('/')))) {
-        memcpy(drive, path, 2);
+        _tcsncpy(drive, path, 2);
         drive[2] = TEXT('\\');
         drive[3] = TEXT('\0');
         result = GetDriveType(drive);
