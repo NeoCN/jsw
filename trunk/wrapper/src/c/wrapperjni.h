@@ -66,8 +66,8 @@ extern char *utf8SigVrLjavaUtilProperties;
 extern char *utf8ClassOrgTanukisoftwareWrapperWrapperUNIXUser;
 extern char *utf8MethodSetGroup;
 extern char *utf8MethodAddGroup;
-extern char *utf8SigII_B_B_B_BrV;
-extern char *utf8SigI_BrV;
+extern char *utf8SigIIStringStringStringStringrV;
+extern char *utf8SigIStringrV;
 extern char *utf8ClassOrgTanukisoftwareWrapperWrapperProcess;
 extern char *utf8m_ptr;
 extern char* utf8SigBLJavaLangStringrV;
@@ -77,6 +77,7 @@ extern char* utf8ClassJavaLangError;
 extern char* utf8javaLangNullPointerException;
 extern char* utf8javalangIllegalArgumentException;
 extern char* utf8javalangUnsatisfiedLinkError;
+extern jstring JNU_NewStringFromNativeChar(JNIEnv *env, const char *str);
 
 #endif
 

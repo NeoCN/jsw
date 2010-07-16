@@ -20,6 +20,7 @@ Java Service Wrapper Revision History.
   and WrapperManager.sendServiceControlCode() methods.  There was a similar
   problem with the WrapperManger.getUser() and
   WrapperManager.getInteractiveUser() methods.  Introduced in 3.5.0.
+* Fix a problem where wildcards couldn't been resolved. Introduced in 3.5.0.
 
 3.5.1
 * Start using a system function to determine whether or not a character in the

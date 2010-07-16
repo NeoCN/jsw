@@ -75,8 +75,8 @@ char *utf8ClassJavaLangError;
 char *utf8ClassOrgTanukisoftwareWrapperWrapperUNIXUser;
 char *utf8MethodSetGroup;
 char *utf8MethodAddGroup;
-char *utf8SigII_B_B_B_BrV;
-char *utf8SigI_BrV;
+char *utf8SigIIStringStringStringStringrV;
+char *utf8SigIStringrV;
 #endif
 
 char *utf8SigLjavaLangStringrV;
@@ -210,10 +210,10 @@ jstring JNU_NewStringNative(JNIEnv *env, const TCHAR *strW) {
         return NULL; /* out of memory error */
     }
     len = strlen(msgMB);
-    if (jBytes = (*env)->NewByteArray(env, (jsize)len)) {
+    if ((jBytes = (*env)->NewByteArray(env, (jsize)len))) {
         (*env)->SetByteArrayRegion(env, jBytes, 0, (jsize)len, (jbyte*)msgMB);
-        if (jClassString = (*env)->FindClass(env, utf8ClassJavaLangString)) {
-            if (MID_String_init = (*env)->GetMethodID(env, jClassString, utf8MethodInit, utf8Sig_BrV)) {
+        if ((jClassString = (*env)->FindClass(env, utf8ClassJavaLangString))) {
+            if ((MID_String_init = (*env)->GetMethodID(env, jClassString, utf8MethodInit, utf8Sig_BrV))) {
                 result = (*env)->NewObject(env, jClassString, MID_String_init, jBytes);
             } else {
                 /* Exception Thrown */
@@ -410,8 +410,8 @@ void initUTF8Strings(JNIEnv *env) {
     utf8ClassOrgTanukisoftwareWrapperWrapperUNIXUser = getUTF8Chars(env, "org/tanukisoftware/wrapper/WrapperUNIXUser");
     utf8MethodSetGroup = getUTF8Chars(env, "setGroup");
     utf8MethodAddGroup = getUTF8Chars(env, "addGroup");
-    utf8SigII_B_B_B_BrV = getUTF8Chars(env, "(II[B[B[B[B)V");
-    utf8SigI_BrV = getUTF8Chars(env, "(I[B)V");
+    utf8SigIIStringStringStringStringrV = getUTF8Chars(env, "(IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+    utf8SigIStringrV = getUTF8Chars(env, "(ILjava/lang/String;)V");
 #endif
     utf8ClassJavaLangSystem = getUTF8Chars(env, "java/lang/System");
     utf8MethodGetProperties = getUTF8Chars(env, "getProperties");

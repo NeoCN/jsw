@@ -469,13 +469,13 @@ createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean groups) {
                                         if (constructor = (*env)->GetMethodID(env, wrapperUserClass, "<init>", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V")) {
 
                                             /* Create the arguments to the constructor as java objects */
-                                            /* SID byte array */
+                                            /* SID */
                                             jstringSID = JNU_NewStringNative(env, sidText);
                                             if (jstringSID) {
-                                                /* UserName byte array */
+                                                /* UserName */
                                                 jstringUserName = JNU_NewStringNative(env, userName);
                                                 if (jstringUserName) {
-                                                    /* DomainName byte array */
+                                                    /* DomainName */
                                                     jstringDomainName = JNU_NewStringNative(env, domainName);
                                                     if (jstringDomainName) {
                                                         /* Now create the new wrapperUser using the constructor arguments collected above. */
