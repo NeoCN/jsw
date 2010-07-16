@@ -2347,7 +2347,7 @@ int buildServiceBinaryPath(TCHAR *buffer, size_t *reqBufferSize) {
     /* If the moduleFileName contains spaces, it needs to be quoted */
     /* Resolve to UNC-Name if we are on a mapped drive */
     if ((_tcslen(moduleFileName) >= 3) && (moduleFileName[1] == TEXT(':')) && (moduleFileName[2] == TEXT('\\'))) {
-        memcpy(drive, moduleFileName, 3);
+        _tcsncpy(drive, moduleFileName, 3);
         drive[3] = TEXT('\0');
     } else {
         drive[0] = TEXT('\0');
