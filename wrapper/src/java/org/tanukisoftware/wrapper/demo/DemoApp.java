@@ -144,15 +144,8 @@ public class DemoApp implements WrapperListener
     public Integer start( String[] args )
     {
         String command;
-        System.out.println( "Demo: start()" );
-        /*for ( int i = 0; i < args.length; i++ )
-        {
-            System.out.print( args[i] + " " );
-        }
-*/
         if ( args.length <= 0 )
         {
-            System.out.println( getRes().getString( "Demo: An action was not specified.  Default to \"dialog\"." ) );
             command = "dialog";
         }
         else
@@ -161,6 +154,7 @@ public class DemoApp implements WrapperListener
         }
         if ( command.equals( "dialog" ) )
         {
+            System.out.println( "Demo: start()" );
             System.out.println( getRes().getString( "Demo: Showing dialog..." ) );
             try
             {
@@ -182,6 +176,7 @@ public class DemoApp implements WrapperListener
                 System.out.println( getRes().getString( "Demo: ERROR - Unable to display the GUI:" ) );
                 System.out.println( "Demo:           " + e.toString() );
                 System.out.println( "Demo: " );
+                System.out.println( getRes().getString( "Demo: This demo requires a display to show its GUI.  Exiting..." ) );
                 command = "console";
             }
             catch ( java.awt.AWTError e )
@@ -190,6 +185,7 @@ public class DemoApp implements WrapperListener
                 System.out.println( getRes().getString( "Demo: ERROR - Unable to display the GUI:" ) );
                 System.out.println( "Demo:           " + e.toString() );
                 System.out.println( "Demo: " );
+                System.out.println( getRes().getString( "Demo: This demo requires a display to show its GUI.  Exiting..." ) );
                 command = "console";
             }
             catch ( java.lang.UnsupportedOperationException e )
@@ -202,6 +198,7 @@ public class DemoApp implements WrapperListener
                     System.out.println( getRes().getString( "Demo: ERROR - Unable to display the GUI:" ) );
                     System.out.println( "Demo:           " + e.toString() );
                     System.out.println( "Demo: " );
+                    System.out.println( getRes().getString( "Demo: This demo requires a display to show its GUI.  Exiting..." ) );
                     command = "console";
                 }
                 else
@@ -209,6 +206,167 @@ public class DemoApp implements WrapperListener
                     throw e;
                 }
             }
+        }
+        else if ( command.equals( "start" ) )
+        {
+            Thread commandRunner = new Thread( "DemoApp-Command-Runner" ) {
+                public void run() {
+                    BufferedReader br = new BufferedReader( new InputStreamReader( System.in ) );
+                    String command = "";
+                    System.out.println( getRes().getString( "Started and waiting for a command from the Demo Application" ) );
+                    while ( command.compareToIgnoreCase( "finish" ) != 0 )
+                    {
+                        try
+                        {
+                            command = br.readLine();
+                            System.out.println( getRes().getString( "Read action: {0}", command ) );
+        
+                            if ( command.equals( "crash" ) )
+                            {
+                                Thread.sleep( 5000 );
+                                System.out.println( getRes().getString( "Going to cause the JVM to crash." ) );
+        
+                                WrapperManager.accessViolationNative();
+                            }
+                            else if ( command.equals( "frozen" ) )
+                            {
+                                WrapperManager.appearHung();
+                                System.out.println( getRes().getString( "Waiting until wrapper stops this jvm." ) );
+                                while ( true )
+                                {
+                                }
+                            }
+                            else if ( command.equals( "out_of_mem" ) )
+                            {
+                                int ii = 5 - 3;
+                                System.out.println( getRes().getString( "Going to cause a Out of Memory Error" ) );
+                                Thread.sleep( 5000 );
+                                // System.out.println("got java.lang.OutOfMemoryError");
+                                if ( 5 > ii )
+                                {
+                                    getOutOfMemError();
+                                }
+                                System.out.println( getRes().getString( "Application should get restarted now..." ) );
+                                try
+                                {
+                                    Thread.sleep( 5000 );
+                                }
+                                catch ( InterruptedException e )
+                                {
+                                    // TODO Auto-generated catch block
+                                    e.printStackTrace();
+                                }
+                            }
+                            else if ( command.equals( "deadlock" ) )
+                            {
+                                if ( WrapperManager.isStandardEdition() )
+                                {
+                                    System.out.println( getRes().getString( "Dead Lock Tester Running..." ) );
+                                    Object obj1 = new Object();
+                                    Object obj2 = new Object();
+                                    int exitCode = 1;
+                                    DeadLock dl = new DeadLock( 1, obj1, obj2 );
+                                    switch ( exitCode )
+                                    {
+                                        case 1:
+                                            System.out.println( getRes().getString( "2-object dead lock." ) );
+                                            dl.create2ObjectDeadlock();
+                                            break;
+                                        case 2:
+                                            System.out.println( getRes().getString( "Wait then 2-object dead lock." ) );
+                                            try
+                                            {
+                                                Thread.sleep( 10000 );
+                                            }
+                                            catch ( InterruptedException e )
+                                            {
+                                            }
+                                            dl.create2ObjectDeadlock();
+                                            break;
+                                        case 3:
+                                            System.out.println( getRes().getString( "3-object dead lock." ) );
+                                            dl.create3ObjectDeadlock();
+                                            break;
+            
+                                        default:
+                                            System.out.println( getRes().getString( "Done." ) );
+                                    }
+                                    // Always wait a couple seconds to make sure the above
+                                    // threads have time to start.
+                                    try
+                                    {
+                                        System.out.println( getRes().getString( "Sleeping for 5 sec..." ) );
+                                        Thread.sleep( 5000 );
+                                    }
+                                    catch ( InterruptedException e )
+                                    {
+                                    }
+                                    System.out.println( getRes().getString( "Main Complete." ) );
+                                }
+                                else
+                                {
+                                    System.out.println( getRes().getString( "Deadlock checks require at least the Standard Edition." ) );
+                                }
+                            }
+                            else if ( command.indexOf( "exec" ) == 0 )
+                            {
+                                try
+                                {
+                                    String input = command.substring(5);
+                                    System.out.println( getRes().getString( "Starting a simple application: " ) + input );
+                                   
+                                    if ( input != null && input.length() > 0 )
+                                    {
+                                        WrapperManager.exec( input, new WrapperProcessConfig().setDetached( false ) );
+                                        System.out.println( getRes().getString( "Successfully executed!") );
+                                    }
+                                }
+                                catch ( SecurityException e )
+                                {
+                                    e.printStackTrace();
+                                }
+                                catch ( NullPointerException e )
+                                {
+                                    e.printStackTrace();
+                                }
+                                catch ( IllegalArgumentException e )
+                                {
+                                    e.printStackTrace();
+                                }
+                                catch ( UnsatisfiedLinkError e )
+                                {
+                                    e.printStackTrace();
+                                }
+                                catch ( IOException e )
+                                {
+                                    e.printStackTrace();
+                                }
+                                catch ( WrapperJNIError e )
+                                {
+                                    e.printStackTrace();
+                                }
+                                catch ( WrapperLicenseError e )
+                                {
+                                    e.printStackTrace();
+                                }
+                            }
+        
+                        }
+                        catch ( IOException e )
+                        {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
+                        catch ( InterruptedException e )
+                        {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            };
+            commandRunner.start();
+            
         }
         return null;
     }
@@ -571,161 +729,6 @@ public class DemoApp implements WrapperListener
     {
         System.out.println( getRes().getString( "DemoApp: Initializing..." ) );
         WrapperManager.start( ( new DemoApp() ), args );
-        if ( args.length > 0 && args[args.length - 1].compareTo( "start" ) == 0 )
-        {
-            BufferedReader br = new BufferedReader( new InputStreamReader( System.in ) );
-            String command = "";
-            System.out.println( getRes().getString( "Started and waiting for a command from the Demo Application" ) );
-            while ( command.compareToIgnoreCase( "finish" ) != 0 )
-            {
-                try
-                {
-                    command = br.readLine();
-                    System.out.println( getRes().getString( "Read action: {0}", command ) );
-
-                    if ( command.equals( "crash" ) )
-                    {
-                        Thread.sleep( 5000 );
-                        System.out.println( getRes().getString( "Going to cause the JVM to crash." ) );
-
-                        WrapperManager.accessViolationNative();
-                    }
-                    else if ( command.equals( "frozen" ) )
-                    {
-                        WrapperManager.appearHung();
-                        System.out.println( getRes().getString( "Waiting until wrapper stops this jvm." ) );
-                        while ( true )
-                        {
-                        }
-                    }
-                    else if ( command.equals( "out_of_mem" ) )
-                    {
-                        int ii = 5 - 3;
-                        System.out.println( getRes().getString( "Going to cause a Out of Memory Error" ) );
-                        Thread.sleep( 5000 );
-                        // System.out.println("got java.lang.OutOfMemoryError");
-                        if ( 5 > ii )
-                        {
-                            getOutOfMemError();
-                        }
-                        System.out.println( getRes().getString( "Application should get restarted now..." ) );
-                        try
-                        {
-                            Thread.sleep( 5000 );
-                        }
-                        catch ( InterruptedException e )
-                        {
-                            // TODO Auto-generated catch block
-                            e.printStackTrace();
-                        }
-                    }
-                    else if ( command.equals( "deadlock" ) )
-                    {
-                        if ( WrapperManager.isStandardEdition() )
-                        {
-                            System.out.println( getRes().getString( "Dead Lock Tester Running..." ) );
-                            Object obj1 = new Object();
-                            Object obj2 = new Object();
-                            int exitCode = 1;
-                            DeadLock dl = new DeadLock( 1, obj1, obj2 );
-                            switch ( exitCode )
-                            {
-                                case 1:
-                                    System.out.println( getRes().getString( "2-object dead lock." ) );
-                                    dl.create2ObjectDeadlock();
-                                    break;
-                                case 2:
-                                    System.out.println( getRes().getString( "Wait then 2-object dead lock." ) );
-                                    try
-                                    {
-                                        Thread.sleep( 10000 );
-                                    }
-                                    catch ( InterruptedException e )
-                                    {
-                                    }
-                                    dl.create2ObjectDeadlock();
-                                    break;
-                                case 3:
-                                    System.out.println( getRes().getString( "3-object dead lock." ) );
-                                    dl.create3ObjectDeadlock();
-                                    break;
-    
-                                default:
-                                    System.out.println( getRes().getString( "Done." ) );
-                            }
-                            // Always wait a couple seconds to make sure the above
-                            // threads have time to start.
-                            try
-                            {
-                                System.out.println( getRes().getString( "Sleeping for 5 sec..." ) );
-                                Thread.sleep( 5000 );
-                            }
-                            catch ( InterruptedException e )
-                            {
-                            }
-                            System.out.println( getRes().getString( "Main Complete." ) );
-                        }
-                        else
-                        {
-                            System.out.println( getRes().getString( "Deadlock checks require at least the Standard Edition." ) );
-                        }
-                    }
-                    else if ( command.indexOf( "exec" ) == 0 )
-                    {
-                        try
-                        {
-                            String input = command.substring(5);
-                            System.out.println( getRes().getString( "Starting a simple application: " ) + input );
-                           
-                            if ( input != null && input.length() > 0 )
-                            {
-                                WrapperManager.exec( input, new WrapperProcessConfig().setDetached( false ) );
-                                System.out.println( getRes().getString( "Successfully executed!") );
-                            }
-                        }
-                        catch ( SecurityException e )
-                        {
-                            e.printStackTrace();
-                        }
-                        catch ( NullPointerException e )
-                        {
-                            e.printStackTrace();
-                        }
-                        catch ( IllegalArgumentException e )
-                        {
-                            e.printStackTrace();
-                        }
-                        catch ( UnsatisfiedLinkError e )
-                        {
-                            e.printStackTrace();
-                        }
-                        catch ( IOException e )
-                        {
-                            e.printStackTrace();
-                        }
-                        catch ( WrapperJNIError e )
-                        {
-                            e.printStackTrace();
-                        }
-                        catch ( WrapperLicenseError e )
-                        {
-                            e.printStackTrace();
-                        }
-                    }
-
-                }
-                catch ( IOException e )
-                {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-                catch ( InterruptedException e )
-                {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-            }
-        }
     }
 }
 
