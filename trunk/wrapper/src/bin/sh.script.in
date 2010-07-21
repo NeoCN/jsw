@@ -324,7 +324,7 @@ fi
 
 
 gettext() {
-    echo `$1` 
+    echo "$1"
 }
 
 outputFile() {
@@ -387,9 +387,9 @@ then
         WRAPPER_TEST_CMD=""
     fi
 fi
-if [ -z $WRAPPER_TEST_CMD ]
+if [ -z "$WRAPPER_TEST_CMD" ]
 then
-    echo "Unable to locate any of the following binaries:"
+    eval echo  'Unable to locate any of the following binaries:'
     outputFile "$WRAPPER_CMD-$DIST_OS-$DIST_ARCH-$DIST_BITS"
     if [ ! "$DIST_BITS" = "32" ]
     then
