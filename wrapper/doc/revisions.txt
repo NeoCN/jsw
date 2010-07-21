@@ -1,6 +1,10 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 
+3.5.3
+* Fix a problem in the Community edition of the UNIX shell script which was
+  causing messages ourput by the script to fail.
+
 3.5.2
 * Added new command line argument "--" . All arguments following will be
   preceded and passed to the java application. The arguments are attached after
