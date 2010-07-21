@@ -1568,7 +1568,6 @@ original tar distribution due to a lack of support for long path names in some t
                 <include name="lib/wrappertest.jar"/>
                 <include name="lib/wrapperdemo.jar"/>
                 <include name="logs"/>
-                <include name="conf/wrapper-license.conf" />
                 <include name="src/bin/*.bat.in"/>
                 <include name="src/bin/sh.script.in"/>
                 <include name="src/conf/**"/>
@@ -1584,6 +1583,27 @@ original tar distribution due to a lack of support for long path names in some t
                 <include name="lib/wrapper-*"/>
             </fileset>
         </copy>
+        <!-- Copy the demoapp conf file from src -->
+        <copy file="${src.dir}/conf/wrapper.conf.in"
+              tofile="${releasedir}/conf/demoapp.conf"
+              filtering="on"/>
+        <replace file="${releasedir}/conf/demoapp.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.demo.DemoApp" />
+        <replace file="${releasedir}/conf/demoapp.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=" />
+        <replace file="${releasedir}/conf/demoapp.conf">
+            <replacetoken>wrapper.check.deadlock.interval=60</replacetoken>
+            <replacevalue><![CDATA[wrapper.check.deadlock.interval=10
+wrapper.max_failed_invocations=99]]></replacevalue>
+        </replace>
+        <replace file="${releasedir}/conf/demoapp.conf">
+            <replacetoken>wrapper.java.classpath.1=../lib/wrapper.jar</replacetoken>
+            <replacevalue><![CDATA[wrapper.java.classpath.1=../lib/wrapperdemo.jar
+wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
+        </replace>
+
         <!-- Copy a fresh wrapper.conf rather than the development file -->
         <copy file="${src.dir}/conf/wrapper.conf.in"
               tofile="${releasedir}/conf/wrapper.conf"
