@@ -16,7 +16,7 @@
 
 #-----------------------------------------------------------------------------
 # These settings can be modified to fit the needs of your application
-# Optimized for use with version 3.5.2 of the Wrapper.
+# Optimized for use with version 3.5.3 of the Wrapper.
 
 # Application
 APP_NAME="@app.name@"
