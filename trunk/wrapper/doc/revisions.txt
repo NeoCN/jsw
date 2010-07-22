@@ -3,7 +3,13 @@ Java Service Wrapper Revision History.
 
 3.5.3
 * Fix a typo in the UNIX shell scripts that was causing "command not found"
-  errors for some users.
+  errors to be shown when running the Community Edition.
+* Fix a problem where the shell script would product unexpected results if the
+  Standard or Professional Edition shell scripts were used with the Community
+  Edition Wrapper.
+* (Standard, Professional) Fix a problem where script error message output was
+  not being shown if the wrapper.conf file specified in the script did not
+  exist.
 
 3.5.2
 * Added new command line argument "--" . All arguments following will be
