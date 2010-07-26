@@ -25,6 +25,8 @@ Java Service Wrapper Revision History.
   multibyte characters.
 * Add a line feed after the first message when starting the Wrapper from the
   UNIX script.
+* Add a note in the debug output so the configured java temporary directory is
+  always logged to help with debugging.
 
 3.5.2
 * Added new command line argument "--" . All arguments following will be
