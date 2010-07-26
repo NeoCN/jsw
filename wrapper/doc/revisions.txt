@@ -27,6 +27,11 @@ Java Service Wrapper Revision History.
   UNIX script.
 * Add a note in the debug output so the configured java temporary directory is
   always logged to help with debugging.
+* Add a workaround for a bug in both Sun and IBM JVMs which cause an invalid
+  exception to be thrown when a socket is already bound.  It had been causing
+  the Wrapper to report: "Unexpected exception opening backend socket:
+  java.net.SocketException: Unrecognized Windows Sockets error: 0: JVM_Bind":
+  http://bugs.sun.com/view_bug.do?bug_id=6965962
 
 3.5.2
 * Added new command line argument "--" . All arguments following will be
