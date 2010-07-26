@@ -1517,7 +1517,7 @@ public final class WrapperManager
         if ( !WrapperInfo.getVersion().equals( wrapperVersion ) )
         {
             m_outInfo.println(getRes().getString( 
-                "WARNING - The Wrapper jar file currently in use is version \" {0} \"" ,
+                "WARNING - The Wrapper jar file currently in use is version \"{0}\"" ,
                 WrapperInfo.getVersion() ) );
             m_outInfo.println(getRes().getString( 
                 "          while the version of the Wrapper which launched this JVM is " ) );
@@ -1587,11 +1587,11 @@ public final class WrapperManager
     private static void checkTmpDir()
     {
         File tmpDir = new File( System.getProperty( "java.io.tmpdir" ) );
-		if ( m_debug )
-		{
-			m_outDebug.println( getRes().getString("Java temporary directory: {0}",tmpDir ));
-		}
-		
+        if ( m_debug )
+        {
+            m_outDebug.println( getRes().getString("Java temporary directory: {0}",tmpDir ));
+        }
+        
         boolean tmpDirRequired = getProperties().getProperty("wrapper.java.tmpdir.required", "FALSE").equalsIgnoreCase( "TRUE" );
         boolean tmpDirWarnSilently = getProperties().getProperty("wrapper.java.tmpdir.warn_silently", "TRUE").equalsIgnoreCase( "TRUE" );
         Exception ex = null;
@@ -4538,7 +4538,9 @@ public final class WrapperManager
                 }
                 else if ( ( e instanceof BindException ) ||
                     ( ( eMessage != null ) &&
-                    ( ( eMessage.indexOf( "errno: 48" ) >= 0 ) || ( eMessage.indexOf( "Address already in use" ) >= 0 ) ) ) )
+                    ( ( eMessage.indexOf( "errno: 48" ) >= 0 ) ||
+                        ( eMessage.indexOf( "Address already in use" ) >= 0 ) ) ||
+                        ( eMessage.indexOf( "Unrecognized Windows Sockets error: 0: JVM_Bind" ) >= 0 ) ) ) /* This message is caused by a JVM Bug: http://bugs.sun.com/view_bug.do?bug_id=6965962 */
                 {
                     // Most Java implementations throw a BindException when the port is in use,
                     //  but FreeBSD throws a SocketException with a specific message.
