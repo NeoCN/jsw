@@ -4,12 +4,27 @@ Java Service Wrapper Revision History.
 3.5.3
 * Fix a typo in the UNIX shell scripts that was causing "command not found"
   errors to be shown when running the Community Edition.
-* Fix a problem where the shell script would product unexpected results if the
+* Add new wrapper.console.fatal_to_stderr, wrapper.console.error_to_stderr,
+  and wrapper.console.warn_to_stderr properties to control whether the output
+  at the FATAL, ERROR, and WARN log levels go to stdout or stderr.  In the past
+  they all went to stdout.  With this change, FATAL and ERROR log levels now
+  default to stderr output.
+* Fix a problem where the shell script would produce unexpected results if the
   Standard or Professional Edition shell scripts were used with the Community
-  Edition Wrapper.
+  Edition Wrapper.  Fix was in Wrapper binary by changing the default ERROR and
+  FATAL log level console output to stderr rather than stdout.
 * (Standard, Professional) Fix a problem where script error message output was
   not being shown if the wrapper.conf file specified in the script did not
   exist.
+* Fix a problem where errors from failed forks on Windows were always being
+  flushed immediately rather than honoring the value of the
+  wrapper.console.flush property.
+* Fix a problem on Windows 2000 systems where a new feature added in 3.5.2 was
+  preventing the Wrapper from running because the API used was too new.
+* Change the font of the wrapperw dialog in order to have prettier output of
+  multibyte characters.
+* Add a line feed after the first message when starting the Wrapper from the
+  UNIX script.
 
 3.5.2
 * Added new command line argument "--" . All arguments following will be

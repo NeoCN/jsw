@@ -1,7 +1,33 @@
 <html>
-    The <b>WrapperManager.exec()</b> function is a alternative to the Java-Runtime.exec() which has the disadvantage to use the on some platforms memory expensive fork() method to create a new process.<br><br>The problem on those platforms is, that if the Parent Process from which one wants to start a side process, fork() causes to clone the memory of the parent for the child.<br>This will <u>double</u> the used memory for a short time.<br>Given a fairly large application which is close to the systems memory quota, it might fail to just create a small application like ls or the memory is going to get swapped on the HD, which decreases the performance drastically.
     <p>
-        Another issue is to ease bind or detach the child while starting from the parent.<br>If the Java Process terminates expected or unexpected the wrapper will clean all bind processes which haven't finished yet.
-    </p>
-    <br><br>For better consistency the exec() function was implemented as close to the Runtime.exec() function in Java as possible.
+
+        ［<tt><a href="http://wrapper.tanukisoftware.org/jdoc/org/tanukisoftware/wrapper/WrapperManager.html#method_summary">WrapperManager.exec()</a></tt>］
+        関数は、
+        ［<tt>Java-Runtime.exec()</tt>］の代替え案です。
+        ［<tt>Java-Runtime.exec()</tt>］はいくつかのプラットフォームで
+        新しいプロセスを生成するのに［<tt>fork()</tt>］メソッドを
+        利用してメモリを無駄に消費する不利な点があります。
+
+        それらのプラットフォーム上での問題は、
+        もし、サイド・プロセスを開始したいペアレント（親）プロセスの場合、
+        ［<tt>fork()</tt>］がチャイルド（子）用にペアレント（親）のメモリのクローンを作成します。
+        これは、短い時間、消費メモリが倍になります。
+        システム・メモリ・割り当て量に近い、わりと大きいアプリケーションが与えられると、
+        <tt>ls</tt>のような、
+        小さいアプリケーションの作成にも失敗する可能性があります。
+        あるいは、ハードディスクへそのメモリのスワッピングが発生する可能性もあり、パフォーマンスが劇的に低下することになります。
+      </p>
+      
+<p>
+
+        もう一つの問題としては、ペアレント（親）から開始している間、
+        チャイルド（子）のバインドやデタッチを緩和することです。
+        もしJavaプロセスが、期待どおりにしろ、予想外にしろ、終了する場合、
+        Wrapperは、まだ終了していない全てのバインド・プロセスをクリーンします。
+      </p>
+      
+<p>
+        より良い一貫性のために、可能な限り、Javaでの［<tt>Runtime.exec()</tt>］関数に近い、
+        ［<tt>WrapperManager.exec()</tt>］関数が実装されました。
+      </p>
 </html>
