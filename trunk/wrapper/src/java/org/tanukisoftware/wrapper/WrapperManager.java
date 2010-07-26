@@ -1587,6 +1587,11 @@ public final class WrapperManager
     private static void checkTmpDir()
     {
         File tmpDir = new File( System.getProperty( "java.io.tmpdir" ) );
+		if ( m_debug )
+		{
+			m_outDebug.println( getRes().getString("Java temporary directory: {0}",tmpDir ));
+		}
+		
         boolean tmpDirRequired = getProperties().getProperty("wrapper.java.tmpdir.required", "FALSE").equalsIgnoreCase( "TRUE" );
         boolean tmpDirWarnSilently = getProperties().getProperty("wrapper.java.tmpdir.warn_silently", "TRUE").equalsIgnoreCase( "TRUE" );
         Exception ex = null;
