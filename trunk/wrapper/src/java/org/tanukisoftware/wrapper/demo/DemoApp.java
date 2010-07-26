@@ -12,27 +12,19 @@ package org.tanukisoftware.wrapper.demo;
  */
 
 import java.awt.Color;
-import java.awt.Font;
-import java.awt.Window;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 
 import javax.swing.JOptionPane;
-import javax.swing.text.AttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
-import javax.swing.text.StyleContext;
-import javax.swing.text.AttributeSet.ColorAttribute;
-import javax.swing.text.AttributeSet.FontAttribute;
-
 import org.tanukisoftware.wrapper.WrapperActionServer;
 import org.tanukisoftware.wrapper.WrapperJNIError;
 import org.tanukisoftware.wrapper.WrapperLicenseError;
 import org.tanukisoftware.wrapper.WrapperManager;
 import org.tanukisoftware.wrapper.WrapperListener;
-import org.tanukisoftware.wrapper.WrapperProcess;
 import org.tanukisoftware.wrapper.WrapperProcessConfig;
 import org.tanukisoftware.wrapper.WrapperResources;
 import org.tanukisoftware.wrapper.WrapperSystemPropertyUtil;
@@ -627,8 +619,8 @@ public class DemoApp implements WrapperListener
                     p = Runtime.getRuntime().exec( arg );
 
                     m_childPrintStream = new PrintStream( p.getOutputStream() );
-                    this.m_frame.getJMenuBar().getMenu( 0 ).getItem( 0 ).setEnabled( false );
-                    this.m_frame.getJMenuBar().getMenu( 0 ).getItem( 1 ).setEnabled( true );
+                    DemoApp.m_frame.getJMenuBar().getMenu( 0 ).getItem( 0 ).setEnabled( false );
+                    DemoApp.m_frame.getJMenuBar().getMenu( 0 ).getItem( 1 ).setEnabled( true );
                 }
                 if ( p != null )
                 {
@@ -665,8 +657,8 @@ public class DemoApp implements WrapperListener
                 p = Runtime.getRuntime().exec( arg );
 
                 m_childPrintStream = new PrintStream( p.getOutputStream() );
-                this.m_frame.getJMenuBar().getMenu( 0 ).getItem( 0 ).setEnabled( false );
-                this.m_frame.getJMenuBar().getMenu( 0 ).getItem( 1 ).setEnabled( true );
+                DemoApp.m_frame.getJMenuBar().getMenu( 0 ).getItem( 0 ).setEnabled( false );
+                DemoApp.m_frame.getJMenuBar().getMenu( 0 ).getItem( 1 ).setEnabled( true );
             }
             if ( p != null )
             {

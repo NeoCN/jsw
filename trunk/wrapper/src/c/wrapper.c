@@ -1691,7 +1691,7 @@ void wrapperUsage(TCHAR *appName) {
 #endif
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -v  --version print the wrapper's version information."));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -?  --help    print this help message"));
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -- <args>     end of wrapper arguments, precede the following arguments and\n                pass them through the wrapper to the java application"));
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  -- <args>     mark the end of Wrapper arguments.  All arguments after the\n                '--' will be passed through unmodified to the java application."));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT(""));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("<configuration file> is the wrapper.conf to use.  Name must be absolute or relative"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  to the location of %s"), appName);
@@ -1700,8 +1700,7 @@ void wrapperUsage(TCHAR *appName) {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  in wrapper.conf.  For example:"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  wrapper.debug=true"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT(""));
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  Please note that any file references must be absolute or relative to the location"));
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  of the Wrapper executable."));
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  Please note that any file references must be absolute or relative to the location\n  of the Wrapper executable."));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT(""));
 
     free(confFileBase);
@@ -5198,6 +5197,11 @@ int loadConfiguration() {
 
     /* Load the console flush flag. */
     setConsoleFlush(getBooleanProperty(properties, TEXT("wrapper.console.flush"), FALSE));
+
+    /* Load the console loglevel targets. */
+    setConsoleFatalToStdErr(getBooleanProperty(properties, TEXT("wrapper.console.fatal_to_stderr"), TRUE));
+    setConsoleErrorToStdErr(getBooleanProperty(properties, TEXT("wrapper.console.error_to_stderr"), TRUE));
+    setConsoleWarnToStdErr(getBooleanProperty(properties, TEXT("wrapper.console.warn_to_stderr"), FALSE));
 
     /* Load syslog log level */
     setSyslogLevel(getStringProperty(properties, TEXT("wrapper.syslog.loglevel"), TEXT("NONE")));

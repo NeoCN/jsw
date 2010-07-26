@@ -972,7 +972,9 @@ rem ********************************************************************]]></rep
         <replace file="${conf.dir}/demoapp.conf">
             <replacetoken>wrapper.check.deadlock.interval=60</replacetoken>
             <replacevalue><![CDATA[wrapper.check.deadlock.interval=10
-wrapper.max_failed_invocations=99]]></replacevalue>
+wrapper.max_failed_invocations=99
+wrapper.console.fatal_to_stderr=FALSE
+wrapper.console.error_to_stderr=FALSE]]></replacevalue>
         </replace>
         <replace file="${conf.dir}/demoapp.conf">
             <replacetoken>wrapper.java.classpath.1=../lib/wrapper.jar</replacetoken>
@@ -1596,7 +1598,9 @@ original tar distribution due to a lack of support for long path names in some t
         <replace file="${releasedir}/conf/demoapp.conf">
             <replacetoken>wrapper.check.deadlock.interval=60</replacetoken>
             <replacevalue><![CDATA[wrapper.check.deadlock.interval=10
-wrapper.max_failed_invocations=99]]></replacevalue>
+wrapper.max_failed_invocations=99
+wrapper.console.fatal_to_stderr=FALSE
+wrapper.console.error_to_stderr=FALSE]]></replacevalue>
         </replace>
         <replace file="${releasedir}/conf/demoapp.conf">
             <replacetoken>wrapper.java.classpath.1=../lib/wrapper.jar</replacetoken>

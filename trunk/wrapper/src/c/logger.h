@@ -171,6 +171,9 @@ extern void setConsoleLogLevelInt(int console_log_level);
 extern int getConsoleLogLevelInt();
 extern void setConsoleLogLevel( const TCHAR *console_log_level );
 extern void setConsoleFlush(int flush);
+extern void setConsoleFatalToStdErr(int toStdErr);
+extern void setConsoleErrorToStdErr(int toStdErr);
+extern void setConsoleWarnToStdErr(int toStdErr);
 
 /* * Syslog/eventlog functions * */
 extern void setSyslogLevelInt(int loginfo_level);

@@ -120,6 +120,11 @@ TCHAR logfileFormat[32];
 /* Flag to keep track of whether the console output should be flushed or not. */
 int consoleFlush = FALSE;
 
+/* Flags to contol where error log level output goes to the console. */
+int consoleFatalToStdErr = TRUE;
+int consoleErrorToStdErr = TRUE;
+int consoleWarnToStdErr = FALSE;
+
 /* Number of seconds since the Wrapper was launched. */
 int uptimeSeconds = 0;
 /* TRUE once the uptime is so large that it is meaningless. */
@@ -746,6 +751,17 @@ void setConsoleFlush( int flush ) {
     consoleFlush = flush;
 }
 
+void setConsoleFatalToStdErr(int toStdErr) {
+    consoleFatalToStdErr = toStdErr;
+}
+
+void setConsoleErrorToStdErr(int toStdErr) {
+    consoleErrorToStdErr = toStdErr;
+}
+
+void setConsoleWarnToStdErr(int toStdErr) {
+    consoleWarnToStdErr = toStdErr;
+}
 
 /* Syslog/eventlog functions */
 void setSyslogLevelInt( int loginfo_level ) {
@@ -1055,6 +1071,9 @@ int log_printf_message( int source_id, int level, int threadId, int queued, TCHA
     TCHAR       *nextLF;
     TCHAR       *printBuffer;
     int         old_umask;
+#ifndef WRAPPERW
+    FILE        *target;
+#endif
     TCHAR       nowDate[9];
 #ifdef WIN32
     struct _timeb timebNow;
@@ -1100,8 +1119,42 @@ int log_printf_message( int source_id, int level, int threadId, int queued, TCHA
             return FALSE;
         }
         _sntprintf(printBuffer, reqSize, TEXT("%s|%02d|%02d|%02d|%s"), LOG_SPECIAL_MARKER, source_id, level, threadId, message + _tcslen(LOG_FORK_MARKER));
-        _ftprintf(stdout, TEXT("%s\n"), printBuffer);
-        fflush(stdout );
+        
+        /* Decide where to send the output. */
+        switch (level) {
+        case LEVEL_FATAL:
+            if (consoleFatalToStdErr) {
+                target = stderr;
+            } else {
+                target = stdout;
+            }
+            break;
+            
+        case LEVEL_ERROR:
+            if (consoleErrorToStdErr) {
+                target = stderr;
+            } else {
+                target = stdout;
+            }
+            break;
+            
+        case LEVEL_WARN:
+            if (consoleWarnToStdErr) {
+                target = stderr;
+            } else {
+                target = stdout;
+            }
+            break;
+            
+        default:
+            target = stdout;
+            break;
+        }
+        
+        _ftprintf(target, TEXT("%s\n"), printBuffer);
+        if (consoleFlush) {
+            fflush(target);
+        }
         return FALSE;
     } else if ((_tcsstr(message, LOG_SPECIAL_MARKER) == message) && (_tcslen(message) >= _tcslen(LOG_SPECIAL_MARKER) + 10)) {
         /* Got a special encoded log message from the child process.   Parse it and continue as if the log
@@ -1161,9 +1214,40 @@ int log_printf_message( int source_id, int level, int threadId, int queued, TCHA
                 writeToConsole(GetStdHandle(STD_OUTPUT_HANDLE), TEXT("%s\n"), printBuffer);
             } */ else {
 #endif
-                _ftprintf( stdout, TEXT("%s\n"), printBuffer );
-                if ( consoleFlush ) {
-                    fflush( stdout );
+                /* Decide where to send the output. */
+                switch (level) {
+                case LEVEL_FATAL:
+                    if (consoleFatalToStdErr) {
+                        target = stderr;
+                    } else {
+                        target = stdout;
+                    }
+                    break;
+                    
+                case LEVEL_ERROR:
+                    if (consoleErrorToStdErr) {
+                        target = stderr;
+                    } else {
+                        target = stdout;
+                    }
+                    break;
+                    
+                case LEVEL_WARN:
+                    if (consoleWarnToStdErr) {
+                        target = stderr;
+                    } else {
+                        target = stdout;
+                    }
+                    break;
+                    
+                default:
+                    target = stdout;
+                    break;
+                }
+                
+                _ftprintf(target, TEXT("%s\n"), printBuffer);
+                if (consoleFlush) {
+                    fflush(target);
                 }
 #ifdef WIN32
             }

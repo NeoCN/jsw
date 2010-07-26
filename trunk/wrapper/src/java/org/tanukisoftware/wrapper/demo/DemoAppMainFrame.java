@@ -12,7 +12,6 @@ package org.tanukisoftware.wrapper.demo;
  */
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
@@ -30,7 +29,6 @@ import java.io.Reader;
 import java.net.URL;
 import java.util.Locale;
 
-import javax.swing.AbstractButton;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JEditorPane;
@@ -43,8 +41,9 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
+import javax.swing.UIManager;
 import javax.swing.WindowConstants;
-
+import javax.swing.text.html.HTMLDocument;
 import org.tanukisoftware.wrapper.WrapperManager;
 
 public class DemoAppMainFrame extends JFrame implements ActionListener, WindowListener
@@ -149,49 +148,42 @@ public class DemoAppMainFrame extends JFrame implements ActionListener, WindowLi
         tabbedPane.addTab( DemoApp.getRes().getString( "Failure Detections" ), panel1 );
         tabbedPane.setMnemonicAt( 0, KeyEvent.VK_1 );
 
-        buildCommand( panel1, gridBag1, c1, DemoApp.getRes().getString( "Crash" ), "crash", DemoApp.getRes().getString( "Simulate a Application Crash" ) );
-        buildCommand( panel1, gridBag1, c1, DemoApp.getRes().getString( "Out of Memory" ), "out_of_mem", DemoApp.getRes().getString( "Simulate a Out Of Memory Error" ) );
-        buildCommand( panel1, gridBag1, c1, DemoApp.getRes().getString( "Frozen" ), "frozen", DemoApp.getRes().getString( "Simulate a Frozen JVM" ) );
-        buildCommand( panel1, gridBag1, c1, DemoApp.getRes().getString( "DeadLock" ), "deadlock", DemoApp.getRes().getString( "Simulate a ThreadDead Lock" ) );
+        buildCommand( panel1, gridBag1, c1, 1, DemoApp.getRes().getString( "Crash" ), "crash", DemoApp.getRes().getString( "Simulate a Application Crash" ) );
+        buildCommand( panel1, gridBag1, c1, 1, DemoApp.getRes().getString( "Out of Memory" ), "out_of_mem", DemoApp.getRes().getString( "Simulate a Out Of Memory Error" ) );
+        buildCommand( panel1, gridBag1, c1, 1, DemoApp.getRes().getString( "Frozen" ), "frozen", DemoApp.getRes().getString( "Simulate a Frozen JVM" ) );
+        buildCommand( panel1, gridBag1, c1, 2, DemoApp.getRes().getString( "DeadLock" ), "deadlock", DemoApp.getRes().getString( "Simulate a ThreadDead Lock" ) );
 
         JPanel panel2 = new JPanel();
         panel2.setLayout( gridBag2 );
         // panel2.setBackground( Color.yellow );
         tabbedPane.addTab( DemoApp.getRes().getString( "Feature Demo" ), panel2 );
         tabbedPane.setMnemonicAt( 1, KeyEvent.VK_2 );
-        buildCommand( panel2, gridBag2, c2, DemoApp.getRes().getString( "Email" ), "mail", DemoApp.getRes().getString( "Activates the email functionality" ) );
+        buildCommand( panel2, gridBag2, c2, 3, DemoApp.getRes().getString( "Email" ), "mail", DemoApp.getRes().getString( "Activates the email functionality" ) );
 
-        buildCommand( panel2, gridBag2, c2, DemoApp.getRes().getString( "WrapperExec" ), "exec", DemoApp.getRes().getString( "Creates a managed Child Process" ) );
+        buildCommand( panel2, gridBag2, c2, 3, DemoApp.getRes().getString( "WrapperExec" ), "exec", DemoApp.getRes().getString( "Creates a managed Child Process" ) );
         String os = System.getProperty( "os.name" );
 
         if ( os.indexOf( "Windows" ) >= 0 )
         {
 
-            buildCommand( panel2, gridBag2, c2, DemoApp.getRes().getString( "Customization" ), "customize", DemoApp.getRes().getString( "Creates a customized Binary of the wrapper" ) );
-            buildCommand( panel2, gridBag2, c2, DemoApp.getRes().getString( "Service" ), "service", DemoApp.getRes().getString( "Installs and starts this app as Windows Service" ) );
+            buildCommand( panel2, gridBag2, c2, 2, DemoApp.getRes().getString( "Customization" ), "customize", DemoApp.getRes().getString( "Creates a customized Binary of the wrapper" ) );
+            buildCommand( panel2, gridBag2, c2, 1, DemoApp.getRes().getString( "Service" ), "service", DemoApp.getRes().getString( "Installs and starts this app as Windows Service" ) );
         }
         else
         {
-            buildCommand( panel2, gridBag2, c2, DemoApp.getRes().getString( "Daemon" ), "daemon", DemoApp.getRes().getString( "Installs and starts this app as Daemon" ) );
+            buildCommand( panel2, gridBag2, c2, 1, DemoApp.getRes().getString( "Daemon" ), "daemon", DemoApp.getRes().getString( "Installs and starts this app as Daemon" ) );
         }
 
         m_logTextArea = new JEditorPane();
-        jEditorPane2 = new JEditorPane();
-
+        jEditorPane2 =  new JEditorPane();
         m_logTextArea.setContentType( "text/html;" );
-
-
         jEditorPane2.setContentType( "text/html; charset=UTF-8" );
-
-        //jEditorPane2.putClientProperty( JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE );
-        jEditorPane2.setFont( new Font( "Dialog", 1, 14 ) );
-        jEditorPane2.getDocument().putProperty( "IgnoreCharsetDirective", Boolean.TRUE );
-
         jEditorPane2.setEditable( false );
-        // jEditorPane2.setFont( new Font("Dialog",12,0));
-        // jEditorPane2.setBackground( Color.gray );
+        // Set CSS format rule
+        Font font = UIManager.getFont( "Label.font" );
+        String bodyRule = "body { font-family: " + font.getFamily() + "; " + "font-size: 14pt; }";
+        ( ( HTMLDocument )jEditorPane2.getDocument() ).getStyleSheet().addRule( bodyRule );
         m_logTextArea.setEditable( false );
-
         //setMinimumSize( new java.awt.Dimension( 699, 300 ) );
         jTabbedPane2 = new javax.swing.JTabbedPane();
         m_logPane = new JScrollPane( m_logTextArea );
@@ -204,14 +196,13 @@ public class DemoAppMainFrame extends JFrame implements ActionListener, WindowLi
         getContentPane().add( tabbedPane, java.awt.BorderLayout.PAGE_START );
         getContentPane().add( jTabbedPane2, java.awt.BorderLayout.CENTER );
 
-        // this.add( m_logPane );
         this.setVisible( true );
         this.pack();
         tabbedPane.setMaximumSize( new Dimension( tabbedPane.getMaximumSize().width, tabbedPane.getSize().height ) );
 
     }
 
-    private void buildCommand( JComponent container, GridBagLayout gridBag, GridBagConstraints c, String label, String command, Object description )
+    private void buildCommand( JComponent container, GridBagLayout gridBag, GridBagConstraints c, int level, String label, String command, Object description )
     {
         JButton button = new JButton( label );
         button.setActionCommand( command );
@@ -257,6 +248,23 @@ public class DemoAppMainFrame extends JFrame implements ActionListener, WindowLi
         c.insets = new Insets( 10, 10, 10, 10 );
         gridBag.setConstraints( desc, c );
         container.add( desc );
+
+        if ( level == 2 )
+        {
+            if ( !WrapperManager.isStandardEdition() )
+            {
+                button.setEnabled( false );
+                button.setToolTipText( DemoApp.getRes().getString( "Requires the Standard Edition." ) );
+            }
+        }
+        else if ( level == 3 )
+        {
+            if ( !WrapperManager.isProfessionalEdition() )
+            {
+                button.setEnabled( false );
+                button.setToolTipText( DemoApp.getRes().getString( "Requires the Professional Edition." ) );
+            }
+        }
     }
 
     String getHTMLDescription( String action )

@@ -4147,13 +4147,25 @@ int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
     HANDLE hDumpFile;
     SYSTEMTIME stLocalTime;
     MINIDUMP_EXCEPTION_INFORMATION expParam;
-
+    int couldLoad;
+    FARPROC miniDumpWriteDumpDyn;
+    HMODULE dbgHelpDll = LoadLibrary(TEXT("Dbghelp.dll"));
+    if( dbgHelpDll == NULL) {
+        couldLoad = FALSE;
+    } else {
+        miniDumpWriteDumpDyn = GetProcAddress(dbgHelpDll, "MiniDumpWriteDump");
+        if(miniDumpWriteDumpDyn == NULL) {
+            couldLoad = FALSE;
+        } else {
+            couldLoad = TRUE;
+        }
+    }
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("--------------------------------------------------------------------") );
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("encountered a fatal error in Wrapper"));
     exCode = exceptionPointers->ExceptionRecord->ExceptionCode;
     exName = getExceptionName(exCode);
     if (exName == NULL) {
-        exName = malloc(sizeof(TCHAR) * 64);  /* Let this leak.  It only happens once before shutdown. */
+        exName = malloc(sizeof(TCHAR) * 64); /* Let this leak.  It only happens once before shutdown. */
         if (exName) {
             _sntprintf(exName, 64, TEXT("Unknown Exception (%ld)"), exCode);
         }
@@ -4161,23 +4173,23 @@ int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
 
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  exceptionCode    = %s"), exName);
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  exceptionFlag    = %s"),
-        (exceptionPointers->ExceptionRecord->ExceptionFlags == EXCEPTION_NONCONTINUABLE ? TEXT("EXCEPTION_NONCONTINUABLE") : TEXT("EXCEPTION_NONCONTINUABLE_EXCEPTION")));
+            (exceptionPointers->ExceptionRecord->ExceptionFlags == EXCEPTION_NONCONTINUABLE ? TEXT("EXCEPTION_NONCONTINUABLE") : TEXT("EXCEPTION_NONCONTINUABLE_EXCEPTION")));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  exceptionAddress = %p"), exceptionPointers->ExceptionRecord->ExceptionAddress);
     if (exCode == EXCEPTION_ACCESS_VIOLATION) {
         if (exceptionPointers->ExceptionRecord->ExceptionInformation[0] == 0) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  Read access exception from %p"),
-                exceptionPointers->ExceptionRecord->ExceptionInformation[1]);
+                    exceptionPointers->ExceptionRecord->ExceptionInformation[1]);
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  Write access exception to %p"),
-                exceptionPointers->ExceptionRecord->ExceptionInformation[1]);
+                    exceptionPointers->ExceptionRecord->ExceptionInformation[1]);
         }
     } else {
         for (i = 0; i < (int)exceptionPointers->ExceptionRecord->NumberParameters; i++) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  exceptionInformation[%d] = %ld"), i,
-                exceptionPointers->ExceptionRecord->ExceptionInformation[i]);
+                    exceptionPointers->ExceptionRecord->ExceptionInformation[i]);
         }
     }
-    
+
     if (wrapperData) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  Wrapper Main Loop Status:"));
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("    Current Ticks: 0x%08x"), wrapperGetTicks());
@@ -4186,7 +4198,7 @@ int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("    Exit Requested: %s"), (wrapperData->exitRequested ? TEXT("true") : TEXT("false")));
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("    Restart Mode: %d"), wrapperData->restartRequested);
     }
-    
+
     /* Get the current directory. */
     len = GetCurrentDirectory(MAX_PATH, curDir);
     if (len == 0) {
@@ -4195,33 +4207,39 @@ int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
     }
     /* Generate the minidump. */
     GetLocalTime(&stLocalTime);
-    
+
     _sntprintf(dumpFile, MAX_PATH, TEXT("wrapper-%s-%s-%s-%s-%04d%02d%02d%02d%02d%02d-%ld-%ld.dmp"),
-        wrapperOS, wrapperArch, wrapperBits, wrapperVersion,
-        stLocalTime.wYear, stLocalTime.wMonth, stLocalTime.wDay, 
-        stLocalTime.wHour, stLocalTime.wMinute, stLocalTime.wSecond, 
-        GetCurrentProcessId(), GetCurrentThreadId());
-    
-    hDumpFile = CreateFile(dumpFile, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE | FILE_SHARE_READ, 0, CREATE_ALWAYS, 0, 0);
-    if (hDumpFile == INVALID_HANDLE_VALUE) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  Failed to create dump file:\n    %s\\%s : %s"), curDir, dumpFile, getLastErrorText());
-    } else {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  Writing dump file: %s\\%s"), curDir, dumpFile);
-        
-        expParam.ThreadId = GetCurrentThreadId();
-        expParam.ExceptionPointers = exceptionPointers;
-        expParam.ClientPointers = TRUE;
-    
-        dumpSuccessful = MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hDumpFile, MiniDumpWithDataSegs, &expParam, NULL, NULL);
-        if (dumpSuccessful) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("    Dump completed."));
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  Please send the dump file to support@tanukisoftware.com along with\n    your wrapper.conf and wrapper.log files."));
+            wrapperOS, wrapperArch, wrapperBits, wrapperVersion,
+            stLocalTime.wYear, stLocalTime.wMonth, stLocalTime.wDay,
+            stLocalTime.wHour, stLocalTime.wMinute, stLocalTime.wSecond,
+            GetCurrentProcessId(), GetCurrentThreadId());
+    if (couldLoad == TRUE) {
+        hDumpFile = CreateFile(dumpFile, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE | FILE_SHARE_READ, 0, CREATE_ALWAYS, 0, 0);
+        if (hDumpFile == INVALID_HANDLE_VALUE) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  Failed to create dump file:\n    %s\\%s : %s"), curDir, dumpFile, getLastErrorText());
         } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("    Failed to generate dump file.  %s"), getLastErrorText());
+
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  Writing dump file: %s\\%s"), curDir, dumpFile);
+
+            expParam.ThreadId = GetCurrentThreadId();
+            expParam.ExceptionPointers = exceptionPointers;
+            expParam.ClientPointers = TRUE;
+
+            dumpSuccessful = miniDumpWriteDumpDyn(GetCurrentProcess(), GetCurrentProcessId(), hDumpFile, MiniDumpWithDataSegs, &expParam, NULL, NULL);
+            FreeLibrary(dbgHelpDll);
+            if (dumpSuccessful) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("    Dump completed."));
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  Please send the dump file to support@tanukisoftware.com along with\n    your wrapper.conf and wrapper.log files."));
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("    Failed to generate dump file.  %s"), getLastErrorText());
+            }
+
         }
+    } else {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("  Please send the log file to support@tanukisoftware.com along with\n    your wrapper.conf file."));
     }
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("--------------------------------------------------------------------") );
-    
+
     return EXCEPTION_EXECUTE_HANDLER;
 }
 

@@ -798,7 +798,7 @@ macosxstart() {
 }
 
 start() {
-    eval echo $ECHOOPT `gettext 'Starting $APP_LONG_NAME...'`
+    eval echo  'Starting $APP_LONG_NAME...'
     getpid
     if [ "X$pid" = "X" ]
     then
