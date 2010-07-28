@@ -32,6 +32,13 @@ Java Service Wrapper Revision History.
   the Wrapper to report: "Unexpected exception opening backend socket:
   java.net.SocketException: Unrecognized Windows Sockets error: 0: JVM_Bind":
   http://bugs.sun.com/view_bug.do?bug_id=6965962
+* Add the encoding of the subjects in the event mails to be always UTF-8
+  Base-64 encoded.
+* Add new wrapper.event.<x>.email.smtp.auth.type,
+  wrapper.event.<x>.email.smtp.auth.userid, and
+  wrapper.event.<x>.email.smtp.auth.password properties which make it possible
+  to do PLAIN connection authorizations.  Currently SSL (STARTTLS) connections
+  to the mail are server are not yet supported.
 
 3.5.2
 * Added new command line argument "--" . All arguments following will be
