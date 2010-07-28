@@ -4225,7 +4225,7 @@ int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
             expParam.ExceptionPointers = exceptionPointers;
             expParam.ClientPointers = TRUE;
 
-            dumpSuccessful = miniDumpWriteDumpDyn(GetCurrentProcess(), GetCurrentProcessId(), hDumpFile, MiniDumpWithDataSegs, &expParam, NULL, NULL);
+            dumpSuccessful = (BOOL)miniDumpWriteDumpDyn(GetCurrentProcess(), GetCurrentProcessId(), hDumpFile, MiniDumpWithDataSegs, &expParam, NULL, NULL);
             FreeLibrary(dbgHelpDll);
             if (dumpSuccessful) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("    Dump completed."));
