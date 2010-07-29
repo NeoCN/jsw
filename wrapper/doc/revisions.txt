@@ -37,8 +37,8 @@ Java Service Wrapper Revision History.
 * Add new wrapper.event.<x>.email.smtp.auth.type,
   wrapper.event.<x>.email.smtp.auth.userid, and
   wrapper.event.<x>.email.smtp.auth.password properties which make it possible
-  to do PLAIN connection authorizations.  Currently SSL (STARTTLS) connections
-  to the mail are server are not yet supported.
+  to do LOGIN and PLAIN connection authorizations.  Currently SSL (STARTTLS)
+  connections to the mail are server are not yet supported.
 
 3.5.2
 * Added new command line argument "--" . All arguments following will be
