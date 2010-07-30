@@ -39,6 +39,8 @@ Java Service Wrapper Revision History.
   wrapper.event.<x>.email.smtp.auth.password properties which make it possible
   to do LOGIN and PLAIN connection authorizations.  Currently SSL (STARTTLS)
   connections to the mail are server are not yet supported.
+* Fix a buffer overflow while loading the configuration file on Mac OSX
+  versions.  Introduced in 3.5.0.
 
 3.5.2
 * Added new command line argument "--" . All arguments following will be

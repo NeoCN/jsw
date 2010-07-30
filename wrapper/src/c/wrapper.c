@@ -5110,7 +5110,7 @@ int loadConfigurationTriggers() {
         }
 
 #if defined(MACOSX)
-        wrapperData->outputFilters[i] = malloc(sizeof(TCHAR) * _tcslen(TRIGGER_ADVICE_NIL_SERVER));
+        wrapperData->outputFilters[i] = malloc(sizeof(TCHAR) * (_tcslen(TRIGGER_ADVICE_NIL_SERVER) + 1));
         if (!wrapperData->outputFilters[i]) {
             outOfMemory(TEXT("LC"), 4);
             return TRUE;
