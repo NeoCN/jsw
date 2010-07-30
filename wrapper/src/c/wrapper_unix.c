@@ -88,6 +88,7 @@ TCHAR wrapperClasspathSeparator = TEXT(':');
 
 int timerThreadSet = FALSE;
 pthread_t timerThreadId;
+int timerThreadStarted = FALSE;
 int stopTimerThread = FALSE;
 int timerThreadStopped = FALSE;
 TICKS timerTicks = WRAPPER_TICK_INITIAL;
@@ -644,6 +645,8 @@ void *timerRunner(void *arg) {
     int rc;
 #endif
 
+    timerThreadStarted = TRUE;
+    
     /* Immediately register this thread with the logger. */
     logRegisterThread(WRAPPER_THREAD_TIMER);
 
@@ -750,11 +753,13 @@ void disposeTimer() {
     stopTimerThread = TRUE;
     
     /* Wait until the timer thread is actually stopped to avoid timing problems. */
-    while (!timerThreadStopped) {
+    if (timerThreadStarted) {
+        while (!timerThreadStopped) {
 #ifdef _DEBUG
-        wprintf(TEXT("Waiting for timer thread to stop.\n"));
+            wprintf(TEXT("Waiting for timer thread to stop.\n"));
 #endif
-        wrapperSleep(FALSE, 100);
+            wrapperSleep(FALSE, 100);
+        }
     }
 }
 

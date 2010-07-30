@@ -46,6 +46,7 @@ Java Service Wrapper Revision History.
 * Fix some places where a resolved path of exactly MAX_PATH characters in length
   could have resulted in a buffer overflow.
 * (Standard, Professional) Fix a memory leak disposing language packs.
+* Go through and increase the consistency of text strings.
 
 3.5.2
 * Added new command line argument "--" . All arguments following will be
