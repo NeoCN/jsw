@@ -14,7 +14,7 @@ package org.tanukisoftware.wrapper.test;
 import org.tanukisoftware.wrapper.WrapperManager;
 
 /**
- * This is test is designed to simulate a series of dead lock cases which will
+ * This is test is designed to simulate a series of deadlock cases which will
  *  can be detected and restarted by the Standard Edition.
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>
@@ -58,7 +58,7 @@ public class DeadLock
      *-------------------------------------------------------------*/
     private void lockSecond()
     {
-        System.out.println( Main.getRes().getString( "Locker-{0} Try locking {1}...", new Integer( m_id ) , m_obj2.toString() ) );
+        System.out.println( Main.getRes().getString( "Locker-{0}: Try locking {1}...", new Integer( m_id ) , m_obj2.toString() ) );
         synchronized( m_obj2 )
         {
             System.out.println( Main.getRes().getString("Locker-{0}: Oops! Locked {1}", new Integer( m_id ), m_obj2.toString() ) );
@@ -112,7 +112,7 @@ public class DeadLock
      *-------------------------------------------------------------*/
     public static void main( String[] args )
     {
-        System.out.println( Main.getRes().getString("Dead Lock Tester Running..."));
+        System.out.println( Main.getRes().getString("Deadlock Tester Running..."));
 
         Object obj1 = new Object();
         Object obj2 = new Object();
@@ -122,12 +122,12 @@ public class DeadLock
         switch ( exitCode )
         {
         case 1:
-            System.out.println( Main.getRes().getString("2-object dead lock."));
+            System.out.println( Main.getRes().getString("2-object deadlock."));
             create2ObjectDeadlock();
             break;
             
         case 2:
-            System.out.println( Main.getRes().getString("Wait then 2-object dead lock."));
+            System.out.println( Main.getRes().getString("Wait then 2-object deadlock."));
             try
             {
                 Thread.sleep( 10000 );
@@ -139,7 +139,7 @@ public class DeadLock
             break;
             
         case 3:
-            System.out.println( Main.getRes().getString("3-object dead lock."));
+            System.out.println( Main.getRes().getString("3-object deadlock."));
             create3ObjectDeadlock();
             break;
             

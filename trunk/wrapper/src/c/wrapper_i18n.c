@@ -329,6 +329,10 @@ size_t _treadlink(TCHAR* exe, TCHAR* fullPath, size_t size) {
     return -1;
 }
 
+/**
+ * This Wrapper function internally does a malloc to generate the
+ *  Wide-char version of the return string.  This must be freed by the caller.
+ */
 TCHAR* _tgetcwd(TCHAR *buf, size_t size) {
     char* cBuf;
     char *ptr;
@@ -367,6 +371,9 @@ long _tpathconf(const TCHAR *path, int name) {
 /**
  * Set the current locale.
  *
+ * This Wrapper function internally does a malloc to generate the
+ *  Wide-char version of the return string.  This must be freed by the caller.
+ *
  * @param category
  * @param locale The requested locale. TEXT("") for the default.
  *
@@ -387,18 +394,17 @@ TCHAR *_tsetlocale(int category, const TCHAR *locale) {
         wcstombs(cLocale, locale, req + 1);
         cReturn = setlocale(category, cLocale);
         free(cLocale);
-        if(!cReturn) {
-            return NULL;
+        
+        if (cReturn) {
+            req = mbstowcs(NULL, cReturn, 0);
+            if (req >= 0) {
+                tReturn = malloc(sizeof(TCHAR) * (req + 1));
+                if (tReturn) {
+                    mbstowcs(tReturn, cReturn, req + 1);
+                    return tReturn;
+                }
+            }
         }
-        req = mbstowcs(NULL, cReturn, 0);
-        if (req < 0) {
-            return NULL;
-        }
-        tReturn = malloc(sizeof(TCHAR) * (req + 1));
-        if (tReturn) {
-            mbstowcs(tReturn, cReturn, req + 1);
-        }
-        return tReturn;
     }
     return NULL;
 }
@@ -568,7 +574,11 @@ void _tsyslog(int priority, const TCHAR *message) {
     }
 }
 
-TCHAR * _tgetenv ( const TCHAR * name ) {
+/**
+ * This Wrapper function internally does a malloc to generate the
+ *  Wide-char version of the return string.  This must be freed by the caller.
+ */
+TCHAR * _tgetenv( const TCHAR * name ) {
     char* cName;
     TCHAR* val;
     size_t req;
@@ -598,7 +608,7 @@ FILE* _tfopen(const wchar_t* file, const wchar_t* mode) {
     int sizeFile, sizeMode;
     char* cFile;
     char* cMode;
-    FILE *f;
+    FILE *f = NULL;
 
     sizeFile = wcstombs(NULL, (wchar_t*)file, 0) + 1;
     cFile= malloc(sizeFile);
@@ -610,11 +620,10 @@ FILE* _tfopen(const wchar_t* file, const wchar_t* mode) {
             wcstombs(cMode, (wchar_t*) mode, sizeMode);
             f = fopen(cFile, cMode);
             free(cMode);
-            return f;
         }
         free(cFile);
     }
-    return NULL;
+    return f;
 }
 
 int _tunlink(const wchar_t* address) {
@@ -659,7 +668,6 @@ int _texecvp(TCHAR* arg, TCHAR **cmd) {
     }
     size = i;
     cCmd = malloc((i + 1) * sizeof *cCmd);
-
     if (cCmd) {
         for (i = 0; i < size; i++) {
             req  = wcstombs(NULL, cmd[i], 0) + 1;
@@ -685,8 +693,9 @@ int _texecvp(TCHAR* arg, TCHAR **cmd) {
         } else {
             i = -1;
         }
-        for (; size >= 0; size--)
+        for (; size >= 0; size--) {
             free(cCmd[size]);
+        }
         free(cCmd);
         return i;
     }
@@ -725,7 +734,7 @@ int _vsntprintf(wchar_t *ws, size_t n, const wchar_t *format, va_list arg) {
 #endif
 
 int _texecve(TCHAR* arg, TCHAR **cmd, TCHAR** env) {
-    char** cCmd;
+    char **cCmd;
     char *cArg;
     char **cEnv;
     int i, sizeCmd, sizeEnv;
@@ -757,6 +766,13 @@ int _texecve(TCHAR* arg, TCHAR **cmd, TCHAR** env) {
         }
         sizeEnv = i;
         cEnv = malloc((i + 1) * sizeof *cEnv);
+        if (!cEnv) {
+            for (; sizeCmd >= 0; sizeCmd--) {
+                free(cCmd[sizeCmd]);
+            }
+            free(cCmd);
+            return -1;
+        }
         for (i = 0; i < sizeEnv; i++) {
             req = wcstombs(NULL, env[i], 0) + 1;
             cEnv[i] = malloc(req);
@@ -768,6 +784,10 @@ int _texecve(TCHAR* arg, TCHAR **cmd, TCHAR** env) {
                     free(cEnv[i]);
                 }
                 free(cEnv);
+                for (; sizeCmd >= 0; sizeCmd--) {
+                    free(cCmd[sizeCmd]);
+                }
+                free(cCmd);
                 return -1;
             }
         }
@@ -781,13 +801,13 @@ int _texecve(TCHAR* arg, TCHAR **cmd, TCHAR** env) {
         } else {
             i = -1;
         }
-        for (; sizeCmd >= 0; sizeCmd--) {
-            free(cCmd[sizeCmd]);
-        }
         for (; sizeEnv >= 0; sizeEnv--) {
             free(cEnv[sizeEnv]);
         }
         free(cEnv);
+        for (; sizeCmd >= 0; sizeCmd--) {
+            free(cCmd[sizeCmd]);
+        }
         free(cCmd);
         return i;
     }
@@ -810,7 +830,11 @@ int _topen(const TCHAR *path, int oflag, ...) {
     return -1;
 }
 
-int _tputenv(TCHAR *string) {
+/*
+ * No longer used because it leaks memory.  Once in here, and again in the
+ *  calling code as that code also expects string passed to _tputenv can't be freed.
+ *  Use _tsetenv and _tunsetenv instead
+int _tputenv(const TCHAR *string) {
     int r;
     size_t size;
     char *cStr;
@@ -820,10 +844,52 @@ int _tputenv(TCHAR *string) {
     if (cStr) {
         wcstombs(cStr, string, size);
         r = putenv(cStr);
-      /*  free(cstr); */
+        / *  free(cstr); * /
         return r;
     }
     return -1;
+}
+*/
+
+int _tsetenv(const TCHAR *name, const TCHAR *value, int overwrite) {
+    int r = -1;
+    size_t size;
+    char *cName;
+    char *cValue;
+
+    size = wcstombs(NULL, (wchar_t*)name, 0) + 1;
+    cName = malloc(size);
+    if (cName) {
+        wcstombs(cName, name, size);
+        
+        size = wcstombs(NULL, (wchar_t*)value, 0) + 1;
+        cValue = malloc(size);
+        if (cValue) {
+            wcstombs(cValue, value, size);
+            
+            r = setenv(cName, cValue, overwrite);
+            
+            free(cValue);
+        }
+        
+        free(cName);
+    }
+    return r;
+}
+
+void _tunsetenv(const TCHAR *name) {
+    size_t size;
+    char *cName;
+
+    size = wcstombs(NULL, (wchar_t*)name, 0) + 1;
+    cName = malloc(size);
+    if (cName) {
+        wcstombs(cName, name, size);
+        
+        unsetenv(cName);
+        
+        free(cName);
+    }
 }
 
 int _tstat(const wchar_t* filename, struct stat *buf) {
@@ -837,9 +903,15 @@ int _tstat(const wchar_t* filename, struct stat *buf) {
         size = stat(cFileName, buf);
         free(cFileName);
     }
-    return(size);
+    return size;
 }
 
+/**
+ * @param file_name The file name to be resolved.
+ * @param resolved_name A buffer large enough to hold MAX_PATH characters (plus a '\0')
+ *
+ * @return resolved_name of success, otherwise NULL.
+ */
 wchar_t* _trealpath(const wchar_t* file_name, wchar_t *resolved_name) {
     char *cFile;
 #if defined(IRIX)
@@ -853,10 +925,10 @@ wchar_t* _trealpath(const wchar_t* file_name, wchar_t *resolved_name) {
     sizeFile = wcstombs(NULL, file_name, 0) + 1;
     cFile = malloc(sizeFile);
     if (cFile) {
-        wcstombs(cFile, file_name, sizeFile );
+        wcstombs(cFile, file_name, sizeFile);
         returnVal = realpath(cFile, resolved);
         free(cFile);
-        if(returnVal == NULL) {
+        if (returnVal == NULL) {
             return NULL;
         }
         sizeReturn = mbstowcs(NULL, resolved, 0) + 1;

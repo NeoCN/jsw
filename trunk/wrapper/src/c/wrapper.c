@@ -237,7 +237,7 @@ void wrapperAddDefaultProperties() {
 int showHostIds(int logLevel) {
     log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT(""));
     log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("The Community Edition of the Java Service: Wrapper does not implement"));
-    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("Host Ids."));
+    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("HostIds."));
     log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT(""));
     log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("If you have requested a trial license, or purchased a license, you"));
     log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("may be looking for the Standard or Professional Editions of the Java"));
@@ -371,6 +371,12 @@ void dumpEnvironment() {
             (envVal ? envVal : TEXT("<null>"))
         );
         
+#if !defined(WIN32) && defined(UNICODE)
+        if (envVal) {
+            free(envVal);
+        }
+#endif
+        
         envSrc = envSrc->next;
     }
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Environment variables END:"));
@@ -419,7 +425,7 @@ int wrapperLoadConfigurationProperties() {
         /* The solaris implementation of realpath will return a relative path if a relative
          *  path is provided.  We always need an abosulte path here.  So build up one and
          *  then use realpath to remove any .. or other relative references. */
-        wrapperData->originalWorkingDir = malloc(sizeof(TCHAR) * PATH_MAX);
+        wrapperData->originalWorkingDir = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
         if (!wrapperData->originalWorkingDir) {
             outOfMemory(TEXT("WLCP"), 4);
             return TRUE;
@@ -460,7 +466,7 @@ int wrapperLoadConfigurationProperties() {
         /* The solaris implementation of realpath will return a relative path if a relative
          *  path is provided.  We always need an abosulte path here.  So build up one and
          *  then use realpath to remove any .. or other relative references. */
-        wrapperData->configFile = malloc(sizeof(TCHAR) * PATH_MAX);
+        wrapperData->configFile = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
         if (!wrapperData->configFile) {
             outOfMemory(TEXT("WLCP"), 2);
             return TRUE;
@@ -548,7 +554,7 @@ int wrapperLoadConfigurationProperties() {
             /* The solaris implementation of realpath will return a relative path if a relative
              *  path is provided.  We always need an abosulte path here.  So build up one and
              *  then use realpath to remove any .. or other relative references. */
-            wrapperData->workingDir = malloc(sizeof(TCHAR) * PATH_MAX);
+            wrapperData->workingDir = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
             if (!wrapperData->workingDir) {
                 outOfMemory(TEXT("WLCP"), 6);
                 return TRUE;
@@ -1568,6 +1574,9 @@ int wrapperInitialize() {
 #ifdef _DEBUG
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("tsetlocale() returned \"%s\""), retLocale);
 #endif
+#if !defined(WIN32) && defined(UNICODE)
+        free(retLocale);
+#endif
     } else {
         /* Failure. */
 #ifdef _DEBUG
@@ -1593,6 +1602,11 @@ void wrapperDispose() {
     }
 #endif
 
+    /* Clean up the timer thread. */
+    if (wrapperData->useSystemTime) {
+        disposeTimer();
+    }
+    
     /* Clean up the logging system. */
     disposeLogging();
 }
@@ -3021,7 +3035,7 @@ int checkIfBinary(const TCHAR *filename) {
 
 #ifndef WIN32
 TCHAR* resolveLinks(TCHAR* exe) {
-    TCHAR resolvedPath[PATH_MAX];
+    TCHAR resolvedPath[PATH_MAX + 1];
     TCHAR* returnVal;
     if (_trealpath(exe, resolvedPath) == NULL) {
         return NULL;
@@ -3046,7 +3060,7 @@ TCHAR* findPathOf( const TCHAR *exe) {
     TCHAR *pth2;
     TCHAR pth[PATH_MAX];
     TCHAR *ret;
-    TCHAR resolvedPath[PATH_MAX];
+    TCHAR resolvedPath[PATH_MAX + 1];
     if (_tcschr(exe, TEXT('/')) != NULL) {
         if (_trealpath(exe, resolvedPath) == NULL) {
             return NULL;
@@ -3065,8 +3079,10 @@ TCHAR* findPathOf( const TCHAR *exe) {
     searchPath = _tgetenv(TEXT("PATH"));
     if (searchPath == NULL) {
         return NULL;
-    }
-    if (_tcslen(searchPath) <= 0) {
+    } else if (_tcslen(searchPath) <= 0) {
+#if !defined(WIN32) && defined(UNICODE)
+        free(searchPath);
+#endif
         return NULL;
     }
     beg = searchPath;
@@ -3089,6 +3105,11 @@ TCHAR* findPathOf( const TCHAR *exe) {
             beg = end + 1;
         }
     } while (!stop && !found);
+    
+#if !defined(WIN32) && defined(UNICODE)
+    free(searchPath);
+#endif
+    
     if (found) {
         pth2 = malloc((_tcslen(pth) + 1) * sizeof(TCHAR));
         if (!pth2) {
@@ -3309,7 +3330,7 @@ int wrapperBuildJavaCommandArrayJavaAdditional(TCHAR **strings, int addQuotes, i
                      *  as the being the main class name by Java. */
                     if (!((_tcsstr(prop, TEXT("-")) == prop) || (_tcsstr(prop, TEXT("\"-")) == prop))) {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                            TEXT("The value of property '%s', '%s' is not a valid argument to the jvm.  Skipping."),
+                            TEXT("The value of property '%s', '%s' is not a valid argument to the JVM.  Skipping."),
                             paramBuffer, prop);
                         strings[index] = malloc(sizeof(TCHAR) * 1);
                         if (!strings[index]) {
@@ -3406,18 +3427,20 @@ int wrapperBuildJavaCommandArrayLibraryPath(TCHAR **strings, int addQuotes, int 
 #else
             systemPath = _tgetenv(TEXT("LD_LIBRARY_PATH"));
 #endif
-            /* If we are going to add our own quotes then we need to make sure that the system
-             *  PATH doesn't contain any of its own.  Windows allows users to do this... */
-            if (addQuotes) {
-                i = 0;
-                j = 0;
-                do {
-                    if (systemPath[i] != TEXT('"') ) {
-                        systemPath[j] = systemPath[i];
-                        j++;
-                    }
-                    i++;
-                } while (systemPath[j] != TEXT('\0'));
+            if (systemPath) {
+                /* If we are going to add our own quotes then we need to make sure that the system
+                 *  PATH doesn't contain any of its own.  Windows allows users to do this... */
+                if (addQuotes) {
+                    i = 0;
+                    j = 0;
+                    do {
+                        if (systemPath[i] != TEXT('"') ) {
+                            systemPath[j] = systemPath[i];
+                            j++;
+                        }
+                        i++;
+                    } while (systemPath[j] != TEXT('\0'));
+                }
             }
         } else {
             systemPath = NULL;
@@ -3435,6 +3458,9 @@ int wrapperBuildJavaCommandArrayLibraryPath(TCHAR **strings, int addQuotes, int 
                 strings[index] = malloc(sizeof(TCHAR) * (22 + _tcslen(prop) + 1 + _tcslen(systemPath) + 1 + 1));
                 if (!strings[index]) {
                     outOfMemory(TEXT("WBJCALP"), 1);
+#if !defined(WIN32) && defined(UNICODE)
+                    free(systemPath);
+#endif
                     return -1;
                 }
                 if (addQuotes) {
@@ -3473,6 +3499,11 @@ int wrapperBuildJavaCommandArrayLibraryPath(TCHAR **strings, int addQuotes, int 
             strings[index] = malloc(sizeof(TCHAR) * cpLenAlloc);
             if (!strings[index]) {
                 outOfMemory(TEXT("WBJCALP"), 3);
+#if !defined(WIN32) && defined(UNICODE)
+                if (systemPath) {
+                    free(systemPath);
+                }
+#endif
                 return -1;
             }
 
@@ -3489,6 +3520,11 @@ int wrapperBuildJavaCommandArrayLibraryPath(TCHAR **strings, int addQuotes, int 
             /* Loop over the library path entries adding each one */
             if (getStringProperties(properties, TEXT("wrapper.java.library.path."), TEXT(""), wrapperData->ignoreSequenceGaps, FALSE, &propertyNames, &propertyValues, &propertyIndices)) {
                 /* Failed */
+#if !defined(WIN32) && defined(UNICODE)
+                if (systemPath) {
+                    free(systemPath);
+                }
+#endif
                 return -1;
             }
 
@@ -3507,6 +3543,11 @@ int wrapperBuildJavaCommandArrayLibraryPath(TCHAR **strings, int addQuotes, int 
                             strings[index] = malloc(sizeof(TCHAR) * cpLenAlloc);
                             if (!strings[index]) {
                                 outOfMemory(TEXT("WBJCALP"), 4);
+#if !defined(WIN32) && defined(UNICODE)
+                                if (systemPath) {
+                                    free(systemPath);
+                                }
+#endif
                                 return -1;
                             }
                             _sntprintf(strings[index], cpLenAlloc, TEXT("%s"), tmpString);
@@ -3538,6 +3579,9 @@ int wrapperBuildJavaCommandArrayLibraryPath(TCHAR **strings, int addQuotes, int 
                         strings[index] = malloc(sizeof(TCHAR) * cpLenAlloc);
                         if (!strings[index]) {
                             outOfMemory(TEXT("WBJCALP"), 5);
+#if !defined(WIN32) && defined(UNICODE)
+                            free(systemPath);
+#endif
                             return -1;
                         }
                         _sntprintf(strings[index], cpLenAlloc, TEXT("%s"), tmpString);
@@ -3575,9 +3619,14 @@ int wrapperBuildJavaCommandArrayLibraryPath(TCHAR **strings, int addQuotes, int 
                 wrapperCheckQuotes(strings[index], TEXT("wrapper.java.library.path.<n>"));
             }
         }
+
+#if !defined(WIN32) && defined(UNICODE)
+        if (systemPath) {
+            free(systemPath);
+        }
+#endif
     }
     index++;
-
     return index;
 }
 

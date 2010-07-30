@@ -41,7 +41,11 @@ Java Service Wrapper Revision History.
   connections to the mail are server are not yet supported.
 * Fix a buffer overflow while loading the configuration file on Mac OSX
   versions.  Introduced in 3.5.0.
-* Fix a few minor memory leaks, some from quite early versions.
+* Fix a several memory leaks on UNIX versions that were added in 3.5.0, as well
+  as a few others on all platforms, some from quite early versions.
+* Fix some places where a resolved path of exactly MAX_PATH characters in length
+  could have resulted in a buffer overflow.
+* (Standard, Professional) Fix a memory leak disposing language packs.
 
 3.5.2
 * Added new command line argument "--" . All arguments following will be

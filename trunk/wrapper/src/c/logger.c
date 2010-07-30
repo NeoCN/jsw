@@ -1288,7 +1288,7 @@ int log_printf_message( int source_id, int level, int threadId, int queued, TCHA
                 logfileFP = _tfopen( currentLogFileName, TEXT("a") );
                 if (logfileFP == NULL) {
                     /* The log file could not be opened.  Try the default file location. */
-                    _tprintf(TEXT("WARNING - Unable to write to the configured log file location: %s  Falling back to the default file in current working directory: %s  Cause was: %s\n"),
+                    _tprintf(TEXT("WARNING - Unable to write to the configured log file location:\n %s\n Falling back to the default file in current working directory:\n %s\n Cause was: %s\n"),
                         currentLogFileName, TEXT("wrapper.log"), getLastErrorText());
                     _sntprintf(currentLogFileName, logFileNameSize, TEXT("wrapper.log"));
                     logfileFP = _tfopen( TEXT("wrapper.log"), TEXT("a") );

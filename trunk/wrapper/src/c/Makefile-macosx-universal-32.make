@@ -8,7 +8,12 @@
 # http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
 
 UNIVERSAL_SDK_HOME=/Developer/SDKs/MacOSX10.5.sdk
-COMPILE = gcc -O3 -Wall -DUSE_NANOSLEEP -DMACOSX -arch ppc -arch i386 -isysroot $(UNIVERSAL_SDK_HOME) -mmacosx-version-min=10.4 -DUNICODE -D_UNICODE
+#COMPILE = gcc -O3 -Wall -DUSE_NANOSLEEP -DMACOSX -arch ppc -arch i386 -isysroot $(UNIVERSAL_SDK_HOME) -mmacosx-version-min=10.4 -DUNICODE -D_UNICODE
+COMPILE = gcc -ggdb -O1 -Wall -DUSE_NANOSLEEP -DMACOSX -DVALGRIND -isysroot $(UNIVERSAL_SDK_HOME) -mmacosx-version-min=10.4 -DUNICODE -D_UNICODE
+# To debug:
+# 1) Add "-ggdb"
+# 2) Remove "-arch ppc -arch i386"
+# 3) Change "-O3" to "-O1"
 
 DEFS = -I$(UNIVERSAL_SDK_HOME)/System/Library/Frameworks/JavaVM.framework/Headers
 

@@ -223,7 +223,7 @@ public class DemoApp implements WrapperListener
                             else if ( command.equals( "frozen" ) )
                             {
                                 WrapperManager.appearHung();
-                                System.out.println( getRes().getString( "Waiting until wrapper stops this jvm." ) );
+                                System.out.println( getRes().getString( "Waiting until wrapper stops this JVM." ) );
                                 while ( true )
                                 {
                                 }
@@ -253,7 +253,7 @@ public class DemoApp implements WrapperListener
                             {
                                 if ( WrapperManager.isStandardEdition() )
                                 {
-                                    System.out.println( getRes().getString( "Dead Lock Tester Running..." ) );
+                                    System.out.println( getRes().getString( "Deadlock Tester Running..." ) );
                                     Object obj1 = new Object();
                                     Object obj2 = new Object();
                                     int exitCode = 1;
@@ -261,11 +261,11 @@ public class DemoApp implements WrapperListener
                                     switch ( exitCode )
                                     {
                                         case 1:
-                                            System.out.println( getRes().getString( "2-object dead lock." ) );
+                                            System.out.println( getRes().getString( "2-object deadlock." ) );
                                             dl.create2ObjectDeadlock();
                                             break;
                                         case 2:
-                                            System.out.println( getRes().getString( "Wait then 2-object dead lock." ) );
+                                            System.out.println( getRes().getString( "Wait then 2-object deadlock." ) );
                                             try
                                             {
                                                 Thread.sleep( 10000 );
@@ -276,7 +276,7 @@ public class DemoApp implements WrapperListener
                                             dl.create2ObjectDeadlock();
                                             break;
                                         case 3:
-                                            System.out.println( getRes().getString( "3-object dead lock." ) );
+                                            System.out.println( getRes().getString( "3-object deadlock." ) );
                                             dl.create3ObjectDeadlock();
                                             break;
             

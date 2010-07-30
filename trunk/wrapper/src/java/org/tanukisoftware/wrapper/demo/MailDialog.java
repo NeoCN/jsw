@@ -100,7 +100,7 @@ public class MailDialog extends JDialog
 
         this.getContentPane().setLayout( new java.awt.GridBagLayout() );
 
-        this.setTitle( DemoApp.getRes().getString( "Wrapper Demo App: Event Mails" ) );
+        this.setTitle( DemoApp.getRes().getString( "Wrapper DemoApp: Event Mails" ) );
 
         jPanel1.setLayout( new java.awt.GridBagLayout() );
 

@@ -46,13 +46,13 @@ public class RuntimeExec
             switch ( i )
             {
             case 1: 
-                System.out.println( i + Main.getRes().getString( " start a small child, dont care about output but call waitfor..." ) );
+                System.out.println( i + Main.getRes().getString( " start a small child process, dont care about output but call waitfor..." ) );
                 try
                 {
                     WrapperProcess proc = WrapperManager.exec( "../test/simplewaiter 65 1" );
                     proc.getOutputStream().close();
-                    System.out.println( Main.getRes().getString( "{0} small child {1} is alive {2}",  new Object[]{ new Integer( i ), new Integer( proc.getPID() ) , new Boolean( proc.isAlive() ) } ) );
-                    System.out.println( Main.getRes().getString( "{0} process (PID= {1}) finished with code {2}", new Object[]{ new Integer( i ), new Integer ( proc.getPID() ), new Integer( proc.waitFor() ) } ) );
+                    System.out.println( Main.getRes().getString( "{0} small child process {1} is alive {2}",  new Object[]{ new Integer( i ), new Integer( proc.getPID() ) , new Boolean( proc.isAlive() ) } ) );
+                    System.out.println( Main.getRes().getString( "{0} child process (PID= {1}) finished with code {2}", new Object[]{ new Integer( i ), new Integer ( proc.getPID() ), new Integer( proc.waitFor() ) } ) );
                 }
                 catch ( InterruptedException e )
                 {
@@ -67,7 +67,7 @@ public class RuntimeExec
                 break;
 
             case 2:
-                System.out.println( i + Main.getRes().getString( " start longrunning child dont wait..." ) );
+                System.out.println( i + Main.getRes().getString( " start longrunning child process dont wait..." ) );
                 try
                 {
                     WrapperProcess proc;
@@ -83,7 +83,7 @@ public class RuntimeExec
                         proc = WrapperManager.exec( "../test/simplewaiter " + ( rand.nextInt( 200 ) + 1 ) + " " + rand.nextInt( 30 ) );
                     }
                     
-                    System.out.println( i + Main.getRes().getString( " longrunning child {0} is alive {1}" , new Object[]{ new Integer( proc.getPID() ), new Boolean( proc.isAlive() ) } ) );
+                    System.out.println( i + Main.getRes().getString( " longrunning child process {0} is alive {1}" , new Object[]{ new Integer( proc.getPID() ), new Boolean( proc.isAlive() ) } ) );
                     // System.out.println( i + " process ( PID= " + proc.getPID() + " ) finished with code " + proc.waitFor() );
                 }
                 catch ( IOException e )
@@ -96,11 +96,11 @@ public class RuntimeExec
             case 3: 
                 try
                 {
-                    System.out.println( i + Main.getRes().getString( " spawn a small command..." ) );
+                    System.out.println( i + Main.getRes().getString( " spawn a small child process..." ) );
                     WrapperProcess p;
                     if ( WrapperProcessConfig.isSupported( WrapperProcessConfig.POSIX_SPAWN ) )
                     {
-                        System.out.println( i + Main.getRes().getString( " spawn is supported." ) );
+                        System.out.println( i + Main.getRes().getString( " posix_spawn is supported." ) );
                         p = WrapperManager.exec( "../test/simplewaiter 0 15", new WrapperProcessConfig().setStartType(WrapperProcessConfig.POSIX_SPAWN) );
                     }
                     else
@@ -131,7 +131,7 @@ public class RuntimeExec
                 break;
 
             case 4: 
-                System.out.println( i + Main.getRes().getString( " start a small child, change the environment and read output..." ) );
+                System.out.println( i + Main.getRes().getString( " start a small child process, change the environment and read output..." ) );
                 try
                 {
                     WrapperProcessConfig wpm = new WrapperProcessConfig();
@@ -143,7 +143,7 @@ public class RuntimeExec
                     WrapperProcess proc = WrapperManager.exec( "../test/simplewaiter "+ rand.nextInt(200) +" 3", wpm );
                     proc.getOutputStream().close();
 
-                    System.out.println( i + Main.getRes().getString( " small child {0} is alive {1}" , new Object[]{ new Integer( proc.getPID() ), new Boolean( proc.isAlive() ) } ) );
+                    System.out.println( i + Main.getRes().getString( " small child process {0} is alive {1}" , new Object[]{ new Integer( proc.getPID() ), new Boolean( proc.isAlive() ) } ) );
                     BufferedReader br = new BufferedReader( new InputStreamReader( proc.getInputStream() ) );
                     try
                     {
@@ -179,7 +179,7 @@ public class RuntimeExec
                 }
                 break;
             case 5:
-                System.out.println( i + Main.getRes().getString( " start longrunning child, change working dir, call waitFor and finally read output..." ) );
+                System.out.println( i + Main.getRes().getString( " start longrunning child process, change working dir, call waitFor and finally read output..." ) );
                 try
                 {
                     WrapperProcessConfig wpm = new WrapperProcessConfig();
@@ -206,7 +206,7 @@ public class RuntimeExec
                     }
 
                     System.out.println( i + " PID = " + proc.getPID() );
-                    System.out.println( i + Main.getRes().getString( " process (PID= {0}) finished with code " , new Integer( proc.getPID() ) ) +  proc.waitFor() );
+                    System.out.println( i + Main.getRes().getString( " child process (PID= {0}) finished with code " , new Integer( proc.getPID() ) ) +  proc.waitFor() );
 
                     System.out.println( i + Main.getRes().getString( " now read the output" ) );
                     BufferedReader br = new BufferedReader( new InputStreamReader( proc.getInputStream() ) );
@@ -236,12 +236,12 @@ public class RuntimeExec
             case 6: 
                 try
                 {
-                    System.out.println( i + Main.getRes().getString( " start a small command by Runtime.exec and put a wrapperexec in between.." ) );
+                    System.out.println( i + Main.getRes().getString( " start a small child process by Runtime.exec and put a wrapperexec in between.." ) );
                     Process p = Runtime.getRuntime().exec( "../test/simplewaiter " + ( rand.nextInt( 200 ) + 1 ) + " " + ( rand.nextInt( 20 ) + 1 ));
                     
                     WrapperProcess proc = WrapperManager.exec( "../test/simplewaiter 4 4" );
                     proc.getOutputStream().close();
-                    System.out.println( i + Main.getRes().getString( " small child {0} is alive {1}" , new Object[]{ new Integer( proc.getPID() ), new Boolean( proc.isAlive() ) } ) );
+                    System.out.println( i + Main.getRes().getString( " small child process {0} is alive {1}" , new Object[]{ new Integer( proc.getPID() ), new Boolean( proc.isAlive() ) } ) );
                     // System.out.println(i + " Main.getRes (PID= " + proc.getPID() + " ) finished with code " + proc.waitFor() );
                     BufferedReader br = new BufferedReader( new InputStreamReader( proc.getInputStream() ) );
                     try
@@ -270,21 +270,21 @@ public class RuntimeExec
                 break;
 
             case 7: 
-                System.out.println( i + Main.getRes().getString(  " start invalid child..." ) );
+                System.out.println( i + Main.getRes().getString(  " start invalid child process..." ) );
                 try
                 {
                     WrapperProcess proc = WrapperManager.exec( "invalid" );
-                    System.out.println( i + Main.getRes().getString( " invalid child is alive "  )+ proc.isAlive() );
+                    System.out.println( i + Main.getRes().getString( " invalid child process is alive "  )+ proc.isAlive() );
                 }
                 catch ( IOException e )
                 {
-                    System.out.println( i + Main.getRes().getString( " caught an invalid child..." ) );
+                    System.out.println( i + Main.getRes().getString( " caught an invalid child process..." ) );
                 }
                 break;
             }
         }
         try {
-            System.out.println( Main.getRes().getString( "finally start a long-running application attached to the wrapper, the wrapper will shut down soon, so the app should get killed by the wrapper..." ) );
+            System.out.println( Main.getRes().getString( "finally start a long-running child process attached to the wrapper, the wrapper will shut down soon, so the child process should get killed by the wrapper..." ) );
             WrapperProcess p = WrapperManager.exec( "../test/simplewaiter 2 1000" , new WrapperProcessConfig().setDetached(true));
         } catch (SecurityException e) {
             // TODO Auto-generated catch block

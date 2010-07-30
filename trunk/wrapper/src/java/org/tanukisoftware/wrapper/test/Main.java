@@ -143,7 +143,7 @@ public class Main
                     getRes().getString( "Calls WrapperManager.stopImmediate( 0 ) to immediately shutdown the JVM and Wrapper with a success exit code." ) );
             
             buildCommand( panel, gridBag, c, "StopImmediate(1)", "stopimmediate1",
-                    getRes().getString(" Calls WrapperManager.stopImmediate( 1 ) to immediately shutdown the JVM and Wrapper with a failure exir code." ) );
+                    getRes().getString(" Calls WrapperManager.stopImmediate( 1 ) to immediately shutdown the JVM and Wrapper with a failure exit code." ) );
             
             buildCommand( panel, gridBag, c, "StopAndReturn(0)", "stopandreturn0",
                     getRes().getString( "Calls WrapperManager.stopAndReturn( 0 ) to shutdown the JVM and Wrapper with a success exit code." ) );
@@ -172,7 +172,7 @@ public class Main
             buildCommand( panel, gridBag, c, getRes().getString( "Simulate JVM Hang" ), "appear_hung",
                     getRes().getString( "Makes the JVM appear to be hung as viewed from the Wrapper, it will be killed and restarted." ) );
             
-            buildCommand( panel, gridBag, c, getRes().getString( "Create DeadLock" ), "deadlock",
+            buildCommand( panel, gridBag, c, getRes().getString( "Create Deadlock" ), "deadlock",
                     getRes().getString( "Creates two new threads which intentionally go into a DeadLock situation.  (Standard, Professional)" ) );
             
             buildCommand( panel, gridBag, c, getRes().getString( "Simulate Wrapper Crash" ), "appear_orphan",
@@ -263,7 +263,7 @@ public class Main
             Panel childPanel2 = new Panel();
             childPanel2.setLayout( new BorderLayout() );
             childPanel2.add( childPanel, BorderLayout.WEST );
-            buildCommand( panel, gridBag, c, getRes().getString( "Execute Child" ), "child_exec", childPanel2 );
+            buildCommand( panel, gridBag, c, getRes().getString( "Execute Child Process" ), "child_exec", childPanel2 );
             
             buildCommand( panel, gridBag, c, getRes().getString( "GC" ), "gc", getRes().getString( "Performs a GC sweep." ) );
             

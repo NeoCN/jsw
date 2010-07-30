@@ -79,6 +79,8 @@ TCHAR wrapperClasspathSeparator = TEXT(';');
 
 HANDLE timerThreadHandle;
 DWORD timerThreadId;
+int stopTimerThread = FALSE;
+int timerThreadStopped = FALSE;
 TICKS timerTicks = WRAPPER_TICK_INITIAL;
 
 /** Flag which keeps track of whether or not the CTRL-C key has been pressed. */
@@ -716,7 +718,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
             log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Timer thread started."));
         }
 
-        while (TRUE) {
+        while (!stopTimerThread) {
             wrapperSleep(TRUE, WRAPPER_TICK_MS);
 
             /* Get the tick count based on the system time. */
@@ -724,6 +726,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
 
             /* Lock the tick mutex whenever the "timerTicks" variable is accessed. */
             if (wrapperData->useTickMutex && wrapperLockTickMutex()) {
+                timerThreadStopped = TRUE;
                 return 1;
             }
             
@@ -731,6 +734,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
             nowTicks = timerTicks++;
             
             if (wrapperData->useTickMutex && wrapperReleaseTickMutex()) {
+                timerThreadStopped = TRUE;
                 return 1;
             }
 
@@ -764,9 +768,13 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
         /* This call is not queued to make sure it makes it to the log prior to a shutdown. */
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Fatal error in the Timer thread."));
+        timerThreadStopped = TRUE; /* Before appExit() */
         appExit(1);
         return 1; /* For the compiler, we will never get here. */
     }
+    
+    timerThreadStopped = TRUE;
+    return 0;
 }
 
 /**
@@ -792,6 +800,18 @@ int initializeTimer() {
         return 1;
     } else {
         return 0;
+    }
+}
+
+void disposeTimer() {
+    stopTimerThread = TRUE;
+    
+    /* Wait until the timer thread is actually stopped to avoid timing problems. */
+    while (!timerThreadStopped) {
+#ifdef _DEBUG
+        wprintf(TEXT("Waiting for timer thread to stop.\n"));
+#endif
+        wrapperSleep(FALSE, 100);
     }
 }
 
@@ -876,7 +896,7 @@ int wrapperInitializeRun() {
             /* A console needed to be allocated for the process but it should be hidden. */
 
             /* Generate a unique time for the console so we can look for it below. */
-            _sntprintf(titleBuffer, 80, TEXT("Wrapper Console ID %d-%d (Do not close)"), wrapperData->wrapperPID, rand());
+            _sntprintf(titleBuffer, 80, TEXT("Wrapper Console Id %d-%d (Do not close)"), wrapperData->wrapperPID, rand());
 #ifdef _DEBUG
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Wrapper console title: %s"), titleBuffer);
 #endif
@@ -1223,7 +1243,7 @@ void wrapperExecute() {
     process_attributes.bInheritHandle = TRUE;
 
     /* Generate a unique time for the console so we can look for it below. */
-    _sntprintf(titleBuffer, 80, TEXT("Wrapper Controlled JVM Console ID %d-%d (Do not close)"), wrapperData->wrapperPID, rand());
+    _sntprintf(titleBuffer, 80, TEXT("Wrapper Controlled JVM Console Id %d-%d (Do not close)"), wrapperData->wrapperPID, rand());
 
     /* Initialize a STARTUPINFO structure to use for the new process. */
     startup_info.cb=sizeof(STARTUPINFO);
@@ -1432,7 +1452,7 @@ void wrapperExecute() {
     if (wrapperData->javaIdFilename) {
         if (writePidFile(wrapperData->javaIdFilename, wrapperData->jvmRestarts, wrapperData->javaIdFileUmask)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                TEXT("Unable to write the Java ID file: %s"), wrapperData->javaIdFilename);
+                TEXT("Unable to write the Java Id file: %s"), wrapperData->javaIdFilename);
         }
     }
 }

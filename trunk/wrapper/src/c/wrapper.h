@@ -469,6 +469,8 @@ extern const TCHAR *wrapperGetJState(int jState);
 extern struct tm wrapperGetReleaseTime();
 extern struct tm wrapperGetBuildTime();
 
+extern void disposeTimer();
+
 extern int showHostIds(int logLevel);
 extern void wrapperLoadHostName();
 

@@ -808,7 +808,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
                             /* We are only interrested in threads that belong to the current Explorer process. */
                             if (threadEntry.th32OwnerProcessID == processEntry.th32ProcessID) {
 #ifdef IUVERBOSE
-                                _tprintf(TEXT("WrapperJNI Debug:   Thread id=%ld\n"), threadEntry.th32ThreadID);
+                                _tprintf(TEXT("WrapperJNI Debug:   Thread Id=%ld\n"), threadEntry.th32ThreadID);
                                 flushall();
 #endif
 

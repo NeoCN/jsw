@@ -186,7 +186,7 @@ public class WrapperJarApp
         {
             if ( WrapperManager.isDebugEnabled() )
             {
-                m_outDebug.println( WrapperManager.getRes().getString("Jar Class-Path: {0}", classPath ) );
+                m_outDebug.println( WrapperManager.getRes().getString("Jar Classpath: {0}", classPath ) );
             }
             
             StringTokenizer st = new StringTokenizer( classPath, " \n\r" );
@@ -236,7 +236,7 @@ public class WrapperJarApp
         {
             if ( WrapperManager.isDebugEnabled() )
             {
-                m_outDebug.println( WrapperManager.getRes().getString("Jar Class-Path: Not specified." ) );
+                m_outDebug.println( WrapperManager.getRes().getString("Jar Classpath: Not specified." ) );
             }
             
             classURLs = new URL[1];
