@@ -305,12 +305,14 @@ void wrapperMaintainSignals() {
         takeSignalAction(SIGUSR1, TEXT("USR1"), wrapperData->signalUSR1Mode);
     }
     
+#ifndef VALGRIND
     /* SIGUSR2 */
     if (wrapperData->signalUSR2Trapped) {
         wrapperData->signalUSR2Trapped = FALSE;
         
         takeSignalAction(SIGUSR2, TEXT("USR2"), wrapperData->signalUSR2Mode);
     }
+#endif
 }
 
 /**
@@ -636,7 +638,9 @@ void *timerRunner(void *arg) {
     int offsetDiff;
     int first = TRUE;
     sigset_t signal_mask;
+#ifndef VALGRIND
     int rc;
+#endif
 
     /* Immediately register this thread with the logger. */
     logRegisterThread(WRAPPER_THREAD_TIMER);
@@ -649,11 +653,13 @@ void *timerRunner(void *arg) {
     sigaddset(&signal_mask, SIGALRM);
     sigaddset(&signal_mask, SIGHUP);
     sigaddset(&signal_mask, SIGUSR1);
+#ifndef VALGRIND
     sigaddset(&signal_mask, SIGUSR2);
     rc = pthread_sigmask(SIG_BLOCK, &signal_mask, NULL);
     if (rc != 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Could not mask signals for timer thread."));
     }
+#endif
 
     if (wrapperData->isTickOutputEnabled) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Timer thread started."));
@@ -752,8 +758,12 @@ int wrapperInitializeRun() {
         registerSigAction(SIGCHLD, sigActionChildDeath) ||
         registerSigAction(SIGTERM, sigActionTermination) ||
         registerSigAction(SIGHUP,  sigActionHangup) ||
-        registerSigAction(SIGUSR1, sigActionUSR1) ||
-        registerSigAction(SIGUSR2, sigActionUSR2)) {
+        registerSigAction(SIGUSR1, sigActionUSR1)
+#ifndef VALGRIND
+        ||
+        registerSigAction(SIGUSR2, sigActionUSR2)
+#endif
+        ) {
         retval = -1;
     }
 
