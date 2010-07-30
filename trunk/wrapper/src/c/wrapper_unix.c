@@ -1472,7 +1472,6 @@ int main(int argc, char **argv) {
 #ifdef UNICODE
     size_t req;
     TCHAR **argv;
-    TCHAR *envLang;
     
     /* Create UNICODE versions of the argv array for internal use. */
     argv = malloc(argc * sizeof *argv );
