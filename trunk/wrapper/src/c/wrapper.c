@@ -2097,6 +2097,7 @@ int wrapperReadChildOutput() {
                 logChildOutput(wrapperChildWorkBuffer);
 
                 /* Remove the line we just logged from the buffer by moving the rest up. */
+                /* NOTE - This line intentionally does the copy within the same memory space.  It is safe the way it is working however. */
                 strcpy(wrapperChildWorkBuffer, cLF + sizeof(char));
                 wrapperChildWorkBufferLen -= (cLF - wrapperChildWorkBuffer) + sizeof(char);
             } else {
@@ -4829,14 +4830,20 @@ void wrapperLoadHostName() {
         len = mbstowcs(NULL, hostName, 0) + 1;
         hostName2 = malloc(len * sizeof(TCHAR));
         if (!hostName2) {
-            outOfMemory(TEXT("LHN"), 1);
+            outOfMemory(TEXT("LHN"), 2);
             return;
         }
         mbstowcs(hostName2, hostName, len);
 #endif
 #else
-
-       hostName2 = (TCHAR*)hostName;
+        /* No conversion needed.  Do an extra malloc here to keep the code simple below. */
+        len = _tcslen(hostName) + 1;
+        hostName2 = malloc(len * sizeof(TCHAR));
+        if (!hostName2) {
+            outOfMemory(TEXT("LHN"), 3);
+            return;
+        }
+        _tcscpy(hostName2, hostName);
 #endif
 
         wrapperData->hostName = malloc(sizeof(TCHAR) * (_tcslen(hostName2) + 1));
@@ -4844,7 +4851,9 @@ void wrapperLoadHostName() {
             outOfMemory(TEXT("LHN"), 2);
             return;
         }
-        _sntprintf(wrapperData->hostName, _tcslen(hostName2) + 1, TEXT("%s"), hostName2);
+        _tcscpy(wrapperData->hostName, hostName2);
+        
+        free(hostName2);
     }
 }
 
