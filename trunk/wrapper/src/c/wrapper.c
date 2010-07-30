@@ -1609,6 +1609,10 @@ void wrapperDispose() {
     
     /* Clean up the logging system. */
     disposeLogging();
+    
+    /* Clean up the properties structure. */
+    disposeProperties(properties);
+    properties = NULL;
 }
 
 /**
