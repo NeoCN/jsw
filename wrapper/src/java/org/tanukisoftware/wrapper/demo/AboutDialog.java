@@ -28,6 +28,7 @@ import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
 import org.tanukisoftware.wrapper.WrapperManager;
+import org.tanukisoftware.wrapper.test.Main;
 
 public class AboutDialog
     extends JDialog
@@ -36,7 +37,7 @@ public class AboutDialog
 
     public AboutDialog( JFrame parent )
     {
-        super( parent, "About Dialog", true );
+        super( parent, Main.getRes().getString("About Dialog"), true );
         
         JPanel main = new JPanel();
         main.setBorder( new EmptyBorder( 10, 20, 10, 20 ) );
@@ -44,7 +45,7 @@ public class AboutDialog
         this.setResizable( false );
         Box b = Box.createVerticalBox();
         b.add( Box.createGlue() );
-        b.add( new JLabel( "Demo Application for the Java Service Wrapper" ) );
+        b.add( new JLabel( Main.getRes().getString("Demo Application for the Java Service Wrapper" ) ) );
         b.add( new JLabel( "By Tanuki Software Ltd." ) );
         final JLabel url = new JLabel();
         url.setText( "<html><u>http://wrapper.tanukisoftware.com</u></html>" );
@@ -98,11 +99,11 @@ public class AboutDialog
                     }
                     catch ( IOException ex )
                     {
-                        System.out.println( "Failed to launch external browser to view web page using command:" );
+                        System.out.println( Main.getRes().getString( "Failed to launch external browser to view web page using command:" ) );
                         System.out.println( "    " + cmd );
-                        System.out.println( "  Error: " + ex.getMessage() );
+                        System.out.println( Main.getRes().getString("  Error: ") + ex.getMessage() );
                         System.out.println();
-                        System.out.println( "Please enter URL into your browser: " + url );
+                        System.out.println( Main.getRes().getString( "Please enter URL into your browser: " ) + url );
                         System.out.println();
                     }
                 }

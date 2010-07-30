@@ -26,7 +26,7 @@ public class Filter {
         System.out.println( Main.getRes().getString( "Test the handling of filters." ) );
         System.out.println( Main.getRes().getString( "The Wrapper should restart the JVM when it detects either the string:" ) );
         System.out.println( Main.getRes().getString( "  \"ERR OR\" or \"N ice long restart message.\", both without the" ) );
-        System.out.println( Main.getRes().getString( "  extra space  It should ignore the string: \"NONERROR\".  Then" ) );
+        System.out.println( Main.getRes().getString( "  extra space.  It should ignore the string: \"NONERROR\".  Then" ) );
         System.out.println( Main.getRes().getString( "  it should exit when it detects the string: \"ALL DONE\", once again" ) );
         System.out.println( Main.getRes().getString( "  without the space." ) );
         System.out.println();

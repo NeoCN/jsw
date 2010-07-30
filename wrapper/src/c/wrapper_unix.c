@@ -88,6 +88,8 @@ TCHAR wrapperClasspathSeparator = TEXT(':');
 
 int timerThreadSet = FALSE;
 pthread_t timerThreadId;
+int stopTimerThread = FALSE;
+int timerThreadStopped = FALSE;
 TICKS timerTicks = WRAPPER_TICK_INITIAL;
 
 /******************************************************************************
@@ -665,7 +667,7 @@ void *timerRunner(void *arg) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Timer thread started."));
     }
 
-    while (TRUE) {
+    while (!stopTimerThread) {
         wrapperSleep(TRUE, WRAPPER_TICK_MS);
 
         /* Get the tick count based on the system time. */
@@ -673,6 +675,7 @@ void *timerRunner(void *arg) {
 
         /* Lock the tick mutex whenever the "timerTicks" variable is accessed. */
         if (wrapperData->useTickMutex && wrapperLockTickMutex()) {
+            timerThreadStopped = TRUE;
             return NULL;
         }
         
@@ -680,6 +683,7 @@ void *timerRunner(void *arg) {
         nowTicks = timerTicks++;
         
         if (wrapperData->useTickMutex && wrapperReleaseTickMutex()) {
+            timerThreadStopped = TRUE;
             return NULL;
         }
 
@@ -711,10 +715,8 @@ void *timerRunner(void *arg) {
         lastTickOffset = tickOffset;
     }
 
-    /* Will never get here.  Solaris warns if the return is there (some on x86, not sparc).  Others warn if it is not. */
-/* #if !defined(SOLARIS) */
+    timerThreadStopped = TRUE;
     return NULL;
-/* #endif */
 }
 
 /**
@@ -741,6 +743,18 @@ int initializeTimer() {
     } else {
         timerThreadSet = FALSE;
         return 0;
+    }
+}
+
+void disposeTimer() {
+    stopTimerThread = TRUE;
+    
+    /* Wait until the timer thread is actually stopped to avoid timing problems. */
+    while (!timerThreadStopped) {
+#ifdef _DEBUG
+        wprintf(TEXT("Waiting for timer thread to stop.\n"));
+#endif
+        wrapperSleep(FALSE, 100);
     }
 }
 
@@ -1044,12 +1058,12 @@ void wrapperExecute() {
              * and will close on exec, so new children won't see it. */
             if (fcntl(jvmOut, F_SETFL, O_NONBLOCK) < 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                    TEXT("Failed to set jvm output handle to non blocking mode: %s (%d)"),
+                    TEXT("Failed to set JVM output handle to non blocking mode: %s (%d)"),
                     getLastErrorText(), errno);
             }
             if (fcntl(jvmOut, F_SETFD, FD_CLOEXEC) < 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                    TEXT("Failed to set jvm output handle to close on JVM exit: %s (%d)"),
+                    TEXT("Failed to set JVM output handle to close on JVM exit: %s (%d)"),
                     getLastErrorText(), errno);
             }
 
@@ -1065,7 +1079,7 @@ void wrapperExecute() {
             if (wrapperData->javaIdFilename) {
                 if (writePidFile(wrapperData->javaIdFilename, wrapperData->jvmRestarts, wrapperData->javaIdFileUmask)) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                        TEXT("Unable to write the Java ID file: %s"), wrapperData->javaIdFilename);
+                        TEXT("Unable to write the Java Id file: %s"), wrapperData->javaIdFilename);
                 }
             }
         }
@@ -1284,7 +1298,7 @@ int wrapperReadChildOutputBlock(char *blockBuffer, int blockSize, int *readCount
      *  flag. */
     if (fcntl(jvmOut, F_SETFL, O_NONBLOCK) < 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
-            "Failed to set jvm output handle to non blocking mode to read child output: %s (%d)"),
+            "Failed to set JVM output handle to non blocking mode to read child process output: %s (%d)"),
             getLastErrorText(), errno);
         return TRUE;
     }
@@ -1401,7 +1415,7 @@ void daemonize() {
  * Sets the working directory to that of the current executable
  */
 int setWorkingDir(TCHAR *app) {
-    TCHAR szPath[PATH_MAX];
+    TCHAR szPath[PATH_MAX + 1];
     TCHAR* pos;
 
     /* Get the full path and filename of this program */
@@ -1448,10 +1462,12 @@ int main(int argc, char **argv) {
 #if defined(_DEBUG) || defined(UNICODE)
     int i;
 #endif
+    TCHAR *retLocale;
     int localeSet;
 #ifdef UNICODE
     size_t req;
     TCHAR **argv;
+    TCHAR *envLang;
     
     /* Create UNICODE versions of the argv array for internal use. */
     argv = malloc(argc * sizeof *argv );
@@ -1476,11 +1492,21 @@ int main(int argc, char **argv) {
     }
 
 #endif
-    if (_tsetlocale(LC_ALL, TEXT(""))) {
+    retLocale = _tsetlocale(LC_ALL, TEXT(""));
+    if (retLocale) {
+#if defined(UNICODE)
+        free(retLocale);
+#endif
         localeSet = TRUE;
     } else {
         /* TODO - We need to be careful about LANG here as it is not set on all systems. */
-        /* _tprintf(TEXT("Can't set the locale(%s); make sure $LC_* and $LANG are correct.\n"), _tgetenv(TEXT("LANG"))); */
+        /*
+        envLang = _tgetenv(TEXT("LANG"));
+        _tprintf(TEXT("Can't set the locale(%s); make sure $LC_* and $LANG are correct.\n"), envLang);
+#if defined(UNICODE)
+        free(envLang);
+#endif
+        */
         localeSet = FALSE;
     }
     if (wrapperInitialize()) {

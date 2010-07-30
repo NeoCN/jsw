@@ -90,7 +90,9 @@ extern TCHAR* _tgetcwd(TCHAR *buf, size_t size);
 extern int _topen(const TCHAR *path, int oflag, ... );
 #define _tpopen       _wpopen
 #define _puttch       _putwch
-extern int _tputenv(TCHAR *string) ;
+/*extern int _tputenv(const TCHAR *string);*/
+extern int _tsetenv(const TCHAR *name, const TCHAR *value, int overwrite);
+extern void _tunsetenv(const TCHAR *name);
 #define _trmdir       _wrmdir
 #define _sctprintf    _scwprintf
 #define _tsearchenv   _wsearchenv
@@ -280,7 +282,9 @@ typedef unsigned char _TUCHAR;
 #define _topen        open
 #define _tpopen       _popen
 #define _puttch       _putch
-#define _tputenv      putenv
+/*#define _tputenv      putenv*/
+#define _tsetenv      setenv
+#define _tunsetenv      unsetenv
 #define _trmdir       _rmdir
 #define _sctprintf    _scprintf
 #define _tsearchenv   _searchenv

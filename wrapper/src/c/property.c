@@ -38,6 +38,7 @@
 #include <time.h>
 
 #ifdef WIN32
+#include <errno.h>
 
 /* MS Visual Studio 8 went and deprecated the POXIX names for functions.
  *  Fixing them all would be a big headache for UNIX versions. */
@@ -193,6 +194,9 @@ void disposeInnerProperty(Property *property) {
 
 TCHAR generateValueBuffer[256];
 
+/**
+ * This function returns a reference to a static buffer and is NOT thread safe.
+ */
 TCHAR* generateTimeValue(const TCHAR* format) {
     if (strcmpIgnoreCase(format, TEXT("YYYYMMDDHHIISS")) == 0) {
         _sntprintf(generateValueBuffer, 256, TEXT("%04d%02d%02d%02d%02d%02d"),
@@ -219,6 +223,9 @@ TCHAR* generateTimeValue(const TCHAR* format) {
     return generateValueBuffer;
 }
 
+/**
+ * This function returns a reference to a static buffer and is NOT thread safe.
+ */
 TCHAR* generateRandValue(const TCHAR* format) {
     if (strcmpIgnoreCase(format, TEXT("N")) == 0) {
         _sntprintf(generateValueBuffer, 256, TEXT("%01d"), rand() % 10);
@@ -248,6 +255,7 @@ void evaluateEnvironmentVariables(const TCHAR *propertyValue, TCHAR *buffer, int
     TCHAR *out;
     TCHAR envName[MAX_PROPERTY_NAME_LENGTH];
     TCHAR *envValue;
+    int envValueNeedFree;
     TCHAR *start;
     TCHAR *end;
     size_t len;
@@ -281,6 +289,7 @@ void evaluateEnvironmentVariables(const TCHAR *propertyValue, TCHAR *buffer, int
                 envName[len] = TEXT('\0');
 
                 /* See if it is a special dynamic environment variable */
+                envValueNeedFree = FALSE;
                 if (_tcsstr(envName, TEXT("WRAPPER_TIME_")) == envName) {
                     /* Found a time value. */
                     envValue = generateTimeValue(envName + 13);
@@ -290,6 +299,9 @@ void evaluateEnvironmentVariables(const TCHAR *propertyValue, TCHAR *buffer, int
                 } else {
                     /* Try looking up the environment variable. */
                     envValue = _tgetenv(envName);
+#if !defined(WIN32) && defined(UNICODE)
+                    envValueNeedFree = TRUE;
+#endif
                 }
 
                 if (envValue != NULL) {
@@ -314,6 +326,10 @@ void evaluateEnvironmentVariables(const TCHAR *propertyValue, TCHAR *buffer, int
                         _tcsncpy(out, envValue, outLen);
                         out += outLen;
                         bufferAvailable -= outLen;
+                    }
+                    
+                    if (envValueNeedFree) {
+                        free(envValue);
                     }
 
                     /* Terminate the string */
@@ -521,7 +537,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
                 ) {
                 if (strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate"))) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                        TEXT("The encoding type of configuration file:\n  %s\n  is not specified as 'UTF-8', but the file has a BOM marker meaning that it is encoded as 'UTF-8'."), filename);
+                        TEXT("The encoding type of configuration file:\n  %s\n  is not specified as 'UTF-8', but the file has a BOM marker,\n meaning that it is encoded as 'UTF-8'."), filename);
                 }
             }
 
@@ -783,7 +799,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
                             }
                         }
 #else
-                        absoluteBuffer = malloc(sizeof(TCHAR) * PATH_MAX);
+                        absoluteBuffer = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
                         if (!absoluteBuffer) {
                             outOfMemory(TEXT("LPI"), 2);
                         } else {
@@ -936,8 +952,8 @@ void removeProperty(Properties *properties, const TCHAR *propertyName) {
  */
 int setEnvInner(const TCHAR *name, const TCHAR *value)
 {
+    int result = FALSE;
     TCHAR *oldVal;
-    TCHAR *envBuf;
 
     /* Get the current environment variable value so we can avoid allocating and
      *  setting the variable if it has not changed its value. */
@@ -946,46 +962,39 @@ int setEnvInner(const TCHAR *name, const TCHAR *value)
         /*_tprintf("clear %s=\n", name);*/
         /* Only clear the variable if it is actually set to avoid unnecessary leaks. */
         if (oldVal != NULL) {
-            /* Allocate a block of memory for the environment variable.  The system uses
-             *  this memory so it is not freed after we set it. We only call this on
-             *  startup, so the leak is minor. */
-            envBuf = malloc(sizeof(TCHAR) * (_tcslen(name) + 2));
-            if (!envBuf) {
-                outOfMemory(TEXT("SEI"), 1);
-                return TRUE;
-            } else {
-                _sntprintf(envBuf, _tcslen(name) + 2, TEXT("%s="), name);
-                /* The memory pointed to by envBuf becomes part of the environment so it can
-                 *  not be freed by us here. */
-                if (_tputenv(envBuf)) {
-                    _tprintf(TEXT("Unable to clear environment variable: %s\n"), envBuf);
-                    return TRUE;
-                }
+#ifdef WIN32
+            if (_tputenv_s(name, TEXT("")) == EINVAL) {
+                _tprintf(TEXT("Unable to clear environment variable: %s\n"), name);
+                result = TRUE;
             }
+#else
+            _tunsetenv(name);
+#endif
         }
     } else {
         /*_tprintf("set %s=%s\n", name, value);*/
         if ((oldVal == NULL) || (_tcscmp(oldVal, value) != 0)) {
-            /* Allocate a block of memory for the environment variable.  The system uses
-             *  this memory so it is not freed after we set it. We only call this on
-             *  startup, so the leak is minor. */
-            envBuf = malloc(sizeof(TCHAR) * (_tcslen(name) + _tcslen(value) + 2));
-            if (!envBuf) {
-                outOfMemory(TEXT("SEI"), 2);
-                return TRUE;
-            } else {
-                _sntprintf(envBuf, _tcslen(name) + _tcslen(value) + 2, TEXT("%s=%s"), name, value);
-                /* The memory pointed to by envBuf becomes part of the environment so it can
-                 *  not be freed by us here. */
-                if (_tputenv(envBuf)) {
-                    _tprintf(TEXT("Unable to set environment variable: %s\n"), envBuf);
-                    return TRUE;
-                }
+#ifdef WIN32
+            if (_tputenv_s(name, value) == EINVAL) {
+                _tprintf(TEXT("Unable to set environment variable: %s=%s\n"), name, value);
+                result = TRUE;
             }
+#else
+            if (_tsetenv(name, value, TRUE)) {
+                _tprintf(TEXT("Unable to set environment variable: %s=%s\n"), name, value);
+                result = TRUE;
+            }
+#endif
         }
     }
 
-    return FALSE;
+#if !defined(WIN32) && defined(UNICODE)
+    if (oldVal != NULL) {
+        free(oldVal);
+    }
+#endif
+
+    return result;
 }
 
 /**
@@ -1312,6 +1321,7 @@ TCHAR *expandEscapedCharacters(const TCHAR* buffer) {
 Property* addProperty(Properties *properties, const TCHAR *propertyName, const TCHAR *propertyValue, int finalValue, int quotable, int escapable, int internal) {
     int setValue;
     Property *property;
+    TCHAR *oldVal;
     TCHAR *propertyNameTrim;
     TCHAR *propertyValueTrim;
     TCHAR *propertyExpandedValue;
@@ -1413,7 +1423,8 @@ Property* addProperty(Properties *properties, const TCHAR *propertyName, const T
              *  be set if the environment variable does not already exist.  Get the
              *  value back out of the property as it may have had environment
              *  replacements. */
-            if (_tgetenv(property->name + 12) == NULL) {
+            oldVal = _tgetenv(property->name + 12);
+            if (oldVal == NULL) {
 #ifdef _DEBUG
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("set default env('%s', '%s')"),
                     property->name + 12, property->value);
@@ -1423,7 +1434,10 @@ Property* addProperty(Properties *properties, const TCHAR *propertyName, const T
 #ifdef _DEBUG
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT(
                     "not setting default env('%s', '%s'), already set to '%s'"),
-                    property->name + 12, property->value, _tgetenv(property->name + 12));
+                    property->name + 12, property->value, oldVal);
+#endif
+#if !defined(WIN32) && defined(UNICODE)
+                free(oldVal);
 #endif
             }
         } else if ((_tcslen(property->name) > 4) && (_tcsstr(property->name, TEXT("set.")) == property->name)) {

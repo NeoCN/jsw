@@ -90,7 +90,7 @@ class CustomizeDialog extends JDialog
 
         setDefaultCloseOperation( javax.swing.WindowConstants.HIDE_ON_CLOSE );
         this.getContentPane().setLayout( new java.awt.GridBagLayout() );
-        this.setTitle( DemoApp.getRes().getString( "Wrapper Demo App: Customize" ) );
+        this.setTitle( DemoApp.getRes().getString( "Wrapper DemoApp: Customize" ) );
         jPanel1.setLayout( new java.awt.GridBagLayout() );
 
         jLabel1.setHorizontalAlignment( javax.swing.SwingConstants.RIGHT );
@@ -104,7 +104,7 @@ class CustomizeDialog extends JDialog
         gridBagConstraints.gridy = 1;
         jPanel1.add( jLabel2, gridBagConstraints );
 
-        jLabel3.setText( DemoApp.getRes().getString( "Splashscreen" ) );
+        jLabel3.setText( DemoApp.getRes().getString( "Splash screen" ) );
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 2;
@@ -192,10 +192,10 @@ class CustomizeDialog extends JDialog
                 JFileChooser fd = new JFileChooser();
                 fd.setMultiSelectionEnabled( false );
                 fd.setCurrentDirectory( new File( "." ) );
-                fd.setDialogTitle( DemoApp.getRes().getString( "Select SplashScreen for customization" ) );
+                fd.setDialogTitle( DemoApp.getRes().getString( "Select splash screen for customization" ) );
                 fd.setFileHidingEnabled( true );
-                fd.setApproveButtonText( DemoApp.getRes().getString( "Load SplashScreen" ) );
-                FileFilter filter = new ExtensionFilter( DemoApp.getRes().getString( "SplashScreen File (*.bmp)" ), new String[] { "bmp" } );
+                fd.setApproveButtonText( DemoApp.getRes().getString( "Load splash screen" ) );
+                FileFilter filter = new ExtensionFilter( DemoApp.getRes().getString( "Splash screen File (*.bmp)" ), new String[] { "bmp" } );
                 fd.setFileFilter( filter );
                 int returnVal = fd.showOpenDialog( CustomizeDialog.this );
 
@@ -240,11 +240,11 @@ class CustomizeDialog extends JDialog
                 if ( jTextField3.getText().length() != 0 && !new File( jTextField3.getText() ).exists() )
                 {
                     jTextField3.setBackground( Color.red );
-                    errorMsg = errorMsg.concat( DemoApp.getRes().getString( "No valid SplashScreen File Specified\n" ) );
+                    errorMsg = errorMsg.concat( DemoApp.getRes().getString( "No valid Splash Screen File Specified\n" ) );
                 }
                 if ( jTextField2.getText().length() == 0 && jTextField3.getText().length() == 0 )
                 {
-                    errorMsg = errorMsg.concat( DemoApp.getRes().getString( "Please input at least a Icon or SplashScreen File.\n" ) );
+                    errorMsg = errorMsg.concat( DemoApp.getRes().getString( "Please select at least one Icon or Splash Screen File.\n" ) );
                     jTextField2.setBackground( Color.yellow );
                     jTextField3.setBackground( Color.yellow );
                 }

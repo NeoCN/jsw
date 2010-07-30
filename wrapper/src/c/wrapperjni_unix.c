@@ -139,10 +139,16 @@ void handleHangup(int sig_num) {
  */
 JNIEXPORT void JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jClassWrapperManager, jboolean debugging) {
+    TCHAR *retLocale;
     wrapperJNIDebugging = debugging;
     
     /* Set the locale so we can display MultiByte characters. */
-    _tsetlocale(LC_ALL, TEXT(""));
+    retLocale = _tsetlocale(LC_ALL, TEXT(""));
+#if defined(UNICODE)
+    if (retLocale) {
+        free(retLocale);
+    }
+#endif
 
     if (wrapperJNIDebugging) {
         /* This is useful for making sure that the JNI call is working. */

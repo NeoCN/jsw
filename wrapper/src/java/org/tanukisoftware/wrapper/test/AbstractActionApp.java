@@ -308,7 +308,7 @@ public abstract class AbstractActionApp
         {
             if ( WrapperManager.isStandardEdition() )
             {
-                System.out.println( Main.getRes().getString( "Creating a 2-object dead lock...") );
+                System.out.println( Main.getRes().getString( "Creating a 2-object deadlock...") );
                 DeadLock.create2ObjectDeadlock();
             }
             else
@@ -571,7 +571,7 @@ public abstract class AbstractActionApp
                         WrapperProcessConfig wpConfig = new WrapperProcessConfig();
                         wpConfig.setDetached( m_childDetached );
                         final WrapperProcess wProcess = WrapperManager.exec( m_childCommand, wpConfig );
-                        System.out.println( Main.getRes().getString( "Launched child with PID={0} : {1}", new Integer( wProcess.getPID() ), m_childCommand ) );
+                        System.out.println( Main.getRes().getString( "Launched child process with PID={0} : {1}", new Integer( wProcess.getPID() ), m_childCommand ) );
                         
                         Thread outRunner = new Thread()
                         {

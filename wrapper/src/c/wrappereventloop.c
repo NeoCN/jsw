@@ -1705,12 +1705,12 @@ void wrapperEventLoop() {
 
         /* Check the stout pipe of the child process. */
         if (wrapperData->isLoopOutputEnabled) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Loop: process jvm output"));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Loop: process JVM output"));
         }
         if (wrapperReadChildOutput()) {
             if (wrapperData->isDebugging) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                    TEXT("Pause reading child output to share cycles."));
+                    TEXT("Pause reading child process output to share cycles."));
             }
             nextSleep = FALSE;
         }
@@ -1912,7 +1912,7 @@ void wrapperEventLoop() {
 
         /* Do something depending on the JVM state */
         if (wrapperData->isLoopOutputEnabled) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Loop: handle jvm state: %s"),
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Loop: handle JVM state: %s"),
                 wrapperGetJState(wrapperData->jState));
         }
         switch(wrapperData->jState) {

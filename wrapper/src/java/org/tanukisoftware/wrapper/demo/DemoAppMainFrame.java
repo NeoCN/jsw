@@ -151,7 +151,7 @@ public class DemoAppMainFrame extends JFrame implements ActionListener, WindowLi
         buildCommand( panel1, gridBag1, c1, 1, DemoApp.getRes().getString( "Crash" ), "crash", DemoApp.getRes().getString( "Simulate a Application Crash" ) );
         buildCommand( panel1, gridBag1, c1, 1, DemoApp.getRes().getString( "Out of Memory" ), "out_of_mem", DemoApp.getRes().getString( "Simulate a Out Of Memory Error" ) );
         buildCommand( panel1, gridBag1, c1, 1, DemoApp.getRes().getString( "Frozen" ), "frozen", DemoApp.getRes().getString( "Simulate a Frozen JVM" ) );
-        buildCommand( panel1, gridBag1, c1, 2, DemoApp.getRes().getString( "DeadLock" ), "deadlock", DemoApp.getRes().getString( "Simulate a ThreadDead Lock" ) );
+        buildCommand( panel1, gridBag1, c1, 2, DemoApp.getRes().getString( "Deadlock" ), "deadlock", DemoApp.getRes().getString( "Simulate a Thread Deadlock" ) );
 
         JPanel panel2 = new JPanel();
         panel2.setLayout( gridBag2 );

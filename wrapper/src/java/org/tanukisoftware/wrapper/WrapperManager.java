@@ -5286,7 +5286,7 @@ public final class WrapperManager
         if ( Thread.currentThread() != m_commRunner )
         {
             throw new IllegalStateException( getRes().getString(
-                "Only the comm runner thread is allowed to call this method." ) );
+                "Only the communications runner thread is allowed to call this method." ) );
         }
         
         if ( m_debug )

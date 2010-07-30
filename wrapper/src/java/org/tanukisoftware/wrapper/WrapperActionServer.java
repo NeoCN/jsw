@@ -216,7 +216,7 @@ public class WrapperActionServer
                     }
                     else
                     {
-                        m_out.println( WrapperManager.getRes().getString( "Unexpeced error." ) );
+                        m_out.println( WrapperManager.getRes().getString( "Unexpected error." ) );
                         t.printStackTrace( m_out );
                         
                         // Avoid tight thrashing
