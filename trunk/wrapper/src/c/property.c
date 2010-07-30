@@ -535,10 +535,6 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
                 (strcasecmp(encodingMB, "UTF-8") != 0)
 #endif
                 ) {
-                if (strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate"))) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                        TEXT("The encoding type of configuration file:\n  %s\n  is not specified as 'UTF-8', but the file has a BOM marker,\n meaning that it is encoded as 'UTF-8'."), filename);
-                }
             }
 
 #ifdef WIN32
@@ -578,10 +574,6 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
                 encoding = "UTF-8";
 #endif
             } else {
-                if (strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate"))) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                        TEXT("The specified encoding type in configuration file:\n  %s\n  is not currently supported. Please use 'UTF-8'."), filename);
-                }
                 return TRUE;
             }
 
@@ -596,10 +588,6 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
             }
  #endif
 #endif
-            if (strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate"))) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                    TEXT("An encoding declaration is missing from the top of configuration file:\n  %s\n  trying the system encoding."), filename);
-            }
         }
         fclose(stream);
     } else {
@@ -614,10 +602,6 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
             }
  #endif
 #endif
-        if (strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate"))) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                TEXT("An encoding declaration is missing from the top of configuration file:\n  %s\n  trying the system encoding."), filename);
-        }
     }
 
     if ((stream = _tfopen(filename, TEXT("rb"))) == NULL) {

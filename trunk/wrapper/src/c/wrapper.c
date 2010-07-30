@@ -1769,12 +1769,6 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
             }
 
             if (wrapperArgCount > 2) {
-                if (_tcsncmp(wrapperData->argCommand, TEXT("-translate"), 5) == 0) {
-                    wrapperData->argConfFile = argv[3];
-                    wrapperData->argCount = wrapperArgCount - 2;
-                    wrapperData->argValues = &argv[2];
-                    return TRUE;
-                }
                 /* Syntax 1 */
                 /* A command and conf file were specified. */
                 wrapperData->argConfFile = argv[2];

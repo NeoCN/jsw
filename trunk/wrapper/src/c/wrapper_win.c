@@ -79,6 +79,7 @@ TCHAR wrapperClasspathSeparator = TEXT(';');
 
 HANDLE timerThreadHandle;
 DWORD timerThreadId;
+int timerThreadStarted = FALSE;
 int stopTimerThread = FALSE;
 int timerThreadStopped = FALSE;
 TICKS timerTicks = WRAPPER_TICK_INITIAL;
@@ -711,6 +712,8 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
 
     /* In case there are ever any problems in this thread, enclose it in a try catch block. */
     __try {
+        timerThreadStarted = TRUE;
+        
         /* Immediately register this thread with the logger. */
         logRegisterThread(WRAPPER_THREAD_TIMER);
 
@@ -807,11 +810,13 @@ void disposeTimer() {
     stopTimerThread = TRUE;
     
     /* Wait until the timer thread is actually stopped to avoid timing problems. */
-    while (!timerThreadStopped) {
+    if (timerThreadStarted) {
+        while (!timerThreadStopped) {
 #ifdef _DEBUG
-        wprintf(TEXT("Waiting for timer thread to stop.\n"));
+            wprintf(TEXT("Waiting for timer thread to stop.\n"));
 #endif
-        wrapperSleep(FALSE, 100);
+            wrapperSleep(FALSE, 100);
+        }
     }
 }
 
