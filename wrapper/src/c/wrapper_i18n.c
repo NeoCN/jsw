@@ -117,8 +117,8 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
     const TCHAR *errorTemplate;
     size_t errorTemplateLen;
     size_t iconv_value;
-    char *nativeChar;
     char *nativeCharStart;
+    char *nativeCharStartCopy;
     size_t multiByteCharsLen;
     size_t nativeCharLen;
     size_t nativeCharLenCopy;
@@ -180,22 +180,27 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
         
         /* We need to figure out how many bytes we need to store the native encoded string. */
         nativeCharLen = multiByteCharsLen;
+        nativeCharStart = NULL;
         do {
             redoIConv = FALSE;
+            
+            if (nativeCharStart) {
+                free(nativeCharStart);
+            }
+            
             multiByteCharsLenStart = multiByteCharsLen;
             multiByteCharsStart = (char *)multiByteChars;
-            nativeChar = malloc(nativeCharLen);
-            if (!nativeChar) {
+            nativeCharStart = malloc(nativeCharLen);
+            if (!nativeCharStart) {
                 /* Out of memory. */
                 *outputBufferW = NULL;
                 return TRUE;
             }
-
-            nativeCharStart = nativeChar;
             
             /* Make a copy of the nativeCharLen as this call will replace it with the number of chars used. */
             nativeCharLenCopy = nativeCharLen;
-            iconv_value = iconv(conv_desc, &multiByteCharsStart, &multiByteCharsLenStart, &nativeChar, &nativeCharLenCopy);
+            nativeCharStartCopy = nativeCharStart;
+            iconv_value = iconv(conv_desc, &multiByteCharsStart, &multiByteCharsLenStart, &nativeCharStartCopy, &nativeCharLenCopy);
              /* Handle failures. */
             if (iconv_value == (size_t)-1) {
                 /* See "man 3 iconv" for an explanation. */
@@ -282,6 +287,9 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
             _sntprintf(*outputBufferW, errorTemplateLen, errorTemplate, errno);
         } else {
             /* Out of memory. *outputBufferW already NULL. */
+        }
+        if (didIConv) {
+            free(nativeCharStart);
         }
         return TRUE;
     }
