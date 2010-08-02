@@ -1128,9 +1128,13 @@ public final class WrapperManager
     private static void registerMBean( Object mbean, String name )
     {
         Class classManagementFactory;
+        Class classMBeanServer;
+        Class classObjectName;
         try
         {
             classManagementFactory = Class.forName( "java.lang.management.ManagementFactory" );
+            classMBeanServer = Class.forName( "javax.management.MBeanServer" );
+            classObjectName = Class.forName( "javax.management.ObjectName" );
         }
         catch ( ClassNotFoundException e )
         {
@@ -1151,8 +1155,6 @@ public final class WrapperManager
             // mbs.registerMBean( mbean, oName );
             
             // The version of the above code using reflection follows.
-            Class classMBeanServer = Class.forName( "javax.management.MBeanServer" );
-            Class classObjectName = Class.forName( "javax.management.ObjectName" );
             Method methodGetPlatformMBeanServer =
                 classManagementFactory.getMethod( "getPlatformMBeanServer", (Class[])null );
             Constructor constructorObjectName =

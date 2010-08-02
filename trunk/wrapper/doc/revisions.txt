@@ -49,6 +49,8 @@ Java Service Wrapper Revision History.
 * Go through and increase the consistency of text strings.
 * Fix a problem on HP-UX where the Wrapper was logging a warning that the
   configured JVM was invalid if it was a PA-RISC 2.0 binary.  Bug #3037317.
+* Fix a problem where the WrapperManager was failing to trap and hide errors
+  initializing the MBean server on some JVMs that did not support it.
 
 3.5.2
 * Added new command line argument "--" . All arguments following will be
