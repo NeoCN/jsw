@@ -920,30 +920,42 @@ int _tstat(const wchar_t* filename, struct stat *buf) {
  *
  * @return resolved_name of success, otherwise NULL.
  */
-wchar_t* _trealpath(const wchar_t* file_name, wchar_t *resolved_name) {
+wchar_t* _trealpath(const wchar_t* fileName, wchar_t *resolvedName) {
     char *cFile;
 #if defined(IRIX)
-    char resolved[FILENAME_MAX];
+    char resolved[FILENAME_MAX + 1];
 #else
-    char resolved[PATH_MAX];
+    char resolved[PATH_MAX + 1];
 #endif
-    int sizeFile, sizeReturn;
+    int sizeFile;
+    int sizeReturn;
     char* returnVal;
+    
+    /* Initialize the return value. */
+    resolvedName[0] = TEXT('\0');
 
-    sizeFile = wcstombs(NULL, file_name, 0) + 1;
+    sizeFile = wcstombs(NULL, fileName, 0) + 1;
     cFile = malloc(sizeFile);
     if (cFile) {
-        wcstombs(cFile, file_name, sizeFile);
+        wcstombs(cFile, fileName, sizeFile);
         returnVal = realpath(cFile, resolved);
-        free(cFile);
         if (returnVal == NULL) {
+            free(cFile);
+            
+            /* The resolved var contains an error path.  Convert it. */
+            sizeReturn = mbstowcs(NULL, resolved, 0) + 1;
+            sizeReturn *= sizeof(TCHAR);
+            mbstowcs(resolvedName, resolved, sizeReturn);
+            
             return NULL;
         }
+        free(cFile);
+        
         sizeReturn = mbstowcs(NULL, resolved, 0) + 1;
         sizeReturn *= sizeof(TCHAR);
-        mbstowcs(resolved_name, resolved, sizeReturn);
-
-        return resolved_name;
+        mbstowcs(resolvedName, resolved, sizeReturn);
+    
+        return resolvedName;
     }
     return NULL;
 }

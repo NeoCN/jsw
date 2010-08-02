@@ -43,10 +43,12 @@ Java Service Wrapper Revision History.
   versions.  Introduced in 3.5.0.
 * Fix a several memory leaks on UNIX versions that were added in 3.5.0, as well
   as a few others on all platforms, some from quite early versions.
-* Fix some places where a resolved path of exactly MAX_PATH characters in length
-  could have resulted in a buffer overflow.
+* Fix some places where a resolved path of exactly MAX_PATH characters in
+  length could have resulted in a buffer overflow.
 * (Standard, Professional) Fix a memory leak disposing language packs.
 * Go through and increase the consistency of text strings.
+* Fix a problem on HP-UX where the Wrapper was logging a warning that the
+  configured JVM was invalid if it was a PA-RISC 2.0 binary.  Bug #3037317.
 
 3.5.2
 * Added new command line argument "--" . All arguments following will be

@@ -2071,7 +2071,7 @@ int wrapperReadChildOutput() {
 #endif
             /* We have something in the buffer.  Loop and see if we have a complete line to log.
              * We will always find a LF at the end of the line.  On Windows there may be a CR immediately before it. */
-            cLF = strchr(wrapperChildWorkBuffer, (TCHAR)CHAR_LF);
+            cLF = strchr(wrapperChildWorkBuffer, (char)CHAR_LF);
 
             if (cLF != NULL) {
 #ifdef WIN32
@@ -2998,24 +2998,26 @@ int checkIfBinary(const TCHAR *filename) {
         }
         fclose(f);
         head[4] = '\0';
-#ifdef _DEBUG
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Magic [0]%02x [1]%02x [2]%02x [3]%02x"), head[0], head[1], head[2], head[3]);
-#endif
+        if (wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Magic number for file %s: 0x%02x%02x%02x%02x"), filename, head[0], head[1], head[2], head[3]);
+        }
 
 #if defined(LINUX) || defined(FREEBSD) || defined(SOLARIS)
         if (head[1] == 'E' && head[2] == 'L' && head[3] == 'F') {
             return 1; /*ELF */
 #elif defined(AIX)
         /* http://en.wikipedia.org/wiki/XCOFF */
-        if (head[0] == 1 && head[1] == 247 && head[2] == 0) {
+        if (head[0] == 0x01 && head[1] == 0xf7 && head[2] == 0x00) { /* 0x01f700NN */
             return 1; /*xcoff 64*/
-        } else if (head[0] == 1 && head[1] == 223 && head[2] == 0) {
+        } else if (head[0] == 0x01 && head[1] == 0xdf && head[2] == 0x00) { /* 0x01df00NN */
             return 1; /*xcoff 32*/
 #elif defined(MACOSX)
-        if (head[0] == 202 && head[1] == 254 && head[2] == 186 && head[3] == 190) {
+        if (head[0] == 0xca && head[1] == 0xfe && head[2] == 0xba && head[3] == 0xbe) { /* 0xcafebabe */
             return 1; /*MACOS*/
 #elif defined(HPUX)
-        if (head[0] == 2 && head[1] == 16 && head[2] == 1 && head[3] == 8) {
+        if (head[0] == 0x02 && head[1] == 0x10 && head[2] == 0x01 && head[3] == 0x08) { /* 0x02100108 PA-RISC 1.1 */
+            return 1; /*HP UX PA RISC 32*/
+        } else if (head[0] == 0x02 && head[1] == 0x14 && head[2] == 0x01 && head[3] == 0x07) { /* 0x02140107 PA-RISC 2.0 */
             return 1; /*HP UX PA RISC 32*/
 #elif defined(WIN32)
         if (head[0] == 'M' && head[1] == 'Z') {
@@ -3032,125 +3034,177 @@ int checkIfBinary(const TCHAR *filename) {
 
 
 #ifndef WIN32
-TCHAR* resolveLinks(TCHAR* exe) {
-    TCHAR resolvedPath[PATH_MAX + 1];
-    TCHAR* returnVal;
-    if (_trealpath(exe, resolvedPath) == NULL) {
-        return NULL;
-    } else {
-        returnVal = malloc( (_tcslen(resolvedPath) + 1) * sizeof(TCHAR));
-        if (!returnVal) {
-            outOfMemory(TEXT("RL"), 1);
-            return(NULL);
-        } else {
-            _tcscpy(returnVal, resolvedPath);
-            return returnVal;
-        }
-    }
-    return NULL;
-}
-
-
-TCHAR* findPathOf( const TCHAR *exe) {
+TCHAR* findPathOf(const TCHAR *exe) {
     TCHAR *searchPath;
     TCHAR *beg, *end;
     int stop, found;
-    TCHAR *pth2;
-    TCHAR pth[PATH_MAX];
+    TCHAR pth[PATH_MAX + 1];
     TCHAR *ret;
     TCHAR resolvedPath[PATH_MAX + 1];
-    if (_tcschr(exe, TEXT('/')) != NULL) {
-        if (_trealpath(exe, resolvedPath) == NULL) {
-            return NULL;
+    
+    if (exe[0] == TEXT('/')) {
+        /* This is an absolute reference. */
+        if (_trealpath(exe, resolvedPath)) {
+            _tcscpy(pth, resolvedPath);
+            if (checkIfExecutable(pth)) {
+                ret = malloc((_tcslen(pth) + 1 ) * sizeof(TCHAR));
+                if (!ret) {
+                    outOfMemory(TEXT("FPO"), 1);
+                    return NULL;
+                }
+                _tcscpy(ret, pth);
+                if (wrapperData->isDebugging) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Resolved the real path of wrapper.java.command as an absolute reference: %s"), ret);
+                }
+                return ret;
+            }
+        } else {
+            if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of wrapper.java.command as an absolute reference: %s (Problem at: %s)"), exe, resolvedPath);
+            }
         }
 
+        return NULL;
+    }
+    
+    /* This is a non-absolute reference.  See if it is a relative reference. */
+    if (_trealpath(exe, resolvedPath)) {
+        /* Resolved.  See if the file exists. */
         _tcscpy(pth, resolvedPath);
         if (checkIfExecutable(pth)) {
             ret = malloc((_tcslen(pth) + 1 ) * sizeof(TCHAR));
+            if (!ret) {
+                outOfMemory(TEXT("FPO"), 2);
+                return NULL;
+            }
             _tcscpy(ret, pth);
+            if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Resolved the real path of wrapper.java.command as a relative reference: %s"), ret);
+            }
             return ret;
         }
-
-        return NULL;
-    }
-
-    searchPath = _tgetenv(TEXT("PATH"));
-    if (searchPath == NULL) {
-        return NULL;
-    } else if (_tcslen(searchPath) <= 0) {
-#if !defined(WIN32) && defined(UNICODE)
-        free(searchPath);
-#endif
-        return NULL;
-    }
-    beg = searchPath;
-    stop = 0; found = 0;
-    do {
-        end = _tcschr(beg, TEXT(':'));
-        if (end == NULL) {
-            stop = 1;
-           /* wprintf(L"bubu\n");fflush(NULL);*/
-
-            _tcsncpy(pth, beg, end - beg);
-            pth[end - beg] = TEXT('\0');
-        }
-        if (pth[_tcslen(pth) - 1] != TEXT('/')) {
-            _tcscat(pth, TEXT("/"));
-        }
-        _tcscat(pth, exe);
-        found = checkIfExecutable(pth);
-        if (!stop) {
-            beg = end + 1;
-        }
-    } while (!stop && !found);
-    
-#if !defined(WIN32) && defined(UNICODE)
-    free(searchPath);
-#endif
-    
-    if (found) {
-        pth2 = malloc((_tcslen(pth) + 1) * sizeof(TCHAR));
-        if (!pth2) {
-            outOfMemory(TEXT("FPO"), 1);
-            return NULL;
-        }
-        _tcscpy(pth2, pth);
-        return resolveLinks(pth2);
     } else {
-        return NULL;
+        if (wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of wrapper.java.command as a relative reference: %s (Problem at: %s)"), exe, resolvedPath);
+        }
     }
+    
+    /* The file was not a direct relative reference.   If and only if it does not contain any relative path components, we can search the PATH. */
+    if (_tcschr(exe, TEXT('/')) == NULL) {
+        searchPath = _tgetenv(TEXT("PATH"));
+        if (searchPath && (_tcslen(searchPath) <= 0)) {
+#if !defined(WIN32) && defined(UNICODE)
+            free(searchPath);
+#endif
+            searchPath = NULL;
+        }
+        if (searchPath) {
+            if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Attempt to locate wrapper.java.command on system PATH: %s"), exe);
+            }
+            
+            beg = searchPath;
+            stop = 0; found = 0;
+            do {
+                end = _tcschr(beg, TEXT(':'));
+                if (end == NULL) {
+                    /* This is the last element in the PATH, so we want the whole thing. */
+                    stop = 1;
+                    _tcscpy(pth, beg);
+                } else {
+                    /* Copy the single path entry. */
+                    _tcsncpy(pth, beg, end - beg);
+                    pth[end - beg] = TEXT('\0');
+                }
+                if (pth[_tcslen(pth) - 1] != TEXT('/')) {
+                    _tcscat(pth, TEXT("/"));
+                }
+                _tcscat(pth, exe);
+                
+                /* The file can exist on the path, but via a symbolic link, so we need to expand it.  Ignore errors here. */
+#ifdef _DEBUG
+                if (wrapperData->isDebugging) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  Check PATH entry: %s"), pth);
+                }
+#endif
+                if (_trealpath(pth, resolvedPath) != NULL) {
+                    /* Copy over the result. */
+                    _tcscpy(pth, resolvedPath);
+                    found = checkIfExecutable(pth);
+                }
+                
+                if (!stop) {
+                    beg = end + 1;
+                }
+            } while (!stop && !found);
+            
+#if !defined(WIN32) && defined(UNICODE)
+            free(searchPath);
+#endif
+            
+            if (found) {
+                ret = malloc((_tcslen(pth) + 1) * sizeof(TCHAR));
+                if (!ret) {
+                    outOfMemory(TEXT("FPO"), 3);
+                    return NULL;
+                }
+                _tcscpy(ret, pth);
+                if (wrapperData->isDebugging) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Resolved the real path of wrapper.java.command from system PATH: %s"), ret);
+                }
+                return ret;
+            } else {
+                if (wrapperData->isDebugging) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of wrapper.java.command on the system PATH: %s"), exe);
+                }
+            }
+        }
+    }
+    
+    /* Still did not find the file.  So it must not exist. */
+    return NULL;
 }
 #endif
 
+/**
+ * Checks to see if the speicified executable is a regular binary.   This will continue
+ *  in either case, but a warning will be logged if the binary is invalid.
+ *
+ * @param para The binary to check.  On UNIX, the para memory may be freed and reallocated by this call.
+ */
 void checkIfRegularExe(TCHAR** para) {
     TCHAR* path;
-#ifndef WIN32
+#ifdef WIN32
+    int len, start;
+#endif
+    
+#ifdef WIN32
+    if (_tcschr(*para, TEXT('\"')) != NULL){
+        start = 1;
+        len = (int)_tcslen(*para) - 2;
+    } else {
+        start = 0;
+        len = (int)_tcslen(*para);
+    }
+    path = malloc(sizeof(TCHAR) * (len + 1));
+    if (!path){
+        outOfMemory(TEXT("CIRE"), 1);
+    } else {
+        _tcsncpy(path, (*para) + start, len);
+        path[len] = TEXT('\0');
+#else
     path = findPathOf(*para);
     if (!path) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("The configured wrapper.java.command could not be found, attempting to launch anyway: %s"), *para);
     } else {
         free(*para);
-        *para = malloc((_tcslen(path) + 1)* sizeof(TCHAR));
+        *para = malloc((_tcslen(path) + 1) * sizeof(TCHAR));
         if (!(*para)) {
             outOfMemory(TEXT("CIRE"), 2);
+            free(path);
             return;
         }
         _tcscpy(*para, path);
-#else
-    int len, start;
-    if(_tcschr(*para, TEXT('\"')) != NULL){
-        start = 1;
-        len = (int)_tcslen(*para) * sizeof(TCHAR)-2;
-    } else {
-        start = 0;
-        len = (int)_tcslen(*para) * sizeof(TCHAR);
-    }
-    path = malloc(sizeof(TCHAR) * (len + 1));
-    if(!path){
-        outOfMemory(TEXT("CIRE"), 1);
-    } else {
-        _tcsncpy(path, (*para)+ start,len);
-        path[len] = TEXT('\0');
 #endif
         if (!checkIfBinary(path)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("The value of wrapper.java.command does not appear to be a java binary."));
@@ -3274,7 +3328,7 @@ int wrapperBuildJavaCommandArrayJavaCommand(TCHAR **strings, int addQuotes, int 
             _sntprintf(strings[index], _tcslen(prop) + 2 + 1, TEXT("%s"), prop);
         }
 #endif
-      /* checkIfRegularExe(&strings[index]); */
+        checkIfRegularExe(&strings[index]);
         if (detectDebugJVM) {
             c = _tcsstr(strings[index], TEXT("jdb"));
             if (c && ((unsigned int)(c - strings[index]) == _tcslen(strings[index]) - 3 - 1)) {
