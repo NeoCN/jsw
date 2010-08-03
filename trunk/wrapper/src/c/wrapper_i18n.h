@@ -35,7 +35,7 @@
   #define __max(x,y) (((x) > (y)) ? (x) : (y))
   #define __min(x,y) (((x) < (y)) ? (x) : (y))
 
-  #if defined(SOLARIS)
+  #if defined(SOLARIS) || defined(HPUX)
    #define WRAPPER_USE_PUTENV
   #endif
 
