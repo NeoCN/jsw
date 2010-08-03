@@ -871,24 +871,28 @@ Properties* createProperties() {
 void disposeProperties(Properties *properties) {
     /* Loop and dispose any Property structures */
     Property *tempProperty;
-    Property *property = properties->first;
-    properties->first = NULL;
-    properties->last = NULL;
-    while (property != NULL) {
-        /* Save the next property */
-        tempProperty = property->next;
-
-        /* Clean up the current property */
-        disposeInnerProperty(property);
-        property = NULL;
-
-        /* set the current property to the next. */
-        property = tempProperty;
+    Property *property;
+    
+    if (properties) {
+        property = properties->first;
+        properties->first = NULL;
+        properties->last = NULL;
+        while (property != NULL) {
+            /* Save the next property */
+            tempProperty = property->next;
+    
+            /* Clean up the current property */
+            disposeInnerProperty(property);
+            property = NULL;
+    
+            /* set the current property to the next. */
+            property = tempProperty;
+        }
+    
+        /* Dispose the Properties structure */
+        free(properties);
+        properties = NULL;
     }
-
-    /* Dispose the Properties structure */
-    free(properties);
-    properties = NULL;
 }
 
 void removeProperty(Properties *properties, const TCHAR *propertyName) {
