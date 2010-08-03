@@ -938,6 +938,10 @@ int setEnvInner(const TCHAR *name, const TCHAR *value)
 {
     int result = FALSE;
     TCHAR *oldVal;
+#if defined(WRAPPER_USE_PUTENV)
+    size_t len;
+    TCHAR *envBuf;
+#endif
 
     /* Get the current environment variable value so we can avoid allocating and
      *  setting the variable if it has not changed its value. */
@@ -951,6 +955,23 @@ int setEnvInner(const TCHAR *name, const TCHAR *value)
                 _tprintf(TEXT("Unable to clear environment variable: %s\n"), name);
                 result = TRUE;
             }
+#elif defined(WRAPPER_USE_PUTENV)
+            len = _tcslen(name) + 1 + 1;
+            envBuf = malloc(sizeof(TCHAR) * len);
+            if (!envBuf) {
+                outOfMemory(TEXT("SEI"), 1); 	 
+                result = TRUE;
+            } else {
+                _sntprintf(envBuf, len, TEXT("%s="), name);
+                /* The memory pointed to by envBuf should only be freed if this is UNICODE. */
+                if (_tputenv(envBuf)) { 	 
+                    _tprintf(TEXT("Unable to clear environment variable: %s\n"), name); 	 
+                    result = TRUE; 	 
+                }
+ #ifdef UNICODE
+                free(envBuf);
+ #endif
+            }
 #else
             _tunsetenv(name);
 #endif
@@ -962,6 +983,23 @@ int setEnvInner(const TCHAR *name, const TCHAR *value)
             if (_tputenv_s(name, value) == EINVAL) {
                 _tprintf(TEXT("Unable to set environment variable: %s=%s\n"), name, value);
                 result = TRUE;
+            }
+#elif defined(WRAPPER_USE_PUTENV)
+            len = _tcslen(name) + 1 + _tcslen(value) + 1;
+            envBuf = malloc(sizeof(TCHAR) * len);
+            if (!envBuf) {
+                outOfMemory(TEXT("SEI"), 2); 	 
+                result = TRUE;
+            } else {
+                _sntprintf(envBuf, len, TEXT("%s=%s"), name, value);
+                /* The memory pointed to by envBuf should only be freed if this is UNICODE. */
+                if (_tputenv(envBuf)) { 	 
+                    _tprintf(TEXT("Unable to set environment variable: %s=%s\n"), name, value); 	 
+                    result = TRUE; 	 
+                }
+ #ifdef UNICODE
+                free(envBuf);
+ #endif
             }
 #else
             if (_tsetenv(name, value, TRUE)) {

@@ -838,10 +838,10 @@ int _topen(const TCHAR *path, int oflag, ...) {
     return -1;
 }
 
-/*
- * No longer used because it leaks memory.  Once in here, and again in the
- *  calling code as that code also expects string passed to _tputenv can't be freed.
- *  Use _tsetenv and _tunsetenv instead
+#if defined(WRAPPER_USE_PUTENV)
+/**
+ * Normal calls to putenv do not free the string parameter, but UNICODE calls can and should.
+ */
 int _tputenv(const TCHAR *string) {
     int r;
     size_t size;
@@ -852,13 +852,13 @@ int _tputenv(const TCHAR *string) {
     if (cStr) {
         wcstombs(cStr, string, size);
         r = putenv(cStr);
-        / *  free(cstr); * /
+        /* Can't free cStr as it becomes part of the environment. */
+        /*  free(cstr); */
         return r;
     }
     return -1;
 }
-*/
-
+#else
 int _tsetenv(const TCHAR *name, const TCHAR *value, int overwrite) {
     int r = -1;
     size_t size;
@@ -899,6 +899,7 @@ void _tunsetenv(const TCHAR *name) {
         free(cName);
     }
 }
+#endif
 
 int _tstat(const wchar_t* filename, struct stat *buf) {
     int size;

@@ -35,6 +35,10 @@
   #define __max(x,y) (((x) > (y)) ? (x) : (y))
   #define __min(x,y) (((x) < (y)) ? (x) : (y))
 
+  #if defined(SOLARIS)
+   #define WRAPPER_USE_PUTENV
+  #endif
+
 
   #if defined(MACOSX) || defined(HPUX) || defined(FREEBSD) || defined(SOLARIS)
    #ifndef wcscasecmp
@@ -90,9 +94,12 @@ extern TCHAR* _tgetcwd(TCHAR *buf, size_t size);
 extern int _topen(const TCHAR *path, int oflag, ... );
 #define _tpopen       _wpopen
 #define _puttch       _putwch
-/*extern int _tputenv(const TCHAR *string);*/
+#if defined(WRAPPER_USE_PUTENV)
+extern int _tputenv(const TCHAR *string);
+#else
 extern int _tsetenv(const TCHAR *name, const TCHAR *value, int overwrite);
 extern void _tunsetenv(const TCHAR *name);
+#endif
 #define _trmdir       _wrmdir
 #define _sctprintf    _scwprintf
 #define _tsearchenv   _wsearchenv
