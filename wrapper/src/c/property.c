@@ -933,6 +933,9 @@ void removeProperty(Properties *properties, const TCHAR *propertyName) {
  *  it does, the call will result in a memory leak the size of the string:
  *   "name=value".
  *
+ * For Windows, the putenv_s funcion looks better, but it is not available
+ *  on some older SDKs and non-pro versions of XP.
+ *
  * @param name Name of the variable being set.
  * @param value Value to be set, NULL to clear it.
  *
@@ -942,6 +945,12 @@ int setEnvInner(const TCHAR *name, const TCHAR *value)
 {
     int result = FALSE;
     TCHAR *oldVal;
+#ifdef WIN32
+ #if !defined(WRAPPER_USE_PUTENV_S)
+    size_t len;
+    TCHAR *envBuf;
+ #endif
+#endif
 #if defined(WRAPPER_USE_PUTENV)
     size_t len;
     TCHAR *envBuf;
@@ -955,11 +964,12 @@ int setEnvInner(const TCHAR *name, const TCHAR *value)
         /* Only clear the variable if it is actually set to avoid unnecessary leaks. */
         if (oldVal != NULL) {
 #ifdef WIN32
+ #if defined(WRAPPER_USE_PUTENV_S)
             if (_tputenv_s(name, TEXT("")) == EINVAL) {
                 _tprintf(TEXT("Unable to clear environment variable: %s\n"), name);
                 result = TRUE;
             }
-#elif defined(WRAPPER_USE_PUTENV)
+ #else
             len = _tcslen(name) + 1 + 1;
             envBuf = malloc(sizeof(TCHAR) * len);
             if (!envBuf) {
@@ -972,23 +982,41 @@ int setEnvInner(const TCHAR *name, const TCHAR *value)
                     _tprintf(TEXT("Unable to clear environment variable: %s\n"), name); 	 
                     result = TRUE; 	 
                 }
- #ifdef UNICODE
-                free(envBuf);
- #endif
             }
+ #endif
 #else
+ #if defined(WRAPPER_USE_PUTENV)
+            len = _tcslen(name) + 1 + 1;
+            envBuf = malloc(sizeof(TCHAR) * len);
+            if (!envBuf) {
+                outOfMemory(TEXT("SEI"), 1); 	 
+                result = TRUE;
+            } else {
+                _sntprintf(envBuf, len, TEXT("%s="), name);
+                /* The memory pointed to by envBuf should only be freed if this is UNICODE. */
+                if (_tputenv(envBuf)) { 	 
+                    _tprintf(TEXT("Unable to clear environment variable: %s\n"), name); 	 
+                    result = TRUE; 	 
+                }
+  #ifdef UNICODE
+                free(envBuf);
+  #endif
+            }
+ #else
             _tunsetenv(name);
+ #endif
 #endif
         }
     } else {
         /*_tprintf("set %s=%s\n", name, value);*/
         if ((oldVal == NULL) || (_tcscmp(oldVal, value) != 0)) {
 #ifdef WIN32
+ #if defined(WRAPPER_USE_PUTENV_S)
             if (_tputenv_s(name, value) == EINVAL) {
                 _tprintf(TEXT("Unable to set environment variable: %s=%s\n"), name, value);
                 result = TRUE;
             }
-#elif defined(WRAPPER_USE_PUTENV)
+ #else
             len = _tcslen(name) + 1 + _tcslen(value) + 1;
             envBuf = malloc(sizeof(TCHAR) * len);
             if (!envBuf) {
@@ -1001,15 +1029,32 @@ int setEnvInner(const TCHAR *name, const TCHAR *value)
                     _tprintf(TEXT("Unable to set environment variable: %s=%s\n"), name, value); 	 
                     result = TRUE; 	 
                 }
- #ifdef UNICODE
-                free(envBuf);
- #endif
             }
+ #endif
 #else
+ #if defined(WRAPPER_USE_PUTENV)
+            len = _tcslen(name) + 1 + _tcslen(value) + 1;
+            envBuf = malloc(sizeof(TCHAR) * len);
+            if (!envBuf) {
+                outOfMemory(TEXT("SEI"), 2); 	 
+                result = TRUE;
+            } else {
+                _sntprintf(envBuf, len, TEXT("%s=%s"), name, value);
+                /* The memory pointed to by envBuf should only be freed if this is UNICODE. */
+                if (_tputenv(envBuf)) { 	 
+                    _tprintf(TEXT("Unable to set environment variable: %s=%s\n"), name, value); 	 
+                    result = TRUE; 	 
+                }
+  #ifdef UNICODE
+                free(envBuf);
+  #endif
+            }
+ #else
             if (_tsetenv(name, value, TRUE)) {
                 _tprintf(TEXT("Unable to set environment variable: %s=%s\n"), name, value);
                 result = TRUE;
             }
+ #endif
 #endif
         }
     }
