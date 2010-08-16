@@ -62,16 +62,19 @@ extern EnvSrc *baseEnvSrc;
 
 typedef struct Property Property;
 struct Property {
-    TCHAR *name;              /* The name of the property. */
-    TCHAR *value;             /* The value of the property. */
+    TCHAR *name;             /* The name of the property. */
+    TCHAR *value;            /* The value of the property. */
     int finalValue;          /* TRUE if the Property can not be changed. */
     int quotable;            /* TRUE if quotes can be optionally added around the value. */
+    int internal;            /* TRUE if the Property is internal. */
     Property *next;          /* Pointer to the next Property in a linked list */
     Property *previous;      /* Pointer to the next Property in a linked list */
 };
 
 typedef struct Properties Properties;
 struct Properties {
+    int debugIncludes;       /* TRUE if include debug output should be shown. */
+    int debugProperties;     /* TRUE if debug information on Properties should be shown. */
     Property *first;         /* Pointer to the first property. */
     Property *last;          /* Pointer to the last property.  */
 };
@@ -140,24 +143,35 @@ extern int isEscapedProperty(const TCHAR *propertyName);
  * Adds a single property to the properties structure.
  *
  * @param properties Properties structure to add to.
+ * @param filename Name of the file from which the property was loaded.  NULL, if not from a file.
+ * @param lineNum Line number of the property declaration in the file.  Ignored if filename is NULL.
  * @param propertyName Name of the new Property.
  * @param propertyValue Initial property value.
- * @param finalValue True if the property should be set as static.
- * @param quotable True if the property could contain quotes.
- * @param escapable True if the propertyValue can be escaped if its propertyName
+ * @param finalValue TRUE if the property should be set as static.
+ * @param quotable TRUE if the property could contain quotes.
+ * @param escapable TRUE if the propertyValue can be escaped if its propertyName
  *                  is in the list set with setEscapableProperties().
+ * @param internal TRUE if the property is a Wrapper internal property.
  *
  * @return The newly created Property, or NULL if there was a reported error.
  */
-extern Property* addProperty(Properties *properties, const TCHAR *propertyName, const TCHAR *propertyValue, int finalValue, int quotable, int escapable, int internal);
+extern Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum, const TCHAR *propertyName, const TCHAR *propertyValue, int finalValue, int quotable, int escapable, int internal);
 
 /**
  * Takes a name/value pair in the form <name>=<value> and attempts to add
  * it to the specified properties table.
  *
+ * @param properties Properties structure to add to.
+ * @param filename Name of the file from which the property was loaded.  NULL, if not from a file.
+ * @param lineNum Line number of the property declaration in the file.  Ignored if filename is NULL.
+ * @param propertyNameValue The "name=value" pair to create the property from.
+ * @param finalValue TRUE if the property should be set as static.
+ * @param quotable TRUE if the property could contain quotes.
+ * @param internal TRUE if the property is a Wrapper internal property.
+ *
  * Returns 0 if successful, otherwise 1
  */
-extern int addPropertyPair(Properties *properties, const TCHAR *propertyNameValue, int finalValue, int quotable, int internal);
+extern int addPropertyPair(Properties *properties, const TCHAR* filename, int lineNum, const TCHAR *propertyNameValue, int finalValue, int quotable, int internal);
 
 extern const TCHAR* getStringProperty(Properties *properties, const TCHAR *propertyName, const TCHAR *defaultValue);
 

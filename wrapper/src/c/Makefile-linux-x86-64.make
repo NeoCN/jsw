@@ -36,7 +36,7 @@ wrapper: $(wrapper_SOURCE)
 	$(COMPILE) -lm -pthread $(wrapper_SOURCE) -o $(BIN)/wrapper
 
 libwrapper.so: $(libwrapper_so_OBJECTS)
-	${COMPILE} -lm -shared $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
+	${COMPILE} -shared $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
 
 %.o: %.c
 	@echo '$(COMPILE) -c $<'; \
