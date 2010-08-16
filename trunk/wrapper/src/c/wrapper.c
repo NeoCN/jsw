@@ -202,29 +202,29 @@ void wrapperAddDefaultProperties() {
         return;
     }
     _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_PID=%d"), wrapperData->wrapperPID);
-    addPropertyPair(properties, buffer, TRUE, FALSE, TRUE);
+    addPropertyPair(properties, NULL, 0, buffer, TRUE, FALSE, TRUE);
 
     _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_BITS=%s"), wrapperBits);
-    addPropertyPair(properties, buffer, TRUE, FALSE, TRUE);
+    addPropertyPair(properties, NULL, 0, buffer, TRUE, FALSE, TRUE);
 
     _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_ARCH=%s"), wrapperArch);
-    addPropertyPair(properties, buffer, TRUE, FALSE, TRUE);
+    addPropertyPair(properties, NULL, 0, buffer, TRUE, FALSE, TRUE);
 
     _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_OS=%s"), wrapperOS);
-    addPropertyPair(properties, buffer, TRUE, FALSE, TRUE);
+    addPropertyPair(properties, NULL, 0, buffer, TRUE, FALSE, TRUE);
 
     _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_HOSTNAME=%s"), wrapperData->hostName);
-    addPropertyPair(properties, buffer, TRUE, FALSE, TRUE);
+    addPropertyPair(properties, NULL, 0, buffer, TRUE, FALSE, TRUE);
 
     _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_HOST_NAME=%s"), wrapperData->hostName);
-    addPropertyPair(properties, buffer, TRUE, FALSE, TRUE);
+    addPropertyPair(properties, NULL, 0, buffer, TRUE, FALSE, TRUE);
 
 #ifdef WIN32
-    addPropertyPair(properties, TEXT("set.WRAPPER_FILE_SEPARATOR=\\"), TRUE, FALSE, TRUE);
-    addPropertyPair(properties, TEXT("set.WRAPPER_PATH_SEPARATOR=;"), TRUE, FALSE, TRUE);
+    addPropertyPair(properties, NULL, 0, TEXT("set.WRAPPER_FILE_SEPARATOR=\\"), TRUE, FALSE, TRUE);
+    addPropertyPair(properties, NULL, 0, TEXT("set.WRAPPER_PATH_SEPARATOR=;"), TRUE, FALSE, TRUE);
 #else
-    addPropertyPair(properties, TEXT("set.WRAPPER_FILE_SEPARATOR=/"), TRUE, FALSE, TRUE);
-    addPropertyPair(properties, TEXT("set.WRAPPER_PATH_SEPARATOR=:"), TRUE, FALSE, TRUE);
+    addPropertyPair(properties, NULL, 0, TEXT("set.WRAPPER_FILE_SEPARATOR=/"), TRUE, FALSE, TRUE);
+    addPropertyPair(properties, NULL, 0, TEXT("set.WRAPPER_PATH_SEPARATOR=:"), TRUE, FALSE, TRUE);
 #endif
 
     free(buffer);
@@ -476,6 +476,10 @@ int wrapperLoadConfigurationProperties() {
              *  file that could not be found.  May not be the config file directly if symbolic
              *  links are involved. */
             if (wrapperData->argConfFileDefault) {
+                /* The output buffer is likely to contain undefined data.
+                 * To be on the safe side and in order to report the error
+                 *  below correctly we need to override the data first.*/
+                _sntprintf(wrapperData->configFile, PATH_MAX + 1, TEXT("%s"), wrapperData->argConfFile);
                 /* This was the default config file name.  We know that the working directory
                  *  could be resolved so the problem must be that the default config file does
                  *  not exist.  This problem will be reported later and the wrapperData->configFile
@@ -504,7 +508,7 @@ int wrapperLoadConfigurationProperties() {
      *  by 0 or more command line properties.  The command line properties need to be
      *  loaded first, followed by the configuration file. */
     for (i = 0; i < wrapperData->argCount; i++) {
-        if (addPropertyPair(properties, wrapperData->argValues[i], TRUE, TRUE, FALSE)) {
+        if (addPropertyPair(properties, NULL, 0, wrapperData->argValues[i], TRUE, TRUE, FALSE)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 TEXT("The argument '%s' is not a valid property name-value pair."),
                 wrapperData->argValues[i]);
@@ -3243,7 +3247,7 @@ int wrapperBuildJavaCommandArrayJavaCommand(TCHAR **strings, int addQuotes, int 
                         TEXT("Loaded java home from registry: %s"), cpPath);
                 }
 
-                addProperty(properties, TEXT("set.WRAPPER_JAVA_HOME"), cpPath, FALSE, FALSE, FALSE, TRUE);
+                addProperty(properties, NULL, 0, TEXT("set.WRAPPER_JAVA_HOME"), cpPath, TRUE, FALSE, FALSE, TRUE);
 
                 _tcscat(cpPath, TEXT("\\bin\\java.exe"));
                 if (wrapperData->isDebugging) {

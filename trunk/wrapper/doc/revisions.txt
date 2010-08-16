@@ -1,6 +1,32 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 
+3.6.0
+* Add optional support for custom public static methods in the
+  WrapperSimpleApp and WrapperStartStopApp helper classes.  Feature Request
+  #2812276.
+* Add a new special configuration file directive "#properties.debug" which
+  enables debug output about the properties as they are loaded by the
+  configuration file.  This can be useful to tell if and why certain properties
+  are being overwritten.  Feature Request #3042959.
+* Fix a minor problem where the "#include.debug" configuration file directive
+  was sticky so it would be enabled when the configuration file was reloaded
+  even if the reloaded configuration file no longer had the directive set.
+  This was only an issue if the wrapper.restart.reload_configuration property
+  was set.
+* Messages about missing included configuration files that were output when the
+  #include.debug" configuration file directive was active were being logged at
+  the ERROR level even though they were not problems.
+* Fix a minor problem where the WRAPPER_JAVA_HOME environment variable was not
+  correctly being set to final when it was set internally by Wrapper.  This
+  could lead to unexected results if the user overwrote it later in their
+  configuration file.
+* Fix a problem on AIX and z/OS, when running the Wrapper without any
+  arguments.  The Wrapper was attempting to use the default wrapper.conf file
+  but the check for the file was failing causing the Wrapper to continue even
+  though the file did not exist.  This caused a confusing error message to be
+  displayed, but was otherwise harmless.
+
 3.5.3
 * Fix a typo in the UNIX shell scripts that was causing "command not found"
   errors to be shown when running the Community Edition.

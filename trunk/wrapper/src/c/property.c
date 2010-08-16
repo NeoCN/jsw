@@ -60,8 +60,6 @@
 
 #define MAX_INCLUDE_DEPTH 10
 
-int debugIncludes = FALSE;
-
 EnvSrc *baseEnvSrc = NULL;
 
 /** Stores the time that the property file began to be loaded. */
@@ -479,7 +477,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
     /* Look for the specified file. */
     if ((stream = _tfopen(filename, TEXT("rb"))) == NULL) {
         /* Unable to open the file. */
-        if (debugIncludes) {
+        if (properties->debugIncludes) {
             if (depth > 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     TEXT("  Included configuration file, %s, was not found."), filename);
@@ -494,7 +492,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
         }
         return TRUE;
     }
-    if (debugIncludes) {
+    if (properties->debugIncludes) {
         if (depth > 0) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                 TEXT("  Loading included configuration file, %s"), filename);
@@ -606,7 +604,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
 
     if ((stream = _tfopen(filename, TEXT("rb"))) == NULL) {
         /* Unable to open the file. */
-        if (debugIncludes) {
+        if (properties->debugIncludes) {
             if (depth > 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     TEXT("  Included configuration file, %s, was not found."), filename);
@@ -728,7 +726,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
             if (_tcslen(trimmedBuffer) > 0) {
                 if (strcmpIgnoreCase(trimmedBuffer, TEXT("#include.debug")) == 0) {
                     /* Enable include file debugging. */
-                    debugIncludes = TRUE;
+                    properties->debugIncludes = TRUE;
                 } else if (_tcsstr(trimmedBuffer, TEXT("#include")) == trimmedBuffer) {
                     /* Include file, if the file does not exist, then ignore it */
                     /* Strip any leading whitespace */
@@ -739,13 +737,13 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
 
                     if (depth < MAX_INCLUDE_DEPTH) {
                         /* The filename may contain environment variables, so expand them. */
-                        if (debugIncludes) {
+                        if (properties->debugIncludes) {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                                 TEXT("Found #include file in %s: %s"), filename, c);
                         }
                         evaluateEnvironmentVariables(c, expBuffer, MAX_PROPERTY_NAME_VALUE_LENGTH);
 
-                        if (debugIncludes && (_tcscmp(c, expBuffer) != 0)) {
+                        if (properties->debugIncludes && (_tcscmp(c, expBuffer) != 0)) {
                             /* Only show this log if there were any environment variables. */
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                                 TEXT("  After environment variable replacements: %s"), expBuffer);
@@ -756,7 +754,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
                         /* Find out how big the absolute path will be */
                         size = GetFullPathName(expBuffer, 0, NULL, NULL); /* Size includes '\0' */
                         if (!size) {
-                            if (debugIncludes) {
+                            if (properties->debugIncludes) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                                     TEXT("  Unable to resolve the full path of the configuration include file, %s: %s"),
                                     expBuffer, getLastErrorText());
@@ -770,8 +768,8 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
                                 outOfMemory(TEXT("LPI"), 1);
                             } else {
                                 if (!GetFullPathName(expBuffer, size, absoluteBuffer, NULL)) {
-                                    if (debugIncludes) {
-                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                                    if (properties->debugIncludes) {
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                                             TEXT("  Unable to resolve the full path of the configuration include file, %s: %s"),
                                             expBuffer, getLastErrorText());
                                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
@@ -788,8 +786,8 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
                             outOfMemory(TEXT("LPI"), 2);
                         } else {
                             if (_trealpath(expBuffer, absoluteBuffer) == NULL) {
-                                if (debugIncludes) {
-                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                                if (properties->debugIncludes) {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                                         TEXT("  Unable to resolve the full path of the configuration include file, %s: %s"),
                                         expBuffer, getLastErrorText());
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
@@ -805,6 +803,9 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
                             free(absoluteBuffer);
                         }
                     }
+                } else if (strcmpIgnoreCase(trimmedBuffer, TEXT("#properties.debug")) == 0) {
+                    /* Enable property debugging. */
+                    properties->debugProperties = TRUE;
                 } else if (_tcsstr(trimmedBuffer, TEXT("include")) == trimmedBuffer) {
                     /* Users sometimes remove the '#' from include statements.  Add a warning to help them notice the problem. */
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
@@ -817,7 +818,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
                         /* Null terminate the first half of the line. */
                         *d = TEXT('\0');
                         d++;
-                        addProperty(properties, trimmedBuffer, d, FALSE, FALSE, TRUE, FALSE);
+                        addProperty(properties, filename, lineNumber, trimmedBuffer, d, FALSE, FALSE, TRUE, FALSE);
                     }
                 }
             }
@@ -863,6 +864,8 @@ Properties* createProperties() {
         outOfMemory(TEXT("CP"), 1);
         return NULL;
     }
+    properties->debugIncludes = FALSE;
+    properties->debugProperties = FALSE;
     properties->first = NULL;
     properties->last = NULL;
     return properties;
@@ -1380,16 +1383,19 @@ TCHAR *expandEscapedCharacters(const TCHAR* buffer) {
  * Adds a single property to the properties structure.
  *
  * @param properties Properties structure to add to.
+ * @param filename Name of the file from which the property was loaded.  NULL, if not from a file.
+ * @param lineNum Line number of the property declaration in the file.  Ignored if filename is NULL.
  * @param propertyName Name of the new Property.
  * @param propertyValue Initial property value.
- * @param finalValue True if the property should be set as static.
- * @param quotable True if the property could contain quotes.
- * @param escapable True if the propertyValue can be escaped if its propertyName
+ * @param finalValue TRUE if the property should be set as static.
+ * @param quotable TRUE if the property could contain quotes.
+ * @param escapable TRUE if the propertyValue can be escaped if its propertyName
  *                  is in the list set with setEscapableProperties().
+ * @param internal TRUE if the property is a Wrapper internal property.
  *
  * @return The newly created Property, or NULL if there was a reported error.
  */
-Property* addProperty(Properties *properties, const TCHAR *propertyName, const TCHAR *propertyValue, int finalValue, int quotable, int escapable, int internal) {
+Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum, const TCHAR *propertyName, const TCHAR *propertyValue, int finalValue, int quotable, int escapable, int internal) {
     int setValue;
     Property *property;
     TCHAR *oldVal;
@@ -1398,8 +1404,8 @@ Property* addProperty(Properties *properties, const TCHAR *propertyName, const T
     TCHAR *propertyExpandedValue;
 
 #ifdef _DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("addProperty(%p, '%s', '%s', %d, %d, %d, %d)"),
-        properties, propertyName, propertyValue, finalValue, quotable, escapable, internal);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("addProperty(%p, %s, '%s', '%s', %d, %d, %d, %d)"),
+        properties, (filename ? filename : TEXT("<NULL>")), propertyName, propertyValue, finalValue, quotable, escapable, internal);
 #endif
     /* It is possible that the propertyName and or properyValue contains extra spaces. */
     propertyNameTrim = malloc(sizeof(TCHAR) * (_tcslen(propertyName) + 1));
@@ -1448,8 +1454,28 @@ Property* addProperty(Properties *properties, const TCHAR *propertyName, const T
         insertInnerProperty(properties, property);
     } else {
         /* The property was already set.  Only change it if non final */
-        if (property->finalValue) {
+        if (property->internal) {
             setValue = FALSE;
+            
+            if (properties->debugProperties) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    TEXT("The \"%s\" property is defined by the Wrapper internally and can not be overwritten.\n  Ignoring redefinition on line #%d of configuration file: %s\n  Fixed Value %s=%s\n  Ignored Value %s=%s"),
+                    propertyNameTrim, lineNum, (filename ? filename : TEXT("<NULL>")), propertyNameTrim, property->value, propertyNameTrim, propertyValueTrim);
+            }
+        } else if (property->finalValue) {
+            setValue = FALSE;
+            
+            if (properties->debugProperties) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    TEXT("The \"%s\" property was defined on the Wrapper command line and can not be overwritten.\n  Ignoring redefinition on line #%d of configuration file: %s\n  Fixed Value %s=%s\n  Ignored Value %s=%s"),
+                    propertyNameTrim, lineNum, (filename ? filename : TEXT("<NULL>")), propertyNameTrim, property->value, propertyNameTrim, propertyValueTrim);
+            }
+        } else {
+            if (properties->debugProperties) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    TEXT("The \"%s\" property was redefined on line #%d of configuration file: %s\n  Old Value %s=%s\n  New Value %s=%s"),
+                    propertyNameTrim, lineNum, (filename ? filename : TEXT("<NULL>")), propertyNameTrim, property->value, propertyNameTrim, propertyValueTrim);
+            }
         }
     }
     free(propertyNameTrim);
@@ -1484,6 +1510,9 @@ Property* addProperty(Properties *properties, const TCHAR *propertyName, const T
 
         /* Store the quotable flag. */
         property->quotable = quotable;
+        
+        /* Store the internal flab. */
+        property->internal = internal;
 
         /* Prepare the property by expanding any environment variables that are defined. */
         prepareProperty(property);
@@ -1531,9 +1560,17 @@ Property* addProperty(Properties *properties, const TCHAR *propertyName, const T
  * Takes a name/value pair in the form <name>=<value> and attempts to add
  * it to the specified properties table.
  *
+ * @param properties Properties structure to add to.
+ * @param filename Name of the file from which the property was loaded.  NULL, if not from a file.
+ * @param lineNum Line number of the property declaration in the file.  Ignored if filename is NULL.
+ * @param propertyNameValue The "name=value" pair to create the property from.
+ * @param finalValue TRUE if the property should be set as static.
+ * @param quotable TRUE if the property could contain quotes.
+ * @param internal TRUE if the property is a Wrapper internal property.
+ *
  * Returns 0 if successful, otherwise 1
  */
-int addPropertyPair(Properties *properties, const TCHAR *propertyNameValue, int finalValue, int quotable, int internal) {
+int addPropertyPair(Properties *properties, const TCHAR* filename, int lineNum, const TCHAR *propertyNameValue, int finalValue, int quotable, int internal) {
     TCHAR buffer[MAX_PROPERTY_NAME_VALUE_LENGTH];
     TCHAR *d;
 
@@ -1550,7 +1587,7 @@ int addPropertyPair(Properties *properties, const TCHAR *propertyNameValue, int 
         /* Null terminate the first half of the line. */
         *d = TEXT('\0');
         d++;
-        addProperty(properties, buffer, d, finalValue, quotable, FALSE, internal);
+        addProperty(properties, filename, lineNum, buffer, d, finalValue, quotable, FALSE, internal);
 
         return 0;
     } else {
@@ -1563,7 +1600,7 @@ const TCHAR* getStringProperty(Properties *properties, const TCHAR *propertyName
     property = getInnerProperty(properties, propertyName);
     if (property == NULL) {
         if (defaultValue != NULL) {
-            property = addProperty(properties, propertyName, defaultValue, FALSE, FALSE, FALSE, FALSE);
+            property = addProperty(properties, NULL, 0, propertyName, defaultValue, FALSE, FALSE, FALSE, FALSE);
             if (property) {
                 return property->value;
             } else {
@@ -1586,7 +1623,7 @@ const TCHAR* getFileSafeStringProperty(Properties *properties, const TCHAR *prop
     property = getInnerProperty(properties, propertyName);
     if (property == NULL) {
         if (defaultValue != NULL) {
-            addProperty(properties, propertyName, defaultValue, FALSE, FALSE, FALSE, FALSE);
+            addProperty(properties, NULL, 0, propertyName, defaultValue, FALSE, FALSE, FALSE, FALSE);
         }
 
         return defaultValue;
@@ -1877,7 +1914,7 @@ int getIntProperty(Properties *properties, const TCHAR *propertyName, int defaul
     property = getInnerProperty(properties, propertyName);
     if (property == NULL) {
         _sntprintf(buffer, 16, TEXT("%d"), defaultValue);
-        addProperty(properties, propertyName, buffer, FALSE, FALSE, FALSE, FALSE);
+        addProperty(properties, NULL, 0, propertyName, buffer, FALSE, FALSE, FALSE, FALSE);
 
         return defaultValue;
     } else {
