@@ -84,8 +84,8 @@ public final class WrapperProcessConfig
      * @return true if supported, false otherwise. On Windows, this method always returns
      *              true.
      *
-     * @throws WrapperLicenseError If the Professional Edition of the Wrapper
-     *                              is not being used.
+     * @throws WrapperLicenseError If the function is called other than in
+     *                             the Professional Edition or from a Standalone JVM.
      * @throws IllegalArgumentException If the startType is invalid.
      */
     public static boolean isSupported( int startType )
@@ -235,6 +235,8 @@ public final class WrapperProcessConfig
      *  is launched.  Alternately, the environment can be set with the
      *  setEnvironment method.  Clearing the Map will result in an empty
      *  environment being used.
+     *  @throws WrapperLicenseError If the function is called other than in
+     *                             the Professional Edition or from a Standalone JVM.
      */
     public Map getEnvironment()
         throws WrapperLicenseError

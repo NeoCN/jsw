@@ -52,6 +52,8 @@ public class WrapperProcessInputStream
     /**
      * Closes the InputStream
      * @throws IOException in case of any file errors
+     * @throws WrapperLicenseError If the function is called other than in
+     *                             the Professional Edition or from a Standalone JVM.
      */
     public void close()
         throws IOException
@@ -86,6 +88,8 @@ public class WrapperProcessInputStream
      * Read a character from the Stream and moves the position in the stream
      * @return single sign from the stream
      * @throws IOException in case the stream has been already closed or any other file error
+     * @throws WrapperLicenseError If the function is called other than in
+     *                             the Professional Edition or from a Standalone JVM.
      */
     public int read()
         throws IOException

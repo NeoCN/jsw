@@ -434,6 +434,205 @@ void setInnerProperty(Property *property, const TCHAR *propertyValue) {
     }
 }
 
+
+
+/**
+ * Function to get the system encoding name/number for the encoding
+ * of the conf file
+ *
+ * @para String holding the encoding from the conf file
+ *
+ * @return TRUE if not found, FALSE otherwise
+ *
+ */
+#ifdef WIN32
+#define strIgnoreCaseCmp stricmp
+int getEncodingByName(char* encodingMB, int *encoding) {
+#else
+#define strIgnoreCaseCmp strcasecmp
+int getEncodingByName(char* encodingMB, char** encoding) {
+#endif
+    if (strIgnoreCaseCmp(encodingMB, "Shift_JIS") == 0) {
+#if defined(FREEBSD) || defined (AIX) || defined(MACOSX)
+        *encoding = "SJIS";
+#elif defined(WIN32)
+        *encoding = 932;
+#else
+        *encoding = "shiftjis";
+#endif
+    } else if (strIgnoreCaseCmp(encodingMB, "eucJP") == 0) {
+#if defined(AIX)
+        *encoding = "IBM-eucJP";
+#elif defined(WIN32)
+        *encoding = 20932;
+#else
+        *encoding = "eucJP";
+#endif
+    } else if (strIgnoreCaseCmp(encodingMB, "UTF-8") == 0) {
+#if defined(HPUX)
+        *encoding = "utf8";
+#elif defined(WIN32)
+        *encoding = 65001;
+#else
+        *encoding = "UTF-8";
+#endif
+    } else if (strIgnoreCaseCmp(encodingMB, "ISO-8859-1") == 0) {
+#if defined(WIN32)
+        *encoding = 28591;
+#elif defined(LINUX)
+        *encoding = "ISO-8859-1";
+#else
+        *encoding = "ISO8859-1";
+#endif
+    } else if (strIgnoreCaseCmp(encodingMB, "CP1252") == 0) {
+#if defined(WIN32)
+        *encoding = 1252;
+#else
+        *encoding = "CP1252";
+#endif
+    } else if (strIgnoreCaseCmp(encodingMB, "ISO-8859-2") == 0) {
+#if defined(WIN32)
+        *encoding = 28592;
+#elif defined(LINUX)
+        *encoding = "ISO-8859-2";
+#else
+        *encoding = "ISO8859-2";
+#endif
+    } else if (strIgnoreCaseCmp(encodingMB, "ISO-8859-3") == 0) {
+#if defined(WIN32)
+        *encoding = 28593;
+#elif defined(LINUX)
+        *encoding = "ISO-8859-3";
+#else
+        *encoding = "ISO8859-3";
+#endif
+    } else if (strIgnoreCaseCmp(encodingMB, "ISO-8859-4") == 0) {
+#if defined(WIN32)
+        *encoding = 28594;
+#elif defined(LINUX)
+        *encoding = "ISO-8859-4";
+#else
+        *encoding = "ISO8859-4";
+#endif
+    } else if (strIgnoreCaseCmp(encodingMB, "ISO-8859-5") == 0) {
+#if defined(WIN32)
+        *encoding = 28595;
+#elif defined(LINUX)
+        *encoding = "ISO-8859-5";
+#else
+        *encoding = "ISO8859-5";
+#endif
+    } else if (strIgnoreCaseCmp(encodingMB, "ISO-8859-6") == 0) {
+#if defined(WIN32)
+        *encoding = 28596;
+#elif defined(LINUX)
+        *encoding = "ISO-8859-6";
+#else
+        *encoding = "ISO8859-6";
+#endif
+    } else if (strIgnoreCaseCmp(encodingMB, "ISO-8859-7") == 0) {
+#if defined(WIN32)
+        *encoding = 28597;
+#elif defined(LINUX)
+        *encoding = "ISO-8859-7";
+#else
+        *encoding = "ISO8859-7";
+#endif
+    } else if (strIgnoreCaseCmp(encodingMB, "ISO-8859-8") == 0) {
+#if defined(WIN32)
+        *encoding = 28598;
+#elif defined(LINUX)
+        *encoding = "ISO-8859-8";
+#else
+        *encoding = "ISO8859-8";
+#endif
+    } else if (strIgnoreCaseCmp(encodingMB, "ISO-8859-9") == 0) {
+#if defined(WIN32)
+        *encoding = 28599;
+#elif defined(LINUX)
+        *encoding = "ISO-8859-9";
+#else
+        *encoding = "ISO8859-9";
+#endif
+    } else if (strIgnoreCaseCmp(encodingMB, "ISO-8859-10") == 0) {
+#if defined(WIN32)
+        *encoding = 28600;
+#elif defined(LINUX)
+        *encoding = "ISO-8859-10";
+#else
+        *encoding = "ISO8859-10";
+#endif
+    } else if (strIgnoreCaseCmp(encodingMB, "ISO-8859-11") == 0) {
+#if defined(WIN32)
+        *encoding = 28601;
+#elif defined(LINUX)
+        *encoding = "ISO-8859-11";
+#else
+        *encoding = "ISO8859-11";
+#endif
+    } else if (strIgnoreCaseCmp(encodingMB, "ISO-8859-13") == 0) {
+#if defined(WIN32)
+        *encoding = 28603;
+#elif defined(LINUX)
+        *encoding = "ISO-8859-13";
+#else
+        *encoding = "ISO8859-13";
+#endif
+    } else if (strIgnoreCaseCmp(encodingMB, "ISO-8859-14") == 0) {
+#if defined(WIN32)
+        *encoding = 28604;
+#elif defined(LINUX)
+        *encoding = "ISO-8859-14";
+#else
+        *encoding = "ISO8859-14";
+#endif
+    } else if (strIgnoreCaseCmp(encodingMB, "ISO-8859-15") == 0) {
+#if defined(WIN32)
+        *encoding = 28605;
+#elif defined(LINUX)
+        *encoding = "ISO-8859-15";
+#else
+        *encoding = "ISO8859-15";
+#endif
+    } else if (strIgnoreCaseCmp(encodingMB, "ISO-8859-16") == 0) {
+#if defined(WIN32)
+        *encoding = 28606;
+#elif defined(LINUX)
+        *encoding = "ISO-8859-16";
+#else
+        *encoding = "ISO8859-16";
+#endif
+    } else if (strIgnoreCaseCmp(encodingMB, "CP1250") == 0) {
+#if defined(WIN32)
+        *encoding = 1250;
+#else
+        *encoding = "CP1250";
+#endif
+    } else if (strIgnoreCaseCmp(encodingMB, "CP1251") == 0) {
+#if defined(WIN32)
+        *encoding = 1251;
+#else
+        *encoding = "CP1251";
+#endif
+    } else if (strIgnoreCaseCmp(encodingMB, "KOI8-R") == 0) {
+#if defined(WIN32)
+        *encoding = 20866;
+#else
+        *encoding = "KOI8-R";
+#endif
+    } else if (strIgnoreCaseCmp(encodingMB, "KOI8-U") == 0) {
+#if defined(WIN32)
+        *encoding = 21866;
+#else
+        *encoding = "KOI8-U";
+#endif
+    } else {
+        return TRUE;
+    }
+    return FALSE;
+}
+
+
 /**
  * Loads the contents of a file into the specified properties.
  *  Whenever a line which starts with #include is encountered, then the rest
@@ -460,7 +659,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
     char *encodingMB;
 #ifdef WIN32
     int encoding;
-#else 
+#else
     char* encoding;
     char* interumEncoding;
 #endif
@@ -525,53 +724,10 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
                i++;
             }
             encodingMB[i] = '\0';
-            
-            if ((hadBOM) &&
-#ifdef WIN32
-                (stricmp(encodingMB, "UTF-8") != 0)
-#else
-                (strcasecmp(encodingMB, "UTF-8") != 0)
-#endif
-                ) {
-            }
 
-#ifdef WIN32
-            if (stricmp(encodingMB, "Shift_JIS") == 0) {
-#else 
-            if (strcasecmp(encodingMB, "Shift_JIS") == 0) {
-#endif
-#if defined(FREEBSD) || defined (AIX) || defined(MACOSX)
-                encoding = "SJIS";
-#elif defined(WIN32)
-                encoding = 932;
-#else
-                encoding = "shiftjis";
-#endif
-#ifdef WIN32
-            } else if (stricmp(encodingMB, "eucJP") == 0) {
-#else
-            } else if (strcasecmp(encodingMB, "eucJP") == 0) {
-#endif
-#if defined(AIX)
-                encoding = "IBM-eucJP";
-#elif defined(WIN32)
-                encoding = 20932;
-#else
-                encoding = "eucJP";
-#endif
-#ifdef WIN32
-            } else if (stricmp(encodingMB, "UTF-8") == 0) {
-#else
-            } else if (strcasecmp(encodingMB, "UTF-8") == 0) {
-#endif
-#if defined(HPUX)
-                encoding = "utf8";
-#elif defined(WIN32)
-                encoding = 65001;
-#else
-                encoding = "UTF-8";
-#endif
-            } else {
+            if ((hadBOM) && (strIgnoreCaseCmp(encodingMB, "UTF-8") != 0)) {
+            }
+            if (getEncodingByName(encodingMB, &encoding) == TRUE) {
                 return TRUE;
             }
 

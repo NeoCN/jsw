@@ -70,16 +70,16 @@ public class Restarter implements WrapperListener {
                             Thread.yield();
                             
                             System.out.println( Main.getRes().getString( "        outputer line #{0}", new Integer( ++counter ) ) );
-                            System.out.println( Main.getRes().getString( "           1) A long line of test data to cause lots of data to be sent to the console." ) );
-                            System.out.println( Main.getRes().getString( "           2) A long line of test data to cause lots of data to be sent to the console." ) );
-                            System.out.println( Main.getRes().getString( "           3) A long line of test data to cause lots of data to be sent to the console." ) );
-                            System.out.println( Main.getRes().getString( "           4) A long line of test data to cause lots of data to be sent to the console." ) );
-                            System.out.println( Main.getRes().getString( "           5) A long line of test data to cause lots of data to be sent to the console." ) );
-                            System.out.println( Main.getRes().getString( "           6) A long line of test data to cause lots of data to be sent to the console." ) );
-                            System.out.println( Main.getRes().getString( "           7) A long line of test data to cause lots of data to be sent to the console." ) );
-                            System.out.println( Main.getRes().getString( "           8) A long line of test data to cause lots of data to be sent to the console." ) );
-                            System.out.println( Main.getRes().getString( "           9) A long line of test data to cause lots of data to be sent to the console." ) );
-                            System.out.println( Main.getRes().getString( "           10)A long line of test data to cause lots of data to be sent to the console." ) );
+                            System.out.println( "           1) " + Main.getRes().getString( "A long line of test data to cause lots of data to be sent to the console." ) );
+                            System.out.println( "           2) " + Main.getRes().getString( "A long line of test data to cause lots of data to be sent to the console." ) );
+                            System.out.println( "           3) " + Main.getRes().getString( "A long line of test data to cause lots of data to be sent to the console." ) );
+                            System.out.println( "           4) " + Main.getRes().getString( "A long line of test data to cause lots of data to be sent to the console." ) );
+                            System.out.println( "           5) " + Main.getRes().getString( "A long line of test data to cause lots of data to be sent to the console." ) );
+                            System.out.println( "           6) " + Main.getRes().getString( "A long line of test data to cause lots of data to be sent to the console." ) );
+                            System.out.println( "           7) " + Main.getRes().getString( "A long line of test data to cause lots of data to be sent to the console." ) );
+                            System.out.println( "           8) " + Main.getRes().getString( "A long line of test data to cause lots of data to be sent to the console." ) );
+                            System.out.println( "           9) " + Main.getRes().getString( "A long line of test data to cause lots of data to be sent to the console." ) );
+                            System.out.println( "           10) " + Main.getRes().getString( "A long line of test data to cause lots of data to be sent to the console." ) );
                             System.out.flush();
                         }
                     }

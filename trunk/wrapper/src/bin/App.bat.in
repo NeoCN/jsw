@@ -14,7 +14,7 @@ rem Java Service Wrapper general startup script.
 
 rem -----------------------------------------------------------------------------
 rem These settings can be modified to fit the needs of your application
-rem Optimized for use with version 3.6.0-a of the Wrapper.
+rem Optimized for use with version 3.5.4 of the Wrapper.
 
 rem The base name for the Wrapper binary.
 set _WRAPPER_BASE=wrapper

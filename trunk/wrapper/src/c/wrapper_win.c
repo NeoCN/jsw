@@ -661,7 +661,7 @@ HWND findConsoleWindow( TCHAR *title ) {
      *  up if it doesn't */
     consoleHandle = NULL;
     while ((!consoleHandle) && (i < 200)) {
-        wrapperSleep(FALSE, 10);
+        wrapperSleep(10);
         consoleHandle = FindWindow(TEXT("ConsoleWindowClass"), title);
         i++;
     }
@@ -722,7 +722,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
         }
 
         while (!stopTimerThread) {
-            wrapperSleep(TRUE, WRAPPER_TICK_MS);
+            wrapperSleep(WRAPPER_TICK_MS);
 
             /* Get the tick count based on the system time. */
             sysTicks = wrapperGetSystemTicks();
@@ -815,7 +815,7 @@ void disposeTimer() {
 #ifdef _DEBUG
             wprintf(TEXT("Waiting for timer thread to stop.\n"));
 #endif
-            wrapperSleep(FALSE, 100);
+            wrapperSleep(100);
         }
     }
 }
@@ -956,18 +956,24 @@ int wrapperInitializeRun() {
 /**
  * Cause the current thread to sleep for the specified number of milliseconds.
  *  Sleeps over one second are not allowed.
+ *
+ * @param ms Number of milliseconds to wait for.
+ *
+ * @return TRUE if the was interrupted, FALSE otherwise.  Neither is an error.
  */
-void wrapperSleep(int useLoggerQueue, int ms) {
+int wrapperSleep(int ms) {
     if (wrapperData->isSleepOutputEnabled) {
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
             TEXT("    Sleep: sleep %dms"), ms);
     }
 
     Sleep(ms);
 
     if (wrapperData->isSleepOutputEnabled) {
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Sleep: awake"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Sleep: awake"));
     }
+    
+    return FALSE;
 }
 
 /**
@@ -3265,7 +3271,7 @@ int wrapperStartService() {
                                         msgCntr = 0;
                                     }
                                 }
-                                wrapperSleep(FALSE, 1000);
+                                wrapperSleep(1000);
                                 msgCntr++;
                             } else {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
@@ -3397,7 +3403,7 @@ int wrapperStopService(int command) {
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Waiting to stop..."));
                                     msgCntr = 0;
                                 }
-                                wrapperSleep(FALSE, 1000);
+                                wrapperSleep(1000);
                                 msgCntr++;
                             } else {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
@@ -3509,7 +3515,7 @@ int wrapperPauseService() {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Waiting to pause..."));
                                 msgCntr = 0;
                             }
-                            wrapperSleep(FALSE, 1000);
+                            wrapperSleep(1000);
                             msgCntr++;
                         } else {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
@@ -3628,7 +3634,7 @@ int wrapperResumeService() {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Waiting to resume..."));
                                 msgCntr = 0;
                             }
-                            wrapperSleep(FALSE, 1000);
+                            wrapperSleep(1000);
                             msgCntr++;
                         } else {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,

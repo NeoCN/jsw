@@ -624,8 +624,12 @@ extern int wrapperInitializeRun();
 /**
  * Cause the current thread to sleep for the specified number of milliseconds.
  *  Sleeps over one second are not allowed.
+ *
+ * @param ms Number of milliseconds to wait for.
+ *
+ * @return TRUE if the was interrupted, FALSE otherwise.  Neither is an error.
  */
-extern void wrapperSleep(int useLoggerQueue, int ms);
+extern int wrapperSleep(int ms);
 
 /**
  * Reports the status of the wrapper to the service manager

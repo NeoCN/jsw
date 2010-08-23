@@ -1224,7 +1224,7 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
             cnt = 0;
             do {
                 if (cnt > 0) {
-                    wrapperSleep(FALSE, 10);
+                    wrapperSleep(10);
                 }
                 rc = send(protocolActiveBackendSD, protocolSendBuffer, sizeof(char) * (int)len, 0);
                 cnt++;
@@ -1938,12 +1938,12 @@ void logChildOutput(const char* log) {
 #ifdef UNICODE
     int size;
 #ifdef WIN32
-    size = MultiByteToWideChar(CP_OEMCP,0, log,-1 , NULL,0) + 1;
+    size = MultiByteToWideChar(CP_ACP,0, log,-1 , NULL,0) + 1;
     tlog = (TCHAR*)malloc(size * sizeof(TCHAR));
     if(!tlog) {
         outOfMemory(TEXT("WLCO"), 1);
     }
-    MultiByteToWideChar(CP_OEMCP,0, log,-1 , (TCHAR*)tlog, size);
+    MultiByteToWideChar(CP_ACP,0, log,-1 , (TCHAR*)tlog, size);
 #else
     size = mbstowcs(NULL, log, 0) + 1;
     tlog = malloc(size * sizeof(TCHAR));
@@ -2243,7 +2243,7 @@ void wrapperKillProcessNow() {
         }
 
         /* Give the JVM a chance to be killed so that the state will be correct. */
-        wrapperSleep(FALSE, 500); /* 0.5 seconds */
+        wrapperSleep(500); /* 0.5 seconds */
 
         /* Set the exit code since we were forced to kill the JVM. */
         wrapperData->exitCode = 1;

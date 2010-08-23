@@ -1806,7 +1806,7 @@ public final class WrapperManager
      *                           subprocess.    
      * @throws WrapperJNIError If the native library has not been loaded.
      * @throws WrapperLicenseError If the function is called other than in
-     *                             the Professional Edition.
+     *                             the Professional Edition or from a Standalone JVM.
      * @throws UnsatisfiedLinkError If the posix_spawn function couldn't be found
      *
      * @see #isProfessionalEdition()
@@ -1859,7 +1859,7 @@ public final class WrapperManager
      *                           subprocess.
      * @throws WrapperJNIError If the native library has not been loaded.
      * @throws WrapperLicenseError If the function is called other than in
-     *                             the Professional Edition.
+     *                             the Professional Edition or from a Standalone JVM.
      * @throws UnsatisfiedLinkError If the posix_spawn function couldn't be found
      *
      * @see #isProfessionalEdition()
@@ -1910,7 +1910,7 @@ public final class WrapperManager
      *                                  WrapperProcessConfig object.
      * @throws WrapperJNIError If the native library has not been loaded.
      * @throws WrapperLicenseError If the function is called other than in
-     *                             the Professional Edition.
+     *                             the Professional Edition or from a Standalone JVM.
      * @throws UnsatisfiedLinkError If the posix_spawn function couldn't be found
      *
      * @see #isProfessionalEdition()
@@ -1967,7 +1967,7 @@ public final class WrapperManager
      *                                  WrapperProcessConfig object.
      * @throws WrapperJNIError If the native library has not been loaded.
      * @throws WrapperLicenseError If the function is called other than in
-     *                             the Professional Edition.
+     *                             the Professional Edition or from a Standalone JVM.
      * @throws UnsatisfiedLinkError If the posix_spawn function couldn't be found
      *
      * @see #isProfessionalEdition()

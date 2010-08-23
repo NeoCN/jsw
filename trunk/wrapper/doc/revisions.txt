@@ -1,7 +1,7 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 
-3.6.0
+3.5.4
 * Add optional support for custom public static methods in the
   WrapperSimpleApp and WrapperStartStopApp helper classes.  Feature Request
   #2812276.
@@ -26,6 +26,17 @@ Java Service Wrapper Revision History.
   but the check for the file was failing causing the Wrapper to continue even
   though the file did not exist.  This caused a confusing error message to be
   displayed, but was otherwise harmless.
+* Clean up some debug code associated with sleeping where log output was being
+  queued when it did not need to be.
+* (Standard, Professional) Consolidate some redundant code associated with
+  waiting for interfaces on startup.
+* (Professional) Fix a problem in the email feature of the Wrapper where a
+  subject of more than 27 bytes in length when encoded as UTF-8.  This was
+  caused by a miscalculation in the Base64 conversion of the subject.
+* (Professional) Fix a problem when the WrapperManager.exec method which takes
+  an array of command elements was called on Windows.  The command elements
+  need to be combined into a single command line, but if any of the elements
+  contained spaces, the resulting command line was not being correctly quoted.
 
 3.5.3
 * Fix a typo in the UNIX shell scripts that was causing "command not found"
