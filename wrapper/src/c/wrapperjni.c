@@ -171,7 +171,7 @@ jstring JNU_NewStringNative(JNIEnv *env, const TCHAR *strW) {
     len = _tcslen(strW);
     if (len > 0) {
  #ifdef WIN32
-        size = WideCharToMultiByte(CP_OEMCP, 0, strW, -1, NULL, 0, NULL, NULL);
+        size = WideCharToMultiByte(CP_ACP, 0, strW, -1, NULL, 0, NULL, NULL);
         if (size == 0) {
             /* Failed. */
             _tprintf(TEXT("WrapperJNI Warn: Failed to convert string \"%s\": %s\n"), strW, GetLastError()); fflush(NULL);
@@ -182,7 +182,7 @@ jstring JNU_NewStringNative(JNIEnv *env, const TCHAR *strW) {
             throwOutOfMemoryError(env, TEXT("JNSN1"));
             return NULL;
         }
-        WideCharToMultiByte(CP_OEMCP, 0, strW, -1, msgMB, size, NULL, NULL);
+        WideCharToMultiByte(CP_ACP, 0, strW, -1, msgMB, size, NULL, NULL);
  #else
         size = wcstombs(NULL, strW, 0) + 1;
         msgMB = malloc(sizeof(char) * size);

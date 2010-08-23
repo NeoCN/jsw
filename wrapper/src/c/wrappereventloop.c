@@ -184,7 +184,7 @@ void writeStateFile(const TCHAR *filename, const TCHAR *state, int newUmask) {
         }
 
         /* Sleep for a tenth of a second. */
-        wrapperSleep(FALSE, 100);
+        wrapperSleep(100);
 
         cnt++;
     }
@@ -481,7 +481,7 @@ void commandPoll(TICKS nowTicks) {
                     stream = _tfopen(wrapperData->commandFilename, TEXT("r+t"));
                     if (stream == NULL) {
                         /* Sleep for a tenth of a second. */
-                        wrapperSleep(FALSE, 100);
+                        wrapperSleep(100);
                     }
 
                     cnt++;
@@ -1677,7 +1677,7 @@ void wrapperEventLoop() {
         }
         if (nextSleep) {
             /* Sleep for a tenth of a second. */
-            wrapperSleep(FALSE, 100);
+            wrapperSleep(100);
         }
         nextSleep = TRUE;
         

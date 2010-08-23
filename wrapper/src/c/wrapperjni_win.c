@@ -330,7 +330,7 @@ setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HANDLE 
                 for (i = 0; i < tokenGroups->GroupCount; i++) {
                     /* Get the text representation of the sid. */
                     if (ConvertSidToStringSid(tokenGroups->Groups[i].Sid, &sidText) == 0) {
-                        _tprintf(TEXT("Failed to Convert SId to String: %s\n"), getLastErrorText());
+                        _tprintf(TEXT("WrapperJNI Error: Failed to Convert SId to String: %s\n"), getLastErrorText());
                         result = TRUE;
                     } else {
                         /* We now have an SID, use it to lookup the account. */
@@ -1119,7 +1119,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
                                             
                                             free(displayName);
                                         }
-                                    }	
+                                    }
                                 } else {
                                     /* Exception Thrown */
                                     threwError = TRUE;

@@ -42,7 +42,7 @@ public class Filter {
         } else if (WrapperManager.getJVMId() == 3) {
             // Try a restart with spaces.
             System.out.println( Main.getRes().getString( "The next line should cause the Wrapper to restart the JVM:" ) );
-            System.out.println( Main.getRes().getString( "  Nice long restart message." ) );
+            System.out.println( "  Nice long restart message." );
         } else {
             System.out.println( Main.getRes().getString( "The next line should cause the Wrapper to restart the JVM:" ) );
             System.out.println("  ERROR");

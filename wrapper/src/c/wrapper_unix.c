@@ -671,7 +671,7 @@ void *timerRunner(void *arg) {
     }
 
     while (!stopTimerThread) {
-        wrapperSleep(TRUE, WRAPPER_TICK_MS);
+        wrapperSleep(WRAPPER_TICK_MS);
 
         /* Get the tick count based on the system time. */
         sysTicks = wrapperGetSystemTicks();
@@ -758,7 +758,7 @@ void disposeTimer() {
 #ifdef _DEBUG
             wprintf(TEXT("Waiting for timer thread to stop.\n"));
 #endif
-            wrapperSleep(FALSE, 100);
+            wrapperSleep(100);
         }
     }
 }
@@ -816,15 +816,19 @@ int wrapperInitializeRun() {
 /**
  * Cause the current thread to sleep for the specified number of milliseconds.
  *  Sleeps over one second are not allowed.
+ *
+ * @param ms Number of milliseconds to wait for.
+ *
+ * @return TRUE if the was interrupted, FALSE otherwise.  Neither is an error.
  */
-void wrapperSleep(int useLoggerQueue, int ms) {
+int wrapperSleep(int ms) {
     /* We want to use nanosleep if it is available, but make it possible for the
        user to build a version that uses usleep if they want.
        usleep does not behave nicely with signals thrown while sleeping.  This
        was the believed cause of a hang experienced on one Solaris system. */
 #ifdef USE_USLEEP
     if (wrapperData->isSleepOutputEnabled) {
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
             TEXT("    Sleep: usleep %dms"), ms);
     }
     usleep(ms * 1000); /* microseconds */
@@ -840,31 +844,34 @@ void wrapperSleep(int useLoggerQueue, int ms) {
     }
 
     if (wrapperData->isSleepOutputEnabled) {
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-           TEXT("    Sleep: nanosleep %dms"), ms);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Sleep: nanosleep %dms"), ms);
     }
     if (nanosleep(&ts, NULL)) {
         if (errno == EINTR) {
             if (wrapperData->isSleepOutputEnabled) {
-                log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     TEXT("    Sleep: nanosleep interrupted"));
             }
+            return TRUE;
         } else if (errno == EAGAIN) {
             /* On 64-bit AIX this happens once on shutdown. */
             if (wrapperData->isSleepOutputEnabled) {
-                log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     TEXT("    Sleep: nanosleep unavailable"));
             }
+            return TRUE;
         } else {
-            log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 TEXT("nanosleep(%dms) failed. %s"), ms, getLastErrorText());
         }
     }
 #endif
 
     if (wrapperData->isSleepOutputEnabled) {
-        log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Sleep: awake"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Sleep: awake"));
     }
+    
+    return FALSE;
 }
 
 /**
@@ -1362,7 +1369,7 @@ void daemonize() {
          * the console output look nice by making sure that all output from the
          * intermediate and daemon threads are complete before this thread exits.
          * Sleep for 0.5 seconds. */
-        wrapperSleep(FALSE, 500);
+        wrapperSleep(500);
 
         /* Call exit rather than appExit as we are only exiting this process. */
         exit(0);

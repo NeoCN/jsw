@@ -53,6 +53,9 @@ public class WrapperProcessOutputStream
      *
      * @throws IOException in case the stream has been already closed or any
      *                     other IO error.
+     * @throws WrapperLicenseError If the function is called other than in
+     *                             the Professional Edition or from a Standalone JVM.
+     *                     
      */
     public void write( int b )
         throws IOException
@@ -74,6 +77,8 @@ public class WrapperProcessOutputStream
      * Closes the OutputStream.
      *
      * @throws IOException If there were any problems closing the stream.
+     * @throws WrapperLicenseError If the function is called other than in
+     *                             the Professional Edition or from a Standalone JVM.
      */
      public void close()
         throws IOException

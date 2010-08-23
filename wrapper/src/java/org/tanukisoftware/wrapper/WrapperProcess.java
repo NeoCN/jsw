@@ -196,7 +196,8 @@ public class WrapperProcess
 
     /**
      * Returns true if the process is still alive.
-     *
+     * @throws WrapperLicenseError If the function is called other than in
+     *                             the Professional Edition or from a Standalone JVM.
      * @return True if the process is alive, false if it has terminated.
      */
     public boolean isAlive()
@@ -207,6 +208,8 @@ public class WrapperProcess
     /**
      * Kills the subprocess. The subprocess represented by this Process object
      *  is forcibly terminated if it is still running.
+     * @throws WrapperLicenseError If the function is called other than in
+     *                             the Professional Edition or from a Standalone JVM.
      */
     public void destroy()
     {
