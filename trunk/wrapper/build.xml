@@ -190,6 +190,7 @@
         
         <!-- Generate the release-file base. -->
         <property name="releasefile" value="${name}-${dist.os}-${dist.arch}-${bits}-${version}"/>
+        <property name="releaseSymbolsFile" value="${releasefile}-SYMBOLS"/>
     </target>
     <target name="init-windows" depends="init-setup" if="is.windows">
         <!-- Decide on the type of script to generate. -->
@@ -1347,6 +1348,23 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
             basedir="${build.dir}"
             compress="true">
             <include name="${releasefile}/**/*" />
+        </zip>
+        
+        <!-- We also need to create a symbols file so we can debug things later in case of problems. -->
+        <property name="releaseSymbolsDir" value="${build.dir}/${releaseSymbolsFile}"/>
+        <delete dir="${releaseSymbolsDir}"/>
+        <mkdir dir="${releaseSymbolsDir}"/>
+        
+        <copy todir="${releaseSymbolsDir}">
+            <fileset dir="${basedir}/src/c">
+                <include name="*${bits}_VC*_Win32_Release/*"/>
+            </fileset>
+        </copy>
+        
+        <zip zipfile="${dist.dir}/${releaseSymbolsFile}.zip"
+            basedir="${build.dir}"
+            compress="true">
+            <include name="${releaseSymbolsFile}/**/*" />
         </zip>
         
         <echo/>
