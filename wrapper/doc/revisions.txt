@@ -37,11 +37,12 @@ Java Service Wrapper Revision History.
   an array of command elements was called on Windows.  The command elements
   need to be combined into a single command line, but if any of the elements
   contained spaces, the resulting command line was not being correctly quoted.
-* add the wrapper.java.command.resolve property in order to control whether 
-  the wrapper will try to resolve the java command specified in the
-  wrapper.java.command property. This property has been added, because
-  some jvm-starter applications (e.g. run-java-tool) will not allow to
-  be started when they are not called by a symlink.
+* Add a new wrapper.java.command.resolve property to control whether or not the
+  Wrapper tries to resolve any symbolic links in the Java command, specified
+  with the wrapper.java.command property.  Historically, it has always done so,
+  but some jvm started applications like run-java-tool on Gentoo will fail if
+  it is run directly as they have a check to make sure it is launched via a
+  symbolic link.
 
 3.5.3
 * Fix a typo in the UNIX shell scripts that was causing "command not found"
