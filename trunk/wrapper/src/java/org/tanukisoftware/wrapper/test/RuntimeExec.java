@@ -41,7 +41,86 @@ public class RuntimeExec
         System.out.println( Main.getRes().getString( "Is VFORK_EXEC supported? A:" ) + WrapperProcessConfig.isSupported( WrapperProcessConfig.VFORK_EXEC ) );
         System.out.println( Main.getRes().getString( "Is POSIX_SPAWN supported? A:" ) + WrapperProcessConfig.isSupported( WrapperProcessConfig.POSIX_SPAWN ) );
 
-        for ( int i = 1 ; i < 8; i++ )
+        try
+        {
+            System.out.println( "Verifying correct parsing of the command:" );
+            System.out.println( "First a single command line: ../test/simplewaiter -v \"test 123\" test 123 \"\\\"test\\\"\"" );
+            String s = "../test/simplewaiter -v \"test 123\" test 123 \"\\\"test\\\"";
+            WrapperProcess wp = WrapperManager.exec( s );
+            Process p = Runtime.getRuntime().exec( s );
+            System.out.println( "Runtime.exec:" );
+            BufferedReader br = new BufferedReader( new InputStreamReader( p.getInputStream() ) );
+            String l = "";
+            while ( ( l = br.readLine() ) != null )
+            {
+                System.out.println( "stdout: " + l );
+            }
+            br.close();
+            br = new BufferedReader( new InputStreamReader( p.getErrorStream() ) );
+            l = "";
+            while ( ( l = br.readLine() ) != null )
+            {
+                System.out.println( "stderr: " + l );
+            }
+            br.close();
+            System.out.println( "Now WrapperManager.exec:" );
+            br = new BufferedReader( new InputStreamReader( wp.getInputStream() ) );
+            l = "";
+            while ( ( l = br.readLine() ) != null )
+            {
+                System.out.println( "stdout: " + l );
+            }
+            br.close();
+            br = new BufferedReader( new InputStreamReader( wp.getErrorStream() ) );
+            l = "";
+            while ( ( l = br.readLine() ) != null )
+            {
+                System.out.println( "stderr: " + l );
+            }
+            br.close();
+            System.out.println( "First test finished. " );
+            System.out.println( "Next a pass the command as array: ../test/simplewaiter -v \"test 123\" test 123 \"\\\"test\\\"\"" );
+            String s2[] = { "../test/simplewaiter", "-v", "\"test 123\"", "test 123", "\"\\\"test\\\"\"" };
+            wp = WrapperManager.exec( s2 );
+            p = Runtime.getRuntime().exec( s2 );
+            System.out.println( "Runtime.exec:" );
+            br = new BufferedReader( new InputStreamReader( p.getInputStream() ) );
+            l = "";
+            while ( ( l = br.readLine() ) != null )
+            {
+                System.out.println( "stdout: " + l );
+            }
+            br.close();
+            br = new BufferedReader( new InputStreamReader( p.getErrorStream() ) );
+            l = "";
+            while ( ( l = br.readLine() ) != null )
+            {
+                System.out.println( "stderr: " + l );
+            }
+            br.close();
+            System.out.println( "Now WrapperManager.exec:" );
+            br = new BufferedReader( new InputStreamReader( wp.getInputStream() ) );
+            l = "";
+            while ( ( l = br.readLine() ) != null )
+            {
+                System.out.println( "stdout: " + l );
+            }
+            br.close();
+            br = new BufferedReader( new InputStreamReader( wp.getErrorStream() ) );
+            l = "";
+            while ( ( l = br.readLine() ) != null )
+            {
+                System.out.println( "stderr: " + l );
+            }
+            br.close();
+            System.out.println( "Second test finished. " );
+        }
+        catch ( Exception e )
+        {
+            e.printStackTrace();
+        }
+
+        for ( int i = 1; i < 8; i++ )
         {
             switch ( i )
             {
