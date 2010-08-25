@@ -15,6 +15,8 @@
     
     <property name="ant.dist.version" value="1.6.2"/>
     <property name="cocoon.dist.version" value="2.0.4"/>
+    <property environment="env"/>
+    <property name="java.home" value="${env.JAVA_HOME}"/>
     
     <!-- Project classpath -->
     <path id="project.class.path">

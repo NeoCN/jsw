@@ -3197,18 +3197,22 @@ void checkIfRegularExe(TCHAR** para) {
         _tcsncpy(path, (*para) + start, len);
         path[len] = TEXT('\0');
 #else
+    int replacePath;
     path = findPathOf(*para);
     if (!path) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("The configured wrapper.java.command could not be found, attempting to launch anyway: %s"), *para);
     } else {
-        free(*para);
-        *para = malloc((_tcslen(path) + 1) * sizeof(TCHAR));
-        if (!(*para)) {
-            outOfMemory(TEXT("CIRE"), 2);
-            free(path);
-            return;
+        replacePath = getBooleanProperty(properties, TEXT("wrapper.java.command.resolve"), TRUE);
+        if (replacePath == TRUE) {
+            free(*para);
+            *para = malloc((_tcslen(path) + 1) * sizeof(TCHAR));
+            if (!(*para)) {
+                outOfMemory(TEXT("CIRE"), 2);
+                free(path);
+                return;
+            }
+            _tcscpy(*para, path);
         }
-        _tcscpy(*para, path);
 #endif
         if (!checkIfBinary(path)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("The value of wrapper.java.command does not appear to be a java binary."));
