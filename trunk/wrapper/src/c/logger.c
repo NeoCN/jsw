@@ -1555,13 +1555,21 @@ int getLastError() {
 
 int registerSyslogMessageFile( ) {
 #ifdef WIN32
-    TCHAR buffer[ 1024 ];
-    TCHAR regPath[ 1024 ];
+    TCHAR buffer[_MAX_PATH];
+    DWORD usedLen;
+    TCHAR regPath[1024];
     HKEY hKey;
     DWORD categoryCount, typesSupported;
 
     /* Get absolute path to service manager */
-    if( GetModuleFileName( NULL, buffer, _MAX_PATH ) ) {
+    usedLen = GetModuleFileName(NULL, buffer, _MAX_PATH);
+    if (usedLen == 0) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to obtain the full path to the Wrapper. %s"), getLastErrorText());
+        return -1;
+    } else if ((usedLen == _MAX_PATH) || (getLastError() == ERROR_INSUFFICIENT_BUFFER)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to obtain the full path to the Wrapper. %s"), gettext3("Path to Wrapper binary too long."));
+        return -1;
+    } else {
         _sntprintf( regPath, 1024, TEXT("SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application\\%s"), loginfoSourceName );
 
         if( RegCreateKey( HKEY_LOCAL_MACHINE, regPath, (PHKEY) &hKey ) == ERROR_SUCCESS ) {
