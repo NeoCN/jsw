@@ -1567,7 +1567,7 @@ int registerSyslogMessageFile( ) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to obtain the full path to the Wrapper. %s"), getLastErrorText());
         return -1;
     } else if ((usedLen == _MAX_PATH) || (getLastError() == ERROR_INSUFFICIENT_BUFFER)) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to obtain the full path to the Wrapper. %s"), gettext3("Path to Wrapper binary too long."));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to obtain the full path to the Wrapper. %s"), TEXT("Path to Wrapper binary too long."));
         return -1;
     } else {
         _sntprintf( regPath, 1024, TEXT("SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application\\%s"), loginfoSourceName );

@@ -622,7 +622,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jC
             _tprintf(TEXT("WrapperJNI Debug: Unable to retrieve the Java process file name. %s\n"), getLastErrorText());
             flushall();
         } else if ((usedLen == _MAX_PATH) || (getLastError() == ERROR_INSUFFICIENT_BUFFER)) {
-            _tprintf(TEXT("WrapperJNI Debug: Unable to retrieve the Java process file name. %s\n"), gettext3("Path too long."));
+            _tprintf(TEXT("WrapperJNI Debug: Unable to retrieve the Java process file name. %s\n"), TEXT("Path too long."));
             flushall();
         } else {
             _tprintf(TEXT("WrapperJNI Debug: Java Executable: %s\n"), szPath);
@@ -634,7 +634,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jC
             _tprintf(TEXT("WrapperJNI Debug: Unable to retrieve the native library file name. %s\n"), getLastErrorText());
             flushall();
         } else if ((usedLen == _MAX_PATH) || (getLastError() == ERROR_INSUFFICIENT_BUFFER)) {
-            _tprintf(TEXT("WrapperJNI Debug: Unable to retrieve the native library file name. %s\n"), gettext3("Path too long."));
+            _tprintf(TEXT("WrapperJNI Debug: Unable to retrieve the native library file name. %s\n"), TEXT("Path too long."));
             flushall();
         } else {
             _tprintf(TEXT("WrapperJNI Debug: Native Library: %s\n"), szPath);
