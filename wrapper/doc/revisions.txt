@@ -43,6 +43,14 @@ Java Service Wrapper Revision History.
   but some jvm started applications like run-java-tool on Gentoo will fail if
   it is run directly as they have a check to make sure it is launched via a
   symbolic link.
+* Fix a problem on Windows versions where a path to the Wrapper binary,
+  including the Wrapper binary itself, which was more than 100 characters would
+  cause a buffer overflow when installing the service.  A second similar
+  problem would happen if the same path was more than 128 characters, whenever
+  the Wrapper was launched.   These were both very old issues and only happened
+  on 32-bit versions of Windows XP and 2000.  Microsoft documentation says that
+  the issue should also exist on the 64-bit versions, but we were unable to
+  reproduce it there.  Newer versions of Windows are all fine.
 
 3.5.3
 * Fix a typo in the UNIX shell scripts that was causing "command not found"

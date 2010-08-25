@@ -604,7 +604,8 @@ void loadDLLProcs() {
  */
 JNIEXPORT void JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jClassWrapperManager, jboolean debugging) {
-    TCHAR szPath[512];
+    TCHAR szPath[_MAX_PATH];
+    DWORD usedLen;
     OSVERSIONINFO osVer;
     wrapperJNIDebugging = debugging;
     
@@ -616,16 +617,24 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jC
         _tprintf(TEXT("WrapperJNI Debug: Initializing WrapperManager native library.\n"));
         flushall();
 
-        if (GetModuleFileName(NULL, szPath, 512) == 0) {
-            _tprintf(TEXT("WrapperJNI Debug: Unable to retrieve the Java process file name.\n"));
+        usedLen = GetModuleFileName(NULL, szPath, _MAX_PATH);
+        if (usedLen == 0) {
+            _tprintf(TEXT("WrapperJNI Debug: Unable to retrieve the Java process file name. %s\n"), getLastErrorText());
+            flushall();
+        } else if ((usedLen == _MAX_PATH) || (getLastError() == ERROR_INSUFFICIENT_BUFFER)) {
+            _tprintf(TEXT("WrapperJNI Debug: Unable to retrieve the Java process file name. %s\n"), gettext3("Path too long."));
             flushall();
         } else {
             _tprintf(TEXT("WrapperJNI Debug: Java Executable: %s\n"), szPath);
             flushall();
         }
 
-        if (GetModuleFileName((HINSTANCE)&__ImageBase, szPath, 512) == 0) {
-            _tprintf(TEXT("WrapperJNI Debug: Unable to retrieve the native library file name.\n"));
+        usedLen = GetModuleFileName((HINSTANCE)&__ImageBase, szPath, _MAX_PATH);
+        if (usedLen == 0) {
+            _tprintf(TEXT("WrapperJNI Debug: Unable to retrieve the native library file name. %s\n"), getLastErrorText());
+            flushall();
+        } else if ((usedLen == _MAX_PATH) || (getLastError() == ERROR_INSUFFICIENT_BUFFER)) {
+            _tprintf(TEXT("WrapperJNI Debug: Unable to retrieve the native library file name. %s\n"), gettext3("Path too long."));
             flushall();
         } else {
             _tprintf(TEXT("WrapperJNI Debug: Native Library: %s\n"), szPath);

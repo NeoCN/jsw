@@ -1215,7 +1215,8 @@ void wrapperExecute() {
     int char_block_size = 8196;
     int string_size = 0;
     int temp_int = 0;
-    TCHAR szPath[512];
+    TCHAR szPath[_MAX_PATH];
+    DWORD usedLen;
     TCHAR *c;
     TCHAR titleBuffer[80];
     int hideConsole;
@@ -1327,9 +1328,15 @@ void wrapperExecute() {
     /* Need the directory that this program exists in.  Not the current directory. */
     /*    Note, the current directory when run as an NT service is the windows system directory. */
     /* Get the full path and filename of this program */
-    if (GetModuleFileName(NULL, szPath, 512) == 0) {
+    usedLen = GetModuleFileName(NULL, szPath, _MAX_PATH);
+    if (usedLen == 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to launch %s -%s"),
                      wrapperData->serviceDisplayName, getLastErrorText());
+        wrapperData->javaProcess = NULL;
+        return;
+    } else if ((usedLen == _MAX_PATH) || (getLastError() == ERROR_INSUFFICIENT_BUFFER)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to launch %s -%s"),
+                     wrapperData->serviceDisplayName, TEXT("Path to Wrapper binary too long."));
         wrapperData->javaProcess = NULL;
         return;
     }
@@ -2341,6 +2348,7 @@ void wrapperCheckForMappedDrives() {
 int buildServiceBinaryPath(TCHAR *buffer, size_t *reqBufferSize) {
     DWORD moduleFileNameSize;
     TCHAR *moduleFileName;
+    DWORD usedLen;
     TCHAR drive[4];
     TCHAR* uncTempBuffer;
     DWORD uncSize;
@@ -2365,10 +2373,15 @@ int buildServiceBinaryPath(TCHAR *buffer, size_t *reqBufferSize) {
             outOfMemory(TEXT("BSBP"), 1);
             return 1;
         }
-        if (GetModuleFileName(NULL, moduleFileName, moduleFileNameSize) == 0) {
+        
+        /* On Windows XP and 2000, GetModuleFileName will return exactly "moduleFileNameSize" and
+         *  leave moduleFileName in an unterminated state in the event that the module file name is too long.
+         *  Newer versions of Windows will set the error code to ERROR_INSUFFICIENT_BUFFER but we can't rely on that. */
+        usedLen = GetModuleFileName(NULL, moduleFileName, moduleFileNameSize);
+        if (usedLen == 0) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to resolve the full Wrapper path - %s"), getLastErrorText());
             return 1;
-        } else if (getLastError() == ERROR_INSUFFICIENT_BUFFER) {
+        } else if ((usedLen == moduleFileNameSize) || (getLastError() == ERROR_INSUFFICIENT_BUFFER)) {
             /* Buffer too small.  Loop again. */
             free(moduleFileName);
             moduleFileName = NULL;
@@ -4043,6 +4056,7 @@ int wrapperRemove() {
 int setWorkingDir() {
     int size = 128;
     TCHAR* szPath = NULL;
+    DWORD usedLen;
     int result;
     TCHAR* pos;
 
@@ -4054,11 +4068,11 @@ int setWorkingDir() {
             outOfMemory(TEXT("SWD"), 1);
             return 1;
         }
-        result = GetModuleFileName(NULL, szPath, size);
-        if (result <= 0) {
+        usedLen = GetModuleFileName(NULL, szPath, size);
+        if (usedLen == 0) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to get the path-%s"), getLastErrorText());
             return 1;
-        } else if (result >= size) {
+        } else if ((usedLen == size) || (getLastError() == ERROR_INSUFFICIENT_BUFFER)) {
             /* Too small. */
             size += 128;
             free(szPath);
