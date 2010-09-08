@@ -802,8 +802,8 @@ rem ********************************************************************]]></rep
                  token='set _WRAPPER_CONF="%~f1"'
                  value='set _WRAPPER_CONF=""' />
         <replace file="${bin.dir}/${app.caps.name}.bat"
-                 token='"%_WRAPPER_EXE%" -c %_WRAPPER_CONF%'
-                 value='"%_WRAPPER_EXE%" -c %_WRAPPER_CONF% wrapper.app.parameter.1=%1 wrapper.app.parameter.2={{TestWrapperBat}}' />
+                 token='set PASS_THROUGH_JVM='
+                 value='set PASS_THROUGH_JVM=true' />
         
         <copy file="${src.dir}/bin/AppCommand.bat.in"
               tofile="${bin.dir}/${app.caps.name}Command.bat"
@@ -812,9 +812,11 @@ rem ********************************************************************]]></rep
                  token=' : remove }'
                  value=' : remove } [command]' />
         <replace file="${bin.dir}/${app.caps.name}Command.bat"
-                 token='%_WRAPPER_CONF%'
-                 value='%_WRAPPER_CONF% wrapper.app.parameter.1=%2 wrapper.app.parameter.2={{TestWrapperBat}}' />
-        
+                 token='set PASS_THROUGH_JVM='
+                 value='set PASS_THROUGH_JVM=true' />
+        <replace file="${bin.dir}/${app.caps.name}Command.bat"
+                 token='set DEFAULT_ACTION='
+                 value='set DEFAULT_ACTION=console' />
         <copy file="${src.dir}/bin/InstallApp-NT.bat.in"
               tofile="${bin.dir}/Install${app.caps.name}-NT.bat"
               filtering="on"/>
@@ -850,6 +852,10 @@ rem ********************************************************************]]></rep
             <replacevalue><![CDATA[WRAPPER_CONF="../conf/demoapp.conf"]]></replacevalue>
         </replace>
         <replace file="${bin.dir}/demoapp">
+            <replacetoken><![CDATA[PASS_THROUGH_JVM=]]></replacetoken>
+            <replacevalue><![CDATA[PASS_THROUGH_JVM=true]]></replacevalue>
+        </replace>
+        <replace file="${bin.dir}/demoapp">
             <replacetoken><![CDATA[APP_NAME="testwrapper"]]></replacetoken>
             <replacevalue><![CDATA[APP_NAME="demoapp"]]></replacevalue>
         </replace> 
@@ -876,62 +882,8 @@ rem ********************************************************************]]></rep
 #********************************************************************]]></replacevalue>
         </replace>
         <replace file="${bin.dir}/${app.name}">
-            <replacetoken><![CDATA[\"$REALPATH\" $2]]></replacetoken>
-            <replacevalue><![CDATA[\"$REALPATH\" $2 $3]]></replacevalue>
-        </replace>
-        <replace file="${bin.dir}/${app.name}">
-            <replacetoken><![CDATA['console')
-        checkUser touchlock $1
-        console
-        ;;]]></replacetoken>
-            <replacevalue><![CDATA['console')
-        checkUser touchlock $1 $2
-        console $2
-        ;;]]></replacevalue>
-        </replace>
-        <replace file="${bin.dir}/${app.name}">
-            <replacetoken><![CDATA[macosxstart
-        else
-            checkUser touchlock $1
-            start]]></replacetoken>
-            <replacevalue><![CDATA[macosxstart $2
-        else
-            checkUser touchlock $1 $2
-            start $2]]></replacevalue>
-        </replace>
-        <replace file="${bin.dir}/${app.name}">
-            <replacetoken><![CDATA['restart')
-        checkUser touchlock $1
-        stopit "0"
-        start
-        ;;]]></replacetoken>
-            <replacevalue><![CDATA['restart')
-        checkUser touchlock $1 $2
-        stopit "0"
-        start $2
-        ;;]]></replacevalue>
-        </replace>
-        <replace file="${bin.dir}/${app.name}">
-            <replacetoken><![CDATA['condrestart')
-        checkUser touchlock $1
-        stopit "1"
-        start
-        ;;]]></replacetoken>
-            <replacevalue><![CDATA['condrestart')
-        checkUser touchlock $1 $2
-        stopit "1"
-        start $2
-        ;;]]></replacevalue>
-        </replace>
-        <replace file="${bin.dir}/${app.name}">
-            <replacetoken><![CDATA['launchdinternal
-        ;;]]></replacetoken>
-            <replacevalue><![CDATA['launchdinternal $2
-        ;;]]></replacevalue>
-        </replace>
-        <replace file="${bin.dir}/${app.name}">
-            <replacetoken><![CDATA[checkUser "" $1]]></replacetoken>
-            <replacevalue><![CDATA[checkUser "" $1 $2]]></replacevalue>
+            <replacetoken><![CDATA[PASS_THROUGH_JVM=]]></replacetoken>
+            <replacevalue><![CDATA[PASS_THROUGH_JVM=true]]></replacevalue>
         </replace>
         <replace file="${bin.dir}/${app.name}">
             <replacetoken><![CDATA[Running $APP_LONG_NAME]]></replacetoken>
@@ -940,10 +892,6 @@ rem ********************************************************************]]></rep
         <replace file="${bin.dir}/${app.name}">
             <replacetoken><![CDATA[Starting $APP_LONG_NAME]]></replacetoken>
             <replacevalue><![CDATA[Starting $APP_LONG_NAME with test action: $1]]></replacevalue>
-        </replace>
-        <replace file="${bin.dir}/${app.name}">
-            <replacetoken><![CDATA[\"$WRAPPER_CMD\" \"$WRAPPER_CONF\"]]></replacetoken>
-            <replacevalue><![CDATA[\"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.app.parameter.1=$1 wrapper.app.parameter.2={{TestWrapperSh}}]]></replacevalue>
         </replace>
         <replace file="${bin.dir}/${app.name}">
             <replacetoken><![CDATA[{ console | start | stop | restart | condrestart | status | install | remove | dump }]]></replacetoken>

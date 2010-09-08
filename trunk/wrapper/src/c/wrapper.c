@@ -487,10 +487,8 @@ int wrapperLoadConfigurationProperties() {
                  * Fall through for now and the user will get a better error later. */
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT(
-                    "Unable to open configuration file, %s: %s"),
-                    wrapperData->argConfFile, getLastErrorText());
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT(
-                    "Current working directory is: %s"), wrapperData->originalWorkingDir);
+                    "Unable to open configuration file: %s (%s)\n  Current working directory: %s"),
+                    wrapperData->argConfFile, getLastErrorText(), wrapperData->originalWorkingDir);
                 return TRUE;
             }
         }
@@ -523,8 +521,7 @@ int wrapperLoadConfigurationProperties() {
          *  an error here.  It will be handled by the caller. */
         /* Debug is not yet available as the config file is not yet loaded. */
         if (!wrapperData->argConfFileDefault) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-               TEXT("Unable to open configuration file. %s"), wrapperData->configFile);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Failed to load configuration."));
         }
         return TRUE;
     }
@@ -1738,10 +1735,11 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
     TCHAR *argConfFileBase;
     TCHAR *c;
     int delimiter, wrapperArgCount;
-
-    delimiter = 1;
     wrapperData->javaArgValueCount = 0;
-    if (argc > 1) {
+    delimiter = 1;
+
+    if (argc > 1
+       ) {
         for (delimiter = 0; delimiter < argc ; delimiter++) {
             if ( _tcscmp(argv[delimiter], TEXT("--")) == 0) {
                 argv[delimiter] = NULL;
@@ -1785,21 +1783,22 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
             } else {
                 /* Syntax 3 */
                 /* Only a command was specified.  Assume a default config file name. */
-                argConfFileBase = malloc(sizeof(TCHAR) * (_tcslen(argv[0]) + 1));
-                if (!argConfFileBase) {
-                    outOfMemory(TEXT("WPA"), 1);
-                    return FALSE;
-                }
-                wrapperGetFileBase(argv[0], argConfFileBase);
+                    argConfFileBase = malloc(sizeof(TCHAR) * (_tcslen(argv[0]) + 1));
+                    if (!argConfFileBase) {
+                        outOfMemory(TEXT("WPA"), 1);
+                        return FALSE;
+                    }
+                    wrapperGetFileBase(argv[0], argConfFileBase);
 
-                /* The following malloc is only called once, but is never freed. */
-                wrapperData->argConfFile = malloc((_tcslen(argConfFileBase) + 5 + 1) * sizeof(TCHAR));
-                if (!wrapperData->argConfFile) {
-                    outOfMemory(TEXT("WPA"), 2);
-                    free(argConfFileBase);
-                    return FALSE;
-                }
-                _sntprintf(wrapperData->argConfFile, _tcslen(argConfFileBase) + 5 + 1, TEXT("%s.conf"), argConfFileBase);
+                    /* The following malloc is only called once, but is never freed. */
+                    wrapperData->argConfFile = malloc((_tcslen(argConfFileBase) + 5 + 1) * sizeof(TCHAR));
+                    if (!wrapperData->argConfFile) {
+                        outOfMemory(TEXT("WPA"), 2);
+                        free(argConfFileBase);
+                        return FALSE;
+                    }
+                    _sntprintf(wrapperData->argConfFile, _tcslen(argConfFileBase) + 5 + 1, TEXT("%s.conf"), argConfFileBase);
+
                 wrapperData->argConfFileDefault = TRUE;
                 wrapperData->argCount = wrapperArgCount - 2;
                 wrapperData->argValues = &argv[2];
@@ -1819,25 +1818,25 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
         /* A config file was not specified.  Assume a default config file name. */
         wrapperData->argCommand = TEXT("c");
         wrapperData->argCommandArg = NULL;
+            argConfFileBase = malloc(sizeof(TCHAR) * (_tcslen(argv[0]) + 1));
+            if (!argConfFileBase) {
+                outOfMemory(TEXT("WPA"), 3);
+                return FALSE;
+            }
+            wrapperGetFileBase(argv[0], argConfFileBase);
 
-        argConfFileBase = malloc(sizeof(TCHAR) * (_tcslen(argv[0]) + 1));
-        if (!argConfFileBase) {
-            outOfMemory(TEXT("WPA"), 3);
-            return FALSE;
-        }
-        wrapperGetFileBase(argv[0], argConfFileBase);
-
-        /* The following malloc is only called once, but is never freed. */
-        wrapperData->argConfFile = malloc((_tcslen(argConfFileBase) + 5 + 1) * sizeof(TCHAR));
-        if (!wrapperData->argConfFile) {
-            outOfMemory(TEXT("WPA"), 4);
-            free(argConfFileBase);
-            return FALSE;
-        }
-        _sntprintf(wrapperData->argConfFile, _tcslen(argConfFileBase) + 5 + 1, TEXT("%s.conf"), argConfFileBase);
+            /* The following malloc is only called once, but is never freed. */
+            wrapperData->argConfFile = malloc((_tcslen(argConfFileBase) + 5 + 1) * sizeof(TCHAR));
+            if (!wrapperData->argConfFile) {
+                outOfMemory(TEXT("WPA"), 4);
+                free(argConfFileBase);
+                return FALSE;
+            }
+            _sntprintf(wrapperData->argConfFile, _tcslen(argConfFileBase) + 5 + 1, TEXT("%s.conf"), argConfFileBase);
         wrapperData->argConfFileDefault = TRUE;
         wrapperData->argCount = wrapperArgCount - 1;
-        wrapperData->argValues = &argv[1];
+#endif
+            wrapperData->argValues = &argv[1];
         free(argConfFileBase);
     }
 
@@ -1915,6 +1914,11 @@ void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int acti
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s"), triggerMsg);
                     }
                     /* Do nothing but masks later filters */
+                    break;
+
+                case ACTION_SUCCESS:
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s  Application has signalled success, consider this application started successful..."), triggerMsg);
+                    wrapperData->failedInvocationCount = 0;
                     break;
 
                 default:
@@ -4814,7 +4818,12 @@ int wrapperBuildNTServiceInfo() {
         }
 
         /* Acount password */
-        wrapperData->ntServicePasswordPrompt = getBooleanProperty( properties, TEXT("wrapper.ntservice.password.prompt"), FALSE );
+        wrapperData->ntServicePrompt = getBooleanProperty( properties, TEXT("wrapper.ntservice.account.prompt"), FALSE );
+        if (wrapperData->ntServicePrompt == TRUE) {
+            wrapperData->ntServicePasswordPrompt = TRUE;
+        } else { 
+            wrapperData->ntServicePasswordPrompt = getBooleanProperty( properties, TEXT("wrapper.ntservice.password.prompt"), FALSE );
+        }
         wrapperData->ntServicePasswordPromptMask = getBooleanProperty( properties, TEXT("wrapper.ntservice.password.prompt.mask"), TRUE );
         updateStringValue(&wrapperData->ntServicePassword, getStringProperty(properties, TEXT("wrapper.ntservice.password"), NULL));
         if ( wrapperData->ntServicePassword && ( _tcslen( wrapperData->ntServicePassword ) <= 0 ) ) {
@@ -4996,6 +5005,8 @@ int getActionForName(TCHAR *actionName, const TCHAR *propertyName, int logErrors
         action = ACTION_NONE;
     } else if (_tcscmp(actionName, TEXT("DEBUG")) == 0) {
         action = ACTION_DEBUG;
+    } else if (_tcscmp(actionName, TEXT("SUCCESS")) == 0) {
+        action = ACTION_SUCCESS;
     } else if (_tcscmp(actionName, TEXT("PAUSE")) == 0) {
         if (logErrors) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Pause actions require the Standard Edition.  Ignoring action '%s' in the %s property."), actionName, propertyName);

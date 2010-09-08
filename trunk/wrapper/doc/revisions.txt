@@ -1,6 +1,34 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 
+3.6.0
+* Add new trigger action SUCCESS. If this gets triggered the wrapper will be
+  prompted to set the start of the jvm pretermed to success. This is useful in 
+  combination with the RESTART trigger action.
+* (Standard, Professional) Ignore Juniper Network Connect hostIds as they
+  change on each reboot and are thus unreliable as hostIds.
+* Added DEFAULT_ACTION and PASS_THROUGH_JVM properties to the scripts and
+  AppCommand.bat.in files.
+* (Standard, Professional) Added a --passthrough option to the exe customization,
+  in order to tell the wrapper to precede the whole command line through to
+  the application in the JVM.
+* (Standard, Professional) Added a --conf option to change the default conf file,
+  the wrapper tries opening when no conf file was explicitly specified.
+* Added wrapper.ntservice.account.prompt. If set to TRUE the wrapper will prompt
+  all account details (domain, account name, password).
+* Fix a minor issue in #include file declarations where a leading space was not
+  required.
+* Add a new #include.required directive which works the same as the #include
+  directive except that it will output an error and prevent the loading of the
+  configuration if the included file does not exist.   Normally include files
+  are optional by design.
+* Modify the error messages displayed when configuration files fail to load so
+  they now provide more information about where specifically the problem was.
+* Fix a problem on Windows 7 and Windows 2008 where the USERNAME environment
+  variable was always being set to SYSTEM when running as a service.  The fix
+  was to never load the USERNAME, USERDOMAIN, or USERPROFILE environment
+  variables from the SYSTEM registry when the account is not the SYSTEM.
+
 3.5.4
 * Add optional support for custom public static methods in the
   WrapperSimpleApp and WrapperStartStopApp helper classes.  Feature Request

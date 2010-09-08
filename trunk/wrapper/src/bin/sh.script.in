@@ -33,6 +33,17 @@ PRIORITY=
 # Location of the pid file.
 PIDDIR="."
 
+# Commandline handling
+# DEFAULT_ACTION speciefies the command the script will execute
+# this way the script could be started like ./SCRIPT [args]
+DEFAULT_ACTION=
+# specifies if the commandline should be passe to the wrapper or the jvm.
+# if no default action has been specified the script however still needs 
+# the action as first parameter, all other parameters will be passed over
+# to the jvm.
+# for activating this set PASS_THROUGH_JVM to a non-null value e.g. TRUE
+PASS_THROUGH_JVM=
+
 # If uncommented, causes the Wrapper to be shutdown using an anchor file.
 #  When launched with the 'start' command, it will also ignore all INT and
 #  TERM signals.
@@ -89,6 +100,9 @@ PLIST_DOMAIN=org.tanukisoftware.wrapper
 
 # Do not modify anything beyond this point
 #-----------------------------------------------------------------------------
+
+ACTION="$1"
+
 
 # Required for HP-UX Startup
 if [ `uname -s` = "HP-UX" -o `uname -s` = "HP-UX64" ] ; then
@@ -681,8 +695,17 @@ launchdinternal() {
     trap launchdtrap TERM 
     if [ "X$pid" = "X" ]
     then 
+        while [ -n "$1" ] ; do
+            ADDITIONAL_PARA="$ADDITIONAL_PARA \"$1\""
+            shift
+        done
+        if [ -n "$PASS_THROUGH_JVM" -a -n "$ADDITIONAL_PARA" ] ; then
+            MSG=`gettext 'Passing over to JVM: '`
+            echo "$MSG $ADDITIONAL_PARA"
+            ADDITIONAL_PARA="-- $ADDITIONAL_PARA"
+        fi
         # The string passed to eval must handles spaces in paths correctly.
-        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.name=\"$APP_NAME\" wrapper.displayname=\"$APP_LONG_NAME\" wrapper.daemonize=TRUE $ANCHORPROP $IGNOREPROP $STATUSPROP $LOCKPROP"
+        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.name=\"$APP_NAME\" wrapper.displayname=\"$APP_LONG_NAME\" wrapper.daemonize=TRUE $ANCHORPROP $IGNOREPROP $STATUSPROP $LOCKPROP $ADDITIONAL_PARA"
         eval $COMMAND_LINE
     else
         eval echo  '$APP_LONG_NAME is already running.'
@@ -701,8 +724,18 @@ console() {
     if [ "X$pid" = "X" ]
     then
         trap '' 3
+        while [ -n "$1" ] ; do
+            ADDITIONAL_PARA="$ADDITIONAL_PARA \"$1\""
+            shift
+        done
+        if [ -n "$PASS_THROUGH_JVM" -a -n "$ADDITIONAL_PARA" ] ; then
+            MSG=`gettext 'Passing over to JVM: '`
+            echo "$MSG $ADDITIONAL_PARA"
+            ADDITIONAL_PARA="-- $ADDITIONAL_PARA"
+        fi
+
         # The string passed to eval must handles spaces in paths correctly.
-        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.name=\"$APP_NAME\" wrapper.displayname=\"$APP_LONG_NAME\" $ANCHORPROP $STATUSPROP $LOCKPROP"
+        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.name=\"$APP_NAME\" wrapper.displayname=\"$APP_LONG_NAME\" $ANCHORPROP $STATUSPROP $LOCKPROP $ADDITIONAL_PARA"
         eval $COMMAND_LINE
     else
         eval echo  '$APP_LONG_NAME is already running.'
@@ -802,8 +835,17 @@ start() {
     getpid
     if [ "X$pid" = "X" ]
     then
+        while [ -n "$1" ] ; do
+            ADDITIONAL_PARA="$ADDITIONAL_PARA \"$1\""
+            shift
+        done
+        if [ -n "$PASS_THROUGH_JVM" -a -n "$ADDITIONAL_PARA" ] ; then
+            MSG=`gettext 'Passing over to JVM: '`
+            echo "$MSG $ADDITIONAL_PARA"
+            ADDITIONAL_PARA="-- $ADDITIONAL_PARA"
+        fi
         # The string passed to eval must handles spaces in paths correctly.
-        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.name=\"$APP_NAME\" wrapper.displayname=\"$APP_LONG_NAME\" wrapper.daemonize=TRUE $ANCHORPROP $IGNOREPROP $STATUSPROP $LOCKPROP"
+        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.name=\"$APP_NAME\" wrapper.displayname=\"$APP_LONG_NAME\" wrapper.daemonize=TRUE $ANCHORPROP $IGNOREPROP $STATUSPROP $LOCKPROP $ADDITIONAL_PARA"
         eval $COMMAND_LINE
     else
         eval echo  '$APP_LONG_NAME is already running.'
@@ -1261,42 +1303,48 @@ stopmsg() {
         fi
     fi
 }
-
-case "$1" in
+command() {
+case "$ACTION" in
 
     'console')
-        checkUser touchlock $1
-        console
+        checkUser touchlock "$ACTION"
+        if [ ! -n "$DEFAULT_ACTION_SET" ] ; then
+            shift
+        fi
+        console "$@"
         ;;
 
     'start')
         if [ "$DIST_OS" = "macosx" -a -f "/Library/LaunchDaemons/${APP_PLIST}" ] ; then
             macosxstart
         else
-            checkUser touchlock $1
-            start
+            checkUser touchlock "$ACTION"
+            if [ ! -n "$DEFAULT_ACTION_SET" ] ; then
+                shift
+            fi
+            start "$@"
         fi
         ;;
 
     'stop')
-        checkUser "" $1
+        checkUser "" "$ACTION"
         stopit "0"
         ;;
 
     'restart')
-        checkUser touchlock $1
+        checkUser touchlock "$ACTION"
         stopit "0"
         start
         ;;
 
     'condrestart')
-        checkUser touchlock $1
+        checkUser touchlock "$ACTION"
         stopit "1"
         start
         ;;
 
     'status')
-        checkUser "" $1
+        checkUser "" "$ACTION"
         status
         ;;
 
@@ -1309,33 +1357,44 @@ case "$1" in
         ;;
 
     'dump')
-        checkUser "" $1
+        checkUser "" "$ACTION"
         dump
         ;;
 
     'start_msg')
         # Internal command called by launchd on HP-UX.
-        checkUser "" $1
+        checkUser "" "$ACTION"
         startmsg
         ;;
 
     'stop_msg')
         # Internal command called by launchd on HP-UX.
-        checkUser "" $1
+        checkUser "" "$ACTION"
         stopmsg
         ;;
 
     'launchdinternal')
         # Internal command called by launchd on Max OSX.
         # We do not want to call checkUser here as it is handled in the launchd plist file.  Doing it here would confuse launchd.
-        launchdinternal
+        if [ ! -n "$DEFAULT_ACTION_SET" ] ; then
+            shift
+        fi
+        launchdinternal "$@"
         ;;
 
     *)
+        if [ -n "$DEFAULT_ACTION_SET" ] ; then
         eval MSG=`gettext 'Usage: '`
         echo "${MSG} $0 { console | start | stop | restart | condrestart | status | install | remove | dump }"
         exit 1
+
+        else 
+            ACTION=$DEFAULT_ACTION
+            DEFAULT_ACTION_SET=true
+            command $@
+        fi
         ;;
 esac
-
+}
+command $@
 exit 0

@@ -2587,6 +2587,9 @@ int wrapperInstall() {
     int result = 0;
     HKEY hKey;
     TCHAR regPath[ 1024 ];
+    TCHAR domain[ 1024 ];
+    TCHAR account[ 1024 ];
+    TCHAR *tempAccount;
     TCHAR *ntServicePassword;
     DWORD dsize = 1024;
 
@@ -2611,6 +2614,26 @@ int wrapperInstall() {
 
     if (wrapperData->isDebugging) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Service command: %s"), binaryPath);
+    }
+    if (wrapperData->ntServicePrompt) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Prompting for account..."));
+        _tprintf(TEXT("Please input the domain:"));
+        _tscanf_s(TEXT("%1023s"), domain, dsize);
+        if (!domain) {
+            _sntprintf(domain, dsize, TEXT("."));
+        }
+        _tprintf(TEXT("Please input the account name: "));
+        _tscanf_s(TEXT("%1023s"), account, dsize);
+
+        tempAccount = malloc((_tcslen(domain) + _tcslen(account) + 2) * sizeof(TCHAR));
+        if (!tempAccount) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to install the %s service"), wrapperData->serviceDisplayName);
+            free(binaryPath);
+            return 1;
+        }
+        _sntprintf(tempAccount, _tcslen(domain) + _tcslen(account) + 2, TEXT("%s\\%s"), domain, account);
+        updateStringValue(&wrapperData->ntServiceAccount, tempAccount);
+        free(tempAccount);
     }
 
     if (wrapperData->ntServiceAccount && wrapperData->ntServicePasswordPrompt) {
@@ -2731,9 +2754,11 @@ void closeRegistryKey(HKEY hKey) {
  *  been loaded this means that any logging that takes place will be sent to
  *  the default log file which may be difficult for the user to locate.
  *
+ * @param loadUserVars TRUE if user related variables should be loaded.
+ *
  * Return TRUE if there were any problems.
  */
-int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const TCHAR *regPath, int appendPath, int source) {
+int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const TCHAR *regPath, int appendPath, int source, int loadUserVars) {
     LONG result;
     LPSTR pBuffer = NULL;
     int envCount = 0;
@@ -2841,9 +2866,15 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const TCHAR *regPath, int app
                                 return TRUE;
                             }
                         }
+                    } else if ((!loadUserVars) && ((strcmpIgnoreCase(TEXT("USERNAME"), valueName) == 0) || (strcmpIgnoreCase(TEXT("USERDOMAIN"), valueName) == 0) || (strcmpIgnoreCase(TEXT("USERPROFILE"), valueName) == 0))) {
+                        /* We don't want to set the USERNAME, USERDOMAIN, or USERPROFILE environment variables as they are
+                         *  defined on Windows 7 for the SYSTEM user.
+                         *  Because that is loaded first before the registered user environment, this was causing the USERNAME
+                         *  variable to always be set to SYSTEM. */
+                        /* Skip. */
                     } else {
                         if (setEnv(valueName, value, source)) {
-                            /* Already reported. */
+                            /* Failed.  Already reported. */
                             closeRegistryKey(hKey);
                             return TRUE;
                         }
@@ -2990,23 +3021,34 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const TCHAR *regPath, int app
  * Return TRUE if there were any problems.
  */
 int wrapperLoadEnvFromRegistry() {
+    TCHAR *username;
+    
     /* We can't access any properties here as they are not yet loaded when called. */
     /* Always load in the system wide variables. */
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Loading System environment variables from Registry:"));
 #endif
-
-    if (wrapperLoadEnvFromRegistryInner(HKEY_LOCAL_MACHINE, TEXT("SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment\\"), FALSE, ENV_SOURCE_REG_SYSTEM)) {
-        return TRUE;
-    }
-
-    /* Only load in the user specific variables if the USERNAME environment variable is set. */
-    if (_tgetenv(TEXT("USERNAME"))) {
+    
+    /* Determine whether or not we are the SYSTEM user. */
+    username = _tgetenv(TEXT("USERNAME"));
+    if ((username == NULL) || (strcmpIgnoreCase(TEXT("[HOST]$"), username) == 0)) {
+        /* On Windows 7, the USERNAME is set to "[HOST]$" when running as a service.  It is NULL on older versions of Windows. */
+        /* As we are the SYSTEM user, we only want to load in the SYSTEM environment variables. */
+        if (wrapperLoadEnvFromRegistryInner(HKEY_LOCAL_MACHINE, TEXT("SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment\\"), FALSE, ENV_SOURCE_REG_SYSTEM, TRUE)) {
+            return TRUE;
+        }
+    } else {
+        /* As we are not the SYSTEM user, we want to first load in the SYSTEM environment variables, and then the user environment.
+         *  But we want to skip over the USER related variables from the SYSTEM environment. */
+        if (wrapperLoadEnvFromRegistryInner(HKEY_LOCAL_MACHINE, TEXT("SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment\\"), FALSE, ENV_SOURCE_REG_SYSTEM, FALSE)) {
+            return TRUE;
+        }
+        
 #ifdef _DEBUG
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Loading Account environment variables from Registry:"));
 #endif
 
-        if (wrapperLoadEnvFromRegistryInner(HKEY_CURRENT_USER, TEXT("Environment\\"), TRUE, ENV_SOURCE_REG_ACCOUNT)){
+        if (wrapperLoadEnvFromRegistryInner(HKEY_CURRENT_USER, TEXT("Environment\\"), TRUE, ENV_SOURCE_REG_ACCOUNT, TRUE)){
             return TRUE;
         }
     }

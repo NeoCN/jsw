@@ -23,6 +23,18 @@ rem The name and location of the Wrapper configuration file.
 rem  (Do not remove quotes.)
 set _WRAPPER_CONF="../conf/wrapper.conf"
 
+rem  Commandline handling
+rem  DEFAULT_ACTION speciefies the command the script will execute
+rem  this way the script could be started like ./SCRIPT [args]
+set DEFAULT_ACTION=
+
+rem  specifies if the commandline should be passe to the wrapper or the jvm.
+rem  if no default action has been specified the script however still needs 
+rem  the action as first parameter, all other parameters will be passed over
+rem  to the jvm.
+rem  for activating this set PASS_THROUGH_JVM to a non-null value e.g. TRUE
+set PASS_THROUGH_JVM=
+
 rem Do not modify anything beyond this point
 rem -----------------------------------------------------------------------------
 
@@ -65,13 +77,23 @@ rem Find the requested command.
 rem
 for /F %%v in ('echo %1^|findstr "^console$ ^start$ ^pause$ ^resume$ ^stop$ ^restart$ ^install$ ^remove$"') do call :exec set COMMAND=%%v
 
-if "%COMMAND%" == "" (
-    echo Usage: %0 { console : start : pause : resume : stop : restart : install : remove }
-    pause
-    goto :eof
+if [%COMMAND%]==[] (
+    if [%DEFAULT_ACTION%]==[] (
+        echo Usage: %0 { console : start : pause : resume : stop : restart : install : remove }
+        pause
+        goto :eof
+    ) else (
+        set COMMAND=%DEFAULT_ACTION%
+    )
 ) else (
     shift
 )
+
+:parameters
+set PARAMETER=%PARAMETER% %1
+shift
+if not [%1]==[] goto :parameters
+
 
 rem
 rem Run the application.
@@ -87,7 +109,13 @@ pause
 goto :eof
 
 :console
-"%_WRAPPER_EXE%" -c %_WRAPPER_CONF%
+echo hi %*
+IF [%PASS_THROUGH_JVM%]==[] (
+    "%_WRAPPER_EXE%" -c %_WRAPPER_CONF% %PARAMETER%
+) ELSE (
+     echo Pass through to the jvm : %PARAMETER%
+    "%_WRAPPER_EXE%" -c %_WRAPPER_CONF% -- %PARAMETER%
+)
 goto :eof
 
 :start

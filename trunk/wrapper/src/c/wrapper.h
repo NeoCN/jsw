@@ -142,6 +142,7 @@
 #define ACTION_DEBUG             -5
 #define ACTION_PAUSE             -6
 #define ACTION_RESUME            -7
+#define ACTION_SUCCESS           -8
 #if defined(MACOSX)
 #define TRIGGER_ADVICE_NIL_SERVER TEXT("****** Returning nil _server **********")
 #define ACTION_ADVICE_NIL_SERVER -32
@@ -330,6 +331,7 @@ struct WrapperConfig {
                                      * {HIGH_PRIORITY_CLASS | IDLE_PRIORITY_CLASS | NORMAL_PRIORITY_CLASS | REALTIME_PRIORITY_CLASS} */
     TCHAR    *ntServiceAccount;      /* Account name to use when running as a service.  NULL to use the LocalSystem account. */
     TCHAR    *ntServicePassword;     /* Password to use when running as a service.  NULL means no password. */
+    int     ntServicePrompt; /* If true then the user will be prompted for a account name, domain,  password when installing as a service. */
     int     ntServicePasswordPrompt; /* If true then the user will be prompted for a password when installing as a service. */
     int     ntServicePasswordPromptMask; /* If true then the password will be masked as it is input. */
     int     ntServiceInteractive;   /* Should the service be allowed to interact with the desktop? */

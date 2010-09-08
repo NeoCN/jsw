@@ -641,7 +641,7 @@ int getEncodingByName(char* encodingMB, char** encoding) {
  *
  * @return TRUE if there are any problems.   FALSE if all is OK.
  */
-int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth) {
+int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileRequired, int depth, const TCHAR* parentFilename, int parentLineNumber) {
     FILE *stream;
     char bufferMB[MAX_PROPERTY_NAME_VALUE_LENGTH];
     TCHAR expBuffer[MAX_PROPERTY_NAME_VALUE_LENGTH];
@@ -663,6 +663,8 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
     char* encoding;
     char* interumEncoding;
 #endif
+    int includeRequired;
+    int readFailed = FALSE;
     int ret;
     TCHAR *bufferW;
 #ifdef WIN32
@@ -670,19 +672,20 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
 #endif
 
 #ifdef _DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("loadPropertiesInner(props, '%s', %d)"), filename, depth);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("loadPropertiesInner(props, '%s', %d, %d, '%s', %d)"), filename, fileRequired, depth, (parentFilename ? parentFilename : TEXT("<NULL>")), parentLineNumber);
 #endif
 
     /* Look for the specified file. */
     if ((stream = _tfopen(filename, TEXT("rb"))) == NULL) {
         /* Unable to open the file. */
-        if (properties->debugIncludes) {
+        if (properties->debugIncludes || fileRequired) {
             if (depth > 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    TEXT("  Included configuration file, %s, was not found."), filename);
+                    TEXT("Included configuration file not found: %s\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
+                        filename, parentFilename, parentLineNumber, wrapperData->originalWorkingDir);
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    TEXT("Configuration file, %s, was not found."), filename);
+                    TEXT("Configuration file not found: %s\n  Current working directory: %s"), filename, wrapperData->originalWorkingDir);
             }
         } else {
 #ifdef _DEBUG
@@ -760,7 +763,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
 
     if ((stream = _tfopen(filename, TEXT("rb"))) == NULL) {
         /* Unable to open the file. */
-        if (properties->debugIncludes) {
+        if (properties->debugIncludes || fileRequired) {
             if (depth > 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     TEXT("  Included configuration file, %s, was not found."), filename);
@@ -883,10 +886,18 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
                 if (strcmpIgnoreCase(trimmedBuffer, TEXT("#include.debug")) == 0) {
                     /* Enable include file debugging. */
                     properties->debugIncludes = TRUE;
-                } else if (_tcsstr(trimmedBuffer, TEXT("#include")) == trimmedBuffer) {
-                    /* Include file, if the file does not exist, then ignore it */
+                } else if ((_tcsstr(trimmedBuffer, TEXT("#include ")) == trimmedBuffer) || (_tcsstr(trimmedBuffer, TEXT("#include.required ")) == trimmedBuffer)) {
+                    if (_tcsstr(trimmedBuffer, TEXT("#include.required ")) == trimmedBuffer) {
+                        /* The include file is required. */
+                        includeRequired = TRUE;
+                        c = trimmedBuffer + 18;
+                    } else {
+                        /* Include file, if the file does not exist, then ignore it */
+                        includeRequired = FALSE;
+                        c = trimmedBuffer + 9;
+                    }
+                    
                     /* Strip any leading whitespace */
-                    c = trimmedBuffer + 8;
                     while ((c[0] != TEXT('\0')) && (c[0] == TEXT(' '))) {
                         c++;
                     }
@@ -910,12 +921,10 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
                         /* Find out how big the absolute path will be */
                         size = GetFullPathName(expBuffer, 0, NULL, NULL); /* Size includes '\0' */
                         if (!size) {
-                            if (properties->debugIncludes) {
+                            if (properties->debugIncludes || includeRequired) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                                    TEXT("  Unable to resolve the full path of the configuration include file, %s: %s"),
-                                    expBuffer, getLastErrorText());
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                                    TEXT("  Current working directory is: %s"), wrapperData->originalWorkingDir);
+                                    TEXT("Unable to resolve the full path of included configuration file: %s (%s)\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
+                                    expBuffer, getLastErrorText(), filename, lineNumber, wrapperData->originalWorkingDir);
                             }
                             absoluteBuffer = NULL;
                         } else {
@@ -924,12 +933,10 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
                                 outOfMemory(TEXT("LPI"), 1);
                             } else {
                                 if (!GetFullPathName(expBuffer, size, absoluteBuffer, NULL)) {
-                                    if (properties->debugIncludes) {
+                                    if (properties->debugIncludes || includeRequired) {
                                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                                            TEXT("  Unable to resolve the full path of the configuration include file, %s: %s"),
-                                            expBuffer, getLastErrorText());
-                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                                            TEXT("  Current working directory is: %s"), wrapperData->originalWorkingDir);
+                                            TEXT("Unable to resolve the full path of included configuration file: %s (%s)\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
+                                            expBuffer, getLastErrorText(), filename, lineNumber, wrapperData->originalWorkingDir);
                                     }
                                     free(absoluteBuffer);
                                     absoluteBuffer = NULL;
@@ -942,12 +949,10 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
                             outOfMemory(TEXT("LPI"), 2);
                         } else {
                             if (_trealpath(expBuffer, absoluteBuffer) == NULL) {
-                                if (properties->debugIncludes) {
+                                if (properties->debugIncludes || includeRequired) {
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                                        TEXT("  Unable to resolve the full path of the configuration include file, %s: %s"),
-                                        expBuffer, getLastErrorText());
-                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                                        TEXT("  Current working directory is: %s"), wrapperData->originalWorkingDir);
+                                        TEXT("Unable to resolve the full path of included configuration file: %s (%s)\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
+                                        expBuffer, getLastErrorText(), filename, lineNumber, wrapperData->originalWorkingDir);
                                 }
                                 free(absoluteBuffer);
                                 absoluteBuffer = NULL;
@@ -955,8 +960,20 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
                         }
 #endif
                         if (absoluteBuffer) {
-                            loadPropertiesInner(properties, absoluteBuffer, depth + 1);
+                            if (loadPropertiesInner(properties, absoluteBuffer, includeRequired, depth + 1, filename, lineNumber)) {
+                                if (includeRequired) {
+                                    /* Include file was required, but we failed to load it. */
+                                    readFailed = TRUE;
+                                    break;
+                                }
+                            }
                             free(absoluteBuffer);
+                        } else {
+                            if (includeRequired) {
+                                /* Include file was required, but we failed to load it. */
+                                readFailed = TRUE;
+                                break;
+                            }
                         }
                     }
                 } else if (strcmpIgnoreCase(trimmedBuffer, TEXT("#properties.debug")) == 0) {
@@ -988,7 +1005,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int depth
     /* Close the file */
     fclose(stream);
 
-    return FALSE;
+    return readFailed;
 }
 
 int loadProperties(Properties *properties, const TCHAR* filename) {
@@ -1011,7 +1028,7 @@ int loadProperties(Properties *properties, const TCHAR* filename) {
     nowTM = localtime(&now);
     memcpy(&loadPropertiesTM, nowTM, sizeof(struct tm));
 
-    return loadPropertiesInner(properties, filename, 0);
+    return loadPropertiesInner(properties, filename, TRUE, 0, NULL, 0);
 }
 
 Properties* createProperties() {
