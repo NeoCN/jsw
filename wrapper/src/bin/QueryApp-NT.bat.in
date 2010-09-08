@@ -24,6 +24,13 @@ rem  if the user does not specify a configuration file as the first argument to
 rem  this script.
 set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf
 
+rem  specifies if the commandline should be passe to the wrapper or the jvm.
+rem  if no default action has been specified the script however still needs 
+rem  the action as first parameter, all other parameters will be passed over
+rem  to the jvm.
+rem  for activating this set PASS_THROUGH_JVM to a non-null value e.g. TRUE
+set PASS_THROUGH_JVM=
+
 rem Do not modify anything beyond this point
 rem -----------------------------------------------------------------------------
 
@@ -72,14 +79,29 @@ rem Find the wrapper.conf
 rem
 :conf
 set _WRAPPER_CONF="%~f1"
-if not %_WRAPPER_CONF%=="" goto startup
+if not [%_WRAPPER_CONF%]==[""] (
+    shift
+    goto :startup
+)
 set _WRAPPER_CONF="%_WRAPPER_CONF_DEFAULT%"
 
 rem
 rem Start the Wrapper
 rem
 :startup
-"%_WRAPPER_EXE%" -q %_WRAPPER_CONF%
+
+:parameters
+set PARAMETER=%PARAMETER% %1
+shift
+if not [%1]==[] goto :parameters
+
+
+IF [%PASS_THROUGH_JVM%]==[] (
+    "%_WRAPPER_EXE%" -q %_WRAPPER_CONF% %PARAMETER%
+) ELSE (
+     echo Pass through to the jvm : %*
+    "%_WRAPPER_EXE%" -q %_WRAPPER_CONF% -- %PARAMETER%
+)
 if not errorlevel 1 goto :eof
 pause
 

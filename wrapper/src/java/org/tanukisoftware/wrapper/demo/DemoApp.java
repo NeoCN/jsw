@@ -762,7 +762,7 @@ class LoggerThread implements Runnable
                         String insString = getStyle( str, sas );
                         
                         
-                        m_this.getFrame().getlogTextArea().getDocument().insertString( m_this.getFrame().getlogTextArea().getDocument().getEndPosition().getOffset(), insString + "\n",
+                        m_this.getFrame().getlogTextArea().getDocument().insertString( m_this.getFrame().getlogTextArea().getDocument().getEndPosition().getOffset() - 1, insString + "\n",
                                 sas );
                         int p1 = m_this.getFrame().getlogTextArea().getDocument().getLength();
                         m_this.getFrame().getlogTextArea().setCaretPosition( p1 );
