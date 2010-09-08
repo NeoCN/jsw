@@ -28,6 +28,7 @@ Java Service Wrapper Revision History.
   variable was always being set to SYSTEM when running as a service.  The fix
   was to never load the USERNAME, USERDOMAIN, or USERPROFILE environment
   variables from the SYSTEM registry when the account is not the SYSTEM.
+  Bug #3061490.
 
 3.5.4
 * Add optional support for custom public static methods in the
