@@ -821,78 +821,8 @@ set ENV_VAR_4=d]]></replacevalue>
                  token="SCRIPT=`$$SCRIPT_DIR/realpath $$0`"
                  value="SCRIPT=`$$SCRIPT_DIR/../bin/realpath $$0`" />
         <replace file="${test.dir}/action.script.in">
-            <replacetoken><![CDATA[\"$REALPATH\" $2]]></replacetoken>
-            <replacevalue><![CDATA[\"$REALPATH\" $2 $3]]></replacevalue>
-        </replace>
-        <replace file="${test.dir}/action.script.in">
-            <replacetoken><![CDATA['console')
-        checkUser touchlock $1
-        console
-        ;;]]></replacetoken>
-            <replacevalue><![CDATA['console')
-        checkUser touchlock $1 $2
-        console $2
-        ;;]]></replacevalue>
-        </replace>
-        <replace file="${test.dir}/action.script.in">
-            <replacetoken><![CDATA[macosxstart
-        else
-            checkUser touchlock $1
-            start]]></replacetoken>
-            <replacevalue><![CDATA[macosxstart $2
-        else
-            checkUser touchlock $1 $2
-            start $2]]></replacevalue>
-        </replace>
-        <replace file="${test.dir}/action.script.in">
-            <replacetoken><![CDATA['restart')
-        checkUser touchlock $1
-        stopit "0"
-        start
-        ;;]]></replacetoken>
-            <replacevalue><![CDATA['restart')
-        checkUser touchlock $1 $2
-        stopit "0"
-        start $2
-        ;;]]></replacevalue>
-        </replace>
-        <replace file="${test.dir}/action.script.in">
-            <replacetoken><![CDATA['condrestart')
-        checkUser touchlock $1
-        stopit "1"
-        start
-        ;;]]></replacetoken>
-            <replacevalue><![CDATA['condrestart')
-        checkUser touchlock $1 $2
-        stopit "1"
-        start $2
-        ;;]]></replacevalue>
-        </replace>
-        <replace file="${test.dir}/action.script.in">
-            <replacetoken><![CDATA['launchdinternal
-        ;;]]></replacetoken>
-            <replacevalue><![CDATA['launchdinternal $2
-        ;;]]></replacevalue>
-        </replace>
-        <replace file="${test.dir}/action.script.in">
-            <replacetoken><![CDATA[checkUser "" $1]]></replacetoken>
-            <replacevalue><![CDATA[checkUser "" $1 $2]]></replacevalue>
-        </replace>
-        <replace file="${test.dir}/action.script.in">
-            <replacetoken><![CDATA[Running $APP_LONG_NAME]]></replacetoken>
-            <replacevalue><![CDATA[Running $APP_LONG_NAME with test action: $1]]></replacevalue>
-        </replace>
-        <replace file="${test.dir}/action.script.in">
-            <replacetoken><![CDATA[Starting $APP_LONG_NAME]]></replacetoken>
-            <replacevalue><![CDATA[Starting $APP_LONG_NAME with test action: $1]]></replacevalue>
-        </replace>
-        <replace file="${test.dir}/action.script.in">
-            <replacetoken><![CDATA[\"$WRAPPER_CMD\" \"$WRAPPER_CONF\"]]></replacetoken>
-            <replacevalue><![CDATA[\"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.app.parameter.1=$1]]></replacevalue>
-        </replace>
-        <replace file="${test.dir}/action.script.in">
-            <replacetoken><![CDATA[Usage: $0 { console | start | stop | restart | condrestart | status | install | remove | dump }]]></replacetoken>
-            <replacevalue><![CDATA[Usage: $0 { console <action> | start <action> | stop | restart <action> | condrestart <action> | status | install | remove | dump }]]></replacevalue>
+            <replacetoken><![CDATA[#PASS_THROUGH=]]></replacetoken>
+            <replacevalue><![CDATA[PASS_THROUGH=]]></replacevalue>
         </replace>
         
         <!-- Background Threads Test -->

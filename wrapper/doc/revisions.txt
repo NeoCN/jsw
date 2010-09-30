@@ -1,21 +1,21 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 
-3.6.0
+3.5.5
 * Add new trigger action SUCCESS. If this gets triggered the wrapper will be
   prompted to set the start of the jvm pretermed to success. This is useful in 
   combination with the RESTART trigger action.
 * (Standard, Professional) Ignore Juniper Network Connect hostIds as they
   change on each reboot and are thus unreliable as hostIds.
-* Added DEFAULT_ACTION and PASS_THROUGH_JVM properties to the scripts and
-  AppCommand.bat.in files.
-* (Standard, Professional) Added a --passthrough option to the exe customization,
-  in order to tell the wrapper to precede the whole command line through to
-  the application in the JVM.
-* (Standard, Professional) Added a --conf option to change the default conf file,
-  the wrapper tries opening when no conf file was explicitly specified.
-* Added wrapper.ntservice.account.prompt. If set to TRUE the wrapper will prompt
-  all account details (domain, account name, password).
+* Added FIXED_COMMAND and PASS_THROUGH properties to the UNIX shell script and
+  Windows AppCommand.bat.in files.
+* (Standard, Professional) Added a --passthrough option to the exe
+  customization, in order to tell the wrapper to precede the whole command line
+  through to the application in the JVM.
+* (Standard, Professional) Added a --conf option to change the default conf
+  file, the wrapper tries opening when no conf file was explicitly specified.
+* Added wrapper.ntservice.account.prompt. If set to TRUE the wrapper will
+  prompt all account details (domain, account name, password).
 * Fix a minor issue in #include file declarations where a leading space was not
   required.
 * Add a new #include.required directive which works the same as the #include
@@ -29,6 +29,34 @@ Java Service Wrapper Revision History.
   was to never load the USERNAME, USERDOMAIN, or USERPROFILE environment
   variables from the SYSTEM registry when the account is not the SYSTEM.
   Bug #3061490.
+* (Standard, Professional) Fix a problem for Solaris and HP-UX where the socket
+  timeout properties for the email notifications were ignored.
+* (Standard, Professional) Added wrapper.ntservice.recovery.* properties to 
+  define system level actions in the event that the Wrapper process itself
+  has a failure.
+* (Standard, Professional) Fixed a problem in the WrapperProcess.waitFor()
+  call, where it would fail to return when called after the Wrapper had
+  initiated the shutdown of the JVM.
+* (Standard, Professional) Add WrapperProcessConfig.setSoftShutdownTimeout(int)
+  method to tell the Wrapper how long to wait after nicely asking the child
+  process to shutdown cleanly when calling WrapperProcess.destroy().  Once the
+  timeout has ellapsed, the child process will be forcibly terminated.  This
+  timeout had been hard coded to 5 seconds in earlier versions.
+* Add more detailed usage output to the UNIX shell script.
+* Make it possible to 'pause' and 'resume' the JVM from the UNIX shell and
+  Windows batch scripts.
+* (Professional) Fix a minor memory memory leak while initializing timers.
+* Fix a memory leak which could happen if there were any invalid strings in
+  localization resources.
+* (Professional) Fix a bug where the wrapper.event.<event_type>.command.argv.n
+  properties were not correctly parsed on Windows. This issue was introduced
+  in version 3.5.0.
+* Fix a problem occuring when the wrapper failed to roll the log file causing 
+  to write to the wrapper's default log (wrapper.log) file rather than
+  continuing to write to the current logfile.
+* (Standard, Professional) Fix a put problem in the internal hash map
+  implemenation used for localization where values could be lost.  This was
+  not a visible issue because of the data used.
 
 3.5.4
 * Add optional support for custom public static methods in the

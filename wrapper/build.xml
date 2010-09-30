@@ -882,20 +882,8 @@ rem ********************************************************************]]></rep
 #********************************************************************]]></replacevalue>
         </replace>
         <replace file="${bin.dir}/${app.name}">
-            <replacetoken><![CDATA[PASS_THROUGH_JVM=]]></replacetoken>
-            <replacevalue><![CDATA[PASS_THROUGH_JVM=true]]></replacevalue>
-        </replace>
-        <replace file="${bin.dir}/${app.name}">
-            <replacetoken><![CDATA[Running $APP_LONG_NAME]]></replacetoken>
-            <replacevalue><![CDATA[Running $APP_LONG_NAME with test action: $1]]></replacevalue>
-        </replace>
-        <replace file="${bin.dir}/${app.name}">
-            <replacetoken><![CDATA[Starting $APP_LONG_NAME]]></replacetoken>
-            <replacevalue><![CDATA[Starting $APP_LONG_NAME with test action: $1]]></replacevalue>
-        </replace>
-        <replace file="${bin.dir}/${app.name}">
-            <replacetoken><![CDATA[{ console | start | stop | restart | condrestart | status | install | remove | dump }]]></replacetoken>
-            <replacevalue><![CDATA[{ console <action> | start <action> | stop | restart <action> | condrestart <action> | status | install | remove | dump }]]></replacevalue>
+            <replacetoken><![CDATA[#PASS_THROUGH=]]></replacetoken>
+            <replacevalue><![CDATA[PASS_THROUGH=]]></replacevalue>
         </replace>
         <chmod file="${bin.dir}/${app.name}" perm="+x"/>         
     </target>

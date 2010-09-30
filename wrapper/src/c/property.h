@@ -98,7 +98,7 @@ extern int setEnv(const TCHAR *name, const TCHAR *value, int source);
  * Create a Properties structure loaded in from the specified file.
  *  Must call disposeProperties to free up allocated memory.
  */
-extern int loadProperties(Properties *properties, const TCHAR* filename);
+extern int loadProperties(Properties *properties, const TCHAR* filename, int preload);
 
 /**
  * Create a Properties structure.  Must call disposeProperties to free up

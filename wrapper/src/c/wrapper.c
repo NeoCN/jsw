@@ -47,6 +47,8 @@
 #include "wrapper_file.h"
 
 #ifdef WIN32
+ #include <Fcntl.h>
+ #include <io.h>
  #include <direct.h>
  #include <winsock.h>
  #include <shlwapi.h>
@@ -185,10 +187,11 @@ struct tm wrapperGetBuildTime() {
  */
 void wrapperAddDefaultProperties() {
     size_t bufferLen;
-    TCHAR* buffer;
+    TCHAR* buffer, *langTemp;
 
     /* IMPORTANT - If any new values are added here, this work buffer length may need to be calculated differently. */
     bufferLen = 1;
+    bufferLen = __max(bufferLen, _tcslen(TEXT("set.WRAPPER_LANG=")) + 3 + 1);
     bufferLen = __max(bufferLen, _tcslen(TEXT("set.WRAPPER_PID=")) + 10 + 1); /* 32-bit PID would be max of 10 characters */
     bufferLen = __max(bufferLen, _tcslen(TEXT("set.WRAPPER_BITS=")) + _tcslen(wrapperBits) + 1);
     bufferLen = __max(bufferLen, _tcslen(TEXT("set.WRAPPER_ARCH=")) + _tcslen(wrapperArch) + 1);
@@ -201,6 +204,23 @@ void wrapperAddDefaultProperties() {
         outOfMemory(TEXT("WADP"), 1);
         return;
     }
+    langTemp = _tgetenv(TEXT("LANG"));
+    if (langTemp == NULL || _tcslen(langTemp) == 0) {
+        _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_LANG=en"));
+    } else {
+#ifdef WIN32
+        _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_LANG=%.2s"), langTemp);
+#else
+        _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_LANG=%.2S"), langTemp);
+#endif
+#if !defined(WIN32) && defined(UNICODE)
+        if (langTemp) {
+            free(langTemp);
+        }
+#endif
+    }
+    addPropertyPair(properties, NULL, 0, buffer, TRUE, FALSE, TRUE);
+
     _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_PID=%d"), wrapperData->wrapperPID);
     addPropertyPair(properties, NULL, 0, buffer, TRUE, FALSE, TRUE);
 
@@ -295,9 +315,9 @@ int loadEnvironment() {
             }
             mbstowcs(sourcePair, environment[i], len + 1);
 #endif
-            
+
             len = _tcslen(sourcePair);
-            
+
             /* We need a copy of the variable pair so we can split it. */
             pair = malloc(sizeof(TCHAR) * (len + 1));
             if (!pair) {
@@ -308,28 +328,28 @@ int loadEnvironment() {
                 return TRUE;
             }
             _sntprintf(pair, len + 1, TEXT("%s"), sourcePair);
-            
+
             equal = _tcschr(pair, TEXT('='));
             if (equal) {
                 name = pair;
                 value = &(equal[1]);
                 equal[0] = TEXT('\0');
-                
+
                 if (_tcslen(name) <= 0) {
                     name = NULL;
                 }
                 if (_tcslen(value) <= 0) {
                     value = NULL;
                 }
-                
+
                 /* It is possible that the name was empty. */
                 if (name) {
                     setEnv(name, value, ENV_SOURCE_PARENT);
                 }
             }
-            
+
             free(pair);
-    
+
 #ifdef WIN32
             lpszVariable += len + 1;
 #else
@@ -338,9 +358,71 @@ int loadEnvironment() {
         i++;
 #endif
     }
-    
+
     return FALSE;
 }
+
+/**
+ * Updates a string value by making a copy of the original.  Any old value is
+ *  first freed.
+ */
+void updateStringValue(TCHAR **ptr, const TCHAR *value) {
+    if (*ptr != NULL) {
+        free(*ptr);
+        *ptr = NULL;
+    }
+
+    if (value != NULL) {
+        *ptr = malloc(sizeof(TCHAR) * (_tcslen(value) + 1));
+        if (!(*ptr)) {
+            outOfMemory(TEXT("USV"), 1);
+            /* TODO: This is pretty bad.  Not sure how to recover... */
+        } else {
+            _tcscpy(*ptr, value);
+        }
+    }
+}
+
+#ifndef WIN32 /* UNIX */
+int getSignalMode(const TCHAR *modeName, int defaultMode) {
+    if (!modeName) {
+        return defaultMode;
+    }
+
+    if (strcmpIgnoreCase(modeName, TEXT("IGNORE")) == 0) {
+        return WRAPPER_SIGNAL_MODE_IGNORE;
+    } else if (strcmpIgnoreCase(modeName, TEXT("RESTART")) == 0) {
+        return WRAPPER_SIGNAL_MODE_RESTART;
+    } else if (strcmpIgnoreCase(modeName, TEXT("SHUTDOWN")) == 0) {
+        return WRAPPER_SIGNAL_MODE_SHUTDOWN;
+    } else if (strcmpIgnoreCase(modeName, TEXT("FORWARD")) == 0) {
+        return WRAPPER_SIGNAL_MODE_FORWARD;
+    } else {
+        return defaultMode;
+    }
+}
+
+/**
+ * Return FALSE if successful, TRUE if there were problems.
+ */
+int wrapperBuildUnixDaemonInfo() {
+    if (!wrapperData->configured) {
+        /** Get the daemonize flag. */
+        wrapperData->daemonize = getBooleanProperty(properties, TEXT("wrapper.daemonize"), FALSE);
+        /** Configure the HUP signal handler. */
+        wrapperData->signalHUPMode = getSignalMode(getStringProperty(properties, TEXT("wrapper.signal.mode.hup"), NULL), WRAPPER_SIGNAL_MODE_FORWARD);
+
+        /** Configure the USR1 signal handler. */
+        wrapperData->signalUSR1Mode = getSignalMode(getStringProperty(properties, TEXT("wrapper.signal.mode.usr1"), NULL), WRAPPER_SIGNAL_MODE_FORWARD);
+
+        /** Configure the USR2 signal handler. */
+        wrapperData->signalUSR2Mode = getSignalMode(getStringProperty(properties, TEXT("wrapper.signal.mode.usr2"), NULL), WRAPPER_SIGNAL_MODE_FORWARD);
+    }
+
+    return FALSE;
+}
+#endif
+
 
 /**
  * Dumps the table of environment variables, and their sources.
@@ -348,14 +430,14 @@ int loadEnvironment() {
 void dumpEnvironment() {
     EnvSrc *envSrc;
     TCHAR *envVal;
-    
+
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT(""));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Environment variables (Source | Name=Value) BEGIN:"));
-    
+
     envSrc = baseEnvSrc;
     while (envSrc) {
         envVal = _tgetenv(envSrc->name);
-        
+
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("  %c%c%c%c%c | %s=%s"),
             (envSrc->source & ENV_SOURCE_PARENT ? TEXT('P') : TEXT('-')),
 #ifdef WIN32
@@ -370,23 +452,24 @@ void dumpEnvironment() {
             envSrc->name,
             (envVal ? envVal : TEXT("<null>"))
         );
-        
+
 #if !defined(WIN32) && defined(UNICODE)
         if (envVal) {
             free(envVal);
         }
 #endif
-        
+
         envSrc = envSrc->next;
     }
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Environment variables END:"));
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT(""));
 }
 
+
 /**
  * Return TRUE if there were any problems.
  */
-int wrapperLoadConfigurationProperties() {
+int wrapperLoadConfigurationProperties(int preload) {
     int i;
     int firstCall;
 #ifdef WIN32
@@ -500,7 +583,9 @@ int wrapperLoadConfigurationProperties() {
     if (!properties) {
         return TRUE;
     }
+
     wrapperAddDefaultProperties();
+
 
     /* The argument prior to the argBase will be the configuration file, followed
      *  by 0 or more command line properties.  The command line properties need to be
@@ -515,7 +600,11 @@ int wrapperLoadConfigurationProperties() {
     }
     /* Now load the configuration file.
      *  When this happens, the working directory MUST be set to the original working dir. */
-    if (loadProperties(properties, wrapperData->configFile)) {
+#ifdef WIN32
+    if (loadProperties(properties, wrapperData->configFile, preload)) {
+#else
+    if (loadProperties(properties, wrapperData->configFile, preload | wrapperData->daemonize)) {
+#endif
         /* File not found. */
         /* If this was a default file name then we don't want to show this as
          *  an error here.  It will be handled by the caller. */
@@ -532,7 +621,7 @@ int wrapperLoadConfigurationProperties() {
     if (firstCall) {
         /* If the working dir was configured, we need to extract it and preserve its value.
          *  This must be done after the configuration has been completely loaded. */
-        prop = getStringProperty(properties, TEXT("wrapper.working.dir"), NULL);
+        prop = getStringProperty(properties, TEXT("wrapper.working.dir"), TEXT("."));
         if (prop && (_tcslen(prop) > 0)) {
 #ifdef WIN32
             work = GetFullPathName(prop, 0, NULL, NULL);
@@ -568,22 +657,31 @@ int wrapperLoadConfigurationProperties() {
 #endif
         }
     }
-    
+
 #ifdef _DEBUG
     /* Display the active properties */
     _tprintf(TEXT("Debug Configuration Properties:\n"));
     dumpProperties(properties);
 #endif
-    
+
     /* Now that the configuration is loaded, we need to update the working directory if the user specified one.
      *  This must be done now so that anything that references the working directory, including the log file
      *  and language pack locations will work correctly. */
     if (wrapperData->workingDir && wrapperSetWorkingDir(wrapperData->workingDir)) {
         return TRUE;
     }
-    
+#ifndef WIN32
+    /** If in the first call here and the wrapper will deamonize, then we don't need
+     * to proceed any further anymore as the properties will be loaded properly at
+     * the second time...
+     */
+    if (firstCall == TRUE && !wrapperBuildUnixDaemonInfo() && wrapperData->daemonize) {
+        return FALSE;
+    }
+#endif
     /* Load the configuration. */
-    if (loadConfiguration()) {
+    if (
+ loadConfiguration()) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
             TEXT("Problem loading wrapper configuration file: %s"), wrapperData->configFile);
         return TRUE;
@@ -788,7 +886,7 @@ void protocolOpen() {
         /* can't do anything yet. */
         return;
     }
-    
+
     /* Try accepting a socket. */
     addr_srv_len = sizeof(addr_srv);
 #ifdef WIN32
@@ -827,10 +925,10 @@ void protocolOpen() {
         }
         return;
     }
-    
+
     /* New connection, so continue. */
     protocolActiveBackendSD = newBackendSD;
-    
+
     if (wrapperData->isDebugging) {
 #ifdef UNICODE
         TCHAR* socketSource;
@@ -1163,7 +1261,7 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
             messageMB = NULL;
         }
     }
-    
+
     if (ok) {
         /* We need to construct a single string that will be used to transmit the command + message. */
         if (messageMB) {
@@ -1194,7 +1292,7 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
             free(messageMB);
         }
     }
-    
+
     if (ok) {
         if (protocolActiveBackendSD == INVALID_SOCKET) {
             /* A socket was not opened */
@@ -1244,7 +1342,7 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
             }
         }
     }
-    
+
     /* Always make sure the mutex is released. */
     if (releaseProtocolMutex()) {
         returnVal = TRUE;
@@ -1494,7 +1592,7 @@ void wrapperLogFileChanged(const TCHAR *logFile) {
  */
 int wrapperInitialize() {
     TCHAR *retLocale;
-    
+
     /* Initialize the properties variable. */
     properties = NULL;
 
@@ -1530,17 +1628,27 @@ int wrapperInitialize() {
         printf("Failed to create tick mutex. %s\n", getLastErrorText());
         return 1;
     }
-#endif
     
+    /* Initialize control code queue. */
+    wrapperData->ctrlCodeQueue = malloc(sizeof(int) * CTRL_CODE_QUEUE_SIZE);
+    if (!wrapperData->ctrlCodeQueue) {
+        outOfMemory(TEXT("WI"), 2);
+        return 1;
+    }
+    wrapperData->ctrlCodeQueueWriteIndex = 0;
+    wrapperData->ctrlCodeQueueReadIndex = 0;
+    wrapperData->ctrlCodeQueueWrapped = FALSE;
+#endif
+
     if (initLogging(wrapperLogFileChanged)) {
         return 1;
     }
-    
+
     /* This will only be called by the main thread on startup.
      * Immediately register this thread with the logger.
      * This has to happen after the logging is initialized. */
     logRegisterThread(WRAPPER_THREAD_MAIN);
-    
+
 
     setLogfilePath(TEXT("wrapper.log"));
     setLogfileRollMode(ROLL_MODE_SIZE);
@@ -1566,7 +1674,7 @@ int wrapperInitialize() {
         fflush(NULL);
         return 1;
     }
-    
+
     /* Set the default locale here so any startup error messages will have a chance of working.
      *  We will go back and try to set the actual locale again later once it is configured. */
     retLocale = _tsetlocale(LC_ALL, TEXT(""));
@@ -1584,11 +1692,11 @@ int wrapperInitialize() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("tsetlocale() returned NULL"));
 #endif
     }
-    
+
     if (loadEnvironment()) {
         return 1;
     }
-    
+
     return 0;
 }
 
@@ -1607,10 +1715,10 @@ void wrapperDispose() {
     if (wrapperData->useSystemTime) {
         disposeTimer();
     }
-    
+
     /* Clean up the logging system. */
     disposeLogging();
-    
+
     /* Clean up the properties structure. */
     disposeProperties(properties);
     properties = NULL;
@@ -1653,15 +1761,38 @@ void wrapperGetFileBase(const TCHAR *fileName, TCHAR *baseName) {
 }
 
 /**
+ * Returns a buffer containing a multi-line version banner.  It is the responsibility of the caller
+ *  to make sure it gets freed.
+ */
+TCHAR *generateVersionBanner() {
+    TCHAR *banner = TEXT("Java Service Wrapper %s Edition %s-bit %s\n  Copyright (C) 1999-%s Tanuki Software, Ltd. All Rights Reserved.\n    http://wrapper.tanukisoftware.com");
+    TCHAR *product = TEXT("Community");
+    TCHAR *copyright = TEXT("2010");
+    TCHAR *buffer;
+    size_t len;
+    
+    len = _tcslen(banner) + _tcslen(product) + _tcslen(wrapperBits) + _tcslen(wrapperVersionRoot) + _tcslen(copyright) + 1;
+    buffer = malloc(sizeof(TCHAR) * len);
+    if (!buffer) {
+        outOfMemory(TEXT("GVB"), 1);
+        return NULL;
+    }
+    
+    _sntprintf(buffer, len, banner, product, wrapperBits, wrapperVersionRoot, copyright);
+    
+    return buffer;
+}
+
+/**
  * Output the version.
  */
 void wrapperVersionBanner() {
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-        TEXT("Java Service Wrapper %s Edition %s-bit %s"), TEXT("Community"), wrapperBits, wrapperVersionRoot);
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-        TEXT("  Copyright (C) 1999-%s Tanuki Software, Ltd. All Rights Reserved."), TEXT("2010") );
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-        TEXT("    http://wrapper.tanukisoftware.com"));
+    TCHAR *banner = generateVersionBanner();
+    if (!banner) {
+        return;
+    }
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, banner);
+    free(banner);
 }
 
 /**
@@ -1739,7 +1870,7 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
     delimiter = 1;
 
     if (argc > 1
-       ) {
+        ) {
         for (delimiter = 0; delimiter < argc ; delimiter++) {
             if ( _tcscmp(argv[delimiter], TEXT("--")) == 0) {
                 argv[delimiter] = NULL;
@@ -1751,7 +1882,7 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
             }
         }
     }
-    
+
     wrapperArgCount = delimiter ;
     if (wrapperArgCount > 1) {
 
@@ -1798,11 +1929,12 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
                         return FALSE;
                     }
                     _sntprintf(wrapperData->argConfFile, _tcslen(argConfFileBase) + 5 + 1, TEXT("%s.conf"), argConfFileBase);
+                    
+                    free(argConfFileBase);
 
                 wrapperData->argConfFileDefault = TRUE;
                 wrapperData->argCount = wrapperArgCount - 2;
                 wrapperData->argValues = &argv[2];
-                free(argConfFileBase);
             }
         } else {
             /* Syntax 2 */
@@ -1833,11 +1965,11 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
                 return FALSE;
             }
             _sntprintf(wrapperData->argConfFile, _tcslen(argConfFileBase) + 5 + 1, TEXT("%s.conf"), argConfFileBase);
+            
+            free(argConfFileBase);
         wrapperData->argConfFileDefault = TRUE;
         wrapperData->argCount = wrapperArgCount - 1;
-#endif
             wrapperData->argValues = &argv[1];
-        free(argConfFileBase);
     }
 
     return TRUE;
@@ -2331,7 +2463,7 @@ void wrapperKillProcess() {
  */
 int checkForTestWrapperScripts() {
     const TCHAR* prop;
-    
+
     prop = getStringProperty(properties, TEXT("wrapper.java.mainclass"), NULL);
     if (prop) {
         if (_tcscmp(prop, TEXT("org.tanukisoftware.wrapper.test.Main")) == 0) {
@@ -2398,19 +2530,15 @@ int wrapperRunCommon() {
 #if defined(UNICODE)
     size_t req;
 #endif
-    
-    /* Log a startup banner. */
-    wrapperVersionBanner();
 
     /* Make sure the tick timer is working correctly. */
     if (wrapperTickAssertions()) {
         return 1;
     }
     
-    if (checkForTestWrapperScripts()) {
-        return 1;
-    }
-    
+    /* Log a startup banner. */
+    wrapperVersionBanner();
+
     /* The following code will display a licensed to block if a license key is found
      *  in the Wrapper configuration.  This piece of code is required as is for
      *  Development License owners to be in complience with their development license.
@@ -2426,6 +2554,10 @@ int wrapperRunCommon() {
     }
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT(""));
 
+    if (checkForTestWrapperScripts()) {
+        return 1;
+    }
+    
     if (wrapperData->isDebugging) {
         timeTM = wrapperGetReleaseTime();
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Release time: %04d/%02d/%02d %02d:%02d:%02d"),
@@ -2497,7 +2629,7 @@ int wrapperRunCommon() {
         }
 #endif
     }
-    
+
     /* Should we dump the environment variables? */
     if (getBooleanProperty(properties, TEXT("wrapper.environment.dump"), getBooleanProperty(properties, TEXT("wrapper.debug"), FALSE))) {
         dumpEnvironment();
@@ -2584,7 +2716,7 @@ int wrapperRunService() {
     }
 
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("--> Wrapper Started as Service"));
-    
+
     if (wrapperRunCommon()) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("<-- Wrapper Stopped"));
         return 1;
@@ -3049,7 +3181,7 @@ TCHAR* findPathOf(const TCHAR *exe) {
     TCHAR pth[PATH_MAX + 1];
     TCHAR *ret;
     TCHAR resolvedPath[PATH_MAX + 1];
-    
+
     if (exe[0] == TEXT('/')) {
         /* This is an absolute reference. */
         if (_trealpath(exe, resolvedPath)) {
@@ -3074,7 +3206,7 @@ TCHAR* findPathOf(const TCHAR *exe) {
 
         return NULL;
     }
-    
+
     /* This is a non-absolute reference.  See if it is a relative reference. */
     if (_trealpath(exe, resolvedPath)) {
         /* Resolved.  See if the file exists. */
@@ -3096,7 +3228,7 @@ TCHAR* findPathOf(const TCHAR *exe) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of wrapper.java.command as a relative reference: %s (Problem at: %s)"), exe, resolvedPath);
         }
     }
-    
+
     /* The file was not a direct relative reference.   If and only if it does not contain any relative path components, we can search the PATH. */
     if (_tcschr(exe, TEXT('/')) == NULL) {
         searchPath = _tgetenv(TEXT("PATH"));
@@ -3110,7 +3242,7 @@ TCHAR* findPathOf(const TCHAR *exe) {
             if (wrapperData->isDebugging) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Attempt to locate wrapper.java.command on system PATH: %s"), exe);
             }
-            
+
             beg = searchPath;
             stop = 0; found = 0;
             do {
@@ -3128,7 +3260,7 @@ TCHAR* findPathOf(const TCHAR *exe) {
                     _tcscat(pth, TEXT("/"));
                 }
                 _tcscat(pth, exe);
-                
+
                 /* The file can exist on the path, but via a symbolic link, so we need to expand it.  Ignore errors here. */
 #ifdef _DEBUG
                 if (wrapperData->isDebugging) {
@@ -3140,16 +3272,16 @@ TCHAR* findPathOf(const TCHAR *exe) {
                     _tcscpy(pth, resolvedPath);
                     found = checkIfExecutable(pth);
                 }
-                
+
                 if (!stop) {
                     beg = end + 1;
                 }
             } while (!stop && !found);
-            
+
 #if !defined(WIN32) && defined(UNICODE)
             free(searchPath);
 #endif
-            
+
             if (found) {
                 ret = malloc((_tcslen(pth) + 1) * sizeof(TCHAR));
                 if (!ret) {
@@ -3168,7 +3300,7 @@ TCHAR* findPathOf(const TCHAR *exe) {
             }
         }
     }
-    
+
     /* Still did not find the file.  So it must not exist. */
     return NULL;
 }
@@ -3185,7 +3317,7 @@ void checkIfRegularExe(TCHAR** para) {
 #ifdef WIN32
     int len, start;
 #endif
-    
+
 #ifdef WIN32
     if (_tcschr(*para, TEXT('\"')) != NULL){
         start = 1;
@@ -3984,7 +4116,7 @@ int wrapperBuildJavaCommandArrayAppParameters(TCHAR **strings, int addQuotes, in
                     } else {
                         propStripped = (TCHAR *)prop;
                     }
-    
+
                     if (addQuotes && quotable && _tcschr(propStripped, TEXT(' '))) {
                         len = wrapperQuoteValue(propStripped, NULL, 0);
                         strings[index] = malloc(sizeof(TCHAR) * len);
@@ -4001,11 +4133,11 @@ int wrapperBuildJavaCommandArrayAppParameters(TCHAR **strings, int addQuotes, in
                         }
                         _sntprintf(strings[index], _tcslen(propStripped) + 1, TEXT("%s"), propStripped);
                     }
-    
+
                     if (addQuotes) {
                         wrapperCheckQuotes(strings[index], propertyNames[i]);
                     }
-    
+
                     if (stripQuote) {
                         free(propStripped);
                         propStripped = NULL;
@@ -4029,7 +4161,7 @@ int wrapperBuildJavaCommandArrayAppParameters(TCHAR **strings, int addQuotes, in
                 }
                 _sntprintf(strings[index], _tcslen(wrapperData->javaArgValues[i]) + 1, TEXT("%s"), wrapperData->javaArgValues[i]);
             }
-            index++;    
+            index++;
         }
     }
     return index;
@@ -4452,7 +4584,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
  */
 int wrapperBuildJavaCommandArray(TCHAR ***stringsPtr, int *length, int addQuotes, const TCHAR *classpath) {
     int reqLen;
-
+    
     /* Reset the flag stating that the JVM is a debug JVM. */
     wrapperData->debugJVM = FALSE;
     wrapperData->debugJVMTimeoutNotified = FALSE;
@@ -4558,7 +4690,7 @@ void wrapperJVMProcessExited(TICKS nowTicks, int exitCode) {
         }
         setState = FALSE;
         break;
-        
+
     case WRAPPER_JSTATE_RESTART:
         /* We got a message that the JVM process died when we already thought is was down.
          *  Most likely this was caused by a SIGCHLD signal.  We are already in the expected
@@ -4692,27 +4824,6 @@ void wrapperBuildKey() {
     */
 }
 
-/**
- * Updates a string value by making a copy of the original.  Any old value is
- *  first freed.
- */
-void updateStringValue(TCHAR **ptr, const TCHAR *value) {
-    if (*ptr != NULL) {
-        free(*ptr);
-        *ptr = NULL;
-    }
-
-    if (value != NULL) {
-        *ptr = malloc(sizeof(TCHAR) * (_tcslen(value) + 1));
-        if (!ptr) {
-            outOfMemory(TEXT("USV"), 1);
-            /* TODO: This is pretty bad.  Not sure how to recover... */
-        } else {
-            _tcscpy(*ptr, value);
-        }
-    }
-}
-
 #ifdef WIN32
 
 /* The ABOVE and BELOW normal priority class constants are not defined in MFVC 6.0 headers. */
@@ -4817,11 +4928,11 @@ int wrapperBuildNTServiceInfo() {
             wrapperData->ntServiceAccount = NULL;
         }
 
-        /* Acount password */
+        /* Account password */
         wrapperData->ntServicePrompt = getBooleanProperty( properties, TEXT("wrapper.ntservice.account.prompt"), FALSE );
         if (wrapperData->ntServicePrompt == TRUE) {
             wrapperData->ntServicePasswordPrompt = TRUE;
-        } else { 
+        } else {
             wrapperData->ntServicePasswordPrompt = getBooleanProperty( properties, TEXT("wrapper.ntservice.password.prompt"), FALSE );
         }
         wrapperData->ntServicePasswordPromptMask = getBooleanProperty( properties, TEXT("wrapper.ntservice.password.prompt.mask"), TRUE );
@@ -4865,46 +4976,6 @@ int wrapperBuildNTServiceInfo() {
         wrapperData->threadDumpControlCode = 255;
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
             TEXT("Ignoring the wrapper.thread_dump_control_code property because it must be in the range 128-255 or 0."));
-    }
-
-    return FALSE;
-}
-#endif
-
-#ifndef WIN32 /* UNIX */
-int getSignalMode(const TCHAR *modeName, int defaultMode) {
-    if (!modeName) {
-        return defaultMode;
-    }
-
-    if (strcmpIgnoreCase(modeName, TEXT("IGNORE")) == 0) {
-        return WRAPPER_SIGNAL_MODE_IGNORE;
-    } else if (strcmpIgnoreCase(modeName, TEXT("RESTART")) == 0) {
-        return WRAPPER_SIGNAL_MODE_RESTART;
-    } else if (strcmpIgnoreCase(modeName, TEXT("SHUTDOWN")) == 0) {
-        return WRAPPER_SIGNAL_MODE_SHUTDOWN;
-    } else if (strcmpIgnoreCase(modeName, TEXT("FORWARD")) == 0) {
-        return WRAPPER_SIGNAL_MODE_FORWARD;
-    } else {
-        return defaultMode;
-    }
-}
-
-/**
- * Return FALSE if successful, TRUE if there were problems.
- */
-int wrapperBuildUnixDaemonInfo() {
-    if (!wrapperData->configured) {
-        /** Get the daemonize flag. */
-        wrapperData->daemonize = getBooleanProperty(properties, TEXT("wrapper.daemonize"), FALSE);
-        /** Configure the HUP signal handler. */
-        wrapperData->signalHUPMode = getSignalMode(getStringProperty(properties, TEXT("wrapper.signal.mode.hup"), NULL), WRAPPER_SIGNAL_MODE_FORWARD);
-
-        /** Configure the USR1 signal handler. */
-        wrapperData->signalUSR1Mode = getSignalMode(getStringProperty(properties, TEXT("wrapper.signal.mode.usr1"), NULL), WRAPPER_SIGNAL_MODE_FORWARD);
-
-        /** Configure the USR2 signal handler. */
-        wrapperData->signalUSR2Mode = getSignalMode(getStringProperty(properties, TEXT("wrapper.signal.mode.usr2"), NULL), WRAPPER_SIGNAL_MODE_FORWARD);
     }
 
     return FALSE;
@@ -4970,7 +5041,7 @@ void wrapperLoadHostName() {
             return;
         }
         _tcscpy(wrapperData->hostName, hostName2);
-        
+
         free(hostName2);
     }
 }
@@ -5265,21 +5336,73 @@ int loadConfigurationTriggers() {
  * Return FALSE if successful, TRUE if there were problems.
  */
 int loadConfiguration() {
-    const TCHAR* logfilePath;
-    int logfileRollMode;
     TCHAR propName[256];
     const TCHAR* val;
     int startupDelay;
-    
-    /* Load log file */
+    const TCHAR* logfilePath;
+    TCHAR* logfilePath2, *logfileDir, *testLogfile;
+    int logfileRollMode, fd;
+#ifdef WIN32
+    int work;
+#endif
+
+
+/* get the logfile */
     logfilePath = getFileSafeStringProperty(properties, TEXT("wrapper.logfile"), TEXT("wrapper.log"));
-    setLogfilePath(logfilePath);
+
+/* it is safer to use the absolute path */
+#ifdef WIN32
+    work = GetFullPathName(logfilePath, 0, NULL, NULL);
+    if (!work) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+            TEXT("Unable to resolve the full path of the log file, %s: %s"),
+            logfilePath, getLastErrorText());
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+            TEXT("Current working directory is: %s"), wrapperData->workingDir);
+        return TRUE;
+    }
+    logfilePath2 = malloc(sizeof(TCHAR) * work);
+    if (!logfilePath2) {
+        outOfMemory(TEXT("LC"), 1);
+        return TRUE;
+    }
+    if (!GetFullPathName(logfilePath, work, logfilePath2, NULL)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+            TEXT("Unable to resolve the full path of the configuration file, %s: %s"),
+            logfilePath, getLastErrorText());
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT(
+            "Current working directory is: %s"), wrapperData->workingDir);
+        return TRUE;
+    }
+#else
+    /* The solaris implementation of realpath will return a relative path if a relative
+     *  path is provided.  We always need an abosulte path here.  So build up one and
+     *  then use realpath to remove any .. or other relative references. */
+        logfilePath2 = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
+    if (!logfilePath2) {
+        outOfMemory(TEXT("LC"), 2);
+        return TRUE;
+    }
+    if (_trealpath(logfilePath, logfilePath2) == NULL) {
+        /* Most likely the file does not exist.  The wrapperData->configFile has the first
+         *  file that could not be found.  May not be the config file directly if symbolic
+         *  links are involved. */
+        /* The output buffer is likely to contain undefined data.
+         * To be on the safe side and in order to report the error
+         *  below correctly we need to override the data first.*/
+         _sntprintf(logfilePath2, PATH_MAX + 1, TEXT("%s/%s"), wrapperData->workingDir, logfilePath);
+
+    }
+#endif
+    setLogfilePath(logfilePath2);
+
 
     /* Decide whether the classpath should be passed via the environment. */
     wrapperData->environmentClasspath = getBooleanProperty(properties, TEXT("wrapper.java.classpath.use_environment"), FALSE);
 
     /* Decide how sequence gaps should be handled before any other properties are loaded. */
     wrapperData->ignoreSequenceGaps = getBooleanProperty(properties, TEXT("wrapper.ignore_sequence_gaps"), FALSE);
+
 
     logfileRollMode = getLogfileRollModeForName(getStringProperty(properties, TEXT("wrapper.logfile.rollmode"), TEXT("SIZE")));
     if (logfileRollMode == ROLL_MODE_UNKNOWN) {
@@ -5295,6 +5418,44 @@ int loadConfiguration() {
         }
     }
     setLogfileRollMode(logfileRollMode);
+#ifdef WIN32
+    logfileDir = _tcsrchr(logfilePath2, TEXT('\\'));
+#else
+    logfileDir = _tcsrchr(logfilePath2, TEXT('/'));
+#endif
+    if (logfileDir && logfileRollMode != ROLL_MODE_NONE && logfileRollMode != ROLL_MODE_UNKNOWN) {
+        logfileDir[0] = TEXT('\0');
+        testLogfile = malloc((_tcslen(logfilePath2) + 22) * sizeof(TCHAR)); 
+        if (testLogfile) {
+#ifdef WIN32
+            _sntprintf(testLogfile, _tcslen(logfilePath2) + 22, TEXT("%s\\.wrapper_test-%.6d"), logfilePath2, rand());
+#else
+            _sntprintf(testLogfile, _tcslen(logfilePath2) + 22, TEXT("%s/.wrapper_test-%.6d"), logfilePath2, rand());
+#endif
+            if ((fd = _topen(testLogfile, O_WRONLY | O_CREAT | O_EXCL
+#ifdef WIN32
+, _S_IWRITE
+#endif 
+            )) == -1) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                     TEXT("The direcory %s seems not to be writeable,\n this will most likely cause problems when the wrapper wants to create or roll the log file.\n Please make sure the current user has write access to the directory."));
+            } else {
+#ifdef WIN32
+                _close(fd);
+#else
+                close(fd);
+#endif
+                if (_tremove(testLogfile)) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                     TEXT("Failed to remove the temporaly file %s.\n Please make sure the current user has the right permissions as log file rolling/purging\n might will not work properly. %s"), testLogfile, getLastErrorText());
+                }
+            }
+        }
+        free(testLogfile);
+    }
+
+
+    free(logfilePath2);
 
     /* Load log file format */
     setLogfileFormat(getStringProperty(properties, TEXT("wrapper.logfile.format"), TEXT("LPTM")));
@@ -5342,7 +5503,7 @@ int loadConfiguration() {
 
     /* Load syslog event source name */
     setSyslogEventSourceName(getStringProperty(properties, TEXT("wrapper.syslog.ident"), getStringProperty(properties, TEXT("wrapper.name"), getStringProperty(properties, TEXT("wrapper.ntservice.name"), TEXT("wrapper")))));
-    
+
     /* Register the syslog message file if syslog is enabled */
     if (getSyslogLevelInt() < LEVEL_NONE) {
         registerSyslogMessageFile();
@@ -5367,7 +5528,7 @@ int loadConfiguration() {
     if ((wrapperData->portMax < 1) || (wrapperData->portMax > 65535)) {
         wrapperData->portMax = __min(wrapperData->portMin + 999, 65535);
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-            TEXT("wrapper.port.min must be in the range 1-65535.  Changing to %d."), wrapperData->portMax);
+            TEXT("wrapper.port.max must be in the range 1-65535.  Changing to %d."), wrapperData->portMax);
     } else if (wrapperData->portMax < wrapperData->portMin) {
         wrapperData->portMax = __min(wrapperData->portMin + 999, 65535);
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
@@ -5705,7 +5866,7 @@ int wrapperLockTickMutex() {
         return TRUE;
     }
 #endif
-    
+
     return FALSE;
 }
 
