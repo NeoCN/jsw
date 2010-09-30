@@ -45,6 +45,7 @@ public final class WrapperProcessConfig
     private File m_defdir;
     private int m_startType;
     private Map m_environment;
+    private int m_softShutdownTimeout;
 
     private native String[] nativeGetEnv();
     private static native boolean isSupportedNative( int startType );
@@ -70,6 +71,7 @@ public final class WrapperProcessConfig
         m_defdir = null;
         m_startType = DYNAMIC;
         m_environment = null;
+        m_softShutdownTimeout = 5;
     }
 
     /*---------------------------------------------------------------
@@ -294,6 +296,37 @@ public final class WrapperProcessConfig
 
         return this;
     }
+
+    /**
+     * Sets the timeout for the soft shtudown in seconds.
+     * When WrapperProcess.destroy() is called the wrapper will first try to
+     * stop the application softly giving it time to stop itself properly.
+     * If the specified timeout however ellapsed, the Child Process will be 
+     * terminated by hard.
+     * If 0 was specified, the wrapper will instantly force the termination.
+     * If -1 was specified, the wrapper will wait indefinitely for the child
+     * to perform the stop.
+     * The default value of this property is 5 - giving a process 5 sec to 
+     * react on the shutdown request.
+     *
+     * @param softShutdownTimeout The max timeout for an application to stop, before 
+     *                            killing forcibly
+     *
+     * @return This configration to allow chaining.
+     *
+     * @throws IllegalArgumentException If the value of the specified timeout is invalid.
+     */
+    public WrapperProcessConfig setSoftShutdownTimeout( int softShutdownTimeout )
+        throws IOException
+    {
+        if ( softShutdownTimeout < -1 ) {
+            throw new IllegalArgumentException( WrapperManager.getRes().getString( "{0} is not a valid value for a timeout.", 
+                                   new Integer ( softShutdownTimeout ) ) );
+        }
+        m_softShutdownTimeout = softShutdownTimeout;
+        return this;
+    }
+
 
     /*---------------------------------------------------------------
      * Private Methods

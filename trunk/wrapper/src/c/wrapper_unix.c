@@ -1465,7 +1465,7 @@ int setWorkingDir(TCHAR *app) {
 /*******************************************************************************
  * Main function                                                               *
  *******************************************************************************/
-
+#ifndef CUNIT
 #ifdef UNICODE
 int main(int argc, char **cargv) {
 #else
@@ -1572,8 +1572,9 @@ int main(int argc, char **argv) {
         appExit(0);
         return 0; /* For compiler. */
     }
+
     /* Load the properties. */
-    if (wrapperLoadConfigurationProperties()) {
+    if (wrapperLoadConfigurationProperties(FALSE)) {
         /* Unable to load the configuration.  Any errors will have already
          *  been reported. */
         if (wrapperData->argConfFileDefault && !wrapperData->argConfFileFound) {
@@ -1588,7 +1589,7 @@ int main(int argc, char **argv) {
     /* Set the default umask of the Wrapper process. */
     umask(wrapperData->umask);
 
-    if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("c")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-console"))) {
+    if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("c")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-console"))) {
         /* Run as a console application */
 
         /* fork to a Daemonized process if configured to do so. */
@@ -1603,34 +1604,35 @@ int main(int argc, char **argv) {
             /* Get the current process. */
             wrapperData->wrapperPID = getpid();
 
-            if (wrapperData->isDebugging) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Reloading configuration after daemonization."));
-            }
+        if (wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Reloading configuration."));
+        }
 
-            /* If the working dir has been changed then we need to restore it before
-             *  the configuration can be reloaded.  This is needed to support relative
-             *  references to include files. */
-            if (wrapperData->workingDir && wrapperData->originalWorkingDir) {
-                if (wrapperSetWorkingDir(wrapperData->originalWorkingDir)) {
-                    /* Failed to restore the working dir.  Shutdown the Wrapper */
-                    appExit(1);
-                    return 1; /* For compiler. */
-                }
-            }
-
-            /* Load the properties. */
-            if (wrapperLoadConfigurationProperties()) {
-                /* Unable to load the configuration.  Any errors will have already
-                 *  been reported. */
-                if (wrapperData->argConfFileDefault && !wrapperData->argConfFileFound) {
-                    /* The config file that was being looked for was default and
-                     *  it did not exist.  Show the usage. */
-                    wrapperUsage(argv[0]);
-                }
+        /* If the working dir has been changed then we need to restore it before
+         *  the configuration can be reloaded.  This is needed to support relative
+         *  references to include files. */
+        if (wrapperData->workingDir && wrapperData->originalWorkingDir) {
+            if (wrapperSetWorkingDir(wrapperData->originalWorkingDir)) {
+                /* Failed to restore the working dir.  Shutdown the Wrapper */
                 appExit(1);
                 return 1; /* For compiler. */
             }
         }
+
+        /* Load the properties. */
+        if (wrapperLoadConfigurationProperties(FALSE)) {
+            /* Unable to load the configuration.  Any errors will have already
+             *  been reported. */
+            if (wrapperData->argConfFileDefault && !wrapperData->argConfFileFound) {
+                /* The config file that was being looked for was default and
+                 *  it did not exist.  Show the usage. */
+                wrapperUsage(argv[0]);
+            }
+            appExit(1);
+            return 1; /* For compiler. */
+        }
+        }
+
 
         /* See if the logs should be rolled on Wrapper startup. */
         if ((getLogfileRollMode() & ROLL_MODE_WRAPPER) ||
@@ -1680,5 +1682,6 @@ int main(int argc, char **argv) {
         return 1; /* For compiler. */
     }
 }
+#endif
 
 #endif /* ifndef WIN32 */

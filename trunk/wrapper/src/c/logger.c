@@ -70,14 +70,6 @@ typedef long intptr_t;
 #include "wrapper_i18n.h"
 #include "logger.h"
 
-/*
-There is a bug in gettext when using fprintf on Windows causing an Access violation.
-To avoid that we need to release the fprintf substitution of gettext, "libintl_fprintf"...
-*//*
-#ifdef WIN32
-#undef fprintf
-#endif*/
-
 #ifndef TRUE
 #define TRUE -1
 #endif
@@ -1944,7 +1936,7 @@ void setUptime(int uptime, int flipped) {
     uptimeFlipped = flipped;
 }
 
-
+int rollFailure = FALSE;
 /**
  * Rolls log files using the ROLLNUM system.
  */
@@ -2010,7 +2002,10 @@ void rollLogs() {
                 } else if (getLastError() == 3) {
                     /* The path did not exist. */
                 } else {
-                    _tprintf(TEXT("Unable to delete old log file: %s (%s)\n"), workLogFileName, getLastErrorText());
+                    if (rollFailure == FALSE) {
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to delete old log file: %s (%s)\n"), workLogFileName, getLastErrorText());
+                    }
+                    rollFailure = TRUE;
                 }
             }
 #ifdef _DEBUG
@@ -2020,15 +2015,19 @@ void rollLogs() {
 #endif
         } else {
             if (_trename(workLogFileName, currentLogFileName) != 0) {
-                if (errno == 13) {
-                    /* Don't log this as with other errors as that would cause recursion. */
-                    _tprintf(TEXT("Unable to rename log file %s to %s.  File is in use by another application.\n"),
-                        workLogFileName, currentLogFileName);
-                } else {
-                    /* Don't log this as with other errors as that would cause recursion. */
-                    _tprintf(TEXT("Unable to rename log file %s to %s. (%s)\n"),
+                if (rollFailure == FALSE) {
+                    if (errno == 13) {
+                        /* Don't log this as with other errors as that would cause recursion. */
+                            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to rename log file %s to %s.  File is in use by another application.\n"),
+                            workLogFileName, currentLogFileName);
+                    } else {
+                        /* Don't log this as with other errors as that would cause recursion. */
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to rename log file %s to %s. (%s)\n"),
                         workLogFileName, currentLogFileName, getLastErrorText());
-                }
+                    }
+                } 
+                rollFailure = TRUE;
+                generateLogFileName(currentLogFileName, logFilePath, NULL, NULL);      
                 return;
             }
 #ifdef _DEBUG
@@ -2042,21 +2041,25 @@ void rollLogs() {
     /* Rename the current file to the #1 index position */
     generateLogFileName(currentLogFileName, logFilePath, NULL, NULL);
     if (_trename(currentLogFileName, workLogFileName) != 0) {
-        if (getLastError() == 2) {
-            /* File does not yet exist. */
-        } else if (getLastError() == 3) {
-            /* Path does not yet exist. */
-        } else if (errno == 13) {
-            /* Don't log this as with other errors as that would cause recursion. */
-            _tprintf(TEXT("Unable to rename log file %s to %s.  File is in use by another application.\n"),
-                currentLogFileName, workLogFileName);
-            return;
-        } else {
-            /* Don't log this as with other errors as that would cause recursion. */
-            _tprintf(TEXT("Unable to rename log file %s to %s. (%s)\n"),
+        if (rollFailure == FALSE) {
+            if (getLastError() == 2) {
+                 /* File does not yet exist. */
+            } else if (getLastError() == 3) {
+                /* Path does not yet exist. */
+            } else if (errno == 13) {
+                /* Don't log this as with other errors as that would cause recursion. */
+                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, 
+                        TEXT("Unable to rename log file %s to %s.  File is in use by another application.\n"),
+                    currentLogFileName, workLogFileName);
+            } else {
+                /* Don't log this as with other errors as that would cause recursion. */
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to rename log file %s to %s. (%s)\n"),
                 currentLogFileName, workLogFileName, getLastErrorText());
-            return;
+            } 
         }
+        rollFailure = TRUE;
+        /* Reset the current log file name as it is not being used yet. */
+        return;
     }
 #ifdef _DEBUG
     else {
@@ -2070,9 +2073,13 @@ void rollLogs() {
             limitLogFileCount(currentLogFileName, logFilePurgePattern, logFilePurgeSortMode, logFileMaxLogFiles + 1);
         }
     }
-
+    if (rollFailure == TRUE) {
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+            TEXT("Logfile rolling is working again."));
+    }
+    rollFailure = FALSE;
     /* Reset the current log file name as it is not being used yet. */
-    currentLogFileName[0] = TEXT('\0');
+    /*currentLogFileName[0] = TEXT('\0');*/
 }
 
 /**

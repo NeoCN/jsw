@@ -43,6 +43,7 @@
 #include <time.h>
 #include <windows.h>
 #include <winnt.h>
+#include <Sddl.h>
 #include <sys/timeb.h>
 #include <conio.h>
 #include <DbgHelp.h>
@@ -99,7 +100,6 @@ typedef SERVICE_STATUS_HANDLE(*FTRegisterServiceCtrlHandlerEx)(LPCTSTR, LPHANDLE
 FARPROC OptionalGetProcessTimes = NULL;
 FARPROC OptionalGetProcessMemoryInfo = NULL;
 FTRegisterServiceCtrlHandlerEx OptionalRegisterServiceCtrlHandlerEx = NULL;
-
 
 /******************************************************************************
  * Windows specific code
@@ -832,6 +832,92 @@ int initializeWinSock() {
     }
 
     return 0;
+}
+
+/**
+ * Collects the current process's username and domain name.
+ *
+ * @return TRUE if there were any problems.
+ */
+int collectUserInfo() {
+    int result;
+    
+    DWORD processId;
+    HANDLE hProcess;
+    HANDLE hProcessToken;
+    TOKEN_USER *tokenUser;
+    DWORD tokenUserSize;
+
+    TCHAR *sidText;
+    DWORD userNameSize;
+    DWORD domainNameSize;
+    SID_NAME_USE sidType;
+    
+    processId = wrapperData->wrapperPID;
+    wrapperData->userName = NULL;
+    wrapperData->domainName = NULL;
+    
+    if (hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, processId)) {
+        if (OpenProcessToken(hProcess, TOKEN_QUERY, &hProcessToken)) {
+            GetTokenInformation(hProcessToken, TokenUser, NULL, 0, &tokenUserSize);
+            tokenUser = (TOKEN_USER *)malloc(tokenUserSize);
+            if (!tokenUser) {
+                outOfMemory(TEXT("CUI"), 1);
+                result = TRUE;
+            } else {
+                if (GetTokenInformation(hProcessToken, TokenUser, tokenUser, tokenUserSize, &tokenUserSize)) {
+                    /* Get the text representation of the sid. */
+                    if (ConvertSidToStringSid(tokenUser->User.Sid, &sidText) == 0) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Failed to Convert SId to String: %s"), getLastErrorText());
+                        result = TRUE;
+                    } else {
+                        /* We now have an SID, use it to lookup the account. */
+                        userNameSize = 0;
+                        domainNameSize = 0;
+                        LookupAccountSid(NULL, tokenUser->User.Sid, NULL, &userNameSize, NULL, &domainNameSize, &sidType);
+                        wrapperData->userName = (TCHAR*)malloc(sizeof(TCHAR) * userNameSize);
+                        if (!wrapperData->userName) {
+                            outOfMemory(TEXT("CUI"), 2);
+                            result = TRUE;
+                        } else {
+                            wrapperData->domainName = (TCHAR*)malloc(sizeof(TCHAR) * domainNameSize);
+                            if (!wrapperData->domainName) {
+                                outOfMemory(TEXT("CUI"), 3);
+                                result = TRUE;
+                            } else {
+                                if (LookupAccountSid(NULL, tokenUser->User.Sid, wrapperData->userName, &userNameSize, wrapperData->domainName, &domainNameSize, &sidType)) {
+                                    /* Success. */
+                                    result = FALSE;
+                                } else {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to get the current username and domain: %s"), getLastErrorText());
+                                    result = TRUE;
+                                }
+                            }
+                        }
+
+                        LocalFree(sidText);
+                    }
+                } else {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to get token information: %s"), getLastErrorText());
+                    result = TRUE;
+                }
+
+                free(tokenUser);
+            }
+
+            CloseHandle(hProcessToken);
+        } else {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to open process token: %s"), getLastErrorText());
+            result = TRUE;
+        }
+
+        CloseHandle(hProcess);
+    } else {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to open process: %s"), getLastErrorText());
+        result = TRUE;
+    }
+    
+    return result;
 }
 
 /**
@@ -1779,10 +1865,16 @@ void wrapperMaintainControlCodes() {
         quit = TRUE;
     }
     
-    /* Last control code. */
-    ctrlCodeLast = wrapperData->ctrlCodeLast;
-    if (ctrlCodeLast) {
-        wrapperData->ctrlCodeLast = 0;
+    /* Queued control codes. */
+    while (wrapperData->ctrlCodeQueueReadIndex != wrapperData->ctrlCodeQueueWriteIndex) {
+        ctrlCodeLast = wrapperData->ctrlCodeQueue[wrapperData->ctrlCodeQueueReadIndex];
+//#ifdef _DEBUG
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Process queued control code: %d (r:%d w:%d)"), ctrlCodeLast, wrapperData->ctrlCodeQueueReadIndex, wrapperData->ctrlCodeQueueWriteIndex);
+//#endif
+        wrapperData->ctrlCodeQueueReadIndex++;
+        if (wrapperData->ctrlCodeQueueReadIndex >= CTRL_CODE_QUEUE_SIZE ) {
+            wrapperData->ctrlCodeQueueReadIndex = 0;
+        }
         
         _sntprintf(buffer, 11, TEXT("%d"), ctrlCodeLast);
         wrapperProtocolFunction(WRAPPER_MSG_SERVICE_CONTROL_CODE, buffer);
@@ -1891,8 +1983,6 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
                                             LPVOID lpEvtData,
                                             LPVOID lpCntxt) {
     
-    int ctrlCodeLast;
-
     DWORD result = result = NO_ERROR;
 
     /* Forward the control code off to the JVM. */
@@ -2005,14 +2095,21 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
             }
         }
 
-        /* Forward the control code off to the JVM.  If we get more than one control code in rapid succession,
-         *  the first could get overwritten.  If this happens, make sure that we at least log it.  If this turns
-         *  out to be a problem then we will need to implement something more complicated. */
-        ctrlCodeLast = wrapperData->ctrlCodeLast;
-        if (ctrlCodeLast) {
-            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Previous control code (%d) was still in queue, overwriting with (%d)."), ctrlCodeLast, controlCode);
+        /* Forward the control code off to the JVM.  Write the signals into a rotating queue so we can process more than one per loop. */
+        if ((wrapperData->ctrlCodeQueueWriteIndex == wrapperData->ctrlCodeQueueReadIndex - 1) || ((wrapperData->ctrlCodeQueueWriteIndex == CTRL_CODE_QUEUE_SIZE - 1) && (wrapperData->ctrlCodeQueueReadIndex == 0))) {
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Control code queue overflow %d:%d dropping control code: %d\n"), wrapperData->ctrlCodeQueueWriteIndex, wrapperData->ctrlCodeQueueReadIndex, controlCode);
+        } else {
+//#ifdef _DEBUG
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Enqueue control code: %d (r:%d w:%d)"), controlCode, wrapperData->ctrlCodeQueueReadIndex, wrapperData->ctrlCodeQueueWriteIndex);
+//#endif
+            wrapperData->ctrlCodeQueue[wrapperData->ctrlCodeQueueWriteIndex] = controlCode;
+            
+            wrapperData->ctrlCodeQueueWriteIndex++;
+            if (wrapperData->ctrlCodeQueueWriteIndex >= CTRL_CODE_QUEUE_SIZE) {
+                wrapperData->ctrlCodeQueueWriteIndex = 0;
+                wrapperData->ctrlCodeQueueWrapped = TRUE;
+            }
         }
-        wrapperData->ctrlCodeLast = controlCode;
 
         switch(dwCtrlCode) {
         case SERVICE_CONTROL_PAUSE:
@@ -2578,10 +2675,10 @@ int buildServiceBinaryPath(TCHAR *buffer, size_t *reqBufferSize) {
  *  can be located at runtime.
  */
 int wrapperInstall() {
-    SC_HANDLE   schService;
-    SC_HANDLE   schSCManager;
-    DWORD       serviceType;
-    DWORD       startType;
+    SC_HANDLE schService;
+    SC_HANDLE schSCManager;
+    DWORD serviceType;
+    DWORD startType;
     size_t binaryPathSize;
     TCHAR *binaryPath;
     int result = 0;
@@ -2591,7 +2688,10 @@ int wrapperInstall() {
     TCHAR account[ 1024 ];
     TCHAR *tempAccount;
     TCHAR *ntServicePassword;
-    DWORD dsize = 1024;
+    DWORD dsize = 1024, dwDesiredAccess;
+
+    /* Initialization */
+    dwDesiredAccess = 0;
 
     /* Generate the service binary path.  We need to figure out how big the buffer needs to be. */
     if (buildServiceBinaryPath(NULL, &binaryPathSize)) {
@@ -2627,6 +2727,7 @@ int wrapperInstall() {
 
         tempAccount = malloc((_tcslen(domain) + _tcslen(account) + 2) * sizeof(TCHAR));
         if (!tempAccount) {
+            outOfMemory(TEXT("WI"), 2);
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to install the %s service"), wrapperData->serviceDisplayName);
             free(binaryPath);
             return 1;
@@ -2653,22 +2754,12 @@ int wrapperInstall() {
         serviceType = SERVICE_WIN32_OWN_PROCESS;
     }
 
-
-    /* elevate the process*/
-    /*if (!isElevated()){
-
-        runElevated( binaryPath  , parameter , NULL);
-      //  _tprintf(TEXT("bin %s/t para %s\n") , binaryPath, parameter);fflush(NULL);
-       return 0;
-
-    }*/
-
     /* Next, get a handle to the service control manager */
     schSCManager = OpenSCManager(
-                                 NULL,
-                                 NULL,
-                                 SC_MANAGER_CONNECT | SC_MANAGER_CREATE_SERVICE
-                                 );
+            NULL,
+            NULL,
+            SC_MANAGER_CONNECT | SC_MANAGER_CREATE_SERVICE
+    );
 
     if (schSCManager) {
         /* Make sure that an empty length password is null. */
@@ -2679,50 +2770,53 @@ int wrapperInstall() {
 
         startType = wrapperData->ntServiceStartType;
 
-        schService = CreateService(schSCManager,                       /* SCManager database */
-                                   wrapperData->serviceName,           /* name of service */
-                                   wrapperData->serviceDisplayName,    /* name to display */
-                                   0,                                  /* desired access */
-                                   serviceType,                        /* service type */
-                                   startType,                          /* start type */
-                                   SERVICE_ERROR_NORMAL,               /* error control type */
-                                   binaryPath,                         /* service's binary */
-                                   wrapperData->ntServiceLoadOrderGroup, /* load ordering group */
-                                   NULL,                               /* tag identifier not used because they are used for driver level services. */
-                                   wrapperData->ntServiceDependencies, /* dependencies */
-                                   wrapperData->ntServiceAccount,      /* LocalSystem account if NULL */
-                                   ntServicePassword);                 /* NULL or empty for no password */
+        if (result != 1) {
+            schService = CreateService(schSCManager, /* SCManager database */
+                    wrapperData->serviceName, /* name of service */
+                    wrapperData->serviceDisplayName, /* name to display */
+                    dwDesiredAccess, /* desired access */
+                    serviceType, /* service type */
+                    startType, /* start type */
+                    SERVICE_ERROR_NORMAL, /* error control type */
+                    binaryPath, /* service's binary */
+                    wrapperData->ntServiceLoadOrderGroup, /* load ordering group */
+                    NULL, /* tag identifier not used because they are used for driver level services. */
+                    wrapperData->ntServiceDependencies, /* dependencies */
+                    wrapperData->ntServiceAccount, /* LocalSystem account if NULL */
+                    ntServicePassword); /* NULL or empty for no password */
 
-        if (schService) {
-            /* Have the service, add a description to the registry. */
-            _sntprintf(regPath, 1024, TEXT("SYSTEM\\CurrentControlSet\\Services\\%s"), wrapperData->serviceName);
-            if ((wrapperData->serviceDescription != NULL && _tcslen(wrapperData->serviceDescription) > 0)
-                && (RegOpenKeyEx(HKEY_LOCAL_MACHINE, regPath, 0, KEY_WRITE, (PHKEY) &hKey) == ERROR_SUCCESS)) {
+            if (schService) {
+                /* Have the service, add a description to the registry. */
+                _sntprintf(regPath, 1024, TEXT("SYSTEM\\CurrentControlSet\\Services\\%s"), wrapperData->serviceName);
+                if ((wrapperData->serviceDescription != NULL && _tcslen(wrapperData->serviceDescription) > 0)
+                        && (RegOpenKeyEx(HKEY_LOCAL_MACHINE, regPath, 0, KEY_WRITE, (PHKEY) &hKey) == ERROR_SUCCESS)) {
 
-                /* Set Description key in registry */
-                RegSetValueEx(hKey, TEXT("Description"), (DWORD) 0, (DWORD) REG_SZ,
-                    (LPBYTE)wrapperData->serviceDescription,
-                    (int)(sizeof(TCHAR) * (_tcslen(wrapperData->serviceDescription) + 1)));
-                RegCloseKey(hKey);
+                    /* Set Description key in registry */
+                    RegSetValueEx(hKey, TEXT("Description"), (DWORD) 0, (DWORD) REG_SZ,
+                            (LPBYTE)wrapperData->serviceDescription,
+                            (int)(sizeof(TCHAR) * (_tcslen(wrapperData->serviceDescription) + 1)));
+                    RegCloseKey(hKey);
+                }
+
+                if (result !=1) {
+                    /* Service was installed. */
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s service installed."),
+                            wrapperData->serviceDisplayName);
+                }
+                /* Close the handle to this service object */
+                CloseServiceHandle(schService);
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to install the %s service - %s"),
+                        wrapperData->serviceDisplayName, getLastErrorText());
+                result = 1;
             }
 
-            /* Service was installed. */
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s service installed."),
-                wrapperData->serviceDisplayName);
-
-            /* Close the handle to this service object */
-            CloseServiceHandle(schService);
-        } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to install the %s service - %s"),
-                wrapperData->serviceDisplayName, getLastErrorText());
-            result = 1;
+            /* Close the handle to the service control manager database */
+            CloseServiceHandle(schSCManager);
         }
-
-        /* Close the handle to the service control manager database */
-        CloseServiceHandle(schSCManager);
     } else {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to install the %s service - %s"),
-            wrapperData->serviceDisplayName, getLastErrorText());
+                wrapperData->serviceDisplayName, getLastErrorText());
         if (isVista() && !isElevated()) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Performing this action requires that you run as an elevated process."));
         }
@@ -3021,7 +3115,7 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const TCHAR *regPath, int app
  * Return TRUE if there were any problems.
  */
 int wrapperLoadEnvFromRegistry() {
-    TCHAR *username;
+    TCHAR *username, *hostNameDS;
     
     /* We can't access any properties here as they are not yet loaded when called. */
     /* Always load in the system wide variables. */
@@ -3029,15 +3123,25 @@ int wrapperLoadEnvFromRegistry() {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Loading System environment variables from Registry:"));
 #endif
     
+    hostNameDS = malloc(sizeof(TCHAR) * (_tcslen(wrapperData->hostName) + 2));
+
+    if (!hostNameDS) {
+        outOfMemory(TEXT("WLEFR"), 1);
+        return TRUE;
+    }
+    _sntprintf(hostNameDS, _tcslen(wrapperData->hostName) + 2, TEXT("%s$"), wrapperData->hostName);
+
     /* Determine whether or not we are the SYSTEM user. */
     username = _tgetenv(TEXT("USERNAME"));
-    if ((username == NULL) || (strcmpIgnoreCase(TEXT("[HOST]$"), username) == 0)) {
-        /* On Windows 7, the USERNAME is set to "[HOST]$" when running as a service.  It is NULL on older versions of Windows. */
+    if ((username == NULL) || (strcmpIgnoreCase(hostNameDS, username) == 0)) {
+        free(hostNameDS);
+        /* On Windows 7, the USERNAME is set to the host name when running as a service.  It is NULL on older versions of Windows. */
         /* As we are the SYSTEM user, we only want to load in the SYSTEM environment variables. */
         if (wrapperLoadEnvFromRegistryInner(HKEY_LOCAL_MACHINE, TEXT("SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment\\"), FALSE, ENV_SOURCE_REG_SYSTEM, TRUE)) {
             return TRUE;
         }
     } else {
+        free(hostNameDS);
         /* As we are not the SYSTEM user, we want to first load in the SYSTEM environment variables, and then the user environment.
          *  But we want to skip over the USER related variables from the SYSTEM environment. */
         if (wrapperLoadEnvFromRegistryInner(HKEY_LOCAL_MACHINE, TEXT("SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment\\"), FALSE, ENV_SOURCE_REG_SYSTEM, FALSE)) {
@@ -4330,6 +4434,7 @@ int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers) {
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
+#ifndef CUNIT
 void _tmain(int argc, TCHAR **argv) {
     int result;
 #ifdef _DEBUG
@@ -4375,6 +4480,11 @@ void _tmain(int argc, TCHAR **argv) {
         }
 
         if (setWorkingDir()) {
+            appExit(1);
+            return; /* For clarity. */
+        }
+        
+        if (collectUserInfo()) {
             appExit(1);
             return; /* For clarity. */
         }
@@ -4427,7 +4537,8 @@ void _tmain(int argc, TCHAR **argv) {
         }
 
         /* Load the properties. */
-        if (wrapperLoadConfigurationProperties()) {
+        if (
+            wrapperLoadConfigurationProperties(FALSE)) {
             /* Unable to load the configuration.  Any errors will have already
              *  been reported. */
             if (wrapperData->argConfFileDefault && !wrapperData->argConfFileFound) {
@@ -4441,6 +4552,9 @@ void _tmain(int argc, TCHAR **argv) {
 
         /* Set the default umask of the Wrapper process. */
         _umask(wrapperData->umask);
+        
+        /* Log who we are. */
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Current User: %s  Domain: %s"), (wrapperData->userName ? wrapperData->userName : TEXT("N/A")), (wrapperData->domainName ? wrapperData->domainName : TEXT("N/A")));
         
         /* Perform the specified command */
         if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("i")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-install"))) {
@@ -4656,6 +4770,8 @@ void _tmain(int argc, TCHAR **argv) {
         return; /* For clarity. */
     }
 }
+#endif
+
 BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParameters, LPCTSTR pszDirectory) {
 
     SHELLEXECUTEINFO shex;

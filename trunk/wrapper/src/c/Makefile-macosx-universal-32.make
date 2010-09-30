@@ -8,8 +8,10 @@
 # http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
 
 UNIVERSAL_SDK_HOME=/Developer/SDKs/MacOSX10.5.sdk
-COMPILE = gcc -O3 -Wall -DUSE_NANOSLEEP -DMACOSX -arch ppc -arch i386 -isysroot $(UNIVERSAL_SDK_HOME) -mmacosx-version-min=10.4 -DUNICODE -D_UNICODE
-#COMPILE = gcc -ggdb -O1 -Wall -DUSE_NANOSLEEP -DMACOSX -DVALGRIND -isysroot $(UNIVERSAL_SDK_HOME) -mmacosx-version-min=10.4 -DUNICODE -D_UNICODE
+INCLUDE = -I/opt/local/include 
+COMPILE = gcc -O3 -Wall -DUSE_NANOSLEEP -DMACOSX -arch ppc -arch i386 -isysroot $(UNIVERSAL_SDK_HOME) $(INCLUDE) -mmacosx-version-min=10.4 -DUNICODE -D_UNICODE
+COMPILET = gcc -O3 -Wall -DUSE_NANOSLEEP -DMACOSX -isysroot $(UNIVERSAL_SDK_HOME) $(INCLUDE) -mmacosx-version-min=10.4 -DUNICODE -D_UNICODE
+#COMPILE = gcc -ggdb -O1 -Wall -DUSE_NANOSLEEP -DMACOSX -DVALGRIND -isysroot $(UNIVERSAL_SDK_HOME) $(INCLUDE) -mmacosx-version-min=10.4 -DUNICODE -D_UNICODE
 # To debug:
 # 1) Add "-ggdb"
 # 2) Remove "-arch ppc -arch i386"
@@ -17,14 +19,14 @@ COMPILE = gcc -O3 -Wall -DUSE_NANOSLEEP -DMACOSX -arch ppc -arch i386 -isysroot 
 
 DEFS = -I$(UNIVERSAL_SDK_HOME)/System/Library/Frameworks/JavaVM.framework/Headers
 
-wrapper_SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c wrapper_file.c wrapper_i18n.c
+wrapper_SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c wrapper_file.c wrapper_i18n.c test.c
 
 libwrapper_so_OBJECTS = wrapper_i18n.o wrapperjni_unix.o wrapperinfo.o wrapperjni.o
 
 BIN = ../../bin
 LIB = ../../lib
 
-all: init wrapper libwrapper.jnilib
+all: init testsuite wrapper libwrapper.jnilib
 
 clean:
 	rm -f *.o
@@ -41,6 +43,9 @@ wrapper: $(wrapper_SOURCE)
 
 libwrapper.jnilib: $(libwrapper_so_OBJECTS)
 	$(COMPILE) -bundle -liconv -o $(LIB)/libwrapper.jnilib $(libwrapper_so_OBJECTS)
+
+testsuite: $(wrapper_SOURCE)
+	$(COMPILET) -DCUNIT $(wrapper_SOURCE) -liconv -lncurses -lcunit -o $(TEST)/testsuite
 
 %.o: %.c
 	$(COMPILE) -c $(DEFS) $<

@@ -288,9 +288,6 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
         } else {
             /* Out of memory. *outputBufferW already NULL. */
         }
-        if (didIConv) {
-            free(nativeCharStart);
-        }
         return TRUE;
     }
     *outputBufferW = malloc(sizeof(wchar_t) * (wideCharLen + 1));

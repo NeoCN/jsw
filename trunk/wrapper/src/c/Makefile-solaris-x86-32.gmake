@@ -6,8 +6,8 @@
 # You shall use it only in accordance with the terms of the
 # license agreement you entered into with Tanuki Software.
 # http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
-
-COMPILE = gcc -O3 -Wall --pedantic -DSOLARIS -liconv -DUNICODE -D_UNICODE
+# gcc -O3 -Wall --pedantic -DSOLARIS -liconv -DUNICODE -D_UNICODE
+COMPILE = /opt/SUNWspro/bin/cc -Kpic -O -DSOLARIS -DUNICODE -D_UNICODE
 
 INCLUDE=$(JAVA_HOME)/include
 

@@ -626,6 +626,17 @@ int getEncodingByName(char* encodingMB, char** encoding) {
 #else
         *encoding = "KOI8-U";
 #endif
+    } else if (strIgnoreCaseCmp(encodingMB, "DEFAULT") == 0) {
+#ifdef WIN32
+            *encoding = GetACP();
+#else 
+            *encoding = nl_langinfo(CODESET);
+ #ifdef MACOSX
+            if (strlen(*encoding) == 0) {
+                *encoding = "UTF-8";
+            }
+ #endif
+#endif
     } else {
         return TRUE;
     }
@@ -641,7 +652,7 @@ int getEncodingByName(char* encodingMB, char** encoding) {
  *
  * @return TRUE if there are any problems.   FALSE if all is OK.
  */
-int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileRequired, int depth, const TCHAR* parentFilename, int parentLineNumber) {
+int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileRequired, int depth, const TCHAR* parentFilename, int parentLineNumber, int preload) {
     FILE *stream;
     char bufferMB[MAX_PROPERTY_NAME_VALUE_LENGTH];
     TCHAR expBuffer[MAX_PROPERTY_NAME_VALUE_LENGTH];
@@ -672,7 +683,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
 #endif
 
 #ifdef _DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("loadPropertiesInner(props, '%s', %d, %d, '%s', %d)"), filename, fileRequired, depth, (parentFilename ? parentFilename : TEXT("<NULL>")), parentLineNumber);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("loadPropertiesInner(props, '%s', %d, %d, '%s', %d %d)"), filename, fileRequired, depth, (parentFilename ? parentFilename : TEXT("<NULL>")), parentLineNumber, preload);
 #endif
 
     /* Look for the specified file. */
@@ -695,14 +706,16 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
         return TRUE;
     }
     if (properties->debugIncludes) {
-        if (depth > 0) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                TEXT("  Loading included configuration file, %s"), filename);
-        } else {
-            /* Will not actually get here because the debug includes can't be set until it is loaded.
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                TEXT("Loading configuration file, %s"), filename);
-            */
+        if (!preload) {
+            if (depth > 0) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    TEXT("  Loading included configuration file, %s"), filename);
+            } else {
+                /* Will not actually get here because the debug includes can't be set until it is loaded.
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    TEXT("Loading configuration file, %s"), filename);
+                */
+            }
         }
     }
 
@@ -771,6 +784,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     TEXT("Configuration file, %s, was not found."), filename);
             }
+
         } else {
 #ifdef _DEBUG
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Properties file not found: %s"), filename);
@@ -885,7 +899,11 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
             if (_tcslen(trimmedBuffer) > 0) {
                 if (strcmpIgnoreCase(trimmedBuffer, TEXT("#include.debug")) == 0) {
                     /* Enable include file debugging. */
-                    properties->debugIncludes = TRUE;
+                    if (preload == FALSE) {
+                        properties->debugIncludes = TRUE;
+                    } else {
+                        properties->debugIncludes = FALSE;
+                    }
                 } else if ((_tcsstr(trimmedBuffer, TEXT("#include ")) == trimmedBuffer) || (_tcsstr(trimmedBuffer, TEXT("#include.required ")) == trimmedBuffer)) {
                     if (_tcsstr(trimmedBuffer, TEXT("#include.required ")) == trimmedBuffer) {
                         /* The include file is required. */
@@ -960,7 +978,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
                         }
 #endif
                         if (absoluteBuffer) {
-                            if (loadPropertiesInner(properties, absoluteBuffer, includeRequired, depth + 1, filename, lineNumber)) {
+                            if (loadPropertiesInner(properties, absoluteBuffer, includeRequired, depth + 1, filename, lineNumber, preload)) {
                                 if (includeRequired) {
                                     /* Include file was required, but we failed to load it. */
                                     readFailed = TRUE;
@@ -977,8 +995,10 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
                         }
                     }
                 } else if (strcmpIgnoreCase(trimmedBuffer, TEXT("#properties.debug")) == 0) {
+                    if (!preload) {
                     /* Enable property debugging. */
-                    properties->debugProperties = TRUE;
+                        properties->debugProperties = TRUE;
+                    }
                 } else if (_tcsstr(trimmedBuffer, TEXT("include")) == trimmedBuffer) {
                     /* Users sometimes remove the '#' from include statements.  Add a warning to help them notice the problem. */
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
@@ -1008,7 +1028,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
     return readFailed;
 }
 
-int loadProperties(Properties *properties, const TCHAR* filename) {
+int loadProperties(Properties *properties, const TCHAR* filename, int preload) {
     /* Store the time that the property file began to be loaded. */
     #ifdef WIN32
     struct _timeb timebNow;
@@ -1028,7 +1048,7 @@ int loadProperties(Properties *properties, const TCHAR* filename) {
     nowTM = localtime(&now);
     memcpy(&loadPropertiesTM, nowTM, sizeof(struct tm));
 
-    return loadPropertiesInner(properties, filename, TRUE, 0, NULL, 0);
+    return loadPropertiesInner(properties, filename, !preload, 0, NULL, 0, preload);
 }
 
 Properties* createProperties() {

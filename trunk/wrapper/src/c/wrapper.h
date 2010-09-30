@@ -180,6 +180,10 @@ typedef unsigned long TICKS;
 #define WRAPPER_ENV_SOURCE_REG_ACCOUNT 8
 #endif
 
+#ifdef WIN32
+/* Defines the maximum number of service manager control events that can be queued in a single loop. */
+#define CTRL_CODE_QUEUE_SIZE 10
+#endif
 
 /* Type definitions */
 typedef struct WrapperConfig WrapperConfig;
@@ -193,7 +197,6 @@ struct WrapperConfig {
     TCHAR**  argValues;              /* Argument values. */
     TCHAR**  javaArgValues;          /* Arguments getting passed over to the java application */
     int      javaArgValueCount;      /* Number of the arguments getting passed over to the java application */
-
 
     TCHAR*   language;               /* The language */
     int     configured;             /* TRUE if loadConfiguration has been called. */
@@ -239,6 +242,8 @@ struct WrapperConfig {
 
 #ifdef WIN32
     int     ignoreUserLogoffs;      /* If TRUE, the Wrapper will ignore logoff events when run in the background as an in console mode. */
+    TCHAR   *userName;              /* The username (account) of the Wrapper process. */
+    TCHAR   *domainName;            /* The domain of the Wrapper process. */
     DWORD   wrapperPID;             /* PID of the Wrapper process. */
     DWORD   javaPID;                /* PID of the Java process. */
     HANDLE  wrapperProcess;         /* Handle of the Wrapper process. */
@@ -287,20 +292,20 @@ struct WrapperConfig {
     int     successfulInvocationTime;/* Amount of time that a new JVM must be running so that the invocation will be considered to have been a success, leading to a reset of the restart count. */
     int     maxFailedInvocations;   /* Maximum number of failed invocations in a row before the Wrapper will give up and exit. */
     int     outputFilterCount;      /* Number of registered output filters. */
-    TCHAR**  outputFilters;          /* Array of output filters. */
+    TCHAR** outputFilters;          /* Array of output filters. */
     int**   outputFilterActionLists;/* Array of output filter action lists. */
-    TCHAR**  outputFilterMessages;   /* Array of output filter messages. */
-    TCHAR    *pidFilename;           /* Name of file to store wrapper pid in */
-    TCHAR    *lockFilename;          /* Name of file to store wrapper lock in */
-    TCHAR    *javaPidFilename;       /* Name of file to store jvm pid in */
-    TCHAR    *javaIdFilename;        /* Name of file to store jvm id in */
-    TCHAR    *statusFilename;        /* Name of file to store wrapper status in */
-    TCHAR    *javaStatusFilename;    /* Name of file to store jvm status in */
-    TCHAR    *commandFilename;       /* Name of a command file used to send commands to the Wrapper. */
+    TCHAR** outputFilterMessages;   /* Array of output filter messages. */
+    TCHAR   *pidFilename;           /* Name of file to store wrapper pid in */
+    TCHAR   *lockFilename;          /* Name of file to store wrapper lock in */
+    TCHAR   *javaPidFilename;       /* Name of file to store jvm pid in */
+    TCHAR   *javaIdFilename;        /* Name of file to store jvm id in */
+    TCHAR   *statusFilename;        /* Name of file to store wrapper status in */
+    TCHAR   *javaStatusFilename;    /* Name of file to store jvm status in */
+    TCHAR   *commandFilename;       /* Name of a command file used to send commands to the Wrapper. */
     int     commandFileTests;       /* True if test commands will be accepted via the command file. */
     int     commandPollInterval;    /* Interval in seconds at which the existence of the command file is polled. */
     TICKS   commandTimeoutTicks;    /* Tick count at which the command file will be checked next. */
-    TCHAR    *anchorFilename;        /* Name of an anchor file used to control when the Wrapper should quit. */
+    TCHAR   *anchorFilename;        /* Name of an anchor file used to control when the Wrapper should quit. */
     int     anchorPollInterval;     /* Interval in seconds at which the existence of the anchor file is polled. */
     TICKS   anchorTimeoutTicks;     /* Tick count at which the anchor file will be checked next. */
     int     umask;                  /* Default umask for all files. */
@@ -313,25 +318,25 @@ struct WrapperConfig {
     int     javaStatusFileUmask;    /* Umask to use when creating the java status file. */
     int     anchorFileUmask;        /* Umask to use when creating the anchor file. */
     int     ignoreSignals;          /* Mask that determines where the Wrapper should ignore any catchable system signals.  Can be ingored in the Wrapper and/or JVM. */
-    TCHAR    *consoleTitle;          /* Text to set the console title to. */
-    TCHAR    *serviceName;           /* Name of the service. */
-    TCHAR    *serviceDisplayName;    /* Display name of the service. */
-    TCHAR    *serviceDescription;    /* Description for service. */
-    TCHAR    *hostName;              /* The name of the current host. */
+    TCHAR   *consoleTitle;          /* Text to set the console title to. */
+    TCHAR   *serviceName;           /* Name of the service. */
+    TCHAR   *serviceDisplayName;    /* Display name of the service. */
+    TCHAR   *serviceDescription;    /* Description for service. */
+    TCHAR   *hostName;              /* The name of the current host. */
     int     pausable;               /* Should the service be allowed to be paused? */
     int     pausableStopJVM;        /* Should the JVM be stopped when the service is paused? */
 
 #ifdef WIN32
     int     isSingleInvocation;     /* TRUE if only a single invocation of an application should be allowed to launch. */
-    TCHAR    *ntServiceLoadOrderGroup; /* Load order group name. */
-    TCHAR    *ntServiceDependencies; /* List of Dependencies */
+    TCHAR   *ntServiceLoadOrderGroup; /* Load order group name. */
+    TCHAR   *ntServiceDependencies; /* List of Dependencies */
     int     ntServiceStartType;     /* Mode in which the Service is installed.
                                      * {SERVICE_AUTO_START | SERVICE_DEMAND_START} */
     DWORD   ntServicePriorityClass; /* Priority at which the Wrapper and its JVMS will run.
                                      * {HIGH_PRIORITY_CLASS | IDLE_PRIORITY_CLASS | NORMAL_PRIORITY_CLASS | REALTIME_PRIORITY_CLASS} */
-    TCHAR    *ntServiceAccount;      /* Account name to use when running as a service.  NULL to use the LocalSystem account. */
-    TCHAR    *ntServicePassword;     /* Password to use when running as a service.  NULL means no password. */
-    int     ntServicePrompt; /* If true then the user will be prompted for a account name, domain,  password when installing as a service. */
+    TCHAR   *ntServiceAccount;      /* Account name to use when running as a service.  NULL to use the LocalSystem account. */
+    TCHAR   *ntServicePassword;     /* Password to use when running as a service.  NULL means no password. */
+    int     ntServicePrompt;        /* If true then the user will be prompted for a account name, domain,  password when installing as a service. */
     int     ntServicePasswordPrompt; /* If true then the user will be prompted for a password when installing as a service. */
     int     ntServicePasswordPromptMask; /* If true then the password will be masked as it is input. */
     int     ntServiceInteractive;   /* Should the service be allowed to interact with the desktop? */
@@ -358,7 +363,10 @@ struct WrapperConfig {
     int     ctrlEventCloseTrapped;  /* CTRL_CLOSE_EVENT trapped. */
     int     ctrlEventLogoffTrapped; /* CTRL_LOGOFF_EVENT trapped. */
     int     ctrlEventShutdownTrapped;/* CTRL_SHUTDOWN_EVENT trapped. */
-    int     ctrlCodeLast;           /* Id of the last control code trapped. */
+    int     *ctrlCodeQueue;         /* Queue of control code ids trapped. */
+    int     ctrlCodeQueueWriteIndex;
+    int     ctrlCodeQueueReadIndex;
+    int     ctrlCodeQueueWrapped;
     int     ctrlCodePauseTrapped;   /* SERVICE_CONTROL_PAUSE was trapped. */
     int     ctrlCodeContinueTrapped;/* SERVICE_CONTROL_CONTINUE was trapped. */
     int     ctrlCodeStopTrapped;    /* SERVICE_CONTROL_STOP was trapped. */
@@ -507,6 +515,8 @@ extern int wrapperLoadConfigurationProperties();
 extern void wrapperGetCurrentTime(struct timeb *timeBuffer);
 
 #ifdef WIN32
+extern void updateStringValue(TCHAR **ptr, const TCHAR *value);
+
 extern TCHAR** wrapperGetSystemPath();
 extern int wrapperGetJavaHomeFromWindowsRegistry(TCHAR *javaHome);
 #endif

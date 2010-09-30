@@ -16,7 +16,7 @@
 
 #-----------------------------------------------------------------------------
 # These settings can be modified to fit the needs of your application
-# Optimized for use with version 3.6.0-a of the Wrapper.
+# Optimized for use with version 3.5.5-a of the Wrapper.
 
 # Application
 APP_NAME="@app.name@"
@@ -33,16 +33,15 @@ PRIORITY=
 # Location of the pid file.
 PIDDIR="."
 
-# Commandline handling
-# DEFAULT_ACTION speciefies the command the script will execute
-# this way the script could be started like ./SCRIPT [args]
-DEFAULT_ACTION=
-# specifies if the commandline should be passe to the wrapper or the jvm.
-# if no default action has been specified the script however still needs 
-# the action as first parameter, all other parameters will be passed over
-# to the jvm.
-# for activating this set PASS_THROUGH_JVM to a non-null value e.g. TRUE
-PASS_THROUGH_JVM=
+# FIXED_COMMAND tells the script to use a hard coded action rather than
+# expecting the first parameter of the command line to be the command.
+# By default the command will will be expected to be the first parameter.
+#FIXED_COMMAND=console
+
+# PASS_THROUGH tells the script to pass all arguments through to the JVM
+#  as is.  If FIXED_COMMAND is specified then all arguments will be passed.
+#  If not set then all arguments starting with the second will be passed.
+#PASS_THROUGH=true
 
 # If uncommented, causes the Wrapper to be shutdown using an anchor file.
 #  When launched with the 'start' command, it will also ignore all INT and
@@ -66,6 +65,12 @@ WAIT_FOR_STARTED_TIMEOUT=120
 #   state information on the Wrapper and Java processes.
 #DETAIL_STATUS=true
 
+# If set, the 'pause' and 'resume' commands will be enabled.  These make it
+#  possible to pause the JVM or Java application without completely stopping
+#  the Wrapper.  See the wrapper.pausable and wrapper.pausable.stop_jvm
+#  properties for more information.
+#PAUSABLE=true
+
 # If specified, the Wrapper will be run as the specified user.
 # IMPORTANT - Make sure that the user has the required privileges to write
 #  the PID file and wrapper.log files.  Failure to be able to write the log
@@ -76,14 +81,17 @@ WAIT_FOR_STARTED_TIMEOUT=120
 #  port needs to be allocated prior to the user being changed.
 #RUN_AS_USER=
 
-# The following two lines are used by the chkconfig command. Change as is
-#  appropriate for your application.  They should remain commented.
-# chkconfig: 2345 20 80
-# description: @app.long.name@
+# By default we show a detailed usage block.  Uncomment to show brief usage.
+#BRIEF_USAGE=true
 
 # When installing on On Mac OSX platforms, the following domain will be used to
 #  prefix the plist file name.
 PLIST_DOMAIN=org.tanukisoftware.wrapper
+
+# The following two lines are used by the chkconfig command. Change as is
+#  appropriate for your application.  They should remain commented.
+# chkconfig: 2345 20 80
+# description: @app.long.name@
  
 # Initialization block for the install_initd and remove_initd scripts used by
 #  SUSE linux distributions.
@@ -101,7 +109,12 @@ PLIST_DOMAIN=org.tanukisoftware.wrapper
 # Do not modify anything beyond this point
 #-----------------------------------------------------------------------------
 
-ACTION="$1"
+if [ -n "$FIXED_COMMAND" ]
+then
+    COMMAND="$FIXED_COMMAND"
+else
+    COMMAND="$1"
+fi
 
 
 # Required for HP-UX Startup
@@ -181,6 +194,7 @@ fi
 
 # Process ID
 ANCHORFILE="$PIDDIR/$APP_NAME.anchor"
+COMMANDFILE="$PIDDIR/$APP_NAME.command"
 STATUSFILE="$PIDDIR/$APP_NAME.status"
 JAVASTATUSFILE="$PIDDIR/$APP_NAME.java.status"
 PIDFILE="$PIDDIR/$APP_NAME.pid"
@@ -441,6 +455,14 @@ else
    STATUSPROP="wrapper.statusfile=\"$STATUSFILE\" wrapper.java.statusfile=\"$JAVASTATUSFILE\""
 fi
 
+# Build the command file clause.
+if [ -n "$PAUSABLE" ]
+then
+   COMMANDPROP="wrapper.commandfile=\"$COMMANDFILE\" wrapper.pausable=TRUE"
+else
+   COMMANDPROP=
+fi
+
 if [ ! -n "$WAIT_FOR_STARTED_STATUS" ]
 then
     WAIT_FOR_STARTED_STATUS=true
@@ -461,9 +483,20 @@ then
     fi
 fi
 
+prepAdditionalParams() {
+    ADDITIONAL_PARA=""
+    if [ -n "$PASS_THROUGH" ] ; then
+        ADDITIONAL_PARA="--"
+        while [ -n "$1" ] ; do
+            ADDITIONAL_PARA="$ADDITIONAL_PARA \"$1\""
+            shift
+        done
+    fi
+}
+
 checkUser() {
     # $1 touchLock flag
-    # $2 command
+    # $2.. [command] args
 
     # Check the configured user.  If necessary rerun this script as the desired user.
     if [ "X$RUN_AS_USER" != "X" ]
@@ -491,7 +524,7 @@ checkUser() {
     then
         # If LOCKPROP and $RUN_AS_USER are defined then the new user will most likely not be
         # able to create the lock file.  The Wrapper will be able to update this file once it
-        # is created but will not be able to delete it on shutdown.  If $2 is defined then
+        # is created but will not be able to delete it on shutdown.  If $1 is set then
         # the lock file should be created for the current command
         if [ "X$LOCKPROP" != "X" ]
         then
@@ -510,14 +543,18 @@ checkUser() {
 
         # Still want to change users, recurse.  This means that the user will only be
         #  prompted for a password once. Variables shifted by 1
-        # 
+        shift
+
+        # Wrap the parameters so they can be passed.
+        prepAdditionalParams "$@"
+
         # Use "runuser" if this exists.  runuser should be used on RedHat in preference to su.
         #
         if test -f "/sbin/runuser"
         then
-            /sbin/runuser - $RUN_AS_USER -c "\"$REALPATH\" $2"
+            /sbin/runuser - $RUN_AS_USER -c "\"$REALPATH\" $ADDITIONAL_PARA"
         else
-            su - $RUN_AS_USER -c "\"$REALPATH\" $2"
+            su - $RUN_AS_USER -c "\"$REALPATH\" $ADDITIONAL_PARA"
         fi
 
         # Now that we are the original user again, we may need to clean up the lock file.
@@ -695,17 +732,10 @@ launchdinternal() {
     trap launchdtrap TERM 
     if [ "X$pid" = "X" ]
     then 
-        while [ -n "$1" ] ; do
-            ADDITIONAL_PARA="$ADDITIONAL_PARA \"$1\""
-            shift
-        done
-        if [ -n "$PASS_THROUGH_JVM" -a -n "$ADDITIONAL_PARA" ] ; then
-            MSG=`gettext 'Passing over to JVM: '`
-            echo "$MSG $ADDITIONAL_PARA"
-            ADDITIONAL_PARA="-- $ADDITIONAL_PARA"
-        fi
+        prepAdditionalParams "$@"
+
         # The string passed to eval must handles spaces in paths correctly.
-        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.name=\"$APP_NAME\" wrapper.displayname=\"$APP_LONG_NAME\" wrapper.daemonize=TRUE $ANCHORPROP $IGNOREPROP $STATUSPROP $LOCKPROP $ADDITIONAL_PARA"
+        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.name=\"$APP_NAME\" wrapper.displayname=\"$APP_LONG_NAME\" wrapper.daemonize=TRUE $ANCHORPROP $IGNOREPROP $STATUSPROP $COMMANDPROP $LOCKPROP $ADDITIONAL_PARA"
         eval $COMMAND_LINE
     else
         eval echo  '$APP_LONG_NAME is already running.'
@@ -724,18 +754,11 @@ console() {
     if [ "X$pid" = "X" ]
     then
         trap '' 3
-        while [ -n "$1" ] ; do
-            ADDITIONAL_PARA="$ADDITIONAL_PARA \"$1\""
-            shift
-        done
-        if [ -n "$PASS_THROUGH_JVM" -a -n "$ADDITIONAL_PARA" ] ; then
-            MSG=`gettext 'Passing over to JVM: '`
-            echo "$MSG $ADDITIONAL_PARA"
-            ADDITIONAL_PARA="-- $ADDITIONAL_PARA"
-        fi
+
+        prepAdditionalParams "$@"
 
         # The string passed to eval must handles spaces in paths correctly.
-        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.name=\"$APP_NAME\" wrapper.displayname=\"$APP_LONG_NAME\" $ANCHORPROP $STATUSPROP $LOCKPROP $ADDITIONAL_PARA"
+        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.name=\"$APP_NAME\" wrapper.displayname=\"$APP_LONG_NAME\" $ANCHORPROP $STATUSPROP $COMMANDPROP $LOCKPROP $ADDITIONAL_PARA"
         eval $COMMAND_LINE
     else
         eval echo  '$APP_LONG_NAME is already running.'
@@ -835,17 +858,10 @@ start() {
     getpid
     if [ "X$pid" = "X" ]
     then
-        while [ -n "$1" ] ; do
-            ADDITIONAL_PARA="$ADDITIONAL_PARA \"$1\""
-            shift
-        done
-        if [ -n "$PASS_THROUGH_JVM" -a -n "$ADDITIONAL_PARA" ] ; then
-            MSG=`gettext 'Passing over to JVM: '`
-            echo "$MSG $ADDITIONAL_PARA"
-            ADDITIONAL_PARA="-- $ADDITIONAL_PARA"
-        fi
+        prepAdditionalParams "$@"
+
         # The string passed to eval must handles spaces in paths correctly.
-        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.name=\"$APP_NAME\" wrapper.displayname=\"$APP_LONG_NAME\" wrapper.daemonize=TRUE $ANCHORPROP $IGNOREPROP $STATUSPROP $LOCKPROP $ADDITIONAL_PARA"
+        COMMAND_LINE="$CMDNICE \"$WRAPPER_CMD\" \"$WRAPPER_CONF\" wrapper.syslog.ident=\"$APP_NAME\" wrapper.pidfile=\"$PIDFILE\" wrapper.name=\"$APP_NAME\" wrapper.displayname=\"$APP_LONG_NAME\" wrapper.daemonize=TRUE $ANCHORPROP $IGNOREPROP $STATUSPROP $COMMANDPROP $LOCKPROP $ADDITIONAL_PARA"
         eval $COMMAND_LINE
     else
         eval echo  '$APP_LONG_NAME is already running.'
@@ -921,6 +937,14 @@ stopit() {
             eval echo  'Stopped $APP_LONG_NAME.'
         fi
     fi
+}
+ 
+pause() {
+    eval echo  'Pausing $APP_LONG_NAME.'
+}
+
+resume() {
+    eval echo  'Resuming $APP_LONG_NAME.'
 }
 
 status() {
@@ -1303,98 +1327,176 @@ stopmsg() {
         fi
     fi
 }
-command() {
-case "$ACTION" in
 
-    'console')
-        checkUser touchlock "$ACTION"
-        if [ ! -n "$DEFAULT_ACTION_SET" ] ; then
-            shift
-        fi
-        console "$@"
-        ;;
+showUsage() {
+    # $1 bad command
 
-    'start')
-        if [ "$DIST_OS" = "macosx" -a -f "/Library/LaunchDaemons/${APP_PLIST}" ] ; then
-            macosxstart
+    if [ -n "$1" ]
+    then
+        eval echo  'Unexpected command: $1'
+        echo "";
+    fi
+
+    eval MSG=`gettext 'Usage: '`
+    if [ -n "$FIXED_COMMAND" ] ; then
+        if [ -n "$PASS_THROUGH" ] ; then
+            echo "${MSG} $0 {JavaAppArgs}"
         else
-            checkUser touchlock "$ACTION"
-            if [ ! -n "$DEFAULT_ACTION_SET" ] ; then
+            echo "${MSG} $0"
+        fi
+    else
+        if [ -n "$PAUSABLE" ] ; then
+            if [ -n "$PASS_THROUGH" ] ; then
+                echo "${MSG} $0 [ console {JavaAppArgs} | start {JavaAppArgs} | stop | restart {JavaAppArgs} | condrestart {JavaAppArgs} | pause | resume | status | install | remove | dump ]"
+            else
+                echo "${MSG} $0 [ console | start | stop | restart | condrestart | pause | resume | status | install | remove | dump ]"
+            fi
+        else
+            if [ -n "$PASS_THROUGH" ] ; then
+                echo "${MSG} $0 [ console {JavaAppArgs} | start {JavaAppArgs} | stop | restart {JavaAppArgs} | condrestart {JavaAppArgs} | status | install | remove | dump ]"
+            else
+                echo "${MSG} $0 [ console | start | stop | restart | condrestart | status | install | remove | dump ]"
+            fi
+        fi
+    fi
+
+    if [ ! -n "$BRIEF_USAGE" ]
+    then
+        echo "";
+        if [ ! -n "$FIXED_COMMAND" ] ; then
+            echo "`gettext 'Commands:'`"
+            echo "`gettext '  console      Launch in the current console.'`"
+            echo "`gettext '  start        Start in the background as a daemon process.'`"
+            echo "`gettext '  stop         Stop if running as a daemon or in another console.'`"
+            echo "`gettext '  restart      Stop if running and then start.'`"
+            echo "`gettext '  condrestart  Restart only if already running.'`"
+            if [ -n "$PAUSABLE" ] ; then
+                echo "`gettext '  pause        Pause if running.'`"
+                echo "`gettext '  resume       Resume if paused.'`"
+            fi
+            echo "`gettext '  status       Query the current status.'`"
+            echo "`gettext '  install      Install to start on when system reboots.'`"
+            echo "`gettext '  remove       Uninstall.'`"
+            echo "`gettext '  dump         Request a Java thread dump if running.'`"
+            echo "";
+        fi
+        if [ -n "$PASS_THROUGH" ] ; then
+            echo "`gettext 'JavaAppArgs: Zero or more arguments which will be passed to the Java application.'`"
+            echo "";
+        fi
+    fi
+
+    exit 1
+}
+
+command() {
+    case "$COMMAND" in
+        'console')
+            checkUser touchlock "$@"
+            if [ ! -n "$FIXED_COMMAND" ] ; then
                 shift
             fi
+            console "$@"
+            ;;
+    
+        'start')
+            if [ "$DIST_OS" = "macosx" -a -f "/Library/LaunchDaemons/${APP_PLIST}" ] ; then
+                macosxstart
+            else
+                checkUser touchlock "$@"
+                if [ ! -n "$FIXED_COMMAND" ] ; then
+                    shift
+                fi
+                start "$@"
+            fi
+            ;;
+    
+        'stop')
+            checkUser "" "$COMMAND"
+            stopit "0"
+            ;;
+    
+        'restart')
+            checkUser touchlock "$COMMAND"
+            if [ ! -n "$FIXED_COMMAND" ] ; then
+                shift
+            fi
+            stopit "0"
             start "$@"
-        fi
-        ;;
-
-    'stop')
-        checkUser "" "$ACTION"
-        stopit "0"
-        ;;
-
-    'restart')
-        checkUser touchlock "$ACTION"
-        stopit "0"
-        start
-        ;;
-
-    'condrestart')
-        checkUser touchlock "$ACTION"
-        stopit "1"
-        start
-        ;;
-
-    'status')
-        checkUser "" "$ACTION"
-        status
-        ;;
-
-    'install')
-        installdaemon
-        ;;
-
-    'remove')
-        removedaemon
-        ;;
-
-    'dump')
-        checkUser "" "$ACTION"
-        dump
-        ;;
-
-    'start_msg')
-        # Internal command called by launchd on HP-UX.
-        checkUser "" "$ACTION"
-        startmsg
-        ;;
-
-    'stop_msg')
-        # Internal command called by launchd on HP-UX.
-        checkUser "" "$ACTION"
-        stopmsg
-        ;;
-
-    'launchdinternal')
-        # Internal command called by launchd on Max OSX.
-        # We do not want to call checkUser here as it is handled in the launchd plist file.  Doing it here would confuse launchd.
-        if [ ! -n "$DEFAULT_ACTION_SET" ] ; then
-            shift
-        fi
-        launchdinternal "$@"
-        ;;
-
-    *)
-        if [ -n "$DEFAULT_ACTION_SET" ] ; then
-        eval MSG=`gettext 'Usage: '`
-        echo "${MSG} $0 { console | start | stop | restart | condrestart | status | install | remove | dump }"
-        exit 1
-
-        else 
-            ACTION=$DEFAULT_ACTION
-            DEFAULT_ACTION_SET=true
-            command $@
-        fi
-        ;;
-esac
+            ;;
+    
+        'condrestart')
+            checkUser touchlock "$COMMAND"
+            if [ ! -n "$FIXED_COMMAND" ] ; then
+                shift
+            fi
+            stopit "1"
+            start "$@"
+            ;;
+    
+        'pause')
+            if [ -n "$PAUSABLE" ]
+            then
+                pause
+            else
+                showUsage "$COMMAND"
+            fi
+            ;;
+    
+        'resume')
+            if [ -n "$PAUSABLE" ]
+            then
+                resume
+            else
+                showUsage "$COMMAND"
+            fi
+            ;;
+    
+        'status')
+            checkUser "" "$COMMAND"
+            status
+            ;;
+    
+        'install')
+            installdaemon
+            ;;
+    
+        'remove')
+            removedaemon
+            ;;
+    
+        'dump')
+            checkUser "" "$COMMAND"
+            dump
+            ;;
+    
+        'start_msg')
+            # Internal command called by launchd on HP-UX.
+            checkUser "" "$COMMAND"
+            startmsg
+            ;;
+    
+        'stop_msg')
+            # Internal command called by launchd on HP-UX.
+            checkUser "" "$COMMAND"
+            stopmsg
+            ;;
+    
+        'launchdinternal')
+            # Internal command called by launchd on Max OSX.
+            # We do not want to call checkUser here as it is handled in the launchd plist file.  Doing it here would confuse launchd.
+            if [ ! -n "$FIXED_COMMAND" ] ; then
+                shift
+            fi
+            launchdinternal "$@"
+            ;;
+    
+        *)
+            showUsage "$COMMAND"
+            ;;
+    esac
 }
-command $@
+
+command "$@"
+
 exit 0

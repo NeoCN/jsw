@@ -32,6 +32,7 @@ public class WrapperProcess
     private int m_pid;
     private int m_exitcode;
     private boolean m_isDetached;
+    private int m_softShutdownTimeout;
 
     /*---------------------------------------------------------------
      * Constructors
@@ -49,6 +50,8 @@ public class WrapperProcess
      *-------------------------------------------------------------*/
     private native boolean nativeIsAlive();
     private native void nativeDestroy();
+    private native int nativeExitValue();
+    private native int nativeWaitFor();
 
     /*---------------------------------------------------------------
      * Methods
@@ -163,7 +166,7 @@ public class WrapperProcess
             if ( m_exitcode == Integer.MIN_VALUE )
             {
                 // System.out.println("java: waiting...");
-                wait();
+                m_exitcode = nativeWaitFor();
             }
             return m_exitcode;
         }
@@ -184,9 +187,8 @@ public class WrapperProcess
     {
         if ( m_exitcode == Integer.MIN_VALUE )
         {
-            throw new IllegalThreadStateException( 
-                    WrapperManager.getRes().getString( "The process {0} has not finished yet.",
-                            new Integer( m_pid ) ) );
+            m_exitcode = nativeExitValue();
+            return m_exitcode;
         }
         else
         {
