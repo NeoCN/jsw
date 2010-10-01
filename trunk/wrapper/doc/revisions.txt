@@ -65,6 +65,20 @@ Java Service Wrapper Revision History.
   output from the -XX:+PrintClassHistogram JVM argument from causing the JVM
   to restart with a false out of memory warning.
 * Localize the default filter message.
+* (Standard, Professional) Fix a problem parsing dates in license keys that was
+  introduced in version 3.5.0.  All license upgrade terms and lease terms which
+  contained "08" or "09" as either a month or day were being parsed
+  incorrectly.  This was leading the Wrapper to interpret those date components
+  as "00".  If the number was the date, then this would cause the date to be
+  set to the last day of the previous month.  If it was the month however, it
+  would cause the date to be set to December of the previous year.  For example
+  "2010-08-20" was being interpreted as "2009-12-20", and "2010-10-08" was
+  being interpreted as "2009-09-30".  This would have prevented some licenses
+  from being able to start because the upgrade terms were in effect prior to
+  the Wrapper's release date.  Some trial licenses could also have stopped
+  early because their lease term end was earlier that it should may have been.
+  For normal licenses, his will have no effect on installations once they are
+  up and running because they do not use the lease term.
 
 3.5.4
 * Add optional support for custom public static methods in the

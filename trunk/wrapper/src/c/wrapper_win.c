@@ -2350,6 +2350,10 @@ TCHAR *readPassword() {
     return buffer;
 }
 
+
+/**
+ * RETURNS TRUE if the current Windows OS is Windows Vista or later...
+ */
 BOOL isVista() {
     OSVERSIONINFO osver;
 
@@ -2359,6 +2363,23 @@ BOOL isVista() {
             osver.dwPlatformId == VER_PLATFORM_WIN32_NT &&
             osver.dwMajorVersion >= 6) {
         return TRUE;
+    }
+    return FALSE;
+}
+
+
+/**
+ * RETURNS TRUE if the current Windows OS is Windows XP or later...
+ */
+BOOL isWinXP() {
+    OSVERSIONINFO osver;
+
+    osver.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+
+    if (GetVersionEx(&osver) && osver.dwPlatformId == VER_PLATFORM_WIN32_NT) {
+        if (osver.dwMajorVersion > 5 || osver.dwMajorVersion == 5 && osver.dwMinorVersion >= 1) {
+            return TRUE;
+        }
     }
     return FALSE;
 }
@@ -4528,7 +4549,7 @@ void _tmain(int argc, TCHAR **argv) {
          *  reduce duplicate code.  But before loading the parameters, in the case
          *  of an NT service. the environment variables must first be loaded from
          *  the registry. */
-        if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("s")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-service"))) {
+        if ((!strcmpIgnoreCase(wrapperData->argCommand, TEXT("s")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-service"))) && isWinXP() == FALSE) {
             if (wrapperLoadEnvFromRegistry())
             {
                 appExit(1);
