@@ -6026,6 +6026,9 @@ int loadConfiguration() {
     /* Pausable */
     wrapperData->pausable = getBooleanProperty(properties, TEXT("wrapper.pausable"), getBooleanProperty(properties, TEXT("wrapper.ntservice.pausable"), FALSE));
     wrapperData->pausableStopJVM = getBooleanProperty(properties, TEXT("wrapper.pausable.stop_jvm"), getBooleanProperty(properties, TEXT("wrapper.ntservice.pausable.stop_jvm"), TRUE));
+    if (!wrapperData->configured) {
+        wrapperData->initiallyPaused = getBooleanProperty(properties, TEXT("wrapper.pause_on_startup"), FALSE);
+        }
 
 #ifdef WIN32
     wrapperData->ignoreUserLogoffs = getBooleanProperty( properties, TEXT("wrapper.ignore_user_logoffs"), FALSE );
