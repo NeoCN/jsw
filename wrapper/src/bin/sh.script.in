@@ -546,15 +546,19 @@ checkUser() {
         shift
 
         # Wrap the parameters so they can be passed.
-        prepAdditionalParams "$@"
+        ADDITIONAL_PARA=""
+        while [ -n "$1" ] ; do
+            ADDITIONAL_PARA="$ADDITIONAL_PARA \"$1\""
+            shift
+        done
 
         # Use "runuser" if this exists.  runuser should be used on RedHat in preference to su.
         #
         if test -f "/sbin/runuser"
         then
-            /sbin/runuser - $RUN_AS_USER -c "\"$REALPATH\" $@"
+            /sbin/runuser - $RUN_AS_USER -c "\"$REALPATH\" $ADDITIONAL_PARA"
         else
-            su - $RUN_AS_USER -c "\"$REALPATH\" $@"
+            su - $RUN_AS_USER -c "\"$REALPATH\" $ADDITIONAL_PARA"
         fi
 
         # Now that we are the original user again, we may need to clean up the lock file.
@@ -1375,7 +1379,7 @@ showUsage() {
                 echo "`gettext '  resume       Resume if paused.'`"
             fi
             echo "`gettext '  status       Query the current status.'`"
-            echo "`gettext '  install      Install to start on when system reboots.'`"
+            echo "`gettext '  install      Install to start automatically when system boots.'`"
             echo "`gettext '  remove       Uninstall.'`"
             echo "`gettext '  dump         Request a Java thread dump if running.'`"
             echo "";

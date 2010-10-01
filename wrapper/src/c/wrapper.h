@@ -182,7 +182,7 @@ typedef unsigned long TICKS;
 
 #ifdef WIN32
 /* Defines the maximum number of service manager control events that can be queued in a single loop. */
-#define CTRL_CODE_QUEUE_SIZE 10
+#define CTRL_CODE_QUEUE_SIZE 26 /* Can enqueue one less than this count at any time. */
 #endif
 
 /* Type definitions */

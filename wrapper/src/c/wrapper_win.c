@@ -1868,9 +1868,9 @@ void wrapperMaintainControlCodes() {
     /* Queued control codes. */
     while (wrapperData->ctrlCodeQueueReadIndex != wrapperData->ctrlCodeQueueWriteIndex) {
         ctrlCodeLast = wrapperData->ctrlCodeQueue[wrapperData->ctrlCodeQueueReadIndex];
-//#ifdef _DEBUG
+#ifdef _DEBUG
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Process queued control code: %d (r:%d w:%d)"), ctrlCodeLast, wrapperData->ctrlCodeQueueReadIndex, wrapperData->ctrlCodeQueueWriteIndex);
-//#endif
+#endif
         wrapperData->ctrlCodeQueueReadIndex++;
         if (wrapperData->ctrlCodeQueueReadIndex >= CTRL_CODE_QUEUE_SIZE ) {
             wrapperData->ctrlCodeQueueReadIndex = 0;
@@ -2097,11 +2097,11 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
 
         /* Forward the control code off to the JVM.  Write the signals into a rotating queue so we can process more than one per loop. */
         if ((wrapperData->ctrlCodeQueueWriteIndex == wrapperData->ctrlCodeQueueReadIndex - 1) || ((wrapperData->ctrlCodeQueueWriteIndex == CTRL_CODE_QUEUE_SIZE - 1) && (wrapperData->ctrlCodeQueueReadIndex == 0))) {
-            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Control code queue overflow %d:%d dropping control code: %d\n"), wrapperData->ctrlCodeQueueWriteIndex, wrapperData->ctrlCodeQueueReadIndex, controlCode);
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Control code queue overflow (%d:%d).  Dropping control code: %d\n"), wrapperData->ctrlCodeQueueWriteIndex, wrapperData->ctrlCodeQueueReadIndex, controlCode);
         } else {
-//#ifdef _DEBUG
+#ifdef _DEBUG
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Enqueue control code: %d (r:%d w:%d)"), controlCode, wrapperData->ctrlCodeQueueReadIndex, wrapperData->ctrlCodeQueueWriteIndex);
-//#endif
+#endif
             wrapperData->ctrlCodeQueue[wrapperData->ctrlCodeQueueWriteIndex] = controlCode;
             
             wrapperData->ctrlCodeQueueWriteIndex++;
@@ -2370,6 +2370,7 @@ BOOL isVista() {
 
 /**
  * RETURNS TRUE if the current Windows OS is Windows XP or later...
+ * http://msdn.microsoft.com/en-us/library/ms724834%28VS.85%29.aspx
  */
 BOOL isWinXP() {
     OSVERSIONINFO osver;
@@ -2685,6 +2686,37 @@ int buildServiceBinaryPath(TCHAR *buffer, size_t *reqBufferSize) {
             }
         }
     }
+    
+    /* If there are any passthrough variables.  Then they also need to be appended as is. */
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("wrapperData->javaArgValueCount=%d"), wrapperData->javaArgValueCount);
+    if (wrapperData->javaArgValueCount > 0) {
+        if (buffer) {
+            _tcscat(buffer, TEXT(" --"));
+        }
+        *reqBufferSize += 3 * sizeof(TCHAR);
+        
+        for (i = 0; i < wrapperData->javaArgValueCount; i++) {
+            if (buffer) {
+                _tcscat(buffer, TEXT(" "));
+            }
+            *reqBufferSize += 1 * sizeof(TCHAR);
+
+            /* If the argument contains spaces, it needs to be quoted */
+            if (_tcschr(wrapperData->javaArgValues[i], TEXT(' ')) == NULL) {
+                if (buffer) {
+                    _tcscat(buffer, wrapperData->javaArgValues[i]);
+                }
+                *reqBufferSize += _tcslen(wrapperData->javaArgValues[i]) * sizeof(TCHAR);
+            } else {
+                if (buffer) {
+                    _tcscat(buffer, TEXT("\""));
+                    _tcscat(buffer, wrapperData->javaArgValues[i]);
+                    _tcscat(buffer, TEXT("\""));
+                }
+                *reqBufferSize += 1 + _tcslen(wrapperData->javaArgValues[i]) + 1;
+            }
+        }
+    }
     return 0;
 }
 
@@ -2869,11 +2901,9 @@ void closeRegistryKey(HKEY hKey) {
  *  been loaded this means that any logging that takes place will be sent to
  *  the default log file which may be difficult for the user to locate.
  *
- * @param loadUserVars TRUE if user related variables should be loaded.
- *
  * Return TRUE if there were any problems.
  */
-int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const TCHAR *regPath, int appendPath, int source, int loadUserVars) {
+int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const TCHAR *regPath, int appendPath, int source) {
     LONG result;
     LPSTR pBuffer = NULL;
     int envCount = 0;
@@ -2981,15 +3011,9 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const TCHAR *regPath, int app
                                 return TRUE;
                             }
                         }
-                    } else if ((!loadUserVars) && ((strcmpIgnoreCase(TEXT("USERNAME"), valueName) == 0) || (strcmpIgnoreCase(TEXT("USERDOMAIN"), valueName) == 0) || (strcmpIgnoreCase(TEXT("USERPROFILE"), valueName) == 0))) {
-                        /* We don't want to set the USERNAME, USERDOMAIN, or USERPROFILE environment variables as they are
-                         *  defined on Windows 7 for the SYSTEM user.
-                         *  Because that is loaded first before the registered user environment, this was causing the USERNAME
-                         *  variable to always be set to SYSTEM. */
-                        /* Skip. */
                     } else {
                         if (setEnv(valueName, value, source)) {
-                            /* Failed.  Already reported. */
+                            /* Already reported. */
                             closeRegistryKey(hKey);
                             return TRUE;
                         }
@@ -3132,48 +3156,28 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const TCHAR *regPath, int app
 /**
  * Loads the environment stored in the registry.
  *
+ * (Only called for versions of Windows older than XP or 2003.)
  *
  * Return TRUE if there were any problems.
  */
 int wrapperLoadEnvFromRegistry() {
-    TCHAR *username, *hostNameDS;
-    
     /* We can't access any properties here as they are not yet loaded when called. */
     /* Always load in the system wide variables. */
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Loading System environment variables from Registry:"));
 #endif
-    
-    hostNameDS = malloc(sizeof(TCHAR) * (_tcslen(wrapperData->hostName) + 2));
 
-    if (!hostNameDS) {
-        outOfMemory(TEXT("WLEFR"), 1);
+    if (wrapperLoadEnvFromRegistryInner(HKEY_LOCAL_MACHINE, TEXT("SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment\\"), FALSE, ENV_SOURCE_REG_SYSTEM)) {
         return TRUE;
     }
-    _sntprintf(hostNameDS, _tcslen(wrapperData->hostName) + 2, TEXT("%s$"), wrapperData->hostName);
 
-    /* Determine whether or not we are the SYSTEM user. */
-    username = _tgetenv(TEXT("USERNAME"));
-    if ((username == NULL) || (strcmpIgnoreCase(hostNameDS, username) == 0)) {
-        free(hostNameDS);
-        /* On Windows 7, the USERNAME is set to the host name when running as a service.  It is NULL on older versions of Windows. */
-        /* As we are the SYSTEM user, we only want to load in the SYSTEM environment variables. */
-        if (wrapperLoadEnvFromRegistryInner(HKEY_LOCAL_MACHINE, TEXT("SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment\\"), FALSE, ENV_SOURCE_REG_SYSTEM, TRUE)) {
-            return TRUE;
-        }
-    } else {
-        free(hostNameDS);
-        /* As we are not the SYSTEM user, we want to first load in the SYSTEM environment variables, and then the user environment.
-         *  But we want to skip over the USER related variables from the SYSTEM environment. */
-        if (wrapperLoadEnvFromRegistryInner(HKEY_LOCAL_MACHINE, TEXT("SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment\\"), FALSE, ENV_SOURCE_REG_SYSTEM, FALSE)) {
-            return TRUE;
-        }
-        
+    /* Only load in the user specific variables if the USERNAME environment variable is set. */
+    if (_tgetenv(TEXT("USERNAME"))) {
 #ifdef _DEBUG
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Loading Account environment variables from Registry:"));
 #endif
 
-        if (wrapperLoadEnvFromRegistryInner(HKEY_CURRENT_USER, TEXT("Environment\\"), TRUE, ENV_SOURCE_REG_ACCOUNT, TRUE)){
+        if (wrapperLoadEnvFromRegistryInner(HKEY_CURRENT_USER, TEXT("Environment\\"), TRUE, ENV_SOURCE_REG_ACCOUNT)){
             return TRUE;
         }
     }
@@ -4548,8 +4552,9 @@ void _tmain(int argc, TCHAR **argv) {
         /* All 4 valid commands use the configuration file.  It is loaded here to
          *  reduce duplicate code.  But before loading the parameters, in the case
          *  of an NT service. the environment variables must first be loaded from
-         *  the registry. */
-        if ((!strcmpIgnoreCase(wrapperData->argCommand, TEXT("s")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-service"))) && isWinXP() == FALSE) {
+         *  the registry.
+         * This is not necessary for versions of Windows XP and above. */
+        if ((!strcmpIgnoreCase(wrapperData->argCommand, TEXT("s")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-service"))) && (isWinXP() == FALSE)) {
             if (wrapperLoadEnvFromRegistry())
             {
                 appExit(1);
@@ -4573,9 +4578,6 @@ void _tmain(int argc, TCHAR **argv) {
 
         /* Set the default umask of the Wrapper process. */
         _umask(wrapperData->umask);
-        
-        /* Log who we are. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Current User: %s  Domain: %s"), (wrapperData->userName ? wrapperData->userName : TEXT("N/A")), (wrapperData->domainName ? wrapperData->domainName : TEXT("N/A")));
         
         /* Perform the specified command */
         if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("i")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-install"))) {
