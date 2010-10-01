@@ -60,11 +60,14 @@ Java Service Wrapper Revision History.
 * Add new wrapper.filter.allow_wildcards.<n> property and make it possible to
   specify wrapper.filter.trigger.<n> patterns which contain '*' and '?'
   wildcards.
-* Added ISO-8859-* encoding support and a few other encodings.
-* Add some default filter configurations to the wrapper.conf template to avoid
-  output from the -XX:+PrintClassHistogram JVM argument from causing the JVM
-  to restart with a false out of memory warning.
+* Add a commented alternative in the default OutOfMemoryError filter
+  configuration to make it more specific to only trigger on uncaught exception
+  stack traces.  This is to avoid output like that from the
+  -XX:+PrintClassHistogram JVM argument from causing the JVM to restart with a
+  false out of memory warning.  See the wrapper.filter.trigger.<n>
+  OutOfMemoryError example for more details.
 * Localize the default filter message.
+* Added ISO-8859-* encoding support and a few other encodings.
 * (Standard, Professional) Fix a problem parsing dates in license keys that was
   introduced in version 3.5.0.  All license upgrade terms and lease terms which
   contained "08" or "09" as either a month or day were being parsed
