@@ -15,8 +15,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "CUnit/Basic.h"
+#include "logger.h"
 #include "wrapper_i18n.h"
-#include "wrapper_hashmap.h"
+#include "wrapper.h"
 
 /**
  * The suite initialization function.
@@ -35,6 +36,20 @@ int init_suite1(void) {
 int clean_suite1(void) {
     return 0;
 }
+
+void dummyLogFileChanged(const TCHAR *logFile) {
+}
+int init_wrapper(void) {
+    initLogging(dummyLogFileChanged);
+    logRegisterThread(WRAPPER_THREAD_MAIN);
+    setLogfileLevelInt(LEVEL_NONE);
+    setConsoleLogFormat(TEXT("LPM"));
+    setConsoleLogLevelInt(LEVEL_DEBUG);
+    setConsoleFlush(TRUE);
+    setSyslogLevelInt(LEVEL_NONE);
+    return 0;
+}
+
 
 /**
  * Simple test that passes.
@@ -166,118 +181,71 @@ void freeTCHARArray(TCHAR **array, int len) {
 }
 
 /********************************************************************
- * Hash Map Tests
+ * Filter Tests
  *******************************************************************/
-void hashMapCommon(int buckets, int valueCount) {
-    PHashMap hashMap;
-    int i;
-    TCHAR **keys = NULL;
-    TCHAR **values = NULL;
-    const TCHAR *value;
+void subTestWrapperWildcardMatch(const TCHAR *pattern, const TCHAR *text, size_t expectedMinLen, int expectedMatch) {
+    size_t minLen;
+    int matched;
     
-    hashMap = newHashMap(buckets);
-    
-    if (valueCount > 0) {
-        keys = malloc(sizeof(TCHAR*) * valueCount);
-        if (!keys) {
-            CU_FAIL(TEXT("Out of memory HMC1"));
-            freeHashMap(hashMap);
-            return;
-        }
-        memset(keys, 0, sizeof(TCHAR*) * valueCount);
-        
-        values = malloc(sizeof(TCHAR*) * valueCount);
-        if (!values) {
-            CU_FAIL(TEXT("Out of memory HMC2"));
-            freeTCHARArray(keys, valueCount);
-            freeHashMap(hashMap);
-            return;
-        }
-        memset(values, 0, sizeof(TCHAR*) * valueCount);
-        
-        /* Generate and add key-value pairs. */
-        for (i = 0; i < valueCount; i++) {
-            keys[i] = buildRandomStrinWithTail(1, 20, i);
-            if (!keys[i]) {
-                CU_FAIL(TEXT("Out of memory HMC3"));
-                freeTCHARArray(keys, valueCount);
-                freeTCHARArray(values, valueCount);
-                freeHashMap(hashMap);
-                return;
-            }
-            
-            values[i] = buildRandomString(1, 255);
-            if (!values[i]) {
-                CU_FAIL(TEXT("Out of memory HMC3"));
-                freeTCHARArray(keys, valueCount);
-                freeTCHARArray(values, valueCount);
-                freeHashMap(hashMap);
-                return;
-            }
-            
-            hashMapPutKWVW(hashMap, keys[i], values[i]);
-        }
-        
-#ifdef _DEBUG_HASHMAP
-        dumpHashMapStats(hashMap);
-#endif		
-        
-        /* Now check to make sure all of the values were set correctly. */
-        for (i = 0; i < valueCount; i++) {
-            value = hashMapGetKWVW(hashMap, keys[i]);
-            if (value) {
-                if (_tcscmp(values[i], value) != 0) {
-                    _sntprintf(workBuffer, WORK_BUFFER_LEN, TEXT("hashMapGetKWVW(map, \"%s\") returned \"%s\" rather than expected \"%s\"."), keys[i], value, values[i]);
-                    _tprintf(TEXT("%s\n"), workBuffer);
-                    CU_FAIL(workBuffer);
-                } else {
-                    _sntprintf(workBuffer, WORK_BUFFER_LEN, TEXT("hashMapGetKWVW(map, \"%s\") returned \"%s\" as expected."), keys[i], value);
-                    CU_PASS(workBuffer);
-                }
-            } else {
-                _sntprintf(workBuffer, WORK_BUFFER_LEN, TEXT("hashMapGetKWVW(map, \"%s\") returned NULL rather than expected \"%s\"."), keys[i], values[i]);
-                _tprintf(TEXT("%s\n"), workBuffer);
-                CU_FAIL(workBuffer);
-            }
-        }
-        
-        /* Check for a value that will not be in the map. */
-        value = hashMapGetKWVW(hashMap, TEXT("$"));
-        if (value) {
-            _sntprintf(workBuffer, WORK_BUFFER_LEN, TEXT("hashMapGetKWVW(map, \"$\") returned \"%s\" rather than expected NULL."), value);
-            _tprintf(TEXT("%s\n"), workBuffer);
-            CU_FAIL(workBuffer);
-        } else {
-            _sntprintf(workBuffer, WORK_BUFFER_LEN, TEXT("hashMapGetKWVW(map, \"$\") returned NULL as expected."));
-            CU_PASS(workBuffer);
-        }
-        
-        freeTCHARArray(keys, valueCount);
-        freeTCHARArray(values, valueCount);
+    minLen = wrapperGetMinimumTextLengthForPattern(pattern);
+    if (minLen != expectedMinLen) {
+        _sntprintf(workBuffer, WORK_BUFFER_LEN, TEXT("wrapperGetMinimumTextLengthForPattern(\"%s\") returned %d rather than expected %d."), pattern, minLen, expectedMinLen);
+        _tprintf(TEXT("%s\n"), workBuffer);
+        CU_FAIL(workBuffer);
+    } else {
+        _sntprintf(workBuffer, WORK_BUFFER_LEN, TEXT("wrapperGetMinimumTextLengthForPattern(\"%s\") returned %d."), pattern, minLen);
+        CU_PASS(workBuffer);
     }
     
-    freeHashMap(hashMap);
+    matched = wrapperWildcardMatch(text, pattern, expectedMinLen);
+    if (matched != expectedMatch) {
+        _sntprintf(workBuffer, WORK_BUFFER_LEN, TEXT("wrapperWildcardMatch(\"%s\", \"%s\", %d) returned %s rather than expected %s."),
+            text, pattern, expectedMinLen, (matched ? TEXT("TRUE") : TEXT("FALSE")), (expectedMatch ? TEXT("TRUE") : TEXT("FALSE")));
+        _tprintf(TEXT("%s\n"), workBuffer);
+        CU_FAIL(workBuffer);
+    } else {
+        _sntprintf(workBuffer, WORK_BUFFER_LEN, TEXT("wrapperWildcardMatch(\"%s\", \"%s\", %d) returned %s."),
+            text, pattern, expectedMinLen, (matched ? TEXT("TRUE") : TEXT("FALSE")));
+        CU_PASS(workBuffer);
+    }
 }
 
-/**
- * Make sure we can create and destroy an empty hash map.
- */
-void testHashMapEmpty() {
-    hashMapCommon(100, 0);
-}
-
-/**
- * Make sure we can create and destroy an sparsely filled hash map that has many empty buckets.
- */
-void testHashMapSparse() {
-    hashMapCommon(100, 10);
-}
-
-/**
- * Make sure we can create and destroy an sparsely filled hash map that has many empty buckets.
- */
-void testHashMapLarge() {
-    hashMapCommon(100, 10000);
+void testWrapperWildcardMatch() {
+    subTestWrapperWildcardMatch(TEXT("a"), TEXT("a"), 1, TRUE);
+    subTestWrapperWildcardMatch(TEXT("a"), TEXT("b"), 1, FALSE);
+    subTestWrapperWildcardMatch(TEXT("a"), TEXT(""), 1, FALSE);
+    
+    subTestWrapperWildcardMatch(TEXT("a"), TEXT("abc"), 1, TRUE);
+    subTestWrapperWildcardMatch(TEXT("b"), TEXT("abc"), 1, TRUE);
+    subTestWrapperWildcardMatch(TEXT("c"), TEXT("abc"), 1, TRUE);
+    subTestWrapperWildcardMatch(TEXT("d"), TEXT("abc"), 1, FALSE);
+    
+    subTestWrapperWildcardMatch(TEXT("?"), TEXT("a"), 1, TRUE);
+    subTestWrapperWildcardMatch(TEXT("?"), TEXT(""), 1, FALSE);
+    
+    subTestWrapperWildcardMatch(TEXT("*"), TEXT(""), 0, TRUE);
+    subTestWrapperWildcardMatch(TEXT("*"), TEXT("a"), 0, TRUE);
+    subTestWrapperWildcardMatch(TEXT("*"), TEXT("abc"), 0, TRUE);
+    
+    subTestWrapperWildcardMatch(TEXT("*a"), TEXT("a"), 1, TRUE);
+    subTestWrapperWildcardMatch(TEXT("*a"), TEXT("abc"), 1, TRUE);
+    subTestWrapperWildcardMatch(TEXT("*b"), TEXT("abc"), 1, TRUE);
+    subTestWrapperWildcardMatch(TEXT("a*"), TEXT("a"), 1, TRUE);
+    subTestWrapperWildcardMatch(TEXT("a*"), TEXT("abc"), 1, TRUE);
+    subTestWrapperWildcardMatch(TEXT("b*"), TEXT("abc"), 1, TRUE);
+    subTestWrapperWildcardMatch(TEXT("*a*"), TEXT("a"), 1, TRUE);
+    subTestWrapperWildcardMatch(TEXT("*a*"), TEXT("abc"), 1, TRUE);
+    subTestWrapperWildcardMatch(TEXT("*b*"), TEXT("abc"), 1, TRUE);
+    
+    subTestWrapperWildcardMatch(TEXT("HEAD*TAIL"), TEXT("This is the HEAD and this is the TAIL....."), 8, TRUE);
+    subTestWrapperWildcardMatch(TEXT("HEAD**TAIL"), TEXT("This is the HEAD and this is the TAIL....."), 8, TRUE);
+    subTestWrapperWildcardMatch(TEXT("*HEAD*TAIL*"), TEXT("This is the HEAD and this is the TAIL....."), 8, TRUE);
+    subTestWrapperWildcardMatch(TEXT("HEAD*TAIL"), TEXT("This is the HEAD and this is the TaIL....."), 8, FALSE);
+    subTestWrapperWildcardMatch(TEXT("HEAD**TAIL"), TEXT("This is the HEAD and this is the TaIL....."), 8, FALSE);
+    subTestWrapperWildcardMatch(TEXT("*HEAD*TAIL*"), TEXT("This is the HEAD and this is the TaIL....."), 8, FALSE);
+    subTestWrapperWildcardMatch(TEXT("HEAD*TA?L"), TEXT("This is the HEAD and this is the TAIL....."), 8, TRUE);
+    subTestWrapperWildcardMatch(TEXT("HEAD**TA?L"), TEXT("This is the HEAD and this is the TAIL....."), 8, TRUE);
+    subTestWrapperWildcardMatch(TEXT("*HEAD*TA?L*"), TEXT("This is the HEAD and this is the TAIL....."), 8, TRUE);
 }
 
 /* The main() function for setting up and running the tests.
@@ -287,7 +255,7 @@ void testHashMapLarge() {
 int main()
 {
     CU_pSuite pSuite = NULL;
-    CU_pSuite hashMapSuite = NULL;
+    CU_pSuite filterSuite = NULL;
     
     /* Initialize the random seed. */
     srand((unsigned)time(NULL));
@@ -302,8 +270,8 @@ int main()
         CU_cleanup_registry();
         return CU_get_error();
     }
-    hashMapSuite = CU_add_suite("HashMap Suite", NULL, NULL);
-    if (NULL == hashMapSuite) {
+    filterSuite = CU_add_suite("Filter Suite", init_wrapper, NULL);
+    if (NULL == filterSuite) {
         CU_cleanup_registry();
         return CU_get_error();
     }
@@ -317,9 +285,7 @@ int main()
     }
     */
     
-    CU_add_test(hashMapSuite, "empty HashMap", testHashMapEmpty);
-    CU_add_test(hashMapSuite, "sparce HashMap", testHashMapSparse);
-    CU_add_test(hashMapSuite, "large HashMap", testHashMapLarge);
+    CU_add_test(filterSuite, "wrapperWildcardMatch", testWrapperWildcardMatch);
     
     /* Run all tests using the CUnit Basic interface */
     CU_basic_set_mode(CU_BRM_VERBOSE);

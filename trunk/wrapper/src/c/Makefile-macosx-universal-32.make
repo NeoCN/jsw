@@ -25,6 +25,7 @@ libwrapper_so_OBJECTS = wrapper_i18n.o wrapperjni_unix.o wrapperinfo.o wrapperjn
 
 BIN = ../../bin
 LIB = ../../lib
+TEST = ../../test
 
 all: init testsuite wrapper libwrapper.jnilib
 

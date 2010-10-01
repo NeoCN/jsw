@@ -31,12 +31,12 @@ Java Service Wrapper Revision History.
   Bug #3061490.
 * (Standard, Professional) Fix a problem for Solaris and HP-UX where the socket
   timeout properties for the email notifications were ignored.
-* (Standard, Professional) Added wrapper.ntservice.recovery.* properties to 
+* (Standard, Professional) Added wrapper.ntservice.recovery.<x> properties to 
   define system level actions in the event that the Wrapper process itself
   has a failure.
-* (Standard, Professional) Fixed a problem in the WrapperProcess.waitFor()
-  call, where it would fail to return when called after the Wrapper had
-  initiated the shutdown of the JVM.
+* (Standard, Professional) Fixed a problem in the WrapperProcess.waitFor() and
+  WrapperProcess.exitValue() call, where it would fail to return when called
+  after the Wrapper had initiated the shutdown of the JVM.
 * (Standard, Professional) Add WrapperProcessConfig.setSoftShutdownTimeout(int)
   method to tell the Wrapper how long to wait after nicely asking the child
   process to shutdown cleanly when calling WrapperProcess.destroy().  Once the
@@ -57,6 +57,14 @@ Java Service Wrapper Revision History.
 * (Standard, Professional) Fix a put problem in the internal hash map
   implemenation used for localization where values could be lost.  This was
   not a visible issue because of the data used.
+* Add new wrapper.filter.allow_wildcards.<n> property and make it possible to
+  specify wrapper.filter.trigger.<n> patterns which contain '*' and '?'
+  wildcards.
+* Added ISO-8859-* encoding support and a few other encodings.
+* Add some default filter configurations to the wrapper.conf template to avoid
+  output from the -XX:+PrintClassHistogram JVM argument from causing the JVM
+  to restart with a false out of memory warning.
+* Localize the default filter message.
 
 3.5.4
 * Add optional support for custom public static methods in the

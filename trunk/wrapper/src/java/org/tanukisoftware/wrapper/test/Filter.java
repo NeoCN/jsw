@@ -35,10 +35,18 @@ public class Filter {
         System.out.println( "  NONERROR");
         System.out.println();
         
-        if (WrapperManager.getJVMId() >= 4) {
+        if (WrapperManager.getJVMId() >= 6) {
             // Time to shutdown
             System.out.println( Main.getRes().getString( "The next line should cause the Wrapper to exit:" ) );
             System.out.println("  ALLDONE");
+        } else if (WrapperManager.getJVMId() == 5) {
+            // Perform a restart.
+            System.out.println( Main.getRes().getString( "The next line should cause the Wrapper to restart the JVM:" ) );
+            System.out.println( "  HEAD and a bunch of stuff before the TAIL" );
+        } else if (WrapperManager.getJVMId() == 4) {
+            // Perform a thread dump and restart.
+            System.out.println( Main.getRes().getString( "The next line should cause the Wrapper to invoke a thread dump and then restart the JVM:" ) );
+            System.out.println( "  DUMP -n- RESTART" );
         } else if (WrapperManager.getJVMId() == 3) {
             // Try a restart with spaces.
             System.out.println( Main.getRes().getString( "The next line should cause the Wrapper to restart the JVM:" ) );
