@@ -530,6 +530,15 @@ void commandPoll(TICKS nowTicks) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Shutting down with exit code %d."), command, exitCode);
 
                                 wrapperStopProcess(exitCode);
+                                
+                                /* To make sure that the JVM will not be restarted for any reason,
+                                 *  start the Wrapper shutdown process as well. */
+                                if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
+                                    (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
+                                    /* Already stopping. */
+                                } else {
+                                    wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
+                                }
                             } else if (strcmpIgnoreCase(command, TEXT("PAUSE")) == 0) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Pausing JVM."), command);
                                 wrapperPauseProcess(WRAPPER_ACTION_SOURCE_CODE_COMMANDFILE);
@@ -674,13 +683,23 @@ void wStateStarting(TICKS nowTicks) {
     }
     wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTING, 0, timeout);
 
-    /* If the JVM state is now STARTED, then change the wrapper state */
-    /*  to be STARTED as well. */
-    if (wrapperData->jState == WRAPPER_JSTATE_STARTED) {
-        wrapperSetWrapperState(WRAPPER_WSTATE_STARTED);
+    /* If we are supposed to pause on startup, we need to jump to that state now, and report that we are started. */
+    if (wrapperData->initiallyPaused && wrapperData->pausable) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Initially Paused."));
+        
+        wrapperSetWrapperState(WRAPPER_WSTATE_PAUSED);
 
         /* Tell the service manager that we started */
-        wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTED, 0, 0);
+        wrapperReportStatus(FALSE, WRAPPER_WSTATE_PAUSED, 0, 0);
+    } else {
+        /* If the JVM state is now STARTED, then change the wrapper state */
+        /*  to be STARTED as well. */
+        if (wrapperData->jState == WRAPPER_JSTATE_STARTED) {
+            wrapperSetWrapperState(WRAPPER_WSTATE_STARTED);
+    
+            /* Tell the service manager that we started */
+            wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTED, 0, 0);
+        }
     }
 }
 
@@ -1670,6 +1689,7 @@ void wrapperEventLoop() {
         wrapperDumpMemoryBanner();
     }
 
+    
     nextSleep = TRUE;
     do {
         if (wrapperData->isLoopOutputEnabled) {
@@ -1722,7 +1742,7 @@ void wrapperEventLoop() {
         /* Don't bother processing the socket if we are shutting down and the JVM is down. */
         if (((wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK) || (wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN)) &&
             ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) || (wrapperData->wState == WRAPPER_WSTATE_STOPPED))) {
-            /* Skin socket processing. */
+            /* Skip socket processing. */
         } else {
             if (wrapperProtocolRead()) {
                 /* There was more data waiting to be read, but we broke out. */

@@ -112,6 +112,10 @@ Java Service Wrapper Revision History.
 * Fix a problem where it was not possible to send passthrough arguments to the
   JVM when installing or updating a Windows Service.  Passthrough using the
   "--" argument was added in 3.5.2.
+* Add a new wrapper.pause_on_startup property which makes it possible to tell
+  the Wrapper to go directly into a paused state without ever launching a JVM.
+* Fix a problem where the STOP command set in a command file was being ignored
+  if the Wrapper was currently in a paused state.
 
 3.5.4
 * Add optional support for custom public static methods in the

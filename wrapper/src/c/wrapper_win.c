@@ -2688,7 +2688,6 @@ int buildServiceBinaryPath(TCHAR *buffer, size_t *reqBufferSize) {
     }
     
     /* If there are any passthrough variables.  Then they also need to be appended as is. */
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("wrapperData->javaArgValueCount=%d"), wrapperData->javaArgValueCount);
     if (wrapperData->javaArgValueCount > 0) {
         if (buffer) {
             _tcscat(buffer, TEXT(" --"));

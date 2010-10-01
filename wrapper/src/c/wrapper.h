@@ -327,6 +327,7 @@ struct WrapperConfig {
     TCHAR   *hostName;              /* The name of the current host. */
     int     pausable;               /* Should the service be allowed to be paused? */
     int     pausableStopJVM;        /* Should the JVM be stopped when the service is paused? */
+    int     initiallyPaused;        /* Should the Wrapper come up initially in a paused state? */
 
 #ifdef WIN32
     int     isSingleInvocation;     /* TRUE if only a single invocation of an application should be allowed to launch. */
