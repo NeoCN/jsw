@@ -2,13 +2,18 @@ Java Service Wrapper Revision History.
 --------------------------------------
 
 3.5.5
-* Add new trigger action SUCCESS. If this gets triggered the wrapper will be
-  prompted to set the start of the jvm pretermed to success. This is useful in 
-  combination with the RESTART trigger action.
+* Add new wrapper.filter.trigger.<n> action, "SUCCESS".  If this gets triggered
+  then the Wrapper will treat the current JVM invocation as a success, and
+  reset its internal failed invocation counter.  This is useful for
+  applications that need to be restarted frequently.
 * (Standard, Professional) Ignore Juniper Network Connect hostIds as they
   change on each reboot and are thus unreliable as hostIds.
-* Added FIXED_COMMAND and PASS_THROUGH properties to the UNIX shell script and
-  Windows AppCommand.bat.in files.
+* Added a PASS_THROUGH setting to the UNIX shell script and Windows
+  AppCommand.bat.in files which tells them to pass any extra arguments directly
+  on to the JVM when it is launched.
+* Added a FIXED_COMMAND setting to the UNIX shell script and Windows
+  AppCommand.bat.in files to make it possible to run either without specifying
+  a command.  Mainly useful in conjunction with PASS_THROUGH.
 * (Standard, Professional) Added a --passthrough option to the exe
   customization, in order to tell the wrapper to precede the whole command line
   through to the application in the JVM.
@@ -24,10 +29,22 @@ Java Service Wrapper Revision History.
   are optional by design.
 * Modify the error messages displayed when configuration files fail to load so
   they now provide more information about where specifically the problem was.
-* Fix a problem on Windows 7 and Windows 2008 where the USERNAME environment
-  variable was always being set to SYSTEM when running as a service.  The fix
-  was to never load the USERNAME, USERDOMAIN, or USERPROFILE environment
-  variables from the SYSTEM registry when the account is not the SYSTEM.
+* Disabled the forced reloading of the SYSTEM (and if set to a specific
+  account, the user) registry before launching the Wrapper as a service on
+  Windows.  This was done originally in Windows NT because changes to the
+  configured environment were not being reflected when running a service unless
+  the system was first rebooted.  Microsoft appears to have solved this problem
+  in Windows XP and 2003.  In Windows 7 and 2008, this was actually causing a
+  problem because the SYSTEM registry contains a setting "USERNAME=SYSTEM" by
+  default that was overwriting the USERNAME when run as specific user.  It was
+  decided to disable this registry loading for Windows versions starting with
+  XP and 2003.  Of the supported versions, only 2000 is now reloading its
+  environment.  The only difference from version 3.5.4 and earlier that could
+  be found is that when running as the SYSTEM user on Windows 7 or 2008, the
+  USERNAME environment variable will now be set to the host name followed by a
+  dollar sign rather than SYSTEM.   This is actually how all other services
+  work.  But just in case this is a problem, it can we resolved by adding a
+  "set.USERNAME=SYSTEM" property into the Wrapper configuration file.
   Bug #3061490.
 * (Standard, Professional) Fix a problem for Solaris and HP-UX where the socket
   timeout properties for the email notifications were ignored.
@@ -48,9 +65,12 @@ Java Service Wrapper Revision History.
 * (Professional) Fix a minor memory memory leak while initializing timers.
 * Fix a memory leak which could happen if there were any invalid strings in
   localization resources.
-* (Professional) Fix a bug where the wrapper.event.<event_type>.command.argv.n
+* (Professional) Fix a bug where the wrapper.event.<event_type>.command.argv.<n>
   properties were not correctly parsed on Windows. This issue was introduced
   in version 3.5.0.
+* (Professional) Add the ability to define wrapper.event.default.command.argv.<n>
+  properties that will be used if the event specific specific commands are not
+  defined.  Mainly useful for testing.
 * Fix a problem occuring when the wrapper failed to roll the log file causing 
   to write to the wrapper's default log (wrapper.log) file rather than
   continuing to write to the current logfile.
@@ -68,20 +88,30 @@ Java Service Wrapper Revision History.
   OutOfMemoryError example for more details.
 * Localize the default filter message.
 * Added ISO-8859-* encoding support and a few other encodings.
-* (Standard, Professional) Fix a problem parsing dates in license keys that was
-  introduced in version 3.5.0.  All license upgrade terms and lease terms which
-  contained "08" or "09" as either a month or day were being parsed
-  incorrectly.  This was leading the Wrapper to interpret those date components
-  as "00".  If the number was the date, then this would cause the date to be
-  set to the last day of the previous month.  If it was the month however, it
-  would cause the date to be set to December of the previous year.  For example
-  "2010-08-20" was being interpreted as "2009-12-20", and "2010-10-08" was
-  being interpreted as "2009-09-30".  This would have prevented some licenses
-  from being able to start because the upgrade terms were in effect prior to
-  the Wrapper's release date.  Some trial licenses could also have stopped
-  early because their lease term end was earlier that it should may have been.
-  For normal licenses, his will have no effect on installations once they are
-  up and running because they do not use the lease term.
+* (Standard, Professional) Fix a problem on UNIX versions, parsing dates in
+  license keys that was introduced in version 3.5.0.  Windows verisons did not
+  have this problem.  All license upgrade terms and lease terms which contained
+  "08" or "09" as either a month or day were being parsed incorrectly.  This
+  was leading the Wrapper to interpret those date components as "00".  If the
+  number was the date, then this would cause the date to be set to the last day
+  of the previous month.  If it was the month however, it would cause the date
+  to be set to December of the previous year.  For example "2010-08-20" was
+  being interpreted as "2009-12-20", and "2010-10-08" was being interpreted as
+  "2009-09-30".  This would have prevented some licenses from being able to
+  start because the upgrade terms were in effect prior to the Wrapper's release
+  date.  Some trial licenses could also have stopped early because their lease
+  term end was earlier that it should may have been.  For normal licenses, his
+  will have no effect on installations once they are up and running because
+  they do not use the lease term.
+* Fix a problem on Windows when a service received several service control
+  codes in rapid succession.  Since version 3.5.1, the Wrapper was only to
+  process a single control code in each cycle of its main loop.  This was
+  resulting in messages like "Previous control code (4) was still in queue,
+  overwriting with (4)." in the logs.  The Wrapper can now handle up to 25
+  control codes per 10ms cycle.
+* Fix a problem where it was not possible to send passthrough arguments to the
+  JVM when installing or updating a Windows Service.  Passthrough using the
+  "--" argument was added in 3.5.2.
 
 3.5.4
 * Add optional support for custom public static methods in the

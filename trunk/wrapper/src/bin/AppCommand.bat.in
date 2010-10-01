@@ -23,17 +23,15 @@ rem The name and location of the Wrapper configuration file.
 rem  (Do not remove quotes.)
 set _WRAPPER_CONF="../conf/wrapper.conf"
 
-rem  Commandline handling
-rem  DEFAULT_ACTION speciefies the command the script will execute
-rem  this way the script could be started like ./SCRIPT [args]
-set DEFAULT_ACTION=
+rem _FIXED_COMMAND tells the script to use a hard coded action rather than
+rem  expecting the first parameter of the command line to be the command.
+rem  By default the command will will be expected to be the first parameter.
+rem set _FIXED_COMMAND=console
 
-rem  specifies if the commandline should be passe to the wrapper or the jvm.
-rem  if no default action has been specified the script however still needs 
-rem  the action as first parameter, all other parameters will be passed over
-rem  to the jvm.
-rem  for activating this set PASS_THROUGH_JVM to a non-null value e.g. TRUE
-set PASS_THROUGH_JVM=
+rem _PASS_THROUGH tells the script to pass all arguments through to the JVM
+rem  as is.  If _FIXED_COMMAND is specified then all arguments will be passed.
+rem  If not set then all arguments starting with the second will be passed.
+rem set _PASS_THROUGH=true
 
 rem Do not modify anything beyond this point
 rem -----------------------------------------------------------------------------
@@ -72,77 +70,106 @@ pause
 goto :eof
 
 :validate
-rem
-rem Find the requested command.
-rem
-for /F %%v in ('echo %1^|findstr "^console$ ^start$ ^pause$ ^resume$ ^stop$ ^restart$ ^install$ ^remove$"') do call :exec set COMMAND=%%v
+if not [%_FIXED_COMMAND%]==[] goto defaultaction
+rem There should be a command on the command line.  Look for it.
+set _COMMAND=
+for /F %%v in ('echo %1^|findstr "^console$ ^start$ ^pause$ ^resume$ ^stop$ ^restart$ ^install$ ^remove$"') do call :exec set _COMMAND=%%v
 
-if [%COMMAND%]==[] (
-    if [%DEFAULT_ACTION%]==[] (
-        echo Usage: %0 { console : start : pause : resume : stop : restart : install : remove }
-        pause
-        goto :eof
-    ) else (
-        set COMMAND=%DEFAULT_ACTION%
-    )
+if [%_COMMAND%]==[] (
+    set _COMMAND=%1
+    goto showusage
 ) else (
+    rem Got a command
     shift
 )
+goto havecommand
+    
+:defaultaction	
+rem Specified a default action.
+set _COMMAND=%_FIXED_COMMAND%
+goto havecommand
 
+:havecommand
+if [%_PASS_THROUGH%]==[] goto callcommand
+rem Collect an parameters
 :parameters
-set PARAMETER=%PARAMETER% %1
+set _PARAMETERS=%_PARAMETERS% %1
 shift
-if not [%1]==[] goto :parameters
+if not [%1]==[] goto parameters
 
-
+:callcommand
 rem
 rem Run the application.
 rem At runtime, the current directory will be that of wrapper.exe
 rem
-call :%COMMAND%
-if errorlevel 1 goto callerror
+call :%_COMMAND%
+if errorlevel 1 goto handleerror
 goto :eof
 
-:callerror
-echo An error occurred in the process.
+:handleerror
+if [%_MATCHED]==[] goto showusage
+pause
+goto :eof
+
+:showusage
+rem A command was not specified, or it was now known.
+if not [%_COMMAND%]==[] (
+    echo Unknown command: %_COMMAND%
+    echo.
+)
+if [%_PASS_THROUGH%]==[] (
+    echo Usage: %0 [ console : start : pause : resume : stop : restart : install : update : remove ]
+) else (
+    echo Usage: %0 [ console {JavaAppArgs} : start : pause : resume : stop : restart : install {JavaAppArgs} : update {JavaAppArgs} : remove ]
+)
 pause
 goto :eof
 
 :console
-echo hi %*
-IF [%PASS_THROUGH_JVM%]==[] (
-    "%_WRAPPER_EXE%" -c %_WRAPPER_CONF% %PARAMETER%
-) ELSE (
-     echo Pass through to the jvm : %PARAMETER%
-    "%_WRAPPER_EXE%" -c %_WRAPPER_CONF% -- %PARAMETER%
+set _MATCHED=true
+if [%_PASS_THROUGH%]==[] (
+    "%_WRAPPER_EXE%" -c %_WRAPPER_CONF%
+) else (
+    "%_WRAPPER_EXE%" -c %_WRAPPER_CONF% -- %_PARAMETERS%
 )
 goto :eof
 
 :start
+set _MATCHED=true
 "%_WRAPPER_EXE%" -t %_WRAPPER_CONF%
 goto :eof
 
 :pause
+set _MATCHED=true
 "%_WRAPPER_EXE%" -a %_WRAPPER_CONF%
 goto :eof
 
 :resume
+set _MATCHED=true
 "%_WRAPPER_EXE%" -e %_WRAPPER_CONF%
 goto :eof
 
 :stop
+set _MATCHED=true
 "%_WRAPPER_EXE%" -p %_WRAPPER_CONF%
 goto :eof
 
 :install
-"%_WRAPPER_EXE%" -i %_WRAPPER_CONF%
+set _MATCHED=true
+if [%_PASS_THROUGH%]==[] (
+    "%_WRAPPER_EXE%" -i %_WRAPPER_CONF%
+) else (
+    "%_WRAPPER_EXE%" -i %_WRAPPER_CONF% -- %_PARAMETERS%
+)
 goto :eof
 
 :remove
+set _MATCHED=true
 "%_WRAPPER_EXE%" -r %_WRAPPER_CONF%
 goto :eof
 
 :restart
+set _MATCHED=true
 call :stop
 call :start
 goto :eof

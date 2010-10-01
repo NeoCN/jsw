@@ -2811,6 +2811,12 @@ int wrapperRunCommon() {
 #endif
     }
 
+#ifdef WIN32
+    if (wrapperData->isDebugging) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Current User: %s  Domain: %s"), (wrapperData->userName ? wrapperData->userName : TEXT("N/A")), (wrapperData->domainName ? wrapperData->domainName : TEXT("N/A")));
+    }
+#endif
+
     /* Should we dump the environment variables? */
     if (getBooleanProperty(properties, TEXT("wrapper.environment.dump"), getBooleanProperty(properties, TEXT("wrapper.debug"), FALSE))) {
         dumpEnvironment();
