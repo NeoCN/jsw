@@ -2064,49 +2064,230 @@ void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int acti
 }
 
 /**
+ * Function that will recursively attempt to match two strings where the
+ *  pattern can contain '?' or '*' wildcard characters.  This function requires
+ *  that the pattern be matched from the beginning of the text.
+ *
+ * @param text Text to be searched.
+ * @param textLen Length of the text.
+ * @param pattern Pattern to search for.
+ * @param patternLen Length of the pattern.
+ * @param minTextLen Minimum number of characters that the text needs to possibly match the pattern.
+ *
+ * @return TRUE if found, FALSE otherwise.
+ *
+ * 1)     text=abcdefg  textLen=7  pattern=a*d*efg  patternLen=7  minTextLen=5
+ * 1.1)   text=bcdefg   textLen=6  pattern=d*efg    patternLen=5  minTextLen=4
+ * 1.2)   text=cdefg    textLen=5  pattern=d*efg    patternLen=5  minTextLen=4
+ * 1.3)   text=defg     textLen=4  pattern=d*efg    patternLen=5  minTextLen=4
+ * 1.3.1) text=efg      textLen=3  pattern=efg      patternLen=3  minTextLen=3
+ */
+int wildcardMatchInner(const TCHAR *text, size_t textLen, const TCHAR *pattern, size_t patternLen, size_t minTextLen) {
+    size_t textIndex;
+    size_t patternIndex;
+    TCHAR patternChar;
+    size_t textIndex2;
+    TCHAR textChar;
+    
+    /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("  wildcardMatchInner(\"%s\", %d, \"%s\", %d, %d)"), text, textLen, pattern, patternLen, minTextLen);*/
+    
+    textIndex = 0;
+    patternIndex = 0;
+    
+    while ((textIndex < textLen) && (patternIndex < patternLen)) {
+        patternChar = pattern[patternIndex];
+        
+        if (patternChar == TEXT('*')) {
+            /* The pattern '*' can match 0 or more characters.  This requires a bit of recursion to work it out. */
+            textIndex2 = textIndex;
+            /* Loop over all possible starting locations.  We know how many characters are needed to match (minTextLen - patternIndex) so we can stop there. */
+            while (textIndex2 < textLen - (minTextLen - (patternIndex + 1))) {
+                if (wildcardMatchInner(&(text[textIndex2]), textLen - textIndex2, &(pattern[patternIndex + 1]), patternLen - (patternIndex + 1), minTextLen - patternIndex)) {
+                    /* Got a match in recursion. */
+                    /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("  wildcardMatchInner(\"%s\", %d, \"%s\", %d, %d) -> HERE1 textIndex=%d, patternIndex=%d, textIndex2=%d TRUE"), text, textLen, pattern, patternLen, minTextLen, textIndex, patternIndex, textIndex2);*/
+                    return TRUE;
+                } else {
+                    /* Failed to match.  Try matching one more character against the '*'. */
+                    textIndex2++;
+                }
+            }
+            /* If we get here then all possible starting locations failed. */
+            /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("  wildcardMatchInner(\"%s\", %d, \"%s\", %d, %d) -> HERE2 textIndex=%d, patternIndex=%d, textIndex2=%d FALSE"), text, textLen, pattern, patternLen, minTextLen, textIndex, patternIndex, textIndex2);*/
+            return FALSE;
+        } else if (patternChar == TEXT('?')) {
+            /* Match any character. */
+            patternIndex++;
+            textIndex++;
+        } else {
+            textChar = text[textIndex];
+            if (patternChar == textChar) {
+                /* Characters match. */
+                patternIndex++;
+                textIndex++;
+            } else {
+                /* Characters do not match.  We are done. */
+                /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("  wildcardMatchInner(\"%s\", %d, \"%s\", %d, %d) -> HERE3 textIndex=%d, patternIndex=%d FALSE"), text, textLen, pattern, patternLen, minTextLen, textIndex, patternIndex);*/
+                return FALSE;
+            }
+        }
+    }
+    
+    /* It is ok if there are text characters left over as we only need to match a substring, not the whole string. */
+    
+    /* If there are any pattern chars left.  Make sure that they are all wildcards. */
+    while (patternIndex < patternLen) {
+        if (pattern[patternIndex] != TEXT('*')) {
+            /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("  wildcardMatchInner(\"%s\", %d, \"%s\", %d, %d) -> HERE4 pattern[%d]=%c FALSE"), text, textLen, pattern, patternLen, minTextLen, patternIndex, pattern[patternIndex]);*/
+            return FALSE;
+        }
+        patternIndex++;
+    }
+    
+    /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("  wildcardMatchInner(\"%s\", %d, \"%s\", %d, %d) -> HERE5 textIndex=%d, patternIndex=%d TRUE"), text, textLen, pattern, patternLen, minTextLen, textIndex, patternIndex);*/
+    return TRUE;
+}
+
+/**
+ * Function that will recursively attempt to match two strings where the
+ *  pattern can contain '?' or '*' wildcard characters.
+ *
+ * @param text Text to be searched.
+ * @param pattern Pattern to search for.
+ * @param patternLen Length of the pattern.
+ * @param minTextLen Minimum number of characters that the text needs to possibly match the pattern.
+ *
+ * @return TRUE if found, FALSE otherwise.
+ */
+int wrapperWildcardMatch(const TCHAR *text, const TCHAR *pattern, size_t minTextLen) {
+    size_t textLen;
+    size_t patternLen;
+    size_t textIndex;
+    
+    /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("wrapperWildcardMatch(\"%s\", \"%s\", %d)"), text, pattern, minTextLen);*/
+    
+    textLen = _tcslen(text);
+    if (textLen < minTextLen) {
+        return FALSE;
+    }
+    
+    patternLen = _tcslen(pattern);
+    /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("  textLen=%d, patternLen=%d"), textLen, patternLen);*/
+    
+    textIndex = 0;
+    while (textIndex <= textLen - minTextLen) {
+        if (wildcardMatchInner(&(text[textIndex]), textLen - textIndex, pattern, patternLen, minTextLen)) {
+            return TRUE;
+        }
+        textIndex++;
+    }
+    
+    return FALSE;
+}
+
+/**
+ * Calculates the minimum text length which could be matched by the specified pattern.
+ *  Patterns can contain '*' or '?' wildcards.
+ *  '*' matches 0 or more characters.
+ *  '?' matches exactly one character.
+ *
+ * @param pattern Pattern to calculate.
+ *
+ * @return The minimum text length of the pattern.
+ */
+size_t wrapperGetMinimumTextLengthForPattern(const TCHAR *pattern) {
+    size_t patternLen;
+    size_t patternIndex;
+    size_t minLen;
+    
+    /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("wrapperGetMinimumTextLengthForPattern(%s)"), pattern);*/
+    
+    patternLen = _tcslen(pattern);
+    minLen = 0;
+    for (patternIndex = 0; patternIndex < patternLen; patternIndex++) {
+        if (pattern[patternIndex] == TEXT('*')) {
+            /* Matches 0 or more characters, so don't increment the minLen */
+        } else {
+            minLen++;
+        }
+    }
+    
+    /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("wrapperGetMinimumTextLengthForPattern(%s) -> %d"), pattern, minLen);*/
+    
+    return minLen;
+}
+
+void logApplyFilters(const TCHAR *log) {
+    int i;
+    const TCHAR *filter;
+    const TCHAR *filterMessage;
+    int matched;
+    
+    /* Look for output filters in the output.  Only match the first. */
+    for (i = 0; i < wrapperData->outputFilterCount; i++) {
+        if (_tcslen(wrapperData->outputFilters[i]) > 0) {
+            /* The filter is defined. */
+            matched = FALSE;
+            filter = wrapperData->outputFilters[i];
+            
+            if (wrapperData->outputFilterAllowWildFlags[i]) {
+                if (wrapperWildcardMatch(log, filter, wrapperData->outputFilterMinLens[i])) {
+                    matched = TRUE;
+                }
+            } else {
+                /* Do a simple check to see if the pattern is found exactly as is. */
+                if (_tcsstr(log, filter)) {
+                    /* Found an exact match for the pattern. */
+                    /* Any wildcards in the pattern can be matched exactly if they exist in the output.  This is by design. */
+                    matched = TRUE;
+                }
+            }
+            
+            if (matched) {
+                filterMessage = wrapperData->outputFilterMessages[i];
+                if ((!filterMessage) || (_tcslen(filterMessage) <= 0)) {
+                    filterMessage = TEXT("Filter trigger matched.");
+                }
+                wrapperProcessActionList(wrapperData->outputFilterActionLists[i], filterMessage, WRAPPER_ACTION_SOURCE_CODE_FILTER, FALSE, 1);
+    
+                /* break out of the loop */
+                break;
+            }
+        }
+    }
+}
+
+/**
  * Logs a single line of child output allowing any filtering
  *  to be done in a common location.
  */
 void logChildOutput(const char* log) {
-    int i;
-    const TCHAR *filterMessage;
     TCHAR* tlog;
 #ifdef UNICODE
     int size;
-#ifdef WIN32
+    
+ #ifdef WIN32
     size = MultiByteToWideChar(CP_ACP,0, log,-1 , NULL,0) + 1;
     tlog = (TCHAR*)malloc(size * sizeof(TCHAR));
     if(!tlog) {
         outOfMemory(TEXT("WLCO"), 1);
     }
     MultiByteToWideChar(CP_ACP,0, log,-1 , (TCHAR*)tlog, size);
-#else
+ #else
     size = mbstowcs(NULL, log, 0) + 1;
     tlog = malloc(size * sizeof(TCHAR));
     if(!tlog) {
             outOfMemory(TEXT("WLCO"), 1);
     }
     mbstowcs(tlog, log, size);
-#endif
+ #endif
 #else
     tlog = (TCHAR*)log;
 #endif
     log_printf(wrapperData->jvmRestarts, LEVEL_INFO, TEXT("%s"), tlog);
-
+    
     /* Look for output filters in the output.  Only match the first. */
-    for (i = 0; i < wrapperData->outputFilterCount; i++) {
-        if ((_tcslen(wrapperData->outputFilters[i]) > 0) && (_tcsstr(tlog, wrapperData->outputFilters[i]))) {
-            /* Found. */
-            filterMessage = wrapperData->outputFilterMessages[i];
-            if ((!filterMessage) || (_tcslen(filterMessage) <= 0)) {
-                filterMessage = TEXT("Filter trigger matched.");
-            }
-            wrapperProcessActionList(wrapperData->outputFilterActionLists[i], filterMessage, WRAPPER_ACTION_SOURCE_CODE_FILTER, FALSE, 1);
+    logApplyFilters(tlog);
 
-            /* break out of the loop */
-            break;
-        }
-    }
 #ifdef UNICODE
     free(tlog);
 #endif
@@ -5232,8 +5413,15 @@ int loadConfigurationTriggers() {
             wrapperData->outputFilterActionLists = NULL;
         }
 
+        /* Individual messages are references to property values and are not malloced. */
         free(wrapperData->outputFilterMessages);
         wrapperData->outputFilterMessages = NULL;
+        
+        free(wrapperData->outputFilterAllowWildFlags);
+        wrapperData->outputFilterAllowWildFlags = NULL;
+        
+        free(wrapperData->outputFilterMinLens);
+        wrapperData->outputFilterMinLens = NULL;
     }
 
     wrapperData->outputFilterCount = 0;
@@ -5250,6 +5438,7 @@ int loadConfigurationTriggers() {
     wrapperData->outputFilterCount++;
     i++;
 #endif
+    
     /* Now that a count is known, allocate memory to hold the filters and actions and load them in. */
     if (wrapperData->outputFilterCount > 0) {
         wrapperData->outputFilters = malloc(sizeof(TCHAR *) * wrapperData->outputFilterCount);
@@ -5267,9 +5456,23 @@ int loadConfigurationTriggers() {
 
         wrapperData->outputFilterMessages = malloc(sizeof(TCHAR *) * wrapperData->outputFilterCount);
         if (!wrapperData->outputFilterMessages) {
-            outOfMemory(TEXT("LC"), 1);
+            outOfMemory(TEXT("LC"), 3);
             return TRUE;
         }
+        
+        wrapperData->outputFilterAllowWildFlags = malloc(sizeof(int) * wrapperData->outputFilterCount);
+        if (!wrapperData->outputFilterAllowWildFlags) {
+            outOfMemory(TEXT("LC"), 4);
+            return TRUE;
+        }
+        memset(wrapperData->outputFilterAllowWildFlags, 0, sizeof(int) * wrapperData->outputFilterCount);
+        
+        wrapperData->outputFilterMinLens = malloc(sizeof(size_t) * wrapperData->outputFilterCount);
+        if (!wrapperData->outputFilterMinLens) {
+            outOfMemory(TEXT("LC"), 5);
+            return TRUE;
+        }
+        memset(wrapperData->outputFilterMinLens, 0, sizeof(size_t) * wrapperData->outputFilterCount);
 
         i = 0;
         while (propertyNames[i]) {
@@ -5291,6 +5494,14 @@ int loadConfigurationTriggers() {
             _sntprintf(propName, 256, TEXT("wrapper.filter.message.%lu"), propertyIndices[i]);
             prop = getStringProperty(properties, propName, NULL);
             wrapperData->outputFilterMessages[i] = (TCHAR *)prop;
+            
+            /* Get the wildcard flags. */
+            _sntprintf(propName, 256, TEXT("wrapper.filter.allow_wildcards.%lu"), propertyIndices[i]);
+            wrapperData->outputFilterAllowWildFlags[i] = getBooleanProperty(properties, propName, FALSE);
+            if (wrapperData->outputFilterAllowWildFlags[i]) {
+                /* Calculate the minimum text length. */
+                wrapperData->outputFilterMinLens[i] = wrapperGetMinimumTextLengthForPattern(wrapperData->outputFilters[i]);
+            }
 
 #ifdef _DEBUG
             _tprintf(TEXT("filter #%lu, actions=("), propertyIndices[i]);
@@ -5324,6 +5535,8 @@ int loadConfigurationTriggers() {
         wrapperData->outputFilterActionLists[i][0] = ACTION_ADVICE_NIL_SERVER;
         wrapperData->outputFilterActionLists[i][1] = ACTION_LIST_END;
         wrapperData->outputFilterMessages[i] = NULL;
+        wrapperData->outputFilterAllowWildFlags[i] = FALSE;
+        wrapperData->outputFilterMinLens[i] = 0;
         i++;
 #endif
     }
@@ -5418,6 +5631,13 @@ int loadConfiguration() {
         }
     }
     setLogfileRollMode(logfileRollMode);
+
+    /* Load log file format */
+    setLogfileFormat(getStringProperty(properties, TEXT("wrapper.logfile.format"), TEXT("LPTM")));
+
+    /* Load log file log level */
+    setLogfileLevel(getStringProperty(properties, TEXT("wrapper.logfile.loglevel"), TEXT("INFO")));
+
 #ifdef WIN32
     logfileDir = _tcsrchr(logfilePath2, TEXT('\\'));
 #else
@@ -5425,12 +5645,12 @@ int loadConfiguration() {
 #endif
     if (logfileDir && logfileRollMode != ROLL_MODE_NONE && logfileRollMode != ROLL_MODE_UNKNOWN) {
         logfileDir[0] = TEXT('\0');
-        testLogfile = malloc((_tcslen(logfilePath2) + 22) * sizeof(TCHAR)); 
+        testLogfile = malloc((_tcslen(logfilePath2) + 24) * sizeof(TCHAR)); 
         if (testLogfile) {
 #ifdef WIN32
-            _sntprintf(testLogfile, _tcslen(logfilePath2) + 22, TEXT("%s\\.wrapper_test-%.6d"), logfilePath2, rand());
+            _sntprintf(testLogfile, _tcslen(logfilePath2) + 24, TEXT("%s\\.wrapper_test-%.4d%.4d"), logfilePath2, rand() % 9999, rand() % 9999);
 #else
-            _sntprintf(testLogfile, _tcslen(logfilePath2) + 22, TEXT("%s/.wrapper_test-%.6d"), logfilePath2, rand());
+            _sntprintf(testLogfile, _tcslen(logfilePath2) + 24, TEXT("%s/.wrapper_test-%.4d%.4d"), logfilePath2, rand() % 9999, rand() % 9999);
 #endif
             if ((fd = _topen(testLogfile, O_WRONLY | O_CREAT | O_EXCL
 #ifdef WIN32
@@ -5447,21 +5667,14 @@ int loadConfiguration() {
 #endif
                 if (_tremove(testLogfile)) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                     TEXT("Failed to remove the temporaly file %s.\n Please make sure the current user has the right permissions as log file rolling/purging\n might will not work properly. %s"), testLogfile, getLastErrorText());
+                     TEXT("Failed to remove the temporarily file %s.\n Please make sure the current user has the right permissions\n as log file rolling/purging might will not work properly. %s"), testLogfile, getLastErrorText());
                 }
             }
         }
         free(testLogfile);
     }
 
-
     free(logfilePath2);
-
-    /* Load log file format */
-    setLogfileFormat(getStringProperty(properties, TEXT("wrapper.logfile.format"), TEXT("LPTM")));
-
-    /* Load log file log level */
-    setLogfileLevel(getStringProperty(properties, TEXT("wrapper.logfile.loglevel"), TEXT("INFO")));
 
     /* Load max log filesize log level */
     setLogfileMaxFileSize(getStringProperty(properties, TEXT("wrapper.logfile.maxsize"), TEXT("0")));

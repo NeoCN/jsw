@@ -162,7 +162,7 @@ extern int _vsntprintf(wchar_t *ws, size_t n, const wchar_t *format, va_list arg
 #define _tasctime     _wasctime
 #define _tstof        _wtof
 #define _tstoi        _wtoi
-#define _ttoi(x)      wcstol(x, NULL, 0)
+#define _ttoi(x)      wcstol(x, NULL, 10)
 #define _tstol        _wtol
 #define _ttol         _wtol
 #define _tctime       _wctime

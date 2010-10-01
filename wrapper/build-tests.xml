@@ -331,8 +331,15 @@ wrapper.filter.trigger.2=ERROR
 wrapper.filter.action.2=RESTART
 wrapper.filter.trigger.3=Nice long restart message.
 wrapper.filter.action.3=RESTART
-wrapper.filter.trigger.4=ALLDONE
-wrapper.filter.action.4=SHUTDOWN]]></replacevalue>
+wrapper.filter.trigger.4=DUMP -n- RESTART
+wrapper.filter.action.4=DUMP,RESTART
+wrapper.filter.trigger.5=HEAD*TAIL
+wrapper.filter.allow_wildcards.5=TRUE
+wrapper.filter.action.5=RESTART
+wrapper.filter.trigger.6=ALLDONE
+wrapper.filter.action.6=SHUTDOWN
+
+wrapper.max_failed_invocations=7]]></replacevalue>
         </replace>
 
         <!-- OnExit Test -->

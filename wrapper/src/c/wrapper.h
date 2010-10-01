@@ -295,6 +295,8 @@ struct WrapperConfig {
     TCHAR** outputFilters;          /* Array of output filters. */
     int**   outputFilterActionLists;/* Array of output filter action lists. */
     TCHAR** outputFilterMessages;   /* Array of output filter messages. */
+    int*    outputFilterAllowWildFlags; /* Array of output filter flags that say whether or not wild cards in the filter can be processed. */
+    size_t* outputFilterMinLens;    /* Array of the minimum text lengths that could possibly match the specified filter.  Only used if it contains wildcards. */
     TCHAR   *pidFilename;           /* Name of file to store wrapper pid in */
     TCHAR   *lockFilename;          /* Name of file to store wrapper lock in */
     TCHAR   *javaPidFilename;       /* Name of file to store jvm pid in */
@@ -458,6 +460,31 @@ extern int wrapperProtocolRead();
 /******************************************************************************
  * Utility Functions
  *****************************************************************************/
+/**
+ * Function that will recursively attempt to match two strings where the
+ *  pattern can contain '?' or '*' wildcard characters.
+ *
+ * @param text Text to be searched.
+ * @param pattern Pattern to search for.
+ * @param patternLen Length of the pattern.
+ * @param minTextLen Minimum number of characters that the text needs to possibly match the pattern.
+ *
+ * @return TRUE if found, FALSE otherwise.
+ */
+extern int wrapperWildcardMatch(const TCHAR *text, const TCHAR *pattern, size_t minTextLen);
+
+/**
+ * Calculates the minimum text length which could be matched by the specified pattern.
+ *  Patterns can contain '*' or '?' wildcards.
+ *  '*' matches 0 or more characters.
+ *  '?' matches exactly one character.
+ *
+ * @param pattern Pattern to calculate.
+ *
+ * @return The minimum text length of the pattern.
+ */
+extern size_t wrapperGetMinimumTextLengthForPattern(const TCHAR *pattern);
+
 /**
  * Returns a constant text representation of the specified Wrapper State.
  *
