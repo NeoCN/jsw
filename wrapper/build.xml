@@ -948,6 +948,15 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <replace file="${conf.dir}/wrapper.conf"
                  token="wrapper.check.deadlock.interval=60"
                  value="wrapper.check.deadlock.interval=10" />
+        <replace file="${conf.dir}/wrapper.conf">
+            <replacetoken>wrapper.filter.trigger.1000=Exception in thread "*" java.lang.OutOfMemoryError</replacetoken>
+            <replacevalue><![CDATA[# (Ignore output from dumping the configuration to the console.  This is only needed by the TestWrapper sample application.)
+wrapper.filter.trigger.999=Exception in thread "*" java.lang.OutOfMemoryError
+wrapper.filter.allow_wildcards.999=FALSE # This is false to match the '*' character as is.
+wrapper.filter.action.999=NONE
+# (Actual filter)
+wrapper.filter.trigger.1000=Exception in thread "*" java.lang.OutOfMemoryError]]></replacevalue>
+        </replace>
     </target>
 
     <!-- =================================================================== -->
