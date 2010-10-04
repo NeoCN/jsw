@@ -19,8 +19,8 @@ Java Service Wrapper Revision History.
   through to the application in the JVM.
 * (Standard, Professional) Added a --conf option to change the default conf
   file, the wrapper tries opening when no conf file was explicitly specified.
-* Added wrapper.ntservice.account.prompt. If set to TRUE the wrapper will
-  prompt all account details (domain, account name, password).
+* Added wrapper.ntservice.account.prompt.  If set to TRUE the wrapper will
+  prompt for all account details (domain, account name, password).
 * Fix a minor issue in #include file declarations where a leading space was not
   required.
 * Add a new #include.required directive which works the same as the #include
