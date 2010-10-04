@@ -1278,6 +1278,17 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <replace file="${releasedir}/conf/wrapper.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="#wrapper.app.parameter.1=" />
+        <replace file="${releasedir}/conf/wrapper.conf"
+                 token="wrapper.check.deadlock.interval=60"
+                 value="wrapper.check.deadlock.interval=10" />
+        <replace file="${releasedir}/conf/wrapper.conf">
+            <replacetoken># Out Of Memory detection.</replacetoken>
+            <replacevalue><![CDATA[# Out Of Memory detection.
+# (Ignore output from dumping the configuration to the console.  This is only needed by the TestWrapper sample application.)
+wrapper.filter.trigger.999=wrapper.filter.trigger.*java.lang.OutOfMemoryError
+wrapper.filter.allow_wildcards.999=TRUE
+wrapper.filter.action.999=NONE]]></replacevalue>
+        </replace>
         <!-- Need an empty log file so that the logs directory will be included -->
         <mkdir dir="${releasedir}/logs"/>
         <touch file="${releasedir}/logs/wrapper.log"/>
@@ -1379,6 +1390,17 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <replace file="${releasedir}/conf/wrapper.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="#wrapper.app.parameter.1=" />
+        <replace file="${releasedir}/conf/wrapper.conf"
+                 token="wrapper.check.deadlock.interval=60"
+                 value="wrapper.check.deadlock.interval=10" />
+        <replace file="${releasedir}/conf/wrapper.conf">
+            <replacetoken># Out Of Memory detection.</replacetoken>
+            <replacevalue><![CDATA[# Out Of Memory detection.
+# (Ignore output from dumping the configuration to the console.  This is only needed by the TestWrapper sample application.)
+wrapper.filter.trigger.999=wrapper.filter.trigger.*java.lang.OutOfMemoryError
+wrapper.filter.allow_wildcards.999=TRUE
+wrapper.filter.action.999=NONE]]></replacevalue>
+        </replace>
         <!-- Need an empty log file so that the logs directory will be included -->
         <mkdir dir="${releasedir}/logs"/>
         <touch file="${releasedir}/logs/wrapper.log"/>
