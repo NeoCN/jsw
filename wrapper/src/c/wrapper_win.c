@@ -2768,15 +2768,26 @@ int wrapperInstall() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Service command: %s"), binaryPath);
     }
     if (wrapperData->ntServicePrompt) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Prompting for account..."));
-        _tprintf(TEXT("Please input the domain:"));
-        _tscanf_s(TEXT("%1023s"), domain, dsize);
-        if (!domain) {
-            _sntprintf(domain, dsize, TEXT("."));
-        }
-        _tprintf(TEXT("Please input the account name: "));
-        _tscanf_s(TEXT("%1023s"), account, dsize);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Prompting for account (DOMAIN\\ACCOUNT)..."));
+        _tprintf(TEXT("Please input the domain name [%s]: "), wrapperData->domainName);
 
+        _fgetts(domain, dsize, stdin);
+        
+        if (!domain || _tcscmp(domain, TEXT("\n")) == 0) {
+            _sntprintf(domain, dsize, TEXT("%s"), wrapperData->domainName);
+        } else if (domain[_tcslen(domain) - 1] == TEXT('\n')) {
+            domain[_tcslen(domain) - 1] = TEXT('\0');
+        }
+        
+        _tprintf(TEXT("Please input the account name [%s]: "), wrapperData->userName);
+
+        _fgetts(account, dsize, stdin);
+
+        if (!account || _tcscmp(account, TEXT("\n")) == 0) {
+            _sntprintf(account, dsize, TEXT("%s"), wrapperData->userName);
+        } else if (account[_tcslen(account) - 1] == TEXT('\n')) {
+            account[_tcslen(account) - 1] = TEXT('\0');
+        }
         tempAccount = malloc((_tcslen(domain) + _tcslen(account) + 2) * sizeof(TCHAR));
         if (!tempAccount) {
             outOfMemory(TEXT("WI"), 2);
@@ -2788,6 +2799,7 @@ int wrapperInstall() {
         updateStringValue(&wrapperData->ntServiceAccount, tempAccount);
         free(tempAccount);
     }
+
 
     if (wrapperData->ntServiceAccount && wrapperData->ntServicePasswordPrompt) {
         /* Prompt the user for a password. */
