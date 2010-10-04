@@ -1393,7 +1393,7 @@ showUsage() {
     exit 1
 }
 
-command() {
+docommand() {
     case "$COMMAND" in
         'console')
             checkUser touchlock "$@"
@@ -1501,6 +1501,6 @@ command() {
     esac
 }
 
-command "$@"
+docommand "$@"
 
 exit 0
