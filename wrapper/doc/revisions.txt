@@ -116,6 +116,10 @@ Java Service Wrapper Revision History.
   the Wrapper to go directly into a paused state without ever launching a JVM.
 * Fix a problem where the STOP command set in a command file was being ignored
   if the Wrapper was currently in a paused state.
+* Make it possible to specify DEFAULT for the configuration file encoding.
+  This will cause the file to be loaded using the default system encoding.  We
+  added this by request, but recommend using a portable encoding like UTF-8 to
+  ensure that the configuration file will load correctly on all systems.
 
 3.5.4
 * Add optional support for custom public static methods in the
