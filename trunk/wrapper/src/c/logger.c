@@ -40,10 +40,12 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <errno.h>
+#include <fcntl.h>
 #include "wrapper_file.h"
 
 #ifdef WIN32
 #include <io.h>
+#include <Fcntl.h>
 #include <windows.h>
 #include <tchar.h>
 #include <conio.h>
@@ -65,6 +67,22 @@ typedef long intptr_t;
 #include <strings.h>
 #include <pthread.h>
 #include <sys/time.h>
+#include <limits.h>
+
+
+ #if defined(SOLARIS)
+  #include <sys/errno.h>
+  #include <sys/fcntl.h>
+ #elif defined(AIX) || defined(HPUX) || defined(MACOSX) || defined(OSF1)
+ #elif defined(IRIX)
+  #define PATH_MAX FILENAME_MAX
+ #elif defined(FREEBSD)
+  #include <sys/param.h>
+  #include <errno.h>
+ #else /* LINUX */
+  #include <asm/errno.h>
+ #endif
+
 #endif
 
 #include "wrapper_i18n.h"
@@ -143,7 +161,7 @@ void checkAndRollLogs(const TCHAR *nowDate);
  *  taken to make sure that volatile changes are only made in log_printf_queue.
  */
 #define QUEUE_SIZE 20
-#define QUEUED_BUFFER_SIZE_USABLE (100 + 1)
+#define QUEUED_BUFFER_SIZE_USABLE (512 + 1)
 #define QUEUED_BUFFER_SIZE (QUEUED_BUFFER_SIZE_USABLE + 4)
 int queueWrapped[WRAPPER_THREAD_COUNT];
 int queueWriteIndex[WRAPPER_THREAD_COUNT];
@@ -445,11 +463,73 @@ int isLogfileAccessed() {
     return logFileAccessed;
 }
 
-void setLogfilePath( const TCHAR *log_file_path ) {
+/**
+ * Sets the log file to be used.  If the specified file is not absolute then
+ *  it will be resolved into an absolute path.  If there are any problems with
+ *  the path, like a directory not existing then the call will fail and the
+ *  cause will be written to the existing log.
+ *
+ * @param log_file_path Log file to start using.
+ * @param workingDir The current working directory, used for relative paths.
+ *                   This will be NULL if this is part of the bootstrap process,
+ *                   in which case we should not attempt to resolve the absolute
+ *                   path.
+ *
+ * @return TRUE if there were any problems.
+ */
+int setLogfilePath( const TCHAR *log_file_path, const TCHAR *workingDir ) {
     size_t len = _tcslen(log_file_path);
+    TCHAR* logfilePath2;
 #ifdef WIN32
     TCHAR *c;
+    int work;
 #endif
+    
+    if (workingDir) {
+#ifdef WIN32
+        work = GetFullPathName(log_file_path, 0, NULL, NULL);
+        if (!work) {
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                TEXT("Unable to resolve the full path of the log file: %s (%s)\n  Current working directory is: %s"),
+                log_file_path, getLastErrorText(), workingDir);
+            return TRUE;
+        }
+        logfilePath2 = malloc(sizeof(TCHAR) * work);
+        if (!logfilePath2) {
+            outOfMemory(TEXT("LC"), 1);
+            return TRUE;
+        }
+        if (!GetFullPathName(log_file_path, work, logfilePath2, NULL)) {
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                TEXT("Unable to resolve the full path of the log file: %s (%s)\n  Current working directory is: %s"),
+                log_file_path, getLastErrorText(), workingDir);
+            return TRUE;
+        }
+#else
+        /* The solaris implementation of realpath will return a relative path if a relative
+         *  path is provided.  We always need an abosulte path here.  So build up one and
+         *  then use realpath to remove any .. or other relative references. */
+        logfilePath2 = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
+        if (!logfilePath2) {
+            outOfMemory(TEXT("LC"), 2);
+            return TRUE;
+        }
+        if (_trealpath(log_file_path, logfilePath2) == NULL) {
+            /* Most likely the file does not exist.  The wrapperData->configFile has the first
+             *  file that could not be found.  May not be the config file directly if symbolic
+             *  links are involved. */
+            /* The output buffer is likely to contain undefined data.
+             * To be on the safe side and in order to report the error
+             *  below correctly we need to override the data first.*/
+            if (log_file_path[0] != TEXT('/')) {
+                _sntprintf(logfilePath2, PATH_MAX + 1, TEXT("%s/%s"), workingDir, log_file_path);
+            } else { 
+                _sntprintf(logfilePath2, PATH_MAX + 1, TEXT("%s"), log_file_path);
+            }
+        }
+#endif
+    }
+    
     logFileNameSize = len + 10 + 1;
     if (logFilePath) {
         free(logFilePath);
@@ -463,7 +543,7 @@ void setLogfilePath( const TCHAR *log_file_path ) {
     logFilePath = malloc(sizeof(TCHAR) * (len + 1));
     if (!logFilePath) {
         outOfMemoryQueued(TEXT("SLP"), 1);
-        return;
+        return TRUE;
     }
     _tcscpy(logFilePath, log_file_path);
 
@@ -472,7 +552,7 @@ void setLogfilePath( const TCHAR *log_file_path ) {
         outOfMemoryQueued(TEXT("SLP"), 2);
         free(logFilePath);
         logFilePath = NULL;
-        return;
+        return TRUE;
     }
     currentLogFileName[0] = TEXT('\0');
     workLogFileName = malloc(sizeof(TCHAR) * (len + 10 + 1));
@@ -483,7 +563,7 @@ void setLogfilePath( const TCHAR *log_file_path ) {
         free(currentLogFileName);
         logFileNameSize = 0;
         currentLogFileName = NULL;
-        return;
+        return TRUE;
     }
     workLogFileName[0] = TEXT('\0');
 
@@ -495,12 +575,99 @@ void setLogfilePath( const TCHAR *log_file_path ) {
         c[0] = TEXT('\\');
     }
 #endif
+    
+    return FALSE;
 }
 
 const TCHAR *getLogfilePath()
 {
     return logFilePath;
 }
+
+
+/**
+ * Check the directory of the current logfile path to make sure it is writable.
+ *  If there are any problems, log a warning.
+ *
+ * @return TRUE if there were any problems.
+ */
+int checkLogfileDir() {
+    size_t len;
+    TCHAR *c;
+    TCHAR *logFileDir;
+    TCHAR *testfile;
+    int fd;
+    
+    len = _tcslen(logFilePath) + 1;
+    logFileDir = malloc(len * sizeof(TCHAR));
+    if (!logFileDir) {
+        outOfMemory(TEXT("CLD"), 1);
+        return TRUE;
+    }
+    _tcsncpy(logFileDir, logFilePath, len);
+    
+#ifdef WIN32
+    c = _tcsrchr(logFileDir, TEXT('\\'));
+#else
+    c = _tcsrchr(logFileDir, TEXT('/'));
+#endif
+    if (c) {
+        c[0] = TEXT('\0');
+        
+        /* We want to try writing a test file to the configured log directory to make sure it is writable. */
+        len = _tcslen(logFileDir) + 23 + 1 + 1000;
+        testfile = malloc(len * sizeof(TCHAR));
+        if (!testfile) {
+            outOfMemory(TEXT("CLD"), 1);
+            free(logFileDir);
+            return TRUE;
+        }
+        
+        _sntprintf(testfile, len, TEXT("%s%c.wrapper_test-%.4d%.4d"),
+            logFileDir,
+#ifdef WIN32
+            TEXT('\\'),
+#else
+            TEXT('/'),
+#endif
+            rand() % 9999, rand() % 9999);
+        
+        if ((fd = _topen(testfile, O_WRONLY | O_CREAT | O_EXCL
+#ifdef WIN32
+                , _S_IWRITE
+#endif 
+                )) == -1) {
+            if (errno == EACCES) {
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                    TEXT("Unable to write to the configured log directory: %s (%s)\n  The Wrapper may alse have problems writing or rolling the log file.\n  Please make sure that the current user has read/write access."),
+                    logFileDir, getLastErrorText());
+            } else if (errno == ENOENT) {
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                    TEXT("Unable to write to the configured log directory: %s (%s)\n  The directory does not exist."),
+                    logFileDir, getLastErrorText());
+            }
+        } else {
+            /* Successfully wrote the temp file. */
+#ifdef WIN32
+            _close(fd);
+#else
+            close(fd);
+#endif
+            if (_tremove(testfile)) {
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                    TEXT("Unable to remove temporary file: %s (%s)\n  The Wrapper may alse have problems writing or rolling the log file.\n  Please make sure that the current user has read/write access."),
+                    testfile, getLastErrorText());
+            }
+        }
+        
+        free(testfile);
+    }
+    
+    free(logFileDir);
+    
+    return FALSE;
+}
+    
 
 void setLogfileRollMode( int log_file_roll_mode ) {
     logFileRollMode = log_file_roll_mode;
@@ -1277,13 +1444,23 @@ int log_printf_message( int source_id, int level, int threadId, int queued, TCHA
                 }
 
                 old_umask = umask( logFileUmask );
-                logfileFP = _tfopen( currentLogFileName, TEXT("a") );
+                logfileFP = _tfopen(currentLogFileName, TEXT("a"));
                 if (logfileFP == NULL) {
-                    /* The log file could not be opened.  Try the default file location. */
-                    _tprintf(TEXT("WARNING - Unable to write to the configured log file location:\n %s\n Falling back to the default file in current working directory:\n %s\n Cause was: %s\n"),
-                        currentLogFileName, TEXT("wrapper.log"), getLastErrorText());
+                    /* The log file could not be opened. */
+                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                        TEXT("Unable to write to the configured log file: %s (%s)\n  Falling back to the default file in the current working directory: %s"),
+                        currentLogFileName, getLastErrorText(), TEXT("wrapper.log"));
+                    
+                    /* Try the default file location. */
                     _sntprintf(currentLogFileName, logFileNameSize, TEXT("wrapper.log"));
-                    logfileFP = _tfopen( TEXT("wrapper.log"), TEXT("a") );
+                    logfileFP = _tfopen(currentLogFileName, TEXT("a"));
+                    if (logfileFP == NULL) {
+                        /* Still unable to write. */
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                            TEXT("Unable to write to the default log file: %s (%s)\n  Disabling log file."),
+                            currentLogFileName, getLastErrorText());
+                        setLogfileLevelInt(LEVEL_NONE);
+                    }
                 }
                 umask(old_umask);
 
@@ -1296,7 +1473,7 @@ int log_printf_message( int source_id, int level, int threadId, int queued, TCHA
 
             if (logfileFP == NULL) {
                 currentLogFileName[0] = TEXT('\0');
-                _tprintf(TEXT("Unable to open logfile %s: %s\n"), logFilePath, getLastErrorText());
+                /* Failure to write to logfile already reported. */
             } else {
                 /* We need to store the date the file was opened for. */
                 _tcscpy(logFileLastNowDate, nowDate);

@@ -47,8 +47,6 @@
 #include "wrapper_file.h"
 
 #ifdef WIN32
- #include <Fcntl.h>
- #include <io.h>
  #include <direct.h>
  #include <winsock.h>
  #include <shlwapi.h>
@@ -829,11 +827,11 @@ void protocolStartServer() {
         /* Log an error.  This is fatal, so die. */
         if (wrapperData->port <= 0) {
             log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_FATAL,
-                TEXT("unable to bind listener to any port in the range %d-%d. (%s)"),
+                TEXT("unable to bind listener to any port in the range %d to %d. (%s)"),
                 wrapperData->portMin, wrapperData->portMax, getLastErrorText());
         } else {
             log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_FATAL,
-                TEXT("unable to bind listener port %d, or any port in the range %d-%d. (%s)"),
+                TEXT("unable to bind listener port %d, or any port in the range %d to %d. (%s)"),
                 wrapperData->port, wrapperData->portMin, wrapperData->portMax, getLastErrorText());
         }
 
@@ -1592,6 +1590,11 @@ void wrapperLogFileChanged(const TCHAR *logFile) {
  */
 int wrapperInitialize() {
     TCHAR *retLocale;
+#ifdef WIN32
+    int maxPathLen = _MAX_PATH;
+#else
+    int maxPathLen = PATH_MAX;
+#endif
 
     /* Initialize the properties variable. */
     properties = NULL;
@@ -1650,7 +1653,7 @@ int wrapperInitialize() {
     logRegisterThread(WRAPPER_THREAD_MAIN);
 
 
-    setLogfilePath(TEXT("wrapper.log"));
+    setLogfilePath(TEXT("wrapper.log"), NULL);
     setLogfileRollMode(ROLL_MODE_SIZE);
     setLogfileFormat(TEXT("LPTM"));
     setLogfileLevelInt(LEVEL_DEBUG);
@@ -1659,6 +1662,20 @@ int wrapperInitialize() {
     setConsoleLogLevelInt(LEVEL_DEBUG);
     setConsoleFlush(TRUE);  /* Always flush immediately until the logfile is configured to make sure that problems are in a consistent location. */
     setSyslogLevelInt(LEVEL_NONE);
+    
+    /** Remember what the initial user directory was when the Wrapper was launched. */
+    wrapperData->initialPath = (TCHAR *)malloc((maxPathLen + 1) * sizeof(TCHAR));
+    if (!wrapperData->initialPath) {
+        outOfMemory(TEXT("WI"), 3);
+        return 1;
+    } else {
+        if (!(wrapperData->initialPath = _tgetcwd((TCHAR*)wrapperData->initialPath, maxPathLen + 1))) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Failed to get the initial directory. (%s)"), getLastErrorText());
+            return 1;
+        }
+    }
+    /* Set a variable to the initial working directory. */
+    setEnv(TEXT("WRAPPER_INIT_DIR"), wrapperData->initialPath, ENV_SOURCE_WRAPPER);
 
 #ifdef WIN32
     if (!(protocolMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
@@ -2629,7 +2646,7 @@ void wrapperKillProcess() {
         if (wrapperData->requestThreadDumpOnFailedJVMExit) {
             wrapperRequestDumpJVMState();
 
-            delay = 5;
+            delay = wrapperData->requestThreadDumpOnFailedJVMExitDelay;
         }
     }
 
@@ -3689,7 +3706,6 @@ int wrapperBuildJavaCommandArrayJavaAdditional(TCHAR **strings, int addQuotes, i
     const TCHAR *prop;
     int i;
     size_t len;
-    TCHAR paramBuffer[128];
     TCHAR paramBuffer2[128];
     int quotable;
     int stripQuote;
@@ -3702,27 +3718,24 @@ int wrapperBuildJavaCommandArrayJavaAdditional(TCHAR **strings, int addQuotes, i
         /* Failed */
         return -1;
     }
-
+    
     i = 0;
     while (propertyNames[i]) {
         prop = propertyValues[i];
         if (prop) {
             if (_tcslen(prop) > 0) {
-                if (strings) {
-                    /* All additional parameters must begin with a - or they will be interpretted
-                     *  as the being the main class name by Java. */
-                    if (!((_tcsstr(prop, TEXT("-")) == prop) || (_tcsstr(prop, TEXT("\"-")) == prop))) {
+                /* All additional parameters must begin with a - or they will be interpretted
+                 *  as the being the main class name by Java. */
+                if (!((_tcsstr(prop, TEXT("-")) == prop) || (_tcsstr(prop, TEXT("\"-")) == prop))) {
+                    /* Only log the message on the second pass. */
+                    if (strings) {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                             TEXT("The value of property '%s', '%s' is not a valid argument to the JVM.  Skipping."),
-                            paramBuffer, prop);
-                        strings[index] = malloc(sizeof(TCHAR) * 1);
-                        if (!strings[index]) {
-                            outOfMemory(TEXT("WBJCAJA"), 1);
-                            return -1;
-                        }
-                        strings[index][0] = TEXT('\0');
-                    } else {
-                        quotable = isQuotableProperty(properties, paramBuffer);
+                            propertyNames[i], prop);
+                    }
+                } else {
+                    if (strings) {
+                        quotable = isQuotableProperty(properties, propertyNames[i]);
                         _sntprintf(paramBuffer2, 128, TEXT("wrapper.java.additional.%lu.stripquotes"), propertyIndices[i]);
                         if (addQuotes) {
                             stripQuote = FALSE;
@@ -3758,23 +3771,24 @@ int wrapperBuildJavaCommandArrayJavaAdditional(TCHAR **strings, int addQuotes, i
                         }
 
                         if (addQuotes) {
-                            wrapperCheckQuotes(strings[index], paramBuffer);
+                            wrapperCheckQuotes(strings[index], propertyNames[i]);
                         }
 
                         if (stripQuote) {
                             free(propStripped);
                             propStripped = NULL;
                         }
-                    }
-
-                    /* Set if this paremeter enables debugging. */
-                    if (detectDebugJVM) {
-                        if (_tcsstr(strings[index], TEXT("-Xdebug")) == strings[index]) {
-                            wrapperData->debugJVM = TRUE;
+                        
+                        /* Set if this paremeter enables debugging. */
+                        if (detectDebugJVM) {
+                            if (_tcsstr(strings[index], TEXT("-Xdebug")) == strings[index]) {
+                                wrapperData->debugJVM = TRUE;
+                            }
                         }
                     }
+                    
+                    index++;
                 }
-                index++;
             }
             i++;
         }
@@ -5170,16 +5184,22 @@ int wrapperBuildNTServiceInfo() {
 #endif
 
 int validateTimeout(const TCHAR* propertyName, int value) {
+    int okValue;
     if (value <= 0) {
-        return 0;
+        okValue = 0;
     } else if (value > WRAPPER_TIMEOUT_MAX) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-            TEXT("%s must be in the range 0 to %d days (%d seconds).  Changing to %d."),
-            propertyName, WRAPPER_TIMEOUT_MAX / 86400, WRAPPER_TIMEOUT_MAX, WRAPPER_TIMEOUT_MAX);
-        return WRAPPER_TIMEOUT_MAX;
+        okValue = WRAPPER_TIMEOUT_MAX;
     } else {
-        return value;
+        okValue = value;
     }
+    
+    if (okValue != value) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            TEXT("The value of %s must be in the range 1 to %d seconds (%d days), or 0 to disable.  Changing to %d."),
+            propertyName, WRAPPER_TIMEOUT_MAX, WRAPPER_TIMEOUT_MAX / 86400, okValue);
+    }
+    
+    return okValue;
 }
 
 void wrapperLoadHostName() {
@@ -5559,69 +5579,17 @@ int loadConfiguration() {
     const TCHAR* val;
     int startupDelay;
     const TCHAR* logfilePath;
-    TCHAR* logfilePath2, *logfileDir, *testLogfile;
-    int logfileRollMode, fd;
-#ifdef WIN32
-    int work;
-#endif
+    int logfileRollMode;
 
-
-/* get the logfile */
+    /* Load log file */
     logfilePath = getFileSafeStringProperty(properties, TEXT("wrapper.logfile"), TEXT("wrapper.log"));
-
-/* it is safer to use the absolute path */
-#ifdef WIN32
-    work = GetFullPathName(logfilePath, 0, NULL, NULL);
-    if (!work) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            TEXT("Unable to resolve the full path of the log file, %s: %s"),
-            logfilePath, getLastErrorText());
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            TEXT("Current working directory is: %s"), wrapperData->workingDir);
-        return TRUE;
-    }
-    logfilePath2 = malloc(sizeof(TCHAR) * work);
-    if (!logfilePath2) {
-        outOfMemory(TEXT("LC"), 1);
-        return TRUE;
-    }
-    if (!GetFullPathName(logfilePath, work, logfilePath2, NULL)) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            TEXT("Unable to resolve the full path of the configuration file, %s: %s"),
-            logfilePath, getLastErrorText());
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT(
-            "Current working directory is: %s"), wrapperData->workingDir);
-        return TRUE;
-    }
-#else
-    /* The solaris implementation of realpath will return a relative path if a relative
-     *  path is provided.  We always need an abosulte path here.  So build up one and
-     *  then use realpath to remove any .. or other relative references. */
-        logfilePath2 = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
-    if (!logfilePath2) {
-        outOfMemory(TEXT("LC"), 2);
-        return TRUE;
-    }
-    if (_trealpath(logfilePath, logfilePath2) == NULL) {
-        /* Most likely the file does not exist.  The wrapperData->configFile has the first
-         *  file that could not be found.  May not be the config file directly if symbolic
-         *  links are involved. */
-        /* The output buffer is likely to contain undefined data.
-         * To be on the safe side and in order to report the error
-         *  below correctly we need to override the data first.*/
-         _sntprintf(logfilePath2, PATH_MAX + 1, TEXT("%s/%s"), wrapperData->workingDir, logfilePath);
-
-    }
-#endif
-    setLogfilePath(logfilePath2);
-
+    setLogfilePath(logfilePath, wrapperData->workingDir);
 
     /* Decide whether the classpath should be passed via the environment. */
     wrapperData->environmentClasspath = getBooleanProperty(properties, TEXT("wrapper.java.classpath.use_environment"), FALSE);
 
     /* Decide how sequence gaps should be handled before any other properties are loaded. */
     wrapperData->ignoreSequenceGaps = getBooleanProperty(properties, TEXT("wrapper.ignore_sequence_gaps"), FALSE);
-
 
     logfileRollMode = getLogfileRollModeForName(getStringProperty(properties, TEXT("wrapper.logfile.rollmode"), TEXT("SIZE")));
     if (logfileRollMode == ROLL_MODE_UNKNOWN) {
@@ -5644,44 +5612,6 @@ int loadConfiguration() {
     /* Load log file log level */
     setLogfileLevel(getStringProperty(properties, TEXT("wrapper.logfile.loglevel"), TEXT("INFO")));
 
-#ifdef WIN32
-    logfileDir = _tcsrchr(logfilePath2, TEXT('\\'));
-#else
-    logfileDir = _tcsrchr(logfilePath2, TEXT('/'));
-#endif
-    if (logfileDir && logfileRollMode != ROLL_MODE_NONE && logfileRollMode != ROLL_MODE_UNKNOWN) {
-        logfileDir[0] = TEXT('\0');
-        testLogfile = malloc((_tcslen(logfilePath2) + 24) * sizeof(TCHAR)); 
-        if (testLogfile) {
-#ifdef WIN32
-            _sntprintf(testLogfile, _tcslen(logfilePath2) + 24, TEXT("%s\\.wrapper_test-%.4d%.4d"), logfilePath2, rand() % 9999, rand() % 9999);
-#else
-            _sntprintf(testLogfile, _tcslen(logfilePath2) + 24, TEXT("%s/.wrapper_test-%.4d%.4d"), logfilePath2, rand() % 9999, rand() % 9999);
-#endif
-            if ((fd = _topen(testLogfile, O_WRONLY | O_CREAT | O_EXCL
-#ifdef WIN32
-, _S_IWRITE
-#endif 
-            )) == -1) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                     TEXT("The direcory %s seems not to be writeable,\n this will most likely cause problems when the wrapper wants to create or roll the log file.\n Please make sure the current user has write access to the directory."));
-            } else {
-#ifdef WIN32
-                _close(fd);
-#else
-                close(fd);
-#endif
-                if (_tremove(testLogfile)) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                     TEXT("Failed to remove the temporarily file %s.\n Please make sure the current user has the right permissions\n as log file rolling/purging might will not work properly. %s"), testLogfile, getLastErrorText());
-                }
-            }
-        }
-        free(testLogfile);
-    }
-
-    free(logfilePath2);
-
     /* Load max log filesize log level */
     setLogfileMaxFileSize(getStringProperty(properties, TEXT("wrapper.logfile.maxsize"), TEXT("0")));
 
@@ -5693,6 +5623,9 @@ int loadConfiguration() {
 
     /* Load log file purge sort */
     setLogfilePurgeSortMode(wrapperFileGetSortMode(getStringProperty(properties, TEXT("wrapper.logfile.purge.sort"), TEXT("TIMES"))));
+    
+    /* Make sure that the configured log file directory is accessible. */
+    checkLogfileDir();
 
     /* Get the memory output status. */
     wrapperData->logfileInactivityTimeout = __max(getIntProperty(properties, TEXT("wrapper.logfile.inactivity.timeout"), 1), 0);
@@ -5731,6 +5664,12 @@ int loadConfiguration() {
     /* To make configuration reloading work correctly with changes to the log file,
      *  it needs to be closed here. */
     closeLogfile();
+    
+    /* Maintain the logger just in case we wrote any queued errors. */
+    maintainLogger();
+    /* Because the first call could cause errors as well, do it again to clear them out.
+     *  This is only a one-time thing on startup as we test the new logfile configuration. */
+    maintainLogger();
 
     /* Initialize some values not loaded */
     wrapperData->exitCode = 0;
@@ -5741,17 +5680,17 @@ int loadConfiguration() {
     if ((wrapperData->portMin < 1) || (wrapperData->portMin > 65535)) {
         wrapperData->portMin = 32000;
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-            TEXT("wrapper.port.min must be in the range 1-65535.  Changing to %d."), wrapperData->portMin);
+            TEXT("%s must be in the range %d to %d.  Changing to %d."), TEXT("wrapper.port.min"), 1, 65535, wrapperData->portMin);
     }
     wrapperData->portMax = getIntProperty(properties, TEXT("wrapper.port.max"), 32999);
     if ((wrapperData->portMax < 1) || (wrapperData->portMax > 65535)) {
         wrapperData->portMax = __min(wrapperData->portMin + 999, 65535);
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-            TEXT("wrapper.port.max must be in the range 1-65535.  Changing to %d."), wrapperData->portMax);
+            TEXT("%s must be in the range %d to %d.  Changing to %d."), TEXT("wrapper.port.max"), 1, 65535, wrapperData->portMax);
     } else if (wrapperData->portMax < wrapperData->portMin) {
         wrapperData->portMax = __min(wrapperData->portMin + 999, 65535);
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-            TEXT("wrapper.port.max must be greater than or equal to wrapper.port.min.  Changing to %d."), wrapperData->portMax);
+            TEXT("%s must be greater than or equal to %s.  Changing to %d."), TEXT("wrapper.port.max"), TEXT("wrapper.port.min"), wrapperData->portMax);
     }
 
     /* Get the port for the JVM side of the socket. */
@@ -5767,17 +5706,17 @@ int loadConfiguration() {
     if ((wrapperData->jvmPortMin < 1) || (wrapperData->jvmPortMin > 65535)) {
         wrapperData->jvmPortMin = 31000;
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-            TEXT("wrapper.jvm.port.min must be in the range 1-65535.  Changing to %d."), wrapperData->jvmPortMin);
+            TEXT("%s must be in the range %d to %d.  Changing to %d."), TEXT("wrapper.jvm.port.min"), 1, 65535, wrapperData->jvmPortMin);
     }
     wrapperData->jvmPortMax = getIntProperty(properties, TEXT("wrapper.jvm.port.max"), 31999);
     if ((wrapperData->jvmPortMax < 1) || (wrapperData->jvmPortMax > 65535)) {
         wrapperData->jvmPortMax = __min(wrapperData->jvmPortMin + 999, 65535);
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-            TEXT("wrapper.jvm.port.min must be in the range 1-65535.  Changing to %d."), wrapperData->jvmPortMax);
+            TEXT("%s must be in the range %d to %d.  Changing to %d."), TEXT("wrapper.jvm.port.max"), 1, 65535, wrapperData->jvmPortMax);
     } else if (wrapperData->jvmPortMax < wrapperData->jvmPortMin) {
         wrapperData->jvmPortMax = __min(wrapperData->jvmPortMin + 999, 65535);
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-            TEXT("wrapper.jvm.port.max must be greater than or equal to wrapper.jvm.port.min.  Changing to %d."), wrapperData->jvmPortMax);
+            TEXT("%s must be greater than or equal to %s.  Changing to %d."), TEXT("wrapper.jvm.port.max"), TEXT("wrapper.jvm.port.min"), wrapperData->jvmPortMax);
     }
 
     /* Get the debug status (Property is deprecated but flag is still used) */
@@ -5888,7 +5827,7 @@ int loadConfiguration() {
     if (wrapperData->pingInterval < 1) {
         wrapperData->pingInterval = 1;
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-            TEXT("wrapper.ping.interval must be at least 1 second.  Changing to 1."));
+            TEXT("The value of %s must be at least %d second(s).  Changing to %d."), TEXT("wrapper.ping.interval"), 1, wrapperData->pingInterval);
     } else if (wrapperData->pingInterval > 3600) {
         wrapperData->pingInterval = 3600;
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
@@ -5897,7 +5836,7 @@ int loadConfiguration() {
     if (wrapperData->pingIntervalLogged < 1) {
         wrapperData->pingIntervalLogged = 1;
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-            TEXT("wrapper.ping.interval.logged must be at least 1 second.  Changing to 1."));
+            TEXT("The value of %s must be at least %d second(s).  Changing to %d."), TEXT("wrapper.ping.interval.logged"), 1, wrapperData->pingIntervalLogged);
     } else if (wrapperData->pingIntervalLogged > 86400) {
         wrapperData->pingIntervalLogged = 86400;
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
@@ -5930,14 +5869,20 @@ int loadConfiguration() {
     wrapperData->maxFailedInvocations = getIntProperty(properties, TEXT("wrapper.max_failed_invocations"), 5);
     wrapperData->successfulInvocationTime = getIntProperty(properties, TEXT("wrapper.successful_invocation_time"), 300);
     if (wrapperData->maxFailedInvocations < 1) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-            TEXT("The value of wrapper.max_failed_invocations must not be smaller than 1.  Changing to 1."));
         wrapperData->maxFailedInvocations = 1;
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            TEXT("The value of %s must be at least %d second(s).  Changing to %d."), TEXT("wrapper.max_failed_invocations"), 1, wrapperData->maxFailedInvocations);
     }
 
     /* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
     wrapperData->requestThreadDumpOnFailedJVMExit = getBooleanProperty(properties, TEXT("wrapper.request_thread_dump_on_failed_jvm_exit"), FALSE);
-
+    wrapperData->requestThreadDumpOnFailedJVMExitDelay = getIntProperty(properties, TEXT("wrapper.request_thread_dump_on_failed_jvm_exit.delay"), 5);
+    if (wrapperData->requestThreadDumpOnFailedJVMExitDelay < 1) {
+        wrapperData->requestThreadDumpOnFailedJVMExitDelay = 1;
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            TEXT("The value of %s must be at least %d second(s).  Changing to %d."), TEXT("wrapper.request_thread_dump_on_failed_jvm_exit.delay"), 1, wrapperData->requestThreadDumpOnFailedJVMExitDelay);
+    }
+    
     /* Load the output filters. */
     if (loadConfigurationTriggers()) {
         return TRUE;
@@ -6028,7 +5973,7 @@ int loadConfiguration() {
     wrapperData->pausableStopJVM = getBooleanProperty(properties, TEXT("wrapper.pausable.stop_jvm"), getBooleanProperty(properties, TEXT("wrapper.ntservice.pausable.stop_jvm"), TRUE));
     if (!wrapperData->configured) {
         wrapperData->initiallyPaused = getBooleanProperty(properties, TEXT("wrapper.pause_on_startup"), FALSE);
-        }
+    }
 
 #ifdef WIN32
     wrapperData->ignoreUserLogoffs = getBooleanProperty( properties, TEXT("wrapper.ignore_user_logoffs"), FALSE );

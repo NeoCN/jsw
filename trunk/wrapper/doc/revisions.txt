@@ -1,6 +1,46 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 
+3.5.6
+* Fix a problem on UNIX platforms where the log file path was being calculated
+  incorrectly if an absolute path was specified for wrapper.logfile, and the
+  file did not already exist.   A warning message was being displayed but the
+  Wrapper would continue using the default log file.  There was a problem in
+  the message displayed which caused a crash on some platforms include Mac OSX.
+* Improve the way warnings are logged when there are problems writing to the
+  configured wrapper.logfile so that the message will now be logged into the
+  log file that the Wrapper ends up using in case it is successful in falling
+  back to a default log file.
+* Fix a problem on Windows platforms where wrapper.java.additional.<n>
+  properties that were specified on the command line, and contained spaces,
+  were not being requoted correctly when building up the Java command line.
+  Introduced in version 3.3.6.
+* Fix a problem where the warning message logged for invalid values of the
+  wrapper.java.additional.<n> property, contained corrupted text.  Introduced
+  in version 3.3.6.
+* Fix a problem on UNIX platforms where an invalid value for the
+  wrapper.java.additional.<n> property was correctly being reported and then
+  skipped, but the resulting command line to launch the JVM had a blank value
+  that was causing the JVM to fail to launch.  An invalid value is any value
+  that does not begin with a "-" character.
+* Add a new WRAPPER_INIT_DIR environment variable which can be used to
+  reference the working directory from which the Wrapper was launched.  This is
+  needed for certain applications because the Wrapper always changes its
+  working directory to the location of the Wrapper binary.
+* Modify the UNIX shell script so it no longer changes the current working dir
+  to the location of the script.  This is no longer needed because the Wrapper
+  has been changing the working directory to its own location since version
+  3.2.0.
+* Add a new wrapper.request_thread_dump_on_failed_jvm_exit.delay property to
+  control how long the Wrapper will wait after doing a thread dump before
+  killing the Java process.  This delay has always been hardcoded to 5 seconds.
+* Clean up the text of several warning messages about invalid configuration
+  values to make them more consistent.
+* (Professional) Add a new wrapper.jvm_kill.delay property which makes it
+  possible to control the amount of time to allow between the jvm_kill event
+  being fired and the JVM actually being killed.  Useful if an external event
+  command is fired that needs to do something with the JVM process first.
+
 3.5.5
 * Add new wrapper.filter.trigger.<n> action, "SUCCESS".  If this gets triggered
   then the Wrapper will treat the current JVM invocation as a success, and
