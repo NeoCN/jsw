@@ -1566,7 +1566,7 @@ void jStateKilling(TICKS nowTicks, int nextSleep) {
         /* Have we waited long enough */
         if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAgeSeconds(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
             /* It is time to actually kill the JVM. */
-            wrapperSetJavaState(WRAPPER_JSTATE_KILL, nowTicks, -1);
+            wrapperSetJavaState(WRAPPER_JSTATE_KILL, nowTicks, 0);
         } else {
             /* Keep waiting. */
         }
@@ -1588,8 +1588,13 @@ void jStateKill(TICKS nowTicks, int nextSleep) {
     if (nextSleep && (wrapperGetProcessStatus(nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone. (Handled and logged) */
     } else {
-        /* It is time to actually kill the JVM. */
-        wrapperKillProcessNow();
+        /* Have we waited long enough */
+        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAgeSeconds(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
+            /* It is time to actually kill the JVM. */
+            wrapperKillProcessNow();
+        } else {
+            /* Keep waiting. */
+        }
     }
 }
 

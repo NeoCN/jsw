@@ -188,17 +188,18 @@ typedef unsigned long TICKS;
 /* Type definitions */
 typedef struct WrapperConfig WrapperConfig;
 struct WrapperConfig {
-    TCHAR*   argCommand;             /* The command used to launch the wrapper. */
-    TCHAR*   argCommandArg;          /* The argument to the command used to launch the wrapper. */
-    TCHAR*   argConfFile;            /* The name of the config file from the command line. */
-    int     argConfFileDefault;      /* True if the config file was not specified. */
-    int     argConfFileFound;        /* True if the config file was found. */
-    int     argCount;                /* The total argument count. */
-    TCHAR**  argValues;              /* Argument values. */
-    TCHAR**  javaArgValues;          /* Arguments getting passed over to the java application */
-    int      javaArgValueCount;      /* Number of the arguments getting passed over to the java application */
+    TCHAR   *argCommand;            /* The command used to launch the wrapper. */
+    TCHAR   *argCommandArg;         /* The argument to the command used to launch the wrapper. */
+    TCHAR   *argConfFile;           /* The name of the config file from the command line. */
+    int     argConfFileDefault;     /* True if the config file was not specified. */
+    int     argConfFileFound;       /* True if the config file was found. */
+    int     argCount;               /* The total argument count. */
+    TCHAR   **argValues;            /* Argument values. */
+    TCHAR   **javaArgValues;        /* Arguments getting passed over to the java application */
+    int     javaArgValueCount;      /* Number of the arguments getting passed over to the java application */
 
-    TCHAR*   language;               /* The language */
+    TCHAR   *initialPath;           /* What the working directory was when the Wrapper process was first launched. */
+    TCHAR   *language;              /* The language */
     int     configured;             /* TRUE if loadConfiguration has been called. */
     int     useSystemTime;          /* TRUE if the wrapper should use the system clock for timing, FALSE if a tick counter should be used. */
     int     timerFastThreshold;     /* If the difference between the system time based tick count and the timer tick count ever falls by more than this value then a warning will be displayed. */
@@ -215,20 +216,20 @@ struct WrapperConfig {
     int     jvmPortMin;             /* Minimum port which the JVM should bind to when connecting back to the wrapper. */
     int     jvmPortMax;             /* Maximum port which the JVM should bind to when connecting back to the wrapper. */
     int     sock;                   /* Socket number. if open. */
-    TCHAR    *originalWorkingDir;    /* Original Wrapper working directory. */
-    TCHAR    *workingDir;            /* Configured working directory. */
-    TCHAR    *configFile;            /* Name of the configuration file */
+    TCHAR   *originalWorkingDir;    /* Original Wrapper working directory. */
+    TCHAR   *workingDir;            /* Configured working directory. */
+    TCHAR   *configFile;            /* Name of the configuration file */
     int     commandLogLevel;        /* The log level to use when logging the java command. */
 #ifdef WIN32
-    TCHAR    *jvmCommand;            /* Command used to launch the JVM */
+    TCHAR   *jvmCommand;            /* Command used to launch the JVM */
 #else /* UNIX */
-    TCHAR    **jvmCommand;           /* Command used to launch the JVM */
+    TCHAR   **jvmCommand;           /* Command used to launch the JVM */
 #endif
     int     environmentClasspath;   /* TRUE if the classpath should be passed to the JVM in the environment. */
-    TCHAR    *classpath;             /* Classpath to pass to the JVM. */
+    TCHAR   *classpath;             /* Classpath to pass to the JVM. */
     int     debugJVM;               /* True if the JVM is being launched with a debugger enabled. */
     int     debugJVMTimeoutNotified;/* True if the JVM is being launched with a debugger enabled and the user has already been notified of a timeout. */
-    TCHAR    key[17];                /* Key which the JVM uses to authorize connections. (16 digits + \0) */
+    TCHAR   key[17];                /* Key which the JVM uses to authorize connections. (16 digits + \0) */
     int     isConsole;              /* TRUE if the wrapper was launched as a console. */
     int     cpuTimeout;             /* Number of seconds without CPU before the JVM will issue a warning and extend timeouts */
     int     startupTimeout;         /* Number of seconds the wrapper will wait for a JVM to startup */
@@ -287,16 +288,17 @@ struct WrapperConfig {
     int     isRestartDisabled;      /* TRUE if restarts should be disabled. */
     int     isAutoRestartDisabled;  /* TRUE if automatic restarts should be disabled. */
     int     requestThreadDumpOnFailedJVMExit; /* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
+    int     requestThreadDumpOnFailedJVMExitDelay; /* Number of seconds to wait after the thread dump before killing the JVM. */
     TICKS   jvmLaunchTicks;         /* The tick count at which the previous or current JVM was launched. */
     int     failedInvocationCount;  /* The number of times that the JVM exited in less than successfulInvocationTime in a row. */
     int     successfulInvocationTime;/* Amount of time that a new JVM must be running so that the invocation will be considered to have been a success, leading to a reset of the restart count. */
     int     maxFailedInvocations;   /* Maximum number of failed invocations in a row before the Wrapper will give up and exit. */
     int     outputFilterCount;      /* Number of registered output filters. */
-    TCHAR** outputFilters;          /* Array of output filters. */
-    int**   outputFilterActionLists;/* Array of output filter action lists. */
-    TCHAR** outputFilterMessages;   /* Array of output filter messages. */
-    int*    outputFilterAllowWildFlags; /* Array of output filter flags that say whether or not wild cards in the filter can be processed. */
-    size_t* outputFilterMinLens;    /* Array of the minimum text lengths that could possibly match the specified filter.  Only used if it contains wildcards. */
+    TCHAR   **outputFilters;        /* Array of output filters. */
+    int     **outputFilterActionLists;/* Array of output filter action lists. */
+    TCHAR   **outputFilterMessages; /* Array of output filter messages. */
+    int     *outputFilterAllowWildFlags; /* Array of output filter flags that say whether or not wild cards in the filter can be processed. */
+    size_t  *outputFilterMinLens;   /* Array of the minimum text lengths that could possibly match the specified filter.  Only used if it contains wildcards. */
     TCHAR   *pidFilename;           /* Name of file to store wrapper pid in */
     TCHAR   *lockFilename;          /* Name of file to store wrapper lock in */
     TCHAR   *javaPidFilename;       /* Name of file to store jvm pid in */

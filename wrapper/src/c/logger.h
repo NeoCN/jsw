@@ -145,8 +145,33 @@ extern void setSimpleLogLevels();
 
 /* * Logfile functions * */
 extern int isLogfileAccessed();
-extern void setLogfilePath( const TCHAR *log_file_path );
+
+/**
+ * Sets the log file to be used.  If the specified file is not absolute then
+ *  it will be resolved into an absolute path.  If there are any problems with
+ *  the path, like a directory not existing then the call will fail and the
+ *  cause will be written to the existing log.
+ *
+ * @param log_file_path Log file to start using.
+ * @param workingDir The current working directory, used for relative paths.
+ *                   This will be NULL if this is part of the bootstrap process,
+ *                   in which case we should not attempt to resolve the absolute
+ *                   path.
+ *
+ * @return TRUE if there were any problems.
+ */
+extern int setLogfilePath( const TCHAR *log_file_path, const TCHAR *workingDir );
+
 extern const TCHAR *getLogfilePath();
+
+/**
+ * Check the directory of the current logfile path to make sure it is writable.
+ *  If there are any problems, log a warning.
+ *
+ * @return TRUE if there were any problems.
+ */
+extern int checkLogfileDir();
+
 extern int getLogfileRollModeForName( const TCHAR *logfileRollName );
 extern void setLogfileRollMode(int log_file_roll_mode);
 extern int getLogfileRollMode();
