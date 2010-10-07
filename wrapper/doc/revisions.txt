@@ -40,6 +40,9 @@ Java Service Wrapper Revision History.
   possible to control the amount of time to allow between the jvm_kill event
   being fired and the JVM actually being killed.  Useful if an external event
   command is fired that needs to do something with the JVM process first.
+* (Professional) Fix a problem where the output of the
+  wrapper.event.<event_name>.message and wrapper.event.<event_name>.loglevel
+  properties were not displaying correctly on UNIX platforms.
 
 3.5.5
 * Add new wrapper.filter.trigger.<n> action, "SUCCESS".  If this gets triggered
