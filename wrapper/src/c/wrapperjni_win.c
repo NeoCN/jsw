@@ -39,12 +39,10 @@ barf
 #include <windows.h>
 #include <time.h>
 #include <tlhelp32.h>
-#include <windows.h>
 #include <winnt.h>
 #include <Sddl.h>
 #include "wrapper_i18n.h"
 #include "wrapperjni.h"
-
 
 /* MS Visual Studio 8 went and deprecated the POXIX names for functions.
  *  Fixing them all would be a big headache for UNIX versions. */
@@ -360,19 +358,19 @@ setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HANDLE 
                                             if (jstringDomainName) {
                                                 /* Now actually add the group to the user. */
                                                 (*env)->CallVoidMethod(env, wrapperUser, addGroup, jstringSID, jstringGroupName, jstringDomainName);
-                                                
+
                                                 (*env)->DeleteLocalRef(env, jstringDomainName);
                                             } else {
                                                 /* Exception Thrown */
                                                 break;
                                             }
-                                            
+
                                             (*env)->DeleteLocalRef(env, jstringGroupName);
                                         } else {
                                             /* Exception Thrown */
                                             break;
                                         }
-                                        
+
                                         (*env)->DeleteLocalRef(env, jstringSID);
                                     } else {
                                         /* Exception Thrown */
@@ -390,7 +388,7 @@ setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HANDLE 
 
                             free(groupName);
                         }
-                        
+
                         LocalFree(sidText);
                     }
                 }
@@ -480,24 +478,24 @@ createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean groups) {
                                                     if (jstringDomainName) {
                                                         /* Now create the new wrapperUser using the constructor arguments collected above. */
                                                         wrapperUser = (*env)->NewObject(env, wrapperUserClass, constructor, jstringSID, jstringUserName, jstringDomainName, loginTime);
-                                                        
+
                                                         /* If the caller requested the user's groups then look them up. */
                                                         if (groups) {
                                                             if (setUserGroups(env, wrapperUserClass, wrapperUser, hProcessToken)) {
                                                                 /* Failed. Just continue without groups. */
                                                             }
                                                         }
-                                                        
+
                                                         (*env)->DeleteLocalRef(env, jstringDomainName);
                                                     } else {
                                                         /* Exception Thrown */
                                                     }
-                                                    
+
                                                     (*env)->DeleteLocalRef(env, jstringUserName);
                                                 } else {
                                                     /* Exception Thrown */
                                                 }
-                                                
+
                                                 (*env)->DeleteLocalRef(env, jstringSID);
                                             } else {
                                                 /* Exception Thrown */
@@ -608,10 +606,10 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jC
     DWORD usedLen;
     OSVERSIONINFO osVer;
     wrapperJNIDebugging = debugging;
-    
+
     /* Set the locale so we can display MultiByte characters. */
     _tsetlocale(LC_ALL, TEXT(""));
-    
+
     if (wrapperJNIDebugging) {
         /* This is useful for making sure that the JNI call is working. */
         _tprintf(TEXT("WrapperJNI Debug: Initializing WrapperManager native library.\n"));
@@ -730,7 +728,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSetConsoleTitle(JNIEnv *env
             _tprintf(TEXT("WrapperJNI Debug: Setting the console title to: %s\n"), title);
             flushall();
         }
-        
+
         SetConsoleTitle(title);
 
         free(title);
@@ -946,16 +944,16 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeListServices(JNIEnv *env, j
                             jStringDisplayName = JNU_NewStringNative(env, services[i].lpDisplayName);
                             if (jStringDisplayName) {
                                 state = services[i].ServiceStatus.dwCurrentState;
-        
+
                                 exitCode = services[i].ServiceStatus.dwWin32ExitCode;
                                 if (exitCode == ERROR_SERVICE_SPECIFIC_ERROR) {
                                     exitCode = services[i].ServiceStatus.dwServiceSpecificExitCode;
                                 }
-        
+
                                 service = (*env)->NewObject(env, serviceClass, constructor, jStringName, jStringDisplayName, state, exitCode);
                                 (*env)->SetObjectArrayElement(env, serviceArray, i, service);
                                 (*env)->DeleteLocalRef(env, service);
-                                
+
                                 (*env)->DeleteLocalRef(env, jStringDisplayName);
                             } else {
                                 /* Exception Thrown */
@@ -1017,7 +1015,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
     jstring jStringDisplayName;
     DWORD state;
     DWORD exitCode;
-    
+
     if ((serviceName = JNU_GetStringNativeChars(env, jStringServiceName))) {
         hSCManager = OpenSCManager(NULL, NULL, GENERIC_READ);
         if (hSCManager) {
@@ -1046,7 +1044,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
                 throwServiceException(env, 1, buffer);
                 threwError = TRUE;
             }
-    
+
             if (!threwError) {
                 hService = OpenService(hSCManager, serviceName, serviceAccess);
                 if (hService) {
@@ -1114,18 +1112,18 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
                                                 jStringDisplayName = JNU_NewStringNative(env, displayName);
                                                 if (jStringDisplayName) {
                                                     state = serviceStatus.dwCurrentState;
-                                                    
+
                                                     exitCode = serviceStatus.dwWin32ExitCode;
                                                     if (exitCode == ERROR_SERVICE_SPECIFIC_ERROR) {
                                                         exitCode = serviceStatus.dwServiceSpecificExitCode;
                                                     }
-                                                    
+
                                                     service = (*env)->NewObject(env, serviceClass, constructor, jStringServiceName, jStringDisplayName, state, exitCode);
-                                                    
+
                                                     (*env)->DeleteLocalRef(env, jStringDisplayName);
                                                 }
                                             }
-                                            
+
                                             free(displayName);
                                         }
                                     }
@@ -1150,7 +1148,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
                     threwError = TRUE;
                 }
             }
-    
+
             /* Close the handle to the service control manager database */
             CloseServiceHandle(hSCManager);
         } else {
@@ -1159,7 +1157,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
             throwServiceException(env, GetLastError(), buffer);
             threwError = TRUE;
         }
-        
+
         free(serviceName);
     } else {
         /* Exception Thrown */

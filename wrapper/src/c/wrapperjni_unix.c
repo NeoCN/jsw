@@ -141,7 +141,7 @@ JNIEXPORT void JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jClassWrapperManager, jboolean debugging) {
     TCHAR *retLocale;
     wrapperJNIDebugging = debugging;
-    
+
     /* Set the locale so we can display MultiByte characters. */
     retLocale = _tsetlocale(LC_ALL, TEXT(""));
 #if defined(UNICODE)
@@ -267,21 +267,21 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
                             /* Now create the new wrapperUser using the constructor arguments collected above. */
                             wrapperUser = (*env)->NewObject(env, wrapperUserClass, constructor,
                                     uid, ugid, jstringUser, jstringRealName, jstringHome, jstringShell);
-                            
+
                             /* If the caller requested the user's groups then look them up. */
                             if (groups) {
                                 /* Set the user group. */
                                 if ((setGroup = (*env)->GetMethodID(env, wrapperUserClass, utf8MethodSetGroup, utf8SigIStringrV)) != NULL) {
                                     if ((aGroup = getgrgid(ugid)) != NULL) {
                                         ggid = aGroup->gr_gid;
-                                        
+
                                         /* Group name */
                                         jstringGroupName = JNU_NewStringFromNativeChar(env, aGroup->gr_name);
                                         if (jstringGroupName) {
                                             /* Add the group to the user. */
                                             (*env)->CallVoidMethod(env, wrapperUser, setGroup,
                                                     ggid, jstringGroupName);
-                                            
+
                                             (*env)->DeleteLocalRef(env, jstringGroupName);
                                         } else {
                                             /* Exception Thrown */
@@ -290,7 +290,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
                                 } else {
                                     /* Exception Thrown */
                                 }
-                
+
                                 /* Look for the addGroup method. Ignore failures. */
                                 if ((addGroup = (*env)->GetMethodID(env, wrapperUserClass, utf8MethodAddGroup, utf8SigIStringrV)) != NULL) {
                                     setgrent();
@@ -304,17 +304,17 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
                                             }
                                             i++;
                                         }
-                
+
                                         if (member) {
                                             ggid = aGroup->gr_gid;
-                                            
+
                                             /* Group name */
                                             jstringGroupName = JNU_NewStringFromNativeChar(env, aGroup->gr_name);
                                             if (jstringGroupName) {
                                                 /* Add the group to the user. */
                                                 (*env)->CallVoidMethod(env, wrapperUser, addGroup,
                                                         ggid, jstringGroupName);
-                                                
+
                                                 (*env)->DeleteLocalRef(env, jstringGroupName);
                                             } else {
                                                 /* Exception Thrown */
@@ -326,22 +326,22 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetUser(JNIEnv *env, jclass
                                     /* Exception Thrown */
                                 }
                             }
-                            
+
                             (*env)->DeleteLocalRef(env, jstringShell);
                         } else {
                             /* Exception Thrown */
                         }
-                        
+
                         (*env)->DeleteLocalRef(env, jstringHome);
                     } else {
                         /* Exception Thrown */
                     }
-                    
+
                     (*env)->DeleteLocalRef(env, jstringRealName);
                 } else {
                     /* Exception Thrown */
                 }
-                                                        
+
                 (*env)->DeleteLocalRef(env, jstringUser);
             } else {
                 /* Exception Thrown */
