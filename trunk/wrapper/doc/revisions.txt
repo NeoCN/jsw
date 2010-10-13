@@ -43,6 +43,20 @@ Java Service Wrapper Revision History.
 * (Professional) Fix a problem where the output of the
   wrapper.event.<event_name>.message and wrapper.event.<event_name>.loglevel
   properties were not displaying correctly on UNIX platforms.
+* (Professional) Fix a problem on UNIX platforms where the Java side of the
+  Wrapper was not being correctly notified if a large number of child
+  processes that had been launched with WrapperManager.exec, exited at the
+  same instant.  Some of them were going into a defunct state until the next
+  child exited, at which point they would be cleaned up.  This was mainly an
+  issue on JVM shutdown if the user code was calling WrapperProcess.waitFor()
+  as part of its shutdown process.   WaitFor calls at any point were getting
+  stuck and would remain so until another child exited.  As part of this fix,
+  there were also several changes to the Windows implementation to bring the
+  two code bases into sync.
+* Fix a problem where debug level warning output while loading the Wrapper
+  configuration was being displayed on startup.   This could be fixed because
+  the Wrapper actually loads the configuration twice, and such output is only
+  logged on the second call.
 
 3.5.5
 * Add new wrapper.filter.trigger.<n> action, "SUCCESS".  If this gets triggered
@@ -163,6 +177,10 @@ Java Service Wrapper Revision History.
   This will cause the file to be loaded using the default system encoding.  We
   added this by request, but recommend using a portable encoding like UTF-8 to
   ensure that the configuration file will load correctly on all systems.
+* Added a WRAPPER_LANG environment variable which makes it possible to reference
+  the current locale language code in the configuration file.   One common use
+  is to do localization using inclues.
+  (e.g. #include ../conf/wrapper-%WRAPPER_LANG%.conf)
 
 3.5.4
 * Add optional support for custom public static methods in the
@@ -569,7 +587,7 @@ Java Service Wrapper Revision History.
 * Work around an issue on some Solaris problems where the shell script would fail
   if /usr/ucb/ps wasn't installed.
 * Fix a problem on UNIX versions where the Wrapper would fail to resolve the
-  correct location of java if it was located using the sytem PATH, and that PATH
+  correct location of java if it was located using the system PATH, and that PATH
   element pointed to a binary via a relative symbolic link.  This was introduced
   in 3.4.0.
 

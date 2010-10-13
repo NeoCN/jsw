@@ -218,23 +218,23 @@ jstring JNU_NewStringNative(JNIEnv *env, const TCHAR *strW) {
             } else {
                 /* Exception Thrown */
             }
-            
+
             (*env)->DeleteLocalRef(env, jClassString);
         } else {
             /* Exception Thrown */
         }
-        
+
         (*env)->DeleteLocalRef(env, jBytes);
     } else {
         /* Exception Thrown */
     }
-    
+
 #ifdef UNICODE
     if (msgMB) {
         free(msgMB);
     }
 #endif
-    
+
     return result;
 }
 
@@ -465,7 +465,7 @@ int getSystemProperty(JNIEnv *env, const TCHAR *propertyName, TCHAR **propertyVa
                             result = TRUE;
                         }
                         (*env)->DeleteLocalRef(env, jStringKeyValue);
-                    } else { 
+                    } else {
                         keyChars = (TCHAR*)(*env)->GetStringUTFChars(env, jStringKeyValue, NULL);
                         if (keyChars) {
                             *propertyValue = malloc(strlen((char*)keyChars) + 1);
@@ -482,12 +482,12 @@ int getSystemProperty(JNIEnv *env, const TCHAR *propertyName, TCHAR **propertyVa
                             result = TRUE;
                         }
                         (*env)->DeleteLocalRef(env, jStringKeyValue);
-                    }                
+                    }
                 } else {
                     /* Property was not set. */
                     result = FALSE;
                 }
-    
+
                 (*env)->DeleteLocalRef(env, jStringKeyPropName);
             } else {
                 result = TRUE;

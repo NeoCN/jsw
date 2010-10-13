@@ -463,6 +463,96 @@ void dumpEnvironment() {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT(""));
 }
 
+void wrapperLoadLoggingProperties() {
+    const TCHAR *logfilePath;
+    int logfileRollMode;
+
+    logfilePath = getFileSafeStringProperty(properties, TEXT("wrapper.logfile"), TEXT("wrapper.log"));
+    setLogfilePath(logfilePath, wrapperData->workingDir);
+        
+    logfileRollMode = getLogfileRollModeForName(getStringProperty(properties, TEXT("wrapper.logfile.rollmode"), TEXT("SIZE")));
+    if (logfileRollMode == ROLL_MODE_UNKNOWN) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+        TEXT("wrapper.logfile.rollmode invalid.  Disabling log file rolling."));
+        logfileRollMode = ROLL_MODE_NONE;
+    } else if (logfileRollMode == ROLL_MODE_DATE) {
+        if (!_tcsstr(logfilePath, ROLL_MODE_DATE_TOKEN)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                TEXT("wrapper.logfile must contain \"%s\" for a roll mode of DATE.  Disabling log file rolling."),
+                ROLL_MODE_DATE_TOKEN);
+            logfileRollMode = ROLL_MODE_NONE;
+        }
+    }
+    setLogfileRollMode(logfileRollMode);
+
+    /* Load log file format */
+    setLogfileFormat(getStringProperty(properties, TEXT("wrapper.logfile.format"), TEXT("LPTM")));
+
+    /* Load log file log level */
+    setLogfileLevel(getStringProperty(properties, TEXT("wrapper.logfile.loglevel"), TEXT("INFO")));
+
+    /* Load max log filesize log level */
+    setLogfileMaxFileSize(getStringProperty(properties, TEXT("wrapper.logfile.maxsize"), TEXT("0")));
+
+    /* Load log files level */
+    setLogfileMaxLogFiles(getIntProperty(properties, TEXT("wrapper.logfile.maxfiles"), 0));
+
+    /* Load log file purge pattern */
+    setLogfilePurgePattern(getFileSafeStringProperty(properties, TEXT("wrapper.logfile.purge.pattern"), TEXT("")));
+
+    /* Load log file purge sort */
+    setLogfilePurgeSortMode(wrapperFileGetSortMode(getStringProperty(properties, TEXT("wrapper.logfile.purge.sort"), TEXT("TIMES"))));
+
+    /* Get the memory output status. */
+    wrapperData->logfileInactivityTimeout = __max(getIntProperty(properties, TEXT("wrapper.logfile.inactivity.timeout"), 1), 0);
+    setLogfileAutoClose(wrapperData->logfileInactivityTimeout <= 0);
+
+    /* Load console format */
+    setConsoleLogFormat(getStringProperty(properties, TEXT("wrapper.console.format"), TEXT("PM")));
+
+    /* Load console log level */
+    setConsoleLogLevel(getStringProperty(properties, TEXT("wrapper.console.loglevel"), TEXT("INFO")));
+
+    /* Load the console flush flag. */
+    setConsoleFlush(getBooleanProperty(properties, TEXT("wrapper.console.flush"), FALSE));
+
+    /* Load the console loglevel targets. */
+    setConsoleFatalToStdErr(getBooleanProperty(properties, TEXT("wrapper.console.fatal_to_stderr"), TRUE));
+    setConsoleErrorToStdErr(getBooleanProperty(properties, TEXT("wrapper.console.error_to_stderr"), TRUE));
+    setConsoleWarnToStdErr(getBooleanProperty(properties, TEXT("wrapper.console.warn_to_stderr"), FALSE));
+
+
+    /* Load syslog log level */
+    setSyslogLevel(getStringProperty(properties, TEXT("wrapper.syslog.loglevel"), TEXT("NONE")));
+
+#ifndef WIN32
+    /* Load syslog facility */
+    setSyslogFacility(getStringProperty(properties, TEXT("wrapper.syslog.facility"), TEXT("USER")));
+#endif
+
+    /* Load syslog event source name */
+    setSyslogEventSourceName(getStringProperty(properties, TEXT("wrapper.syslog.ident"), getStringProperty(properties, TEXT("wrapper.name"), getStringProperty(properties, TEXT("wrapper.ntservice.name"), TEXT("wrapper")))));
+
+    /* Register the syslog message file if syslog is enabled */
+    if (getSyslogLevelInt() < LEVEL_NONE) {
+        registerSyslogMessageFile();
+    }
+
+
+    /* Get the debug status (Property is deprecated but flag is still used) */
+    wrapperData->isDebugging = getBooleanProperty(properties, TEXT("wrapper.debug"), FALSE);
+    if (wrapperData->isDebugging) {
+        /* For backwards compatability */
+        setConsoleLogLevelInt(LEVEL_DEBUG);
+        setLogfileLevelInt(LEVEL_DEBUG);
+    } else {
+        if (getLowLogLevel() <= LEVEL_DEBUG) {
+            wrapperData->isDebugging = TRUE;
+        }
+    }
+}
+
+
 
 /**
  * Return TRUE if there were any problems.
@@ -5578,89 +5668,16 @@ int loadConfiguration() {
     TCHAR propName[256];
     const TCHAR* val;
     int startupDelay;
-    const TCHAR* logfilePath;
-    int logfileRollMode;
 
-    /* Load log file */
-    logfilePath = getFileSafeStringProperty(properties, TEXT("wrapper.logfile"), TEXT("wrapper.log"));
-    setLogfilePath(logfilePath, wrapperData->workingDir);
-
+    wrapperLoadLoggingProperties();
     /* Decide whether the classpath should be passed via the environment. */
     wrapperData->environmentClasspath = getBooleanProperty(properties, TEXT("wrapper.java.classpath.use_environment"), FALSE);
 
     /* Decide how sequence gaps should be handled before any other properties are loaded. */
     wrapperData->ignoreSequenceGaps = getBooleanProperty(properties, TEXT("wrapper.ignore_sequence_gaps"), FALSE);
 
-    logfileRollMode = getLogfileRollModeForName(getStringProperty(properties, TEXT("wrapper.logfile.rollmode"), TEXT("SIZE")));
-    if (logfileRollMode == ROLL_MODE_UNKNOWN) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-            TEXT("wrapper.logfile.rollmode invalid.  Disabling log file rolling."));
-        logfileRollMode = ROLL_MODE_NONE;
-    } else if (logfileRollMode == ROLL_MODE_DATE) {
-        if (!_tcsstr(logfilePath, ROLL_MODE_DATE_TOKEN)) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                TEXT("wrapper.logfile must contain \"%s\" for a roll mode of DATE.  Disabling log file rolling."),
-                ROLL_MODE_DATE_TOKEN);
-            logfileRollMode = ROLL_MODE_NONE;
-        }
-    }
-    setLogfileRollMode(logfileRollMode);
-
-    /* Load log file format */
-    setLogfileFormat(getStringProperty(properties, TEXT("wrapper.logfile.format"), TEXT("LPTM")));
-
-    /* Load log file log level */
-    setLogfileLevel(getStringProperty(properties, TEXT("wrapper.logfile.loglevel"), TEXT("INFO")));
-
-    /* Load max log filesize log level */
-    setLogfileMaxFileSize(getStringProperty(properties, TEXT("wrapper.logfile.maxsize"), TEXT("0")));
-
-    /* Load log files level */
-    setLogfileMaxLogFiles(getIntProperty(properties, TEXT("wrapper.logfile.maxfiles"), 0));
-
-    /* Load log file purge pattern */
-    setLogfilePurgePattern(getFileSafeStringProperty(properties, TEXT("wrapper.logfile.purge.pattern"), TEXT("")));
-
-    /* Load log file purge sort */
-    setLogfilePurgeSortMode(wrapperFileGetSortMode(getStringProperty(properties, TEXT("wrapper.logfile.purge.sort"), TEXT("TIMES"))));
-    
     /* Make sure that the configured log file directory is accessible. */
     checkLogfileDir();
-
-    /* Get the memory output status. */
-    wrapperData->logfileInactivityTimeout = __max(getIntProperty(properties, TEXT("wrapper.logfile.inactivity.timeout"), 1), 0);
-    setLogfileAutoClose(wrapperData->logfileInactivityTimeout <= 0);
-
-    /* Load console format */
-    setConsoleLogFormat(getStringProperty(properties, TEXT("wrapper.console.format"), TEXT("PM")));
-
-    /* Load console log level */
-    setConsoleLogLevel(getStringProperty(properties, TEXT("wrapper.console.loglevel"), TEXT("INFO")));
-
-    /* Load the console flush flag. */
-    setConsoleFlush(getBooleanProperty(properties, TEXT("wrapper.console.flush"), FALSE));
-
-    /* Load the console loglevel targets. */
-    setConsoleFatalToStdErr(getBooleanProperty(properties, TEXT("wrapper.console.fatal_to_stderr"), TRUE));
-    setConsoleErrorToStdErr(getBooleanProperty(properties, TEXT("wrapper.console.error_to_stderr"), TRUE));
-    setConsoleWarnToStdErr(getBooleanProperty(properties, TEXT("wrapper.console.warn_to_stderr"), FALSE));
-
-    /* Load syslog log level */
-    setSyslogLevel(getStringProperty(properties, TEXT("wrapper.syslog.loglevel"), TEXT("NONE")));
-
-#ifndef WIN32
-    /* Load syslog facility */
-    setSyslogFacility(getStringProperty(properties, TEXT("wrapper.syslog.facility"), TEXT("USER")));
-#endif
-
-    /* Load syslog event source name */
-    setSyslogEventSourceName(getStringProperty(properties, TEXT("wrapper.syslog.ident"), getStringProperty(properties, TEXT("wrapper.name"), getStringProperty(properties, TEXT("wrapper.ntservice.name"), TEXT("wrapper")))));
-
-    /* Register the syslog message file if syslog is enabled */
-    if (getSyslogLevelInt() < LEVEL_NONE) {
-        registerSyslogMessageFile();
-    }
-
     /* To make configuration reloading work correctly with changes to the log file,
      *  it needs to be closed here. */
     closeLogfile();
@@ -5717,18 +5734,6 @@ int loadConfiguration() {
         wrapperData->jvmPortMax = __min(wrapperData->jvmPortMin + 999, 65535);
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
             TEXT("%s must be greater than or equal to %s.  Changing to %d."), TEXT("wrapper.jvm.port.max"), TEXT("wrapper.jvm.port.min"), wrapperData->jvmPortMax);
-    }
-
-    /* Get the debug status (Property is deprecated but flag is still used) */
-    wrapperData->isDebugging = getBooleanProperty(properties, TEXT("wrapper.debug"), FALSE);
-    if (wrapperData->isDebugging) {
-        /* For backwards compatability */
-        setConsoleLogLevelInt(LEVEL_DEBUG);
-        setLogfileLevelInt(LEVEL_DEBUG);
-    } else {
-        if (getLowLogLevel() <= LEVEL_DEBUG) {
-            wrapperData->isDebugging = TRUE;
-        }
     }
 
     /* Get the wrapper command log level. */

@@ -50,8 +50,8 @@ public class WrapperProcess
      *-------------------------------------------------------------*/
     private native boolean nativeIsAlive();
     private native void nativeDestroy();
-    private native int nativeExitValue();
-    private native int nativeWaitFor();
+    private native void nativeExitValue();
+    private native void nativeWaitFor();
 
     /*---------------------------------------------------------------
      * Methods
@@ -165,8 +165,7 @@ public class WrapperProcess
         {
             if ( m_exitcode == Integer.MIN_VALUE )
             {
-                // System.out.println("java: waiting...");
-                m_exitcode = nativeWaitFor();
+                nativeWaitFor();
             }
             return m_exitcode;
         }
@@ -187,13 +186,9 @@ public class WrapperProcess
     {
         if ( m_exitcode == Integer.MIN_VALUE )
         {
-            m_exitcode = nativeExitValue();
-            return m_exitcode;
+            nativeExitValue();
         }
-        else
-        {
-            return m_exitcode;
-        }
+        return m_exitcode;
     }
 
     /**
