@@ -7,7 +7,7 @@
 # license agreement you entered into with Tanuki Software.
 # http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
 
-COMPILE = /opt/studio12/SUNWspro/bin/cc -m64 -Kpic -O -DSOLARIS -DJSW64 -DUNICODE -D_UNICODE
+COMPILE = /opt/studio12/SUNWspro/bin/cc -m64 -mt -Kpic -O -DSOLARIS -DJSW64 -D_REENTRANT -DUNICODE -D_UNICODE
 
 INCLUDE=$(JAVA_HOME)/include
 

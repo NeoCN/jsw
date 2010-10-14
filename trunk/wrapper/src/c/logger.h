@@ -157,10 +157,12 @@ extern int isLogfileAccessed();
  *                   This will be NULL if this is part of the bootstrap process,
  *                   in which case we should not attempt to resolve the absolute
  *                   path.
+ * @param preload TRUE if called as part of the preload process.  We use this to
+ *                suppress double warnings.
  *
  * @return TRUE if there were any problems.
  */
-extern int setLogfilePath( const TCHAR *log_file_path, const TCHAR *workingDir );
+extern int setLogfilePath( const TCHAR *log_file_path, const TCHAR *workingDir, int preload);
 
 extern const TCHAR *getLogfilePath();
 

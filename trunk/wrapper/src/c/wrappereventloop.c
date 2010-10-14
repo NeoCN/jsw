@@ -826,7 +826,6 @@ void wStateResuming(TICKS nowTicks) {
  *
  * nowTicks: The tick counter value this time through the event loop.
  */
-
 void wStateStopping(TICKS nowTicks) {
     int timeout;
 
