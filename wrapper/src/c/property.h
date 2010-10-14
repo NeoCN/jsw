@@ -181,15 +181,24 @@ extern const TCHAR* getFileSafeStringProperty(Properties *properties, const TCHA
  * Returns a sorted array of all properties beginning with {propertyNameBase}.
  *  Only numerical characters can be returned between the two.
  *
+ * The calling code must always call freeStringProperties to make sure that the
+ *  malloced propertyNames, propertyValues, and propertyIndices arrays are freed
+ *  up correctly.  This is only necessary if the function returns 0.
+ *
  * @param properties The full properties structure.
  * @param propertyNameHead All matching properties must begin with this value.
+ * @param propertyNameTail All matching properties must end with this value.
  * @param all If FALSE then the array will start with #1 and loop up until the
  *            next property is not found, if TRUE then all properties will be
  *            returned, even if there are gaps in the series.
+ * @param matchAny If FALSE only numbers are allowed as placeholder
  * @param propertyNames Returns a pointer to a NULL terminated array of
  *                      property names.
  * @param propertyValues Returns a pointer to a NULL terminated array of
  *                       property values.
+ * @param propertyIndices Returns a pointer to a 0 terminated array of
+ *                        the index numbers used in each property name of
+ *                        the propertyNames array.
  *
  * @return 0 if successful, -1 if there was an error.
  */

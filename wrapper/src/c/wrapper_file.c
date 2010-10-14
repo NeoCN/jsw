@@ -607,6 +607,7 @@ int wrapperGetUNCFilePath(const TCHAR *path, int advice) {
         result = GetDriveType(drive);
         if (result == DRIVE_REMOTE) {
             if (advice == 0) {
+                /* TODO: Convert this to a multi-line message. */
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("The following path in your Wrapper configuration file is to a mapped Network"));
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(" Drive.  Using mapped network drives is not recommeded as they will fail to"));
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(" be resolved correctly under certain circumstances.  Please consider using"));
@@ -616,6 +617,7 @@ int wrapperGetUNCFilePath(const TCHAR *path, int advice) {
             }
         } else if (result == DRIVE_NO_ROOT_DIR) {
             if (advice == 0) {
+                /* TODO: Convert this to a multi-line message. */
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("The following path in your Wrapper configuration file could not be resolved."));
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(" Please make sure the path exists.  If the path is a network share, it may be"));
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(" that the current user is unable to resolve it.  Please consider using UNC"));

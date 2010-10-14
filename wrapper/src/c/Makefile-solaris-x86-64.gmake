@@ -12,7 +12,7 @@
 #  see Bug #1992039 for details.
 # https://sourceforge.net/tracker/index.php?func=detail&aid=1992039&group_id=39428&atid=425187
 #COMPILE = gcc -m64 -O3 -Wall --pedantic -DSOLARIS -DJSW64
-COMPILE = /opt/SUNWspro/bin/cc -m64 -Kpic -O -DSOLARIS -DJSW64 -DUNICODE -D_UNICODE
+COMPILE = /opt/SUNWspro/bin/cc -m64 -mt -Kpic -O -DSOLARIS -DJSW64 -DUNICODE -D_UNICODE -D_REENTRANT
 
 INCLUDE=$(JAVA_HOME)/include
 

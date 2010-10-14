@@ -463,12 +463,12 @@ void dumpEnvironment() {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT(""));
 }
 
-void wrapperLoadLoggingProperties() {
+void wrapperLoadLoggingProperties(int preload) {
     const TCHAR *logfilePath;
     int logfileRollMode;
 
     logfilePath = getFileSafeStringProperty(properties, TEXT("wrapper.logfile"), TEXT("wrapper.log"));
-    setLogfilePath(logfilePath, wrapperData->workingDir);
+    setLogfilePath(logfilePath, wrapperData->workingDir, preload);
         
     logfileRollMode = getLogfileRollModeForName(getStringProperty(properties, TEXT("wrapper.logfile.rollmode"), TEXT("SIZE")));
     if (logfileRollMode == ROLL_MODE_UNKNOWN) {
@@ -1743,7 +1743,7 @@ int wrapperInitialize() {
     logRegisterThread(WRAPPER_THREAD_MAIN);
 
 
-    setLogfilePath(TEXT("wrapper.log"), NULL);
+    setLogfilePath(TEXT("wrapper.log"), NULL, FALSE);
     setLogfileRollMode(ROLL_MODE_SIZE);
     setLogfileFormat(TEXT("LPTM"));
     setLogfileLevelInt(LEVEL_DEBUG);
@@ -5669,7 +5669,7 @@ int loadConfiguration() {
     const TCHAR* val;
     int startupDelay;
 
-    wrapperLoadLoggingProperties();
+    wrapperLoadLoggingProperties(FALSE);
     /* Decide whether the classpath should be passed via the environment. */
     wrapperData->environmentClasspath = getBooleanProperty(properties, TEXT("wrapper.java.classpath.use_environment"), FALSE);
 

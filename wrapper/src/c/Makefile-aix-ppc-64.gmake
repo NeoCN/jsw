@@ -7,7 +7,7 @@
 # license agreement you entered into with Tanuki Software.
 # http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
 
-COMPILE = gcc -DAIX -DJSW64 -maix64 -DUNICODE -D_UNICODE
+COMPILE = gcc -DAIX -DJSW64 -maix64 -DUNICODE -D_UNICODE -D_THREAD_SAFE
 
 
 INCLUDE=$(JAVA_HOME)/include

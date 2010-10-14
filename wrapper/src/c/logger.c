@@ -474,10 +474,12 @@ int isLogfileAccessed() {
  *                   This will be NULL if this is part of the bootstrap process,
  *                   in which case we should not attempt to resolve the absolute
  *                   path.
+ * @param preload TRUE if called as part of the preload process.  We use this to
+ *                suppress double warnings.
  *
  * @return TRUE if there were any problems.
  */
-int setLogfilePath( const TCHAR *log_file_path, const TCHAR *workingDir ) {
+extern int setLogfilePath( const TCHAR *log_file_path, const TCHAR *workingDir, int preload) {
     size_t len = _tcslen(log_file_path);
     TCHAR* logfilePath2;
 #ifdef WIN32
@@ -489,9 +491,9 @@ int setLogfilePath( const TCHAR *log_file_path, const TCHAR *workingDir ) {
 #ifdef WIN32
         work = GetFullPathName(log_file_path, 0, NULL, NULL);
         if (!work) {
-            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                TEXT("Unable to resolve the full path of the log file: %s (%s)\n  Current working directory is: %s"),
-                log_file_path, getLastErrorText(), workingDir);
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                    TEXT("Unable to resolve the full path of the log file: %s (%s)\n  Current working directory is: %s"),
+                    log_file_path, getLastErrorText(), workingDir);
             return TRUE;
         }
         logfilePath2 = malloc(sizeof(TCHAR) * work);
@@ -500,9 +502,9 @@ int setLogfilePath( const TCHAR *log_file_path, const TCHAR *workingDir ) {
             return TRUE;
         }
         if (!GetFullPathName(log_file_path, work, logfilePath2, NULL)) {
-            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                TEXT("Unable to resolve the full path of the log file: %s (%s)\n  Current working directory is: %s"),
-                log_file_path, getLastErrorText(), workingDir);
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                    TEXT("Unable to resolve the full path of the log file: %s (%s)\n  Current working directory is: %s"),
+                    log_file_path, getLastErrorText(), workingDir);
             return TRUE;
         }
 #else
@@ -639,7 +641,7 @@ int checkLogfileDir() {
                 )) == -1) {
             if (errno == EACCES) {
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                    TEXT("Unable to write to the configured log directory: %s (%s)\n  The Wrapper may alse have problems writing or rolling the log file.\n  Please make sure that the current user has read/write access."),
+                    TEXT("Unable to write to the configured log directory: %s (%s)\n  The Wrapper may also have problems writing or rolling the log file.\n  Please make sure that the current user has read/write access."),
                     logFileDir, getLastErrorText());
             } else if (errno == ENOENT) {
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
@@ -655,7 +657,7 @@ int checkLogfileDir() {
 #endif
             if (_tremove(testfile)) {
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                    TEXT("Unable to remove temporary file: %s (%s)\n  The Wrapper may alse have problems writing or rolling the log file.\n  Please make sure that the current user has read/write access."),
+                    TEXT("Unable to remove temporary file: %s (%s)\n  The Wrapper may also have problems writing or rolling the log file.\n  Please make sure that the current user has read/write access."),
                     testfile, getLastErrorText());
             }
         }
@@ -1452,6 +1454,7 @@ int log_printf_message( int source_id, int level, int threadId, int queued, TCHA
                         currentLogFileName, getLastErrorText(), TEXT("wrapper.log"));
                     
                     /* Try the default file location. */
+                    setLogfilePath(TEXT("wrapper.log"), NULL, TRUE);
                     _sntprintf(currentLogFileName, logFileNameSize, TEXT("wrapper.log"));
                     logfileFP = _tfopen(currentLogFileName, TEXT("a"));
                     if (logfileFP == NULL) {
@@ -2146,7 +2149,7 @@ void rollLogs() {
     }
 
 #ifdef _DEBUG
-    _tprintf(TEXT("Rolling log files...\n"));
+    _tprintf(TEXT("Rolling log files... (rollFailure=%d)\n"), rollFailure);
 #endif
 
     /* We don't know how many log files need to be rotated yet, so look. */
@@ -2173,38 +2176,65 @@ void rollLogs() {
             /* The file needs to be deleted rather than rolled.   If a purge pattern was not specified,
              *  then the files will be deleted here.  Otherwise they will be deleted below. */
 
+#ifdef _DEBUG
+            _tprintf(TEXT("Remove old log file %s\n"), workLogFileName);
+#endif
             if (_tremove(workLogFileName)) {
+#ifdef _DEBUG
+                _tprintf(TEXT("Failed to remove old log file %s. err=%d\n"), workLogFileName, getLastError());
+#endif
                 if (getLastError() == 2) {
                     /* The file did not exist. */
                 } else if (getLastError() == 3) {
                     /* The path did not exist. */
                 } else {
                     if (rollFailure == FALSE) {
-                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to delete old log file: %s (%s)\n"), workLogFileName, getLastErrorText());
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to delete old log file: %s (%s)"), workLogFileName, getLastErrorText());
                     }
                     rollFailure = TRUE;
+                    generateLogFileName(currentLogFileName, logFilePath, NULL, NULL); /* Set the name back so we don't cause a logfile name changed event. */
+                    return;
                 }
-            }
+            } else {
+                /* On Windows, in some cases if the file can't be deleted, we still get here without an error. Double check. */
+                if (_tstat(workLogFileName, &fileStat) == 0) {
+                    /* The file still existed. */
 #ifdef _DEBUG
-            else {
-                _tprintf(TEXT("Deleted %s\n"), workLogFileName);
-            }
+                        _tprintf(TEXT("Failed to remove old log file %s\n"), workLogFileName);
 #endif
+                    if (rollFailure == FALSE) {
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to delete old log file: %s"), workLogFileName);
+                    }
+                    rollFailure = TRUE;
+                    generateLogFileName(currentLogFileName, logFilePath, NULL, NULL); /* Set the name back so we don't cause a logfile name changed event. */
+                    return;
+                }
+#ifdef _DEBUG
+                else {
+                    _tprintf(TEXT("Deleted %s\n"), workLogFileName);
+                }
+#endif
+            }
         } else {
             if (_trename(workLogFileName, currentLogFileName) != 0) {
                 if (rollFailure == FALSE) {
-                    if (errno == 13) {
+#ifdef WIN32
+                    if (errno == EACCES) {
+                        /* This access denied message is treated as a special case, but the use by other applications issue only happens on Windows. */
                         /* Don't log this as with other errors as that would cause recursion. */
-                            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to rename log file %s to %s.  File is in use by another application.\n"),
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to rename log file %s to %s.  File is in use by another application."),
                             workLogFileName, currentLogFileName);
                     } else {
+#endif
                         /* Don't log this as with other errors as that would cause recursion. */
-                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to rename log file %s to %s. (%s)\n"),
-                        workLogFileName, currentLogFileName, getLastErrorText());
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to rename log file %s to %s. (%s)"),
+                            workLogFileName, currentLogFileName, getLastErrorText());
+#ifdef WIN32
                     }
+#endif
                 } 
                 rollFailure = TRUE;
-                generateLogFileName(currentLogFileName, logFilePath, NULL, NULL);      
+                generateLogFileName(currentLogFileName, logFilePath, NULL, NULL); /* Set the name back so we don't cause a logfile name changed event. */
                 return;
             }
 #ifdef _DEBUG
@@ -2226,16 +2256,16 @@ void rollLogs() {
             } else if (errno == 13) {
                 /* Don't log this as with other errors as that would cause recursion. */
                     log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, 
-                        TEXT("Unable to rename log file %s to %s.  File is in use by another application.\n"),
-                    currentLogFileName, workLogFileName);
+                        TEXT("Unable to rename log file %s to %s.  File is in use by another application."),
+                        currentLogFileName, workLogFileName);
             } else {
                 /* Don't log this as with other errors as that would cause recursion. */
-                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to rename log file %s to %s. (%s)\n"),
-                currentLogFileName, workLogFileName, getLastErrorText());
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to rename log file %s to %s. (%s)"),
+                    currentLogFileName, workLogFileName, getLastErrorText());
             } 
         }
         rollFailure = TRUE;
-        /* Reset the current log file name as it is not being used yet. */
+        generateLogFileName(currentLogFileName, logFilePath, NULL, NULL); /* Set the name back so we don't cause a logfile name changed event. */
         return;
     }
 #ifdef _DEBUG
@@ -2251,12 +2281,14 @@ void rollLogs() {
         }
     }
     if (rollFailure == TRUE) {
+        /* We made it here, but the rollFailure flag had been previously set.  Make a note that we are back and then continue. */
         log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
             TEXT("Logfile rolling is working again."));
     }
     rollFailure = FALSE;
+    
     /* Reset the current log file name as it is not being used yet. */
-    /*currentLogFileName[0] = TEXT('\0');*/
+    currentLogFileName[0] = TEXT('\0'); /* Log file was rolled, so we want to cause a logfile change event. */
 }
 
 /**

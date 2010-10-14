@@ -7,6 +7,10 @@ Java Service Wrapper Revision History.
   file did not already exist.   A warning message was being displayed but the
   Wrapper would continue using the default log file.  There was a problem in
   the message displayed which caused a crash on some platforms include Mac OSX.
+  Introduced in version 3.5.5.
+* Fix a problem on Windows platforms where the Wrapper would crash if it could
+  not access the directory of the configured wrapper.logfile. 
+  Introduced in version 3.5.5.  Bug #3087424.
 * Improve the way warnings are logged when there are problems writing to the
   configured wrapper.logfile so that the message will now be logged into the
   log file that the Wrapper ends up using in case it is successful in falling
@@ -57,6 +61,19 @@ Java Service Wrapper Revision History.
   configuration was being displayed on startup.   This could be fixed because
   the Wrapper actually loads the configuration twice, and such output is only
   logged on the second call.
+* (Standard, Professional) Remove the undocumented ability to define a single
+  file share mapping without the index.  This would cause confusion if used,
+  and complicated the code.
+* (Standard, Professional) Fix a byte alignment problem caused by a bad
+  compiler directive on Windows platforms.  It was known to cause a crash when
+  defining mapped drives on 64-bit Windows versions.  The problem was in the
+  source since version 3.3.7, but is not known to cause any other issues.
+* (Standard, Professional) Modify the messages displayed when network shares
+  are mapped or fail for some reason.  Also add messages about them being
+  unmapped on shutdown.
+* On some Windows platforms, a failure to delete a rolled log file was not
+  being reported correctly.  The system function to delete a file was
+  returning success even if it had failed.  We now double check.
 
 3.5.5
 * Add new wrapper.filter.trigger.<n> action, "SUCCESS".  If this gets triggered
