@@ -3529,7 +3529,10 @@ TCHAR* findPathOf(const TCHAR *exe) {
         }
     } else {
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of wrapper.java.command as a relative reference: %s (Problem at: %s)"), exe, resolvedPath);
+            /* Some platforms (MACOSX) will return the point that was the problem, it seems to work
+             *  on some other platforms but is documented as undefined.   To be safe and keep things
+             *  in sync, don't use it. */
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of wrapper.java.command as a relative reference: %s"), exe);
         }
     }
 
