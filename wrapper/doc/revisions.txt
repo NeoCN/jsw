@@ -57,10 +57,15 @@ Java Service Wrapper Revision History.
   stuck and would remain so until another child exited.  As part of this fix,
   there were also several changes to the Windows implementation to bring the
   two code bases into sync.
+* Fix a problem on Windows when multiple threads were creating Childobjects,
+  Handles could have been unintendedly get inherited by another Child Process,
+  causing problems on reading/writing to the Input/Output/Errorstream.
+* Fix a problem on solaris and AIX when errno calls were not thread safe due
+  to a compiler switch.
 * Fix a problem where debug level warning output while loading the Wrapper
   configuration was being displayed on startup.   This could be fixed because
-  the Wrapper actually loads the configuration twice, and such output is only
-  logged on the second call.
+  the Wrapper actually loads the configuration twice, and such output is now
+  only logged on the second call.
 * (Standard, Professional) Remove the undocumented ability to define a single
   file share mapping without the index.  This would cause confusion if used,
   and complicated the code.
@@ -74,6 +79,9 @@ Java Service Wrapper Revision History.
 * On some Windows platforms, a failure to delete a rolled log file was not
   being reported correctly.  The system function to delete a file was
   returning success even if it had failed.  We now double check.
+* Fix a deadlock in the code that is used to send data to the Java process.
+  It was only possible if debug level output was enabled and log file rolling
+  was enabled.  Introduced in 3.3.7.
 
 3.5.5
 * Add new wrapper.filter.trigger.<n> action, "SUCCESS".  If this gets triggered
