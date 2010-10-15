@@ -2615,7 +2615,13 @@ int wrapperReadChildOutput() {
  *  the log file name is sent to the JVM where it can be referenced by applications.
  */
 void sendLogFileName() {
-    wrapperProtocolFunction(WRAPPER_MSG_LOGFILE, getLogfilePath());
+    TCHAR *currentLogFilePath;
+    
+    currentLogFilePath = getCurrentLogfilePath();
+    
+    wrapperProtocolFunction(WRAPPER_MSG_LOGFILE, currentLogFilePath);
+    
+    free(currentLogFilePath);
 }
 
 /**

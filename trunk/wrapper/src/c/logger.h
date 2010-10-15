@@ -167,6 +167,13 @@ extern int setLogfilePath( const TCHAR *log_file_path, const TCHAR *workingDir, 
 extern const TCHAR *getLogfilePath();
 
 /**
+ * Returns a snapshot of the current log file path.  This call safely gets the current path
+ *  and returns a copy.  It is the responsibility of the caller to free up the memory on
+ *  return.  Could return null if there was an error.
+ */
+extern TCHAR *getCurrentLogfilePath();
+
+/**
  * Check the directory of the current logfile path to make sure it is writable.
  *  If there are any problems, log a warning.
  *

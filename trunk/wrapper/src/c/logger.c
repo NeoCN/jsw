@@ -153,6 +153,8 @@ void sendLoginfoMessage( int source_id, int level, const TCHAR *szBuff );
 void writeToConsole( HANDLE hdl, TCHAR *lpszFmt, ...);
 #endif
 void checkAndRollLogs(const TCHAR *nowDate);
+int lockLoggingMutex();
+int releaseLoggingMutex();
 
 /* Any log messages generated within signal handlers must be stored until we
  *  have left the signal handler to avoid deadlocks in the logging code.
@@ -587,6 +589,39 @@ extern int setLogfilePath( const TCHAR *log_file_path, const TCHAR *workingDir, 
 const TCHAR *getLogfilePath()
 {
     return logFilePath;
+}
+
+/**
+ * Returns a snapshot of the current log file path.  This call safely gets the current path
+ *  and returns a copy.  It is the responsibility of the caller to free up the memory on
+ *  return.  Could return null if there was an error.
+ */
+TCHAR *getCurrentLogfilePath() {
+    TCHAR *logFileCopy;
+    
+    /* Lock the logging mutex. */
+    if (lockLoggingMutex()) {
+        return NULL;
+    }
+    
+    /* We should always have a current log file name here because there will be at least one line of log output before this is called.
+     *  If that is false then we will return an empty length, but valid, string. */
+    logFileCopy = malloc(sizeof(TCHAR) * (_tcslen(currentLogFileName) + 1));
+    if (!logFileCopy) {
+        _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P3"));
+    } else {
+        _tcscpy(logFileCopy, currentLogFileName);
+    }
+
+    /* Release the lock we have on the logging mutex so that other threads can get in. */
+    if (releaseLoggingMutex()) {
+        if (logFileCopy) {
+            free(logFileCopy);
+        }
+        return NULL;
+    }
+    
+    return logFileCopy;
 }
 
 
@@ -1644,7 +1679,7 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
     logFileChanged = log_printf_message( source_id, level, threadId, FALSE, threadMessageBuffer );
     if (logFileChanged) {
         /* We need to enqueue a notification that the log file name was changed.
-         *  We can NOT directly send the notification here as that could cause a deadlock in
+         *  We can NOT directly send the notification here as that could cause a deadlock,
          *  depending on where exactly this function was called from. (See Wrapper protocol mutex.) */
         logFileCopy = malloc(sizeof(TCHAR) * (_tcslen(currentLogFileName) + 1));
         if (!logFileCopy) {
