@@ -82,6 +82,10 @@ Java Service Wrapper Revision History.
 * Fix a deadlock in the code that is used to send data to the Java process.
   It was only possible if debug level output was enabled and log file rolling
   was enabled.  Introduced in 3.3.7.
+* Fix a problem where the WrapperManager.getWrapperLogFile() was not returning
+  the accurate log file name until the first time the log file was rolled after
+  each JVM invocation.  This was only noticeable if the wrapper.logfile
+  contained either the "ROLLNUM" or "YYYYMMDD" tokens.
 
 3.5.5
 * Add new wrapper.filter.trigger.<n> action, "SUCCESS".  If this gets triggered
