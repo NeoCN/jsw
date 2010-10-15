@@ -1662,6 +1662,10 @@ int wrapperProtocolRead() {
  *****************************************************************************/
 /**
  * IMPORTANT - Any logging done in here needs to be queued or it would cause a recursion problem.
+ *
+ * It is also critical that this is NEVER called from within the protocol function because it
+ *  would cause a deadlock with the protocol semaphore.  This means that it can never be called
+ *  from within log_printf(...).
  */
 void wrapperLogFileChanged(const TCHAR *logFile) {
     if (wrapperData->isDebugging) {

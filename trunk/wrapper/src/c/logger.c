@@ -109,6 +109,9 @@ int currentLogfacilityLevel = LOG_USER;
 /* Callback notified whenever the active logfile changes. */
 void (*logFileChangedCallback)(const TCHAR *logFile);
 
+/* Stores a carefully malloced filename of the most recent log file change.   This value is only set in log_printf(), and only cleared in maintainLogger(). */
+TCHAR *pendingLogFileChange = NULL;
+
 TCHAR *logFilePath;
 TCHAR *currentLogFileName;
 TCHAR *workLogFileName;
@@ -1456,6 +1459,7 @@ int log_printf_message( int source_id, int level, int threadId, int queued, TCHA
                     /* Try the default file location. */
                     setLogfilePath(TEXT("wrapper.log"), NULL, TRUE);
                     _sntprintf(currentLogFileName, logFileNameSize, TEXT("wrapper.log"));
+                    logFileChanged = TRUE;
                     logfileFP = _tfopen(currentLogFileName, TEXT("a"));
                     if (logfileFP == NULL) {
                         /* Still unable to write. */
@@ -1463,6 +1467,7 @@ int log_printf_message( int source_id, int level, int threadId, int queued, TCHA
                             TEXT("Unable to write to the default log file: %s (%s)\n  Disabling log file."),
                             currentLogFileName, getLastErrorText());
                         setLogfileLevelInt(LEVEL_NONE);
+                        logFileChanged = FALSE;
                     }
                 }
                 umask(old_umask);
@@ -1638,23 +1643,33 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
     logFileCopy = NULL;
     logFileChanged = log_printf_message( source_id, level, threadId, FALSE, threadMessageBuffer );
     if (logFileChanged) {
+        /* We need to enqueue a notification that the log file name was changed.
+         *  We can NOT directly send the notification here as that could cause a deadlock in
+         *  depending on where exactly this function was called from. (See Wrapper protocol mutex.) */
         logFileCopy = malloc(sizeof(TCHAR) * (_tcslen(currentLogFileName) + 1));
         if (!logFileCopy) {
             _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P3"));
         } else {
             _tcscpy(logFileCopy, currentLogFileName);
+            /* Now after we have 100% prepared the log file name.  Put into the queue variable
+             *  so the maintainLogging() function can safely grab it at any time.
+             * The reading code is also in a semaphore so we can do a quick test here safely as well. */
+            if (pendingLogFileChange) {
+                /* The previous file was still in the queue.  Free it up to avoid a memory leak.
+                 *  This can happen if the log file size is 1k or something like that.   We will always
+                 *  keep the most recent file however, so this should not be that big a problem. */
+#ifdef _DEBUG
+                _tprintf(TEXT("Log file name change was overwritten in queue: %s\n"), pendingLogFileChange);
+#endif
+                free(pendingLogFileChange);
+            }
+            pendingLogFileChange = logFileCopy;
         }
     }
 
     /* Release the lock we have on this function so that other threads can get in. */
     if (releaseLoggingMutex()) {
         return;
-    }
-
-    /* Now that we are no longer in the semaphore, register the change of the logfile. */
-    if (logFileChanged && logFileCopy) {
-        logFileChangedCallback(logFileCopy);
-        free(logFileCopy);
     }
 }
 
@@ -2481,7 +2496,35 @@ void maintainLogger() {
     TCHAR *buffer;
     int logFileChanged;
     TCHAR *logFileCopy;
-
+        
+    /* Check to see if there is a pending log file change notification. Do this first as we could
+     *  generate our own here as well.  It is important that we do our best to keep them in order.
+     *  Grab it and clear the reference quick in case another is set.  This order is thread safe. */
+    if (pendingLogFileChange) {
+        /* Lock the logging mutex. */
+        if (lockLoggingMutex()) {
+            return;
+        }
+        
+        logFileCopy = pendingLogFileChange;
+        pendingLogFileChange = NULL;
+        
+        /* Release the lock we have on the logging mutex so that other threads can get in. */
+        if (releaseLoggingMutex()) {
+            return;
+        }
+        
+        /* Now see if a log file name was queued, using our local copy. */
+        if (logFileCopy) {
+#ifdef _DEBUG
+            _tprintf(TEXT("Sending notification of queued log file name change: %s"), logFileCopy);
+#endif
+            logFileChangedCallback(logFileCopy);
+            free(logFileCopy);
+            logFileCopy = NULL;
+        }
+    }
+    
     for (threadId = 0; threadId < WRAPPER_THREAD_COUNT; threadId++) {
         /* NOTE - The queue variables are not synchronized so we need to access them
          *        carefully and assume that data could possibly be corrupted. */
@@ -2494,7 +2537,7 @@ void maintainLogger() {
             if (lockLoggingMutex()) {
                 return;
             }
-
+        
             /* Empty the queue of any logged messages. */
             localWriteIndex = queueWriteIndex[threadId]; /* Snapshot the value to maintain a constant reference. */
             while (queueReadIndex[threadId] != localWriteIndex) {
