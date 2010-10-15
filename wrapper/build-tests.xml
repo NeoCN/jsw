@@ -392,7 +392,7 @@ wrapper.on_exit.default=RESTART]]></replacevalue>
               tofile="${test.dir}/systemproperty.conf"
               filtering="on"/>
         <replace file="${test.dir}/systemproperty.conf">
-            <replacetoken>#wrapper.java.additional.1=</replacetoken>
+            <replacetoken>wrapper.java.additional.1=</replacetoken>
             <replacevalue><![CDATA[wrapper.java.additional.1=-DVAR1="abc"
 wrapper.java.additional.1.stripquotes=TRUE
 wrapper.java.additional.2=-DVAR2="\\"
@@ -444,7 +444,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacetoken>
             <replacevalue>wrapper.java.classpath.1=../lib/wrapper.jar</replacevalue>
         </replace>
         <replace file="${test.dir}/executablejarinitfail.conf"
-                 token="#wrapper.java.additional.1="
+                 token="wrapper.java.additional.1="
                  value="wrapper.java.additional.1=-DJarMain.init.fail=TRUE" />
         <replace file="${test.dir}/executablejarinitfail.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
