@@ -254,12 +254,9 @@ void wrapperAddDefaultProperties() {
  */
 int showHostIds(int logLevel) {
     log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT(""));
-    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("The Community Edition of the Java Service: Wrapper does not implement"));
-    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("HostIds."));
+    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("The Community Edition of the Java Service Wrapper does not implement\nHostIds."));
     log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT(""));
-    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("If you have requested a trial license, or purchased a license, you"));
-    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("may be looking for the Standard or Professional Editions of the Java"));
-    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("Service Wrapper.  They can be downloaded here:"));
+    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("If you have requested a trial license, or purchased a license, you\nmay be looking for the Standard or Professional Editions of the Java\nService Wrapper.  They can be downloaded here:"));
     log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("  http://wrapper.tanukisoftware.com/download"));
     log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT(""));
 
@@ -2163,6 +2160,11 @@ void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int acti
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s  Application has signalled success, consider this application started successful..."), triggerMsg);
                     wrapperData->failedInvocationCount = 0;
                     break;
+                    
+                case ACTION_GC:
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s  Requesting GC..."), triggerMsg);
+                    wrapperRequestJVMGC(actionCode);
+                    break;
 
                 default:
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unknown action type: %d"), action);
@@ -3219,6 +3221,13 @@ void wrapperResumeProcess(int actionCode) {
             wrapperProtocolFunction(WRAPPER_MSG_RESUME, msgBuffer);
         }
     }
+}
+
+/**
+ * Sends a command off to the JVM asking it to perform a garbage collection sweep.
+ */
+void wrapperRequestJVMGC() {
+    wrapperProtocolFunction(WRAPPER_MSG_GC, TEXT("gc"));
 }
 
 /**
@@ -5388,6 +5397,8 @@ int getActionForName(TCHAR *actionName, const TCHAR *propertyName, int logErrors
         action = ACTION_DEBUG;
     } else if (_tcscmp(actionName, TEXT("SUCCESS")) == 0) {
         action = ACTION_SUCCESS;
+    } else if (_tcscmp(actionName, TEXT("GC")) == 0) {
+        action = ACTION_GC;
     } else if (_tcscmp(actionName, TEXT("PAUSE")) == 0) {
         if (logErrors) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Pause actions require the Standard Edition.  Ignoring action '%s' in the %s property."), actionName, propertyName);

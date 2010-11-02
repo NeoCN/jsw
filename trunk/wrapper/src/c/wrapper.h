@@ -143,6 +143,7 @@
 #define ACTION_PAUSE             -6
 #define ACTION_RESUME            -7
 #define ACTION_SUCCESS           -8
+#define ACTION_GC                -9
 #if defined(MACOSX)
 #define TRIGGER_ADVICE_NIL_SERVER TEXT("****** Returning nil _server **********")
 #define ACTION_ADVICE_NIL_SERVER -32
@@ -413,6 +414,7 @@ struct WrapperConfig {
 #define WRAPPER_MSG_APPEAR_ORPHAN (char)137
 #define WRAPPER_MSG_PAUSE         (char)138
 #define WRAPPER_MSG_RESUME        (char)139
+#define WRAPPER_MSG_GC            (char)140
 
 #define WRAPPER_PROCESS_DOWN      200
 #define WRAPPER_PROCESS_UP        201
@@ -789,6 +791,11 @@ extern void wrapperStopProcess(int exitCode);
  * Used to ask the state engine to shut down the JVM.
  */
 extern void wrapperRestartProcess();
+
+/**
+ * Sends a command off to the JVM asking it to perform a garbage collection sweep.
+ */
+extern void wrapperRequestJVMGC();
 
 /**
  * Loops over and strips all double quotes from prop and places the
