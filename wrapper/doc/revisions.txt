@@ -1,6 +1,22 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 
+3.5.7
+* Changed the way the script is installing the daemon gets installed on an AIX
+  system. The script now uses inittab & SRC.
+* Fix a problem on AIX in the shell script that was preventing the script from
+  starting the Wrapper correctly on system boot when the delta-pack naming of
+  the Wrapper was used and when the script was installed with the "install"
+  command.  This had been a problem since 3.4.1 when the install command was
+  first added.
+* Add a new GC action that will cause the JVM to immediately perform a full
+  thread dump.  See the wrapper.commandfile, wrapper.filter.action.<n>,
+  wrapper.check.deadlock.action, and wrapper.timer.<n>.action properties for
+  details.
+* Modify the wrapper.event.<event_name>.command.block.action property slightly
+  so it will now correctly warn if an unknown action is encountered.  It had
+  been defaulting to CONTINUE silently.
+
 3.5.6
 * Fix a problem on UNIX platforms where the log file path was being calculated
   incorrectly if an absolute path was specified for wrapper.logfile, and the
@@ -89,6 +105,15 @@ Java Service Wrapper Revision History.
 * Correct an error message that was displayed on UNIX platforms when the
   configured java binary could not be accessed.  The message referenced a
   buffer whose contents were undefined on some platforms.
+* Fix a problem on z/OS where due a difference in the API used to lock a
+  mutex compared to all other UNIX platforms, the mutex's locking and
+  unlocking code were effectively being ignored.  This means that multiple
+  threads were able to access code which was not thread safe and could lead to
+  a crash of the Wrapper.   This is a problem that has been in the code since
+  the first z/OS release and is not known to have actually caused any problems.
+  Starting with 3.5.1, this was only an issue if debug output was enabled.
+  Versions 3.3.9 through 3.5.0 could have also had problems whenever the
+  Wrapper received a system signal.
 
 3.5.5
 * Add new wrapper.filter.trigger.<n> action, "SUCCESS".  If this gets triggered

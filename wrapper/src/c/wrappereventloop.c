@@ -548,6 +548,9 @@ void commandPoll(TICKS nowTicks) {
                             } else if (strcmpIgnoreCase(command, TEXT("DUMP")) == 0) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Requesting a Thread Dump."), command);
                                 wrapperRequestDumpJVMState();
+                            } else if (strcmpIgnoreCase(command, TEXT("GC")) == 0) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Requesting a GC."), command);
+                                wrapperRequestJVMGC();
                             } else if ((strcmpIgnoreCase(command, TEXT("CONSOLE_LOGLEVEL")) == 0) ||
                                     (strcmpIgnoreCase(command, TEXT("LOGFILE_LOGLEVEL")) == 0) ||
                                     (strcmpIgnoreCase(command, TEXT("SYSLOG_LOGLEVEL")) == 0)) {

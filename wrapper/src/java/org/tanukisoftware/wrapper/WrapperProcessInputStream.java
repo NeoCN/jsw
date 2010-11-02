@@ -74,7 +74,7 @@ public class WrapperProcessInputStream
 
     public boolean ready()
     {
-        if ( !m_closed || m_bais.available() > 0 )
+        if ( !m_closed || (m_bais != null && m_bais.available() > 0 ))
         {
             return true;
         } 

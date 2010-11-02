@@ -16,7 +16,7 @@
 
 #-----------------------------------------------------------------------------
 # These settings can be modified to fit the needs of your application
-# Optimized for use with version 3.5.6 of the Wrapper.
+# Optimized for use with version 3.5.7-a of the Wrapper.
 
 # Application
 APP_NAME="@app.name@"
@@ -219,7 +219,7 @@ PSEXE="/usr/ucb/ps"
     fi
 
 # Resolve the os
-DIST_OS=`uname -s | tr [A-Z] [a-z] | tr -d ' '`
+DIST_OS=`uname -s | tr "[A-Z]" "[a-z]" | tr -d ' '`
 case "$DIST_OS" in
     'sunos')
         DIST_OS="solaris"
@@ -256,14 +256,14 @@ then
     APP_PLIST=${APP_PLIST_BASE}.plist
 else
     DIST_ARCH=
-    DIST_ARCH=`uname -p 2>/dev/null | tr [A-Z] [a-z] | tr -d ' '`
+    DIST_ARCH=`uname -p 2>/dev/null | tr "[A-Z]" "[a-z]" | tr -d ' '`
     if [ "X$DIST_ARCH" = "X" ]
     then
         DIST_ARCH="unknown"
     fi
     if [ "$DIST_ARCH" = "unknown" ]
     then
-        DIST_ARCH=`uname -m 2>/dev/null | tr [A-Z] [a-z] | tr -d ' '`
+        DIST_ARCH=`uname -m 2>/dev/null | tr "[A-Z]" "[a-z]" | tr -d ' '`
     fi
     case "$DIST_ARCH" in
         'athlon' | 'i386' | 'i486' | 'i586' | 'i686')
@@ -973,7 +973,7 @@ installdaemon() {
         eval echo  'Must be root to perform this action.'
         exit 1
     else
-        APP_NAME_LOWER=`echo "$APP_NAME" | tr [A-Z] [a-z]`
+        APP_NAME_LOWER=`echo "$APP_NAME" | tr "[A-Z]" "[a-z]"`
         if [ "$DIST_OS" = "solaris" ] ; then
             eval echo  'Detected Solaris:'
             if [ -f /etc/init.d/$APP_NAME ] ; then
@@ -1045,13 +1045,19 @@ installdaemon() {
         elif [ "$DIST_OS" = "aix" ] ; then
             eval echo  'Detected AIX:'
             if [ -f "/etc/rc.d/init.d/$APP_NAME" ] ; then
-                eval echo  ' The $APP_LONG_NAME daemon is already installed.'
+                eval echo  ' The $APP_LONG_NAME daemon is already installed as rc.d script.'
                 exit 1
-            else 
+            elif [ -n "`/usr/sbin/lsitab $APP_NAME`" -a -n "`/usr/bin/lssrc -S -s $APP_NAME`" ] ; then
+                eval echo  ' The $APP_LONG_NAME daemon is already installed as SRC service.'
+                exit 1
+            else
                 eval echo  ' Installing the $APP_LONG_NAME daemon..'
-                ln -s "$REALPATH" /etc/rc.d/init.d/$APP_NAME
-                ln -s "/etc/rc.d/init.d/$APP_NAME" "/etc/rc.d/rc2.d/S20$APP_NAME_LOWER"
-                ln -s "/etc/rc.d/init.d/$APP_NAME" "/etc/rc.d/rc2.d/K20$APP_NAME_LOWER"
+                if [ -n "`/usr/sbin/lsitab install_assist`" ] ; then 
+                    eval echo  ' The task /usr/sbin/install_assist was found in the inittab, this might cause problems for all subsequent tasks to launch at this process is known to block the init task. Please make sure this task is not needed anymore and remove/deactivate it.'
+                fi
+                /usr/bin/mkssys -s "$APP_NAME" -p "$REALPATH" -a "launchdinternal" -u 0 -f 9 -n 15 -S
+                /usr/sbin/mkitab "$APP_NAME":2:once:"/usr/bin/startsrc -s \"${APP_NAME}\" >/dev/console 2>&1"
+                
             fi
         elif [ "$DIST_OS" = "freebsd" ] ; then
             eval echo  'Detected FreeBSD:'                
@@ -1151,7 +1157,7 @@ removedaemon() {
         exit 1
     else
         stopit "0"
-        APP_NAME_LOWER=`echo "$APP_NAME" | tr [A-Z] [a-z]`
+        APP_NAME_LOWER=`echo "$APP_NAME" | tr "[A-Z]" "[a-z]"`
         if [ "$DIST_OS" = "solaris" ] ; then
             eval echo  'Detected Solaris:'
             if [ -f "/etc/init.d/$APP_NAME" ] ; then
@@ -1223,12 +1229,18 @@ removedaemon() {
             fi
         elif [ "$DIST_OS" = "aix" ] ; then
             eval echo  'Detected AIX:'
-            if [ -f "/etc/rc.d/init.d/$APP_NAME" ] ; then
+            if [ -f "/etc/rc.d/init.d/$APP_NAME" -o -n "`/usr/sbin/lsitab $APP_NAME`" -o -n "`/usr/bin/lssrc -S -s $APP_NAME`" ] ; then
                 eval echo  ' Removing $APP_LONG_NAME daemon...'
-                for i in "/etc/rc.d/rc2.d/S20$APP_NAME_LOWER" "/etc/rc.d/rc2.d/K20$APP_NAME_LOWER" "/etc/rc.d/init.d/$APP_NAME"
-                do
-                    rm -f $i
-                done
+                if [ -f "/etc/rc.d/init.d/$APP_NAME" ] ; then
+                    for i in "/etc/rc.d/rc2.d/S20$APP_NAME_LOWER" "/etc/rc.d/rc2.d/K20$APP_NAME_LOWER" "/etc/rc.d/init.d/$APP_NAME"
+                    do
+                        rm -f $i
+                    done
+                fi
+                if [ -n "`/usr/sbin/lsitab $APP_NAME`" -o -n "`/usr/bin/lssrc -S -s $APP_NAME`" ] ; then
+                    /usr/sbin/rmitab $APP_NAME
+                    /usr/bin/rmssys -s $APP_NAME
+                fi                
             else
                 eval echo  ' The $APP_LONG_NAME daemon is not currently installed.'
                 exit 1

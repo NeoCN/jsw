@@ -141,6 +141,7 @@ public final class WrapperManager
     private static final byte WRAPPER_MSG_APPEAR_ORPHAN  = (byte)137;
     private static final byte WRAPPER_MSG_PAUSE          = (byte)138;
     private static final byte WRAPPER_MSG_RESUME         = (byte)139;
+    private static final byte WRAPPER_MSG_GC             = (byte)140;
     
     /** Received when the user presses CTRL-C in the console on Windows or UNIX platforms. */
     public static final int WRAPPER_CTRL_C_EVENT         = 200;
@@ -4785,6 +4786,10 @@ public final class WrapperManager
             name ="DEADLOCK";
             break;
     
+        case WRAPPER_MSG_APPEAR_ORPHAN:
+            name ="APPEAR_ORPHAN";
+            break;
+    
         case WRAPPER_MSG_PAUSE:
             name ="PAUSE";
             break;
@@ -4793,8 +4798,8 @@ public final class WrapperManager
             name ="RESUME";
             break;
     
-        case WRAPPER_MSG_APPEAR_ORPHAN:
-            name ="APPEAR_ORPHAN";
+        case WRAPPER_MSG_GC:
+            name ="GC";
             break;
     
         default:
@@ -5110,6 +5115,10 @@ public final class WrapperManager
                                 m_outError.println( getRes().getString(
                                         "Encountered an Illegal ActionCode from the Wrapper: {0}", msg ) );
                             }
+                            break;
+                            
+                        case WRAPPER_MSG_GC:
+                            System.gc();
                             break;
                             
                         case WRAPPER_MSG_PROPERTIES:
