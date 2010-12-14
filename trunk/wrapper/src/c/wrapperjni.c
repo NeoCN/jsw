@@ -171,7 +171,7 @@ jstring JNU_NewStringNative(JNIEnv *env, const TCHAR *strW) {
     len = _tcslen(strW);
     if (len > 0) {
  #ifdef WIN32
-        size = WideCharToMultiByte(CP_ACP, 0, strW, -1, NULL, 0, NULL, NULL);
+        size = WideCharToMultiByte(CP_UTF8, 0, strW, -1, NULL, 0, NULL, NULL);
         if (size == 0) {
             /* Failed. */
             _tprintf(TEXT("WrapperJNI Warn: Failed to convert string \"%s\": %s\n"), strW, GetLastError()); fflush(NULL);
@@ -182,7 +182,10 @@ jstring JNU_NewStringNative(JNIEnv *env, const TCHAR *strW) {
             throwOutOfMemoryError(env, TEXT("JNSN1"));
             return NULL;
         }
-        WideCharToMultiByte(CP_ACP, 0, strW, -1, msgMB, size, NULL, NULL);
+        WideCharToMultiByte(CP_UTF8, 0, strW, -1, msgMB, size, NULL, NULL);
+        result = (*env)->NewStringUTF(env, msgMB);
+        free(msgMB);
+        return result;
  #else
         size = wcstombs(NULL, strW, 0) + 1;
         msgMB = malloc(sizeof(char) * size);
@@ -207,6 +210,11 @@ jstring JNU_NewStringNative(JNIEnv *env, const TCHAR *strW) {
     result = NULL;
     if ((*env)->EnsureLocalCapacity(env, 2) < 0) {
         throwOutOfMemoryError(env, TEXT("JNSN4"));
+#ifdef UNICODE
+        if (msgMB) {
+            free(msgMB);
+        }
+#endif
         return NULL; /* out of memory error */
     }
     len = strlen(msgMB);
@@ -312,6 +320,7 @@ TCHAR *JNU_GetStringNativeChars(JNIEnv *env, jstring jstr) {
     size = MultiByteToWideChar(CP_OEMCP, 0, result, -1, NULL, 0);
     tresult = malloc(size*sizeof(LPWSTR));
     if (!tresult) {
+        free(result);
         throwOutOfMemoryError(env, TEXT("GSNC3"));
         return NULL;
     }
@@ -323,6 +332,7 @@ TCHAR *JNU_GetStringNativeChars(JNIEnv *env, jstring jstr) {
     size *= sizeof(TCHAR);
     tresult = malloc(size);
     if (!tresult) {
+        free(result);
         throwOutOfMemoryError(env, TEXT("GSNC3"));
         return NULL;
     }
@@ -456,10 +466,12 @@ int getSystemProperty(JNIEnv *env, const TCHAR *propertyName, TCHAR **propertyVa
                                 throwOutOfMemoryError(env, TEXT("GSP1"));
                                 result = TRUE;
                                 } else {
-                                _tcscpy(*propertyValue, keyChars);
+                                _tcsncpy(*propertyValue, keyChars, _tcslen(keyChars) + 1);
                                 result = FALSE;
                             }
-                            free(keyChars);
+                            if (keyChars) {
+                                free(keyChars);
+                            }
                         } else {
                             /* Exception Thrown */
                             result = TRUE;
@@ -473,7 +485,7 @@ int getSystemProperty(JNIEnv *env, const TCHAR *propertyName, TCHAR **propertyVa
                                 throwOutOfMemoryError(env, TEXT("GSP2"));
                                 result = TRUE;
                                 } else {
-                                strcpy((char*)*propertyValue, (char*)keyChars);
+                                strncpy((char*)*propertyValue, (char*)keyChars, strlen((char*)keyChars) + 1);
                                 result = FALSE;
                             }
                             (*env)->ReleaseStringUTFChars(env, jStringKeyValue, (const char *)keyChars);

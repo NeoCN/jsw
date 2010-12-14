@@ -241,7 +241,7 @@ int buildSystemPath() {
         outOfMemory(TEXT("BSP"), 3);
         return 1;
     }
-    _tcscpy(systemPath[i], lc);
+    _tcsncpy(systemPath[i], lc, len + 1);
 #ifdef _DEBUG
     _tprintf(TEXT("PATH[%d]=%s\n"), i, systemPath[i]);
 #endif
@@ -446,7 +446,7 @@ int wrapperConsoleHandler(int key) {
                 wrapperData->ctrlEventCTRLCTrapped = TRUE;
             }
             break;
-            
+
         case CTRL_CLOSE_EVENT:
             /* The user tried to close the console.  Can only happen when run as a console. */
             if (wrapperData->ignoreSignals & WRAPPER_IGNORE_SIGNALS_WRAPPER) {
@@ -474,11 +474,11 @@ int wrapperConsoleHandler(int key) {
         case CTRL_LOGOFF_EVENT:
             wrapperData->ctrlEventLogoffTrapped = TRUE;
             break;
-            
+
         case CTRL_SHUTDOWN_EVENT:
             wrapperData->ctrlEventShutdownTrapped = TRUE;
             break;
-            
+
         default:
             /* Unknown.  Don't quit here. */
             log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
@@ -713,7 +713,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
     /* In case there are ever any problems in this thread, enclose it in a try catch block. */
     __try {
         timerThreadStarted = TRUE;
-        
+
         /* Immediately register this thread with the logger. */
         logRegisterThread(WRAPPER_THREAD_TIMER);
 
@@ -732,10 +732,10 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
                 timerThreadStopped = TRUE;
                 return 1;
             }
-            
+
             /* Advance the timer tick count. */
             nowTicks = timerTicks++;
-            
+
             if (wrapperData->useTickMutex && wrapperReleaseTickMutex()) {
                 timerThreadStopped = TRUE;
                 return 1;
@@ -775,7 +775,7 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
         appExit(1);
         return 1; /* For the compiler, we will never get here. */
     }
-    
+
     timerThreadStopped = TRUE;
     return 0;
 }
@@ -808,7 +808,7 @@ int initializeTimer() {
 
 void disposeTimer() {
     stopTimerThread = TRUE;
-    
+
     /* Wait until the timer thread is actually stopped to avoid timing problems. */
     if (timerThreadStarted) {
         while (!timerThreadStopped) {
@@ -841,7 +841,7 @@ int initializeWinSock() {
  */
 int collectUserInfo() {
     int result;
-    
+
     DWORD processId;
     HANDLE hProcess;
     HANDLE hProcessToken;
@@ -852,11 +852,11 @@ int collectUserInfo() {
     DWORD userNameSize;
     DWORD domainNameSize;
     SID_NAME_USE sidType;
-    
+
     processId = wrapperData->wrapperPID;
     wrapperData->userName = NULL;
     wrapperData->domainName = NULL;
-    
+
     if (hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, processId)) {
         if (OpenProcessToken(hProcess, TOKEN_QUERY, &hProcessToken)) {
             GetTokenInformation(hProcessToken, TokenUser, NULL, 0, &tokenUserSize);
@@ -916,7 +916,7 @@ int collectUserInfo() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to open process: %s"), getLastErrorText());
         result = TRUE;
     }
-    
+
     return result;
 }
 
@@ -1058,7 +1058,7 @@ int wrapperSleep(int ms) {
     if (wrapperData->isSleepOutputEnabled) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Sleep: awake"));
     }
-    
+
     return FALSE;
 }
 
@@ -1251,14 +1251,6 @@ int wrapperGetProcessStatus(TICKS nowTicks, int sigChild) {
         }
 
         wrapperJVMProcessExited(nowTicks, exitCode);
-
-        if (!CloseHandle(wrapperData->javaProcess)) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                TEXT("Failed to close the Java process handle: %s"), getLastErrorText());
-        }
-        wrapperData->javaProcess = NULL;
-        wrapperData->javaPID = 0;
-
         break;
 
     case WAIT_TIMEOUT:
@@ -1502,7 +1494,7 @@ void wrapperExecute() {
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT(
                             "Unless you have configured the Wrapper to run as a different user\nwith wrapper.ntservice.account property, the Wrapper and its JVM\nwill be as the SYSTEM user by default when run as a service." ));
                     }
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, 
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
                         TEXT("--------------------------------------------------------------------") );
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("") );
                 }
@@ -1567,7 +1559,7 @@ void wrapperExecute() {
  */
 TICKS wrapperGetTicks() {
     TICKS ticks;
-    
+
     if (wrapperData->useSystemTime) {
         /* We want to return a tick count that is based on the current system time. */
         ticks = wrapperGetSystemTicks();
@@ -1577,15 +1569,15 @@ TICKS wrapperGetTicks() {
         if (wrapperData->useTickMutex && wrapperLockTickMutex()) {
             return 0;
         }
-        
+
         /* Return a snapshot of the current tick count. */
         ticks = timerTicks;
-        
+
         if (wrapperData->useTickMutex && wrapperReleaseTickMutex()) {
             return 0;
         }
     }
-    
+
     return ticks;
 }
 
@@ -1801,7 +1793,7 @@ void wrapperMaintainControlCodes() {
     int ctrlCodeLast;
     int quit = FALSE;
     int halt = FALSE;
-    
+
     /* CTRL_C_EVENT */
     if (wrapperData->ctrlEventCTRLCTrapped) {
         wrapperData->ctrlEventCTRLCTrapped = FALSE;
@@ -1820,7 +1812,7 @@ void wrapperMaintainControlCodes() {
         }
         quit = TRUE;
     }
-    
+
     /* CTRL_CLOSE_EVENT */
     if (wrapperData->ctrlEventCloseTrapped) {
         wrapperData->ctrlEventCloseTrapped = FALSE;
@@ -1839,11 +1831,11 @@ void wrapperMaintainControlCodes() {
         }
         quit = TRUE;
     }
-    
+
     /* CTRL_LOGOFF_EVENT */
     if (wrapperData->ctrlEventLogoffTrapped) {
         wrapperData->ctrlEventLogoffTrapped = FALSE;
-        
+
         /* Happens when the user logs off.  We should quit when run as a */
         /*  console, but stay up when run as a service. */
         if ((wrapperData->isConsole) && (!wrapperData->ignoreUserLogoffs)) {
@@ -1854,17 +1846,17 @@ void wrapperMaintainControlCodes() {
             quit = FALSE;
         }
     }
-    
+
     /* CTRL_SHUTDOWN_EVENT */
     if (wrapperData->ctrlEventShutdownTrapped) {
         wrapperData->ctrlEventShutdownTrapped = FALSE;
-        
+
         /* Happens when the machine is shutdown or rebooted.  Always quit. */
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
             TEXT("Machine is shutting down."));
         quit = TRUE;
     }
-    
+
     /* Queued control codes. */
     while (wrapperData->ctrlCodeQueueReadIndex != wrapperData->ctrlCodeQueueWriteIndex) {
         ctrlCodeLast = wrapperData->ctrlCodeQueue[wrapperData->ctrlCodeQueueReadIndex];
@@ -1875,11 +1867,11 @@ void wrapperMaintainControlCodes() {
         if (wrapperData->ctrlCodeQueueReadIndex >= CTRL_CODE_QUEUE_SIZE ) {
             wrapperData->ctrlCodeQueueReadIndex = 0;
         }
-        
+
         _sntprintf(buffer, 11, TEXT("%d"), ctrlCodeLast);
         wrapperProtocolFunction(WRAPPER_MSG_SERVICE_CONTROL_CODE, buffer);
     }
-    
+
     /* SERVICE_CONTROL_PAUSE */
     if (wrapperData->ctrlCodePauseTrapped) {
         wrapperData->ctrlCodePauseTrapped = FALSE;
@@ -1945,7 +1937,7 @@ void wrapperMaintainControlCodes() {
     /* The configured thread dump control code */
     if (wrapperData->ctrlCodeDumpTrapped) {
         wrapperData->ctrlCodeDumpTrapped = FALSE;
-        
+
         wrapperRequestDumpJVMState();
     }
 
@@ -1982,7 +1974,7 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
                                             DWORD dwEvtType,
                                             LPVOID lpEvtData,
                                             LPVOID lpCntxt) {
-    
+
     DWORD result = result = NO_ERROR;
 
     /* Forward the control code off to the JVM. */
@@ -2103,7 +2095,7 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Enqueue control code: %d (r:%d w:%d)"), controlCode, wrapperData->ctrlCodeQueueReadIndex, wrapperData->ctrlCodeQueueWriteIndex);
 #endif
             wrapperData->ctrlCodeQueue[wrapperData->ctrlCodeQueueWriteIndex] = controlCode;
-            
+
             wrapperData->ctrlCodeQueueWriteIndex++;
             if (wrapperData->ctrlCodeQueueWriteIndex >= CTRL_CODE_QUEUE_SIZE) {
                 wrapperData->ctrlCodeQueueWriteIndex = 0;
@@ -2116,7 +2108,7 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
             if (wrapperData->isDebugging) {
                 log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_PAUSE"));
             }
-            
+
             wrapperData->ctrlCodePauseTrapped = TRUE;
 
             break;
@@ -2136,7 +2128,7 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
             }
 
             wrapperData->ctrlCodeStopTrapped = TRUE;
-            
+
             break;
 
         case SERVICE_CONTROL_INTERROGATE:
@@ -2169,7 +2161,7 @@ DWORD WINAPI wrapperServiceControlHandlerEx(DWORD dwCtrlCode,
                 if (wrapperData->isDebugging) {
                     log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  SERVICE_CONTROL_(%d) Request Thread Dump."), dwCtrlCode);
                 }
-                
+
                 wrapperData->ctrlCodeDumpTrapped = TRUE;
             } else {
                 /* Any other cases... Did not handle */
@@ -2459,12 +2451,12 @@ void wrapperCheckForMappedDrives() {
  *
  * @param buffer Buffer that will hold the binaryPath.  If NULL, the required
  *               length will be calculated and stored in reqBufferSize
- * @param reqBufferSize Pointer to an int that will store the required the
- *                      size of the buffer that was used or is required.
+ * @param reqBufferSize Pointer to an int that will store the required length in character
+ *                      of the buffer that was used or is required.
  *
  * @return 0 if succeeded.
  */
-int buildServiceBinaryPath(TCHAR *buffer, size_t *reqBufferSize) {
+int buildServiceBinaryPath(TCHAR *buffer, size_t *reqBufferLen) {
     DWORD moduleFileNameSize;
     TCHAR *moduleFileName;
     DWORD usedLen;
@@ -2476,12 +2468,19 @@ int buildServiceBinaryPath(TCHAR *buffer, size_t *reqBufferSize) {
     UNIVERSAL_NAME_INFO* unc;
     int i;
     int k;
+    size_t originalSize;
+
+    if (reqBufferLen) {
+        originalSize = *reqBufferLen;
+    } else {
+        originalSize = 0;
+    }
 
     /* We will calculate the size used. */
     if (buffer) {
         buffer[0] = TEXT('\0');
     }
-    *reqBufferSize = sizeof(TCHAR);
+    *reqBufferLen = 1;
     /* Get the full path and filename of this program.  Need to loop to make sure we get it all. */
     moduleFileNameSize = 0;
     moduleFileName = NULL;
@@ -2492,7 +2491,7 @@ int buildServiceBinaryPath(TCHAR *buffer, size_t *reqBufferSize) {
             outOfMemory(TEXT("BSBP"), 1);
             return 1;
         }
-        
+
         /* On Windows XP and 2000, GetModuleFileName will return exactly "moduleFileNameSize" and
          *  leave moduleFileName in an unterminated state in the event that the module file name is too long.
          *  Newer versions of Windows will set the error code to ERROR_INSUFFICIENT_BUFFER but we can't rely on that. */
@@ -2542,16 +2541,16 @@ int buildServiceBinaryPath(TCHAR *buffer, size_t *reqBufferSize) {
             /* Now we know the size.  Create the unc buffer. */
             if (_tcschr(unc->lpUniversalName, TEXT(' ')) == NULL) {
                 if (buffer) {
-                    _tcscat(buffer, unc->lpUniversalName);
+                    _tcsncat(buffer, unc->lpUniversalName, originalSize);
                 }
-            *reqBufferSize += _tcslen(unc->lpUniversalName) * sizeof(TCHAR);
+            *reqBufferLen += _tcslen(unc->lpUniversalName);
             } else {
                 if (buffer) {
-                    _tcscat(buffer, TEXT("\""));
-                    _tcscat(buffer, unc->lpUniversalName);
-                    _tcscat(buffer, TEXT("\""));
+                    _tcsncat(buffer, TEXT("\""), originalSize);
+                    _tcsncat(buffer, unc->lpUniversalName, originalSize);
+                    _tcsncat(buffer, TEXT("\""), originalSize);
                 }
-                *reqBufferSize += (1 + _tcslen(unc->lpUniversalName) + 1) * sizeof(TCHAR);
+                *reqBufferLen += (1 + _tcslen(unc->lpUniversalName) + 1);
             }
             pathMapped = TRUE;
             free(uncTempBuffer);
@@ -2561,25 +2560,25 @@ int buildServiceBinaryPath(TCHAR *buffer, size_t *reqBufferSize) {
     if (!pathMapped) {
         if (_tcschr(moduleFileName, TEXT(' ')) == NULL) {
             if (buffer) {
-                _tcscat(buffer, moduleFileName);
+                _tcsncat(buffer, moduleFileName, originalSize);
             }
-            *reqBufferSize += _tcslen(moduleFileName) * sizeof(TCHAR);
+            *reqBufferLen += _tcslen(moduleFileName);
         } else {
             if (buffer) {
-                _tcscat(buffer, TEXT("\""));
-                _tcscat(buffer, moduleFileName);
-                _tcscat(buffer, TEXT("\""));
+                _tcsncat(buffer, TEXT("\""), originalSize);
+                _tcsncat(buffer, moduleFileName, originalSize);
+                _tcsncat(buffer, TEXT("\""), originalSize);
             }
-            *reqBufferSize += (1 + _tcslen(moduleFileName) + 1)  * sizeof(TCHAR);
+            *reqBufferLen += (1 + _tcslen(moduleFileName) + 1);
         }
     }
     free(moduleFileName);
 
     /* Next write the command to start the service. */
     if (buffer) {
-        _tcscat(buffer, TEXT(" -s "));
+        _tcsncat(buffer, TEXT(" -s "), originalSize);
     }
-    *reqBufferSize += 4  * sizeof(TCHAR);
+    *reqBufferLen += 4;
 
     /* Third, the configuration file. */
     /* If the wrapperData->configFile contains spaces, it needs to be quoted */
@@ -2618,16 +2617,16 @@ int buildServiceBinaryPath(TCHAR *buffer, size_t *reqBufferSize) {
            /* Now we know the size.  Create the unc buffer. */
             if (_tcschr(unc->lpUniversalName, TEXT(' ')) == NULL) {
                 if (buffer) {
-                    _tcscat(buffer, unc->lpUniversalName);
+                    _tcsncat(buffer, unc->lpUniversalName, originalSize);
                 }
-                *reqBufferSize += _tcslen(unc->lpUniversalName) * sizeof(TCHAR);
+                *reqBufferLen += _tcslen(unc->lpUniversalName);
             } else {
                 if (buffer) {
-                    _tcscat(buffer, TEXT("\""));
-                    _tcscat(buffer, unc->lpUniversalName);
-                    _tcscat(buffer, TEXT("\""));
+                    _tcsncat(buffer, TEXT("\""), originalSize);
+                    _tcsncat(buffer, unc->lpUniversalName, originalSize);
+                    _tcsncat(buffer, TEXT("\""), originalSize);
                 }
-                *reqBufferSize += (1 + _tcslen(unc->lpUniversalName) + 1) * sizeof(TCHAR);
+                *reqBufferLen += (1 + _tcslen(unc->lpUniversalName) + 1);
             }
             pathMapped = TRUE;
             free(uncTempBuffer);
@@ -2637,16 +2636,16 @@ int buildServiceBinaryPath(TCHAR *buffer, size_t *reqBufferSize) {
     if (!pathMapped) {
         if (_tcschr(wrapperData->configFile, TEXT(' ')) == NULL) {
             if (buffer) {
-                _tcscat(buffer, wrapperData->configFile);
+                _tcsncat(buffer, wrapperData->configFile, originalSize);
             }
-            *reqBufferSize += _tcslen(wrapperData->configFile) * sizeof(TCHAR);;
+            *reqBufferLen += _tcslen(wrapperData->configFile);
         } else {
             if (buffer) {
-                _tcscat(buffer, TEXT("\""));
-                _tcscat(buffer, wrapperData->configFile);
-                _tcscat(buffer, TEXT("\""));
+                _tcsncat(buffer, TEXT("\""), originalSize);
+                _tcsncat(buffer, wrapperData->configFile, originalSize);
+                _tcsncat(buffer, TEXT("\""), originalSize);
             }
-            *reqBufferSize += (1 + _tcslen(wrapperData->configFile) + 1) * sizeof(TCHAR);
+            *reqBufferLen += (1 + _tcslen(wrapperData->configFile) + 1);
         }
     }
 
@@ -2666,53 +2665,53 @@ int buildServiceBinaryPath(TCHAR *buffer, size_t *reqBufferSize) {
         if ((_tcsstr(wrapperData->argValues[i], TEXT("wrapper.ntservice.account")) == NULL) &&
             (_tcsstr(wrapperData->argValues[i], TEXT("wrapper.ntservice.password")) == NULL)) {
             if (buffer) {
-                _tcscat(buffer, TEXT(" "));
+                _tcsncat(buffer, TEXT(" "), originalSize);
             }
-            *reqBufferSize += 1 * sizeof(TCHAR);
+            *reqBufferLen += 1;
 
             /* If the argument contains spaces, it needs to be quoted */
             if (_tcschr(wrapperData->argValues[i], TEXT(' ')) == NULL) {
                 if (buffer) {
-                    _tcscat(buffer, wrapperData->argValues[i]);
+                    _tcsncat(buffer, wrapperData->argValues[i], originalSize);
                 }
-                *reqBufferSize += _tcslen(wrapperData->argValues[i]) * sizeof(TCHAR);
+                *reqBufferLen += _tcslen(wrapperData->argValues[i]);
             } else {
                 if (buffer) {
-                    _tcscat(buffer, TEXT("\""));
-                    _tcscat(buffer, wrapperData->argValues[i]);
-                    _tcscat(buffer, TEXT("\""));
+                    _tcsncat(buffer, TEXT("\""), originalSize);
+                    _tcsncat(buffer, wrapperData->argValues[i], originalSize);
+                    _tcsncat(buffer, TEXT("\""), originalSize);
                 }
-                *reqBufferSize += 1 + _tcslen(wrapperData->argValues[i]) + 1;
+                *reqBufferLen += 1 + _tcslen(wrapperData->argValues[i]) + 1;
             }
         }
     }
-    
+
     /* If there are any passthrough variables.  Then they also need to be appended as is. */
     if (wrapperData->javaArgValueCount > 0) {
         if (buffer) {
-            _tcscat(buffer, TEXT(" --"));
+            _tcsncat(buffer, TEXT(" --"), originalSize);
         }
-        *reqBufferSize += 3 * sizeof(TCHAR);
-        
+        *reqBufferLen += 3;
+
         for (i = 0; i < wrapperData->javaArgValueCount; i++) {
             if (buffer) {
-                _tcscat(buffer, TEXT(" "));
+                _tcsncat(buffer, TEXT(" "), originalSize);
             }
-            *reqBufferSize += 1 * sizeof(TCHAR);
+            *reqBufferLen += 1;
 
             /* If the argument contains spaces, it needs to be quoted */
             if (_tcschr(wrapperData->javaArgValues[i], TEXT(' ')) == NULL) {
                 if (buffer) {
-                    _tcscat(buffer, wrapperData->javaArgValues[i]);
+                    _tcsncat(buffer, wrapperData->javaArgValues[i], originalSize);
                 }
-                *reqBufferSize += _tcslen(wrapperData->javaArgValues[i]) * sizeof(TCHAR);
+                *reqBufferLen += _tcslen(wrapperData->javaArgValues[i]);
             } else {
                 if (buffer) {
-                    _tcscat(buffer, TEXT("\""));
-                    _tcscat(buffer, wrapperData->javaArgValues[i]);
-                    _tcscat(buffer, TEXT("\""));
+                    _tcsncat(buffer, TEXT("\""), originalSize);
+                    _tcsncat(buffer, wrapperData->javaArgValues[i], originalSize);
+                    _tcsncat(buffer, TEXT("\""), originalSize);
                 }
-                *reqBufferSize += 1 + _tcslen(wrapperData->javaArgValues[i]) + 1;
+                *reqBufferLen += (1 + _tcslen(wrapperData->javaArgValues[i]) + 1);
             }
         }
     }
@@ -2731,7 +2730,7 @@ int wrapperInstall() {
     SC_HANDLE schSCManager;
     DWORD serviceType;
     DWORD startType;
-    size_t binaryPathSize;
+    size_t binaryPathLen;
     TCHAR *binaryPath;
     int result = 0;
     HKEY hKey;
@@ -2746,18 +2745,19 @@ int wrapperInstall() {
     dwDesiredAccess = 0;
 
     /* Generate the service binary path.  We need to figure out how big the buffer needs to be. */
-    if (buildServiceBinaryPath(NULL, &binaryPathSize)) {
+    if (buildServiceBinaryPath(NULL, &binaryPathLen)) {
         /* Failed a reason should have been given. But show result. */
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to install the %s service"), wrapperData->serviceDisplayName);
         return 1;
     }
-    binaryPath = malloc(binaryPathSize);
+
+    binaryPath = malloc(binaryPathLen * sizeof(TCHAR));
     if (!binaryPath) {
         outOfMemory(TEXT("WI"), 1);
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to install the %s service"), wrapperData->serviceDisplayName);
         return 1;
     }
-    if (buildServiceBinaryPath(binaryPath, &binaryPathSize)) {
+    if (buildServiceBinaryPath(binaryPath, &binaryPathLen)) {
         /* Failed a reason should have been given. But show result. */
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to install the %s service"), wrapperData->serviceDisplayName);
         free(binaryPath);
@@ -2770,19 +2770,23 @@ int wrapperInstall() {
     if (wrapperData->ntServicePrompt) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Prompting for account (DOMAIN\\ACCOUNT)..."));
         _tprintf(TEXT("Please input the domain name [%s]: "), wrapperData->domainName);
-
+        if (isElevated() && getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL) {
+           _tprintf(TEXT("n"));
+           fflush(NULL);
+        }
         _fgetts(domain, dsize, stdin);
-        
         if (!domain || _tcscmp(domain, TEXT("\n")) == 0) {
             _sntprintf(domain, dsize, TEXT("%s"), wrapperData->domainName);
         } else if (domain[_tcslen(domain) - 1] == TEXT('\n')) {
             domain[_tcslen(domain) - 1] = TEXT('\0');
         }
-        
+
         _tprintf(TEXT("Please input the account name [%s]: "), wrapperData->userName);
-
+        if (isElevated() && getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL) {
+           _tprintf(TEXT("n"));
+           fflush(NULL);
+        }
         _fgetts(account, dsize, stdin);
-
         if (!account || _tcscmp(account, TEXT("\n")) == 0) {
             _sntprintf(account, dsize, TEXT("%s"), wrapperData->userName);
         } else if (account[_tcslen(account) - 1] == TEXT('\n')) {
@@ -2805,10 +2809,20 @@ int wrapperInstall() {
         /* Prompt the user for a password. */
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Prompting for account password..."));
         _tprintf(TEXT("Please input the password for account '%s': "), wrapperData->ntServiceAccount);
-        wrapperData->ntServicePassword = readPassword();
-#ifdef _DEBUG
-        _tprintf(TEXT("Password=[%s]\n"), wrapperData->ntServicePassword);
-#endif
+        if (isElevated() && getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL) {
+            _tprintf(TEXT("p"));
+            fflush(NULL);
+            /* as this here is from the secondary instance we can read with _fgetts */
+            wrapperData->ntServicePassword = calloc(65, sizeof(TCHAR));
+            if (!wrapperData->ntServicePassword) {
+                outOfMemory(TEXT("WI"), 21);
+                free(binaryPath);
+                return 1;
+            }
+            _fgetts(wrapperData->ntServicePassword, 65, stdin);
+        } else {
+            wrapperData->ntServicePassword = readPassword();
+        }
     }
 
     /* Decide on the service type */
@@ -3083,49 +3097,55 @@ int wrapperLoadEnvFromRegistryInner(HKEY baseHKey, const TCHAR *regPath, int app
                                 /* Find out how much space is required to store the expanded value. */
                                 ret = ExpandEnvironmentStrings(oldVal, NULL, 0);
                                 if (ret == 0) {
-                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to expand \"%s\": %s"), valueName, getLastErrorText());
-                                    closeRegistryKey(hKey);
-                                    return TRUE;
-                                }
-
-                                /* Allocate a buffer to hold to the expanded value. */
-                                newVal = malloc(sizeof(TCHAR) * (ret + 2));
-                                if (!newVal) {
-                                    outOfMemory(TEXT("WLEFRI"), 4);
-                                    closeRegistryKey(hKey);
-                                    return TRUE;
-                                }
-
-                                /* Actually expand the variable. */
-                                ret = ExpandEnvironmentStrings(oldVal, newVal, ret + 2);
-                                if (ret == 0) {
-                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to expand \"%s\" (2): %s"), valueName, getLastErrorText());
-                                    free(newVal);
-                                    closeRegistryKey(hKey);
-                                    return TRUE;
-                                }
-
-                                /* Was anything changed? */
-                                if (_tcscmp(oldVal, newVal) == 0) {
-#ifdef _DEBUG
-                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("       Value unchanged.  Referenced environment variable not set."));
-#endif
+                                    if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+                                        /* The ExpandEnvironmentStrings function has an internal 32k size limit.  We hit it.
+                                         *  All we can do is skip this particular variable by leaving it unexpanded. */
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to expand environment variable \"%s\" because the result is larger than the system allowed 32k.  Leaving unexpanded and continuing."), valueName);
+                                    } else {
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to expand environment variable \"%s\": %s"), valueName, getLastErrorText());
+                                        closeRegistryKey(hKey);
+                                        return TRUE;
+                                    }
                                 } else {
-                                    /* Set the expanded environment variable */
-                                    expanded = TRUE;
-#ifdef _DEBUG
-                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  Update local environment variable.  \"%s\"=\"%s\""), valueName, newVal);
-#endif
+                                    /* Allocate a buffer to hold to the expanded value. */
+                                    newVal = malloc(sizeof(TCHAR) * (ret + 2));
+                                    if (!newVal) {
+                                        outOfMemory(TEXT("WLEFRI"), 4);
+                                        closeRegistryKey(hKey);
+                                        return TRUE;
+                                    }
 
-                                    /* Update the environment. */
-                                    if (setEnv(valueName, newVal, source)) {
-                                        /* Already reported. */
+                                    /* Actually expand the variable. */
+                                    ret = ExpandEnvironmentStrings(oldVal, newVal, ret + 2);
+                                    if (ret == 0) {
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to expand environment variable \"%s\" (2): %s"), valueName, getLastErrorText());
                                         free(newVal);
                                         closeRegistryKey(hKey);
                                         return TRUE;
                                     }
+
+                                    /* Was anything changed? */
+                                    if (_tcscmp(oldVal, newVal) == 0) {
+#ifdef _DEBUG
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("       Value unchanged.  Referenced environment variable not set."));
+#endif
+                                    } else {
+                                        /* Set the expanded environment variable */
+                                        expanded = TRUE;
+#ifdef _DEBUG
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("  Update local environment variable.  \"%s\"=\"%s\""), valueName, newVal);
+#endif
+
+                                        /* Update the environment. */
+                                        if (setEnv(valueName, newVal, source)) {
+                                            /* Already reported. */
+                                            free(newVal);
+                                            closeRegistryKey(hKey);
+                                            return TRUE;
+                                        }
+                                    }
+                                    free(newVal);
                                 }
-                                free(newVal);
                             }
                         }
                     }
@@ -3218,19 +3238,19 @@ int wrapperGetJavaHomeFromWindowsRegistry(TCHAR *javaHome) {
         /* A registry location was specified. */
         if (_tcsstr(prop, TEXT("HKEY_CLASSES_ROOT\\")) == prop) {
             baseHKey = HKEY_CLASSES_ROOT;
-            _tcscpy(subKey, prop + 18);
+            _tcsncpy(subKey, prop + 18, 512);
         } else if (_tcsstr(prop, TEXT("HKEY_CURRENT_CONFIG\\")) == prop) {
             baseHKey = HKEY_CURRENT_USER;
-            _tcscpy(subKey, prop + 20);
+            _tcsncpy(subKey, prop + 20, 512);
         } else if (_tcsstr(prop, TEXT("HKEY_CURRENT_USER\\")) == prop) {
             baseHKey = HKEY_CURRENT_USER;
-            _tcscpy(subKey, prop + 18);
+            _tcsncpy(subKey, prop + 18, 512);
         } else if (_tcsstr(prop, TEXT("HKEY_LOCAL_MACHINE\\")) == prop) {
             baseHKey = HKEY_LOCAL_MACHINE;
-            _tcscpy(subKey, prop + 19);
+            _tcsncpy(subKey, prop + 19, 512);
         } else if (_tcsstr(prop, TEXT("HKEY_USERS\\")) == prop) {
             baseHKey = HKEY_USERS;
-            _tcscpy(subKey, prop + 11);
+            _tcsncpy(subKey, prop + 11, 512);
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 TEXT("wrapper.registry.java_home does not begin with a known root key: %s"), prop);
@@ -3299,7 +3319,7 @@ int wrapperGetJavaHomeFromWindowsRegistry(TCHAR *javaHome) {
         closeRegistryKey(openHKey);
 
         /* Returns the JavaHome path */
-        _tcscpy(javaHome, value);
+        _tcsncpy(javaHome, value, 512);
 
         free(value);
         return 1;
@@ -3307,7 +3327,7 @@ int wrapperGetJavaHomeFromWindowsRegistry(TCHAR *javaHome) {
         /* Look for the java_home in the default location. */
 
         /* SubKey containing the jvm version */
-        _tcscpy(subKey, TEXT("SOFTWARE\\JavaSoft\\Java Runtime Environment"));
+        _tcsncpy(subKey, TEXT("SOFTWARE\\JavaSoft\\Java Runtime Environment"), 512);
 
         /*
          * Opens the Registry Key needed to query the jvm version
@@ -3332,8 +3352,8 @@ int wrapperGetJavaHomeFromWindowsRegistry(TCHAR *javaHome) {
         closeRegistryKey(openHKey);
 
         /* adds the jvm version to the subkey */
-        _tcscat(subKey, TEXT("\\"));
-        _tcscat(subKey, jreversion);
+        _tcsncat(subKey, TEXT("\\"), 512);
+        _tcsncat(subKey, jreversion, 512);
 
         /*
          * Opens the Registry Key needed to query the JavaHome
@@ -3366,7 +3386,7 @@ int wrapperGetJavaHomeFromWindowsRegistry(TCHAR *javaHome) {
         closeRegistryKey(openHKey);
 
         /* Returns the JavaHome path */
-        _tcscpy(javaHome, value);
+        _tcsncpy(javaHome, value, 512);
         free(value);
 
         return 1;
@@ -3410,7 +3430,7 @@ int wrapperStartService() {
     SC_HANDLE   schSCManager;
     SERVICE_STATUS serviceStatus;
     const TCHAR *logfilePath;
-    TCHAR fullPath[FILEPATHSIZE]=TEXT("");
+    TCHAR fullPath[FILEPATHSIZE] = TEXT("");
 
     TCHAR *status;
     int msgCntr;
@@ -3421,10 +3441,10 @@ int wrapperStartService() {
     result = GetFullPathName(logfilePath, FILEPATHSIZE, fullPath, NULL);
     if (result >= FILEPATHSIZE) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("The full path of %s is too large. (%d)"), logfilePath, result);
-        _tcscpy(fullPath, logfilePath);
+        _tcsncpy(fullPath, logfilePath, FILEPATHSIZE);
     } else if (result == 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to resolve the full path of %s : %s"), logfilePath, getLastErrorText());
-        _tcscpy(fullPath, logfilePath);
+        _tcsncpy(fullPath, logfilePath, FILEPATHSIZE);
     }
 
     result = 0;
@@ -4494,7 +4514,7 @@ void _tmain(int argc, TCHAR **argv) {
         appExit(1);
         return; /* For clarity. */
     }
-
+    SetThreadLocale(GetUserDefaultLCID());
     /* Main thread initialized in wrapperInitialize. */
 
     /* Enclose the rest of the program in a try catch block so we can
@@ -4519,7 +4539,7 @@ void _tmain(int argc, TCHAR **argv) {
             appExit(1);
             return; /* For clarity. */
         }
-        
+
         if (collectUserInfo()) {
             appExit(1);
             return; /* For clarity. */
@@ -4574,8 +4594,7 @@ void _tmain(int argc, TCHAR **argv) {
         }
 
         /* Load the properties. */
-        if (
-            wrapperLoadConfigurationProperties(FALSE)) {
+        if (wrapperLoadConfigurationProperties(FALSE)) {
             /* Unable to load the configuration.  Any errors will have already
              *  been reported. */
             if (wrapperData->argConfFileDefault && !wrapperData->argConfFileFound) {
@@ -4589,79 +4608,180 @@ void _tmain(int argc, TCHAR **argv) {
 
         /* Set the default umask of the Wrapper process. */
         _umask(wrapperData->umask);
-        
+
         /* Perform the specified command */
         if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("i")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-install"))) {
             /* Install an NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             wrapperCheckForMappedDrives();
-            appExit(wrapperInstall());
+            /* are we elevated ? */
+            if (!isElevated()) {
+                appExit(elevateThis(argc, argv));
+            } else {
+                /* are we launched secondary? */
+                if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
+                    appExit(1);
+                    return;
+                }
+                appExit(wrapperInstall());
+            }
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("it")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-installstart"))) {
             /* Install and Start an NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             wrapperCheckForMappedDrives();
-            result = wrapperInstall();
-            if (!result) {
-                result = wrapperStartService();
+            if (!isElevated()) {
+                appExit(elevateThis(argc, argv));
+            } else {
+                /* are we launched secondary? */
+                if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
+                    appExit(1);
+                    return;
+                }
+                result = wrapperInstall();
+                if (!result) {
+                    result = wrapperStartService();
+                }
+                appExit(result);
             }
-            appExit(result);
             return; /* For clarity. */
         } else if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("r")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-remove"))) {
             /* Remove an NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
-            appExit(wrapperRemove());
+            if (!isElevated()) {
+                appExit(elevateThis(argc, argv));
+            } else {
+                /* are we launched secondary? */
+                if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
+                    appExit(1);
+                    return;
+                }
+                appExit(wrapperRemove());
+            }
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("t")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-start"))) {
             /* Start an NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             wrapperCheckForMappedDrives();
-            appExit(wrapperStartService());
+            if (!isElevated()) {
+                appExit(elevateThis(argc, argv));
+            } else {
+                /* are we launched secondary? */
+                if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
+                    appExit(1);
+                    return;
+                }
+                appExit(wrapperStartService());
+            }
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("a")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-pause"))) {
             /* Pause a started NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
-            appExit(wrapperPauseService());
+            if (!isElevated()) {
+                appExit(elevateThis(argc, argv));
+            } else {
+                /* are we launched secondary? */
+                if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
+                    appExit(1);
+                    return;
+                }
+                appExit(wrapperPauseService());
+            }
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("e")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-resume"))) {
             /* Resume a paused NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
-            appExit(wrapperResumeService());
+            if (!isElevated()) {
+                appExit(elevateThis(argc, argv));
+            } else {
+                /* are we launched secondary? */
+                if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
+                    appExit(1);
+                    return;
+                }
+                appExit(wrapperResumeService());
+            }
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("p")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-stop"))) {
             /* Stop an NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
-            appExit(wrapperStopService(TRUE));
+            if (!isElevated()) {
+                appExit(elevateThis(argc, argv));
+            } else {
+                /* are we launched secondary? */
+                if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
+                    appExit(1);
+                    return;
+                }
+                appExit(wrapperStopService(TRUE));
+            }
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("l")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-controlcode"))) {
             /* Send a control code to an NT service */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
-            appExit(wrapperSendServiceControlCode(argv, wrapperData->argCommandArg));
+            if (!isElevated()) {
+                appExit(elevateThis(argc, argv));
+            } else {
+                /* are we launched secondary? */
+                if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
+                    appExit(1);
+                    return;
+                }
+                appExit(wrapperSendServiceControlCode(argv, wrapperData->argCommandArg));
+            }
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("d")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-dump"))) {
             /* Request a thread dump */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
-            appExit(wrapperRequestThreadDump(argv));
+            if (!isElevated()) {
+                appExit(elevateThis(argc, argv));
+            } else {
+                /* are we launched secondary? */
+                if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
+                    appExit(1);
+                    return;
+                }
+                appExit(wrapperRequestThreadDump(argv));
+            }
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("q")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-query"))) {
             /* Return service status with console output. */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
-            appExit(wrapperServiceStatus(TRUE));
+            if (!isElevated()) {
+                appExit(elevateThis(argc, argv));
+            } else {
+                /* are we launched secondary? */
+                if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
+                    appExit(1);
+                    return;
+                }
+                appExit(wrapperServiceStatus(TRUE));
+            }
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("qs")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-querysilent"))) {
             /* Return service status without console output. */
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
+            if (!isElevated()) {
+                appExit(elevateThis(argc, argv));
+            } else {
+                /* are we launched secondary? */
+                if (getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL) != NULL && duplicateSTD() == FALSE) {
+                    appExit(1);
+                    return;
+                }
+                appExit(wrapperServiceStatus(FALSE));
+            }
             appExit(wrapperServiceStatus(FALSE));
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("c")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-console"))) {
@@ -4806,26 +4926,466 @@ void _tmain(int argc, TCHAR **argv) {
 }
 #endif
 
-BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParameters, LPCTSTR pszDirectory) {
+/*
+ * This function will connect to the secondary/elevated wrapper process and
+ * read all output from stdout and stderr. Furthermore it will handle input
+ * being sent to stdin. This function won't return until the client closed all
+ * named pipes connected.
+ * @param in  - the File HANDLE for the outbound channel to write to the 2nd process
+ * @param out, err - the File HANDLEs for the inbound channel to read from the 2nd process
+ *
+ * @return TRUE if everything worked well. FALSE otherwise.
+ */
+BOOL readAndWriteNamedPipes(HANDLE in, HANDLE out, HANDLE err) {
+    TCHAR inbuf[1024], outbuf[512], errbuf[512], *secret;
+    DWORD currentBlockAvail, outRead, errRead, inWritten, ret, writeOut;
+    BOOL fConnected, outClosed = FALSE, errClosed = FALSE;
 
+    /* the named pipes are nonblocking, so loop until an connection could
+     * have been established with the secondary process (or an error occured) */
+     do {
+        /* ConnectNamedPipe does rather wait until a connection was established
+           However, the inbound pipes are non-blocking, so ConnectNamedPipe immediately
+           returns. So call it looped...*/
+        fConnected = ConnectNamedPipe(out, NULL);
+    } while((fConnected == 0) && (GetLastError() == ERROR_PIPE_LISTENING));
+    /* check for error */
+    /* if ERROR_PIPE_CONNECTED it just means that while ConnectNamedPipe(..) was
+     * called again, in the meantime the client connected. So in fact that's what we want.
+     * WIN-7: if ERROR_NO_DATA, it means that the process has already been gone, probably an error in the start (but not in the pipe)
+     * it might even be very likely there is data in stderr to retrieve */
+    if ((fConnected == 0) && (GetLastError() != ERROR_PIPE_CONNECTED) && (GetLastError() != ERROR_NO_DATA)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The connect to stdout of the elevated process failed: %s"), getLastErrorText());
+        return FALSE;
+    }
+    /* Same as above */
+    do {
+        fConnected = ConnectNamedPipe(err, NULL);
+    } while((fConnected == 0) && (GetLastError() == ERROR_PIPE_LISTENING));
+    if ((fConnected == 0) && (GetLastError() != ERROR_PIPE_CONNECTED) && (GetLastError() != ERROR_NO_DATA)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The connect to stderr of the elevated process failed: %s"), getLastErrorText());
+        return FALSE;
+    }
+
+    do {
+        writeOut = 0;
+        /* out */
+        if (!outClosed) {
+            currentBlockAvail = 0;
+            /* Check how much data is available for reading... */
+            ret = PeekNamedPipe(out, NULL, 0, NULL, &currentBlockAvail, NULL);
+            if ((ret == 0) && (GetLastError() == ERROR_BROKEN_PIPE)) {
+                /* ERROR_BROKEN_PIPE - the client has closed the pipe. So most likely it just exited */
+                outClosed = TRUE;
+            }
+            /* currentBlockAvail is already in bytes! */
+            if (ret && (currentBlockAvail > 0) && (currentBlockAvail < 512 * sizeof(TCHAR))) {
+                /* Clean the buffer before each read, as we don't want old stuff */
+                memset(outbuf,0, sizeof(outbuf));
+                if (ReadFile(out, outbuf, currentBlockAvail, &outRead, NULL) == TRUE) {
+                    /* if the message we just read in, doesn't have a new line, it means, that we most likely
+                       got the secondary process prompting sth. */
+                    if (outbuf[_tcslen(outbuf) - 1] != TEXT('\n')) {
+                        /* To make sure, check if in is indeed waiting for input */
+                        if (WaitForSingleObject(in, 1000) == WAIT_OBJECT_0) {
+                            /* Clean the input buffer before each read */
+                            memset(inbuf, 0, sizeof(inbuf));
+                            /* A prompt can have an "n" - normal at the end. So this means, that
+                               we prompt with echo */
+                            if (outbuf[_tcslen(outbuf) - 1] == TEXT('n')) {
+                                /* clean the mark */
+                                outbuf[_tcslen(outbuf) - 1] = TEXT('\0');
+                                /* show the prompt */
+                                _tprintf(TEXT("%s"), outbuf);
+                                /* and prompt */
+                                _fgetts(inbuf, 1024, stdin);
+                                if (WriteFile(in, inbuf, (DWORD)(_tcslen(inbuf)) * sizeof(TCHAR), &inWritten, NULL) == FALSE) {
+                                    /* something happened with the named pipe, get out */
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Writing to the elevated process failed (%d): %s"), GetLastError(), getLastErrorText());
+                                    return FALSE;
+                                }
+                            } else if (outbuf[_tcslen(outbuf) - 1] == TEXT('p')) {
+                              /* A prompt can have an "p" - password at the end. So this means, that
+                               we prompt without showing the input on the screen */
+                                outbuf[_tcslen(outbuf) - 1] = TEXT('\0');
+                                /* show the prompt */
+                                _tprintf(TEXT("%s"), outbuf);
+                                /* now read secret, readPassword already works with allocating a buffer (max 64(+1) character supported) */
+                                secret = readPassword();
+                                _tcsncpy(inbuf, secret, 1024);
+                                free(secret);
+                                /* "secret" does not have any delimiter we could use, so send the whole inbuf buffer */
+                                /* this is the downside of using MESSAGE pipes */
+                                if (WriteFile(in, inbuf, (DWORD)sizeof(inbuf), &inWritten, NULL) == FALSE) {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Writing to the elevated process failed (%d): %s"), GetLastError(), getLastErrorText());
+                                    return FALSE;
+                                }
+                            } else {
+                                /* no additional for the prompt was provided, but WaitForSingleObject indicates, that
+                                   stdin is expecting input. Handle this as if "n" - normal was specified (without clearing the mark)
+                                /* show the prompt */
+                                _tprintf(TEXT("%s"), outbuf);
+                                /* and prompt */
+                                _fgetts(inbuf, 1024, stdin);
+                                if (WriteFile(in, inbuf, (DWORD)(_tcslen(inbuf)) * sizeof(TCHAR), &inWritten, NULL) == FALSE) {
+                                    /* something happened with the named pipe, get out */
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Writing to the elevated process failed (%d): %s"), GetLastError(), getLastErrorText());
+                                    return FALSE;
+                                }
+                            }
+                            /* this is important! for transparency writing to the elevated process works as without this layer,
+                               however, not flushing the buffer will make _getts just keep blocking until the buffer over there
+                               is full (what we don't want) */
+                            FlushFileBuffers(in);
+                        } else {
+                            /* A timeout occured! probably a print without a newline. */
+                            _tprintf(TEXT("%s\n"), outbuf);
+                        }
+                    } else {
+                       /* This is the normal case - just output */
+                       /* print the message on the screen */
+                       _tprintf(TEXT("%s"), outbuf);
+                    }
+                } else {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Reading stdout of the elevated process failed (%d): %s"), GetLastError(), getLastErrorText());
+                    return FALSE;
+                }
+            }
+        }
+        /* err */
+        /* it works almost exactly as reading stdout, except no input will be checked */
+        if (!errClosed) {
+            currentBlockAvail = 0;
+            ret = PeekNamedPipe(err, NULL, 0, NULL, &currentBlockAvail, NULL);
+            if ((ret == 0) && (GetLastError() == ERROR_BROKEN_PIPE)) {
+                errClosed = TRUE;
+            }
+            if (ret && (currentBlockAvail > 0) && (currentBlockAvail < 512 * sizeof(TCHAR))) {
+                memset(errbuf,0, sizeof(errbuf));
+                if (ReadFile(err, errbuf, currentBlockAvail, &errRead, NULL) == TRUE) {
+                    _tprintf(TEXT("%s"), errbuf);
+                } else {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Reading stderr of the elevated process failed (%d): %s"), GetLastError(), getLastErrorText());
+                    return FALSE;
+                }
+            }
+        }
+    } while(!errClosed || !outClosed);
+    return TRUE;
+}
+
+/* This function needs to get called from the elevated/secondary process.
+ * It will open the named pipes, the caller has establishes and redirects stdin, stdout, stderr
+ * to this named pipes.
+ * All this call is doing should be transparent and (except the stdin prompting) not interfere
+ * the secondary process (i.e. log files will still work and logging to logfile actually will be done here)
+ *
+ * @return If successful this function will return TRUE, FALSE otherwise
+ */
+BOOL duplicateSTD() {
+    TCHAR* strNamedPipeNameIn, *strNamedPipeNameOut, *strNamedPipeNameErr;
+    const TCHAR *pipeBaseName;
+    HANDLE pipeIn, pipeOut, pipeErr;
+    int ret, fdOut, fdIn, fdErr;
+    size_t len;
+
+    /* get the base name for the named pipe, each channel will append an additional extension */
+    pipeBaseName = getStringProperty(properties, TEXT("wrapper.internal.namedpipe"), NULL);
+    len = _tcslen(pipeBaseName) + 13;
+    strNamedPipeNameIn = malloc(sizeof(TCHAR) * len);
+    if (!strNamedPipeNameIn) {
+        outOfMemory(TEXT("MSE"), 1);
+        return FALSE;
+    }
+    _sntprintf(strNamedPipeNameIn, len, TEXT("\\\\.\\pipe\\%sINN"), pipeBaseName);
+
+    strNamedPipeNameOut = malloc(sizeof(TCHAR) * len);
+    if (!strNamedPipeNameOut) {
+        free(strNamedPipeNameIn);
+        outOfMemory(TEXT("MSE"), 2);
+        return FALSE;
+    }
+    _sntprintf(strNamedPipeNameOut, len, TEXT("\\\\.\\pipe\\%sOUT"), pipeBaseName);
+
+    strNamedPipeNameErr = malloc(sizeof(TCHAR) * len);
+    if (!strNamedPipeNameErr) {
+        free(strNamedPipeNameIn);
+        free(strNamedPipeNameOut);
+        outOfMemory(TEXT("MSE"), 3);
+        return FALSE;
+    }
+    _sntprintf(strNamedPipeNameErr, len, TEXT("\\\\.\\pipe\\%sERR"), pipeBaseName);
+
+#ifdef _DEBUG
+    _tprintf(TEXT("going to open %s, %s and %s\n"), strNamedPipeNameIn, strNamedPipeNameOut, strNamedPipeNameErr);
+#endif
+    /* Use CreateFile to connect to the Named Pipes. */
+    if ((pipeIn = CreateFile(strNamedPipeNameIn, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL)) == INVALID_HANDLE_VALUE) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Connect to stdin pipe failed (%d): %s"), GetLastError(), getLastErrorText());
+        ret = FALSE;
+    } else {
+        if ((pipeOut = CreateFile(strNamedPipeNameOut, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL)) == INVALID_HANDLE_VALUE) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Connect to stdout pipe failed (%d): %s"), GetLastError(), getLastErrorText());
+            ret = FALSE;
+        } else {
+            if ((pipeErr = CreateFile(strNamedPipeNameErr, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL)) == INVALID_HANDLE_VALUE) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Connect to stderr pipe failed (%d): %s"), GetLastError(), getLastErrorText());
+                ret = FALSE;
+            } else {
+                /* This is magic */
+                if (((fdIn = _open_osfhandle((long)pipeIn, 0)) != -1) &&
+                   ((fdErr = _open_osfhandle((long)pipeErr, 0)) != -1) &&
+                   ((fdOut = _open_osfhandle((long)pipeOut, 0)) != -1)) {
+
+                    if ((_dup2(fdIn, 0) == 0) && (_dup2(fdOut, 1) == 0) && (_dup2(fdErr, 2) == 0)) {
+                        ret = TRUE;
+#ifdef _DEBUG
+                        _ftprintf(stderr, TEXT("12345\n"));fflush(NULL);
+                        _ftprintf(stderr, TEXT("1234567890\n"));fflush(NULL);
+                        _ftprintf(stdout, TEXT("12345\n"));fflush(NULL);
+                        _ftprintf(stdout, TEXT("1234567890\n"));fflush(NULL);
+#endif
+                    } else {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                            TEXT("ERROR: Could not redirect the file descriptors to the client sided named pipes."));
+                    }
+                } else {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                        TEXT("ERROR: Could not acquire the file descriptors for the client sided named pipes."));
+                }
+            }
+        }
+    }
+    free(strNamedPipeNameErr);
+    free(strNamedPipeNameOut);
+    free(strNamedPipeNameIn);
+    return ret;
+}
+
+
+/* This function first creates 3 named pipes (2 inbound & 1 outbound) for establishing the connection.
+ * Then it will ask the user to allow elevation for a secondary process.
+ * And finally (if elevation granted) wait and call readAndWriteNamedPipes until the elevated process finishes.
+ *
+ * @param hwnd - The current window handle.
+ * @param pszVerb - the verb defining the action ShellExecuteEx will perform
+ * @param pszPath - the path to the executable going to be called
+ * @param pszParameters - the parameters for the executable
+ * @param pszDirectory - the working directory the process will have (if NULL the working direcory context will be inherited)
+ * @param namedPipeName - the base name for the named pipes for the IPC between us and the new process.
+ * @return TRUE if successfull, FALSE otherwise
+ */
+BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParameters, LPCTSTR pszDirectory, TCHAR* namedPipeName) {
+    DWORD returnValue;
     SHELLEXECUTEINFO shex;
+    HANDLE hNamedPipeIn, hNamedPipeOut, hNamedPipeErr;
+    TCHAR* strNamedPipeNameIn, *strNamedPipeNameOut, *strNamedPipeNameErr;
+    int ret = FALSE;
+    size_t len;
 
+    /* first we generate the filenames for the named pipes based on namedPipeName */
+    len = _tcslen(namedPipeName) + 4 + 9;
+    strNamedPipeNameIn = malloc(sizeof(TCHAR) * len);
+    if (!strNamedPipeNameIn) {
+        outOfMemory(TEXT("MSE"), 1);
+        return FALSE;
+    }
+    _sntprintf(strNamedPipeNameIn, len, TEXT("\\\\.\\pipe\\%sINN"), namedPipeName);
+
+    strNamedPipeNameOut = malloc(sizeof(TCHAR) * len);
+    if (!strNamedPipeNameOut) {
+        free(strNamedPipeNameIn);
+        outOfMemory(TEXT("MSE"), 2);
+        return FALSE;
+    }
+    _sntprintf(strNamedPipeNameOut, len, TEXT("\\\\.\\pipe\\%sOUT"), namedPipeName);
+
+    strNamedPipeNameErr = malloc(sizeof(TCHAR) * len);
+    if (!strNamedPipeNameErr) {
+        free(strNamedPipeNameIn);
+        free(strNamedPipeNameOut);
+        outOfMemory(TEXT("MSE"), 3);
+        return FALSE;
+    }
+    _sntprintf(strNamedPipeNameErr, len, TEXT("\\\\.\\pipe\\%sERR"), namedPipeName);
+    /* create the process information */
     memset(&shex, 0, sizeof(shex));
-
-    shex.cbSize         = sizeof( SHELLEXECUTEINFO );
-    shex.fMask          = 0;
+    shex.cbSize         = sizeof(SHELLEXECUTEINFO);
+    shex.fMask          = SEE_MASK_NO_CONSOLE | SEE_MASK_NOCLOSEPROCESS;
     shex.hwnd           = hwnd;
     shex.lpVerb         = pszVerb;
     shex.lpFile         = pszPath;
     shex.lpParameters   = pszParameters;
     shex.lpDirectory    = pszDirectory;
+#ifdef _DEBUG
     shex.nShow          = SW_SHOWNORMAL;
+#else
+    shex.nShow          = SW_HIDE;
+#endif
 
-    return ShellExecuteEx(&shex);
+    hNamedPipeIn = CreateNamedPipe(strNamedPipeNameIn, PIPE_ACCESS_OUTBOUND ,
+                            PIPE_TYPE_BYTE |       // message type pipe
+                            PIPE_READMODE_BYTE |   // message-read mode
+                            PIPE_WAIT,             // blocking mode
+                            1,                     // max. instances
+                            1024 * sizeof(TCHAR),    // output buffer size
+                            1024*sizeof(TCHAR),    // input buffer size
+                            0,                     // client time-out
+                            NULL);                 // default security attribute
+
+    if (hNamedPipeIn == INVALID_HANDLE_VALUE) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Stdin CreateNamedPipe failed (%d): %s"), GetLastError(), getLastErrorText());
+        ret = FALSE;
+    } else {
+            hNamedPipeOut = CreateNamedPipe(strNamedPipeNameOut, PIPE_ACCESS_INBOUND ,
+                                PIPE_TYPE_MESSAGE |       // message type pipe
+                                PIPE_READMODE_MESSAGE |   // message-read mode
+                                PIPE_NOWAIT,              // nonblocking mode
+                                1,                        // max. instances
+                                512 * sizeof(TCHAR),      // output buffer size
+                                512 * sizeof(TCHAR),      // input buffer size
+                                0,                        // client time-out
+                                NULL);                    // default security attribute
+
+        if (hNamedPipeOut == INVALID_HANDLE_VALUE) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Stdout CreateNamedPipe failed (%d): %s"), GetLastError(), getLastErrorText());
+            ret = FALSE;
+        } else {
+            hNamedPipeErr = CreateNamedPipe(strNamedPipeNameErr, PIPE_ACCESS_INBOUND ,
+                                    PIPE_TYPE_MESSAGE |       // message type pipe
+                                    PIPE_READMODE_MESSAGE |   // message-read mode
+                                    PIPE_NOWAIT,              // nonblocking mode
+                                    1,                        // max. instances
+                                    512 * sizeof(TCHAR),      // output buffer size
+                                    512 * sizeof(TCHAR),      // input buffer size
+                                    0,                        // client time-out
+                                    NULL);                    // default security attribute
+
+            if (hNamedPipeErr == INVALID_HANDLE_VALUE) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Stderr CreateNamedPipe failed (%d): %s"), GetLastError(), getLastErrorText());
+                ret = FALSE;
+            } else {
+                /* Now launch the process */
+                if (ShellExecuteEx(&shex) == TRUE) {
+                    if (shex.hProcess != NULL) {
+                        /* now read and write the pipes */
+                        if (readAndWriteNamedPipes(hNamedPipeIn, hNamedPipeOut, hNamedPipeErr) != TRUE) {
+                            // the error should have already been reported.
+                        }
+                        /* Wait up to 1 sec to check if the elevated process really exited */
+                        returnValue = WaitForSingleObject(shex.hProcess, 1000);
+                        if (returnValue == WAIT_OBJECT_0) {
+
+                            ret = TRUE;
+                        } else {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The elevated process is still alive. Trying to kill it."), GetLastError(), getLastErrorText());
+                            if (TerminateProcess(shex.hProcess, 1) == 0) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Couldn't kill it."), GetLastError(), getLastErrorText());
+                            }
+                            ret = FALSE;
+                        }
+                    }
+
+                } else {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Elevation failed. Wrapper will exit."), GetLastError(), getLastErrorText());
+                    ret = FALSE;
+                }
+                CloseHandle(hNamedPipeErr);
+            }
+            CloseHandle(hNamedPipeOut);
+        }
+        CloseHandle(hNamedPipeIn);
+    }
+
+
+    free(strNamedPipeNameIn);
+    free(strNamedPipeNameOut);
+    free(strNamedPipeNameErr);
+
+    return ret;
 }
 
-BOOL runElevated(__in LPCTSTR pszPath, __in_opt LPCTSTR pszParameters, __in_opt LPCTSTR pszDirectory ) {
 
-    return myShellExec(NULL, TEXT("runas"), pszPath, pszParameters, pszDirectory);
+/*
+ * This is just a wrapper function between elevateThis and myShellExec filling in the verb
+ * For more information please refer to myShellExec
+ */
+BOOL runElevated(__in LPCTSTR pszPath, __in_opt LPCTSTR pszParameters, __in_opt LPCTSTR pszDirectory, TCHAR* namedPipeName) {
+    return myShellExec(NULL, TEXT("runas"), pszPath, pszParameters, pszDirectory, namedPipeName);
+}
+
+/*
+ * This is the entry point on the user side for creating an elevated process.
+ * UAC does not allow to give a running process elevated privileges, so the
+ * wrapper has to create a copy of the current process, arm it with elevated
+ * privileges and take care of IPC.
+ *
+ * @return TRUE if OK, FALSE otherwise.
+ */
+BOOL elevateThis(int argc, TCHAR **argv) {
+    int i, namedPipeInserted = 0, ret = FALSE;
+    size_t len = 0;
+    TCHAR szPath[_MAX_PATH];
+    TCHAR *parameter;
+    TCHAR* strNamedPipeName;
+
+    /* get the file name of the binary, we can't trust argv[0] as the working
+     * directory might have been changed.
+     */
+    if (GetModuleFileName(NULL, szPath, _MAX_PATH)) {
+        /* seed the pseudo-random generator */
+        srand((unsigned)time(NULL));
+        strNamedPipeName = malloc(sizeof(TCHAR) * 11);
+        if (!strNamedPipeName) {
+            outOfMemory(TEXT("MSE"), 1);
+            return FALSE;
+        }
+        /* create a pseudo-random 10 digit string */
+        _sntprintf(strNamedPipeName, 11, TEXT("%05d%05d"), rand() % 100000, rand() % 100000);
+        /* ShellExecuteEx is expecting the parameter in a single string */
+        for (i = 1; i < argc; i++) {
+            /* if '--' was specified, wrapperParseArguments has replaced this parameter with NULL */
+            if (argv[i] == NULL) {
+                len += 3;
+            } else {
+                /* insert a space and qoutes */
+                len += _tcslen(argv[i]) + 3;
+            }
+        }
+        /* add space for the namedpipe and console flush property */
+        len += _tcslen(strNamedPipeName) + 28 + 27;
+        parameter = calloc(len, sizeof(TCHAR));
+        if (!parameter) {
+            outOfMemory(TEXT("ET"), 1);
+            return FALSE;
+        }
+        /* now fill the parameter */
+        for (i = 1; i < argc; i++) {
+            if (i != 1) {
+                _tcsncat(parameter, TEXT(" "), len);
+            }
+            if (argv[i] == NULL) {
+                /* the additional parameters have to be inserted before the '--'. */
+                _tcsncat(parameter, TEXT("wrapper.console.flush=true wrapper.internal.namedpipe="), len);
+                _tcsncat(parameter, strNamedPipeName, len);
+                namedPipeInserted = 1;
+                _tcsncat(parameter, TEXT(" --"), len);
+            } else {
+                _tcsncat(parameter, TEXT("\""), len);
+                _tcsncat(parameter, argv[i], len);
+                _tcsncat(parameter, TEXT("\""), len);
+            }
+        }
+        if (!namedPipeInserted) {
+            _tcsncat(parameter, TEXT(" wrapper.console.flush=true wrapper.internal.namedpipe="), len);
+            _tcsncat(parameter, strNamedPipeName, len);
+        }
+        ret = runElevated(szPath, parameter, NULL, strNamedPipeName);
+        free(strNamedPipeName);
+        free(parameter);
+        return ret;
+    }
+    return FALSE;
+
 }
 #endif /* ifdef WIN32 */

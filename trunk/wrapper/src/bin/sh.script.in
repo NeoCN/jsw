@@ -16,7 +16,7 @@
 
 #-----------------------------------------------------------------------------
 # These settings can be modified to fit the needs of your application
-# Optimized for use with version 3.5.7-a of the Wrapper.
+# Optimized for use with version 3.5.7 of the Wrapper.
 
 # Application
 APP_NAME="@app.name@"
@@ -84,6 +84,8 @@ WAIT_FOR_STARTED_TIMEOUT=120
 # By default we show a detailed usage block.  Uncomment to show brief usage.
 #BRIEF_USAGE=true
 
+# flag for using upstart when installing (rather than init.d rc.d)
+USE_UPSTART=
 # When installing on On Mac OSX platforms, the following domain will be used to
 #  prefix the plist file name.
 PLIST_DOMAIN=org.tanukisoftware.wrapper
@@ -170,6 +172,8 @@ done
 
 # Get the location of the script.
 REALDIR=`dirname "$REALPATH"`
+# Normalize the path
+REALDIR=`cd ${REALDIR}; pwd`
 
 # If the PIDDIR is relative, set its value relative to the full REALPATH to avoid problems if
 #  the working directory is later changed.
@@ -486,11 +490,11 @@ prepAdditionalParams() {
     ADDITIONAL_PARA=""
     if [ -n "$PASS_THROUGH" ] ; then
         ADDITIONAL_PARA="--"
-        while [ -n "$1" ] ; do
-            ADDITIONAL_PARA="$ADDITIONAL_PARA \"$1\""
-            shift
-        done
     fi
+    while [ -n "$1" ] ; do
+        ADDITIONAL_PARA="$ADDITIONAL_PARA \"$1\""
+        shift
+    done
 }
 
 checkUser() {
@@ -601,16 +605,16 @@ getpid() {
                         fi
                         ;;
                     'macosx')
-                        pidtest=`$PSEXE -ww -p $pid -o command | grep "$WRAPPER_CMD" | tail -1`
+                        pidtest=`$PSEXE -ww -p $pid -o command | grep -F "$WRAPPER_CMD" | tail -1`
                         ;;
                     'solaris')
                         if [ -f "/usr/bin/pargs" ]
                         then
-                            pidtest=`pargs $pid | grep "$WRAPPER_CMD" | tail -1`
+                            pidtest=`pargs $pid | grep -F "$WRAPPER_CMD" | tail -1`
                         else
                             case "$PSEXE" in
                             '/usr/ucb/ps')
-                                pidtest=`$PSEXE -auxww  $pid | grep "$WRAPPER_CMD" | tail -1`
+                                pidtest=`$PSEXE -auxww  $pid | grep -F "$WRAPPER_CMD" | tail -1`
                                 ;;
                             '/usr/bin/ps')
                                 TRUNCATED_CMD=`$PSEXE -o comm -p $pid | tail -1`
@@ -618,7 +622,7 @@ getpid() {
                                 COUNT=`echo ${COUNT}`
                                 COUNT=`expr $COUNT - 1`
                                 TRUNCATED_CMD=`echo $WRAPPER_CMD | cut -c1-$COUNT`
-                                pidtest=`$PSEXE -o comm -p $pid | grep "$TRUNCATED_CMD" | tail -1`
+                                pidtest=`$PSEXE -o comm -p $pid | grep -F "$TRUNCATED_CMD" | tail -1`
                                 ;;
                             '/bin/ps')
                                 TRUNCATED_CMD=`$PSEXE -o comm -p $pid | tail -1`
@@ -626,7 +630,7 @@ getpid() {
                                 COUNT=`echo ${COUNT}`
                                 COUNT=`expr $COUNT - 1`
                                 TRUNCATED_CMD=`echo $WRAPPER_CMD | cut -c1-$COUNT`
-                                pidtest=`$PSEXE -o comm -p $pid | grep "$TRUNCATED_CMD" | tail -1`
+                                pidtest=`$PSEXE -o comm -p $pid | grep -F "$TRUNCATED_CMD" | tail -1`
                                 ;;
                             *)
                                 echo "Unsupported ps command $PSEXE"
@@ -636,10 +640,10 @@ getpid() {
                         fi
                         ;;
                     'hpux')
-                        pidtest=`$PSEXE -p $pid -x -o args | grep "$WRAPPER_CMD" | tail -1`
+                        pidtest=`$PSEXE -p $pid -x -o args | grep -F "$WRAPPER_CMD" | tail -1`
                         ;;
                     *)
-                        pidtest=`$PSEXE -p $pid -o args | grep "$WRAPPER_CMD" | tail -1`
+                        pidtest=`$PSEXE -p $pid -o args | grep -F "$WRAPPER_CMD" | tail -1`
                         ;;
                 esac
 
@@ -856,6 +860,25 @@ macosxstart() {
     startwait
 }
 
+upstartstart() {
+    # The daemon has been installed.
+    eval echo  'Starting $APP_LONG_NAME.  Detected Linux and installed upstart.'
+    if [ `id | sed 's/^uid=//;s/(.*$//'` != "0" ] ; then       
+        eval echo  'Must be root to perform this action.'
+        exit 1
+    fi
+    
+    getpid
+    if [ "X$pid" != "X" ] ; then
+        eval echo  '$APP_LONG_NAME is already running.'
+        exit 1
+    fi
+    
+    /sbin/start ${APP_NAME}
+        
+    startwait
+}
+
 start() {
     eval echo  'Starting $APP_LONG_NAME...'
     getpid
@@ -968,6 +991,23 @@ status() {
     fi
 }
 
+installUpstart() {
+    eval echo  ' Installing the $APP_LONG_NAME daemon using upstart..'
+    if [ -f "${APP_NAME}.conf" ] ; then 
+        eval echo  ' a custom upstart conf file ${APP_NAME}.conf found'
+        cp "${REALDIR}/${APP_NAME}.install" "/etc/init/${APP_NAME}.conf"
+    else
+        eval echo  ' creating default upstart conf file..'
+        echo "# ${APP_NAME} - ${APP_LONG_NAME}" > "/etc/init/${APP_NAME}.conf"
+        echo "description \"${APP_LONG_NAME}\"" >> "/etc/init/${APP_NAME}.conf"
+        echo "author \"Tanuki Software Ltd. <info@tanukisoftware.com>\"" >> "/etc/init/${APP_NAME}.conf"
+        echo "start on runlevel [2345]" >> "/etc/init/${APP_NAME}.conf"
+        echo "stop on runlevel [!2345]" >> "/etc/init/${APP_NAME}.conf"
+        echo "env LANG=${LANG}" >> "/etc/init/${APP_NAME}.conf"
+       echo "exec \"${REALPATH}\" launchdinternal" >> "/etc/init/${APP_NAME}.conf"
+    fi
+}
+
 installdaemon() {
     if [ `id | sed 's/^uid=//;s/(.*$//'` != "0" ] ; then       
         eval echo  'Must be root to perform this action.'
@@ -992,10 +1032,14 @@ installdaemon() {
                     eval echo  ' The $APP_LONG_NAME daemon is already installed.'
                     exit 1
                 else
-                    eval echo  ' Installing the $APP_LONG_NAME daemon..'
-                    ln -s "$REALPATH" "/etc/init.d/$APP_NAME"
-                    /sbin/chkconfig --add "$APP_NAME"
-                    /sbin/chkconfig "$APP_NAME" on
+                    if [ -n "$USE_UPSTART" -a -d "/etc/init" ] ; then
+                        installUpstart
+                    else 
+                        eval echo  ' Installing the $APP_LONG_NAME daemon..'
+                        ln -s "$REALPATH" "/etc/init.d/$APP_NAME"
+                        /sbin/chkconfig --add "$APP_NAME"
+                        /sbin/chkconfig "$APP_NAME" on
+                    fi
                 fi
             elif [ -f /etc/SuSE-release ] ; then
                 eval echo  'Detected SuSE or SLES:'
@@ -1009,13 +1053,17 @@ installdaemon() {
                 fi
             elif [ -f /etc/lsb-release ] ; then
                 eval echo  'Detected Ubuntu:'
-                if [ -f "/etc/init.d/$APP_NAME" ] ; then
+                if [ -f "/etc/init.d/$APP_NAME" -o -f "/etc/init.d/${APP_NAME}.conf" ] ; then
                     eval echo  ' The $APP_LONG_NAME daemon is already installed.'
                     exit 1
                 else
-                    eval echo  ' Installing the $APP_LONG_NAME daemon..'
-                    ln -s "$REALPATH" "/etc/init.d/$APP_NAME"
-                    update-rc.d "$APP_NAME" defaults
+                    if [ -n "$USE_UPSTART" -a -d "/etc/init" ] ; then
+                        installUpstart
+                    else 
+                        eval echo  ' Installing the $APP_LONG_NAME daemon using init.d..'
+                        ln -s "$REALPATH" "/etc/init.d/$APP_NAME"
+                        update-rc.d "$APP_NAME" defaults
+                    fi
                 fi
             else
                 eval echo  'Detected Linux:'
@@ -1178,6 +1226,9 @@ removedaemon() {
                     /sbin/chkconfig "$APP_NAME" off
                     /sbin/chkconfig --del "$APP_NAME"
                     rm -f "/etc/init.d/$APP_NAME"
+                elif [ -f "/etc/init/${APP_NAME}.conf" ] ; then
+                    eval echo  ' Removing $APP_LONG_NAME daemon from upstart...'
+                    rm "/etc/init/${APP_NAME}.conf"
                 else
                     eval echo  ' The $APP_LONG_NAME daemon is not currently installed.'
                     exit 1
@@ -1195,9 +1246,12 @@ removedaemon() {
             elif [ -f /etc/lsb-release ] ; then
                 eval echo  'Detected Ubuntu:'
                 if [ -f "/etc/init.d/$APP_NAME" ] ; then
-                    eval echo  ' Removing $APP_LONG_NAME daemon...'
+                    eval echo  ' Removing $APP_LONG_NAME daemon from init.d...'
                     update-rc.d -f "$APP_NAME" remove
                     rm -f "/etc/init.d/$APP_NAME"
+                elif [ -f "/etc/init/${APP_NAME}.conf" ] ; then
+                    eval echo  ' Removing $APP_LONG_NAME daemon from upstart...'
+                    rm "/etc/init/${APP_NAME}.conf"
                 else
                     eval echo  ' The $APP_LONG_NAME daemon is not currently installed.'
                     exit 1
@@ -1417,6 +1471,9 @@ docommand() {
         'start')
             if [ "$DIST_OS" = "macosx" -a -f "/Library/LaunchDaemons/${APP_PLIST}" ] ; then
                 macosxstart
+            elif [ "$DIST_OS" = "linux" -a -f "/etc/init/${APP_NAME}.conf" ] ; then
+                checkUser touchlock "$@"
+                upstartstart
             else
                 checkUser touchlock "$@"
                 if [ ! -n "$FIXED_COMMAND" ] ; then

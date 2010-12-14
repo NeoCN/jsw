@@ -41,6 +41,16 @@ import java.util.jar.Manifest;
  *  the property to 300 as follows (defaults to 2 seconds):
  *  -Dorg.tanukisoftware.wrapper.WrapperJarApp.maxStartMainWait=300
  * <p>
+ * By default, the WrapperJarApp will tell the Wrapper to exit with an
+ *  exit code of 1 if any uncaught exceptions are thrown in the configured
+ *  main method.  This is good in most cases, but is a little different than
+ *  the way Java works on its own.  Java will stay up and running if it has
+ *  launched any other non-daemon threads even if the main method ends because
+ *  of an uncaught exception.  To get this same behavior, it is possible to
+ *  specify the following system property when launching the JVM (defaults to
+ *  FALSE):
+ *  -Dorg.tanukisoftware.wrapper.WrapperJarApp.ignoreMainExceptions=TRUE
+ * <p>
  * It is possible to extend this class but make absolutely sure that any
  *  overridden methods call their super method or the class will fail to
  *  function correctly.  Most users will have no need to override this
@@ -100,6 +110,11 @@ public class WrapperJarApp
      * Exit code to be returned if the application fails to start.
      */
     private Integer m_mainExitCode;
+    
+    /**
+     * True if uncaught exceptions in the user app's main method should be ignored.
+     */
+    private boolean m_ignoreMainExceptions;
     
     /**
      * Flag used to signify that the start method has completed.
@@ -407,21 +422,34 @@ public class WrapperJarApp
         // their app threw.
         t.printStackTrace( m_outError );
 
-        synchronized(this)
+        synchronized( this )
         {
-            if ( m_startComplete )
+            if ( m_ignoreMainExceptions )
             {
-                // Shut down here.
-                WrapperManager.stop( 1 );
-                return; // Will not get here.
+                if ( !m_startComplete )
+                {
+                    // An exception was thrown, but we want to let the application continue.
+                    m_mainComplete = true;
+                    this.notifyAll();
+                }
+                return;
             }
             else
             {
-                // Let start method handle shutdown.
-                m_mainComplete = true;
-                m_mainExitCode = new Integer( 1 );
-                this.notifyAll();
-                return;
+                if ( m_startComplete )
+                {
+                    // Shut down here.
+                    WrapperManager.stop( 1 );
+                    return; // Will not get here.
+                }
+                else
+                {
+                    // Let start method handle shutdown.
+                    m_mainComplete = true;
+                    m_mainExitCode = new Integer( 1 );
+                    this.notifyAll();
+                    return;
+                }
             }
         }
     }
@@ -443,6 +471,8 @@ public class WrapperJarApp
         // Decide whether or not to wait for the start main method to complete before returning.
         boolean waitForStartMain = WrapperSystemPropertyUtil.getBooleanProperty(
             WrapperJarApp.class.getName() + ".waitForStartMain", false );
+        m_ignoreMainExceptions = WrapperSystemPropertyUtil.getBooleanProperty(
+            WrapperJarApp.class.getName() + ".ignoreMainExceptions", false );
         int maxStartMainWait = WrapperSystemPropertyUtil.getIntProperty(
             WrapperJarApp.class.getName() + ".maxStartMainWait", 2 );
         maxStartMainWait = Math.max( 1, maxStartMainWait ); 

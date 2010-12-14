@@ -13,13 +13,15 @@
  * Author:
  *   Leif Mortenson <leif@tanukisoftware.com>
  */
+
+#ifndef _WRAPPER_FILE_H
+#define _WRAPPER_FILE_H
+
 #ifdef WIN32
 #include <tchar.h>
 #else
 #include "wrapper_i18n.h"
 #endif
-#ifndef _WRAPPER_FILE_H
-#define _WRAPPER_FILE_H
 
 /*#define WRAPPER_FILE_DEBUG*/
 

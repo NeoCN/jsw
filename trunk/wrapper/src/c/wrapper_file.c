@@ -14,24 +14,24 @@
  *   Leif Mortenson <leif@tanukisoftware.com>
  */
 
-#include "wrapper_file.h"
-#include "logger.h"
-#include "wrapper_i18n.h"
-
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #ifdef WIN32
 #include <errno.h>
 #include <tchar.h>
 #include <io.h>
-#include "wrapper.h"
 #else
 #include <stdlib.h>
 #include <string.h>
 #include <glob.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #endif
+
+#include "wrapper_file.h"
+#include "logger.h"
+#include "wrapper_i18n.h"
+#include "wrapper.h"
 
 #define FILES_CHUNK 5
 
@@ -473,7 +473,7 @@ TCHAR** wrapperFileGetFiles(const TCHAR* pattern, int sortMode) {
                     return NULL;
                 }
 
-                strcpy(files[cnt], g.gl_pathv[findex]);
+                strncpy(files[cnt], g.gl_pathv[findex], strlen(g.gl_pathv[findex]) + 1);
 #endif
 
                 /* Only try to get the modified time if it is really necessary. */
@@ -504,6 +504,7 @@ TCHAR** wrapperFileGetFiles(const TCHAR* pattern, int sortMode) {
             
             fileTimes = malloc(sizeof(time_t) * filesSize);
             if (!fileTimes) {
+                free(files);
                 outOfMemoryQueued(TEXT("WFGF"), 13);
                 return NULL;
             }
@@ -526,6 +527,7 @@ TCHAR** wrapperFileGetFiles(const TCHAR* pattern, int sortMode) {
 
         fileTimes = malloc(sizeof(time_t) * filesSize);
         if (!fileTimes) {
+            free(files);
             outOfMemoryQueued(TEXT("WFGF"), 15);
             return NULL;
         }
@@ -643,4 +645,5 @@ void wrapperFileTests() {
     printf("End wrapperFileTests\n");
 }
 #endif
+
 

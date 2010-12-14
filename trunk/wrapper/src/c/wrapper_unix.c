@@ -100,7 +100,8 @@ TICKS timerTicks = WRAPPER_TICK_INITIAL;
 /**
  * exits the application after running shutdown code.
  */
-void appExit(int exitCode) {
+void appExit(int exitCode, int argc, TCHAR** argv) {
+    int i;
     /* Remove pid file.  It may no longer exist. */
     if (wrapperData->pidFilename) {
         _tunlink(wrapperData->pidFilename);
@@ -133,7 +134,16 @@ void appExit(int exitCode) {
 
     /* Common wrapper cleanup code. */
     wrapperDispose();
-
+#if defined(UNICODE)
+    for (i = 0; i < argc; i++) {
+        if (argv[i]) {
+            free(argv[i]);
+        }
+    }
+    if (argv) {
+        free(argv);
+    }
+#endif
     exit(exitCode);
 }
 
@@ -550,6 +560,8 @@ void sigActionChildDeath(int sigNum, siginfo_t *sigInfo, void *na) {
                 TEXT("Received SIGCHLD, checking JVM process status."));
         }
         
+        /* This is set whenever any child signals that it has exited.
+         *  Inside the code we go on to check to make sure that we only test for the JVM */
         wrapperData->signalChildTrapped = TRUE;
     }
 }
@@ -744,6 +756,10 @@ int initializeTimer() {
         timerThreadSet = TRUE;
         return 1;
     } else {
+        if (pthread_detach(timerThreadId)) {
+            timerThreadSet = TRUE;
+            return 1;
+        }
         timerThreadSet = FALSE;
         return 0;
     }
@@ -751,7 +767,6 @@ int initializeTimer() {
 
 void disposeTimer() {
     stopTimerThread = TRUE;
-    
     /* Wait until the timer thread is actually stopped to avoid timing problems. */
     if (timerThreadStarted) {
         while (!timerThreadStopped) {
@@ -760,6 +775,7 @@ void disposeTimer() {
 #endif
             wrapperSleep(100);
         }
+        pthread_kill(timerThreadId, SIGKILL);
     }
 }
 
@@ -942,7 +958,7 @@ int wrapperBuildJavaCommand() {
                 outOfMemory(TEXT("WBJC"), 2);
                 return TRUE;
             }
-            _tcscpy(wrapperData->jvmCommand[i], strings[i]);
+            _tcsncpy(wrapperData->jvmCommand[i], strings[i], _tcslen(strings[i]) + 1);
         } else {
             wrapperData->jvmCommand[i] = NULL;
         }
@@ -1209,6 +1225,12 @@ int wrapperGetProcessStatus(TICKS nowTicks, int sigChild) {
     int status;
     int exitCode;
     int res;
+    
+    if (wrapperData->javaPID <= 0) {
+        /* We do not think that a JVM is currently running so return that it is down.
+         * If we call waitpid with 0, it will wait for any child and cause problems with the event commands. */
+        return WRAPPER_PROCESS_DOWN;
+    }
 
     retval = waitpid(wrapperData->javaPID, &status, WNOHANG | WUNTRACED);
     if (retval == 0) {
@@ -1227,8 +1249,8 @@ int wrapperGetProcessStatus(TICKS nowTicks, int sigChild) {
                 wrapperJVMProcessExited(nowTicks, 0);
                 return res;
             } else {
-            /* Process is gone.  Happens after a SIGCHLD is handled. Normal. */
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("JVM process is gone."));
+                /* Process is gone.  Happens after a SIGCHLD is handled. Normal. */
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("JVM process is gone."));
             }
         } else {
             /* Error requesting the status. */
@@ -1345,7 +1367,7 @@ int wrapperReadChildOutputBlock(char *blockBuffer, int blockSize, int *readCount
  * exit. This means that we, the grandchild, as a non-session group
  * leader, can never regain a controlling terminal.
  */
-void daemonize() {
+void daemonize(int argc, TCHAR** argv) {
     pid_t pid;
     int fd;
 
@@ -1361,7 +1383,7 @@ void daemonize() {
     if ((pid = fork()) < 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Could not spawn daemon process: %s"),
             getLastErrorText());
-        appExit(1);
+        appExit(1, argc, argv);
     } else if (pid != 0) {
         /* Intermediate process is now running.  This is the original process, so exit. */
 
@@ -1379,7 +1401,7 @@ void daemonize() {
     if (setsid() == -1) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("setsid() failed: %s"),
            getLastErrorText());
-        appExit(1);
+        appExit(1, argc, argv);
     }
 
     signal(SIGHUP, SIG_IGN); /* don't let future opens allocate controlling terminals */
@@ -1411,7 +1433,7 @@ void daemonize() {
     if ((pid = fork()) < 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Could not spawn daemon process: %s"),
             getLastErrorText());
-        appExit(1);
+        appExit(1, argc, argv);
     } else if (pid != 0) {
         /* Daemon process is now running.  This is the intermediate process, so exit. */
         /* Call exit rather than appExit as we are only exiting this process. */
@@ -1484,7 +1506,7 @@ int main(int argc, char **argv) {
     argv = malloc(argc * sizeof *argv );
     if(!argv) {
         _tprintf(TEXT("Out of Memory in Main\n"));
-        appExit(1);
+        appExit(1, 0, NULL);
         return 1;
     }
     for (i = 0; i < argc; i++) {
@@ -1496,7 +1518,7 @@ int main(int argc, char **argv) {
                 free(argv[i]);
             }
             free(argv);
-            appExit(1);
+            appExit(1, 0, argv);
             return 1;
         }
         mbstowcs(argv[i], cargv[i], (req + 1) * sizeof(TCHAR));
@@ -1521,7 +1543,7 @@ int main(int argc, char **argv) {
         localeSet = FALSE;
     }
     if (wrapperInitialize()) {
-        appExit(1);
+        appExit(1, argc, argv);
         return 1; /* For compiler. */
     }
 
@@ -1535,7 +1557,7 @@ int main(int argc, char **argv) {
     wrapperData->wrapperPID = getpid();
 
     if (setWorkingDir(argv[0])) {
-        appExit(1);
+        appExit(1, argc, argv);
         return 1; /* For compiler. */
     }
 #ifdef _DEBUG
@@ -1547,7 +1569,7 @@ int main(int argc, char **argv) {
 #endif
     /* Parse the command and configuration file from the command line. */
     if (!wrapperParseArguments(argc, argv)) {
-        appExit(1);
+        appExit(1, argc, argv);
         return 1; /* For compiler. */
     }
     wrapperLoadHostName();
@@ -1556,20 +1578,20 @@ int main(int argc, char **argv) {
         /* User asked for the usage. */
         setSimpleLogLevels();
         wrapperUsage(argv[0]);
-        appExit(0);
+        appExit(0, argc, argv);
         return 0; /* For compiler. */
     } else if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("v")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-version"))) {
         /* User asked for version. */
         setSimpleLogLevels();
         wrapperVersionBanner();
-        appExit(0);
+        appExit(0, argc, argv);
         return 0; /* For compiler. */
     } else if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("h")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-hostid"))) {
         /* User asked for version. */
         setSimpleLogLevels();
         wrapperVersionBanner();
         showHostIds(LEVEL_STATUS);
-        appExit(0);
+        appExit(0, argc, argv);
         return 0; /* For compiler. */
     }
 
@@ -1582,7 +1604,7 @@ int main(int argc, char **argv) {
              *  it did not exist.  Show the usage. */
             wrapperUsage(argv[0]);
         }
-        appExit(1);
+        appExit(1, argc, argv);
         return 1; /* For compiler. */
     }
 
@@ -1594,7 +1616,7 @@ int main(int argc, char **argv) {
 
         /* fork to a Daemonized process if configured to do so. */
         if (wrapperData->daemonize) {
-            daemonize();
+            daemonize(argc, argv);
 
             /* When we daemonize the Wrapper, its PID changes. Because of the
              *  WRAPPER_PID environment variable, we need to set it again here
@@ -1604,33 +1626,33 @@ int main(int argc, char **argv) {
             /* Get the current process. */
             wrapperData->wrapperPID = getpid();
 
-        if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Reloading configuration."));
-        }
-
-        /* If the working dir has been changed then we need to restore it before
-         *  the configuration can be reloaded.  This is needed to support relative
-         *  references to include files. */
-        if (wrapperData->workingDir && wrapperData->originalWorkingDir) {
-            if (wrapperSetWorkingDir(wrapperData->originalWorkingDir)) {
-                /* Failed to restore the working dir.  Shutdown the Wrapper */
-                appExit(1);
+            if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Reloading configuration."));
+            }
+    
+            /* If the working dir has been changed then we need to restore it before
+             *  the configuration can be reloaded.  This is needed to support relative
+             *  references to include files. */
+            if (wrapperData->workingDir && wrapperData->originalWorkingDir) {
+                if (wrapperSetWorkingDir(wrapperData->originalWorkingDir)) {
+                    /* Failed to restore the working dir.  Shutdown the Wrapper */
+                    appExit(1, argc, argv);
+                    return 1; /* For compiler. */
+                }
+            }
+    
+            /* Load the properties. */
+            if (wrapperLoadConfigurationProperties(FALSE)) {
+                /* Unable to load the configuration.  Any errors will have already
+                 *  been reported. */
+                if (wrapperData->argConfFileDefault && !wrapperData->argConfFileFound) {
+                    /* The config file that was being looked for was default and
+                     *  it did not exist.  Show the usage. */
+                    wrapperUsage(argv[0]);
+                }
+                appExit(1, argc, argv);
                 return 1; /* For compiler. */
             }
-        }
-
-        /* Load the properties. */
-        if (wrapperLoadConfigurationProperties(FALSE)) {
-            /* Unable to load the configuration.  Any errors will have already
-             *  been reported. */
-            if (wrapperData->argConfFileDefault && !wrapperData->argConfFileFound) {
-                /* The config file that was being looked for was default and
-                 *  it did not exist.  Show the usage. */
-                wrapperUsage(argv[0]);
-            }
-            appExit(1);
-            return 1; /* For compiler. */
-        }
         }
 
 
@@ -1647,7 +1669,7 @@ int main(int argc, char **argv) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                      TEXT("ERROR: Could not write anchor file %s: %s"),
                      wrapperData->anchorFilename, getLastErrorText());
-                appExit(1);
+                appExit(1, argc, argv);
                 return 1; /* For compiler. */
             }
         }
@@ -1656,7 +1678,7 @@ int main(int argc, char **argv) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                      TEXT("ERROR: Could not write pid file %s: %s"),
                      wrapperData->pidFilename, getLastErrorText());
-                appExit(1);
+                appExit(1, argc, argv);
                 return 1; /* For compiler. */
             }
         }
@@ -1672,13 +1694,13 @@ int main(int argc, char **argv) {
             }
         }
 
-        appExit(wrapperRunConsole());
+        appExit(wrapperRunConsole(), argc, argv);
         return 0; /* For compiler. */
     } else {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT(""));
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unrecognized option: -%s"), wrapperData->argCommand);
         wrapperUsage(argv[0]);
-        appExit(1);
+        appExit(1, argc, argv);
         return 1; /* For compiler. */
     }
 }
