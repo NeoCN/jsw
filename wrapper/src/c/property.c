@@ -83,7 +83,7 @@ void prepareProperty(Property *property) {
         if (!oldValue) {
             outOfMemory(TEXT("PP"), 1);
         } else {
-            _tcscpy(oldValue, property->value);
+            _tcsncpy(oldValue, property->value, _tcslen(property->value) + 1);
             setInnerProperty(property, oldValue);
             free(oldValue);
         }
@@ -284,8 +284,9 @@ void evaluateEnvironmentVariables(const TCHAR *propertyValue, TCHAR *buffer, int
                 /*  variable name should be between the two. */
                 len = (int)(end - start - 1);
                 _tcsncpy(envName, start + 1, len);
-                envName[len] = TEXT('\0');
-
+                if (len < MAX_PROPERTY_NAME_LENGTH) {
+                    envName[len] = TEXT('\0');
+                } 
                 /* See if it is a special dynamic environment variable */
                 envValueNeedFree = FALSE;
                 if (_tcsstr(envName, TEXT("WRAPPER_TIME_")) == envName) {
@@ -643,15 +644,19 @@ int getEncodingByName(char* encodingMB, char** encoding) {
     return FALSE;
 }
 
-
 /**
  * Loads the contents of a file into the specified properties.
  *  Whenever a line which starts with #include is encountered, then the rest
  *  the line will be interpreted as a cascading include file.  If the file
  *  does not exist, the include definition is ignored.
  *
- * @return TRUE if there are any problems.   FALSE if all is OK.
+ * @return PROP_LOAD_SUCCESS if the file was loaded successfully,
+ *         PROP_LOAD_FAIL if there were any problems at all, or
+ *         PROP_LOAD_HARD_FAIL if the problem should cascaded all the way up.
  */
+#define PROP_LOAD_SUCCESS   101
+#define PROP_LOAD_FAIL      102
+#define PROP_LOAD_HARD_FAIL 103
 int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileRequired, int depth, const TCHAR* parentFilename, int parentLineNumber, int preload) {
     FILE *stream;
     char bufferMB[MAX_PROPERTY_NAME_VALUE_LENGTH];
@@ -675,7 +680,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
     char* interumEncoding;
 #endif
     int includeRequired;
-    int readFailed = FALSE;
+    int loadResult = PROP_LOAD_SUCCESS;
     int ret;
     TCHAR *bufferW;
 #ifdef WIN32
@@ -683,7 +688,8 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
 #endif
 
 #ifdef _DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("loadPropertiesInner(props, '%s', %d, %d, '%s', %d %d)"), filename, fileRequired, depth, (parentFilename ? parentFilename : TEXT("<NULL>")), parentLineNumber, preload);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("loadPropertiesInner(props, '%s', %d, %d, '%s', %d %d)"),
+        filename, fileRequired, depth, (parentFilename ? parentFilename : TEXT("<NULL>")), parentLineNumber, preload);
 #endif
 
     /* Look for the specified file. */
@@ -692,18 +698,18 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
         if (properties->debugIncludes || fileRequired) {
             if (depth > 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    TEXT("Included configuration file not found: %s\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
-                        filename, parentFilename, parentLineNumber, wrapperData->originalWorkingDir);
+                    TEXT("%sIncluded configuration file not found: %s\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
+                    (properties->debugIncludes ? TEXT("  ") : TEXT("")), filename, parentFilename, parentLineNumber, wrapperData->originalWorkingDir);
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     TEXT("Configuration file not found: %s\n  Current working directory: %s"), filename, wrapperData->originalWorkingDir);
             }
         } else {
 #ifdef _DEBUG
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Properties file not found: %s"), filename);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Properties file not found: %s"), filename);
 #endif
         }
-        return TRUE;
+        return PROP_LOAD_FAIL;
     }
     if (properties->debugIncludes) {
         if (!preload) {
@@ -744,7 +750,8 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
             if ((hadBOM) && (strIgnoreCaseCmp(encodingMB, "UTF-8") != 0)) {
             }
             if (getEncodingByName(encodingMB, &encoding) == TRUE) {
-                return TRUE;
+                fclose(stream);
+                return PROP_LOAD_FAIL;
             }
 
         } else {
@@ -759,7 +766,6 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
  #endif
 #endif
         }
-        fclose(stream);
     } else {
         /* Failed to read the first line of the file. */
 #ifdef WIN32
@@ -773,13 +779,14 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
  #endif
 #endif
     }
+    fclose(stream);
 
     if ((stream = _tfopen(filename, TEXT("rb"))) == NULL) {
         /* Unable to open the file. */
         if (properties->debugIncludes || fileRequired) {
             if (depth > 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    TEXT("  Included configuration file, %s, was not found."), filename);
+                    TEXT("%sIncluded configuration file, %s, was not found."), (properties->debugIncludes ? TEXT("  ") : TEXT("")), filename);
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     TEXT("Configuration file, %s, was not found."), filename);
@@ -790,7 +797,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Properties file not found: %s"), filename);
 #endif
         }
-        return TRUE;
+        return PROP_LOAD_FAIL;
     }
 
     /* Load in all of the properties */
@@ -812,18 +819,22 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
             if (ret) {
                 if (bufferW) {
                     /* bufferW contains an error message. */
-                    if (depth > 0) {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                            TEXT("  Included configuration file, %s, contains a problem on line #%d and could not be read. (%s)"), filename, lineNumber, bufferW);
-                    } else {
-                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                            TEXT("Configuration file, %s, contains a problem on line #%d and could not be read. (%s)"), filename, lineNumber, bufferW);
+                    if (!preload) {
+                        if (depth > 0) {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                                TEXT("%sIncluded configuration file, %s, contains a problem on line #%d and could not be read. (%s)"),
+                                (properties->debugIncludes ? TEXT("  ") : TEXT("")), filename, lineNumber, bufferW);
+                        } else {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                                TEXT("Configuration file, %s, contains a problem on line #%d and could not be read. (%s)"), filename, lineNumber, bufferW);
+                        }
                     }
                     free(bufferW);
                 } else {
                     outOfMemory(TEXT("LPI"), 1);
                 }
-                return TRUE;
+                fclose(stream);
+                return PROP_LOAD_FAIL;
             }
             
 #ifdef _DEBUG
@@ -890,8 +901,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
             while ((trimmedBufferLen > 0) && ((trimmedBuffer[trimmedBufferLen - 1] == TEXT(' '))
             || (trimmedBuffer[trimmedBufferLen - 1] == 0x08))) {
 
-                trimmedBuffer[trimmedBufferLen - 1] = TEXT('\0');
-                trimmedBufferLen--;
+                trimmedBuffer[--trimmedBufferLen] = TEXT('\0');
             }
 
             /* Only look at lines which contain data and do not start with a '#'
@@ -920,53 +930,36 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
                         c++;
                     }
 
-                    if (depth < MAX_INCLUDE_DEPTH) {
-                        /* The filename may contain environment variables, so expand them. */
-                        if (properties->debugIncludes) {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                                TEXT("Found #include file in %s: %s"), filename, c);
-                        }
-                        evaluateEnvironmentVariables(c, expBuffer, MAX_PROPERTY_NAME_VALUE_LENGTH);
+                    /* The filename may contain environment variables, so expand them. */
+                    if (properties->debugIncludes) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                            TEXT("Found #include file in %s: %s"), filename, c);
+                    }
+                    evaluateEnvironmentVariables(c, expBuffer, MAX_PROPERTY_NAME_VALUE_LENGTH);
 
-                        if (properties->debugIncludes && (_tcscmp(c, expBuffer) != 0)) {
-                            /* Only show this log if there were any environment variables. */
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                                TEXT("  After environment variable replacements: %s"), expBuffer);
-                        }
+                    if (properties->debugIncludes && (_tcscmp(c, expBuffer) != 0)) {
+                        /* Only show this log if there were any environment variables. */
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                            TEXT("  After environment variable replacements: %s"), expBuffer);
+                    }
 
-                        /* Now obtain the real absolute path to the include file. */
+                    /* Now obtain the real absolute path to the include file. */
 #ifdef WIN32
-                        /* Find out how big the absolute path will be */
-                        size = GetFullPathName(expBuffer, 0, NULL, NULL); /* Size includes '\0' */
-                        if (!size) {
-                            if (properties->debugIncludes || includeRequired) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                                    TEXT("Unable to resolve the full path of included configuration file: %s (%s)\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
-                                    expBuffer, getLastErrorText(), filename, lineNumber, wrapperData->originalWorkingDir);
-                            }
-                            absoluteBuffer = NULL;
-                        } else {
-                            absoluteBuffer = malloc(sizeof(TCHAR) * size);
-                            if (!absoluteBuffer) {
-                                outOfMemory(TEXT("LPI"), 1);
-                            } else {
-                                if (!GetFullPathName(expBuffer, size, absoluteBuffer, NULL)) {
-                                    if (properties->debugIncludes || includeRequired) {
-                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                                            TEXT("Unable to resolve the full path of included configuration file: %s (%s)\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
-                                            expBuffer, getLastErrorText(), filename, lineNumber, wrapperData->originalWorkingDir);
-                                    }
-                                    free(absoluteBuffer);
-                                    absoluteBuffer = NULL;
-                                }
-                            }
+                    /* Find out how big the absolute path will be */
+                    size = GetFullPathName(expBuffer, 0, NULL, NULL); /* Size includes '\0' */
+                    if (!size) {
+                        if (properties->debugIncludes || includeRequired) {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                                TEXT("Unable to resolve the full path of included configuration file: %s (%s)\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
+                                expBuffer, getLastErrorText(), filename, lineNumber, wrapperData->originalWorkingDir);
                         }
-#else
-                        absoluteBuffer = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
+                        absoluteBuffer = NULL;
+                    } else {
+                        absoluteBuffer = malloc(sizeof(TCHAR) * size);
                         if (!absoluteBuffer) {
-                            outOfMemory(TEXT("LPI"), 2);
+                            outOfMemory(TEXT("LPI"), 1);
                         } else {
-                            if (_trealpath(expBuffer, absoluteBuffer) == NULL) {
+                            if (!GetFullPathName(expBuffer, size, absoluteBuffer, NULL)) {
                                 if (properties->debugIncludes || includeRequired) {
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                                         TEXT("Unable to resolve the full path of included configuration file: %s (%s)\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
@@ -976,27 +969,73 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
                                 absoluteBuffer = NULL;
                             }
                         }
-#endif
-                        if (absoluteBuffer) {
-                            if (loadPropertiesInner(properties, absoluteBuffer, includeRequired, depth + 1, filename, lineNumber, preload)) {
-                                if (includeRequired) {
-                                    /* Include file was required, but we failed to load it. */
-                                    readFailed = TRUE;
-                                    break;
-                                }
+                    }
+#else
+                    absoluteBuffer = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
+                    if (!absoluteBuffer) {
+                        outOfMemory(TEXT("LPI"), 2);
+                    } else {
+                        if (_trealpath(expBuffer, absoluteBuffer) == NULL) {
+                            if (properties->debugIncludes || includeRequired) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                                    TEXT("Unable to resolve the full path of included configuration file: %s (%s)\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
+                                    expBuffer, getLastErrorText(), filename, lineNumber, wrapperData->originalWorkingDir);
                             }
                             free(absoluteBuffer);
-                        } else {
-                            if (includeRequired) {
-                                /* Include file was required, but we failed to load it. */
-                                readFailed = TRUE;
-                                break;
+                            absoluteBuffer = NULL;
+                        }
+                    }
+#endif
+                    if (absoluteBuffer) {
+                        if (depth < MAX_INCLUDE_DEPTH) {
+                            loadResult = loadPropertiesInner(properties, absoluteBuffer, includeRequired, depth + 1, filename, lineNumber, preload);
+                            if (loadResult == PROP_LOAD_SUCCESS) {
+                                /* Ok continue. */
+                            } else if ((loadResult == PROP_LOAD_FAIL) || (loadResult == PROP_LOAD_HARD_FAIL)) {
+                                /* Failed. */
+                                if (includeRequired) {
+                                    /* Include file was required, but we failed to load it. */
+                                    if (!preload) {
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                                            TEXT("%sThe required configuration file, %s, was not loaded.\n%s  Referenced from: %s (line %d)"),
+                                            (properties->debugIncludes ? TEXT("  ") : TEXT("")), absoluteBuffer, (properties->debugIncludes ? TEXT("  ") : TEXT("")), filename, lineNumber);
+                                    }
+                                    loadResult = PROP_LOAD_HARD_FAIL;
+                                }
+                                if (loadResult == PROP_LOAD_HARD_FAIL) {
+                                    /* Can't continue. */
+                                    break;
+                                } else {
+                                    /* Failed but continue. */
+                                    loadResult = PROP_LOAD_SUCCESS;
+                                }
+                            } else {
+                                _tprintf(TEXT("Unexpected load error %d\n"), loadResult);
+                                /* continue. */
+                                loadResult = PROP_LOAD_SUCCESS;
                             }
+                        } else {
+                            if (properties->debugIncludes) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                                    TEXT("  Unable to include configuration file, %s, because the max include depth was reached."), absoluteBuffer);
+                            }
+                        }
+                        free(absoluteBuffer);
+                    } else {
+                        if (includeRequired) {
+                            /* Include file was required, but we failed to load it. */
+                            if (!preload) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                                    TEXT("%sThe required configuration file, %s, was not loaded.\n%s  Referenced from: %s (line %d)"),
+                                    (properties->debugIncludes ? TEXT("  ") : TEXT("")), expBuffer, (properties->debugIncludes ? TEXT("  ") : TEXT("")), filename, lineNumber);
+                            }
+                            loadResult = PROP_LOAD_HARD_FAIL;
+                            break;
                         }
                     }
                 } else if (strcmpIgnoreCase(trimmedBuffer, TEXT("#properties.debug")) == 0) {
                     if (!preload) {
-                    /* Enable property debugging. */
+                        /* Enable property debugging. */
                         properties->debugProperties = TRUE;
                     }
                 } else if (_tcsstr(trimmedBuffer, TEXT("include")) == trimmedBuffer) {
@@ -1025,9 +1064,19 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
     /* Close the file */
     fclose(stream);
 
-    return readFailed;
+    return loadResult;
 }
 
+/**
+ * Create a Properties structure loaded in from the specified file.
+ *  Must call disposeProperties to free up allocated memory.
+ *
+ * @param properties Properties structure to load into.
+ * @param filename File to load the properties from.
+ * @param preload TRUE if this is a preload call that should have supressed error output.
+ *
+ * @return TRUE if there were any problems, FALSE if successful.
+ */
 int loadProperties(Properties *properties, const TCHAR* filename, int preload) {
     /* Store the time that the property file began to be loaded. */
     #ifdef WIN32
@@ -1037,6 +1086,7 @@ int loadProperties(Properties *properties, const TCHAR* filename, int preload) {
     #endif
     time_t      now;
     struct tm   *nowTM;
+    int loadResult;
 
 #ifdef WIN32
     _ftime( &timebNow );
@@ -1048,7 +1098,18 @@ int loadProperties(Properties *properties, const TCHAR* filename, int preload) {
     nowTM = localtime(&now);
     memcpy(&loadPropertiesTM, nowTM, sizeof(struct tm));
 
-    return loadPropertiesInner(properties, filename, !preload, 0, NULL, 0, preload);
+    loadResult = loadPropertiesInner(properties, filename, 0, 0, NULL, 0, preload);
+    /* Any failure is a failure in the root. */
+    switch (loadResult) {
+    case PROP_LOAD_SUCCESS:
+        return FALSE;
+    case PROP_LOAD_FAIL:
+    case PROP_LOAD_HARD_FAIL:
+        return TRUE;
+    default:
+        _tprintf(TEXT("Unexpected load error %d\n"), loadResult);
+        return TRUE;
+    }
 }
 
 Properties* createProperties() {
@@ -1089,6 +1150,27 @@ void disposeProperties(Properties *properties) {
         free(properties);
         properties = NULL;
     }
+}
+
+/**
+ * This method cleans the environment at shutdown.
+ */
+void disposeEnvironment() {
+
+    EnvSrc *current, *previous;
+
+    if (baseEnvSrc) {
+        current = baseEnvSrc;
+        while (current != NULL) {
+            free(current->name);
+            previous = current;
+            current = current->next;
+            free(previous);
+        }
+        baseEnvSrc = NULL;
+    }
+    
+
 }
 
 void removeProperty(Properties *properties, const TCHAR *propertyName) {
@@ -1641,7 +1723,7 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
             free(propertyValueTrim);
             return NULL;
         }
-        _tcscpy(property->name, propertyNameTrim);
+        _tcsncpy(property->name, propertyNameTrim, _tcslen(propertyNameTrim) + 1);
 
         /* Insert this property at the correct location.  Value will still be null. */
         insertInnerProperty(properties, property);
@@ -1773,7 +1855,7 @@ int addPropertyPair(Properties *properties, const TCHAR* filename, int lineNum, 
             TEXT("The following property name value pair is too large.  Need to increase the internal buffer size: %s"), propertyNameValue);
         return 1;
     }
-    _tcscpy(buffer, propertyNameValue);
+    _tcsncpy(buffer, propertyNameValue, MAX_PROPERTY_NAME_VALUE_LENGTH);
 
     /* Locate the first '=' in the pair */
     if ((d = _tcschr(buffer, TEXT('='))) != NULL) {
@@ -1951,7 +2033,7 @@ int getStringProperties(Properties *properties, const TCHAR *propertyNameHead, c
                         if (!thisTail) {
                             outOfMemory(TEXT("GSPS"), 2);
                         } else {
-                            _tcscpy(thisTail, property->name + thisLen - tailLen);
+                            _tcsncpy(thisTail, property->name + thisLen - tailLen, tailLen + 1);
 
                             if (strcmpIgnoreCase(thisTail, propertyNameTail) == 0) {
                                 /* Tail matches. */
@@ -2162,8 +2244,7 @@ TCHAR *linearizeProperties(Properties *properties, TCHAR separator) {
     size_t size;
     TCHAR *c;
     TCHAR *fullBuffer;
-    TCHAR *buffer;
-    TCHAR *work;
+    TCHAR *work, *buffer;
 
     /* First we need to figure out how large a buffer will be needed to linearize the properties. */
     size = 0;
@@ -2193,7 +2274,7 @@ TCHAR *linearizeProperties(Properties *properties, TCHAR separator) {
     size++; /* null terminated. */
 
     /* Now that we know how much space this will all take up, allocate a buffer. */
-    fullBuffer = buffer = malloc(sizeof(TCHAR) * size);
+    fullBuffer = buffer = calloc(sizeof(TCHAR) , size);
     if (!fullBuffer) {
         outOfMemory(TEXT("LP"), 1);
         return NULL;
@@ -2211,7 +2292,7 @@ TCHAR *linearizeProperties(Properties *properties, TCHAR separator) {
             buffer++;
             work = c + 1;
         }
-        _tcscpy(buffer, work);
+        _tcsncpy(buffer, work, size - _tcslen(fullBuffer));
         buffer += _tcslen(work);
 
         /* equals */
@@ -2227,7 +2308,7 @@ TCHAR *linearizeProperties(Properties *properties, TCHAR separator) {
             buffer++;
             work = c + 1;
         }
-        _tcscpy(buffer, work);
+        _tcsncpy(buffer, work, size - _tcslen(fullBuffer));
         buffer += _tcslen(work);
 
         /* separator */

@@ -1223,10 +1223,49 @@ original tar distribution due to a lack of support for long path names in some t
         <untar src="jdoc.tar" dest="${basedir}"/>
     </target>
     
+    <target name="code-sign-check" if="is.windows">
+        <fail unless="wrapper.cert.password">
+          ERROR:
+**************************************************************************
+*  The password for the CodeSigning Certificate is not set. 
+*  Please define it on the commandline: ant -Dwrapper.cert.password="..."
+**************************************************************************
+        </fail>
+        <fail unless="signtool.dir">
+            ERROR:
+****************************************************************************
+* Please specify the path for SignTool in default.properties (signtool.dir).
+****************************************************************************
+        </fail>
+        <available property="signtool.exists" file="${signtool.dir}/signtool.exe"/>
+        <fail unless="signtool.exists">            
+            ERROR:
+************************************************************************************************************
+* The directory specified in signtool.dir (${signtool.dir}) does not exist/or does not contain signtool.exe.
+* Please verify the folder contains the file!!
+************************************************************************************************************
+        </fail>
+        <fail unless="cert.dir">
+            ERROR:
+****************************************************************************
+* Please specify the path to the certificate in default.properties (cert.dir).
+****************************************************************************
+        </fail>
+        <available property="cert.exists" file="${cert.dir}/codesigncert.pfx"/>
+        <fail unless="cert.exists">            
+            ERROR:
+************************************************************************************************************
+* The directory specified in cert.dir (${cert.dir}) does not exist/or does not contain the certificate codesigncert.pfx.
+* Please verify the folder contains the file!!
+************************************************************************************************************
+        </fail>
+    </target>
+    
     <!-- =================================================================== -->
     <!-- Release (Windows)                                                   -->
     <!-- =================================================================== -->
-    <target name="release-windows" depends="pre-release:check, pre-release:restore-jdocs, compile-c" if="is.windows">
+    <target name="release-windows" depends="code-sign-check, pre-release:check, pre-release:restore-jdocs, compile-c" if="is.windows">
+
         <property name="releasedir" value="${build.dir}/${releasefile}"/>
         <delete dir="${releasedir}"/>
         <mkdir dir="${releasedir}"/>
@@ -1292,7 +1331,15 @@ wrapper.filter.action.999=NONE]]></replacevalue>
         <!-- Need an empty log file so that the logs directory will be included -->
         <mkdir dir="${releasedir}/logs"/>
         <touch file="${releasedir}/logs/wrapper.log"/>
-        
+        <!-- Sign the binaries -->
+        <exec executable="${signtool.dir}/signtool.exe"
+              failonerror="true">
+            <arg line="sign /f ${cert.dir}/codesigncert.pfx /p ${wrapper.cert.password} /t http://timestamp.comodoca.com/authenticode ${releasedir}/bin/${wrapper.bin.name}" />
+        </exec>
+        <exec executable="${signtool.dir}/signtool.exe"
+              failonerror="true">
+            <arg line="sign /f ${cert.dir}/codesigncert.pfx /p ${wrapper.cert.password} /t http://timestamp.comodoca.com/authenticode ${releasedir}/lib/${wrapper.lib.name}" />
+        </exec>
         <!-- Make sure that files are formatted correctly for their platforms -->
         <fixcrlf srcdir="${releasedir}" includes="**/*.bat" eol="crlf" />
         <fixcrlf srcdir="${releasedir}" includes="**/*.bat.in" eol="crlf" />

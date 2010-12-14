@@ -163,9 +163,6 @@ public class Main
             buildCommand( panel, gridBag, c, "RestartAndReturn()", "restartandreturn",
                     getRes().getString( "Calls WrapperManager.restartAndReturn() to shutdown the current JVM and start a new one." ) );
             
-            buildCommand( panel, gridBag, c, getRes().getString( "Access Violation" ), "access_violation",
-                    getRes().getString( "Attempts to cause an access violation within the JVM, relies on a JVM bug and may not work." ) );
-            
             buildCommand( panel, gridBag, c, getRes().getString( "Native Access Violation" ), "access_violation_native",
                     getRes().getString( "Causes an access violation using native code, the JVM will crash and be restarted." ) );
             

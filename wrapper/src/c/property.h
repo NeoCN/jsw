@@ -97,6 +97,12 @@ extern int setEnv(const TCHAR *name, const TCHAR *value, int source);
 /**
  * Create a Properties structure loaded in from the specified file.
  *  Must call disposeProperties to free up allocated memory.
+ *
+ * @param properties Properties structure to load into.
+ * @param filename File to load the properties from.
+ * @param preload TRUE if this is a preload call that should have supressed error output.
+ *
+ * @return TRUE if there were any problems, FALSE if successful.
  */
 extern int loadProperties(Properties *properties, const TCHAR* filename, int preload);
 
@@ -111,6 +117,12 @@ extern Properties* createProperties();
  *  pointer will no longer be valid.
  */
 extern void disposeProperties(Properties *properties);
+
+/**
+ * Free all memory allocated by a Properties structure.  The properties
+ *  pointer will no longer be valid.
+ */
+extern void disposeEnvironment();
 
 /**
  * Remove a single Property from a Properties.  All associated memory is

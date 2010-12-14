@@ -141,6 +141,14 @@ extern void outOfMemoryQueued(const TCHAR *context, int id);
 
 extern void outOfMemory(const TCHAR *context, int id);
 
+/**
+ * Sets the log levels to a silence so we never output anything.
+ */
+extern void setSilentLogLevels();
+
+/**
+ * Sets the console log levels to a simple format for help and usage messages.
+ */
 extern void setSimpleLogLevels();
 
 /* * Logfile functions * */

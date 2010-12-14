@@ -646,8 +646,10 @@ extern void wrapperSetJavaState(int jState, TICKS nowTicks, int delay);
 extern void wrapperCheckConsoleWindows();
 
 extern int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers);
-BOOL extern myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParameters, LPCTSTR pszDirectory);
-BOOL extern runElevated( __in LPCTSTR pszPath, __in_opt LPCTSTR pszParameters, __in_opt LPCTSTR pszDirectory);
+BOOL extern elevateThis(int argc, TCHAR **argv);
+BOOL extern duplicateSTD();
+BOOL extern myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParameters, LPCTSTR pszDirectory, TCHAR* namedPipeName);
+BOOL extern runElevated( __in LPCTSTR pszPath, __in_opt LPCTSTR pszParameters, __in_opt LPCTSTR pszDirectory, TCHAR* namedPipeName);
 BOOL extern isElevated();
 BOOL extern isVista();
 extern void wrapperMaintainControlCodes();

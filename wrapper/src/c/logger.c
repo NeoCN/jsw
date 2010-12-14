@@ -320,6 +320,10 @@ int initLogging(void (*logFileChanged)(const TCHAR *logFile)) {
  */
 int disposeLogging() {
 #ifdef WIN32
+ #ifdef WRAPPERW
+    int i;
+ #endif
+    
     if (log_printfMutexHandle) {
         if (!CloseHandle(log_printfMutexHandle))
         {
@@ -327,8 +331,41 @@ int disposeLogging() {
             return 1;
         }
     }
+ #ifdef WRAPPERW
+    for (i = 0; i < dialogLogEntries; i++) {
+        free(dialogLogs[i]);
+    }
+    free(dialogLogs);
+ #endif
 #endif
+    if (threadPrintBuffer && threadPrintBufferSize > 0) {
+        free(threadPrintBuffer);
+    }
+    if (threadMessageBuffer && threadMessageBufferSize > 0) {
+        free(threadMessageBuffer);
+    }
 
+
+    if (logFilePath) {
+        free(logFilePath);
+        logFilePath = NULL;
+    }
+    if (currentLogFileName) {
+        free(currentLogFileName);
+        currentLogFileName = NULL;
+    }
+    if (workLogFileName) {
+        free(workLogFileName);
+        workLogFileName = NULL;
+    }
+    if (loginfoSourceName != defaultLoginfoSourceName) {
+        free(loginfoSourceName);
+        loginfoSourceName = NULL;
+    }
+    if (logfileFP) {
+        fclose(logfileFP);
+        logfileFP = NULL;
+    }
     return 0;
 }
 
@@ -453,7 +490,21 @@ int getLogFacilityForName( const TCHAR *logFacilityName ) {
 }
 #endif
 
-/** Sets the console log levels to a simple format for help and usage messages. */
+/**
+ * Sets the log levels to a silence so we never output anything.
+ */
+void setSilentLogLevels() {
+    setConsoleLogLevelInt(LEVEL_NONE);
+#ifdef WRAPPERW
+    setDialogLogLevelInt(LEVEL_NONE);
+#endif
+    setLogfileLevelInt(LEVEL_NONE);
+    setSyslogLevelInt(LEVEL_NONE);
+}
+
+/**
+ * Sets the console log levels to a simple format for help and usage messages.
+ */
 void setSimpleLogLevels() {
     /* Force the log levels to control output. */
     setConsoleLogFormat(TEXT("M"));
@@ -484,59 +535,12 @@ int isLogfileAccessed() {
  *
  * @return TRUE if there were any problems.
  */
-extern int setLogfilePath( const TCHAR *log_file_path, const TCHAR *workingDir, int preload) {
+extern int setLogfilePath(const TCHAR *log_file_path, const TCHAR *workingDir, int preload) {
     size_t len = _tcslen(log_file_path);
-    TCHAR* logfilePath2;
 #ifdef WIN32
     TCHAR *c;
-    int work;
 #endif
-    
-    if (workingDir) {
-#ifdef WIN32
-        work = GetFullPathName(log_file_path, 0, NULL, NULL);
-        if (!work) {
-                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                    TEXT("Unable to resolve the full path of the log file: %s (%s)\n  Current working directory is: %s"),
-                    log_file_path, getLastErrorText(), workingDir);
-            return TRUE;
-        }
-        logfilePath2 = malloc(sizeof(TCHAR) * work);
-        if (!logfilePath2) {
-            outOfMemory(TEXT("LC"), 1);
-            return TRUE;
-        }
-        if (!GetFullPathName(log_file_path, work, logfilePath2, NULL)) {
-                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                    TEXT("Unable to resolve the full path of the log file: %s (%s)\n  Current working directory is: %s"),
-                    log_file_path, getLastErrorText(), workingDir);
-            return TRUE;
-        }
-#else
-        /* The solaris implementation of realpath will return a relative path if a relative
-         *  path is provided.  We always need an abosulte path here.  So build up one and
-         *  then use realpath to remove any .. or other relative references. */
-        logfilePath2 = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
-        if (!logfilePath2) {
-            outOfMemory(TEXT("LC"), 2);
-            return TRUE;
-        }
-        if (_trealpath(log_file_path, logfilePath2) == NULL) {
-            /* Most likely the file does not exist.  The wrapperData->configFile has the first
-             *  file that could not be found.  May not be the config file directly if symbolic
-             *  links are involved. */
-            /* The output buffer is likely to contain undefined data.
-             * To be on the safe side and in order to report the error
-             *  below correctly we need to override the data first.*/
-            if (log_file_path[0] != TEXT('/')) {
-                _sntprintf(logfilePath2, PATH_MAX + 1, TEXT("%s/%s"), workingDir, log_file_path);
-            } else { 
-                _sntprintf(logfilePath2, PATH_MAX + 1, TEXT("%s"), log_file_path);
-            }
-        }
-#endif
-    }
-    
+
     logFileNameSize = len + 10 + 1;
     if (logFilePath) {
         free(logFilePath);
@@ -552,7 +556,7 @@ extern int setLogfilePath( const TCHAR *log_file_path, const TCHAR *workingDir, 
         outOfMemoryQueued(TEXT("SLP"), 1);
         return TRUE;
     }
-    _tcscpy(logFilePath, log_file_path);
+    _tcsncpy(logFilePath, log_file_path, len + 1);
 
     currentLogFileName = malloc(sizeof(TCHAR) * (len + 10 + 1));
     if (!currentLogFileName) {
@@ -610,7 +614,7 @@ TCHAR *getCurrentLogfilePath() {
     if (!logFileCopy) {
         _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P3"));
     } else {
-        _tcscpy(logFileCopy, currentLogFileName);
+        _tcsncpy(logFileCopy, currentLogFileName, _tcslen(currentLogFileName) + 1);
     }
 
     /* Release the lock we have on the logging mutex so that other threads can get in. */
@@ -723,7 +727,7 @@ void setLogfileUmask( int log_file_umask ) {
 
 void setLogfileFormat( const TCHAR *log_file_format ) {
     if( log_file_format != NULL )
-        _tcscpy( logfileFormat, log_file_format );
+        _tcsncpy( logfileFormat, log_file_format, 32 );
 }
 
 void setLogfileLevelInt( int log_file_level ) {
@@ -813,7 +817,7 @@ void setLogfilePurgePattern(const TCHAR *pattern) {
             outOfMemoryQueued(TEXT("SLPP"), 1);
             return;
         }
-        _tcscpy(logFilePurgePattern, pattern);
+        _tcsncpy(logFilePurgePattern, pattern, len + 1);
     }
 }
 
@@ -931,7 +935,7 @@ void flushLogfile() {
 /* Console functions */
 void setConsoleLogFormat( const TCHAR *console_log_format ) {
     if( console_log_format != NULL )
-        _tcscpy( consoleFormat, console_log_format );
+        _tcsncpy( consoleFormat, console_log_format, 32 );
 }
 
 void setConsoleLogLevelInt( int console_log_level ) {
@@ -997,7 +1001,7 @@ void setSyslogEventSourceName( const TCHAR *event_source_name ) {
             return;
         }
 
-        _tcscpy(loginfoSourceName, event_source_name);
+        _tcsncpy(loginfoSourceName, event_source_name, _tcslen(event_source_name) + 1);
         if (_tcslen(loginfoSourceName) > 32) {
             loginfoSourceName[32] = TEXT('\0');
         }
@@ -1220,7 +1224,7 @@ void forceFlush(FILE *fp) {
  */
 void generateLogFileName(TCHAR *buffer, const TCHAR *template, const TCHAR *nowDate, const TCHAR *rollNum ) {
     /* Copy the template to the buffer to get started. */
-    _tcscpy(buffer, template);
+    _tcsncpy(buffer, template, _tcslen(logFilePath) + 11);
 
     /* Handle the date token. */
     if (_tcsstr(buffer, TEXT("YYYYMMDD"))) {
@@ -1405,16 +1409,8 @@ int log_printf_message( int source_id, int level, int threadId, int queued, TCHA
         /* Build up the printBuffer. */
         printBuffer = buildPrintBuffer( source_id, level, threadId, queued, nowTM, nowMillis, consoleFormat, message );
         if (printBuffer) {
-            /* Write the print buffer to the console. */
-#ifdef WIN32
-            if ( consoleStdoutHandle != NULL ) {
-                writeToConsole( NULL, TEXT("%s\n"), printBuffer );
-            } /* else if (GetStdHandle(STD_OUTPUT_HANDLE) != NULL) {
-                writeToConsole(GetStdHandle(STD_OUTPUT_HANDLE), TEXT("%s\n"), printBuffer);
-            } */ else {
-#endif
-                /* Decide where to send the output. */
-                switch (level) {
+            /* Decide where to send the output. */
+            switch (level) {
                 case LEVEL_FATAL:
                     if (consoleFatalToStdErr) {
                         target = stderr;
@@ -1442,8 +1438,20 @@ int log_printf_message( int source_id, int level, int threadId, int queued, TCHA
                 default:
                     target = stdout;
                     break;
-                }
-                
+            }
+
+            /* Write the print buffer to the console. */
+#ifdef WIN32
+            /* Using the WinAPI function WriteConsole would make it impossible to pipe the console output */		    
+            /*
+            if ((target == stdout) && (GetStdHandle(STD_OUTPUT_HANDLE) != NULL)) {
+                writeToConsole(GetStdHandle(STD_OUTPUT_HANDLE), TEXT("%s\n"), printBuffer);
+            } else if ((target == stderr) && (GetStdHandle(STD_ERROR_HANDLE) != NULL)) {
+                writeToConsole(GetStdHandle(STD_ERROR_HANDLE), TEXT("%s\n"), printBuffer);
+            } else
+            */
+            if (TRUE) {
+#endif                
                 _ftprintf(target, TEXT("%s\n"), printBuffer);
                 if (consoleFlush) {
                     fflush(target);
@@ -1519,7 +1527,7 @@ int log_printf_message( int source_id, int level, int threadId, int queued, TCHA
                 /* Failure to write to logfile already reported. */
             } else {
                 /* We need to store the date the file was opened for. */
-                _tcscpy(logFileLastNowDate, nowDate);
+                _tcsncpy(logFileLastNowDate, nowDate, 9);
 
                 /* Build up the printBuffer. */
                 printBuffer = buildPrintBuffer( source_id, level, threadId, queued, nowTM, nowMillis, logfileFormat, message );
@@ -1625,6 +1633,11 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
             if (!threadMessageBuffer) {
                 _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P1"));
                 threadMessageBufferSize = 0;
+#if defined(UNICODE) && !defined(WIN32)
+                if (flag == TRUE) {
+                    free(msg);
+                }
+#endif
                 return;
             }
         }
@@ -1663,6 +1676,11 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
             if (!threadMessageBuffer) {
                 _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P2"));
                 threadMessageBufferSize = 0;
+#if defined(UNICODE) && !defined(WIN32)
+                if (flag == TRUE) {
+                    free(msg);
+                }
+#endif
                 return;
             }
 
@@ -1685,7 +1703,7 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
         if (!logFileCopy) {
             _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P3"));
         } else {
-            _tcscpy(logFileCopy, currentLogFileName);
+            _tcsncpy(logFileCopy, currentLogFileName, _tcslen(currentLogFileName) + 1);
             /* Now after we have 100% prepared the log file name.  Put into the queue variable
              *  so the maintainLogging() function can safely grab it at any time.
              * The reading code is also in a semaphore so we can do a quick test here safely as well. */
@@ -2218,7 +2236,7 @@ void rollLogs() {
 
     /* Now, starting at the highest file rename them up by one index. */
     for (; i > 1; i--) {
-        _tcscpy(currentLogFileName, workLogFileName);
+        _tcsncpy(currentLogFileName, workLogFileName, _tcslen(logFilePath) + 11);
         _sntprintf(rollNum, 11, TEXT("%d"), i - 1);
         generateLogFileName(workLogFileName, logFilePath, NULL, rollNum);
 
@@ -2485,7 +2503,7 @@ void log_printf_queue( int useQueue, int source_id, int level, const TCHAR *lpsz
     
     /* vswprintf returns -1 on overflow. */
     if ((count < 0) || (count >= QUEUED_BUFFER_SIZE_USABLE - 1)) {
-        _tcscat(buffer, TEXT("..."));
+        _tcsncat(buffer, TEXT("..."), QUEUED_BUFFER_SIZE);
     }
     
     if (useQueue) {
@@ -2592,7 +2610,7 @@ void maintainLogger() {
                     if (!logFileCopy) {
                         _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("ML1"));
                     } else {
-                        _tcscpy(logFileCopy, currentLogFileName);
+                        _tcsncpy(logFileCopy, currentLogFileName, _tcslen(currentLogFileName) + 1);
                     }
                 }
 #ifdef _DEBUG_QUEUE
@@ -2609,6 +2627,9 @@ void maintainLogger() {
 
             /* Release the lock we have on the logging mutex so that other threads can get in. */
             if (releaseLoggingMutex()) {
+                if (logFileChanged && logFileCopy) {
+                    free(logFileCopy);
+                }
                 return;
             }
 

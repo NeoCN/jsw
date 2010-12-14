@@ -4,18 +4,121 @@ Java Service Wrapper Revision History.
 3.5.7
 * Changed the way the script is installing the daemon gets installed on an AIX
   system. The script now uses inittab & SRC.
-* Fix a problem on AIX in the shell script that was preventing the script from
-  starting the Wrapper correctly on system boot when the delta-pack naming of
-  the Wrapper was used and when the script was installed with the "install"
-  command.  This had been a problem since 3.4.1 when the install command was
-  first added.
+* Fix a problem in the shell script that was preventing the script from
+  starting the Wrapper correctly if a file or directory existed in the current
+  working directory which was one character in length.  This was only a problem
+  when the delta-pack naming of the Wrapper was used.  This was easy to
+  reproduce on AIX systems on system restart because a "u" directory exists in
+  the root directory by default.  This had been a problem since 3.4.0 when
+  it was introduced as a fix to a Solaris problem.  The root cause was a
+  missing set of quotes in the tr command.
+* Fix a problem in the shell script that was preventing the script from finding
+  the running wrapper process when it was started when the working directory
+  was in the same directory as the wrapper binary, but queried later from
+  another location.  It would also fail if it was started from another
+  location, but then queried from the location of the Wrapper.  This was
+  introduced in version 3.5.6 when the script stopped changing the working
+  directory in the script.
 * Add a new GC action that will cause the JVM to immediately perform a full
   thread dump.  See the wrapper.commandfile, wrapper.filter.action.<n>,
   wrapper.check.deadlock.action, and wrapper.timer.<n>.action properties for
   details.
-* Modify the wrapper.event.<event_name>.command.block.action property slightly
-  so it will now correctly warn if an unknown action is encountered.  It had
-  been defaulting to CONTINUE silently.
+* (Professional) Modify the wrapper.event.<event_name>.command.block.action
+  property slightly so it will now correctly warn if an unknown action is
+  encountered.  It had been defaulting to CONTINUE silently.
+* Modify the timing of the message shown when an #encoding directive is missing
+  from the top of a configuration file.  It was only being logged if debug
+  output was enabled.  It will now also be logged if the #include.debug
+  directive is specified.
+* Fix the indentation of warning messages about encoding or include problems in
+  configuration files.
+* (Standard, Professional) Fix a problem where include file problems could
+  cause the shell script to have errors due to invalid translated output from
+  the Wrapper.
+* Add a warning when the maximum include depth is reached and include debugging
+  is enabled.  The Wrapper had always just silently skipped the include.
+* Fix a problem where #include.required directive was not correctly preventing
+  startup if the include file was missing but the required include was in a
+  nested include.
+* Fix a problem where the cause of some fatal include problems were not being
+  logged correctly, resulting in a simple, non-informative message only that
+  the configuration file failed to be loaded.  This was a problem since 3.5.5.
+* Fix a Windows problem where the Wrapper could fail to start as a service if a
+  defined environment variable would expand to a length larger than the 32k
+  limit specified in the ExpandEnvironmentStrings system function.  This was a
+  problem on all Windows platforms prior to version 3.5.5, but only on Windows
+  2000 since then, when the code used to reload the environment from the
+  registry was disabled for newer versions of Windows.  We now simply skip the
+  expansion of the problem variable and continue with a warning.  Bug #3103776.
+* Add a set of optional system properties that the WrapperSimpleApp,
+  WrapperStartStopApp, and WrapperJarApp helper classes are aware of to tell
+  them to ignore uncaught exceptions thrown within the main methods of the user
+  application.  The exceptions will still be logged, but they can now be
+  configured so that the main method is just allowed to end without causing the
+  Wrapper to shutdown in an error state.  Java on its own will stay running in
+  such a case as long as it has launched at least one non-daemon thread prior
+  to the uncaught exception being thrown.  This does not affect mst users, but
+  an application was found that was having problems because of this difference
+  in behavior.  See the javadocs of the helper classes for details.
+* (Professional) Fix a problem when looking for the correct exit code to use
+  for the wrapper.event.<event_name>.command.on_exit.<n> property.  The Wrapper
+  now searches for a value as follows:
+  wrapper.event.<event_name>.command.on_exit.<n>,
+  wrapper.event.<event_name>.command.on_exit.default,
+  wrapper.event.default.command.on_exit.<n>, then
+  wrapper.event.default.command.on_exit.default.  The third pattern had been
+  getting skipped in previous versions since it was added in version 3.3.0.
+* (Professional) Add logic to report a warning if an unexpected value is
+  specified for the wrapper.event.<event_name>.command.on_exit.<n> or
+  wrapper.event.<event_name>.command.block.action properties.
+* (Professional) Clean up the message log levels so the output is as expected
+  when using the wrapper.event.<event_name>.command.loglevel property.
+* (Professional) Improve the wrapper.event.<event_name>.command.on_exit.<n>
+  property so the configured action will now work even if the command exits
+  after the block time out has expired.  In previous versions, there was no
+  way to make the Wrapper do anything other than continue.
+* (Professional) Fix a problem where the Wrapper was failing to detect a JVM
+  exit correctly if an event command had been fired first.  The only problem
+  was that the Wrapper was always reporting a JVM exit code of 0 rather than
+  the actual exit code.
+* Fix a buffer overflow on Windows when either installing as a service, or
+  updating an existing service.  The problem only occurred when properties
+  containing spaces, or Java passthrough arguments containing spaces were
+  specified on the command line.  The running service did not have any
+  problems.  This was introduced in 3.5.0.
+* (Standard, Professional) Improve the error message logged when an unlicensed
+  version of the Wrapper's native library is used.
+* (Standard, Professional) Fix a buffer overflow problem on Windows when
+  creating a customized Wrapper binary if the target binary name did not
+  include the ".exe" extension.  This problem existed since its intruduction in
+  version 3.3.7.
+* The wrapper.exe, wrapperw.exe and wrapper.dll binaries are now being signed
+  on Windows making it possible to verify that valid Tanuki Software binaries
+  are being used.
+* Implemented a way to install, remove, start, stop, etc., the Wrapper as a
+  Windows service from a non-elevated (UAC) console.  The Wrapper is elevated
+  transparently using a child process.  This is needed starting with Windows
+  Vista and 2008 for smooth interaction with the Windows Service Manager.
+* (Standard, Professional) Fix a problem where the wrapperjni_*.mo localized
+  files were not being loaded correctly.  These messages are only shown when
+  debug output is enabled.  Application and Wrapper localization was working
+  fine.  Introduced in 3.5.5.
+* (Standard, Professional) Enhanced the ability to run with localizations
+  other than the system language on Windows.  The Wrapper process locale was
+  not being set correctly.  So Japanese text was not always showing correctly
+  if the wrapper.lang property was set when the OS was English or German.
+  The Java process still has an issue where it will always start with the
+  system default value for the file.encoding system property.  This can still
+  cause problems writing Japanese text when the file.encoding is German for
+  example.
+* Added support in the shell script for starting/installing the wrapper on
+  system boot with upstart.
+* Fix a problem in the shell script where it would fail to recognize a running
+  Wrapper if the Wrapper command line or path contained a square bracket.
+* Modify the way we test for the existance of the temp directory so we now
+  generate our own file name rather than using File.createTempFile.  On some
+  systems createTempFile was taking a long time because it requires that Java
+  initialize its internal entropy.
 
 3.5.6
 * Fix a problem on UNIX platforms where the log file path was being calculated

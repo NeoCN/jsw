@@ -364,8 +364,14 @@ public final class WrapperManager
     private static boolean m_service = false;
     private static boolean m_debug = false;
     private static int m_jvmId = 0;
+    /** Flag set when any thread initiates a stop or restart. */
+    private static boolean m_stoppingInit = false;
+    /** Flag set when the thread that will be in charge of actually stopping has been fixed. */
     private static boolean m_stopping = false;
+    /** Thread that is in charge of stopping. */
     private static Thread m_stoppingThread;
+    /** If set then this message will be sent as a STOP message as soon as we connect to the Wrapper. */
+    private static String m_pendingStopMessage = null;
     private static int m_exitCode;
     private static boolean m_libraryOK = false;
     private static byte[] m_commandBuffer = new byte[512];
@@ -1371,6 +1377,13 @@ public final class WrapperManager
                 m_outDebug.println( getRes().getString( "Calling native initialization method." ) );
             }
             nativeInit( m_debug );
+            
+            if ( m_stoppingInit )
+            {
+                // Certain checks in the nativeInit call can result in the JVM starting to shutdown.
+                //  Avoid further JNI related messages that would be confusing.
+                m_libraryOK = false;
+            }
         }
         else
         {
@@ -1592,19 +1605,39 @@ public final class WrapperManager
         File tmpDir = new File( System.getProperty( "java.io.tmpdir" ) );
         if ( m_debug )
         {
-            m_outDebug.println( getRes().getString("Java temporary directory: {0}",tmpDir ));
+            m_outDebug.println( getRes().getString( "Java temporary directory: {0}", tmpDir ) );
         }
         
-        boolean tmpDirRequired = getProperties().getProperty("wrapper.java.tmpdir.required", "FALSE").equalsIgnoreCase( "TRUE" );
-        boolean tmpDirWarnSilently = getProperties().getProperty("wrapper.java.tmpdir.warn_silently", "TRUE").equalsIgnoreCase( "TRUE" );
+        boolean tmpDirCheck = getProperties().getProperty( "wrapper.java.tmpdir.check", "TRUE").equalsIgnoreCase( "TRUE" );
+        if ( !tmpDirCheck )
+        {
+            if ( m_debug )
+            {
+                m_outDebug.println( getRes().getString( "Validation of temporary directory disabled." ) );
+            }
+            return;
+        }
+        
+        boolean tmpDirRequired = getProperties().getProperty( "wrapper.java.tmpdir.required", "FALSE" ).equalsIgnoreCase( "TRUE" );
+        boolean tmpDirWarnSilently = getProperties().getProperty( "wrapper.java.tmpdir.warn_silently", "TRUE" ).equalsIgnoreCase( "TRUE" );
         Exception ex = null;
         try
         {
             tmpDir = tmpDir.getCanonicalFile();
-            File tempFile = File.createTempFile( "wrapper", null );
-            if ( !tempFile.delete() )
+            File tempFile = new File( tmpDir, "wrapper-" + System.currentTimeMillis() + "-" + getJavaPID() );
+            if ( tempFile.createNewFile() )
             {
-                m_outError.println( "Unable to delete temporary file: " + tempFile );
+                if ( !tempFile.delete() )
+                {
+                    m_outError.println( "Unable to delete temporary file: " + tempFile );
+                }
+            }
+            else
+            {
+                if ( m_debug )
+                {
+                    m_outDebug.println( "Unable to create temporary file: " + tempFile );
+                }
             }
         }
         catch ( IOException e )
@@ -1620,8 +1653,8 @@ public final class WrapperManager
         {
             if ( tmpDirRequired )
             {
-                m_outError.println( getRes().getString("Unable to write to the configured Java temporary directory: {0} : {1}",tmpDir,  ex.toString() ) );
-                m_outError.println( getRes().getString("Shutting down." ) );
+                m_outError.println( getRes().getString( "Unable to write to the configured Java temporary directory: {0} : {1}", tmpDir, ex.toString() ) );
+                m_outError.println( getRes().getString( "Shutting down." ) );
                 System.exit( 1 );
             }
             else
@@ -1630,17 +1663,17 @@ public final class WrapperManager
                 {
                     if ( m_debug )
                     {
-                        m_outDebug.println( getRes().getString("Unable to write to the configured Java temporary directory: {0} : {1}",tmpDir, ex.toString() ));
+                        m_outDebug.println( getRes().getString( "Unable to write to the configured Java temporary directory: {0} : {1}", tmpDir, ex.toString() ) );
                     }
                 }
                 else
                 {
-                    m_outInfo.println( getRes().getString("Unable to write to the configured Java temporary directory: {0} : {1}",tmpDir,ex.toString() ));
+                    m_outInfo.println( getRes().getString( "Unable to write to the configured Java temporary directory: {0} : {1}", tmpDir,ex.toString() ) );
                 }
                 if ( m_debug )
                 {
-                    m_outDebug.println( getRes().getString("  The lack of a temp directory could lead to problems with features that store temporary data, including remote jar class loading." ));
-                    m_outDebug.println( getRes().getString("  The Java temporary directory can be redefined with the java.io.tmpdir system property." ));
+                    m_outDebug.println( getRes().getString( "  The lack of a temp directory could lead to problems with features that store temporary data, including remote jar class loading." ) );
+                    m_outDebug.println( getRes().getString( "  The Java temporary directory can be redefined with the java.io.tmpdir system property." ) );
                 }
             }
         }
@@ -2441,7 +2474,7 @@ public final class WrapperManager
             sm.checkPermission( new WrapperPermission( "test.appearOrphan" ) );
         }
         
-        m_outInfo.println( getRes().getString("WARNING: Making JVM appear to be orphaned..." ));
+        m_outInfo.println( getRes().getString( "WARNING: Making JVM appear to be orphaned..." ) );
         sendCommand( WRAPPER_MSG_APPEAR_ORPHAN, "" );
     }
     
@@ -2845,6 +2878,8 @@ public final class WrapperManager
             sm.checkPermission( new WrapperPermission( "restart" ) );
         }
         
+        m_stoppingInit = true;
+        
         if ( m_debug )
         {
             m_outDebug.println(getRes().getString(
@@ -2878,6 +2913,8 @@ public final class WrapperManager
         {
             sm.checkPermission( new WrapperPermission( "restart" ) );
         }
+        
+        m_stoppingInit = true;
         
         synchronized( WrapperManager.class )
         {
@@ -2988,6 +3025,8 @@ public final class WrapperManager
             sm.checkPermission( new WrapperPermission( "stop" ) );
         }
         
+        m_stoppingInit = true;
+        
         if ( m_debug )
         {
             m_outDebug.println( getRes().getString(
@@ -3036,6 +3075,8 @@ public final class WrapperManager
             sm.checkPermission( new WrapperPermission( "stop" ) );
         }
         
+        m_stoppingInit = true;
+        
         synchronized( WrapperManager.class )
         {
             if ( m_stopping )
@@ -3045,7 +3086,6 @@ public final class WrapperManager
                     m_outDebug.println( getRes().getString(
                         "WrapperManager.stopAndReturn({0}) called by thread: {1} already stopping.",
                          new Integer( exitCode ), Thread.currentThread().getName() ) );
-                      //  + Thread.currentThread().getName() + " already stopping." );
                 }
                 return;
             }
@@ -4639,6 +4679,14 @@ public final class WrapperManager
         // Send the key back to the wrapper so that the wrapper can feel safe
         //  that it is talking to the correct JVM
         sendCommand( WRAPPER_MSG_KEY, m_key );
+        
+        // If there is a stop pending then send it immediately now.
+        if ( m_pendingStopMessage != null )
+        {
+            m_outDebug.println( getRes().getString( "Resend pending packet {0} : {1}", getPacketCodeName( WRAPPER_MSG_STOP ), m_pendingStopMessage ) );
+            sendCommand( WRAPPER_MSG_STOP, m_pendingStopMessage );
+            m_pendingStopMessage = null;
+        }
             
         return m_socket;
     }
@@ -4823,6 +4871,12 @@ public final class WrapperManager
                 m_outDebug.println( getRes().getString(
                         "Backend socket not connected, not sending packet {0} : {1}",
                         getPacketCodeName( code ), message ) );
+
+                if ( code == WRAPPER_MSG_STOP )
+                {
+                    // Store this message so we can send it later if and when we connect.
+                    m_pendingStopMessage = message;
+                }
             }
             else
             {
@@ -4972,7 +5026,15 @@ public final class WrapperManager
                         switch( code )
                         {
                         case WRAPPER_MSG_START:
-                            startInner( false );
+                            // Don't start if we are already starting to stop.
+                            if ( m_stoppingInit) {
+                                if ( m_debug )
+                                {
+                                    m_outDebug.println( getRes().getString( "Java stop initiated.  Skipping application startup." ) );
+                                }
+                            } else {
+                                startInner( false );
+                            }
                             break;
                             
                         case WRAPPER_MSG_STOP:

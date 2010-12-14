@@ -286,6 +286,7 @@ public abstract class AbstractActionApp
         }
         else if ( action.equals( "access_violation" ) )
         {
+            // The bug we used to cause this is not in most modern VMs so this is not shown by default.
             WrapperManager.accessViolation();
             
         }
@@ -678,7 +679,6 @@ public abstract class AbstractActionApp
         System.err.println( Main.getRes().getString( "   nestedexit1              : Calls System.exit(1) within WrapperListener.stop(1) callback" ) );
         System.err.println( Main.getRes().getString( "   stopimmediate1           : Calls WrapperManager.stopImmediate(1)" ) );
         System.err.println( Main.getRes().getString( "  Actions which should cause the Wrapper to restart the JVM:" ) );
-        System.err.println( Main.getRes().getString( "   access_violation         : Calls WrapperManager.accessViolation" ) );
         System.err.println( Main.getRes().getString( "   access_violation_native  : Calls WrapperManager.accessViolationNative()" ) );
         System.err.println( Main.getRes().getString( "   appear_hung              : Calls WrapperManager.appearHung()" ) );
         System.err.println( Main.getRes().getString( "   halt0                    : Calls Runtime.getRuntime().halt(0)" ) );
