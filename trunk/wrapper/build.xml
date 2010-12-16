@@ -1024,30 +1024,41 @@ wrapper.filter.action.999=NONE]]></replacevalue>
         <fixcrlf srcdir="${releasesrcdir}" includes="build32.sh" eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="build64.sh" eol="lf" />
         <fixcrlf srcdir="${releasesrcdir}" includes="**/Makefile-*" eol="lf" />
-        
-        
-        <!-- Make src builds for Windows -->
-        
+       
         <!-- Set files to windows line feeds for .zip files -->
-        <fixcrlf srcdir="${releasesrcdir}"
-            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.c.in, **/*.c, **/*.h, **/*.log"
-            eol="crlf" />
-        
+        <fixcrlf srcdir="${releasesrcdir}" eol="crlf" includes="**/*.java, **/*.properties, **/*.txt, **/*.xml, **/*.html, **/*.css, **/*.conf*, **/*.c.in, **/*.c, **/*.h, **/*.log"/>
+
+        <copy todir="${releasesrcdir}" overwrite="true" encoding="UTF-8" outputencoding="MS932">
+            <fileset dir="${basedir}" >
+                <include name="README_ja.txt" />
+            </fileset>
+        </copy>
+        <copy todir="${releasesrcdir}" overwrite="true" encoding="UTF-8" outputencoding="Cp1252">
+            <fileset dir="${basedir}" >
+                <include name="README_en.txt" />
+                <include name="README_es.txt" />
+                <include name="README_de.txt" />
+            </fileset>
+        </copy>
+        <fixcrlf srcdir="${releasesrcdir}" encoding="Cp1252" outputencoding="Cp1252" includes="README_en.txt, README_es.txt, README_de.txt" eol="crlf"/>
+        <fixcrlf srcdir="${releasesrcdir}" encoding="MS932" outputencoding="MS932" includes="README_ja.txt" eol="crlf"/>
         <!-- Source archives  -->
         <zip zipfile="${dist.dir}/${releasesrcfile}.zip"
             basedir="${build.dir}"
             compress="true">
             <include name="${releasesrcfile}/**/*" />
-        </zip>
-        
+        </zip>        
         
         <!-- Make src builds for Unix -->
-        
+        <fixcrlf srcdir="${releasesrcdir}" eol="crlf" includes="**/*.java, **/*.properties, **/*.txt, **/*.xml, **/*.html, **/*.css, **/*.conf*, **/*.c.in, **/*.c, **/*.h, **/*.log"/>
         <!-- Set files to unix line feeds for .tar files -->
-        <fixcrlf srcdir="${releasesrcdir}" 
-            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.c.in, **/*.c, **/*.h, **/*.log" 
-            eol="lf" />
-        
+        <!-- Copy the README's again but this time convert the encoding in favour for unix (UTF-8) -->
+        <copy todir="${releasesrcdir}" overwrite="true" encoding="UTF-8" outputencoding="UTF-8">
+            <fileset dir="${basedir}" >
+                <include name="README_*.txt" />
+            </fileset>
+        </copy>
+        <fixcrlf srcdir="${releasesrcdir}" encoding="UTF-8" outputencoding="UTF-8" includes="README_*.txt" eol="crlf"/>
         <!-- Source archives -->
         <tar tarfile="${build.dir}/${releasesrcfile}.tar">
             <tarfileset dir="${build.dir}" mode="755">
@@ -1118,7 +1129,7 @@ wrapper.filter.action.999=NONE]]></replacevalue>
                 <exclude name="**/CVS/*" />
             </fileset>
         </copy>
-        
+
         <!-- Make sure that files are formatted correctly for their platforms -->
         <fixcrlf srcdir="${intermdir}" includes="**/*.bat" eol="crlf" />
         <fixcrlf srcdir="${intermdir}" includes="**/*.bat.in" eol="crlf" />
@@ -1137,21 +1148,39 @@ wrapper.filter.action.999=NONE]]></replacevalue>
         <touch file="${intermdir}/logs/wrapper.log"/>
         
         <!-- Make the intermediate build for Windows -->
-        
         <!-- Set files to windows line feeds for .zip files -->
-        <fixcrlf srcdir="${intermdir}"
-            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.c.in, **/*.c, **/*.h, **/*.log"
-            eol="crlf" />
+        <fixcrlf srcdir="${intermdir}" eol="crlf" includes="**/*.java, **/*.properties, **/*.txt, **/*.xml, **/*.html, **/*.css, **/*.conf*, **/*.c.in, **/*.c, **/*.h, **/*.log"/>
+
+        <!-- Copy the README's and convert the encoding for windows -->
+        <copy todir="${intermdir}" overwrite="true" encoding="UTF-8" outputencoding="MS932">
+            <fileset dir="${basedir}" >
+                <include name="README_ja.txt" />
+            </fileset>
+        </copy>
+        <copy todir="${intermdir}" overwrite="true" encoding="UTF-8" outputencoding="Cp1252">
+            <fileset dir="${basedir}" >
+                <include name="README_en.txt" />
+                <include name="README_es.txt" />
+                <include name="README_de.txt" />
+            </fileset>
+        </copy>
+        <fixcrlf srcdir="${intermdir}" encoding="Cp1252" outputencoding="Cp1252" includes="README_en.txt, README_es.txt, README_de.txt" eol="crlf"/>
+        <fixcrlf srcdir="${intermdir}" encoding="MS932" outputencoding="MS932" includes="README_ja.txt" eol="crlf"/>
         <zip zipfile="${dist.dir}/${intermfile}.zip"
             basedir="${build.dir}"
             compress="true">
             <include name="${intermfile}/**/*" />
-        </zip>
-        
+        </zip>      
         <!-- Make the intermediate build for Unix -->
-        <fixcrlf srcdir="${intermdir}"
-            includes="**/*.java, **/*.properties, **/*.xml, **/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.c.in, **/*.c, **/*.h, **/*.log"
-            eol="lf" />
+        <fixcrlf srcdir="${intermdir}" eol="crlf" includes="**/*.java, **/*.properties, **/*.txt, **/*.xml, **/*.html, **/*.css, **/*.conf*, **/*.c.in, **/*.c, **/*.h, **/*.log"/>
+
+        <!-- Copy the README's again but this time convert the encoding in favour for unix (UTF-8) -->
+        <copy todir="${intermdir}" overwrite="true" encoding="UTF-8" outputencoding="UTF-8">
+            <fileset dir="${basedir}" >
+                <include name="README_*.txt" />
+            </fileset>
+        </copy>
+        <fixcrlf srcdir="${intermdir}" encoding="UTF-8" outputencoding="UTF-8" includes="README_*.txt" eol="crlf"/>
         
         <!-- For tar files, the javadocs are stored in a jdoc.tar file to avoid problems with
              long file names and some tar implementations. -->
@@ -1347,7 +1376,22 @@ wrapper.filter.action.999=NONE]]></replacevalue>
         <fixcrlf srcdir="${releasedir}" includes="**/*.script.in" eol="lf" />
         
         <fixcrlf srcdir="${releasedir}" includes="**/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.log" eol="crlf"/>
-        
+                
+        <copy todir="${releasedir}" overwrite="true" encoding="UTF-8" outputencoding="MS932">
+            <fileset dir="${basedir}" >
+                <include name="README_ja.txt" />
+            </fileset>
+        </copy>
+        <copy todir="${releasedir}" overwrite="true" encoding="UTF-8" outputencoding="Cp1252">
+            <fileset dir="${basedir}" >
+                <include name="README_en.txt" />
+                <include name="README_es.txt" />
+                <include name="README_de.txt" />
+            </fileset>
+        </copy>
+        <fixcrlf srcdir="${releasedir}" encoding="Cp1252" outputencoding="Cp1252" includes="README_en.txt, README_es.txt, README_de.txt" eol="crlf"/>
+        <fixcrlf srcdir="${releasedir}" encoding="MS932" outputencoding="MS932" includes="README_ja.txt" eol="crlf"/>
+
         <zip zipfile="${dist.dir}/${releasefile}.zip"
             basedir="${build.dir}"
             compress="true">
@@ -1459,6 +1503,14 @@ wrapper.filter.action.999=NONE]]></replacevalue>
         <fixcrlf srcdir="${releasedir}" includes="**/*.script.in" eol="lf" />
         
         <fixcrlf srcdir="${releasedir}" includes="**/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.log" eol="lf"/>
+
+        <copy todir="${releasedir}" overwrite="true" encoding="UTF-8" outputencoding="UTF-8">
+            <fileset dir="${basedir}" >
+                <include name="README_*.txt" />
+            </fileset>
+        </copy>
+        <fixcrlf srcdir="${releasedir}" encoding="UTF-8" outputencoding="UTF-8" includes="README_*.txt" eol="crlf"/>
+
         
         <!-- For tar files, the javadocs are stored in a jdoc.tar file to avoid problems with
              long file names and some tar implementations. -->
@@ -1677,6 +1729,23 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         
         <!-- Create release targetted at windows users. -->
         <fixcrlf srcdir="${releasedir}" includes="**/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.log" eol="crlf"/>
+
+
+        <copy todir="${releasedir}" overwrite="true" encoding="UTF-8" outputencoding="MS932">
+            <fileset dir="${basedir}" >
+                <include name="README_ja.txt" />
+            </fileset>
+        </copy>
+        <copy todir="${releasedir}" overwrite="true" encoding="UTF-8" outputencoding="Cp1252">
+            <fileset dir="${basedir}" >
+                <include name="README_en.txt" />
+                <include name="README_es.txt" />
+                <include name="README_de.txt" />
+            </fileset>
+        </copy>
+        <fixcrlf srcdir="${releasedir}" encoding="Cp1252" outputencoding="Cp1252" includes="README_en.txt, README_es.txt, README_de.txt" eol="crlf"/>
+        <fixcrlf srcdir="${releasedir}" encoding="MS932" outputencoding="MS932" includes="README_ja.txt" eol="crlf"/>
+
         
         <zip zipfile="${dist.dir}/${deltareleasefile}.zip"
             basedir="${build.dir}"
@@ -1686,6 +1755,13 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         
         <!-- Create release targetted at unix users. -->
         <fixcrlf srcdir="${releasedir}" includes="**/*.txt, **/*.html, **/*.css, **/*.conf*, **/*.log" eol="lf"/>
+
+        <copy todir="${releasedir}" overwrite="true" encoding="UTF-8" outputencoding="UTF-8">
+            <fileset dir="${basedir}" >
+                <include name="README_*.txt" />
+            </fileset>
+        </copy>
+        <fixcrlf srcdir="${releasedir}" encoding="UTF-8" outputencoding="UTF-8" includes="README_*.txt" eol="crlf"/>
         
         <!-- For tar files, the javadocs are stored in a jdoc.tar file to avoid problems with
              long file names and some tar implementations. -->

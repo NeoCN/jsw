@@ -45,7 +45,6 @@ Für weitere Informationen gehen Sie bitte auf:
 
 
 
-
 2. Dokumentation
 -----------------------------------------------------------------------------
 
@@ -61,8 +60,6 @@ Hier sind ein paar Wege zum Anfangen.
  * HOWTOs
      => http://wrapper.tanukisoftware.com/doc/german/howto.html
  * Javadocs, für fortgeschrittene Benutzer
-     => http://wrapper.tanukisoftware.com/doc/german/howto.html
- * Javadocs, for advanced users
      => http://wrapper.tanukisoftware.com/doc/german/javadocs.html
  * Tanuki Software, Ltd. Firmenseite:
      => http://www.tanukisoftware.com/
