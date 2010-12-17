@@ -5469,8 +5469,7 @@ void _tmain(int argc, TCHAR **argv) {
             _tprintf(TEXT("Attempting to start %s as an NT service.\n"), wrapperData->serviceDisplayName);
             _tprintf(TEXT("\nCalling StartServiceCtrlDispatcher...please wait.\n"));
 
-            /* Start the service control dispatcher.  This will not return
-             *  if the service is started without problems.
+            /* Start the service control dispatcher. 
              *  The ServiceControlDispatcher will call the wrapperServiceMain method. */
             if (!StartServiceCtrlDispatcher(serviceTable)) {
                 _tprintf(TEXT("\n"));
@@ -5486,7 +5485,13 @@ void _tmain(int argc, TCHAR **argv) {
                 appExit(1);
                 return; /* For clarity. */
             }
-            appExit(0);
+
+            /* We will get here when the service starts to stop */
+            /* As wrapperServiceMain should take care of shutdown, wait 10 sec to give some time for its shutdown 
+             * but the process should exit before the sleep completes. */
+            wrapperSleep(10000);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Timed out waiting for wrapperServiceMain"));
+            appExit(1);
             return; /* For clarity. */
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT(""));

@@ -1991,6 +1991,13 @@ void wrapperDataDispose() {
 
 /** Common wrapper cleanup code. */
 void wrapperDispose() {
+    /* Make sure not to dispose twice.  This should not happen, but check for safety. */
+    if (disposed) {
+       _tprintf(TEXT("wrapperDispose was called more than once."));
+       return;
+    }
+    disposed = TRUE;
+
 #ifdef WIN32
     if (protocolMutexHandle) {
         if (!CloseHandle(protocolMutexHandle)) {
@@ -2004,8 +2011,7 @@ void wrapperDispose() {
     if (!wrapperData->useSystemTime) {
         disposeTimer();
     }
-    /* Clean up the logging system. */
-    disposeLogging();
+
     /* Clean up the properties structure. */
     disposeProperties(properties);
     properties = NULL;
@@ -2015,10 +2021,15 @@ void wrapperDispose() {
         free(wrapperChildWorkBuffer);
         wrapperChildWorkBuffer = NULL;
     }
-    if(protocolSendBuffer) {
+    if (protocolSendBuffer) {
         free(protocolSendBuffer);
         protocolSendBuffer = NULL;
     }
+    
+    /* Clean up the logging system.  Should happen near last. */
+    disposeLogging();
+    
+    /* clean up the main wrapper data structure. This must be done last.*/
     wrapperDataDispose();
 }
 
