@@ -119,8 +119,13 @@ Java Service Wrapper Revision History.
   generate our own file name rather than using File.createTempFile.  On some
   systems createTempFile was taking a long time because it requires that Java
   initialize its internal entropy.
-* Fixed a problem where the preceeded commands (after --) got the quotes stripped
-  on a Windows platform.
+* Fixed a problem on Windows where passthrough arguments after a "--" which
+  contained spaces were not being passed through to the JVM intact, they were
+  being split at the spaces into multiple arguments.
+* Fix a problem on Windows where the Wrapper could sometimes crash on shutdown
+  if more than one thread got into the cleanup code at the same time.  This
+  did not affect running applications and was only an issue on shutdown.  It
+  was more likely if a language pack was loaded.  Introduced in 3.5.3.
   
 
 3.5.6
