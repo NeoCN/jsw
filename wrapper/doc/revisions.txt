@@ -1,6 +1,9 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 
+3.5.8
+* 
+
 3.5.7
 * Changed the way the script is installing the daemon gets installed on an AIX
   system. The script now uses inittab & SRC.
@@ -126,7 +129,6 @@ Java Service Wrapper Revision History.
   if more than one thread got into the cleanup code at the same time.  This
   did not affect running applications and was only an issue on shutdown.  It
   was more likely if a language pack was loaded.  Introduced in 3.5.3.
-  
 
 3.5.6
 * Fix a problem on UNIX platforms where the log file path was being calculated
