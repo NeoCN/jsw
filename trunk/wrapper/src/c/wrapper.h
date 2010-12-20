@@ -644,6 +644,10 @@ extern void wrapperSetJavaState(int jState, TICKS nowTicks, int delay);
  *****************************************************************************/
 #ifdef WIN32
 extern void wrapperCheckConsoleWindows();
+/**
+ *   checks the digital Signature of the binary and reports the result.
+ */
+extern BOOL verifyEmbeddedSignature();
 
 extern int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers);
 BOOL extern elevateThis(int argc, TCHAR **argv);
@@ -905,5 +909,4 @@ extern void wrapperStopPendingSignaled(int waitHint);
 extern void wrapperStoppedSignaled();
 extern void wrapperStartPendingSignaled(int waitHint);
 extern void wrapperStartedSignaled();
-
 #endif
