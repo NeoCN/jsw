@@ -1363,11 +1363,11 @@ wrapper.filter.action.999=NONE]]></replacevalue>
         <!-- Sign the binaries -->
         <exec executable="${signtool.dir}/signtool.exe"
               failonerror="true">
-            <arg line="sign /f ${cert.dir}/codesigncert.pfx /p ${wrapper.cert.password} /t http://timestamp.comodoca.com/authenticode ${releasedir}/bin/${wrapper.bin.name}" />
+            <arg line="sign /f &quot;${cert.dir}/codesigncert.pfx&quot; /p ${wrapper.cert.password} /t http://timestamp.comodoca.com/authenticode &quot;${releasedir}/bin/${wrapper.bin.name}&quot;" />
         </exec>
         <exec executable="${signtool.dir}/signtool.exe"
               failonerror="true">
-            <arg line="sign /f ${cert.dir}/codesigncert.pfx /p ${wrapper.cert.password} /t http://timestamp.comodoca.com/authenticode ${releasedir}/lib/${wrapper.lib.name}" />
+            <arg line="sign /f &quot;${cert.dir}/codesigncert.pfx&quot; /p ${wrapper.cert.password} /t http://timestamp.comodoca.com/authenticode &quot;${releasedir}/lib/${wrapper.lib.name}&quot;" />
         </exec>
         <!-- Make sure that files are formatted correctly for their platforms -->
         <fixcrlf srcdir="${releasedir}" includes="**/*.bat" eol="crlf" />
