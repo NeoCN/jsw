@@ -126,6 +126,8 @@ pthread_mutex_t tickMutex = PTHREAD_MUTEX_INITIALIZER;
 SOCKET protocolActiveServerSD = INVALID_SOCKET;
 /* Client Socket. */
 SOCKET protocolActiveBackendSD = INVALID_SOCKET;
+
+DWORD disposed = FALSE;
 int loadConfiguration();
 
 #define READ_BUFFER_BLOCK_SIZE 1024
@@ -3070,6 +3072,10 @@ int wrapperRunCommon() {
     if (checkForTestWrapperScripts()) {
         return 1;
     }
+
+#ifdef WIN32
+    verifyEmbeddedSignature();
+#endif
 
     if (wrapperData->isDebugging) {
         timeTM = wrapperGetReleaseTime();
