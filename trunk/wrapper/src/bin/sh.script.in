@@ -16,7 +16,7 @@
 
 #-----------------------------------------------------------------------------
 # These settings can be modified to fit the needs of your application
-# Optimized for use with version 3.5.8-a of the Wrapper.
+# Optimized for use with version 3.5.8-b of the Wrapper.
 
 # Application
 APP_NAME="@app.name@"
@@ -86,6 +86,7 @@ WAIT_FOR_STARTED_TIMEOUT=120
 
 # flag for using upstart when installing (rather than init.d rc.d)
 USE_UPSTART=
+
 # When installing on On Mac OSX platforms, the following domain will be used to
 #  prefix the plist file name.
 PLIST_DOMAIN=org.tanukisoftware.wrapper
@@ -329,9 +330,9 @@ else
                 DIST_BITS="32"
             fi
             ;;
-        '2097')
+        '2064' | '2066' | '2084' | '2086' | '2094' | '2096' | '2097' | '2098' | '2817')
             DIST_ARCH="390"
-            DIST_BITS="32"
+            DIST_BITS="64"
             ;;
     esac
 fi
@@ -563,7 +564,7 @@ checkUser() {
         else
             su - $RUN_AS_USER -c "\"$REALPATH\" $ADDITIONAL_PARA"
         fi
-
+        RUN_AS_USER_EXITCODE=$?
         # Now that we are the original user again, we may need to clean up the lock file.
         if [ "X$LOCKPROP" != "X" ]
         then
@@ -578,7 +579,7 @@ checkUser() {
             fi
         fi
 
-        exit 0
+        exit $RUN_AS_USER_EXITCODE
     fi
 }
 
@@ -610,11 +611,11 @@ getpid() {
                     'solaris')
                         if [ -f "/usr/bin/pargs" ]
                         then
-                            pidtest=`pargs $pid | grep -F "$WRAPPER_CMD" | tail -1`
+                            pidtest=`pargs $pid | fgrep "$WRAPPER_CMD" | tail -1`
                         else
                             case "$PSEXE" in
                             '/usr/ucb/ps')
-                                pidtest=`$PSEXE -auxww  $pid | grep -F "$WRAPPER_CMD" | tail -1`
+                                pidtest=`$PSEXE -auxww  $pid | fgrep "$WRAPPER_CMD" | tail -1`
                                 ;;
                             '/usr/bin/ps')
                                 TRUNCATED_CMD=`$PSEXE -o comm -p $pid | tail -1`
@@ -622,7 +623,7 @@ getpid() {
                                 COUNT=`echo ${COUNT}`
                                 COUNT=`expr $COUNT - 1`
                                 TRUNCATED_CMD=`echo $WRAPPER_CMD | cut -c1-$COUNT`
-                                pidtest=`$PSEXE -o comm -p $pid | grep -F "$TRUNCATED_CMD" | tail -1`
+                                pidtest=`$PSEXE -o comm -p $pid | fgrep "$TRUNCATED_CMD" | tail -1`
                                 ;;
                             '/bin/ps')
                                 TRUNCATED_CMD=`$PSEXE -o comm -p $pid | tail -1`
@@ -630,7 +631,7 @@ getpid() {
                                 COUNT=`echo ${COUNT}`
                                 COUNT=`expr $COUNT - 1`
                                 TRUNCATED_CMD=`echo $WRAPPER_CMD | cut -c1-$COUNT`
-                                pidtest=`$PSEXE -o comm -p $pid | grep -F "$TRUNCATED_CMD" | tail -1`
+                                pidtest=`$PSEXE -o comm -p $pid | fgrep "$TRUNCATED_CMD" | tail -1`
                                 ;;
                             *)
                                 echo "Unsupported ps command $PSEXE"

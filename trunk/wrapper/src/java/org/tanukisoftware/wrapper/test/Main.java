@@ -172,9 +172,6 @@ public class Main
             buildCommand( panel, gridBag, c, getRes().getString( "Create Deadlock" ), "deadlock",
                     getRes().getString( "Creates two new threads which intentionally go into a DeadLock situation.  (Standard, Professional)" ) );
             
-            buildCommand( panel, gridBag, c, getRes().getString( "Simulate Wrapper Crash" ), "appear_orphan",
-                    getRes().getString( "Makes the JVM appear to have been orphaned to simulate the case where the Wrapper has crashed.  The JVM will shut itself down." ) );
-            
             buildCommand( panel, gridBag, c, getRes().getString("Simulate Out Of Memory" ), "outofmemory",
                     getRes().getString( "Throws an OutOfMemoryError to demonstrate the Trigger feature." ) );
             

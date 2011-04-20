@@ -300,11 +300,6 @@ public abstract class AbstractActionApp
             WrapperManager.appearHung();
             
         }
-        else if ( action.equals( "appear_orphan" ) )
-        {
-            WrapperManager.appearOrphan();
-            
-        }
         else if ( action.equals( "deadlock" ) )
         {
             if ( WrapperManager.isStandardEdition() )

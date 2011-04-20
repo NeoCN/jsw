@@ -648,6 +648,23 @@ int _tunlink(const wchar_t* address) {
     return -1;
 }
 
+
+int _tmkfifo(TCHAR* arg, mode_t mode) {
+    size_t size;
+    char *cStr;
+    int r; 
+
+    r = -1;
+    size = wcstombs(NULL, arg, 0) + 1;
+    cStr = malloc(size);
+    if (cStr) {
+        wcstombs(cStr, arg, size);
+        r = mkfifo(cStr, mode);
+        free(cStr);
+    }
+    return r;
+}
+
 int _tchdir(const TCHAR *path) {
     int r;
     size_t size;
@@ -821,7 +838,7 @@ int _texecve(TCHAR* arg, TCHAR **cmd, TCHAR** env) {
     return -1;
 }
 
-int _topen(const TCHAR *path, int oflag, ...) {
+int _topen(const TCHAR *path, int oflag, mode_t mode) {
     char* cPath;
     int r;
     size_t size;
@@ -830,7 +847,7 @@ int _topen(const TCHAR *path, int oflag, ...) {
     cPath = malloc(size);
     if (cPath) {
         wcstombs(cPath, path, size);
-        r = open(cPath, oflag, 0);
+        r = open(cPath, oflag, mode);
         free(cPath);
         return r;
     }

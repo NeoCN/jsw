@@ -69,7 +69,8 @@ extern inline int wcscasecmp(const wchar_t* s1, const wchar_t* s2);
 #define WRAPPER_THREAD_MAIN     1
 #define WRAPPER_THREAD_SRVMAIN  2
 #define WRAPPER_THREAD_TIMER    3
-#define WRAPPER_THREAD_COUNT    4
+#define WRAPPER_THREAD_JAVAIO   4
+#define WRAPPER_THREAD_COUNT    5
 
 #define MAX_LOG_SIZE 4096
 
@@ -140,6 +141,14 @@ extern void setConsoleStdoutHandle(HANDLE stdoutHandle);
 extern void outOfMemoryQueued(const TCHAR *context, int id);
 
 extern void outOfMemory(const TCHAR *context, int id);
+
+/**
+ * Sets the number of milliseconds to allow logging to take before a warning is logged.
+ *  Defaults to 0 for no limit.  Possible values 0 to 3600000.
+ *
+ * @param threshold Warning threashold.
+ */
+extern void setLogWarningThreshold(int threshold);
 
 /**
  * Sets the log levels to a silence so we never output anything.

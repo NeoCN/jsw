@@ -51,6 +51,8 @@
  #include <winsock.h>
  #include <shlwapi.h>
  #include <windows.h>
+ #include <io.h>
+
 
 /* MS Visual Studio 8 went and deprecated the POXIX names for functions.
  *  Fixing them all would be a big headache for UNIX versions. */
@@ -81,6 +83,8 @@
  #include <netinet/in.h>
  #include <arpa/inet.h>
  #define SOCKET         int
+ #define HANDLE         int
+ #define INVALID_HANDLE_VALUE -1
  #define INVALID_SOCKET -1
  #define SOCKET_ERROR   -1
 
@@ -121,6 +125,12 @@ HANDLE tickMutexHandle = NULL;
 #else
 pthread_mutex_t tickMutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
+
+/* Server Pipe Handles. */
+HANDLE protocolActiveServerPipeIn = INVALID_HANDLE_VALUE;
+HANDLE protocolActiveServerPipeOut = INVALID_HANDLE_VALUE;
+/* Flag for indicating the connected pipes */
+int protocolActiveServerPipeConnected = FALSE;
 
 /* Server Socket. */
 SOCKET protocolActiveServerSD = INVALID_SOCKET;
@@ -192,7 +202,14 @@ struct tm wrapperGetBuildTime() {
  */
 void wrapperAddDefaultProperties() {
     size_t bufferLen;
-    TCHAR* buffer, *langTemp;
+    TCHAR* buffer, *langTemp, *confDirTemp;
+#ifdef WIN32
+    int work, pos2;
+    TCHAR pathSep = TEXT('\\');
+#else
+    TCHAR pathSep = TEXT('/');
+#endif
+    int pos;
 
     /* IMPORTANT - If any new values are added here, this work buffer length may need to be calculated differently. */
     bufferLen = 1;
@@ -203,6 +220,85 @@ void wrapperAddDefaultProperties() {
     bufferLen = __max(bufferLen, _tcslen(TEXT("set.WRAPPER_OS=")) + _tcslen(wrapperOS) + 1);
     bufferLen = __max(bufferLen, _tcslen(TEXT("set.WRAPPER_HOSTNAME=")) + _tcslen(wrapperData->hostName) + 1);
     bufferLen = __max(bufferLen, _tcslen(TEXT("set.WRAPPER_HOST_NAME=")) + _tcslen(wrapperData->hostName) + 1);
+
+    if (wrapperData->confDir == NULL) {
+        if (_tcsrchr(wrapperData->argConfFile, pathSep) != NULL) {
+            pos = (int)(_tcsrchr(wrapperData->argConfFile, pathSep) - wrapperData->argConfFile);
+        } else {
+            pos = -1;
+        }
+#ifdef WIN32
+        if (_tcsrchr(wrapperData->argConfFile, TEXT('/')) != NULL) {
+            pos2 = (int)(_tcsrchr(wrapperData->argConfFile, TEXT('/')) - wrapperData->argConfFile);
+        } else {
+            pos2 = -1;
+        }
+        pos = __max(pos, pos2);
+#endif
+        if (pos == -1) {
+            confDirTemp = malloc(sizeof(TCHAR) * 2);
+            if (!confDirTemp) {
+                outOfMemory(TEXT("WADP"), 1);
+                return;
+            }
+            _tcsncpy(confDirTemp, TEXT("."), 2);
+        } else if (pos == 0) {
+            confDirTemp = malloc(sizeof(TCHAR) * 2);
+            if (!confDirTemp) {
+                outOfMemory(TEXT("WADP"), 2);
+                return;
+            }
+            _sntprintf(confDirTemp, 2, TEXT("%c"), pathSep);
+        } else {
+            confDirTemp = malloc(sizeof(TCHAR) * (pos + 1));
+            if (!confDirTemp) {
+                outOfMemory(TEXT("WADP"), 3);
+                return;
+            }
+            _tcsncpy(confDirTemp, wrapperData->argConfFile, pos);
+            confDirTemp[pos] = TEXT('\0');
+        }
+#ifdef WIN32
+        /* Get buffer size, including '\0' */
+        work = GetFullPathName(confDirTemp, 0, NULL, NULL);
+        if (!work) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                TEXT("Unable to resolve the conf directory: %s"), getLastErrorText());
+            free(confDirTemp);
+            return;
+        }
+        wrapperData->confDir = malloc(sizeof(TCHAR) * work);
+        if (!wrapperData->confDir) {
+            outOfMemory(TEXT("WADP"), 4);
+            free(confDirTemp);
+            return;
+        }
+        if (!GetFullPathName(confDirTemp, work, wrapperData->confDir, NULL)) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                TEXT("Unable to resolve the conf directory: %s"), getLastErrorText());
+            free(confDirTemp);
+            return;
+        }
+#else
+        /* The solaris implementation of realpath will return a relative path if a relative
+         *  path is provided.  We always need an abosulte path here.  So build up one and
+         *  then use realpath to remove any .. or other relative references. */
+        wrapperData->confDir = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
+        if (!wrapperData->confDir) {
+            outOfMemory(TEXT("WADP"), 5);
+            free(confDirTemp);
+            return;
+        }
+        if (_trealpath(confDirTemp, wrapperData->confDir) == NULL) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                TEXT("Unable to resolve the original working directory: %s"), getLastErrorText());
+            free(confDirTemp);
+            return;
+        }
+#endif
+        setEnv(TEXT("WRAPPER_CONF_DIR"), wrapperData->confDir, ENV_SOURCE_WRAPPER);
+        free(confDirTemp);
+    }
 
     buffer = malloc(sizeof(TCHAR) * bufferLen);
     if (!buffer) {
@@ -470,6 +566,8 @@ void dumpEnvironment() {
 void wrapperLoadLoggingProperties(int preload) {
     const TCHAR *logfilePath;
     int logfileRollMode;
+
+    setLogWarningThreshold(getIntProperty(properties, TEXT("wrapper.log.warning.threshold"), 0));
 
     logfilePath = getFileSafeStringProperty(properties, TEXT("wrapper.logfile"), TEXT("wrapper.log"));
     setLogfilePath(logfilePath, wrapperData->workingDir, preload);
@@ -805,7 +903,31 @@ void wrapperGetCurrentTime(struct timeb *timeBuffer) {
 #endif
 }
 
-void protocolStopServer() {
+/**
+ *  This function stops the pipes (quite in a brutal way)
+ */
+void protocolStopServerPipe() {
+    if (protocolActiveServerPipeIn != INVALID_HANDLE_VALUE) {
+#ifdef WIN32
+        CloseHandle(protocolActiveServerPipeIn);
+#else
+        close(protocolActiveServerPipeIn);
+#endif
+        protocolActiveServerPipeIn = INVALID_HANDLE_VALUE;
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_INFO, TEXT("backend pipe closed."));
+    }
+    if (protocolActiveServerPipeOut != INVALID_HANDLE_VALUE) {
+#ifdef WIN32
+        CloseHandle(protocolActiveServerPipeOut);
+#else
+        close(protocolActiveServerPipeOut);
+#endif
+        protocolActiveServerPipeOut = INVALID_HANDLE_VALUE;
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_INFO, TEXT("backend pipe closed."));
+    }
+}
+
+void protocolStopServerSocket() {
     int rc;
 
     /* Close the socket. */
@@ -829,7 +951,81 @@ void protocolStopServer() {
     wrapperData->actualPort = 0;
 }
 
-void protocolStartServer() {
+void protocolStopServer() {
+    if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) {
+        protocolStopServerPipe();
+    } else {
+        protocolStopServerSocket();
+    }
+}
+int protocolActiveServerPipeStarted = FALSE;
+void protocolStartServerPipe() {
+    size_t pipeNameLen;
+    TCHAR *pipeName;
+
+#ifdef WIN32
+    pipeNameLen = 17 + 10 + 1 + 10 + 3;
+#else
+    pipeNameLen = 12 + 10 + 1 + 10 + 3;
+#endif
+    pipeName = malloc(sizeof(TCHAR) * (pipeNameLen + 1));
+    if (!pipeName) {
+        outOfMemory(TEXT("PSSP"), 1);
+        return;
+    }
+#ifdef WIN32
+    _sntprintf(pipeName, pipeNameLen, TEXT("\\\\.\\pipe\\wrapper-%d-%d-out"), wrapperData->wrapperPID, wrapperData->jvmRestarts + 1);
+    if ((protocolActiveServerPipeOut = CreateNamedPipe(pipeName,
+                                                    PIPE_ACCESS_OUTBOUND,/* + FILE_FLAG_FIRST_PIPE_INSTANCE, */
+                                                    PIPE_TYPE_MESSAGE |       /* message type pipe */
+                                                    PIPE_READMODE_MESSAGE |   /* message-read mode */
+                                                    PIPE_NOWAIT,              /* nonblocking mode */
+                                                    1,  /* only allow 1 connection at a time */
+                                                    32768,
+                                                    32768,
+                                                    0,
+                                                    NULL)) == INVALID_HANDLE_VALUE) {
+#else
+    _sntprintf(pipeName, pipeNameLen, TEXT("/tmp/wrapper-%d-%d-out"), wrapperData->wrapperPID, wrapperData->jvmRestarts + 1);
+    if (_tmkfifo(pipeName, S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH) == INVALID_HANDLE_VALUE) {
+
+#endif
+
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, TEXT("Unable to create backend pipe: %s"), getLastErrorText());
+        free(pipeName);
+        return;
+    }
+    if (wrapperData->isDebugging) {
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("server listening on pipe %s."), pipeName);
+    }
+#ifdef WIN32
+    _sntprintf(pipeName, pipeNameLen, TEXT("\\\\.\\pipe\\wrapper-%d-%d-in"), wrapperData->wrapperPID, wrapperData->jvmRestarts + 1);
+    if ((protocolActiveServerPipeIn = CreateNamedPipe(pipeName,
+                                                    PIPE_ACCESS_INBOUND,/* + FILE_FLAG_FIRST_PIPE_INSTANCE,*/
+                                                    PIPE_TYPE_MESSAGE |       /* message type pipe */
+                                                    PIPE_READMODE_MESSAGE |   /* message-read mode*/
+                                                    PIPE_NOWAIT,              /* nonblocking mode*/
+                                                    1,
+                                                    32768,
+                                                    32768,
+                                                    0,
+                                                    NULL)) == INVALID_HANDLE_VALUE) {
+#else
+    _sntprintf(pipeName, pipeNameLen, TEXT("/tmp/wrapper-%d-%d-in"), wrapperData->wrapperPID, wrapperData->jvmRestarts + 1);
+    if (_tmkfifo(pipeName, S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH) == INVALID_HANDLE_VALUE) {
+#endif
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, TEXT("Unable to create backend pipe: %s"), getLastErrorText());
+        free(pipeName);
+        return;
+    }
+    if (wrapperData->isDebugging) {
+        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("server listening on pipe %s."), pipeName);
+    }
+    protocolActiveServerPipeStarted = TRUE;
+    free(pipeName);
+}
+
+void protocolStartServerSocket() {
     struct sockaddr_in addr_srv;
     int rc;
     int port;
@@ -941,7 +1137,7 @@ void protocolStartServer() {
                 wrapperData->port, wrapperData->portMin, wrapperData->portMax, getLastErrorText());
         }
 
-        wrapperStopProcess(getLastError());
+        wrapperStopProcess(getLastError(), TRUE);
         wrapperProtocolClose();
         protocolStopServer();
         wrapperData->exitRequested = TRUE;
@@ -969,10 +1165,62 @@ void protocolStartServer() {
     }
 }
 
-/**
- * Attempt to accept a connection from a JVM client.
- */
-void protocolOpen() {
+void protocolStartServer() {
+    if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) {
+        protocolStartServerPipe();
+    } else {
+        protocolStartServerSocket();
+    }
+}
+
+/* this functions connects the pipes once the other end is there */
+void protocolOpenPipe() {
+#ifdef WIN32
+    int result;
+    result = ConnectNamedPipe(protocolActiveServerPipeOut, NULL);
+
+    if (GetLastError() == ERROR_PIPE_LISTENING) {
+        return;
+    }
+
+    result = ConnectNamedPipe(protocolActiveServerPipeIn, NULL);
+    if (GetLastError() == ERROR_PIPE_LISTENING) {
+        return;
+    }
+    if ((result == 0) && (GetLastError() != ERROR_PIPE_CONNECTED) && (GetLastError() != ERROR_NO_DATA)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Pipe connect failed: %s"), getLastErrorText());
+        return;
+    }
+#else
+    size_t pipeNameLen;
+    TCHAR *pipeName;
+    pipeNameLen = 12 + 10 + 1 + 10 + 3;
+    pipeName = malloc(sizeof(TCHAR) * (pipeNameLen + 1));
+    if (!pipeName) {
+        outOfMemory(TEXT("PSSP"), 1);
+        return;
+    }
+    _sntprintf(pipeName, pipeNameLen, TEXT("/tmp/wrapper-%d-%d-out"), wrapperData->wrapperPID, wrapperData->jvmRestarts);
+    protocolActiveServerPipeOut = _topen(pipeName, O_WRONLY | O_NONBLOCK, S_IWUSR | S_IRUSR);
+
+    if (protocolActiveServerPipeOut == INVALID_HANDLE_VALUE) {
+        free(pipeName);
+        return;
+    }
+
+    _sntprintf(pipeName, pipeNameLen, TEXT("/tmp/wrapper-%d-%d-in"), wrapperData->wrapperPID, wrapperData->jvmRestarts);
+    protocolActiveServerPipeIn = _topen(pipeName, O_RDONLY  | O_NONBLOCK,  S_IRUSR);
+    if (protocolActiveServerPipeIn == INVALID_HANDLE_VALUE) {
+        free(pipeName);
+        return;
+    }
+    free(pipeName);
+#endif
+
+    protocolActiveServerPipeConnected = TRUE;
+}
+
+void protocolOpenSocket() {
     struct sockaddr_in addr_srv;
     int rc;
 #if defined(WIN32)
@@ -1085,9 +1333,64 @@ void protocolOpen() {
 }
 
 /**
- * Close the backend socket.
+ * Attempt to accept a connection from a JVM client.
  */
-void wrapperProtocolClose() {
+void protocolOpen() {
+    if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) {
+        protocolOpenPipe();
+    } else {
+        protocolOpenSocket();
+    }
+}
+
+void protocolClosePipe() {
+#ifndef WIN32
+    size_t pipeNameLen;
+    TCHAR *pipeName;
+
+   
+    pipeNameLen = 12 + 10 + 1 + 10 + 3;
+#endif
+    if (protocolActiveServerPipeConnected) {
+        if (wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("closing backend pipe."));
+        }
+#ifdef WIN32
+        if (protocolActiveServerPipeIn != INVALID_HANDLE_VALUE && !CloseHandle(protocolActiveServerPipeIn)) {
+#else
+        if (close(protocolActiveServerPipeIn) == -1) {
+#endif
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, TEXT("Failed to close backend pipe: %s"), getLastErrorText());
+        }
+
+#ifdef WIN32
+        if (protocolActiveServerPipeOut != INVALID_HANDLE_VALUE && !CloseHandle(protocolActiveServerPipeOut)) {
+#else
+        if (close(protocolActiveServerPipeOut) == -1) {
+#endif
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, TEXT("Failed to close backend pipe: %s"), getLastErrorText());
+        }
+#ifndef WIN32
+    pipeName = malloc(sizeof(TCHAR) * (pipeNameLen + 1));
+    if (!pipeName) {
+        outOfMemory(TEXT("PCP"), 1);
+        return;
+    }
+
+    _sntprintf(pipeName, pipeNameLen, TEXT("/tmp/wrapper-%d-%d-in"), wrapperData->wrapperPID, wrapperData->jvmRestarts);
+    _tunlink(pipeName);
+    _sntprintf(pipeName, pipeNameLen, TEXT("/tmp/wrapper-%d-%d-out"), wrapperData->wrapperPID, wrapperData->jvmRestarts);
+    _tunlink(pipeName);
+#endif
+
+        protocolActiveServerPipeConnected = FALSE;
+        protocolActiveServerPipeStarted = FALSE;
+        protocolActiveServerPipeIn = INVALID_HANDLE_VALUE;
+        protocolActiveServerPipeOut = INVALID_HANDLE_VALUE;
+    }
+}
+
+void protocolCloseSocket() {
     int rc;
 
     /* Close the socket. */
@@ -1106,6 +1409,17 @@ void wrapperProtocolClose() {
             }
         }
         protocolActiveBackendSD = INVALID_SOCKET;
+    }
+}
+
+/**
+ * Close the backend socket.
+ */
+void wrapperProtocolClose() {
+    if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) {
+        protocolClosePipe();
+    } else {
+        protocolCloseSocket();
     }
 }
 
@@ -1159,10 +1473,6 @@ TCHAR *wrapperProtocolGetCodeName(char code) {
 
     case WRAPPER_MSG_LOW_LOG_LEVEL:
         name = TEXT("LOW_LOG_LEVEL");
-        break;
-
-    case WRAPPER_MSG_PING_TIMEOUT:
-        name = TEXT("PING_TIMEOUT");
         break;
 
     case WRAPPER_MSG_SERVICE_CONTROL_CODE:
@@ -1281,7 +1591,7 @@ char *protocolSendBuffer = NULL;
  */
 int wrapperProtocolFunction(char function, const TCHAR *messageW) {
     int rc;
-    int cnt;
+    int cnt, inWritten;
     size_t len;
     const TCHAR *logMsgW;
     char *messageMB = NULL;
@@ -1298,17 +1608,6 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
         logMsgW = TEXT("(Property Values)");
     } else {
         logMsgW = messageW;
-    }
-
-    /* If we are in the orphaned JVM test mode then don't do anything. */
-    if (wrapperData->isJVMOrphaned) {
-        if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT(
-                "Orphan Mode.  Skip sending packet %s : %s"),
-                wrapperProtocolGetCodeName(function), (messageW == NULL ? TEXT("NULL") : logMsgW));
-        }
-        returnVal = FALSE;
-        ok = FALSE;
     }
 
     if (ok) {
@@ -1398,7 +1697,8 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
     }
 
     if (ok) {
-        if (protocolActiveBackendSD == INVALID_SOCKET) {
+        if ((protocolActiveBackendSD == INVALID_SOCKET && wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET)
+            || (protocolActiveServerPipeConnected == FALSE && wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE)) {
             /* A socket was not opened */
             if (wrapperData->isDebugging) {
                 log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
@@ -1420,29 +1720,46 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
                 }
             }
 
-            cnt = 0;
-            do {
-                if (cnt > 0) {
-                    wrapperSleep(10);
+            if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) {
+#ifdef WIN32
+                if (WriteFile(protocolActiveServerPipeOut, protocolSendBuffer, sizeof(char) * (int)len, &inWritten, NULL) == FALSE) {
+#else
+                if ((inWritten = write(protocolActiveServerPipeOut, protocolSendBuffer, sizeof(char) * (int)len)) == -1) { 
+#endif
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Writing to the backend pipe failed (%d): %s"), wrapperGetLastError(), getLastErrorText());
+                    return FALSE;
                 }
-                rc = send(protocolActiveBackendSD, protocolSendBuffer, sizeof(char) * (int)len, 0);
-                cnt++;
-            } while ((rc == SOCKET_ERROR) && (wrapperGetLastError() == EWOULDBLOCK) && (cnt < 200));
-            if (rc == SOCKET_ERROR) {
-                if (wrapperGetLastError() == EWOULDBLOCK) {
-                    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN, TEXT(
-                        "socket send failed.  Blocked for 2 seconds.  %s"),
-                        getLastErrorText());
-                } else {
-                    if (wrapperData->isDebugging) {
-                        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT(
-                            "socket send failed.  %s"), getLastErrorText());
-                    }
-                }
-                wrapperProtocolClose();
-                returnVal = TRUE;
             } else {
-                returnVal = FALSE;
+                cnt = 0;
+                do {
+                    if (cnt > 0) {
+                        wrapperSleep(10);
+                    }
+                    rc = send(protocolActiveBackendSD, protocolSendBuffer, sizeof(char) * (int)len, 0);
+
+                    cnt++;
+                } while ((rc == SOCKET_ERROR) && (wrapperGetLastError() == EWOULDBLOCK) && (cnt < 200));
+                if (rc == SOCKET_ERROR) {
+                    if (wrapperGetLastError() == EWOULDBLOCK) {
+                        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN, TEXT(
+                            "socket send failed.  Blocked for 2 seconds.  %s"),
+                            getLastErrorText());
+#ifdef WIN32
+                    } else if (wrapperGetLastError() == WSAECONNRESET) {
+                        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, TEXT(
+                            "socket send failed.  %s"), getLastErrorText());
+#endif
+                    } else {
+                        if (wrapperData->isDebugging) {
+                            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT(
+                                "socket send failed.  %s"), getLastErrorText());
+                        }
+                    }
+                    wrapperProtocolClose();
+                    returnVal = TRUE;
+                } else {
+                    returnVal = FALSE;
+                }
             }
         }
     }
@@ -1455,19 +1772,20 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
 }
 
 /**
- * Checks the status of the server socket.
+ * Checks the status of the server backend.
  *
- * The socket will be initialized if the JVM is in a state where it should
- *  be up, otherwise the socket will be left alone.
+ * The backend will be initialized if the JVM is in a state where it should
+ *  be up, otherwise the backend will be left alone.
  *
  * If the forceOpen flag is set then an attempt will be made to initialize
- *  the socket regardless of the JVM state.
+ *  the backend regardless of the JVM state.
  *
- * Returns TRUE if the socket is open and ready on return, FALSE if not.
+ * Returns TRUE if the backend is open and ready on return, FALSE if not.
  */
-int wrapperCheckServerSocket(int forceOpen) {
-    if (protocolActiveServerSD == INVALID_SOCKET) {
-        /* The socket is not currently open and needs to be started,
+int wrapperCheckServerBackend(int forceOpen) {
+    if (((wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET) && (protocolActiveServerSD == INVALID_SOCKET)) ||
+        ((wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) && (protocolActiveServerPipeStarted == FALSE))) {
+        /* The backend is not currently open and needs to be started,
          *  unless the JVM is DOWN or in a state where it is not needed. */
         if ((!forceOpen) &&
             ((wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN) ||
@@ -1477,20 +1795,22 @@ int wrapperCheckServerSocket(int forceOpen) {
              (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
              (wrapperData->jState == WRAPPER_JSTATE_KILL) ||
              (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK))) {
-            /* The JVM is down or in a state where the socket is not needed. */
+            /* The JVM is down or in a state where the backend is not needed. */
             return FALSE;
         } else {
-            /* The socket should be open, try doing so. */
+            /* The backend should be open, try doing so. */
             protocolStartServer();
-            if (protocolActiveServerSD == INVALID_SOCKET) {
+            if (((wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET) && (protocolActiveServerSD == INVALID_SOCKET)) ||
+                ((wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) && (protocolActiveServerPipeStarted == FALSE))) {
                 /* Failed. */
                 return FALSE;
+
             } else {
                 return TRUE;
             }
         }
     } else {
-        /* Socket is ready. */
+        /* Backend is ready. */
         return TRUE;
     }
 }
@@ -1506,6 +1826,9 @@ int wrapperProtocolRead() {
     char c;
     char code;
     int len;
+#ifdef WIN32
+    int maxlen;
+#endif
     int pos;
     int err;
     struct timeb timeBuffer;
@@ -1522,74 +1845,148 @@ int wrapperProtocolRead() {
     /*
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("now=%ld, nowMillis=%d"), now, nowMillis);
     */
-
     while((durr = (now - startTime) * 1000 + (nowMillis - startTimeMillis)) < 250) {
         /*
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("durr=%ld"), durr);
         */
 
-        /* If we have an open client socket, then use it. */
-        if (protocolActiveBackendSD == INVALID_SOCKET) {
-            /* A Client socket is not open */
-
-            /* Is the server socket open? */
-            if (!wrapperCheckServerSocket(FALSE)) {
-                /* Socket is down.  We can not read any packets. */
+        /* If we have an open client backend, then use it. */
+        if (((wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET) && (protocolActiveBackendSD == INVALID_SOCKET)) ||
+            ((wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) && (protocolActiveServerPipeConnected == FALSE))) {			
+            /* A Client backend is not open */
+            /* Is the server backend open? */
+            if (!wrapperCheckServerBackend(FALSE)) {
+                /* Backend is down.  We can not read any packets. */
                 return 0;
             }
-
-            /* Try accepting a socket */
+            /* Try accepting a connection */
             protocolOpen();
-            if (protocolActiveBackendSD == INVALID_SOCKET) {
+            if (((wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET) && (protocolActiveBackendSD == INVALID_SOCKET)) ||
+                ((wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) && (protocolActiveServerPipeConnected == FALSE))) {
                 return 0;
             }
         }
 
-        /* Try receiving a packet code */
-        len = recv(protocolActiveBackendSD, (void*) &c, 1, 0);
-        if (len == SOCKET_ERROR) {
-            err = wrapperGetLastError();
-            if ((err != EWOULDBLOCK) && (err != EAGAIN)
-                && (err != ENOTSOCK) && (err != ECONNRESET)) {
+        if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET) {
+            /* Try receiving a packet code */
+            len = recv(protocolActiveBackendSD, (void*) &c, 1, 0);
+            if (len == SOCKET_ERROR) {
+                err = wrapperGetLastError();
+                if ((err != EWOULDBLOCK) && (err != EAGAIN)
+                    && (err != ENOTSOCK) && (err != ECONNRESET)) {
+                    if (wrapperData->isDebugging) {
+                        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
+                            TEXT("socket read failed. (%s)"), getLastErrorText());
+                    }
+                    wrapperProtocolClose();
+                }
+                return 0;
+            } else if (len != 1) {
                 if (wrapperData->isDebugging) {
-                    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
-                        TEXT("socket read failed. (%s)"), getLastErrorText());
+                    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("socket read no code (closed?)."));
                 }
                 wrapperProtocolClose();
+                return 0;
             }
-            /*
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("no data"));
-            */
-            return 0;
-        } else if (len != 1) {
-            if (wrapperData->isDebugging) {
-                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("socket read no code (closed?)."));
+            code = (char)c;
+
+            /* Read in any message */
+            pos = 0;
+            do {
+                len = recv(protocolActiveBackendSD, (void*) &c, 1, 0);
+                if (len == 1) {
+                    if (c == 0) {
+                        /* End of string */
+                        len = 0;
+                    } else if (pos < MAX_LOG_SIZE) {
+                        packetBuffer[pos] = c;
+                        pos++;
+                    }
+                } else {
+                    len = 0;
+                }
+            } while (len == 1);
+            /* terminate the string; */
+            packetBuffer[pos] = TEXT('\0');
+        } else if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) {
+#ifdef WIN32
+            err = PeekNamedPipe(protocolActiveServerPipeIn, NULL, 0, NULL, &maxlen, NULL);
+            if ((err == 0) && (GetLastError() == ERROR_BROKEN_PIPE)) {
+                /* ERROR_BROKEN_PIPE - the client has closed the pipe. So most likely it just exited */
+                protocolActiveServerPipeIn = INVALID_HANDLE_VALUE;
             }
-            wrapperProtocolClose();
+            if (maxlen == 0) {
+                /*no data available */
+                return 0;
+            }
+            if (ReadFile(protocolActiveServerPipeIn, &c, 1, &len, NULL) == TRUE || GetLastError() == ERROR_MORE_DATA) {
+                code = (char)c;
+                --maxlen;
+                pos = 0;
+                do {
+                    ReadFile(protocolActiveServerPipeIn, &c, 1, &len, NULL);
+                    if (len == 1) {
+                        if (c == 0) {
+                            /* End of string */
+                            len = 0;
+                        } else if (pos < MAX_LOG_SIZE) {
+                            packetBuffer[pos] = c;
+                            pos++;
+                        }
+                    } else {
+                        len = 0;
+                    }
+                } while (len == 1 && maxlen-- >= 0);
+                packetBuffer[pos] = TEXT('\0');
+            } else {
+                if (GetLastError() == ERROR_INVALID_HANDLE) {
+                    return 0;
+                } else {
+                    wrapperProtocolClose();
+                    return 0;
+                }
+            }            
+#else
+            len = read(protocolActiveServerPipeIn, (void*) &c, 1);
+            if (len == SOCKET_ERROR) {
+                err = wrapperGetLastError();
+                if ((err != EWOULDBLOCK) && (err != EAGAIN)
+                    && (err != ENOTSOCK) && (err != ECONNRESET)) {
+                    if (wrapperData->isDebugging) {
+                        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
+                            TEXT("socket read failed. (%s)"), getLastErrorText());
+                    }
+                    wrapperProtocolClose();
+                }
+                return 0;
+            } else if (len == 0) {
+                /*nothing read...*/
+                return 0;
+            }
+            code = (char)c;
+
+            /* Read in any message */
+            pos = 0;
+            do {
+                len = read(protocolActiveServerPipeIn, (void*) &c, 1);
+                if (len == 1) {
+                    if (c == 0) {
+                        /* End of string */
+                        len = 0;
+                    } else if (pos < MAX_LOG_SIZE) {
+                        packetBuffer[pos] = c;
+                        pos++;
+                    }
+                } else {
+                    len = 0;
+                }
+            } while (len == 1);
+            /* terminate the string; */
+            packetBuffer[pos] = TEXT('\0');
+#endif
+        } else {
             return 0;
         }
-
-        code = (char)c;
-
-        /* Read in any message */
-        pos = 0;
-        do {
-
-            len = recv(protocolActiveBackendSD, (void*) &c, 1, 0);
-            if (len == 1) {
-                if (c == 0) {
-                    /* End of string */
-                    len = 0;
-                } else if (pos < MAX_LOG_SIZE) {
-                    packetBuffer[pos] = c;
-                    pos++;
-                }
-            } else {
-                len = 0;
-            }
-        } while (len == 1);
-        /* terminate the string; */
-        packetBuffer[pos] = TEXT('\0');
 
         if (wrapperData->isDebugging) {
             if ( ( code == WRAPPER_MSG_PING ) && ( _tcscmp( packetBuffer, TEXT("silent") ) == 0 ) ) {
@@ -1645,9 +2042,7 @@ int wrapperProtocolRead() {
             break;
 
         case WRAPPER_MSG_APPEAR_ORPHAN:
-            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_STATUS, TEXT("Orphan the JVM and wait for it to exit on its own..."),
-                wrapperProtocolGetCodeName(code), packetBuffer);
-            wrapperData->isJVMOrphaned = TRUE;
+            /* No longer used.  This is still here in case a mix of versions are used. */
             break;
 
         default:
@@ -1739,6 +2134,7 @@ int wrapperInitialize() {
     wrapperData->configFile = NULL;
     wrapperData->workingDir = NULL;
     wrapperData->outputFilterCount = 0;
+    wrapperData->confDir = NULL;
 #ifdef WIN32
     if (!(tickMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
         printf("Failed to create tick mutex. %s\n", getLastErrorText());
@@ -1977,6 +2373,10 @@ void wrapperDataDispose() {
         free(wrapperData->hostName);
         wrapperData->hostName = NULL;
     }
+    if (wrapperData->confDir) {
+        free(wrapperData->confDir);
+        wrapperData->confDir = NULL;
+    }
     if (wrapperData->argConfFileDefault && wrapperData->argConfFile) {
         free(wrapperData->argConfFile);
         wrapperData->argConfFile = NULL;
@@ -2009,6 +2409,11 @@ void wrapperDispose() {
     }
 #endif
 
+    /* Clean up the javaIO thread. This should be done before the timer thread. */
+    if (wrapperData->useJavaIOThread) {
+        disposeJavaIO();
+    }
+
     /* Clean up the timer thread. */
     if (!wrapperData->useSystemTime) {
         disposeTimer();
@@ -2027,10 +2432,10 @@ void wrapperDispose() {
         free(protocolSendBuffer);
         protocolSendBuffer = NULL;
     }
-    
+
     /* Clean up the logging system.  Should happen near last. */
     disposeLogging();
-    
+
     /* clean up the main wrapper data structure. This must be done last.*/
     wrapperDataDispose();
 }
@@ -2317,7 +2722,7 @@ void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int acti
 
                 case ACTION_SHUTDOWN:
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s  Shutting down."), triggerMsg);
-                    wrapperStopProcess(exitCode);
+                    wrapperStopProcess(exitCode, FALSE);
                     break;
 
                 case ACTION_DUMP:
@@ -2465,6 +2870,31 @@ int wildcardMatchInner(const TCHAR *text, size_t textLen, const TCHAR *pattern, 
 
     /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("  wildcardMatchInner(\"%s\", %d, \"%s\", %d, %d) -> HERE5 textIndex=%d, patternIndex=%d TRUE"), text, textLen, pattern, patternLen, minTextLen, textIndex, patternIndex);*/
     return TRUE;
+}
+    
+/**
+ * Test function to pause the current thread for the specified amount of time.
+ *  This is used to test how the rest of the Wrapper behaves when a particular
+ *  thread blocks for any reason.
+ *
+ * @param pauseTime Number of seconds to pause for.  -1 will pause indefinitely.
+ * @param threadName Name of the thread that will be logged prior to pausing.
+ */
+void wrapperPauseThread(int pauseTime, const TCHAR *threadName) {
+    int i;
+    
+    if (pauseTime > 0) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Pausing the \"%s\" thread for %d seconds..."), threadName, pauseTime);
+        for (i = 0; i < pauseTime; i++) {
+            wrapperSleep(1000);
+        }
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Resuming the \"%s\" thread..."), threadName);
+    } else if (pauseTime < 0) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Pausing the \"%s\" thread indefinitely."), threadName);
+        while(TRUE) {
+            wrapperSleep(1000);
+        }
+    }
 }
 
 /**
@@ -3034,6 +3464,216 @@ int checkForTestWrapperScripts() {
     return FALSE;
 }
 
+#ifdef WIN32
+#define OSBUFSIZE 256
+
+/**
+ * Creates a human readable representation of the Windows OS the Wrapper is run on.
+ *
+ * @param pszOS the buffer the information gets stored to
+ * @return FALSE if error or no information could be retrieved. TRUE otherwise.
+ */
+BOOL GetOSDisplayString(TCHAR** pszOS) {
+    OSVERSIONINFOEX osvi;
+    SYSTEM_INFO si;
+    FARPROC pGNSI;
+    FARPROC pGPI;
+    DWORD dwType;
+    TCHAR buf[80];
+
+    ZeroMemory(&si, sizeof(SYSTEM_INFO));
+    ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
+
+    osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+
+    if (!GetVersionEx((OSVERSIONINFO*) &osvi)) {
+         return FALSE;
+    }
+
+    /* Call GetNativeSystemInfo if supported or GetSystemInfo otherwise.*/
+
+    pGNSI = GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "GetNativeSystemInfo");
+    if (NULL != pGNSI) {
+        pGNSI(&si);
+    } else {
+        GetSystemInfo(&si);
+    }
+
+    if ((VER_PLATFORM_WIN32_NT == osvi.dwPlatformId) && (osvi.dwMajorVersion > 4)) {
+        _tcsncpy(*pszOS, TEXT("Microsoft "), OSBUFSIZE);
+
+        /* Test for the specific product. */
+        if (osvi.dwMajorVersion == 6) {
+            if (osvi.dwMinorVersion == 0 ) {
+                if (osvi.wProductType == VER_NT_WORKSTATION) {
+                    _tcsncat(*pszOS, TEXT("Windows Vista "), OSBUFSIZE);
+                } else {
+                    _tcsncat(*pszOS, TEXT("Windows Server 2008 "), OSBUFSIZE);
+                }
+            }
+
+            if (osvi.dwMinorVersion == 1) {
+                if (osvi.wProductType == VER_NT_WORKSTATION) {
+                    _tcsncat(*pszOS, TEXT("Windows 7 "), OSBUFSIZE);
+                } else {
+                    _tcsncat(*pszOS, TEXT("Windows Server 2008 R2 "), OSBUFSIZE);
+                }
+            }
+
+            pGPI = GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "GetProductInfo");
+
+            pGPI(osvi.dwMajorVersion, osvi.dwMinorVersion, 0, 0, &dwType);
+
+            switch (dwType) {
+                case 1:
+                    _tcsncat(*pszOS, TEXT("Ultimate Edition" ), OSBUFSIZE);
+                    break;
+                case 48:
+                    _tcsncat(*pszOS, TEXT("Professional"), OSBUFSIZE);
+                    break;
+                case 3:
+                    _tcsncat(*pszOS, TEXT("Home Premium Edition"), OSBUFSIZE);
+                    break;
+                case 67:
+                    _tcsncat(*pszOS, TEXT("Home Basic Edition"), OSBUFSIZE);
+                    break;
+                case 4:
+                    _tcsncat(*pszOS, TEXT("Enterprise Edition"), OSBUFSIZE);
+                    break;
+                case 6:
+                    _tcsncat(*pszOS, TEXT("Business Edition"), OSBUFSIZE);
+                    break;
+                case 11:
+                    _tcsncat(*pszOS, TEXT("Starter Edition"), OSBUFSIZE);
+                    break;
+                case 18:
+                    _tcsncat(*pszOS, TEXT("Cluster Server Edition"), OSBUFSIZE);
+                    break;
+                case 8:
+                    _tcsncat(*pszOS, TEXT("Datacenter Edition"), OSBUFSIZE);
+                    break;
+                case 12:
+                    _tcsncat(*pszOS, TEXT("Datacenter Edition (core installation)"), OSBUFSIZE);
+                    break;
+                case 10:
+                    _tcsncat(*pszOS, TEXT("Enterprise Edition"), OSBUFSIZE);
+                    break;
+                case 14:
+                    _tcsncat(*pszOS, TEXT("Enterprise Edition (core installation)"), OSBUFSIZE);
+                    break;
+                case 15:
+                    _tcsncat(*pszOS, TEXT("Enterprise Edition for Itanium-based Systems"), OSBUFSIZE);
+                    break;
+                case 9:
+                    _tcsncat(*pszOS,  TEXT("Small Business Server"), OSBUFSIZE);
+                    break;
+                case 25:
+                    _tcsncat(*pszOS, TEXT("Small Business Server Premium Edition"), OSBUFSIZE);
+                    break;
+                case 7:
+                    _tcsncat(*pszOS, TEXT("Standard Edition"), OSBUFSIZE);
+                    break;
+                case 13:
+                    _tcsncat(*pszOS, TEXT("Standard Edition (core installation)"), OSBUFSIZE);
+                    break;
+                case 17:
+                    _tcsncat(*pszOS, TEXT("Web Server Edition"), OSBUFSIZE);
+                    break;
+            }
+        }
+
+        if ((osvi.dwMajorVersion == 5) && (osvi.dwMinorVersion == 2)) {
+            if (GetSystemMetrics(89)) {
+                _tcsncat(*pszOS, TEXT("Windows Server 2003 R2, "), OSBUFSIZE);
+            } else if (osvi.wSuiteMask & 8192) {
+                _tcsncat(*pszOS, TEXT("Windows Storage Server 2003"), OSBUFSIZE);
+            } else if (osvi.wSuiteMask & 32768) {
+                _tcsncat(*pszOS, TEXT("Windows Home Server"), OSBUFSIZE);
+            } else if (osvi.wProductType == VER_NT_WORKSTATION && si.wProcessorArchitecture==PROCESSOR_ARCHITECTURE_AMD64) {
+                _tcsncat(*pszOS, TEXT("Windows XP Professional x64 Edition"), OSBUFSIZE);
+            } else {
+                _tcsncat(*pszOS, TEXT("Windows Server 2003, "), OSBUFSIZE);
+            }
+
+            /* Test for the server type. */
+            if (osvi.wProductType != VER_NT_WORKSTATION) {
+                if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_IA64) {
+                    if (osvi.wSuiteMask & VER_SUITE_DATACENTER) {
+                        _tcsncat(*pszOS, TEXT("Datacenter Edition for Itanium-based Systems"), OSBUFSIZE);
+                    } else if (osvi.wSuiteMask & VER_SUITE_ENTERPRISE) {
+                        _tcsncat(*pszOS, TEXT("Enterprise Edition for Itanium-based Systems"), OSBUFSIZE);
+                    }
+                } else if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64) {
+                    if (osvi.wSuiteMask & VER_SUITE_DATACENTER) {
+                        _tcsncat(*pszOS, TEXT("Datacenter x64 Edition"), OSBUFSIZE);
+                    } else if (osvi.wSuiteMask & VER_SUITE_ENTERPRISE) {
+                        _tcsncat(*pszOS, TEXT("Enterprise x64 Edition"), OSBUFSIZE);
+                    } else {
+                        _tcsncat(*pszOS, TEXT("Standard x64 Edition"), OSBUFSIZE);
+                    }
+                } else {
+                    if (osvi.wSuiteMask & VER_SUITE_COMPUTE_SERVER) {
+                        _tcsncat(*pszOS, TEXT("Compute Cluster Edition"), OSBUFSIZE);
+                    } else if (osvi.wSuiteMask & VER_SUITE_DATACENTER) {
+                        _tcsncat(*pszOS, TEXT("Datacenter Edition"), OSBUFSIZE);
+                    } else if (osvi.wSuiteMask & VER_SUITE_ENTERPRISE) {
+                        _tcsncat(*pszOS, TEXT("Enterprise Edition"), OSBUFSIZE);
+                    } else if (osvi.wSuiteMask & VER_SUITE_BLADE) {
+                        _tcsncat(*pszOS, TEXT("Web Edition" ), OSBUFSIZE);
+                    } else {
+                        _tcsncat(*pszOS, TEXT("Standard Edition"), OSBUFSIZE);
+                    }
+                }
+            }
+        }
+
+        if ((osvi.dwMajorVersion == 5) && (osvi.dwMinorVersion == 1)) {
+            _tcsncat(*pszOS, TEXT("Windows XP "), OSBUFSIZE);
+            if (osvi.wSuiteMask & VER_SUITE_PERSONAL) {
+                _tcsncat(*pszOS, TEXT("Home Edition"), OSBUFSIZE);
+            } else {
+                _tcsncat(*pszOS, TEXT("Professional"), OSBUFSIZE);
+            }
+        }
+
+        if ((osvi.dwMajorVersion == 5) && (osvi.dwMinorVersion == 0)) {
+            _tcsncat(*pszOS, TEXT("Windows 2000 "), OSBUFSIZE);
+            if (osvi.wProductType == VER_NT_WORKSTATION) {
+                _tcsncat(*pszOS, TEXT("Professional"), OSBUFSIZE);
+            } else {
+                if (osvi.wSuiteMask & VER_SUITE_DATACENTER) {
+                    _tcsncat(*pszOS, TEXT("Datacenter Server"), OSBUFSIZE);
+                } else if (osvi.wSuiteMask & VER_SUITE_ENTERPRISE) {
+                    _tcsncat(*pszOS, TEXT("Advanced Server"), OSBUFSIZE);
+                } else {
+                    _tcsncat(*pszOS, TEXT("Server"), OSBUFSIZE);
+                }
+            }
+        }
+
+        /* Include service pack (if any) and build number. */
+        if (_tcslen(osvi.szCSDVersion) > 0) {
+            _tcsncat(*pszOS, TEXT(" "), OSBUFSIZE);
+            _tcsncat(*pszOS, osvi.szCSDVersion, OSBUFSIZE);
+        }
+        _sntprintf(buf, 80, TEXT(" (build %d)"), osvi.dwBuildNumber);
+        _tcsncat(*pszOS, buf, OSBUFSIZE);
+
+        if (osvi.dwMajorVersion >= 6) {
+            if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64) {
+                _tcsncat(*pszOS, TEXT(", 64-bit"), OSBUFSIZE);
+            } else if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL) {
+                _tcsncat(*pszOS, TEXT(", 32-bit"), OSBUFSIZE);
+            }
+        }
+        return TRUE;
+    } else {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unknown Windows Version"));
+        return FALSE;
+    }
+}
+#endif
+
 /**
  * Launch common setup code.
  */
@@ -3152,6 +3792,13 @@ int wrapperRunCommon() {
 #ifdef WIN32
     if (wrapperData->isDebugging) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Current User: %s  Domain: %s"), (wrapperData->userName ? wrapperData->userName : TEXT("N/A")), (wrapperData->domainName ? wrapperData->domainName : TEXT("N/A")));
+        szOS = calloc(OSBUFSIZE, sizeof(TCHAR));
+        if (szOS) {
+            if (GetOSDisplayString(&szOS)) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Operating System ID: %s"), szOS);
+            }
+            free(szOS);
+        }
     }
 #endif
 
@@ -3259,20 +3906,26 @@ int wrapperRunService() {
 }
 
 /**
- * Used to ask the state engine to shut down the JVM and Wrapper
+ * Used to ask the state engine to shut down the JVM and Wrapper.
+ *
+ * @param exitCode Exit code to use when shutting down.
+ * @param force True to force the Wrapper to shutdown even if some configuration
+ *              had previously asked that the JVM be restarted.  This will reset
+ *              any existing restart requests, but it will still be possible for
+ *              later actions to request a restart.
  */
-void wrapperStopProcess(int exitCode) {
+void wrapperStopProcess(int exitCode, int force) {
     /* If we are are not aready shutting down, then do so. */
     if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
         (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
         if (wrapperData->isDebugging) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                TEXT("wrapperStopProcess(%d) called while stopping.  (IGNORED)"), exitCode);
+                TEXT("wrapperStopProcess(%d, %s) called while stopping.  (IGNORED)"), exitCode, (force ? TEXT("TRUE") : TEXT("FALSE")));
         }
     } else {
         if (wrapperData->isDebugging) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                TEXT("wrapperStopProcess(%d) called."), exitCode);
+                TEXT("wrapperStopProcess(%d, %s) called."), exitCode, (force ? TEXT("TRUE") : TEXT("FALSE")));
         }
         /* If it has not already been set, set the exit request flag. */
         if (wrapperData->exitRequested ||
@@ -3290,12 +3943,32 @@ void wrapperStopProcess(int exitCode) {
 
         wrapperData->exitCode = exitCode;
 
-        /* Make sure that further restarts are disabled. */
-        wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_NO;
-        /* Do not call wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING) here.
-         *  It will be called by the wrappereventloop.c.jStateDown once the
-         *  the JVM is completely down.  Calling it here will make it
-         *  impossible to trap and restart based on exit codes. */
+        if (force) {
+            /* Make sure that further restarts are disabled. */
+            wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_NO;
+
+            /* Do not call wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING) here.
+             *  It will be called by the wrappereventloop.c.jStateDown once the
+             *  the JVM is completely down.  Calling it here will make it
+             *  impossible to trap and restart based on exit codes or other
+             *  Wrapper configurations. */
+
+            if (wrapperData->isDebugging) {
+                if ((wrapperData->restartRequested == WRAPPER_RESTART_REQUESTED_AUTOMATIC) || (wrapperData->restartRequested == WRAPPER_RESTART_REQUESTED_CONFIGURED)) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  Overriding request to restart JVM."));
+                }
+            }
+        } else {
+            /* Do not call wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING) here.
+             *  It will be called by the wrappereventloop.c.jStateDown once the
+             *  the JVM is completely down.  Calling it here will make it
+             *  impossible to trap and restart based on exit codes. */
+            if (wrapperData->isDebugging) {
+                if ((wrapperData->restartRequested == WRAPPER_RESTART_REQUESTED_AUTOMATIC) || (wrapperData->restartRequested == WRAPPER_RESTART_REQUESTED_CONFIGURED)) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  Stop ignored.  Continuing to restart JVM."));
+                }
+            }
+        }
     }
 }
 
@@ -3685,7 +4358,13 @@ int checkIfBinary(const TCHAR *filename) {
             return 1; /*xcoff 32*/
 #elif defined(MACOSX)
         if (head[0] == 0xca && head[1] == 0xfe && head[2] == 0xba && head[3] == 0xbe) { /* 0xcafebabe */
-            return 1; /*MACOS*/
+            return 1; /*MACOS Universal binary*/
+        } else if (head[0] == 0xcf && head[1] == 0xfa && head[2] == 0xed && head[3] == 0xfe) { /* 0xcffaedfe */
+            return 1; /*MACOS x86_64 binary*/
+        } else if (head[0] == 0xce && head[1] == 0xfa && head[2] == 0xed && head[3] == 0xfe) { /* 0xcefaedfe */
+            return 1; /*MACOS i386 binary*/
+        } else if (head[0] == 0xfe && head[1] == 0xed && head[2] == 0xfa && head[3] == 0xce) { /* 0xfeedface */
+            return 1; /*MACOS ppc, ppc64 binary*/
 #elif defined(HPUX)
         if (head[0] == 0x02 && head[1] == 0x10 && head[2] == 0x01 && head[3] == 0x08) { /* 0x02100108 PA-RISC 1.1 */
             return 1; /*HP UX PA RISC 32*/
@@ -4842,54 +5521,68 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     }
     index++;
 
-    /* Store the Wrapper server port */
-    if (strings) {
-        strings[index] = malloc(sizeof(TCHAR) * (15 + 5 + 1));  /* Port up to 5 characters */
-        if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 25);
-            return -1;
-        }
-        _sntprintf(strings[index], 15 + 5 + 1, TEXT("-Dwrapper.port=%d"), (int)wrapperData->actualPort);
-    }
-    index++;
-
-    /* Store the Wrapper jvm min and max ports. */
-    if (wrapperData->jvmPort > 0) {
+    /* Store the backend connection information. */
+    if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) {
         if (strings) {
-            strings[index] = malloc(sizeof(TCHAR) * (19 + 5 + 1));  /* Port up to 5 characters */
+            strings[index] = malloc(sizeof(TCHAR) * (22 + 1));
+            if (!strings[index]) {
+                outOfMemory(TEXT("WBJCAI"), 25);
+                return -1;
+            }
+            _sntprintf(strings[index], 22 + 1, TEXT("-Dwrapper.backend=pipe"));
+        }
+        index++;
+    } else {
+        /* Store the Wrapper server port */
+        if (strings) {
+            strings[index] = malloc(sizeof(TCHAR) * (15 + 5 + 1));  /* Port up to 5 characters */
             if (!strings[index]) {
                 outOfMemory(TEXT("WBJCAI"), 26);
                 return -1;
             }
-            _sntprintf(strings[index], 19 + 5 + 1, TEXT("-Dwrapper.jvm.port=%d"), (int)wrapperData->jvmPort);
+            _sntprintf(strings[index], 15 + 5 + 1, TEXT("-Dwrapper.port=%d"), (int)wrapperData->actualPort);
         }
         index++;
     }
-    if (strings) {
-        strings[index] = malloc(sizeof(TCHAR) * (23 + 5 + 1));  /* Port up to 5 characters */
-        if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 27);
-            return -1;
-        }
-        _sntprintf(strings[index], 23 + 5 + 1, TEXT("-Dwrapper.jvm.port.min=%d"), (int)wrapperData->jvmPortMin);
-    }
-    index++;
-    if (strings) {
-        strings[index] = malloc(sizeof(TCHAR) * (23 + 5 + 1));  /* Port up to 5 characters */
-        if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 28);
-            return -1;
-        }
-        _sntprintf(strings[index], 23 + 5 + 1, TEXT("-Dwrapper.jvm.port.max=%d"), (int)wrapperData->jvmPortMax);
-    }
-    index++;
 
+    /* Store the Wrapper jvm min and max ports. */
+    if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET) {
+        if (wrapperData->jvmPort > 0) {
+            if (strings) {
+                strings[index] = malloc(sizeof(TCHAR) * (19 + 5 + 1));  /* Port up to 5 characters */
+                if (!strings[index]) {
+                    outOfMemory(TEXT("WBJCAI"), 27);
+                    return -1;
+                }
+                _sntprintf(strings[index], 19 + 5 + 1, TEXT("-Dwrapper.jvm.port=%d"), (int)wrapperData->jvmPort);
+            }
+            index++;
+        }
+        if (strings) {
+            strings[index] = malloc(sizeof(TCHAR) * (23 + 5 + 1));  /* Port up to 5 characters */
+            if (!strings[index]) {
+                outOfMemory(TEXT("WBJCAI"), 28);
+                return -1;
+            }
+            _sntprintf(strings[index], 23 + 5 + 1, TEXT("-Dwrapper.jvm.port.min=%d"), (int)wrapperData->jvmPortMin);
+        }
+        index++;
+        if (strings) {
+            strings[index] = malloc(sizeof(TCHAR) * (23 + 5 + 1));  /* Port up to 5 characters */
+            if (!strings[index]) {
+                outOfMemory(TEXT("WBJCAI"), 29);
+                return -1;
+            }
+            _sntprintf(strings[index], 23 + 5 + 1, TEXT("-Dwrapper.jvm.port.max=%d"), (int)wrapperData->jvmPortMax);
+        }
+        index++;
+    }
     /* Store the Wrapper debug flag */
     if (wrapperData->isDebugging) {
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (22 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 29);
+                outOfMemory(TEXT("WBJCAI"), 30);
                 return -1;
             }
             if (addQuotes) {
@@ -4912,7 +5605,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (38 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 29);
+                outOfMemory(TEXT("WBJCAI"), 31);
                 return -1;
             }
             if (addQuotes) {
@@ -4929,7 +5622,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (38 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 30);
+                outOfMemory(TEXT("WBJCAI"), 32);
                 return -1;
             }
             if (addQuotes) {
@@ -4945,7 +5638,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     if (strings) {
         strings[index] = malloc(sizeof(TCHAR) * (24 + 1)); /* Pid up to 10 characters */
         if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 31);
+            outOfMemory(TEXT("WBJCAI"), 33);
             return -1;
         }
 #if defined(SOLARIS) && (!defined(_LP64))
@@ -4961,7 +5654,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (32 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 32);
+                outOfMemory(TEXT("WBJCAI"), 34);
                 return -1;
             }
             if (addQuotes) {
@@ -4978,7 +5671,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
             if (strings) {
                 strings[index] = malloc(sizeof(TCHAR) * (43 + 1)); /* Allow for 10 digits */
                 if (!strings[index]) {
-                    outOfMemory(TEXT("WBJCAI"), 33);
+                    outOfMemory(TEXT("WBJCAI"), 35);
                     return -1;
                 }
                 if (addQuotes) {
@@ -4993,7 +5686,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
             if (strings) {
                 strings[index] = malloc(sizeof(TCHAR) * (43 + 1)); /* Allow for 10 digits */
                 if (!strings[index]) {
-                    outOfMemory(TEXT("WBJCAI"), 34);
+                    outOfMemory(TEXT("WBJCAI"), 36);
                     return -1;
                 }
                 if (addQuotes) {
@@ -5011,7 +5704,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     if (strings) {
         strings[index] = malloc(sizeof(TCHAR) * (20 + _tcslen(wrapperVersion) + 1));
         if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 35);
+            outOfMemory(TEXT("WBJCAI"), 37);
             return -1;
         }
         if (addQuotes) {
@@ -5026,7 +5719,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     if (strings) {
         strings[index] = malloc(sizeof(TCHAR) * (27 + _tcslen(wrapperData->nativeLibrary) + 1));
         if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 36);
+            outOfMemory(TEXT("WBJCAI"), 38);
             return -1;
         }
         if (addQuotes) {
@@ -5042,7 +5735,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (31 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 37);
+                outOfMemory(TEXT("WBJCAI"), 39);
                 return -1;
             }
             if (addQuotes) {
@@ -5063,7 +5756,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (24 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 38);
+                outOfMemory(TEXT("WBJCAI"), 40);
                 return -1;
             }
             if (addQuotes) {
@@ -5080,7 +5773,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (38 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 39);
+                outOfMemory(TEXT("WBJCAI"), 41);
                 return -1;
             }
             if (addQuotes) {
@@ -5097,7 +5790,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         /* Just to be safe, allow 20 characters for the timeout value */
         strings[index] = malloc(sizeof(TCHAR) * (24 + 20 + 1));
         if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 40);
+            outOfMemory(TEXT("WBJCAI"), 42);
             return -1;
         }
         if (addQuotes) {
@@ -5108,11 +5801,43 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     }
     index++;
 
+    if ((prop = getStringProperty(properties, TEXT("wrapper.java.outfile"), NULL))) {
+        if (strings) {
+            strings[index] = malloc(sizeof(TCHAR) * (25 + _tcslen(prop) + 1));
+            if (!strings[index]) {
+                outOfMemory(TEXT("WBJCAI"), 44);
+                return -1;
+            }
+            if (addQuotes) {
+                _sntprintf(strings[index], 25 + _tcslen(prop) + 1, TEXT("-Dwrapper.java.outfile=\"%s\""), prop);
+            } else {
+                _sntprintf(strings[index], 25 + _tcslen(prop) + 1, TEXT("-Dwrapper.java.outfile=%s"), prop);
+            }
+        }
+        index++;
+    }
+
+    if ((prop = getStringProperty(properties, TEXT("wrapper.java.errfile"), NULL))) {
+        if (strings) {
+            strings[index] = malloc(sizeof(TCHAR) * (25 + _tcslen(prop) + 1));
+            if (!strings[index]) {
+                outOfMemory(TEXT("WBJCAI"), 45);
+                return -1;
+            }
+            if (addQuotes) {
+                _sntprintf(strings[index],  25 + _tcslen(prop) + 1, TEXT("-Dwrapper.java.errfile=\"%s\""), prop);
+            } else {
+                _sntprintf(strings[index], 25 + _tcslen(prop) + 1, TEXT("-Dwrapper.java.errfile=%s"), prop);
+            }
+        }
+        index++;
+    }
+
     /* Store the Wrapper JVM ID.  (Get here before incremented) */
     if (strings) {
         strings[index] = malloc(sizeof(TCHAR) * (16 + 5 + 1));  /* jvmid up to 5 characters */
         if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 41);
+            outOfMemory(TEXT("WBJCAI"), 46);
             return -1;
         }
         _sntprintf(strings[index], 16 + 5 + 1, TEXT("-Dwrapper.jvmid=%d"), (wrapperData->jvmRestarts + 1));
@@ -5131,7 +5856,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     if (strings) {
         strings[index] = malloc(sizeof(TCHAR) * (_tcslen(prop) + 1));
         if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 42);
+            outOfMemory(TEXT("WBJCAI"), 49);
             return -1;
         }
         _sntprintf(strings[index], _tcslen(prop) + 1, TEXT("%s"), prop);
@@ -5932,6 +6657,16 @@ int loadConfigurationTriggers() {
     return FALSE;
 }
 
+int getBackendTypeForName(const TCHAR *typeName) {
+    if (strcmpIgnoreCase(typeName, TEXT("SOCKET")) == 0) {
+        return WRAPPER_BACKEND_TYPE_SOCKET;
+    } else if (strcmpIgnoreCase(typeName, TEXT("PIPE")) == 0) {
+        return WRAPPER_BACKEND_TYPE_PIPE;
+    } else {
+        return WRAPPER_BACKEND_TYPE_UNKNOWN;
+    }
+}
+
 /**
  * Return FALSE if successful, TRUE if there were problems.
  */
@@ -5939,8 +6674,20 @@ int loadConfiguration() {
     TCHAR propName[256];
     const TCHAR* val;
     int startupDelay;
+#ifdef WIN32
+    int defaultUMask;
+#else 
+    mode_t defaultUMask;
+#endif
 
     wrapperLoadLoggingProperties(FALSE);
+
+    /* Decide on the backend type to use. */
+    wrapperData->backendType = getBackendTypeForName(getStringProperty(properties, TEXT("wrapper.backend.type"), TEXT("SOCKET")));
+    if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_UNKNOWN) {
+        wrapperData->backendType = WRAPPER_BACKEND_TYPE_SOCKET;
+    }
+
     /* Decide whether the classpath should be passed via the environment. */
     wrapperData->environmentClasspath = getBooleanProperty(properties, TEXT("wrapper.java.classpath.use_environment"), FALSE);
 
@@ -6021,6 +6768,10 @@ int loadConfiguration() {
     if (!wrapperData->configured) {
         wrapperData->useSystemTime = getBooleanProperty(properties, TEXT("wrapper.use_system_time"), FALSE);
     }
+    /* Get the use javaio thread flag. */
+    if (!wrapperData->configured) {
+        wrapperData->useJavaIOThread = getBooleanProperty(properties, TEXT("wrapper.use_javaio_thread"), FALSE);
+    }
     /* Decide whether or not a mutex should be used to protect the tick timer. */
     if (!wrapperData->configured) {
         wrapperData->useTickMutex = getBooleanProperty(properties, TEXT("wrapper.use_tick_mutex"), FALSE);
@@ -6054,6 +6805,12 @@ int loadConfiguration() {
     /* Get the cpu output status. */
     wrapperData->isCPUOutputEnabled = getBooleanProperty(properties, TEXT("wrapper.cpu_output"), FALSE);
     wrapperData->cpuOutputInterval = getIntProperty(properties, TEXT("wrapper.cpu_output.interval"), 1);
+
+    /* Get the pageFault output status. */
+    if (!wrapperData->configured) {
+        wrapperData->isPageFaultOutputEnabled = getBooleanProperty(properties, TEXT("wrapper.pagefault_output"), FALSE);
+        wrapperData->pageFaultOutputInterval = getIntProperty(properties, TEXT("wrapper.pagefault_output.interval"), 1);
+    }
 
     /* Get the shutdown hook status */
     wrapperData->isShutdownHookDisabled = getBooleanProperty(properties, TEXT("wrapper.disable_shutdown_hook"), FALSE);
@@ -6208,7 +6965,13 @@ int loadConfiguration() {
     wrapperData->anchorPollInterval = __min(__max(getIntProperty(properties, TEXT("wrapper.anchor.poll_interval"), 5), 1), 3600);
 
     /** Get the umask value for the various files. */
-    wrapperData->umask = getIntProperty(properties, TEXT("wrapper.umask"), 0022);
+#ifdef WIN32
+    defaultUMask = _umask(0);
+#else
+    defaultUMask = umask((mode_t)0);
+#endif
+
+    wrapperData->umask = getIntProperty(properties, TEXT("wrapper.umask"), defaultUMask);
     wrapperData->javaUmask = getIntProperty(properties, TEXT("wrapper.java.umask"), wrapperData->umask);
     wrapperData->pidFileUmask = getIntProperty(properties, TEXT("wrapper.pidfile.umask"), wrapperData->umask);
     wrapperData->lockFileUmask = getIntProperty(properties, TEXT("wrapper.lockfile.umask"), wrapperData->umask);
@@ -6635,15 +7398,6 @@ void wrapperKeyRegistered(TCHAR *key) {
             _sntprintf(buffer, 11, TEXT("%d"), getLowLogLevel());
             wrapperProtocolFunction(WRAPPER_MSG_LOW_LOG_LEVEL, buffer);
 
-            /* Send the ping timeout to the JVM. */
-            if (wrapperData->pingTimeout >= WRAPPER_TIMEOUT_MAX) {
-                /* Timeout disabled */
-                _sntprintf(buffer, 11, TEXT("%d"), 0);
-            } else {
-                _sntprintf(buffer, 11, TEXT("%d"), wrapperData->pingTimeout);
-            }
-            wrapperProtocolFunction(WRAPPER_MSG_PING_TIMEOUT, buffer);
-
             /* Send the log file name. */
             sendLogFileName();
 
@@ -6713,7 +7467,7 @@ void wrapperStopRequested(int exitCode) {
 
     /* Get things stopping on this end.  Ask the JVM to stop again in case the
      *  user code on the Java side is not written correctly. */
-    wrapperStopProcess(exitCode);
+    wrapperStopProcess(exitCode, FALSE);
 }
 
 void wrapperRestartRequested() {

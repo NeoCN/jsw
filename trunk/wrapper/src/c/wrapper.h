@@ -78,6 +78,10 @@
 #define WRAPPER_TIMER_FAST_THRESHOLD (2 * 24 * 3600 * 1000 / WRAPPER_TICK_MS) /* Default to 2 days. */
 #define WRAPPER_TIMER_SLOW_THRESHOLD (2 * 24 * 3600 * 1000 / WRAPPER_TICK_MS) /* Default to 2 days. */
 
+#define WRAPPER_BACKEND_TYPE_UNKNOWN 0 /* Unknown type. */
+#define WRAPPER_BACKEND_TYPE_SOCKET  1 /* Use a loopback socket to communicate. */
+#define WRAPPER_BACKEND_TYPE_PIPE    2 /* Use a pair of pipes to communicate. */
+
 #define WRAPPER_WSTATE_STARTING  51 /* Wrapper is starting.  Remains in this state
                                      *  until the JVM enters the STARTED state or
                                      *  the wrapper jumps into the STOPPING state
@@ -192,6 +196,7 @@ struct WrapperConfig {
     TCHAR   *argCommand;            /* The command used to launch the wrapper. */
     TCHAR   *argCommandArg;         /* The argument to the command used to launch the wrapper. */
     TCHAR   *argConfFile;           /* The name of the config file from the command line. */
+    TCHAR   *confDir;
     int     argConfFileDefault;     /* True if the config file was not specified. */
     int     argConfFileFound;       /* True if the config file was found. */
     int     argCount;               /* The total argument count. */
@@ -201,6 +206,7 @@ struct WrapperConfig {
 
     TCHAR   *initialPath;           /* What the working directory was when the Wrapper process was first launched. */
     TCHAR   *language;              /* The language */
+    int     backendType;            /* The type of the backend that the Wrapper and Java use to communicate. */
     int     configured;             /* TRUE if loadConfiguration has been called. */
     int     useSystemTime;          /* TRUE if the wrapper should use the system clock for timing, FALSE if a tick counter should be used. */
     int     timerFastThreshold;     /* If the difference between the system time based tick count and the timer tick count ever falls by more than this value then a warning will be displayed. */
@@ -240,7 +246,10 @@ struct WrapperConfig {
     int     shutdownTimeout;        /* Number of seconds the wrapper will wait for a JVM to shutdown */
     int     jvmExitTimeout;         /* Number of seconds the wrapper will wait for a JVM to process to terminate */
     int     jvmCleanupTimeout;      /* Number of seconds the wrapper will allow for its post JVM shudown cleanup. */
-    int     isJVMOrphaned;          /* If set to true, the Wrapper goes into a test more where it stops communicating with the JVM. */
+    int     useJavaIOThread;        /* If TRUE then a dedicated thread will be used to process console output form the JVM. */
+    int     pauseThreadMain;        /* Number of seconds to pause the main thread on its next loop.  Only used for testing. */
+    int     pauseThreadTimer;       /* Number of seconds to pause the timer thread on its next loop.  Only used for testing. */
+    int     pauseThreadJavaIO;      /* Number of seconds to pause the javaio thread on its next loop.  Only used for testing. */
 
 #ifdef WIN32
     int     ignoreUserLogoffs;      /* If TRUE, the Wrapper will ignore logoff events when run in the background as an in console mode. */
@@ -263,9 +272,10 @@ struct WrapperConfig {
 
     int     isDebugging;            /* TRUE if set in the configuration file */
     int     isAdviserEnabled;       /* TRUE if advice messages should be output. */
-    const TCHAR *nativeLibrary;      /* The base name of the native library loaded by the WrapperManager. */
+    const TCHAR *nativeLibrary;     /* The base name of the native library loaded by the WrapperManager. */
     int     libraryPathAppendPath;  /* TRUE if the PATH environment variable should be appended to the java library path. */
     int     isStateOutputEnabled;   /* TRUE if set in the configuration file.  Shows output on the state of the state engine. */
+    int     isJavaIOOutputEnabled;  /* TRUE if detailed javaIO output should be included in debug output. */
     int     isTickOutputEnabled;    /* TRUE if detailed tick timer output should be included in debug output. */
     int     isLoopOutputEnabled;    /* TRUE if very detailed output from the main loop should be output. */
     int     isSleepOutputEnabled;   /* TRUE if detailed sleep output should be included in debug output. */
@@ -275,6 +285,9 @@ struct WrapperConfig {
     int     isCPUOutputEnabled;     /* TRUE if detailed CPU output should be included in status output. */
     int     cpuOutputInterval;      /* Interval in seconds at which CPU usage is logged. */
     TICKS   cpuOutputTimeoutTicks;  /* Tick count at which CPU will next be logged. */
+    int     isPageFaultOutputEnabled;/* TRUE if detailed PageFault output should be included in status output. */
+    int     pageFaultOutputInterval;/* Interval in seconds at which PageFault usage is logged. */
+    TICKS   pageFaultOutputTimeoutTicks; /* Tick count at which PageFault will next be logged. */
     int     logfileInactivityTimeout; /* The number of seconds of inactivity before the logfile will be closed. */
     TICKS   logfileInactivityTimeoutTicks; /* Tick count at which the logfile will be considered inactive and closed. */
     int     isShutdownHookDisabled; /* TRUE if set in the configuration file */
@@ -405,17 +418,16 @@ struct WrapperConfig {
 #define WRAPPER_MSG_KEY           (char)110
 #define WRAPPER_MSG_BADKEY        (char)111
 #define WRAPPER_MSG_LOW_LOG_LEVEL (char)112
-#define WRAPPER_MSG_PING_TIMEOUT  (char)113
+#define WRAPPER_MSG_PING_TIMEOUT  (char)113 /* No longer used. */
 #define WRAPPER_MSG_SERVICE_CONTROL_CODE (char)114
 #define WRAPPER_MSG_PROPERTIES    (char)115
 /** Log commands are actually 116 + the LOG LEVEL (LEVEL_UNKNOWN ~ LEVEL_NONE), (116 ~ 124). */
 #define WRAPPER_MSG_LOG           (char)116
 #define WRAPPER_MSG_LOGFILE       (char)134
-#define WRAPPER_MSG_APPEAR_ORPHAN (char)137
+#define WRAPPER_MSG_APPEAR_ORPHAN (char)137 /* No longer used. */
 #define WRAPPER_MSG_PAUSE         (char)138
 #define WRAPPER_MSG_RESUME        (char)139
 #define WRAPPER_MSG_GC            (char)140
-
 #define WRAPPER_PROCESS_DOWN      200
 #define WRAPPER_PROCESS_UP        201
 
@@ -441,17 +453,17 @@ extern void wrapperProtocolClose();
 extern int wrapperProtocolFunction(char function, const TCHAR *message);
 
 /**
- * Checks the status of the server socket.
+ * Checks the status of the server backend.
  *
- * The socket will be initialized if the JVM is in a state where it should
- *  be up, otherwise the socket will be left alone.
+ * The backend will be initialized if the JVM is in a state where it should
+ *  be up, otherwise the backend will be left alone.
  *
  * If the forceOpen flag is set then an attempt will be made to initialize
- *  the socket regardless of the JVM state.
+ *  the backend regardless of the JVM state.
  *
- * Returns TRUE if the socket is open and ready on return, FALSE if not.
+ * Returns TRUE if the backend is open and ready on return, FALSE if not.
  */
-extern int wrapperCheckServerSocket(int forceOpen);
+extern int wrapperCheckServerBackend(int forceOpen);
 
 /**
  * Read any data sent from the JVM.  This function will loop and read as many
@@ -465,6 +477,16 @@ extern int wrapperProtocolRead();
 /******************************************************************************
  * Utility Functions
  *****************************************************************************/
+/**
+ * Test function to pause the current thread for the specified amount of time.
+ *  This is used to test how the rest of the Wrapper behaves when a particular
+ *  thread blocks for any reason.
+ *
+ * @param pauseTime Number of seconds to pause for.  -1 will pause indefinitely.
+ * @param threadName Name of the thread that will be logged prior to pausing.
+ */
+extern void wrapperPauseThread(int pauseTime, const TCHAR *threadName);
+
 /**
  * Function that will recursively attempt to match two strings where the
  *  pattern can contain '?' or '*' wildcard characters.
@@ -511,6 +533,7 @@ extern const TCHAR *wrapperGetJState(int jState);
 extern struct tm wrapperGetReleaseTime();
 extern struct tm wrapperGetBuildTime();
 
+extern void disposeJavaIO();
 extern void disposeTimer();
 
 extern int showHostIds(int logLevel);
@@ -547,6 +570,10 @@ extern int wrapperLoadConfigurationProperties();
 extern void wrapperGetCurrentTime(struct timeb *timeBuffer);
 
 #ifdef WIN32
+
+extern void wrapperInitializeProfileCounters();
+extern void wrapperDumpPageFaultUsage();
+
 extern void updateStringValue(TCHAR **ptr, const TCHAR *value);
 
 extern TCHAR** wrapperGetSystemPath();
@@ -789,9 +816,15 @@ extern void wrapperPauseProcess(int actionCode);
 extern void wrapperResumeProcess(int actionCode);
 
 /**
- * Used to ask the state engine to shut down the JVM and Wrapper
+ * Used to ask the state engine to shut down the JVM and Wrapper.
+ *
+ * @param exitCode Exit code to use when shutting down.
+ * @param force True to force the Wrapper to shutdown even if some configuration
+ *              had previously asked that the JVM be restarted.  This will reset
+ *              any existing restart requests, but it will still be possible for
+ *              later actions to request a restart.
  */
-extern void wrapperStopProcess(int exitCode);
+extern void wrapperStopProcess(int exitCode, int force);
 
 /**
  * Used to ask the state engine to shut down the JVM.

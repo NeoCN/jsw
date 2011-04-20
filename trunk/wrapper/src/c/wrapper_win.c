@@ -50,6 +50,7 @@
 #include <wincrypt.h>
 #include <wintrust.h>
 #include <DbgHelp.h>
+#include <Pdh.h>
 #include "psapi.h"
 
 #include "wrapper_i18n.h"
@@ -92,6 +93,12 @@ static HANDLE wrapperChildStdoutRd = INVALID_HANDLE_VALUE;
 
 TCHAR wrapperClasspathSeparator = TEXT(';');
 
+HANDLE javaIOThreadHandle;
+DWORD javaIOThreadId;
+int javaIOThreadStarted = FALSE;
+int stopJavaIOThread = FALSE;
+int javaIOThreadStopped = FALSE;
+
 HANDLE timerThreadHandle;
 DWORD timerThreadId;
 int timerThreadStarted = FALSE;
@@ -118,6 +125,15 @@ FTRegisterServiceCtrlHandlerEx OptionalRegisterServiceCtrlHandlerEx = NULL;
 /******************************************************************************
  * Windows specific code
  ******************************************************************************/
+PDH_HQUERY pdhQuery = NULL;
+PDH_HCOUNTER pdhCounterPhysicalDiskAvgQueueLen = NULL;
+PDH_HCOUNTER pdhCounterPhysicalDiskAvgWriteQueueLen = NULL;
+PDH_HCOUNTER pdhCounterPhysicalDiskAvgReadQueueLen = NULL;
+PDH_HCOUNTER pdhCounterMemoryPageFaultsPSec = NULL;
+PDH_HCOUNTER pdhCounterMemoryTransitionFaultsPSec = NULL;
+PDH_HCOUNTER pdhCounterProcessWrapperPageFaultsPSec = NULL;
+PDH_HCOUNTER pdhCounterProcessJavaPageFaultsPSec = NULL;
+
 #define FILEPATHSIZE 1024
 /**
  * Tests whether or not the current OS is at or below the version of Windows NT.
@@ -704,17 +720,110 @@ void showConsoleWindow(HWND consoleHandle, const TCHAR *name) {
 }
 
 /**
+ * The main entry point for the javaio thread which is started by
+ *  initializeJavaIO().  Once started, this thread will run for the
+ *  life of the process.
+ *
+ * This thread will only be started if we are configured to use a
+ *  dedicated thread to read JVM output.
+ */
+DWORD WINAPI javaIORunner(LPVOID parameter) {
+    int nextSleep;
+
+    /* In case there are ever any problems in this thread, enclose it in a try catch block. */
+    __try {
+        javaIOThreadStarted = TRUE;
+
+        /* Immediately register this thread with the logger. */
+        logRegisterThread(WRAPPER_THREAD_JAVAIO);
+
+        if (wrapperData->isJavaIOOutputEnabled) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("JavaIO thread started."));
+        }
+
+        nextSleep = TRUE;
+        /* Loop until we are shutting down, but continue as long as there is more output from the JVM. */
+        while ((!stopJavaIOThread) || (!nextSleep)) {
+            if (nextSleep) {
+                /* Sleep for a hundredth of a second. */
+                wrapperSleep(10);
+            }
+            nextSleep = TRUE;
+            
+            if (wrapperData->pauseThreadJavaIO) {
+                wrapperPauseThread(wrapperData->pauseThreadJavaIO, TEXT("javaio"));
+                wrapperData->pauseThreadJavaIO = 0;
+            }
+            
+            if (wrapperReadChildOutput()) {
+                if (wrapperData->isDebugging) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                        TEXT("Pause reading child process output to share cycles."));
+                }
+                nextSleep = FALSE;
+            }
+        }
+    } __except (exceptionFilterFunction(GetExceptionInformation())) {
+        /* This call is not queued to make sure it makes it to the log prior to a shutdown. */
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Fatal error in the JavaIO thread."));
+        javaIOThreadStopped = TRUE; /* Before appExit() */
+        appExit(1);
+        return 1; /* For the compiler, we will never get here. */
+    }
+
+    javaIOThreadStopped = TRUE;
+    if (wrapperData->isJavaIOOutputEnabled) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("JavaIO thread stopped."));
+    }
+    return 0;
+}
+
+/**
+ * Creates a process whose job is to loop and process and stdio and stderr
+ *  output from the JVM.
+ */
+int initializeJavaIO() {
+    if (wrapperData->isJavaIOOutputEnabled) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Launching JavaIO thread."));
+    }
+
+    javaIOThreadHandle = CreateThread(
+        NULL, /* No security attributes as there will not be any child processes of the thread. */
+        0,    /* Use the default stack size. */
+        javaIORunner,
+        NULL, /* No parameters need to passed to the thread. */
+        0,    /* Start the thread running immediately. */
+        &javaIOThreadId);
+    if (!javaIOThreadHandle) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+            TEXT("Unable to create a javaIO thread: %s"), getLastErrorText());
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+void disposeJavaIO() {
+    stopJavaIOThread = TRUE;
+
+    /* Wait until the javaIO thread is actually stopped to avoid timing problems. */
+    if (javaIOThreadStarted) {
+        while (!javaIOThreadStopped) {
+#ifdef _DEBUG
+            wprintf(TEXT("Waiting for javaIO thread to stop.\n"));
+#endif
+            wrapperSleep(100);
+        }
+    }
+}
+
+/**
  * The main entry point for the timer thread which is started by
  *  initializeTimer().  Once started, this thread will run for the
  *  life of the process.
  *
  * This thread will only be started if we are configured NOT to
  *  use the system time as a base for the tick counter.
- *
- * All logging within this thread is intentionally using the Queued
- *  logging.  This is not because of lock problems, but rather because
- *  it is much faster and will be less likely to cause any delays in
- *  the looping of the timer.
  */
 DWORD WINAPI timerRunner(LPVOID parameter) {
     TICKS sysTicks;
@@ -732,11 +841,16 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
         logRegisterThread(WRAPPER_THREAD_TIMER);
 
         if (wrapperData->isTickOutputEnabled) {
-            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Timer thread started."));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Timer thread started."));
         }
 
         while (!stopTimerThread) {
             wrapperSleep(WRAPPER_TICK_MS);
+            
+            if (wrapperData->pauseThreadTimer) {
+                wrapperPauseThread(wrapperData->pauseThreadTimer, TEXT("timer"));
+                wrapperData->pauseThreadTimer = 0;
+            }
 
             /* Get the tick count based on the system time. */
             sysTicks = wrapperGetSystemTicks();
@@ -791,6 +905,9 @@ DWORD WINAPI timerRunner(LPVOID parameter) {
     }
 
     timerThreadStopped = TRUE;
+    if (wrapperData->isTickOutputEnabled) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Timer thread stopped."));
+    }
     return 0;
 }
 
@@ -1048,6 +1165,20 @@ int wrapperInitializeRun() {
         if ((res = initializeTimer()) != 0) {
             return res;
         }
+    }
+    
+    if (wrapperData->useJavaIOThread) {
+        /* Create and initialize a javaIO thread. */
+        if ((res = initializeJavaIO()) != 0) {
+            return res;
+        }
+    } else {
+        javaIOThreadHandle = NULL;
+        javaIOThreadId = 0;
+    }
+    
+    if (wrapperData->isPageFaultOutputEnabled) {
+        wrapperInitializeProfileCounters();
     }
 
     return 0;
@@ -1789,6 +1920,166 @@ void wrapperDumpCPUUsage() {
         lastPerformanceCount = performanceCount;
     }
 }
+    
+void wrapperInitializeProfileCounters() {
+    PDH_STATUS pdhStatus;
+    FARPROC pdhAddUnlocalizedCounter;
+    BOOL couldLoad;
+    HMODULE dbgHelpDll = GetModuleHandle(TEXT("Pdh.dll"));
+
+
+    if( dbgHelpDll == NULL) {
+        couldLoad = FALSE;
+    } else {
+        if (isVista()) {
+#ifdef UNICODE
+            pdhAddUnlocalizedCounter = GetProcAddress(dbgHelpDll, "PdhAddEnglishCounterW");
+#else
+            pdhAddUnlocalizedCounter = GetProcAddress(dbgHelpDll, "PdhAddEnglishCounterA");
+#endif
+        } else {
+#ifdef UNICODE
+            pdhAddUnlocalizedCounter = GetProcAddress(dbgHelpDll, "PdhAddCounterW");
+#else
+            pdhAddUnlocalizedCounter = GetProcAddress(dbgHelpDll, "PdhAddCounterA");
+#endif
+        }
+        if(pdhAddUnlocalizedCounter == NULL) {
+            couldLoad = FALSE;
+        } else {
+            couldLoad = TRUE;
+        }
+    }
+    /* We want to set up system profile monitoring to keep track of the state of the system. */
+    pdhStatus = PdhOpenQuery(NULL, 0, &pdhQuery);
+    if (pdhStatus != ERROR_SUCCESS) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            TEXT("Failed to initialize profiling: 0x%x"), pdhStatus);
+        pdhQuery = NULL;
+    } else {
+        pdhStatus = pdhAddUnlocalizedCounter(pdhQuery, TEXT("\\PhysicalDisk(_Total)\\Avg. Disk Queue Length"), 0, &pdhCounterPhysicalDiskAvgQueueLen);
+        if (pdhStatus != ERROR_SUCCESS) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                TEXT("Failed to initialize profiling counter %d: 0x%x"), 1, pdhStatus);
+        }
+        
+        pdhStatus = pdhAddUnlocalizedCounter(pdhQuery, TEXT("\\PhysicalDisk(_Total)\\Avg. Disk Write Queue Length"), 0, &pdhCounterPhysicalDiskAvgWriteQueueLen);
+        if (pdhStatus != ERROR_SUCCESS) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                TEXT("Failed to initialize profiling counter %d: 0x%x"), 2, pdhStatus);
+        }
+        
+        pdhStatus = pdhAddUnlocalizedCounter(pdhQuery, TEXT("\\PhysicalDisk(_Total)\\Avg. Disk Read Queue Length"), 0, &pdhCounterPhysicalDiskAvgReadQueueLen);
+        if (pdhStatus != ERROR_SUCCESS) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                TEXT("Failed to initialize profiling counter %d: 0x%x"), 3, pdhStatus);
+        }
+        
+        pdhStatus = pdhAddUnlocalizedCounter(pdhQuery, TEXT("\\Memory\\Page Faults/sec"), 0, &pdhCounterMemoryPageFaultsPSec);
+        if (pdhStatus != ERROR_SUCCESS) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                TEXT("Failed to initialize profiling counter %d: 0x%x"), 4, pdhStatus);
+        }
+        
+        pdhStatus = pdhAddUnlocalizedCounter(pdhQuery, TEXT("\\Memory\\Transition Faults/sec"), 0, &pdhCounterMemoryTransitionFaultsPSec);
+        if (pdhStatus != ERROR_SUCCESS) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                TEXT("Failed to initialize profiling counter %d: 0x%x"), 5, pdhStatus);
+        }
+        
+        pdhStatus = pdhAddUnlocalizedCounter(pdhQuery, TEXT("\\Process(wrapper)\\Page Faults/sec"), 0, &pdhCounterProcessWrapperPageFaultsPSec);
+        if (pdhStatus != ERROR_SUCCESS) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                TEXT("Failed to initialize profiling counter %d: 0x%x"), 6, pdhStatus);
+        }
+        
+        pdhStatus = pdhAddUnlocalizedCounter(pdhQuery, TEXT("\\Process(java)\\Page Faults/sec"), 0, &pdhCounterProcessJavaPageFaultsPSec);
+        if (pdhStatus != ERROR_SUCCESS) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                TEXT("Failed to initialize profiling counter %d: 0x%x"), 7, pdhStatus);
+        }
+        if (couldLoad && dbgHelpDll != NULL) {
+        FreeLibrary(dbgHelpDll);
+        }
+        /* This is the first call, since for some equations (e.g. for average) 2 values need to be polled */
+        PdhCollectQueryData(pdhQuery);
+        /* PdhGetCounterInfo to get info about the counters like scale, etc. */
+    }
+}
+
+void wrapperDumpPageFaultUsage() {
+    PDH_STATUS pdhStatus;
+    DWORD counterType;
+    PDH_FMT_COUNTERVALUE counterValue;
+    double diskQueueLen = 0;
+    double diskQueueWLen = 0;
+    double diskQueueRLen = 0;
+    double totalPageFaults = 0;
+    double wrapperPageFaults = 0;
+    double javaPageFaults = 0;
+    
+    if (pdhQuery == NULL) {
+        return;
+    }
+    
+    pdhStatus = PdhCollectQueryData(pdhQuery);
+    if (pdhStatus == ERROR_SUCCESS) {
+        pdhStatus = PdhGetFormattedCounterValue(pdhCounterPhysicalDiskAvgQueueLen, PDH_FMT_DOUBLE, &counterType, &counterValue);
+        if (pdhStatus == ERROR_SUCCESS) {
+            diskQueueLen = counterValue.doubleValue;
+            /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("\\PhysicalDisk(_Total)\\Avg. Disk Queue Length : %d %10.5f"), counterValue.CStatus, counterValue.doubleValue);*/
+        }
+        pdhStatus = PdhGetFormattedCounterValue(pdhCounterPhysicalDiskAvgWriteQueueLen, PDH_FMT_DOUBLE, &counterType, &counterValue);
+        if (pdhStatus == ERROR_SUCCESS) {
+            diskQueueWLen = counterValue.doubleValue;
+            /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("\\PhysicalDisk(_Total)\\Avg. Disk Write Queue Length : %d %10.5f"), counterValue.CStatus, counterValue.doubleValue);*/
+        }
+        pdhStatus = PdhGetFormattedCounterValue(pdhCounterPhysicalDiskAvgReadQueueLen, PDH_FMT_DOUBLE, &counterType, &counterValue);
+        if (pdhStatus == ERROR_SUCCESS) {
+            diskQueueRLen = counterValue.doubleValue;
+            /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("\\PhysicalDisk(_Total)\\Avg. Disk Read Queue Length : %d %10.5f"), counterValue.CStatus, counterValue.doubleValue);*/
+        }
+
+        pdhStatus = PdhGetFormattedCounterValue(pdhCounterMemoryPageFaultsPSec, PDH_FMT_DOUBLE, &counterType, &counterValue);
+        if (pdhStatus == ERROR_SUCCESS) {
+            totalPageFaults = counterValue.doubleValue;
+            /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("\\Memory\\Page Faults/sec : %d %10.5f"), counterValue.CStatus, counterValue.doubleValue);*/
+        }
+
+        pdhStatus = PdhGetFormattedCounterValue(pdhCounterMemoryTransitionFaultsPSec, PDH_FMT_DOUBLE, &counterType, &counterValue);
+        if (pdhStatus == ERROR_SUCCESS) {
+            /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("\\Memory\\Transition Faults/sec : %d %10.5f"), counterValue.CStatus, counterValue.doubleValue);*/
+        }
+        
+        pdhStatus = PdhGetFormattedCounterValue(pdhCounterProcessWrapperPageFaultsPSec, PDH_FMT_DOUBLE, &counterType, &counterValue);
+        if (pdhStatus == ERROR_SUCCESS) {
+            wrapperPageFaults = counterValue.doubleValue;
+            /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("\\Process(wrapper)\\Page Faults/sec : %d %10.5f"), counterValue.CStatus, counterValue.doubleValue);*/
+        }
+        
+        pdhStatus = PdhGetFormattedCounterValue(pdhCounterProcessJavaPageFaultsPSec, PDH_FMT_DOUBLE, &counterType, &counterValue);
+        if (pdhStatus == ERROR_SUCCESS) {
+            javaPageFaults = counterValue.doubleValue;
+            /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("\\Process(java)\\Page Faults/sec : %d %10.5f"), counterValue.CStatus, counterValue.doubleValue);*/
+        }
+        
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Page Faults (Total:%8.2f Wrapper:%7.2f (%7.2f%%) Java:%7.2f (%7.2f%%))  Queue Len (Total:%7.2f Read:%7.2f Write:%7.2f)"),
+            totalPageFaults,
+            wrapperPageFaults, (totalPageFaults > 0 ? 100 * wrapperPageFaults / totalPageFaults : 0),
+            javaPageFaults, (totalPageFaults > 0 ? 100 * javaPageFaults / totalPageFaults : 0),
+            diskQueueLen, diskQueueRLen, diskQueueWLen);
+    } else {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            TEXT("Failed to collect profile data: 0x%x"), pdhStatus);
+    } 
+}
+
+void disposeProfileCounters() {
+    if (pdhQuery != NULL) {
+        PdhCloseQuery(pdhQuery);
+        pdhQuery = NULL;
+    }
+}
 
 /******************************************************************************
  * NT Service Methods
@@ -1912,7 +2203,8 @@ void wrapperMaintainControlCodes() {
         wrapperReportStatus(FALSE, WRAPPER_WSTATE_STOPPING, 0, 0);
 
         /* Tell the wrapper to shutdown normally */
-        wrapperStopProcess(0);
+        /* Always force the shutdown as this is an external event. */
+        wrapperStopProcess(0, TRUE);
 
         /* To make sure that the JVM will not be restarted for any reason,
          *  start the Wrapper shutdown process as well.
@@ -1936,7 +2228,8 @@ void wrapperMaintainControlCodes() {
         wrapperReportStatus(FALSE, WRAPPER_WSTATE_STOPPING, 0, 0);
 
         /* Tell the wrapper to shutdown normally */
-        wrapperStopProcess(0);
+        /* Always force the shutdown as this is an external event. */
+        wrapperStopProcess(0, TRUE);
 
         /* To make sure that the JVM will not be restarted for any reason,
          *  start the Wrapper shutdown process as well. */
@@ -1962,7 +2255,8 @@ void wrapperMaintainControlCodes() {
             wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
             wrapperKillProcess();
         } else {
-            wrapperStopProcess(0);
+            /* Always force the shutdown as this is an external event. */
+            wrapperStopProcess(0, TRUE);
         }
         /* Don't actually kill the process here.  Let the application shut itself down */
 
@@ -5032,10 +5326,12 @@ BOOL verifyEmbeddedSignature() {
 
         default:
             dwLastError = GetLastError();
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s"), pwszSourceFile, getLastErrorText());
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s"), pwszSourceFile, lStatus, getLastErrorText());
             printWholeCertificateInfo(pwszSourceFile, LEVEL_FATAL);
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The Wrapper will shutdown!"));
-            appExit(0);            
+            if (dwLastError == TRUST_E_BAD_DIGEST  || dwLastError == TRUST_E_CERT_SIGNATURE) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The Wrapper will shutdown!"));
+                appExit(0);
+            }
             break;
     }
     return TRUE;
@@ -5501,7 +5797,7 @@ BOOL readAndWriteNamedPipes(HANDLE in, HANDLE out, HANDLE err) {
 
     /* the named pipes are nonblocking, so loop until an connection could
      * have been established with the secondary process (or an error occured) */
-     do {
+    do {
         /* ConnectNamedPipe does rather wait until a connection was established
            However, the inbound pipes are non-blocking, so ConnectNamedPipe immediately
            returns. So call it looped...*/

@@ -2,7 +2,84 @@ Java Service Wrapper Revision History.
 --------------------------------------
 
 3.5.8
-* 
+* (Standard, Professional) Starting with version 3.5.5, we invalidated the use
+  of all 00ff* hostids on Windows to avoid problems with changing hostids when
+  users have a Juniper Network Connect network adapter on their system.  This
+  turned out to be too restrictive as Guest OSs running under Parallels also
+  make use of this hostid range.  The Wrapper is now more careful to only
+  invalidate actual Juniper Network Connect hostids.
+* (Standard, Professional) Improve the message shown to the user when the
+  Wrapper is unable to locate any hostids for a system.
+* Fixed a problem with the wrapper script on Solaris, where the option -F was
+  not available for grep.
+* Added Windows version information on the wrapper debug output.
+* Added a wrapper.log.warning.threshold property which makes the Wrapper show
+  a warning whenever it detects that the Wrapper took a long time to record a
+  log message.  This was added to test a reported issue caused by slow IO on
+  very heavily loaded systems.
+* Fix a problem where a filter that requested the JVM to restart would be
+  ignored if the JVM exited on its own immediately.  The Wrapper is now more
+  consistent so that restart requests from within the JVM or filters will
+  always take priority over such exit requests.  External shutdown requests, or
+  those from other actions will still behave as they did in the past and
+  continue to shutdown the Wrapper.  The Wrapper also logs messages in debug
+  output if an outstanding restart request is being preserved or ignored.
+* Fixed a problem in the AppCommand.bat batch file which could occur on some
+  Windows platforms with certain multi-byte system encodings. The script has
+  been rewritten and questionable parts have been simplified. The functionality
+  of the script has been preserved.
+* Added the environment variable WRAPPER_CONF_DIR, which can be used for 
+  the configuration properties. (Feature Request 3160644)
+* Made the script exit with the right exit code received when running the
+  script as different user, specified in RUN_AS_USER. (Bug Report 3185281)
+* Fix an access violation which could happen when reporting that the code
+  signing certificate has failed to been verified.
+* Log an error if the backend socket is forcibly closed externally.  It had
+  been getting logged at a debug log level.  The message is "An existing
+  connection was forcibly closed by the remote host. (0x2746)".  Because the
+  message was only logged if debug output was enabled, the JVM would be
+  restarted with no clear explanation as to what happened.  The source of the
+  socket closure is under investigation.
+* (Professional) Added the Java call fireUserEvent to the WrapperManager API.
+  This enables to fire user event mails, actions without the filter trigger.
+* Fix a warning on Mac versions if the configured java command was not a
+  universal binary.  A check was added in 3.4.0 to make sure that the
+  wrapper.java.command pointed directly to an executable to avoid unexpected
+  behavior when running a script.  The message is only a warning and the
+  Wrapper continues regardless.  Standard ppc, ppc_64, x86_64, i386, as well
+  as the universal binaries will now all work correctly without a warning.
+* The default value of the wrapper.*.umask properties is using the current
+  umask the process has. Before the default value was always 0022.
+* Add a new wrapper.backend.type property that is used to control whether the
+  Wrapper communicates with the JVM using the traditional "SOCKET" or new
+  experimental "PIPE".  This was added as a workaround to a rare problem where
+  some Windows machines are closing the socket at an OS level.  This was only
+  ever seen on Windows 2003, but could exist on other Windows versions as well.
+* Add a new experimental wrapper.use_javaio_thread property which causes the
+  Wrapper to handle all java console output in a dedicated thread.
+* Add a new WrapperManager.isNativeLibraryOk() method which lets user code
+  easily test whether or not the native library was loaded and initialized on
+  startup.
+* Add a new PAUSE_THREAD command to the wrapper.commandfile property which
+  makes it possible to test how the Wrapper behaves when various threads block
+  or freeze.  This was used to simulate and reproduce issues on heavily IO
+  bound servers.
+* Improve the way the Java side of the Wrapper behaves when the Wrapper fails
+  to ping the JVM for an extended period of time.  The JVM used to exit to let
+  itself resync itself with the JVM.  This was causing problems on systems
+  which were heavily IO bound because the Wrapper could block for a while while
+  trying to write to the log file and the JVM was exiting.  The JVM will now
+  never exit under such circumstances.  The JVM will never become orphaned
+  because it will still exit almost immediately if the backend socket or pipe
+  with the Wrapper is ever closed.
+* Changed the way the Wrapper is handling certificate errors regarding the 
+  code signing/timestamping certificate. The Wrapper will now only shutdown 
+  itself if the signature of the binary was not successfully verified because 
+  the binary or signature has been malformed but not if any problem with 
+  the counter-signer has been found.  Starting with 3.5.7, the Windows Wrapper
+  binaries are signed.  Some users with locked down Windows 2008 systems had
+  problems with the Wrapper refusing to start because the Comodo certificate
+  had been disabled on their system.
 
 3.5.7
 * Changed the way the script is installing the daemon gets installed on an AIX
@@ -23,9 +100,9 @@ Java Service Wrapper Revision History.
   introduced in version 3.5.6 when the script stopped changing the working
   directory in the script.
 * Add a new GC action that will cause the JVM to immediately perform a full
-  thread dump.  See the wrapper.commandfile, wrapper.filter.action.<n>,
-  wrapper.check.deadlock.action, and wrapper.timer.<n>.action properties for
-  details.
+  garbage collection sweep.  See the wrapper.commandfile,
+  wrapper.filter.action.<n>, wrapper.check.deadlock.action, and
+  wrapper.timer.<n>.action properties for details.
 * (Professional) Modify the wrapper.event.<event_name>.command.block.action
   property slightly so it will now correctly warn if an unknown action is
   encountered.  It had been defaulting to CONTINUE silently.
@@ -60,7 +137,7 @@ Java Service Wrapper Revision History.
   configured so that the main method is just allowed to end without causing the
   Wrapper to shutdown in an error state.  Java on its own will stay running in
   such a case as long as it has launched at least one non-daemon thread prior
-  to the uncaught exception being thrown.  This does not affect mst users, but
+  to the uncaught exception being thrown.  This does not affect most users, but
   an application was found that was having problems because of this difference
   in behavior.  See the javadocs of the helper classes for details.
 * (Professional) Fix a problem when looking for the correct exit code to use
@@ -121,14 +198,16 @@ Java Service Wrapper Revision History.
 * Modify the way we test for the existance of the temp directory so we now
   generate our own file name rather than using File.createTempFile.  On some
   systems createTempFile was taking a long time because it requires that Java
-  initialize its internal entropy.
+  initialize its internal entropy.  We discovered that large numbers of files
+  in the java.tmpdir directory makes Java's entropy initialization code very
+  slow.  This has been a potential issue since 3.5.0.
 * Fixed a problem on Windows where passthrough arguments after a "--" which
   contained spaces were not being passed through to the JVM intact, they were
   being split at the spaces into multiple arguments.
 * Fix a problem on Windows where the Wrapper could sometimes crash on shutdown
   if more than one thread got into the cleanup code at the same time.  This
   did not affect running applications and was only an issue on shutdown.  It
-  was more likely if a language pack was loaded.  Introduced in 3.5.3.
+  was more likely if a language pack was loaded.  Introduced in 3.5.3.  
 
 3.5.6
 * Fix a problem on UNIX platforms where the log file path was being calculated
@@ -211,6 +290,9 @@ Java Service Wrapper Revision History.
 * Fix a deadlock in the code that is used to send data to the Java process.
   It was only possible if debug level output was enabled and log file rolling
   was enabled.  Introduced in 3.3.7.
+* Fix a problem where the Wrapper was not notifying the JVM whenever the log
+  file was rolled and the new name was the same as the previous one, as it is
+  when wrapper.logfile.rollmode is anything other than NONE or DATE.
 * Fix a problem where the WrapperManager.getWrapperLogFile() was not returning
   the accurate log file name until the first time the log file was rolled after
   each JVM invocation.  This was only noticeable if the wrapper.logfile
@@ -1171,7 +1253,7 @@ Java Service Wrapper Revision History.
 * Add support for PowerEvents so Windows services can respond to suspend
   and resume events.
 * Fix a problem where the wrapper.key system property passed to the JVM was
-  being generated incorrectly randomly, 1 in 65536 times the JVM was launched.
+  being generated incorrectly randomly, 1 in 2048 times the JVM was launched.
   This would result in the JVM failing to start and the Wrapper shutting down.
 * Add a new wrapper.disable_console_input to disable to feature which allows
   the Wrapper to pass console input on to the Java process.
