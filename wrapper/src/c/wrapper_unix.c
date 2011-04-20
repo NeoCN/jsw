@@ -86,11 +86,18 @@ int pipeInitialized = 0;
 
 TCHAR wrapperClasspathSeparator = TEXT(':');
 
+int javaIOThreadSet = FALSE;
+pthread_t javaIOThreadId;
+int javaIOThreadStarted = FALSE;
+int stopJavaIOThread = FALSE;
+int javaIOThreadStopped = FALSE;
+
 int timerThreadSet = FALSE;
 pthread_t timerThreadId;
 int timerThreadStarted = FALSE;
 int stopTimerThread = FALSE;
 int timerThreadStopped = FALSE;
+
 TICKS timerTicks = WRAPPER_TICK_INITIAL;
 
 /******************************************************************************
@@ -230,7 +237,8 @@ void takeSignalAction(int sigNum, const TCHAR *sigName, int mode) {
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     TEXT("%s trapped.  Shutting down."), sigName);
-                wrapperStopProcess(0);
+                /* Always force the shutdown as this is an external event. */
+                wrapperStopProcess(0, TRUE);
             }
             /* Don't actually kill the process here.  Let the application shut itself down */
 
@@ -633,17 +641,127 @@ int registerSigAction(int sigNum, void (*sigAction)(int, siginfo_t *, void *)) {
 }
 
 /**
+ * The main entry point for the javaio thread which is started by
+ *  initializeJavaIO().  Once started, this thread will run for the
+ *  life of the process.
+ *
+ * This thread will only be started if we are configured to use a
+ *  dedicated thread to read JVM output.
+ */
+void *javaIORunner(void *arg) {
+    sigset_t signal_mask;
+    int nextSleep;
+#ifndef VALGRIND
+    int rc;
+#endif
+
+    javaIOThreadStarted = TRUE;
+    
+    /* Immediately register this thread with the logger. */
+    logRegisterThread(WRAPPER_THREAD_JAVAIO);
+
+    /* mask signals so the javaIO doesn't get any of these. */
+    sigemptyset(&signal_mask);
+    sigaddset(&signal_mask, SIGTERM);
+    sigaddset(&signal_mask, SIGINT);
+    sigaddset(&signal_mask, SIGQUIT);
+    sigaddset(&signal_mask, SIGALRM);
+    sigaddset(&signal_mask, SIGHUP);
+    sigaddset(&signal_mask, SIGUSR1);
+#ifndef VALGRIND
+    sigaddset(&signal_mask, SIGUSR2);
+    rc = pthread_sigmask(SIG_BLOCK, &signal_mask, NULL);
+    if (rc != 0) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Could not mask signals for javaIO thread."));
+    }
+#endif
+
+    if (wrapperData->isJavaIOOutputEnabled) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("JavaIO thread started."));
+    }
+
+    nextSleep = TRUE;
+    /* Loop until we are shutting down, but continue as long as there is more output from the JVM. */
+    while ((!stopJavaIOThread) || (!nextSleep)) {
+        if (nextSleep) {
+            /* Sleep for a hundredth of a second. */
+            wrapperSleep(10);
+        }
+        nextSleep = TRUE;
+        
+        if (wrapperData->pauseThreadJavaIO) {
+            wrapperPauseThread(wrapperData->pauseThreadJavaIO, TEXT("javaio"));
+            wrapperData->pauseThreadJavaIO = 0;
+        }
+        
+        if (wrapperReadChildOutput()) {
+            if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                    TEXT("Pause reading child process output to share cycles."));
+            }
+            nextSleep = FALSE;
+        }
+    }
+
+    javaIOThreadStopped = TRUE;
+    if (wrapperData->isJavaIOOutputEnabled) {
+        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("JavaIO thread stopped."));
+    }
+    return NULL;
+}
+
+/**
+ * Creates a process whose job is to loop and simply increment a ticks
+ *  counter.  The tick counter can then be used as a clock as an alternative
+ *  to using the system clock.
+ */
+int initializeJavaIO() {
+    int res;
+
+    if (wrapperData->isJavaIOOutputEnabled) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Launching JavaIO thread."));
+    }
+
+    res = pthread_create(&javaIOThreadId,
+        NULL, /* No attributes. */
+        javaIORunner,
+        NULL); /* No parameters need to be passed to the thread. */
+    if (res) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+            TEXT("Unable to create a javaIO thread: %d, %s"), res, getLastErrorText());
+        javaIOThreadSet = TRUE;
+        return 1;
+    } else {
+        if (pthread_detach(javaIOThreadId)) {
+            javaIOThreadSet = TRUE;
+            return 1;
+        }
+        javaIOThreadSet = FALSE;
+        return 0;
+    }
+}
+
+void disposeJavaIO() {
+    stopJavaIOThread = TRUE;
+    /* Wait until the javaIO thread is actually stopped to avoid timing problems. */
+    if (javaIOThreadStarted) {
+        while (!javaIOThreadStopped) {
+#ifdef _DEBUG
+            wprintf(TEXT("Waiting for javaIO thread to stop.\n"));
+#endif
+            wrapperSleep(100);
+        }
+        pthread_kill(javaIOThreadId, SIGKILL);
+    }
+}
+
+/**
  * The main entry point for the timer thread which is started by
  *  initializeTimer().  Once started, this thread will run for the
  *  life of the process.
  *
  * This thread will only be started if we are configured NOT to
  *  use the system time as a base for the tick counter.
- *
- * All logging within this thread is intentionally using the Queued
- *  logging.  This is not because of lock problems, but rather because
- *  it is much faster and will be less likely to cause any delays in
- *  the looping of the timer.
  */
 void *timerRunner(void *arg) {
     TICKS sysTicks;
@@ -684,6 +802,11 @@ void *timerRunner(void *arg) {
 
     while (!stopTimerThread) {
         wrapperSleep(WRAPPER_TICK_MS);
+        
+        if (wrapperData->pauseThreadTimer) {
+            wrapperPauseThread(wrapperData->pauseThreadTimer, TEXT("timer"));
+            wrapperData->pauseThreadTimer = 0;
+        }
 
         /* Get the tick count based on the system time. */
         sysTicks = wrapperGetSystemTicks();
@@ -731,6 +854,9 @@ void *timerRunner(void *arg) {
     }
 
     timerThreadStopped = TRUE;
+    if (wrapperData->isTickOutputEnabled) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Timer thread stopped."));
+    }
     return NULL;
 }
 
@@ -824,6 +950,17 @@ int wrapperInitializeRun() {
         if ((res = initializeTimer()) != 0) {
             return res;
         }
+    }
+    
+    if (wrapperData->useJavaIOThread) {
+        /* Create and initialize a javaIO thread. */
+        if ((res = initializeJavaIO()) != 0) {
+            return res;
+        }
+    } else {
+        javaIOThreadSet = FALSE;
+        /* Unable to set the javaIOThreadId to a null value on all platforms
+         * javaIOThreadId = 0;*/
     }
 
     return retval;

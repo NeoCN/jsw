@@ -37,6 +37,7 @@ barf
 #ifdef WIN32
 
 #include <windows.h>
+#include <io.h>
 #include <time.h>
 #include <tlhelp32.h>
 #include <winnt.h>
@@ -51,7 +52,7 @@ barf
 /* Reference to HINSTANCE of this DLL */
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 
-static DWORD wrapperProcessId = 0;
+static DWORD javaProcessId = 0;
 
 HANDLE controlEventQueueMutexHandle = NULL;
 
@@ -672,7 +673,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jC
     }
 
     /* Store the current process Id */
-    wrapperProcessId = GetCurrentProcessId();
+    javaProcessId = GetCurrentProcessId();
 
     /* Initialize the explorer.exe name. */
     initExplorerExeName();
@@ -696,10 +697,10 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetJavaPID(JNIEnv *env, jcl
 JNIEXPORT void JNICALL
 Java_org_tanukisoftware_wrapper_WrapperManager_nativeRequestThreadDump(JNIEnv *env, jclass clazz) {
     if (wrapperJNIDebugging) {
-        _tprintf(TEXT("WrapperJNI Debug: Sending BREAK event to process group %ld.\n"), wrapperProcessId);
+        _tprintf(TEXT("WrapperJNI Debug: Sending BREAK event to process group %ld.\n"), javaProcessId);
         flushall();
     }
-    if (GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, wrapperProcessId) == 0) {
+    if (GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, javaProcessId) == 0) {
         if (getLastError() == 6) {
             _tprintf(TEXT("WrapperJNI Error: Unable to send BREAK event to JVM process because it does not have a console.\n"));
             flushall();

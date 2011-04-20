@@ -61,6 +61,7 @@ extern int multiByteToWideChar(const char *multiByteChars, const char *multiByte
 #define cgetts        _cgetws
 extern int _tchdir(const TCHAR *path);
 extern int _texecvp(TCHAR* arg, TCHAR **cmd);
+extern int _tmkfifo(TCHAR* arg, mode_t mode);
 #define _tchmod       _wchmod
 #define _tcprintf     _cwprintf
 #define _cputts       _cputws
@@ -91,7 +92,7 @@ extern TCHAR* _tgetcwd(TCHAR *buf, size_t size);
 #define _tmakepath    _wmakepath
 #define _tmkdir       _wmkdir
 #define _tmktemp      _wmktemp
-extern int _topen(const TCHAR *path, int oflag, ... );
+extern int _topen(const TCHAR *path, int oflag, mode_t mode);
 #define _tpopen       _wpopen
 #define _puttch       _putwch
 #if defined(WRAPPER_USE_PUTENV)
@@ -261,6 +262,7 @@ typedef unsigned char _TUCHAR;
 #define _tcreat       _creat
 #define _tcscanf      _cscanf
 #define _tctime64     _ctime64
+#define _tmkfifo      mkfifo
 #define _texecl       execl
 #define _texecle      execle
 #define _texeclp      execlp

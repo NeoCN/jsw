@@ -31,10 +31,12 @@
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
-
+#include <fcntl.h>
 #ifdef WIN32
  #include <windows.h>
  #include <tchar.h>
+ #include <io.h>
+ #define dup2 _dup2
 #endif
 #include "wrapper_i18n.h"
 #include "wrapperinfo.h"
@@ -46,6 +48,7 @@ int wrapperJNIDebugging = JNI_FALSE;
 int controlEventQueue[CONTROL_EVENT_QUEUE_SIZE];
 int controlEventQueueLastReadIndex = 0;
 int controlEventQueueLastWriteIndex = 0;
+
 
 const char utf8ClassJavaLangString[] = {106, 97,118, 97, 47, /* java/ */
                                         108, 97,110,103, 47, /* lang/ */
@@ -484,7 +487,7 @@ int getSystemProperty(JNIEnv *env, const TCHAR *propertyName, TCHAR **propertyVa
                             if (!*propertyValue) {
                                 throwOutOfMemoryError(env, TEXT("GSP2"));
                                 result = TRUE;
-                                } else {
+                            } else {
                                 strncpy((char*)*propertyValue, (char*)keyChars, strlen((char*)keyChars) + 1);
                                 result = FALSE;
                             }
@@ -520,7 +523,38 @@ int getSystemProperty(JNIEnv *env, const TCHAR *propertyName, TCHAR **propertyVa
  * Do common initializaion.
  */
 void initCommon(JNIEnv *env, jclass jClassWrapperManager) {
+    TCHAR* outfile, *errfile;
+    int outfd, errfd, mode, options;
+
+#ifdef WIN32
+    mode = _S_IWRITE;
+    options = _O_WRONLY | _O_APPEND | _O_CREAT;
+#else
+    mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+    options = O_WRONLY | O_APPEND | O_CREAT;
+#endif
     initUTF8Strings(env);
+
+    if (getSystemProperty(env, TEXT("wrapper.java.errfile"), &errfile, FALSE)) {
+        /* Failed */
+        return;
+    }
+    if (errfile) {
+       _ftprintf(stderr, TEXT("WrapperJNI: Redirecting %s to file %s\n"), TEXT("StdErr"), errfile); fflush(NULL);
+       if (((errfd = _topen(errfile, options, mode)) == -1) || (dup2(errfd, 2) == -1)) {
+          return;
+       }
+    }
+    if (getSystemProperty(env, TEXT("wrapper.java.outfile"), &outfile, FALSE)) {
+        /* Failed */
+        return;
+    }
+    if (outfile) {
+       _tprintf(TEXT("WrapperJNI: Redirecting %s to file %s\n"), TEXT("StdOut"), outfile); fflush(NULL);
+       if (((outfd = _topen(outfile, options, mode)) == -1) || (dup2(outfd, 1) == -1)) {
+          return;
+       }
+    }
 }
 
 void throwThrowable(JNIEnv *env, char *throwableClassName, const TCHAR *lpszFmt, ...) {
@@ -747,6 +781,7 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetControlEvent(JNIEnv *env
         fflush(NULL);
 #endif
     }
+
     if (wrapperReleaseControlEventQueue()) {
         /* Failed.  Should have been reported. */
         return event;

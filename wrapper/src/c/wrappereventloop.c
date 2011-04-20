@@ -404,9 +404,9 @@ void anchorPoll(TICKS nowTicks) {
                     (wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN)) {
                     /* Already shutting down, so nothing more to do. */
                 } else {
-                    wrapperStopProcess(0);
+                    /* Always force the shutdown as this was an external event. */
+                    wrapperStopProcess(0, TRUE);
                 }
-                
 
                 /* To make sure that the JVM will not be restarted for any reason,
                  *  start the Wrapper shutdown process as well. */
@@ -447,8 +447,10 @@ void commandPoll(TICKS nowTicks) {
     TCHAR *c;
     TCHAR *d;
     TCHAR *command;
-    TCHAR *params;
+    TCHAR *param1;
+    TCHAR *param2;
     int exitCode;
+    int pauseTime;
     int logLevel;
     int oldLowLogLevel;
     int newLowLogLevel;
@@ -507,14 +509,34 @@ void commandPoll(TICKS nowTicks) {
 
                             command = buffer;
 
-                            /** Look for the first space, everything after it will be the parameter. */
-                            if ((params = _tcschr(buffer, ' ')) != NULL ) {
-                                params[0] = TEXT('\0');
+                            /** Look for the first space, everything after it will be the parameter(s). */
+                            /* Look for parameter 1. */
+                            if ((param1 = _tcschr(buffer, ' ')) != NULL ) {
+                                param1[0] = TEXT('\0'); /* Terminate the command. */
 
                                 /* Find the first non-space character. */
                                 do {
-                                    params++;
-                                } while (params[0] == TEXT(' '));
+                                    param1++;
+                                } while (param1[0] == TEXT(' '));
+                            }
+                            if (param1 != NULL) {
+                                /* Look for parameter 2. */
+                                if ((param2 = _tcschr(param1, ' ')) != NULL ) {
+                                    param2[0] = TEXT('\0'); /* Terminate param1. */
+    
+                                    /* Find the first non-space character. */
+                                    do {
+                                        param2++;
+                                    } while (param2[0] == TEXT(' '));
+                                }
+                                if (param2 != NULL) {
+                                    /* Make sure parameter 2 is terminated. */
+                                    if ((d = _tcschr(param2, ' ')) != NULL ) {
+                                        d[0] = TEXT('\0'); /* Terminate param2. */
+                                    }
+                                }
+                            } else {
+                                param2 = NULL;
                             }
 
                             /* Process the command. */
@@ -522,14 +544,15 @@ void commandPoll(TICKS nowTicks) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Restarting JVM."), command);
                                 wrapperRestartProcess();
                             } else if (strcmpIgnoreCase(command, TEXT("STOP")) == 0) {
-                                if (params == NULL) {
+                                if (param1 == NULL) {
                                     exitCode = 0;
                                 } else {
-                                    exitCode = _ttoi(params);
+                                    exitCode = _ttoi(param1);
                                 }
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Shutting down with exit code %d."), command, exitCode);
 
-                                wrapperStopProcess(exitCode);
+                                /* Always force the shutdown as this is an external event. */
+                                wrapperStopProcess(exitCode, TRUE);
                                 
                                 /* To make sure that the JVM will not be restarted for any reason,
                                  *  start the Wrapper shutdown process as well. */
@@ -554,24 +577,24 @@ void commandPoll(TICKS nowTicks) {
                             } else if ((strcmpIgnoreCase(command, TEXT("CONSOLE_LOGLEVEL")) == 0) ||
                                     (strcmpIgnoreCase(command, TEXT("LOGFILE_LOGLEVEL")) == 0) ||
                                     (strcmpIgnoreCase(command, TEXT("SYSLOG_LOGLEVEL")) == 0)) {
-                                if (params == NULL) {
+                                if (param1 == NULL) {
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s' is missing its log level."), command);
                                 } else {
-                                    logLevel = getLogLevelForName(params);
+                                    logLevel = getLogLevelForName(param1);
                                     if (logLevel == LEVEL_UNKNOWN) {
-                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s' specified an unknown log level: '%'"), command, params);
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s' specified an unknown log level: '%'"), command, param1);
                                     } else {
                                         oldLowLogLevel = getLowLogLevel();
 
                                         if (strcmpIgnoreCase(command, TEXT("CONSOLE_LOGLEVEL")) == 0) {
                                             setConsoleLogLevelInt(logLevel);
-                                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Set console log level to '%s'."), command, params);
+                                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Set console log level to '%s'."), command, param1);
                                         } else if (strcmpIgnoreCase(command, TEXT("LOGFILE_LOGLEVEL")) == 0) {
                                             setLogfileLevelInt(logLevel);
-                                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Set log file log level to '%s'."), command, params);
+                                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Set log file log level to '%s'."), command, param1);
                                         } else if (strcmpIgnoreCase(command, TEXT("SYSLOG_LOGLEVEL")) == 0) {
                                             setSyslogLevelInt(logLevel);
-                                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Set syslog log level to '%s'."), command, params);
+                                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Set syslog log level to '%s'."), command, param1);
                                         } else {
                                             /* Shouldn't get here. */
                                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s' lead to an unexpected state."), command);
@@ -592,7 +615,7 @@ void commandPoll(TICKS nowTicks) {
                                     (strcmpIgnoreCase(command, TEXT("CPU_OUTPUT")) == 0) ||
                                     (strcmpIgnoreCase(command, TEXT("TIMER_OUTPUT")) == 0) ||
                                     (strcmpIgnoreCase(command, TEXT("SLEEP_OUTPUT")) == 0)) {
-                                flag = ((params != NULL) && (strcmpIgnoreCase(params, TEXT("TRUE")) == 0));
+                                flag = ((param1 != NULL) && (strcmpIgnoreCase(param1, TEXT("TRUE")) == 0));
                                 if (strcmpIgnoreCase(command, TEXT("LOOP_OUTPUT")) == 0) {
                                     wrapperData->isLoopOutputEnabled = flag;
                                 } else if (strcmpIgnoreCase(command, TEXT("STATE_OUTPUT")) == 0) {
@@ -615,6 +638,31 @@ void commandPoll(TICKS nowTicks) {
                                 if (wrapperData->commandFileTests) {
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s'.  Closing backend socket to JVM..."), command);
                                     wrapperProtocolClose();
+                                } else {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s'.  Tests disabled."), command);
+                                }
+                            } else if (strcmpIgnoreCase(command, TEXT("PAUSE_THREAD")) == 0) {
+                                if (wrapperData->commandFileTests) {
+                                    if (param2 == NULL) {
+                                        pauseTime = -1;
+                                    } else {
+                                        pauseTime = __max(1, __min(3600, _ttoi(param2)));
+                                    }
+                                    if (strcmpIgnoreCase(param1, TEXT("MAIN")) == 0) {
+                                        wrapperData->pauseThreadMain = pauseTime;
+                                    } else if (strcmpIgnoreCase(param1, TEXT("TIMER")) == 0) {
+                                        wrapperData->pauseThreadTimer = pauseTime;
+                                    } else if (strcmpIgnoreCase(param1, TEXT("JAVAIO")) == 0) {
+                                        wrapperData->pauseThreadJavaIO = pauseTime;
+                                    } else {
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s'.  Enqueue request to pause unknown thread."), command);
+                                        pauseTime = 0;
+                                    }
+                                    if (pauseTime > 0) {
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s'.  Enqueue request to pause %s thread for %d seconds..."), command, param1, pauseTime);
+                                    } else if (pauseTime < 0) {
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s'.  Enqueue request to pause %s thread indefinitely..."), command, param1);
+                                    }
                                 } else {
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s'.  Tests disabled."), command);
                                 }
@@ -1156,10 +1204,10 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
             /* Generate a unique key to use when communicating with the JVM */
             wrapperBuildKey();
 
-            /* Check the backend server socket to make sure it has been initialized.
+            /* Check the backend server to make sure it has been initialized.
              *  This is needed so we can pass its port as part of the java command. */
-            if (!wrapperCheckServerSocket(TRUE)) {
-                /* The socket is not up.  An error should have been reported.  But this means we
+            if (!wrapperCheckServerBackend(TRUE)) {
+                /* The backend is not up.  An error should have been reported.  But this means we
                  *  are unable to continue. */
                 wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
                 wrapperData->exitCode = 1;
@@ -1238,9 +1286,6 @@ void jStateLaunch(TICKS nowTicks, int nextSleep) {
     if ((wrapperData->wState == WRAPPER_WSTATE_STARTING) ||
         (wrapperData->wState == WRAPPER_WSTATE_STARTED) ||
         (wrapperData->wState == WRAPPER_WSTATE_RESUMING)) {
-
-        /* Always make sure that the orphan flag is reset before launching a new JVM. */
-        wrapperData->isJVMOrphaned = FALSE;
 
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Launching a JVM..."));
 
@@ -1400,9 +1445,7 @@ void jStateStarted(TICKS nowTicks, int nextSleep) {
     if (nextSleep && (wrapperGetProcessStatus(nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone.  Restart it. (Handled and logged) */
     } else {
-        if (wrapperData->isJVMOrphaned) {
-            /* The JVM requested that it be orphaned so it is no longer desirable to ping or expect ping responses.  Do nothing.*/
-        } else if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAgeSeconds(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
+        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAgeSeconds(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
             /* Have we waited too long already.  The jStateTimeoutTicks is reset each time a ping
              *  response is received from the JVM. */
             if (wrapperData->debugJVM) {
@@ -1678,6 +1721,7 @@ void wrapperEventLoop() {
     wrapperData->commandTimeoutTicks = lastCycleTicks;
     wrapperData->memoryOutputTimeoutTicks = lastCycleTicks;
     wrapperData->cpuOutputTimeoutTicks = lastCycleTicks;
+    wrapperData->pageFaultOutputTimeoutTicks = lastCycleTicks;
     wrapperData->logfileInactivityTimeoutTicks = lastCycleTicks;
 
     if (wrapperData->isDebugging) {
@@ -1719,6 +1763,11 @@ void wrapperEventLoop() {
         }
         maintainLogger();
         
+        if (wrapperData->pauseThreadMain) {
+            wrapperPauseThread(wrapperData->pauseThreadMain, TEXT("main"));
+            wrapperData->pauseThreadMain = 0;
+        }
+        
         /* After we maintain the logger, see if there were any signals trapped. */
 #ifdef WIN32
         wrapperMaintainControlCodes();
@@ -1730,16 +1779,18 @@ void wrapperEventLoop() {
         wrapperCheckConsoleWindows();
 #endif
 
-        /* Check the stout pipe of the child process. */
-        if (wrapperData->isLoopOutputEnabled) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Loop: process JVM output"));
-        }
-        if (wrapperReadChildOutput()) {
-            if (wrapperData->isDebugging) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
-                    TEXT("Pause reading child process output to share cycles."));
+        if (!wrapperData->useJavaIOThread) {
+            /* Check the stout pipe of the child process. */
+            if (wrapperData->isLoopOutputEnabled) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Loop: process JVM output"));
             }
-            nextSleep = FALSE;
+            if (wrapperReadChildOutput()) {
+                if (wrapperData->isDebugging) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                        TEXT("Pause reading child process output to share cycles."));
+                }
+                nextSleep = FALSE;
+            }
         }
 
         /* Check for incoming data packets. */
@@ -1797,6 +1848,16 @@ void wrapperEventLoop() {
             }
         }
 
+#ifdef WIN32
+        /* Log PageFault info. */
+        if (wrapperData->isPageFaultOutputEnabled) {
+            if (wrapperTickExpired(nowTicks, wrapperData->pageFaultOutputTimeoutTicks)) {
+                wrapperDumpPageFaultUsage();
+                wrapperData->pageFaultOutputTimeoutTicks = wrapperAddToTicks(nowTicks, wrapperData->pageFaultOutputInterval);
+            }
+        }
+#endif
+
         /* Test the activity of the logfile. */
         activity = getLogfileActivity();
         if (activity != lastLogfileActivity) {
@@ -1827,25 +1888,23 @@ void wrapperEventLoop() {
         if (wrapperData->isStateOutputEnabled) {
             if (wrapperData->jStateTimeoutTicksSet) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                           TEXT("    Ticks=%08x, WrapperState=%s, JVMState=%s JVMStateTimeoutTicks=%08x (%ds), Exit=%s, RestartMode=%d, Orphan=%s"),
+                           TEXT("    Ticks=%08x, WrapperState=%s, JVMState=%s JVMStateTimeoutTicks=%08x (%ds), Exit=%s, RestartMode=%d"),
                            nowTicks,
                            wrapperGetWState(wrapperData->wState),
                            wrapperGetJState(wrapperData->jState),
                            wrapperData->jStateTimeoutTicks,
                            wrapperGetTickAgeSeconds(nowTicks, wrapperData->jStateTimeoutTicks),
                            (wrapperData->exitRequested ? TEXT("true") : TEXT("false")),
-                           wrapperData->restartRequested,
-                           (wrapperData->isJVMOrphaned ? TEXT("true") : TEXT("false")));
+                           wrapperData->restartRequested);
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                           TEXT("    Ticks=%08x, WrapperState=%s, JVMState=%s JVMStateTimeoutTicks=%08x (N/A), Exit=%s, RestartMode=%d, Orphan=%s"),
+                           TEXT("    Ticks=%08x, WrapperState=%s, JVMState=%s JVMStateTimeoutTicks=%08x (N/A), Exit=%s, RestartMode=%d"),
                            nowTicks,
                            wrapperGetWState(wrapperData->wState),
                            wrapperGetJState(wrapperData->jState),
                            wrapperData->jStateTimeoutTicks,
                            (wrapperData->exitRequested ? TEXT("true") : TEXT("false")),
-                           wrapperData->restartRequested,
-                           (wrapperData->isJVMOrphaned ? TEXT("true") : TEXT("false")));
+                           wrapperData->restartRequested);
             }
         }
 

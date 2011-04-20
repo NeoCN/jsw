@@ -482,6 +482,7 @@
                deprecation="on"
                debug="on"
                optimize="on"
+               includeantruntime="false"
                source="${javac.target.version}"
                target="${javac.target.version}">
             <classpath refid="project.class.path"/>
@@ -545,18 +546,24 @@
             <classpath refid="project.class.path"/>
         </available>
     </target>
+    <target name="check:junit" depends="compile-java:core" unless="junit.present">
+        <echo message="**********************************************************************"/>
+        <echo message="* JUnit jar not found.  Not running tests."/>
+        <echo message="**********************************************************************"/>
+    </target>
     <target name="compile-java:junit" depends="compile-java:core" if="junit.present">
         <!-- compile everything under src/test -->
         <javac srcdir="${src.dir}/test" destdir="${build.testclasses}"
                deprecation="on"
                debug="on"
                optimize="on"
+               includeantruntime="true"
                source="${javac.target.version}"
                target="${javac.target.version}">
             <classpath refid="test.class.path"/>
         </javac>
     </target>
-    <target name="compile-java" depends="compile-java:junit"/>
+    <target name="compile-java" depends="check:junit, compile-java:junit"/>
     <target name="msvc-missing" depends="update-info-c" if="msvc.missing">
         <echo message="**********************************************************************"/>
         <echo message="* Microsoft Visual Studio is not installed, or is not in the expected"/>

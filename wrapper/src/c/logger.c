@@ -98,6 +98,13 @@ typedef long intptr_t;
 
 /* Global data for logger */
 
+/* Maximum number of milliseconds that a log write can take before we show a warning. */
+int logPrintfWarnThreshold = 0;
+
+/* Number of millisecoonds which the previous log message took to process. */
+time_t previousLogLag;
+
+
 /* Initialize all log levels to unknown until they are set */
 int currentConsoleLevel = LEVEL_UNKNOWN;
 int currentLogfileLevel = LEVEL_UNKNOWN;
@@ -491,6 +498,16 @@ int getLogFacilityForName( const TCHAR *logFacilityName ) {
 #endif
 
 /**
+ * Sets the number of milliseconds to allow logging to take before a warning is logged.
+ *  Defaults to 0 for no limit.  Possible values 0 to 3600000.
+ *
+ * @param threshold Warning threashold.
+ */
+void setLogWarningThreshold(int threshold) {
+    logPrintfWarnThreshold = __max(__min(threshold, 3600000), 0);
+}
+
+/**
  * Sets the log levels to a silence so we never output anything.
  */
 void setSilentLogLevels() {
@@ -679,6 +696,8 @@ int checkLogfileDir() {
         if ((fd = _topen(testfile, O_WRONLY | O_CREAT | O_EXCL
 #ifdef WIN32
                 , _S_IWRITE
+#else
+                , S_IRUSR | S_IWUSR
 #endif 
                 )) == -1) {
             if (errno == EACCES) {
@@ -726,8 +745,14 @@ void setLogfileUmask( int log_file_umask ) {
 }
 
 void setLogfileFormat( const TCHAR *log_file_format ) {
-    if( log_file_format != NULL )
+    if ( log_file_format != NULL ) {
         _tcsncpy( logfileFormat, log_file_format, 32 );
+        
+        /* We only want to time logging if it is needed. */
+        if ((logPrintfWarnThreshold <= 0) && (_tcschr(log_file_format, TEXT('G')))) {
+            logPrintfWarnThreshold = 99999999;
+        }
+    }
 }
 
 void setLogfileLevelInt( int log_file_level ) {
@@ -934,8 +959,14 @@ void flushLogfile() {
 
 /* Console functions */
 void setConsoleLogFormat( const TCHAR *console_log_format ) {
-    if( console_log_format != NULL )
+    if ( console_log_format != NULL ) {
         _tcsncpy( consoleFormat, console_log_format, 32 );
+        
+        /* We only want to time logging if it is needed. */
+        if ((logPrintfWarnThreshold <= 0) && (_tcschr(console_log_format, TEXT('G')))) {
+            logPrintfWarnThreshold = 99999999;
+        }
+    }
 }
 
 void setConsoleLogLevelInt( int console_log_level ) {
@@ -1086,6 +1117,11 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
             numColumns++;
             break;
 
+        case TEXT('G'):
+            reqSize += 10 + 3;
+            numColumns++;
+            break;
+
         case TEXT('M'):
             reqSize += _tcslen( message ) + 3;
             numColumns++;
@@ -1153,6 +1189,10 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
                 pos += _sntprintf( pos, reqSize, TEXT("timer  ") );
                 break;
 
+            case WRAPPER_THREAD_JAVAIO:
+                pos += _sntprintf( pos, reqSize, TEXT("javaio ") );
+                break;
+
             default:
                 pos += _sntprintf( pos, reqSize, TEXT("unknown") );
                 break;
@@ -1185,6 +1225,11 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
             } else {
                 pos += _sntprintf( pos, reqSize, TEXT("%8d"), uptimeSeconds);
             }
+            currentColumn++;
+            break;
+            
+        case TEXT('G'):
+            pos += _sntprintf( pos, reqSize, TEXT("%8d"), __min(previousLogLag, 99999999));
             currentColumn++;
             break;
 
@@ -1583,11 +1628,36 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
     int         count;
     int         threadId;
     int         logFileChanged;
-    TCHAR        *logFileCopy;
+    TCHAR       *logFileCopy;
 #if defined(UNICODE) && !defined(WIN32)
-    TCHAR *msg = NULL;
-    int i, flag;
+    TCHAR       *msg = NULL;
+    int         i, flag;
 #endif
+#ifdef WIN32
+    struct _timeb timebNow;
+#else
+    struct timeval timevalNow;
+#endif
+    time_t      startNow;
+    int         startNowMillis;
+    time_t      endNow;
+    int         endNowMillis;
+    
+    /* If we are checking on the log time then store the start time. */
+    if (logPrintfWarnThreshold > 0) {
+#ifdef WIN32
+        _ftime(&timebNow);
+        startNow = (time_t)timebNow.time;
+        startNowMillis = timebNow.millitm;
+#else
+        gettimeofday(&timevalNow, NULL);
+        startNow = (time_t)timevalNow.tv_sec;
+        startNowMillis = timevalNow.tv_usec / 1000;
+#endif
+    } else {
+        startNow = 0;
+        startNowMillis = 0;
+    }
 
     /* We need to be very careful that only one thread is allowed in here
      *  at a time.  On Windows this is done using a Mutex object that is
@@ -1723,6 +1793,24 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
     /* Release the lock we have on this function so that other threads can get in. */
     if (releaseLoggingMutex()) {
         return;
+    }
+
+    /* If we are checking on the log time then store the stop time.
+     *  It is Ok that some of the error paths don't make it this far. */
+    if (logPrintfWarnThreshold > 0) {
+#ifdef WIN32
+        _ftime(&timebNow);
+        endNow = (time_t)timebNow.time;
+        endNowMillis = timebNow.millitm;
+#else
+        gettimeofday(&timevalNow, NULL);
+        endNow = (time_t)timevalNow.tv_sec;
+        endNowMillis = timevalNow.tv_usec / 1000;
+#endif
+        previousLogLag = __min(endNow - startNow, 3600) * 1000 + endNowMillis - startNowMillis;
+        if (previousLogLag >= logPrintfWarnThreshold) {
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Write to log took %d milliseconds."), previousLogLag);
+        }
     }
 }
 
@@ -2374,8 +2462,9 @@ void checkAndRollLogs(const TCHAR *nowDate) {
     /* Depending on the roll mode, decide how to roll the log file. */
     if (logFileRollMode & ROLL_MODE_SIZE) {
         /* Roll based on the size of the file. */
-        if (logFileMaxSize <= 0)
+        if (logFileMaxSize <= 0) {
             return;
+        }
 
         /* Find out the current size of the file.  If the file is currently open then we need to
          *  use ftell to make sure that the buffered data is also included. */

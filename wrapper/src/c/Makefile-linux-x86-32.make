@@ -13,14 +13,14 @@ INCLUDE=$(JAVA_HOME)/include
 
 DEFS = -I$(INCLUDE) -I$(INCLUDE)/linux
 
-wrapper_SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c wrapper_file.c wrapper_i18n.c
+wrapper_SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c wrapper_file.c wrapper_i18n.c test.c
 
 libwrapper_so_OBJECTS = wrapper_i18n.o wrapperjni_unix.o wrapperinfo.o wrapperjni.o
 
 BIN = ../../bin
 LIB = ../../lib
 
-all: init wrapper libwrapper.so
+all: init wrapper libwrapper.so testsuite
 
 clean:
 	rm -f *.o
@@ -37,6 +37,9 @@ wrapper: $(wrapper_SOURCE)
 
 libwrapper.so: $(libwrapper_so_OBJECTS)
 	${COMPILE} -shared $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
+
+testsuite: $(wrapper_SOURCE)
+	$(COMPILE) -DCUNIT $(wrapper_SOURCE) -lm -pthread -L/usr/local/lib -lncurses -lcunit -o $(TEST)/testsuite
 
 %.o: %.c
 	@echo '$(COMPILE) -c $<'; \
