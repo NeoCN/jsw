@@ -331,6 +331,10 @@ public final class WrapperManager
      *   or not system signals are supposed to be ignored. */
     private static boolean m_ignoreSignals = false;
     
+    /** Flag which controls whether the Wrapper process is expected to close the
+     *   connection after the STARTED packet is sent. */
+    private static boolean m_detachStarted = false;
+    
     /** Thread which processes all communications with the native code. */
     private static Thread m_commRunner;
     private static boolean m_commRunnerStarted = false;
@@ -602,6 +606,9 @@ public final class WrapperManager
         
         // Log information about the Wrapper's package.
         logPackageInfo( WrapperManager.class );
+        
+        // Get the detachStarted flag.
+        m_detachStarted = WrapperSystemPropertyUtil.getBooleanProperty( "wrapper.detachStarted", false );
         
         // Initialize the timerTicks to a very high value.  This means that we will
         // always encounter the first rollover (200 * WRAPPER_MS / 1000) seconds
@@ -1039,6 +1046,7 @@ public final class WrapperManager
     private static native boolean nativeIsProfessionalEdition();
     private static native boolean nativeIsStandardEdition();
     private static native int nativeGetControlEvent();
+    private static native int nativeRedirectPipes();
     private static native void nativeRequestThreadDump();
     private static native void accessViolationInner();
     private static native void nativeSetConsoleTitle( String titleBytes );
@@ -5455,9 +5463,26 @@ public final class WrapperManager
                 closeBackend();
                 if ( !isShuttingDown() )
                 {
-                    m_outError.println( getRes().getString("The backend was closed unexpectedly.  Restart to resync with the Wrapper." ) );
-                    restart();
-                    /* Will not get here. */
+                    if ( m_detachStarted && m_started )
+                    {
+                        // This and all further output will not be visible anywhere as the Wrapper is now gone.
+                        m_out.println( getRes().getString( "The backend was closed as expected." ) );
+                        
+                        try
+                        {
+                            nativeRedirectPipes();
+                        }
+                        catch ( UnsatisfiedLinkError t )
+                        {
+                            m_err.println( getRes().getString( "Failed to redirect stdout and stderr before the Wrapper exits.\nOutput from the JVM may block.\nPlease make sure the native library has been properly initialized."));
+                        }
+                    }
+                    else
+                    {
+                        m_outError.println( getRes().getString( "The backend was closed unexpectedly.  Restart to resync with the Wrapper." ) );
+                        restart();
+                        // Will not get here.
+                    }
                 }
             }
         }

@@ -540,20 +540,26 @@ void initCommon(JNIEnv *env, jclass jClassWrapperManager) {
         return;
     }
     if (errfile) {
-       _ftprintf(stderr, TEXT("WrapperJNI: Redirecting %s to file %s\n"), TEXT("StdErr"), errfile); fflush(NULL);
-       if (((errfd = _topen(errfile, options, mode)) == -1) || (dup2(errfd, 2) == -1)) {
-          return;
-       }
+        _ftprintf(stderr, TEXT("WrapperJNI: Redirecting %s to file %s...\n"), TEXT("StdErr"), errfile); fflush(NULL);
+        if (((errfd = _topen(errfile, options, mode)) == -1) || (dup2(errfd, STDERR_FILENO) == -1)) {
+            _ftprintf(stderr, TEXT("WrapperJNI: Failed to redirect %s to file %s  (Err: %s)\n"), TEXT("StdErr"), errfile, getLastErrorText()); fflush(NULL);
+            return;
+        } else {
+            redirectedStdErr = TRUE;
+        }
     }
     if (getSystemProperty(env, TEXT("wrapper.java.outfile"), &outfile, FALSE)) {
         /* Failed */
         return;
     }
     if (outfile) {
-       _tprintf(TEXT("WrapperJNI: Redirecting %s to file %s\n"), TEXT("StdOut"), outfile); fflush(NULL);
-       if (((outfd = _topen(outfile, options, mode)) == -1) || (dup2(outfd, 1) == -1)) {
-          return;
-       }
+        _tprintf(TEXT("WrapperJNI: Redirecting %s to file %s...\n"), TEXT("StdOut"), outfile); fflush(NULL);
+        if (((outfd = _topen(outfile, options, mode)) == -1) || (dup2(outfd, STDOUT_FILENO) == -1)) {
+            _tprintf(TEXT("WrapperJNI: Failed to redirect %s to file %s  (Err: %s)\n"), TEXT("StdOut"), errfile, getLastErrorText()); fflush(NULL);
+            return;
+        } else {
+            redirectedStdOut = TRUE;
+        }
     }
 }
 

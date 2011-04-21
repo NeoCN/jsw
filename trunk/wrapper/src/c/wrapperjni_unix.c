@@ -173,6 +173,39 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jC
 
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeRedirectPipes
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeRedirectPipes(JNIEnv *evn, jclass clazz) {
+    int fd;
+    
+    fd = _topen(TEXT("/dev/null"), O_RDWR, 0);
+    if (fd != -1) {
+        if (!redirectedStdErr) {
+            _ftprintf(stderr, TEXT("WrapperJNI: Redirecting %s to /dev/null\n"), TEXT("StdErr")); fflush(NULL);
+            if (dup2(fd, STDERR_FILENO) == -1) {
+                _ftprintf(stderr, TEXT("WrapperJNI: Failed to redirect %s to /dev/null  (Err: %s)\n"), TEXT("StdErr"), getLastErrorText()); fflush(NULL);
+            } else {
+                redirectedStdErr = TRUE;
+            }
+        }
+        
+        if (!redirectedStdOut) {
+            _tprintf(TEXT("WrapperJNI: Redirecting %s to /dev/null\n"), TEXT("StdOut")); fflush(NULL);
+            if (dup2(fd, STDOUT_FILENO) == -1) {
+                _tprintf(TEXT("WrapperJNI: Failed to redirect %s to /dev/null  (Err: %s)\n"), TEXT("StdOut"), getLastErrorText()); fflush(NULL);
+            } else {
+                redirectedStdOut = TRUE;
+            }
+        }
+    } else {
+        _ftprintf(stderr, TEXT("WrapperJNI: Failed to open /dev/null  (Err: %s)\n"), getLastErrorText()); fflush(NULL);
+    }
+}
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeGetJavaPID
  * Signature: ()I
  */
