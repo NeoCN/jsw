@@ -72,6 +72,8 @@ Java Service Wrapper Revision History.
   never exit under such circumstances.  The JVM will never become orphaned
   because it will still exit almost immediately if the backend socket or pipe
   with the Wrapper is ever closed.
+* Deprecate the WrapperManager.appearOrphan() method as it is used to simulate
+  a failure mode which is no longer possible with the Wrapper.
 * Changed the way the Wrapper is handling certificate errors regarding the 
   code signing/timestamping certificate. The Wrapper will now only shutdown 
   itself if the signature of the binary was not successfully verified because 
@@ -80,6 +82,9 @@ Java Service Wrapper Revision History.
   binaries are signed.  Some users with locked down Windows 2008 systems had
   problems with the Wrapper refusing to start because the Comodo certificate
   had been disabled on their system.
+* Add a new wrapper.java.detach_started property which makes it possible to use
+  the Wrapper as a simple tool to launch Java applications.  When enabled, the
+  Wrapper terminates immediately and the JVM is left to run on its own.
 
 3.5.7
 * Changed the way the script is installing the daemon gets installed on an AIX

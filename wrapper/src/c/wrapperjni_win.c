@@ -681,6 +681,16 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jC
 
 /*
  * Class:     org_tanukisoftware_wrapper_WrapperManager
+ * Method:    nativeRedirectPipes
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL
+Java_org_tanukisoftware_wrapper_WrapperManager_nativeRedirectPipes(JNIEnv *evn, jclass clazz) {
+    /* We don't need to do anything on Windows. */
+}
+
+/*
+ * Class:     org_tanukisoftware_wrapper_WrapperManager
  * Method:    nativeGetJavaPID
  * Signature: ()I
  */

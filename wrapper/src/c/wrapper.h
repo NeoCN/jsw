@@ -232,6 +232,7 @@ struct WrapperConfig {
 #else /* UNIX */
     TCHAR   **jvmCommand;           /* Command used to launch the JVM */
 #endif
+    int     detachStarted;          /* TRUE if the JVM process should be detached once it has started. */
     int     environmentClasspath;   /* TRUE if the classpath should be passed to the JVM in the environment. */
     TCHAR   *classpath;             /* Classpath to pass to the JVM. */
     int     debugJVM;               /* True if the JVM is being launched with a debugger enabled. */
@@ -814,6 +815,11 @@ extern void wrapperPauseProcess(int actionCode);
  * @param actionCode Tracks where the action originated.
  */
 extern void wrapperResumeProcess(int actionCode);
+
+/**
+ * Detaches the Java process so the Wrapper will if effect forget about it.
+ */
+extern void wrapperDetachJava();
 
 /**
  * Used to ask the state engine to shut down the JVM and Wrapper.

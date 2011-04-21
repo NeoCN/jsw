@@ -48,6 +48,11 @@
 #define FALSE 0
 #endif
 
+#ifdef WIN32
+#define STDOUT_FILENO 1
+#define STDERR_FILENO 2
+#endif
+
 #define strcmpIgnoreCase(str1, str2) _tcsicmp(str1, str2)
 
 extern TCHAR* getLastErrorText();

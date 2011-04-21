@@ -5520,7 +5520,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         }
     }
     index++;
-
+    
     /* Store the backend connection information. */
     if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) {
         if (strings) {
@@ -5845,6 +5845,23 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     index++;
 
 
+    /* If this JVM will be detached after startup, it needs to know that. */
+    if (wrapperData->detachStarted) {
+        if (strings) {
+            strings[index] = malloc(sizeof(TCHAR) * (30 + 1));
+            if (!strings[index]) {
+                outOfMemory(TEXT("WBJCAI"), 49);
+                return -1;
+            }
+            if (addQuotes) {
+                _sntprintf(strings[index], 30 + 1, TEXT("-Dwrapper.detachStarted=\"TRUE\""));
+            } else {
+                _sntprintf(strings[index], 30 + 1, TEXT("-Dwrapper.detachStarted=TRUE"));
+            }
+        }
+        index++;
+    }
+
     /* Store the main class */
     thisIsTestWrapper = FALSE;
     prop = getStringProperty(properties, TEXT("wrapper.java.mainclass"), TEXT("Main"));
@@ -5856,7 +5873,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     if (strings) {
         strings[index] = malloc(sizeof(TCHAR) * (_tcslen(prop) + 1));
         if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 49);
+            outOfMemory(TEXT("WBJCAI"), 50);
             return -1;
         }
         _sntprintf(strings[index], _tcslen(prop) + 1, TEXT("%s"), prop);
@@ -6757,6 +6774,12 @@ int loadConfiguration() {
     /* Get the wrapper command log level. */
     wrapperData->commandLogLevel = getLogLevelForName(
         getStringProperty(properties, TEXT("wrapper.java.command.loglevel"), TEXT("DEBUG")));
+    
+    /* Should we detach the JVM on startup. */
+    if (wrapperData->isConsole) {
+        wrapperData->detachStarted = getBooleanProperty(properties, TEXT("wrapper.jvm_detach_started"), FALSE);
+    }
+    
     /* Get the adviser status */
     wrapperData->isAdviserEnabled = getBooleanProperty(properties, TEXT("wrapper.adviser"), TRUE);
     /* The adviser is always enabled if debug is enabled. */
@@ -7557,7 +7580,7 @@ void wrapperStartedSignaled() {
 
 
     if (wrapperData->jState == WRAPPER_JSTATE_STARTING) {
-        /* We got a response to a ping.  Allow 5 + <pingTimeout> more seconds before the JVM
+        /* We got the expected started packed.  Now start pinging.  Allow 5 + <pingTimeout> more seconds before the JVM
          *  is considered to be dead. */
         if (wrapperData->pingTimeout > 0) {
             wrapperSetJavaState(WRAPPER_JSTATE_STARTED, wrapperGetTicks(), 5 + wrapperData->pingTimeout);
@@ -7571,9 +7594,17 @@ void wrapperStartedSignaled() {
             if (!wrapperData->isConsole) {
                 /* Tell the service manager that we started */
                 wrapperReportStatus(FALSE, WRAPPER_WSTATE_STARTED, 0, 0);
-
             }
         }
+        
+        /* If we are configured to detach and shutdown when the JVM is started then start doing so. */
+        if (wrapperData->detachStarted) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("JVM launched and detached.  Wrapper Shutting down..."));
+            wrapperProtocolClose();
+            wrapperDetachJava();
+            wrapperStopProcess(0, FALSE);
+        }
+        
     } else if (wrapperData->jState == WRAPPER_JSTATE_STOP) {
         /* This will happen if the Wrapper was asked to stop as the JVM is being launched. */
     } else if (wrapperData->jState == WRAPPER_JSTATE_STOPPING) {
