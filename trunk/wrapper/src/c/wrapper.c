@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2011 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -1111,7 +1111,12 @@ void protocolStartServerSocket() {
         rc = wrapperGetLastError();
 
         /* The specified port could bot be bound. */
-        if (rc == EADDRINUSE) {
+        if (rc == EADDRINUSE ||
+#ifdef WIN32
+            rc == WSAEACCES) {
+#else 
+            rc == EACCES) {
+#endif
             /* Address in use, try looking at the next one. */
             if (fixedPort) {
                 /* The last port checked was the defined fixed port, switch to the dynamic range. */
@@ -2483,7 +2488,7 @@ void wrapperGetFileBase(const TCHAR *fileName, TCHAR *baseName) {
 TCHAR *generateVersionBanner() {
     TCHAR *banner = TEXT("Java Service Wrapper %s Edition %s-bit %s\n  Copyright (C) 1999-%s Tanuki Software, Ltd. All Rights Reserved.\n    http://wrapper.tanukisoftware.com");
     TCHAR *product = TEXT("Community");
-    TCHAR *copyright = TEXT("2010");
+    TCHAR *copyright = TEXT("2011");
     TCHAR *buffer;
     size_t len;
 
@@ -3679,6 +3684,9 @@ BOOL GetOSDisplayString(TCHAR** pszOS) {
  */
 int wrapperRunCommon() {
     const TCHAR *prop;
+#ifdef WIN32
+    TCHAR* szOS;
+#endif
     struct tm timeTM;
     TCHAR* tz1;
     TCHAR* tz2;

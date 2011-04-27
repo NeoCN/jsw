@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2011 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -38,6 +38,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include "wrapper_i18n.h"
 #include "wrapperjni.h"
@@ -202,6 +203,8 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeRedirectPipes(JNIEnv *evn, 
     } else {
         _ftprintf(stderr, TEXT("WrapperJNI: Failed to open /dev/null  (Err: %s)\n"), getLastErrorText()); fflush(NULL);
     }
+    
+    return 0;
 }
 
 /*

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2011 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -49,6 +49,12 @@ int controlEventQueue[CONTROL_EVENT_QUEUE_SIZE];
 int controlEventQueueLastReadIndex = 0;
 int controlEventQueueLastWriteIndex = 0;
 
+
+/** Flag to keep track of whether StdOut has been redirected. */
+int redirectedStdOut = FALSE;
+
+/** Flag to keep track of whether StdErr has been redirected. */
+int redirectedStdErr = FALSE;
 
 const char utf8ClassJavaLangString[] = {106, 97,118, 97, 47, /* java/ */
                                         108, 97,110,103, 47, /* lang/ */
