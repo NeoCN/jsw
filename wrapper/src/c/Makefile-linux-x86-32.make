@@ -1,4 +1,4 @@
-# Copyright (c) 1999, 2010 Tanuki Software, Ltd.
+# Copyright (c) 1999, 2011 Tanuki Software, Ltd.
 # http://www.tanukisoftware.com
 # All rights reserved.
 #
@@ -20,7 +20,7 @@ libwrapper_so_OBJECTS = wrapper_i18n.o wrapperjni_unix.o wrapperinfo.o wrapperjn
 BIN = ../../bin
 LIB = ../../lib
 
-all: init wrapper libwrapper.so testsuite
+all: init wrapper libwrapper.so 
 
 clean:
 	rm -f *.o
@@ -37,9 +37,6 @@ wrapper: $(wrapper_SOURCE)
 
 libwrapper.so: $(libwrapper_so_OBJECTS)
 	${COMPILE} -shared $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
-
-testsuite: $(wrapper_SOURCE)
-	$(COMPILE) -DCUNIT $(wrapper_SOURCE) -lm -pthread -L/usr/local/lib -lncurses -lcunit -o $(TEST)/testsuite
 
 %.o: %.c
 	@echo '$(COMPILE) -c $<'; \

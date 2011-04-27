@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2011 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -51,6 +51,7 @@
 #include <wintrust.h>
 #include <DbgHelp.h>
 #include <Pdh.h>
+#include <ntsecapi.h>
 #include "psapi.h"
 
 #include "wrapper_i18n.h"
@@ -1208,6 +1209,14 @@ int wrapperSleep(int ms) {
 }
 
 /**
+ * Detaches the Java process so the Wrapper will if effect forget about it.
+ */
+void wrapperDetachJava() {
+    wrapperSetJavaState(WRAPPER_JSTATE_DOWN_CLEAN, 0, -1);
+}
+
+
+/**
  * Reports the status of the wrapper to the service manager
  * Possible status values:
  *   WRAPPER_WSTATE_STARTING
@@ -1957,43 +1966,43 @@ void wrapperInitializeProfileCounters() {
             TEXT("Failed to initialize profiling: 0x%x"), pdhStatus);
         pdhQuery = NULL;
     } else {
-        pdhStatus = pdhAddUnlocalizedCounter(pdhQuery, TEXT("\\PhysicalDisk(_Total)\\Avg. Disk Queue Length"), 0, &pdhCounterPhysicalDiskAvgQueueLen);
+        pdhStatus = (PDH_STATUS)pdhAddUnlocalizedCounter(pdhQuery, TEXT("\\PhysicalDisk(_Total)\\Avg. Disk Queue Length"), 0, &pdhCounterPhysicalDiskAvgQueueLen);
         if (pdhStatus != ERROR_SUCCESS) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 TEXT("Failed to initialize profiling counter %d: 0x%x"), 1, pdhStatus);
         }
         
-        pdhStatus = pdhAddUnlocalizedCounter(pdhQuery, TEXT("\\PhysicalDisk(_Total)\\Avg. Disk Write Queue Length"), 0, &pdhCounterPhysicalDiskAvgWriteQueueLen);
+        pdhStatus = (PDH_STATUS)pdhAddUnlocalizedCounter(pdhQuery, TEXT("\\PhysicalDisk(_Total)\\Avg. Disk Write Queue Length"), 0, &pdhCounterPhysicalDiskAvgWriteQueueLen);
         if (pdhStatus != ERROR_SUCCESS) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 TEXT("Failed to initialize profiling counter %d: 0x%x"), 2, pdhStatus);
         }
         
-        pdhStatus = pdhAddUnlocalizedCounter(pdhQuery, TEXT("\\PhysicalDisk(_Total)\\Avg. Disk Read Queue Length"), 0, &pdhCounterPhysicalDiskAvgReadQueueLen);
+        pdhStatus = (PDH_STATUS)pdhAddUnlocalizedCounter(pdhQuery, TEXT("\\PhysicalDisk(_Total)\\Avg. Disk Read Queue Length"), 0, &pdhCounterPhysicalDiskAvgReadQueueLen);
         if (pdhStatus != ERROR_SUCCESS) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 TEXT("Failed to initialize profiling counter %d: 0x%x"), 3, pdhStatus);
         }
         
-        pdhStatus = pdhAddUnlocalizedCounter(pdhQuery, TEXT("\\Memory\\Page Faults/sec"), 0, &pdhCounterMemoryPageFaultsPSec);
+        pdhStatus = (PDH_STATUS)pdhAddUnlocalizedCounter(pdhQuery, TEXT("\\Memory\\Page Faults/sec"), 0, &pdhCounterMemoryPageFaultsPSec);
         if (pdhStatus != ERROR_SUCCESS) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 TEXT("Failed to initialize profiling counter %d: 0x%x"), 4, pdhStatus);
         }
         
-        pdhStatus = pdhAddUnlocalizedCounter(pdhQuery, TEXT("\\Memory\\Transition Faults/sec"), 0, &pdhCounterMemoryTransitionFaultsPSec);
+        pdhStatus = (PDH_STATUS)pdhAddUnlocalizedCounter(pdhQuery, TEXT("\\Memory\\Transition Faults/sec"), 0, &pdhCounterMemoryTransitionFaultsPSec);
         if (pdhStatus != ERROR_SUCCESS) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 TEXT("Failed to initialize profiling counter %d: 0x%x"), 5, pdhStatus);
         }
         
-        pdhStatus = pdhAddUnlocalizedCounter(pdhQuery, TEXT("\\Process(wrapper)\\Page Faults/sec"), 0, &pdhCounterProcessWrapperPageFaultsPSec);
+        pdhStatus = (PDH_STATUS)pdhAddUnlocalizedCounter(pdhQuery, TEXT("\\Process(wrapper)\\Page Faults/sec"), 0, &pdhCounterProcessWrapperPageFaultsPSec);
         if (pdhStatus != ERROR_SUCCESS) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 TEXT("Failed to initialize profiling counter %d: 0x%x"), 6, pdhStatus);
         }
         
-        pdhStatus = pdhAddUnlocalizedCounter(pdhQuery, TEXT("\\Process(java)\\Page Faults/sec"), 0, &pdhCounterProcessJavaPageFaultsPSec);
+        pdhStatus = (PDH_STATUS)pdhAddUnlocalizedCounter(pdhQuery, TEXT("\\Process(java)\\Page Faults/sec"), 0, &pdhCounterProcessJavaPageFaultsPSec);
         if (pdhStatus != ERROR_SUCCESS) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 TEXT("Failed to initialize profiling counter %d: 0x%x"), 7, pdhStatus);
@@ -2014,7 +2023,8 @@ void wrapperDumpPageFaultUsage() {
     double diskQueueLen = 0;
     double diskQueueWLen = 0;
     double diskQueueRLen = 0;
-    double totalPageFaults = 0;
+    double pageFaults = 0;
+    double transitionPageFaults = 0;
     double wrapperPageFaults = 0;
     double javaPageFaults = 0;
     
@@ -2042,12 +2052,13 @@ void wrapperDumpPageFaultUsage() {
 
         pdhStatus = PdhGetFormattedCounterValue(pdhCounterMemoryPageFaultsPSec, PDH_FMT_DOUBLE, &counterType, &counterValue);
         if (pdhStatus == ERROR_SUCCESS) {
-            totalPageFaults = counterValue.doubleValue;
+            pageFaults = counterValue.doubleValue;
             /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("\\Memory\\Page Faults/sec : %d %10.5f"), counterValue.CStatus, counterValue.doubleValue);*/
         }
 
         pdhStatus = PdhGetFormattedCounterValue(pdhCounterMemoryTransitionFaultsPSec, PDH_FMT_DOUBLE, &counterType, &counterValue);
         if (pdhStatus == ERROR_SUCCESS) {
+            transitionPageFaults = counterValue.doubleValue;
             /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("\\Memory\\Transition Faults/sec : %d %10.5f"), counterValue.CStatus, counterValue.doubleValue);*/
         }
         
@@ -2063,10 +2074,10 @@ void wrapperDumpPageFaultUsage() {
             /*log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("\\Process(java)\\Page Faults/sec : %d %10.5f"), counterValue.CStatus, counterValue.doubleValue);*/
         }
         
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Page Faults (Total:%8.2f Wrapper:%7.2f (%7.2f%%) Java:%7.2f (%7.2f%%))  Queue Len (Total:%7.2f Read:%7.2f Write:%7.2f)"),
-            totalPageFaults,
-            wrapperPageFaults, (totalPageFaults > 0 ? 100 * wrapperPageFaults / totalPageFaults : 0),
-            javaPageFaults, (totalPageFaults > 0 ? 100 * javaPageFaults / totalPageFaults : 0),
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Page Faults (Total:%8.2f%8.2f:%8.2f Wrapper:%7.2f (%7.2f%%) Java:%7.2f (%7.2f%%))  Queue Len (Total:%7.2f Read:%7.2f Write:%7.2f)"),
+            pageFaults, transitionPageFaults, pageFaults - transitionPageFaults,
+            wrapperPageFaults, (pageFaults > 0 ? 100 * wrapperPageFaults / pageFaults : 0),
+            javaPageFaults, (pageFaults > 0 ? 100 * javaPageFaults / pageFaults : 0),
             diskQueueLen, diskQueueRLen, diskQueueWLen);
     } else {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
@@ -3026,6 +3037,141 @@ int buildServiceBinaryPath(TCHAR *buffer, size_t *reqBufferLen) {
     return 0;
 }
 
+#ifndef STATUS_SUCCESS
+#define STATUS_SUCCESS  ((NTSTATUS)0x00000000L)
+#endif
+
+LSA_UNICODE_STRING InitLsaString(LPCTSTR pwszString) {
+    USHORT dwLen = 0;
+    LSA_UNICODE_STRING pLsaString;
+
+    if ((pwszString != NULL) && ((dwLen = (USHORT)wcslen(pwszString)) > 0)) {
+      pLsaString.Buffer = (WCHAR*)pwszString;
+    }  
+    pLsaString.Length =  dwLen * sizeof(wchar_t);
+    pLsaString.MaximumLength= (dwLen+1) * sizeof(wchar_t);  
+    return pLsaString;
+}
+
+/**
+ *  Helperfunction which gets the Security Policy Handle of the specified system
+ *  @param referencedDomainName, the system of which the Security Policy Handle should get retrieved
+ *
+ *  @return the Handle of the Security Policy, NULL in case of any error
+ */
+LSA_HANDLE wrapperGetPolicyHandle(LPCTSTR referencedDomainName) {
+    LSA_OBJECT_ATTRIBUTES ObjectAttributes;
+    LSA_UNICODE_STRING domain;
+    NTSTATUS ntsResult;
+    LSA_HANDLE lsahPolicyHandle;
+
+    ZeroMemory(&ObjectAttributes, sizeof(ObjectAttributes));
+
+    domain = InitLsaString(referencedDomainName);
+    ntsResult = LsaOpenPolicy(&domain,    /* Name of the target system. */
+                              &ObjectAttributes, /* Object attributes. */
+                              POLICY_LOOKUP_NAMES | POLICY_CREATE_ACCOUNT, /* Desired access permissions. */
+                              &lsahPolicyHandle); /*Receives the policy handle. */
+    if (ntsResult != STATUS_SUCCESS) {
+        /* An error occurred. Display it as a win32 error code. */
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("OpenPolicy failed %lu"),LsaNtStatusToWinError(ntsResult));
+        return NULL;
+    }
+    return lsahPolicyHandle;
+}
+
+/**
+ *  Helperfunction which gets the SID and domain of a given account name
+ *  @param lpszAccountName, the account namespace
+ *  @param referencedDomainName, output buffer for the domain
+ *
+ *  @return the SID of the account, 0 in case of any error
+ */
+PSID wrapperLookupName(LPCTSTR lpszAccountName, WCHAR **referencedDomainName) {
+    PSID         Sid;
+    DWORD        cbReferencedDomainName, cbSid, lastError;
+    SID_NAME_USE eUse;  
+    LPCTSTR formattedAccountName;
+
+    if (_tcsstr(lpszAccountName, TEXT(".\\")) == lpszAccountName) {
+        formattedAccountName = lpszAccountName + 2;
+    } else { 
+        formattedAccountName= lpszAccountName;
+    }
+
+    cbReferencedDomainName = cbSid = 0;
+    if (LookupAccountName(NULL, formattedAccountName, 0, &cbSid, 0, &cbReferencedDomainName, &eUse)) {
+        /* A straight success - that can't be... */
+        return 0;
+    }
+    lastError = GetLastError();
+    if (lastError != ERROR_INSUFFICIENT_BUFFER) {
+        /* Any error except the one above is fatal.. */
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Failed to lookup the account (%s): %d - %s\n"), lpszAccountName, lastError, getLastErrorText());
+        return 0;
+    }
+    if (!(Sid = (PSID)malloc(cbSid))) {
+        outOfMemory(TEXT("WLN"), 1);
+        return 0;
+    }
+
+    *referencedDomainName = (LPTSTR)malloc((cbReferencedDomainName + 1) * sizeof(TCHAR));
+    if (!(*referencedDomainName)) {
+        LocalFree(Sid);
+        outOfMemory(TEXT("WLN"), 2);
+        return 0;
+    }
+    if (!LookupAccountName(NULL, formattedAccountName, Sid, &cbSid, *referencedDomainName, &cbReferencedDomainName, &eUse)) {
+        free(*referencedDomainName);
+        free(Sid);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Failed to lookup the account (%s): %d - %s\n"), lpszAccountName, lastError, getLastErrorText());
+        return 0;
+    }
+    return Sid;
+}
+
+/**
+ * This functions adds the Logon as Service privileges to the user account
+ *
+ * @param the account name for which the privilege should be added.
+ *
+ * @return FALSE if successful, TRUE otherwise
+ */
+BOOL wrapperAddPrivileges(TCHAR *account) {
+    PLSA_UNICODE_STRING pointer;
+    NTSTATUS ntsResult;
+    LSA_HANDLE PolicyHandle;
+    PSID AccountSID;
+    TCHAR *referencedDomainName;
+    ULONG counter = 1;
+    WCHAR privileges[] = SE_SERVICE_LOGON_NAME;
+    int retVal = TRUE;
+
+    AccountSID = wrapperLookupName(account, &referencedDomainName);	
+
+    if (AccountSID) {		
+        if ((PolicyHandle = wrapperGetPolicyHandle(referencedDomainName)) != NULL) {
+            /* Create an LSA_UNICODE_STRING for the privilege names. */
+            pointer = malloc(sizeof(LSA_UNICODE_STRING));
+            pointer[0] = InitLsaString(privileges);
+
+            ntsResult = LsaAddAccountRights(PolicyHandle,  /* An open policy handle. */
+                                        AccountSID,    /* The target SID. */
+                                        pointer, /* The privileges. */
+                                        counter);            /* Number of privileges. */
+            free(pointer);
+            if (ntsResult == STATUS_SUCCESS) {
+                retVal =  FALSE;
+            } else {
+               log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Failed to add Logon As Service Permission: %lu\n"), LsaNtStatusToWinError(ntsResult));
+            }
+        } 
+        free(AccountSID);
+        free(referencedDomainName);
+    } 
+    return retVal;
+} 
+
 /**
  * Install the Wrapper as an NT Service using the information and service
  *  name in the current configuration file.
@@ -3148,6 +3294,10 @@ int wrapperInstall() {
     );
 
     if (schSCManager) {
+        if (wrapperData->ntServiceAccount && wrapperAddPrivileges(wrapperData->ntServiceAccount)) {
+            /* adding failed it was reported already above */
+        }
+
         /* Make sure that an empty length password is null. */
         ntServicePassword = wrapperData->ntServicePassword;
         if ((ntServicePassword != NULL) && (_tcslen(ntServicePassword) <= 0)) {

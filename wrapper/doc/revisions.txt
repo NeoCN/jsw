@@ -85,6 +85,15 @@ Java Service Wrapper Revision History.
 * Add a new wrapper.java.detach_started property which makes it possible to use
   the Wrapper as a simple tool to launch Java applications.  When enabled, the
   Wrapper terminates immediately and the JVM is left to run on its own.
+* When running the Wrapper as a specified User Account, through the 
+  wrapper.ntservice.account property, the Wrapper will add permission for the
+  account to log on as service automatically upon install. (Feature Request 
+  #3286491)
+* Fixed a problem binding the backend socket on Windows. If another process 
+  bound a port inside the wrapper.port.min and wrapper.port.max range using the
+  SO_EXCLUSIVEADDRUSE option, the Wrapper would stop at this port report 
+  an Access Permission problem and omits binding any further port in the range.
+  This problem existed ever since the Wrapper was released.
 
 3.5.7
 * Changed the way the script is installing the daemon gets installed on an AIX

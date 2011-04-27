@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2011 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -54,6 +54,13 @@
 #endif
 
 #define strcmpIgnoreCase(str1, str2) _tcsicmp(str1, str2)
+
+
+/** Flag to keep track of whether StdOut has been redirected. */
+extern int redirectedStdOut;
+
+/** Flag to keep track of whether StdErr has been redirected. */
+extern int redirectedStdErr;
 
 extern TCHAR* getLastErrorText();
 extern void throwJNIError(JNIEnv *env, const TCHAR *message);

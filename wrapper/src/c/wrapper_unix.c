@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2010 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2011 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -1026,6 +1026,28 @@ int wrapperSleep(int ms) {
     
     return FALSE;
 }
+
+/**
+ * Detaches the Java process so the Wrapper will if effect forget about it.
+ */
+void wrapperDetachJava() {
+    int fd;
+    
+    wrapperSetJavaState(WRAPPER_JSTATE_DOWN_CLEAN, 0, -1);
+    
+    /* Redirect the pipes with the JVM to /dev/null so the JVM doesn't block when it writes to them. */
+    fd = _topen(TEXT("/dev/null"), O_RDWR, 0);
+    if (fd != -1) {
+        close(pipedes[STDOUT_FILENO]);
+        /*dup2(fd, pipedes[STDOUT_FILENO]); */
+        close(pipedes[STDERR_FILENO]);
+        /* dup2(fd, pipedes[STDERR_FILENO]); */
+        /*if ((fd != pipedes[STDOUT_FILENO]) && (fd != pipedes[STDERR_FILENO])) { */
+        close(fd);
+        /*}*/
+    }
+}
+
 
 /**
  * Build the java command line.

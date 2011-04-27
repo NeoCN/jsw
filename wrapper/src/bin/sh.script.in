@@ -1,7 +1,7 @@
 #! /bin/sh
 
 #
-# Copyright (c) 1999, 2010 Tanuki Software, Ltd.
+# Copyright (c) 1999, 2011 Tanuki Software, Ltd.
 # http://www.tanukisoftware.com
 # All rights reserved.
 #
@@ -16,7 +16,7 @@
 
 #-----------------------------------------------------------------------------
 # These settings can be modified to fit the needs of your application
-# Optimized for use with version 3.5.8-b of the Wrapper.
+# Optimized for use with version 3.5.8 of the Wrapper.
 
 # Application
 APP_NAME="@app.name@"
