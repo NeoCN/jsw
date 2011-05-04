@@ -1,6 +1,16 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 
+3.5.9
+* (Standard, Professional) Fix a problem on Windows where network adapters
+  whose names contained "PRO/1000" were being removed from the list of hostids
+  displayed when "wrapper.exe -h" was run.  This did not affect existing server
+  license key files generated for hostIds reported by 3.5.7 or earlier, or
+  development license keys.  But it did cause the Wrapper to report that no
+  valid hostIds could be found when the Wrapper was started without a license
+  file.  This was caused by some test code added in 3.5.8 that we failed to
+  remove.
+
 3.5.8
 * (Standard, Professional) Starting with version 3.5.5, we invalidated the use
   of all 00ff* hostids on Windows to avoid problems with changing hostids when
