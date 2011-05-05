@@ -10,6 +10,18 @@ Java Service Wrapper Revision History.
   valid hostIds could be found when the Wrapper was started without a license
   file.  This was caused by some test code added in 3.5.8 that we failed to
   remove.
+* Fix a problem where the Wrapper was not correctly yielding control back to
+  its main loop when very large amounts of continuous output was being logged
+  from the JVM.  Introduced in version 3.4.0.  In versions prior to 3.5.8, this
+  could have caused the JVM to timeout and restart itself.  That particular
+  issue was resolved but the Wrapper process in 3.5.8 would still have been
+  unresponsive when this was happening.  The Wrapper will now always yeild back
+  to its main loop after 250 milliseconds of continuous logging.
+* Fix a problem where the WrapperManager could block trying write debug output
+  if the current user application was writing very large amounts of output to
+  the console as well.  In extreme circumstances this led to the Wrapper
+  thinking that the JVM was frozen.  This was only an issue if debug output was
+  enabled.
 
 3.5.8
 * (Standard, Professional) Starting with version 3.5.5, we invalidated the use

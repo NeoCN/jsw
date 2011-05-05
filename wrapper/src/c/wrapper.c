@@ -3248,6 +3248,11 @@ int wrapperReadChildOutput() {
             }
             return FALSE;
         }
+        
+        /* Get the time again */
+        wrapperGetCurrentTime(&timeBuffer);
+        now = timeBuffer.time;
+        nowMillis = timeBuffer.millitm;
     }
 
     /* If we got here then we timed out. */

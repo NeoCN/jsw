@@ -221,6 +221,22 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.LogOutput" />
         
+        <!-- Loaded Log Output Test -->
+        <delete file="${test.dir}/loadedlogoutput.conf"/>
+        <filter token="app.name"          value="loadedlogoutput"/>
+        <filter token="app.long.name"     value="Loaded Log Output Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/loadedlogoutput.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/loadedlogoutput.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.LoadedLogOutput" />
+        <replace file="${test.dir}/loadedlogoutput.conf">
+            <replacetoken>wrapper.console.format=PM</replacetoken>
+            <replacevalue><![CDATA[wrapper.console.format=PZM
+wrapper.debug=TRUE]]></replacevalue>
+        </replace>
+        
         <!-- Restarter Test -->
         <delete file="${test.dir}/restarter.conf"/>
         <filter token="app.name"          value="restarter"/>
@@ -611,6 +627,18 @@ set ENV_VAR_4=d]]></replacevalue>
                  token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
                  value='set _WRAPPER_CONF_DEFAULT=../test/logoutput.conf' />
         
+        <!-- Loaded Log Output Test -->
+        <delete file="${test.dir}/TestLoadedLogOutput.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestLoadedLogOutput.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestLoadedLogOutput.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestLoadedLogOutput.bat"
+                 token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/loadedlogoutput.conf' />
+        
         <!-- Restarter Test -->
         <delete file="${test.dir}/TestRestarter.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
@@ -921,6 +949,14 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/logoutput"
               filtering="on"/>
         <chmod file="${test.dir}/logoutput" perm="+x"/> 
+        
+        <!-- Loaded Log Output Test -->
+        <filter token="app.name"          value="loadedlogoutput"/>
+        <filter token="app.long.name"     value="Loaded Log Output Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/loadedlogoutput"
+              filtering="on"/>
+        <chmod file="${test.dir}/loadedlogoutput" perm="+x"/> 
         
         <!-- Restarter Test -->
         <filter token="app.name"          value="restarter"/>

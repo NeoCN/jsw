@@ -379,7 +379,17 @@ public class WrapperJarApp
             {
                 m_outDebug.println( WrapperManager.getRes().getString("invoking main method" ) );
             }
-            m_mainMethod.invoke( null, new Object[] { m_appArgs } );
+            
+            try
+            {
+                m_mainMethod.invoke( null, new Object[] { m_appArgs } );
+            }
+            finally
+            {
+                // Make sure the rest of this thread does not fall behind the application.
+                Thread.currentThread().setPriority( Thread.MAX_PRIORITY );
+            }
+            
             if ( WrapperManager.isDebugEnabled() )
             {
                 m_outDebug.println(  WrapperManager.getRes().getString("main method completed" ) );
@@ -503,6 +513,9 @@ public class WrapperJarApp
         {
             m_appArgs = args;
             mainThread.start();
+            
+            // Make sure the rest of this thread does not fall behind the application.
+            Thread.currentThread().setPriority( Thread.MAX_PRIORITY );
             
             // To avoid problems with the main thread starting slowly on heavily loaded systems,
             //  do not continue until the thread has actually started.

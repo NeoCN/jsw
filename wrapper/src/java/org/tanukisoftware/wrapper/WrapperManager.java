@@ -1001,6 +1001,9 @@ public final class WrapperManager
         {
             public void run()
             {
+                // Make sure the rest of this thread does not fall behind the application.
+                Thread.currentThread().setPriority( Thread.MAX_PRIORITY );
+                
                 if ( m_debug )
                 {
                     m_outDebug.println( getRes().getString( "Startup runner thread started." ) );
@@ -3990,6 +3993,9 @@ public final class WrapperManager
                     }
                     finally
                     {
+                        // Make sure the rest of this thread does not fall behind the application.
+                        Thread.currentThread().setPriority( Thread.MAX_PRIORITY );
+                        
                         // Now that we are back, handle the results.
                         if ( tF[0] != null )
                         {
