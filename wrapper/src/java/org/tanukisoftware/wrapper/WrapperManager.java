@@ -2262,7 +2262,7 @@ public final class WrapperManager
             sm.checkPermission( new WrapperUserEventPermission( "fireUserEvent", String.valueOf( eventNr ) ) );
         }
         if ( eventNr <= 0 || eventNr > 32767 ) {
-            throw new java.lang.IllegalArgumentException( getRes().getString( "The user-event number must be in the range of 1-32767" ) );
+            throw new java.lang.IllegalArgumentException( getRes().getString( "The user-event number must be in the range of 1-32767." ) );
         }
         if ( !isProfessionalEdition() )
         {

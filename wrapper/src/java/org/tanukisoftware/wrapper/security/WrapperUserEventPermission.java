@@ -86,7 +86,7 @@ public final class WrapperUserEventPermission extends BasicPermission
     private static final long serialVersionUID = 8916489326587298168L;
     private final int EVENT_MIN = 1;
     private final int EVENT_MAX = 32767;
-    private ArrayList m_EventArr;
+    private ArrayList m_eventArr;
 
     /**
      * This method evaluates the passed in permission's action String and stores them in 
@@ -96,10 +96,10 @@ public final class WrapperUserEventPermission extends BasicPermission
     private void parseValids( String action )
     {
         int lastValue = 0, currentValue;
-        m_EventArr = new ArrayList();
+        m_eventArr = new ArrayList();
         if ( action.compareTo( "*" ) == 0 )
         {
-            m_EventArr.add( new String( EVENT_MIN + "-" + EVENT_MAX ) );
+            m_eventArr.add( new String( EVENT_MIN + "-" + EVENT_MAX ) );
             return;
         }
         StringTokenizer strok = new StringTokenizer( action.trim(), "," );
@@ -115,9 +115,9 @@ public final class WrapperUserEventPermission extends BasicPermission
             {
                 if ( range == 0 )
                 {
-                    if ( m_EventArr.size() != 0 )
+                    if ( m_eventArr.size() != 0 )
                     {
-                        throw new AccessControlException( WrapperManager.getRes().getString( "{0} has to be first element in sequence", element ) );
+                        throw new AccessControlException( WrapperManager.getRes().getString( "Value {0} has to be first element in sequence.", element ) );
                     }
                     else
                     {
@@ -126,7 +126,7 @@ public final class WrapperUserEventPermission extends BasicPermission
                         {
                             throw new AccessControlException( WrapperManager.getRes().getString( "Value {0} is out of bounds.", new Integer( lastValue ) ) );
                         }
-                        m_EventArr.add( new String( EVENT_MIN + "-" + lastValue ) );
+                        m_eventArr.add( new String( EVENT_MIN + "-" + lastValue ) );
                     }
                 }
                 else if ( range == element.length() - 1 )
@@ -143,9 +143,9 @@ public final class WrapperUserEventPermission extends BasicPermission
                     lastValue = currentValue;
                     if ( strok.hasMoreTokens() )
                     {
-                        throw new AccessControlException( WrapperManager.getRes().getString( "Value {0} has to be last element in sequence", element ) );
+                        throw new AccessControlException( WrapperManager.getRes().getString( "Value {0} has to be last element in sequence.", element ) );
                     }
-                    m_EventArr.add( currentValue + "-" + EVENT_MAX );
+                    m_eventArr.add( currentValue + "-" + EVENT_MAX );
                 }
                 else
                 {
@@ -168,7 +168,7 @@ public final class WrapperUserEventPermission extends BasicPermission
                     {
                         throw new AccessControlException( WrapperManager.getRes().getString( "Value {0} is not sorted.", new Integer( currentValue ) ) );
                     }
-                    m_EventArr.add( lastValue + "-" + currentValue );
+                    m_eventArr.add( lastValue + "-" + currentValue );
                     lastValue = currentValue;
                 }
             }
@@ -180,7 +180,7 @@ public final class WrapperUserEventPermission extends BasicPermission
                     throw new java.security.AccessControlException( WrapperManager.getRes().getString( "Value {0} is not sorted.", new Integer( currentValue ) ) );
                 }
                 lastValue = currentValue;
-                m_EventArr.add( element );
+                m_eventArr.add( element );
             }
         }
     }
@@ -220,13 +220,13 @@ public final class WrapperUserEventPermission extends BasicPermission
     public String getActions()
     {
         String s = "";
-        for ( int i = 0; i < m_EventArr.size(); i++ )
+        for ( int i = 0; i < m_eventArr.size(); i++ )
         {
             if ( i > 0 )
             {
                 s = s.concat( "," );
             }
-            s = s.concat( ( String )m_EventArr.get( i ) );
+            s = s.concat( (String)m_eventArr.get( i ) );
         }
         return s;
     }
@@ -253,9 +253,9 @@ public final class WrapperUserEventPermission extends BasicPermission
         int current, min, max, check, border;
         String element;
         check = Integer.parseInt( p.getActions() );
-        for ( int i = 0; i < m_EventArr.size(); i++ )
+        for ( int i = 0; i < m_eventArr.size(); i++ )
         {
-            element = ( String )m_EventArr.get( i );
+            element = (String)m_eventArr.get( i );
             border = element.indexOf( '-' );
             if ( border >= 0 )
             {
