@@ -283,10 +283,21 @@ public class WrapperSimpleApp
             {
                 m_outDebug.println( WrapperManager.getRes().getString( "invoking main method" ) );
             }
-            try {
-                m_mainMethod.invoke( null, new Object[] { m_appArgs } );
-            } catch (IllegalArgumentException iae) {
-                m_mainMethod.invoke( null, new Object[] { } ); 
+            try
+            {
+                try
+                {
+                    m_mainMethod.invoke( null, new Object[] { m_appArgs } );
+                }
+                catch ( IllegalArgumentException iae )
+                {
+                    m_mainMethod.invoke( null, new Object[] { } ); 
+                }
+            }
+            finally
+            {
+                // Make sure the rest of this thread does not fall behind the application.
+                Thread.currentThread().setPriority( Thread.MAX_PRIORITY );
             }
             
             if ( WrapperManager.isDebugEnabled() )
@@ -413,6 +424,9 @@ public class WrapperSimpleApp
         {
             m_appArgs = args;
             mainThread.start();
+            
+            // Make sure the rest of this thread does not fall behind the application.
+            Thread.currentThread().setPriority( Thread.MAX_PRIORITY );
             
             // To avoid problems with the main thread starting slowly on heavily loaded systems,
             //  do not continue until the thread has actually started.

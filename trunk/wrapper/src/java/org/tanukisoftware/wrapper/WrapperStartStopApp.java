@@ -256,11 +256,24 @@ public class WrapperStartStopApp
             {
                 m_outDebug.println( WrapperManager.getRes().getString( "invoking start main method" ) );
             }
-            try {
-                m_startMainMethod.invoke( null, new Object[] { m_startMainArgs } );
-            } catch (IllegalArgumentException iae) {
-                m_startMainMethod.invoke( null, new Object[] { } ); 
+            
+            try
+            {
+                try
+                {
+                    m_startMainMethod.invoke( null, new Object[] { m_startMainArgs } );
+                }
+                catch ( IllegalArgumentException iae )
+                {
+                    m_startMainMethod.invoke( null, new Object[] { } ); 
+                }
             }
+            finally
+            {
+                // Make sure the rest of this thread does not fall behind the application.
+                Thread.currentThread().setPriority( Thread.MAX_PRIORITY );
+            }
+            
             if ( WrapperManager.isDebugEnabled() )
             {
                 m_outDebug.println( WrapperManager.getRes().getString( "start main method completed" ) );
@@ -387,6 +400,9 @@ public class WrapperStartStopApp
             m_startMainArgs = args;
             mainThread.start();
             
+            // Make sure the rest of this thread does not fall behind the application.
+            Thread.currentThread().setPriority( Thread.MAX_PRIORITY );
+            
             // To avoid problems with the main thread starting slowly on heavily loaded systems,
             //  do not continue until the thread has actually started.
             while ( !m_mainStarted )
@@ -436,7 +452,7 @@ public class WrapperStartStopApp
             {
                 m_outDebug.println( WrapperManager.getRes().getString(
                         "start(args) end.  Main Completed={0}, exitCode={1}",
-                        new Boolean(m_mainComplete), m_mainExitCode ) );
+                        new Boolean( m_mainComplete ), m_mainExitCode ) );
             }
             return m_mainExitCode;
         }
@@ -461,11 +477,15 @@ public class WrapperStartStopApp
                 m_outDebug.println( WrapperManager.getRes().getString( "invoking stop main method" ) );
             }
 
-            try {
+            try
+            {
                 m_stopMainMethod.invoke( null, new Object[] { m_stopMainArgs } );
-            } catch (IllegalArgumentException iae) {
+            }
+            catch ( IllegalArgumentException iae )
+            {
                 m_stopMainMethod.invoke( null, new Object[] { } ); 
             }
+            
             if ( WrapperManager.isDebugEnabled() )
             {
                 m_outDebug.println( WrapperManager.getRes().getString( "stop main method completed" ) );
