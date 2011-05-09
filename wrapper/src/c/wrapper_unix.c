@@ -1732,6 +1732,10 @@ int main(int argc, char **argv) {
         return 1; /* For compiler. */
     }
     wrapperLoadHostName();
+    if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate"))) {
+        /* We want to disable all log output when a translation request is made. */
+        setSilentLogLevels();
+    }
     /* At this point, we have a command, confFile, and possibly additional arguments. */
     if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("?")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-help"))) {
         /* User asked for the usage. */
@@ -1769,8 +1773,13 @@ int main(int argc, char **argv) {
 
     /* Set the default umask of the Wrapper process. */
     umask(wrapperData->umask);
-
-    if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("c")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-console"))) {
+    if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate"))) {
+        setSimpleLogLevels();
+        /* Print out the string so the caller sees it as its translated output. */
+        _tprintf(TEXT("%s"), argv[2]);
+        appExit(0, argc, argv);
+        return 0; /* For compiler. */
+    } else if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("c")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-console"))) {
         /* Run as a console application */
 
         /* fork to a Daemonized process if configured to do so. */

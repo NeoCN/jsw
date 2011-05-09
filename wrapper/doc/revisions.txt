@@ -22,6 +22,7 @@ Java Service Wrapper Revision History.
   the console as well.  In extreme circumstances this led to the Wrapper
   thinking that the JVM was frozen.  This was only an issue if debug output was
   enabled.
+* Restructured the shell script so all editions now use the same script again.
 
 3.5.8
 * (Standard, Professional) Starting with version 3.5.5, we invalidated the use

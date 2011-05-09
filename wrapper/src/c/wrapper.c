@@ -790,14 +790,17 @@ int wrapperLoadConfigurationProperties(int preload) {
     /* The argument prior to the argBase will be the configuration file, followed
      *  by 0 or more command line properties.  The command line properties need to be
      *  loaded first, followed by the configuration file. */
-    for (i = 0; i < wrapperData->argCount; i++) {
-        if (addPropertyPair(properties, NULL, 0, wrapperData->argValues[i], TRUE, TRUE, FALSE)) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                TEXT("The argument '%s' is not a valid property name-value pair."),
-                wrapperData->argValues[i]);
-            return TRUE;
+    if (strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate")) != 0) {
+        for (i = 0; i < wrapperData->argCount; i++) {
+            if (addPropertyPair(properties, NULL, 0, wrapperData->argValues[i], TRUE, TRUE, FALSE)) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                    TEXT("The argument '%s' is not a valid property name-value pair."),
+                    wrapperData->argValues[i]);
+                return TRUE;
+            }
         }
     }
+
     /* Now load the configuration file.
      *  When this happens, the working directory MUST be set to the original working dir. */
 #ifdef WIN32
@@ -883,7 +886,7 @@ int wrapperLoadConfigurationProperties(int preload) {
     }
 #endif
     /* Load the configuration. */
-    if (loadConfiguration()) {
+    if ((strcmpIgnoreCase(wrapperData->argCommand, TEXT("-translate")) != 0) && loadConfiguration()) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
             TEXT("Problem loading wrapper configuration file: %s"), wrapperData->configFile);
         return TRUE;
@@ -2631,6 +2634,14 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
             }
 
             if (wrapperArgCount > 2) {
+                if (_tcsncmp(wrapperData->argCommand, TEXT("-translate"), 5) == 0) {
+                    if (wrapperArgCount > 3) {
+                        wrapperData->argConfFile = argv[3];
+                        wrapperData->argCount = wrapperArgCount - 4;
+                        wrapperData->argValues = &argv[4];
+                    }
+                    return TRUE;
+                }
                 /* Syntax 1 */
                 /* A command and conf file were specified. */
                 wrapperData->argConfFile = argv[2];
