@@ -141,6 +141,15 @@ public class WrapperPermission
         super( name );
     }
     
+    /**
+     * Creates a new WrapperPermission with the specified name.
+     * The name is the symbolic name of the WrapperPermission, such as "stop",
+     * "restart", etc. An asterisk may appear at the end of the name, following
+     * a ".", or by itself, to signify a wildcard match.
+     *
+     * @param name the name of the WrapperPermission.
+     * @param action The event type or event types to be registered.
+     */
     public WrapperPermission( String name, String actions )
     {
         super( name, actions );

@@ -174,7 +174,7 @@ done
 # Get the location of the script.
 REALDIR=`dirname "$REALPATH"`
 # Normalize the path
-REALDIR=`cd ${REALDIR}; pwd`
+REALDIR=`cd "${REALDIR}"; pwd`
 
 # If the PIDDIR is relative, set its value relative to the full REALPATH to avoid problems if
 #  the working directory is later changed.
@@ -1130,7 +1130,7 @@ installdaemon() {
                     echo ". /etc/rc.subr" >> "/etc/rc.d/$APP_NAME"
                     echo "name=\"$APP_NAME\"" >> "/etc/rc.d/$APP_NAME"
                     echo "rcvar=\`set_rcvar\`" >> "/etc/rc.d/$APP_NAME"
-                    echo "command=\"${REALDIR}/${APP_NAME}\"" >> "/etc/rc.d/$APP_NAME"
+                    echo "command=\"${REALPATH}\"" >> "/etc/rc.d/$APP_NAME"
                     echo 'start_cmd="${name}_start"' >> "/etc/rc.d/$APP_NAME"
                     echo 'load_rc_config $name' >> "/etc/rc.d/$APP_NAME"
                     echo 'status_cmd="${name}_status"' >> "/etc/rc.d/$APP_NAME"
@@ -1168,7 +1168,7 @@ installdaemon() {
                     echo "        <string>${APP_PLIST_BASE}</string>" >> "/Library/LaunchDaemons/${APP_PLIST}"
                     echo "        <key>ProgramArguments</key>" >> "/Library/LaunchDaemons/${APP_PLIST}"
                     echo "        <array>" >> "/Library/LaunchDaemons/${APP_PLIST}"
-                    echo "            <string>${REALDIR}/${APP_NAME}</string>" >> "/Library/LaunchDaemons/${APP_PLIST}"
+                    echo "            <string>${REALPATH}</string>" >> "/Library/LaunchDaemons/${APP_PLIST}"
                     echo "            <string>launchdinternal</string>" >> "/Library/LaunchDaemons/${APP_PLIST}"
                     echo "        </array>" >> "/Library/LaunchDaemons/${APP_PLIST}"
                     echo "        <key>OnDemand</key>" >> "/Library/LaunchDaemons/${APP_PLIST}"

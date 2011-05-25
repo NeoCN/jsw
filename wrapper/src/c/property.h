@@ -75,6 +75,7 @@ typedef struct Properties Properties;
 struct Properties {
     int debugIncludes;       /* TRUE if include debug output should be shown. */
     int debugProperties;     /* TRUE if debug information on Properties should be shown. */
+    int preload;             /* TRUE if this is a preload pass which should suppress warnings. */
     Property *first;         /* Pointer to the first property. */
     Property *last;          /* Pointer to the last property.  */
 };
@@ -221,11 +222,9 @@ extern int getStringProperties(Properties *properties, const TCHAR *propertyName
  */
 extern void freeStringProperties(TCHAR **propertyNames, TCHAR **propertyValues, long unsigned int *propertyIndices);
 
-extern int checkPropertyEqual(Properties *properties, const TCHAR *propertyName, const TCHAR *defaultValue, const TCHAR *value);
+extern int getIntProperty(Properties *properties, const TCHAR *propertyName, int defaultValue, int showWarnings);
 
-extern int getIntProperty(Properties *properties, const TCHAR *propertyName, int defaultValue);
-
-extern int getBooleanProperty(Properties *properties, const TCHAR *propertyName, int defaultValue);
+extern int getBooleanProperty(Properties *properties, const TCHAR *propertyName, int defaultValue, int showWarnings);
 
 extern int isQuotableProperty(Properties *properties, const TCHAR *propertyName);
 

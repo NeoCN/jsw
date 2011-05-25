@@ -143,7 +143,7 @@ public class WrapperEventPermission
      *  Always returns present eventTypes in the following order: 
      *  start, stop, pause, continue, interrogate. userCode.
      *
-     * @return the canonical string representation of the eventTypes.
+     * @return The canonical string representation of the eventTypes.
      */
     public String getActions()
     {
@@ -246,6 +246,8 @@ public class WrapperEventPermission
      *-------------------------------------------------------------*/
     /**
      * Returns the eventType mask of the Permission.
+     *
+     * @return The eventType mask of the Permission.
      */
     int getActionMask()
     {
@@ -255,6 +257,10 @@ public class WrapperEventPermission
     /**
      * Tests whether this permissions implies another without taking the
      *  eventType mask into account.
+     *
+     * @param p2 The permission to check against.
+     *
+     * @return True if the specified permission is implied by this object.
      */
     boolean impliesIgnoreEventTypeMask( WrapperEventPermission p2 )
     {
@@ -274,7 +280,11 @@ public class WrapperEventPermission
     }
     
     /**
-     * Builds an eventType mask given a comma separated list of eventTypes.
+     * Builds an event type mask given a comma separated list of eventTypes.
+     *
+     * @param eventTypes The list of event types.
+     *
+     * @return The event type mask.
      */
     private int buildEventTypeMask( String eventTypes )
     {
@@ -350,13 +360,13 @@ final class WECollection
      * Adds a permission to the FilePermissions. The key for the hash is
      * permission.path.
      *
-     * @param permission the Permission object to add.
+     * @param permission The Permission object to add.
      *
-     * @exception IllegalArgumentException - if the permission is not a
-     *                                       FilePermission 
+     * @exception IllegalArgumentException If the permission is not a
+     *                                     FilePermission 
      *
-     * @exception SecurityException - if this FilePermissionCollection object
-     *                                has been marked readonly
+     * @exception SecurityException If this FilePermissionCollection object
+     *                              has been marked readonly
      */
     public void add( Permission permission )
     {
@@ -378,10 +388,10 @@ final class WECollection
      * Check and see if this set of permissions implies the permissions 
      * expressed in "permission".
      *
-     * @param permission the Permission object to compare
+     * @param permission The Permission object to compare
      *
-     * @return true if "permission" is a proper subset of a permission in 
-     * the set, false if not.
+     * @return True if "permission" is a proper subset of a permission in 
+     *         the set, false if not.
      */
     public boolean implies( Permission permission ) 
     {
