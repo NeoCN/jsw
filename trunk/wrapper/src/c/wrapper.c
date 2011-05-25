@@ -506,7 +506,7 @@ int getSignalMode(const TCHAR *modeName, int defaultMode) {
 int wrapperBuildUnixDaemonInfo() {
     if (!wrapperData->configured) {
         /** Get the daemonize flag. */
-        wrapperData->daemonize = getBooleanProperty(properties, TEXT("wrapper.daemonize"), FALSE);
+        wrapperData->daemonize = getBooleanProperty(properties, TEXT("wrapper.daemonize"), FALSE, TRUE);
         /** Configure the HUP signal handler. */
         wrapperData->signalHUPMode = getSignalMode(getStringProperty(properties, TEXT("wrapper.signal.mode.hup"), NULL), WRAPPER_SIGNAL_MODE_FORWARD);
 
@@ -567,7 +567,7 @@ void wrapperLoadLoggingProperties(int preload) {
     const TCHAR *logfilePath;
     int logfileRollMode;
 
-    setLogWarningThreshold(getIntProperty(properties, TEXT("wrapper.log.warning.threshold"), 0));
+    setLogWarningThreshold(getIntProperty(properties, TEXT("wrapper.log.warning.threshold"), 0, !preload));
 
     logfilePath = getFileSafeStringProperty(properties, TEXT("wrapper.logfile"), TEXT("wrapper.log"));
     setLogfilePath(logfilePath, wrapperData->workingDir, preload);
@@ -597,7 +597,7 @@ void wrapperLoadLoggingProperties(int preload) {
     setLogfileMaxFileSize(getStringProperty(properties, TEXT("wrapper.logfile.maxsize"), TEXT("0")));
 
     /* Load log files level */
-    setLogfileMaxLogFiles(getIntProperty(properties, TEXT("wrapper.logfile.maxfiles"), 0));
+    setLogfileMaxLogFiles(getIntProperty(properties, TEXT("wrapper.logfile.maxfiles"), 0, !preload));
 
     /* Load log file purge pattern */
     setLogfilePurgePattern(getFileSafeStringProperty(properties, TEXT("wrapper.logfile.purge.pattern"), TEXT("")));
@@ -606,7 +606,7 @@ void wrapperLoadLoggingProperties(int preload) {
     setLogfilePurgeSortMode(wrapperFileGetSortMode(getStringProperty(properties, TEXT("wrapper.logfile.purge.sort"), TEXT("TIMES"))));
 
     /* Get the memory output status. */
-    wrapperData->logfileInactivityTimeout = __max(getIntProperty(properties, TEXT("wrapper.logfile.inactivity.timeout"), 1), 0);
+    wrapperData->logfileInactivityTimeout = __max(getIntProperty(properties, TEXT("wrapper.logfile.inactivity.timeout"), 1, !preload), 0);
     setLogfileAutoClose(wrapperData->logfileInactivityTimeout <= 0);
 
     /* Load console format */
@@ -616,12 +616,12 @@ void wrapperLoadLoggingProperties(int preload) {
     setConsoleLogLevel(getStringProperty(properties, TEXT("wrapper.console.loglevel"), TEXT("INFO")));
 
     /* Load the console flush flag. */
-    setConsoleFlush(getBooleanProperty(properties, TEXT("wrapper.console.flush"), FALSE));
+    setConsoleFlush(getBooleanProperty(properties, TEXT("wrapper.console.flush"), FALSE, !preload));
 
     /* Load the console loglevel targets. */
-    setConsoleFatalToStdErr(getBooleanProperty(properties, TEXT("wrapper.console.fatal_to_stderr"), TRUE));
-    setConsoleErrorToStdErr(getBooleanProperty(properties, TEXT("wrapper.console.error_to_stderr"), TRUE));
-    setConsoleWarnToStdErr(getBooleanProperty(properties, TEXT("wrapper.console.warn_to_stderr"), FALSE));
+    setConsoleFatalToStdErr(getBooleanProperty(properties, TEXT("wrapper.console.fatal_to_stderr"), TRUE, !preload));
+    setConsoleErrorToStdErr(getBooleanProperty(properties, TEXT("wrapper.console.error_to_stderr"), TRUE, !preload));
+    setConsoleWarnToStdErr(getBooleanProperty(properties, TEXT("wrapper.console.warn_to_stderr"), FALSE, !preload));
 
 
     /* Load syslog log level */
@@ -642,7 +642,7 @@ void wrapperLoadLoggingProperties(int preload) {
 
 
     /* Get the debug status (Property is deprecated but flag is still used) */
-    wrapperData->isDebugging = getBooleanProperty(properties, TEXT("wrapper.debug"), FALSE);
+    wrapperData->isDebugging = getBooleanProperty(properties, TEXT("wrapper.debug"), FALSE, !preload);
     if (wrapperData->isDebugging) {
         /* For backwards compatability */
         setConsoleLogLevelInt(LEVEL_DEBUG);
@@ -3827,7 +3827,7 @@ int wrapperRunCommon() {
 #endif
 
     /* Should we dump the environment variables? */
-    if (getBooleanProperty(properties, TEXT("wrapper.environment.dump"), getBooleanProperty(properties, TEXT("wrapper.debug"), FALSE))) {
+    if (getBooleanProperty(properties, TEXT("wrapper.environment.dump"), getBooleanProperty(properties, TEXT("wrapper.debug"), FALSE, TRUE), TRUE)) {
         dumpEnvironment();
     }
 
@@ -4576,7 +4576,7 @@ void checkIfRegularExe(TCHAR** para) {
     if (!path) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("The configured wrapper.java.command could not be found, attempting to launch anyway: %s"), *para);
     } else {
-        replacePath = getBooleanProperty(properties, TEXT("wrapper.java.command.resolve"), TRUE);
+        replacePath = getBooleanProperty(properties, TEXT("wrapper.java.command.resolve"), TRUE, TRUE);
         if (replacePath == TRUE) {
             free(*para);
             *para = malloc((_tcslen(path) + 1) * sizeof(TCHAR));
@@ -4774,7 +4774,7 @@ int wrapperBuildJavaCommandArrayJavaAdditional(TCHAR **strings, int addQuotes, i
                         if (addQuotes) {
                             stripQuote = FALSE;
                         } else {
-                            stripQuote = getBooleanProperty(properties, paramBuffer2, FALSE);
+                            stripQuote = getBooleanProperty(properties, paramBuffer2, FALSE, TRUE);
                         }
                         if (stripQuote) {
                             propStripped = malloc(sizeof(TCHAR) * (_tcslen(prop) + 1));
@@ -5360,7 +5360,7 @@ int wrapperBuildJavaCommandArrayAppParameters(TCHAR **strings, int addQuotes, in
                     if (addQuotes) {
                         stripQuote = FALSE;
                     } else {
-                        stripQuote = getBooleanProperty(properties, paramBuffer2, FALSE);
+                        stripQuote = getBooleanProperty(properties, paramBuffer2, FALSE, TRUE);
                     }
                     if (stripQuote) {
                         propStripped = malloc(sizeof(TCHAR) * (_tcslen(prop) + 1));
@@ -5452,14 +5452,17 @@ int wrapperBuildJavaCommandArrayAppParameters(TCHAR **strings, int addQuotes, in
  * @return The final index into the strings array, or -1 if there were any problems.
  */
 int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHAR *classpath) {
+    int showWarnings;
     int index;
     int detectDebugJVM;
     const TCHAR *prop;
     int initMemory = 0, maxMemory;
     int thisIsTestWrapper;
+
+    showWarnings = (strings != NULL);
     index = 0;
 
-    detectDebugJVM = getBooleanProperty(properties, TEXT("wrapper.java.detect_debug_jvm"), TRUE);
+    detectDebugJVM = getBooleanProperty(properties, TEXT("wrapper.java.detect_debug_jvm"), TRUE, showWarnings);
 
     /* Java commnd */
     if ((index = wrapperBuildJavaCommandArrayJavaCommand(strings, addQuotes, detectDebugJVM, index)) < 0) {
@@ -5468,7 +5471,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
 
     /* See if the auto bits parameter is set.  Ignored by all but the following platforms. */
 #if defined(HPUX) || defined(MACOSX) || defined(SOLARIS) || defined(FREEBSD)
-    if (getBooleanProperty(properties, TEXT("wrapper.java.additional.auto_bits"), FALSE)) {
+    if (getBooleanProperty(properties, TEXT("wrapper.java.additional.auto_bits"), FALSE, showWarnings)) {
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * 5);
             if (!strings[index]) {
@@ -5486,7 +5489,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         return -1;
     }
     /* Initial JVM memory */
-    initMemory = getIntProperty(properties, TEXT("wrapper.java.initmemory"), 0);
+    initMemory = getIntProperty(properties, TEXT("wrapper.java.initmemory"), 0, showWarnings);
     if (initMemory > 0) {
         if (strings) {
             initMemory = __max(initMemory, 1); /* 1 <= n */
@@ -5504,7 +5507,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     }
 
     /* Maximum JVM memory */
-    maxMemory = getIntProperty(properties, TEXT("wrapper.java.maxmemory"), 0);
+    maxMemory = getIntProperty(properties, TEXT("wrapper.java.maxmemory"), 0, showWarnings);
     if (maxMemory > 0) {
         if (strings) {
             maxMemory = __max(maxMemory, initMemory);  /* initMemory <= n */
@@ -5571,7 +5574,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
 
     /* Store the Wrapper jvm min and max ports. */
     if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET) {
-        if (wrapperData->jvmPort > 0) {
+        if (wrapperData->jvmPort >= 0) {
             if (strings) {
                 strings[index] = malloc(sizeof(TCHAR) * (19 + 5 + 1));  /* Port up to 5 characters */
                 if (!strings[index]) {
@@ -5621,10 +5624,11 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     /* Store the Wrapper disable console input flag. */
     if (getBooleanProperty(properties, TEXT("wrapper.disable_console_input"),
 #ifdef WIN32
-            FALSE
+            FALSE,
 #else
-            wrapperData->daemonize /* We want to disable console input by default when daemonized. */
+            wrapperData->daemonize, /* We want to disable console input by default when daemonized. */
 #endif
+            showWarnings
         )) {
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (38 + 1));
@@ -5642,7 +5646,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     }
 
     /* Store the Wrapper listener force stop flag. */
-    if (getBooleanProperty(properties, TEXT("wrapper.listener.force_stop"), FALSE)) {
+    if (getBooleanProperty(properties, TEXT("wrapper.listener.force_stop"), FALSE, showWarnings)) {
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (38 + 1));
             if (!strings[index]) {
@@ -6251,13 +6255,13 @@ int wrapperBuildNTServiceInfo() {
         }
 
         /* Account password */
-        wrapperData->ntServicePrompt = getBooleanProperty( properties, TEXT("wrapper.ntservice.account.prompt"), FALSE );
+        wrapperData->ntServicePrompt = getBooleanProperty(properties, TEXT("wrapper.ntservice.account.prompt"), FALSE, TRUE);
         if (wrapperData->ntServicePrompt == TRUE) {
             wrapperData->ntServicePasswordPrompt = TRUE;
         } else {
-            wrapperData->ntServicePasswordPrompt = getBooleanProperty( properties, TEXT("wrapper.ntservice.password.prompt"), FALSE );
+            wrapperData->ntServicePasswordPrompt = getBooleanProperty(properties, TEXT("wrapper.ntservice.password.prompt"), FALSE, TRUE);
         }
-        wrapperData->ntServicePasswordPromptMask = getBooleanProperty( properties, TEXT("wrapper.ntservice.password.prompt.mask"), TRUE );
+        wrapperData->ntServicePasswordPromptMask = getBooleanProperty(properties, TEXT("wrapper.ntservice.password.prompt.mask"), TRUE, TRUE);
         updateStringValue(&wrapperData->ntServicePassword, getStringProperty(properties, TEXT("wrapper.ntservice.password"), NULL));
         if ( wrapperData->ntServicePassword && ( _tcslen( wrapperData->ntServicePassword ) <= 0 ) ) {
             wrapperData->ntServicePassword = NULL;
@@ -6268,7 +6272,7 @@ int wrapperBuildNTServiceInfo() {
         }
 
         /* Interactive */
-        wrapperData->ntServiceInteractive = getBooleanProperty( properties, TEXT("wrapper.ntservice.interactive"), FALSE );
+        wrapperData->ntServiceInteractive = getBooleanProperty(properties, TEXT("wrapper.ntservice.interactive"), FALSE, TRUE);
         /* The interactive flag can not be set if an account is also set. */
         if (wrapperData->ntServiceAccount && wrapperData->ntServiceInteractive) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
@@ -6277,21 +6281,21 @@ int wrapperBuildNTServiceInfo() {
         }
 
         /* Display a Console Window. */
-        wrapperData->ntAllocConsole = getBooleanProperty( properties, TEXT("wrapper.ntservice.console"), FALSE );
+        wrapperData->ntAllocConsole = getBooleanProperty(properties, TEXT("wrapper.ntservice.console"), FALSE, TRUE);
         /* Set the default hide wrapper console flag to the inverse of the alloc console flag. */
         wrapperData->ntHideWrapperConsole = !wrapperData->ntAllocConsole;
 
         /* Hide the JVM Console Window. */
-        wrapperData->ntHideJVMConsole = getBooleanProperty( properties, TEXT("wrapper.ntservice.hide_console"), TRUE );
+        wrapperData->ntHideJVMConsole = getBooleanProperty(properties, TEXT("wrapper.ntservice.hide_console"), TRUE, TRUE);
 
         /* Make sure that a console is always generated to support thread dumps */
-        wrapperData->generateConsole = getBooleanProperty( properties, TEXT("wrapper.ntservice.generate_console"), TRUE );
+        wrapperData->generateConsole = getBooleanProperty(properties, TEXT("wrapper.ntservice.generate_console"), TRUE, TRUE);
     }
 
     /* Set the single invocation flag. */
-    wrapperData->isSingleInvocation = getBooleanProperty( properties, TEXT("wrapper.single_invocation"), FALSE );
+    wrapperData->isSingleInvocation = getBooleanProperty(properties, TEXT("wrapper.single_invocation"), FALSE, TRUE);
 
-    wrapperData->threadDumpControlCode = getIntProperty(properties, TEXT("wrapper.thread_dump_control_code"), 255);
+    wrapperData->threadDumpControlCode = getIntProperty(properties, TEXT("wrapper.thread_dump_control_code"), 255, TRUE);
     if (wrapperData->threadDumpControlCode <= 0) {
         /* Disabled */
     } else if ((wrapperData->threadDumpControlCode < 128) || (wrapperData->threadDumpControlCode > 255)) {
@@ -6650,7 +6654,7 @@ int loadConfigurationTriggers() {
 
             /* Get the wildcard flags. */
             _sntprintf(propName, 256, TEXT("wrapper.filter.allow_wildcards.%lu"), propertyIndices[i]);
-            wrapperData->outputFilterAllowWildFlags[i] = getBooleanProperty(properties, propName, FALSE);
+            wrapperData->outputFilterAllowWildFlags[i] = getBooleanProperty(properties, propName, FALSE, TRUE);
             if (wrapperData->outputFilterAllowWildFlags[i]) {
                 /* Calculate the minimum text length. */
                 wrapperData->outputFilterMinLens[i] = wrapperGetMinimumTextLengthForPattern(wrapperData->outputFilters[i]);
@@ -6730,10 +6734,10 @@ int loadConfiguration() {
     }
 
     /* Decide whether the classpath should be passed via the environment. */
-    wrapperData->environmentClasspath = getBooleanProperty(properties, TEXT("wrapper.java.classpath.use_environment"), FALSE);
+    wrapperData->environmentClasspath = getBooleanProperty(properties, TEXT("wrapper.java.classpath.use_environment"), FALSE, TRUE);
 
     /* Decide how sequence gaps should be handled before any other properties are loaded. */
-    wrapperData->ignoreSequenceGaps = getBooleanProperty(properties, TEXT("wrapper.ignore_sequence_gaps"), FALSE);
+    wrapperData->ignoreSequenceGaps = getBooleanProperty(properties, TEXT("wrapper.ignore_sequence_gaps"), FALSE, TRUE);
 
     /* Make sure that the configured log file directory is accessible. */
     checkLogfileDir();
@@ -6751,14 +6755,14 @@ int loadConfiguration() {
     wrapperData->exitCode = 0;
 
     /* Get the port. The int will wrap within the 0-65535 valid range, so no need to test the value. */
-    wrapperData->port = getIntProperty(properties, TEXT("wrapper.port"), 0);
-    wrapperData->portMin = getIntProperty(properties, TEXT("wrapper.port.min"), 32000);
+    wrapperData->port = getIntProperty(properties, TEXT("wrapper.port"), 0, TRUE);
+    wrapperData->portMin = getIntProperty(properties, TEXT("wrapper.port.min"), 32000, TRUE);
     if ((wrapperData->portMin < 1) || (wrapperData->portMin > 65535)) {
         wrapperData->portMin = 32000;
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
             TEXT("%s must be in the range %d to %d.  Changing to %d."), TEXT("wrapper.port.min"), 1, 65535, wrapperData->portMin);
     }
-    wrapperData->portMax = getIntProperty(properties, TEXT("wrapper.port.max"), 32999);
+    wrapperData->portMax = getIntProperty(properties, TEXT("wrapper.port.max"), 32999, TRUE);
     if ((wrapperData->portMax < 1) || (wrapperData->portMax > 65535)) {
         wrapperData->portMax = __min(wrapperData->portMin + 999, 65535);
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
@@ -6770,21 +6774,21 @@ int loadConfiguration() {
     }
 
     /* Get the port for the JVM side of the socket. */
-    wrapperData->jvmPort = getIntProperty(properties, TEXT("wrapper.jvm.port"), 0);
+    wrapperData->jvmPort = getIntProperty(properties, TEXT("wrapper.jvm.port"), -1, TRUE);
     if (wrapperData->jvmPort > 0) {
         if (wrapperData->jvmPort == wrapperData->port) {
-            wrapperData->jvmPort = 0;
+            wrapperData->jvmPort = -1;
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 TEXT("wrapper.jvm.port must not equal wrapper.port.  Changing to the default."));
         }
     }
-    wrapperData->jvmPortMin = getIntProperty(properties, TEXT("wrapper.jvm.port.min"), 31000);
+    wrapperData->jvmPortMin = getIntProperty(properties, TEXT("wrapper.jvm.port.min"), 31000, TRUE);
     if ((wrapperData->jvmPortMin < 1) || (wrapperData->jvmPortMin > 65535)) {
         wrapperData->jvmPortMin = 31000;
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
             TEXT("%s must be in the range %d to %d.  Changing to %d."), TEXT("wrapper.jvm.port.min"), 1, 65535, wrapperData->jvmPortMin);
     }
-    wrapperData->jvmPortMax = getIntProperty(properties, TEXT("wrapper.jvm.port.max"), 31999);
+    wrapperData->jvmPortMax = getIntProperty(properties, TEXT("wrapper.jvm.port.max"), 31999, TRUE);
     if ((wrapperData->jvmPortMax < 1) || (wrapperData->jvmPortMax > 65535)) {
         wrapperData->jvmPortMax = __min(wrapperData->jvmPortMin + 999, 65535);
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
@@ -6801,11 +6805,11 @@ int loadConfiguration() {
     
     /* Should we detach the JVM on startup. */
     if (wrapperData->isConsole) {
-        wrapperData->detachStarted = getBooleanProperty(properties, TEXT("wrapper.jvm_detach_started"), FALSE);
+        wrapperData->detachStarted = getBooleanProperty(properties, TEXT("wrapper.jvm_detach_started"), FALSE, TRUE);
     }
     
     /* Get the adviser status */
-    wrapperData->isAdviserEnabled = getBooleanProperty(properties, TEXT("wrapper.adviser"), TRUE);
+    wrapperData->isAdviserEnabled = getBooleanProperty(properties, TEXT("wrapper.adviser"), TRUE, TRUE);
     /* The adviser is always enabled if debug is enabled. */
     if (wrapperData->isDebugging) {
         wrapperData->isAdviserEnabled = TRUE;
@@ -6813,88 +6817,88 @@ int loadConfiguration() {
 
     /* Get the use system time flag. */
     if (!wrapperData->configured) {
-        wrapperData->useSystemTime = getBooleanProperty(properties, TEXT("wrapper.use_system_time"), FALSE);
+        wrapperData->useSystemTime = getBooleanProperty(properties, TEXT("wrapper.use_system_time"), FALSE, TRUE);
     }
     /* Get the use javaio thread flag. */
     if (!wrapperData->configured) {
-        wrapperData->useJavaIOThread = getBooleanProperty(properties, TEXT("wrapper.use_javaio_thread"), FALSE);
+        wrapperData->useJavaIOThread = getBooleanProperty(properties, TEXT("wrapper.use_javaio_thread"), FALSE, TRUE);
     }
     /* Decide whether or not a mutex should be used to protect the tick timer. */
     if (!wrapperData->configured) {
-        wrapperData->useTickMutex = getBooleanProperty(properties, TEXT("wrapper.use_tick_mutex"), FALSE);
+        wrapperData->useTickMutex = getBooleanProperty(properties, TEXT("wrapper.use_tick_mutex"), FALSE, TRUE);
     }
     /* Get the timer thresholds. Properties are in seconds, but internally we use ticks. */
-    wrapperData->timerFastThreshold = getIntProperty(properties, TEXT("wrapper.timer_fast_threshold"), WRAPPER_TIMER_FAST_THRESHOLD * WRAPPER_TICK_MS / 1000) * 1000 / WRAPPER_TICK_MS;
-    wrapperData->timerSlowThreshold = getIntProperty(properties, TEXT("wrapper.timer_slow_threshold"), WRAPPER_TIMER_SLOW_THRESHOLD * WRAPPER_TICK_MS / 1000) * 1000 / WRAPPER_TICK_MS;
+    wrapperData->timerFastThreshold = getIntProperty(properties, TEXT("wrapper.timer_fast_threshold"), WRAPPER_TIMER_FAST_THRESHOLD * WRAPPER_TICK_MS / 1000, TRUE) * 1000 / WRAPPER_TICK_MS;
+    wrapperData->timerSlowThreshold = getIntProperty(properties, TEXT("wrapper.timer_slow_threshold"), WRAPPER_TIMER_SLOW_THRESHOLD * WRAPPER_TICK_MS / 1000, TRUE) * 1000 / WRAPPER_TICK_MS;
 
     /* Load the name of the native library to be loaded. */
     wrapperData->nativeLibrary = getStringProperty(properties, TEXT("wrapper.native_library"), TEXT("wrapper"));
 
     /* Get the append PATH to library path flag. */
-    wrapperData->libraryPathAppendPath = getBooleanProperty(properties, TEXT("wrapper.java.library.path.append_system_path"), FALSE);
+    wrapperData->libraryPathAppendPath = getBooleanProperty(properties, TEXT("wrapper.java.library.path.append_system_path"), FALSE, TRUE);
 
     /* Get the state output status. */
-    wrapperData->isStateOutputEnabled = getBooleanProperty(properties, TEXT("wrapper.state_output"), FALSE);
+    wrapperData->isStateOutputEnabled = getBooleanProperty(properties, TEXT("wrapper.state_output"), FALSE, TRUE);
 
     /* Get the tick output status. */
-    wrapperData->isTickOutputEnabled = getBooleanProperty(properties, TEXT("wrapper.tick_output"), FALSE);
+    wrapperData->isTickOutputEnabled = getBooleanProperty(properties, TEXT("wrapper.tick_output"), FALSE, TRUE);
 
     /* Get the loop debug output status. */
-    wrapperData->isLoopOutputEnabled = getBooleanProperty(properties, TEXT("wrapper.loop_output"), FALSE);
+    wrapperData->isLoopOutputEnabled = getBooleanProperty(properties, TEXT("wrapper.loop_output"), FALSE, TRUE);
 
     /* Get the sleep debug output status. */
-    wrapperData->isSleepOutputEnabled = getBooleanProperty(properties, TEXT("wrapper.sleep_output"), FALSE);
+    wrapperData->isSleepOutputEnabled = getBooleanProperty(properties, TEXT("wrapper.sleep_output"), FALSE, TRUE);
 
     /* Get the memory output status. */
-    wrapperData->isMemoryOutputEnabled = getBooleanProperty(properties, TEXT("wrapper.memory_output"), FALSE);
-    wrapperData->memoryOutputInterval = getIntProperty(properties, TEXT("wrapper.memory_output.interval"), 1);
+    wrapperData->isMemoryOutputEnabled = getBooleanProperty(properties, TEXT("wrapper.memory_output"), FALSE, TRUE);
+    wrapperData->memoryOutputInterval = getIntProperty(properties, TEXT("wrapper.memory_output.interval"), 1, TRUE);
 
     /* Get the cpu output status. */
-    wrapperData->isCPUOutputEnabled = getBooleanProperty(properties, TEXT("wrapper.cpu_output"), FALSE);
-    wrapperData->cpuOutputInterval = getIntProperty(properties, TEXT("wrapper.cpu_output.interval"), 1);
+    wrapperData->isCPUOutputEnabled = getBooleanProperty(properties, TEXT("wrapper.cpu_output"), FALSE, TRUE);
+    wrapperData->cpuOutputInterval = getIntProperty(properties, TEXT("wrapper.cpu_output.interval"), 1, TRUE);
 
     /* Get the pageFault output status. */
     if (!wrapperData->configured) {
-        wrapperData->isPageFaultOutputEnabled = getBooleanProperty(properties, TEXT("wrapper.pagefault_output"), FALSE);
-        wrapperData->pageFaultOutputInterval = getIntProperty(properties, TEXT("wrapper.pagefault_output.interval"), 1);
+        wrapperData->isPageFaultOutputEnabled = getBooleanProperty(properties, TEXT("wrapper.pagefault_output"), FALSE, TRUE);
+        wrapperData->pageFaultOutputInterval = getIntProperty(properties, TEXT("wrapper.pagefault_output.interval"), 1, TRUE);
     }
 
     /* Get the shutdown hook status */
-    wrapperData->isShutdownHookDisabled = getBooleanProperty(properties, TEXT("wrapper.disable_shutdown_hook"), FALSE);
+    wrapperData->isShutdownHookDisabled = getBooleanProperty(properties, TEXT("wrapper.disable_shutdown_hook"), FALSE, TRUE);
 
     /* Get the startup delay. */
-    startupDelay = getIntProperty(properties, TEXT("wrapper.startup.delay"), 0);
-    wrapperData->startupDelayConsole = getIntProperty(properties, TEXT("wrapper.startup.delay.console"), startupDelay);
+    startupDelay = getIntProperty(properties, TEXT("wrapper.startup.delay"), 0, TRUE);
+    wrapperData->startupDelayConsole = getIntProperty(properties, TEXT("wrapper.startup.delay.console"), startupDelay, TRUE);
     if (wrapperData->startupDelayConsole < 0) {
         wrapperData->startupDelayConsole = 0;
     }
-    wrapperData->startupDelayService = getIntProperty(properties, TEXT("wrapper.startup.delay.service"), startupDelay);
+    wrapperData->startupDelayService = getIntProperty(properties, TEXT("wrapper.startup.delay.service"), startupDelay, TRUE);
     if (wrapperData->startupDelayService < 0) {
         wrapperData->startupDelayService = 0;
     }
 
     /* Get the restart delay. */
-    wrapperData->restartDelay = getIntProperty(properties, TEXT("wrapper.restart.delay"), 5);
+    wrapperData->restartDelay = getIntProperty(properties, TEXT("wrapper.restart.delay"), 5, TRUE);
     if (wrapperData->restartDelay < 0) {
         wrapperData->restartDelay = 0;
     }
 
     /* Get the flag which decides whether or not configuration should be reloaded on JVM restart. */
-    wrapperData->restartReloadConf = getBooleanProperty(properties, TEXT("wrapper.restart.reload_configuration"), FALSE);
+    wrapperData->restartReloadConf = getBooleanProperty(properties, TEXT("wrapper.restart.reload_configuration"), FALSE, TRUE);
 
     /* Get the disable restart flag */
-    wrapperData->isRestartDisabled = getBooleanProperty(properties, TEXT("wrapper.disable_restarts"), FALSE);
-    wrapperData->isAutoRestartDisabled = getBooleanProperty(properties, TEXT("wrapper.disable_restarts.automatic"), wrapperData->isRestartDisabled);
+    wrapperData->isRestartDisabled = getBooleanProperty(properties, TEXT("wrapper.disable_restarts"), FALSE, TRUE);
+    wrapperData->isAutoRestartDisabled = getBooleanProperty(properties, TEXT("wrapper.disable_restarts.automatic"), wrapperData->isRestartDisabled, TRUE);
 
     /* Get the timeout settings */
-    wrapperData->cpuTimeout = getIntProperty(properties, TEXT("wrapper.cpu.timeout"), 10);
-    wrapperData->startupTimeout = getIntProperty(properties, TEXT("wrapper.startup.timeout"), 30);
-    wrapperData->pingTimeout = getIntProperty(properties, TEXT("wrapper.ping.timeout"), 30);
-    wrapperData->pingInterval = getIntProperty(properties, TEXT("wrapper.ping.interval"), 5);
-    wrapperData->pingIntervalLogged = getIntProperty(properties, TEXT("wrapper.ping.interval.logged"), 1);
-    wrapperData->shutdownTimeout = getIntProperty(properties, TEXT("wrapper.shutdown.timeout"), 30);
-    wrapperData->jvmExitTimeout = getIntProperty(properties, TEXT("wrapper.jvm_exit.timeout"), 15);
-    wrapperData->jvmCleanupTimeout = getIntProperty(properties, TEXT("wrapper.jvm_cleanup.timeout"), 10);
+    wrapperData->cpuTimeout = getIntProperty(properties, TEXT("wrapper.cpu.timeout"), 10, TRUE);
+    wrapperData->startupTimeout = getIntProperty(properties, TEXT("wrapper.startup.timeout"), 30, TRUE);
+    wrapperData->pingTimeout = getIntProperty(properties, TEXT("wrapper.ping.timeout"), 30, TRUE);
+    wrapperData->pingInterval = getIntProperty(properties, TEXT("wrapper.ping.interval"), 5, TRUE);
+    wrapperData->pingIntervalLogged = getIntProperty(properties, TEXT("wrapper.ping.interval.logged"), 1, TRUE);
+    wrapperData->shutdownTimeout = getIntProperty(properties, TEXT("wrapper.shutdown.timeout"), 30, TRUE);
+    wrapperData->jvmExitTimeout = getIntProperty(properties, TEXT("wrapper.jvm_exit.timeout"), 15, TRUE);
+    wrapperData->jvmCleanupTimeout = getIntProperty(properties, TEXT("wrapper.jvm_cleanup.timeout"), 10, TRUE);
 
     wrapperData->cpuTimeout = validateTimeout(TEXT("wrapper.cpu.timeout"), wrapperData->cpuTimeout);
     wrapperData->startupTimeout = validateTimeout(TEXT("wrapper.startup.timeout"), wrapperData->startupTimeout);
@@ -6946,8 +6950,8 @@ int loadConfiguration() {
     }
 
     /* Load properties controlling the number times the JVM can be restarted. */
-    wrapperData->maxFailedInvocations = getIntProperty(properties, TEXT("wrapper.max_failed_invocations"), 5);
-    wrapperData->successfulInvocationTime = getIntProperty(properties, TEXT("wrapper.successful_invocation_time"), 300);
+    wrapperData->maxFailedInvocations = getIntProperty(properties, TEXT("wrapper.max_failed_invocations"), 5, TRUE);
+    wrapperData->successfulInvocationTime = getIntProperty(properties, TEXT("wrapper.successful_invocation_time"), 300, TRUE);
     if (wrapperData->maxFailedInvocations < 1) {
         wrapperData->maxFailedInvocations = 1;
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
@@ -6955,8 +6959,8 @@ int loadConfiguration() {
     }
 
     /* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
-    wrapperData->requestThreadDumpOnFailedJVMExit = getBooleanProperty(properties, TEXT("wrapper.request_thread_dump_on_failed_jvm_exit"), FALSE);
-    wrapperData->requestThreadDumpOnFailedJVMExitDelay = getIntProperty(properties, TEXT("wrapper.request_thread_dump_on_failed_jvm_exit.delay"), 5);
+    wrapperData->requestThreadDumpOnFailedJVMExit = getBooleanProperty(properties, TEXT("wrapper.request_thread_dump_on_failed_jvm_exit"), FALSE, TRUE);
+    wrapperData->requestThreadDumpOnFailedJVMExitDelay = getIntProperty(properties, TEXT("wrapper.request_thread_dump_on_failed_jvm_exit.delay"), 5, TRUE);
     if (wrapperData->requestThreadDumpOnFailedJVMExitDelay < 1) {
         wrapperData->requestThreadDumpOnFailedJVMExitDelay = 1;
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
@@ -6997,10 +7001,10 @@ int loadConfiguration() {
     /** Get the command file if any. May be NULL */
     updateStringValue(&wrapperData->commandFilename, getFileSafeStringProperty(properties, TEXT("wrapper.commandfile"), NULL));
     correctWindowsPath(wrapperData->commandFilename);
-    wrapperData->commandFileTests = getBooleanProperty(properties, TEXT("wrapper.commandfile.enable_tests"), FALSE);
+    wrapperData->commandFileTests = getBooleanProperty(properties, TEXT("wrapper.commandfile.enable_tests"), FALSE, TRUE);
 
     /** Get the interval at which the command file will be polled. */
-    wrapperData->commandPollInterval = __min(__max(getIntProperty(properties, TEXT("wrapper.command.poll_interval"), 5), 1), 3600);
+    wrapperData->commandPollInterval = __min(__max(getIntProperty(properties, TEXT("wrapper.command.poll_interval"), 5, TRUE), 1), 3600);
 
     /** Get the anchor file if any.  May be NULL */
     if (!wrapperData->configured) {
@@ -7009,7 +7013,7 @@ int loadConfiguration() {
     }
 
     /** Get the interval at which the anchor file will be polled. */
-    wrapperData->anchorPollInterval = __min(__max(getIntProperty(properties, TEXT("wrapper.anchor.poll_interval"), 5), 1), 3600);
+    wrapperData->anchorPollInterval = __min(__max(getIntProperty(properties, TEXT("wrapper.anchor.poll_interval"), 5, TRUE), 1), 3600);
 
     /** Get the umask value for the various files. */
 #ifdef WIN32
@@ -7018,16 +7022,16 @@ int loadConfiguration() {
     defaultUMask = umask((mode_t)0);
 #endif
 
-    wrapperData->umask = getIntProperty(properties, TEXT("wrapper.umask"), defaultUMask);
-    wrapperData->javaUmask = getIntProperty(properties, TEXT("wrapper.java.umask"), wrapperData->umask);
-    wrapperData->pidFileUmask = getIntProperty(properties, TEXT("wrapper.pidfile.umask"), wrapperData->umask);
-    wrapperData->lockFileUmask = getIntProperty(properties, TEXT("wrapper.lockfile.umask"), wrapperData->umask);
-    wrapperData->javaPidFileUmask = getIntProperty(properties, TEXT("wrapper.java.pidfile.umask"), wrapperData->umask);
-    wrapperData->javaIdFileUmask = getIntProperty(properties, TEXT("wrapper.java.idfile.umask"), wrapperData->umask);
-    wrapperData->statusFileUmask = getIntProperty(properties, TEXT("wrapper.statusfile.umask"), wrapperData->umask);
-    wrapperData->javaStatusFileUmask = getIntProperty(properties, TEXT("wrapper.java.statusfile.umask"), wrapperData->umask);
-    wrapperData->anchorFileUmask = getIntProperty(properties, TEXT("wrapper.anchorfile.umask"), wrapperData->umask);
-    setLogfileUmask(getIntProperty(properties, TEXT("wrapper.logfile.umask"), wrapperData->umask));
+    wrapperData->umask = getIntProperty(properties, TEXT("wrapper.umask"), defaultUMask, TRUE);
+    wrapperData->javaUmask = getIntProperty(properties, TEXT("wrapper.java.umask"), wrapperData->umask, TRUE);
+    wrapperData->pidFileUmask = getIntProperty(properties, TEXT("wrapper.pidfile.umask"), wrapperData->umask, TRUE);
+    wrapperData->lockFileUmask = getIntProperty(properties, TEXT("wrapper.lockfile.umask"), wrapperData->umask, TRUE);
+    wrapperData->javaPidFileUmask = getIntProperty(properties, TEXT("wrapper.java.pidfile.umask"), wrapperData->umask, TRUE);
+    wrapperData->javaIdFileUmask = getIntProperty(properties, TEXT("wrapper.java.idfile.umask"), wrapperData->umask, TRUE);
+    wrapperData->statusFileUmask = getIntProperty(properties, TEXT("wrapper.statusfile.umask"), wrapperData->umask, TRUE);
+    wrapperData->javaStatusFileUmask = getIntProperty(properties, TEXT("wrapper.java.statusfile.umask"), wrapperData->umask, TRUE);
+    wrapperData->anchorFileUmask = getIntProperty(properties, TEXT("wrapper.anchorfile.umask"), wrapperData->umask, TRUE);
+    setLogfileUmask(getIntProperty(properties, TEXT("wrapper.logfile.umask"), wrapperData->umask, TRUE));
 
     /** Flag controlling whether or not system signals should be ignored. */
     val = getStringProperty(properties, TEXT("wrapper.ignore_signals"), TEXT("FALSE"));
@@ -7055,14 +7059,14 @@ int loadConfiguration() {
     updateStringValue(&wrapperData->serviceDescription, getStringProperty(properties, TEXT("wrapper.description"), getStringProperty(properties, TEXT("wrapper.ntservice.description"), wrapperData->serviceDisplayName)));
 
     /* Pausable */
-    wrapperData->pausable = getBooleanProperty(properties, TEXT("wrapper.pausable"), getBooleanProperty(properties, TEXT("wrapper.ntservice.pausable"), FALSE));
-    wrapperData->pausableStopJVM = getBooleanProperty(properties, TEXT("wrapper.pausable.stop_jvm"), getBooleanProperty(properties, TEXT("wrapper.ntservice.pausable.stop_jvm"), TRUE));
+    wrapperData->pausable = getBooleanProperty(properties, TEXT("wrapper.pausable"), getBooleanProperty(properties, TEXT("wrapper.ntservice.pausable"), FALSE, TRUE), TRUE);
+    wrapperData->pausableStopJVM = getBooleanProperty(properties, TEXT("wrapper.pausable.stop_jvm"), getBooleanProperty(properties, TEXT("wrapper.ntservice.pausable.stop_jvm"), TRUE, TRUE), TRUE);
     if (!wrapperData->configured) {
-        wrapperData->initiallyPaused = getBooleanProperty(properties, TEXT("wrapper.pause_on_startup"), FALSE);
+        wrapperData->initiallyPaused = getBooleanProperty(properties, TEXT("wrapper.pause_on_startup"), FALSE, TRUE);
     }
 
 #ifdef WIN32
-    wrapperData->ignoreUserLogoffs = getBooleanProperty( properties, TEXT("wrapper.ignore_user_logoffs"), FALSE );
+    wrapperData->ignoreUserLogoffs = getBooleanProperty(properties, TEXT("wrapper.ignore_user_logoffs"), FALSE, TRUE);
 
     /* Configure the NT service information */
     if (wrapperBuildNTServiceInfo()) {

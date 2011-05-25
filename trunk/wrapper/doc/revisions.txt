@@ -1,6 +1,22 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 
+3.5.10
+* Setting wrapper.jvm.port to '0' (zero) will make the JVM to assign an 
+  available port for the backend socket by itself.
+* Add warnings in the log file if an integer configuration property value
+  contains a non-numerical value.  Previously, the Wrapper would silently
+  ignore the problem and use the value of 0 if the number started with an
+  invalid character, it will now return the default value.  If the property
+  value started with valid numerical characters then those were, and still will
+  be, used to generate a value, but the invalid characters will be trimmed.
+  The later is being kept this way to avoid breaking old configurations.
+* Add warnings in the log file if a boolean configuration property has any
+  value other than 'true' or 'false'.  It will still return a value of false
+  of other values to avoid breaking old configurations.
+* Add a warning if an invalid value is specified for the wrapper.on_exit.<n>
+  property.
+
 3.5.9
 * (Standard, Professional) Fix a problem on Windows where network adapters
   whose names contained "PRO/1000" were being removed from the list of hostids

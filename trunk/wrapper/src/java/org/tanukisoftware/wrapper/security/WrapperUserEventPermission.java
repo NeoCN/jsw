@@ -88,9 +88,105 @@ public final class WrapperUserEventPermission extends BasicPermission
     private final int EVENT_MAX = 32767;
     private ArrayList m_eventArr;
 
+    /*---------------------------------------------------------------
+     * Constructors
+     *-------------------------------------------------------------*/
+    /**
+     * Creates a new WrapperEventPermission for the specified service.
+     * 
+     * @param action The event type or event types to be registered.
+     */
+    public WrapperUserEventPermission( String action )
+    {
+        super( "fireUserEvent", String.valueOf( action ) );
+        parseValids( action );
+    }
+    
+    /**
+     * Creates a new WrapperEventPermission for the specified service.
+     *
+     * @param name Name of the event.
+     * @param action The event type or event types to be registered.
+     */
+    public WrapperUserEventPermission( String name, String action )
+    {
+        super( name, action );
+        parseValids( action );
+    }
+
+    /**
+     * Return the canonical string representation of the eventTypes.
+     *  Always returns present eventTypes in the following order: 
+     *  start, stop, pause, continue, interrogate. userCode.
+     *
+     * @return The canonical string representation of the eventTypes.
+     */
+    public String getActions()
+    {
+        String s = "";
+        for ( int i = 0; i < m_eventArr.size(); i++ )
+        {
+            if ( i > 0 )
+            {
+                s = s.concat( "," );
+            }
+            s = s.concat( (String)m_eventArr.get( i ) );
+        }
+        return s;
+    }
+
+    /**
+     * Checks if this WrapperEventPermission object "implies" the
+     *  specified permission.
+     * <P>
+     * More specifically, this method returns true if:<p>
+     * <ul>
+     *  <li><i>p2</i> is an instanceof FilePermission,<p>
+     *  <li><i>p2</i>'s eventTypes are a proper subset of this object's eventTypes,
+     *      and<p>
+     *  <li><i>p2</i>'s service name is implied by this object's service name.
+     *      For example, "MyApp*" implies "MyApp".
+     * </ul>
+     *
+     * @param p2 the permission to check against.
+     *
+     * @return True if the specified permission is implied by this object.
+     */
+    public boolean implies( Permission p2 )
+    {
+        int current, min, max, check, border;
+        String element;
+        
+        check = Integer.parseInt( p2.getActions() );
+        for ( int i = 0; i < m_eventArr.size(); i++ )
+        {
+            element = (String)m_eventArr.get( i );
+            border = element.indexOf( '-' );
+            if ( border >= 0 )
+            {
+                min = Integer.parseInt( element.substring( 0, border ) );
+                max = Integer.parseInt( element.substring( border + 1 ) );
+                if ( min <= check && check <= max )
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                current = Integer.parseInt( element );
+                if ( current == check )
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     /**
      * This method evaluates the passed in permission's action String and stores them in 
      * chunks in an array
+     *
      * @param action the permission's actions
      */
     private void parseValids( String action )
@@ -183,98 +279,5 @@ public final class WrapperUserEventPermission extends BasicPermission
                 m_eventArr.add( element );
             }
         }
-    }
-
-    /*---------------------------------------------------------------
-     * Constructors
-     *-------------------------------------------------------------*/
-    /**
-     * Creates a new WrapperEventPermission for the specified service.
-     * 
-     * @param action
-     *            The event type or event types to be registered.
-     */
-    public WrapperUserEventPermission( String action )
-    {
-        super( "fireUserEvent", String.valueOf( action ) );
-        parseValids( action );
-    }
-    /**
-     * Creates a new WrapperEventPermission for the specified service.
-     *
-     * @param action The event type or event types to be registered.
-     */
-    public WrapperUserEventPermission( String name, String action )
-    {
-        super( name, action );
-        parseValids( action );
-    }
-
-    /**
-     * Return the canonical string representation of the eventTypes.
-     *  Always returns present eventTypes in the following order: 
-     *  start, stop, pause, continue, interrogate. userCode.
-     *
-     * @return the canonical string representation of the eventTypes.
-     */
-    public String getActions()
-    {
-        String s = "";
-        for ( int i = 0; i < m_eventArr.size(); i++ )
-        {
-            if ( i > 0 )
-            {
-                s = s.concat( "," );
-            }
-            s = s.concat( (String)m_eventArr.get( i ) );
-        }
-        return s;
-    }
-
-    /**
-     * Checks if this WrapperEventPermission object "implies" the
-     *  specified permission.
-     * <P>
-     * More specifically, this method returns true if:<p>
-     * <ul>
-     *  <li><i>p2</i> is an instanceof FilePermission,<p>
-     *  <li><i>p2</i>'s eventTypes are a proper subset of this object's eventTypes,
-     *      and<p>
-     *  <li><i>p2</i>'s service name is implied by this object's service name.
-     *      For example, "MyApp*" implies "MyApp".
-     * </ul>
-     *
-     * @param p2 the permission to check against.
-     *
-     * @return true if the specified permission is implied by this object,
-     */
-    public boolean implies( Permission p )
-    {
-        int current, min, max, check, border;
-        String element;
-        check = Integer.parseInt( p.getActions() );
-        for ( int i = 0; i < m_eventArr.size(); i++ )
-        {
-            element = (String)m_eventArr.get( i );
-            border = element.indexOf( '-' );
-            if ( border >= 0 )
-            {
-                min = Integer.parseInt( element.substring( 0, border ) );
-                max = Integer.parseInt( element.substring( border + 1 ) );
-                if ( min <= check && check <= max )
-                {
-                    return true;
-                }
-            }
-            else
-            {
-                current = Integer.parseInt( element );
-                if ( current == check )
-                {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 }

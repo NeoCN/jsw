@@ -932,6 +932,7 @@ void wStateStopped(TICKS nowTicks) {
  */
 void jStateDownClean(TICKS nowTicks, int nextSleep) {
     TCHAR onExitParamBuffer[16 + 10 + 1];
+    const TCHAR *onExitAction;
     int startupDelay;
     int restartMode;
 
@@ -1038,7 +1039,9 @@ void jStateDownClean(TICKS nowTicks, int nextSleep) {
             /* The JVM is down, but a restart has not yet been requested.
              *   See if the user has registered any events for the exit code. */
             _sntprintf(onExitParamBuffer, 16 + 10 + 1, TEXT("wrapper.on_exit.%d"), wrapperData->exitCode);
-            if (checkPropertyEqual(properties, onExitParamBuffer, getStringProperty(properties, TEXT("wrapper.on_exit.default"), TEXT("shutdown")), TEXT("restart"))) {
+            
+            onExitAction = getStringProperty(properties, onExitParamBuffer, getStringProperty(properties, TEXT("wrapper.on_exit.default"), TEXT("shutdown")));
+            if (strcmpIgnoreCase(onExitAction, TEXT("restart")) == 0) {
                 /* We want to restart the JVM. */
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     TEXT("on_exit trigger matched.  Restarting the JVM.  (Exit code: %d)"), wrapperData->exitCode);
@@ -1046,7 +1049,7 @@ void jStateDownClean(TICKS nowTicks, int nextSleep) {
                 wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_CONFIGURED;
 
                 /* Fall through, the restart will take place on the next loop. */
-            } else if (checkPropertyEqual(properties, onExitParamBuffer, getStringProperty(properties, TEXT("wrapper.on_exit.default"), TEXT("shutdown")), TEXT("pause"))) {
+            } else if (strcmpIgnoreCase(onExitAction, TEXT("pause")) == 0) {
                 /* We want to pause the JVM. */
                 if (wrapperData->pausable) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
@@ -1059,6 +1062,12 @@ void jStateDownClean(TICKS nowTicks, int nextSleep) {
                 }
             } else {
                 /* We want to stop the Wrapper. */
+                
+                if (strcmpIgnoreCase(onExitAction, TEXT("shutdown")) != 0) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Encountered an unexpected value for configuration property %s=%s.  Resolving to %s."),
+                        onExitParamBuffer, onExitAction, TEXT("SHUTDOWN"));
+                }
+                
                 wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
             }
         }
@@ -1080,7 +1089,9 @@ void jStateDownClean(TICKS nowTicks, int nextSleep) {
                  *  Normally, this would result in the service stopping from the paused
                  *  state, but it is possible that an exit code is registered. Check them. */
                 _sntprintf(onExitParamBuffer, 16 + 10 + 1, TEXT("wrapper.on_exit.%d"), wrapperData->exitCode);
-                if (checkPropertyEqual(properties, onExitParamBuffer, getStringProperty(properties, TEXT("wrapper.on_exit.default"), TEXT("shutdown")), TEXT("restart"))) {
+                
+                onExitAction = getStringProperty(properties, onExitParamBuffer, getStringProperty(properties, TEXT("wrapper.on_exit.default"), TEXT("shutdown")));
+                if (strcmpIgnoreCase(onExitAction, TEXT("restart")) == 0) {
                     /* We want to restart the JVM.   But not now.  Let the user know. */
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                         TEXT("on_exit trigger matched.  Service is paused, will restart the JVM when resumed.  (Exit code: %d)"), wrapperData->exitCode);
@@ -1089,13 +1100,19 @@ void jStateDownClean(TICKS nowTicks, int nextSleep) {
                     wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_CONFIGURED;
 
                     /* Fall through, the restart will take place once the service is resumed. */
-                } else if (checkPropertyEqual(properties, onExitParamBuffer, getStringProperty(properties, TEXT("wrapper.on_exit.default"), TEXT("shutdown")), TEXT("pause"))) {
+                } else if (strcmpIgnoreCase(onExitAction, TEXT("pause")) == 0) {
                     /* We are paused as expected. */
 
                     /* Make sure we are setup to restart when the Wrapper is resumed later. */
                     wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_CONFIGURED;
                 } else {
                     /* We want to stop the Wrapper. */
+                    
+                    if (strcmpIgnoreCase(onExitAction, TEXT("shutdown")) != 0) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Encountered an unexpected value for configuration property %s=%s.  Resolving to %d."),
+                            onExitParamBuffer, onExitAction, TEXT("SHUTDOWN"));
+                    }
+                    
                     wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
                 }
             }

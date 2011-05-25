@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 1999, 2011 Tanuki Software, Ltd.
- * http://www.tanukisoftware.com
+ * http://www.tanukisoftware.comment
  * All rights reserved.
  *
  * This software is the proprietary information of Tanuki Software.
@@ -435,8 +435,6 @@ void setInnerProperty(Property *property, const TCHAR *propertyValue) {
     }
 }
 
-
-
 /**
  * Function to get the system encoding name/number for the encoding
  * of the conf file
@@ -657,7 +655,7 @@ int getEncodingByName(char* encodingMB, char** encoding) {
 #define PROP_LOAD_SUCCESS   101
 #define PROP_LOAD_FAIL      102
 #define PROP_LOAD_HARD_FAIL 103
-int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileRequired, int depth, const TCHAR* parentFilename, int parentLineNumber, int preload) {
+int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileRequired, int depth, const TCHAR* parentFilename, int parentLineNumber) {
     FILE *stream;
     char bufferMB[MAX_PROPERTY_NAME_VALUE_LENGTH];
     TCHAR expBuffer[MAX_PROPERTY_NAME_VALUE_LENGTH];
@@ -688,8 +686,8 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
 #endif
 
 #ifdef _DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("loadPropertiesInner(props, '%s', %d, %d, '%s', %d %d)"),
-        filename, fileRequired, depth, (parentFilename ? parentFilename : TEXT("<NULL>")), parentLineNumber, preload);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("loadPropertiesInner(props, '%s', %d, %d, '%s', %d)"),
+        filename, fileRequired, depth, (parentFilename ? parentFilename : TEXT("<NULL>")), parentLineNumber);
 #endif
 
     /* Look for the specified file. */
@@ -712,7 +710,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
         return PROP_LOAD_FAIL;
     }
     if (properties->debugIncludes) {
-        if (!preload) {
+        if (!properties->preload) {
             if (depth > 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     TEXT("  Loading included configuration file, %s"), filename);
@@ -769,13 +767,13 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
     } else {
         /* Failed to read the first line of the file. */
 #ifdef WIN32
-            encoding = GetACP();
+        encoding = GetACP();
 #else 
-            encoding = nl_langinfo(CODESET);
+        encoding = nl_langinfo(CODESET);
  #ifdef MACOSX
-            if (strlen(encoding) == 0) {
-                encoding = "UTF-8";
-            }
+        if (strlen(encoding) == 0) {
+            encoding = "UTF-8";
+        }
  #endif
 #endif
     }
@@ -819,7 +817,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
             if (ret) {
                 if (bufferW) {
                     /* bufferW contains an error message. */
-                    if (!preload) {
+                    if (!properties->preload) {
                         if (depth > 0) {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                                 TEXT("%sIncluded configuration file, %s, contains a problem on line #%d and could not be read. (%s)"),
@@ -909,7 +907,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
             if (_tcslen(trimmedBuffer) > 0) {
                 if (strcmpIgnoreCase(trimmedBuffer, TEXT("#include.debug")) == 0) {
                     /* Enable include file debugging. */
-                    if (preload == FALSE) {
+                    if (properties->preload == FALSE) {
                         properties->debugIncludes = TRUE;
                     } else {
                         properties->debugIncludes = FALSE;
@@ -988,14 +986,14 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
 #endif
                     if (absoluteBuffer) {
                         if (depth < MAX_INCLUDE_DEPTH) {
-                            loadResult = loadPropertiesInner(properties, absoluteBuffer, includeRequired, depth + 1, filename, lineNumber, preload);
+                            loadResult = loadPropertiesInner(properties, absoluteBuffer, includeRequired, depth + 1, filename, lineNumber);
                             if (loadResult == PROP_LOAD_SUCCESS) {
                                 /* Ok continue. */
                             } else if ((loadResult == PROP_LOAD_FAIL) || (loadResult == PROP_LOAD_HARD_FAIL)) {
                                 /* Failed. */
                                 if (includeRequired) {
                                     /* Include file was required, but we failed to load it. */
-                                    if (!preload) {
+                                    if (!properties->preload) {
                                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                                             TEXT("%sThe required configuration file, %s, was not loaded.\n%s  Referenced from: %s (line %d)"),
                                             (properties->debugIncludes ? TEXT("  ") : TEXT("")), absoluteBuffer, (properties->debugIncludes ? TEXT("  ") : TEXT("")), filename, lineNumber);
@@ -1024,7 +1022,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
                     } else {
                         if (includeRequired) {
                             /* Include file was required, but we failed to load it. */
-                            if (!preload) {
+                            if (!properties->preload) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                                     TEXT("%sThe required configuration file, %s, was not loaded.\n%s  Referenced from: %s (line %d)"),
                                     (properties->debugIncludes ? TEXT("  ") : TEXT("")), expBuffer, (properties->debugIncludes ? TEXT("  ") : TEXT("")), filename, lineNumber);
@@ -1034,7 +1032,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
                         }
                     }
                 } else if (strcmpIgnoreCase(trimmedBuffer, TEXT("#properties.debug")) == 0) {
-                    if (!preload) {
+                    if (!properties->preload) {
                         /* Enable property debugging. */
                         properties->debugProperties = TRUE;
                     }
@@ -1087,6 +1085,9 @@ int loadProperties(Properties *properties, const TCHAR* filename, int preload) {
     time_t      now;
     struct tm   *nowTM;
     int loadResult;
+    
+    /* Store the preload flag for this loading of properties. */
+    properties->preload = preload;
 
 #ifdef WIN32
     _ftime( &timebNow );
@@ -1098,7 +1099,7 @@ int loadProperties(Properties *properties, const TCHAR* filename, int preload) {
     nowTM = localtime(&now);
     memcpy(&loadPropertiesTM, nowTM, sizeof(struct tm));
 
-    loadResult = loadPropertiesInner(properties, filename, 0, 0, NULL, 0, preload);
+    loadResult = loadPropertiesInner(properties, filename, 0, 0, NULL, 0);
     /* Any failure is a failure in the root. */
     switch (loadResult) {
     case PROP_LOAD_SUCCESS:
@@ -2170,7 +2171,6 @@ void freeStringProperties(TCHAR **propertyNames, TCHAR **propertyValues, long un
     free(propertyIndices);
 }
 
-
 /**
  * Performs a case insensitive check of the property value against the value provided.
  *  If the property is not set then it is compared with the defaultValue.
@@ -2189,9 +2189,12 @@ int checkPropertyEqual(Properties *properties, const TCHAR *propertyName, const 
     return strcmpIgnoreCase(propertyValue, value) == 0;
 }
 
-int getIntProperty(Properties *properties, const TCHAR *propertyName, int defaultValue) {
+int getIntProperty(Properties *properties, const TCHAR *propertyName, int defaultValue, int showWarnings) {
     TCHAR buffer[16];
     Property *property;
+    int i;
+    TCHAR c;
+    int value;
 
     property = getInnerProperty(properties, propertyName);
     if (property == NULL) {
@@ -2200,23 +2203,67 @@ int getIntProperty(Properties *properties, const TCHAR *propertyName, int defaul
 
         return defaultValue;
     } else {
-        return (int)_tcstol(property->value, NULL, 0);
+        value = (int)_tcstol(property->value, NULL, 0);
+        
+        /* Make sure that the property does not contain invalid characters. */
+        i = 0;
+        do {
+            c = property->value[i];
+            if ((i > 0) && (c == TEXT('\0'))) {
+                /* Fall through */
+            } else if ((i == 0) && (c == TEXT('-'))) {
+                /* Negative number.  This is Ok. */
+            } else if ((c < TEXT('0')) || (c > TEXT('9'))) {
+                if (i == 0) {
+                    /* If the bad character is the first character then use the default value. */
+                    value = defaultValue;
+                }
+                
+                if (showWarnings) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Encountered an invalid numerical value for configuration property %s=%s.  Resolving to %d."),
+                        propertyName, property->value, value);
+                }
+                
+                break;
+            }
+            i++;
+        } while (c != TEXT('\0'));
+        
+        return value;
     }
 }
 
-int getBooleanProperty(Properties *properties, const TCHAR *propertyName, int defaultValue) {
-    TCHAR *defaultValueS;
+int getBooleanProperty(Properties *properties, const TCHAR *propertyName, int defaultValue, int showWarnings) {
+    const TCHAR *defaultValueS;
+    Property *property;
+    const TCHAR *propertyValue;
     
     if (defaultValue) {
         defaultValueS = TEXT("true");
     } else {
         defaultValueS = TEXT("false");
     }
-    
-    /* Return TRUE if the property value or the defaultValue == "TRUE". */
-    return checkPropertyEqual(properties, propertyName, defaultValueS, TEXT("true"));
-}
 
+    property = getInnerProperty(properties, propertyName);
+    if (property == NULL) {
+        propertyValue = defaultValueS;
+    } else {
+        propertyValue = property->value;
+    }
+    
+    if (strcmpIgnoreCase(propertyValue, TEXT("true")) == 0) {
+        return TRUE;
+    } else if (strcmpIgnoreCase(propertyValue, TEXT("false")) == 0) {
+        return FALSE;
+    } else {
+        if (showWarnings) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Encountered an invalid boolean value for configuration property %s=%s.  Resolving to %s."),
+                propertyName, propertyValue, TEXT("FALSE"));
+        }
+        
+        return FALSE;
+    }
+}
 
 int isQuotableProperty(Properties *properties, const TCHAR *propertyName) {
     Property *property;

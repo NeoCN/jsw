@@ -734,7 +734,7 @@ public final class WrapperManager
                 }
                 
                 m_jvmPort =
-                    WrapperSystemPropertyUtil.getIntProperty( "wrapper.jvm.port", 0 );
+                    WrapperSystemPropertyUtil.getIntProperty( "wrapper.jvm.port", -1 );
                 m_jvmPortMin =
                     WrapperSystemPropertyUtil.getIntProperty( "wrapper.jvm.port.min", 31000 );
                 m_jvmPortMax =
@@ -4608,7 +4608,7 @@ public final class WrapperManager
         boolean connected = false;
         int tryPort;
         boolean fixedPort;
-        if ( m_jvmPort > 0 )
+        if ( m_jvmPort >= 0 )
         {
             tryPort = m_jvmPort;
             fixedPort = true;
@@ -4701,7 +4701,7 @@ public final class WrapperManager
         
         if ( connected )
         {
-            if ( ( m_jvmPort > 0 ) && ( m_jvmPort != tryPort ) )
+            if ( ( m_jvmPort >= 0 ) && ( m_jvmPort != tryPort ) )
             {
                 m_outInfo.println(getRes().getString(
                     "Port {0} already in use, using port {1} instead.",

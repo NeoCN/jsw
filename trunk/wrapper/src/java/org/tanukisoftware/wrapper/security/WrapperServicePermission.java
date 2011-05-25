@@ -128,8 +128,7 @@ public class WrapperServicePermission
     private static int MASK_CONTINUE = 8;
     private static int MASK_INTERROGATE = 16;
     private static int MASK_USER_CODE = 32;
-    private static int MASK_ALL =
-        MASK_START | MASK_STOP | MASK_PAUSE | MASK_CONTINUE | MASK_INTERROGATE | MASK_USER_CODE;
+    private static int MASK_ALL = MASK_START | MASK_STOP | MASK_PAUSE | MASK_CONTINUE | MASK_INTERROGATE | MASK_USER_CODE;
     
     private int m_actionMask;
     
@@ -293,9 +292,9 @@ public class WrapperServicePermission
      *      For example, "MyApp*" implies "MyApp".
      * </ul>
      *
-     * @param p2 the permission to check against.
+     * @param p2 The permission to check against.
      *
-     * @return true if the specified permission is implied by this object,
+     * @return True if the specified permission is implied by this object.
      */
     public boolean implies( Permission p2 )
     {
@@ -314,7 +313,9 @@ public class WrapperServicePermission
     }
     
     /**
-     * Returns an custom WSCollection implementation of a PermissionCollection.
+     * Returns a custom WSCollection implementation of a PermissionCollection.
+     *
+     * @return A custom WSCollection implementation of a PermissionCollection. 
      */
     public PermissionCollection newPermissionCollection()
     {
@@ -336,6 +337,8 @@ public class WrapperServicePermission
      *-------------------------------------------------------------*/
     /**
      * Returns the action mask of the Permission.
+     *
+     * @return The action mask of the Permission.
      */
     int getActionMask()
     {
@@ -345,6 +348,10 @@ public class WrapperServicePermission
     /**
      * Tests whether this permissions implies another without taking the
      *  action mask into account.
+     *
+     * @param p2 The permission to check against.
+     *
+     * @return True if the specified permission is implied by this object.
      */
     boolean impliesIgnoreActionMask( WrapperServicePermission p2 )
     {
@@ -365,6 +372,10 @@ public class WrapperServicePermission
     
     /**
      * Builds an action mask given a comma separated list of actions.
+     *
+     * @param actions The list of actions.
+     *
+     * @return The action mask.
      */
     private int buildActionMask( String actions )
     {
@@ -467,11 +478,11 @@ final class WSCollection
      *
      * @param permission the Permission object to add.
      *
-     * @exception IllegalArgumentException - if the permission is not a
-     *                                       FilePermission 
+     * @exception IllegalArgumentException If the permission is not a
+     *                                     FilePermission 
      *
-     * @exception SecurityException - if this FilePermissionCollection object
-     *                                has been marked readonly
+     * @exception SecurityException If this FilePermissionCollection object
+     *                              has been marked readonly
      */
     public void add( Permission permission )
     {
@@ -493,10 +504,10 @@ final class WSCollection
      * Check and see if this set of permissions implies the permissions 
      * expressed in "permission".
      *
-     * @param permission the Permission object to compare
+     * @param permission The Permission object to compare
      *
-     * @return true if "permission" is a proper subset of a permission in 
-     * the set, false if not.
+     * @return True if "permission" is a proper subset of a permission in 
+     *         the set, false if not.
      */
     public boolean implies( Permission permission ) 
     {
