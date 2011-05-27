@@ -237,6 +237,41 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
 wrapper.debug=TRUE]]></replacevalue>
         </replace>
         
+        <!-- Loaded GC Output Test -->
+        <delete file="${test.dir}/loadedgcoutput.conf"/>
+        <filter token="app.name"          value="loadedgcoutput"/>
+        <filter token="app.long.name"     value="Loaded GC Output Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/loadedgcoutput.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/loadedgcoutput.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.LoadedGCOutput" />
+        <replace file="${test.dir}/loadedgcoutput.conf">
+            <replacetoken><![CDATA[wrapper.java.additional.1=
+]]></replacetoken>
+            <replacevalue><![CDATA[wrapper.java.additional.1=-verbose:gc
+]]></replacevalue>
+        </replace>
+        
+        <!-- Loaded Split Output Test -->
+        <delete file="${test.dir}/loadedsplitoutput.conf"/>
+        <filter token="app.name"          value="loadedsplitoutput"/>
+        <filter token="app.long.name"     value="Loaded Split Output Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/loadedsplitoutput.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/loadedsplitoutput.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.LoadedSplitOutput" />
+        <replace file="${test.dir}/loadedsplitoutput.conf">
+            <replacetoken><![CDATA[wrapper.java.additional.1=
+]]></replacetoken>
+            <replacevalue><![CDATA[wrapper.java.additional.1=
+wrapper.log.lf_delay.threshold=1000
+]]></replacevalue>
+        </replace>
+        
         <!-- Restarter Test -->
         <delete file="${test.dir}/restarter.conf"/>
         <filter token="app.name"          value="restarter"/>
@@ -639,6 +674,30 @@ set ENV_VAR_4=d]]></replacevalue>
                  token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
                  value='set _WRAPPER_CONF_DEFAULT=../test/loadedlogoutput.conf' />
         
+        <!-- Loaded GC Output Test -->
+        <delete file="${test.dir}/TestLoadedGCOutput.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestLoadedGCOutput.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestLoadedGCOutput.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestLoadedGCOutput.bat"
+                 token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/loadedgcoutput.conf' />
+        
+        <!-- Loaded Split Output Test -->
+        <delete file="${test.dir}/TestLoadedSplitOutput.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestLoadedSplitOutput.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestLoadedSplitOutput.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestLoadedSplitOutput.bat"
+                 token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/loadedsplitoutput.conf' />
+        
         <!-- Restarter Test -->
         <delete file="${test.dir}/TestRestarter.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
@@ -957,6 +1016,22 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/loadedlogoutput"
               filtering="on"/>
         <chmod file="${test.dir}/loadedlogoutput" perm="+x"/> 
+        
+        <!-- Loaded GC Output Test -->
+        <filter token="app.name"          value="loadedgcoutput"/>
+        <filter token="app.long.name"     value="Loaded GC Output Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/loadedgcoutput"
+              filtering="on"/>
+        <chmod file="${test.dir}/loadedgcoutput" perm="+x"/> 
+        
+        <!-- Loaded Split Output Test -->
+        <filter token="app.name"          value="loadedsplitoutput"/>
+        <filter token="app.long.name"     value="Loaded Split Output Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/loadedsplitoutput"
+              filtering="on"/>
+        <chmod file="${test.dir}/loadedsplitoutput" perm="+x"/> 
         
         <!-- Restarter Test -->
         <filter token="app.name"          value="restarter"/>

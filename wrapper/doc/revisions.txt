@@ -16,6 +16,12 @@ Java Service Wrapper Revision History.
   of other values to avoid breaking old configurations.
 * Add a warning if an invalid value is specified for the wrapper.on_exit.<n>
   property.
+* Add a new wrapper.log.lf_delay.threshold property which makes it possible
+  to control how long a partial line of Java log output will be allowed to be
+  buffered until it is completed with a line feed.  If the threshold is
+  exceeded then the partial line will be logged as a full line resulting in an
+  extra line feed in the log output.  All previous versions would do this
+  within 1-2 ms.  The default is now 500ms.
 
 3.5.9
 * (Standard, Professional) Fix a problem on Windows where network adapters

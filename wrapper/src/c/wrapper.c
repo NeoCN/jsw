@@ -144,6 +144,8 @@ int loadConfiguration();
 char *wrapperChildWorkBuffer = NULL;
 size_t wrapperChildWorkBufferSize = 0;
 size_t wrapperChildWorkBufferLen = 0;
+time_t wrapperChildWorkLastDataTime = 0;
+int wrapperChildWorkLastDataTimeMillis = 0;
 
 /**
  * Constructs a tm structure from a pair of Strings like "20091116" and "1514".
@@ -568,6 +570,8 @@ void wrapperLoadLoggingProperties(int preload) {
     int logfileRollMode;
 
     setLogWarningThreshold(getIntProperty(properties, TEXT("wrapper.log.warning.threshold"), 0, !preload));
+    wrapperData->logLFDelayThreshold = __max(__min(getIntProperty(properties, TEXT("wrapper.log.lf_delay.threshold"), 500, !preload), 3600000), 0);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("wrapper.log.lf_delay.threshold=%d"), wrapperData->logLFDelayThreshold);
 
     logfilePath = getFileSafeStringProperty(properties, TEXT("wrapper.logfile"), TEXT("wrapper.log"));
     setLogfilePath(logfilePath, wrapperData->workingDir, preload);
@@ -3149,6 +3153,8 @@ int wrapperReadChildOutput() {
         if (currentBlockRead > 0) {
             /* We read in a block, so increase the length. */
             wrapperChildWorkBufferLen += currentBlockRead;
+            wrapperChildWorkLastDataTime = now;
+            wrapperChildWorkLastDataTimeMillis = nowMillis;
             readThisPass = TRUE;
         }
 
@@ -3208,18 +3214,24 @@ int wrapperReadChildOutput() {
 #ifdef WIN32
                         || (wrapperChildWorkBuffer[wrapperChildWorkBufferLen - 1] == 0x0d)
 #endif
+                        /* Avoid dumping partial lines because we call this funtion too quickly more than once.
+                         *  Never let the line be partial unless more than the LF-Delay threshold has expired. */
+                        || (wrapperData->logLFDelayThreshold == 0)
+                        || (((now - wrapperChildWorkLastDataTime) * 1000 + (nowMillis - wrapperChildWorkLastDataTimeMillis)) < wrapperData->logLFDelayThreshold)
                     ) {
 #ifdef DEBUG_CHILD_OUTPUT
  #ifdef UNICODE
                     /* It is not easy to log the string as is because they are not wide chars. Send it only to stdout. */
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Incomplete line.  Defer: (see stdout)"));
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Incomplete line.  Defer: (see stdout)  Age: %d"),
+                        (now - wrapperChildWorkLastDataTime) * 1000 + (nowMillis - wrapperChildWorkLastDataTimeMillis));
   #ifdef WIN32
                     wprintf(TEXT("Defer Log: [%S]\n"), wrapperChildWorkBuffer);
   #else
                     wprintf(TEXT("Defer Log: [%s]\n"), wrapperChildWorkBuffer);
   #endif
  #else
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Incomplete line.  Defer: [%s]"), wrapperChildWorkBuffer);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Incomplete line.  Defer: [%s]  Age: %d"), wrapperChildWorkBuffer,
+                        (now - wrapperChildWorkLastDataTime) * 1000 + (nowMillis - wrapperChildWorkLastDataTimeMillis));
  #endif
 #endif
                     defer = TRUE;
@@ -3229,14 +3241,16 @@ int wrapperReadChildOutput() {
 #ifdef DEBUG_CHILD_OUTPUT
  #ifdef UNICODE
                     /* It is not easy to log the string as is because they are not wide chars. Send it only to stdout. */
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Incomplete line, but log now: (see stdout)"));
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Incomplete line, but log now: (see stdout)  Age: %d"),
+                        (now - wrapperChildWorkLastDataTime) * 1000 + (nowMillis - wrapperChildWorkLastDataTimeMillis));
   #ifdef WIN32
                     wprintf(TEXT("Log: [%S]\n"), wrapperChildWorkBuffer);
   #else
                     wprintf(TEXT("Log: [%s]\n"), wrapperChildWorkBuffer);
   #endif
  #else
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Incomplete line, but log now: [%s]"), wrapperChildWorkBuffer);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Incomplete line, but log now: [%s]  Age: %d"), wrapperChildWorkBuffer,
+                        (now - wrapperChildWorkLastDataTime) * 1000 + (nowMillis - wrapperChildWorkLastDataTimeMillis));
  #endif
 #endif
                     logChildOutput(wrapperChildWorkBuffer);
