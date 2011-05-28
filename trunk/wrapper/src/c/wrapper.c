@@ -571,7 +571,6 @@ void wrapperLoadLoggingProperties(int preload) {
 
     setLogWarningThreshold(getIntProperty(properties, TEXT("wrapper.log.warning.threshold"), 0, !preload));
     wrapperData->logLFDelayThreshold = __max(__min(getIntProperty(properties, TEXT("wrapper.log.lf_delay.threshold"), 500, !preload), 3600000), 0);
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("wrapper.log.lf_delay.threshold=%d"), wrapperData->logLFDelayThreshold);
 
     logfilePath = getFileSafeStringProperty(properties, TEXT("wrapper.logfile"), TEXT("wrapper.log"));
     setLogfilePath(logfilePath, wrapperData->workingDir, preload);
