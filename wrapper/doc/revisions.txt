@@ -12,8 +12,8 @@ Java Service Wrapper Revision History.
   be, used to generate a value, but the invalid characters will be trimmed.
   The later is being kept this way to avoid breaking old configurations.
 * Add warnings in the log file if a boolean configuration property has any
-  value other than 'true' or 'false'.  It will still return a value of false
-  of other values to avoid breaking old configurations.
+  value other than TRUE or FALSE.  It will still return a value of FALSE
+  for other values to avoid breaking old configurations.
 * Add a warning if an invalid value is specified for the wrapper.on_exit.<n>
   property.
 * Add a new wrapper.log.lf_delay.threshold property which makes it possible
