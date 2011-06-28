@@ -1517,9 +1517,6 @@ int wrapperReadChildOutputBlock(char *blockBuffer, int blockSize, int *readCount
 
 /**
  * Transform a program into a daemon.
- * Inspired by code from GNU monit, which in turn, was
- * inspired by code from Stephen A. Rago's book,
- * Unix System V Network Programming.
  *
  * The idea is to first fork, then make the child a session leader,
  * and then fork again, so that it, (the session group leader), can
