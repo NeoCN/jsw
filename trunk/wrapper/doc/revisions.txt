@@ -22,6 +22,15 @@ Java Service Wrapper Revision History.
   exceeded then the partial line will be logged as a full line resulting in an
   extra line feed in the log output.  All previous versions would do this
   within 1-2 ms.  The default is now 500ms.
+* (Standard, Professional) Make it possible to customize the manufacturer
+  through the customize options.
+* (Professional) For destroying a WrapperProcess, the Wrapper will first use
+  the CTRL-C event rather than CTRL-BREAK.
+* (Standard, Professional) Fixed a bug, where the timezone ICT when set by
+  the wrapper.timezone property got misinterpreted as IST.
+* (Standard, Professional) Fixed a problem where the UTC offset value in the 
+  wrapper.timezone property wasn't parsed correctly. This led to falling back 
+  to UTC0000. 
 
 3.5.9
 * (Standard, Professional) Fix a problem on Windows where network adapters
