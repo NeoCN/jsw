@@ -31,6 +31,9 @@ Java Service Wrapper Revision History.
 * (Standard, Professional) Fixed a problem where the UTC offset value in the 
   wrapper.timezone property wasn't parsed correctly. This led to falling back 
   to UTC0000. 
+* Take out the warning about unset LANG environment variable on Linux and 
+  AIX systems, an unset LANG envirionment variable is uncommon but in fact
+  not a problem and the warning was misleading.
 
 3.5.9
 * (Standard, Professional) Fix a problem on Windows where network adapters
