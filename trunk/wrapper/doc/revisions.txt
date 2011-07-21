@@ -24,16 +24,22 @@ Java Service Wrapper Revision History.
   within 1-2 ms.  The default is now 500ms.
 * (Standard, Professional) Make it possible to customize the manufacturer
   through the customize options.
-* (Professional) For destroying a WrapperProcess, the Wrapper will first use
-  the CTRL-C event rather than CTRL-BREAK.
+* (Professional) Fix a problem where the Wrapper was sending a CTRL-BREAK
+  rather than a CTRL-C signal to child processes launched with
+  WrapperManager.exec when destroying them on Windows.  For most child
+  processes this was not a problem, but if the direct child process was a JVM
+  then the CTRL-BREAK was triggering a thread dump rather than asking the JVM
+  to exit.  The Wrapper was then timing out and forcibly killing the JVM child
+  process.
 * (Standard, Professional) Fixed a bug, where the timezone ICT when set by
   the wrapper.timezone property got misinterpreted as IST.
 * (Standard, Professional) Fixed a problem where the UTC offset value in the 
-  wrapper.timezone property wasn't parsed correctly. This led to falling back 
-  to UTC0000. 
+  wrapper.timezone property was not being parsed correctly on UNIX platforms.
+  This led to the Wrapper to using an offset UTC0000.
 * Take out the warning about unset LANG environment variable on Linux and 
-  AIX systems, an unset LANG envirionment variable is uncommon but in fact
-  not a problem and the warning was misleading.
+  AIX systems.  On system startup, some systems fail to set the LANG
+  environment variable.  This is not really a problem for the Wrapper and the
+  warning was causing confusion for users so we decided to remove it.
 
 3.5.9
 * (Standard, Professional) Fix a problem on Windows where network adapters
