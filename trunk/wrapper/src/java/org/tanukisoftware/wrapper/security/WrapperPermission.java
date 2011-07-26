@@ -148,7 +148,7 @@ public class WrapperPermission
      * a ".", or by itself, to signify a wildcard match.
      *
      * @param name the name of the WrapperPermission.
-     * @param action The event type or event types to be registered.
+     * @param actions The event type or event types to be registered.
      */
     public WrapperPermission( String name, String actions )
     {
