@@ -6179,7 +6179,9 @@ void wrapperBuildKey() {
 int wrapperBuildNTServiceInfo() {
     TCHAR *work;
     const TCHAR *priority;
-    size_t len, valLen;
+    size_t len;
+    size_t valLen;
+    size_t workLen;
     int i;
     TCHAR **propertyNames;
     TCHAR **propertyValues;
@@ -6218,14 +6220,16 @@ int wrapperBuildNTServiceInfo() {
             outOfMemory(TEXT("WBNTSI"), 1);
             return TRUE;
         }
+        workLen = len;
 
         /* Now actually build up the list. Each value is separated with a '\0'. */
         i = 0;
         while (propertyNames[i]) {
             valLen = _tcslen(propertyValues[i]);
             if (valLen > 0) {
-                _tcsncpy(work, propertyValues[i], len);
+                _tcsncpy(work, propertyValues[i], workLen);
                 work += valLen + 1;
+                workLen -= valLen + 1;
             }
             i++;
         }

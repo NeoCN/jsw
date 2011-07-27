@@ -261,8 +261,7 @@ void evaluateEnvironmentVariables(const TCHAR *propertyValue, TCHAR *buffer, int
     size_t bufferAvailable;
 
     #ifdef _DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("evaluateEnvironmentVariables('%s', buffer, %d)"),
-    propertyValue, bufferLength);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("evaluateEnvironmentVariables('%s', buffer, %d)"), propertyValue, bufferLength);
     #endif
 
     buffer[0] = TEXT('\0');
@@ -397,6 +396,7 @@ void setInnerProperty(Property *property, const TCHAR *propertyValue) {
     /* The property value is expanded into a large buffer once, but that is temporary.  The actual
      *  value is stored in the minimum required size. */
     TCHAR *buffer;
+    
     /* Free any existing value */
     if (property->value != NULL) {
         free(property->value);
@@ -1680,8 +1680,8 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
     TCHAR *propertyExpandedValue;
 
 #ifdef _DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("addProperty(%p, %s, '%s', '%s', %d, %d, %d, %d)"),
-        properties, (filename ? filename : TEXT("<NULL>")), propertyName, propertyValue, finalValue, quotable, escapable, internal);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("addProperty(properties, %s, '%s', '%s', %d, %d, %d, %d)"),
+        (filename ? filename : TEXT("<NULL>")), propertyName, propertyValue, finalValue, quotable, escapable, internal);
 #endif
     /* It is possible that the propertyName and or properyValue contains extra spaces. */
     propertyNameTrim = malloc(sizeof(TCHAR) * (_tcslen(propertyName) + 1));
