@@ -1,6 +1,13 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 
+3.5.11
+* Fix a potential crash on Windows caused by a buffer overflow.  This has been
+  a problem since version 3.5.0 and affects configurations which define more
+  than one wrapper.ntservice.dependency.<n>.  Depending on what was in memory,
+  this did not always result in a crash.  It has very reproducible behavior for
+  a given configuration file.
+
 3.5.10
 * Setting wrapper.jvm.port to '0' (zero) will make the JVM to assign an 
   available port for the backend socket by itself.

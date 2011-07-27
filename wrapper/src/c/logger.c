@@ -235,6 +235,53 @@ void outOfMemoryQueued(const TCHAR *context, int id) {
         context, id, getLastErrorText());
 }
 
+#ifdef _DEBUG
+/**
+ * Used to dump memory directly to the log file in both HEX and readable format.
+ *  Useful in debugging applications to track down memory overflows etc.
+ *
+ * @param label A label that will be prepended on all lines of output.
+ * @param memory The memory to be dumped.
+ * @param len The length of the memory to be dumped.
+ */
+void log_dumpHex(TCHAR *label, TCHAR *memory, size_t len) {
+    TCHAR *buffer;
+    TCHAR *pos;
+    size_t i;
+    int c;
+    
+    buffer = malloc(sizeof(TCHAR) * (len * 3 + 1));
+    if (!buffer) {
+        outOfMemory(TEXT("DH"), 1);
+    }
+    
+    pos = buffer;
+    for (i = 0; i < len; i++) {
+        c = memory[i] & 0xff;
+        _sntprintf(pos, 4, TEXT("%02x "), c);
+        pos += 3;
+    }
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("%s (HEX)  = %s"), label, buffer);
+    
+    pos = buffer;
+    for (i = 0; i < len; i++) {
+        c = memory[i] & 0xff;
+        if (c == 0) {
+            _sntprintf(pos, 4, TEXT("\\0 "));
+        } else if (c <= 26) {
+            _sntprintf(pos, 4, TEXT("\\%c "), TEXT('a') + c - 1);
+        } else if (c < 127) {
+            _sntprintf(pos, 4, TEXT("%c  "), c);
+        } else {
+            _sntprintf(pos, 4, TEXT(".  "));
+        }
+        pos += 3;
+    }
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("%s (CHAR) = %s"), label, buffer);
+    
+    free(buffer);
+}
+#endif
 
 void invalidMultiByteSequence(const TCHAR *context, int id) {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Invalid multibyte Sequence found in (%s%02d). %s"),

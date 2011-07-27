@@ -142,6 +142,18 @@ extern void outOfMemoryQueued(const TCHAR *context, int id);
 
 extern void outOfMemory(const TCHAR *context, int id);
 
+#ifdef _DEBUG
+/**
+ * Used to dump memory directly to the log file in both HEX and readable format.
+ *  Useful in debugging applications to track down memory overflows etc.
+ *
+ * @param label A label that will be prepended on all lines of output.
+ * @param memory The memory to be dumped.
+ * @param len The length of the memory to be dumped.
+ */
+extern void log_dumpHex(TCHAR *label, TCHAR *memory, size_t len);
+#endif
+
 /**
  * Sets the number of milliseconds to allow logging to take before a warning is logged.
  *  Defaults to 0 for no limit.  Possible values 0 to 3600000.
