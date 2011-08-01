@@ -535,6 +535,10 @@ extern const TCHAR *wrapperGetJState(int jState);
 extern struct tm wrapperGetReleaseTime();
 extern struct tm wrapperGetBuildTime();
 
+#ifdef WIN32
+extern int initializeStartup();
+extern void disposeStartup();
+#endif
 extern void disposeJavaIO();
 extern void disposeTimer();
 

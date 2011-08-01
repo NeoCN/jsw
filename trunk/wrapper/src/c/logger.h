@@ -70,7 +70,8 @@ extern inline int wcscasecmp(const wchar_t* s1, const wchar_t* s2);
 #define WRAPPER_THREAD_SRVMAIN  2
 #define WRAPPER_THREAD_TIMER    3
 #define WRAPPER_THREAD_JAVAIO   4
-#define WRAPPER_THREAD_COUNT    5
+#define WRAPPER_THREAD_STARTUP  5
+#define WRAPPER_THREAD_COUNT    6
 
 #define MAX_LOG_SIZE 4096
 

@@ -94,6 +94,11 @@ static HANDLE wrapperChildStdoutRd = INVALID_HANDLE_VALUE;
 
 TCHAR wrapperClasspathSeparator = TEXT(';');
 
+HANDLE startupThreadHandle;
+DWORD startupThreadId;
+int startupThreadStarted = FALSE;
+int startupThreadStopped = FALSE;
+
 HANDLE javaIOThreadHandle;
 DWORD javaIOThreadId;
 int javaIOThreadStarted = FALSE;
@@ -721,6 +726,115 @@ void showConsoleWindow(HWND consoleHandle, const TCHAR *name) {
 }
 
 /**
+ * The main entry point for the startup thread which is started by
+ *  wrapperRunCommon().  Once started, this thread will run for the
+ *  life of the startup and then exit.
+ *
+ * This thread only exists so that certain tasks which take an
+ *  undetermined amount of time can run without affecting the startup
+ *  time of the Wrapper.
+ */
+DWORD WINAPI startupRunner(LPVOID parameter) {
+    /* In case there are ever any problems in this thread, enclose it in a try catch block. */
+    __try {
+        startupThreadStarted = TRUE;
+
+        /* Immediately register this thread with the logger. */
+        logRegisterThread(WRAPPER_THREAD_STARTUP);
+
+        if (wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s thread started."), gettext3("Startup"));
+        }
+        
+        if (wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Attempting to verify the binary signature."));
+        }
+        verifyEmbeddedSignature();
+    } __except (exceptionFilterFunction(GetExceptionInformation())) {
+        /* This call is not queued to make sure it makes it to the log prior to a shutdown. */
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Fatal error in the %s thread."), gettext3("Startup"));
+        startupThreadStopped = TRUE; /* Before appExit() */
+        appExit(1);
+        return 1; /* For the compiler, we will never get here. */
+    }
+
+    startupThreadStopped = TRUE;
+    if (wrapperData->isDebugging) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s thread stopped."), gettext3("Startup"));
+    }
+    return 0;
+}
+
+/**
+ * Creates a thread whose job is to process some startup actions which could take a while to
+ *  complete.  This function will automatically wait for a configured length of time for the
+ *  thread to complete.  If it does not complete within the predetermined amount of time then
+ *  it will continue to avoid slowing down the Wrapper startup.
+ *
+ * This startup timeout can be controlled with the wrapper.startup.thread.timeout property.
+ */
+int initializeStartup() {
+    int startupThreadTimeout;
+    TICKS nowTicks;
+    TICKS timeoutTicks;
+    
+    if (wrapperData->isDebugging) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Launching %s thread."), gettext3("Startup"));
+    }
+
+    startupThreadHandle = CreateThread(
+        NULL, /* No security attributes as there will not be any child processes of the thread. */
+        0,    /* Use the default stack size. */
+        startupRunner,
+        NULL, /* No parameters need to passed to the thread. */
+        0,    /* Start the thread running immediately. */
+        &startupThreadId);
+    if (!startupThreadHandle) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+            TEXT("Unable to create a %s thread: %s"), gettext3("Startup"), getLastErrorText());
+        return 1;
+    }
+    
+    /* Wait until the startup thread completes or the timeout expires. */
+    startupThreadTimeout = __min(__max(getIntProperty(properties, TEXT("wrapper.startup_thread.timeout"), 2, TRUE), 0), 3600);
+    nowTicks = wrapperGetTicks();
+    timeoutTicks = wrapperAddToTicks(nowTicks, startupThreadTimeout);
+    while ((!startupThreadStopped) && (wrapperGetTickAgeSeconds(timeoutTicks, nowTicks) < 0)) {
+#if DEBUG_STARTUP
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  Waiting for startup... %08x < %08x"), nowTicks, timeoutTicks);
+#endif
+        wrapperSleep(10);
+        nowTicks = wrapperGetTicks();
+    }
+    if (startupThreadStopped) {
+#if DEBUG_STARTUP
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s completed."), TEXT("Startup"));
+#endif
+    } else {
+        if (wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s timed out.  Continuing in background."), gettext3("Startup"));
+        }
+    }
+    
+    return 0;
+}
+
+void disposeStartup() {
+    /* Wait until the javaIO thread is actually stopped to avoid timing problems. */
+    if (startupThreadStarted) {
+        if (wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Waiting for %s thread to complete..."), gettext3("Startup"));
+        }
+        while (!startupThreadStopped) {
+#ifdef _DEBUG
+            wprintf(TEXT("Waiting for %s thread to stop.\n"), TEXT("Startup"));
+#endif
+            wrapperSleep(100);
+        }
+    }
+}
+
+/**
  * The main entry point for the javaio thread which is started by
  *  initializeJavaIO().  Once started, this thread will run for the
  *  life of the process.
@@ -739,7 +853,7 @@ DWORD WINAPI javaIORunner(LPVOID parameter) {
         logRegisterThread(WRAPPER_THREAD_JAVAIO);
 
         if (wrapperData->isJavaIOOutputEnabled) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("JavaIO thread started."));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s thread started."), gettext3("JavaIO"));
         }
 
         nextSleep = TRUE;
@@ -766,7 +880,7 @@ DWORD WINAPI javaIORunner(LPVOID parameter) {
         }
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
         /* This call is not queued to make sure it makes it to the log prior to a shutdown. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Fatal error in the JavaIO thread."));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Fatal error in the %s thread."), gettext3("JavaIO"));
         javaIOThreadStopped = TRUE; /* Before appExit() */
         appExit(1);
         return 1; /* For the compiler, we will never get here. */
@@ -774,18 +888,18 @@ DWORD WINAPI javaIORunner(LPVOID parameter) {
 
     javaIOThreadStopped = TRUE;
     if (wrapperData->isJavaIOOutputEnabled) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("JavaIO thread stopped."));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s thread stopped."), gettext3("JavaIO"));
     }
     return 0;
 }
 
 /**
- * Creates a process whose job is to loop and process and stdio and stderr
+ * Creates a thread whose job is to loop and process and stdio and stderr
  *  output from the JVM.
  */
 int initializeJavaIO() {
     if (wrapperData->isJavaIOOutputEnabled) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Launching JavaIO thread."));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Launching %s thread."), gettext3("JavaIO"));
     }
 
     javaIOThreadHandle = CreateThread(
@@ -797,7 +911,7 @@ int initializeJavaIO() {
         &javaIOThreadId);
     if (!javaIOThreadHandle) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            TEXT("Unable to create a javaIO thread: %s"), getLastErrorText());
+            TEXT("Unable to create a %s thread: %s"), gettext3("JavaIO"), getLastErrorText());
         return 1;
     } else {
         return 0;
@@ -811,7 +925,7 @@ void disposeJavaIO() {
     if (javaIOThreadStarted) {
         while (!javaIOThreadStopped) {
 #ifdef _DEBUG
-            wprintf(TEXT("Waiting for javaIO thread to stop.\n"));
+            wprintf(TEXT("Waiting for %s thread to stop.\n"), TEXT("JavaIO"));
 #endif
             wrapperSleep(100);
         }

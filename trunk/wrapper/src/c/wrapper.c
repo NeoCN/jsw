@@ -2418,8 +2418,12 @@ void wrapperDispose() {
             fflush(NULL);
         }
     }
+    
+    /* Make sure that the startup thread has completed. */
+    disposeStartup();
 #endif
 
+    
     /* Clean up the javaIO thread. This should be done before the timer thread. */
     if (wrapperData->useJavaIOThread) {
         disposeJavaIO();
@@ -3751,7 +3755,9 @@ int wrapperRunCommon() {
     }
 
 #ifdef WIN32
-    verifyEmbeddedSignature();
+    if (initializeStartup()) {
+        return 1;
+    }
 #endif
 
     if (wrapperData->isDebugging) {
