@@ -1240,6 +1240,10 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
                 pos += _sntprintf( pos, reqSize, TEXT("javaio ") );
                 break;
 
+            case WRAPPER_THREAD_STARTUP:
+                pos += _sntprintf( pos, reqSize, TEXT("startup") );
+                break;
+
             default:
                 pos += _sntprintf( pos, reqSize, TEXT("unknown") );
                 break;

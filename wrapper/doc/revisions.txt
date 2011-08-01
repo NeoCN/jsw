@@ -7,6 +7,12 @@ Java Service Wrapper Revision History.
   than one wrapper.ntservice.dependency.<n>.  Depending on what was in memory,
   this did not always result in a crash.  It has very reproducible behavior for
   a given configuration file.
+* Fix a problem on Windows where the Wrapper was taking 15 seconds or longer to
+  startup on some systems because the WinVerifyTrust system call was having
+  problems updating the CRL.  This had been a problem since the Wrapper
+  binaries started being signed in version 3.5.7.  If the WinVerifyTrust call
+  takes longer than the configured wrapper.startup_thread.timeout then the
+  Wrapper will continue to startup without further delay.
 
 3.5.10
 * Setting wrapper.jvm.port to '0' (zero) will make the JVM to assign an 
