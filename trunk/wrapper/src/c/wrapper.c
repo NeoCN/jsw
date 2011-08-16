@@ -1364,7 +1364,7 @@ void protocolClosePipe() {
 #endif
     if (protocolActiveServerPipeConnected) {
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("closing backend pipe."));
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("Closing backend pipe."));
         }
 #ifdef WIN32
         if (protocolActiveServerPipeIn != INVALID_HANDLE_VALUE && !CloseHandle(protocolActiveServerPipeIn)) {
@@ -1381,17 +1381,18 @@ void protocolClosePipe() {
 #endif
             log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_ERROR, TEXT("Failed to close backend pipe: %s"), getLastErrorText());
         }
+        
 #ifndef WIN32
-    pipeName = malloc(sizeof(TCHAR) * (pipeNameLen + 1));
-    if (!pipeName) {
-        outOfMemory(TEXT("PCP"), 1);
-        return;
-    }
+        pipeName = malloc(sizeof(TCHAR) * (pipeNameLen + 1));
+        if (!pipeName) {
+            outOfMemory(TEXT("PCP"), 1);
+            return;
+        }
 
-    _sntprintf(pipeName, pipeNameLen, TEXT("/tmp/wrapper-%d-%d-in"), wrapperData->wrapperPID, wrapperData->jvmRestarts);
-    _tunlink(pipeName);
-    _sntprintf(pipeName, pipeNameLen, TEXT("/tmp/wrapper-%d-%d-out"), wrapperData->wrapperPID, wrapperData->jvmRestarts);
-    _tunlink(pipeName);
+        _sntprintf(pipeName, pipeNameLen, TEXT("/tmp/wrapper-%d-%d-in"), wrapperData->wrapperPID, wrapperData->jvmRestarts);
+        _tunlink(pipeName);
+        _sntprintf(pipeName, pipeNameLen, TEXT("/tmp/wrapper-%d-%d-out"), wrapperData->wrapperPID, wrapperData->jvmRestarts);
+        _tunlink(pipeName);
 #endif
 
         protocolActiveServerPipeConnected = FALSE;
@@ -1407,7 +1408,7 @@ void protocolCloseSocket() {
     /* Close the socket. */
     if (protocolActiveBackendSD != INVALID_SOCKET) {
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("closing backend socket."));
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("Closing backend socket."));
         }
 #ifdef WIN32
         rc = closesocket(protocolActiveBackendSD);
@@ -1708,8 +1709,8 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
     }
 
     if (ok) {
-        if ((protocolActiveBackendSD == INVALID_SOCKET && wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET)
-            || (protocolActiveServerPipeConnected == FALSE && wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE)) {
+        if (((protocolActiveBackendSD == INVALID_SOCKET) && (wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET))
+            || ((protocolActiveServerPipeConnected == FALSE) && (wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE))) {
             /* A socket was not opened */
             if (wrapperData->isDebugging) {
                 log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
@@ -1805,7 +1806,8 @@ int wrapperCheckServerBackend(int forceOpen) {
              (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
              (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
              (wrapperData->jState == WRAPPER_JSTATE_KILL) ||
-             (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK))) {
+             (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK) ||
+             (wrapperData->jState == WRAPPER_JSTATE_DOWN_FLUSH))) {
             /* The JVM is down or in a state where the backend is not needed. */
             return FALSE;
         } else {
@@ -1883,11 +1885,10 @@ int wrapperProtocolRead() {
             len = recv(protocolActiveBackendSD, (void*) &c, 1, 0);
             if (len == SOCKET_ERROR) {
                 err = wrapperGetLastError();
-                if ((err != EWOULDBLOCK) && (err != EAGAIN)
-                    && (err != ENOTSOCK) && (err != ECONNRESET)) {
+                if ((err != EWOULDBLOCK) &&  /* Windows - Would block. */
+                    (err != EAGAIN)) {       /* UNIX - Would block. */
                     if (wrapperData->isDebugging) {
-                        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
-                            TEXT("socket read failed. (%s)"), getLastErrorText());
+                        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("socket read failed. (%s)"), getLastErrorText());
                     }
                     wrapperProtocolClose();
                 }
@@ -1961,11 +1962,10 @@ int wrapperProtocolRead() {
             len = read(protocolActiveServerPipeIn, (void*) &c, 1);
             if (len == SOCKET_ERROR) {
                 err = wrapperGetLastError();
-                if ((err != EWOULDBLOCK) && (err != EAGAIN)
-                    && (err != ENOTSOCK) && (err != ECONNRESET)) {
+                if ((err != EWOULDBLOCK) &&  /* Windows - Would block. */
+                    (err != EAGAIN)) {       /* UNIX - Would block. */
                     if (wrapperData->isDebugging) {
-                        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
-                            TEXT("socket read failed. (%s)"), getLastErrorText());
+                        log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("pipe read failed. (%s)"), getLastErrorText());
                     }
                     wrapperProtocolClose();
                 }
@@ -3041,7 +3041,11 @@ void logChildOutput(const char* log) {
  #ifdef WIN32
     TCHAR buffer[16];
     UINT cp;
+ #endif
+#endif
 
+#ifdef UNICODE
+ #ifdef WIN32
     GetLocaleInfo(GetThreadLocale(), LOCALE_IDEFAULTANSICODEPAGE, buffer, sizeof(buffer));
     cp = _ttoi(buffer);
     size = MultiByteToWideChar(cp, 0, log, -1 , NULL, 0) + 1;
@@ -3130,7 +3134,13 @@ int wrapperReadChildOutput() {
 #ifdef DEBUG_CHILD_OUTPUT
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Expand buffer."));
 #endif
-            tempBuffer = malloc(wrapperChildWorkBufferSize + sizeof(char) * (READ_BUFFER_BLOCK_SIZE + 1));
+            /* Increase the buffer quickly, but try not to get too big.  Increase to a size that is the
+             *  greater of size + 1024 or size * 1.1.
+             * Also make sure the new buffer is larger than the buffer len.  This should not be necessary
+             *  but is safer. */
+            wrapperChildWorkBufferSize = __max(wrapperChildWorkBufferLen + 1, __max(wrapperChildWorkBufferSize + sizeof(char) * READ_BUFFER_BLOCK_SIZE, wrapperChildWorkBufferSize + wrapperChildWorkBufferSize / 10));
+            
+            tempBuffer = malloc(wrapperChildWorkBufferSize);
             if (!tempBuffer) {
                 outOfMemory(TEXT("WRCO"), 2);
                 return FALSE;
@@ -3139,7 +3149,6 @@ int wrapperReadChildOutput() {
             tempBuffer[wrapperChildWorkBufferLen] = '\0';
             free(wrapperChildWorkBuffer);
             wrapperChildWorkBuffer = tempBuffer;
-            wrapperChildWorkBufferSize += READ_BUFFER_BLOCK_SIZE;
 #ifdef DEBUG_CHILD_OUTPUT
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("buffer now %d bytes"), wrapperChildWorkBufferSize);
 #endif
@@ -3349,7 +3358,11 @@ void wrapperJVMDownCleanup(int setState) {
 #endif
 
     /* Close any open socket to the JVM */
-    wrapperProtocolClose();
+    if (wrapperData->stoppedPacketReceived) {
+        wrapperProtocolClose();
+    } else {
+        /* Leave the socket open so the Wrapper has the chance to read any outstanding packets. */
+    }
 }
 
 /**
@@ -3412,7 +3425,8 @@ void wrapperKillProcess() {
 
     if ((wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN) ||
         (wrapperData->jState == WRAPPER_JSTATE_LAUNCH_DELAY) ||
-        (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK)) {
+        (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK) ||
+        (wrapperData->jState == WRAPPER_JSTATE_DOWN_FLUSH)) {
         /* Already down. */
         if (wrapperData->jState == WRAPPER_JSTATE_LAUNCH_DELAY) {
             wrapperSetJavaState(WRAPPER_JSTATE_DOWN_CLEAN, wrapperGetTicks(), 0);
@@ -3978,7 +3992,8 @@ void wrapperStopProcess(int exitCode, int force) {
             (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
             (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
             (wrapperData->jState == WRAPPER_JSTATE_KILL) ||
-            (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK)) {
+            (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK) ||
+            (wrapperData->jState == WRAPPER_JSTATE_DOWN_FLUSH)) {
             /* JVM is already down or going down. */
         } else {
             wrapperData->exitRequested = TRUE;
@@ -4028,6 +4043,7 @@ void wrapperRestartProcess() {
         (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
         (wrapperData->jState == WRAPPER_JSTATE_KILL) ||
         (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK) ||
+        (wrapperData->jState == WRAPPER_JSTATE_DOWN_FLUSH) ||
         (wrapperData->jState == WRAPPER_JSTATE_LAUNCH_DELAY)) { /* Down but not yet restarted. */
 
         if (wrapperData->isDebugging) {
@@ -6030,6 +6046,7 @@ void wrapperJVMProcessExited(TICKS nowTicks, int exitCode) {
     switch(wrapperData->jState) {
     case WRAPPER_JSTATE_DOWN_CLEAN:
     case WRAPPER_JSTATE_DOWN_CHECK:
+    case WRAPPER_JSTATE_DOWN_FLUSH:
         /* Shouldn't be called in this state.  But just in case. */
         if (wrapperData->isDebugging) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
@@ -6929,7 +6946,6 @@ int loadConfiguration() {
     wrapperData->shutdownTimeout = validateTimeout(TEXT("wrapper.shutdown.timeout"), wrapperData->shutdownTimeout);
     wrapperData->jvmExitTimeout = validateTimeout(TEXT("wrapper.jvm_exit.timeout"), wrapperData->jvmExitTimeout);
     wrapperData->jvmCleanupTimeout = validateTimeout(TEXT("wrapper.jvm_cleanup.timeout"), wrapperData->jvmCleanupTimeout);
-    wrapperData->jvmCleanupTimeout = validateTimeout(TEXT("wrapper.jvm_cleanup.timeout"), wrapperData->jvmCleanupTimeout);
 
     if (wrapperData->pingInterval < 1) {
         wrapperData->pingInterval = 1;
@@ -7546,6 +7562,10 @@ void wrapperStopRequested(int exitCode) {
 
 void wrapperRestartRequested() {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("JVM requested a restart."));
+    
+    /* Make a note of the fact that we received this restart packet. */
+    wrapperData->restartPacketReceived = TRUE;
+    
     wrapperRestartProcess();
 }
 
@@ -7584,13 +7604,34 @@ void wrapperStoppedSignaled() {
     if (wrapperData->isDebugging) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("JVM signaled that it was stopped."));
     }
+    
+    /* If the restart mode is already set and it is WRAPPER_RESTART_REQUESTED_AUTOMATIC but we
+     *  have not yet received a RESTART packet, this means that state engine got confused because
+     *  of an unexpected delay.  The fact that the STOPPED packet arived but not the RESTART packet
+     *  means that the application did not intend for the restart to take place.
+     * Reset the restart and let the Wrapper exit. */
+    if ((wrapperData->restartRequested == WRAPPER_RESTART_REQUESTED_AUTOMATIC) && (!wrapperData->restartPacketReceived)) {
+        /* If we get here it is because the Wrapper previously decided to do a restart to recover.
+         *  That means that another message was already shown to the user.  We want to show another
+         *  message here so there is a record of why we don't restart. */
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Received Stopped packet late.  Cancel automatic restart."));
+        
+        wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_NO;
+    }
+    
+    /* Make a note of the fact that we received this stopped packet. */
+    wrapperData->stoppedPacketReceived = TRUE;
 
-    /* The Java side of the wrapper signaled that it stopped
-     *  allow 5 + jvmExitTimeout seconds for the JVM to exit. */
-    if (wrapperData->jvmExitTimeout > 0) {
-        wrapperSetJavaState(WRAPPER_JSTATE_STOPPED, wrapperGetTicks(), 5 + wrapperData->jvmExitTimeout);
-    } else {
-        wrapperSetJavaState(WRAPPER_JSTATE_STOPPED, 0, -1);
+    if ((wrapperData->jState == WRAPPER_JSTATE_STARTING) ||
+        (wrapperData->jState == WRAPPER_JSTATE_STARTED) ||
+        (wrapperData->jState == WRAPPER_JSTATE_STOPPING)) {
+        /* The Java side of the wrapper signaled that it stopped
+         *  allow 5 + jvmExitTimeout seconds for the JVM to exit. */
+        if (wrapperData->jvmExitTimeout > 0) {
+            wrapperSetJavaState(WRAPPER_JSTATE_STOPPED, wrapperGetTicks(), 5 + wrapperData->jvmExitTimeout);
+        } else {
+            wrapperSetJavaState(WRAPPER_JSTATE_STOPPED, 0, -1);
+        }
     }
 }
 

@@ -35,6 +35,16 @@ public class RuntimeExec
      *-------------------------------------------------------------*/
     public static void main( String[] args )
     {
+        String simplewaiter;
+        if ( WrapperManager.isWindows() )
+        {
+            simplewaiter = "../test/simplewaiter.exe";
+        }
+        else
+        {
+            simplewaiter = "../test/simplewaiter";
+        }
+        
         Random rand = new Random();
         System.out.println( Main.getRes().getString( "Is DYNAMIC supported? A:" ) + WrapperProcessConfig.isSupported( WrapperProcessConfig.DYNAMIC ) );
         System.out.println( Main.getRes().getString( "Is FORK_EXEC supported? A:" ) + WrapperProcessConfig.isSupported( WrapperProcessConfig.FORK_EXEC ) );
@@ -44,8 +54,8 @@ public class RuntimeExec
         try
         {
             System.out.println( "Verifying correct parsing of the command:" );
-            System.out.println( "First a single command line: ../test/simplewaiter -v \"test 123\" test 123 \"\\\"test\\\"\"" );
-            String s = "../test/simplewaiter -v \"test 123\" test 123 \"\\\"test\\\"";
+            System.out.println( "First a single command line: " + simplewaiter  + " -v \"test 123\" test 123 \"\\\"test\\\"\"" );
+            String s = simplewaiter + " -v \"test 123\" test 123 \"\\\"test\\\"";
             WrapperProcess wp = WrapperManager.exec( s );
             Process p = Runtime.getRuntime().exec( s );
             System.out.println( "Runtime.exec:" );
@@ -79,8 +89,8 @@ public class RuntimeExec
             }
             br.close();
             System.out.println( "First test finished. " );
-            System.out.println( "Next a pass the command as array: ../test/simplewaiter -v \"test 123\" test 123 \"\\\"test\\\"\"" );
-            String s2[] = { "../test/simplewaiter", "-v", "\"test 123\"", "test 123", "\"\\\"test\\\"\"" };
+            System.out.println( "Next a pass the command as array: " + simplewaiter + " -v \"test 123\" test 123 \"\\\"test\\\"\"" );
+            String s2[] = { simplewaiter, "-v", "\"test 123\"", "test 123", "\"\\\"test\\\"\"" };
             wp = WrapperManager.exec( s2 );
             p = Runtime.getRuntime().exec( s2 );
             System.out.println( "Runtime.exec:" );
@@ -128,7 +138,7 @@ public class RuntimeExec
                 System.out.println( i + Main.getRes().getString( " start a small child process, dont care about output but call waitfor..." ) );
                 try
                 {
-                    WrapperProcess proc = WrapperManager.exec( "../test/simplewaiter 65 1" );
+                    WrapperProcess proc = WrapperManager.exec( simplewaiter + " 65 1" );
                     proc.getOutputStream().close();
                     System.out.println( Main.getRes().getString( "{0} small child process {1} is alive {2}",  new Object[]{ new Integer( i ), new Integer( proc.getPID() ) , new Boolean( proc.isAlive() ) } ) );
                     System.out.println( Main.getRes().getString( "{0} child process (PID= {1}) finished with code {2}", new Object[]{ new Integer( i ), new Integer ( proc.getPID() ), new Integer( proc.waitFor() ) } ) );
@@ -154,12 +164,12 @@ public class RuntimeExec
                     if ( WrapperProcessConfig.isSupported( WrapperProcessConfig.VFORK_EXEC ) ) 
                     {
                         System.out.println( i + Main.getRes().getString( " vfork is supported" ) ); 
-                        proc = WrapperManager.exec( "../test/simplewaiter " + ( rand.nextInt( 200 ) + 1 ) + " " + rand.nextInt( 30 ), new WrapperProcessConfig().setStartType(WrapperProcessConfig.VFORK_EXEC) );                    	
+                        proc = WrapperManager.exec( simplewaiter + " " + ( rand.nextInt( 200 ) + 1 ) + " " + rand.nextInt( 30 ), new WrapperProcessConfig().setStartType(WrapperProcessConfig.VFORK_EXEC) );                    	
                     }
                     else
                     {
                         System.out.println( i + Main.getRes().getString( " vfork is not supported" ) ); 
-                        proc = WrapperManager.exec( "../test/simplewaiter " + ( rand.nextInt( 200 ) + 1 ) + " " + rand.nextInt( 30 ) );
+                        proc = WrapperManager.exec( simplewaiter + " " + ( rand.nextInt( 200 ) + 1 ) + " " + rand.nextInt( 30 ) );
                     }
                     
                     System.out.println( i + Main.getRes().getString( " longrunning child process {0} is alive {1}" , new Object[]{ new Integer( proc.getPID() ), new Boolean( proc.isAlive() ) } ) );
@@ -180,12 +190,12 @@ public class RuntimeExec
                     if ( WrapperProcessConfig.isSupported( WrapperProcessConfig.POSIX_SPAWN ) )
                     {
                         System.out.println( i + Main.getRes().getString( " posix_spawn is supported." ) );
-                        p = WrapperManager.exec( "../test/simplewaiter 0 15", new WrapperProcessConfig().setStartType(WrapperProcessConfig.POSIX_SPAWN) );
+                        p = WrapperManager.exec( simplewaiter + " 0 15", new WrapperProcessConfig().setStartType(WrapperProcessConfig.POSIX_SPAWN) );
                     }
                     else
                     {
                         System.out.println( i + Main.getRes().getString( " spawn is not supported." ) );
-                        p = WrapperManager.exec( "../test/simplewaiter 0 15" );
+                        p = WrapperManager.exec( simplewaiter + " 0 15" );
                     }
                     // System.out.println(i + " " + p.toString() + " exit " + p.waitFor());
                     BufferedReader br = new BufferedReader( new InputStreamReader( p.getInputStream() ) );
@@ -219,7 +229,7 @@ public class RuntimeExec
                     environment.clear();
                     environment.put( "TEST", "TEST123" );
                     System.out.println( i + Main.getRes().getString( " size of Environment map = " ) + environment.size() );
-                    WrapperProcess proc = WrapperManager.exec( "../test/simplewaiter "+ rand.nextInt(200) +" 3", wpm );
+                    WrapperProcess proc = WrapperManager.exec( simplewaiter + " "+ rand.nextInt(200) +" 3", wpm );
                     proc.getOutputStream().close();
 
                     System.out.println( i + Main.getRes().getString( " small child process {0} is alive {1}" , new Object[]{ new Integer( proc.getPID() ), new Boolean( proc.isAlive() ) } ) );
@@ -316,9 +326,9 @@ public class RuntimeExec
                 try
                 {
                     System.out.println( i + Main.getRes().getString( " start a small child process by Runtime.exec and put a wrapperexec in between.." ) );
-                    Process p = Runtime.getRuntime().exec( "../test/simplewaiter " + ( rand.nextInt( 200 ) + 1 ) + " " + ( rand.nextInt( 20 ) + 1 ));
+                    Process p = Runtime.getRuntime().exec( simplewaiter + " " + ( rand.nextInt( 200 ) + 1 ) + " " + ( rand.nextInt( 20 ) + 1 ));
                     
-                    WrapperProcess proc = WrapperManager.exec( "../test/simplewaiter 4 4" );
+                    WrapperProcess proc = WrapperManager.exec( simplewaiter + " 4 4" );
                     proc.getOutputStream().close();
                     System.out.println( i + Main.getRes().getString( " small child process {0} is alive {1}" , new Object[]{ new Integer( proc.getPID() ), new Boolean( proc.isAlive() ) } ) );
                     // System.out.println(i + " Main.getRes (PID= " + proc.getPID() + " ) finished with code " + proc.waitFor() );
@@ -364,7 +374,7 @@ public class RuntimeExec
         }
         try {
             System.out.println( Main.getRes().getString( "finally start a long-running child process attached to the wrapper, the wrapper will shut down soon, so the child process should get killed by the wrapper..." ) );
-            WrapperProcess p = WrapperManager.exec( "../test/simplewaiter 2 1000" , new WrapperProcessConfig().setDetached(false));
+            WrapperProcess p = WrapperManager.exec( simplewaiter + " 2 1000" , new WrapperProcessConfig().setDetached(false));
         } catch (SecurityException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();

@@ -150,6 +150,9 @@ const TCHAR *wrapperGetJState(int jState) {
     case WRAPPER_JSTATE_DOWN_CHECK:
         name = TEXT("DOWN_CHECK");
         break;
+    case WRAPPER_JSTATE_DOWN_FLUSH:
+        name = TEXT("DOWN_FLUSH");
+        break;
     default:
         name = TEXT("UNKNOWN");
         break;
@@ -401,6 +404,7 @@ void anchorPoll(TICKS nowTicks) {
                     (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
                     (wrapperData->jState == WRAPPER_JSTATE_KILL) ||
                     (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK) ||
+                    (wrapperData->jState == WRAPPER_JSTATE_DOWN_FLUSH) ||
                     (wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN)) {
                     /* Already shutting down, so nothing more to do. */
                 } else {
@@ -646,7 +650,7 @@ void commandPoll(TICKS nowTicks) {
                                     if (param2 == NULL) {
                                         pauseTime = -1;
                                     } else {
-                                        pauseTime = __max(1, __min(3600, _ttoi(param2)));
+                                        pauseTime = __max(0, __min(3600, _ttoi(param2)));
                                     }
                                     if (strcmpIgnoreCase(param1, TEXT("MAIN")) == 0) {
                                         wrapperData->pauseThreadMain = pauseTime;
@@ -663,6 +667,22 @@ void commandPoll(TICKS nowTicks) {
                                     } else if (pauseTime < 0) {
                                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s'.  Enqueue request to pause %s thread indefinitely..."), command, param1);
                                     }
+                                } else {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s'.  Tests disabled."), command);
+                                }
+                            } else if (strcmpIgnoreCase(command, TEXT("PAUSE_LOGGER")) == 0) {
+                                if (wrapperData->commandFileTests) {
+                                    if (param1 == NULL) {
+                                        pauseTime = -1;
+                                    } else {
+                                        pauseTime = __max(0, __min(3600, _ttoi(param1)));
+                                    }
+                                    if (pauseTime > 0) {
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s'.  Enqueue request to pause logger for %d seconds..."), command, pauseTime);
+                                    } else {
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s'.  Enqueue request to pause logger indefinitely..."), command);
+                                    }
+                                    setPauseTime(pauseTime);
                                 } else {
                                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Command '%s'.  Tests disabled."), command);
                                 }
@@ -804,7 +824,8 @@ void wStatePausing(TICKS nowTicks) {
                 (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
                 (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
                 (wrapperData->jState == WRAPPER_JSTATE_KILL) ||
-                (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK)) {
+                (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK) ||
+                (wrapperData->jState == WRAPPER_JSTATE_DOWN_FLUSH)) {
                 /* In the process of stopping the JVM. */
             } else {
                 /* The JVM needs to be stopped, start that process. */
@@ -948,6 +969,11 @@ void jStateDownClean(TICKS nowTicks, int nextSleep) {
             /* A JVM needs to be launched. */
             restartMode = wrapperData->restartRequested;
             wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_NO;
+            wrapperData->stoppedPacketReceived = FALSE;
+            wrapperData->restartPacketReceived = FALSE;
+            if (wrapperData->isDebugging) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Preparing to restart with mode %d."), restartMode);
+            }
 
             /* Depending on the number of restarts to date, decide how to handle the (re)start. */
             if (wrapperData->jvmRestarts > 0) {
@@ -1528,7 +1554,6 @@ void jStateStop(TICKS nowTicks, int nextSleep) {
         wrapperProtocolFunction(WRAPPER_MSG_STOP, NULL);
 
         /* Allow up to 5 + <shutdownTimeout> seconds for the application to stop itself. */
-        /* Already in this state. */
         if (wrapperData->shutdownTimeout > 0) {
             wrapperSetJavaState(WRAPPER_JSTATE_STOPPING, nowTicks, 5 + wrapperData->shutdownTimeout);
         } else {
@@ -1663,7 +1688,7 @@ void jStateKill(TICKS nowTicks, int nextSleep) {
 /**
  * WRAPPER_JSTATE_DOWN_CHECK
  * The JVM process currently does not exist but we still need to clean up.
- *  Once we have cleaned up, we will switch to the DOWN_CLEAN state.
+ *  Once we have cleaned up, we will switch to the DOWN_FLUSH state.
  *
  * nowTicks: The tick counter value this time through the event loop.
  * nextSleep: Flag which is used to determine whether or not the state engine
@@ -1672,6 +1697,31 @@ void jStateKill(TICKS nowTicks, int nextSleep) {
  *            function will be called again immediately.
  */
 void jStateDownCheck(TICKS nowTicks, int nextSleep) {
+    wrapperSetJavaState(WRAPPER_JSTATE_DOWN_FLUSH, nowTicks, -1);
+}
+
+/**
+ * WRAPPER_JSTATE_DOWN_FLUSH
+ * The JVM process currently does not exist but we still need to flush all of its output.
+ *  Once we have flushed and processed everything, we will switch to the DOWN_CLEAN state.
+ *
+ * nowTicks: The tick counter value this time through the event loop.
+ * nextSleep: Flag which is used to determine whether or not the state engine
+ *            will be sleeping before then next time through the loop.  It
+ *            may make sense to avoid certain actions if it is known that the
+ *            function will be called again immediately.
+ */
+void jStateDownFlush(TICKS nowTicks, int nextSleep) {
+    /* Always proceed after a single cycle. */
+    /* TODO - Look into ways of reliably detecting when the backend and stdout piles are closed. */
+    
+    /* Always close the backend here to make sure we are ready for the next JVM.
+     * In normal cases, the backend will have already been closed, but if the JVM
+     *  crashed or the Wrapper thread was delayed, then it is possible that it is
+     *  still open at this point. */
+    wrapperProtocolClose();
+    
+    /* We are now down and clean. */
     wrapperSetJavaState(WRAPPER_JSTATE_DOWN_CLEAN, nowTicks, -1);
 }
 
@@ -1815,7 +1865,7 @@ void wrapperEventLoop() {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Loop: process socket"));
         }
         /* Don't bother processing the socket if we are shutting down and the JVM is down. */
-        if (((wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK) || (wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN)) &&
+        if (((wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK) || (wrapperData->jState == WRAPPER_JSTATE_DOWN_FLUSH) || (wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN)) &&
             ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) || (wrapperData->wState == WRAPPER_WSTATE_STOPPED))) {
             /* Skip socket processing. */
         } else {
@@ -1953,15 +2003,24 @@ void wrapperEventLoop() {
                 (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
                 (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
                 (wrapperData->jState == WRAPPER_JSTATE_KILL) ||
-                (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK)) {
+                (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK) ||
+                (wrapperData->jState == WRAPPER_JSTATE_DOWN_FLUSH)) {
                 /* The JVM is already being stopped, so nothing else needs to be done. */
             } else {
                 /* The JVM should be running or is in the process of launching, so it needs to be stopped. */
                 if (wrapperGetProcessStatus(nowTicks, FALSE) == WRAPPER_PROCESS_DOWN) {
                     /* The process is gone.  (Handled and logged) */
 
-                    /* We never want to restart here. */
-                    wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_NO;
+                    if (wrapperData->restartPacketReceived) {
+                        /* The restart packet was received.  If we are here then it was delayed,
+                         *  but it means that we do want to restart. */
+                    } else {
+                        /* We never want to restart here. */
+                        wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_NO;
+                        if (wrapperData->isDebugging) {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Reset the restart flag."));
+                        }
+                    }
                 } else {
                     /* JVM is still up.  Try asking it to shutdown nicely. */
                     if (wrapperData->isDebugging) {
@@ -2073,6 +2132,10 @@ void wrapperEventLoop() {
 
         case WRAPPER_JSTATE_DOWN_CHECK:
             jStateDownCheck(nowTicks, nextSleep);
+            break;
+
+        case WRAPPER_JSTATE_DOWN_FLUSH:
+            jStateDownFlush(nowTicks, nextSleep);
             break;
 
         default:

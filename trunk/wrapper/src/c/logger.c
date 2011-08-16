@@ -96,6 +96,8 @@ typedef long intptr_t;
 #define FALSE 0
 #endif
 
+const TCHAR* defaultLogFile = TEXT("wrapper.log");
+
 /* Global data for logger */
 
 /* Maximum number of milliseconds that a log write can take before we show a warning. */
@@ -118,6 +120,8 @@ void (*logFileChangedCallback)(const TCHAR *logFile);
 
 /* Stores a carefully malloced filename of the most recent log file change.   This value is only set in log_printf(), and only cleared in maintainLogger(). */
 TCHAR *pendingLogFileChange = NULL;
+
+int logPauseTime;
 
 TCHAR *logFilePath;
 TCHAR *currentLogFileName;
@@ -346,6 +350,8 @@ int initLogging(void (*logFileChanged)(const TCHAR *logFile)) {
         return 1;
     }
 #endif
+    
+    logPauseTime = -1;
 
     loginfoSourceName = defaultLoginfoSourceName;
 
@@ -777,7 +783,56 @@ int checkLogfileDir() {
     
     return FALSE;
 }
+
+/**
+ * This method will wiat for the specified number of seconds.  It is only meant for special
+ *  uses within the logging code as it does not itself log any output in a correct way.
+ */
+void logSleep(int ms) {
+#ifdef WIN32
+    Sleep(ms);
+#else
+    /* We want to use nanosleep if it is available, but make it possible for the
+       user to build a version that uses usleep if they want.
+       usleep does not behave nicely with signals thrown while sleeping.  This
+       was the believed cause of a hang experienced on one Solaris system. */
+ #ifdef USE_USLEEP
+    usleep(ms * 1000); /* microseconds */
+ #else
+    struct timespec ts;
+
+    if (ms >= 1000) {
+        ts.tv_sec = (ms * 1000000) / 1000000000;
+        ts.tv_nsec = (ms * 1000000) % 1000000000; /* nanoseconds */
+    } else {
+        ts.tv_sec = 0;
+        ts.tv_nsec = ms * 1000000; /* nanoseconds */
+    }
+
+    if (nanosleep(&ts, NULL)) {
+        if (errno == EINTR) {
+            return;
+        } else if (errno == EAGAIN) {
+            /* On 64-bit AIX this happens once on shutdown. */
+            return;
+        } else {
+            _tprintf(TEXT("nanosleep(%dms) failed. \n"), ms, getLastErrorText());
+        }
+    }
+ #endif
+#endif
+}
     
+/**
+ * Used for testing to set a pause into the next log entry made.
+ *
+ * @param pauseTime Number of seconds to pause, 0 pauses indefinitely.
+ */
+void setPauseTime(int pauseTime)
+{
+    logPauseTime = pauseTime;
+}
+
 
 void setLogfileRollMode( int log_file_roll_mode ) {
     logFileRollMode = log_file_roll_mode;
@@ -1358,22 +1413,330 @@ void generateLogFileName(TCHAR *buffer, const TCHAR *template, const TCHAR *nowD
 }
 
 /**
- * Prints the contents of a buffer to all configured targets.
+ * Prints the contents of a buffer to the sysLog target.  The log level is
+ *  tested prior to this function being called.
+ *
+ * Must be called while locked.
+ */
+void log_printf_message_sysLogInner(int source_id, int level, TCHAR *message, struct tm *nowTM) {
+#ifdef WIN32
+        sendEventlogMessage(source_id, level, message);
+#else
+        sendLoginfoMessage(source_id, level, message);
+#endif
+}
+/**
+ * @param invertLogLevelCheck There is a special case where we want to log to
+ *                            the syslog IF and only if the normal log output
+ *                            would not go to the syslog.  This flag makes it
+ *                            possible to log if it we normally would not.
+ */
+void log_printf_message_sysLog(int source_id, int level, TCHAR *message, struct tm *nowTM, int invertLogLevelCheck) {
+    switch (level) {
+    case LEVEL_NOTICE:
+    case LEVEL_ADVICE:
+        /* Advice and Notice level messages are special in that they never get logged to the
+         *  EventLog / SysLog. */
+        break;
+        
+    default:
+        if (invertLogLevelCheck) {
+            /* Log if we normally should not log. */
+            if (level < currentLoginfoLevel) {
+                log_printf_message_sysLogInner(source_id, level, message, nowTM);
+            }
+        } else {
+            if (level >= currentLoginfoLevel) {
+                log_printf_message_sysLogInner(source_id, level, message, nowTM);
+            }
+        }
+    }
+}
+
+/**
+ * Prints the contents of a buffer to the logfile target.  The log level is
+ *  tested prior to this function being called.
  *
  * Must be called while locked.
  *
  * @return True if the logfile name changed.
  */
-int log_printf_message( int source_id, int level, int threadId, int queued, TCHAR *message ) {
+int log_printf_message_logFileInner(int source_id, int level, int threadId, int queued, TCHAR *message, struct tm *nowTM, int nowMillis) {
+    int logFileChanged = FALSE;
+    TCHAR nowDate[9];
+    TCHAR *printBuffer;
+    int old_umask;
+    const TCHAR *tempBufferFormat;
+    const TCHAR *tempBufferLastErrorText;
+    size_t tempBufferLen;
+    TCHAR *tempBuffer;
+    
+    /* If the log file was set to a blank value then it will not be used. */
+    if (logFilePath && (_tcslen(logFilePath) > 0)) {
+        /* If this the roll mode is date then we need a nowDate for this log entry. */
+        if (logFileRollMode & ROLL_MODE_DATE) {
+            _sntprintf(nowDate, 9, TEXT("%04d%02d%02d"), nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday );
+        } else {
+            nowDate[0] = TEXT('\0');
+        }
+
+        /* Make sure that the log file does not need to be rolled. */
+        checkAndRollLogs(nowDate);
+
+        /* If the file needs to be opened then do so. */
+        if (logfileFP == NULL) {
+            /* Generate the log file name if it is not already set. */
+            if (currentLogFileName[0] == TEXT('\0')) {
+                if (logFileRollMode & ROLL_MODE_DATE) {
+                    generateLogFileName(currentLogFileName, logFilePath, nowDate, NULL);
+                } else {
+                    generateLogFileName(currentLogFileName, logFilePath, NULL, NULL);
+                }
+                logFileChanged = TRUE;
+            }
+
+            old_umask = umask( logFileUmask );
+            logfileFP = _tfopen(currentLogFileName, TEXT("a"));
+            if (logfileFP == NULL) {
+                /* The log file could not be opened. */
+                
+                /* We need to write our error message into a buffer manually so we can use it
+                 *  both for the log_printf_queue and log_printf_message_sysLog calls below. */
+                tempBufferFormat = TEXT("Unable to write to the configured log file: %s (%s)\n  Falling back to the default file in the current working directory: %s");
+                tempBufferLastErrorText = getLastErrorText();
+                tempBufferLen = _tcslen(tempBufferFormat) - 2 - 2 - 2 + _tcslen(currentLogFileName) + _tcslen(tempBufferLastErrorText) + _tcslen(defaultLogFile) + 1;
+                tempBuffer = malloc(sizeof(TCHAR) * tempBufferLen);
+                if (!tempBuffer) {
+                    outOfMemoryQueued(TEXT("LPML"), 1 );
+                } else {
+                    _sntprintf(tempBuffer, tempBufferLen, tempBufferFormat, currentLogFileName, getLastErrorText(), defaultLogFile);
+                    
+                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("%s"), tempBuffer);
+                    
+                    /* This is critical for debugging problems.  If the above message would not have shown
+                     *  up in the syslog then send it there manually.  We are already locked here so this
+                     *  can be done safely. */
+                    log_printf_message_sysLog(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, tempBuffer, nowTM, TRUE);
+                    
+                    free(tempBuffer);
+                }
+                
+                /* Try the default file location. */
+                setLogfilePath(defaultLogFile, NULL, TRUE);
+                _sntprintf(currentLogFileName, logFileNameSize, defaultLogFile);
+                logFileChanged = TRUE;
+                logfileFP = _tfopen(currentLogFileName, TEXT("a"));
+                if (logfileFP == NULL) {
+                    /* Still unable to write. */
+                    
+                    /* We need to write our error message into a buffer manually so we can use it
+                     *  both for the log_printf_queue and log_printf_message_sysLog calls below. */
+                    tempBufferFormat = TEXT("Unable to write to the default log file: %s (%s)\n  Disabling log file.");
+                    tempBufferLastErrorText = getLastErrorText();
+                    tempBufferLen = _tcslen(tempBufferFormat) - 2 - 2 + _tcslen(currentLogFileName) + _tcslen(tempBufferLastErrorText) + 1;
+                    tempBuffer = malloc(sizeof(TCHAR) * tempBufferLen);
+                    if (!tempBuffer) {
+                        outOfMemoryQueued(TEXT("LPML"), 1 );
+                    } else {
+                        _sntprintf(tempBuffer, tempBufferLen, tempBufferFormat, currentLogFileName, getLastErrorText());
+                        
+                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("%s"), tempBuffer);
+                        
+                        /* This is critical for debugging problems.  If the above message would not have shown
+                         *  up in the syslog then send it there manually.  We are already locked here so this
+                         *  can be done safely. */
+                        log_printf_message_sysLog(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, tempBuffer, nowTM, TRUE);
+                        
+                        free(tempBuffer);
+                    }
+                    setLogfileLevelInt(LEVEL_NONE);
+                    logFileChanged = FALSE;
+                }
+            }
+            umask(old_umask);
+
+#ifdef _DEBUG
+            if (logfileFP != NULL) {
+                _tprintf(TEXT("Opened logfile\n"));
+            }
+#endif
+        }
+
+        if (logfileFP == NULL) {
+            currentLogFileName[0] = TEXT('\0');
+            /* Failure to write to logfile already reported. */
+        } else {
+            /* We need to store the date the file was opened for. */
+            _tcsncpy(logFileLastNowDate, nowDate, 9);
+
+            /* Build up the printBuffer. */
+            printBuffer = buildPrintBuffer(source_id, level, threadId, queued, nowTM, nowMillis, logfileFormat, message);
+            if (printBuffer) {
+                _ftprintf(logfileFP, TEXT("%s\n"), printBuffer);
+                logFileAccessed = TRUE;
+
+                /* Increment the activity counter. */
+                logfileActivityCount++;
+
+                /* Only close the file if autoClose is set.  Otherwise it will be closed later
+                 *  after an appropriate period of inactivity. */
+                if (autoCloseLogfile) {
+#ifdef _DEBUG
+                    _tprintf(TEXT("Closing logfile immediately...\n"));
+#endif
+
+                    fclose(logfileFP);
+                    logfileFP = NULL;
+                    /* Do not clear the currentLogFileName here as we are not changing its name. */
+                }
+
+                /* Leave the file open.  It will be closed later after a period of inactivity. */
+            }
+        }
+    }
+    
+    return logFileChanged;
+}
+int log_printf_message_logFile(int source_id, int level, int threadId, int queued, TCHAR *message, struct tm *nowTM, int nowMillis) {
+    int logFileChanged = FALSE;
+    
+    if (level >= currentLogfileLevel) {
+        logFileChanged = log_printf_message_logFileInner(source_id, level, threadId, queued, message, nowTM, nowMillis);
+    }
+    
+    return logFileChanged;
+}
+
+/**
+ * Prints the contents of a buffer to the console target.  The log level is
+ *  tested prior to this function being called.
+ *
+ * Must be called while locked.
+ */
+void log_printf_message_consoleInner(int source_id, int level, int threadId, int queued, TCHAR *message, struct tm *nowTM, int nowMillis) {
+    TCHAR *printBuffer;
+    FILE *target;
+    
+    /* Build up the printBuffer. */
+    printBuffer = buildPrintBuffer(source_id, level, threadId, queued, nowTM, nowMillis, consoleFormat, message);
+    if (printBuffer) {
+        /* Decide where to send the output. */
+        switch (level) {
+            case LEVEL_FATAL:
+                if (consoleFatalToStdErr) {
+                    target = stderr;
+                } else {
+                    target = stdout;
+                }
+                break;
+                
+            case LEVEL_ERROR:
+                if (consoleErrorToStdErr) {
+                    target = stderr;
+                } else {
+                    target = stdout;
+                }
+                break;
+                
+            case LEVEL_WARN:
+                if (consoleWarnToStdErr) {
+                    target = stderr;
+                } else {
+                    target = stdout;
+                }
+                break;
+                
+            default:
+                target = stdout;
+                break;
+        }
+
+        /* Write the print buffer to the console. */
+#ifdef WIN32
+        /* Using the WinAPI function WriteConsole would make it impossible to pipe the console output */		    
+        /*
+        if ((target == stdout) && (GetStdHandle(STD_OUTPUT_HANDLE) != NULL)) {
+            writeToConsole(GetStdHandle(STD_OUTPUT_HANDLE), TEXT("%s\n"), printBuffer);
+        } else if ((target == stderr) && (GetStdHandle(STD_ERROR_HANDLE) != NULL)) {
+            writeToConsole(GetStdHandle(STD_ERROR_HANDLE), TEXT("%s\n"), printBuffer);
+        } else
+        */
+        if (TRUE) {
+#endif                
+            _ftprintf(target, TEXT("%s\n"), printBuffer);
+            if (consoleFlush) {
+                fflush(target);
+            }
+#ifdef WIN32
+        }
+#endif
+    }
+}
+void log_printf_message_console(int source_id, int level, int threadId, int queued, TCHAR *message, struct tm *nowTM, int nowMillis) {
+    if (level >= currentConsoleLevel) {
+        log_printf_message_consoleInner(source_id, level, threadId, queued, message, nowTM, nowMillis);
+    }
+}
+/**
+ * Prints the contents of a buffer to the dialog target.  The log level is
+ *  tested prior to this function being called.
+ *
+ * Must be called while locked.
+ */
+void log_printf_message_dialogInner(int source_id, int level, int threadId, int queued, TCHAR *message, struct tm *nowTM, int nowMillis) {
+    TCHAR *printBuffer;
+    int i;
+    
+    /* Build up the printBuffer. */
+    printBuffer = buildPrintBuffer(source_id, level, threadId, queued, nowTM, nowMillis, dialogLogFormat, message);
+    if (printBuffer) {
+        /* Append to the dialog log. */
+        if (dialogLogEntries >= dialogLogSize) {
+            /* Throw the oldest entry away and shift them all down by one. */
+            free(dialogLogs[0]);
+            for (i = 0; i < dialogLogSize - 1; i++) {
+                dialogLogs[i] = dialogLogs[i + 1];
+            }
+            dialogLogs[dialogLogEntries - 1] = NULL;
+            dialogLogEntries--;
+        }
+
+        dialogLogs[dialogLogEntries] = malloc(sizeof(TCHAR) * (_tcslen(printBuffer) + 1));
+        if (!dialogLogs[dialogLogEntries]) {
+            outOfMemoryQueued(TEXT("LPMD"), 1);
+            threadPrintBufferSize = 0;
+            return;
+        }
+        _tcsncpy(dialogLogs[dialogLogEntries], printBuffer, _tcslen(printBuffer) + 1);
+        dialogLogEntries++;
+    }
+}
+void log_printf_message_dialog(int source_id, int level, int threadId, int queued, TCHAR *message, struct tm *nowTM, int nowMillis) {
+    if (level >= currentDialogLevel) {
+        log_printf_message_dialogInner(source_id, level, threadId, queued, message, nowTM, nowMillis);
+    }
+}
+
+/**
+ * Prints the contents of a buffer to all configured targets.
+ *
+ * Must be called while locked.
+ *
+ * @param sysLogEnabled A flag that is used to help with recursion to control
+ *                      whether or not the syslog should be considered as a log
+ *                      target for this call.  It is always disabled when we
+ *                      recurse.
+ *
+ * @return True if the logfile name changed.
+ */
+int log_printf_message(int source_id, int level, int threadId, int queued, TCHAR *message, int sysLogEnabled) {
+#ifndef WIN32
+    TCHAR       *printBuffer;
+    FILE        *target;
+#endif
     int         logFileChanged = FALSE;
     TCHAR       *subMessage;
     TCHAR       *nextLF;
-    TCHAR       *printBuffer;
-    int         old_umask;
-#ifndef WRAPPERW
-    FILE        *target;
-#endif
-    TCHAR       nowDate[9];
 #ifdef WIN32
     struct _timeb timebNow;
 #else
@@ -1385,6 +1748,63 @@ int log_printf_message( int source_id, int level, int threadId, int queued, TCHA
     time_t      now;
     int         nowMillis;
     struct tm   *nowTM;
+    
+#ifndef WIN32
+    if ((_tcsstr(message, LOG_SPECIAL_MARKER) == message) && (_tcslen(message) >= _tcslen(LOG_SPECIAL_MARKER) + 10)) {
+        /* Got a special encoded log message from the child Wrapper process.
+         *  Parse it and continue as if the log message came from this process.
+         * These should never be multi-line messages as the forked child
+         *  process will have already broken them up. */
+        pos = (TCHAR *)(message + _tcslen(LOG_SPECIAL_MARKER) + 1);
+
+        /* source_id */
+        _tcsncpy(intBuffer, pos, 2);
+        intBuffer[2] = TEXT('\0');
+        source_id = _ttoi(intBuffer);
+        pos += 3;
+
+        /* level */
+        _tcsncpy(intBuffer, pos, 2);
+        intBuffer[2] = TEXT('\0');
+        level = _ttoi(intBuffer);
+        pos += 3;
+
+        /* threadId */
+        _tcsncpy(intBuffer, pos, 2);
+        intBuffer[2] = TEXT('\0');
+        threadId = _ttoi(intBuffer);
+        pos += 3;
+
+        /* message */
+        message = pos;
+    }
+#endif
+    
+    /* Build a timestamp */
+#ifdef WIN32
+    _ftime( &timebNow );
+    now = (time_t)timebNow.time;
+    nowMillis = timebNow.millitm;
+#else
+    gettimeofday( &timevalNow, NULL );
+    now = (time_t)timevalNow.tv_sec;
+    nowMillis = timevalNow.tv_usec / 1000;
+#endif
+    nowTM = localtime( &now );
+    
+    /* Syslog messages are printed first so we can print them including line feeds as is.
+     *  This must be done before we break up multi-line messages into individual lines. */
+#ifdef WIN32
+    if (sysLogEnabled) {
+#else
+    /* On UNIX we never want to log to the syslog here if this is in a forked thread.
+     *  In this case, any lines will be broken up into individual lines and then logged
+     *  as usual by the main process.  But this can't be helped and is very rare anyway. */
+    if (sysLogEnabled && (_tcsstr(message, LOG_FORK_MARKER) != message)) {
+#endif
+        /* syslog/Eventlog. */
+        log_printf_message_sysLog(source_id, level, message, nowTM, FALSE);
+    }
 
     /* If the message contains line feeds then break up the line into substrings and recurse. */
     subMessage = message;
@@ -1393,7 +1813,7 @@ int log_printf_message( int source_id, int level, int threadId, int queued, TCHA
         /* This string contains more than one line.   Loop over the strings.  It is Ok to corrupt this string because it is only used once. */
         while (nextLF) {
             nextLF[0] = TEXT('\0');
-            logFileChanged |= log_printf_message(source_id, level, threadId, queued, subMessage);
+            logFileChanged |= log_printf_message(source_id, level, threadId, queued, subMessage, FALSE);
             
             /* Locate the next one. */
             subMessage = &(nextLF[1]);
@@ -1401,13 +1821,12 @@ int log_printf_message( int source_id, int level, int threadId, int queued, TCHA
         }
         
         /* The rest of the buffer will be the final line. */
-        logFileChanged |= log_printf_message(source_id, level, threadId, queued, subMessage);
+        logFileChanged |= log_printf_message(source_id, level, threadId, queued, subMessage, FALSE);
         
         return logFileChanged;
     }
     
-#ifdef WIN32
-#else
+#ifndef WIN32
     /* See if this is a special case log entry from the forked child. */
     if (_tcsstr(message, LOG_FORK_MARKER) == message) {
         /* Found the marker.  We only want to log the message as is to the console with a special prefix.
@@ -1455,45 +1874,10 @@ int log_printf_message( int source_id, int level, int threadId, int queued, TCHA
             fflush(target);
         }
         return FALSE;
-    } else if ((_tcsstr(message, LOG_SPECIAL_MARKER) == message) && (_tcslen(message) >= _tcslen(LOG_SPECIAL_MARKER) + 10)) {
-        /* Got a special encoded log message from the child process.   Parse it and continue as if the log
-         *  message came from this process. */
-        pos = (TCHAR *)(message + _tcslen(LOG_SPECIAL_MARKER) + 1);
-
-        /* source_id */
-        _tcsncpy(intBuffer, pos, 2);
-        intBuffer[2] = TEXT('\0');
-        source_id = _ttoi(intBuffer);
-        pos += 3;
-
-        /* level */
-        _tcsncpy(intBuffer, pos, 2);
-        intBuffer[2] = TEXT('\0');
-        level = _ttoi(intBuffer);
-        pos += 3;
-
-        /* threadId */
-        _tcsncpy(intBuffer, pos, 2);
-        intBuffer[2] = TEXT('\0');
-        threadId = _ttoi(intBuffer);
-        pos += 3;
-
-        /* message */
-        message = pos;
     }
 #endif
 
-    /* Build a timestamp */
-#ifdef WIN32
-    _ftime( &timebNow );
-    now = (time_t)timebNow.time;
-    nowMillis = timebNow.millitm;
-#else
-    gettimeofday( &timevalNow, NULL );
-    now = (time_t)timevalNow.tv_sec;
-    nowMillis = timevalNow.tv_usec / 1000;
-#endif
-    nowTM = localtime( &now );
+    /* Get the current threadId. */
     if ( threadId < 0 )
     {
         /* The current thread was specified.  Resolve what thread this actually is. */
@@ -1501,175 +1885,32 @@ int log_printf_message( int source_id, int level, int threadId, int queued, TCHA
     }
 
     /* Console output by format */
-    if( level >= currentConsoleLevel ) {
-        /* Build up the printBuffer. */
-        printBuffer = buildPrintBuffer( source_id, level, threadId, queued, nowTM, nowMillis, consoleFormat, message );
-        if (printBuffer) {
-            /* Decide where to send the output. */
-            switch (level) {
-                case LEVEL_FATAL:
-                    if (consoleFatalToStdErr) {
-                        target = stderr;
-                    } else {
-                        target = stdout;
-                    }
-                    break;
-                    
-                case LEVEL_ERROR:
-                    if (consoleErrorToStdErr) {
-                        target = stderr;
-                    } else {
-                        target = stdout;
-                    }
-                    break;
-                    
-                case LEVEL_WARN:
-                    if (consoleWarnToStdErr) {
-                        target = stderr;
-                    } else {
-                        target = stdout;
-                    }
-                    break;
-                    
-                default:
-                    target = stdout;
-                    break;
-            }
-
-            /* Write the print buffer to the console. */
-#ifdef WIN32
-            /* Using the WinAPI function WriteConsole would make it impossible to pipe the console output */		    
-            /*
-            if ((target == stdout) && (GetStdHandle(STD_OUTPUT_HANDLE) != NULL)) {
-                writeToConsole(GetStdHandle(STD_OUTPUT_HANDLE), TEXT("%s\n"), printBuffer);
-            } else if ((target == stderr) && (GetStdHandle(STD_ERROR_HANDLE) != NULL)) {
-                writeToConsole(GetStdHandle(STD_ERROR_HANDLE), TEXT("%s\n"), printBuffer);
-            } else
-            */
-            if (TRUE) {
-#endif                
-                _ftprintf(target, TEXT("%s\n"), printBuffer);
-                if (consoleFlush) {
-                    fflush(target);
-                }
-#ifdef WIN32
-            }
-#endif
-        }
-    }
+    log_printf_message_console(source_id, level, threadId, queued, message, nowTM, nowMillis);
 
     /* Logfile output by format */
+    logFileChanged = log_printf_message_logFile(source_id, level, threadId, queued, message, nowTM, nowMillis);
 
-    /* Log the message to the log file */
-    if (level >= currentLogfileLevel) {
-        /* If the log file was set to a blank value then it will not be used. */
-        if ( logFilePath && ( _tcslen( logFilePath ) > 0 ) )
-        {
-            /* If this the roll mode is date then we need a nowDate for this log entry. */
-            if (logFileRollMode & ROLL_MODE_DATE) {
-                _sntprintf(nowDate, 9, TEXT("%04d%02d%02d"), nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday );
-            } else {
-                nowDate[0] = TEXT('\0');
-            }
-
-            /* Make sure that the log file does not need to be rolled. */
-            checkAndRollLogs(nowDate);
-
-            /* If the file needs to be opened then do so. */
-            if (logfileFP == NULL) {
-                /* Generate the log file name if it is not already set. */
-                if (currentLogFileName[0] == TEXT('\0')) {
-                    if (logFileRollMode & ROLL_MODE_DATE) {
-                        generateLogFileName(currentLogFileName, logFilePath, nowDate, NULL);
-                    } else {
-                        generateLogFileName(currentLogFileName, logFilePath, NULL, NULL);
-                    }
-                    logFileChanged = TRUE;
-                }
-
-                old_umask = umask( logFileUmask );
-                logfileFP = _tfopen(currentLogFileName, TEXT("a"));
-                if (logfileFP == NULL) {
-                    /* The log file could not be opened. */
-                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                        TEXT("Unable to write to the configured log file: %s (%s)\n  Falling back to the default file in the current working directory: %s"),
-                        currentLogFileName, getLastErrorText(), TEXT("wrapper.log"));
-                    
-                    /* Try the default file location. */
-                    setLogfilePath(TEXT("wrapper.log"), NULL, TRUE);
-                    _sntprintf(currentLogFileName, logFileNameSize, TEXT("wrapper.log"));
-                    logFileChanged = TRUE;
-                    logfileFP = _tfopen(currentLogFileName, TEXT("a"));
-                    if (logfileFP == NULL) {
-                        /* Still unable to write. */
-                        log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                            TEXT("Unable to write to the default log file: %s (%s)\n  Disabling log file."),
-                            currentLogFileName, getLastErrorText());
-                        setLogfileLevelInt(LEVEL_NONE);
-                        logFileChanged = FALSE;
-                    }
-                }
-                umask(old_umask);
-
-#ifdef _DEBUG
-                if (logfileFP != NULL) {
-                    _tprintf(TEXT("Opened logfile\n"));
-                }
-#endif
-            }
-
-            if (logfileFP == NULL) {
-                currentLogFileName[0] = TEXT('\0');
-                /* Failure to write to logfile already reported. */
-            } else {
-                /* We need to store the date the file was opened for. */
-                _tcsncpy(logFileLastNowDate, nowDate, 9);
-
-                /* Build up the printBuffer. */
-                printBuffer = buildPrintBuffer( source_id, level, threadId, queued, nowTM, nowMillis, logfileFormat, message );
-                if (printBuffer) {
-                    _ftprintf( logfileFP, TEXT("%s\n"), printBuffer );
-                    logFileAccessed = TRUE;
-
-                    /* Increment the activity counter. */
-                    logfileActivityCount++;
-
-                    /* Only close the file if autoClose is set.  Otherwise it will be closed later
-                     *  after an appropriate period of inactivity. */
-                    if (autoCloseLogfile) {
-#ifdef _DEBUG
-                        _tprintf(TEXT("Closing logfile immediately...\n"));
-#endif
-
-                        fclose(logfileFP);
-                        logfileFP = NULL;
-                        /* Do not clear the currentLogFileName here as we are not changing its name. */
-                    }
-
-                    /* Leave the file open.  It will be closed later after a period of inactivity. */
-                }
-            }
-        }
-    }
-
-    /* Loginfo/Eventlog if levels match (not by format timecodes/status allready exists in evenlog) */
-    switch ( level ) {
-    case LEVEL_NOTICE:
-    case LEVEL_ADVICE:
-        /* Advice and Notice level messages are special in that they never get logged to the
-         *  EventLog / SysLog. */
-        break;
-
-    default:
-        if ( level >= currentLoginfoLevel ) {
-#ifdef WIN32
-                sendEventlogMessage(source_id, level, message);
-#else
-                sendLoginfoMessage(source_id, level, message);
-#endif
-        }
-    }
     return logFileChanged;
+}
+
+/**
+ * Used for testing to pause the current thread for the specified number of seconds.
+ *  This can only be called when logging is locked.
+ *
+ * @param pauseTime Number of seconds to pause, 0 pauses indefinitely.
+ */
+void pauseThread(int pauseTime) {
+    int i;
+    
+    if (pauseTime > 0) {
+        for (i = 0; i < pauseTime; i++) {
+            logSleep(1000);
+        }
+    } else {
+        while (TRUE) {
+            logSleep(1000);
+        }
+    }
 }
 
 
@@ -1682,7 +1923,8 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
     TCHAR       *logFileCopy;
 #if defined(UNICODE) && !defined(WIN32)
     TCHAR       *msg = NULL;
-    int         i, flag;
+    int         i;
+    int         flag;
 #endif
 #ifdef WIN32
     struct _timeb timebNow;
@@ -1716,6 +1958,13 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
     if (lockLoggingMutex()) {
         return;
     }
+    
+    /* If there is a queued pause then do so. */
+    if ((logPauseTime >= 0) && (level > LEVEL_DEBUG) && (source_id < 0)) {
+        pauseThread(logPauseTime);
+        logPauseTime = -1;
+    }
+    
 #if defined(UNICODE) && !defined(WIN32)
     if (wcsstr(lpszFmt, TEXT("%s")) != NULL) {
         msg = malloc(sizeof(wchar_t) * (wcslen(lpszFmt) + 1));
@@ -1741,7 +1990,7 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
     }
 #endif
     threadId = getThreadId();
-
+    
     /* Loop until the buffer is large enough that we are able to successfully
      *  print into it. Once the buffer has grown to the largest message size,
      *  smaller messages will pass through this code without looping. */
@@ -1784,14 +2033,15 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
             /* Free the old buffer for starters. */
             free( threadMessageBuffer );
 
-            /* Decide on a new buffer size. */
-            if ( count <= (int)threadMessageBufferSize ) {
-                threadMessageBufferSize += 100;
-            } else if ( count + 1 <= (int)threadMessageBufferSize + 100 ) {
-                threadMessageBufferSize += 100;
-            } else {
-                threadMessageBufferSize = count + 1;
-            }
+            /* Decide on a new buffer size.
+             * We can't tell how long the resulting string will be without expanding because the
+             *  results are stored in the vargs.
+             * Most messages will be short, but there is a possibility that some will be very
+             *  long.  To minimize the number of times that we need to loop, while at the same
+             *  time trying to avoid using too much memory, increase the size by the maximum of
+             *  1024 or 10% of the current length.
+             * Some platforms will return the required size as count.  Use that if available. */
+            threadMessageBufferSize = __max(threadMessageBufferSize + 1024, __max(threadMessageBufferSize + threadMessageBufferSize / 10, (size_t)count + 1));
 
             threadMessageBuffer = malloc(sizeof(TCHAR) * threadMessageBufferSize);
             if (!threadMessageBuffer) {
@@ -1815,7 +2065,7 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
     }
 #endif
     logFileCopy = NULL;
-    logFileChanged = log_printf_message( source_id, level, threadId, FALSE, threadMessageBuffer );
+    logFileChanged = log_printf_message(source_id, level, threadId, FALSE, threadMessageBuffer, TRUE);
     if (logFileChanged) {
         /* We need to enqueue a notification that the log file name was changed.
          *  We can NOT directly send the notification here as that could cause a deadlock,
@@ -2744,7 +2994,7 @@ void maintainLogger() {
                 _tprintf(TEXT("LOG QUEUED[%d]: %s\n"), queueReadIndex[threadId], buffer );
 #endif
 
-                logFileChanged = log_printf_message( source_id, level, threadId, TRUE, buffer );
+                logFileChanged = log_printf_message(source_id, level, threadId, TRUE, buffer, TRUE);
                 if (logFileChanged) {
                     logFileCopy = malloc(sizeof(TCHAR) * (_tcslen(currentLogFileName) + 1));
                     if (!logFileCopy) {

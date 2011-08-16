@@ -173,6 +173,13 @@ extern void setSilentLogLevels();
  */
 extern void setSimpleLogLevels();
 
+/**
+ * Used for testing to set a pause into the next log entry made.
+ *
+ * @param pauseTime Number of seconds to pause, 0 pauses indefinitely.
+ */
+extern void setPauseTime(int pauseTime);
+
 /* * Logfile functions * */
 extern int isLogfileAccessed();
 
