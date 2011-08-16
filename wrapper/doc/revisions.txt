@@ -13,6 +13,44 @@ Java Service Wrapper Revision History.
   binaries started being signed in version 3.5.7.  If the WinVerifyTrust call
   takes longer than the configured wrapper.startup_thread.timeout then the
   Wrapper will continue to startup without further delay.
+* (Standard, Professional) Explicitly remove the certificate of the customized
+  binary during customization. There were problems resigning the binary with
+  another certificate otherwise.
+* If the Wrapper is unable to write to the configured wrapper.logfile for any
+  reason then we always fall back to a default log file and then log a message
+  about the failure.  If the default also fails then that is also logged but
+  the messages would only be logged to the console in most cases.  Modify the
+  Wrapper so we now always send both messages to the syslog or EventLog
+  regardless of what the wrapper.syslog.loglevel is set to.  This is important
+  to help track down the cause of logfile access problems.
+* Starting with version 3.5.0, it was internally possible to print out
+  multi-line log messages so that all of the lines would always be grouped
+  together in the log file.  This version modifies the logging code slightly so
+  that such multi-line log output is now logged as a single message in the UNIX
+  sylog or Windows EventLog.
+* Fix a problem where very long lines of output from the JVM would cause the
+  Wrapper to appear to hang for a while.  The first time a single line of
+  output containing several hundred thousand characters was logged, an internal
+  buffer was being incrementally increased by 100 characters per cycle.  The
+  Wrapper now increases the size based on last known size to greatly reduce the
+  number of cycles needed to choose a new buffer size.
+* Modify the PAUSE_THREAD command so it is now possible to wait indefinitely.
+  Only useful for testing the Wrapper.
+* Add a new PAUSE_LOGGER command to make it possible to pause the next log
+  entry.  Only useful for testing the Wrapper.
+* On UNIX, the stdout/stderr pipe between the JVM and Wrapper was not being
+  cleaned up correctly.  This resulted in a small leak but was otherwise
+  harmless.  The pipes are now cleaned up and initialized for each JVM
+  instance.
+* Fix a problem where the Wrapper could fail to restart the JVM when the
+  restart request originated in the JVM if the system was experiencing very
+  heavy IO resulting in long disk IO queues.   This was causing the Wrapper's
+  main loop to block on the write and miss the restart request, causing the
+  Wrapper to shutdown rather than restart.  This could affect all platforms.
+  On Windows, it could also be reproduced by making a selection in the console
+  to freeze output and then making a request from within the JVM to restart.
+* Add a new WrapperPropertyUtil helper class to make it easer to access Wrapper
+  property values from within the JVM.
 
 3.5.10
 * Setting wrapper.jvm.port to '0' (zero) will make the JVM to assign an 

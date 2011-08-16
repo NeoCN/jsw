@@ -77,12 +77,12 @@ pid_t getsid(pid_t pid);
 #define max(x,y) (((x) > (y)) ? (x) : (y))
 #define min(x,y) (((x) < (y)) ? (x) : (y))
 
-int jvmOut = -1;
 
 /* Define a global pipe descriptor so that we don't have to keep allocating
  *  a new pipe each time a JVM is launched. */
-int pipedes[2];
-int pipeInitialized = 0;
+int pipedes[2] = {-1, -1};
+#define PIPE_READ_END 0
+#define PIPE_WRITE_END 1
 
 TCHAR wrapperClasspathSeparator = TEXT(':');
 
@@ -224,7 +224,8 @@ void takeSignalAction(int sigNum, const TCHAR *sigName, int mode) {
                 (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
                 (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
                 (wrapperData->jState == WRAPPER_JSTATE_KILL) ||
-                (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK)) {
+                (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK) ||
+                (wrapperData->jState == WRAPPER_JSTATE_DOWN_FLUSH)) {
 
                 /* Signaled while we were already shutting down. */
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
@@ -1135,15 +1136,11 @@ int wrapperBuildJavaCommand() {
 void wrapperExecute() {
     pid_t proc;
 
-    /* Only allocate a pipe if we have not already done so. */
-    if (!pipeInitialized) {
-        /* Create the pipe. */
-        if (pipe(pipedes) < 0) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                       TEXT("Could not init pipe: %s"), getLastErrorText());
-            return;
-        }
-        pipeInitialized = TRUE;
+    /* Create the pipe. */
+    if (pipe(pipedes) < 0) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                   TEXT("Could not init pipe: %s"), getLastErrorText());
+        return;
     }
 
     /* Make sure the log file is closed before the Java process is created.  Failure to do
@@ -1187,18 +1184,24 @@ void wrapperExecute() {
              * TODO: Figure out a way to fix this.  Maybe using shared memory? */
 
             /* Send output to the pipe by dupicating the pipe fd and setting the copy as the stdout fd. */
-            if (dup2(pipedes[STDOUT_FILENO], STDOUT_FILENO) < 0) {
+            if (dup2(pipedes[PIPE_WRITE_END], STDOUT_FILENO) < 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                     TEXT("%sUnable to set JVM's stdout: %s"), LOG_FORK_MARKER, getLastErrorText());
                 return;
             }
 
             /* Send errors to the pipe by dupicating the pipe fd and setting the copy as the stderr fd. */
-            if (dup2(pipedes[STDOUT_FILENO], STDERR_FILENO) < 0) {
+            if (dup2(pipedes[PIPE_WRITE_END], STDERR_FILENO) < 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                     TEXT("%sUnable to set JVM's stderr: %s"), LOG_FORK_MARKER, getLastErrorText());
                 return;
             }
+            
+            /* Close both ends of the pipe as we have already duplicated the Write end for our purposes. */
+            close(pipedes[PIPE_READ_END]);
+            pipedes[PIPE_READ_END] = -1;
+            close(pipedes[PIPE_WRITE_END]);
+            pipedes[PIPE_WRITE_END] = -1;
 
             /* The pipedes array is global so do not close the pipes. */
             /* Child process: execute the JVM. */
@@ -1234,7 +1237,10 @@ void wrapperExecute() {
         } else {
             /* We are the parent side. */
             wrapperData->javaPID = proc;
-            jvmOut = pipedes[STDIN_FILENO];
+            
+            /* Close the write end as it is not used. */
+            close(pipedes[PIPE_WRITE_END]);
+            pipedes[PIPE_WRITE_END] = -1;
 
             /* Restore the auto close flag. */
             setLogfileAutoClose(wrapperData->logfileInactivityTimeout <= 0);
@@ -1243,12 +1249,12 @@ void wrapperExecute() {
 
             /* Mark our side of the pipe so that it won't block
              * and will close on exec, so new children won't see it. */
-            if (fcntl(jvmOut, F_SETFL, O_NONBLOCK) < 0) {
+            if (fcntl(pipedes[PIPE_READ_END], F_SETFL, O_NONBLOCK) < 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                     TEXT("Failed to set JVM output handle to non blocking mode: %s (%d)"),
                     getLastErrorText(), errno);
             }
-            if (fcntl(jvmOut, F_SETFD, FD_CLOEXEC) < 0) {
+            if (fcntl(pipedes[PIPE_READ_END], F_SETFD, FD_CLOEXEC) < 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                     TEXT("Failed to set JVM output handle to close on JVM exit: %s (%d)"),
                     getLastErrorText(), errno);
@@ -1401,9 +1407,10 @@ int wrapperGetProcessStatus(TICKS nowTicks, int sigChild) {
         res = WRAPPER_PROCESS_UP;
     } else if (retval < 0) {
         if (errno == ECHILD) {
-            if (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK ||
-                wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN ||
-                wrapperData->jState == WRAPPER_JSTATE_STOPPED) {
+            if ((wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK) ||
+                (wrapperData->jState == WRAPPER_JSTATE_DOWN_FLUSH) ||
+                (wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN) ||
+                (wrapperData->jState == WRAPPER_JSTATE_STOPPED)) {
                 res = WRAPPER_PROCESS_DOWN;
                 wrapperJVMProcessExited(nowTicks, 0);
                 return res;
@@ -1470,7 +1477,7 @@ void wrapperReportStatus(int useLoggerQueue, int status, int errorCode, int wait
  * Returns TRUE if there were any problems, FALSE otherwise.
  */
 int wrapperReadChildOutputBlock(char *blockBuffer, int blockSize, int *readCount) {
-    if (jvmOut == -1) {
+    if (pipedes[PIPE_READ_END] == -1) {
         /* The child is not up. */
         *readCount = 0;
         return FALSE;
@@ -1481,15 +1488,15 @@ int wrapperReadChildOutputBlock(char *blockBuffer, int blockSize, int *readCount
      *  http://www.freebsd.org/cgi/query-pr.cgi?pr=kern/64313
      *
      * When linked with the pthreads library the O_NONBLOCK flag is being reset
-     *  on the jvmOut handle.  Not sure yet of the exact event that is causing
+     *  on the pipedes[PIPE_READ_END] handle.  Not sure yet of the exact event that is causing
      *  this, but once it happens reads will start to block even though calls
-     *  to fcntl(jvmOut, F_GETFL) say that the O_NONBLOCK flag is set.
-     * Calling fcntl(jvmOut, F_SETFL, O_NONBLOCK) again will set the flag back
+     *  to fcntl(pipedes[PIPE_READ_END], F_GETFL) say that the O_NONBLOCK flag is set.
+     * Calling fcntl(pipedes[PIPE_READ_END], F_SETFL, O_NONBLOCK) again will set the flag back
      *  again and cause it to start working correctly.  This may only need to
      *  be done once, however, because F_GETFL does not return the accurate
      *  state there is no reliable way to check.  Be safe and always set the
      *  flag. */
-    if (fcntl(jvmOut, F_SETFL, O_NONBLOCK) < 0) {
+    if (fcntl(pipedes[PIPE_READ_END], F_SETFL, O_NONBLOCK) < 0) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
             "Failed to set JVM output handle to non blocking mode to read child process output: %s (%d)"),
             getLastErrorText(), errno);
@@ -1498,9 +1505,8 @@ int wrapperReadChildOutputBlock(char *blockBuffer, int blockSize, int *readCount
 #endif
 
     /* Fill read buffer. */
-    *readCount = read(jvmOut, blockBuffer, blockSize);
-
-    if (*readCount <= 0) {
+    *readCount = read(pipedes[PIPE_READ_END], blockBuffer, blockSize);
+    if (*readCount < 0) {
         /* No more bytes available, return for now.  But make sure that this was not an error. */
         if (errno == EAGAIN) {
             /* Normal, the call would have blocked as there is no data available. */
@@ -1510,6 +1516,10 @@ int wrapperReadChildOutputBlock(char *blockBuffer, int blockSize, int *readCount
                 getLastErrorText(), errno);
             return TRUE;
         }
+    } else if (*readCount == 0) {
+        /* We reached the EOF.  This means that the other end of the pipe was closed. */
+        close(pipedes[PIPE_READ_END]);
+        pipedes[PIPE_READ_END] = -1;
     }
 
     return FALSE;

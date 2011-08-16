@@ -221,6 +221,17 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.LogOutput" />
         
+        <!-- Huge Log Output Test -->
+        <delete file="${test.dir}/hugelogoutput.conf"/>
+        <filter token="app.name"          value="hugelogoutput"/>
+        <filter token="app.long.name"     value="Huge Log Output Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/hugelogoutput.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/hugelogoutput.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.HugeLogOutput" />
+        
         <!-- Loaded Log Output Test -->
         <delete file="${test.dir}/loadedlogoutput.conf"/>
         <filter token="app.name"          value="loadedlogoutput"/>
@@ -282,6 +293,24 @@ wrapper.log.lf_delay.threshold=1000
         <replace file="${test.dir}/restarter.conf"
                  token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
                  value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.Restarter" />
+        
+        <!-- DelayedIORestarter Test -->
+        <delete file="${test.dir}/delayediorestarter.conf"/>
+        <filter token="app.name"          value="delayediorestarter"/>
+        <filter token="app.long.name"     value="Delayed IO Restarter Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/delayediorestarter.conf"
+              filtering="on"/>
+        <!--<replace file="${test.dir}/delayediorestarter.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.DelayedIORestarter" />-->
+        <replace file="${test.dir}/delayediorestarter.conf">
+            <replacetoken><![CDATA[wrapper.app.parameter.1=<YourMainClass>]]></replacetoken>
+            <replacevalue><![CDATA[wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.DelayedIORestarter
+
+wrapper.commandfile=../test/delayediorestarter.command
+wrapper.commandfile.enable_tests=true]]></replacevalue>
+        </replace>
         
         <!-- WrapperSimpleApp Test -->
         <delete file="${test.dir}/stopwhilestarting.conf"/>
@@ -662,6 +691,18 @@ set ENV_VAR_4=d]]></replacevalue>
                  token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
                  value='set _WRAPPER_CONF_DEFAULT=../test/logoutput.conf' />
         
+        <!-- Huge Log Output Test -->
+        <delete file="${test.dir}/TestHugeLogOutput.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestHugeLogOutput.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestHugeLogOutput.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestHugeLogOutput.bat"
+                 token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/hugelogoutput.conf' />
+        
         <!-- Loaded Log Output Test -->
         <delete file="${test.dir}/TestLoadedLogOutput.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
@@ -709,6 +750,18 @@ set ENV_VAR_4=d]]></replacevalue>
         <replace file="${test.dir}/TestRestarter.bat"
                  token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
                  value='set _WRAPPER_CONF_DEFAULT=../test/restarter.conf' />
+        
+        <!-- DelayedIORestarter Test -->
+        <delete file="${test.dir}/TestDelayedIORestarter.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestDelayedIORestarter.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestDelayedIORestarter.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestDelayedIORestarter.bat"
+                 token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/delayediorestarter.conf' />
         
         <!-- StopWhileStarting Test -->
         <delete file="${test.dir}/TestStopWhileStarting.bat"/>
@@ -1009,6 +1062,14 @@ export ENV_VAR_4=d]]></replacevalue>
               filtering="on"/>
         <chmod file="${test.dir}/logoutput" perm="+x"/> 
         
+        <!-- Huge Log Output Test -->
+        <filter token="app.name"          value="hugelogoutput"/>
+        <filter token="app.long.name"     value="Huge Log Output Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/hugelogoutput"
+              filtering="on"/>
+        <chmod file="${test.dir}/hugelogoutput" perm="+x"/> 
+        
         <!-- Loaded Log Output Test -->
         <filter token="app.name"          value="loadedlogoutput"/>
         <filter token="app.long.name"     value="Loaded Log Output Case" />
@@ -1040,6 +1101,14 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/restarter"
               filtering="on"/>
         <chmod file="${test.dir}/restarter" perm="+x"/> 
+        
+        <!-- DelayedIORestarter Test -->
+        <filter token="app.name"          value="delayediorestarter"/>
+        <filter token="app.long.name"     value="Delayed IO Restarter Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/delayediorestarter"
+              filtering="on"/>
+        <chmod file="${test.dir}/delayediorestarter" perm="+x"/> 
         
         <!-- StopWhileStarting Test -->
         <filter token="app.name"          value="stopwhilestarting"/>

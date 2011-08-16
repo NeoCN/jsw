@@ -105,37 +105,39 @@
 #define WRAPPER_JSTATE_DOWN_CHECK 70 /* JVM is confirmed to be down, but we still need
                                      *  to do our cleanup work.  This is the state after
                                      *  a JVM process has gone away. */
-#define WRAPPER_JSTATE_DOWN_CLEAN 71 /* JVM is confirmed to be down and we have cleaned
-                                     *  up.  This is the initial state and the state
-                                     *  after the JVM process has gone away and and
-                                     *  cleanup has been done. */
-#define WRAPPER_JSTATE_LAUNCH_DELAY 72 /* Set from the DOWN state to launch a JVM.  The
+#define WRAPPER_JSTATE_DOWN_FLUSH 71 /* JVM is confirmed to be down but we still need
+                                     *  flush and process all of its output. */
+#define WRAPPER_JSTATE_DOWN_CLEAN 72 /* JVM is confirmed to be down and we have cleaned
+                                     *  up and flushed all output.  This is the initial
+                                     *  state and the state after the JVM process has
+                                     *  gone away and and cleanup has been done. */
+#define WRAPPER_JSTATE_LAUNCH_DELAY 73 /* Set from the DOWN state to launch a JVM.  The
                                      *  timeout will be the time to actually launch
                                      *  the JVM after any required delay. */
-#define WRAPPER_JSTATE_RESTART   73 /* JVM is about to be restarted. No timeout. */
-#define WRAPPER_JSTATE_LAUNCH    74 /* JVM is about to launch a JVM. No timeout. */
-#define WRAPPER_JSTATE_LAUNCHING 75 /* JVM was launched, but has not yet responded.
+#define WRAPPER_JSTATE_RESTART   74 /* JVM is about to be restarted. No timeout. */
+#define WRAPPER_JSTATE_LAUNCH    75 /* JVM is about to launch a JVM. No timeout. */
+#define WRAPPER_JSTATE_LAUNCHING 76 /* JVM was launched, but has not yet responded.
                                      *  Must enter the LAUNCHED state before <t>
                                      *  or the JVM will be killed. */
-#define WRAPPER_JSTATE_LAUNCHED  76 /* JVM was launched, and responed to a ping. */
-#define WRAPPER_JSTATE_STARTING  77 /* JVM has been asked to start.  Must enter the
+#define WRAPPER_JSTATE_LAUNCHED  77 /* JVM was launched, and responed to a ping. */
+#define WRAPPER_JSTATE_STARTING  78 /* JVM has been asked to start.  Must enter the
                                      *  STARTED state before <t> or the JVM will be
                                      *  killed. */
-#define WRAPPER_JSTATE_STARTED   78 /* JVM has responded that it is running.  Must
+#define WRAPPER_JSTATE_STARTED   79 /* JVM has responded that it is running.  Must
                                      *  respond to a ping by <t> or the JVM will
                                      *  be killed. */
-#define WRAPPER_JSTATE_STOP      79 /* JVM is about to be sent a stop command to shutdown
+#define WRAPPER_JSTATE_STOP      80 /* JVM is about to be sent a stop command to shutdown
                                      *  cleanly. */
-#define WRAPPER_JSTATE_STOPPING  80 /* JVM was sent a stop command, but has not yet
+#define WRAPPER_JSTATE_STOPPING  81 /* JVM was sent a stop command, but has not yet
                                      *  responded.  Must enter the STOPPED state
                                      *  and exit before <t> or the JVM will be killed. */
-#define WRAPPER_JSTATE_STOPPED   81 /* JVM has responed that it is stopped. */
-#define WRAPPER_JSTATE_KILLING   82 /* The Wrapper is about ready to kill the JVM
+#define WRAPPER_JSTATE_STOPPED   82 /* JVM has responed that it is stopped. */
+#define WRAPPER_JSTATE_KILLING   83 /* The Wrapper is about ready to kill the JVM
                                      *  process but it must wait a few moments before
                                      *  actually doing so.  After <t> has expired, the
                                      *  JVM will be killed and we will enter the STOPPED
                                      *  state. */
-#define WRAPPER_JSTATE_KILL      83 /* The Wrapper is about ready to kill the JVM process. */
+#define WRAPPER_JSTATE_KILL      84 /* The Wrapper is about ready to kill the JVM process. */
 
 /* Defined Action types.  Registered actions are negative.  Custom types are positive. */
 #define ACTION_LIST_END          0
@@ -297,6 +299,8 @@ struct WrapperConfig {
     int     exitCode;               /* Code which the wrapper will exit with */
     int     exitRequested;          /* TRUE if the current JVM should be shutdown. */
     int     restartRequested;       /* WRAPPER_RESTART_REQUESTED_NO, WRAPPER_RESTART_REQUESTED_AUTOMATIC, or WRAPPER_RESTART_REQUESTED_CONFIGURED if the another JVM should be launched after the current JVM is shutdown. Only set if exitRequested is set. */
+    int     stoppedPacketReceived;  /* TRUE if the STOPPED packet was received before a restart. */
+    int     restartPacketReceived;  /* TRUE if the RESTART packet was received before a restart. */
     int     jvmRestarts;            /* Number of times that a JVM has been launched since the wrapper was started. */
     int     restartDelay;           /* Delay in seconds before restarting a new JVM. */
     int     restartReloadConf;      /* TRUE if the configuration should be reloaded before a JVM restart. */

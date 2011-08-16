@@ -771,7 +771,7 @@ DWORD WINAPI startupRunner(LPVOID parameter) {
  *  thread to complete.  If it does not complete within the predetermined amount of time then
  *  it will continue to avoid slowing down the Wrapper startup.
  *
- * This startup timeout can be controlled with the wrapper.startup.thread.timeout property.
+ * This startup timeout can be controlled with the wrapper.startup_thread.timeout property.
  */
 int initializeStartup() {
     int startupThreadTimeout;
@@ -810,6 +810,10 @@ int initializeStartup() {
 #if DEBUG_STARTUP
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s completed."), TEXT("Startup"));
 #endif
+        if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
+            (wrapperData->wState == WRAPPER_WSTATE_STOPPED)) {
+            appExit(1);
+        }
     } else {
         if (wrapperData->isDebugging) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s timed out.  Continuing in background."), gettext3("Startup"));
@@ -821,7 +825,7 @@ int initializeStartup() {
 
 void disposeStartup() {
     /* Wait until the javaIO thread is actually stopped to avoid timing problems. */
-    if (startupThreadStarted) {
+    if (startupThreadStarted && !startupThreadStopped) {
         if (wrapperData->isDebugging) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Waiting for %s thread to complete..."), gettext3("Startup"));
         }
@@ -5083,11 +5087,11 @@ BOOL GetProgAndPublisherInfo(PCMSG_SIGNER_INFO pSignerInfo, PSPROG_PUBLISHERINFO
     BOOL fResult;
     
     __try {
-        // Loop through authenticated attributes and find
-        // SPC_SP_OPUS_INFO_OBJID OID.
+        /* Loop through authenticated attributes and find
+           SPC_SP_OPUS_INFO_OBJID OID. */
         for (n = 0; n < pSignerInfo->AuthAttrs.cAttr; n++) {           
             if (lstrcmpA(SPC_SP_OPUS_INFO_OBJID, pSignerInfo->AuthAttrs.rgAttr[n].pszObjId) == 0) {
-                // Get Size of SPC_SP_OPUS_INFO structure.
+                /* Get Size of SPC_SP_OPUS_INFO structure. */
                 fResult = CryptDecodeObject(ENCODING,
                             SPC_SP_OPUS_INFO_OBJID,
                             pSignerInfo->AuthAttrs.rgAttr[n].rgValue[0].pbData,
@@ -5098,14 +5102,14 @@ BOOL GetProgAndPublisherInfo(PCMSG_SIGNER_INFO pSignerInfo, PSPROG_PUBLISHERINFO
                     __leave;
                 }
 
-                // Allocate memory for SPC_SP_OPUS_INFO structure.
+                /* Allocate memory for SPC_SP_OPUS_INFO structure. */
                 OpusInfo = (PSPC_SP_OPUS_INFO)LocalAlloc(LPTR, dwData);
                 if (!OpusInfo) {
                     outOfMemory(TEXT("GPAPI"), 1);
                     __leave;
                 }
 
-                // Decode and get SPC_SP_OPUS_INFO structure.
+                /* Decode and get SPC_SP_OPUS_INFO structure. */
                 fResult = CryptDecodeObject(ENCODING,
                             SPC_SP_OPUS_INFO_OBJID,
                             pSignerInfo->AuthAttrs.rgAttr[n].rgValue[0].pbData,
@@ -5116,13 +5120,13 @@ BOOL GetProgAndPublisherInfo(PCMSG_SIGNER_INFO pSignerInfo, PSPROG_PUBLISHERINFO
                     __leave;
                 }
 
-                // Fill in Program Name if present.
+                /* Fill in Program Name if present. */
                 if (OpusInfo->pwszProgramName) {
                     Info->lpszProgramName = AllocateAndCopyWideString(OpusInfo->pwszProgramName);
                 } else {
                     Info->lpszProgramName = NULL;
                 }
-                // Fill in Publisher Information if present.
+                /* Fill in Publisher Information if present. */
                 if (OpusInfo->pPublisherInfo) {
                     switch (OpusInfo->pPublisherInfo->dwLinkChoice) {
                         case SPC_URL_LINK_CHOICE:
@@ -5141,7 +5145,7 @@ BOOL GetProgAndPublisherInfo(PCMSG_SIGNER_INFO pSignerInfo, PSPROG_PUBLISHERINFO
                     Info->lpszPublisherLink = NULL;
                 }
 
-                // Fill in More Info if present.
+                /* Fill in More Info if present. */
                 if (OpusInfo->pMoreInfo) {
                     switch (OpusInfo->pMoreInfo->dwLinkChoice) {
                         case SPC_URL_LINK_CHOICE:
@@ -5162,9 +5166,9 @@ BOOL GetProgAndPublisherInfo(PCMSG_SIGNER_INFO pSignerInfo, PSPROG_PUBLISHERINFO
 
                 fReturn = TRUE;
 
-                break; // Break from for loop.
-            } // lstrcmp SPC_SP_OPUS_INFO_OBJID                 
-        } // for 
+                break; /* Break from for loop. */
+            } /* lstrcmp SPC_SP_OPUS_INFO_OBJID */
+        } /* for */
     }
     __finally {
         if (OpusInfo != NULL) LocalFree(OpusInfo);      
@@ -5179,11 +5183,11 @@ BOOL GetDateOfTimeStamp(PCMSG_SIGNER_INFO pSignerInfo, SYSTEMTIME *st) {
     DWORD dwData;
     BOOL fReturn = FALSE;
     DWORD n;
-    // Loop through authenticated attributes and find
-    // szOID_RSA_signingTime OID.
+    /* Loop through authenticated attributes and find
+       szOID_RSA_signingTime OID. */
     for (n = 0; n < pSignerInfo->AuthAttrs.cAttr; n++) {           
         if (lstrcmpA(szOID_RSA_signingTime, pSignerInfo->AuthAttrs.rgAttr[n].pszObjId) == 0) {               
-            // Decode and get FILETIME structure.
+            /* Decode and get FILETIME structure. */
             dwData = sizeof(ft);
             fResult = CryptDecodeObject(ENCODING,
                         szOID_RSA_signingTime,
@@ -5196,16 +5200,16 @@ BOOL GetDateOfTimeStamp(PCMSG_SIGNER_INFO pSignerInfo, SYSTEMTIME *st) {
                 break;
             }
 
-            // Convert to local time.
+            /* Convert to local time. */
             FileTimeToLocalFileTime(&ft, &lft);
             FileTimeToSystemTime(&lft, st);
 
             fReturn = TRUE;
 
-            break; // Break from for loop.
+            break; /* Break from for loop. */
                         
-        } //lstrcmp szOID_RSA_signingTime
-    } // for 
+        } /* lstrcmp szOID_RSA_signingTime */
+    } /* for */
 
     return fReturn;
 }
@@ -5219,11 +5223,11 @@ BOOL GetTimeStampSignerInfo(PCMSG_SIGNER_INFO pSignerInfo, PCMSG_SIGNER_INFO *pC
     __try {
         *pCounterSignerInfo = NULL;
 
-        // Loop through unathenticated attributes for
-        // szOID_RSA_counterSign OID.
+        /* Loop through unathenticated attributes for
+           szOID_RSA_counterSign OID. */
         for (n = 0; n < pSignerInfo->UnauthAttrs.cAttr; n++) {
             if (lstrcmpA(pSignerInfo->UnauthAttrs.rgAttr[n].pszObjId, szOID_RSA_counterSign) == 0) {
-                // Get size of CMSG_SIGNER_INFO structure.
+                /* Get size of CMSG_SIGNER_INFO structure. */
                 fResult = CryptDecodeObject(ENCODING,
                            PKCS7_SIGNER_INFO,
                            pSignerInfo->UnauthAttrs.rgAttr[n].rgValue[0].pbData,
@@ -5236,15 +5240,15 @@ BOOL GetTimeStampSignerInfo(PCMSG_SIGNER_INFO pSignerInfo, PCMSG_SIGNER_INFO *pC
                     __leave;
                 }
 
-                // Allocate memory for CMSG_SIGNER_INFO.
+                /* Allocate memory for CMSG_SIGNER_INFO. */
                 *pCounterSignerInfo = (PCMSG_SIGNER_INFO)LocalAlloc(LPTR, dwSize);
                 if (!*pCounterSignerInfo) {
                     outOfMemory(TEXT("GTSSI"), 1);
                     __leave;
                 }
 
-                // Decode and get CMSG_SIGNER_INFO structure
-                // for timestamp certificate.
+                /* Decode and get CMSG_SIGNER_INFO structure
+                   for timestamp certificate. */
                 fResult = CryptDecodeObject(ENCODING,
                            PKCS7_SIGNER_INFO,
                            pSignerInfo->UnauthAttrs.rgAttr[n].rgValue[0].pbData,
@@ -5255,28 +5259,34 @@ BOOL GetTimeStampSignerInfo(PCMSG_SIGNER_INFO pSignerInfo, PCMSG_SIGNER_INFO *pC
                     __leave;
                 }
                 fReturn = TRUE;                
-                break; // Break from for loop.
+                break; /* Break from for loop. */
             }           
         }
     }
     __finally {
-        // Clean up.
+        /* Clean up.*/
         if (pCertContext != NULL) CertFreeCertificateContext(pCertContext);
     }
-
     return fReturn;
 }
 
-BOOL PrintCertificateInfo(PCCERT_CONTEXT pCertContext, int level) {
+
+
+LPTSTR PrintCertificateInfo(PCCERT_CONTEXT pCertContext, int level) {
     BOOL fReturn = FALSE;
-    LPTSTR szName = NULL;
+    LPTSTR szName1 = NULL;
+    LPTSTR szName2 = NULL;
     LPTSTR serialNr = NULL;
     DWORD dwData, serialNrLength = 0, n, i;
+    LPTSTR buffer = NULL;
+    size_t size = 0;
 
     __try {
         /* Print Serial Number. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, level, TEXT("    Serial Number: "));
+        //log_printf(WRAPPER_SOURCE_WRAPPER, level, TEXT("    Serial Number: "));
+
         dwData = pCertContext->pCertInfo->SerialNumber.cbData;
+
         for (i = 0; i < 2; i++) {
             for (n = 0; n < dwData; n++) {
                 if (serialNr) {
@@ -5293,9 +5303,9 @@ BOOL PrintCertificateInfo(PCCERT_CONTEXT pCertContext, int level) {
                 }
             }
         }
-        log_printf(WRAPPER_SOURCE_WRAPPER, level, TEXT("      %s"), serialNr);
+        //log_printf(WRAPPER_SOURCE_WRAPPER, level, TEXT("      %s"), serialNr);
         
-        // Get Issuer name size.
+        /* Get Issuer name size. */
         if (!(dwData = CertGetNameString(pCertContext, 
                                          CERT_NAME_SIMPLE_DISPLAY_TYPE,
                                          CERT_NAME_ISSUER_FLAG,
@@ -5304,62 +5314,67 @@ BOOL PrintCertificateInfo(PCCERT_CONTEXT pCertContext, int level) {
             __leave;
         }
 
-        // Allocate memory for Issuer name.
-        szName = (LPTSTR)LocalAlloc(LPTR, dwData * sizeof(TCHAR));
-        if (!szName) {
+        /* Allocate memory for Issuer name. */
+        szName1 = (LPTSTR)LocalAlloc(LPTR, dwData * sizeof(TCHAR));
+        if (!szName1) {
             outOfMemory(TEXT("PCI"), 2);
             __leave;
         }
 
-        // Get Issuer name.
+        /* Get Issuer name. */
         if (!(CertGetNameString(pCertContext, 
                                 CERT_NAME_SIMPLE_DISPLAY_TYPE,
                                 CERT_NAME_ISSUER_FLAG,
-                                NULL, szName, dwData))) {
+                                NULL, szName1, dwData))) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("CertGetNameString failed."));
             __leave;
         }
 
-        // print Issuer name.
-        log_printf(WRAPPER_SOURCE_WRAPPER, level, TEXT("    Issuer Name: %s"), szName);
-        LocalFree(szName);
-        szName = NULL;
+        /* print Issuer name. */
+        // log_printf(WRAPPER_SOURCE_WRAPPER, level, TEXT("    Issuer Name: %s"), szName1);
 
-        // Get Subject name size.
+        /* Get Subject name size. */
         if (!(dwData = CertGetNameString(pCertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, NULL, 0))) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("CertGetNameString failed."));
             __leave;
         }
 
-        // Allocate memory for subject name.
-        szName = (LPTSTR)LocalAlloc(LPTR, dwData * sizeof(TCHAR));
-        if (!szName) {
+        /* Allocate memory for subject name. */
+        szName2 = (LPTSTR)LocalAlloc(LPTR, dwData * sizeof(TCHAR));
+        if (!szName2) {
             outOfMemory(TEXT("GTSSI"), 3);
             __leave;
         }
 
-        // Get subject name.
-        if (!(CertGetNameString(pCertContext,  CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, szName, dwData))) {
+        /* Get subject name. */
+        if (!(CertGetNameString(pCertContext,  CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, szName2, dwData))) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("CertGetNameString failed."));
             __leave;
         }
-
-        // Print Subject Name.
-        log_printf(WRAPPER_SOURCE_WRAPPER, level, TEXT("    Subject Name: %s"), szName);
-
-        fReturn = TRUE;
+        size = _tcslen(TEXT("    Serial Number: ")) + dwData * 3 + 6 + _tcslen(gettext3("    Issuer Name: ")) + _tcslen(gettext3("    Subject Name: ")) + _tcslen(szName1) + _tcslen(szName2) + 5;
+        buffer = calloc(size, sizeof(TCHAR));
+        if (!buffer) {
+            outOfMemory(TEXT("GTSSI"), 4);
+            __leave;
+        }
+        _sntprintf(buffer + _tcslen(buffer), size - _tcslen(buffer), TEXT("    Serial Number: "));
+        _sntprintf(buffer + _tcslen(buffer), size - _tcslen(buffer), TEXT("\n      %s\n"), serialNr);
+        _sntprintf(buffer + _tcslen(buffer), size - _tcslen(buffer), TEXT("    Issuer Name: %s"), szName1);
+        _tcsncat(buffer, TEXT("\n"), size - _tcslen(buffer));
+        _sntprintf(buffer + _tcslen(buffer), size - _tcslen(buffer), TEXT("    Subject Name: %s"), szName2);
+       
     }
     __finally {
-        if (szName != NULL) LocalFree(szName);
+        if (szName1 != NULL) LocalFree(szName1);
+        if (szName2 != NULL) LocalFree(szName2);
         if (serialNr != NULL) free(serialNr);
     }
 
-    return fReturn;
+    return buffer;
 }
 
 
-
-int printWholeCertificateInfo(LPCWSTR wrapperExeName, int level) {
+LPTSTR printWholeCertificateInfo(LPCWSTR wrapperExeName, int level) {
     HCERTSTORE hStore = NULL;
     HCRYPTMSG hMsg = NULL; 
     PCCERT_CONTEXT pCertContext = NULL;
@@ -5371,10 +5386,20 @@ int printWholeCertificateInfo(LPCWSTR wrapperExeName, int level) {
     CERT_INFO CertInfo;     
     SPROG_PUBLISHERINFO ProgPubInfo;
     SYSTEMTIME st;
+    LPTSTR string1 = NULL;
+    LPTSTR string2 = NULL;
+    LPTSTR buffer = NULL;
+    size_t size = 0;
+    DWORD programSet = FALSE;
+    DWORD publisherSet = FALSE;
+    DWORD moreSet = FALSE;
+    DWORD dateSet = FALSE;
+    DWORD getTimeSignerSet = FALSE;
+    DWORD getProgAndPublisherInfoSet = FALSE;
 
     ZeroMemory(&ProgPubInfo, sizeof(ProgPubInfo));
     __try {
-        // Get message handle and store handle from the signed file.
+        /* Get message handle and store handle from the signed file. */
         fResult = CryptQueryObject(CERT_QUERY_OBJECT_FILE,
                                    wrapperExeName,
                                    CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED_EMBED,
@@ -5391,7 +5416,7 @@ int printWholeCertificateInfo(LPCWSTR wrapperExeName, int level) {
             __leave;
         }
 
-        // Get signer information size.
+        /* Get signer information size. */
         fResult = CryptMsgGetParam(hMsg, 
                                    CMSG_SIGNER_INFO_PARAM, 
                                    0, 
@@ -5402,14 +5427,14 @@ int printWholeCertificateInfo(LPCWSTR wrapperExeName, int level) {
             __leave;
         }
 
-        // Allocate memory for signer information.
+        /* Allocate memory for signer information. */
         pSignerInfo = (PCMSG_SIGNER_INFO)LocalAlloc(LPTR, dwSignerInfo);
         if (!pSignerInfo) {
             outOfMemory(TEXT("GWCI"), 1);
             __leave;
         }
 
-        // Get Signer Information.
+        /* Get Signer Information. */
         fResult = CryptMsgGetParam(hMsg, 
                                    CMSG_SIGNER_INFO_PARAM, 
                                    0, 
@@ -5420,28 +5445,35 @@ int printWholeCertificateInfo(LPCWSTR wrapperExeName, int level) {
             __leave;
         }
         
-        // Get program name and publisher information from 
-        // signer info structure.
+        /* Get program name and publisher information from 
+           signer info structure. */
         if (GetProgAndPublisherInfo(pSignerInfo, &ProgPubInfo))  {
+            getProgAndPublisherInfoSet = TRUE;
             if (ProgPubInfo.lpszProgramName != NULL) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, level, TEXT("    Program Name : %s"),
-                    ProgPubInfo.lpszProgramName);
+                size += _tcslen(TEXT("    Program Name : ")) + _tcslen(ProgPubInfo.lpszProgramName) + 1;
+                programSet = TRUE;
+                //log_printf(WRAPPER_SOURCE_WRAPPER, level, TEXT("    Program Name : %s"),
+                //    ProgPubInfo.lpszProgramName);
             }
 
             if (ProgPubInfo.lpszPublisherLink != NULL) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, level, TEXT("    Publisher Link : %s"),
-                    ProgPubInfo.lpszPublisherLink);
+                size += _tcslen(TEXT("    Publisher Link : ")) + _tcslen(ProgPubInfo.lpszPublisherLink) + 1;
+                publisherSet = TRUE;
+               // log_printf(WRAPPER_SOURCE_WRAPPER, level, TEXT("    Publisher Link : %s"),
+               //     ProgPubInfo.lpszPublisherLink);
             }
 
             if (ProgPubInfo.lpszMoreInfoLink != NULL) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, level, TEXT("    MoreInfo Link : %s"),
-                    ProgPubInfo.lpszMoreInfoLink);
+                moreSet = TRUE;
+                size += _tcslen(TEXT("    MoreInfo Link : ")) + _tcslen(ProgPubInfo.lpszMoreInfoLink) + 1;
+               // log_printf(WRAPPER_SOURCE_WRAPPER, level, TEXT("    MoreInfo Link : %s"),
+               //     ProgPubInfo.lpszMoreInfoLink);
             }
         }
 
 
-        // Search for the signer certificate in the temporary 
-        // certificate store.
+        /* Search for the signer certificate in the temporary 
+           certificate store. */
         CertInfo.Issuer = pSignerInfo->Issuer;
         CertInfo.SerialNumber = pSignerInfo->SerialNumber;
 
@@ -5452,15 +5484,17 @@ int printWholeCertificateInfo(LPCWSTR wrapperExeName, int level) {
             __leave;
         }
 
-        // Print Signer certificate information.
-        log_printf(WRAPPER_SOURCE_WRAPPER, level, TEXT("  Signer Certificate:"));        
-        PrintCertificateInfo(pCertContext, level);
-
+        /* Print Signer certificate information. */
+   
+        //log_printf(WRAPPER_SOURCE_WRAPPER, level, TEXT("  Signer Certificate:"));
+        string1 = PrintCertificateInfo(pCertContext, level);
+        size += _tcslen(TEXT("  Signer Certificate:")) + _tcslen(string1) + 2;
         
-        // Get the timestamp certificate signerinfo structure.
+        /* Get the timestamp certificate signerinfo structure. */
         if (GetTimeStampSignerInfo(pSignerInfo, &pCounterSignerInfo)) {
-            // Search for Timestamp certificate in the temporary
-            // certificate store.
+            getTimeSignerSet = TRUE;
+            /* Search for Timestamp certificate in the temporary
+                certificate store. */
             CertInfo.Issuer = pCounterSignerInfo->Issuer;
             CertInfo.SerialNumber = pCounterSignerInfo->SerialNumber;
 
@@ -5476,35 +5510,90 @@ int printWholeCertificateInfo(LPCWSTR wrapperExeName, int level) {
                 __leave;
             }
 
-            // Print timestamp certificate information.
-            log_printf(WRAPPER_SOURCE_WRAPPER, level, TEXT("  TimeStamp Certificate:"));
-            PrintCertificateInfo(pCertContext, level);
+            /* Print timestamp certificate information. */
 
 
-            // Find Date of timestamp.
+            //log_printf(WRAPPER_SOURCE_WRAPPER, level, TEXT("  TimeStamp Certificate:"));
+            string2 = PrintCertificateInfo(pCertContext, level);
+            size += _tcslen(TEXT("  TimeStamp Certificate:")) + _tcslen(string2) + 2;
+
+            /* Find Date of timestamp. */
             if (GetDateOfTimeStamp(pCounterSignerInfo, &st)) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, level, TEXT("    Date of TimeStamp : %04d/%02d/%02d %02d:%02d"),
-                                            st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute);
+                size += _tcslen( TEXT("    Date of TimeStamp : %04d/%02d/%02d %02d:%02d")) - 8 + 1;
+                dateSet = FALSE;
+                //log_printf(WRAPPER_SOURCE_WRAPPER, level, TEXT("    Date of TimeStamp : %04d/%02d/%02d %02d:%02d"),
+                //    st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute);
+            }
+            
+        }
+        buffer = calloc(size, sizeof(TCHAR));
+        if (!buffer) {
+            outOfMemory(TEXT("GWCI"), 2);
+            __leave;
+        }
+        if (getProgAndPublisherInfoSet) {
+            if (programSet) {
+                _sntprintf(buffer + _tcslen(buffer), size - _tcslen(buffer), TEXT("    Program Name : %s"),
+                    ProgPubInfo.lpszProgramName);
+                _tcsncat(buffer, TEXT("\n"), size - _tcslen(buffer));
+            }
+            if (publisherSet) {
+                _sntprintf(buffer + _tcslen(buffer), size - _tcslen(buffer), TEXT("    Publisher Link : %s"),
+                    ProgPubInfo.lpszPublisherLink);
+                _tcsncat(buffer, TEXT("\n"), size - _tcslen(buffer));
             }
 
+            if (publisherSet) {
+                _sntprintf(buffer + _tcslen(buffer), size - _tcslen(buffer), TEXT("    MoreInfo Link : %s"),
+                    ProgPubInfo.lpszMoreInfoLink);
+                _tcsncat(buffer, TEXT("\n"), size - _tcslen(buffer));
+            }
+        }
+        _sntprintf(buffer + _tcslen(buffer), size - _tcslen(buffer), TEXT("  Signer Certificate:"));
+        _sntprintf(buffer + _tcslen(buffer), size - _tcslen(buffer), TEXT("\n%s\n"), string1);
+        if (getTimeSignerSet) {
+            _sntprintf(buffer + _tcslen(buffer), size - _tcslen(buffer), TEXT("  TimeStamp Certificate:"));
+            _sntprintf(buffer + _tcslen(buffer), size - _tcslen(buffer), TEXT("\n%s\n"), string2);
+        }
+        if (dateSet) {
+            _sntprintf(buffer + _tcslen(buffer), size - _tcslen(buffer), TEXT("    Date of TimeStamp : %04d/%02d/%02d %02d:%02d"),
+                                            st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute);
+        }
+
+    } __finally {               
+        /* Clean up. */
+        if (ProgPubInfo.lpszProgramName != NULL) {
+            LocalFree(ProgPubInfo.lpszProgramName);
+        }
+        if (ProgPubInfo.lpszPublisherLink != NULL) {
+            LocalFree(ProgPubInfo.lpszPublisherLink);
+        }
+        if (ProgPubInfo.lpszMoreInfoLink != NULL) {
+            LocalFree(ProgPubInfo.lpszMoreInfoLink);
+        }
+        if (pSignerInfo != NULL) {
+            LocalFree(pSignerInfo);
+        }
+        if (pCounterSignerInfo != NULL) {
+            LocalFree(pCounterSignerInfo);
+        }
+        if (pCertContext != NULL) {
+            CertFreeCertificateContext(pCertContext);
+        }
+        if (hStore != NULL) {
+            CertCloseStore(hStore, 0);
+        }
+        if (hMsg != NULL) {
+            CryptMsgClose(hMsg);
+        }
+        if (string1 != NULL) {
+            free(string1);
+        }
+        if (string2 != NULL) {
+            free(string2);
         }
     }
-    __finally {               
-        // Clean up.
-        if (ProgPubInfo.lpszProgramName != NULL)
-            LocalFree(ProgPubInfo.lpszProgramName);
-        if (ProgPubInfo.lpszPublisherLink != NULL)
-            LocalFree(ProgPubInfo.lpszPublisherLink);
-        if (ProgPubInfo.lpszMoreInfoLink != NULL)
-            LocalFree(ProgPubInfo.lpszMoreInfoLink);
-
-        if (pSignerInfo != NULL) LocalFree(pSignerInfo);
-        if (pCounterSignerInfo != NULL) LocalFree(pCounterSignerInfo);
-        if (pCertContext != NULL) CertFreeCertificateContext(pCertContext);
-        if (hStore != NULL) CertCloseStore(hStore, 0);
-        if (hMsg != NULL) CryptMsgClose(hMsg);
-    }
-    return 0;
+    return buffer;
 }
 
 BOOL verifyEmbeddedSignature() {
@@ -5513,7 +5602,8 @@ BOOL verifyEmbeddedSignature() {
     TCHAR pwszSourceFile[_MAX_PATH];
     GUID WVTPolicyGUID = WINTRUST_ACTION_GENERIC_VERIFY_V2;
     WINTRUST_DATA WinTrustData;
-    WINTRUST_FILE_INFO FileData;    
+    WINTRUST_FILE_INFO FileData;
+    LPTSTR buffer = NULL;
     
     if (!GetModuleFileName(NULL, pwszSourceFile, _MAX_PATH)) {
         return FALSE;
@@ -5541,40 +5631,54 @@ BOOL verifyEmbeddedSignature() {
     
     switch (lStatus) {
         case ERROR_SUCCESS:
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("The file \"%s\" is signed and the signature was verified."), pwszSourceFile);
-            printWholeCertificateInfo(pwszSourceFile, LEVEL_DEBUG);
+            buffer = printWholeCertificateInfo(pwszSourceFile, LEVEL_DEBUG);
+            if (buffer) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("The file \"%s\" is signed and the signature was verified.\n%s"), pwszSourceFile, buffer);
+                free(buffer);
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("The file \"%s\" is signed and the signature was verified."), pwszSourceFile);
+            }
             break;
         
         case TRUST_E_NOSIGNATURE:
             /* The file was not signed or had a signature 
              that was not valid. */
 
-            // Get the reason for no signature.
+            /* Get the reason for no signature. */
             dwLastError = GetLastError();
             if ((TRUST_E_SUBJECT_FORM_UNKNOWN == dwLastError) || (TRUST_E_NOSIGNATURE == dwLastError) || (TRUST_E_PROVIDER_UNKNOWN == dwLastError)) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("The file \"%s\" is not signed."), pwszSourceFile);
             } else {
-                // The signature was not valid or there was an error 
-                // opening the file.
+                /* The signature was not valid or there was an error 
+                   opening the file. */
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("An unknown error occurred trying to verify the signature of the \"%s\" file: %s"),
                     pwszSourceFile, getLastErrorText());
             }
             break;
 
         case TRUST_E_EXPLICIT_DISTRUST:
-            // The hash that represents the subject or the publisher 
-            // is not allowed by the admin or user.
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("The signature is present, but specifically disallowed."));
-            printWholeCertificateInfo(pwszSourceFile, LEVEL_WARN);
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The Wrapper will shutdown!"));
+            /* The hash that represents the subject or the publisher 
+               is not allowed by the admin or user. */
+            buffer = printWholeCertificateInfo(pwszSourceFile, LEVEL_WARN);   
+            if (buffer) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("The signature is present, but specifically disallowed.\n%s\nThe Wrapper will shutdown!"), buffer);
+                free(buffer);
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("The signature is present, but specifically disallowed.\nThe Wrapper will shutdown!"));
+            }
             appExit(0);
 
             break;
 
         case TRUST_E_SUBJECT_NOT_TRUSTED:
-            // The user clicked "No" when asked to install and run.
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("The signature is present, but not trusted."));
-            printWholeCertificateInfo(pwszSourceFile, LEVEL_WARN);
+            /* The user clicked "No" when asked to install and run. */
+            buffer = printWholeCertificateInfo(pwszSourceFile, LEVEL_WARN);   
+            if (buffer) {            
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("The signature is present, but not trusted.\n%s"), buffer);
+                free(buffer);
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("The signature is present, but not trusted."));
+            }
             break;
 
         case CRYPT_E_SECURITY_SETTINGS:
@@ -5584,17 +5688,35 @@ BOOL verifyEmbeddedSignature() {
             admin policy has disabled user trust. No signature, 
             publisher or time stamp errors.
             */
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("CRYPT_E_SECURITY_SETTINGS - The hash\nrepresenting the subject or the publisher wasn't\nexplicitly trusted by the admin and admin policy\nhas disabled user trust. No signature, publisher or timestamp errors."));
-            printWholeCertificateInfo(pwszSourceFile, LEVEL_DEBUG);
+            buffer = printWholeCertificateInfo(pwszSourceFile, LEVEL_WARN);   
+            if (buffer) {   
+               log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("CRYPT_E_SECURITY_SETTINGS - The hash\nrepresenting the subject or the publisher wasn't\nexplicitly trusted by the admin and admin policy\nhas disabled user trust. No signature, publisher or timestamp errors.\n%s"), buffer);
+               free(buffer);
+            } else {
+               log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("CRYPT_E_SECURITY_SETTINGS - The hash\nrepresenting the subject or the publisher wasn't\nexplicitly trusted by the admin and admin policy\nhas disabled user trust. No signature, publisher or timestamp errors."));
+            }
             break;
 
         default:
             dwLastError = GetLastError();
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s"), pwszSourceFile, lStatus, getLastErrorText());
-            printWholeCertificateInfo(pwszSourceFile, LEVEL_FATAL);
+            buffer = printWholeCertificateInfo(pwszSourceFile, LEVEL_WARN);   
+            if (buffer) {
+                if (dwLastError == TRUST_E_BAD_DIGEST  || dwLastError == TRUST_E_CERT_SIGNATURE) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s\n%s\nThe Wrapper will shutdown!"), pwszSourceFile, lStatus, getLastErrorText(), buffer);
+                } else {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s\n%s"), pwszSourceFile, lStatus, getLastErrorText(), buffer);
+                }
+            } else {
+                if (dwLastError == TRUST_E_BAD_DIGEST  || dwLastError == TRUST_E_CERT_SIGNATURE) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s\nThe Wrapper will shutdown!"), pwszSourceFile, lStatus, getLastErrorText());
+                } else {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s"), pwszSourceFile, lStatus, getLastErrorText());
+                }
+            }
+
             if (dwLastError == TRUST_E_BAD_DIGEST  || dwLastError == TRUST_E_CERT_SIGNATURE) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The Wrapper will shutdown!"));
-                appExit(0);
+                wrapperStopProcess(1, TRUE);
+                wrapperData->wState = WRAPPER_WSTATE_STOPPING;
             }
             break;
     }
@@ -6346,7 +6468,7 @@ BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParamet
                             PIPE_READMODE_BYTE |   // message-read mode
                             PIPE_WAIT,             // blocking mode
                             1,                     // max. instances
-                            1024 * sizeof(TCHAR),    // output buffer size
+                            1024 * sizeof(TCHAR),  // output buffer size
                             1024*sizeof(TCHAR),    // input buffer size
                             0,                     // client time-out
                             NULL);                 // default security attribute
