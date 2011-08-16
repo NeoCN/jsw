@@ -1677,45 +1677,6 @@ void log_printf_message_console(int source_id, int level, int threadId, int queu
         log_printf_message_consoleInner(source_id, level, threadId, queued, message, nowTM, nowMillis);
     }
 }
-/**
- * Prints the contents of a buffer to the dialog target.  The log level is
- *  tested prior to this function being called.
- *
- * Must be called while locked.
- */
-void log_printf_message_dialogInner(int source_id, int level, int threadId, int queued, TCHAR *message, struct tm *nowTM, int nowMillis) {
-    TCHAR *printBuffer;
-    int i;
-    
-    /* Build up the printBuffer. */
-    printBuffer = buildPrintBuffer(source_id, level, threadId, queued, nowTM, nowMillis, dialogLogFormat, message);
-    if (printBuffer) {
-        /* Append to the dialog log. */
-        if (dialogLogEntries >= dialogLogSize) {
-            /* Throw the oldest entry away and shift them all down by one. */
-            free(dialogLogs[0]);
-            for (i = 0; i < dialogLogSize - 1; i++) {
-                dialogLogs[i] = dialogLogs[i + 1];
-            }
-            dialogLogs[dialogLogEntries - 1] = NULL;
-            dialogLogEntries--;
-        }
-
-        dialogLogs[dialogLogEntries] = malloc(sizeof(TCHAR) * (_tcslen(printBuffer) + 1));
-        if (!dialogLogs[dialogLogEntries]) {
-            outOfMemoryQueued(TEXT("LPMD"), 1);
-            threadPrintBufferSize = 0;
-            return;
-        }
-        _tcsncpy(dialogLogs[dialogLogEntries], printBuffer, _tcslen(printBuffer) + 1);
-        dialogLogEntries++;
-    }
-}
-void log_printf_message_dialog(int source_id, int level, int threadId, int queued, TCHAR *message, struct tm *nowTM, int nowMillis) {
-    if (level >= currentDialogLevel) {
-        log_printf_message_dialogInner(source_id, level, threadId, queued, message, nowTM, nowMillis);
-    }
-}
 
 /**
  * Prints the contents of a buffer to all configured targets.
