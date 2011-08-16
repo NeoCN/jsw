@@ -51,6 +51,11 @@ Java Service Wrapper Revision History.
   to freeze output and then making a request from within the JVM to restart.
 * Add a new WrapperPropertyUtil helper class to make it easer to access Wrapper
   property values from within the JVM.
+* Fix a bug on some platforms where java log output could get corrupted due to
+  misuse of a strncpy system function.  This function warns that some
+  implementations do not support overlapping memory copies.  The problem could
+  only be reproduced on a single Linux test machine in lines following an empty
+  line of output.  This problem has existed since 3.4.0.
 
 3.5.10
 * Setting wrapper.jvm.port to '0' (zero) will make the JVM to assign an 

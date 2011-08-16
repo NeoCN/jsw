@@ -3077,6 +3077,17 @@ void logChildOutput(const char* log) {
 #endif
 }
 
+
+/**
+ * This function is for moving a buffer inside itself.
+ */
+void safeMemCpy(char *buffer, size_t target, size_t src, size_t nbyte) {
+    size_t i;
+    for (i = 0; i < nbyte; i++) {
+        buffer[target + i] = buffer[src + i];
+    }
+}
+
 #define CHAR_LF 0x0a
 
 /**
@@ -3218,8 +3229,8 @@ int wrapperReadChildOutput() {
 
                 /* Remove the line we just logged from the buffer by moving the rest up. */
                 /* NOTE - This line intentionally does the copy within the same memory space.  It is safe the way it is working however. */
-                strncpy(wrapperChildWorkBuffer, cLF + sizeof(char), wrapperChildWorkBufferLen - (cLF - wrapperChildWorkBuffer) + sizeof(char));
-                wrapperChildWorkBufferLen -= (cLF - wrapperChildWorkBuffer) + sizeof(char);
+                wrapperChildWorkBufferLen -= (cLF - wrapperChildWorkBuffer) + 1;
+                safeMemCpy(wrapperChildWorkBuffer, 0, cLF - wrapperChildWorkBuffer + 1, wrapperChildWorkBufferLen + 1);
             } else {
                 /* If we read this pass or if the last character is a CR on Windows then we always want to defer. */
                 if (readThisPass
