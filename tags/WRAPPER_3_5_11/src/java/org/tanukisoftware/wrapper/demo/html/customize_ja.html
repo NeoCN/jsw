@@ -1,0 +1,208 @@
+<html>
+    <a name="wrapper"></a>
+    <table cellpadding="2" cellspacing="0" width="100%" border="0">
+        <tr>
+            <td bgcolor="#9999bb" class="sectionheader2" width="*">
+                <H2>自分のWrapperをカスタマイズする</H2>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <p>
+                    Wrapperバージョン3.3.7のリリースで、 Wrapperは、リソースのいくつかを変更したり、 Windows上で外観をカスタマイズしたり、などの能力の備えた機能の提供を開始しました。
+                </p>
+                <p>
+                    Wrapperバイナリ版「wrapperw.exe」をカスタマイズするとき、 "--customize"コマンドで指定された新しいリソースで新しいバージョンのバイナリが作成されます。 その結果となるバイナリはロックされ、もはやカスタマイズはできなくなります。
+                </p>
+                <p>
+                    新しいカスタマー・バイナリを作成するとき、次の引数を結合できます。 引数 "--target {target.exe}" は、常に必要です。
+                </p>
+                <p>
+                     全てのファイル名のパスが、呼び出し元への相対的な配置場所である必要はなく、
+                Wrapperバイナリの配置場所への相対であることに注意してください。
+                例えば、次のコマンドでは、「<tt>wrapper<b>w</b>.exe</tt>」バイナリと
+                同じディレクトリーにターゲット・ファイルを作成し、同様に、そのディレクトリーに新しいアイコンや
+                <a href="prop-splashscreen-mode.html">スプラッシュ・スクリーン</a>を探すことになります：
+ 
+                </p>
+                <table cellspacing="0" cellpadding="0" width="100%" border="0" class="listing">
+                    <tr>
+                        <td bgcolor="#eeeeee" class="listingcell">
+                           <font color="#444444">
+                               <pre class="listingpre">bin\wrapperw.exe --customize --target myapp.exe --icon myicon.ico --splash mysplash.bmp</pre>
+                           </font>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+    <a name="target"></a>
+    <table cellpadding="2" cellspacing="0" width="100%" border="0">
+        <tr>
+            <td bgcolor="#9999bb" class="sectionheader2" width="*">
+                <H2>実行ターゲット：</H2>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <p>
+                    Wrapperバイナリがカスタマイズされるとき、 常に、カスタマイズ・バージョン用に、新しい ファイル名を指定する必要があります。 既に同じファイル名が存在する場合には、Wrapperは常にそのファイルを上書きします。 
+                </p>
+                <table cellspacing="0" cellpadding="0" width="100%" border="0" class="listing">
+                    <tr>
+                        <td bgcolor="#eeeeee" class="listingcell">
+                            <font color="#444444">
+                                <pre class="listingpre">wrapperw.exe --target myapp.exe</pre>
+                            </font>
+                        </td>
+                    </tr>
+                </table>
+                <p>
+                    全てまとめてパラメーターを置くと、このような <a href="props-command-line.html">コマンドライン</a>となります： 
+                </p>
+                <table cellspacing="0" cellpadding="0" width="100%" border="0" class="listing">
+                    <tr>
+                        <td bgcolor="#eeeeee" class="listingcell">
+                            <font color="#444444">
+                                <pre class="listingpre">bin\wrapperw.exe --customize --icon MyIcon.ico --splash MySplash.bmp --target MyApp.exe</pre>
+                            </font>
+                        </td>
+                    </tr>
+                </table>
+                <p>
+                    このコマンドは、
+               「<tt>wrapper<b>w</b>.exe</tt>」が配置していある同じディレクトリーに、
+               カスタマイズされたアイコンや<a href="prop-splashscreen-mode.html">スプラッシュ・スクリーン</a>と共に、
+               新しい実行ファイル「<tt>MyApp.exe</tt>」を作成します。
+
+                </p>
+            </td>
+        </tr>
+    </table>
+    <a name="icon"></a>
+    <table cellpadding="2" cellspacing="0" width="100%" border="0">
+        <tr>
+            <td bgcolor="#9999bb" class="sectionheader2" width="*">
+                <H2>アイコンをカスタマイズする</H2>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div class="note">
+                    <table cellspacing="0" cellpadding="2" width="100%" border="0">
+                        <tr>
+                            <td nowrap="nowrap" width="50" valign="top">
+                                <p class="notelabel">
+                                    <font color="#0000a0"><b>NOTE</b></font>
+                                </p>
+                            </td>
+                            <td bgcolor="#bbbbdd" class="notebody" width="*">
+                                <font color="#222260">
+                                    <p>
+                                        この機能を利用するためには、
+                Java Service Wrapperの<a href="accountLicenses.jsp">スタンダード版、あるいは、プロフェッショナル版</a>をご利用ください。
+
+                                    </p>
+                               </font>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <p>
+                    Wrapperは、デフォルト・アイコンを同梱して配布されていますが、
+                しかしながら、Wrapperを同梱している商品のアイコンで置き換えたいという開発者の希望のために、
+                Wrapperは、素晴らしいアプリケーション・ランチャーでもあるという役目も提供しています。
+
+                </p>
+                <p>
+                    アイコン・ファイルは、標準のマルチ・レイヤー・アイコン・ファイルであり、
+                サポートされる必要がある全ての解像度やアイコン・サイズを含んでいます。
+                </p>
+                <table cellspacing="0" cellpadding="0" width="100%" border="0" class="listing">
+                    <tr>
+                        <td class="listingcaption"><i>設定例：</i>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td bgcolor="#eeeeee" class="listingcell">
+                            <font color="#444444">
+                                <pre class="listingpre">wrapperw.exe --target myapp.exe --icon myicon.ico</pre>
+                            </font>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+    <a name="splash"></a>
+    <table cellpadding="2" cellspacing="0" width="100%" border="0">
+        <tr>
+            <td bgcolor="#9999bb" class="sectionheader2" width="*">
+                <H2>スプラッシュ・スクリーンをカスタマイズする</H2>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div class="note">
+                    <table cellspacing="0" cellpadding="2" width="100%" border="0">
+                        <tr>
+                            <td nowrap="nowrap" width="50" valign="top">
+                                <p class="notelabel">
+                                    <font color="#0000a0"><b>NOTE</b></font>
+                                </p>
+                            </td>
+                            <td bgcolor="#bbbbdd" class="notebody" width="*">
+                                <font color="#222260">
+                                    <p>
+                                        この機能を利用するためには、
+                Java Service Wrapperの<a href="accountLicenses.jsp">スタンダード版、あるいは、プロフェッショナル版</a>をご利用ください。
+                                    </p>
+                                </font>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <p>
+                    Wrapperのコンソールレス版「<tt>wrapper<b>w</b>.exe</tt>」は、
+                デフォルトで、スタート時に<a href="prop-splashscreen-mode.html">スプラッシュ・スクリーン</a>を表示します。
+                このスプラッシュ・スクリーンは、Wrapperを同梱している商品の合わせたイメージ画像で置き換えることでカスタマイズすることができま
+                </p>
+                <p>
+                    Java内部からではなく、Wrapperにスプラッシュ・スクリーンを表示させることは、
+                アプリケーション・スタートアップをとてもresponsiveらしくさせる利点があります。
+                その理由は、スプラッシュ・スクリーンはJVM起動前に表示され、
+                Javaアプリケーションのクラスがロード（読み込み）されて初期化されて見える状態を維持しているためです。
+
+                </p>
+                <p>
+                    ［<tt><a href="prop-splashscreen-mode.html">wrapper.splashscreen.mode</a></tt>］
+                プロパティを使って、スプラッシュ・スクリーンの動作についてコントロールすることができます。
+
+                </p>
+                <p>
+                    この引数では、スプラッシュ・スクリーンを表示しないため、
+                「<tt>wrapper.exe</tt>」バイナリでは非合法です。
+
+                </p>
+                <table cellspacing="0" cellpadding="0" width="100%" border="0" class="listing">
+                    <tr>
+                        <td class="listingcaption"><i>Example:</i></td>
+                    </tr>
+                    <tr>
+                        <td bgcolor="#eeeeee" class="listingcell">
+                            <font color="#444444">
+                                <pre class="listingpre">wrapperw.exe --target myapp.exe --splash mysplash.bmp</pre>
+                            </font>
+                        </td>
+                    </tr>
+                </table>
+                <p>
+                    現在のところ、唯一、ビットマップ (*.bmp) ファイルをサポートしています。
+                画像サイズやビット深さの制限はありません。
+
+                </p>
+            </td>
+        </tr>
+    </table>
+</html>
