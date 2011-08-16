@@ -743,7 +743,7 @@ DWORD WINAPI startupRunner(LPVOID parameter) {
         logRegisterThread(WRAPPER_THREAD_STARTUP);
 
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s thread started."), gettext3("Startup"));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s thread started."), TEXT("Startup"));
         }
         
         if (wrapperData->isDebugging) {
@@ -752,7 +752,7 @@ DWORD WINAPI startupRunner(LPVOID parameter) {
         verifyEmbeddedSignature();
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
         /* This call is not queued to make sure it makes it to the log prior to a shutdown. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Fatal error in the %s thread."), gettext3("Startup"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Fatal error in the %s thread."), TEXT("Startup"));
         startupThreadStopped = TRUE; /* Before appExit() */
         appExit(1);
         return 1; /* For the compiler, we will never get here. */
@@ -760,7 +760,7 @@ DWORD WINAPI startupRunner(LPVOID parameter) {
 
     startupThreadStopped = TRUE;
     if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s thread stopped."), gettext3("Startup"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s thread stopped."), TEXT("Startup"));
     }
     return 0;
 }
@@ -779,7 +779,7 @@ int initializeStartup() {
     TICKS timeoutTicks;
     
     if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Launching %s thread."), gettext3("Startup"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Launching %s thread."), TEXT("Startup"));
     }
 
     startupThreadHandle = CreateThread(
@@ -791,7 +791,7 @@ int initializeStartup() {
         &startupThreadId);
     if (!startupThreadHandle) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            TEXT("Unable to create a %s thread: %s"), gettext3("Startup"), getLastErrorText());
+            TEXT("Unable to create a %s thread: %s"), TEXT("Startup"), getLastErrorText());
         return 1;
     }
     
@@ -816,7 +816,7 @@ int initializeStartup() {
         }
     } else {
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s timed out.  Continuing in background."), gettext3("Startup"));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s timed out.  Continuing in background."), TEXT("Startup"));
         }
     }
     
@@ -827,7 +827,7 @@ void disposeStartup() {
     /* Wait until the javaIO thread is actually stopped to avoid timing problems. */
     if (startupThreadStarted && !startupThreadStopped) {
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Waiting for %s thread to complete..."), gettext3("Startup"));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Waiting for %s thread to complete..."), TEXT("Startup"));
         }
         while (!startupThreadStopped) {
 #ifdef _DEBUG
@@ -857,7 +857,7 @@ DWORD WINAPI javaIORunner(LPVOID parameter) {
         logRegisterThread(WRAPPER_THREAD_JAVAIO);
 
         if (wrapperData->isJavaIOOutputEnabled) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s thread started."), gettext3("JavaIO"));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s thread started."), TEXT("JavaIO"));
         }
 
         nextSleep = TRUE;
@@ -884,7 +884,7 @@ DWORD WINAPI javaIORunner(LPVOID parameter) {
         }
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
         /* This call is not queued to make sure it makes it to the log prior to a shutdown. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Fatal error in the %s thread."), gettext3("JavaIO"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Fatal error in the %s thread."), TEXT("JavaIO"));
         javaIOThreadStopped = TRUE; /* Before appExit() */
         appExit(1);
         return 1; /* For the compiler, we will never get here. */
@@ -892,7 +892,7 @@ DWORD WINAPI javaIORunner(LPVOID parameter) {
 
     javaIOThreadStopped = TRUE;
     if (wrapperData->isJavaIOOutputEnabled) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s thread stopped."), gettext3("JavaIO"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s thread stopped."), TEXT("JavaIO"));
     }
     return 0;
 }
@@ -903,7 +903,7 @@ DWORD WINAPI javaIORunner(LPVOID parameter) {
  */
 int initializeJavaIO() {
     if (wrapperData->isJavaIOOutputEnabled) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Launching %s thread."), gettext3("JavaIO"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Launching %s thread."), TEXT("JavaIO"));
     }
 
     javaIOThreadHandle = CreateThread(
@@ -915,7 +915,7 @@ int initializeJavaIO() {
         &javaIOThreadId);
     if (!javaIOThreadHandle) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            TEXT("Unable to create a %s thread: %s"), gettext3("JavaIO"), getLastErrorText());
+            TEXT("Unable to create a %s thread: %s"), TEXT("JavaIO"), getLastErrorText());
         return 1;
     } else {
         return 0;
@@ -5351,7 +5351,7 @@ LPTSTR PrintCertificateInfo(PCCERT_CONTEXT pCertContext, int level) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("CertGetNameString failed."));
             __leave;
         }
-        size = _tcslen(TEXT("    Serial Number: ")) + dwData * 3 + 6 + _tcslen(gettext3("    Issuer Name: ")) + _tcslen(gettext3("    Subject Name: ")) + _tcslen(szName1) + _tcslen(szName2) + 5;
+        size = _tcslen(TEXT("    Serial Number: ")) + dwData * 3 + 6 + _tcslen(TEXT("    Issuer Name: ")) + _tcslen(TEXT("    Subject Name: ")) + _tcslen(szName1) + _tcslen(szName2) + 5;
         buffer = calloc(size, sizeof(TCHAR));
         if (!buffer) {
             outOfMemory(TEXT("GTSSI"), 4);
