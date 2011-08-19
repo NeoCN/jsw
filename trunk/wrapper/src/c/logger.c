@@ -1359,10 +1359,7 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
 }
 
 void forceFlush(FILE *fp) {
-    int lastError;
-
     fflush(fp);
-    lastError = getLastError();
 }
 
 /**
