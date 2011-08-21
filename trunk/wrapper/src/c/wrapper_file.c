@@ -452,7 +452,7 @@ TCHAR** wrapperFileGetFiles(const TCHAR* pattern, int sortMode) {
             for (findex = 0; findex < g.gl_pathc; findex++) {
 #ifdef UNICODE
                 req = mbstowcs(NULL, g.gl_pathv[findex], 0);
-                if (req < 0) {
+                if (req == (size_t)-1) {
                     invalidMultiByteSequence(TEXT("GLET"), 1);
                 }
                 files[cnt] = malloc((req + 1) * sizeof(TCHAR));

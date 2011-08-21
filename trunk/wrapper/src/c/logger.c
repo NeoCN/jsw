@@ -2119,7 +2119,7 @@ TCHAR* getLastErrorText() {
     size_t req;
     c = strerror(errno);
     req = mbstowcs(NULL, c, 0);
-    if (req < 0) {
+    if (req == (size_t)-1) {
         invalidMultiByteSequence(TEXT("GLET"), 1);
         return NULL;
     }

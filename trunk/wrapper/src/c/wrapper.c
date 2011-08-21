@@ -137,7 +137,7 @@ SOCKET protocolActiveServerSD = INVALID_SOCKET;
 /* Client Socket. */
 SOCKET protocolActiveBackendSD = INVALID_SOCKET;
 
-DWORD disposed = FALSE;
+int disposed = FALSE;
 int loadConfiguration();
 
 #define READ_BUFFER_BLOCK_SIZE 1024
@@ -404,7 +404,7 @@ int loadEnvironment() {
     i = 0;
     while (environment[i]) {
         len = mbstowcs(NULL, environment[i], 0);
-        if (len < 0) {
+        if (len == (size_t)-1) {
             /* Invalid string.  Skip. */
         } else {
             sourcePair = malloc(sizeof(TCHAR) * (len + 1));
@@ -1645,7 +1645,7 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
             }
  #else
             len = wcstombs(NULL, messageW, 0) + 1;
-            if (len < 0) {
+            if (len == (size_t)-1) {
                 log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
                     TEXT("Invalid multibyte sequence in protocol message \"%s\" : %s"), messageW, getLastErrorText());
                 returnVal = TRUE;
@@ -3799,12 +3799,11 @@ int wrapperRunCommon() {
         /* Display timezone information. */
         tzset();
 #if defined(UNICODE)
-#if !defined(WIN32)
+ #if !defined(WIN32)
         req = mbstowcs(NULL, tzname[0], 0) + 1;
         tz1 = malloc(req * sizeof(TCHAR));
         if (!tz1) {
             outOfMemory(TEXT("LHN"), 1);
-            req = -1;
         } else {
             mbstowcs(tz1, tzname[0], req);
             req = mbstowcs(NULL, tzname[1], 0) + 1;
@@ -3812,26 +3811,23 @@ int wrapperRunCommon() {
             if (!tz2) {
                 outOfMemory(TEXT("LHN"), 2);
                 free(tz1);
-                req = -1;
             } else {
                 mbstowcs(tz2, tzname[1], req);
-#else
+ #else
         req = MultiByteToWideChar(CP_OEMCP, 0, tzname[0], -1, NULL, 0);
         tz1 = malloc(req * sizeof(TCHAR));
         if (!tz1) {
             outOfMemory(TEXT("LHN"), 1);
-            req = -1;
         } else {
             MultiByteToWideChar(CP_OEMCP,0, tzname[0], -1, tz1, (int)req);
             req = MultiByteToWideChar(CP_OEMCP, 0, tzname[1], -1, NULL, 0);
             tz2 = malloc(req * sizeof(TCHAR));
             if (!tz2) {
-                req = -1;
                 free(tz1);
                 outOfMemory(TEXT("LHN"), 2);
             } else {
                 MultiByteToWideChar(CP_OEMCP,0, tzname[1], -1, tz2, (int)req);
-#endif
+ #endif
 
 #else
         tz1 = tzname[0];
