@@ -271,7 +271,7 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
 
     /* now store the result into a wchar_t */
     wideCharLen = mbstowcs(NULL, nativeCharStart, 0);
-    if (wideCharLen == -1) {
+    if (wideCharLen == (size_t)-1) {
         if (didIConv) {
             free(nativeCharStart);
         }
@@ -316,8 +316,8 @@ size_t _treadlink(TCHAR* exe, TCHAR* fullPath, size_t size) {
     size_t req;
 
     req = wcstombs(NULL, exe, 0);
-    if (req < 0) {
-        return -1;
+    if (req == (size_t)-1) {
+        return (size_t)-1;
     }
     cExe = malloc(req + 1);
     if (cExe) {
@@ -333,7 +333,7 @@ size_t _treadlink(TCHAR* exe, TCHAR* fullPath, size_t size) {
             free(cExe);
         }
     }
-    return -1;
+    return (size_t)-1;
 }
 
 /**
@@ -362,7 +362,7 @@ long _tpathconf(const TCHAR *path, int name) {
     long retVal;
 
     req = wcstombs(NULL, path, 0);
-    if (req < 0) {
+    if (req == (size_t)-1) {
         return -1;
     }
     cPath = malloc(req + 1);
@@ -393,7 +393,7 @@ TCHAR *_tsetlocale(int category, const TCHAR *locale) {
     size_t req;
 
     req = wcstombs(NULL, locale, 0);
-    if (req < 0) {
+    if (req == (size_t)-1) {
         return NULL;
     }
     cLocale = malloc(sizeof(char) * (req + 1));
@@ -404,7 +404,7 @@ TCHAR *_tsetlocale(int category, const TCHAR *locale) {
         
         if (cReturn) {
             req = mbstowcs(NULL, cReturn, 0);
-            if (req >= 0) {
+            if (req != (size_t)-1) {
                 tReturn = malloc(sizeof(TCHAR) * (req + 1));
                 if (tReturn) {
                     mbstowcs(tReturn, cReturn, req + 1);
