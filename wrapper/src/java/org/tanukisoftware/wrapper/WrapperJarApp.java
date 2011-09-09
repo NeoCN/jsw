@@ -189,6 +189,15 @@ public class WrapperJarApp
         
         Attributes attributes = manifest.getMainAttributes();
         String mainClassName = attributes.getValue( "Main-Class" );
+        if ( mainClassName == null ) 
+        {
+            m_outError.println( WrapperManager.getRes().getString(
+                    "The Main-Class was not specified correctly in the jar file. Please make sure all required meta information is being set." ) );
+            /* no main class, no chance this will ever do something sensible, so stop here now */
+            WrapperManager.stop( 1 );
+            return;  // Will not get here
+
+        }
         String classPath = attributes.getValue( "Class-Path" );
 
         if ( WrapperManager.isDebugEnabled() )

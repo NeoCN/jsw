@@ -50,6 +50,7 @@
 #include <wincrypt.h>
 #include <wintrust.h>
 #include <DbgHelp.h>
+#include <lm.h>
 #include <Pdh.h>
 #include <ntsecapi.h>
 #include "psapi.h"
@@ -3159,7 +3160,7 @@ int buildServiceBinaryPath(TCHAR *buffer, size_t *reqBufferLen) {
 #define STATUS_SUCCESS  ((NTSTATUS)0x00000000L)
 #endif
 
-LSA_UNICODE_STRING InitLsaString(LPCTSTR pwszString) {
+LSA_UNICODE_STRING InitLsaString(TCHAR* pwszString) {
     USHORT dwLen = 0;
     LSA_UNICODE_STRING pLsaString;
 
@@ -3171,29 +3172,101 @@ LSA_UNICODE_STRING InitLsaString(LPCTSTR pwszString) {
     return pLsaString;
 }
 
+
+BOOL AllocWStrFromLSAStr(PWSTR *ppwstrTarget, LSA_UNICODE_STRING LsaStr) {
+    *ppwstrTarget = (PWSTR)LocalAlloc(0,LsaStr.Length + sizeof(WCHAR));
+    if (*ppwstrTarget == NULL) {
+        return FALSE;
+    }
+    memcpy(*ppwstrTarget,LsaStr.Buffer,LsaStr.Length);
+    (*ppwstrTarget)[LsaStr.Length] = TEXT('\0');
+
+    return TRUE;
+}
+
+
+NTSTATUS OpenPolicy(TCHAR* ServerName, DWORD DesiredAccess, PLSA_HANDLE PolicyHandle) {
+    LSA_OBJECT_ATTRIBUTES ObjectAttributes;
+    LSA_UNICODE_STRING ServerString;
+    PLSA_UNICODE_STRING Server = NULL;
+
+    ZeroMemory(&ObjectAttributes, sizeof(ObjectAttributes));
+
+    if (ServerName != NULL) {
+        ServerString = InitLsaString(ServerName);
+        Server = &ServerString;
+    }
+
+    return LsaOpenPolicy(Server, &ObjectAttributes,
+               DesiredAccess, PolicyHandle);
+}
+
+/*
+ * Checks if pc is part of Domain, workgroup or standalone 
+ */
+int checkDomain() {
+    LSA_HANDLE PolicyHandle;
+    NTSTATUS status;
+    PPOLICY_PRIMARY_DOMAIN_INFO ppdiDomainInfo;
+    PWKSTA_INFO_100 pwkiWorkstationInfo;
+    DWORD netret;
+    PWSTR ResName;
+    int ret = 0;
+
+    netret = NetWkstaGetInfo(NULL, 100, (LPBYTE *)&pwkiWorkstationInfo);
+    if (netret == NERR_Success) {
+        status = OpenPolicy(NULL, GENERIC_READ | POLICY_VIEW_LOCAL_INFORMATION, &PolicyHandle);
+        if (!status) {
+            status = LsaQueryInformationPolicy(PolicyHandle, PolicyPrimaryDomainInformation, &ppdiDomainInfo);
+            if (!status) {
+                AllocWStrFromLSAStr(&ResName, ppdiDomainInfo->Name);
+                if (ppdiDomainInfo->Sid) {
+                    ret = 1;
+                } else {
+                    if (_tcsncmp(ResName, (LPWSTR)pwkiWorkstationInfo->wki100_computername,
+                                 wcslen((LPWSTR)pwkiWorkstationInfo->wki100_computername))) {
+                        ret = 2;
+                    } else {
+                        ret = 3;
+                    }
+                }
+                LocalFree(ResName);
+            }
+        }
+        NetApiBufferFree(pwkiWorkstationInfo);
+        LsaFreeMemory((LPVOID)ppdiDomainInfo);
+    }
+    return ret;
+}
+
+
 /**
  *  Helperfunction which gets the Security Policy Handle of the specified system
  *  @param referencedDomainName, the system of which the Security Policy Handle should get retrieved
  *
  *  @return the Handle of the Security Policy, NULL in case of any error
  */
-LSA_HANDLE wrapperGetPolicyHandle(LPCTSTR referencedDomainName) {
-    LSA_OBJECT_ATTRIBUTES ObjectAttributes;
-    LSA_UNICODE_STRING domain;
+LSA_HANDLE wrapperGetPolicyHandle(TCHAR* referencedDomainName) {
     NTSTATUS ntsResult;
     LSA_HANDLE lsahPolicyHandle;
+    int k;
 
-    ZeroMemory(&ObjectAttributes, sizeof(ObjectAttributes));
-
-    domain = InitLsaString(referencedDomainName);
-    ntsResult = LsaOpenPolicy(&domain,    /* Name of the target system. */
-                              &ObjectAttributes, /* Object attributes. */
+    k = checkDomain();
+    if (k > 0) {
+        if (k > 1) {
+            ntsResult = OpenPolicy(referencedDomainName,    /* Name of the target system. */
                               POLICY_LOOKUP_NAMES | POLICY_CREATE_ACCOUNT, /* Desired access permissions. */
                               &lsahPolicyHandle); /*Receives the policy handle. */
-    if (ntsResult != STATUS_SUCCESS) {
+        } else {
+            ntsResult = OpenPolicy(NULL,    /* Name of the target system. */
+                              POLICY_LOOKUP_NAMES | POLICY_CREATE_ACCOUNT, /* Desired access permissions. */
+                              &lsahPolicyHandle); /*Receives the policy handle. */
+        }
+        if (ntsResult != STATUS_SUCCESS) {
         /* An error occurred. Display it as a win32 error code. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("OpenPolicy failed %lu"),LsaNtStatusToWinError(ntsResult));
-        return NULL;
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("OpenPolicy failed %lu"), LsaNtStatusToWinError(ntsResult));
+            return NULL;
+        }
     }
     return lsahPolicyHandle;
 }
@@ -3273,10 +3346,10 @@ BOOL wrapperAddPrivileges(TCHAR *account) {
             pointer = malloc(sizeof(LSA_UNICODE_STRING));
             pointer[0] = InitLsaString(privileges);
 
-            ntsResult = LsaAddAccountRights(PolicyHandle,  /* An open policy handle. */
-                                        AccountSID,    /* The target SID. */
+            ntsResult = LsaAddAccountRights(PolicyHandle, /* An open policy handle. */
+                                        AccountSID, /* The target SID. */
                                         pointer, /* The privileges. */
-                                        counter);            /* Number of privileges. */
+                                        counter); /* Number of privileges. */
             free(pointer);
             if (ntsResult == STATUS_SUCCESS) {
                 retVal =  FALSE;

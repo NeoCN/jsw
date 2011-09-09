@@ -130,8 +130,13 @@ size_t logFileNameSize;
 int logFileRollMode = ROLL_MODE_SIZE;
 int logFileUmask = 0022;
 TCHAR *logLevelNames[] = { TEXT("NONE  "), TEXT("DEBUG "), TEXT("INFO  "), TEXT("STATUS"), TEXT("WARN  "), TEXT("ERROR "), TEXT("FATAL "), TEXT("ADVICE"), TEXT("NOTICE") };
+#ifdef WIN32
 TCHAR *defaultLoginfoSourceName = TEXT("wrapper");
 TCHAR *loginfoSourceName = NULL;
+#else
+char *defaultLoginfoSourceName = "wrapper";
+char *loginfoSourceName = NULL;
+#endif
 int  logFileMaxSize = -1;
 int  logFileMaxLogFiles = -1;
 TCHAR *logFilePurgePattern = NULL;
@@ -1123,21 +1128,34 @@ void setSyslogFacility( const TCHAR *loginfo_level ) {
 #endif
 
 void setSyslogEventSourceName( const TCHAR *event_source_name ) {
+    size_t size;
     if (event_source_name != NULL) {
         if (loginfoSourceName != defaultLoginfoSourceName) {
             free(loginfoSourceName);
         }
-        loginfoSourceName = malloc(sizeof(TCHAR) * (_tcslen(event_source_name) + 1));
+#ifdef WIN32
+        size = sizeof(TCHAR) * (_tcslen(event_source_name) + 1);
+#else
+        size = wcstombs(NULL, event_source_name, 0) + 1;
+#endif
+        loginfoSourceName = malloc(size);
         if (!loginfoSourceName) {
             _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("SSESN"));
             loginfoSourceName = defaultLoginfoSourceName;
             return;
         }
-
-        _tcsncpy(loginfoSourceName, event_source_name, _tcslen(event_source_name) + 1);
+#ifdef WIN32
+        _tcsncpy(loginfoSourceName, event_source_name, _tcslen(event_source_name));
         if (_tcslen(loginfoSourceName) > 32) {
             loginfoSourceName[32] = TEXT('\0');
         }
+#else
+        wcstombs(loginfoSourceName, event_source_name, size);
+        if (strlen(loginfoSourceName) > 32) {
+            loginfoSourceName[32] = '\0';
+        }
+#endif
+
     }
 }
 
@@ -1172,11 +1190,11 @@ TCHAR* preparePrintBuffer(size_t reqSize) {
 
 /* Writes to and then returns a buffer that is reused by the current thread.
  *  It should not be released. */
-TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, struct tm *nowTM, int nowMillis, const TCHAR *format, const TCHAR *message ) {
+TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, struct tm *nowTM, int nowMillis, const TCHAR *format, const TCHAR *defaultFormat, const TCHAR *message ) {
     int       i;
     size_t    reqSize;
     int       numColumns;
-    TCHAR      *pos;
+    TCHAR     *pos;
     int       currentColumn;
     int       handledFormat;
 
@@ -1185,50 +1203,66 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
     for( i = 0, numColumns = 0; i < (int)_tcslen( format ); i++ ) {
         switch( format[i] ) {
         case TEXT('P'):
+        case TEXT('p'):
             reqSize += 8 + 3;
             numColumns++;
             break;
 
         case TEXT('L'):
+        case TEXT('l'):
             reqSize += 6 + 3;
             numColumns++;
             break;
 
         case TEXT('D'):
+        case TEXT('d'):
             reqSize += 7 + 3;
             numColumns++;
             break;
 
         case TEXT('Q'):
+        case TEXT('q'):
             reqSize += 1 + 3;
             numColumns++;
             break;
 
         case TEXT('T'):
+        case TEXT('t'):
             reqSize += 19 + 3;
             numColumns++;
             break;
 
         case TEXT('Z'):
+        case TEXT('z'):
             reqSize += 23 + 3;
             numColumns++;
             break;
 
         case TEXT('U'):
+        case TEXT('u'):
             reqSize += 8 + 3;
             numColumns++;
             break;
 
         case TEXT('G'):
+        case TEXT('g'):
             reqSize += 10 + 3;
             numColumns++;
             break;
 
         case TEXT('M'):
+        case TEXT('m'):
             reqSize += _tcslen( message ) + 3;
             numColumns++;
             break;
         }
+    }
+    
+    if ((reqSize == 0) && (defaultFormat != NULL)) {
+        /* This means that the specified format was completely invalid.
+         *  Recurse using the defaultFormat instead.
+         *  The alternative would be to log an empty line, which is useless to everyone. */
+        return buildPrintBuffer( source_id, level, threadId, queued, nowTM, nowMillis, defaultFormat, NULL /* No default. Prevent further recursion. */, message );
     }
 
     /* Always add room for the null. */
@@ -1251,6 +1285,7 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
 
         switch( format[i] ) {
         case TEXT('P'):
+        case TEXT('p'):
             switch ( source_id ) {
             case WRAPPER_SOURCE_WRAPPER:
                 pos += _sntprintf( pos, reqSize, TEXT("wrapper ") );
@@ -1268,11 +1303,13 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
             break;
 
         case TEXT('L'):
+        case TEXT('l'):
             pos += _sntprintf( pos, reqSize, TEXT("%s"), logLevelNames[ level ] );
             currentColumn++;
             break;
 
         case TEXT('D'):
+        case TEXT('d'):
             switch ( threadId )
             {
             case WRAPPER_THREAD_SIGNAL:
@@ -1307,11 +1344,13 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
             break;
 
         case TEXT('Q'):
+        case TEXT('q'):
             pos += _sntprintf( pos, reqSize, TEXT("%c"), ( queued ? TEXT('Q') : TEXT(' ')));
             currentColumn++;
             break;
 
         case TEXT('T'):
+        case TEXT('t'):
             pos += _sntprintf( pos, reqSize, TEXT("%04d/%02d/%02d %02d:%02d:%02d"),
                 nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday,
                 nowTM->tm_hour, nowTM->tm_min, nowTM->tm_sec );
@@ -1319,6 +1358,7 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
             break;
 
         case TEXT('Z'):
+        case TEXT('z'):
             pos += _sntprintf( pos, reqSize, TEXT("%04d/%02d/%02d %02d:%02d:%02d.%03d"),
                 nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday,
                 nowTM->tm_hour, nowTM->tm_min, nowTM->tm_sec, nowMillis );
@@ -1326,6 +1366,7 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
             break;
             
         case TEXT('U'):
+        case TEXT('u'):
             if (uptimeFlipped) {
                 pos += _sntprintf( pos, reqSize, TEXT("--------") );
             } else {
@@ -1335,11 +1376,13 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
             break;
             
         case TEXT('G'):
+        case TEXT('g'):
             pos += _sntprintf( pos, reqSize, TEXT("%8d"), __min(previousLogLag, 99999999));
             currentColumn++;
             break;
 
         case TEXT('M'):
+        case TEXT('m'):
             pos += _sntprintf( pos, reqSize, TEXT("%s"), message );
             currentColumn++;
             break;
@@ -1567,7 +1610,7 @@ int log_printf_message_logFileInner(int source_id, int level, int threadId, int 
             _tcsncpy(logFileLastNowDate, nowDate, 9);
 
             /* Build up the printBuffer. */
-            printBuffer = buildPrintBuffer(source_id, level, threadId, queued, nowTM, nowMillis, logfileFormat, message);
+            printBuffer = buildPrintBuffer(source_id, level, threadId, queued, nowTM, nowMillis, logfileFormat, LOG_FORMAT_LOGFILE_DEFAULT, message);
             if (printBuffer) {
                 _ftprintf(logfileFP, TEXT("%s\n"), printBuffer);
                 logFileAccessed = TRUE;
@@ -1615,7 +1658,7 @@ void log_printf_message_consoleInner(int source_id, int level, int threadId, int
     FILE *target;
     
     /* Build up the printBuffer. */
-    printBuffer = buildPrintBuffer(source_id, level, threadId, queued, nowTM, nowMillis, consoleFormat, message);
+    printBuffer = buildPrintBuffer(source_id, level, threadId, queued, nowTM, nowMillis, consoleFormat, LOG_FORMAT_CONSOLE_DEFAULT, message);
     if (printBuffer) {
         /* Decide where to send the output. */
         switch (level) {
@@ -2385,8 +2428,7 @@ void sendLoginfoMessage( int source_id, int level, const TCHAR *szBuff ) {
         default:
             eventType = LOG_DEBUG;
     }
-
-    _topenlog( loginfoSourceName, LOG_PID | LOG_NDELAY, currentLogfacilityLevel );
+    openlog( loginfoSourceName, LOG_PID | LOG_NDELAY, currentLogfacilityLevel );
     _tsyslog( eventType, szBuff );
     closelog( );
 }

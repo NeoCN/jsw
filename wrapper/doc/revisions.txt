@@ -1,6 +1,34 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 
+3.5.12
+* Put more descriptive Text in case the Wrapper is using integration method 4, 
+  but the jar file is not specifying the Main-Class correctly in its meta 
+  information.
+* Fix a bug when failing to grant the LogOnAsService permission to a domain
+  user.
+* Fix a bug where the ident for the syslog on Unix platforms was broken since 
+  3.5.0.  This was because when opening the syslog, the Wrapper was freeing the
+  memory for pointing to ident. However the string pointer ident will be
+  retained internally by the Syslog routines. And must not free the memory that
+  ident points to.  Bug #3404978.
+* Add a check on the script to make sure the 'tr' command exists on Unix
+  platforms.
+* Improve the parsing of log formats so that format tokens are recocognized
+  even if they are lower case.  This affects the wrapper.console.format,
+  wrapper.event.default.email.maillog.format, wrapper.logdialog.format, and
+  wrapper.logfile.format properties.
+* The Wrapper parses log formats by looking for known tokens, any invalid
+  tokens are simply ignored.  If the entire format is made up of invalid tokens
+  then this resulted in the Wrapper logging an empty line, which was not very
+  useful and caused confusion when encountered.  The Wrapper now reverts to the
+  default log format in such cases.  This affects the wrapper.console.format,
+  wrapper.event.default.email.maillog.format, wrapper.logdialog.format, and
+  wrapper.logfile.format properties.
+* Improve the debug output while loading native libraries to avoid confusion
+  about the meaning of the warning logged about attempts to load alternately
+  named native library files.
+
 3.5.11
 * Fix a potential crash on Windows caused by a buffer overflow.  This has been
   a problem since version 3.5.0 and affects configurations which define more
@@ -148,9 +176,9 @@ Java Service Wrapper Revision History.
   been rewritten and questionable parts have been simplified. The functionality
   of the script has been preserved.
 * Added the environment variable WRAPPER_CONF_DIR, which can be used for 
-  the configuration properties. (Feature Request 3160644)
+  the configuration properties.  Feature Request #3160644.
 * Made the script exit with the right exit code received when running the
-  script as different user, specified in RUN_AS_USER. (Bug Report 3185281)
+  script as different user, specified in RUN_AS_USER.  Bug #3185281.
 * Fix an access violation which could happen when reporting that the code
   signing certificate has failed to been verified.
 * Log an error if the backend socket is forcibly closed externally.  It had
@@ -206,8 +234,8 @@ Java Service Wrapper Revision History.
   Wrapper terminates immediately and the JVM is left to run on its own.
 * When running the Wrapper as a specified User Account, through the 
   wrapper.ntservice.account property, the Wrapper will add permission for the
-  account to log on as service automatically upon install. (Feature Request 
-  #3286491)
+  account to log on as service automatically upon install.  Feature Request
+  #3286491.
 * Fixed a problem binding the backend socket on Windows. If another process 
   bound a port inside the wrapper.port.min and wrapper.port.max range using the
   SO_EXCLUSIVEADDRUSE option, the Wrapper would stop at this port report 
@@ -1093,7 +1121,7 @@ Java Service Wrapper Revision History.
 * Add WAIT_FOR_STARTED_STATUS and WAIT_FOR_STARTED_TIMEOUT to the script. This
   lets the script wait (up to timeout sec.) when starting a daemonized process
   until the process has been started.
-  Thanks to Dobes V. (Feature Requests 2917391)
+  Thanks to Dobes V.  Feature Requests #2917391.
 * Improve the error message displayed when the user tries to run the Wrapper
   with the internal -s or --service commands.
 * Fix a problem where the WrapperSystemPropertyUtil.getBooleanValue() method
