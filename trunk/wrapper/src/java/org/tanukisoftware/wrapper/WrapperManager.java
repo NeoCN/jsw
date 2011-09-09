@@ -1139,7 +1139,7 @@ public final class WrapperManager
             
             if ( m_debug )
             {
-                m_outDebug.println( getRes().getString( "  Loaded native library: " , file ) );
+                m_outDebug.println( getRes().getString( "  Attempt to load native library with name: {0}  Result: {1}" , file, getRes().getString( "Success!" ) ) );
             }
             
             return null;
@@ -1148,7 +1148,7 @@ public final class WrapperManager
         {
             if ( m_debug )
             {
-                m_outDebug.println(getRes().getString( "  Unable to load native library: {0}  Cause: {1}",  file , e.getMessage() ) );
+                m_outDebug.println( getRes().getString( "  Attempt to load native library with name: {0}  Result: {1}" , file, e.getMessage() ) );
             }
             String error = e.getMessage();
             if ( error == null )
@@ -1161,7 +1161,7 @@ public final class WrapperManager
         {
             if ( m_debug )
             {
-                m_outDebug.println( getRes().getString( "  Loading native library failed: {0}  Cause: {1}", file , e  ) );
+                m_outDebug.println( getRes().getString( "  Attempt to load native library with name: {0}  Result: {1}" , file, e.getMessage() ) );
             }
             String error = e.toString();
             return error;
@@ -1382,7 +1382,7 @@ public final class WrapperManager
         if ( m_debug )
         {
             m_outDebug.println( getRes().getString(
-                "Load native library. One or more attempts may fail if platform specific libraries do not exist.  This is NORMAL and is only a problem if they all fail." ) ); 
+                "Load native library.  There are multiple possible file names and the first to be found will be used.  Errors loading non-existing files is normal and is only a problem if they all fail." ) ); 
         }
         m_libraryOK = false;
         for ( int i = 0; i < detailedNames.length; i++ )
@@ -1403,14 +1403,22 @@ public final class WrapperManager
         }
         if ( m_libraryOK )
         {
+            if ( m_debug )
+            {
+                m_outDebug.println( getRes().getString( "  Successfully loaded native library." ) );
+            }
+            
             // Try reloading the resources once the library is initialized so we get actual localized content.
+            //  We do this before trying to initialize the native library intentionally so any messages will be
+            //  localized correctly.  This one call is designed to handle this state.
             m_res = loadWrapperResourcesInner( System.getProperty( "wrapper.lang.domain") + "jni",
                 WrapperSystemPropertyUtil.getStringProperty( "wrapper.lang.folder", "../lang" ), true );
             
             if ( m_debug )
             {
-                m_outDebug.println( getRes().getString( "Loaded native localization method." ) );
+                m_outDebug.println( getRes().getString( "Loaded localized resources." ) );
             }
+            
             // The library was loaded correctly, so initialize it.
             if ( m_debug )
             {

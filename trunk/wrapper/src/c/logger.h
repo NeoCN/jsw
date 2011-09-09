@@ -83,6 +83,10 @@ extern inline int wcscasecmp(const wchar_t* s1, const wchar_t* s2);
 #define LOG_SPECIAL_MARKER TEXT("#!#WrApPeRsPeCiAl#!#")
 #endif
 
+/* Default log formats */
+#define LOG_FORMAT_LOGFILE_DEFAULT TEXT("LPTM")
+#define LOG_FORMAT_CONSOLE_DEFAULT TEXT("PM")
+
 /* * * Log level constants * * */
 
 /* No logging at all. */

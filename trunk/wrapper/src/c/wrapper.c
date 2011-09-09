@@ -591,7 +591,7 @@ void wrapperLoadLoggingProperties(int preload) {
     setLogfileRollMode(logfileRollMode);
 
     /* Load log file format */
-    setLogfileFormat(getStringProperty(properties, TEXT("wrapper.logfile.format"), TEXT("LPTM")));
+    setLogfileFormat(getStringProperty(properties, TEXT("wrapper.logfile.format"), LOG_FORMAT_LOGFILE_DEFAULT));
 
     /* Load log file log level */
     setLogfileLevel(getStringProperty(properties, TEXT("wrapper.logfile.loglevel"), TEXT("INFO")));
@@ -613,7 +613,7 @@ void wrapperLoadLoggingProperties(int preload) {
     setLogfileAutoClose(wrapperData->logfileInactivityTimeout <= 0);
 
     /* Load console format */
-    setConsoleLogFormat(getStringProperty(properties, TEXT("wrapper.console.format"), TEXT("PM")));
+    setConsoleLogFormat(getStringProperty(properties, TEXT("wrapper.console.format"), LOG_FORMAT_CONSOLE_DEFAULT));
 
     /* Load console log level */
     setConsoleLogLevel(getStringProperty(properties, TEXT("wrapper.console.loglevel"), TEXT("INFO")));

@@ -555,19 +555,6 @@ int _trename(const TCHAR *path, const TCHAR *to) {
     return ret;
 }
 
-void _topenlog(const TCHAR *ident, int logopt, int facility) {
-    char* cIdent;
-    size_t req;
-
-    req = wcstombs(NULL, ident, 0) + 1;
-    cIdent = malloc(req);
-    if (cIdent) {
-        wcstombs(cIdent, ident, req);
-        openlog(cIdent, logopt, facility);
-        free(cIdent);
-    }
-}
-
 void _tsyslog(int priority, const TCHAR *message) {
     char* cMessage;
     size_t req;
