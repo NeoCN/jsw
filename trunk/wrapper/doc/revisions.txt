@@ -28,6 +28,11 @@ Java Service Wrapper Revision History.
 * Improve the debug output while loading native libraries to avoid confusion
   about the meaning of the warning logged about attempts to load alternately
   named native library files.
+* Fix a problem on Unix platforms where the default umask was being set to 0000
+  rather than inheriting it from the parent process when running as a daemon
+  process.  This can be a security problem as log and other files have global
+  read/write access.  Introduced in 3.5.8.  Can be worked around by setting
+  the wrapper.umask property to a safe value.
 
 3.5.11
 * Fix a potential crash on Windows caused by a buffer overflow.  This has been

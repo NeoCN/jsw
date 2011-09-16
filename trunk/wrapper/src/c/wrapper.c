@@ -671,6 +671,9 @@ int wrapperLoadConfigurationProperties(int preload) {
     int firstCall;
 #ifdef WIN32
     int work;
+    int defaultUMask;
+#else 
+    mode_t defaultUMask;
 #endif
     const TCHAR* prop;
 
@@ -879,6 +882,26 @@ int wrapperLoadConfigurationProperties(int preload) {
     if (wrapperData->workingDir && wrapperSetWorkingDir(wrapperData->workingDir)) {
         return TRUE;
     }
+        if (wrapperData->umask == -1) {
+        /** Get the umask value for the various files. */
+#ifdef WIN32
+            defaultUMask = _umask(0);
+            _umask(defaultUMask);
+#else
+            defaultUMask = umask((mode_t)0);
+            umask(defaultUMask);
+#endif    
+            wrapperData->umask = getIntProperty(properties, TEXT("wrapper.umask"), defaultUMask, TRUE);
+        }
+        wrapperData->javaUmask = getIntProperty(properties, TEXT("wrapper.java.umask"), wrapperData->umask, TRUE);
+        wrapperData->pidFileUmask = getIntProperty(properties, TEXT("wrapper.pidfile.umask"), wrapperData->umask, TRUE);
+        wrapperData->lockFileUmask = getIntProperty(properties, TEXT("wrapper.lockfile.umask"), wrapperData->umask, TRUE);
+        wrapperData->javaPidFileUmask = getIntProperty(properties, TEXT("wrapper.java.pidfile.umask"), wrapperData->umask, TRUE);
+        wrapperData->javaIdFileUmask = getIntProperty(properties, TEXT("wrapper.java.idfile.umask"), wrapperData->umask, TRUE);
+        wrapperData->statusFileUmask = getIntProperty(properties, TEXT("wrapper.statusfile.umask"), wrapperData->umask, TRUE);
+        wrapperData->javaStatusFileUmask = getIntProperty(properties, TEXT("wrapper.java.statusfile.umask"), wrapperData->umask, TRUE);
+        wrapperData->anchorFileUmask = getIntProperty(properties, TEXT("wrapper.anchorfile.umask"), wrapperData->umask, TRUE);
+        setLogfileUmask(getIntProperty(properties, TEXT("wrapper.logfile.umask"), wrapperData->umask, TRUE));
 #ifndef WIN32
     /** If in the first call here and the wrapper will deamonize, then we don't need
      * to proceed any further anymore as the properties will be loaded properly at
@@ -2146,6 +2169,7 @@ int wrapperInitialize() {
     wrapperData->workingDir = NULL;
     wrapperData->outputFilterCount = 0;
     wrapperData->confDir = NULL;
+    wrapperData->umask = -1;
 #ifdef WIN32
     if (!(tickMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
         printf("Failed to create tick mutex. %s\n", getLastErrorText());
@@ -6766,11 +6790,6 @@ int loadConfiguration() {
     TCHAR propName[256];
     const TCHAR* val;
     int startupDelay;
-#ifdef WIN32
-    int defaultUMask;
-#else 
-    mode_t defaultUMask;
-#endif
 
     wrapperLoadLoggingProperties(FALSE);
 
@@ -7060,24 +7079,6 @@ int loadConfiguration() {
 
     /** Get the interval at which the anchor file will be polled. */
     wrapperData->anchorPollInterval = __min(__max(getIntProperty(properties, TEXT("wrapper.anchor.poll_interval"), 5, TRUE), 1), 3600);
-
-    /** Get the umask value for the various files. */
-#ifdef WIN32
-    defaultUMask = _umask(0);
-#else
-    defaultUMask = umask((mode_t)0);
-#endif
-
-    wrapperData->umask = getIntProperty(properties, TEXT("wrapper.umask"), defaultUMask, TRUE);
-    wrapperData->javaUmask = getIntProperty(properties, TEXT("wrapper.java.umask"), wrapperData->umask, TRUE);
-    wrapperData->pidFileUmask = getIntProperty(properties, TEXT("wrapper.pidfile.umask"), wrapperData->umask, TRUE);
-    wrapperData->lockFileUmask = getIntProperty(properties, TEXT("wrapper.lockfile.umask"), wrapperData->umask, TRUE);
-    wrapperData->javaPidFileUmask = getIntProperty(properties, TEXT("wrapper.java.pidfile.umask"), wrapperData->umask, TRUE);
-    wrapperData->javaIdFileUmask = getIntProperty(properties, TEXT("wrapper.java.idfile.umask"), wrapperData->umask, TRUE);
-    wrapperData->statusFileUmask = getIntProperty(properties, TEXT("wrapper.statusfile.umask"), wrapperData->umask, TRUE);
-    wrapperData->javaStatusFileUmask = getIntProperty(properties, TEXT("wrapper.java.statusfile.umask"), wrapperData->umask, TRUE);
-    wrapperData->anchorFileUmask = getIntProperty(properties, TEXT("wrapper.anchorfile.umask"), wrapperData->umask, TRUE);
-    setLogfileUmask(getIntProperty(properties, TEXT("wrapper.logfile.umask"), wrapperData->umask, TRUE));
 
     /** Flag controlling whether or not system signals should be ignored. */
     val = getStringProperty(properties, TEXT("wrapper.ignore_signals"), TEXT("FALSE"));
