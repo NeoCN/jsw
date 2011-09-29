@@ -236,7 +236,10 @@ Java Service Wrapper Revision History.
   had been disabled on their system.
 * Add a new wrapper.java.detach_started property which makes it possible to use
   the Wrapper as a simple tool to launch Java applications.  When enabled, the
-  Wrapper terminates immediately and the JVM is left to run on its own.
+  Wrapper terminates immediately and the JVM is left to run on its own.  Also
+  add new wrapper.java.outfile and wrapper.java.errfile properties which make
+  it possible to redirect the stdout and stderr of the JVM to files when
+  detached.
 * When running the Wrapper as a specified User Account, through the 
   wrapper.ntservice.account property, the Wrapper will add permission for the
   account to log on as service automatically upon install.  Feature Request
