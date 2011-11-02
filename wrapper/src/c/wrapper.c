@@ -3135,6 +3135,8 @@ int wrapperReadChildOutput() {
     int currentBlockRead;
     int defer = FALSE;
     int readThisPass = FALSE;
+    size_t removeLen = 0;
+    int foundCRLF = FALSE;
 
     if (!wrapperChildWorkBuffer) {
         /* Initialize the wrapperChildWorkBuffer.  Set its initial size to the block size + 1.
@@ -3175,7 +3177,7 @@ int wrapperReadChildOutput() {
              *  but is safer. */
             wrapperChildWorkBufferSize = __max(wrapperChildWorkBufferLen + 1, __max(wrapperChildWorkBufferSize + sizeof(char) * READ_BUFFER_BLOCK_SIZE, wrapperChildWorkBufferSize + wrapperChildWorkBufferSize / 10));
             
-            tempBuffer = malloc(wrapperChildWorkBufferSize);
+            tempBuffer = malloc(wrapperChildWorkBufferSize + 1);
             if (!tempBuffer) {
                 outOfMemory(TEXT("WRCO"), 2);
                 return FALSE;
@@ -3224,8 +3226,10 @@ int wrapperReadChildOutput() {
  #endif
                     /* Replace the CR with a NULL */
                     (cLF - sizeof(char))[0] = 0;
+                    foundCRLF = TRUE;
                 } else {
 #endif
+                    foundCRLF = FALSE;
 #ifdef DEBUG_CHILD_OUTPUT
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Found LF"));
 #endif
@@ -3250,11 +3254,18 @@ int wrapperReadChildOutput() {
  #endif
 #endif
                 logChildOutput(wrapperChildWorkBuffer);
-
                 /* Remove the line we just logged from the buffer by moving the rest up. */
+
+                removeLen = cLF - wrapperChildWorkBuffer + 1;
+#ifdef DEBUG_CHILD_OUTPUT
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("removeLen: %d"), removeLen);
+#endif
+
                 /* NOTE - This line intentionally does the copy within the same memory space.  It is safe the way it is working however. */
-                wrapperChildWorkBufferLen -= (cLF - wrapperChildWorkBuffer) + 1;
-                safeMemCpy(wrapperChildWorkBuffer, 0, cLF - wrapperChildWorkBuffer + 1, wrapperChildWorkBufferLen + 1);
+                wrapperChildWorkBufferLen = wrapperChildWorkBufferLen - removeLen;
+                safeMemCpy(wrapperChildWorkBuffer, 0, removeLen, wrapperChildWorkBufferLen);
+                /* just to make sure the buffer has been ended properly */
+                wrapperChildWorkBuffer[wrapperChildWorkBufferLen] = 0;
             } else {
                 /* If we read this pass or if the last character is a CR on Windows then we always want to defer. */
                 if (readThisPass
