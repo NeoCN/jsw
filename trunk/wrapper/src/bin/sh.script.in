@@ -16,7 +16,7 @@
 
 #-----------------------------------------------------------------------------
 # These settings can be modified to fit the needs of your application
-# Optimized for use with version 3.5.12 of the Wrapper.
+# Optimized for use with version 3.5.13 of the Wrapper.
 
 # Application
 APP_NAME="@app.name@"
@@ -1028,7 +1028,7 @@ installdaemon() {
         eval echo `gettext 'Must be root to perform this action.'`
         exit 1
     else
-        APP_NAME_LOWER=`echo "$APP_NAME" | $TR_BIN "[A-Z]" "[a-z]"`
+        APP_NAME_LOWER=`echo "$APP_NAME" | $TREXE "[A-Z]" "[a-z]"`
         if [ "$DIST_OS" = "solaris" ] ; then
             eval echo `gettext 'Detected Solaris:'`
             if [ -f /etc/init.d/$APP_NAME ] ; then
