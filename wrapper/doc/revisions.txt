@@ -9,10 +9,8 @@ Java Service Wrapper Revision History.
    second time an internal buffer used for logging was expanded.  The buffer
    would be expanded the first time a log line over 2048 characters in length
    was encountered.   Then the second expansion would happen when a line at
-   least 1024 characters longer was encountered.  The only work around for
-   this issue is to log a single line early which is longer than anything else
-   the application will log to prevent a second expansion from ever happening.
-   Introduced in 3.5.11.  Bug ID #3423108
+   least 1024 characters longer was encountered.  Introduced in 3.5.11.
+   Bug ID #3423108
 
 3.5.12
 * Put more descriptive Text in case the Wrapper is using integration method 4, 
