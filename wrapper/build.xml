@@ -56,6 +56,7 @@
                 <equals arg1="${os.name}" arg2="Windows 2003"/>
                 <equals arg1="${os.name}" arg2="Windows Vista"/>
                 <equals arg1="${os.name}" arg2="Windows 7"/>
+                <equals arg1="${os.name}" arg2="Windows Server 2008"/>
             </or>
         </condition>
         <condition property="dist.os" value="linux">
