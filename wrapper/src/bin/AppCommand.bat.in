@@ -75,7 +75,7 @@ if not [%_FIXED_COMMAND%]==[] (
     set _COMMAND=%_FIXED_COMMAND%
 ) else (
     set _COMMAND=%1
-	shift
+    shift
 )
 
 rem Collect all parameters
@@ -134,9 +134,9 @@ if not [%_COMMAND%]==[] (
     echo.
 )
 if [%_PASS_THROUGH%]==[] ( 
-    echo Usage: %0 [ console : start : pause : resume : stop : restart : install : remove : query ]
+    echo Usage: %0 [ console : start : pause : resume : stop : restart : install : remove : status ]
 ) else (
-    echo Usage: %0 [ console {JavaAppArgs} : start : pause : resume : stop : restart : install {JavaAppArgs} : remove : query ]
+    echo Usage: %0 [ console {JavaAppArgs} : start : pause : resume : stop : restart : install {JavaAppArgs} : remove : status ]
 )
 pause
 goto :eof
@@ -144,7 +144,7 @@ goto :eof
 
 :start
     "%_WRAPPER_EXE%" -t "%_WRAPPER_CONF%"
-	goto :eof
+    goto :eof
 :stop
     "%_WRAPPER_EXE%" -p "%_WRAPPER_CONF%"
     goto :eof
