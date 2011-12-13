@@ -184,6 +184,7 @@ int releaseLoggingMutex();
 #define QUEUE_SIZE 20
 #define QUEUED_BUFFER_SIZE_USABLE (512 + 1)
 #define QUEUED_BUFFER_SIZE (QUEUED_BUFFER_SIZE_USABLE + 4)
+TCHAR formatMessages[WRAPPER_THREAD_COUNT][QUEUED_BUFFER_SIZE];
 int queueWrapped[WRAPPER_THREAD_COUNT];
 int queueWriteIndex[WRAPPER_THREAD_COUNT];
 int queueReadIndex[WRAPPER_THREAD_COUNT];
@@ -367,6 +368,7 @@ int initLogging(void (*logFileChanged)(const TCHAR *logFile)) {
         threadSets[threadId] = FALSE;
         /* threadIds[threadId] = 0; */
 
+        formatMessages[threadId][0] = TEXT('\0');
         for ( i = 0; i < QUEUE_SIZE; i++ )
         {
             queueWrapped[threadId] = 0;
@@ -2838,6 +2840,9 @@ void log_printf_queue( int useQueue, int source_id, int level, const TCHAR *lpsz
     int localReadIndex;
     va_list     vargs;
     int         count;
+    TCHAR       *format;
+    size_t      i;
+    size_t      len;
     TCHAR       *buffer;
 
     /* Start by processing any arguments so that we can store a simple string. */
@@ -2847,10 +2852,40 @@ void log_printf_queue( int useQueue, int source_id, int level, const TCHAR *lpsz
 
 #if defined(UNICODE) && !defined(WIN32)
     if (wcsstr(lpszFmt, TEXT("%s")) != NULL) {
-        /* This is a coding error as strings coming into this function should NEVER use this format.
-         *  If the token below is not '%S' then this would recurse. */
-        log_printf_queue(useQueue, source_id, LEVEL_ERROR, TEXT("Coding Error.  String contains invalid string token for queued logging: %S"), lpszFmt);
-        return;
+        /* On UNIX platforms string tokens must always use "%S" variables and not "%s".  We can
+         *  not safely use malloc here as the call may have originated from a signal handler.
+         *  Copy the template into the formatMessages string reserved for this thread, replace
+         *  the tokens and then continue using that. */
+        threadId = getThreadId();
+        _tcsncpy(formatMessages[threadId], lpszFmt, QUEUED_BUFFER_SIZE);
+        /* Terminate just in case the format was too long. */
+        formatMessages[threadId][QUEUED_BUFFER_SIZE - 1] = TEXT('\0');
+        
+        format = formatMessages[threadId];
+        
+        /* Replace the tokens. */
+#ifdef _DEBUG_QUEUE
+        _tprintf(TEXT("Replacing string tokens.\n"));
+        _tprintf(TEXT("  From: %S\n"), format);
+#endif
+        len = wcslen(format);
+        if (len > 0) {
+            for (i = 0; i < len; i++) {
+                if ((i > 0) && (format[i - 1] == TEXT('%')) && (format[i] == TEXT('s'))) {
+                    /* Make sure the '%' was not escaped. */
+                    if ((i > 1) && (format[i - 2] == TEXT('%'))) {
+                        /* Escaped. Do nothing. */
+                    } else {
+                        /* 's' needs to be changed to 'S' */
+                        format[i] = TEXT('S');
+                    }
+                }
+            }
+        }
+#ifdef _DEBUG_QUEUE
+        _tprintf(TEXT("  To:   %S\n"), format);
+#endif
+        lpszFmt = format;
     }
 #endif
     
