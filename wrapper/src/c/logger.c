@@ -184,7 +184,9 @@ int releaseLoggingMutex();
 #define QUEUE_SIZE 20
 #define QUEUED_BUFFER_SIZE_USABLE (512 + 1)
 #define QUEUED_BUFFER_SIZE (QUEUED_BUFFER_SIZE_USABLE + 4)
+#if defined(UNICODE) && !defined(WIN32)
 TCHAR formatMessages[WRAPPER_THREAD_COUNT][QUEUED_BUFFER_SIZE];
+#endif
 int queueWrapped[WRAPPER_THREAD_COUNT];
 int queueWriteIndex[WRAPPER_THREAD_COUNT];
 int queueReadIndex[WRAPPER_THREAD_COUNT];
@@ -368,7 +370,9 @@ int initLogging(void (*logFileChanged)(const TCHAR *logFile)) {
         threadSets[threadId] = FALSE;
         /* threadIds[threadId] = 0; */
 
+#if defined(UNICODE) && !defined(WIN32)
         formatMessages[threadId][0] = TEXT('\0');
+#endif
         for ( i = 0; i < QUEUE_SIZE; i++ )
         {
             queueWrapped[threadId] = 0;
@@ -2840,9 +2844,11 @@ void log_printf_queue( int useQueue, int source_id, int level, const TCHAR *lpsz
     int localReadIndex;
     va_list     vargs;
     int         count;
+#if defined(UNICODE) && !defined(WIN32)
     TCHAR       *format;
     size_t      i;
     size_t      len;
+#endif
     TCHAR       *buffer;
 
     /* Start by processing any arguments so that we can store a simple string. */
@@ -2855,7 +2861,9 @@ void log_printf_queue( int useQueue, int source_id, int level, const TCHAR *lpsz
         /* On UNIX platforms string tokens must always use "%S" variables and not "%s".  We can
          *  not safely use malloc here as the call may have originated from a signal handler.
          *  Copy the template into the formatMessages string reserved for this thread, replace
-         *  the tokens and then continue using that. */
+         *  the tokens and then continue using that.  This is a bit of overhead, but these async
+         *  messages are fairly rare and this greatly simplifies the code throughout the rest of
+         *  the application by making it possible to always use the "%s" syntax. */
         threadId = getThreadId();
         _tcsncpy(formatMessages[threadId], lpszFmt, QUEUED_BUFFER_SIZE);
         /* Terminate just in case the format was too long. */
@@ -2864,10 +2872,10 @@ void log_printf_queue( int useQueue, int source_id, int level, const TCHAR *lpsz
         format = formatMessages[threadId];
         
         /* Replace the tokens. */
-#ifdef _DEBUG_QUEUE
+ #ifdef _DEBUG_QUEUE
         _tprintf(TEXT("Replacing string tokens.\n"));
         _tprintf(TEXT("  From: %S\n"), format);
-#endif
+ #endif
         len = wcslen(format);
         if (len > 0) {
             for (i = 0; i < len; i++) {
@@ -2882,12 +2890,13 @@ void log_printf_queue( int useQueue, int source_id, int level, const TCHAR *lpsz
                 }
             }
         }
-#ifdef _DEBUG_QUEUE
+ #ifdef _DEBUG_QUEUE
         _tprintf(TEXT("  To:   %S\n"), format);
-#endif
+ #endif
         lpszFmt = format;
     }
 #endif
+
     
     /** For queued logging, we have a fixed length buffer to work with.  Just to make it easy to catch
      *   problems, always use the same sized fixed buffer even if we will be using the non-queued logging. */

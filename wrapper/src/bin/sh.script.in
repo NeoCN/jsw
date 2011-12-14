@@ -749,7 +749,7 @@ waitforwrapperstop() {
     done
 }
 
-launchdinternal() {
+launchinternal() {
     getpid
     trap launchdtrap TERM 
     if [ "X$pid" = "X" ]
@@ -1008,8 +1008,8 @@ status() {
 
 installUpstart() {
     eval echo `gettext ' Installing the $APP_LONG_NAME daemon using upstart..'`
-    if [ -f "${APP_NAME}.conf" ] ; then 
-        eval echo `gettext ' a custom upstart conf file ${APP_NAME}.conf found'`
+    if [ -f "${REALDIR}/${APP_NAME}.install" ] ; then 
+        eval echo `gettext ' a custom upstart conf file ${APP_NAME}.install found'`
         cp "${REALDIR}/${APP_NAME}.install" "/etc/init/${APP_NAME}.conf"
     else
         eval echo `gettext ' creating default upstart conf file..'`
@@ -1019,7 +1019,7 @@ installUpstart() {
         echo "start on runlevel [2345]" >> "/etc/init/${APP_NAME}.conf"
         echo "stop on runlevel [!2345]" >> "/etc/init/${APP_NAME}.conf"
         echo "env LANG=${LANG}" >> "/etc/init/${APP_NAME}.conf"
-       echo "exec \"${REALPATH}\" launchdinternal" >> "/etc/init/${APP_NAME}.conf"
+       echo "exec \"${REALPATH}\" upstartinternal" >> "/etc/init/${APP_NAME}.conf"
     fi
 }
 
@@ -1487,7 +1487,6 @@ docommand() {
             if [ "$DIST_OS" = "macosx" -a -f "/Library/LaunchDaemons/${APP_PLIST}" ] ; then
                 macosxstart
             elif [ "$DIST_OS" = "linux" -a -f "/etc/init/${APP_NAME}.conf" ] ; then
-                checkUser touchlock "$@"
                 upstartstart
             else
                 checkUser touchlock "$@"
@@ -1540,7 +1539,6 @@ docommand() {
             ;;
     
         'status')
-            checkUser "" "$COMMAND"
             status
             ;;
     
@@ -1569,13 +1567,16 @@ docommand() {
             stopmsg
             ;;
     
-        'launchdinternal')
+        'launchdinternal' | 'upstartinternal')
+            if [ ! "$DIST_OS" = "macosx" -o ! -f "/Library/LaunchDaemons/${APP_PLIST}" ] ; then
+                checkUser touchlock "$@"
+            fi
             # Internal command called by launchd on Max OSX.
             # We do not want to call checkUser here as it is handled in the launchd plist file.  Doing it here would confuse launchd.
             if [ ! -n "$FIXED_COMMAND" ] ; then
                 shift
             fi
-            launchdinternal "$@"
+            launchinternal "$@"
             ;;
     
         *)
