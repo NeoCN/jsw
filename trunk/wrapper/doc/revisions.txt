@@ -6,10 +6,11 @@ Java Service Wrapper Revision History.
    where the 'status' command was incorrectly being reported as 'query' in
    the usage output.  The 'status' command had always worked correctly if
    used.
- * Fix a problem in the Community Edition on UNIX platforms where some
-   asynchronous messages were causing a warning message "Coding Error..." to
-   be logged in place of the intended message.  Other than the incorrect log
-   entry, the Wrapper worked correctly.  Introduced in 3.5.2.
+ * Fix a problem on UNIX platforms where some asynchronous messages were
+   causing a warning message "Coding Error..." to be logged in place of the
+   intended message.  This could be seen if the configured log file did not
+   have write permissions.  Other than the incorrect log message, the Wrapper
+   worked correctly.  Introduced in 3.5.2.
 *  Fix a problem in the UNIX script where running with upstart wasn't working
    correctly when RUN_AS_USER was set.
 *  Relax security checks when running the 'status' command against the UNIX
