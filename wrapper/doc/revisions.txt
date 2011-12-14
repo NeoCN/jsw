@@ -2,31 +2,32 @@ Java Service Wrapper Revision History.
 --------------------------------------
 
 3.5.14
- * Fix a problem in the Windows AppCommand.bat.in command based batch file
-   where the 'status' command was incorrectly being reported as 'query' in
-   the usage output.  The 'status' command had always worked correctly if
-   used.
- * Fix a problem on UNIX platforms where some asynchronous messages were
-   causing a warning message "Coding Error..." to be logged in place of the
-   intended message.  This could be seen if the configured log file did not
-   have write permissions.  Other than the incorrect log message, the Wrapper
-   worked correctly.  Introduced in 3.5.2.
-*  Fix a problem in the UNIX script where running with upstart wasn't working
-   correctly when RUN_AS_USER was set.
-*  Relax security checks when running the 'status' command against the UNIX
-   shell script so it now allows any user running the script to perform the
-   read-only check of the pid file.
+* Fix a problem in the Windows AppCommand.bat.in command based batch file
+  where the 'status' command was incorrectly being reported as 'query' in the
+  usage output.  The 'status' command had always worked correctly if used.
+* Fix a problem on UNIX platforms where some asynchronous messages were
+  causing a warning message "Coding Error..." to be logged in place of the
+  intended message.  This could be seen if the configured log file did not
+  have write permissions.  Other than the incorrect log message, the Wrapper
+  worked correctly.  Introduced in 3.5.2.
+* Fix a problem in the UNIX script where running with upstart wasn't working
+  correctly when RUN_AS_USER was set.
+* Relax security checks when running the 'status' command against the UNIX
+  shell script so it now allows any user running the script to perform the
+  read-only check of the pid file.
+* Fix a problem with the UNIX script where the 'remove' command was trying to
+  stop a running application even when the application had not been installed.
 
 3.5.13
- * Fix a typo in the script where the environment variable 'TR_BIN' should 
-   actually be 'TREXE'.  This was causing the "install" command on UNIX
-   platforms to fail.   Introduced in 3.5.12.
- * Fix a heap corruption which could lead to a crash that would occur the
-   second time an internal buffer used for logging was expanded.  The buffer
-   would be expanded the first time a log line over 2048 characters in length
-   was encountered.   Then the second expansion would happen when a line at
-   least 1024 characters longer was encountered.  Introduced in 3.5.11.
-   Bug ID #3423108
+* Fix a typo in the script where the environment variable 'TR_BIN' should 
+  actually be 'TREXE'.  This was causing the "install" command on UNIX
+  platforms to fail.   Introduced in 3.5.12.
+* Fix a heap corruption which could lead to a crash that would occur the
+  second time an internal buffer used for logging was expanded.  The buffer
+  would be expanded the first time a log line over 2048 characters in length
+  was encountered.   Then the second expansion would happen when a line at
+  least 1024 characters longer was encountered.  Introduced in 3.5.11.
+  Bug ID #3423108
 
 3.5.12
 * Put more descriptive Text in case the Wrapper is using integration method 4, 
