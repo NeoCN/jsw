@@ -1,5 +1,5 @@
 -----------------------------------------------------------------------------
-Java Service Wrapper Community Edition 3.5.14-a
+Java Service Wrapper Community Edition 3.5.14
 Copyright (C) 1999-2011 Tanuki Software, Ltd. All Rights Reserved.
 http://wrapper.tanukisoftware.com
 -----------------------------------------------------------------------------

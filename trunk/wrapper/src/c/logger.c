@@ -429,7 +429,7 @@ int disposeLogging() {
         free(workLogFileName);
         workLogFileName = NULL;
     }
-    if (loginfoSourceName != defaultLoginfoSourceName) {
+    if (loginfoSourceName != defaultLoginfoSourceName && loginfoSourceName != NULL) {
         free(loginfoSourceName);
         loginfoSourceName = NULL;
     }
@@ -1137,7 +1137,9 @@ void setSyslogEventSourceName( const TCHAR *event_source_name ) {
     size_t size;
     if (event_source_name != NULL) {
         if (loginfoSourceName != defaultLoginfoSourceName) {
-            free(loginfoSourceName);
+            if (loginfoSourceName != NULL) {
+                free(loginfoSourceName);
+            }
         }
 #ifdef WIN32
         size = sizeof(TCHAR) * (_tcslen(event_source_name) + 1);
@@ -1151,7 +1153,7 @@ void setSyslogEventSourceName( const TCHAR *event_source_name ) {
             return;
         }
 #ifdef WIN32
-        _tcsncpy(loginfoSourceName, event_source_name, _tcslen(event_source_name));
+        _tcsncpy(loginfoSourceName, event_source_name, _tcslen(event_source_name) + 1);
         if (_tcslen(loginfoSourceName) > 32) {
             loginfoSourceName[32] = TEXT('\0');
         }

@@ -957,4 +957,6 @@ extern void wrapperStopPendingSignaled(int waitHint);
 extern void wrapperStoppedSignaled();
 extern void wrapperStartPendingSignaled(int waitHint);
 extern void wrapperStartedSignaled();
+extern int file_exists(const TCHAR * filename);
+
 #endif

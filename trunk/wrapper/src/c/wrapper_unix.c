@@ -167,9 +167,16 @@ int wrapperGetLastError() {
  * filename: File to write to.
  * pid: pid to write in the file.
  */
-int writePidFile(const TCHAR *filename, DWORD pid, int newUmask) {
+int writePidFile(const TCHAR *filename, DWORD pid, int newUmask, int exclusive) {
     FILE *pid_fp = NULL;
     int old_umask;
+
+    if (getBooleanProperty(properties, TEXT("wrapper.pidfile.strict"), FALSE, FALSE) == TRUE && 
+        exclusive == TRUE && file_exists(filename)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            TEXT("%d pid file, %s, already exists."), pid, filename);
+        return 1;
+    }
 
     old_umask = umask(newUmask);
     pid_fp = _tfopen(filename, TEXT("w"));
@@ -1253,7 +1260,7 @@ void wrapperExecute() {
 
             /* If a java pid filename is specified then write the pid of the java process. */
             if (wrapperData->javaPidFilename) {
-                if (writePidFile(wrapperData->javaPidFilename, wrapperData->javaPID, wrapperData->javaPidFileUmask)) {
+                if (writePidFile(wrapperData->javaPidFilename, wrapperData->javaPID, wrapperData->javaPidFileUmask, FALSE)) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                         TEXT("Unable to write the Java PID file: %s"), wrapperData->javaPidFilename);
                 }
@@ -1261,7 +1268,7 @@ void wrapperExecute() {
 
             /* If a java id filename is specified then write the pid of the java process. */
             if (wrapperData->javaIdFilename) {
-                if (writePidFile(wrapperData->javaIdFilename, wrapperData->jvmRestarts, wrapperData->javaIdFileUmask)) {
+                if (writePidFile(wrapperData->javaIdFilename, wrapperData->jvmRestarts, wrapperData->javaIdFileUmask, FALSE)) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                         TEXT("Unable to write the Java Id file: %s"), wrapperData->javaIdFilename);
                 }
@@ -1825,10 +1832,32 @@ int main(int argc, char **argv) {
             rollLogs();
         }
 
+        if (wrapperData->pidFilename) {
+            if (writePidFile(wrapperData->pidFilename, wrapperData->wrapperPID, wrapperData->pidFileUmask, TRUE)) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                     TEXT("ERROR: Could not write pid file %s: %s"),
+                wrapperData->pidFilename, getLastErrorText());
+                     /* Common wrapper cleanup code. */
+                wrapperDispose();
+#if defined(UNICODE)
+                for (i = 0; i < argc; i++) {
+                    if (argv[i]) {
+                        free(argv[i]);
+                    }
+                }
+                if (argv) {
+                    free(argv);
+                }
+#endif
+                exit(1);
+                return 1; /* For compiler. */
+            }
+        }
+
         /* Write pid and anchor files as requested.  If they are the same file the file is
          *  simply overwritten. */
         if (wrapperData->anchorFilename) {
-            if (writePidFile(wrapperData->anchorFilename, wrapperData->wrapperPID, wrapperData->anchorFileUmask)) {
+            if (writePidFile(wrapperData->anchorFilename, wrapperData->wrapperPID, wrapperData->anchorFileUmask, FALSE)) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                      TEXT("ERROR: Could not write anchor file %s: %s"),
                      wrapperData->anchorFilename, getLastErrorText());
@@ -1836,17 +1865,9 @@ int main(int argc, char **argv) {
                 return 1; /* For compiler. */
             }
         }
-        if (wrapperData->pidFilename) {
-            if (writePidFile(wrapperData->pidFilename, wrapperData->wrapperPID, wrapperData->pidFileUmask)) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                     TEXT("ERROR: Could not write pid file %s: %s"),
-                     wrapperData->pidFilename, getLastErrorText());
-                appExit(1, argc, argv);
-                return 1; /* For compiler. */
-            }
-        }
+
         if (wrapperData->lockFilename) {
-            if (writePidFile(wrapperData->lockFilename, wrapperData->wrapperPID, wrapperData->lockFileUmask)) {
+            if (writePidFile(wrapperData->lockFilename, wrapperData->wrapperPID, wrapperData->lockFileUmask, FALSE)) {
                 /* This will fail if the user is running as a user without full privileges.
                  *  To make things easier for user configuration, this is ignored if sufficient
                  *  privileges do not exist. */

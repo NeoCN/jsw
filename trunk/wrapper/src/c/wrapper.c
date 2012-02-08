@@ -187,6 +187,16 @@ struct tm getInfoTime(const TCHAR *date, const TCHAR *time) {
     return buildTM;
 }
 
+int file_exists(const TCHAR * filename) {
+    FILE * file;
+    if ((file = _tfopen(filename, TEXT("r")))) {
+        fclose(file);
+        return TRUE;
+    }
+    return FALSE;
+}
+
+
 struct tm wrapperGetReleaseTime() {
     return getInfoTime(wrapperReleaseDate, wrapperReleaseTime);
 }
@@ -2170,6 +2180,7 @@ int wrapperInitialize() {
     wrapperData->outputFilterCount = 0;
     wrapperData->confDir = NULL;
     wrapperData->umask = -1;
+    wrapperData->language = NULL;
 #ifdef WIN32
     if (!(tickMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
         printf("Failed to create tick mutex. %s\n", getLastErrorText());
@@ -6015,7 +6026,7 @@ int wrapperBuildJavaCommandArray(TCHAR ***stringsPtr, int *length, int addQuotes
 
     /* Allocate the correct amount of memory */
     *stringsPtr = malloc((*length) * sizeof **stringsPtr );
-    if (!stringsPtr) {
+    if (!(*stringsPtr)) {
         outOfMemory(TEXT("WBJCA"), 1);
         return TRUE;
     }
@@ -7148,6 +7159,12 @@ int loadConfiguration() {
     }
 
 #endif
+
+    if (_tcscmp(wrapperVersionRoot, getStringProperty(properties, TEXT("wrapper.script.version"), wrapperVersionRoot)) != 0) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            TEXT("The version of the script (%s) doesn't match the version of this Wrapper (%s). This might cause some problems"), 
+            getStringProperty(properties, TEXT("wrapper.script.version"), wrapperVersionRoot), wrapperVersionRoot);
+    }
 
     wrapperData->configured = TRUE;
 
