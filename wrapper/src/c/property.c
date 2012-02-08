@@ -1781,6 +1781,9 @@ Property* addProperty(Properties *properties, const TCHAR* filename, int lineNum
             setInnerProperty(property, propertyValueTrim);
         }
 
+        if (property->value == NULL) {
+            return NULL;
+        }
         /* Store the final flag */
         property->finalValue = finalValue;
 

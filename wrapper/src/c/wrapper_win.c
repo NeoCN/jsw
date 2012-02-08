@@ -411,10 +411,17 @@ int wrapperGetLastError() {
  * filename: File to write to.
  * pid: pid to write in the file.
  */
-int writePidFile(const TCHAR *filename, DWORD pid, int newUmask) {
+int writePidFile(const TCHAR *filename, DWORD pid, int newUmask, int exclusive) {
     FILE *pid_fp = NULL;
     int old_umask;
 
+    if (getBooleanProperty(properties, TEXT("wrapper.pidfile.strict"), FALSE, FALSE) == TRUE && 
+        exclusive == TRUE && file_exists(filename)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+            TEXT("%d pid file, %s, already exists."), pid, filename);
+        cleanUpPIDFilesOnExit = FALSE;
+        return 1;
+    }
     old_umask = _umask(newUmask);
     pid_fp = _tfopen(filename, TEXT("w"));
     _umask(old_umask);
@@ -1811,7 +1818,7 @@ void wrapperExecute() {
 
     /* If a java pid filename is specified then write the pid of the java process. */
     if (wrapperData->javaPidFilename) {
-        if (writePidFile(wrapperData->javaPidFilename, wrapperData->javaPID, wrapperData->javaPidFileUmask)) {
+        if (writePidFile(wrapperData->javaPidFilename, wrapperData->javaPID, wrapperData->javaPidFileUmask, FALSE)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 TEXT("Unable to write the Java PID file: %s"), wrapperData->javaPidFilename);
         }
@@ -1819,7 +1826,7 @@ void wrapperExecute() {
 
     /* If a java id filename is specified then write the id of the java process. */
     if (wrapperData->javaIdFilename) {
-        if (writePidFile(wrapperData->javaIdFilename, wrapperData->jvmRestarts, wrapperData->javaIdFileUmask)) {
+        if (writePidFile(wrapperData->javaIdFilename, wrapperData->jvmRestarts, wrapperData->javaIdFileUmask, FALSE)) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
                 TEXT("Unable to write the Java Id file: %s"), wrapperData->javaIdFilename);
         }
@@ -3160,32 +3167,23 @@ int buildServiceBinaryPath(TCHAR *buffer, size_t *reqBufferLen) {
 #define STATUS_SUCCESS  ((NTSTATUS)0x00000000L)
 #endif
 
-LSA_UNICODE_STRING InitLsaString(TCHAR* pwszString) {
-    USHORT dwLen = 0;
-    LSA_UNICODE_STRING pLsaString;
+void InitLsaString(PLSA_UNICODE_STRING LsaString, LPWSTR String) {
+    size_t StringLength;
 
-    if ((pwszString != NULL) && ((dwLen = (USHORT)wcslen(pwszString)) > 0)) {
-      pLsaString.Buffer = (WCHAR*)pwszString;
-    }  
-    pLsaString.Length =  dwLen * sizeof(wchar_t);
-    pLsaString.MaximumLength= (dwLen+1) * sizeof(wchar_t);  
-    return pLsaString;
-}
-
-
-BOOL AllocWStrFromLSAStr(PWSTR *ppwstrTarget, LSA_UNICODE_STRING LsaStr) {
-    *ppwstrTarget = (PWSTR)LocalAlloc(0,LsaStr.Length + sizeof(WCHAR));
-    if (*ppwstrTarget == NULL) {
-        return FALSE;
+    if (String == NULL) {
+        LsaString->Buffer = NULL;
+        LsaString->Length = 0;
+        LsaString->MaximumLength = 0;
+        return;
     }
-    memcpy(*ppwstrTarget,LsaStr.Buffer,LsaStr.Length);
-    (*ppwstrTarget)[LsaStr.Length] = TEXT('\0');
 
-    return TRUE;
+    StringLength = wcslen(String);
+    LsaString->Buffer = String;
+    LsaString->Length = (USHORT) StringLength * sizeof(WCHAR);
+    LsaString->MaximumLength=(USHORT)(StringLength+1) * sizeof(WCHAR);
 }
 
-
-NTSTATUS OpenPolicy(TCHAR* ServerName, DWORD DesiredAccess, PLSA_HANDLE PolicyHandle) {
+NTSTATUS OpenPolicy(LPWSTR ServerName, DWORD DesiredAccess, PLSA_HANDLE PolicyHandle) {
     LSA_OBJECT_ATTRIBUTES ObjectAttributes;
     LSA_UNICODE_STRING ServerString;
     PLSA_UNICODE_STRING Server = NULL;
@@ -3193,16 +3191,17 @@ NTSTATUS OpenPolicy(TCHAR* ServerName, DWORD DesiredAccess, PLSA_HANDLE PolicyHa
     ZeroMemory(&ObjectAttributes, sizeof(ObjectAttributes));
 
     if (ServerName != NULL) {
-        ServerString = InitLsaString(ServerName);
+        InitLsaString(&ServerString, ServerName);
         Server = &ServerString;
     }
 
-    return LsaOpenPolicy(Server, &ObjectAttributes,
-               DesiredAccess, PolicyHandle);
+    return LsaOpenPolicy(Server, &ObjectAttributes, DesiredAccess, PolicyHandle);
 }
+
 
 /*
  * Checks if pc is part of Domain, workgroup or standalone 
+ * @returns 1 if it's part of Domain, 2 for workgroup, 3 for stand alone, 0 if there was an error
  */
 int checkDomain() {
     LSA_HANDLE PolicyHandle;
@@ -3210,31 +3209,55 @@ int checkDomain() {
     PPOLICY_PRIMARY_DOMAIN_INFO ppdiDomainInfo;
     PWKSTA_INFO_100 pwkiWorkstationInfo;
     DWORD netret;
-    PWSTR ResName;
+    wchar_t* ResName;
     int ret = 0;
 
     netret = NetWkstaGetInfo(NULL, 100, (LPBYTE *)&pwkiWorkstationInfo);
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("checkDomain: NetWkstaGetInfo returned %d"), netret);
+#endif
     if (netret == NERR_Success) {
         status = OpenPolicy(NULL, GENERIC_READ | POLICY_VIEW_LOCAL_INFORMATION, &PolicyHandle);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("checkDomain: OpenPolicy returned %d\n"), status);
         if (!status) {
+#ifdef _DEBUG
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("checkDomain: LsaQueryInformationPolicy call ahead"));fflush(NULL);
+#endif
             status = LsaQueryInformationPolicy(PolicyHandle, PolicyPrimaryDomainInformation, &ppdiDomainInfo);
+#ifdef _DEBUG
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("checkDomain: LsaQueryInformationPolicy returned %d"), status);
+#endif
             if (!status) {
-                AllocWStrFromLSAStr(&ResName, ppdiDomainInfo->Name);
-                if (ppdiDomainInfo->Sid) {
-                    ret = 1;
-                } else {
-                    if (_tcsncmp(ResName, (LPWSTR)pwkiWorkstationInfo->wki100_computername,
-                                 wcslen((LPWSTR)pwkiWorkstationInfo->wki100_computername))) {
-                        ret = 2;
+#ifdef _DEBUG
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
+                TEXT("checkDomain: LsaQueryInformationPolicy:ppdiDomainInfo->maxlen = %d, len=%d, buffer=%s, strlen=%d"),
+                ppdiDomainInfo->Name.MaximumLength,ppdiDomainInfo->Name.Length ,ppdiDomainInfo->Name.Buffer, wcslen(ppdiDomainInfo->Name.Buffer));
+#endif
+                ResName = malloc((wcslen(ppdiDomainInfo->Name.Buffer) + 1 ) * sizeof(wchar_t));
+                if (ResName) {
+                    _tcsncpy(ResName, ppdiDomainInfo->Name.Buffer, wcslen(ppdiDomainInfo->Name.Buffer) + 1);
+                    if (ppdiDomainInfo->Sid) {
+                        ret = 1;
                     } else {
-                        ret = 3;
+#ifdef _DEBUG
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, 
+                            TEXT("checkDomain: comparing %s vs. %s"), ResName,
+                            pwkiWorkstationInfo->wki100_computername);
+#endif
+                        if (_tcsncmp(ResName, pwkiWorkstationInfo->wki100_computername,
+                                     wcslen(pwkiWorkstationInfo->wki100_computername))) {
+                            ret = 2;
+                        } else {
+                           ret = 3;
+                       }
                     }
+                    free(ResName);
                 }
-                LocalFree(ResName);
+                LsaFreeMemory((LPVOID)ppdiDomainInfo);
             }
+            LsaClose(PolicyHandle);
         }
         NetApiBufferFree(pwkiWorkstationInfo);
-        LsaFreeMemory((LPVOID)ppdiDomainInfo);
     }
     return ret;
 }
@@ -3252,15 +3275,30 @@ LSA_HANDLE wrapperGetPolicyHandle(TCHAR* referencedDomainName) {
     int k;
 
     k = checkDomain();
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("checkDomain returns %d."), k);
+#endif
     if (k > 0) {
         if (k > 1) {
+#ifdef _DEBUG
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("OpenPolicy call %s "), referencedDomainName);
+#endif
             ntsResult = OpenPolicy(referencedDomainName,    /* Name of the target system. */
                               POLICY_LOOKUP_NAMES | POLICY_CREATE_ACCOUNT, /* Desired access permissions. */
                               &lsahPolicyHandle); /*Receives the policy handle. */
+#ifdef _DEBUG
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("OpenPolicy returns %d."), ntsResult);
+#endif
         } else {
+#ifdef _DEBUG
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("OpenPolicy call NULL."));
+#endif
             ntsResult = OpenPolicy(NULL,    /* Name of the target system. */
                               POLICY_LOOKUP_NAMES | POLICY_CREATE_ACCOUNT, /* Desired access permissions. */
                               &lsahPolicyHandle); /*Receives the policy handle. */
+#ifdef _DEBUG
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("OpenPolicy returns %d."), ntsResult);
+#endif
         }
         if (ntsResult != STATUS_SUCCESS) {
         /* An error occurred. Display it as a win32 error code. */
@@ -3284,29 +3322,39 @@ PSID wrapperLookupName(LPCTSTR lpszAccountName, WCHAR **referencedDomainName) {
     SID_NAME_USE eUse;  
     LPCTSTR formattedAccountName;
 
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("lookupname: %s"), lpszAccountName);
+#endif
     if (_tcsstr(lpszAccountName, TEXT(".\\")) == lpszAccountName) {
         formattedAccountName = lpszAccountName + 2;
     } else { 
         formattedAccountName= lpszAccountName;
     }
 
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("lookupname:formatedname %s"), formattedAccountName);
+#endif
+
     cbReferencedDomainName = cbSid = 0;
-    if (LookupAccountName(NULL, formattedAccountName, 0, &cbSid, 0, &cbReferencedDomainName, &eUse)) {
+    if (LookupAccountName(NULL, formattedAccountName, NULL, &cbSid, NULL, &cbReferencedDomainName, &eUse)) {
         /* A straight success - that can't be... */
         return 0;
     }
     lastError = GetLastError();
     if (lastError != ERROR_INSUFFICIENT_BUFFER) {
         /* Any error except the one above is fatal.. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Failed to lookup the account (%s): %d - %s\n"), lpszAccountName, lastError, getLastErrorText());
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Failed to lookup the account (%s): %d - %s"), lpszAccountName, lastError, getLastErrorText());
         return 0;
     }
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("lookupname:cbSID %d ; cbDomain %d"), cbSid, cbReferencedDomainName);
+#endif
     if (!(Sid = (PSID)malloc(cbSid))) {
         outOfMemory(TEXT("WLN"), 1);
         return 0;
     }
 
-    *referencedDomainName = (LPTSTR)malloc((cbReferencedDomainName + 1) * sizeof(TCHAR));
+    *referencedDomainName = (LPTSTR)calloc((cbReferencedDomainName ), sizeof(TCHAR));
     if (!(*referencedDomainName)) {
         LocalFree(Sid);
         outOfMemory(TEXT("WLN"), 2);
@@ -3315,9 +3363,12 @@ PSID wrapperLookupName(LPCTSTR lpszAccountName, WCHAR **referencedDomainName) {
     if (!LookupAccountName(NULL, formattedAccountName, Sid, &cbSid, *referencedDomainName, &cbReferencedDomainName, &eUse)) {
         free(*referencedDomainName);
         free(Sid);
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Failed to lookup the account (%s): %d - %s\n"), lpszAccountName, lastError, getLastErrorText());
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Failed to lookup the account (%s): %d - %s"), lpszAccountName, lastError, getLastErrorText());
         return 0;
     }
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("lookupname:cbreferencedDomain %s"), *referencedDomainName);
+#endif
     return Sid;
 }
 
@@ -3340,22 +3391,26 @@ BOOL wrapperAddPrivileges(TCHAR *account) {
 
     AccountSID = wrapperLookupName(account, &referencedDomainName);	
 
-    if (AccountSID) {		
+    if (AccountSID) {
         if ((PolicyHandle = wrapperGetPolicyHandle(referencedDomainName)) != NULL) {
             /* Create an LSA_UNICODE_STRING for the privilege names. */
             pointer = malloc(sizeof(LSA_UNICODE_STRING));
-            pointer[0] = InitLsaString(privileges);
-
-            ntsResult = LsaAddAccountRights(PolicyHandle, /* An open policy handle. */
-                                        AccountSID, /* The target SID. */
-                                        pointer, /* The privileges. */
-                                        counter); /* Number of privileges. */
-            free(pointer);
-            if (ntsResult == STATUS_SUCCESS) {
-                retVal =  FALSE;
+            if (pointer == NULL) {
+                outOfMemory(TEXT("WAP"), 1);
             } else {
-               log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Failed to add Logon As Service Permission: %lu\n"), LsaNtStatusToWinError(ntsResult));
+                InitLsaString(pointer, privileges);
+                ntsResult = LsaAddAccountRights(PolicyHandle, /* An open policy handle. */
+                                            AccountSID, /* The target SID. */
+                                            pointer, /* The privileges. */
+                                            counter); /* Number of privileges. */
+                free(pointer);
+                if (ntsResult == STATUS_SUCCESS) {
+                    retVal =  FALSE;
+                } else {
+                   log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Failed to add Logon As Service Permission: %lu"), LsaNtStatusToWinError(ntsResult));
+                }
             }
+            LsaClose(PolicyHandle);
         } 
         free(AccountSID);
         free(referencedDomainName);
@@ -6109,21 +6164,9 @@ void _tmain(int argc, TCHAR **argv) {
                 rollLogs();
             }
 
-            /* Write pid and anchor files as requested.  If they are the same file the file is
-             *  simply overwritten. */
             cleanUpPIDFilesOnExit = TRUE;
-            if (wrapperData->anchorFilename) {
-                if (writePidFile(wrapperData->anchorFilename, wrapperData->wrapperPID, wrapperData->anchorFileUmask)) {
-                    log_printf
-                        (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                         TEXT("ERROR: Could not write anchor file %s: %s"),
-                         wrapperData->anchorFilename, getLastErrorText());
-                    appExit(1);
-                    return; /* For clarity. */
-                }
-            }
             if (wrapperData->pidFilename) {
-                if (writePidFile(wrapperData->pidFilename, wrapperData->wrapperPID, wrapperData->pidFileUmask)) {
+                if (writePidFile(wrapperData->pidFilename, wrapperData->wrapperPID, wrapperData->pidFileUmask, TRUE)) {
                     log_printf
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                          TEXT("ERROR: Could not write pid file %s: %s"),
@@ -6132,8 +6175,21 @@ void _tmain(int argc, TCHAR **argv) {
                     return; /* For clarity. */
                 }
             }
+            /* Write pid and anchor files as requested.  If they are the same file the file is
+             *  simply overwritten. */
+            if (wrapperData->anchorFilename) {
+                if (writePidFile(wrapperData->anchorFilename, wrapperData->wrapperPID, wrapperData->anchorFileUmask, FALSE)) {
+                    log_printf
+                        (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                         TEXT("ERROR: Could not write anchor file %s: %s"),
+                         wrapperData->anchorFilename, getLastErrorText());
+                    appExit(1);
+                    return; /* For clarity. */
+                }
+            }
+
             if (wrapperData->lockFilename) {
-                if (writePidFile(wrapperData->lockFilename, wrapperData->wrapperPID, wrapperData->lockFileUmask)) {
+                if (writePidFile(wrapperData->lockFilename, wrapperData->wrapperPID, wrapperData->lockFileUmask, FALSE)) {
                     log_printf
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                          TEXT("ERROR: Could not write lock file %s: %s"),
@@ -6170,18 +6226,8 @@ void _tmain(int argc, TCHAR **argv) {
             /* Write pid and anchor files as requested.  If they are the same file the file is
              *  simply overwritten. */
             cleanUpPIDFilesOnExit = TRUE;
-            if (wrapperData->anchorFilename) {
-                if (writePidFile(wrapperData->anchorFilename, wrapperData->wrapperPID, wrapperData->anchorFileUmask)) {
-                    log_printf
-                        (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                         TEXT("ERROR: Could not write anchor file %s: %s"),
-                         wrapperData->anchorFilename, getLastErrorText());
-                    appExit(1);
-                    return; /* For clarity. */
-                }
-            }
             if (wrapperData->pidFilename) {
-                if (writePidFile(wrapperData->pidFilename, wrapperData->wrapperPID, wrapperData->pidFileUmask)) {
+                if (writePidFile(wrapperData->pidFilename, wrapperData->wrapperPID, wrapperData->pidFileUmask, TRUE)) {
                     log_printf
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                          TEXT("ERROR: Could not write pid file %s: %s"),
@@ -6190,6 +6236,18 @@ void _tmain(int argc, TCHAR **argv) {
                     return; /* For clarity. */
                 }
             }
+
+            if (wrapperData->anchorFilename) {
+                if (writePidFile(wrapperData->anchorFilename, wrapperData->wrapperPID, wrapperData->anchorFileUmask, FALSE)) {
+                    log_printf
+                        (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                         TEXT("ERROR: Could not write anchor file %s: %s"),
+                         wrapperData->anchorFilename, getLastErrorText());
+                    appExit(1);
+                    return; /* For clarity. */
+                }
+            }
+
 
             /* Prepare the service table */
             serviceTable[0].lpServiceName = wrapperData->serviceName;
@@ -6292,10 +6350,15 @@ BOOL readAndWriteNamedPipes(HANDLE in, HANDLE out, HANDLE err) {
                 outClosed = TRUE;
             }
             /* currentBlockAvail is already in bytes! */
-            if (ret && (currentBlockAvail > 0) && (currentBlockAvail < 512 * sizeof(TCHAR))) {
+            if (ret && (currentBlockAvail > 0)) {
+                if (currentBlockAvail < 512 * sizeof(TCHAR)) {
+                    writeOut = 512 * sizeof(TCHAR);
+                } else {
+                    writeOut = currentBlockAvail;
+                }
                 /* Clean the buffer before each read, as we don't want old stuff */
                 memset(outbuf,0, sizeof(outbuf));
-                if (ReadFile(out, outbuf, currentBlockAvail, &outRead, NULL) == TRUE) {
+                if (ReadFile(out, outbuf, writeOut, &outRead, NULL) == TRUE) {
                     /* if the message we just read in, doesn't have a new line, it means, that we most likely
                        got the secondary process prompting sth. */
                     if (outbuf[_tcslen(outbuf) - 1] != TEXT('\n')) {

@@ -2,6 +2,13 @@ Java Service Wrapper Revision History.
 --------------------------------------
 
 3.5.14
+* Fix a problem in the AppCommand.bat.in file where a parenthesis in the
+  file name of the Wrapper binary would have caused a 
+  "PATH was unexpected at this time" error.
+* (Standard, Professional) Fix a problem when using a localized version of
+  the Wrapper on Windows 64-bit platforms where the Wrapper would continue
+  to use the default system language even wrapper.lang was used to specify
+  a different language.  Introduced in 3.5.12.
 * Fix a problem in the Windows AppCommand.bat.in command based batch file
   where the 'status' command was incorrectly being reported as 'query' in the
   usage output.  The 'status' command had always worked correctly if used.
@@ -17,6 +24,29 @@ Java Service Wrapper Revision History.
   read-only check of the pid file.
 * Fix a problem with the UNIX script where the 'remove' command was trying to
   stop a running application even when the application had not been installed.
+* Fix a buffer overflow which could potentially cause a crash during the
+  installation of a Windows Service when wrapper.ntservice.account was
+  specified.  This was introduced in 3.5.12.
+* Fix a heap corruption which could occur on startup and potentially cause a
+  crash. Only Windows systems, which use the System Event logs, were affected.
+  Discovered from a code review, there had never been any reports of this
+  causing problems for users.  This could happen if the configured wrapper.log
+  could not be written to as the Wrapper always tries to write to the Event
+  Log in such cases.  Introduced in 3.5.12.
+* Add a new version comparison between the UNIX shell script and Wrapper to
+  start showing a warning in case of a version mismatch.  The check will only
+  work if the shell script and Wrapper are each of at least version 3.5.14.
+* Added a new wrapper.pidfile.strict property which will tell the Wrapper not
+  to start if the pid file already existed.  Defaults to false for backwards
+  compatibility.
+* Make the Java side of the backend socket more resilient in case of a read
+  or write timeout.  The backend socket does not have a timeout set by default
+  so this should not have been an issue.  A couple users reported problems on
+  specific systems however which led to this fix.
+* To aid in the testing of the backend socket timeout, a new
+  wrapper.backend.so_timeout system property was added to make it possible to
+  configure the backend socket to use a timeout.  See the Javadocs of the
+  WrapperManager class for details.
 
 3.5.13
 * Fix a typo in the script where the environment variable 'TR_BIN' should 
