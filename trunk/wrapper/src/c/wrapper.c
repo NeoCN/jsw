@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2011 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2012 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -2533,7 +2533,7 @@ void wrapperGetFileBase(const TCHAR *fileName, TCHAR *baseName) {
 TCHAR *generateVersionBanner() {
     TCHAR *banner = TEXT("Java Service Wrapper %s Edition %s-bit %s\n  Copyright (C) 1999-%s Tanuki Software, Ltd. All Rights Reserved.\n    http://wrapper.tanukisoftware.com");
     TCHAR *product = TEXT("Community");
-    TCHAR *copyright = TEXT("2011");
+    TCHAR *copyright = TEXT("2012");
     TCHAR *buffer;
     size_t len;
 
