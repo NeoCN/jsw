@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper.demo;
 
 /*
- * Copyright (c) 1999, 2011 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2012 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *

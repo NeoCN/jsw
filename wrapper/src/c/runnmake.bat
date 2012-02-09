@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-rem Copyright (c) 1999, 2011 Tanuki Software Inc.
+rem Copyright (c) 1999, 2012 Tanuki Software Inc.
 rem
 rem Java Service Wrapper windows build script.  This script is designed to be
 rem  called by the ant build.xml file.
