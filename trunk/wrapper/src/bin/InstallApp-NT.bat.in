@@ -22,12 +22,17 @@ rem The base name for the Wrapper binary.
 set _WRAPPER_BASE=wrapper
 
 rem The name and location of the Wrapper configuration file.   This will be used
-rem  if the user does not specify a configuration file as the first argument to
-rem  this script.
+rem  if the user does not specify a configuration file as the first parameter to
+rem  this script.  It will not be possible to specify a configuration file on the
+rem  command line if _PASS_THROUGH is set.
 set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf
 
-rem _PASS_THROUGH tells the script to pass all arguments through to the JVM
-rem  as is.
+rem Makes it possible to override the Wrapper configuration file by specifying it
+rem  as the first parameter.
+rem set _WRAPPER_CONF_OVERRIDE=true
+
+rem _PASS_THROUGH tells the script to pass all parameters through to the JVM as
+rem  is.
 rem set _PASS_THROUGH=true
 
 rem Do not modify anything beyond this point
@@ -77,10 +82,12 @@ rem
 rem Find the wrapper.conf
 rem
 :conf
-set _WRAPPER_CONF="%~f1"
-if not [%_WRAPPER_CONF%]==[""] (
-    shift
-    goto :startup
+if not [%_WRAPPER_CONF_OVERRIDE%]==[] (
+    set _WRAPPER_CONF="%~f1"
+    if not [%_WRAPPER_CONF%]==[""] (
+        shift
+        goto :startup
+    )
 )
 set _WRAPPER_CONF="%_WRAPPER_CONF_DEFAULT%"
 

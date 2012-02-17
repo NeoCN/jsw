@@ -782,12 +782,6 @@
               tofile="${bin.dir}/DemoApp.bat"
               filtering="on"/>
         <replace file="${bin.dir}/DemoApp.bat"
-                 token='set _WRAPPER_CONF="%~f1"'
-                 value='set _WRAPPER_CONF=""' />
-        <replace file="${bin.dir}/DemoApp.bat"
-                 token='set _WRAPPER_BASE=wrapper'
-                 value='set _WRAPPER_BASE=..\bin\wrapper' />
-        <replace file="${bin.dir}/DemoApp.bat"
                  token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
                  value='set _WRAPPER_CONF_DEFAULT=../conf/demoapp.conf' />
         
@@ -807,9 +801,6 @@ rem         WRAPPER_HOME/src/bin/App.bat.in
 rem ********************************************************************]]></replacevalue>
         </replace>
         <replace file="${bin.dir}/${app.caps.name}.bat"
-                 token='set _WRAPPER_CONF="%~f1"'
-                 value='set _WRAPPER_CONF=""' />
-        <replace file="${bin.dir}/${app.caps.name}.bat"
                  token='rem set _PASS_THROUGH='
                  value='set _PASS_THROUGH=' />
         
@@ -822,27 +813,34 @@ rem ********************************************************************]]></rep
         <replace file="${bin.dir}/${app.caps.name}Command.bat"
                  token='rem set _PASS_THROUGH='
                  value='set _PASS_THROUGH=' />
+        
         <copy file="${src.dir}/bin/InstallApp-NT.bat.in"
               tofile="${bin.dir}/Install${app.caps.name}-NT.bat"
               filtering="on"/>
         <replace file="${bin.dir}/Install${app.caps.name}-NT.bat"
                  token='rem set _PASS_THROUGH='
                  value='set _PASS_THROUGH=' />
+        
         <copy file="${src.dir}/bin/UninstallApp-NT.bat.in"
               tofile="${bin.dir}/Uninstall${app.caps.name}-NT.bat"
               filtering="on"/>
+        
         <copy file="${src.dir}/bin/StartApp-NT.bat.in"
               tofile="${bin.dir}/Start${app.caps.name}-NT.bat"
               filtering="on"/>
+        
         <copy file="${src.dir}/bin/StopApp-NT.bat.in"
               tofile="${bin.dir}/Stop${app.caps.name}-NT.bat"
               filtering="on"/>
+        
         <copy file="${src.dir}/bin/PauseApp-NT.bat.in"
               tofile="${bin.dir}/Pause${app.caps.name}-NT.bat"
               filtering="on"/>
+        
         <copy file="${src.dir}/bin/ResumeApp-NT.bat.in"
               tofile="${bin.dir}/Resume${app.caps.name}-NT.bat"
               filtering="on"/>
+        
         <copy file="${src.dir}/bin/QueryApp-NT.bat.in"
               tofile="${bin.dir}/Query${app.caps.name}-NT.bat"
               filtering="on"/>
