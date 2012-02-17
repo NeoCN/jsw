@@ -22,9 +22,13 @@ rem The base name for the Wrapper binary.
 set _WRAPPER_BASE=wrapper
 
 rem The name and location of the Wrapper configuration file.   This will be used
-rem  if the user does not specify a configuration file as the first argument to
+rem  if the user does not specify a configuration file as the first parameter to
 rem  this script.
 set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf
+
+rem Makes it possible to override the Wrapper configuration file by specifying it
+rem  as the first parameter.
+rem set _WRAPPER_CONF_OVERRIDE=true
 
 rem Note that it is only possible to pass parameters through to the JVM when
 rem  installing the service, or when running in a console.
@@ -76,10 +80,12 @@ rem
 rem Find the wrapper.conf
 rem
 :conf
-set _WRAPPER_CONF="%~f1"
-if not [%_WRAPPER_CONF%]==[""] (
-    shift
-    goto :startup
+if not [%_WRAPPER_CONF_OVERRIDE%]==[] (
+    set _WRAPPER_CONF="%~f1"
+    if not [%_WRAPPER_CONF%]==[""] (
+        shift
+        goto :startup
+    )
 )
 set _WRAPPER_CONF="%_WRAPPER_CONF_DEFAULT%"
 

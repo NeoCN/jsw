@@ -25,14 +25,14 @@ rem The name and location of the Wrapper configuration file.
 rem  (Do not remove quotes.)
 set _WRAPPER_CONF="../conf/wrapper.conf"
 
-rem _FIXED_COMMAND tells the script to use a hard coded action rather than
+rem _FIXED_COMMAND tells the script to use a hard coded command rather than
 rem  expecting the first parameter of the command line to be the command.
 rem  By default the command will will be expected to be the first parameter.
 rem set _FIXED_COMMAND=console
 
-rem _PASS_THROUGH tells the script to pass all arguments through to the JVM
-rem  as is.  If _FIXED_COMMAND is specified then all arguments will be passed.
-rem  If not set then all arguments starting with the second will be passed.
+rem _PASS_THROUGH tells the script to pass all parameters through to the JVM
+rem  as is.  If _FIXED_COMMAND is specified then all parameters will be passed.
+rem  If not set then all parameters starting with the second will be passed.
 set _PASS_THROUGH=true
 
 rem Do not modify anything beyond this point

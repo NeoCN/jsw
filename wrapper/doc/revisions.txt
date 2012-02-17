@@ -1,6 +1,13 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 
+3.5.15
+* Add a new _WRAPPER_CONF_OVERRIDE setting to the Wrapper dedicated command
+  batch files on Windows so it is now possible to control whether or not the
+  first parameter is the configuration file name.  The ability to specify an
+  alternate configuration file is now disabled by default as it was confusing
+  for users who tried to pass other parameters to the JVM.
+
 3.5.14
 * Fix a problem in the AppCommand.bat.in file where a parenthesis in the
   file name of the Wrapper binary would have caused a 
