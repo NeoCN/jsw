@@ -415,8 +415,8 @@ int writePidFile(const TCHAR *filename, DWORD pid, int newUmask, int exclusive) 
     FILE *pid_fp = NULL;
     int old_umask;
 
-    if (getBooleanProperty(properties, TEXT("wrapper.pidfile.strict"), FALSE, FALSE) == TRUE && 
-        exclusive == TRUE && file_exists(filename)) {
+    if ((getBooleanProperty(properties, TEXT("wrapper.pidfile.strict"), FALSE, FALSE) == TRUE) && 
+        (exclusive == TRUE) && wrapperFileExists(filename)) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
             TEXT("%d pid file, %s, already exists."), pid, filename);
         cleanUpPIDFilesOnExit = FALSE;

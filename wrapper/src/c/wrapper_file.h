@@ -48,6 +48,13 @@ extern TCHAR** wrapperFileGetFiles(const TCHAR* pattern, int sortMode);
  */
 extern void wrapperFileFreeFiles(TCHAR** files);
 
+/**
+ * Tests whether a file exists.
+ *
+ * @return TRUE if exists, FALSE otherwise.
+ */
+extern int wrapperFileExists(const TCHAR * filename);
+
 #ifdef WIN32
 extern int wrapperGetUNCFilePath(const TCHAR *path, int advice);
 #endif

@@ -187,16 +187,6 @@ struct tm getInfoTime(const TCHAR *date, const TCHAR *time) {
     return buildTM;
 }
 
-int file_exists(const TCHAR * filename) {
-    FILE * file;
-    if ((file = _tfopen(filename, TEXT("r")))) {
-        fclose(file);
-        return TRUE;
-    }
-    return FALSE;
-}
-
-
 struct tm wrapperGetReleaseTime() {
     return getInfoTime(wrapperReleaseDate, wrapperReleaseTime);
 }

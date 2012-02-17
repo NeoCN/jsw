@@ -589,6 +589,19 @@ void wrapperFileFreeFiles(TCHAR** files) {
     free(files);
 }
 
+/**
+ * Tests whether a file exists.
+ *
+ * @return TRUE if exists, FALSE otherwise.
+ */
+int wrapperFileExists(const TCHAR * filename) {
+    FILE * file;
+    if ((file = _tfopen(filename, TEXT("r")))) {
+        fclose(file);
+        return TRUE;
+    }
+    return FALSE;
+}
 
 /**
  * @param path to check.
