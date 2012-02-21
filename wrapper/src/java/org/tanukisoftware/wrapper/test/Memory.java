@@ -29,11 +29,10 @@ package org.tanukisoftware.wrapper.test;
  * included in all copies or substantial portions of the Software.
  */
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 
 /**
  *
@@ -42,67 +41,75 @@ import java.lang.reflect.Method;
  */
 public class Memory implements Runnable
 {
-    private Writer m_writer;
+    private static Memory c_theInstance;
+    
     private Thread m_runner;
+    
+    /*---------------------------------------------------------------
+     * Constructor
+     *-------------------------------------------------------------*/
+    private Memory()
+    {
+        // Start the runner
+        m_runner = new Thread( this, "runner" );
+        m_runner.start();
+    }
     
     /*---------------------------------------------------------------
      * Runnable Method
      *-------------------------------------------------------------*/
     public void run()
     {
-        if ( m_runner == null )
-        {
-            // This is the runner
-            m_runner = Thread.currentThread();
-        }
-        else
-        {
-            System.out.println(Main.getRes().getString( "Stopping..." ) );
-            // This is the shutdown hook.  Sloppy code, but simple :-)
-            m_runner = null;
-            return;
-        }
-        
         long startTime = System.currentTimeMillis();
         long lastTest = startTime;
         try
         {
-            m_writer.write( Main.getRes().getString( "--> Starting Memory Log\n" ) );
-            m_writer.flush();
-    
-            while( m_runner != null )
-            {
-                long now = System.currentTimeMillis();
-                System.out.println( Main.getRes().getString( "Running for {0}ms...", new Long( now - startTime ) ) );
-                
-                if ( now - lastTest > 15000 )
-                {
-                    Runtime rt = Runtime.getRuntime();
-                    System.gc();
-                    long totalMemory = rt.totalMemory();
-                    long freeMemory = rt.freeMemory();
-                    long usedMemory = totalMemory - freeMemory;
-                    
-                    m_writer.write( Main.getRes().getString( "total memory=" ) + pad( totalMemory, 10 )
-                        + Main.getRes().getString( ", used=" ) + pad( usedMemory, 10 )
-                        + Main.getRes().getString( ", free=" ) + pad( freeMemory, 10 ) + "\n" );
-                    m_writer.flush();
-                    
-                    lastTest = now;
-                }
-                
-                try
-                {
-                    Thread.sleep( 250 );
-                }
-                catch ( InterruptedException e )
-                {
-                }
-            }
+            File file = new File( "../logs/memory.log" );
+            System.out.println( Main.getRes().getString( "Writing memory Log to: {0}", file ) );
             
-            m_writer.write( Main.getRes().getString( "<-- Stopping Memory Log\n" ) );
-            m_writer.flush();
-            m_writer.close();
+            Writer writer = new FileWriter( file );
+            try
+            {
+                writer.write( Main.getRes().getString( "--> Starting Memory Log\n" ) );
+                writer.flush();
+                
+                while( m_runner != null )
+                {
+                    long now = System.currentTimeMillis();
+                    System.out.println( Main.getRes().getString( "Running for {0}ms...", new Long( now - startTime ) ) );
+                    
+                    if ( now - lastTest > 15000 )
+                    {
+                        Runtime rt = Runtime.getRuntime();
+                        System.gc();
+                        long totalMemory = rt.totalMemory();
+                        long freeMemory = rt.freeMemory();
+                        long usedMemory = totalMemory - freeMemory;
+                        
+                        writer.write( Main.getRes().getString( "total memory=" ) + pad( totalMemory, 10 )
+                            + Main.getRes().getString( ", used=" ) + pad( usedMemory, 10 )
+                            + Main.getRes().getString( ", free=" ) + pad( freeMemory, 10 ) + "\n" );
+                        writer.flush();
+                        
+                        lastTest = now;
+                    }
+                    
+                    try
+                    {
+                        Thread.sleep( 250 );
+                    }
+                    catch ( InterruptedException e )
+                    {
+                    }
+                }
+                
+                writer.write( Main.getRes().getString( "<-- Stopping Memory Log\n" ) );
+                writer.flush();
+            }
+            finally
+            {
+                writer.close();
+            }
         }
         catch ( IOException e )
         {
@@ -124,6 +131,7 @@ public class Memory implements Runnable
         }
         return s;
     }
+    
     /*---------------------------------------------------------------
      * Main Method
      *-------------------------------------------------------------*/
@@ -131,44 +139,31 @@ public class Memory implements Runnable
     {
         System.out.println( Main.getRes().getString( "Memory Tester Running...") );
         
-        // Locate the add and remove shutdown hook methods using reflection so
-        //  that this class can be compiled on 1.2.x versions of java.
-        Method addShutdownHookMethod;
-        try {
-            addShutdownHookMethod =
-                Runtime.class.getMethod("addShutdownHook", new Class[] {Thread.class});
-        } catch (NoSuchMethodException e) {
-            System.out.println( Main.getRes().getString( "Shutdown hooks not supported by current JVM.") );
-            addShutdownHookMethod = null;
-        }
+        c_theInstance = new Memory();
         
-        Memory app = new Memory();
-        
-        // Create a Writer for the memory output
-        try
-        {
-            app.m_writer = new FileWriter( "memory.log" );
-        }
-        catch ( IOException e )
-        {
-            e.printStackTrace();
-            return;
-        }
-        
-        // Register a shutdown hook using reflection.
-        if (addShutdownHookMethod != null) {
-            Runtime runtime = Runtime.getRuntime();
-            Thread hook = new Thread( app, "shutdown-hook" );
-            try {
-                addShutdownHookMethod.invoke(runtime, new Object[] {hook});
-            } catch (IllegalAccessException e) {
-                System.out.println( Main.getRes().getString( "Unable to register shutdown hook: {0}", e.getMessage() ) );
-            } catch (InvocationTargetException e) {
-                System.out.println( Main.getRes().getString( "Unable to register shutdown hook: {0}", e.getMessage() ) );
-            }
-        }
-        
-        // Start the runner
-        new Thread( app, "runner" ).start();
+        // Register a shutdown hook.
+        Runtime.getRuntime().addShutdownHook( new Thread( "shutdown-hook" )
+            {
+                public void run()
+                {
+                    System.out.println(Main.getRes().getString( "Stopping..." ) );
+                    
+                    Thread runner = c_theInstance.m_runner;
+                    
+                    // Tell the main thread to stop.
+                    c_theInstance.m_runner = null;
+                    
+                    // Wait for the thread to actually stop cleanly.
+                    try
+                    {
+                        runner.join();
+                    }
+                    catch ( InterruptedException e )
+                    {
+                    }
+                    
+                    System.out.println(Main.getRes().getString( "Stopped." ) );
+                }
+            } );
     }
 }
