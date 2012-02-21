@@ -5514,7 +5514,7 @@ public final class WrapperManager
                     if ( m_detachStarted && m_started )
                     {
                         // This and all further output will not be visible anywhere as the Wrapper is now gone.
-                        m_out.println( getRes().getString( "The backend was closed as expected." ) );
+                        m_outInfo.println( getRes().getString( "The backend was closed as expected." ) );
                         
                         try
                         {
@@ -5522,7 +5522,7 @@ public final class WrapperManager
                         }
                         catch ( UnsatisfiedLinkError t )
                         {
-                            m_err.println( getRes().getString( "Failed to redirect stdout and stderr before the Wrapper exits.\nOutput from the JVM may block.\nPlease make sure the native library has been properly initialized."));
+                            m_outError.println( getRes().getString( "Failed to redirect stdout and stderr before the Wrapper exits.\nOutput from the JVM may block.\nPlease make sure the native library has been properly initialized."));
                         }
                     }
                     else
@@ -5616,7 +5616,7 @@ public final class WrapperManager
         public int read()
             throws IOException
         {
-            m_out.println( getRes().getString( "WARNING - System.in has been disabled by the wrapper.disable_console_input property.  Calls will block indefinitely." ) );
+            m_outInfo.println( getRes().getString( "WARNING - System.in has been disabled by the wrapper.disable_console_input property.  Calls will block indefinitely." ) );
             
             // Go into a loop that will never return.
             while ( true )
