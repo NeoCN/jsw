@@ -4981,6 +4981,7 @@ public final class WrapperManager
     {
         if ( m_debug )
         {
+            // We want to show these messages even if we are pretending to be hung.
             if ( ( code == WRAPPER_MSG_PING ) && ( message.equals( "silent" ) ) )
             {
                 // m_outDebug.println( "Send silent ping packet." );
@@ -5003,19 +5004,13 @@ public final class WrapperManager
                     getPacketCodeName( code ) , message ) );
             }
         }
+        
         if ( m_appearHung )
         {
             // The WrapperManager is attempting to make the JVM appear hung, so do nothing
         }
         else
         {
-            // Make a copy of the reference to make this more thread safe.
-            if ( ( !m_backendConnected ) && isControlledByNativeWrapper() && ( !m_stopping ) )
-            {
-                // The socket is not currently open, try opening it.
-                openBackend();
-            }
-            
             if ( ( code == WRAPPER_MSG_START_PENDING ) || ( code == WRAPPER_MSG_STARTED ) )
             {
                 // Set the last ping time so that the startup process does not time out
@@ -5404,92 +5399,88 @@ public final class WrapperManager
         // Initialize the last ping tick count.
         m_lastPingTicks = getTicks();
         
-        boolean gotPortOnce = false;
-        while ( !m_disposed )
+        try
         {
-            try
+            openBackend();
+            
+            // After the socket has been opened the first time, mark the thread as
+            //  started.  This must be done here to make sure that exits work correctly
+            //  when called on startup.
+            if ( !m_commRunnerStarted )
             {
-                openBackend();
-                
-                // After the socket has been opened the first time, mark the thread as
-                //  started.  This must be done here to make sure that exits work correctly
-                //  when called on startup.
-                if ( !m_commRunnerStarted )
+                synchronized( WrapperManager.class )
                 {
-                    synchronized( WrapperManager.class )
-                    {
-                        m_commRunnerStarted = true;
-                        WrapperManager.class.notifyAll();
-                    }
-                }
-                
-                if ( m_backendSocket != null || m_backendConnected == true)
-                {
-                    handleBackend();
-                }
-                else
-                {
-                    // Failed, so wait for just a moment
-                    try
-                    {
-                        Thread.sleep( 100 );
-                    }
-                    catch ( InterruptedException e )
-                    {
-                    }
+                    m_commRunnerStarted = true;
+                    WrapperManager.class.notifyAll();
                 }
             }
-            catch ( ThreadDeath td )
+            
+            if ( m_backendSocket != null || m_backendConnected == true)
             {
-                m_outError.println( getRes().getString( "Server daemon killed" ) );
+                handleBackend();
             }
-            catch ( Throwable t )
+            else
             {
-                if ( !isShuttingDown() )
+                // Failed, so wait for just a moment
+                try
                 {
-                    // Show a stack trace here because this is fairly critical
-                    m_outError.println( getRes().getString( "Server daemon died!" ) );
-                    t.printStackTrace( m_outError );
+                    Thread.sleep( 100 );
                 }
-                else
+                catch ( InterruptedException e )
                 {
-                    if ( m_debug )
-                    {
-                        m_outDebug.println( getRes().getString( "Server daemon died!" ) );
-                        t.printStackTrace( m_outDebug );
-                    }
                 }
             }
-            finally
+        }
+        catch ( ThreadDeath td )
+        {
+            m_outError.println( getRes().getString( "Server daemon killed" ) );
+        }
+        catch ( Throwable t )
+        {
+            if ( !isShuttingDown() )
+            {
+                // Show a stack trace here because this is fairly critical
+                m_outError.println( getRes().getString( "Server daemon died!" ) );
+                t.printStackTrace( m_outError );
+            }
+            else
             {
                 if ( m_debug )
                 {
-                    m_outDebug.println( getRes().getString( "Returned from backend handler." ) ); 
+                    m_outDebug.println( getRes().getString( "Server daemon died!" ) );
+                    t.printStackTrace( m_outDebug );
                 }
-                // Always close the backend here.
-                closeBackend();
-                if ( !isShuttingDown() )
+            }
+        }
+        finally
+        {
+            if ( m_debug )
+            {
+                m_outDebug.println( getRes().getString( "Returned from backend handler." ) ); 
+            }
+            // Always close the backend here.
+            closeBackend();
+            if ( !isShuttingDown() )
+            {
+                if ( m_detachStarted && m_started )
                 {
-                    if ( m_detachStarted && m_started )
+                    // This and all further output will not be visible anywhere as the Wrapper is now gone.
+                    m_outInfo.println( getRes().getString( "The backend was closed as expected." ) );
+                    
+                    try
                     {
-                        // This and all further output will not be visible anywhere as the Wrapper is now gone.
-                        m_outInfo.println( getRes().getString( "The backend was closed as expected." ) );
-                        
-                        try
-                        {
-                            nativeRedirectPipes();
-                        }
-                        catch ( UnsatisfiedLinkError t )
-                        {
-                            m_outError.println( getRes().getString( "Failed to redirect stdout and stderr before the Wrapper exits.\nOutput from the JVM may block.\nPlease make sure the native library has been properly initialized."));
-                        }
+                        nativeRedirectPipes();
                     }
-                    else
+                    catch ( UnsatisfiedLinkError t )
                     {
-                        m_outError.println( getRes().getString( "The backend was closed unexpectedly.  Restart to resync with the Wrapper." ) );
-                        restart();
-                        // Will not get here.
+                        m_outError.println( getRes().getString( "Failed to redirect stdout and stderr before the Wrapper exits.\nOutput from the JVM may block.\nPlease make sure the native library has been properly initialized."));
                     }
+                }
+                else
+                {
+                    m_outError.println( getRes().getString( "The backend was closed unexpectedly.  Restart to resync with the Wrapper." ) );
+                    restart();
+                    // Will not get here.
                 }
             }
         }
