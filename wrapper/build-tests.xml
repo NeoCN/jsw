@@ -248,6 +248,34 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
 wrapper.debug=TRUE]]></replacevalue>
         </replace>
         
+        <!-- Log StdOutStdErr Test -->
+        <delete file="${test.dir}/logstdoutstderr.conf"/>
+        <filter token="app.name"          value="logstdoutstderr"/>
+        <filter token="app.long.name"     value="Log stdout stderr Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/logstdoutstderr.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/logstdoutstderr.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.LogStdoutStderr" />
+        
+        <!-- Log StdOutStdErrDetached Test -->
+        <delete file="${test.dir}/logstdoutstderrdetached.conf"/>
+        <filter token="app.name"          value="logstdoutstderrdetached"/>
+        <filter token="app.long.name"     value="Log Stdout Stderr Detached Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/logstdoutstderrdetached.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/logstdoutstderrdetached.conf">
+            <replacetoken><![CDATA[wrapper.app.parameter.1=<YourMainClass>]]></replacetoken>
+            <replacevalue><![CDATA[wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.LogStdoutStderr
+wrapper.app.parameter.1=true
+
+wrapper.jvm_detach_started=TRUE
+wrapper.java.outfile=../logs/java.stdout.log
+wrapper.java.errfile=../logs/java.stderr.log]]></replacevalue>
+        </replace>
+        
         <!-- Loaded GC Output Test -->
         <delete file="${test.dir}/loadedgcoutput.conf"/>
         <filter token="app.name"          value="loadedgcoutput"/>
@@ -715,6 +743,31 @@ set ENV_VAR_4=d]]></replacevalue>
                  token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
                  value='set _WRAPPER_CONF_DEFAULT=../test/loadedlogoutput.conf' />
         
+        <!-- Log StdOutStdErr Test -->
+        <delete file="${test.dir}/TestLogStdoutStderr.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestLogStdoutStderr.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestLogStdoutStderr.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestLogStdoutStderr.bat"
+                 token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/logstdoutstderr.conf' />
+        
+        
+        <!-- Log StdOutStdErrDetached Test -->
+        <delete file="${test.dir}/TestLogStdoutStderrDetached.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestLogStdoutStderrDetached.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestLogStdoutStderrDetached.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestLogStdoutStderrDetached.bat"
+                 token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/logstdoutstderrdetached.conf' />
+        
         <!-- Loaded GC Output Test -->
         <delete file="${test.dir}/TestLoadedGCOutput.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
@@ -1077,6 +1130,22 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/loadedlogoutput"
               filtering="on"/>
         <chmod file="${test.dir}/loadedlogoutput" perm="+x"/> 
+        
+        <!-- Log StdOutStdErr Test -->
+        <filter token="app.name"          value="logstdoutstderr"/>
+        <filter token="app.long.name"     value="Log StdOutStdErr Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/logstdoutstderr"
+              filtering="on"/>
+        <chmod file="${test.dir}/logstdoutstderr" perm="+x"/> 
+        
+        <!-- Log StdOutStdErrDetached Test -->
+        <filter token="app.name"          value="logstdoutstderrdetached"/>
+        <filter token="app.long.name"     value="Log StdOutStdErrDetached Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/logstdoutstderrdetached"
+              filtering="on"/>
+        <chmod file="${test.dir}/logstdoutstderrdetached" perm="+x"/> 
         
         <!-- Loaded GC Output Test -->
         <filter token="app.name"          value="loadedgcoutput"/>
