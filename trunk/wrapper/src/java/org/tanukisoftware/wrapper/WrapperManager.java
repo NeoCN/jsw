@@ -3111,7 +3111,7 @@ public final class WrapperManager
         if ( m_debug )
         {
             m_outDebug.println( getRes().getString(
-                    "WrapperManager.stop({0}) called by thread: {1}" ,
+                    "WrapperManager.stop({0}) called by thread: {1}",
                     new Integer( exitCode ), Thread.currentThread().getName() ) );
         }
         
@@ -3237,58 +3237,7 @@ public final class WrapperManager
         
         signalStopped( exitCode );
         
-        // Execute runtime.halt(0) using reflection so this class will
-        //  compile on 1.2.x versions of Java.
-        Method haltMethod;
-        try
-        {
-            haltMethod =
-                Runtime.class.getMethod( "halt", new Class[] { Integer.TYPE } );
-        }
-        catch ( NoSuchMethodException e )
-        {
-            m_outError.println( getRes().getString( "halt not supported by current JVM." ) );
-            haltMethod = null;
-        }
-        
-        if ( haltMethod != null )
-        {
-            Runtime runtime = Runtime.getRuntime();
-            try
-            {
-                haltMethod.invoke( runtime, new Object[] { new Integer( exitCode ) } );
-            }
-            catch ( IllegalAccessException e )
-            {
-                m_outError.println( getRes().getString( "Unable to call runtime.halt: {0}" , e ) );
-            }
-            catch ( InvocationTargetException e )
-            {
-                Throwable t = e.getTargetException();
-                if ( t == null )
-                {
-                    t = e;
-                }
-                
-                m_outError.println(getRes().getString( "Unable to call runtime.halt: {0}" , t ) );
-            }
-        }
-        else
-        {
-            // Shutdown normally
-            
-            // This is safe because we are already checking for the privilege to stop the JVM
-            //  above.  If we get this far then we want the Wrapper to be able to do everything
-            //  necessary to stop the JVM.
-            AccessController.doPrivileged(
-                new PrivilegedAction() {
-                    public Object run() {
-                        privilegedStopInner( exitCode );
-                        return null;
-                    }
-                }
-            );
-        }
+        Runtime.getRuntime().halt( exitCode );
     }
     
     /**
@@ -3881,15 +3830,22 @@ public final class WrapperManager
             // Always send the stop command
             sendCommand( WRAPPER_MSG_STOP, Integer.toString( exitCode ) );
             
-            // Give the Wrapper a chance to register the stop command before stopping.
-            // This avoids any errors thrown by the Wrapper because the JVM died before
-            //  it was expected to.
-            try
+            if ( delay > 0 )
             {
-                Thread.sleep( delay );
-            }
-            catch ( InterruptedException e )
-            {
+                // Give the Wrapper a chance to register the stop command before stopping.
+                // This avoids any errors thrown by the Wrapper because the JVM died before
+                //  it was expected to.
+                if ( m_debug )
+                {
+                    m_outDebug.println( getRes().getString( "Pausing for {0}ms to allow a clean shutdown...", new Integer( delay ) ) );
+                }
+                try
+                {
+                    Thread.sleep( delay );
+                }
+                catch ( InterruptedException e )
+                {
+                }
             }
         }
     }

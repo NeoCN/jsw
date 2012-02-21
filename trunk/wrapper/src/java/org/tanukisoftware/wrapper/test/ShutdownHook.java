@@ -29,9 +29,6 @@ package org.tanukisoftware.wrapper.test;
  * included in all copies or substantial portions of the Software.
  */
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
 /**
  *
  *
@@ -42,50 +39,32 @@ public class ShutdownHook {
      * Main Method
      *-------------------------------------------------------------*/
     public static void main(String[] args) {
-        // Locate the add and remove shutdown hook methods using reflection so
-        //  that this class can be compiled on 1.2.x versions of java.
-        Method addShutdownHookMethod;
-        try {
-            addShutdownHookMethod =
-                Runtime.class.getMethod("addShutdownHook", new Class[] {Thread.class});
-        } catch (NoSuchMethodException e) {
-            System.out.println( Main.getRes().getString( "Shutdown hooks not supported by current JVM.") );
-            return;
-        }
-        
         System.out.println( Main.getRes().getString( "This application registers a shutdown hook which") );
         System.out.println( Main.getRes().getString( "should be executed after the JVM has told the Wrapper") );
         System.out.println( Main.getRes().getString( "it is exiting." ) );
         System.out.println( Main.getRes().getString( "This is to test the wrapper.jvm_exit.timeout property" ) );
         
-        Runtime runtime = Runtime.getRuntime();
-        Thread hook = new Thread() {
-                public void run() {
-                    System.out.println( Main.getRes().getString( "Starting shutdown hook. Loop for 25 seconds.") );
-                    System.out.println( Main.getRes().getString( "Should timeout unless this property is set: wrapper.jvm_exit.timeout=30" ) );
+        Runtime.getRuntime().addShutdownHook( new Thread()
+        {
+            public void run() {
+                System.out.println( Main.getRes().getString( "Starting shutdown hook. Loop for 25 seconds.") );
+                System.out.println( Main.getRes().getString( "Should timeout unless this property is set: wrapper.jvm_exit.timeout=30" ) );
 
-                    long start = System.currentTimeMillis();
-                    while(System.currentTimeMillis() - start < 25000)
+                long start = System.currentTimeMillis();
+                while(System.currentTimeMillis() - start < 25000)
+                {
+                    try
                     {
-                        try
-                        {
-                            Thread.sleep( 250 );
-                        }
-                        catch ( InterruptedException e )
-                        {
-                            // Ignore
-                        }
+                        Thread.sleep( 250 );
                     }
-                    System.out.println( Main.getRes().getString( "Shutdown hook complete. Should exit now." ) );
+                    catch ( InterruptedException e )
+                    {
+                        // Ignore
+                    }
                 }
-            };
-        try {
-            addShutdownHookMethod.invoke(runtime, new Object[] {hook});
-        } catch (IllegalAccessException e) {
-            System.out.println( Main.getRes().getString( "Unable to register shutdown hook: {0}", e.getMessage() ) );
-        } catch (InvocationTargetException e) {
-            System.out.println( Main.getRes().getString( "Unable to register shutdown hook: {0}", e.getMessage() ) );
-        }
+                System.out.println( Main.getRes().getString( "Shutdown hook complete. Should exit now." ) );
+            }
+        } );
         
         System.out.println( Main.getRes().getString( "Application complete.  Wrapper should stop, invoking the shutdown hooks." ) );
         System.out.println();

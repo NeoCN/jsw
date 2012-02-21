@@ -9,6 +9,8 @@ Java Service Wrapper Revision History.
   for users who tried to pass other parameters to the JVM.
 * Correct a couple log messages in the WrapperManager class which were missing
   the correct prefix identifying where they originated.
+* Remove some old reflection code needed for Java 1.2.x support as we have
+  required Java 1.4 since version 3.4.0.
 
 3.5.14
 * Fix a problem in the AppCommand.bat.in file where a parenthesis in the

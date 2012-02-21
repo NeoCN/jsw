@@ -11,7 +11,8 @@ package org.tanukisoftware.wrapper;
  * http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
  */
 
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A WrapperUser contains information about a user account on the platform
@@ -25,9 +26,8 @@ public abstract class WrapperUser
     /* The name of the user. */
     private String m_user;
     
-    /** A list of the groups that this user is registered with.
-     *   This uses a Vector to be compatable with 1.2.x JVMs. */
-    private Vector m_groups = new Vector();
+    /** A list of the groups that this user is registered with. */
+    private List m_groups = new ArrayList();
     
     /*---------------------------------------------------------------
      * Constructors
@@ -58,7 +58,7 @@ public abstract class WrapperUser
      */
     void addGroup( WrapperGroup group )
     {
-        m_groups.addElement( group );
+        m_groups.add( group );
     }
     
     /**
