@@ -7,6 +7,8 @@ Java Service Wrapper Revision History.
   first parameter is the configuration file name.  The ability to specify an
   alternate configuration file is now disabled by default as it was confusing
   for users who tried to pass other parameters to the JVM.
+* Correct a couple log messages in the WrapperManager class which were missing
+  the correct prefix identifying where they originated.
 
 3.5.14
 * Fix a problem in the AppCommand.bat.in file where a parenthesis in the

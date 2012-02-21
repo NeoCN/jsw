@@ -269,7 +269,7 @@ wrapper.debug=TRUE]]></replacevalue>
         <replace file="${test.dir}/logstdoutstderrdetached.conf">
             <replacetoken><![CDATA[wrapper.app.parameter.1=<YourMainClass>]]></replacetoken>
             <replacevalue><![CDATA[wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.LogStdoutStderr
-wrapper.app.parameter.1=true
+wrapper.app.parameter.2=true
 
 wrapper.jvm_detach_started=TRUE
 wrapper.java.outfile=../logs/java.stdout.log
