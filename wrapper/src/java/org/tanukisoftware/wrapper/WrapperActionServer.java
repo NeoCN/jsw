@@ -13,8 +13,6 @@ package org.tanukisoftware.wrapper;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
@@ -447,38 +445,7 @@ public class WrapperActionServer
                 {
                     public void run()
                     {
-                        // Execute runtime.halt(0) using reflection so this class will
-                        //  compile on 1.2.x versions of Java.
-                        Method haltMethod;
-                        try
-                        {
-                            haltMethod =
-                                Runtime.class.getMethod( "halt", new Class[] { Integer.TYPE } );
-                        }
-                        catch ( NoSuchMethodException e )
-                        {
-                            m_out.println( WrapperManager.getRes().getString( "halt not supported by current JVM." ) );
-                            haltMethod = null;
-                        }
-                        
-                        if ( haltMethod != null )
-                        {
-                            Runtime runtime = Runtime.getRuntime();
-                            try
-                            {
-                                haltMethod.invoke( runtime, new Object[] { new Integer( 0 ) } );
-                            }
-                            catch ( IllegalAccessException e )
-                            {
-                                m_out.println( WrapperManager.getRes().getString(
-                                    "Unable to call runitme.halt: {0}", e.getMessage() ) );
-                            }
-                            catch ( InvocationTargetException e )
-                            {
-                                m_out.println( WrapperManager.getRes().getString( 
-                                    "Unable to call runitme.halt: {0}", e.getMessage() ) );
-                            }
-                        }
+                        Runtime.getRuntime().halt( 0 );
                     }
                 } );
         }
