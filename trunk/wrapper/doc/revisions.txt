@@ -11,6 +11,9 @@ Java Service Wrapper Revision History.
   the correct prefix identifying where they originated.
 * Remove some old reflection code needed for Java 1.2.x support as we have
   required Java 1.4 since version 3.4.0.
+* Remove some code to try to reconnect the backend socket from Java.  It has
+  never been possible to do so without restarting the JVM, and the related
+  messages were confusing.
 
 3.5.14
 * Fix a problem in the AppCommand.bat.in file where a parenthesis in the
