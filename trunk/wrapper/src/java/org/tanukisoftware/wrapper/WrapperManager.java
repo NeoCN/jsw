@@ -2760,9 +2760,9 @@ public final class WrapperManager
             }
             sb.append( "]" );
             
-            m_outDebug.println( getRes().getString( 
-                    "WrapperManager.start({0}, {1}) called by thread: {2}" ,
-                     listener , sb.toString(), Thread.currentThread().getName()  ) );
+            m_outDebug.println( getRes().getString( "{0} called by thread: {1}",
+                "WrapperManager.start(a " + listener.getClass().getName() + ", " + sb.toString() + ")",
+                Thread.currentThread().getName() ) );
         }
         
         synchronized( WrapperManager.class )
@@ -2861,9 +2861,9 @@ public final class WrapperManager
             
             if ( m_debug )
             {
-                m_outDebug.println( getRes().getString( 
-                        "WrapperManager.requestShutdownLock() called by thread: {0}. New thread lock count: {1}, total lock count: {2}",
-                        thisThread.getName(), new Integer( lock.m_count ), new Integer( m_shutdownLocks ) ) );
+                m_outDebug.println( getRes().getString( "{0} called by thread: {1} (New thread lock count: {2}, total lock count: {3})",
+                    "WrapperManager.requestShutdownLock()",
+                    thisThread.getName(), new Integer( lock.m_count ), new Integer( m_shutdownLocks ) ) );
             }
         }
     }
@@ -2891,9 +2891,9 @@ public final class WrapperManager
             
             if ( m_debug )
             {
-                m_outDebug.println( getRes().getString( 
-                "WrapperManager.releaseShutdownLock() called by thread: {0}. New thread lock count: {1}, total lock count: {2}" ,
-                thisThread.getName(), new Integer( lock.m_count ), new Integer( m_shutdownLocks ) ) );
+                m_outDebug.println( getRes().getString( "{0} called by thread: {1} (New thread lock count: {2}, total lock count: {3})",
+                    "WrapperManager.releaseShutdownLock()",
+                    thisThread.getName(), new Integer( lock.m_count ), new Integer( m_shutdownLocks ) ) );
             }
             
             if ( lock.m_count <= 0 )
@@ -2963,8 +2963,9 @@ public final class WrapperManager
         
         if ( m_debug )
         {
-            m_outDebug.println(getRes().getString(
-                    "WrapperManager.restart() called by thread: {0}" , Thread.currentThread().getName() ) );
+            m_outDebug.println( getRes().getString( "{0} called by thread: {1}",
+                "WrapperManager.restart()",
+                Thread.currentThread().getName() ) );
         }
         
         restartInner();
@@ -3003,8 +3004,9 @@ public final class WrapperManager
             {
                 if ( m_debug )
                 {
-                    m_outDebug.println(getRes().getString(
-                            "WrapperManager.restartAndReturn() called by thread: {0} already stopping." ,Thread.currentThread().getName()  ) );
+                    m_outDebug.println( getRes().getString( "{0} called by thread: {1} (already stopping)",
+                        "WrapperManager.restartAndReturn()",
+                        Thread.currentThread().getName() ) );
                 }
                 return;
             }
@@ -3012,8 +3014,9 @@ public final class WrapperManager
             {
                 if ( m_debug )
                 {
-                    m_outDebug.println( getRes().getString(
-                            "WrapperManager.restartAndReturn() called by thread: {0}" ,Thread.currentThread().getName() ) );
+                    m_outDebug.println( getRes().getString( "{0} called by thread: {1}",
+                        "WrapperManager.restartAndReturn()",
+                        Thread.currentThread().getName() ) );
                 }
             }
         }
@@ -3110,9 +3113,9 @@ public final class WrapperManager
         
         if ( m_debug )
         {
-            m_outDebug.println( getRes().getString(
-                    "WrapperManager.stop({0}) called by thread: {1}",
-                    new Integer( exitCode ), Thread.currentThread().getName() ) );
+            m_outDebug.println( getRes().getString( "{0} called by thread: {1}",
+                "WrapperManager.stop(" + exitCode + ")",
+                Thread.currentThread().getName() ) );
         }
         
         stopCommon( exitCode, 1000 );
@@ -3164,9 +3167,9 @@ public final class WrapperManager
             {
                 if ( m_debug )
                 {
-                    m_outDebug.println( getRes().getString(
-                        "WrapperManager.stopAndReturn({0}) called by thread: {1} already stopping.",
-                         new Integer( exitCode ), Thread.currentThread().getName() ) );
+                    m_outDebug.println( getRes().getString( "{0} called by thread: {1} (already stopping)",
+                        "WrapperManager.stopAndReturn(" + exitCode + ")",
+                        Thread.currentThread().getName() ) );
                 }
                 return;
             }
@@ -3174,9 +3177,9 @@ public final class WrapperManager
             {
                 if ( m_debug )
                 {
-                    m_outDebug.println( getRes().getString(
-                        "WrapperManager.stopAndReturn({0}) called by thread: {1}" ,
-                         new Integer( exitCode ), Thread.currentThread().getName()  ) );
+                    m_outDebug.println( getRes().getString( "{0} called by thread: {1}",
+                        "WrapperManager.stopAndReturn(" + exitCode + ")",
+                        Thread.currentThread().getName() ) );
                 }
             }
         }
@@ -3228,9 +3231,9 @@ public final class WrapperManager
         
         if ( m_debug )
         {
-            m_outDebug.println( getRes().getString(
-                    "WrapperManager.stopImmediate({0}) called by thread: {1}" ,
-                    new Integer( exitCode ), Thread.currentThread().getName()  ) );
+            m_outDebug.println( getRes().getString( "{0} called by thread: {1}",
+                "WrapperManager.stopImmediate(" + exitCode + ")",
+                Thread.currentThread().getName() ) );
         }
         
         stopCommon( exitCode, 250 );
