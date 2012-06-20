@@ -1203,7 +1203,7 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
                         }
                     }
 
-                    if (wrapperLoadConfigurationProperties()) {
+                    if (wrapperLoadConfigurationProperties(FALSE)) {
                         /* Failed to reload the configuration.  This is bad.
                          *  The JVM is already down.  Shutdown the Wrapper. */
                         wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);

@@ -122,8 +122,9 @@ TCHAR* getLastErrorText() {
         _sntprintf( lastErrBuf, 1024, TEXT("%s (0x%x)"), lpszTemp, GetLastError());
     }
 
+    /* following the documentation of FormatMessage, LocalFree should be called to free the output buffer. */
     if (lpszTemp) {
-        GlobalFree((HGLOBAL) lpszTemp);
+        LocalFree(lpszTemp);
     }
 
     return lastErrBuf;

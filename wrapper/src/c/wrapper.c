@@ -4847,7 +4847,17 @@ int wrapperBuildJavaCommandArrayJavaAdditional(TCHAR **strings, int addQuotes, i
                     }
                 } else {
                     if (strings) {
+                        /* is quotable also changes the value of the property!
+                           therefore prop can potentially point to free'd memory*/
                         quotable = isQuotableProperty(properties, propertyNames[i]);
+                        if (prop == NULL) {
+                            prop = getStringProperty(properties, propertyNames[i], NULL);
+                            propertyValues[i] = (TCHAR*) prop;
+                            if (prop == NULL) {
+                                freeStringProperties(propertyNames, propertyValues, propertyIndices);
+                                return -1;
+                            }
+                        } 
                         _sntprintf(paramBuffer2, 128, TEXT("wrapper.java.additional.%lu.stripquotes"), propertyIndices[i]);
                         if (addQuotes) {
                             stripQuote = FALSE;
@@ -5548,8 +5558,27 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     }
 
     /* See if the auto bits parameter is set.  Ignored by all but the following platforms. */
-#if defined(HPUX) || defined(MACOSX) || defined(SOLARIS) || defined(FREEBSD)
-    if (getBooleanProperty(properties, TEXT("wrapper.java.additional.auto_bits"), FALSE, showWarnings)) {
+
+#if /*defined(WIN32) || defined(LINUX) ||*/ defined(HPUX) || defined(MACOSX) || defined(SOLARIS) || defined(FREEBSD)
+
+
+    if (getBooleanProperty(properties,
+/*#ifdef WIN32
+                              TEXT("wrapper.java.additional.auto_bits.windows"),
+#elif defined(LINUX)
+                              TEXT("wrapper.java.additional.auto_bits.linux"),
+*/
+#if defined(HPUX)
+                              TEXT("wrapper.java.additional.auto_bits.hpux"),
+#elif defined(SOLARIS)
+                              TEXT("wrapper.java.additional.auto_bits.solaris"),
+#elif defined(FREEBSD)
+                              TEXT("wrapper.java.additional.auto_bits.freebsd"),
+#elif defined(MACOSX)
+                              TEXT("wrapper.java.additional.auto_bits.macosx"),
+#endif
+                              getBooleanProperty(properties, TEXT("wrapper.java.additional.auto_bits"), FALSE, showWarnings),
+                              showWarnings)) {
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * 5);
             if (!strings[index]) {
@@ -6943,6 +6972,9 @@ int loadConfiguration() {
 
     /* Get the shutdown hook status */
     wrapperData->isShutdownHookDisabled = getBooleanProperty(properties, TEXT("wrapper.disable_shutdown_hook"), FALSE, TRUE);
+    
+    /* Get the forced shutdown flag status. */
+    wrapperData->isForcedShutdownDisabled = getBooleanProperty(properties, TEXT("wrapper.disable_forced_shutdown"), FALSE, TRUE);
 
     /* Get the startup delay. */
     startupDelay = getIntProperty(properties, TEXT("wrapper.startup.delay"), 0, TRUE);

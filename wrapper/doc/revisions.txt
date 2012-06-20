@@ -14,7 +14,42 @@ Java Service Wrapper Revision History.
 * Remove some code to try to reconnect the backend socket from Java.  It has
   never been possible to do so without restarting the JVM, and the related
   messages were confusing.
-
+* Add a new wrapper.disable_forced_shutdown property to make it possible to
+  disable the feature to forcibly kill the JVM on shutdown if CTRL-C was
+  pressed twice.
+* Reduce the number of times thread priorities are changed within the
+  WrapperManager class to simplify the startup and shutdown process.
+* Fixed a dangling pointer problem, which could cause undefined behaviour
+  whenever a property contained an unset environment variable.
+* Fix a race condition in the timer thread, which could cause a sigkill 
+  being propagated through the whole process group rather than the timer 
+  thread. This can only happen during the shutdown of the Wrapper. 
+* When a child process, which got launched by WrapperManager.exec()
+  failed to start due to a runtime-error (such as missing privileges), the 
+  forked heap persisted and the child process never finished until 
+  shutdown/restart of the JVM. The error only appears on Unix platforms
+  when using the FORK_EXEC start-type.
+* Change log level and message if a certificate check returned a problem, 
+  which is not directly caused by the signature of the Wrapper, but the 
+  signature chain. 
+* Fix a problem when the silent query command wasn't returning the correct
+  exit code on windows Vista (and later) when the command was run from an
+  unelevated console. Thanks to Darren for pointing this out. 
+* The java system property wrapper.backend.so_timeout was ignored if it 
+  was set to 0, making it not possible to explicitly set the timeout to 
+  be indefinitely.
+* Added the properties wrapper.jvm.additional.auto_bits.<platform> to 
+  individually turn on/off the feature for the supported platforms.
+* Fix a problem where the script was trying to use the 64-bit binaries on
+  Mac OSX even if the CPU was only a 32-bit architecture. This only affected
+  versions of Mac OSX greater 10.5.0, the vast majority of those machines are 
+  already 64-bit CPU's. 
+* The Wrapper when reloading the configuration file, was trying to access
+  data from the call stack of a function which was actually outside of the
+  memory range of the stack. This access violation might yield a segmentation
+  fault. This issue was introduced in 3.5.5. Thanks to Lincoln for helping
+  finding this problem.
+  
 3.5.14
 * Fix a problem in the AppCommand.bat.in file where a parenthesis in the
   file name of the Wrapper binary would have caused a 

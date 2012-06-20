@@ -370,7 +370,14 @@
             </or>
         </condition>
         <property name="make.name" value="make"/>
-        
+
+        <condition property="strip.name" value="/usr/sfw/bin/gstrip">
+            <or>
+                <isset property="is.solaris"/>
+            </or>
+        </condition>
+        <property name="strip.name" value="strip"/>
+
         <!-- Generate the makefile name -->
         <property name="makefile.name" value="Makefile-${dist.os}-${dist.arch}-${bits}"/>
         
@@ -1537,6 +1544,8 @@ original tar distribution due to a lack of support for long path names in some t
 &lt;/body&gt;&lt;/html&gt;</echo>
         <fixcrlf srcdir="${releasedir}/jdoc" eol="lf" />
 
+<!--        <antcall target="release-unix:strip-symbols"/> -->
+
         <tar tarfile="${build.dir}/${releasefile}.tar">
             <tarfileset dir="${build.dir}" mode="755">
                 <include name="${releasefile}/bin/${wrapper.bin.name}"/>
@@ -1560,7 +1569,43 @@ original tar distribution due to a lack of support for long path names in some t
         <echo>*   ${dist.dir}/${releasefile}.tar.gz</echo>
         <echo>**********************************************************</echo>
     </target>
-    
+
+    <target name="release-unix:strip-symbols" if="is.unix" >
+        <!-- We also need to create a symbols file so we can debug things later in case of problems. -->
+        <property name="releaseSymbolsDir" value="${build.dir}/${releaseSymbolsFile}"/>
+        <delete dir="${releaseSymbolsDir}"/>
+        <mkdir dir="${releaseSymbolsDir}"/>
+
+        <exec executable="${strip.name}"
+            dir="${build.dir}/${releasefile}/bin"
+            failonerror="true">
+            <arg line="--only-keep-debug ${wrapper.bin.name} -o ${releaseSymbolsDir}/${wrapper.bin.name}.dbg" />
+        </exec>
+        <exec executable="${strip.name}"
+            dir="${build.dir}/${releasefile}/bin"
+            failonerror="true">
+            <arg line="--strip-all ${wrapper.bin.name}" />
+        </exec>
+
+        <exec executable="${strip.name}"
+            dir="${build.dir}/${releasefile}/lib"
+            failonerror="true">
+            <arg line="--only-keep-debug ${wrapper.lib.name} -o ${releaseSymbolsDir}/${wrapper.lib.name}.dbg" />
+        </exec>
+        <exec executable="${strip.name}"
+            dir="${build.dir}/${releasefile}/lib"
+            failonerror="true">
+            <arg line="--strip-all ${wrapper.lib.name}" />
+        </exec>
+
+        <tar tarfile="${build.dir}/${releaseSymbolsFile}.tar">
+            <tarfileset dir="${build.dir}" mode="755">
+               <include name="${releaseSymbolsFile}/**/*" />
+            </tarfileset>
+        </tar>
+        <gzip zipfile="${dist.dir}/${releaseSymbolsFile}.tar.gz" src="${build.dir}/${releaseSymbolsFile}.tar" />
+    </target>
+
     <!-- =================================================================== -->
     <!-- Release (Unix)                                                      -->
     <!-- =================================================================== -->

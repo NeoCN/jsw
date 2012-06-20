@@ -236,13 +236,18 @@ void takeSignalAction(int sigNum, const TCHAR *sigName, int mode) {
                 (wrapperData->jState == WRAPPER_JSTATE_DOWN_FLUSH)) {
 
                 /* Signaled while we were already shutting down. */
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    TEXT("%s trapped.  Forcing immediate shutdown."), sigName);
-
-                /* Disable the thread dump on exit feature if it is set because it
-                 *  should not be displayed when the user requested the immediate exit. */
-                wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
-                wrapperKillProcess();
+                if (wrapperData->isForcedShutdownDisabled) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                        TEXT("%s trapped.  Already shutting down."), sigName);
+                } else {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                        TEXT("%s trapped.  Forcing immediate shutdown."), sigName);
+    
+                    /* Disable the thread dump on exit feature if it is set because it
+                     *  should not be displayed when the user requested the immediate exit. */
+                    wrapperData->requestThreadDumpOnFailedJVMExit = FALSE;
+                    wrapperKillProcess();
+                }
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                     TEXT("%s trapped.  Shutting down."), sigName);
@@ -762,7 +767,7 @@ void disposeJavaIO() {
 #endif
             wrapperSleep(100);
         }
-        pthread_kill(javaIOThreadId, SIGKILL);
+        pthread_cancel(javaIOThreadId);
     }
 }
 
@@ -912,7 +917,7 @@ void disposeTimer() {
 #endif
             wrapperSleep(100);
         }
-        pthread_kill(timerThreadId, SIGKILL);
+        pthread_cancel(timerThreadId);
     }
 }
 
