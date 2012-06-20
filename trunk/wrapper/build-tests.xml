@@ -576,6 +576,36 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacetoken>
         <replace file="${test.dir}/executablejarcp.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=../lib/wrappertest2.jar" />
+        
+        <!-- Performance Test -->
+        <delete file="${test.dir}/performance.conf"/>
+        <filter token="app.name"          value="performance"/>
+        <filter token="app.long.name"     value="Performance Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/performance.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/performance.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.Performance" />
+        
+        <!-- PerformanceStartStop Test -->
+        <delete file="${test.dir}/performancestartstop.conf"/>
+        <filter token="app.name"          value="performancestartstop"/>
+        <filter token="app.long.name"     value="PerformanceStartStop Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/performancestartstop.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/performancestartstop.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperStartStopApp" />
+        <replace file="${test.dir}/performancestartstop.conf">
+            <replacetoken><![CDATA[wrapper.app.parameter.1=<YourMainClass>]]></replacetoken>
+            <replacevalue><![CDATA[wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.Performance
+wrapper.app.parameter.2=0
+wrapper.app.parameter.3=org.tanukisoftware.wrapper.test.QuickComplete
+wrapper.app.parameter.4=TRUE
+wrapper.app.parameter.5=0]]></replacevalue>
+        </replace>
     </target>
     
     <!-- =================================================================== -->
@@ -980,6 +1010,30 @@ set ENV_VAR_4=d]]></replacevalue>
         <replace file="${test.dir}/TestExecutableJarCP.bat"
                  token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
                  value='set _WRAPPER_CONF_DEFAULT=../test/executablejarcp.conf' />
+        
+        <!-- Performance Test -->
+        <delete file="${test.dir}/TestPerformance.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestPerformance.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestPerformance.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestPerformance.bat"
+                 token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/performance.conf' />
+        
+        <!-- PerformanceStartStop Test -->
+        <delete file="${test.dir}/TestPerformanceStartStop.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestPerformanceStartStop.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestPerformanceStartStop.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestPerformanceStartStop.bat"
+                 token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/performancestartstop.conf' />
     </target>
     
     <!-- =================================================================== -->
@@ -1038,7 +1092,7 @@ set ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/longrunningbackgroundthreads"
               filtering="on"/>
-        <chmod file="${test.dir}/longrunningbackgroundthreads" perm="+x"/> 
+        <chmod file="${test.dir}/longrunningbackgroundthreads" perm="+x"/>
         
         <!-- Daemon Threads Test -->
         <filter token="app.name"          value="daemonthreads"/>
@@ -1046,7 +1100,7 @@ set ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/daemonthreads"
               filtering="on"/>
-        <chmod file="${test.dir}/daemonthreads" perm="+x"/> 
+        <chmod file="${test.dir}/daemonthreads" perm="+x"/>
         
         <!-- SimpleWrapperListener Test -->
         <filter token="app.name"          value="simplewrapperlistener"/>
@@ -1054,7 +1108,7 @@ set ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/simplewrapperlistener"
               filtering="on"/>
-        <chmod file="${test.dir}/simplewrapperlistener" perm="+x"/> 
+        <chmod file="${test.dir}/simplewrapperlistener" perm="+x"/>
         
         <!-- NestedWrapperListener Test -->
         <filter token="app.name"          value="nestedwrapperlistener"/>
@@ -1062,7 +1116,7 @@ set ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/nestedwrapperlistener"
               filtering="on"/>
-        <chmod file="${test.dir}/nestedwrapperlistener" perm="+x"/> 
+        <chmod file="${test.dir}/nestedwrapperlistener" perm="+x"/>
         
         <!-- No Return Test -->
         <filter token="app.name"          value="noreturn"/>
@@ -1070,7 +1124,7 @@ set ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/noreturn"
               filtering="on"/>
-        <chmod file="${test.dir}/noreturn" perm="+x"/> 
+        <chmod file="${test.dir}/noreturn" perm="+x"/>
         
         <!-- Quick Complete Test -->
         <filter token="app.name"          value="quickcomplete"/>
@@ -1078,7 +1132,7 @@ set ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/quickcomplete"
               filtering="on"/>
-        <chmod file="${test.dir}/quickcomplete" perm="+x"/> 
+        <chmod file="${test.dir}/quickcomplete" perm="+x"/>
         
         <!-- Environment Variables Test -->
         <filter token="app.name"          value="envvars"/>
@@ -1097,7 +1151,7 @@ export ENV_VAR_2=b
 export ENV_VAR_3=c
 export ENV_VAR_4=d]]></replacevalue>
         </replace>
-        <chmod file="${test.dir}/envvars" perm="+x"/> 
+        <chmod file="${test.dir}/envvars" perm="+x"/>
         
         <!-- Percent Output Test -->
         <filter token="app.name"          value="percentoutput"/>
@@ -1105,7 +1159,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/percentoutput"
               filtering="on"/>
-        <chmod file="${test.dir}/percentoutput" perm="+x"/> 
+        <chmod file="${test.dir}/percentoutput" perm="+x"/>
         
         <!-- Log Output Test -->
         <filter token="app.name"          value="logoutput"/>
@@ -1113,7 +1167,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/logoutput"
               filtering="on"/>
-        <chmod file="${test.dir}/logoutput" perm="+x"/> 
+        <chmod file="${test.dir}/logoutput" perm="+x"/>
         
         <!-- Huge Log Output Test -->
         <filter token="app.name"          value="hugelogoutput"/>
@@ -1121,7 +1175,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/hugelogoutput"
               filtering="on"/>
-        <chmod file="${test.dir}/hugelogoutput" perm="+x"/> 
+        <chmod file="${test.dir}/hugelogoutput" perm="+x"/>
         
         <!-- Loaded Log Output Test -->
         <filter token="app.name"          value="loadedlogoutput"/>
@@ -1129,7 +1183,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/loadedlogoutput"
               filtering="on"/>
-        <chmod file="${test.dir}/loadedlogoutput" perm="+x"/> 
+        <chmod file="${test.dir}/loadedlogoutput" perm="+x"/>
         
         <!-- Log StdOutStdErr Test -->
         <filter token="app.name"          value="logstdoutstderr"/>
@@ -1137,7 +1191,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/logstdoutstderr"
               filtering="on"/>
-        <chmod file="${test.dir}/logstdoutstderr" perm="+x"/> 
+        <chmod file="${test.dir}/logstdoutstderr" perm="+x"/>
         
         <!-- Log StdOutStdErrDetached Test -->
         <filter token="app.name"          value="logstdoutstderrdetached"/>
@@ -1145,7 +1199,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/logstdoutstderrdetached"
               filtering="on"/>
-        <chmod file="${test.dir}/logstdoutstderrdetached" perm="+x"/> 
+        <chmod file="${test.dir}/logstdoutstderrdetached" perm="+x"/>
         
         <!-- Loaded GC Output Test -->
         <filter token="app.name"          value="loadedgcoutput"/>
@@ -1153,7 +1207,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/loadedgcoutput"
               filtering="on"/>
-        <chmod file="${test.dir}/loadedgcoutput" perm="+x"/> 
+        <chmod file="${test.dir}/loadedgcoutput" perm="+x"/>
         
         <!-- Loaded Split Output Test -->
         <filter token="app.name"          value="loadedsplitoutput"/>
@@ -1161,7 +1215,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/loadedsplitoutput"
               filtering="on"/>
-        <chmod file="${test.dir}/loadedsplitoutput" perm="+x"/> 
+        <chmod file="${test.dir}/loadedsplitoutput" perm="+x"/>
         
         <!-- Restarter Test -->
         <filter token="app.name"          value="restarter"/>
@@ -1169,7 +1223,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/restarter"
               filtering="on"/>
-        <chmod file="${test.dir}/restarter" perm="+x"/> 
+        <chmod file="${test.dir}/restarter" perm="+x"/>
         
         <!-- DelayedIORestarter Test -->
         <filter token="app.name"          value="delayediorestarter"/>
@@ -1177,7 +1231,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/delayediorestarter"
               filtering="on"/>
-        <chmod file="${test.dir}/delayediorestarter" perm="+x"/> 
+        <chmod file="${test.dir}/delayediorestarter" perm="+x"/>
         
         <!-- StopWhileStarting Test -->
         <filter token="app.name"          value="stopwhilestarting"/>
@@ -1185,7 +1239,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/stopwhilestarting"
               filtering="on"/>
-        <chmod file="${test.dir}/stopwhilestarting" perm="+x"/> 
+        <chmod file="${test.dir}/stopwhilestarting" perm="+x"/>
         
         <!-- StopWhileStartingForceStop Test -->
         <filter token="app.name"          value="stopwhilestartingforcestop"/>
@@ -1193,7 +1247,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/stopwhilestartingforcestop"
               filtering="on"/>
-        <chmod file="${test.dir}/stopwhilestartingforcestop" perm="+x"/> 
+        <chmod file="${test.dir}/stopwhilestartingforcestop" perm="+x"/>
         
         <!-- Shutdown Hook Test -->
         <filter token="app.name"          value="shutdownhook"/>
@@ -1201,7 +1255,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/shutdownhook"
               filtering="on"/>
-        <chmod file="${test.dir}/shutdownhook" perm="+x"/> 
+        <chmod file="${test.dir}/shutdownhook" perm="+x"/>
         
         <!-- Shutdown Lock Test -->
         <filter token="app.name"          value="shutdownlock"/>
@@ -1209,7 +1263,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/shutdownlock"
               filtering="on"/>
-        <chmod file="${test.dir}/shutdownlock" perm="+x"/> 
+        <chmod file="${test.dir}/shutdownlock" perm="+x"/>
         
         <!-- Output Loader Test -->
         <filter token="app.name"          value="outputloader"/>
@@ -1217,7 +1271,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/outputloader"
               filtering="on"/>
-        <chmod file="${test.dir}/outputloader" perm="+x"/> 
+        <chmod file="${test.dir}/outputloader" perm="+x"/>
         
         <!-- Memory Test -->
         <filter token="app.name"          value="memory"/>
@@ -1225,7 +1279,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/memory"
               filtering="on"/>
-        <chmod file="${test.dir}/memory" perm="+x"/> 
+        <chmod file="${test.dir}/memory" perm="+x"/>
         
         <!-- Filter Test -->
         <filter token="app.name"          value="filter"/>
@@ -1233,7 +1287,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/filter"
               filtering="on"/>
-        <chmod file="${test.dir}/filter" perm="+x"/> 
+        <chmod file="${test.dir}/filter" perm="+x"/>
         
         <!-- OnExit Test -->
         <filter token="app.name"          value="onexit"/>
@@ -1241,7 +1295,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/onexit"
               filtering="on"/>
-        <chmod file="${test.dir}/onexit" perm="+x"/> 
+        <chmod file="${test.dir}/onexit" perm="+x"/>
         
         <!-- Loaded WrapperListener Test -->
         <filter token="app.name"          value="loadedwrapperlistener"/>
@@ -1249,7 +1303,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/loadedwrapperlistener"
               filtering="on"/>
-        <chmod file="${test.dir}/loadedwrapperlistener" perm="+x"/> 
+        <chmod file="${test.dir}/loadedwrapperlistener" perm="+x"/>
         
         <!-- System Property Test -->
         <filter token="app.name"          value="systemproperty"/>
@@ -1257,7 +1311,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/systemproperty"
               filtering="on"/>
-        <chmod file="${test.dir}/systemproperty" perm="+x"/> 
+        <chmod file="${test.dir}/systemproperty" perm="+x"/>
         
         <!-- ExecutableJar Test -->
         <filter token="app.name"          value="executablejar"/>
@@ -1265,7 +1319,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/executablejar"
               filtering="on"/>
-        <chmod file="${test.dir}/executablejar" perm="+x"/> 
+        <chmod file="${test.dir}/executablejar" perm="+x"/>
         
         <!-- ExecutableJarInitFail Test -->
         <filter token="app.name"          value="executablejarinitfail"/>
@@ -1273,7 +1327,7 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/executablejarinitfail"
               filtering="on"/>
-        <chmod file="${test.dir}/executablejarinitfail" perm="+x"/> 
+        <chmod file="${test.dir}/executablejarinitfail" perm="+x"/>
         
         <!-- ExecutableJarCP Test -->
         <filter token="app.name"          value="executablejarcp"/>
@@ -1281,7 +1335,23 @@ export ENV_VAR_4=d]]></replacevalue>
         <copy file="${test.dir}/temp.script.in"
               tofile="${test.dir}/executablejarcp"
               filtering="on"/>
-        <chmod file="${test.dir}/executablejarcp" perm="+x"/> 
+        <chmod file="${test.dir}/executablejarcp" perm="+x"/>
+        
+        <!-- Performance Test -->
+        <filter token="app.name"          value="performance"/>
+        <filter token="app.long.name"     value="Performance Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/performance"
+              filtering="on"/>
+        <chmod file="${test.dir}/performance" perm="+x"/>
+        
+        <!-- PerformanceStartStop Test -->
+        <filter token="app.name"          value="performancestartstop"/>
+        <filter token="app.long.name"     value="PerformanceStartStop Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/performancestartstop"
+              filtering="on"/>
+        <chmod file="${test.dir}/performancestartstop" perm="+x"/>
         
         <!-- Get rid of the temp script file -->
         <delete file="${test.dir}/temp.script.in"/>

@@ -111,7 +111,7 @@ import org.tanukisoftware.wrapper.security.WrapperUserEventPermission;
  *  in seconds using the following system property when launching the JVM.
  *  This will only be noticeable if it is shorter than the ping interval,
  *  and debug output is enabled:
- * -Dwrapper.backend.ro_timeout=300
+ * -Dwrapper.backend.so_timeout=300
  *
  * This class is implemented as a singleton class.
  *
@@ -324,7 +324,7 @@ public final class WrapperManager
     private static int m_jvmPortMin;
     private static int m_jvmPortMax;
     private static String m_key;
-    private static int m_soTimeout = 0;
+    private static int m_soTimeout = -1;
     private static long m_cpuTimeout = DEFAULT_CPU_TIMEOUT;
     
     /** Tick count when the start method completed. */
@@ -639,7 +639,7 @@ public final class WrapperManager
             "wrapper.listener.force_stop", false );
         
         // Make it possible for a user to set the SO_TIMEOUT of the backend.  Mainly for testing.
-        m_soTimeout = WrapperSystemPropertyUtil.getIntProperty( "wrapper.backend.so_timeout", 0 ) * 1000;
+        m_soTimeout = WrapperSystemPropertyUtil.getIntProperty( "wrapper.backend.so_timeout", -1 ) * 1000;
         
         // If the shutdown hook is not disabled, then register it.
         if ( !disableShutdownHook )
@@ -2786,6 +2786,13 @@ public final class WrapperManager
             
             m_args = args;
             
+            if ( m_debug )
+            {
+                Thread thisThread = Thread.currentThread();
+                m_outDebug.println( getRes().getString( "Initial thread: {0} Priority: {1}", thisThread.getName(), new Integer( thisThread.getPriority() ) ) );
+            }
+
+            // Setup the thread to handle backend communications.
             startRunner();
             
             // If this JVM is being controlled by a native wrapper, then we want to
@@ -3052,14 +3059,7 @@ public final class WrapperManager
         
         if ( !stopping )
         {
-            // I used to check to make sure the commRunner was started, but that could fail
-            //  for a number of reasons.  If it is down then leave it alone.
-            //if ( !m_commRunnerStarted )
-            //{
-            //    startRunner();
-            //}
-            
-            // Always send the stop command
+            // Always send the restart command
             sendCommand( WRAPPER_MSG_RESTART, "restart" );
         }
         
@@ -3823,13 +3823,6 @@ public final class WrapperManager
         
         if ( !stopping )
         {
-            // I used to check to make sure the commRunner was started, but that could fail
-            //  for a number of reasons.  If it is down then leave it alone.
-            //if ( !m_commRunnerStarted )
-            //{
-            //    startRunner();
-            //}
-            
             // Always send the stop command
             sendCommand( WRAPPER_MSG_STOP, Integer.toString( exitCode ) );
             
@@ -3911,14 +3904,9 @@ public final class WrapperManager
      */
     private static void startInner( boolean block )
     {
-        // Set the thread priority back to normal so that any spawned threads
-        //  will use the normal priority
-        int oldPriority = Thread.currentThread().getPriority();
-        Thread.currentThread().setPriority( Thread.NORM_PRIORITY );
-
         m_starting = true;
         
-        // Do any setup which shoul happen just before we actually start the application.
+        // Do any setup which should happen just before we actually start the application.
         checkTmpDir();
         
         // This method can be called from the connection thread which must be a
@@ -3957,6 +3945,16 @@ public final class WrapperManager
                        m_outDebug.println( getRes().getString( "WrapperListener.start runner thread started." ) );
                     }
                     
+                    // If the calling thread was the Backend handler then it is running at a higher priority.
+                    //  We need to restore the thread priority to the default before proceeding to make sure
+                    //  that the rest of the application runs at the correct priority.
+                    Thread thisThread = Thread.currentThread();
+                    thisThread.setPriority( Thread.NORM_PRIORITY );
+                    if ( m_debug )
+                    {
+                        m_outDebug.println( getRes().getString( "Application start main thread: {0} Priority: {1}", thisThread.getName(), new Integer( thisThread.getPriority() ) ) );
+                    }
+                    
                     try
                     {
                         // This is user code, so don't trust it.
@@ -3972,7 +3970,7 @@ public final class WrapperManager
                     finally
                     {
                         // Make sure the rest of this thread does not fall behind the application.
-                        Thread.currentThread().setPriority( Thread.MAX_PRIORITY );
+                        thisThread.setPriority( Thread.MAX_PRIORITY );
                         
                         // Now that we are back, handle the results.
                         if ( tF[0] != null )
@@ -4021,9 +4019,6 @@ public final class WrapperManager
             };
             startRunner.setDaemon( false );
             startRunner.start();
-            
-            // Crank the priority back up.
-            Thread.currentThread().setPriority( oldPriority );
             
             if ( block )
             {
@@ -4250,11 +4245,6 @@ public final class WrapperManager
         
         if ( ( m_listenerForceStop && m_starting ) || m_started )
         {
-            // Set the thread priority back to normal so that any spawned threads
-            //  will use the normal priority
-            int oldPriority = Thread.currentThread().getPriority();
-            Thread.currentThread().setPriority( Thread.NORM_PRIORITY );
-            
             // This method can be called from the connection thread which must be a
             //  daemon thread by design.  We need to call the WrapperListener.stop method
             //  from a non-daemon thread.  This means that if the current thread is a
@@ -4290,6 +4280,16 @@ public final class WrapperManager
                                m_outDebug.println( getRes().getString( "WrapperListener.stop runner thread started." ) );
                             }
                             
+                            // If the calling thread was the Backend handler then it is running at a higher priority.
+                            //  We need to restore the thread priority to the default before proceeding to make sure
+                            //  that the rest of the application runs at the correct priority.
+                            Thread thisThread = Thread.currentThread();
+                            thisThread.setPriority( Thread.NORM_PRIORITY );
+                            if ( m_debug )
+                            {
+                                m_outDebug.println( getRes().getString( "Application stop main thread: {0} Priority: {1}", thisThread.getName(), new Integer( thisThread.getPriority() ) ) );
+                            }
+                            
                             try
                             {
                                 // This is user code, so don't trust it.
@@ -4317,7 +4317,7 @@ public final class WrapperManager
                     stopRunner.setDaemon( false );
                     stopRunner.start();
                     
-                    // Wait for the start runner to complete.
+                    // Wait for the stop runner to complete.
                     if ( m_debug )
                     {
                        m_outDebug.println( getRes().getString(
@@ -4358,9 +4358,6 @@ public final class WrapperManager
                              new Integer( code ) ) );
                 }
             }
-            
-            // Crank the priority back up.
-            Thread.currentThread().setPriority( oldPriority );
         }
 
         shutdownJVM( code );
@@ -4712,7 +4709,7 @@ public final class WrapperManager
             m_backendSocket.setTcpNoDelay( true );
             
             // If configured, set the SO_TIMEOUT for the socket (max block time)
-            if ( m_soTimeout > 0 )
+            if ( m_soTimeout >= 0 )
             {
                 if ( m_debug )
                 {
@@ -5337,6 +5334,12 @@ public final class WrapperManager
         }
     }
     
+    /**
+     * Starts up the thread to handle backend communications.
+     *
+     * If the Wrapper did not launch the JVM then the internal state
+     *  will be set to started to allow the application startup to continue.
+     */
     private static void startRunner()
     {
         if ( isControlledByNativeWrapper() )

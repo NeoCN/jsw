@@ -53,6 +53,7 @@
 #include <lm.h>
 #include <Pdh.h>
 #include <ntsecapi.h>
+#include <Fcntl.h>
 #include "psapi.h"
 
 #include "wrapper_i18n.h"
@@ -751,7 +752,7 @@ DWORD WINAPI startupRunner(LPVOID parameter) {
         logRegisterThread(WRAPPER_THREAD_STARTUP);
 
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s thread started."), TEXT("Startup"));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s thread started."), gettext3("Startup"));
         }
         
         if (wrapperData->isDebugging) {
@@ -760,7 +761,7 @@ DWORD WINAPI startupRunner(LPVOID parameter) {
         verifyEmbeddedSignature();
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
         /* This call is not queued to make sure it makes it to the log prior to a shutdown. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Fatal error in the %s thread."), TEXT("Startup"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Fatal error in the %s thread."), gettext3("Startup"));
         startupThreadStopped = TRUE; /* Before appExit() */
         appExit(1);
         return 1; /* For the compiler, we will never get here. */
@@ -768,7 +769,7 @@ DWORD WINAPI startupRunner(LPVOID parameter) {
 
     startupThreadStopped = TRUE;
     if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s thread stopped."), TEXT("Startup"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s thread stopped."), gettext3("Startup"));
     }
     return 0;
 }
@@ -787,7 +788,7 @@ int initializeStartup() {
     TICKS timeoutTicks;
     
     if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Launching %s thread."), TEXT("Startup"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Launching %s thread."), gettext3("Startup"));
     }
 
     startupThreadHandle = CreateThread(
@@ -799,7 +800,7 @@ int initializeStartup() {
         &startupThreadId);
     if (!startupThreadHandle) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            TEXT("Unable to create a %s thread: %s"), TEXT("Startup"), getLastErrorText());
+            TEXT("Unable to create a %s thread: %s"), gettext3("Startup"), getLastErrorText());
         return 1;
     }
     
@@ -824,7 +825,7 @@ int initializeStartup() {
         }
     } else {
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s timed out.  Continuing in background."), TEXT("Startup"));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s timed out.  Continuing in background."), gettext3("Startup"));
         }
     }
     
@@ -835,7 +836,7 @@ void disposeStartup() {
     /* Wait until the javaIO thread is actually stopped to avoid timing problems. */
     if (startupThreadStarted && !startupThreadStopped) {
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Waiting for %s thread to complete..."), TEXT("Startup"));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Waiting for %s thread to complete..."), gettext3("Startup"));
         }
         while (!startupThreadStopped) {
 #ifdef _DEBUG
@@ -865,7 +866,7 @@ DWORD WINAPI javaIORunner(LPVOID parameter) {
         logRegisterThread(WRAPPER_THREAD_JAVAIO);
 
         if (wrapperData->isJavaIOOutputEnabled) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s thread started."), TEXT("JavaIO"));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s thread started."), gettext3("JavaIO"));
         }
 
         nextSleep = TRUE;
@@ -892,7 +893,7 @@ DWORD WINAPI javaIORunner(LPVOID parameter) {
         }
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
         /* This call is not queued to make sure it makes it to the log prior to a shutdown. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Fatal error in the %s thread."), TEXT("JavaIO"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Fatal error in the %s thread."), gettext3("JavaIO"));
         javaIOThreadStopped = TRUE; /* Before appExit() */
         appExit(1);
         return 1; /* For the compiler, we will never get here. */
@@ -900,7 +901,7 @@ DWORD WINAPI javaIORunner(LPVOID parameter) {
 
     javaIOThreadStopped = TRUE;
     if (wrapperData->isJavaIOOutputEnabled) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s thread stopped."), TEXT("JavaIO"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s thread stopped."), gettext3("JavaIO"));
     }
     return 0;
 }
@@ -911,7 +912,7 @@ DWORD WINAPI javaIORunner(LPVOID parameter) {
  */
 int initializeJavaIO() {
     if (wrapperData->isJavaIOOutputEnabled) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Launching %s thread."), TEXT("JavaIO"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Launching %s thread."), gettext3("JavaIO"));
     }
 
     javaIOThreadHandle = CreateThread(
@@ -923,7 +924,7 @@ int initializeJavaIO() {
         &javaIOThreadId);
     if (!javaIOThreadHandle) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            TEXT("Unable to create a %s thread: %s"), TEXT("JavaIO"), getLastErrorText());
+            TEXT("Unable to create a %s thread: %s"), gettext3("JavaIO"), getLastErrorText());
         return 1;
     } else {
         return 0;
@@ -1183,8 +1184,11 @@ int collectUserInfo() {
  */
 int wrapperInitializeRun() {
     HANDLE hStdout;
+    HANDLE hStdErr;
+    HANDLE hStdIn;
 #ifdef WIN32
     struct _timeb timebNow;
+    FILE *pfile;
 #else
     struct timeval timevalNow;
 #endif
@@ -1233,12 +1237,41 @@ int wrapperInitializeRun() {
             return 1;
         }
 
+
+/* A console, which got created by AllocConsole, does not have stdin/out/err set,
+   so all printf's are not being displayed. Set the buffer explicitly here. */
+        hStdIn = GetStdHandle(STD_INPUT_HANDLE);
+        if (hStdIn == INVALID_HANDLE_VALUE) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                TEXT("ERROR: Unable to get the new stdin handle: %s"), getLastErrorText());
+           return 1;
+        }
+        pfile = _tfdopen( _open_osfhandle((long)hStdIn, _O_TEXT), TEXT("r") );
+        /* Assign the STD_INPUT_HANDLE fd to stdin*/
+        *stdin = *pfile;
+        /* set the stream to non buffering  */
+        setvbuf( stdin, NULL, _IONBF, 0 );
+
         hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
         if (hStdout == INVALID_HANDLE_VALUE) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 TEXT("ERROR: Unable to get the new stdout handle: %s"), getLastErrorText());
            return 1;
         }
+        pfile = _tfdopen( _open_osfhandle((long)hStdout, _O_TEXT), TEXT("w") );
+        *stdout = *pfile;
+        setvbuf( stdout, NULL, _IONBF, 0 );
+
+        hStdErr = GetStdHandle(STD_ERROR_HANDLE);
+        if (hStdErr == INVALID_HANDLE_VALUE) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                TEXT("ERROR: Unable to get the new stderr handle: %s"), getLastErrorText());
+           return 1;
+        }
+        pfile = _tfdopen( _open_osfhandle((long)hStdErr, _O_TEXT), TEXT("w") );
+        *stderr = *pfile;
+        setvbuf( stderr, NULL, _IONBF, 0 );
+
         setConsoleStdoutHandle(hStdout);
 
         if (wrapperData->ntHideWrapperConsole) {
@@ -2244,12 +2277,17 @@ void wrapperMaintainControlCodes() {
          *   an immediate shutdown. */
         if (ctrlCTrapped) {
             /* Pressed CTRL-C more than once. */
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                TEXT("CTRL-C trapped.  Forcing immediate shutdown."));
-            halt = TRUE;
+            if (wrapperData->isForcedShutdownDisabled) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    TEXT("%s trapped.  Already shutting down."), TEXT("CTRL-C"));
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    TEXT("%s trapped.  Forcing immediate shutdown."), TEXT("CTRL-C"));
+                halt = TRUE;
+            }
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                TEXT("CTRL-C trapped.  Shutting down."));
+                TEXT("%s trapped.  Shutting down."), TEXT("CTRL-C"));
             ctrlCTrapped = TRUE;
         }
         quit = TRUE;
@@ -2263,12 +2301,17 @@ void wrapperMaintainControlCodes() {
          *   an immediate shutdown. */
         if (ctrlCTrapped) {
             /* Pressed Close or CTRL-C more than once. */
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                TEXT("Close trapped.  Forcing immediate shutdown."));
-            halt = TRUE;
+            if (wrapperData->isForcedShutdownDisabled) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    TEXT("%s trapped.  Already shutting down."), TEXT("Close"));
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    TEXT("%s trapped.  Forcing immediate shutdown."), TEXT("Close"));
+                halt = TRUE;
+            }
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                TEXT("Close trapped.  Shutting down."));
+                TEXT("%s trapped.  Shutting down."), TEXT("Close"));
             ctrlCTrapped = TRUE;
         }
         quit = TRUE;
@@ -5479,7 +5522,7 @@ LPTSTR PrintCertificateInfo(PCCERT_CONTEXT pCertContext, int level) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("CertGetNameString failed."));
             __leave;
         }
-        size = _tcslen(TEXT("    Serial Number: ")) + dwData * 3 + 6 + _tcslen(TEXT("    Issuer Name: ")) + _tcslen(TEXT("    Subject Name: ")) + _tcslen(szName1) + _tcslen(szName2) + 5;
+        size = _tcslen(TEXT("    Serial Number: ")) + dwData * 3 + 6 + _tcslen(gettext3("    Issuer Name: ")) + _tcslen(gettext3("    Subject Name: ")) + _tcslen(szName1) + _tcslen(szName2) + 5;
         buffer = calloc(size, sizeof(TCHAR));
         if (!buffer) {
             outOfMemory(TEXT("GTSSI"), 4);
@@ -5727,6 +5770,7 @@ LPTSTR printWholeCertificateInfo(LPCWSTR wrapperExeName, int level) {
 BOOL verifyEmbeddedSignature() {
     LONG lStatus;
     DWORD dwLastError;
+    const TCHAR* lastErrMsg;
     TCHAR pwszSourceFile[_MAX_PATH];
     GUID WVTPolicyGUID = WINTRUST_ACTION_GENERIC_VERIFY_V2;
     WINTRUST_DATA WinTrustData;
@@ -5827,18 +5871,19 @@ BOOL verifyEmbeddedSignature() {
 
         default:
             dwLastError = GetLastError();
+            lastErrMsg = getLastErrorText();
             buffer = printWholeCertificateInfo(pwszSourceFile, LEVEL_WARN);   
             if (buffer) {
                 if (dwLastError == TRUST_E_BAD_DIGEST  || dwLastError == TRUST_E_CERT_SIGNATURE) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s\n%s\nThe Wrapper will shutdown!"), pwszSourceFile, lStatus, getLastErrorText(), buffer);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s\n%s\nThe Wrapper will shutdown!"), pwszSourceFile, lStatus, lastErrMsg, buffer);
                 } else {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s\n%s"), pwszSourceFile, lStatus, getLastErrorText(), buffer);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s\n%sThe error is not directly related to the Wrapper's signature, therefore continue..."), pwszSourceFile, lStatus, lastErrMsg, buffer);
                 }
             } else {
                 if (dwLastError == TRUST_E_BAD_DIGEST  || dwLastError == TRUST_E_CERT_SIGNATURE) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s\nThe Wrapper will shutdown!"), pwszSourceFile, lStatus, getLastErrorText());
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s\nThe Wrapper will shutdown!"), pwszSourceFile, lStatus, lastErrMsg);
                 } else {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s"), pwszSourceFile, lStatus, getLastErrorText());
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("A signature was found in \"%s\", but checksum failed: (Errorcode: 0x%x) %s\nThe error is not directly related to the Wrapper's signature, therefore continue..."), pwszSourceFile, lStatus, lastErrMsg);
                 }
             }
 
@@ -6145,7 +6190,6 @@ void _tmain(int argc, TCHAR **argv) {
                 }
                 appExit(wrapperServiceStatus(FALSE));
             }
-            appExit(wrapperServiceStatus(FALSE));
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("c")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-console"))) {
             /* Run as a console application */
@@ -6549,14 +6593,14 @@ BOOL duplicateSTD() {
  * @param pszParameters - the parameters for the executable
  * @param pszDirectory - the working directory the process will have (if NULL the working direcory context will be inherited)
  * @param namedPipeName - the base name for the named pipes for the IPC between us and the new process.
- * @return TRUE if successfull, FALSE otherwise
+ * @return the exit code of the elevated process
  */
 BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParameters, LPCTSTR pszDirectory, TCHAR* namedPipeName) {
     DWORD returnValue;
     SHELLEXECUTEINFO shex;
     HANDLE hNamedPipeIn, hNamedPipeOut, hNamedPipeErr;
     TCHAR* strNamedPipeNameIn, *strNamedPipeNameOut, *strNamedPipeNameErr;
-    int ret = FALSE;
+    int ret = TRUE;
     size_t len;
 
     /* first we generate the filenames for the named pipes based on namedPipeName */
@@ -6564,7 +6608,7 @@ BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParamet
     strNamedPipeNameIn = malloc(sizeof(TCHAR) * len);
     if (!strNamedPipeNameIn) {
         outOfMemory(TEXT("MSE"), 1);
-        return FALSE;
+        return TRUE;
     }
     _sntprintf(strNamedPipeNameIn, len, TEXT("\\\\.\\pipe\\%sINN"), namedPipeName);
 
@@ -6572,7 +6616,7 @@ BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParamet
     if (!strNamedPipeNameOut) {
         free(strNamedPipeNameIn);
         outOfMemory(TEXT("MSE"), 2);
-        return FALSE;
+        return TRUE;
     }
     _sntprintf(strNamedPipeNameOut, len, TEXT("\\\\.\\pipe\\%sOUT"), namedPipeName);
 
@@ -6581,7 +6625,7 @@ BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParamet
         free(strNamedPipeNameIn);
         free(strNamedPipeNameOut);
         outOfMemory(TEXT("MSE"), 3);
-        return FALSE;
+        return TRUE;
     }
     _sntprintf(strNamedPipeNameErr, len, TEXT("\\\\.\\pipe\\%sERR"), namedPipeName);
     /* create the process information */
@@ -6611,7 +6655,7 @@ BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParamet
 
     if (hNamedPipeIn == INVALID_HANDLE_VALUE) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Stdin CreateNamedPipe failed (%d): %s"), GetLastError(), getLastErrorText());
-        ret = FALSE;
+        ret = TRUE;
     } else {
             hNamedPipeOut = CreateNamedPipe(strNamedPipeNameOut, PIPE_ACCESS_INBOUND ,
                                 PIPE_TYPE_MESSAGE |       // message type pipe
@@ -6625,7 +6669,7 @@ BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParamet
 
         if (hNamedPipeOut == INVALID_HANDLE_VALUE) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Stdout CreateNamedPipe failed (%d): %s"), GetLastError(), getLastErrorText());
-            ret = FALSE;
+            ret = TRUE;
         } else {
             hNamedPipeErr = CreateNamedPipe(strNamedPipeNameErr, PIPE_ACCESS_INBOUND ,
                                     PIPE_TYPE_MESSAGE |       // message type pipe
@@ -6639,7 +6683,7 @@ BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParamet
 
             if (hNamedPipeErr == INVALID_HANDLE_VALUE) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Stderr CreateNamedPipe failed (%d): %s"), GetLastError(), getLastErrorText());
-                ret = FALSE;
+                ret = TRUE;
             } else {
                 /* Now launch the process */
                 if (ShellExecuteEx(&shex) == TRUE) {
@@ -6651,20 +6695,22 @@ BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParamet
                         /* Wait up to 1 sec to check if the elevated process really exited */
                         returnValue = WaitForSingleObject(shex.hProcess, 1000);
                         if (returnValue == WAIT_OBJECT_0) {
-
-                            ret = TRUE;
+                            if (!GetExitCodeProcess(shex.hProcess, &ret)) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("WaitThread for Backend-Process: %s failed!\n"), TEXT("GetExitCodeProcess"));
+                                ret = TRUE;
+                            }
                         } else {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The elevated process is still alive. Trying to kill it."), GetLastError(), getLastErrorText());
                             if (TerminateProcess(shex.hProcess, 1) == 0) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Couldn't kill it."), GetLastError(), getLastErrorText());
                             }
-                            ret = FALSE;
+                            ret = TRUE;
                         }
                     }
 
                 } else {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Elevation failed. Wrapper will exit."), GetLastError(), getLastErrorText());
-                    ret = FALSE;
+                    ret = TRUE;
                 }
                 CloseHandle(hNamedPipeErr);
             }
@@ -6696,7 +6742,7 @@ BOOL runElevated(__in LPCTSTR pszPath, __in_opt LPCTSTR pszParameters, __in_opt 
  * wrapper has to create a copy of the current process, arm it with elevated
  * privileges and take care of IPC.
  *
- * @return TRUE if OK, FALSE otherwise.
+ * @return exit code of backend process
  */
 BOOL elevateThis(int argc, TCHAR **argv) {
     int i, namedPipeInserted = 0, ret = FALSE;
@@ -6714,7 +6760,7 @@ BOOL elevateThis(int argc, TCHAR **argv) {
         strNamedPipeName = malloc(sizeof(TCHAR) * 11);
         if (!strNamedPipeName) {
             outOfMemory(TEXT("MSE"), 1);
-            return FALSE;
+            return TRUE;
         }
         /* create a pseudo-random 10 digit string */
         _sntprintf(strNamedPipeName, 11, TEXT("%05d%05d"), rand() % 100000, rand() % 100000);
@@ -6733,7 +6779,7 @@ BOOL elevateThis(int argc, TCHAR **argv) {
         parameter = calloc(len, sizeof(TCHAR));
         if (!parameter) {
             outOfMemory(TEXT("ET"), 1);
-            return FALSE;
+            return TRUE;
         }
         /* now fill the parameter */
         for (i = 1; i < argc; i++) {
@@ -6761,7 +6807,7 @@ BOOL elevateThis(int argc, TCHAR **argv) {
         free(parameter);
         return ret;
     }
-    return FALSE;
+    return TRUE;
 
 }
 #endif /* ifdef WIN32 */

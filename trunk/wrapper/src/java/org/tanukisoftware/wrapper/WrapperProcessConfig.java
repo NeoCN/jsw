@@ -42,6 +42,7 @@ public final class WrapperProcessConfig
     public static final int DYNAMIC = 4;
 
     private boolean m_isDetached;
+    private boolean m_isInteractive;
     private File m_defdir;
     private int m_startType;
     private Map m_environment;
@@ -72,6 +73,7 @@ public final class WrapperProcessConfig
         m_startType = DYNAMIC;
         m_environment = null;
         m_softShutdownTimeout = 5;
+        m_isInteractive = false;
     }
 
     /*---------------------------------------------------------------
@@ -394,5 +396,38 @@ public final class WrapperProcessConfig
             }
             return nativeEnv;
         }
+    }
+
+
+/**
+ *  Specifies if the ChildProcesses should be launched
+ *  in the current session. 
+ *  This property only makes sense if the application was
+ *  launched as Windows Service under the System User (or any
+ *  other user, having SE_TCB_NAME previledge with the OS)
+ *  On non-Windows platforms or when launched in Console mode,
+ *  the setting will be ignored silently.
+ *
+ * @param isInteractive true to enable the feature. 
+ */
+    public WrapperProcessConfig setCreateForActiveUser( boolean isInteractive )
+    {
+        if (WrapperManager.isWindows() && WrapperManager.isLaunchedAsService())
+        {
+            m_isInteractive = true;
+        }
+        else
+        {
+            m_isInteractive = false;
+        }
+        return this;
+    }
+
+/**
+ *  Tells if the CreateForActiveUser feature was enabled.
+ */
+    public boolean isCreateForActiveUser()
+    {
+        return m_isInteractive;
     }
 }

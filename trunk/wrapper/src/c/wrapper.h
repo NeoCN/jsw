@@ -293,7 +293,8 @@ struct WrapperConfig {
     TICKS   pageFaultOutputTimeoutTicks; /* Tick count at which PageFault will next be logged. */
     int     logfileInactivityTimeout; /* The number of seconds of inactivity before the logfile will be closed. */
     TICKS   logfileInactivityTimeoutTicks; /* Tick count at which the logfile will be considered inactive and closed. */
-    int     isShutdownHookDisabled; /* TRUE if set in the configuration file */
+    int     isShutdownHookDisabled; /* TRUE if the use of a shutdown hook by the WrapperManager class should be disabled. */
+    int     isForcedShutdownDisabled; /* TRUE if forced shutdowns are disabled. */
     int     startupDelayConsole;    /* Delay in seconds before starting the first JVM in console mode. */
     int     startupDelayService;    /* Delay in seconds before starting the first JVM in service mode. */
     int     exitCode;               /* Code which the wrapper will exit with */
@@ -575,7 +576,7 @@ extern void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, i
 
 extern void wrapperAddDefaultProperties();
 
-extern int wrapperLoadConfigurationProperties();
+extern int wrapperLoadConfigurationProperties(int preload);
 
 extern void wrapperGetCurrentTime(struct timeb *timeBuffer);
 
