@@ -1726,6 +1726,7 @@ void log_printf_message_console(int source_id, int level, int threadId, int queu
     }
 }
 
+
 /**
  * Prints the contents of a buffer to all configured targets.
  *

@@ -616,7 +616,13 @@ void wrapperLoadLoggingProperties(int preload) {
     setConsoleLogFormat(getStringProperty(properties, TEXT("wrapper.console.format"), LOG_FORMAT_CONSOLE_DEFAULT));
 
     /* Load console log level */
-    setConsoleLogLevel(getStringProperty(properties, TEXT("wrapper.console.loglevel"), TEXT("INFO")));
+    /* Try to optimize the use of console log output so it is only done if a console exists and is visible. */
+    if (wrapperData->isConsole || (wrapperData->ntAllocConsole && (!wrapperData->ntHideWrapperConsole))) {
+        setConsoleLogLevel(getStringProperty(properties, TEXT("wrapper.console.loglevel"), TEXT("INFO")));
+    } else {
+        /* The console is not visible, so we shouldn't waste time logging to it. */
+        setConsoleLogLevelInt(LEVEL_NONE);
+    }
 
     /* Load the console flush flag. */
     setConsoleFlush(getBooleanProperty(properties, TEXT("wrapper.console.flush"), FALSE, !preload));
@@ -5903,12 +5909,29 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         index++;
     }
 
+    /* Store the Disable Tests flag */
+    if (wrapperData->isTestsDisabled) {
+        if (strings) {
+            strings[index] = malloc(sizeof(TCHAR) * (30 + 1));
+            if (!strings[index]) {
+                outOfMemory(TEXT("WBJCAI"), 41);
+                return -1;
+            }
+            if (addQuotes) {
+                _sntprintf(strings[index], 30 + 1, TEXT("-Dwrapper.disable_tests=\"TRUE\""));
+            } else {
+                _sntprintf(strings[index], 30 + 1, TEXT("-Dwrapper.disable_tests=TRUE"));
+            }
+        }
+        index++;
+    }
+
     /* Store the Disable Shutdown Hook flag */
     if (wrapperData->isShutdownHookDisabled) {
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (38 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 41);
+                outOfMemory(TEXT("WBJCAI"), 42);
                 return -1;
             }
             if (addQuotes) {
@@ -5925,7 +5948,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         /* Just to be safe, allow 20 characters for the timeout value */
         strings[index] = malloc(sizeof(TCHAR) * (24 + 20 + 1));
         if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 42);
+            outOfMemory(TEXT("WBJCAI"), 43);
             return -1;
         }
         if (addQuotes) {
@@ -5940,7 +5963,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (25 + _tcslen(prop) + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 44);
+                outOfMemory(TEXT("WBJCAI"), 45);
                 return -1;
             }
             if (addQuotes) {
@@ -5956,7 +5979,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (25 + _tcslen(prop) + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 45);
+                outOfMemory(TEXT("WBJCAI"), 46);
                 return -1;
             }
             if (addQuotes) {
@@ -5972,7 +5995,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     if (strings) {
         strings[index] = malloc(sizeof(TCHAR) * (16 + 5 + 1));  /* jvmid up to 5 characters */
         if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 46);
+            outOfMemory(TEXT("WBJCAI"), 47);
             return -1;
         }
         _sntprintf(strings[index], 16 + 5 + 1, TEXT("-Dwrapper.jvmid=%d"), (wrapperData->jvmRestarts + 1));
@@ -5985,7 +6008,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (30 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 49);
+                outOfMemory(TEXT("WBJCAI"), 50);
                 return -1;
             }
             if (addQuotes) {
@@ -6008,7 +6031,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     if (strings) {
         strings[index] = malloc(sizeof(TCHAR) * (_tcslen(prop) + 1));
         if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 50);
+            outOfMemory(TEXT("WBJCAI"), 51);
             return -1;
         }
         _sntprintf(strings[index], _tcslen(prop) + 1, TEXT("%s"), prop);
@@ -6969,6 +6992,9 @@ int loadConfiguration() {
         wrapperData->isPageFaultOutputEnabled = getBooleanProperty(properties, TEXT("wrapper.pagefault_output"), FALSE, TRUE);
         wrapperData->pageFaultOutputInterval = getIntProperty(properties, TEXT("wrapper.pagefault_output.interval"), 1, TRUE);
     }
+    
+    /* Get the disable tests flag. */
+    wrapperData->isTestsDisabled = getBooleanProperty(properties, TEXT("wrapper.disable_tests"), FALSE, TRUE);
 
     /* Get the shutdown hook status */
     wrapperData->isShutdownHookDisabled = getBooleanProperty(properties, TEXT("wrapper.disable_shutdown_hook"), FALSE, TRUE);
@@ -7004,6 +7030,8 @@ int loadConfiguration() {
     wrapperData->cpuTimeout = getIntProperty(properties, TEXT("wrapper.cpu.timeout"), 10, TRUE);
     wrapperData->startupTimeout = getIntProperty(properties, TEXT("wrapper.startup.timeout"), 30, TRUE);
     wrapperData->pingTimeout = getIntProperty(properties, TEXT("wrapper.ping.timeout"), 30, TRUE);
+    wrapperData->pingAlertThreshold = getIntProperty(properties, TEXT("wrapper.ping.alert.threshold"), __max(1, wrapperData->pingTimeout / 4), TRUE);
+    wrapperData->pingAlertLogLevel = getLogLevelForName(getStringProperty(properties, TEXT("wrapper.ping.alert.loglevel"), TEXT("STATUS")));
     wrapperData->pingInterval = getIntProperty(properties, TEXT("wrapper.ping.interval"), 5, TRUE);
     wrapperData->pingIntervalLogged = getIntProperty(properties, TEXT("wrapper.ping.interval.logged"), 1, TRUE);
     wrapperData->shutdownTimeout = getIntProperty(properties, TEXT("wrapper.shutdown.timeout"), 30, TRUE);
@@ -7040,6 +7068,15 @@ int loadConfiguration() {
         wrapperData->pingTimeout = wrapperData->pingInterval + 5;
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
             TEXT("wrapper.ping.timeout must be at least 5 seconds longer than wrapper.ping.interval.  Changing to %d."), wrapperData->pingTimeout);
+    }
+    if (wrapperData->pingAlertThreshold <= 0) {
+        /* Ping Alerts disabled. */
+        wrapperData->pingAlertThreshold = 0;
+    } else if ((wrapperData->pingTimeout > 0) && (wrapperData->pingAlertThreshold > wrapperData->pingTimeout)) {
+        wrapperData->pingAlertThreshold = wrapperData->pingTimeout;
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+            TEXT("wrapper.ping.alert.threshold must be less than or equal to the value of wrapper.ping.timeout (%d seconds).  Changing to %d."),
+            wrapperData->pingInterval, wrapperData->pingTimeout);
     }
     if (wrapperData->cpuTimeout > 0) {
         /* Make sure that the timeouts are all longer than the cpu timeout. */
@@ -7164,7 +7201,7 @@ int loadConfiguration() {
         return TRUE;
     }
 
-    if (wrapperData->requestThreadDumpOnFailedJVMExit || wrapperData->commandFilename || wrapperData->generateConsole) {
+    if (wrapperData->generateConsole) {
         if (!wrapperData->ntAllocConsole) {
             /* We need to allocate a console in order for the thread dumps to work
              *  when running as a service.  But the user did not request that a
@@ -7588,15 +7625,34 @@ void wrapperKeyRegistered(TCHAR *key) {
 }
 
 void wrapperPingResponded() {
+    TICKS nowTicks;
+    int tickAge;
+    
     /* Depending on the current JVM state, do something. */
     switch (wrapperData->jState) {
     case WRAPPER_JSTATE_STARTED:
-        /* We got a response to a ping.  Allow 5 + <pingTimeout> more seconds before the JVM
-         *  is considered to be dead. */
+        /* We got a response to a ping. */
+        nowTicks = wrapperGetTicks();
+        
+        if (wrapperData->pingPending) {
+            /* It is possible that this flag is not set if multiple pings were in transit. */
+            
+            /* Figure out how long it took for us to get this ping response in seconds. */
+            tickAge = wrapperGetTickAgeSeconds(wrapperData->pendingPingTicks, nowTicks);
+            
+            /* If we took longer than the threshold then we want to log a message. */
+            if (tickAge >= wrapperData->pingAlertThreshold) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->pingAlertLogLevel, TEXT("Pinging the JVM took %d seconds to respond."), tickAge);
+            }
+            
+            wrapperData->pingPending = FALSE;
+        }
+        
+        /* Allow 5 + <pingTimeout> more seconds before the JVM is considered to be dead. */
         if (wrapperData->pingTimeout > 0) {
-            wrapperUpdateJavaStateTimeout(wrapperGetTicks(), 5 + wrapperData->pingTimeout);
+            wrapperUpdateJavaStateTimeout(nowTicks, 5 + wrapperData->pingTimeout);
         } else {
-            wrapperUpdateJavaStateTimeout(wrapperGetTicks(), -1);
+            wrapperUpdateJavaStateTimeout(nowTicks, -1);
         }
 
         break;

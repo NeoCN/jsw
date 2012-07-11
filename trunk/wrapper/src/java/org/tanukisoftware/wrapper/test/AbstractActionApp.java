@@ -63,6 +63,7 @@ public abstract class AbstractActionApp
     private boolean m_nestedExit;
     
     private long m_eventMask = 0xffffffffffffffffL;
+    private int m_slowSeconds = 0;
     private String m_serviceName = "testWrapper";
     private String m_consoleTitle = "Java Service Wrapper";
     private String m_childCommand = "ls";
@@ -143,6 +144,11 @@ public abstract class AbstractActionApp
     protected void setEventMask( long eventMask )
     {
         m_eventMask = eventMask;
+    }
+    
+    protected void setSlowSeconds( int slowSeconds )
+    {
+        m_slowSeconds = slowSeconds;
     }
     
     protected void setServiceName( String serviceName )
@@ -240,6 +246,11 @@ public abstract class AbstractActionApp
         else if ( action.equals( "appear_hung" ) )
         {
             WrapperManager.appearHung();
+            
+        }
+        else if ( action.equals( "appear_slow" ) )
+        {
+            WrapperManager.appearSlow( m_slowSeconds );
             
         }
         else if ( action.equals( "deadlock" ) )

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 
 <!-- ======================================================================= -->
-<!-- Wrapper build file                                                     -->
+<!-- Wrapper build file                                                      -->
 <!-- ======================================================================= -->
 
 <project name="wrapper-tests" default="test-setup" basedir=".">
@@ -154,7 +154,7 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <replace file="${test.dir}/simplewrapperlistener.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=" />
-        
+
         <!-- Nested WrapperListener Test -->
         <delete file="${test.dir}/nestedwrapperlistener.conf"/>
         <filter token="app.name"          value="nestedwrapperlistener"/>
@@ -165,6 +165,20 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
         <replace file="${test.dir}/nestedwrapperlistener.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.NestedWrapperListener" />
+        
+        <!-- SlowStop Test -->
+        <delete file="${test.dir}/slowstop.conf"/>
+        <filter token="app.name"          value="slowstop"/>
+        <filter token="app.long.name"     value="SlowStop Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/slowstop.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/slowstop.conf"
+                 token="wrapper.java.mainclass=org.tanukisoftware.wrapper.WrapperSimpleApp"
+                 value="wrapper.java.mainclass=org.tanukisoftware.wrapper.test.SlowStop" />
+        <replace file="${test.dir}/slowstop.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=" />
         
         <!-- No Return Test -->
         <delete file="${test.dir}/noreturn.conf"/>
@@ -287,10 +301,8 @@ wrapper.java.errfile=../logs/java.stderr.log]]></replacevalue>
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.LoadedGCOutput" />
         <replace file="${test.dir}/loadedgcoutput.conf">
-            <replacetoken><![CDATA[wrapper.java.additional.1=
-]]></replacetoken>
-            <replacevalue><![CDATA[wrapper.java.additional.1=-verbose:gc
-]]></replacevalue>
+            <replacetoken>wrapper.java.additional.1=</replacetoken>
+            <replacevalue>wrapper.java.additional.1=-verbose:gc</replacevalue>
         </replace>
         
         <!-- Loaded Split Output Test -->
@@ -304,11 +316,9 @@ wrapper.java.errfile=../logs/java.stderr.log]]></replacevalue>
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.LoadedSplitOutput" />
         <replace file="${test.dir}/loadedsplitoutput.conf">
-            <replacetoken><![CDATA[wrapper.java.additional.1=
-]]></replacetoken>
+            <replacetoken>wrapper.java.additional.1=</replacetoken>
             <replacevalue><![CDATA[wrapper.java.additional.1=
-wrapper.log.lf_delay.threshold=1000
-]]></replacevalue>
+wrapper.log.lf_delay.threshold=1000]]></replacevalue>
         </replace>
         
         <!-- Restarter Test -->
@@ -676,6 +686,18 @@ wrapper.app.parameter.5=0]]></replacevalue>
         <replace file="${test.dir}/TestNestedWrapperListener.bat"
                  token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
                  value='set _WRAPPER_CONF_DEFAULT=../test/nestedwrapperlistener.conf' />
+        
+        <!-- SlowStop Test -->
+        <delete file="${test.dir}/TestSlowStop.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestSlowStop.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestSlowStop.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestSlowStop.bat"
+                 token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/slowstop.conf' />
         
         <!-- No Return Test -->
         <delete file="${test.dir}/TestNoReturn.bat"/>
@@ -1117,6 +1139,14 @@ set ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/nestedwrapperlistener"
               filtering="on"/>
         <chmod file="${test.dir}/nestedwrapperlistener" perm="+x"/>
+        
+        <!-- SlowStop Test -->
+        <filter token="app.name"          value="slowstop"/>
+        <filter token="app.long.name"     value="SlowStop Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/slowstop"
+              filtering="on"/>
+        <chmod file="${test.dir}/slowstop" perm="+x"/>
         
         <!-- No Return Test -->
         <filter token="app.name"          value="noreturn"/>

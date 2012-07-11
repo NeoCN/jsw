@@ -552,9 +552,14 @@ void wrapperRequestDumpJVMState() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
             TEXT("Sending BREAK event to process group %ld."), wrapperData->javaPID);
         if (GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, wrapperData->javaPID) == 0) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                TEXT("Unable to send BREAK event to JVM process.  Err(%ld : %s)"),
-                GetLastError(), getLastErrorText());
+            if (wrapperData->generateConsole) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                    TEXT("Unable to send BREAK event to JVM process to generate a thread dump.  Err(%ld : %s)"),
+                    GetLastError(), getLastErrorText());
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
+                    TEXT("Unable to send BREAK event to JVM process to generate a thread dump because a console does not exist.\n  Please see the wrapper.ntservice.generate_console property."));
+            }
         }
     }
 }
@@ -1237,9 +1242,8 @@ int wrapperInitializeRun() {
             return 1;
         }
 
-
-/* A console, which got created by AllocConsole, does not have stdin/out/err set,
-   so all printf's are not being displayed. Set the buffer explicitly here. */
+        /* A console, which got created by AllocConsole, does not have stdin/out/err set,
+           so all printf's are not being displayed. Set the buffer explicitly here. */
         hStdIn = GetStdHandle(STD_INPUT_HANDLE);
         if (hStdIn == INVALID_HANDLE_VALUE) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,

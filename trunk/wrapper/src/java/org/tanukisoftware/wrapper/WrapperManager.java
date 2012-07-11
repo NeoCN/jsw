@@ -361,6 +361,9 @@ public final class WrapperManager
      *   warning is displayed. */
     private static int m_timerSlowThreshold;
     
+    /** Flag which controls whether or not the test methods are disabled. */ 
+    private static boolean m_disableTests;
+    
     /** Flag which controls whether or not the WrapperListener.stop method will
      *   be called on shutdown when the WrapperListener.start method has not
      *   returned or returned an exit code. */
@@ -384,6 +387,7 @@ public final class WrapperManager
     private static int m_lastPingTicks;
     private static Socket m_backendSocket;
     private static boolean m_appearHung = false;
+    private static int m_slowSeconds = 0;
     
     private static boolean m_ignoreUserLogoffs = false;
     
@@ -631,10 +635,15 @@ public final class WrapperManager
         m_timerSlowThreshold = WrapperSystemPropertyUtil.getIntProperty(
             "wrapper.timer_slow_threshold", TIMER_SLOW_THRESHOLD ) * 1000 / TICK_MS;
         
+        // Check to see if we should disable test methods
+        m_disableTests = WrapperSystemPropertyUtil.getBooleanProperty(
+            "wrapper.disable_tests", false );
+        
         // Check to see if we should register a shutdown hook
         boolean disableShutdownHook = WrapperSystemPropertyUtil.getBooleanProperty(
             "wrapper.disable_shutdown_hook", false );
-                // Check to see if the listener stop method should always be called.
+        
+        // Check to see if the listener stop method should always be called.
         m_listenerForceStop = WrapperSystemPropertyUtil.getBooleanProperty(
             "wrapper.listener.force_stop", false );
         
@@ -2542,6 +2551,11 @@ public final class WrapperManager
      */
     public static void appearHung()
     {
+        if ( m_disableTests )
+        {
+            throw new IllegalStateException( getRes().getString( "Test methods have been disabled." ) );
+        }
+        
         SecurityManager sm = System.getSecurityManager();
         if ( sm != null )
         {
@@ -2550,6 +2564,56 @@ public final class WrapperManager
         
         m_outInfo.println( getRes().getString( "WARNING: Making JVM appear to be hung..." ) );
         m_appearHung = true;
+    }
+    
+    /**
+     * (Testing Method) Causes the WrapperManager to go into a state which makes
+     *  the JVM appear to be sluggish when viewed from the native Wrapper code.
+     *  Each packet received from the Wrapper is delayed by the specified number
+     *  of seconds.
+     *
+     * If several packets are received in succession then this delay will be
+     *  cumulative.  The delay reported by the Wrapper may appear to be quite a
+     *  bit different if multiple packets are being delayed in series.  Some
+     *  packets, like pings, which are sent multiple times may also be reported
+     *  as being processed faster than this delay because the previous response
+     *  is what is actually being received.
+     *
+     *  Does not have any effect when the JVM is not being controlled from the
+     *  native Wrapper. Useful for testing the Wrapper functions.
+     *
+     * @param slowSeconds The number of seconds to delay reponding to any incoming
+     *                    commands from the wrapper.
+     *
+     * @throws SecurityException If a SecurityManager is present and the
+     *                           calling thread does not have the
+     *                           WrapperPermission("test.appearSlow") permission.
+     *
+     * @see WrapperPermission
+     */
+    public static void appearSlow( int slowSeconds )
+    {
+        if ( m_disableTests )
+        {
+            throw new IllegalStateException( getRes().getString( "Test methods have been disabled." ) );
+        }
+        
+        SecurityManager sm = System.getSecurityManager();
+        if ( sm != null )
+        {
+            sm.checkPermission( new WrapperPermission( "test.appearSlow" ) );
+        }
+        
+        if ( slowSeconds > 0 )
+        {
+            m_outInfo.println( getRes().getString( "WARNING: Making JVM appear to be slow using a delay of {0} seconds...", new Integer( slowSeconds ) ) );
+            m_slowSeconds = slowSeconds;
+        }
+        else if ( m_slowSeconds > 0 )
+        {
+            m_outInfo.println( getRes().getString( "Resetting the JVM delayed response to normal..." ) );
+            m_slowSeconds = 0;
+        }
     }
     
     /**
@@ -2574,6 +2638,11 @@ public final class WrapperManager
      */
     public static void accessViolation()
     {
+        if ( m_disableTests )
+        {
+            throw new IllegalStateException( getRes().getString( "Test methods have been disabled." ) );
+        }
+        
         SecurityManager sm = System.getSecurityManager();
         if ( sm != null )
         {
@@ -2625,6 +2694,11 @@ public final class WrapperManager
      */
     public static void accessViolationNative()
     {
+        if ( m_disableTests )
+        {
+            throw new IllegalStateException( getRes().getString( "Test methods have been disabled." ) );
+        }
+        
         SecurityManager sm = System.getSecurityManager();
         if ( sm != null )
         {
@@ -5131,6 +5205,22 @@ public final class WrapperManager
                             {
                                 m_outDebug.println( getRes().getString( "Received a packet {0} : {1}",
                                         getPacketCodeName( code ) , logMsg ) );
+                            }
+                        }
+                        
+                        if ( m_slowSeconds > 0 )
+                        {
+                            // We have been asked to be sluggish in the JVM's response.
+                            if ( m_debug )
+                            {
+                                m_outDebug.println( getRes().getString( "  Delay packet processing by {0} seconds.", new Integer( m_slowSeconds ) ) );
+                            }
+                            try
+                            {
+                                Thread.sleep( m_slowSeconds * 1000 );
+                            }
+                            catch ( InterruptedException e )
+                            {
                             }
                         }
                         
