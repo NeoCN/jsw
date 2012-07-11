@@ -244,6 +244,8 @@ struct WrapperConfig {
     int     cpuTimeout;             /* Number of seconds without CPU before the JVM will issue a warning and extend timeouts */
     int     startupTimeout;         /* Number of seconds the wrapper will wait for a JVM to startup */
     int     pingTimeout;            /* Number of seconds the wrapper will wait for a JVM to reply to a ping */
+    int     pingAlertThreshold;     /* Number of seconds without a ping response that the Wrapper will start to warn about a slow ping. */
+    int     pingAlertLogLevel;      /* Long level at which slow ping notices are logged. */
     int     pingInterval;           /* Number of seconds between pinging the JVM */
     int     pingIntervalLogged;     /* Number of seconds between pings which can be logged to debug output. */
     int     shutdownTimeout;        /* Number of seconds the wrapper will wait for a JVM to shutdown */
@@ -271,6 +273,8 @@ struct WrapperConfig {
     TICKS   jStateTimeoutTicks;     /* Tick count until which the current jState is valid */
     int     jStateTimeoutTicksSet;  /* 1 if the current jStateTimeoutTicks is set. */
     TICKS   lastPingTicks;          /* Time that the last ping was sent */
+    int     pingPending;            /* Flag that keeps track of whether or not a ping is pending. */
+    TICKS   pendingPingTicks;	    /* Time when the first unanswered ping was sent.  We don't worry about multiple pings in transit. */
     TICKS   lastLoggedPingTicks;    /* Time that the last logged ping was sent */
 
     int     isDebugging;            /* TRUE if set in the configuration file */
@@ -293,6 +297,7 @@ struct WrapperConfig {
     TICKS   pageFaultOutputTimeoutTicks; /* Tick count at which PageFault will next be logged. */
     int     logfileInactivityTimeout; /* The number of seconds of inactivity before the logfile will be closed. */
     TICKS   logfileInactivityTimeoutTicks; /* Tick count at which the logfile will be considered inactive and closed. */
+    int     isTestsDisabled;        /* TRUE if the use of tests in the WrapperManager class should be disabled. */
     int     isShutdownHookDisabled; /* TRUE if the use of a shutdown hook by the WrapperManager class should be disabled. */
     int     isForcedShutdownDisabled; /* TRUE if forced shutdowns are disabled. */
     int     startupDelayConsole;    /* Delay in seconds before starting the first JVM in console mode. */

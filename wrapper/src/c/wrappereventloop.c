@@ -1523,6 +1523,14 @@ void jStateStarted(TICKS nowTicks, int nextSleep) {
                 if (wrapperData->isDebugging) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("JVM Ping Failed."));
                 }
+            } else {
+                /* Ping sent successfully. */
+                if ((!wrapperData->pingPending) && (wrapperData->pingAlertThreshold > 0)) {
+                    /* There are not currently any pings pending.  We are only interested in marking
+                     *  the first ping sent until we get a reply.  So any repeat pings can be ignored here. */
+                    wrapperData->pendingPingTicks = nowTicks;
+                    wrapperData->pingPending = TRUE;
+                }
             }
             if (wrapperData->isLoopOutputEnabled) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Loop: Sent a ping packet."));

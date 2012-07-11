@@ -545,6 +545,12 @@ checkUser() {
     fi
     if [ "X$RUN_AS_USER" != "X" ]
     then
+        if [ "`$IDEXE -u -n "$RUN_AS_USER" 2>/dev/null`" != "$RUN_AS_USER" ]
+        then
+            eval echo `gettext 'User $RUN_AS_USER does not exist.'`
+            exit 1
+        fi
+
         # If LOCKPROP and $RUN_AS_USER are defined then the new user will most likely not be
         # able to create the lock file.  The Wrapper will be able to update this file once it
         # is created but will not be able to delete it on shutdown.  If $1 is set then

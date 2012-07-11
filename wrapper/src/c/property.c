@@ -686,8 +686,8 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
 #endif
 
 #ifdef _DEBUG
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("loadPropertiesInner(props, '%s', %d, %d, '%s', %d)"),
-        filename, fileRequired, depth, (parentFilename ? parentFilename : TEXT("<NULL>")), parentLineNumber);
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("loadPropertiesInner(props, '%s', required %d, depth %d, parent '%s', number %d, debugIncludes %d, preload %d)"),
+        filename, fileRequired, depth, (parentFilename ? parentFilename : TEXT("<NULL>")), parentLineNumber, properties->debugIncludes, properties->preload );
 #endif
 
     /* Look for the specified file. */
@@ -709,6 +709,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
         }
         return PROP_LOAD_FAIL;
     }
+
     if (properties->debugIncludes) {
         if (!properties->preload) {
             if (depth > 0) {
@@ -717,8 +718,7 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
             } else {
                 /* Will not actually get here because the debug includes can't be set until it is loaded.
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-                    TEXT("Loading configuration file, %s"), filename);
-                */
+                    TEXT("Loading configuration file, %s"), filename); */
             }
         }
     }
@@ -909,6 +909,10 @@ int loadPropertiesInner(Properties* properties, const TCHAR* filename, int fileR
                     /* Enable include file debugging. */
                     if (properties->preload == FALSE) {
                         properties->debugIncludes = TRUE;
+                        if (depth == 0) {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                                TEXT("Base configuration file is %s"), filename);
+                        }
                     } else {
                         properties->debugIncludes = FALSE;
                     }

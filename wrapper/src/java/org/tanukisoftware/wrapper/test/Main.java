@@ -78,6 +78,7 @@ public class Main
     private ActionRunner m_actionRunner;
     private static WrapperResources m_res;
     private List m_listenerFlags;
+    private TextField m_slowSeconds;
     private TextField m_serviceName;
     private TextField m_consoleTitle;
     private TextField m_childCommand;
@@ -168,6 +169,17 @@ public class Main
             
             buildCommand( panel, gridBag, c, getRes().getString( "Simulate JVM Hang" ), "appear_hung",
                     getRes().getString( "Makes the JVM appear to be hung as viewed from the Wrapper, it will be killed and restarted." ) );
+            
+            m_slowSeconds = new TextField( "0" );
+            Panel slowPanel = new Panel();
+            slowPanel.setLayout( new BorderLayout() );
+            slowPanel.add( new Label( getRes().getString( "Delay Seconds: " ) ), BorderLayout.WEST );
+            slowPanel.add( m_slowSeconds, BorderLayout.CENTER );
+            Panel slowPanel2 = new Panel();
+            slowPanel2.setLayout( new BorderLayout() );
+            slowPanel2.add( slowPanel, BorderLayout.WEST );
+            slowPanel2.add( new Label( getRes().getString( "Makes the JVM appear sluggish by being slow to respond to all packet requests from the Wrapper." ) ), BorderLayout.CENTER );
+            buildCommand( panel, gridBag, c, getRes().getString( "Simulate Slow JVM" ), "appear_slow", slowPanel2 );
             
             buildCommand( panel, gridBag, c, getRes().getString( "Create Deadlock" ), "deadlock",
                     getRes().getString( "Creates two new threads which intentionally go into a DeadLock situation.  (Standard, Professional)" ) );
@@ -338,6 +350,17 @@ public class Main
                 setEventMask( mask );
             }
             
+            int slowSeconds;
+            try
+            {
+                slowSeconds = Integer.parseInt( m_slowSeconds.getText() );
+            }
+            catch ( NumberFormatException e )
+            {
+                slowSeconds = 0;
+            }
+            m_slowSeconds.setText( Integer.toString( slowSeconds ) );
+            setSlowSeconds( slowSeconds );
             setServiceName( m_serviceName.getText() );
             setConsoleTitle( m_consoleTitle.getText() );
             setChildParams( m_childCommand.getText(), m_childDetached.getState() );
