@@ -1570,7 +1570,39 @@ original tar distribution due to a lack of support for long path names in some t
         <echo>**********************************************************</echo>
     </target>
 
-    <target name="release-unix:strip-symbols" if="is.unix" >
+    <target name="release-unix:strip-symbols:macosx" if="is.macosx" >
+        <property name="releaseSymbolsDir" value="${build.dir}/${releaseSymbolsFile}"/>
+        <delete dir="${releaseSymbolsDir}"/>
+        <mkdir dir="${releaseSymbolsDir}"/>
+ 
+        <copy file="${build.dir}/${releasefile}/bin/${wrapper.bin.name}"
+            tofile="${releaseSymbolsDir}/${wrapper.bin.name}.dbg"/>
+
+        <exec executable="${strip.name}"
+            dir="${build.dir}/${releasefile}/bin"
+            failonerror="true">
+            <arg line="-ur ${wrapper.bin.name}" />
+        </exec>
+
+        <copy file="${build.dir}/${releasefile}/lib/${wrapper.lib.name}"
+            tofile="${releaseSymbolsDir}/${wrapper.lib.name}.dbg"/>
+
+        <exec executable="${strip.name}"
+            dir="${build.dir}/${releasefile}/lib"
+            failonerror="true">
+            <arg line="-ur ${wrapper.lib.name}" />
+        </exec>
+
+        <tar tarfile="${build.dir}/${releaseSymbolsFile}.tar">
+            <tarfileset dir="${build.dir}" mode="755">
+               <include name="${releaseSymbolsFile}/**/*" />
+            </tarfileset>
+        </tar>
+        <gzip zipfile="${dist.dir}/${releaseSymbolsFile}.tar.gz" src="${build.dir}/${releaseSymbolsFile}.tar" />
+    
+    </target>    
+
+    <target name="release-unix:strip-symbols" if="is.unix" unless="is.macosx" depends="release-unix:strip-symbols:macosx">
         <!-- We also need to create a symbols file so we can debug things later in case of problems. -->
         <property name="releaseSymbolsDir" value="${build.dir}/${releaseSymbolsFile}"/>
         <delete dir="${releaseSymbolsDir}"/>

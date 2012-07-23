@@ -617,7 +617,11 @@ void wrapperLoadLoggingProperties(int preload) {
 
     /* Load console log level */
     /* Try to optimize the use of console log output so it is only done if a console exists and is visible. */
-    if (wrapperData->isConsole || (wrapperData->ntAllocConsole && (!wrapperData->ntHideWrapperConsole))) {
+    if (wrapperData->isConsole
+ #ifdef WIN32
+        || (wrapperData->ntAllocConsole && (!wrapperData->ntHideWrapperConsole))
+ #endif
+        ) {
         setConsoleLogLevel(getStringProperty(properties, TEXT("wrapper.console.loglevel"), TEXT("INFO")));
     } else {
         /* The console is not visible, so we shouldn't waste time logging to it. */
