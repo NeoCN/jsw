@@ -1619,11 +1619,11 @@ void daemonize(int argc, TCHAR** argv) {
  * Sets the working directory to that of the current executable
  */
 int setWorkingDir(TCHAR *app) {
-    TCHAR szPath[PATH_MAX + 1];
+    TCHAR *szPath;
     TCHAR* pos;
 
     /* Get the full path and filename of this program */
-    if (_trealpath(app, szPath) == NULL) {
+    if ((szPath = findPathOf(app, TEXT("Wrapper binary"))) == NULL) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to get the path for '%s'-%s"),
             app, getLastErrorText());
         return 1;
@@ -1638,6 +1638,7 @@ int setWorkingDir(TCHAR *app) {
     pos = _tcsrchr(szPath, TEXT('/'));
     if (pos == NULL) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to extract path from: %s"), szPath);
+        free(szPath);
         return 1;
     } else {
         /* Clip the path at the position of the last backslash */
@@ -1648,9 +1649,10 @@ int setWorkingDir(TCHAR *app) {
     setEnv(TEXT("WRAPPER_BIN_DIR"), szPath, ENV_SOURCE_WRAPPER);
 
     if (wrapperSetWorkingDir(szPath)) {
+        free(szPath);
         return 1;
     }
-
+    free(szPath);
     return 0;
 }
 

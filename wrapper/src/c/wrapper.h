@@ -702,6 +702,7 @@ BOOL extern isVista();
 extern void wrapperMaintainControlCodes();
 #else
 extern void wrapperMaintainSignals();
+extern TCHAR* findPathOf(const TCHAR *exe, const TCHAR* name);
 #endif
 
 /**

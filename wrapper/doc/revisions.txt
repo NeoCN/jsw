@@ -8,9 +8,10 @@ Java Service Wrapper Revision History.
   process which got created with the WrapperManager.exec API and used the
   feature to run the child process in the logged on users desktop was 
   only allowing to create a process once per second.   
-* Output the base configuration file, when debugging #include's 
-* Add a check in the script to output a more descriptive error message, when 
-  the user specified in the RUN_AS_USER variable doesn't exist.
+* Include information about the base configuration file in the debug output
+  when debugging of cacading configuration files has been enabled.
+* Add a check in the UNIX script to output a more descriptive error message,
+  when the user specified in the RUN_AS_USER variable doesn't exist.
 * (Standard, Professional) Fix a problem where console log output was not being
   displayed correctly when running with the WrapperW.exe binary with the
   wrapper.ntservice.console property was set to true.
@@ -26,12 +27,18 @@ Java Service Wrapper Revision History.
   properties which make it much easier to debug ping timeout issues by asking
   the Wrapper to log messages about ping responses which were shorter than the
   registered wrapper.ping.timeout, but longer than the threshold.
-* Add a new WrapperManager.appearSlow(s) method which makes it easier to test
+* Add a new WrapperManager.appearSlow method which makes it easier to test
   how the Wrapper behaves when the JVM is being slow to respond to commands.
 * Add a new wrapper.disable_tests property which can be used to disable all of
   the testing methods of the WrapperManager class.  It has always been possible
-  to control their access with a SecurityManager, but this is a simpler for
-  most applications.
+  to control their access with a SecurityManager, but this is simpler for most
+  applications.
+* Update the default wrapper configuration file template so a restart due to a
+  matched OutOfMemoryError filter will no longer be triggered by default if the
+  user enables -verbose:class output.
+* Fix a problem on UNIX platforms where the Wrapper would fail to start if it
+  was located on the system PATH.  This had been a problem since version 3.3.0
+  but had gone unnoticed as the Wrapper is not usually referenced in this way.
 
 3.5.15
 * Add a new _WRAPPER_CONF_OVERRIDE setting to the Wrapper dedicated command
