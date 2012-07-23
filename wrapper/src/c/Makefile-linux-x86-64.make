@@ -33,12 +33,12 @@ init:
 	if test ! -d .deps; then mkdir .deps; fi
 
 wrapper: $(wrapper_SOURCE)
-	$(COMPILE) -lm -pthread $(wrapper_SOURCE) -o $(BIN)/wrapper
+	$(COMPILE) -pthread $(wrapper_SOURCE) -lm -o $(BIN)/wrapper
 
 libwrapper.so: $(libwrapper_so_OBJECTS)
 	${COMPILE} -shared $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
 
-%.o: %.c
+%.o: %.c 
 	@echo '$(COMPILE) -c $<'; \
 	$(COMPILE) $(DEFS) -Wp,-MD,.deps/$(*F).pp -c $<
 	@-cp .deps/$(*F).pp .deps/$(*F).P; \

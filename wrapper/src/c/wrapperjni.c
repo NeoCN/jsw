@@ -56,29 +56,30 @@ int redirectedStdOut = FALSE;
 /** Flag to keep track of whether StdErr has been redirected. */
 int redirectedStdErr = FALSE;
 
+/* Special symbols that need to be defined manually as part of the bootstrap process. */
 const char utf8ClassJavaLangString[] = {106, 97,118, 97, 47, /* java/ */
                                         108, 97,110,103, 47, /* lang/ */
                                         83,116,114,105,110,103, 0}; /* "java/lang/String" */
 const char utf8MethodInit[] = {60,105,110,105,116, 62, 0}; /* "<init>" */
 const char utf8Sig_BrV[] = {40, 91, 66, 41, 86, 0}; /* "([B)V" */
-const char utf8Sigr_B [] = { 40, 41, 91, 66, 0}; /* "()[B") */
+const char utf8Sigr_B[] = { 40, 41, 91, 66, 0}; /* "()[B") */
 const char utf8MethodGetBytes[] = {103, 101, 116, 66, 121, 116, 101, 115, 0}; /* getBytes */
 const char utf8ClassJavaLangOutOfMemoryError[] = {106, 97,118, 97, 47, /* java/ */
                                                   108, 97,110, 103, 47, /* lang/ */
                                                   79, 117, 116, 79, 102, 77, 101, 109, 111, 114, 121, 69, 114, 114, 111, 114, 0}; /* OutOfMemoryError */
-const char utf8SigJ[] = {74, 0}; /* "J" */
-const char utf8VrV[] = {40, 41, 86, 0}; /* "()V" */
-const char utf8SigmId[] = { 109, 95, 73, 100, 0}; /* "m_Id" */
-const char utf8SigOrgTanukisoftwareWrapperWrapperResources[] = {111, 114, 103, 47, /* org/ */
-                                                                116, 97, 110, 117, 107, 105, 115, 111, 102, 116, 119, 97, 114, 101, 47, /* tanukisoftware/ */
-                                                                119, 114, 97, 112, 112, 101, 114, 47, /* wrapper/ */
-                                                                87,  114, 97, 112, 112, 101, 114, 82, 101, 115, 111, 117, 114, 99, 101, 115, 0}; /* "WrapperResources" */
+
 /*
  * For UTF8 constants, '_' in the name means an array, 'r' preceeds the return
  *  portion of a method declaration, 'V' is Void.  The rest is like the
  *  Java format.
  */
-char *utf8ClassJavaLangError;
+char *utf8SigLjavaLangStringrV;
+char *utf8ClassJavaLangSystem;
+char *utf8MethodGetProperties;
+char *utf8SigVrLjavaUtilProperties;
+char *utf8MethodGetProperty;
+char *utf8SigLjavaLangStringrLjavaLangString;
+
 #ifdef WIN32
 #else
 char *utf8ClassOrgTanukisoftwareWrapperWrapperUNIXUser;
@@ -87,13 +88,6 @@ char *utf8MethodAddGroup;
 char *utf8SigIIStringStringStringStringrV;
 char *utf8SigIStringrV;
 #endif
-
-char *utf8SigLjavaLangStringrV;
-char *utf8ClassJavaLangSystem;
-char *utf8MethodGetProperties;
-char *utf8SigVrLjavaUtilProperties;
-char *utf8MethodGetProperty;
-char *utf8SigLjavaLangStringrLjavaLangString;
 
 /**
  * Create an error message from GetLastError() using the
@@ -419,12 +413,14 @@ char *getUTF8Chars(JNIEnv *env, const char *nativeChars) {
 }
 
 void initUTF8Strings(JNIEnv *env) {
-    /* Now do the rest of the strings using our helper function. */
-    /*utf8ClassJavaLangOutOfMemoryError = getUTF8Chars(env, "java/lang/OutOfMemoryError"); */
-    utf8ClassJavaLangError = getUTF8Chars(env, "java/lang/Error");
-    /* utf8MethodGetBytes = getUTF8Chars(env, "getBytes"); */
+    /* Now initialize all of the strings using our helper function. */
     utf8SigLjavaLangStringrV = getUTF8Chars(env, "(Ljava/lang/String;)V");
-    /* utf8Sigr_B = getUTF8Chars(env, "()[B"); */
+    utf8ClassJavaLangSystem = getUTF8Chars(env, "java/lang/System");
+    utf8MethodGetProperties = getUTF8Chars(env, "getProperties");
+    utf8SigVrLjavaUtilProperties = getUTF8Chars(env, "()Ljava/util/Properties;");
+    utf8MethodGetProperty = getUTF8Chars(env, "getProperty");
+    utf8SigLjavaLangStringrLjavaLangString = getUTF8Chars(env, "(Ljava/lang/String;)Ljava/lang/String;");
+    
 #ifdef WIN32
 #else
     utf8ClassOrgTanukisoftwareWrapperWrapperUNIXUser = getUTF8Chars(env, "org/tanukisoftware/wrapper/WrapperUNIXUser");
@@ -432,12 +428,7 @@ void initUTF8Strings(JNIEnv *env) {
     utf8MethodAddGroup = getUTF8Chars(env, "addGroup");
     utf8SigIIStringStringStringStringrV = getUTF8Chars(env, "(IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
     utf8SigIStringrV = getUTF8Chars(env, "(ILjava/lang/String;)V");
-#endif
-    utf8ClassJavaLangSystem = getUTF8Chars(env, "java/lang/System");
-    utf8MethodGetProperties = getUTF8Chars(env, "getProperties");
-    utf8SigVrLjavaUtilProperties = getUTF8Chars(env, "()Ljava/util/Properties;");
-    utf8MethodGetProperty = getUTF8Chars(env, "getProperty");
-    utf8SigLjavaLangStringrLjavaLangString = getUTF8Chars(env, "(Ljava/lang/String;)Ljava/lang/String;");
+#endif	
 }
 
 /**
