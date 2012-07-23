@@ -4497,7 +4497,7 @@ int checkIfBinary(const TCHAR *filename) {
 
 
 #ifndef WIN32
-TCHAR* findPathOf(const TCHAR *exe) {
+TCHAR* findPathOf(const TCHAR *exe, const TCHAR *name) {
     TCHAR *searchPath;
     TCHAR *beg, *end;
     int stop, found;
@@ -4517,13 +4517,13 @@ TCHAR* findPathOf(const TCHAR *exe) {
                 }
                 _tcsncpy(ret, pth, _tcslen(pth) + 1);
                 if (wrapperData->isDebugging) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Resolved the real path of wrapper.java.command as an absolute reference: %s"), ret);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Resolved the real path of %s as an absolute reference: %s"), name, ret);
                 }
                 return ret;
             }
         } else {
             if (wrapperData->isDebugging) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of wrapper.java.command as an absolute reference: %s (Problem at: %s)"), exe, resolvedPath);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of %s as an absolute reference: %s (Problem at: %s)"), name, exe, resolvedPath);
             }
         }
 
@@ -4542,7 +4542,7 @@ TCHAR* findPathOf(const TCHAR *exe) {
             }
             _tcsncpy(ret, pth, _tcslen(pth) + 1);
             if (wrapperData->isDebugging) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Resolved the real path of wrapper.java.command as a relative reference: %s"), ret);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Resolved the real path of %s as a relative reference: %s"), name, ret);
             }
             return ret;
         }
@@ -4551,7 +4551,7 @@ TCHAR* findPathOf(const TCHAR *exe) {
             /* Some platforms (MACOSX) will return the point that was the problem, it seems to work
              *  on some other platforms but is documented as undefined.   To be safe and keep things
              *  in sync, don't use it. */
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of wrapper.java.command as a relative reference: %s"), exe);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of %s as a relative reference: %s"), name, exe);
         }
     }
 
@@ -4566,7 +4566,7 @@ TCHAR* findPathOf(const TCHAR *exe) {
         }
         if (searchPath) {
             if (wrapperData->isDebugging) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Attempt to locate wrapper.java.command on system PATH: %s"), exe);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Attempt to locate %s on system PATH: %s"), name, exe);
             }
 
             beg = searchPath;
@@ -4616,12 +4616,12 @@ TCHAR* findPathOf(const TCHAR *exe) {
                 }
                 _tcsncpy(ret, pth, _tcslen(pth) + 1);
                 if (wrapperData->isDebugging) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Resolved the real path of wrapper.java.command from system PATH: %s"), ret);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Resolved the real path of %s from system PATH: %s"), name, ret);
                 }
                 return ret;
             } else {
                 if (wrapperData->isDebugging) {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of wrapper.java.command on the system PATH: %s"), exe);
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Unable to resolve the real path of %s on the system PATH: %s"), name, exe);
                 }
             }
         }
@@ -4660,7 +4660,7 @@ void checkIfRegularExe(TCHAR** para) {
         path[len] = TEXT('\0');
 #else
     int replacePath;
-    path = findPathOf(*para);
+    path = findPathOf(*para, TEXT("wrapper.java.command"));
     if (!path) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("The configured wrapper.java.command could not be found, attempting to launch anyway: %s"), *para);
     } else {
