@@ -3147,7 +3147,6 @@ int wrapperReadChildOutput() {
     int defer = FALSE;
     int readThisPass = FALSE;
     size_t removeLen = 0;
-    int foundCRLF = FALSE;
 
     if (!wrapperChildWorkBuffer) {
         /* Initialize the wrapperChildWorkBuffer.  Set its initial size to the block size + 1.
@@ -3237,10 +3236,8 @@ int wrapperReadChildOutput() {
  #endif
                     /* Replace the CR with a NULL */
                     (cLF - sizeof(char))[0] = 0;
-                    foundCRLF = TRUE;
                 } else {
 #endif
-                    foundCRLF = FALSE;
 #ifdef DEBUG_CHILD_OUTPUT
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Found LF"));
 #endif
