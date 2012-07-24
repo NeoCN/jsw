@@ -1753,14 +1753,15 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
             returnVal = TRUE;
         } else {
             if (wrapperData->isDebugging) {
-                if ((function == WRAPPER_MSG_PING) && messageW && (_tcscmp(messageW, TEXT("silent")) == 0)) {
+                if ((function == WRAPPER_MSG_PING) && messageW && (_tcsstr(messageW, TEXT("silent")) == messageW)) {
                     /*
-                    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT(
-                        "send a silent ping packet"));
+                    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
+                        TEXT("send a silent ping packet %s : %s"),
+                        wrapperProtocolGetCodeName(function), (logMsgW == NULL ? TEXT("NULL") : logMsgW));
                     */
                 } else {
-                    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT(
-                        "send a packet %s : %s"),
+                    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG,
+                        TEXT("send a packet %s : %s"),
                         wrapperProtocolGetCodeName(function), (logMsgW == NULL ? TEXT("NULL") : logMsgW));
                 }
             }
@@ -2060,9 +2061,10 @@ int wrapperProtocolRead() {
         }
 
         if (wrapperData->isDebugging) {
-            if ((code == WRAPPER_MSG_PING) && (_tcscmp(packetBuffer, TEXT("silent")) == 0)) {
+            if ((code == WRAPPER_MSG_PING) && (_tcsstr(packetBuffer, TEXT("silent")) == packetBuffer)) {
                 /*
-                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("read a silent ping packet"));
+                log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("read a silent ping packet %s : %s"),
+                    wrapperProtocolGetCodeName(code), packetBuffer);
                 */
             } else {
                 log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("read a packet %s : %s"),
