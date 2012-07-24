@@ -5053,7 +5053,7 @@ public final class WrapperManager
         if ( m_debug )
         {
             // We want to show these messages even if we are pretending to be hung.
-            if ( ( code == WRAPPER_MSG_PING ) && ( message.equals( "silent" ) ) )
+            if ( ( code == WRAPPER_MSG_PING ) && ( message.startsWith( "silent" ) ) )
             {
                 // m_outDebug.println( "Send silent ping packet." );
             }
@@ -5197,7 +5197,7 @@ public final class WrapperManager
                             }
                             
                             // Don't log silent pings.
-                            if ( ( code == WRAPPER_MSG_PING ) && ( msg.equals( "silent" ) ) )
+                            if ( ( code == WRAPPER_MSG_PING ) && ( msg.startsWith( "silent" ) ) )
                             {
                                 //m_outDebug.println( "Received silent ping packet." );
                             }

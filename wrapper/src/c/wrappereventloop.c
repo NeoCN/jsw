@@ -1481,8 +1481,10 @@ void jStateStarting(TICKS nowTicks, int nextSleep) {
  *            may make sense to avoid certain actions if it is known that the
  *            function will be called again immediately.
  */
+#define JSTATESTARTED_MESSAGE_MAXLEN (7 + 8 + 1) /* "silent ffffffff\0" */
 void jStateStarted(TICKS nowTicks, int nextSleep) {
     int ret;
+    TCHAR protocolMessage[JSTATESTARTED_MESSAGE_MAXLEN]; 
 
     /* Make sure that the JVM process is still up and running */
     if (nextSleep && (wrapperGetProcessStatus(nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
@@ -1510,12 +1512,14 @@ void jStateStarted(TICKS nowTicks, int nextSleep) {
                 if (wrapperData->isLoopOutputEnabled) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Loop: Sending a ping packet."));
                 }
-                ret = wrapperProtocolFunction(WRAPPER_MSG_PING, TEXT("ping"));
+                _sntprintf(protocolMessage, JSTATESTARTED_MESSAGE_MAXLEN, TEXT("ping %08x"), nowTicks);
+                ret = wrapperProtocolFunction(WRAPPER_MSG_PING, protocolMessage);
                 wrapperData->lastLoggedPingTicks = nowTicks;
             } else {
                 if (wrapperData->isLoopOutputEnabled) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Loop: Sending a silent ping packet."));
                 }
+                _sntprintf(protocolMessage, JSTATESTARTED_MESSAGE_MAXLEN, TEXT("silent %08x"), nowTicks);
                 ret = wrapperProtocolFunction(WRAPPER_MSG_PING, TEXT("silent"));
             }
             if (ret) {
@@ -1525,13 +1529,8 @@ void jStateStarted(TICKS nowTicks, int nextSleep) {
                 }
             } else {
                 /* Ping sent successfully. */
-                if ((!wrapperData->pingPending) && (wrapperData->pingAlertThreshold > 0)) {
-                    /* There are not currently any pings pending.  We are only interested in marking
-                     *  the first ping sent until we get a reply.  So any repeat pings can be ignored here. */
-                    wrapperData->pendingPingTicks = nowTicks;
-                    wrapperData->pingPending = TRUE;
-                }
             }
+            
             if (wrapperData->isLoopOutputEnabled) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Loop: Sent a ping packet."));
             }
