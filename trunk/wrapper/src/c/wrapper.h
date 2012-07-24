@@ -273,8 +273,6 @@ struct WrapperConfig {
     TICKS   jStateTimeoutTicks;     /* Tick count until which the current jState is valid */
     int     jStateTimeoutTicksSet;  /* 1 if the current jStateTimeoutTicks is set. */
     TICKS   lastPingTicks;          /* Time that the last ping was sent */
-    int     pingPending;            /* Flag that keeps track of whether or not a ping is pending. */
-    TICKS   pendingPingTicks;	    /* Time when the first unanswered ping was sent.  We don't worry about multiple pings in transit. */
     TICKS   lastLoggedPingTicks;    /* Time that the last logged ping was sent */
 
     int     isDebugging;            /* TRUE if set in the configuration file */
@@ -957,7 +955,13 @@ extern int wrapperSetWorkingDir(const TCHAR* dir);
  *****************************************************************************/
 extern void wrapperLogSignaled(int logLevel, TCHAR *msg);
 extern void wrapperKeyRegistered(TCHAR *key);
-extern void wrapperPingResponded();
+
+/**
+ * Called when a ping response is received.
+ *
+ * @param pingSendTicks Time in ticks when the ping was originally sent.
+ */
+extern void wrapperPingResponded(TICKS pingSendTicks);
 extern void wrapperStopRequested(int exitCode);
 extern void wrapperRestartRequested();
 extern void wrapperStopPendingSignaled(int waitHint);

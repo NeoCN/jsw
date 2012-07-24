@@ -294,8 +294,7 @@ time_t getUserLoginTime(TCHAR *sidText) {
  *
  * Returns TRUE if there were any problems.
  */
-int
-setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HANDLE hProcessToken) {
+int setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HANDLE hProcessToken) {
     jmethodID addGroup;
 
     TOKEN_GROUPS *tokenGroups;
@@ -411,8 +410,7 @@ setUserGroups(JNIEnv *env, jclass wrapperUserClass, jobject wrapperUser, HANDLE 
  * Creates and returns a WrapperUser instance to represent the user who owns
  *  the specified process Id.
  */
-jobject
-createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean groups) {
+jobject createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean groups) {
     HANDLE hProcess;
     HANDLE hProcessToken;
     TOKEN_USER *tokenUser;
@@ -791,8 +789,8 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeGetInteractiveUser(JNIEnv *
 
     /* This function will only work if all required optional functions existed. */
     if ((OptionalProcess32First == NULL) || (OptionalProcess32Next == NULL) ||
-        (OptionalThread32First == NULL) || (OptionalThread32Next == NULL) ||
-        (OptionalCreateToolhelp32Snapshot == NULL)) {
+            (OptionalThread32First == NULL) || (OptionalThread32Next == NULL) ||
+            (OptionalCreateToolhelp32Snapshot == NULL)) {
         if (wrapperJNIDebugging) {
             _tprintf(TEXT("WrapperJNI Debug: getInteractiveUser not supported on this platform.\n"));
             flushall();
@@ -1177,7 +1175,5 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeSendServiceControlCode(JNIE
 
     return service;
 }
-
-
 
 #endif

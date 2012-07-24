@@ -1862,6 +1862,32 @@ int wrapperCheckServerBackend(int forceOpen) {
 }
 
 /**
+ * Simple function to parse hexidecimal numbers into a TICKS
+ */
+TICKS hexToTICKS(TCHAR *buffer) {
+    TICKS value = 0;
+    TCHAR c;
+    int pos = 0;
+    
+    while (TRUE) {
+        c = buffer[pos];
+        
+        if ((c >= TEXT('a')) && (c <= TEXT('f'))) {
+            value = (value << 4) + (10 + c - TEXT('a'));
+        } else if ((c >= TEXT('A')) && (c <= TEXT('F'))) {
+            value = (value << 4) + (10 + c - TEXT('A'));
+        } else if ((c >= TEXT('0')) && (c <= TEXT('9'))) {
+            value = (value << 4) + (c - TEXT('0'));
+        } else {
+            /* Any other character or null is the end of the number. */
+            return value;
+        }
+        
+        pos++;
+    }
+}
+
+/**
  * Read any data sent from the JVM.  This function will loop and read as many
  *  packets are available.  The loop will only be allowed to go for 250ms to
  *  ensure that other functions are handled correctly.
@@ -1876,6 +1902,7 @@ int wrapperProtocolRead() {
     int maxlen;
 #endif
     int pos;
+    TCHAR *tc;
     int err;
     struct timeb timeBuffer;
     time_t startTime;
@@ -2033,7 +2060,7 @@ int wrapperProtocolRead() {
         }
 
         if (wrapperData->isDebugging) {
-            if ( ( code == WRAPPER_MSG_PING ) && ( _tcscmp( packetBuffer, TEXT("silent") ) == 0 ) ) {
+            if ((code == WRAPPER_MSG_PING) && (_tcscmp(packetBuffer, TEXT("silent")) == 0)) {
                 /*
                 log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("read a silent ping packet"));
                 */
@@ -2053,7 +2080,15 @@ int wrapperProtocolRead() {
             break;
 
         case WRAPPER_MSG_PING:
-            wrapperPingResponded();
+            /* Because all versions of the wrapper.jar simply bounce back the ping message, the pingSendTicks should always exist. */
+            tc = _tcschr(packetBuffer, TEXT(' '));
+            if (tc) {
+                /* A pingSendTicks should exist. Parse the id following the space. It will be in the format 0xffffffff. */
+                wrapperPingResponded(hexToTICKS(&tc[1]));
+            } else {
+                /* Should not happen, but just in case use the current ticks. */
+                wrapperPingResponded(wrapperGetTicks());
+            }
             break;
 
         case WRAPPER_MSG_STOP_PENDING:
@@ -7621,11 +7656,14 @@ void wrapperKeyRegistered(TCHAR *key) {
         /* We got a key registration that we were not expecting.  Ignore it. */
         break;
     }
-
-
 }
 
-void wrapperPingResponded() {
+/**
+ * Called when a ping response is received.
+ *
+ * @param pingSendTicks Time in ticks when the ping was originally sent.
+ */
+void wrapperPingResponded(TICKS pingSendTicks) {
     TICKS nowTicks;
     int tickAge;
     
@@ -7635,18 +7673,12 @@ void wrapperPingResponded() {
         /* We got a response to a ping. */
         nowTicks = wrapperGetTicks();
         
-        if (wrapperData->pingPending) {
-            /* It is possible that this flag is not set if multiple pings were in transit. */
-            
-            /* Figure out how long it took for us to get this ping response in seconds. */
-            tickAge = wrapperGetTickAgeSeconds(wrapperData->pendingPingTicks, nowTicks);
-            
-            /* If we took longer than the threshold then we want to log a message. */
-            if (tickAge >= wrapperData->pingAlertThreshold) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->pingAlertLogLevel, TEXT("Pinging the JVM took %d seconds to respond."), tickAge);
-            }
-            
-            wrapperData->pingPending = FALSE;
+        /* Figure out how long it took for us to get this ping response in seconds. */
+        tickAge = wrapperGetTickAgeSeconds(pingSendTicks, nowTicks);
+        
+        /* If we took longer than the threshold then we want to log a message. */
+        if (tickAge >= wrapperData->pingAlertThreshold) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->pingAlertLogLevel, TEXT("Pinging the JVM took %d seconds to respond."), tickAge);
         }
         
         /* Allow 5 + <pingTimeout> more seconds before the JVM is considered to be dead. */
