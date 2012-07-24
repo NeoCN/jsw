@@ -1498,7 +1498,7 @@ void jStateStarted(TICKS nowTicks, int nextSleep) {
                     TEXT("Ping: Timed out waiting for signal from JVM."), TEXT("ping"));
             } else {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                           TEXT("JVM appears hung: Timed out waiting for signal from JVM."));
+                    TEXT("JVM appears hung: Timed out waiting for signal from JVM."));
 
                 /* Give up on the JVM and start trying to kill it. */
                 wrapperKillProcess();
@@ -1520,7 +1520,7 @@ void jStateStarted(TICKS nowTicks, int nextSleep) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Loop: Sending a silent ping packet."));
                 }
                 _sntprintf(protocolMessage, JSTATESTARTED_MESSAGE_MAXLEN, TEXT("silent %08x"), nowTicks);
-                ret = wrapperProtocolFunction(WRAPPER_MSG_PING, TEXT("silent"));
+                ret = wrapperProtocolFunction(WRAPPER_MSG_PING, protocolMessage);
             }
             if (ret) {
                 /* Failed to send the ping. */
