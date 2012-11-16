@@ -102,7 +102,7 @@ public class Main
 
         MainFrame()
         {
-            super( getRes().getString( "Wrapper Test Application" ) );
+            super( getRes().getString( "TestWrapper Example Application" ) );
             
             init();
             

@@ -205,6 +205,15 @@ extern int isLogfileAccessed();
  */
 extern int setLogfilePath( const TCHAR *log_file_path, const TCHAR *workingDir, int preload);
 
+/**
+ * Returns the default logfile.
+ */
+extern const TCHAR *getDefaultLogfilePath();
+
+/**
+ * Returns a reference to the currect log file path.
+ *  This return value may be changed at any time if the log file is rolled.
+ */
 extern const TCHAR *getLogfilePath();
 
 /**

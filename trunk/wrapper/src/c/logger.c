@@ -396,8 +396,7 @@ int disposeLogging() {
  #endif
     
     if (log_printfMutexHandle) {
-        if (!CloseHandle(log_printfMutexHandle))
-        {
+        if (!CloseHandle(log_printfMutexHandle)) {
             _tprintf(TEXT("Unable to close Logging Mutex handle. %s\n"), getLastErrorText());
             return 1;
         }
@@ -405,15 +404,21 @@ int disposeLogging() {
  #ifdef WRAPPERW
     for (i = 0; i < dialogLogEntries; i++) {
         free(dialogLogs[i]);
+        dialogLogs[i] = NULL;
     }
     free(dialogLogs);
+    dialogLogs = NULL;
  #endif
 #endif
     if (threadPrintBuffer && threadPrintBufferSize > 0) {
         free(threadPrintBuffer);
+        threadPrintBuffer = NULL;
+        threadPrintBufferSize = 0;
     }
     if (threadMessageBuffer && threadMessageBufferSize > 0) {
         free(threadMessageBuffer);
+        threadMessageBuffer = NULL;
+        threadMessageBufferSize = 0;
     }
 
 
@@ -671,11 +676,22 @@ extern int setLogfilePath(const TCHAR *log_file_path, const TCHAR *workingDir, i
     return FALSE;
 }
 
+/**
+ * Returns the default logfile.
+ */
+const TCHAR *getDefaultLogfilePath() {
+    return defaultLogFile;
+}
+
+/**
+ * Returns a reference to the currect log file path.
+ *  This return value may be changed at any time if the log file is rolled.
+ */
 const TCHAR *getLogfilePath()
 {
     return logFilePath;
 }
-
+    
 /**
  * Returns a snapshot of the current log file path.  This call safely gets the current path
  *  and returns a copy.  It is the responsibility of the caller to free up the memory on

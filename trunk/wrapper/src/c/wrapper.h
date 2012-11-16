@@ -155,10 +155,13 @@
 #define ACTION_ADVICE_NIL_SERVER -32
 #endif
 
+/* The following codes are passed through and referenced within the WrapperServiceActionEvent class.
+ *  They can be added, but not changed without the possibility of affecting user code. */
 #define WRAPPER_ACTION_SOURCE_CODE_FILTER                  1  /* Action originated with a filter. */
 #define WRAPPER_ACTION_SOURCE_CODE_COMMANDFILE             2  /* Action originated from a commandfile. */
 #define WRAPPER_ACTION_SOURCE_CODE_WINDOWS_SERVICE_MANAGER 3  /* Action originated from the Windows Service Manager. */
 #define WRAPPER_ACTION_SOURCE_CODE_ON_EXIT                 4  /* Action originated from an on_exit configuration. */
+#define WRAPPER_ACTION_SOURCE_CODE_PING_TIMEOUT            11 /* Action originated from a timeout. */
 
 /* Because of the way time is converted to ticks, the largest possible timeout that
  *  can be specified without causing 32-bit overflows is (2^31 / 1000) - 5 = 2147478
@@ -195,6 +198,7 @@ typedef unsigned long TICKS;
 /* Type definitions */
 typedef struct WrapperConfig WrapperConfig;
 struct WrapperConfig {
+    TCHAR   *argBinary;             /* The name of the wrapper binary. */
     TCHAR   *argCommand;            /* The command used to launch the wrapper. */
     TCHAR   *argCommandArg;         /* The argument to the command used to launch the wrapper. */
     TCHAR   *argConfFile;           /* The name of the config file from the command line. */
@@ -248,6 +252,8 @@ struct WrapperConfig {
     int     pingAlertLogLevel;      /* Long level at which slow ping notices are logged. */
     int     pingInterval;           /* Number of seconds between pinging the JVM */
     int     pingIntervalLogged;     /* Number of seconds between pings which can be logged to debug output. */
+    int     *pingActionList;        /* The action list to take when a ping timeout is detected. */
+    int     pingTimedOut;
     int     shutdownTimeout;        /* Number of seconds the wrapper will wait for a JVM to shutdown */
     int     jvmExitTimeout;         /* Number of seconds the wrapper will wait for a JVM to process to terminate */
     int     jvmCleanupTimeout;      /* Number of seconds the wrapper will allow for its post JVM shudown cleanup. */
@@ -371,8 +377,9 @@ struct WrapperConfig {
     int     ntServiceInteractive;   /* Should the service be allowed to interact with the desktop? */
     int     ntHideJVMConsole;       /* Should the JVMs Console window be hidden when run as a service.  True by default but GUIs will not be visible for JVMs prior to 1.4.0. */
     int     ntHideWrapperConsole;   /* Should the Wrapper Console window be hidden when run as a service. */
+    HINSTANCE wrapperHInstance;     /* The HINSTANCE of the Wrapper process. */
     int     wrapperConsoleHide;     /* True if the Wrapper Console window should be hidden. */
-    HWND    wrapperConsoleHandle;   /* Pointer to the Wrapper Console handle if it exists.  This will only be set if the console was allocated then hidden. */
+    HWND    wrapperConsoleHWND;     /* The HWND of the Wrapper's console if it was located. */
     int     wrapperConsoleVisible;  /* True if the Wrapper Console window is visible. */
     HWND    jvmConsoleHandle;       /* Pointer to the JVM Console handle if it exists. */
     int     jvmConsoleVisible;      /* True if the JVM Console window is visible. */
@@ -428,16 +435,17 @@ struct WrapperConfig {
 #define WRAPPER_MSG_KEY           (char)110
 #define WRAPPER_MSG_BADKEY        (char)111
 #define WRAPPER_MSG_LOW_LOG_LEVEL (char)112
-#define WRAPPER_MSG_PING_TIMEOUT  (char)113 /* No longer used. */
+#define WRAPPER_MSG_PING_TIMEOUT  (char)113 /* No longer used.  But keep reserved to avoid future problems. */
 #define WRAPPER_MSG_SERVICE_CONTROL_CODE (char)114
 #define WRAPPER_MSG_PROPERTIES    (char)115
 /** Log commands are actually 116 + the LOG LEVEL (LEVEL_UNKNOWN ~ LEVEL_NONE), (116 ~ 124). */
 #define WRAPPER_MSG_LOG           (char)116
 #define WRAPPER_MSG_LOGFILE       (char)134
-#define WRAPPER_MSG_APPEAR_ORPHAN (char)137 /* No longer used. */
+#define WRAPPER_MSG_APPEAR_ORPHAN (char)137 /* No longer used.  But keep reserved to avoid future problems. */
 #define WRAPPER_MSG_PAUSE         (char)138
 #define WRAPPER_MSG_RESUME        (char)139
 #define WRAPPER_MSG_GC            (char)140
+
 #define WRAPPER_PROCESS_DOWN      200
 #define WRAPPER_PROCESS_UP        201
 
@@ -570,12 +578,12 @@ extern int *wrapperGetActionListForNames(const TCHAR *actionNameList, const TCHA
  *                   Negative values are standard actions, positive are user
  *                   custom events.
  * @param triggerMsg The reason the actions are being fired.
- * @param actionCode Tracks where the action originated.
+ * @param actionSourceCode Tracks where the action originated.
  * @param logForActionNone Flag stating whether or not a message should be logged
  *                         for the NONE action.
  * @param exitCode Error code to use in case the action results in a shutdown.
  */
-extern void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int actionCode, int logForActionNone, int exitCode);
+extern void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int actionSourceCode, int logForActionNone, int exitCode);
 
 extern void wrapperAddDefaultProperties();
 
@@ -819,16 +827,16 @@ extern int wrapperRunService();
 /**
  * Used to ask the state engine to pause the JVM and Wrapper
  *
- * @param actionCode Tracks where the action originated.
+ * @param actionSourceCode Tracks where the action originated.
  */
-extern void wrapperPauseProcess(int actionCode);
+extern void wrapperPauseProcess(int actionSourceCode);
 
 /**
  * Used to ask the state engine to resume the JVM and Wrapper
  *
- * @param actionCode Tracks where the action originated.
+ * @param actionSourceCode Tracks where the action originated.
  */
-extern void wrapperResumeProcess(int actionCode);
+extern void wrapperResumeProcess(int actionSourceCode);
 
 /**
  * Detaches the Java process so the Wrapper will if effect forget about it.
@@ -853,8 +861,10 @@ extern void wrapperRestartProcess();
 
 /**
  * Sends a command off to the JVM asking it to perform a garbage collection sweep.
+ *
+ * @param actionSourceCode Tracks where the action originated.
  */
-extern void wrapperRequestJVMGC();
+extern void wrapperRequestJVMGC(int actionSourceCode);
 
 /**
  * Loops over and strips all double quotes from prop and places the
@@ -962,6 +972,7 @@ extern void wrapperKeyRegistered(TCHAR *key);
  * @param pingSendTicks Time in ticks when the ping was originally sent.
  */
 extern void wrapperPingResponded(TICKS pingSendTicks);
+extern void wrapperPingTimeoutResponded();
 extern void wrapperStopRequested(int exitCode);
 extern void wrapperRestartRequested();
 extern void wrapperStopPendingSignaled(int waitHint);
@@ -969,4 +980,22 @@ extern void wrapperStoppedSignaled();
 extern void wrapperStartPendingSignaled(int waitHint);
 extern void wrapperStartedSignaled();
 
+
+/******************************************************************************
+ * Inner types and methods for loading Wrapper configuration.
+ *****************************************************************************/
+
+/* Callback parameter for loading the file specified by
+   wrapper.java.additional_file configuration property. */
+typedef struct LoadJavaAdditionalCallbackParam LoadJavaAdditionalCallbackParam;
+struct LoadJavaAdditionalCallbackParam {
+    int stripQuote;  /* Value of wrapper.java.additional_file.stripquotes property */
+    TCHAR **strings; /* Array of character strings to which configurations are loaded */
+    int index;       /* Index of a string in `strings' to which a configuration
+                        are copied next */
+};
+
+#ifdef CUNIT
+extern void testJavaAdditionalParamSuite(void);
+#endif /* CUNIT */
 #endif

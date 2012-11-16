@@ -73,9 +73,7 @@ struct Property {
 
 typedef struct Properties Properties;
 struct Properties {
-    int debugIncludes;       /* TRUE if include debug output should be shown. */
     int debugProperties;     /* TRUE if debug information on Properties should be shown. */
-    int preload;             /* TRUE if this is a preload pass which should suppress warnings. */
     Property *first;         /* Pointer to the first property. */
     Property *last;          /* Pointer to the last property.  */
 };
