@@ -26,6 +26,11 @@
 #include <string.h>
 #include <glob.h>
 #include <unistd.h>
+#include <limits.h>
+#include <langinfo.h>
+#if defined(IRIX)
+#define PATH_MAX FILENAME_MAX
+#endif
 #endif
 
 #include "wrapper_file.h"
@@ -42,6 +47,8 @@
 #ifndef FALSE
 #define FALSE 0
 #endif
+
+#define MAX_INCLUDE_DEPTH 10
 
 /**
  * Returns a valid sort mode given a name: "TIMES", "NAMES_ASC", "NAMES_DEC".
@@ -658,5 +665,451 @@ void wrapperFileTests() {
     printf("End wrapperFileTests\n");
 }
 #endif
+
+
+/**
+ * Call functions in property.c temporarily.
+ */
+extern void evaluateEnvironmentVariables(const TCHAR *propertyValue, TCHAR *buffer, int bufferLength);
+#ifdef WIN32
+#define strIgnoreCaseCmp _stricmp
+extern int getEncodingByName(char* encodingMB, int *encoding);
+#else
+#define strIgnoreCaseCmp strcasecmp
+extern int getEncodingByName(char* encodingMB, char** encoding);
+#endif
+
+/**
+ * Initialize `reader'
+ */
+void configFileReader_Initialize(ConfigFileReader *reader,
+				 ConfigFileReader_Callback callback,
+				 void *callbackParam,
+				 int enableIncludes)
+{
+    reader->callback = callback;
+    reader->callbackParam = callbackParam;
+    reader->enableIncludes = enableIncludes;
+    reader->debugIncludes = FALSE;
+    reader->debugProperties = FALSE;
+    reader->preload = FALSE;
+}
+
+/**
+ * Read configuration file.
+ */
+int configFileReader_Read(ConfigFileReader *reader,
+			  const TCHAR *filename,
+			  int fileRequired,
+			  int depth,
+			  const TCHAR *parentFilename,
+			  int parentLineNumber)
+{
+    FILE *stream;
+    char bufferMB[MAX_PROPERTY_NAME_VALUE_LENGTH];
+    TCHAR expBuffer[MAX_PROPERTY_NAME_VALUE_LENGTH];
+    TCHAR *trimmedBuffer;
+    size_t trimmedBufferLen;
+    TCHAR *c;
+    TCHAR *d;
+    size_t i, j;
+    size_t len;
+    int quoted;
+    TCHAR *absoluteBuffer;
+    int hadBOM;
+    int lineNumber;
+
+    char *encodingMB;
+#ifdef WIN32
+    int encoding;
+#else
+    char* encoding;
+    char* interumEncoding;
+#endif
+    int includeRequired;
+    int readResult = CONFIG_FILE_READER_SUCCESS;
+    int ret;
+    TCHAR *bufferW;
+#ifdef WIN32
+    int size;
+#endif
+
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("configFileReader_Read('%s', required %d, depth %d, parent '%s', number %d, debugIncludes %d, preload %d)"),
+        filename, fileRequired, depth, (parentFilename ? parentFilename : TEXT("<NULL>")), parentLineNumber, reader->debugIncludes, reader->preload );
+#endif
+
+    /* Look for the specified file. */
+    if ((stream = _tfopen(filename, TEXT("rb"))) == NULL) {
+        /* Unable to open the file. */
+        if (reader->debugIncludes || fileRequired) {
+            if (depth > 0) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    TEXT("%sIncluded configuration file not found: %s\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
+                    (reader->debugIncludes ? TEXT("  ") : TEXT("")), filename, parentFilename, parentLineNumber, wrapperData->originalWorkingDir);
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    TEXT("Configuration file not found: %s\n  Current working directory: %s"), filename, wrapperData->originalWorkingDir);
+            }
+        } else {
+#ifdef _DEBUG
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Configuration file not found: %s"), filename);
+#endif
+        }
+        return CONFIG_FILE_READER_FAIL;
+    }
+
+    if (reader->debugIncludes) {
+        if (!reader->preload) {
+            if (depth > 0) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    TEXT("  Reading included configuration file, %s"), filename);
+            } else {
+                /* Will not actually get here because the debug includes can't be set until it is loaded.
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    TEXT("Reading configuration file, %s"), filename); */
+            }
+        }
+    }
+
+    /* Load in the first row of configurations to check the encoding. */
+    if (fgets(bufferMB, MAX_PROPERTY_NAME_VALUE_LENGTH, stream)) {
+        /* If the file starts with a BOM (Byte Order Marker) then we want to skip over it. */
+        if ((bufferMB[0] == (char)0xef) && (bufferMB[1] == (char)0xbb) && (bufferMB[2] == (char)0xbf)) {
+            i = 3;
+            hadBOM = TRUE;
+        } else {
+            i = 0;
+            hadBOM = FALSE;
+        }
+
+        /* Does the file start with "#encoding="? */
+        if ((bufferMB[i++] == '#') && (bufferMB[i++] == 'e') && (bufferMB[i++] == 'n') && (bufferMB[i++] == 'c') &&
+            (bufferMB[i++] == 'o') && (bufferMB[i++] == 'd') && (bufferMB[i++] == 'i') &&
+            (bufferMB[i++] == 'n') && (bufferMB[i++] == 'g') && (bufferMB[i++] == '=')) {
+            encodingMB = bufferMB + i;
+            i = 0;
+            while ((encodingMB[i] != ' ') && (encodingMB[i] != '\n') && (encodingMB[i]  != '\r')) {
+               i++;
+            }
+            encodingMB[i] = '\0';
+
+            if ((hadBOM) && (strIgnoreCaseCmp(encodingMB, "UTF-8") != 0)) {
+            }
+            if (getEncodingByName(encodingMB, &encoding) == TRUE) {
+                fclose(stream);
+                return CONFIG_FILE_READER_FAIL;
+            }
+
+        } else {
+#ifdef WIN32
+            encoding = GetACP();
+#else 
+            encoding = nl_langinfo(CODESET);
+ #ifdef MACOSX
+            if (strlen(encoding) == 0) {
+                encoding = "UTF-8";
+            }
+ #endif
+#endif
+        }
+    } else {
+        /* Failed to read the first line of the file. */
+#ifdef WIN32
+        encoding = GetACP();
+#else 
+        encoding = nl_langinfo(CODESET);
+ #ifdef MACOSX
+        if (strlen(encoding) == 0) {
+            encoding = "UTF-8";
+        }
+ #endif
+#endif
+    }
+    fclose(stream);
+
+    if ((stream = _tfopen(filename, TEXT("rb"))) == NULL) {
+        /* Unable to open the file. */
+        if (reader->debugIncludes || fileRequired) {
+            if (depth > 0) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    TEXT("%sIncluded configuration file, %s, was not found."), (reader->debugIncludes ? TEXT("  ") : TEXT("")), filename);
+            } else {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                    TEXT("Configuration file, %s, was not found."), filename);
+            }
+
+        } else {
+#ifdef _DEBUG
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Configuration file not found: %s"), filename);
+#endif
+        }
+        return CONFIG_FILE_READER_FAIL;
+    }
+
+    /* Read all of the configurations */
+    lineNumber = 1;
+    do {
+        c = (TCHAR*)fgets(bufferMB, MAX_PROPERTY_NAME_VALUE_LENGTH, stream);
+        if (c != NULL) {
+#ifdef WIN32
+            ret = multiByteToWideChar(bufferMB, encoding, &bufferW, TRUE);
+#else
+            interumEncoding = nl_langinfo(CODESET);
+ #ifdef MACOSX
+            if (strlen(interumEncoding) == 0) {
+                interumEncoding = "UTF-8";
+            }
+ #endif
+            ret = multiByteToWideChar(bufferMB, encoding, interumEncoding, &bufferW, TRUE);
+#endif
+            if (ret) {
+                if (bufferW) {
+                    /* bufferW contains an error message. */
+                    if (!reader->preload) {
+                        if (depth > 0) {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                                TEXT("%sIncluded configuration file, %s, contains a problem on line #%d and could not be read. (%s)"),
+                                (reader->debugIncludes ? TEXT("  ") : TEXT("")), filename, lineNumber, bufferW);
+                        } else {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                                TEXT("Configuration file, %s, contains a problem on line #%d and could not be read. (%s)"), filename, lineNumber, bufferW);
+                        }
+                    }
+                    free(bufferW);
+                } else {
+                    outOfMemory(TEXT("RCF"), 1);
+                }
+                fclose(stream);
+                return CONFIG_FILE_READER_FAIL;
+            }
+            
+#ifdef _DEBUG
+            /* The line feeds are not yet stripped here. */
+            /*
+ #ifdef WIN32
+            wprintf(TEXT("%s:%d (%d): [%s]\n"), filename, lineNumber, encoding, bufferW);
+ #else
+            wprintf(TEXT("%S:%d (%s to %s): [%S]\n"), filename, lineNumber, encoding, interumEncoding, bufferW);
+ #endif
+            */
+#endif
+            
+            c = bufferW;
+            /* Always strip both ^M and ^J off the end of the line, this is done rather
+             *  than simply checking for \n so that files will work on all platforms
+             *  even if their line feeds are incorrect. */
+            if ((d = _tcschr(bufferW, 0x0d /* ^M */)) != NULL) {
+                d[0] = TEXT('\0');
+            }
+            if ((d = _tcschr(bufferW, 0x0a /* ^J */)) != NULL) {
+                d[0] = TEXT('\0');
+            }
+            /* Strip any whitespace from the front of the line. */
+            trimmedBuffer = bufferW;
+            while ((trimmedBuffer[0] == TEXT(' ')) || (trimmedBuffer[0] == 0x08)) {
+                trimmedBuffer++;
+            }
+
+            /* If the line does not start with a comment, make sure that
+             *  any comment at the end of line are stripped.  If any any point, a
+             *  double hash, '##', is encountered it should be interpreted as a
+             *  hash in the actual property rather than the beginning of a comment. */
+            if (trimmedBuffer[0] != TEXT('#')) {
+                len = _tcslen(trimmedBuffer);
+                i = 0;
+                quoted = 0;
+                while (i < len) {
+                    if (trimmedBuffer[i] == TEXT('"')) {
+                        quoted = !quoted;
+                    } else if ((trimmedBuffer[i] == TEXT('#')) && (!quoted)) {
+                        /* Checking the next character will always be ok because it will be
+                         *  '\0 at the end of the string. */
+                        if (trimmedBuffer[i + 1] == TEXT('#')) {
+                            /* We found an escaped #. Shift the rest of the string
+                             *  down by one character to remove the second '#'.
+                             *  Include the shifting of the '\0'. */
+                            for (j = i + 1; j <= len; j++) {
+                                trimmedBuffer[j - 1] = trimmedBuffer[j];
+                            }
+                            len--;
+                        } else {
+                            /* We found a comment. So this is the end. */
+                            trimmedBuffer[i] = TEXT('\0');
+                            len = i;
+                        }
+                    }
+                    i++;
+                }
+            }
+
+            /* Strip any whitespace from the end of the line. */
+            trimmedBufferLen = _tcslen(trimmedBuffer);
+            while ((trimmedBufferLen > 0) && ((trimmedBuffer[trimmedBufferLen - 1] == TEXT(' '))
+            || (trimmedBuffer[trimmedBufferLen - 1] == 0x08))) {
+
+                trimmedBuffer[--trimmedBufferLen] = TEXT('\0');
+            }
+
+            /* Only look at lines which contain data and do not start with a '#'
+             *  If the line starts with '#include' then recurse to the include file */
+            if (_tcslen(trimmedBuffer) > 0) {
+                if (reader->enableIncludes && strcmpIgnoreCase(trimmedBuffer, TEXT("#include.debug")) == 0) {
+                    /* Enable include file debugging. */
+                    if (reader->preload == FALSE) {
+                        reader->debugIncludes = TRUE;
+                        if (depth == 0) {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                                TEXT("Base configuration file is %s"), filename);
+                        }
+                    } else {
+                        reader->debugIncludes = FALSE;
+                    }
+                } else if (reader->enableIncludes
+			   && ((_tcsstr(trimmedBuffer, TEXT("#include ")) == trimmedBuffer) || (_tcsstr(trimmedBuffer, TEXT("#include.required ")) == trimmedBuffer))) {
+                    if (_tcsstr(trimmedBuffer, TEXT("#include.required ")) == trimmedBuffer) {
+                        /* The include file is required. */
+                        includeRequired = TRUE;
+                        c = trimmedBuffer + 18;
+                    } else {
+                        /* Include file, if the file does not exist, then ignore it */
+                        includeRequired = FALSE;
+                        c = trimmedBuffer + 9;
+                    }
+                    
+                    /* Strip any leading whitespace */
+                    while ((c[0] != TEXT('\0')) && (c[0] == TEXT(' '))) {
+                        c++;
+                    }
+
+                    /* The filename may contain environment variables, so expand them. */
+                    if (reader->debugIncludes) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                            TEXT("Found #include file in %s: %s"), filename, c);
+                    }
+                    evaluateEnvironmentVariables(c, expBuffer, MAX_PROPERTY_NAME_VALUE_LENGTH);
+
+                    if (reader->debugIncludes && (_tcscmp(c, expBuffer) != 0)) {
+                        /* Only show this log if there were any environment variables. */
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                            TEXT("  After environment variable replacements: %s"), expBuffer);
+                    }
+
+                    /* Now obtain the real absolute path to the include file. */
+#ifdef WIN32
+                    /* Find out how big the absolute path will be */
+                    size = GetFullPathName(expBuffer, 0, NULL, NULL); /* Size includes '\0' */
+                    if (!size) {
+                        if (reader->debugIncludes || includeRequired) {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                                TEXT("Unable to resolve the full path of included configuration file: %s (%s)\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
+                                expBuffer, getLastErrorText(), filename, lineNumber, wrapperData->originalWorkingDir);
+                        }
+                        absoluteBuffer = NULL;
+                    } else {
+                        absoluteBuffer = malloc(sizeof(TCHAR) * size);
+                        if (!absoluteBuffer) {
+                            outOfMemory(TEXT("RCF"), 1);
+                        } else {
+                            if (!GetFullPathName(expBuffer, size, absoluteBuffer, NULL)) {
+                                if (reader->debugIncludes || includeRequired) {
+                                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                                        TEXT("Unable to resolve the full path of included configuration file: %s (%s)\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
+                                        expBuffer, getLastErrorText(), filename, lineNumber, wrapperData->originalWorkingDir);
+                                }
+                                free(absoluteBuffer);
+                                absoluteBuffer = NULL;
+                            }
+                        }
+                    }
+#else
+                    absoluteBuffer = malloc(sizeof(TCHAR) * (PATH_MAX + 1));
+                    if (!absoluteBuffer) {
+                        outOfMemory(TEXT("RCF"), 2);
+                    } else {
+                        if (_trealpath(expBuffer, absoluteBuffer) == NULL) {
+                            if (reader->debugIncludes || includeRequired) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                                    TEXT("Unable to resolve the full path of included configuration file: %s (%s)\n  Referenced from: %s (line %d)\n  Current working directory: %s"),
+                                    expBuffer, getLastErrorText(), filename, lineNumber, wrapperData->originalWorkingDir);
+                            }
+                            free(absoluteBuffer);
+                            absoluteBuffer = NULL;
+                        }
+                    }
+#endif
+                    if (absoluteBuffer) {
+                        if (depth < MAX_INCLUDE_DEPTH) {
+                            readResult = configFileReader_Read(reader, absoluteBuffer, includeRequired, depth + 1, filename, lineNumber);
+                            if (readResult == CONFIG_FILE_READER_SUCCESS) {
+                                /* Ok continue. */
+                            } else if ((readResult == CONFIG_FILE_READER_FAIL) || (readResult == CONFIG_FILE_READER_HARD_FAIL)) {
+                                /* Failed. */
+                                if (includeRequired) {
+                                    /* Include file was required, but we failed to read it. */
+                                    if (!reader->preload) {
+                                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                                            TEXT("%sThe required configuration file, %s, was not loaded.\n%s  Referenced from: %s (line %d)"),
+                                            (reader->debugIncludes ? TEXT("  ") : TEXT("")), absoluteBuffer, (reader->debugIncludes ? TEXT("  ") : TEXT("")), filename, lineNumber);
+                                    }
+                                    readResult = CONFIG_FILE_READER_HARD_FAIL;
+                                }
+                                if (readResult == CONFIG_FILE_READER_HARD_FAIL) {
+                                    /* Can't continue. */
+                                    break;
+                                } else {
+                                    /* Failed but continue. */
+                                    readResult = CONFIG_FILE_READER_SUCCESS;
+                                }
+                            } else {
+                                _tprintf(TEXT("Unexpected load error %d\n"), readResult);
+                                /* continue. */
+                                readResult = CONFIG_FILE_READER_SUCCESS;
+                            }
+                        } else {
+                            if (reader->debugIncludes) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+                                    TEXT("  Unable to include configuration file, %s, because the max include depth was reached."), absoluteBuffer);
+                            }
+                        }
+                        free(absoluteBuffer);
+                    } else {
+                        if (includeRequired) {
+                            /* Include file was required, but we failed to read it. */
+                            if (!reader->preload) {
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                                    TEXT("%sThe required configuration file, %s, was not read.\n%s  Referenced from: %s (line %d)"),
+                                    (reader->debugIncludes ? TEXT("  ") : TEXT("")), expBuffer, (reader->debugIncludes ? TEXT("  ") : TEXT("")), filename, lineNumber);
+                            }
+                            readResult = CONFIG_FILE_READER_HARD_FAIL;
+                            break;
+                        }
+                    }
+                } else if (strcmpIgnoreCase(trimmedBuffer, TEXT("#properties.debug")) == 0) {
+                    if (!reader->preload) {
+                        /* Enable property debugging. */
+                        reader->debugProperties = TRUE;
+                    }
+                } else if (trimmedBuffer[0] != TEXT('#')) {
+                    /*_tprintf(TEXT("%s\n"), trimmedBuffer);*/
+
+                    if (!(*reader->callback)(reader->callbackParam, filename, lineNumber, trimmedBuffer, reader->debugProperties)) {
+                        readResult = CONFIG_FILE_READER_HARD_FAIL;
+                        break;
+                    }
+                }
+            }
+            
+            /* Always free each line read. */
+            free(bufferW);
+        }
+        lineNumber++;
+    } while (c != NULL);
+
+    /* Close the file */
+    fclose(stream);
+
+    return readResult;
+}
 
 

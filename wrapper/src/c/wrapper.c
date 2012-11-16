@@ -39,7 +39,11 @@
 #include <stdlib.h>
 #include <time.h>
 #include <sys/stat.h>
+#include <assert.h>
 
+#ifdef CUNIT
+#include "CUnit/Basic.h"
+#endif
 #include "wrapper_i18n.h"
 #include "wrapperinfo.h"
 #include "wrapper.h"
@@ -1520,6 +1524,10 @@ TCHAR *wrapperProtocolGetCodeName(char code) {
         name = TEXT("LOW_LOG_LEVEL");
         break;
 
+    case WRAPPER_MSG_PING_TIMEOUT: /* No longer used. */
+        name = TEXT("PING_TIMEOUT");
+        break;
+
     case WRAPPER_MSG_SERVICE_CONTROL_CODE:
         name = TEXT("SERVICE_CONTROL_CODE");
         break;
@@ -1552,15 +1560,34 @@ TCHAR *wrapperProtocolGetCodeName(char code) {
         name = TEXT("LOG(FATAL)");
         break;
 
+    case WRAPPER_MSG_LOG + LEVEL_ADVICE:
+        name = TEXT("LOG(ADVICE)");
+        break;
+
+    case WRAPPER_MSG_LOG + LEVEL_NOTICE:
+        name = TEXT("LOG(NOTICE)");
+        break;
+
     case WRAPPER_MSG_LOGFILE:
         name = TEXT("LOGFILE");
         break;
 
-
-    case WRAPPER_MSG_APPEAR_ORPHAN:
+    case WRAPPER_MSG_APPEAR_ORPHAN: /* No longer used. */
         name = TEXT("APPEAR_ORPHAN");
         break;
 
+    case WRAPPER_MSG_PAUSE:
+        name = TEXT("PAUSE");
+        break;
+
+    case WRAPPER_MSG_RESUME:
+        name = TEXT("RESUME");
+        break;
+
+    case WRAPPER_MSG_GC:
+        name = TEXT("GC");
+        break;
+        
     default:
         _sntprintf(unknownBuffer, 14, TEXT("UNKNOWN(%d)"), code);
         name = unknownBuffer;
@@ -1772,7 +1799,7 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
 #else
                 if ((inWritten = write(protocolActiveServerPipeOut, protocolSendBuffer, sizeof(char) * (int)len)) == -1) { 
 #endif
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Writing to the backend pipe failed (%d): %s"), wrapperGetLastError(), getLastErrorText());
+                    log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_FATAL, TEXT("Writing to the backend pipe failed (%d): %s"), wrapperGetLastError(), getLastErrorText());
                     return FALSE;
                 }
             } else {
@@ -2218,6 +2245,7 @@ int wrapperInitialize() {
     wrapperData->confDir = NULL;
     wrapperData->umask = -1;
     wrapperData->language = NULL;
+    wrapperData->pingTimedOut = FALSE;
 #ifdef WIN32
     if (!(tickMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
         printf("Failed to create tick mutex. %s\n", getLastErrorText());
@@ -2693,6 +2721,9 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
     wrapperArgCount = delimiter ;
     if (wrapperArgCount > 1) {
 
+        // Store the name of the binary.
+        wrapperData->argBinary = argv[0];
+        
         if (argv[1][0] == TEXT('-')) {
             /* Syntax 1 or 3 */
 
@@ -2797,12 +2828,12 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
  *                   Negative values are standard actions, positive are user
  *                   custom events.
  * @param triggerMsg The reason the actions are being fired.
- * @param actionCode Tracks where the action originated.
+ * @param actionSourceCode Tracks where the action originated.
  * @param logForActionNone Flag stating whether or not a message should be logged
  *                         for the NONE action.
  * @param exitCode Error code to use in case the action results in a shutdown.
  */
-void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int actionCode, int logForActionNone, int exitCode) {
+void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int actionSourceCode, int logForActionNone, int exitCode) {
     int i;
     int action;
 
@@ -2831,12 +2862,12 @@ void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int acti
 
                 case ACTION_PAUSE:
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s  Pausing..."), triggerMsg);
-                    wrapperPauseProcess(actionCode);
+                    wrapperPauseProcess(actionSourceCode);
                     break;
 
                 case ACTION_RESUME:
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s  Resuming..."), triggerMsg);
-                    wrapperResumeProcess(actionCode);
+                    wrapperResumeProcess(actionSourceCode);
                     break;
 
 #if defined(MACOSX)
@@ -2870,7 +2901,7 @@ void wrapperProcessActionList(int *actionList, const TCHAR *triggerMsg, int acti
 
                 case ACTION_GC:
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s  Requesting GC..."), triggerMsg);
-                    wrapperRequestJVMGC(actionCode);
+                    wrapperRequestJVMGC(actionSourceCode);
                     break;
 
                 default:
@@ -3443,9 +3474,6 @@ void wrapperJVMDownCleanup(int setState) {
             TEXT("Failed to close the Java process handle: %s"), getLastErrorText());
     }
     wrapperData->javaProcess = NULL;
-    wrapperData->javaPID = 0;
-#else
-    wrapperData->javaPID = -1;
 #endif
 
     /* Close any open socket to the JVM */
@@ -3566,7 +3594,7 @@ int checkForTestWrapperScripts() {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
                         "--------------------------------------------------------------------"));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
-                        "We have detected that you are making use of the sample batch files\nthat are designed for the TestWrapper sample application.  When\nsetting up your own application, please copy fresh files over from\nthe Wrapper's src\\bin directory."));
+                        "We have detected that you are making use of the sample batch files\nthat are designed for the TestWrapper Example Application.  When\nsetting up your own application, please copy fresh files over from\nthe Wrapper's src\\bin directory."));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
                         ""));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
@@ -3586,7 +3614,7 @@ int checkForTestWrapperScripts() {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
                         "--------------------------------------------------------------------"));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
-                        "We have detected that you are making use of the sample shell scripts\nthat are designed for the TestWrapper sample application.  When\nsetting up your own application, please copy fresh files over from\nthe Wrapper's src/bin directory."));
+                        "We have detected that you are making use of the sample shell scripts\nthat are designed for the TestWrapper Example Application.  When\nsetting up your own application, please copy fresh files over from\nthe Wrapper's src/bin directory."));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
                         ""));
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT(
@@ -3820,7 +3848,7 @@ BOOL GetOSDisplayString(TCHAR** pszOS) {
 /**
  * Launch common setup code.
  */
-int wrapperRunCommon() {
+int wrapperRunCommonInner() {
     const TCHAR *prop;
 #ifdef WIN32
     TCHAR* szOS;
@@ -3971,82 +3999,65 @@ int wrapperRunCommon() {
     return 0;
 }
 
-/**
- * Launch the wrapper as a console application.
- */
-int wrapperRunConsole() {
-    int res;
+int wrapperRunCommon(const TCHAR *runMode) {
+    int exitCode;
 
     /* Setup the wrapperData structure. */
     wrapperSetWrapperState(WRAPPER_WSTATE_STARTING);
     wrapperSetJavaState(WRAPPER_JSTATE_DOWN_CLEAN, 0, -1);
-    wrapperData->isConsole = TRUE;
+
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("--> Wrapper Started as %s"), runMode);
 
     /* Initialize the wrapper */
-    res = wrapperInitializeRun();
-    if (res != 0) {
-        return res;
+    exitCode = wrapperInitializeRun();
+    if (exitCode == 0) {
+        if (!wrapperRunCommonInner()) {
+            /* Enter main event loop */
+            wrapperEventLoop();
+        
+            /* Clean up any open sockets. */
+            wrapperProtocolClose();
+            protocolStopServer();
+            
+            exitCode = wrapperData->exitCode;
+        } else {
+            exitCode = 1;
+        }
     }
 
-#ifdef WIN32
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("--> Wrapper Started as Console"));
-#else
-    if (wrapperData->daemonize) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("--> Wrapper Started as Daemon"));
-    } else {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("--> Wrapper Started as Console"));
-    }
-#endif
-
-    if (wrapperRunCommon()) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("<-- Wrapper Stopped"));
-        return 1;
-    }
-
-    /* Enter main event loop */
-    wrapperEventLoop();
-
-    /* Clean up any open sockets. */
-    wrapperProtocolClose();
-    protocolStopServer();
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("<-- Wrapper Stopped"));
 
-    return wrapperData->exitCode;
+    return exitCode;
+}
+        
+/**
+ * Launch the wrapper as a console application.
+ */
+int wrapperRunConsole() {
+    const TCHAR *runMode;
+    
+#ifdef WIN32
+    runMode = TEXT("Console");
+#else
+    if (wrapperData->daemonize) {
+        runMode = TEXT("Daemon");
+    } else {
+        runMode = TEXT("Console");
+    }
+#endif
+    
+    wrapperData->isConsole = TRUE;
+    
+    return wrapperRunCommon(runMode);
 }
 
 /**
  * Launch the wrapper as a service application.
  */
 int wrapperRunService() {
-    int res;
-
-    /* Setup the wrapperData structure. */
-    wrapperSetWrapperState(WRAPPER_WSTATE_STARTING);
-    wrapperSetJavaState(WRAPPER_JSTATE_DOWN_CLEAN, 0, -1);
     wrapperData->isConsole = FALSE;
-
-    /* Initialize the wrapper */
-    res = wrapperInitializeRun();
-    if (res != 0) {
-        return res;
-    }
-
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("--> Wrapper Started as Service"));
-
-    if (wrapperRunCommon()) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("<-- Wrapper Stopped"));
-        return 1;
-    }
-
-    /* Enter main event loop */
-    wrapperEventLoop();
-
-    /* Clean up any open sockets. */
-    wrapperProtocolClose();
-    protocolStopServer();
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("<-- Wrapper Stopped"));
-
-    return wrapperData->exitCode;
+    
+    return wrapperRunCommon(TEXT("Service"));
 }
 
 /**
@@ -4151,9 +4162,9 @@ void wrapperRestartProcess() {
 /**
  * Used to ask the state engine to pause the JVM.
  *
- * @param actionCode Tracks where the action originated.
+ * @param actionSourceCode Tracks where the action originated.
  */
-void wrapperPauseProcess(int actionCode) {
+void wrapperPauseProcess(int actionSourceCode) {
     TCHAR msgBuffer[10];
 
     if (!wrapperData->pausable) {
@@ -4196,7 +4207,7 @@ void wrapperPauseProcess(int actionCode) {
 
         if (!wrapperData->pausableStopJVM) {
             /* Notify the Java process. */
-            _sntprintf(msgBuffer, 10, TEXT("%d"), actionCode);
+            _sntprintf(msgBuffer, 10, TEXT("%d"), actionSourceCode);
             wrapperProtocolFunction(WRAPPER_MSG_PAUSE, msgBuffer);
         }
     }
@@ -4205,9 +4216,9 @@ void wrapperPauseProcess(int actionCode) {
 /**
  * Used to ask the state engine to resume a paused the JVM.
  *
- * @param actionCode Tracks where the action originated.
+ * @param actionSourceCode Tracks where the action originated.
  */
-void wrapperResumeProcess(int actionCode) {
+void wrapperResumeProcess(int actionSourceCode) {
     TCHAR msgBuffer[10];
 
     if ((wrapperData->wState == WRAPPER_WSTATE_STOPPING) ||
@@ -4255,7 +4266,7 @@ void wrapperResumeProcess(int actionCode) {
 
         if (!wrapperData->pausableStopJVM) {
             /* Notify the Java process. */
-            _sntprintf(msgBuffer, 10, TEXT("%d"), actionCode);
+            _sntprintf(msgBuffer, 10, TEXT("%d"), actionSourceCode);
             wrapperProtocolFunction(WRAPPER_MSG_RESUME, msgBuffer);
         }
     }
@@ -4263,9 +4274,15 @@ void wrapperResumeProcess(int actionCode) {
 
 /**
  * Sends a command off to the JVM asking it to perform a garbage collection sweep.
+ *
+ * @param actionSourceCode Tracks where the action originated.
  */
-void wrapperRequestJVMGC() {
-    wrapperProtocolFunction(WRAPPER_MSG_GC, TEXT("gc"));
+void wrapperRequestJVMGC(int actionSourceCode) {
+    TCHAR msgBuffer[10];
+    
+    /* Notify the Java process. */
+    _sntprintf(msgBuffer, 10, TEXT("%d"), actionSourceCode);
+    wrapperProtocolFunction(WRAPPER_MSG_GC, msgBuffer);
 }
 
 /**
@@ -4278,11 +4295,11 @@ void wrapperRequestJVMGC() {
  * If two backslashes are found in a row, then the first escapes the
  *  second and the second is removed.
  */
-void wrapperStripQuotes(const TCHAR *prop, TCHAR *propStripped) {
+static size_t wrapperStripQuotesInner(const TCHAR *prop, size_t propLen, TCHAR *propStripped) {
     size_t len;
     int i, j;
 
-    len = _tcslen(prop);
+    len = propLen;
     j = 0;
     for (i = 0; i < (int)len; i++) {
         if ((prop[i] == TEXT('\\')) && (i < (int)len - 1)) {
@@ -4308,7 +4325,14 @@ void wrapperStripQuotes(const TCHAR *prop, TCHAR *propStripped) {
             j++;
         }
     }
-    propStripped[j] = TEXT('\0');
+    return j;
+}
+
+void wrapperStripQuotes(const TCHAR *prop, TCHAR *propStripped) {
+    size_t len;
+
+    len = wrapperStripQuotesInner(prop, _tcslen(prop), propStripped);
+    propStripped[len] = TEXT('\0');
 }
 
 /*
@@ -4864,6 +4888,7 @@ int wrapperBuildJavaCommandArrayJavaAdditional(TCHAR **strings, int addQuotes, i
     size_t len;
     TCHAR paramBuffer2[128];
     int quotable;
+    int defaultStripQuote;
     int stripQuote;
     TCHAR *propStripped;
     TCHAR **propertyNames;
@@ -4875,6 +4900,7 @@ int wrapperBuildJavaCommandArrayJavaAdditional(TCHAR **strings, int addQuotes, i
         return -1;
     }
 
+    defaultStripQuote = getBooleanProperty(properties, TEXT("wrapper.java.additional.default.stripquotes"), FALSE, TRUE);
     i = 0;
     while (propertyNames[i]) {
         prop = propertyValues[i];
@@ -4906,7 +4932,7 @@ int wrapperBuildJavaCommandArrayJavaAdditional(TCHAR **strings, int addQuotes, i
                         if (addQuotes) {
                             stripQuote = FALSE;
                         } else {
-                            stripQuote = getBooleanProperty(properties, paramBuffer2, FALSE, TRUE);
+                            stripQuote = getBooleanProperty(properties, paramBuffer2, defaultStripQuote, TRUE);
                         }
                         if (stripQuote) {
                             propStripped = malloc(sizeof(TCHAR) * (_tcslen(prop) + 1));
@@ -4973,6 +4999,161 @@ int wrapperBuildJavaCommandArrayJavaAdditional(TCHAR **strings, int addQuotes, i
     return index;
 }
 
+/**
+ * Java command line callback.
+ */
+static int loadJavaAdditionalCallbackParam_AddArg(LoadJavaAdditionalCallbackParam *param, TCHAR *arg, size_t argLen)
+{
+    TCHAR str[MAX_PROPERTY_VALUE_LENGTH];
+    TCHAR *s;
+    size_t len;
+
+#ifdef _DEBUG
+    memcpy(str, arg, sizeof(TCHAR) * argLen);
+    str[argLen] = TEXT('\0');
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_NOTICE, TEXT("    :> %s"), str);
+#endif
+
+    /* As in wrapperBuildJavaCommandArrayJavaAdditional(), skip an
+       argument which does not begin with '-'. */
+    if ((arg[0] != TEXT('-')) && !((arg[0] == TEXT('"')) && (arg[1] == TEXT('-')))) {
+        if (param->strings) {
+            memcpy(str, arg, sizeof(TCHAR) * argLen);
+            str[argLen] = TEXT('\0');
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                       TEXT("The value '%s' is not a valid argument to the JVM.  Skipping."), str);
+        }
+        return TRUE;
+    }
+
+    if (param->strings) {
+        if (!param->stripQuote) {
+            s = arg;
+            len = argLen;
+        } else {
+            len = wrapperStripQuotesInner(arg, argLen, str);
+            s = str;
+        }
+        param->strings[param->index] = malloc(sizeof(TCHAR) * (len + 1));
+        if (!param->strings[param->index]) {
+            return FALSE;
+        }
+        memcpy(param->strings[param->index], s, sizeof(TCHAR) * len);
+        param->strings[param->index][len] = TEXT('\0');
+    }
+    param->index++;
+    return TRUE;
+}
+
+static int loadJavaAdditionalCallback(void *callbackParam, const TCHAR *fileName, int lineNumber, TCHAR *config, int debugProperties)
+{
+    LoadJavaAdditionalCallbackParam *param = (LoadJavaAdditionalCallbackParam *)callbackParam;
+    TCHAR *tail_bound;
+    TCHAR *arg;
+    TCHAR *s;
+    int InDelim = FALSE;
+    int InQuotes = FALSE;
+    int Escaped = FALSE;
+
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_NOTICE, TEXT("    : %s"), config);
+#endif
+
+    /* Assume that the line `config' has no white spaces at its
+       beginning and end. */
+    assert(config && _tcslen(config) > 0);
+    assert(config[0] != TEXT(' ') && config[_tcslen(config) - 1] != TEXT(' '));
+
+    tail_bound = config + _tcslen(config) + 1;
+    for (arg = s = config; s < tail_bound; s++) {
+        switch (*s) {
+        case TEXT('\0'):
+            if (!loadJavaAdditionalCallbackParam_AddArg(param, arg, s - arg)) {
+                outOfMemory(TEXT("LJAC"), 1);
+                return FALSE;
+            }
+            break;
+        case TEXT(' '):
+            Escaped = FALSE;
+            if (!InDelim && !InQuotes) {
+                InDelim = TRUE;
+                if (!loadJavaAdditionalCallbackParam_AddArg(param, arg, s - arg)) {
+                    outOfMemory(TEXT("LJAC"), 2);
+                    return FALSE;
+                }
+            }
+            break;
+        case TEXT('"'):
+            if (!Escaped) {
+                InQuotes = !InQuotes;
+            }
+            Escaped = FALSE;
+            if (InDelim) {
+                InDelim = FALSE;
+                arg = s;
+            }
+            break;
+        case TEXT('\\'):
+            Escaped = !Escaped;
+            if (InDelim) {
+                InDelim = FALSE;
+                arg = s;
+            }
+            break;
+        default:
+            Escaped = FALSE;
+            if (InDelim) {
+                InDelim = FALSE;
+                arg = s;
+            }
+            break;
+        }
+    }
+
+    return TRUE;
+}
+
+/**
+ * Builds up the additional section of the Java command line.
+ *
+ * @return The final index into the strings array, or -1 if there were any problems.
+ */
+int wrapperBuildJavaCommandArrayLoadJavaAdditional(TCHAR **strings, int addQuotes, int detectDebugJVM, int index) {
+    const TCHAR *parameterFilePath;
+    LoadJavaAdditionalCallbackParam callbackParam;
+    ConfigFileReader reader;
+    int readResult;
+
+    parameterFilePath = getFileSafeStringProperty(properties, TEXT("wrapper.java.additional_file"), TEXT(""));
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_NOTICE,
+           TEXT("wrapper.java.additional_file=%s"), parameterFilePath ? parameterFilePath : TEXT(""));
+#endif
+    if (_tcslen(parameterFilePath) == 0) {
+        return index;
+    }
+
+    if (addQuotes) {
+        callbackParam.stripQuote = FALSE;
+    } else {
+        callbackParam.stripQuote = getBooleanProperty(properties, TEXT("wrapper.java.additional_file.stripquotes"), FALSE, TRUE);
+    }
+    callbackParam.strings = strings;
+    callbackParam.index = index;
+
+    configFileReader_Initialize(&reader, loadJavaAdditionalCallback, &callbackParam, FALSE);
+    readResult = configFileReader_Read(&reader, parameterFilePath, TRUE, 0, NULL, 0);
+    switch (readResult) {
+    case CONFIG_FILE_READER_SUCCESS:
+        return callbackParam.index;
+    case CONFIG_FILE_READER_FAIL:
+    case CONFIG_FILE_READER_HARD_FAIL:
+        return -1;
+    default:
+        _tprintf(TEXT("Unexpected read error %d\n"), readResult);
+        return index;
+    };
+}
 
 /**
  * Builds up the library path section of the Java command line.
@@ -5468,6 +5649,7 @@ int wrapperBuildJavaCommandArrayAppParameters(TCHAR **strings, int addQuotes, in
     int i;
     int quotable;
     TCHAR *propStripped;
+    int defaultStripQuote;
     int stripQuote;
     TCHAR paramBuffer2[128];
     size_t len;
@@ -5479,6 +5661,8 @@ int wrapperBuildJavaCommandArrayAppParameters(TCHAR **strings, int addQuotes, in
         /* Failed */
         return -1;
     }
+
+    defaultStripQuote = getBooleanProperty(properties, TEXT("wrapper.app.parameter.default.stripquotes"), FALSE, TRUE);
     i = 0;
     while (propertyNames[i]) {
         prop = propertyValues[i];
@@ -5492,7 +5676,7 @@ int wrapperBuildJavaCommandArrayAppParameters(TCHAR **strings, int addQuotes, in
                     if (addQuotes) {
                         stripQuote = FALSE;
                     } else {
-                        stripQuote = getBooleanProperty(properties, paramBuffer2, FALSE, TRUE);
+                        stripQuote = getBooleanProperty(properties, paramBuffer2, defaultStripQuote, TRUE);
                     }
                     if (stripQuote) {
                         propStripped = malloc(sizeof(TCHAR) * (_tcslen(prop) + 1));
@@ -5639,6 +5823,12 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     if ((index = wrapperBuildJavaCommandArrayJavaAdditional(strings, addQuotes, detectDebugJVM, index)) < 0) {
         return -1;
     }
+
+    /* Store additional java parameters specified in the parameter file */
+    if ((index = wrapperBuildJavaCommandArrayLoadJavaAdditional(strings, addQuotes, detectDebugJVM, index)) < 0) {
+        return -1;
+    }
+
     /* Initial JVM memory */
     initMemory = getIntProperty(properties, TEXT("wrapper.java.initmemory"), 0, showWarnings);
     if (initMemory > 0) {
@@ -7068,6 +7258,10 @@ int loadConfiguration() {
     wrapperData->cpuTimeout = getIntProperty(properties, TEXT("wrapper.cpu.timeout"), 10, TRUE);
     wrapperData->startupTimeout = getIntProperty(properties, TEXT("wrapper.startup.timeout"), 30, TRUE);
     wrapperData->pingTimeout = getIntProperty(properties, TEXT("wrapper.ping.timeout"), 30, TRUE);
+    if (wrapperData->pingActionList) {
+        free(wrapperData->pingActionList);
+    }
+    wrapperData->pingActionList = wrapperGetActionListForNames(getStringProperty(properties, TEXT("wrapper.ping.timeout.action"), TEXT("RESTART")), TEXT("wrapper.ping.timeout.action"));
     wrapperData->pingAlertThreshold = getIntProperty(properties, TEXT("wrapper.ping.alert.threshold"), __max(1, wrapperData->pingTimeout / 4), TRUE);
     wrapperData->pingAlertLogLevel = getLogLevelForName(getStringProperty(properties, TEXT("wrapper.ping.alert.loglevel"), TEXT("STATUS")));
     wrapperData->pingInterval = getIntProperty(properties, TEXT("wrapper.ping.interval"), 5, TRUE);
@@ -7698,6 +7892,11 @@ void wrapperPingResponded(TICKS pingSendTicks) {
     }
 }
 
+void wrapperPingTimeoutResponded() {
+    wrapperProcessActionList(wrapperData->pingActionList, TEXT("JVM appears hung: Timed out waiting for signal from JVM."),
+                             WRAPPER_ACTION_SOURCE_CODE_PING_TIMEOUT, TRUE, 1);
+}
+
 void wrapperStopRequested(int exitCode) {
     if (wrapperData->isDebugging) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
@@ -7853,3 +8052,150 @@ void wrapperStartedSignaled() {
         wrapperSetJavaState(WRAPPER_JSTATE_STOP, 0, -1);
     }
 }
+
+#ifdef CUNIT
+static void subTestJavaAdditionalParamSuite(int stripQuote, TCHAR *config, TCHAR **strings, int strings_len) {
+    LoadJavaAdditionalCallbackParam param;
+    int ret;
+    int i;
+
+    param.stripQuote = stripQuote;
+    param.strings = NULL;
+    param.index = 0;
+
+    ret = loadJavaAdditionalCallback((void *)(&param), NULL, 0, config, FALSE);
+    CU_ASSERT_TRUE(ret);
+    CU_ASSERT(strings_len == param.index);
+
+    param.stripQuote = stripQuote;
+    param.strings = (TCHAR **)malloc(sizeof(TCHAR *) * strings_len);
+    param.index = 0;
+    CU_ASSERT(param.strings != NULL);
+
+    ret = loadJavaAdditionalCallback((void *)(&param), NULL, 0, config, FALSE);
+    CU_ASSERT_TRUE(ret);
+    CU_ASSERT(strings_len == param.index);
+
+    for (i = 0; i < strings_len; i++) {
+        CU_ASSERT(_tcscmp(strings[i], param.strings[i]) == 0);
+    }
+}
+
+#define ARRAY_LENGTH(a) (sizeof(a) / sizeof(a[0]))
+
+void testJavaAdditionalParamSuite(void) {
+    int stripQuote;
+
+    /* Test set #1 */
+    {
+        /* Single parameter in 1 line. */
+        TCHAR *config = TEXT("-Dsomething=something");
+        TCHAR *strings[1];
+        strings[0] = TEXT("-Dsomething=something");
+        subTestJavaAdditionalParamSuite(FALSE, config, strings, ARRAY_LENGTH(strings));
+    }
+    {
+        /* Multiple parameters in 1 line. */
+        TCHAR *config = TEXT("-Dsomething=something -Dxxx=xxx");
+        TCHAR *strings[2];
+        strings[0] = TEXT("-Dsomething=something");
+        strings[1] = TEXT("-Dxxx=xxx");
+        subTestJavaAdditionalParamSuite(FALSE, config, strings, ARRAY_LENGTH(strings));
+    }
+    {
+        /* Horizontal Tab is not a delimiter. */
+        TCHAR *config = TEXT("-Dsomething1=something1\t-Dsomething2=something2 -Dxxx=xxx");
+        TCHAR *strings[2];
+        strings[0] = TEXT("-Dsomething1=something1\t-Dsomething2=something2");
+        strings[1] = TEXT("-Dxxx=xxx");
+        subTestJavaAdditionalParamSuite(FALSE, config, strings, ARRAY_LENGTH(strings));
+    }
+    {
+        /* Horizontal Tab is not a delimiter. */
+        TCHAR *config = TEXT("-Dsomething1=something1\t-Dsomething2=something2 -Dxxx=xxx");
+        TCHAR *strings[2];
+        strings[0] = TEXT("-Dsomething1=something1\t-Dsomething2=something2");
+        strings[1] = TEXT("-Dxxx=xxx");
+        subTestJavaAdditionalParamSuite(FALSE, config, strings, ARRAY_LENGTH(strings));
+    }
+    {
+        /* A parameter without heading '-' will be skipped. */
+        TCHAR *config = TEXT("something=something -Dxxx=xxx");
+        TCHAR *strings[1];
+        strings[0] = TEXT("-Dxxx=xxx");
+        subTestJavaAdditionalParamSuite(FALSE, config, strings, ARRAY_LENGTH(strings));
+    }
+
+    /* Test set #2 : without stripping double quotations */
+    stripQuote = FALSE;
+
+    {
+        /* Quotations #1 */
+        TCHAR *config = TEXT("-DmyApp.x1=\"Hello World.\" -DmyApp.x2=x2");
+        TCHAR *strings[2];
+        strings[0] = TEXT("-DmyApp.x1=\"Hello World.\"");
+        strings[1] = TEXT("-DmyApp.x2=x2");
+        subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings));
+    }
+    {
+        /* Quotations #2 */
+        TCHAR *config = TEXT("\"-DmyApp.x1=Hello World.\" -DmyApp.x2=x2");
+        TCHAR *strings[2];
+        strings[0] = TEXT("\"-DmyApp.x1=Hello World.\"");
+        strings[1] = TEXT("-DmyApp.x2=x2");
+        subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings));
+    }
+    {
+        /* Escaped quotation */
+        TCHAR *config = TEXT("-DmyApp.x1=\"Hello \\\"World.\" -DmyApp.x2=x2");
+        TCHAR *strings[2];
+        strings[0] = TEXT("-DmyApp.x1=\"Hello \\\"World.\"");
+        strings[1] = TEXT("-DmyApp.x2=x2");
+        subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings));
+    }
+    {
+        /* Escaped backslash */
+        TCHAR *config = TEXT("-DmyApp.x1=\"Hello World.\\\\\" -DmyApp.x2=x2");
+        TCHAR *strings[2];
+        strings[0] = TEXT("-DmyApp.x1=\"Hello World.\\\\\"");
+        strings[1] = TEXT("-DmyApp.x2=x2");
+        subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings));
+    }
+
+    /* Test set #3 : with stripping double quotations */
+    stripQuote = TRUE;
+
+    {
+        /* Quotations #1 */
+        TCHAR *config = TEXT("-DmyApp.x1=\"Hello World.\" -DmyApp.x2=x2");
+        TCHAR *strings[2];
+        strings[0] = TEXT("-DmyApp.x1=Hello World.");
+        strings[1] = TEXT("-DmyApp.x2=x2");
+        subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings));
+    }
+    {
+        /* Quotations #2 */
+        TCHAR *config = TEXT("\"-DmyApp.x1=Hello World.\" -DmyApp.x2=x2");
+        TCHAR *strings[2];
+        strings[0] = TEXT("-DmyApp.x1=Hello World.");
+        strings[1] = TEXT("-DmyApp.x2=x2");
+        subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings));
+    }
+    {
+        /* Escaped quotation */
+        TCHAR *config = TEXT("-DmyApp.x1=\"Hello \\\"World.\" -DmyApp.x2=x2");
+        TCHAR *strings[2];
+        strings[0] = TEXT("-DmyApp.x1=Hello \"World.");
+        strings[1] = TEXT("-DmyApp.x2=x2");
+        subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings));
+    }
+    {
+        /* Escaped backslash */
+        TCHAR *config = TEXT("-DmyApp.x1=\"Hello World.\\\\\" -DmyApp.x2=x2");
+        TCHAR *strings[2];
+        strings[0] = TEXT("-DmyApp.x1=Hello World.\\");
+        strings[1] = TEXT("-DmyApp.x2=x2");
+        subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings));
+    }
+}
+#endif /* CUNIT */

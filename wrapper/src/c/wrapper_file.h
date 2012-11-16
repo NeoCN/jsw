@@ -63,5 +63,55 @@ extern int wrapperGetUNCFilePath(const TCHAR *path, int advice);
 extern void wrapperFileTests();
 #endif
 
+/**
+ * Read configuration file.
+ */
+typedef int (*ConfigFileReader_Callback)(void *param, const TCHAR *fileName, int lineNumber, TCHAR *config, int debugProperties);
+
+typedef struct ConfigFileReader ConfigFileReader;
+struct ConfigFileReader {
+    ConfigFileReader_Callback callback;
+    void *callbackParam;
+    int enableIncludes;
+    int debugIncludes;
+    int debugProperties;
+    int preload;
+};
+
+/**
+ * Initialize `reader'
+ */
+extern void configFileReader_Initialize(ConfigFileReader *reader,
+					ConfigFileReader_Callback callback,
+					void *callbackParam,
+					int enableIncludes);
+
+/**
+ * Reads configuration lines from the file `filename' and calls
+ * `reader->callback' with the line and `reader->callbackParam'
+ * specified to its arguments.
+ *
+ * @param reader ConfigFileReader instance
+ * @param filename Name of configuration file to read
+ * @param fileRequired Requires the existence of `filename'
+ * @param depth Inclusion depth
+ * @param parentFilename Name of the file which includes `filename'
+ * @param parentLineNumber 
+ *
+ * @return CONFIG_FILE_READER_SUCCESS if the file was read successfully,
+ *         CONFIG_FILE_READER_FAIL if there were any problems at all, or
+ *         CONFIG_FILE_READER_HARD_FAIL if the problem should cascaded all the way up.
+ */
+#define CONFIG_FILE_READER_SUCCESS   101
+#define CONFIG_FILE_READER_FAIL      102
+#define CONFIG_FILE_READER_HARD_FAIL 103
+
+extern int configFileReader_Read(ConfigFileReader *reader,
+				const TCHAR *filename,
+				int fileRequired,
+				int depth,
+				const TCHAR *parentFilename,
+				int parentLineNumber);
+
 #endif
 

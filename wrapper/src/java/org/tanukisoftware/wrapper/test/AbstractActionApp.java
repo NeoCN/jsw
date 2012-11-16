@@ -258,7 +258,7 @@ public abstract class AbstractActionApp
             if ( WrapperManager.isStandardEdition() )
             {
                 System.out.println( Main.getRes().getString( "Creating a 2-object deadlock...") );
-                DeadLock.create2ObjectDeadlock();
+                DeadLockBase.create2ObjectDeadlock( false, false );
             }
             else
             {

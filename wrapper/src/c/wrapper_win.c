@@ -33,7 +33,6 @@
  */
 
 #ifdef WIN32
-
 #include <direct.h>
 #include <io.h>
 #include <math.h>
@@ -689,8 +688,8 @@ void wrapperCheckConsoleWindows() {
     int forceCheck = TRUE;
 
     /* See if the Wrapper console needs to be hidden. */
-    if (wrapperData->wrapperConsoleHide && (wrapperData->wrapperConsoleHandle != NULL) && (wrapperData->wrapperConsoleVisible || forceCheck)) {
-        if (hideConsoleWindow(wrapperData->wrapperConsoleHandle, TEXT("Wrapper"))) {
+    if (wrapperData->wrapperConsoleHide && (wrapperData->wrapperConsoleHWND != NULL) && (wrapperData->wrapperConsoleVisible || forceCheck)) {
+        if (hideConsoleWindow(wrapperData->wrapperConsoleHWND, TEXT("Wrapper"))) {
             wrapperData->wrapperConsoleVisible = FALSE;
         }
     }
@@ -723,7 +722,7 @@ void showConsoleWindow(HWND consoleHandle, const TCHAR *name) {
     WINDOWPLACEMENT consolePlacement;
 
     if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Show %s console window which JVM is launched."), name);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Show %s console window with which JVM is launched."), name);
     }
     if (GetWindowPlacement(consoleHandle, &consolePlacement)) {
         /* Show the Window. */
@@ -757,7 +756,7 @@ DWORD WINAPI startupRunner(LPVOID parameter) {
         logRegisterThread(WRAPPER_THREAD_STARTUP);
 
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s thread started."), gettext3("Startup"));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s thread started."), TEXT("Startup"));
         }
         
         if (wrapperData->isDebugging) {
@@ -766,7 +765,7 @@ DWORD WINAPI startupRunner(LPVOID parameter) {
         verifyEmbeddedSignature();
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
         /* This call is not queued to make sure it makes it to the log prior to a shutdown. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Fatal error in the %s thread."), gettext3("Startup"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Fatal error in the %s thread."), TEXT("Startup"));
         startupThreadStopped = TRUE; /* Before appExit() */
         appExit(1);
         return 1; /* For the compiler, we will never get here. */
@@ -774,7 +773,7 @@ DWORD WINAPI startupRunner(LPVOID parameter) {
 
     startupThreadStopped = TRUE;
     if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s thread stopped."), gettext3("Startup"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s thread stopped."), TEXT("Startup"));
     }
     return 0;
 }
@@ -793,7 +792,7 @@ int initializeStartup() {
     TICKS timeoutTicks;
     
     if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Launching %s thread."), gettext3("Startup"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Launching %s thread."), TEXT("Startup"));
     }
 
     startupThreadHandle = CreateThread(
@@ -805,7 +804,7 @@ int initializeStartup() {
         &startupThreadId);
     if (!startupThreadHandle) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            TEXT("Unable to create a %s thread: %s"), gettext3("Startup"), getLastErrorText());
+            TEXT("Unable to create a %s thread: %s"), TEXT("Startup"), getLastErrorText());
         return 1;
     }
     
@@ -830,7 +829,7 @@ int initializeStartup() {
         }
     } else {
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s timed out.  Continuing in background."), gettext3("Startup"));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%s timed out.  Continuing in background."), TEXT("Startup"));
         }
     }
     
@@ -841,7 +840,7 @@ void disposeStartup() {
     /* Wait until the javaIO thread is actually stopped to avoid timing problems. */
     if (startupThreadStarted && !startupThreadStopped) {
         if (wrapperData->isDebugging) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Waiting for %s thread to complete..."), gettext3("Startup"));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Waiting for %s thread to complete..."), TEXT("Startup"));
         }
         while (!startupThreadStopped) {
 #ifdef _DEBUG
@@ -871,7 +870,7 @@ DWORD WINAPI javaIORunner(LPVOID parameter) {
         logRegisterThread(WRAPPER_THREAD_JAVAIO);
 
         if (wrapperData->isJavaIOOutputEnabled) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s thread started."), gettext3("JavaIO"));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s thread started."), TEXT("JavaIO"));
         }
 
         nextSleep = TRUE;
@@ -898,7 +897,7 @@ DWORD WINAPI javaIORunner(LPVOID parameter) {
         }
     } __except (exceptionFilterFunction(GetExceptionInformation())) {
         /* This call is not queued to make sure it makes it to the log prior to a shutdown. */
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Fatal error in the %s thread."), gettext3("JavaIO"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Fatal error in the %s thread."), TEXT("JavaIO"));
         javaIOThreadStopped = TRUE; /* Before appExit() */
         appExit(1);
         return 1; /* For the compiler, we will never get here. */
@@ -906,7 +905,7 @@ DWORD WINAPI javaIORunner(LPVOID parameter) {
 
     javaIOThreadStopped = TRUE;
     if (wrapperData->isJavaIOOutputEnabled) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s thread stopped."), gettext3("JavaIO"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("%s thread stopped."), TEXT("JavaIO"));
     }
     return 0;
 }
@@ -917,7 +916,7 @@ DWORD WINAPI javaIORunner(LPVOID parameter) {
  */
 int initializeJavaIO() {
     if (wrapperData->isJavaIOOutputEnabled) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Launching %s thread."), gettext3("JavaIO"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Launching %s thread."), TEXT("JavaIO"));
     }
 
     javaIOThreadHandle = CreateThread(
@@ -929,7 +928,7 @@ int initializeJavaIO() {
         &javaIOThreadId);
     if (!javaIOThreadHandle) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            TEXT("Unable to create a %s thread: %s"), gettext3("JavaIO"), getLastErrorText());
+            TEXT("Unable to create a %s thread: %s"), TEXT("JavaIO"), getLastErrorText());
         return 1;
     } else {
         return 0;
@@ -1227,7 +1226,7 @@ int wrapperInitializeRun() {
     }
 
     /* Initialize the Wrapper console handle to null */
-    wrapperData->wrapperConsoleHandle = NULL;
+    wrapperData->wrapperConsoleHWND = NULL;
 
     /* The Wrapper will not have its own console when running as a service.  We need
      *  to create one here. */
@@ -1290,7 +1289,7 @@ int wrapperInitializeRun() {
             SetConsoleTitle(titleBuffer);
 
             wrapperData->wrapperConsoleHide = TRUE;
-            if (wrapperData->wrapperConsoleHandle = findConsoleWindow(titleBuffer)) {
+            if (wrapperData->wrapperConsoleHWND = findConsoleWindow(titleBuffer)) {
                 wrapperData->wrapperConsoleVisible = TRUE;
                 if (wrapperData->isDebugging) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Found console window."));
@@ -1319,7 +1318,13 @@ int wrapperInitializeRun() {
     /* Set the handler to trap console signals.  This must be done after the console
      *  is created or it will not be applied to that console. */
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)wrapperConsoleHandler, TRUE);
-
+    
+    /* Collect the HINSTANCE and HWND references. */
+    wrapperData->wrapperHInstance = GetModuleHandle(NULL);
+    if (!wrapperData->wrapperConsoleHWND) {
+        wrapperData->wrapperConsoleHWND = GetConsoleWindow();
+    }
+        
     if (wrapperData->useSystemTime) {
         /* We are going to be using system time so there is no reason to start up a timer thread. */
         timerThreadHandle = NULL;
@@ -1681,14 +1686,14 @@ void wrapperExecute() {
         if (wrapperData->ntAllocConsole) {
             /* A console was allocated when the service was started so the JVM will not create
              *  its own. */
-            if (wrapperData->wrapperConsoleHandle) {
+            if ((wrapperData->wrapperConsoleHWND) && (wrapperData->wrapperConsoleHide)) {
                 /* The console exists but is currently hidden. */
                 if (!wrapperData->ntHideJVMConsole) {
                     /* In order to support older JVMs we need to show the console when the
                      *  JVM is launched.  We need to remember to hide it below. */
-                    showConsoleWindow(wrapperData->wrapperConsoleHandle, TEXT("Wrapper"));
+                    showConsoleWindow(wrapperData->wrapperConsoleHWND, TEXT("Wrapper"));
                     wrapperData->wrapperConsoleVisible = TRUE;
-                    wrapperData->wrapperConsoleHide = FALSE;
+                    wrapperData->wrapperConsoleHide = FALSE; /* Temporarily disable the hide flag so the event loop won't hide it while we are launching the JVM. */
                     hideConsole = TRUE;
                 }
             }
@@ -1831,7 +1836,7 @@ void wrapperExecute() {
     if (hideConsole) {
         /* Now that the JVM has been launched we need to hide the console that it
          *  is using. */
-        if (wrapperData->wrapperConsoleHandle) {
+        if (wrapperData->wrapperConsoleHWND) {
             /* The wrapper's console needs to be hidden. */
             wrapperData->wrapperConsoleHide = TRUE;
             wrapperCheckConsoleWindows();
@@ -1839,7 +1844,7 @@ void wrapperExecute() {
             /* We need to locate the console that was created by the JVM on launch
              *  and hide it. */
             wrapperData->jvmConsoleHandle = findConsoleWindow(titleBuffer);
-            wrapperData->jvmConsoleVisible = TRUE;
+            wrapperData->jvmConsoleVisible = TRUE; /* This will be cleared if the check call successfully hides it. */
             wrapperCheckConsoleWindows();
         }
     }
@@ -4180,22 +4185,48 @@ int wrapperStartService() {
     SC_HANDLE   schService;
     SC_HANDLE   schSCManager;
     SERVICE_STATUS serviceStatus;
-    const TCHAR *logfilePath;
-    TCHAR fullPath[FILEPATHSIZE] = TEXT("");
+    const TCHAR *path;
+    TCHAR wrapperFullPath[FILEPATHSIZE] = TEXT("");
+    TCHAR logFileFullPath[FILEPATHSIZE] = TEXT("");
+    TCHAR defaultLogFileFullPath[FILEPATHSIZE] = TEXT("");
 
     TCHAR *status;
     int msgCntr;
     int stopping;
     int result;
+    int errorCode;
 
-    logfilePath = getLogfilePath();
-    result = GetFullPathName(logfilePath, FILEPATHSIZE, fullPath, NULL);
+    /* Wrapper binary. */
+    path = wrapperData->argBinary;
+    result = GetFullPathName(path, FILEPATHSIZE, wrapperFullPath, NULL);
     if (result >= FILEPATHSIZE) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("The full path of %s is too large. (%d)"), logfilePath, result);
-        _tcsncpy(fullPath, logfilePath, FILEPATHSIZE);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("The full path of %s is too large. (%d)"), path, result);
+        _tcsncpy(wrapperFullPath, path, FILEPATHSIZE);
     } else if (result == 0) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to resolve the full path of %s : %s"), logfilePath, getLastErrorText());
-        _tcsncpy(fullPath, logfilePath, FILEPATHSIZE);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to resolve the full path of %s : %s"), path, getLastErrorText());
+        _tcsncpy(wrapperFullPath, path, FILEPATHSIZE);
+    }
+    
+    /* Log file path. */
+    path = getLogfilePath();
+    result = GetFullPathName(path, FILEPATHSIZE, logFileFullPath, NULL);
+    if (result >= FILEPATHSIZE) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("The full path of %s is too large. (%d)"), path, result);
+        _tcsncpy(logFileFullPath, path, FILEPATHSIZE);
+    } else if (result == 0) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to resolve the full path of %s : %s"), path, getLastErrorText());
+        _tcsncpy(logFileFullPath, path, FILEPATHSIZE);
+    }
+
+    /* Default Log file path. */
+    path = getDefaultLogfilePath();
+    result = GetFullPathName(path, FILEPATHSIZE, defaultLogFileFullPath, NULL);
+    if (result >= FILEPATHSIZE) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("The full path of %s is too large. (%d)"), path, result);
+        _tcsncpy(defaultLogFileFullPath, path, FILEPATHSIZE);
+    } else if (result == 0) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Unable to resolve the full path of %s : %s"), path, getLastErrorText());
+        _tcsncpy(defaultLogFileFullPath, path, FILEPATHSIZE);
     }
 
     result = 0;
@@ -4258,12 +4289,52 @@ int wrapperStartService() {
                         } else {
                             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("The %s service was launched, but failed to start."),
                                 wrapperData->serviceDisplayName);
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Please check the log file more information: %s"), fullPath);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Please check the log file more information: %s"), logFileFullPath);
                             result = 1;
                         }
                     } else {
+                        errorCode = GetLastError();
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Unable to start the %s service - %s"),
                             wrapperData->serviceDisplayName, getLastErrorText());
+                        switch (errorCode)
+                        {
+                        case ERROR_ACCESS_DENIED:
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("") );
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                                TEXT("--------------------------------------------------------------------") );
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                                TEXT("Advice:" ));
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                                TEXT("Usually when the Windows Service Manager does not have access to the Wrapper\nbinary, it is caused by a file permission problem preventing the user running\nthe Wrapper from accessing it. Please check the permissions on the file and\nits parent directories." ));
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                                TEXT("  Wrapper Binary : %s"), wrapperFullPath);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                                TEXT("--------------------------------------------------------------------") );
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("") );
+                            break;
+                            
+                        case ERROR_SERVICE_REQUEST_TIMEOUT:
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("") );
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                                TEXT("--------------------------------------------------------------------") );
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                                TEXT("Advice:" ));
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                                TEXT("Usually when the Windows Service Manager times out waiting for the Wrapper\nprocess to launch it is caused by a file permission problem preventing the\nWrapper from reading its configuration file and/or writing to its log file.\nPlease check the permissions on both files and their parent directories.\nIf there are no messages in either the configured or default log file, please\nalso check the Windows Event Log." ));
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                                TEXT("  Configuration File  : %s"), wrapperData->argConfFile);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                                TEXT("  Congigured Log File : %s" ), logFileFullPath);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                                TEXT("  Default Log File    : %s" ), defaultLogFileFullPath);
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
+                                TEXT("--------------------------------------------------------------------") );
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, TEXT("") );
+                            break;
+                            
+                        default:
+                            break;
+                        }
                         result = 1;
                     }
                 } else {
@@ -5526,7 +5597,7 @@ LPTSTR PrintCertificateInfo(PCCERT_CONTEXT pCertContext, int level) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("CertGetNameString failed."));
             __leave;
         }
-        size = _tcslen(TEXT("    Serial Number: ")) + dwData * 3 + 6 + _tcslen(gettext3("    Issuer Name: ")) + _tcslen(gettext3("    Subject Name: ")) + _tcslen(szName1) + _tcslen(szName2) + 5;
+        size = _tcslen(TEXT("    Serial Number: ")) + dwData * 3 + 6 + _tcslen(TEXT("    Issuer Name: ")) + _tcslen(TEXT("    Subject Name: ")) + _tcslen(szName1) + _tcslen(szName2) + 5;
         buffer = calloc(size, sizeof(TCHAR));
         if (!buffer) {
             outOfMemory(TEXT("GTSSI"), 4);
@@ -5900,8 +5971,6 @@ BOOL verifyEmbeddedSignature() {
     return TRUE;
 }
 
-
-
 #ifndef CUNIT
 void _tmain(int argc, TCHAR **argv) {
     int result;
@@ -5997,7 +6066,7 @@ void _tmain(int argc, TCHAR **argv) {
          *  of an NT service. the environment variables must first be loaded from
          *  the registry.
          * This is not necessary for versions of Windows XP and above. */
-        if ((!strcmpIgnoreCase(wrapperData->argCommand, TEXT("s")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-service"))) && (isWinXP() == FALSE)) {
+        if ((!strcmpIgnoreCase(wrapperData->argCommand, TEXT("s")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-service"))) && (isVista() == FALSE)) {
             if (wrapperLoadEnvFromRegistry())
             {
                 appExit(1);

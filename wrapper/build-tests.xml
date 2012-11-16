@@ -14,6 +14,10 @@
     
     <property name="test.dir"      value="${basedir}/test"/>
     <property name="src.dir"       value="${basedir}/src"/>
+
+    <!-- Additional Parameter File Test -->
+    <property name="ParamFileTest" value="AdditionalParameterFile" />
+    <property name="paramfiletest" value="additionalparameterfile" />
     
     <!-- =================================================================== -->
     <!-- Help on usage                                                       -->
@@ -616,6 +620,157 @@ wrapper.app.parameter.3=org.tanukisoftware.wrapper.test.QuickComplete
 wrapper.app.parameter.4=TRUE
 wrapper.app.parameter.5=0]]></replacevalue>
         </replace>
+
+        <!-- AdditionalParameterFile Test -->
+        <delete file="${test.dir}/${paramfiletest}-01-empty.conf"/>
+        <filter token="app.name"          value="${paramfiletest}-01-empty"/>
+        <filter token="app.long.name"     value="${ParamFileTest} Case 01 (Empty)" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/${paramfiletest}-01-empty.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/${paramfiletest}-01-empty.conf"
+                 token="wrapper.java.additional_file="
+                 value="wrapper.java.additional_file=../test/${paramfiletest}-01-empty.param" />
+        <replace file="${test.dir}/${paramfiletest}-01-empty.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
+        <delete file="${test.dir}/${paramfiletest}-01-empty.param"/>
+        <touch file="${test.dir}/${paramfiletest}-01-empty.param"/>
+
+        <delete file="${test.dir}/${paramfiletest}-02-1line.conf"/>
+        <filter token="app.name"          value="${paramfiletest}-02-1line"/>
+        <filter token="app.long.name"     value="${ParamFileTest} Case 02 (1 Line)" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/${paramfiletest}-02-1line.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/${paramfiletest}-02-1line.conf"
+                 token="wrapper.java.additional_file="
+                 value="wrapper.java.additional_file=../test/${paramfiletest}-02-1line.param" />
+        <replace file="${test.dir}/${paramfiletest}-02-1line.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
+        <echo file="${test.dir}/${paramfiletest}-02-1line.param">-Dparam=param</echo>
+
+        <delete file="${test.dir}/${paramfiletest}-03-stripq-false.conf"/>
+        <filter token="app.name"          value="${paramfiletest}-03-stripq-false"/>
+        <filter token="app.long.name"     value="${ParamFileTest} Case 03 (stripQuote=false)" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/${paramfiletest}-03-stripq-false.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/${paramfiletest}-03-stripq-false.conf">
+             <replacetoken><![CDATA[wrapper.java.additional_file=]]></replacetoken>
+             <replacevalue><![CDATA[wrapper.java.additional_file=../test/additionalparameterfile-03-stripq-false.param
+wrapper.java.additional_file.stripquotes=FALSE]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/${paramfiletest}-03-stripq-false.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
+        <echo file="${test.dir}/${paramfiletest}-03-stripq-false.param">-Dparam="Hello World."</echo>
+
+        <delete file="${test.dir}/${paramfiletest}-04-stripq-true.conf"/>
+        <filter token="app.name"          value="${paramfiletest}-04-stripq-true"/>
+        <filter token="app.long.name"     value="${ParamFileTest} Case 04 (stripQuote=true)" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/${paramfiletest}-04-stripq-true.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/${paramfiletest}-04-stripq-true.conf">
+             <replacetoken><![CDATA[wrapper.java.additional_file=]]></replacetoken>
+             <replacevalue><![CDATA[wrapper.java.additional_file=../test/additionalparameterfile-04-stripq-true.param
+wrapper.java.additional_file.stripquotes=TRUE]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/${paramfiletest}-04-stripq-true.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
+        <echo file="${test.dir}/${paramfiletest}-04-stripq-true.param">-Dparam="Hello World."</echo>
+
+        <delete file="${test.dir}/${paramfiletest}-05-encoding.conf"/>
+        <filter token="app.name"          value="${paramfiletest}-05-encoding"/>
+        <filter token="app.long.name"     value="${ParamFileTest} Case 05 (Encoding)" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/${paramfiletest}-05-encoding.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/${paramfiletest}-05-encoding.conf"
+                 token="wrapper.java.additional_file="
+                 value="wrapper.java.additional_file=../test/${paramfiletest}-05-encoding.param" />
+        <replace file="${test.dir}/${paramfiletest}-05-encoding.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
+        <echo file="${test.dir}/${paramfiletest}-05-encoding.param">#encoding=UTF-8
+-Dparam=param</echo>
+
+        <delete file="${test.dir}/${paramfiletest}-06-multilines.conf"/>
+        <filter token="app.name"          value="${paramfiletest}-06-multilines"/>
+        <filter token="app.long.name"     value="${ParamFileTest} Case 06 (Multi-Lines)" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/${paramfiletest}-06-multilines.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/${paramfiletest}-06-multilines.conf"
+                 token="wrapper.java.additional_file="
+                 value="wrapper.java.additional_file=../test/${paramfiletest}-06-multilines.param" />
+        <replace file="${test.dir}/${paramfiletest}-06-multilines.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
+        <echo file="${test.dir}/${paramfiletest}-06-multilines.param"># This is a comment.
+-Dparam1=param1 # This is another comment.
+-Dparam2=##param2
+-Dparam3="#param3"</echo>
+
+        <!-- DefaultStripquotes Test -->
+        <delete file="${test.dir}/defaultstripquotes-01-none.conf"/>
+        <filter token="app.name"          value="defaultstripquotes-01-none"/>
+        <filter token="app.long.name"     value="Default stripquotes Case 01 (None specified)" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/defaultstripquotes-01-none.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/defaultstripquotes-01-none.conf">
+            <replacetoken>wrapper.java.additional.1=</replacetoken>
+            <replacevalue><![CDATA[wrapper.java.additional.1=-Dparam1="No stripquotes"
+wrapper.java.additional.2=-Dparam2="stripquotes TRUE"
+wrapper.java.additional.2.stripquotes=TRUE
+wrapper.java.additional.3=-Dparam3="stripquotes FALSE"
+wrapper.java.additional.3.stripquotes=FALSE]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/defaultstripquotes-01-none.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
+
+        <delete file="${test.dir}/defaultstripquotes-02-true.conf"/>
+        <filter token="app.name"          value="defaultstripquotes-02-true"/>
+        <filter token="app.long.name"     value="Default stripquotes Case 02 (TRUE specified)" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/defaultstripquotes-02-true.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/defaultstripquotes-02-true.conf">
+            <replacetoken>wrapper.java.additional.1=</replacetoken>
+            <replacevalue><![CDATA[wrapper.java.additional.default.stripquotes=TRUE
+wrapper.java.additional.1=-Dparam1="No stripquotes"
+wrapper.java.additional.2=-Dparam2="stripquotes TRUE"
+wrapper.java.additional.2.stripquotes=TRUE
+wrapper.java.additional.3=-Dparam3="stripquotes FALSE"
+wrapper.java.additional.3.stripquotes=FALSE]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/defaultstripquotes-02-true.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
+
+        <delete file="${test.dir}/defaultstripquotes-03-false.conf"/>
+        <filter token="app.name"          value="defaultstripquotes-03-false"/>
+        <filter token="app.long.name"     value="Default stripquotes Case 03 (FALSE specified)" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/defaultstripquotes-03-false.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/defaultstripquotes-03-false.conf">
+            <replacetoken>wrapper.java.additional.1=</replacetoken>
+            <replacevalue><![CDATA[wrapper.java.additional.default.stripquotes=FALSE
+wrapper.java.additional.1=-Dparam1="No stripquotes"
+wrapper.java.additional.2=-Dparam2="stripquotes TRUE"
+wrapper.java.additional.2.stripquotes=TRUE
+wrapper.java.additional.3=-Dparam3="stripquotes FALSE"
+wrapper.java.additional.3.stripquotes=FALSE]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/defaultstripquotes-03-false.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
     </target>
     
     <!-- =================================================================== -->
@@ -1056,6 +1211,107 @@ set ENV_VAR_4=d]]></replacevalue>
         <replace file="${test.dir}/TestPerformanceStartStop.bat"
                  token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
                  value='set _WRAPPER_CONF_DEFAULT=../test/performancestartstop.conf' />
+
+        <!-- AdditionalParameterFile Test -->
+        <delete file="${test.dir}/Test${ParamFileTest}-01-empty.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/Test${ParamFileTest}-01-empty.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/Test${ParamFileTest}-01-empty.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/Test${ParamFileTest}-01-empty.bat"
+                 token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/${paramfiletest}-01-empty.conf' />
+
+        <delete file="${test.dir}/Test${ParamFileTest}-02-1line.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/Test${ParamFileTest}-02-1line.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/Test${ParamFileTest}-02-1line.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/Test${ParamFileTest}-02-1line.bat"
+                 token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/${paramfiletest}-02-1line.conf' />
+
+        <delete file="${test.dir}/Test${ParamFileTest}-03-stripq-false.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/Test${ParamFileTest}-03-stripq-false.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/Test${ParamFileTest}-03-stripq-false.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/Test${ParamFileTest}-03-stripq-false.bat"
+                 token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/${paramfiletest}-03-stripq-false.conf' />
+
+        <delete file="${test.dir}/Test${ParamFileTest}-04-stripq-true.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/Test${ParamFileTest}-04-stripq-true.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/Test${ParamFileTest}-04-stripq-true.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/Test${ParamFileTest}-04-stripq-true.bat"
+                 token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/${paramfiletest}-04-stripq-true.conf' />
+
+        <delete file="${test.dir}/Test${ParamFileTest}-05-encoding.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/Test${ParamFileTest}-05-encoding.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/Test${ParamFileTest}-05-encoding.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/Test${ParamFileTest}-05-encoding.bat"
+                 token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/${paramfiletest}-05-encoding.conf' />
+
+        <delete file="${test.dir}/Test${ParamFileTest}-06-multilines.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/Test${ParamFileTest}-06-multilines.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/Test${ParamFileTest}-06-multilines.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/Test${ParamFileTest}-06-multilines.bat"
+                 token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/${paramfiletest}-06-multilines.conf' />
+
+        <!-- DefaultStripquotes Test -->
+        <delete file="${test.dir}/TestDefaultStripquotes-01-none.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestDefaultStripquotes-01-none.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestDefaultStripquotes-01-none.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestDefaultStripquotes-01-none.bat"
+                 token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/defaultstripquotes-01-none.conf' />
+
+        <delete file="${test.dir}/TestDefaultStripquotes-02-true.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestDefaultStripquotes-02-true.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestDefaultStripquotes-02-true.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestDefaultStripquotes-02-true.bat"
+                 token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/defaultstripquotes-02-true.conf' />
+
+        <delete file="${test.dir}/TestDefaultStripquotes-03-false.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestDefaultStripquotes-03-false.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestDefaultStripquotes-03-false.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestDefaultStripquotes-03-false.bat"
+                 token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/defaultstripquotes-03-false.conf' />
     </target>
     
     <!-- =================================================================== -->
@@ -1383,6 +1639,71 @@ export ENV_VAR_4=d]]></replacevalue>
               filtering="on"/>
         <chmod file="${test.dir}/performancestartstop" perm="+x"/>
         
+        <!-- AdditionalParameterFile Test -->
+        <filter token="app.name"          value="${paramfiletest}-01-empty"/>
+        <filter token="app.long.name"     value="${ParamFileTest} Case 01 (Empty)" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/${paramfiletest}-01-empty"
+              filtering="on"/>
+        <chmod file="${test.dir}/${paramfiletest}-01-empty" perm="+x"/>
+
+        <filter token="app.name"          value="${paramfiletest}-02-1line"/>
+        <filter token="app.long.name"     value="${ParamFileTest} Case 02 (1 Line)" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/${paramfiletest}-02-1line"
+              filtering="on"/>
+        <chmod file="${test.dir}/${paramfiletest}-02-1line" perm="+x"/>
+
+        <filter token="app.name"          value="${paramfiletest}-03-stripq-false"/>
+        <filter token="app.long.name"     value="${ParamFileTest} Case 03 (stripQuote=false)" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/${paramfiletest}-03-stripq-false"
+              filtering="on"/>
+        <chmod file="${test.dir}/${paramfiletest}-03-stripq-false" perm="+x"/>
+
+        <filter token="app.name"          value="${paramfiletest}-04-stripq-true"/>
+        <filter token="app.long.name"     value="${ParamFileTest} Case 04 (stripQuote=true)" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/${paramfiletest}-04-stripq-true"
+              filtering="on"/>
+        <chmod file="${test.dir}/${paramfiletest}-04-stripq-true" perm="+x"/>
+
+        <filter token="app.name"          value="${paramfiletest}-05-encoding"/>
+        <filter token="app.long.name"     value="${ParamFileTest} Case 05 (Encoding)" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/${paramfiletest}-05-encoding"
+              filtering="on"/>
+        <chmod file="${test.dir}/${paramfiletest}-05-encoding" perm="+x"/>
+
+        <filter token="app.name"          value="${paramfiletest}-06-multilines"/>
+        <filter token="app.long.name"     value="${ParamFileTest} Case 06 (Multi-Lines)" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/${paramfiletest}-06-multilines"
+              filtering="on"/>
+        <chmod file="${test.dir}/${paramfiletest}-06-multilines" perm="+x"/>
+
+        <!-- DefaultStripquotes Test -->
+        <filter token="app.name"          value="defaultstripquotes-01-none"/>
+        <filter token="app.long.name"     value="Default stripquotes Case 01 (None specified)" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/defaultstripquotes-01-none"
+              filtering="on"/>
+        <chmod file="${test.dir}/defaultstripquotes-01-none" perm="+x"/>
+
+        <filter token="app.name"          value="defaultstripquotes-02-true"/>
+        <filter token="app.long.name"     value="Default stripquotes Case 02 (TRUE specified)" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/defaultstripquotes-02-true"
+              filtering="on"/>
+        <chmod file="${test.dir}/defaultstripquotes-02-true" perm="+x"/>
+
+        <filter token="app.name"          value="defaultstripquotes-03-false"/>
+        <filter token="app.long.name"     value="Default stripquotes Case 03 (FALSE specified)" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/defaultstripquotes-03-false"
+              filtering="on"/>
+        <chmod file="${test.dir}/defaultstripquotes-03-false" perm="+x"/>
+
         <!-- Get rid of the temp script file -->
         <delete file="${test.dir}/temp.script.in"/>
         <delete file="${test.dir}/action.script.in"/>

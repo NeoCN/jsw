@@ -77,6 +77,7 @@ import org.tanukisoftware.wrapper.event.WrapperEvent;
 import org.tanukisoftware.wrapper.event.WrapperEventListener;
 import org.tanukisoftware.wrapper.event.WrapperLogFileChangedEvent;
 import org.tanukisoftware.wrapper.event.WrapperPingEvent;
+import org.tanukisoftware.wrapper.event.WrapperServiceActionEvent;
 import org.tanukisoftware.wrapper.event.WrapperServiceControlEvent;
 import org.tanukisoftware.wrapper.event.WrapperServicePauseEvent;
 import org.tanukisoftware.wrapper.event.WrapperServiceResumeEvent;
@@ -1889,7 +1890,7 @@ public final class WrapperManager
      *  clean up any child processes launched with this method automatically
      *  before shutting down or launching a new JVM.
      * <p>
-     * This method is the same as calling <code><pre>WrapperManger.exec(command, new WrapperProcessConfig());</pre></code>
+     * This method is the same as calling <code><pre>WrapperManager.exec(command, new WrapperProcessConfig());</pre></code>
      * <p>
      * The returned WrapperProcess object can be used to control the child
      *  process, supply input, or process output.
@@ -1936,7 +1937,7 @@ public final class WrapperManager
      *  duplicate the entire JVM's memory space and cause an out of memory
      *  error or JVM crash, to avoid such memory problems the child process
      *  can be launched using posix spawn as follows:<p>
-     * <code><pre>WrapperManger.exec( command, new WrapperProcessConfig().setStartType( WrapperProcessConfig.POSIX_SPAWN ) );</pre></code>
+     * <code><pre>WrapperManager.exec( command, new WrapperProcessConfig().setStartType( WrapperProcessConfig.POSIX_SPAWN ) );</pre></code>
      * <p>
      * Please review the WrapperProcessConfig class for a full list of
      *  options.
@@ -1986,7 +1987,7 @@ public final class WrapperManager
      *  clean up any child processes launched with this method automatically
      *  before shutting down or launching a new JVM.
      * <p>
-     * This method is the same as calling <code><pre>WrapperManger.exec(cmdArray, new WrapperProcessConfig());</pre></code>
+     * This method is the same as calling <code><pre>WrapperManager.exec(cmdArray, new WrapperProcessConfig());</pre></code>
      * <p>
      * The returned WrapperProcess object can be used to control the child
      *  process, supply input, or process output.
@@ -2040,7 +2041,7 @@ public final class WrapperManager
      *  duplicate the entire JVM's memory space and cause an out of memory
      *  error or JVM crash, to avoid such memory problems the child process
      *  can be launched using posix spawn as follows:<p>
-     * <code><pre>WrapperManger.exec( cmdArray, new WrapperProcessConfig().setStartType( WrapperProcessConfig.POSIX_SPAWN ) );</pre></code>
+     * <code><pre>WrapperManager.exec( cmdArray, new WrapperProcessConfig().setStartType( WrapperProcessConfig.POSIX_SPAWN ) );</pre></code>
      * <p>
      * Please review the WrapperProcessConfig class for a full list of
      *  options.
@@ -4965,7 +4966,7 @@ public final class WrapperManager
             name ="LOW_LOG_LEVEL";
             break;
     
-        case WRAPPER_MSG_PING_TIMEOUT:
+        case WRAPPER_MSG_PING_TIMEOUT: /* No longer used. */
             name ="PING_TIMEOUT";
             break;
     
@@ -5008,10 +5009,6 @@ public final class WrapperManager
         case WRAPPER_MSG_LOG + WRAPPER_LOG_LEVEL_NOTICE:
             name ="LOG(NOTICE)";
             break;
-
-        case WRAPPER_MSG_LOGFILE:
-            name ="LOGFILE";
-            break;
            
         case WRAPPER_MSG_CHILD_LAUNCH:
             name ="CHILD_LAUNCH";
@@ -5020,6 +5017,10 @@ public final class WrapperManager
         case WRAPPER_MSG_CHILD_TERM:
             name ="CHILD_TERM";
             break;
+
+        case WRAPPER_MSG_LOGFILE:
+            name ="LOGFILE";
+            break;
            
         case WRAPPER_MSG_CHECK_DEADLOCK:
             name ="CHECK_DEADLOCK";
@@ -5027,6 +5028,10 @@ public final class WrapperManager
     
         case WRAPPER_MSG_DEADLOCK:
             name ="DEADLOCK";
+            break;
+    
+        case WRAPPER_MSG_APPEAR_ORPHAN: /* No longer used. */
+            name ="APPEAR_ORPHAN";
             break;
     
         case WRAPPER_MSG_PAUSE:
@@ -5039,6 +5044,10 @@ public final class WrapperManager
     
         case WRAPPER_MSG_GC:
             name ="GC";
+            break;
+    
+        case WRAPPER_MSG_FIRE_USER_EVENT:
+            name ="FIRE_USER_EVENT";
             break;
     
         default:
@@ -5322,43 +5331,56 @@ public final class WrapperManager
                         case WRAPPER_MSG_PAUSE:
                             try
                             {
-                                int actionCode = Integer.parseInt( msg );
+                                int actionSourceCode = Integer.parseInt( msg );
                                 if ( m_debug )
                                 {
-                                    m_outDebug.println( getRes().getString( "Pause from Wrapper with code {0}", new Integer( actionCode ) ) );
+                                    m_outDebug.println( getRes().getString( "Pause from Wrapper with action source: {0}", WrapperServicePauseEvent.getSourceCodeName( actionSourceCode ) ) );
                                 }
                                 WrapperServicePauseEvent event =
-                                    new WrapperServicePauseEvent( actionCode );
+                                    new WrapperServicePauseEvent( actionSourceCode );
                                 fireWrapperEvent( event );
                             }
                             catch ( NumberFormatException e )
                             {
                                 m_outError.println( getRes().getString(
-                                        "Encountered an Illegal ActionCode from the Wrapper: {0}", msg ) );
+                                        "Encountered an Illegal action source code from the Wrapper: {0}", msg ) );
                             }
                             break;
                             
                         case WRAPPER_MSG_RESUME:
                             try
                             {
-                                int actionCode = Integer.parseInt( msg );
+                                int actionSourceCode = Integer.parseInt( msg );
                                 if ( m_debug )
                                 {
-                                    m_outDebug.println( getRes().getString("Resume from Wrapper with code {0}", new Integer( actionCode ) ) );
+                                    m_outDebug.println( getRes().getString("Resume from Wrapper with action source: {0}", WrapperServiceResumeEvent.getSourceCodeName( actionSourceCode ) ) );
                                 }
                                 WrapperServiceResumeEvent event =
-                                    new WrapperServiceResumeEvent( actionCode );
+                                    new WrapperServiceResumeEvent( actionSourceCode );
                                 fireWrapperEvent( event );
                             }
                             catch ( NumberFormatException e )
                             {
                                 m_outError.println( getRes().getString(
-                                        "Encountered an Illegal ActionCode from the Wrapper: {0}", msg ) );
+                                        "Encountered an Illegal action source code from the Wrapper: {0}", msg ) );
                             }
                             break;
                             
                         case WRAPPER_MSG_GC:
-                            System.gc();
+                            try
+                            {
+                                int actionSourceCode = Integer.parseInt( msg );
+                                if ( m_debug )
+                                {
+                                    m_outDebug.println( getRes().getString( "Garbage Collection request from Wrapper with action source: {0}", WrapperServiceActionEvent.getSourceCodeName( actionSourceCode ) ) );
+                                }
+                                System.gc();
+                            }
+                            catch ( NumberFormatException e )
+                            {
+                                m_outError.println( getRes().getString(
+                                        "Encountered an Illegal action source code from the Wrapper: {0}", msg ) );
+                            }
                             break;
                             
                         case WRAPPER_MSG_PROPERTIES:
