@@ -33,7 +33,6 @@
  */
 
 #ifdef WIN32
-
 #include <direct.h>
 #include <io.h>
 #include <math.h>
@@ -689,8 +688,8 @@ void wrapperCheckConsoleWindows() {
     int forceCheck = TRUE;
 
     /* See if the Wrapper console needs to be hidden. */
-    if (wrapperData->wrapperConsoleHide && (wrapperData->wrapperConsoleHandle != NULL) && (wrapperData->wrapperConsoleVisible || forceCheck)) {
-        if (hideConsoleWindow(wrapperData->wrapperConsoleHandle, TEXT("Wrapper"))) {
+    if (wrapperData->wrapperConsoleHide && (wrapperData->wrapperConsoleHWND != NULL) && (wrapperData->wrapperConsoleVisible || forceCheck)) {
+        if (hideConsoleWindow(wrapperData->wrapperConsoleHWND, TEXT("Wrapper"))) {
             wrapperData->wrapperConsoleVisible = FALSE;
         }
     }
@@ -723,7 +722,7 @@ void showConsoleWindow(HWND consoleHandle, const TCHAR *name) {
     WINDOWPLACEMENT consolePlacement;
 
     if (wrapperData->isDebugging) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Show %s console window which JVM is launched."), name);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Show %s console window with which JVM is launched."), name);
     }
     if (GetWindowPlacement(consoleHandle, &consolePlacement)) {
         /* Show the Window. */
@@ -1227,7 +1226,7 @@ int wrapperInitializeRun() {
     }
 
     /* Initialize the Wrapper console handle to null */
-    wrapperData->wrapperConsoleHandle = NULL;
+    wrapperData->wrapperConsoleHWND = NULL;
 
     /* The Wrapper will not have its own console when running as a service.  We need
      *  to create one here. */
@@ -1290,7 +1289,7 @@ int wrapperInitializeRun() {
             SetConsoleTitle(titleBuffer);
 
             wrapperData->wrapperConsoleHide = TRUE;
-            if (wrapperData->wrapperConsoleHandle = findConsoleWindow(titleBuffer)) {
+            if (wrapperData->wrapperConsoleHWND = findConsoleWindow(titleBuffer)) {
                 wrapperData->wrapperConsoleVisible = TRUE;
                 if (wrapperData->isDebugging) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Found console window."));
@@ -1319,7 +1318,13 @@ int wrapperInitializeRun() {
     /* Set the handler to trap console signals.  This must be done after the console
      *  is created or it will not be applied to that console. */
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)wrapperConsoleHandler, TRUE);
-
+    
+    /* Collect the HINSTANCE and HWND references. */
+    wrapperData->wrapperHInstance = GetModuleHandle(NULL);
+    if (!wrapperData->wrapperConsoleHWND) {
+        wrapperData->wrapperConsoleHWND = GetConsoleWindow();
+    }
+        
     if (wrapperData->useSystemTime) {
         /* We are going to be using system time so there is no reason to start up a timer thread. */
         timerThreadHandle = NULL;
@@ -1681,14 +1686,14 @@ void wrapperExecute() {
         if (wrapperData->ntAllocConsole) {
             /* A console was allocated when the service was started so the JVM will not create
              *  its own. */
-            if (wrapperData->wrapperConsoleHandle) {
+            if ((wrapperData->wrapperConsoleHWND) && (wrapperData->wrapperConsoleHide)) {
                 /* The console exists but is currently hidden. */
                 if (!wrapperData->ntHideJVMConsole) {
                     /* In order to support older JVMs we need to show the console when the
                      *  JVM is launched.  We need to remember to hide it below. */
-                    showConsoleWindow(wrapperData->wrapperConsoleHandle, TEXT("Wrapper"));
+                    showConsoleWindow(wrapperData->wrapperConsoleHWND, TEXT("Wrapper"));
                     wrapperData->wrapperConsoleVisible = TRUE;
-                    wrapperData->wrapperConsoleHide = FALSE;
+                    wrapperData->wrapperConsoleHide = FALSE; /* Temporarily disable the hide flag so the event loop won't hide it while we are launching the JVM. */
                     hideConsole = TRUE;
                 }
             }
@@ -1831,7 +1836,7 @@ void wrapperExecute() {
     if (hideConsole) {
         /* Now that the JVM has been launched we need to hide the console that it
          *  is using. */
-        if (wrapperData->wrapperConsoleHandle) {
+        if (wrapperData->wrapperConsoleHWND) {
             /* The wrapper's console needs to be hidden. */
             wrapperData->wrapperConsoleHide = TRUE;
             wrapperCheckConsoleWindows();
@@ -1839,7 +1844,7 @@ void wrapperExecute() {
             /* We need to locate the console that was created by the JVM on launch
              *  and hide it. */
             wrapperData->jvmConsoleHandle = findConsoleWindow(titleBuffer);
-            wrapperData->jvmConsoleVisible = TRUE;
+            wrapperData->jvmConsoleVisible = TRUE; /* This will be cleared if the check call successfully hides it. */
             wrapperCheckConsoleWindows();
         }
     }
@@ -5900,8 +5905,6 @@ BOOL verifyEmbeddedSignature() {
     return TRUE;
 }
 
-
-
 #ifndef CUNIT
 void _tmain(int argc, TCHAR **argv) {
     int result;
@@ -5997,7 +6000,7 @@ void _tmain(int argc, TCHAR **argv) {
          *  of an NT service. the environment variables must first be loaded from
          *  the registry.
          * This is not necessary for versions of Windows XP and above. */
-        if ((!strcmpIgnoreCase(wrapperData->argCommand, TEXT("s")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-service"))) && (isWinXP() == FALSE)) {
+        if ((!strcmpIgnoreCase(wrapperData->argCommand, TEXT("s")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-service"))) && (isVista() == FALSE)) {
             if (wrapperLoadEnvFromRegistry())
             {
                 appExit(1);

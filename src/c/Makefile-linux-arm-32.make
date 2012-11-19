@@ -7,7 +7,7 @@
 # license agreement you entered into with Tanuki Software.
 # http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
 
-COMPILE = gcc -O3 -fPIC -Wall --pedantic -DLINUX -DJSW64 -D_FILE_OFFSET_BITS=64 -fpic -D_GNU_SOURCE -DUNICODE -D_UNICODE
+COMPILE = gcc -O3 -fPIC -Wall --pedantic -DLINUX -D_FILE_OFFSET_BITS=64 -fpic -D_GNU_SOURCE -DUNICODE -D_UNICODE 
 
 INCLUDE=$(JAVA_HOME)/include
 
@@ -38,7 +38,7 @@ wrapper: $(wrapper_SOURCE)
 libwrapper.so: $(libwrapper_so_OBJECTS)
 	${COMPILE} -shared $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
 
-%.o: %.c 
+%.o: %.c
 	@echo '$(COMPILE) -c $<'; \
 	$(COMPILE) $(DEFS) -Wp,-MD,.deps/$(*F).pp -c $<
 	@-cp .deps/$(*F).pp .deps/$(*F).P; \

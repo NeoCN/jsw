@@ -396,8 +396,7 @@ int disposeLogging() {
  #endif
     
     if (log_printfMutexHandle) {
-        if (!CloseHandle(log_printfMutexHandle))
-        {
+        if (!CloseHandle(log_printfMutexHandle)) {
             _tprintf(TEXT("Unable to close Logging Mutex handle. %s\n"), getLastErrorText());
             return 1;
         }
@@ -405,15 +404,21 @@ int disposeLogging() {
  #ifdef WRAPPERW
     for (i = 0; i < dialogLogEntries; i++) {
         free(dialogLogs[i]);
+        dialogLogs[i] = NULL;
     }
     free(dialogLogs);
+    dialogLogs = NULL;
  #endif
 #endif
     if (threadPrintBuffer && threadPrintBufferSize > 0) {
         free(threadPrintBuffer);
+        threadPrintBuffer = NULL;
+        threadPrintBufferSize = 0;
     }
     if (threadMessageBuffer && threadMessageBufferSize > 0) {
         free(threadMessageBuffer);
+        threadMessageBuffer = NULL;
+        threadMessageBufferSize = 0;
     }
 
 

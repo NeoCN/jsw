@@ -49,6 +49,10 @@ public class StopWhileStarting implements WrapperListener {
             System.exit( 99 );
             break;
             
+        case 4:
+            System.out.println( Main.getRes().getString( "start() returns exit code 99.  Will restart due to on_exit configuration" ) );
+            return new Integer( 99 );
+            
         default:
             System.out.println( Main.getRes().getString( "start() request stop(0)") );
             WrapperManager.stop( 0 );

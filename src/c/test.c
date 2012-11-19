@@ -256,6 +256,7 @@ int main()
 {
     CU_pSuite pSuite = NULL;
     CU_pSuite filterSuite = NULL;
+    CU_pSuite javaAdditionalParamSuite = NULL;
     
     /* Initialize the random seed. */
     srand((unsigned)time(NULL));
@@ -275,6 +276,11 @@ int main()
         CU_cleanup_registry();
         return CU_get_error();
     }
+    javaAdditionalParamSuite = CU_add_suite("Java Additional Parameter Suite", NULL, NULL);
+    if (NULL == javaAdditionalParamSuite) {
+        CU_cleanup_registry();
+        return CU_get_error();
+    }
     
     /* add the tests to the suite */
     /*
@@ -287,6 +293,8 @@ int main()
     
     CU_add_test(filterSuite, "wrapperWildcardMatch", testWrapperWildcardMatch);
     
+    CU_add_test(javaAdditionalParamSuite, "loadJavaAdditionalCallback()", testJavaAdditionalParamSuite);
+
     /* Run all tests using the CUnit Basic interface */
     CU_basic_set_mode(CU_BRM_VERBOSE);
     CU_basic_run_tests();
