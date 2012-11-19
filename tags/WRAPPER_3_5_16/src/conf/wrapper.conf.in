@@ -68,6 +68,9 @@ wrapper.java.additional.auto_bits=TRUE
 # Java Additional Parameters
 wrapper.java.additional.1=
 
+# Java Additional Parameters from File
+wrapper.java.additional_file=
+
 # Initial Java Heap Size (in MB)
 #wrapper.java.initmemory=3
 

@@ -577,7 +577,7 @@ void commandPoll(TICKS nowTicks) {
                                 wrapperRequestDumpJVMState();
                             } else if (strcmpIgnoreCase(command, TEXT("GC")) == 0) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Command '%s'. Requesting a GC."), command);
-                                wrapperRequestJVMGC();
+                                wrapperRequestJVMGC(WRAPPER_ACTION_SOURCE_CODE_COMMANDFILE);
                             } else if ((strcmpIgnoreCase(command, TEXT("CONSOLE_LOGLEVEL")) == 0) ||
                                     (strcmpIgnoreCase(command, TEXT("LOGFILE_LOGLEVEL")) == 0) ||
                                     (strcmpIgnoreCase(command, TEXT("SYSLOG_LOGLEVEL")) == 0)) {
@@ -1225,17 +1225,17 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
             mainClass = getStringProperty(properties, TEXT("wrapper.java.mainclass"), TEXT("Main"));
             if (_tcsstr(mainClass, TEXT("com.silveregg.wrapper.WrapperSimpleApp")) != NULL) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                    TEXT("The com.silveregg.wrapper.WrapperSimpleApp class is no longer supported." ));
+                    TEXT("The %s class is no longer supported." ), TEXT("com.silveregg.wrapper.WrapperSimpleApp"));
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                    TEXT("Please use the org.tanukisoftware.wrapper.WrapperSimpleApp class instead." ));
+                    TEXT("Please use the %s class instead." ), TEXT("com.silveregg.wrapper.WrapperSimpleApp"));
                 wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
                 wrapperData->exitCode = 1;
                 return;
             } else if (_tcsstr(mainClass, TEXT("com.silveregg.wrapper.WrapperStartStopApp")) != NULL) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                    TEXT("The com.silveregg.wrapper.WrapperStartStopApp class is no longer supported." ));
+                    TEXT("The %s class is no longer supported." ), TEXT("com.silveregg.wrapper.WrapperStartStopApp"));
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                    TEXT("Please use the org.tanukisoftware.wrapper.WrapperStartStopApp class instead." ));
+                    TEXT("Please use the %s class instead." ), TEXT("com.silveregg.wrapper.WrapperStartStopApp"));
                 wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
                 wrapperData->exitCode = 1;
                 return;
@@ -1497,14 +1497,10 @@ void jStateStarted(TICKS nowTicks, int nextSleep) {
                 handleDebugJVMTimeout(nowTicks,
                     TEXT("Ping: Timed out waiting for signal from JVM."), TEXT("ping"));
             } else {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                    TEXT("JVM appears hung: Timed out waiting for signal from JVM."));
-
-                /* Give up on the JVM and start trying to kill it. */
-                wrapperKillProcess();
-
-                /* Restart the JVM. */
-                wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_AUTOMATIC;
+                if (wrapperData->pingTimedOut == FALSE) {
+                    wrapperPingTimeoutResponded();  
+                    wrapperData->pingTimedOut = TRUE;
+                }
             }
         } else if (wrapperGetTickAgeSeconds(wrapperAddToTicks(wrapperData->lastPingTicks, wrapperData->pingInterval), nowTicks) >= 0) {
             /* It is time to send another ping to the JVM */
@@ -1850,6 +1846,9 @@ void wrapperEventLoop() {
 #endif
 
 #ifdef WIN32
+        /* Check to make sure the Wrapper or Java console windows are hidden.
+         *  This is done here to make sure they go away even in cases where they can't be hidden right away.
+         * Users have also reported that the console can be redisplayed when a user logs back in or switches users. */
         wrapperCheckConsoleWindows();
 #endif
 

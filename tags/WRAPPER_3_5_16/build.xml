@@ -98,6 +98,9 @@
         <property name="dist.os" value="${os.name}"/>
         
         <!-- Resolve an architecture to use in release names. -->
+        <condition property="dist.arch" value="arm">
+            <available file="/usr/bin/arm-linux-gnueabihf-gcc-4.6"/>
+        </condition>
         <condition property="dist.arch" value="universal">
             <equals arg1="${dist.os}" arg2="macosx"/>
         </condition>
@@ -209,11 +212,11 @@
 
         <!-- Decide on the script that will be used to configure the Visual Studio environment. -->
         <!-- C drive -->
-        <condition property="vcvars.bat" value="${vcvars.v6_32_1}">
+        <condition property="vcvars.bat" value="${vcvars.v8_32_1}">
             <and>
                 <not><isset property="vcvars.bat"/></not>
                 <equals arg1="${bits}" arg2="32"/>
-                <available file="${vcvars.v6_32_1}"/>
+                <available file="${vcvars.v8_32_1}"/>
             </and>
         </condition>
         <condition property="vcvars.bat" value="${vcvars.v8_32_3}">
@@ -230,24 +233,31 @@
                 <available file="${vcvars.v8_32_5}"/>
             </and>
         </condition>
-        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_32_5.arg.1}">
-            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_5}"/>
-        </condition>
-        <condition property="vcvars.bat.arg.2" value="${vcvars.v8_32_5.arg.2}">
-            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_5}"/>
-        </condition>
-        <condition property="vcvars.bat" value="${vcvars.v8_32_6}">
+        <condition property="vcvars.bat" value="${vcvars.v8_32_7}">
             <and>
                 <not><isset property="vcvars.bat"/></not>
                 <equals arg1="${bits}" arg2="32"/>
-                <available file="${vcvars.v8_32_6}"/>
+                <available file="${vcvars.v8_32_7}"/>
             </and>
         </condition>
-        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_32_6.arg.1}">
-            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_6}"/>
+        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_32_7.arg.1}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_7}"/>
         </condition>
-        <condition property="vcvars.bat.arg.2" value="${vcvars.v8_32_6.arg.2}">
-            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_6}"/>
+        <condition property="vcvars.bat.arg.2" value="${vcvars.v8_32_7.arg.2}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_7}"/>
+        </condition>
+        <condition property="vcvars.bat" value="${vcvars.v8_32_8}">
+            <and>
+                <not><isset property="vcvars.bat"/></not>
+                <equals arg1="${bits}" arg2="32"/>
+                <available file="${vcvars.v8_32_8}"/>
+            </and>
+        </condition>
+        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_32_8.arg.1}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_8}"/>
+        </condition>
+        <condition property="vcvars.bat.arg.2" value="${vcvars.v8_32_8.arg.2}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_8}"/>
         </condition>
         <condition property="vcvars.bat" value="${vcvars.v8_x86_64_1}">
             <and>
@@ -289,7 +299,17 @@
         <condition property="vcvars.bat.arg.2" value="${vcvars.v8_x86_64_4.arg.2}">
             <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_x86_64_4}"/>
         </condition>
-        <condition property="vcvars.bat" value="${vcvars.v8_ia_64_1}">
+         <condition property="vcvars.bat" value="${vcvars.v8_x86_64_5}">
+            <and>
+                <equals arg1="${bits}" arg2="64"/>
+                <equals arg1="${dist.arch}" arg2="x86"/>
+                <available file="${vcvars.v8_x86_64_5}"/>
+            </and>
+        </condition>
+        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_x86_64_5.arg.1}">
+            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_x86_64_5}"/>
+        </condition>
+       <condition property="vcvars.bat" value="${vcvars.v8_ia_64_1}">
             <and>
                 <equals arg1="${bits}" arg2="64"/>
                 <equals arg1="${dist.arch}" arg2="ia"/>
@@ -303,11 +323,11 @@
             <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_ia_64_1}"/>
         </condition>
         <!-- D drive checks -->
-        <condition property="vcvars.bat" value="${vcvars.v6_32_2}">
+        <condition property="vcvars.bat" value="${vcvars.v8_32_2}">
             <and>
                 <not><isset property="vcvars.bat"/></not>
                 <equals arg1="${bits}" arg2="32"/>
-                <available file="${vcvars.v6_32_2}"/>
+                <available file="${vcvars.v8_32_2}"/>
             </and>
         </condition>
         <condition property="vcvars.bat" value="${vcvars.v8_32_4}">
@@ -315,6 +335,13 @@
                 <not><isset property="vcvars.bat"/></not>
                 <equals arg1="${bits}" arg2="32"/>
                 <available file="${vcvars.v8_32_4}"/>
+            </and>
+        </condition>
+        <condition property="vcvars.bat" value="${vcvars.v8_32_6}">
+            <and>
+                <not><isset property="vcvars.bat"/></not>
+                <equals arg1="${bits}" arg2="32"/>
+                <available file="${vcvars.v8_32_6}"/>
             </and>
         </condition>
         <property name="vcvars.bat.arg.1" value=""/>
@@ -376,7 +403,18 @@
                 <isset property="is.solaris"/>
             </or>
         </condition>
+        <condition property="strip.name" value="arm-linux-gnueabihf-strip">
+            <available file="/usr/bin/arm-linux-gnueabihf-strip"/>
+        </condition>
         <property name="strip.name" value="strip"/>
+
+        <condition property="is.gnu.strip" value="true">
+            <or>
+                <isset property="is.linux"/>
+                <isset property="is.freebsd"/>
+                <isset property="is.solaris"/>
+            </or>
+        </condition>
 
         <!-- Generate the makefile name -->
         <property name="makefile.name" value="Makefile-${dist.os}-${dist.arch}-${bits}"/>
@@ -577,15 +615,20 @@
         <echo message="* Microsoft Visual Studio is not installed, or is not in the expected"/>
         <echo message="* location."/>
         <echo message="* Checked the following locations for the 32-bit build:"/>
-        <echo message="*   ${vcvars.v6_32_1}"/>
-        <echo message="*   ${vcvars.v6_32_2}"/>
+        <echo message="*   ${vcvars.v8_32_1}"/>
+        <echo message="*   ${vcvars.v8_32_2}"/>
         <echo message="*   ${vcvars.v8_32_3}"/>
         <echo message="*   ${vcvars.v8_32_4}"/>
-        <echo message="*   ${vcvars.v8_32_5} ${vcvars.v8_32_5.arg.1} ${vcvars.v8_32_5.arg.2}"/>
+        <echo message="*   ${vcvars.v8_32_5}"/>
+        <echo message="*   ${vcvars.v8_32_6}"/>
+        <echo message="*   ${vcvars.v8_32_7} ${vcvars.v8_32_7.arg.1} ${vcvars.v8_32_7.arg.2}"/>
+        <echo message="*   ${vcvars.v8_32_8} ${vcvars.v8_32_8.arg.1} ${vcvars.v8_32_8.arg.2}"/>
         <echo message="* And the following locations for the 64-bit build:"/>
         <echo message="*   ${vcvars.v8_64_1}"/>
         <echo message="*   ${vcvars.v8_64_2}"/>
         <echo message="*   ${vcvars.v8_64_3} ${vcvars.v8_64_3.arg.1} ${vcvars.v8_64_3.arg.2}"/>
+        <echo message="*   ${vcvars.v8_64_4} ${vcvars.v8_64_4.arg.1} ${vcvars.v8_64_4.arg.2}"/>
+        <echo message="*   ${vcvars.v8_64_5} ${vcvars.v8_64_5.arg.1}"/>
         <echo message="*  "/>
         <echo message="* If it is installed at a different location, create a file called "/>
         <echo message="*   ${user.home}/.ant.properties"/>
@@ -780,6 +823,7 @@
         </junit>
     </target>
     
+
     <!-- =================================================================== -->
     <!-- Bin target (Bat Files - Windows)                                    -->
     <!-- =================================================================== -->
@@ -1544,7 +1588,7 @@ original tar distribution due to a lack of support for long path names in some t
 &lt;/body&gt;&lt;/html&gt;</echo>
         <fixcrlf srcdir="${releasedir}/jdoc" eol="lf" />
 
-<!--        <antcall target="release-unix:strip-symbols"/> -->
+        <antcall target="release-unix:strip-symbols"/>
 
         <tar tarfile="${build.dir}/${releasefile}.tar">
             <tarfileset dir="${build.dir}" mode="755">
@@ -1574,40 +1618,86 @@ original tar distribution due to a lack of support for long path names in some t
         <property name="releaseSymbolsDir" value="${build.dir}/${releaseSymbolsFile}"/>
         <delete dir="${releaseSymbolsDir}"/>
         <mkdir dir="${releaseSymbolsDir}"/>
- 
         <copy file="${build.dir}/${releasefile}/bin/${wrapper.bin.name}"
             tofile="${releaseSymbolsDir}/${wrapper.bin.name}.dbg"/>
-
         <exec executable="${strip.name}"
             dir="${build.dir}/${releasefile}/bin"
             failonerror="true">
             <arg line="-ur ${wrapper.bin.name}" />
         </exec>
-
         <copy file="${build.dir}/${releasefile}/lib/${wrapper.lib.name}"
             tofile="${releaseSymbolsDir}/${wrapper.lib.name}.dbg"/>
-
         <exec executable="${strip.name}"
             dir="${build.dir}/${releasefile}/lib"
             failonerror="true">
             <arg line="-ur ${wrapper.lib.name}" />
         </exec>
-
         <tar tarfile="${build.dir}/${releaseSymbolsFile}.tar">
             <tarfileset dir="${build.dir}" mode="755">
                <include name="${releaseSymbolsFile}/**/*" />
             </tarfileset>
         </tar>
         <gzip zipfile="${dist.dir}/${releaseSymbolsFile}.tar.gz" src="${build.dir}/${releaseSymbolsFile}.tar" />
-    
     </target>    
 
-    <target name="release-unix:strip-symbols" if="is.unix" unless="is.macosx" depends="release-unix:strip-symbols:macosx">
+    <target name="release-unix:strip-symbols:hpux" if="is.hpux" >
+        <property name="releaseSymbolsDir" value="${build.dir}/${releaseSymbolsFile}"/>
+        <delete dir="${releaseSymbolsDir}"/>
+        <mkdir dir="${releaseSymbolsDir}"/> 
+        <copy file="${build.dir}/${releasefile}/bin/${wrapper.bin.name}"
+            tofile="${releaseSymbolsDir}/${wrapper.bin.name}.dbg"/>
+        <exec executable="${strip.name}"
+            dir="${build.dir}/${releasefile}/bin"
+            failonerror="true">
+            <arg line="${wrapper.bin.name}" />
+        </exec>
+        <copy file="${build.dir}/${releasefile}/lib/${wrapper.lib.name}"
+            tofile="${releaseSymbolsDir}/${wrapper.lib.name}.dbg"/>
+        <exec executable="${strip.name}"
+            dir="${build.dir}/${releasefile}/lib"
+            failonerror="true">
+            <arg line="${wrapper.lib.name}" />
+        </exec>
+        <tar tarfile="${build.dir}/${releaseSymbolsFile}.tar">
+            <tarfileset dir="${build.dir}" mode="755">
+               <include name="${releaseSymbolsFile}/**/*" />
+            </tarfileset>
+        </tar>
+        <gzip zipfile="${dist.dir}/${releaseSymbolsFile}.tar.gz" src="${build.dir}/${releaseSymbolsFile}.tar" />
+    </target> 
+
+    <target name="release-unix:strip-symbols:aix" if="is.aix" >
+        <property name="releaseSymbolsDir" value="${build.dir}/${releaseSymbolsFile}"/>
+        <delete dir="${releaseSymbolsDir}"/>
+        <mkdir dir="${releaseSymbolsDir}"/> 
+        <copy file="${build.dir}/${releasefile}/bin/${wrapper.bin.name}"
+            tofile="${releaseSymbolsDir}/${wrapper.bin.name}.dbg"/>
+        <exec executable="${strip.name}"
+            dir="${build.dir}/${releasefile}/bin"
+            failonerror="true">
+            <arg line="-X32_64 ${wrapper.bin.name}" />
+        </exec>
+        <copy file="${build.dir}/${releasefile}/lib/${wrapper.lib.name}"
+            tofile="${releaseSymbolsDir}/${wrapper.lib.name}.dbg"/>
+        <exec executable="${strip.name}"
+            dir="${build.dir}/${releasefile}/lib"
+            failonerror="true">
+            <arg line="-X32_64 ${wrapper.lib.name}" />
+        </exec>
+        <tar tarfile="${build.dir}/${releaseSymbolsFile}.tar">
+            <tarfileset dir="${build.dir}" mode="755">
+               <include name="${releaseSymbolsFile}/**/*" />
+            </tarfileset>
+        </tar>
+        <gzip zipfile="${dist.dir}/${releaseSymbolsFile}.tar.gz" src="${build.dir}/${releaseSymbolsFile}.tar" />    
+    </target> 
+
+
+    <target name="release-unix:strip-symbols:gnu" if="is.gnu.strip">
         <!-- We also need to create a symbols file so we can debug things later in case of problems. -->
         <property name="releaseSymbolsDir" value="${build.dir}/${releaseSymbolsFile}"/>
         <delete dir="${releaseSymbolsDir}"/>
         <mkdir dir="${releaseSymbolsDir}"/>
-
         <exec executable="${strip.name}"
             dir="${build.dir}/${releasefile}/bin"
             failonerror="true">
@@ -1618,7 +1708,6 @@ original tar distribution due to a lack of support for long path names in some t
             failonerror="true">
             <arg line="--strip-all ${wrapper.bin.name}" />
         </exec>
-
         <exec executable="${strip.name}"
             dir="${build.dir}/${releasefile}/lib"
             failonerror="true">
@@ -1629,13 +1718,15 @@ original tar distribution due to a lack of support for long path names in some t
             failonerror="true">
             <arg line="--strip-all ${wrapper.lib.name}" />
         </exec>
-
         <tar tarfile="${build.dir}/${releaseSymbolsFile}.tar">
             <tarfileset dir="${build.dir}" mode="755">
                <include name="${releaseSymbolsFile}/**/*" />
             </tarfileset>
         </tar>
         <gzip zipfile="${dist.dir}/${releaseSymbolsFile}.tar.gz" src="${build.dir}/${releaseSymbolsFile}.tar" />
+    </target>
+
+    <target name="release-unix:strip-symbols" if="is.unix" depends="release-unix:strip-symbols:macosx,release-unix:strip-symbols:aix,release-unix:strip-symbols:hpux,release-unix:strip-symbols:gnu">
     </target>
 
     <!-- =================================================================== -->
@@ -1711,6 +1802,8 @@ original tar distribution due to a lack of support for long path names in some t
         <release-delta-extract-platform osname="solaris" osarch="x86" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
         <release-delta-extract-platform osname="solaris" osarch="x86" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
         <release-delta-extract-platform osname="windows" osarch="x86" bits="32" wrapperbinhead="wrapper" wrapperbintail=".exe" wrapperlibhead="wrapper" wrapperlibtail=".dll" archivetype="zip"/>
+        <release-delta-extract-platform osname="linux" osarch="arm" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="linux" osarch="arm" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
     </target>
     <target name="release-delta" depends="pre-release:check, release-delta:init, pre-release:restore-jdocs, release-delta:extract-platforms">
         <property name="deltareleasefile" value="wrapper-delta-pack-${version}"/>

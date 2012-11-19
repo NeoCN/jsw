@@ -39,6 +39,44 @@ Java Service Wrapper Revision History.
 * Fix a problem on UNIX platforms where the Wrapper would fail to start if it
   was located on the system PATH.  This had been a problem since version 3.3.0
   but had gone unnoticed as the Wrapper is not usually referenced in this way.
+* Rework the internal flags governing the generation and hiding of the backend
+  console on Windows so we are able to almost always obtain the console's
+  window handle.
+* Cleanup some startup code to reduce duplication and make sure that more debug
+  and warning messages are logged after the "Wrapper Started" message.
+* Add new wrapper.java.additional_file and
+  wrapper.java.additional_file.stripquotes properties to make it possible to
+  specify JVM parameters in a file.
+* Add support for Linux on ARM systems.
+* Re-Enabled the forced reloading of the SYSTEM (and if set to a specific
+  account, the user) registry before launching the Wrapper as a service on
+  Windows XP and 2003. This has been originally disabeld for Windows XP and
+  2003 since version 3.5.5.
+* (Standard, Professional) Fix a problem where the instance class names logged
+  when a deadlock involving ReentrantLock instances were corrupted.  The actual
+  deadlock detection was working correctly, but this could have lead to other
+  problems caused by the corruption.  A workaround was to set the
+  wrapper.check.deadlock.output property to SIMPLE.
+* (Standard, Professional) Make it possible to completely disable the details
+  of a deadlock by setting the wrapper.check.deadlock.output property to NONE.
+* (Standard, Professional) Object Ids in thread dump reports were not correctly
+  being logged as 64-bit ids on 64-bit JVMs in some cases.
+* Fix a problem where the source code values returned by the
+  WrapperServiceActionEvent.getSourceCode() method were incorrect.  The
+  constant values were incorrect and have been corrected from this release.
+* Add new WrapperServiceActionEvent.getSourceCodeName() and
+  WrapperServiceActionEvent.getSourceCodeName(int actionSourceCode) methods
+  which returns a localized name of the source where the event originated.
+* Fix a minor problem where a couple uncommon backend packet codes were not
+  being correctly identified by name in the debug log output.  Functionally
+  they were all working correctly.
+* Added property wrapper.ping.timeout.action, which will let you specify an
+  action in case the timeout triggers. So far the only action was to restart
+  the JVM. 
+* Fix a problem where a JVM process was not stopped completely on a UNIX 
+  platform and stayed defunct after a forced kill until the Wrapper process
+  itself stopped. This was especially noticeable if the JVM is frozen and the
+  JVM is being killed forcibly.
 
 3.5.15
 * Add a new _WRAPPER_CONF_OVERRIDE setting to the Wrapper dedicated command
