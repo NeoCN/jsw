@@ -1207,6 +1207,19 @@ void wrapperExecute() {
             close(pipedes[PIPE_WRITE_END]);
             pipedes[PIPE_WRITE_END] = -1;
 
+            /* forking at this point, the child process has set all pipes already, so no
+               further assignments needed */
+            if (wrapperData->printJVMVersion) {
+                if (fork() == 0) {
+                    /* in the child */
+                    TCHAR *javaVersionArgv[3];
+                    javaVersionArgv[0] = wrapperData->jvmCommand[0];
+                    javaVersionArgv[1] = TEXT("-version");
+                    javaVersionArgv[2] = 0;
+                    _texecvp(wrapperData->jvmCommand[0], javaVersionArgv);
+                }
+                /* we don't care about errors here, since they will be reported later */
+            }
             /* The pipedes array is global so do not close the pipes. */
             /* Child process: execute the JVM. */
             _texecvp(wrapperData->jvmCommand[0], wrapperData->jvmCommand);

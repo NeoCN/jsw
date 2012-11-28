@@ -89,6 +89,48 @@ char *utf8SigIIStringStringStringStringrV;
 char *utf8SigIStringrV;
 #endif
 
+
+
+/**
+ * Cause the current thread to sleep for the specified number of milliseconds.
+ *  Sleeps over one second are not allowed.
+ *
+ * @param ms Number of milliseconds to wait for.
+ *
+ * @return TRUE if the was interrupted, FALSE otherwise.  Neither is an error.
+ */
+int wrapperSleep(int ms) {
+#ifdef WIN32
+    Sleep(ms);
+#else
+    /* We want to use nanosleep if it is available, but make it possible for the
+       user to build a version that uses usleep if they want.
+       usleep does not behave nicely with signals thrown while sleeping.  This
+       was the believed cause of a hang experienced on one Solaris system. */
+#ifdef USE_USLEEP
+    usleep(ms * 1000); /* microseconds */
+#else
+    struct timespec ts;
+
+    if (ms >= 1000) {
+        ts.tv_sec = (ms * 1000000) / 1000000000;
+        ts.tv_nsec = (ms * 1000000) % 1000000000; /* nanoseconds */
+    } else {
+        ts.tv_sec = 0;
+        ts.tv_nsec = ms * 1000000; /* nanoseconds */
+    }
+    if (nanosleep(&ts, NULL)) {
+        if (errno == EINTR) {
+            return TRUE;
+        } else if (errno == EAGAIN) {
+            return TRUE;
+        }
+    }
+#endif
+#endif
+    return FALSE;
+}
+
 /**
  * Create an error message from GetLastError() using the
  *  FormatMessage API Call...

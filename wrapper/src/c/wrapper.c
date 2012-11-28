@@ -2721,7 +2721,7 @@ int wrapperParseArguments(int argc, TCHAR **argv) {
     wrapperArgCount = delimiter ;
     if (wrapperArgCount > 1) {
 
-        // Store the name of the binary.
+        /* Store the name of the binary.*/
         wrapperData->argBinary = argv[0];
         
         if (argv[1][0] == TEXT('-')) {
@@ -5002,7 +5002,7 @@ int wrapperBuildJavaCommandArrayJavaAdditional(TCHAR **strings, int addQuotes, i
 /**
  * Java command line callback.
  */
-static int loadJavaAdditionalCallbackParam_AddArg(LoadJavaAdditionalCallbackParam *param, TCHAR *arg, size_t argLen)
+static int loadParameterFileCallbackParam_AddArg(LoadParameterFileCallbackParam *param, TCHAR *arg, size_t argLen)
 {
     TCHAR str[MAX_PROPERTY_VALUE_LENGTH];
     TCHAR *s;
@@ -5014,16 +5014,18 @@ static int loadJavaAdditionalCallbackParam_AddArg(LoadJavaAdditionalCallbackPara
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_NOTICE, TEXT("    :> %s"), str);
 #endif
 
-    /* As in wrapperBuildJavaCommandArrayJavaAdditional(), skip an
-       argument which does not begin with '-'. */
-    if ((arg[0] != TEXT('-')) && !((arg[0] == TEXT('"')) && (arg[1] == TEXT('-')))) {
-        if (param->strings) {
-            memcpy(str, arg, sizeof(TCHAR) * argLen);
-            str[argLen] = TEXT('\0');
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                       TEXT("The value '%s' is not a valid argument to the JVM.  Skipping."), str);
+    if (param->isJVMParam == TRUE) {
+        /* As in wrapperBuildJavaCommandArrayJavaAdditional(), skip an
+           argument which does not begin with '-'. */
+        if ((arg[0] != TEXT('-')) && !((arg[0] == TEXT('"')) && (arg[1] == TEXT('-')))) {
+            if (param->strings) {
+                memcpy(str, arg, sizeof(TCHAR) * argLen);
+                str[argLen] = TEXT('\0');
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                           TEXT("The value '%s' is not a valid argument to the JVM.  Skipping."), str);
+            }
+            return TRUE;
         }
-        return TRUE;
     }
 
     if (param->strings) {
@@ -5045,9 +5047,9 @@ static int loadJavaAdditionalCallbackParam_AddArg(LoadJavaAdditionalCallbackPara
     return TRUE;
 }
 
-static int loadJavaAdditionalCallback(void *callbackParam, const TCHAR *fileName, int lineNumber, TCHAR *config, int debugProperties)
+static int loadParameterFileCallback(void *callbackParam, const TCHAR *fileName, int lineNumber, TCHAR *config, int debugProperties)
 {
-    LoadJavaAdditionalCallbackParam *param = (LoadJavaAdditionalCallbackParam *)callbackParam;
+    LoadParameterFileCallbackParam *param = (LoadParameterFileCallbackParam *)callbackParam;
     TCHAR *tail_bound;
     TCHAR *arg;
     TCHAR *s;
@@ -5068,7 +5070,7 @@ static int loadJavaAdditionalCallback(void *callbackParam, const TCHAR *fileName
     for (arg = s = config; s < tail_bound; s++) {
         switch (*s) {
         case TEXT('\0'):
-            if (!loadJavaAdditionalCallbackParam_AddArg(param, arg, s - arg)) {
+            if (!loadParameterFileCallbackParam_AddArg(param, arg, s - arg)) {
                 outOfMemory(TEXT("LJAC"), 1);
                 return FALSE;
             }
@@ -5077,7 +5079,7 @@ static int loadJavaAdditionalCallback(void *callbackParam, const TCHAR *fileName
             Escaped = FALSE;
             if (!InDelim && !InQuotes) {
                 InDelim = TRUE;
-                if (!loadJavaAdditionalCallbackParam_AddArg(param, arg, s - arg)) {
+                if (!loadParameterFileCallbackParam_AddArg(param, arg, s - arg)) {
                     outOfMemory(TEXT("LJAC"), 2);
                     return FALSE;
                 }
@@ -5118,16 +5120,17 @@ static int loadJavaAdditionalCallback(void *callbackParam, const TCHAR *fileName
  *
  * @return The final index into the strings array, or -1 if there were any problems.
  */
-int wrapperBuildJavaCommandArrayLoadJavaAdditional(TCHAR **strings, int addQuotes, int detectDebugJVM, int index) {
+int wrapperLoadParameterFile(TCHAR **strings, int addQuotes, int detectDebugJVM, int index, TCHAR *parameterName, int isJVMParameter) {
     const TCHAR *parameterFilePath;
-    LoadJavaAdditionalCallbackParam callbackParam;
+    LoadParameterFileCallbackParam callbackParam;
     ConfigFileReader reader;
     int readResult;
+    TCHAR prop[256];
 
-    parameterFilePath = getFileSafeStringProperty(properties, TEXT("wrapper.java.additional_file"), TEXT(""));
+    parameterFilePath = getFileSafeStringProperty(properties, parameterName, TEXT(""));
 #ifdef _DEBUG
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_NOTICE,
-           TEXT("wrapper.java.additional_file=%s"), parameterFilePath ? parameterFilePath : TEXT(""));
+           TEXT("%s=%s"), parameterName, parameterFilePath ? parameterFilePath : TEXT(""));
 #endif
     if (_tcslen(parameterFilePath) == 0) {
         return index;
@@ -5136,12 +5139,14 @@ int wrapperBuildJavaCommandArrayLoadJavaAdditional(TCHAR **strings, int addQuote
     if (addQuotes) {
         callbackParam.stripQuote = FALSE;
     } else {
-        callbackParam.stripQuote = getBooleanProperty(properties, TEXT("wrapper.java.additional_file.stripquotes"), FALSE, TRUE);
+        _sntprintf(prop, 256, TEXT("%s.stripquotes"), parameterName);
+        callbackParam.stripQuote = getBooleanProperty(properties, prop, FALSE, TRUE);
     }
     callbackParam.strings = strings;
     callbackParam.index = index;
+    callbackParam.isJVMParam = isJVMParameter;
 
-    configFileReader_Initialize(&reader, loadJavaAdditionalCallback, &callbackParam, FALSE);
+    configFileReader_Initialize(&reader, loadParameterFileCallback, &callbackParam, FALSE);
     readResult = configFileReader_Read(&reader, parameterFilePath, TRUE, 0, NULL, 0);
     switch (readResult) {
     case CONFIG_FILE_READER_SUCCESS:
@@ -5825,7 +5830,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     }
 
     /* Store additional java parameters specified in the parameter file */
-    if ((index = wrapperBuildJavaCommandArrayLoadJavaAdditional(strings, addQuotes, detectDebugJVM, index)) < 0) {
+    if ((index = wrapperLoadParameterFile(strings, addQuotes, detectDebugJVM, index, TEXT("wrapper.java.additional_file"), TRUE)) < 0) {
         return -1;
     }
 
@@ -6099,6 +6104,21 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     }
     index++;
 
+    /* Store the arch name of the wrapper. */
+    if (strings) {
+        strings[index] = malloc(sizeof(TCHAR) * (17 + _tcslen(wrapperArch) + 1));
+        if (!strings[index]) {
+            outOfMemory(TEXT("WBJCAI"), 38);
+            return -1;
+        }
+        if (addQuotes) {
+            _sntprintf(strings[index], 17 + _tcslen(wrapperArch) + 1, TEXT("-Dwrapper.arch=\"%s\""), wrapperArch);
+        } else {
+            _sntprintf(strings[index], 17 + _tcslen(wrapperArch) + 1, TEXT("-Dwrapper.arch=%s"), wrapperArch);
+        }
+    }
+    index++;
+
     /* Store the ignore signals flag if configured to do so */
     if (wrapperData->ignoreSignals & WRAPPER_IGNORE_SIGNALS_JAVA) {
         if (strings) {
@@ -6268,6 +6288,10 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
 
     /* Store any application parameters */
     if ((index = wrapperBuildJavaCommandArrayAppParameters(strings, addQuotes, index, thisIsTestWrapper)) < 0) {
+        return -1;
+    }
+
+    if ((index = wrapperLoadParameterFile(strings, addQuotes, detectDebugJVM, index, TEXT("wrapper.app.parameter_file"), FALSE)) < 0) {
         return -1;
     }
 
@@ -7157,6 +7181,7 @@ int loadConfiguration() {
             TEXT("%s must be greater than or equal to %s.  Changing to %d."), TEXT("wrapper.jvm.port.max"), TEXT("wrapper.jvm.port.min"), wrapperData->jvmPortMax);
     }
 
+    wrapperData->printJVMVersion = getBooleanProperty(properties, TEXT("wrapper.java.version.output"), FALSE, TRUE);
     /* Get the wrapper command log level. */
     wrapperData->commandLogLevel = getLogLevelForName(
         getStringProperty(properties, TEXT("wrapper.java.command.loglevel"), TEXT("DEBUG")));
@@ -8054,25 +8079,26 @@ void wrapperStartedSignaled() {
 }
 
 #ifdef CUNIT
-static void subTestJavaAdditionalParamSuite(int stripQuote, TCHAR *config, TCHAR **strings, int strings_len) {
-    LoadJavaAdditionalCallbackParam param;
+static void subTestJavaAdditionalParamSuite(int stripQuote, TCHAR *config, TCHAR **strings, int strings_len, int isJVMParam) {
+    LoadParameterFileCallbackParam param;
     int ret;
     int i;
 
     param.stripQuote = stripQuote;
     param.strings = NULL;
     param.index = 0;
-
-    ret = loadJavaAdditionalCallback((void *)(&param), NULL, 0, config, FALSE);
+    param.isJVMParam = isJVMParam;
+    ret = loadParameterFileCallback((void *)(&param), NULL, 0, config, FALSE);
     CU_ASSERT_TRUE(ret);
     CU_ASSERT(strings_len == param.index);
 
     param.stripQuote = stripQuote;
     param.strings = (TCHAR **)malloc(sizeof(TCHAR *) * strings_len);
     param.index = 0;
+    param.isJVMParam = isJVMParam;
     CU_ASSERT(param.strings != NULL);
 
-    ret = loadJavaAdditionalCallback((void *)(&param), NULL, 0, config, FALSE);
+    ret = loadParameterFileCallback((void *)(&param), NULL, 0, config, FALSE);
     CU_ASSERT_TRUE(ret);
     CU_ASSERT(strings_len == param.index);
 
@@ -8085,117 +8111,132 @@ static void subTestJavaAdditionalParamSuite(int stripQuote, TCHAR *config, TCHAR
 
 void testJavaAdditionalParamSuite(void) {
     int stripQuote;
+    int i = 0;
+    int isJVM = TRUE;
+    for (i = 0; i < 2; i++) {
+        _tprintf(TEXT("%d round\n"), i);
+        if (i > 0) {
+            isJVM = FALSE;
+        }
+        /* Test set #1 */
+        {
+            /* Single parameter in 1 line. */
+            TCHAR *config = TEXT("-Dsomething=something");
+            TCHAR *strings[1];
+            strings[0] = TEXT("-Dsomething=something");
+            subTestJavaAdditionalParamSuite(FALSE, config, strings, ARRAY_LENGTH(strings), isJVM);
+        }
+        {
+            /* Multiple parameters in 1 line. */
+            TCHAR *config = TEXT("-Dsomething=something -Dxxx=xxx");
+            TCHAR *strings[2];
+            strings[0] = TEXT("-Dsomething=something");
+            strings[1] = TEXT("-Dxxx=xxx");
+            subTestJavaAdditionalParamSuite(FALSE, config, strings, ARRAY_LENGTH(strings), isJVM);
+        }
+        {
+            /* Horizontal Tab is not a delimiter. */
+            TCHAR *config = TEXT("-Dsomething1=something1\t-Dsomething2=something2 -Dxxx=xxx");
+            TCHAR *strings[2];
+            strings[0] = TEXT("-Dsomething1=something1\t-Dsomething2=something2");
+            strings[1] = TEXT("-Dxxx=xxx");
+            subTestJavaAdditionalParamSuite(FALSE, config, strings, ARRAY_LENGTH(strings), isJVM);
+        }
+        {
+            /* Horizontal Tab is not a delimiter. */
+            TCHAR *config = TEXT("-Dsomething1=something1\t-Dsomething2=something2 -Dxxx=xxx");
+            TCHAR *strings[2];
+            strings[0] = TEXT("-Dsomething1=something1\t-Dsomething2=something2");
+            strings[1] = TEXT("-Dxxx=xxx");
+            subTestJavaAdditionalParamSuite(FALSE, config, strings, ARRAY_LENGTH(strings), isJVM);
+        }
+        if (isJVM == TRUE) {
+            {
+                /* A parameter without heading '-' will be skipped. */
+                TCHAR *config = TEXT("something=something -Dxxx=xxx");
+                TCHAR *strings[1];
+                strings[0] = TEXT("-Dxxx=xxx");
+                subTestJavaAdditionalParamSuite(FALSE, config, strings, ARRAY_LENGTH(strings), isJVM);
+            }
+        } else {
+            {
+            /* A parameter without heading '-' will not be skipped. */
+            TCHAR *config = TEXT("something=something -Dxxx=xxx");
+            TCHAR *strings[2];
+            strings[0] = TEXT("something=something");
+            strings[1] = TEXT("-Dxxx=xxx");
+            subTestJavaAdditionalParamSuite(FALSE, config, strings, ARRAY_LENGTH(strings), isJVM);
+            }
+        }
 
-    /* Test set #1 */
-    {
-        /* Single parameter in 1 line. */
-        TCHAR *config = TEXT("-Dsomething=something");
-        TCHAR *strings[1];
-        strings[0] = TEXT("-Dsomething=something");
-        subTestJavaAdditionalParamSuite(FALSE, config, strings, ARRAY_LENGTH(strings));
-    }
-    {
-        /* Multiple parameters in 1 line. */
-        TCHAR *config = TEXT("-Dsomething=something -Dxxx=xxx");
-        TCHAR *strings[2];
-        strings[0] = TEXT("-Dsomething=something");
-        strings[1] = TEXT("-Dxxx=xxx");
-        subTestJavaAdditionalParamSuite(FALSE, config, strings, ARRAY_LENGTH(strings));
-    }
-    {
-        /* Horizontal Tab is not a delimiter. */
-        TCHAR *config = TEXT("-Dsomething1=something1\t-Dsomething2=something2 -Dxxx=xxx");
-        TCHAR *strings[2];
-        strings[0] = TEXT("-Dsomething1=something1\t-Dsomething2=something2");
-        strings[1] = TEXT("-Dxxx=xxx");
-        subTestJavaAdditionalParamSuite(FALSE, config, strings, ARRAY_LENGTH(strings));
-    }
-    {
-        /* Horizontal Tab is not a delimiter. */
-        TCHAR *config = TEXT("-Dsomething1=something1\t-Dsomething2=something2 -Dxxx=xxx");
-        TCHAR *strings[2];
-        strings[0] = TEXT("-Dsomething1=something1\t-Dsomething2=something2");
-        strings[1] = TEXT("-Dxxx=xxx");
-        subTestJavaAdditionalParamSuite(FALSE, config, strings, ARRAY_LENGTH(strings));
-    }
-    {
-        /* A parameter without heading '-' will be skipped. */
-        TCHAR *config = TEXT("something=something -Dxxx=xxx");
-        TCHAR *strings[1];
-        strings[0] = TEXT("-Dxxx=xxx");
-        subTestJavaAdditionalParamSuite(FALSE, config, strings, ARRAY_LENGTH(strings));
-    }
-
-    /* Test set #2 : without stripping double quotations */
-    stripQuote = FALSE;
-
-    {
-        /* Quotations #1 */
-        TCHAR *config = TEXT("-DmyApp.x1=\"Hello World.\" -DmyApp.x2=x2");
-        TCHAR *strings[2];
-        strings[0] = TEXT("-DmyApp.x1=\"Hello World.\"");
-        strings[1] = TEXT("-DmyApp.x2=x2");
-        subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings));
-    }
-    {
-        /* Quotations #2 */
-        TCHAR *config = TEXT("\"-DmyApp.x1=Hello World.\" -DmyApp.x2=x2");
-        TCHAR *strings[2];
-        strings[0] = TEXT("\"-DmyApp.x1=Hello World.\"");
-        strings[1] = TEXT("-DmyApp.x2=x2");
-        subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings));
-    }
-    {
-        /* Escaped quotation */
-        TCHAR *config = TEXT("-DmyApp.x1=\"Hello \\\"World.\" -DmyApp.x2=x2");
-        TCHAR *strings[2];
-        strings[0] = TEXT("-DmyApp.x1=\"Hello \\\"World.\"");
-        strings[1] = TEXT("-DmyApp.x2=x2");
-        subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings));
-    }
-    {
-        /* Escaped backslash */
-        TCHAR *config = TEXT("-DmyApp.x1=\"Hello World.\\\\\" -DmyApp.x2=x2");
-        TCHAR *strings[2];
-        strings[0] = TEXT("-DmyApp.x1=\"Hello World.\\\\\"");
-        strings[1] = TEXT("-DmyApp.x2=x2");
-        subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings));
-    }
-
-    /* Test set #3 : with stripping double quotations */
-    stripQuote = TRUE;
-
-    {
-        /* Quotations #1 */
-        TCHAR *config = TEXT("-DmyApp.x1=\"Hello World.\" -DmyApp.x2=x2");
-        TCHAR *strings[2];
-        strings[0] = TEXT("-DmyApp.x1=Hello World.");
-        strings[1] = TEXT("-DmyApp.x2=x2");
-        subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings));
-    }
-    {
-        /* Quotations #2 */
-        TCHAR *config = TEXT("\"-DmyApp.x1=Hello World.\" -DmyApp.x2=x2");
-        TCHAR *strings[2];
-        strings[0] = TEXT("-DmyApp.x1=Hello World.");
-        strings[1] = TEXT("-DmyApp.x2=x2");
-        subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings));
-    }
-    {
-        /* Escaped quotation */
-        TCHAR *config = TEXT("-DmyApp.x1=\"Hello \\\"World.\" -DmyApp.x2=x2");
-        TCHAR *strings[2];
-        strings[0] = TEXT("-DmyApp.x1=Hello \"World.");
-        strings[1] = TEXT("-DmyApp.x2=x2");
-        subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings));
-    }
-    {
-        /* Escaped backslash */
-        TCHAR *config = TEXT("-DmyApp.x1=\"Hello World.\\\\\" -DmyApp.x2=x2");
-        TCHAR *strings[2];
-        strings[0] = TEXT("-DmyApp.x1=Hello World.\\");
-        strings[1] = TEXT("-DmyApp.x2=x2");
-        subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings));
+        /* Test set #2 : without stripping double quotations */
+        stripQuote = FALSE;    
+        {
+            /* Quotations #1 */
+            TCHAR *config = TEXT("-DmyApp.x1=\"Hello World.\" -DmyApp.x2=x2");
+            TCHAR *strings[2];
+            strings[0] = TEXT("-DmyApp.x1=\"Hello World.\"");
+            strings[1] = TEXT("-DmyApp.x2=x2");
+            subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings), isJVM);
+        }
+        {
+            /* Quotations #2 */
+            TCHAR *config = TEXT("\"-DmyApp.x1=Hello World.\" -DmyApp.x2=x2");
+            TCHAR *strings[2];
+            strings[0] = TEXT("\"-DmyApp.x1=Hello World.\"");
+            strings[1] = TEXT("-DmyApp.x2=x2");
+            subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings), isJVM);
+        }
+        {
+            /* Escaped quotation */
+            TCHAR *config = TEXT("-DmyApp.x1=\"Hello \\\"World.\" -DmyApp.x2=x2");
+            TCHAR *strings[2];
+            strings[0] = TEXT("-DmyApp.x1=\"Hello \\\"World.\"");
+            strings[1] = TEXT("-DmyApp.x2=x2");
+            subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings), isJVM);
+        }
+        {
+            /* Escaped backslash */
+            TCHAR *config = TEXT("-DmyApp.x1=\"Hello World.\\\\\" -DmyApp.x2=x2");
+            TCHAR *strings[2];
+            strings[0] = TEXT("-DmyApp.x1=\"Hello World.\\\\\"");
+            strings[1] = TEXT("-DmyApp.x2=x2");
+            subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings), isJVM);
+        }
+        /* Test set #3 : with stripping double quotations */
+        stripQuote = TRUE;
+        {
+            /* Quotations #1 */
+            TCHAR *config = TEXT("-DmyApp.x1=\"Hello World.\" -DmyApp.x2=x2");
+            TCHAR *strings[2];
+            strings[0] = TEXT("-DmyApp.x1=Hello World.");
+            strings[1] = TEXT("-DmyApp.x2=x2");
+            subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings), isJVM);
+        }
+        {
+            /* Quotations #2 */
+            TCHAR *config = TEXT("\"-DmyApp.x1=Hello World.\" -DmyApp.x2=x2");
+            TCHAR *strings[2];
+            strings[0] = TEXT("-DmyApp.x1=Hello World.");
+            strings[1] = TEXT("-DmyApp.x2=x2");
+            subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings), isJVM);
+        }
+        {
+            /* Escaped quotation */
+            TCHAR *config = TEXT("-DmyApp.x1=\"Hello \\\"World.\" -DmyApp.x2=x2");
+            TCHAR *strings[2];
+            strings[0] = TEXT("-DmyApp.x1=Hello \"World.");
+            strings[1] = TEXT("-DmyApp.x2=x2");  
+            subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings), isJVM);
+        }
+        {
+            /* Escaped backslash */
+            TCHAR *config = TEXT("-DmyApp.x1=\"Hello World.\\\\\" -DmyApp.x2=x2");
+            TCHAR *strings[2];
+            strings[0] = TEXT("-DmyApp.x1=Hello World.\\");
+            strings[1] = TEXT("-DmyApp.x2=x2");
+            subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings), isJVM);
+        }
     }
 }
 #endif /* CUNIT */
