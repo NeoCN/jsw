@@ -1350,6 +1350,10 @@ public final class WrapperManager
             {
                 arch = "parisc";
             }
+            else if ( arch.startsWith( "arm" ) )
+            {
+                arch = System.getProperty( "wrapper.arch" );
+            }
             else if ( arch.equals( "s390" ) || arch.equals( "s390x" ) )
             {
                 arch = "390";

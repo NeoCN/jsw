@@ -98,9 +98,6 @@
         <property name="dist.os" value="${os.name}"/>
         
         <!-- Resolve an architecture to use in release names. -->
-        <condition property="dist.arch" value="arm">
-            <available file="/usr/bin/arm-linux-gnueabihf-gcc-4.6"/>
-        </condition>
         <condition property="dist.arch" value="universal">
             <equals arg1="${dist.os}" arg2="macosx"/>
         </condition>
@@ -150,6 +147,12 @@
                 <equals arg1="${os.arch}" arg2="sparc"/>
                 <equals arg1="${os.arch}" arg2="sparcv9"/>
             </or>
+        </condition>
+        <condition property="dist.arch" value="armel">
+            <available file="/usr/bin/arm-linux-gnueabi-gcc"/>
+        </condition>
+        <condition property="dist.arch" value="armhf">
+            <available file="/usr/bin/arm-linux-gnueabihf-gcc"/>
         </condition>
         <property name="dist.arch" value="${os.arch}"/>
         
@@ -403,9 +406,7 @@
                 <isset property="is.solaris"/>
             </or>
         </condition>
-        <condition property="strip.name" value="arm-linux-gnueabihf-strip">
-            <available file="/usr/bin/arm-linux-gnueabihf-strip"/>
-        </condition>
+
         <property name="strip.name" value="strip"/>
 
         <condition property="is.gnu.strip" value="true">
@@ -1590,6 +1591,8 @@ original tar distribution due to a lack of support for long path names in some t
 
         <antcall target="release-unix:strip-symbols"/>
 
+        <!--<antcall target="release-unix:check-consistency"/> -->
+
         <tar tarfile="${build.dir}/${releasefile}.tar">
             <tarfileset dir="${build.dir}" mode="755">
                 <include name="${releasefile}/bin/${wrapper.bin.name}"/>
@@ -1614,6 +1617,32 @@ original tar distribution due to a lack of support for long path names in some t
         <echo>**********************************************************</echo>
     </target>
 
+    <target name="release-unix:check-consistency" unless="is.macosx">
+        <exec dir="${build.dir}/${releasefile}/bin" executable="file" outputproperty="check-bin-result">
+            <arg line="${wrapper.bin.name}"/>
+        </exec>
+        <fail message="consistency error, the created binary file are not what they supposed to be..." >
+            <condition>
+                <or>
+                    <not>
+                    <contains string="${check-bin-result}" substring="${bits}-bit" casesensitive="false"/></not>
+                </or>
+            </condition>
+        </fail> 
+        <exec dir="${build.dir}/${releasefile}/lib" executable="file" outputproperty="check-lib-result">
+            <arg line="${wrapper.lib.name}"/>
+        </exec>
+        <fail message="consistency error, the created lib file are not what they supposed to be..." >
+            <condition>
+                <or>
+                    <not>
+                        <contains string="${check-lib-result}" substring="${bits}-bit" casesensitive="false"/>
+                    </not>
+                </or>
+            </condition>
+        </fail>
+    </target>
+
     <target name="release-unix:strip-symbols:macosx" if="is.macosx" >
         <property name="releaseSymbolsDir" value="${build.dir}/${releaseSymbolsFile}"/>
         <delete dir="${releaseSymbolsDir}"/>
@@ -1630,7 +1659,7 @@ original tar distribution due to a lack of support for long path names in some t
         <exec executable="${strip.name}"
             dir="${build.dir}/${releasefile}/lib"
             failonerror="true">
-            <arg line="-ur ${wrapper.lib.name}" />
+            <arg line="-x ${wrapper.lib.name}" />
         </exec>
         <tar tarfile="${build.dir}/${releaseSymbolsFile}.tar">
             <tarfileset dir="${build.dir}" mode="755">
@@ -1802,8 +1831,8 @@ original tar distribution due to a lack of support for long path names in some t
         <release-delta-extract-platform osname="solaris" osarch="x86" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
         <release-delta-extract-platform osname="solaris" osarch="x86" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
         <release-delta-extract-platform osname="windows" osarch="x86" bits="32" wrapperbinhead="wrapper" wrapperbintail=".exe" wrapperlibhead="wrapper" wrapperlibtail=".dll" archivetype="zip"/>
-        <release-delta-extract-platform osname="linux" osarch="arm" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="linux" osarch="arm" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="linux" osarch="armel" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
+        <release-delta-extract-platform osname="linux" osarch="armhf" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
     </target>
     <target name="release-delta" depends="pre-release:check, release-delta:init, pre-release:restore-jdocs, release-delta:extract-platforms">
         <property name="deltareleasefile" value="wrapper-delta-pack-${version}"/>

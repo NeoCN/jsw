@@ -49,7 +49,6 @@ pthread_mutex_t controlEventQueueMutex = PTHREAD_MUTEX_INITIALIZER;
 
 int wrapperLockControlEventQueue() {
     int count = 0;
-    struct timespec ts;
     /* Only wait for up to 30 seconds to make sure we don't get into a deadlock situation.
      *  This could happen if a signal is encountered while locked. */
     while (pthread_mutex_trylock(&controlEventQueueMutex) == EBUSY) {
@@ -58,10 +57,7 @@ int wrapperLockControlEventQueue() {
             fflush(NULL);
             return -1;
         }
-
-        ts.tv_sec = 0;
-        ts.tv_nsec = 10000000; /* 10ms (nanoseconds) */
-        nanosleep(&ts, NULL);
+        wrapperSleep(10);
         count++;
     }
 

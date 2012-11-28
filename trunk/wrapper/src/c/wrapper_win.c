@@ -1758,6 +1758,26 @@ void wrapperExecute() {
     /* Set the umask of the JVM */
     old_umask = _umask(wrapperData->javaUmask);
 
+    if (wrapperData->printJVMVersion) {
+        TCHAR versionCmd[MAX_PATH + 9];
+        _sntprintf(versionCmd, MAX_PATH + 9, TEXT("%s -version"), getStringProperty(properties, TEXT("wrapper.java.command"), TEXT("java")));
+        if (CreateProcess(NULL,
+                      versionCmd,    /* the command line to start */
+                      NULL,           /* process security attributes */
+                      NULL,           /* primary thread security attributes */
+                      TRUE,           /* handles are inherited */
+                      processflags,   /* we specify new process group */
+                      environment,    /* use parent's environment */
+                      NULL,           /* use the Wrapper's current working directory */
+                      &startup_info,  /* STARTUPINFO pointer */
+                      &process_info /* PROCESS_INFORMATION pointer */
+                      ) != 0) {
+            WaitForSingleObject(process_info.hProcess, INFINITE);
+            CloseHandle(process_info.hProcess);
+            CloseHandle(process_info.hThread);
+        }
+    }
+
     /* Create the new process */
     ret=CreateProcess(NULL,
                       commandline,    /* the command line to start */

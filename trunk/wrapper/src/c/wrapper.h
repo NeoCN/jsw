@@ -233,6 +233,7 @@ struct WrapperConfig {
     TCHAR   *workingDir;            /* Configured working directory. */
     TCHAR   *configFile;            /* Name of the configuration file */
     int     commandLogLevel;        /* The log level to use when logging the java command. */
+    int     printJVMVersion;        /* tells the Wrapper to create a temp JVM to query the version, before starting the java application */
 #ifdef WIN32
     TCHAR   *jvmCommand;            /* Command used to launch the JVM */
 #else /* UNIX */
@@ -987,12 +988,13 @@ extern void wrapperStartedSignaled();
 
 /* Callback parameter for loading the file specified by
    wrapper.java.additional_file configuration property. */
-typedef struct LoadJavaAdditionalCallbackParam LoadJavaAdditionalCallbackParam;
-struct LoadJavaAdditionalCallbackParam {
+typedef struct LoadParameterFileCallbackParam LoadParameterFileCallbackParam;
+struct LoadParameterFileCallbackParam {
     int stripQuote;  /* Value of wrapper.java.additional_file.stripquotes property */
     TCHAR **strings; /* Array of character strings to which configurations are loaded */
     int index;       /* Index of a string in `strings' to which a configuration
                         are copied next */
+    int isJVMParam;  /* Indicates whether the loaded parameters will be JVM parameters */
 };
 
 #ifdef CUNIT

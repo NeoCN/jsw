@@ -101,6 +101,7 @@ extern void initCommon();
 extern int getLastError();
 extern void throwOutOfMemoryError(JNIEnv *env, const TCHAR* locationCode);
 
+extern int wrapperSleep(int ms);
 extern int wrapperJNIDebugging;
 extern int wrapperLockControlEventQueue();
 extern int wrapperReleaseControlEventQueue();
