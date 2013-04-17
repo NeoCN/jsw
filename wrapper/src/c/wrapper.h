@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2012 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2013 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -138,6 +138,8 @@
                                      *  JVM will be killed and we will enter the STOPPED
                                      *  state. */
 #define WRAPPER_JSTATE_KILL      84 /* The Wrapper is about ready to kill the JVM process. */
+#define WRAPPER_JSTATE_KILLED    85 /* The Wrapper has requested termination of the JVM and 
+                                       confirmed the JVM is actually killed */
 
 /* Defined Action types.  Registered actions are negative.  Custom types are positive. */
 #define ACTION_LIST_END          0
@@ -229,6 +231,7 @@ struct WrapperConfig {
     int     jvmPortMin;             /* Minimum port which the JVM should bind to when connecting back to the wrapper. */
     int     jvmPortMax;             /* Maximum port which the JVM should bind to when connecting back to the wrapper. */
     int     sock;                   /* Socket number. if open. */
+    TCHAR   *portAddress;
     TCHAR   *originalWorkingDir;    /* Original Wrapper working directory. */
     TCHAR   *workingDir;            /* Configured working directory. */
     TCHAR   *configFile;            /* Name of the configuration file */
@@ -258,6 +261,7 @@ struct WrapperConfig {
     int     shutdownTimeout;        /* Number of seconds the wrapper will wait for a JVM to shutdown */
     int     jvmExitTimeout;         /* Number of seconds the wrapper will wait for a JVM to process to terminate */
     int     jvmCleanupTimeout;      /* Number of seconds the wrapper will allow for its post JVM shudown cleanup. */
+    int     jvmTerminateTimeout;      /* Number of seconds the wrapper will allow for the JVM to respond to TerminateProcess request. */
     int     useJavaIOThread;        /* If TRUE then a dedicated thread will be used to process console output form the JVM. */
     int     pauseThreadMain;        /* Number of seconds to pause the main thread on its next loop.  Only used for testing. */
     int     pauseThreadTimer;       /* Number of seconds to pause the timer thread on its next loop.  Only used for testing. */
@@ -805,7 +809,8 @@ extern void wrapperDumpCPUUsage();
  * Immediately kill the JVM process and set the JVM state to
  *  WRAPPER_JSTATE_DOWN.
  */
-extern void wrapperKillProcessNow();
+extern int wrapperKillProcessNow();
+
 
 /**
  * Puts the Wrapper into a state where the JVM will be killed at the soonest

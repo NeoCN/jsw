@@ -1,6 +1,28 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 
+3.5.18
+* Fix a problem, where an unclosed percentage character '%' was opening the chance
+  of a dangling pointer in the additional java parameters. The '%' character 
+  is a special character, specifying an environment variable.
+* Added variable _WRAPPER_DIR the batch files to make it possible to specify
+  any other directory where the Wrapper binary file is located. Until now the 
+  batch file and exe file had to be in the same location. Thanks and credits
+  go to Geoff.
+* Added property wrapper.port.address, which makes it possible to specify a 
+  different address to bind the socket to when using the socket backend
+  connection between the Wrapper and the JVM. Until now, the socket was
+  always bound to the localhost loopback interface. 
+* The script will from now on also use the update-rc.d tool for installing
+  an application as daemon on Debian. Thanks and credits go to Haifeng.
+* Whenever the Wrapper is causing the JVM to be forcibly terminated, the 
+  Wrapper will make sure the JVM has actually been terminated. If it wasn't 
+  after wrapper.jvm_terminate.timeout seconds, a pending restart will be 
+  canceled and the Wrapper exit. 
+* Reworked the way the Wrapper is processing output from the JVM, in order
+  to increase performance on huge output on a single line and also reduce
+  memory usage. 
+
 3.5.17
 * Add a new wrapper.java.additional.default.stripquotes property to make it
   possible to specify the default value of

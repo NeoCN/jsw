@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2012 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2013 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -1992,7 +1992,7 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
     }
     
 #if defined(UNICODE) && !defined(WIN32)
-    if (wcsstr(lpszFmt, TEXT("%s")) != NULL) {
+    if (source_id < 1 && wcsstr(lpszFmt, TEXT("%s")) != NULL) {
         msg = malloc(sizeof(wchar_t) * (wcslen(lpszFmt) + 1));
         if (msg) {
             /* Loop over the format and convert all '%s' patterns to %S' so the UNICODE displays correctly. */
@@ -2016,82 +2016,90 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
     }
 #endif
     threadId = getThreadId();
-    
-    /* Loop until the buffer is large enough that we are able to successfully
-     *  print into it. Once the buffer has grown to the largest message size,
-     *  smaller messages will pass through this code without looping. */
-    do {
-        if ( threadMessageBufferSize == 0 )
-        {
-            /* No buffer yet. Allocate one to get started. */
-            threadMessageBufferSize = 100;
-            threadMessageBuffer = malloc(sizeof(TCHAR) * threadMessageBufferSize);
-            if (!threadMessageBuffer) {
-                _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P1"));
-                threadMessageBufferSize = 0;
+    if (source_id <= 0) {
+        /* Loop until the buffer is large enough that we are able to successfully
+         *  print into it. Once the buffer has grown to the largest message size,
+         *  smaller messages will pass through this code without looping. */
+        do {
+            if ( threadMessageBufferSize == 0 )
+            {
+                /* No buffer yet. Allocate one to get started. */
+                threadMessageBufferSize = 100;
+                threadMessageBuffer = malloc(sizeof(TCHAR) * threadMessageBufferSize);
+                if (!threadMessageBuffer) {
+                    _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P1"));
+                    threadMessageBufferSize = 0;
 #if defined(UNICODE) && !defined(WIN32)
-                if (flag == TRUE) {
-                    free(msg);
-                }
+                    if (flag == TRUE) {
+                        free(msg);
+                    }
 #endif
-                return;
+                    return;
+                }
             }
-        }
-
-        /* Try writing to the buffer. */
-        va_start( vargs, lpszFmt );
+            /* Try writing to the buffer. */
+            va_start( vargs, lpszFmt );
 #if defined(UNICODE) && !defined(WIN32)
-        count = _vsntprintf( threadMessageBuffer, threadMessageBufferSize, msg, vargs );
+            count = _vsntprintf( threadMessageBuffer, threadMessageBufferSize, msg, vargs );
 #else
-        count = _vsntprintf( threadMessageBuffer, threadMessageBufferSize, lpszFmt, vargs );
+            count = _vsntprintf( threadMessageBuffer, threadMessageBufferSize, lpszFmt, vargs );
 #endif
-        va_end( vargs );
-        /*
-        _tprintf(TEXT(" vsnprintf->%d, size=%d\n"), count, threadMessageBufferSize );
-        */
-        if ( ( count < 0 ) || ( count >= (int)threadMessageBufferSize ) ) {
-            /* If the count is exactly equal to the buffer size then a null TCHAR was not written.
-             *  It must be larger.
-             * Windows will return -1 if the buffer is too small. If the number is
-             *  exact however, we still need to expand it to have room for the null.
-             * UNIX will return the required size. */
+            va_end( vargs );
+            /*
+            _tprintf(TEXT(" vsnprintf->%d, size=%d\n"), count, threadMessageBufferSize );
+            */
+            if ( ( count < 0 ) || ( count >= (int)threadMessageBufferSize ) ) {
+                /* If the count is exactly equal to the buffer size then a null TCHAR was not written.
+                 *  It must be larger.
+                 * Windows will return -1 if the buffer is too small. If the number is
+                 *  exact however, we still need to expand it to have room for the null.
+                 * UNIX will return the required size. */
 
-            /* Free the old buffer for starters. */
-            free( threadMessageBuffer );
+                /* Free the old buffer for starters. */
+                free( threadMessageBuffer );
 
-            /* Decide on a new buffer size.
-             * We can't tell how long the resulting string will be without expanding because the
-             *  results are stored in the vargs.
-             * Most messages will be short, but there is a possibility that some will be very
-             *  long.  To minimize the number of times that we need to loop, while at the same
-             *  time trying to avoid using too much memory, increase the size by the maximum of
-             *  1024 or 10% of the current length.
-             * Some platforms will return the required size as count.  Use that if available. */
-            threadMessageBufferSize = __max(threadMessageBufferSize + 1024, __max(threadMessageBufferSize + threadMessageBufferSize / 10, (size_t)count + 1));
+                /* Decide on a new buffer size.
+                 * We can't tell how long the resulting string will be without expanding because the
+                 *  results are stored in the vargs.
+                 * Most messages will be short, but there is a possibility that some will be very
+                 *  long.  To minimize the number of times that we need to loop, while at the same
+                 *  time trying to avoid using too much memory, increase the size by the maximum of
+                 *  1024 or 10% of the current length.
+                 * Some platforms will return the required size as count.  Use that if available. */
+                threadMessageBufferSize = __max(threadMessageBufferSize + 1024, __max(threadMessageBufferSize + threadMessageBufferSize / 10, (size_t)count + 1));
 
-            threadMessageBuffer = malloc(sizeof(TCHAR) * threadMessageBufferSize);
-            if (!threadMessageBuffer) {
-                _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P2"));
-                threadMessageBufferSize = 0;
+                threadMessageBuffer = malloc(sizeof(TCHAR) * threadMessageBufferSize);
+                if (!threadMessageBuffer) {
+                    _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P2"));
+                    threadMessageBufferSize = 0;
 #if defined(UNICODE) && !defined(WIN32)
-                if (flag == TRUE) {
-                    free(msg);
-                }
+                    if (flag == TRUE) {
+                        free(msg);
+                    }
 #endif
-                return;
-            }
+                    return;
+                }
 
-            /* Always set the count to -1 so we will loop again. */
-            count = -1;
-        }
-    } while ( count < 0 );
+                /* Always set the count to -1 so we will loop again. */
+                count = -1;
+            }
+        } while ( count < 0 );
+    }
 #if defined(UNICODE) && !defined(WIN32)
     if (flag == TRUE) {
         free(msg);
     }
 #endif
     logFileCopy = NULL;
-    logFileChanged = log_printf_message(source_id, level, threadId, FALSE, threadMessageBuffer, TRUE);
+    if (source_id > 0) {
+#if defined(UNICODE) && !defined(WIN32)
+        logFileChanged = log_printf_message(source_id, level, threadId, FALSE, msg, TRUE);
+#else
+        logFileChanged = log_printf_message(source_id, level, threadId, FALSE, (TCHAR*) lpszFmt, TRUE);
+#endif
+    } else {
+        logFileChanged = log_printf_message(source_id, level, threadId, FALSE, threadMessageBuffer, TRUE);
+    }
     if (logFileChanged) {
         /* We need to enqueue a notification that the log file name was changed.
          *  We can NOT directly send the notification here as that could cause a deadlock,
