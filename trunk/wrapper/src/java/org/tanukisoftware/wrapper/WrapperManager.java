@@ -324,6 +324,7 @@ public final class WrapperManager
     private static int m_jvmPort;
     private static int m_jvmPortMin;
     private static int m_jvmPortMax;
+    private static String m_wrapperPortAddress = null;
     private static String m_key;
     private static int m_soTimeout = -1;
     private static long m_cpuTimeout = DEFAULT_CPU_TIMEOUT;
@@ -736,6 +737,11 @@ public final class WrapperManager
                 m_backendType = BACKEND_TYPE_SOCKET;
                 
                 // A port must have been specified.
+                if ( ( m_wrapperPortAddress = System.getProperty( "wrapper.port.address" ) ) == null )
+                {
+                    m_wrapperPortAddress = "127.0.0.1";
+                }
+
                 String sPort;
                 if ( ( sPort = System.getProperty( "wrapper.port" ) ) == null )
                 {
@@ -4647,7 +4653,7 @@ public final class WrapperManager
         InetAddress iNetAddress;
         try
         {
-            iNetAddress = InetAddress.getByName( "127.0.0.1" );
+            iNetAddress = InetAddress.getByName( m_wrapperPortAddress );
         }
         catch ( UnknownHostException e )
         {

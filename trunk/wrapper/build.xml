@@ -834,7 +834,7 @@
               tofile="${bin.dir}/DemoApp.bat"
               filtering="on"/>
         <replace file="${bin.dir}/DemoApp.bat"
-                 token='set _WRAPPER_CONF_DEFAULT=../conf/wrapper.conf'
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
                  value='set _WRAPPER_CONF_DEFAULT=../conf/demoapp.conf' />
         
         <copy file="${src.dir}/bin/App.bat.in"
@@ -1819,7 +1819,7 @@ original tar distribution due to a lack of support for long path names in some t
         <release-delta-extract-platform osname="hpux" osarch="ia" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
         <release-delta-extract-platform osname="hpux" osarch="parisc" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".sl" archivetype="tar.gz"/>
         <release-delta-extract-platform osname="hpux" osarch="parisc" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".sl" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="linux" osarch="ia" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
+<!--        <release-delta-extract-platform osname="linux" osarch="ia" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/> -->
         <release-delta-extract-platform osname="linux" osarch="ppc" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
         <release-delta-extract-platform osname="linux" osarch="ppc" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
         <release-delta-extract-platform osname="linux" osarch="x86" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>

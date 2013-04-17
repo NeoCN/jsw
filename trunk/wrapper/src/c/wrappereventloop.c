@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2012 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2013 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -152,6 +152,9 @@ const TCHAR *wrapperGetJState(int jState) {
         break;
     case WRAPPER_JSTATE_DOWN_FLUSH:
         name = TEXT("DOWN_FLUSH");
+        break;
+    case WRAPPER_JSTATE_KILLED:
+        name = TEXT("KILLED");
         break;
     default:
         name = TEXT("UNKNOWN");
@@ -403,6 +406,7 @@ void anchorPoll(TICKS nowTicks) {
                     (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
                     (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
                     (wrapperData->jState == WRAPPER_JSTATE_KILL) ||
+                    (wrapperData->jState == WRAPPER_JSTATE_KILLED) ||
                     (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK) ||
                     (wrapperData->jState == WRAPPER_JSTATE_DOWN_FLUSH) ||
                     (wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN)) {
@@ -824,6 +828,7 @@ void wStatePausing(TICKS nowTicks) {
                 (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
                 (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
                 (wrapperData->jState == WRAPPER_JSTATE_KILL) ||
+                (wrapperData->jState == WRAPPER_JSTATE_KILLED) ||
                 (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK) ||
                 (wrapperData->jState == WRAPPER_JSTATE_DOWN_FLUSH)) {
                 /* In the process of stopping the JVM. */
@@ -914,7 +919,7 @@ void wStateStopping(TICKS nowTicks) {
 
     /* If the JVM state is now DOWN_CLEAN, then change the wrapper state */
     /*  to be STOPPED as well. */
-    if (wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN) {
+    if (wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN || wrapperData->jState == WRAPPER_JSTATE_KILLED) {
         wrapperSetWrapperState(WRAPPER_WSTATE_STOPPED);
 
         /* Don't tell the service manager that we stopped here.  That */
@@ -1681,9 +1686,50 @@ void jStateKill(TICKS nowTicks, int nextSleep) {
         /* Have we waited long enough */
         if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAgeSeconds(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
             /* It is time to actually kill the JVM. */
-            wrapperKillProcessNow();
+            if (wrapperKillProcessNow()) {
+                if (wrapperData->restartRequested != WRAPPER_RESTART_REQUESTED_NO) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,TEXT("Failed to terminate the JVM, abort all restart."));
+                    wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_NO;
+                    wrapperData->isRestartDisabled = TRUE;
+                }
+            } else {
+                if (wrapperData->jvmTerminateTimeout > 0) {
+                    wrapperSetJavaState(WRAPPER_JSTATE_KILLED, nowTicks, 5 + wrapperData->jvmTerminateTimeout);
+                } else {
+                   wrapperSetJavaState(WRAPPER_JSTATE_KILLED, nowTicks, -1);
+                }
+            }
         } else {
             /* Keep waiting. */
+        }
+    }
+}
+
+/**
+ * WRAPPER_JSTATE_KILLED
+ * The Wrapper is ready to kill the JVM.
+ *
+ * nowTicks: The tick counter value this time through the event loop.
+ * nextSleep: Flag which is used to determine whether or not the state engine
+ *            will be sleeping before then next time through the loop.  It
+ *            may make sense to avoid certain actions if it is known that the
+ *            function will be called again immediately.
+ */
+void jStateKillConfirm(TICKS nowTicks, int nextSleep) {
+    if (nextSleep && (wrapperGetProcessStatus(nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
+    /* The process is gone. (Handled and logged) */
+    } else {
+        if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAgeSeconds(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
+            if (wrapperData->restartRequested != WRAPPER_RESTART_REQUESTED_NO) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,TEXT("Failed to terminate the JVM, abort all restart."));
+                wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_NO;
+                wrapperData->isRestartDisabled = TRUE;
+            }
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,TEXT("Failed to terminate the JVM."));
+            wrapperSetJavaState(WRAPPER_JSTATE_DOWN_CHECK, nowTicks, -1);                   
+            wrapperStopProcess(1, TRUE);
+        } else {
+
         }
     }
 }
@@ -2009,6 +2055,7 @@ void wrapperEventLoop() {
                 (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
                 (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
                 (wrapperData->jState == WRAPPER_JSTATE_KILL) ||
+                (wrapperData->jState == WRAPPER_JSTATE_KILLED) ||
                 (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK) ||
                 (wrapperData->jState == WRAPPER_JSTATE_DOWN_FLUSH)) {
                 /* The JVM is already being stopped, so nothing else needs to be done. */
@@ -2134,6 +2181,10 @@ void wrapperEventLoop() {
 
         case WRAPPER_JSTATE_KILL:
             jStateKill(nowTicks, nextSleep);
+            break;
+
+        case WRAPPER_JSTATE_KILLED:
+            jStateKillConfirm(nowTicks, nextSleep);
             break;
 
         case WRAPPER_JSTATE_DOWN_CHECK:

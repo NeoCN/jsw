@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper.security;
 
 /*
- * Copyright (c) 1999, 2012 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2013 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *

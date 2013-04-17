@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2012 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2013 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -28,7 +28,7 @@ TCHAR *wrapperVersion = TEXT("@version@");
 TCHAR *wrapperBits = TEXT("@bits@");
 TCHAR *wrapperArch = TEXT("@dist.arch@");
 TCHAR *wrapperOS = TEXT("@dist.os@");
-TCHAR *wrapperReleaseDate = TEXT("20121127");
+TCHAR *wrapperReleaseDate = TEXT("20130416");
 TCHAR *wrapperReleaseTime = TEXT("0000");
 TCHAR *wrapperBuildDate = TEXT("@build.date@");
 TCHAR *wrapperBuildTime = TEXT("@build.time@");

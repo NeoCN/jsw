@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2012 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2013 Tanuki Software, Ltd.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -1073,6 +1073,10 @@ void protocolStartServerSocket() {
     int rc;
     int port;
     int fixedPort;
+#ifdef UNICODE
+    char* tempAddress;
+    size_t len;
+#endif
 
     /*int optVal;*/
 #ifdef WIN32
@@ -1142,7 +1146,45 @@ void protocolStartServerSocket() {
     memset(&addr_srv, 0, sizeof(addr_srv));
 
     addr_srv.sin_family = AF_INET;
-    addr_srv.sin_addr.s_addr = inet_addr("127.0.0.1");
+    if (wrapperData->portAddress == NULL) {
+        addr_srv.sin_addr.s_addr = inet_addr("127.0.0.1");
+    } else {
+#ifdef UNICODE
+#ifdef WIN32
+        len = WideCharToMultiByte(CP_OEMCP, 0, wrapperData->portAddress, -1, NULL, 0, NULL, NULL);
+        if (len <= 0) {
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
+                TEXT("Invalid multibyte sequence in port address \"%s\" : %s"), wrapperData->portAddress, getLastErrorText());
+            return;
+        }
+        tempAddress = malloc(len);
+        if (!tempAddress) {
+            outOfMemory(TEXT("PSSS"), 1);
+            return;
+        }
+        WideCharToMultiByte(CP_OEMCP, 0, wrapperData->portAddress, -1, tempAddress, (int)len, NULL, NULL);
+#else
+        len = wcstombs(NULL, wrapperData->portAddress, 0) + 1;
+        _tprintf(TEXT("%d  hanth %s\n"), len, wrapperData->portAddress);
+        if (len < 0) {
+            log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
+                TEXT("Invalid multibyte sequence in port address \"%s\" : %s"), wrapperData->portAddress, getLastErrorText());
+            return;
+        }
+        tempAddress = malloc(len);
+        if (!tempAddress) {
+            outOfMemory(TEXT("PSSS"), 2);
+            return;
+        }
+        wcstombs(tempAddress, wrapperData->portAddress, len);
+        _tprintf(TEXT("%d  hanth % s\n"), len, tempAddress);
+#endif
+        addr_srv.sin_addr.s_addr = inet_addr(tempAddress);
+        free(tempAddress);
+#else 
+        addr_srv.sin_addr.s_addr = inet_addr(wrapperData->portAddress);
+#endif
+    }
     addr_srv.sin_port = htons((u_short)port);
 #ifdef WIN32
     rc = bind(protocolActiveServerSD, (struct sockaddr FAR *)&addr_srv, sizeof(addr_srv));
@@ -1867,6 +1909,7 @@ int wrapperCheckServerBackend(int forceOpen) {
              (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
              (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
              (wrapperData->jState == WRAPPER_JSTATE_KILL) ||
+             (wrapperData->jState == WRAPPER_JSTATE_KILLED) ||
              (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK) ||
              (wrapperData->jState == WRAPPER_JSTATE_DOWN_FLUSH))) {
             /* The JVM is down or in a state where the backend is not needed. */
@@ -2245,6 +2288,7 @@ int wrapperInitialize() {
     wrapperData->confDir = NULL;
     wrapperData->umask = -1;
     wrapperData->language = NULL;
+    wrapperData->portAddress = NULL;
     wrapperData->pingTimedOut = FALSE;
 #ifdef WIN32
     if (!(tickMutexHandle = CreateMutex(NULL, FALSE, NULL))) {
@@ -2359,6 +2403,10 @@ void wrapperDataDispose() {
     if (wrapperData->classpath) {
         free(wrapperData->classpath);
         wrapperData->classpath = NULL;
+    }
+    if (wrapperData->portAddress) {
+        free(wrapperData->portAddress);
+        wrapperData->portAddress = NULL;
     }
 #ifdef WIN32
     if (wrapperData->jvmCommand) {
@@ -2598,7 +2646,7 @@ void wrapperGetFileBase(const TCHAR *fileName, TCHAR *baseName) {
 TCHAR *generateVersionBanner() {
     TCHAR *banner = TEXT("Java Service Wrapper %s Edition %s-bit %s\n  Copyright (C) 1999-%s Tanuki Software, Ltd. All Rights Reserved.\n    http://wrapper.tanukisoftware.com");
     TCHAR *product = TEXT("Community");
-    TCHAR *copyright = TEXT("2012");
+    TCHAR *copyright = TEXT("2013");
     TCHAR *buffer;
     size_t len;
 
@@ -3170,7 +3218,7 @@ void logChildOutput(const char* log) {
 #else
     tlog = (TCHAR*)log;
 #endif
-    log_printf(wrapperData->jvmRestarts, LEVEL_INFO, TEXT("%s"), tlog);
+    log_printf(wrapperData->jvmRestarts, LEVEL_INFO, tlog);
 
     /* Look for output filters in the output.  Only match the first. */
     logApplyFilters(tlog);
@@ -3253,7 +3301,7 @@ int wrapperReadChildOutput() {
              *  greater of size + 1024 or size * 1.1.
              * Also make sure the new buffer is larger than the buffer len.  This should not be necessary
              *  but is safer. */
-            wrapperChildWorkBufferSize = __max(wrapperChildWorkBufferLen + 1, __max(wrapperChildWorkBufferSize + sizeof(char) * READ_BUFFER_BLOCK_SIZE, wrapperChildWorkBufferSize + wrapperChildWorkBufferSize / 10));
+            wrapperChildWorkBufferSize = __max(wrapperChildWorkBufferLen + 1, __max(wrapperChildWorkBufferSize + READ_BUFFER_BLOCK_SIZE, wrapperChildWorkBufferSize + wrapperChildWorkBufferSize / 10));
             
             tempBuffer = malloc(wrapperChildWorkBufferSize + 1);
             if (!tempBuffer) {
@@ -3272,7 +3320,7 @@ int wrapperReadChildOutput() {
 #ifdef DEBUG_CHILD_OUTPUT
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Read from pipe.  buffLen=%d, buffSize=%d"), wrapperChildWorkBufferLen, wrapperChildWorkBufferSize);
 #endif
-        if (wrapperReadChildOutputBlock(wrapperChildWorkBuffer + (wrapperChildWorkBufferLen), READ_BUFFER_BLOCK_SIZE, &currentBlockRead)) {
+        if (wrapperReadChildOutputBlock(wrapperChildWorkBuffer + (wrapperChildWorkBufferLen), (int)(wrapperChildWorkBufferSize - wrapperChildWorkBufferLen), &currentBlockRead)) {
             /* Error already reported. */
             return FALSE;
         }
@@ -3488,11 +3536,10 @@ void wrapperJVMDownCleanup(int setState) {
  * Immediately kill the JVM process and set the JVM state to
  *  WRAPPER_JSTATE_DOWN_CHECK.
  */
-void wrapperKillProcessNow() {
+int wrapperKillProcessNow() {
 #ifdef WIN32
     int ret;
 #endif
-
     /* Check to make sure that the JVM process is still running */
 #ifdef WIN32
     ret = WaitForSingleObject(wrapperData->javaProcess, 0);
@@ -3510,24 +3557,24 @@ void wrapperKillProcessNow() {
          *  down.  Ideally, we would call ExitProcess, but that can only be
          *  called from within the process being killed. */
         if (TerminateProcess(wrapperData->javaProcess, 0)) {
+    
 #else
-        if (kill(wrapperData->javaPID, SIGKILL) == 0) {
+        if (kill(wrapperData->javaPID, SIGKILL) == 0) { 
 #endif
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("JVM did not exit on request, terminated"));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("JVM did not exit on request, termination requested."));
+            return FALSE;
         } else {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("JVM did not exit on request."));
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                 TEXT("  Attempt to terminate process failed: %s"), getLastErrorText());
+            /* Terminating the current JVM failed. Cancel pending restart requests */
+            wrapperJVMDownCleanup(TRUE);
+            wrapperData->exitCode = 1;
+            return TRUE;
         }
-
-        /* Give the JVM a chance to be killed so that the state will be correct. */
-        wrapperSleep(500); /* 0.5 seconds */
-
-        /* Set the exit code since we were forced to kill the JVM. */
-        wrapperData->exitCode = 1;
     }
-
     wrapperJVMDownCleanup(TRUE);
+    return FALSE;
 }
 
 /**
@@ -4089,6 +4136,7 @@ void wrapperStopProcess(int exitCode, int force) {
             (wrapperData->jState == WRAPPER_JSTATE_STOPPING) ||
             (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
             (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
+            (wrapperData->jState == WRAPPER_JSTATE_KILLED) ||
             (wrapperData->jState == WRAPPER_JSTATE_KILL) ||
             (wrapperData->jState == WRAPPER_JSTATE_DOWN_CHECK) ||
             (wrapperData->jState == WRAPPER_JSTATE_DOWN_FLUSH)) {
@@ -4920,14 +4968,12 @@ int wrapperBuildJavaCommandArrayJavaAdditional(TCHAR **strings, int addQuotes, i
                         /* is quotable also changes the value of the property!
                            therefore prop can potentially point to free'd memory*/
                         quotable = isQuotableProperty(properties, propertyNames[i]);
+                        prop = getStringProperty(properties, propertyNames[i], NULL);
+                        propertyValues[i] = (TCHAR*) prop;
                         if (prop == NULL) {
-                            prop = getStringProperty(properties, propertyNames[i], NULL);
-                            propertyValues[i] = (TCHAR*) prop;
-                            if (prop == NULL) {
-                                freeStringProperties(propertyNames, propertyValues, propertyIndices);
-                                return -1;
-                            }
-                        } 
+                            freeStringProperties(propertyNames, propertyValues, propertyIndices);
+                            return -1;
+                        }
                         _sntprintf(paramBuffer2, 128, TEXT("wrapper.java.additional.%lu.stripquotes"), propertyIndices[i]);
                         if (addQuotes) {
                             stripQuote = FALSE;
@@ -5920,11 +5966,22 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
 
     /* Store the Wrapper jvm min and max ports. */
     if (wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET) {
+        if (wrapperData->portAddress != NULL) {
+            if (strings) {
+                strings[index] = malloc(sizeof(TCHAR) * (_tcslen(TEXT("-Dwrapper.port.address=")) + _tcslen(wrapperData->portAddress) + 1));
+                if (!strings[index]) {
+                    outOfMemory(TEXT("WBJCAI"), 27);
+                    return -1;
+                }
+                _sntprintf(strings[index], _tcslen(TEXT("-Dwrapper.port.address=")) + _tcslen(wrapperData->portAddress) + 1, TEXT("-Dwrapper.port.address=%s"), wrapperData->portAddress);
+            }
+            index++;
+        }
         if (wrapperData->jvmPort >= 0) {
             if (strings) {
                 strings[index] = malloc(sizeof(TCHAR) * (19 + 5 + 1));  /* Port up to 5 characters */
                 if (!strings[index]) {
-                    outOfMemory(TEXT("WBJCAI"), 27);
+                    outOfMemory(TEXT("WBJCAI"), 28);
                     return -1;
                 }
                 _sntprintf(strings[index], 19 + 5 + 1, TEXT("-Dwrapper.jvm.port=%d"), (int)wrapperData->jvmPort);
@@ -5934,7 +5991,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (23 + 5 + 1));  /* Port up to 5 characters */
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 28);
+                outOfMemory(TEXT("WBJCAI"), 29);
                 return -1;
             }
             _sntprintf(strings[index], 23 + 5 + 1, TEXT("-Dwrapper.jvm.port.min=%d"), (int)wrapperData->jvmPortMin);
@@ -5943,7 +6000,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (23 + 5 + 1));  /* Port up to 5 characters */
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 29);
+                outOfMemory(TEXT("WBJCAI"), 30);
                 return -1;
             }
             _sntprintf(strings[index], 23 + 5 + 1, TEXT("-Dwrapper.jvm.port.max=%d"), (int)wrapperData->jvmPortMax);
@@ -5955,7 +6012,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (22 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 30);
+                outOfMemory(TEXT("WBJCAI"), 31);
                 return -1;
             }
             if (addQuotes) {
@@ -5979,7 +6036,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (38 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 31);
+                outOfMemory(TEXT("WBJCAI"), 32);
                 return -1;
             }
             if (addQuotes) {
@@ -5996,7 +6053,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (38 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 32);
+                outOfMemory(TEXT("WBJCAI"), 33);
                 return -1;
             }
             if (addQuotes) {
@@ -6012,7 +6069,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     if (strings) {
         strings[index] = malloc(sizeof(TCHAR) * (24 + 1)); /* Pid up to 10 characters */
         if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 33);
+            outOfMemory(TEXT("WBJCAI"), 34);
             return -1;
         }
 #if defined(SOLARIS) && (!defined(_LP64))
@@ -6028,7 +6085,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (32 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 34);
+                outOfMemory(TEXT("WBJCAI"), 35);
                 return -1;
             }
             if (addQuotes) {
@@ -6045,7 +6102,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
             if (strings) {
                 strings[index] = malloc(sizeof(TCHAR) * (43 + 1)); /* Allow for 10 digits */
                 if (!strings[index]) {
-                    outOfMemory(TEXT("WBJCAI"), 35);
+                    outOfMemory(TEXT("WBJCAI"), 36);
                     return -1;
                 }
                 if (addQuotes) {
@@ -6060,7 +6117,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
             if (strings) {
                 strings[index] = malloc(sizeof(TCHAR) * (43 + 1)); /* Allow for 10 digits */
                 if (!strings[index]) {
-                    outOfMemory(TEXT("WBJCAI"), 36);
+                    outOfMemory(TEXT("WBJCAI"), 37);
                     return -1;
                 }
                 if (addQuotes) {
@@ -6108,7 +6165,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     if (strings) {
         strings[index] = malloc(sizeof(TCHAR) * (17 + _tcslen(wrapperArch) + 1));
         if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 38);
+            outOfMemory(TEXT("WBJCAI"), 39);
             return -1;
         }
         if (addQuotes) {
@@ -6124,7 +6181,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (31 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 39);
+                outOfMemory(TEXT("WBJCAI"), 40);
                 return -1;
             }
             if (addQuotes) {
@@ -6145,7 +6202,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (24 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 40);
+                outOfMemory(TEXT("WBJCAI"), 41);
                 return -1;
             }
             if (addQuotes) {
@@ -6162,7 +6219,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (30 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 41);
+                outOfMemory(TEXT("WBJCAI"), 42);
                 return -1;
             }
             if (addQuotes) {
@@ -6179,7 +6236,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (38 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 42);
+                outOfMemory(TEXT("WBJCAI"), 43);
                 return -1;
             }
             if (addQuotes) {
@@ -6196,7 +6253,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         /* Just to be safe, allow 20 characters for the timeout value */
         strings[index] = malloc(sizeof(TCHAR) * (24 + 20 + 1));
         if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 43);
+            outOfMemory(TEXT("WBJCAI"), 44);
             return -1;
         }
         if (addQuotes) {
@@ -6211,7 +6268,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (25 + _tcslen(prop) + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 45);
+                outOfMemory(TEXT("WBJCAI"), 46);
                 return -1;
             }
             if (addQuotes) {
@@ -6227,7 +6284,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (25 + _tcslen(prop) + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 46);
+                outOfMemory(TEXT("WBJCAI"), 47);
                 return -1;
             }
             if (addQuotes) {
@@ -6243,7 +6300,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     if (strings) {
         strings[index] = malloc(sizeof(TCHAR) * (16 + 5 + 1));  /* jvmid up to 5 characters */
         if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 47);
+            outOfMemory(TEXT("WBJCAI"), 48);
             return -1;
         }
         _sntprintf(strings[index], 16 + 5 + 1, TEXT("-Dwrapper.jvmid=%d"), (wrapperData->jvmRestarts + 1));
@@ -6256,7 +6313,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (30 + 1));
             if (!strings[index]) {
-                outOfMemory(TEXT("WBJCAI"), 50);
+                outOfMemory(TEXT("WBJCAI"), 51);
                 return -1;
             }
             if (addQuotes) {
@@ -6279,7 +6336,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     if (strings) {
         strings[index] = malloc(sizeof(TCHAR) * (_tcslen(prop) + 1));
         if (!strings[index]) {
-            outOfMemory(TEXT("WBJCAI"), 51);
+            outOfMemory(TEXT("WBJCAI"), 52);
             return -1;
         }
         _sntprintf(strings[index], _tcslen(prop) + 1, TEXT("%s"), prop);
@@ -6483,6 +6540,11 @@ void wrapperJVMProcessExited(TICKS nowTicks, int exitCode) {
     case WRAPPER_JSTATE_KILL:
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO,
             TEXT("JVM exited on its own while waiting to kill the application."));
+        break;
+
+    case WRAPPER_JSTATE_KILLED:
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
+            TEXT("JVM exited after being requested to terminate."));
         break;
 
     default:
@@ -7136,6 +7198,7 @@ int loadConfiguration() {
     /* Initialize some values not loaded */
     wrapperData->exitCode = 0;
 
+    updateStringValue(&wrapperData->portAddress, getStringProperty(properties, TEXT("wrapper.port.address"), NULL));
     /* Get the port. The int will wrap within the 0-65535 valid range, so no need to test the value. */
     wrapperData->port = getIntProperty(properties, TEXT("wrapper.port"), 0, TRUE);
     wrapperData->portMin = getIntProperty(properties, TEXT("wrapper.port.min"), 32000, TRUE);
@@ -7294,12 +7357,14 @@ int loadConfiguration() {
     wrapperData->shutdownTimeout = getIntProperty(properties, TEXT("wrapper.shutdown.timeout"), 30, TRUE);
     wrapperData->jvmExitTimeout = getIntProperty(properties, TEXT("wrapper.jvm_exit.timeout"), 15, TRUE);
     wrapperData->jvmCleanupTimeout = getIntProperty(properties, TEXT("wrapper.jvm_cleanup.timeout"), 10, TRUE);
+    wrapperData->jvmTerminateTimeout = getIntProperty(properties, TEXT("wrapper.jvm_terminate.timeout"), 10, TRUE);
 
     wrapperData->cpuTimeout = validateTimeout(TEXT("wrapper.cpu.timeout"), wrapperData->cpuTimeout);
     wrapperData->startupTimeout = validateTimeout(TEXT("wrapper.startup.timeout"), wrapperData->startupTimeout);
     wrapperData->pingTimeout = validateTimeout(TEXT("wrapper.ping.timeout"), wrapperData->pingTimeout);
     wrapperData->shutdownTimeout = validateTimeout(TEXT("wrapper.shutdown.timeout"), wrapperData->shutdownTimeout);
     wrapperData->jvmExitTimeout = validateTimeout(TEXT("wrapper.jvm_exit.timeout"), wrapperData->jvmExitTimeout);
+    wrapperData->jvmTerminateTimeout = validateTimeout(TEXT("wrapper.jvm_terminate.timeout"), wrapperData->jvmTerminateTimeout);
     wrapperData->jvmCleanupTimeout = validateTimeout(TEXT("wrapper.jvm_cleanup.timeout"), wrapperData->jvmCleanupTimeout);
 
     if (wrapperData->pingInterval < 1) {
@@ -7816,7 +7881,7 @@ void wrapperLogSignaled(int logLevel, TCHAR *msg) {
     }
     /* */
 
-    log_printf(wrapperData->jvmRestarts, logLevel, TEXT("%s"), msg);
+    log_printf(wrapperData->jvmRestarts, logLevel, msg);
 }
 
 void wrapperKeyRegistered(TCHAR *key) {
