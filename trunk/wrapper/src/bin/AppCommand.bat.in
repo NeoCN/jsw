@@ -16,7 +16,7 @@ rem
 
 rem -----------------------------------------------------------------------------
 rem These settings can be modified to fit the needs of your application
-rem Optimized for use with version 3.5.19-a of the Wrapper.
+rem Optimized for use with version 3.5.19 of the Wrapper.
 
 rem The base name for the Wrapper binary.
 set _WRAPPER_BASE=wrapper
@@ -79,20 +79,19 @@ rem
 if "%PROCESSOR_ARCHITEW6432%"=="AMD64" goto amd64
 if "%PROCESSOR_ARCHITECTURE%"=="AMD64" goto amd64
 if "%PROCESSOR_ARCHITECTURE%"=="IA64" goto ia64
-set _WRAPPER_L_EXE=%_REALPATH%%_WRAPPER_BASE%-windows-x86-32.exe
+set _WRAPPER_L_EXE="%_REALPATH:"=%%_WRAPPER_BASE%-windows-x86-32.exe"
 goto search
 :amd64
-set _WRAPPER_L_EXE=%_REALPATH%%_WRAPPER_BASE%-windows-x86-64.exe
+set _WRAPPER_L_EXE="%_REALPATH:"=%%_WRAPPER_BASE%-windows-x86-64.exe"
 goto search
 :ia64
-set _WRAPPER_L_EXE=%_REALPATH%%_WRAPPER_BASE%-windows-ia-64.exe
+set _WRAPPER_L_EXE="%_REALPATH:"=%%_WRAPPER_BASE%-windows-ia-64.exe"
 goto search
 :search
-
-set _WRAPPER_EXE=%_WRAPPER_L_EXE%
-if exist "%_WRAPPER_EXE%" goto conf
-set _WRAPPER_EXE=%_REALPATH%%_WRAPPER_BASE%.exe
-if exist "%_WRAPPER_EXE%" goto conf
+set _WRAPPER_EXE="%_WRAPPER_L_EXE:"=%"
+if exist %_WRAPPER_EXE% goto conf
+set _WRAPPER_EXE="%_REALPATH:"=%%_WRAPPER_BASE%.exe"
+if exist %_WRAPPER_EXE% goto conf
 echo Unable to locate a Wrapper executable using any of the following names:
 echo %_WRAPPER_L_EXE%
 echo %_WRAPPER_EXE%
@@ -121,9 +120,9 @@ rem
 set _MATCHED=true
 if [%_COMMAND%]==[console] (
     if [%_PASS_THROUGH%]==[] (
-        "%_WRAPPER_EXE%" -c "%_WRAPPER_CONF%" %_PARAMETERS%
+        %_WRAPPER_EXE% -c "%_WRAPPER_CONF%" %_PARAMETERS%
     ) else (
-        "%_WRAPPER_EXE%" -c "%_WRAPPER_CONF%" -- %_PARAMETERS%
+        %_WRAPPER_EXE% -c "%_WRAPPER_CONF%" -- %_PARAMETERS%
     )
 ) else if [%_COMMAND%]==[start] (
     call :start
@@ -131,18 +130,18 @@ if [%_COMMAND%]==[console] (
     call :stop
 ) else if [%_COMMAND%]==[install] (
     if [%_PASS_THROUGH%]==[] (
-        "%_WRAPPER_EXE%" -i "%_WRAPPER_CONF%" %_PARAMETERS%
+        %_WRAPPER_EXE% -i "%_WRAPPER_CONF%" %_PARAMETERS%
     ) else (
-        "%_WRAPPER_EXE%" -i "%_WRAPPER_CONF%" -- %_PARAMETERS%
+        %_WRAPPER_EXE% -i "%_WRAPPER_CONF%" -- %_PARAMETERS%
     )
 ) else if [%_COMMAND%]==[pause] (
-    "%_WRAPPER_EXE%" -a "%_WRAPPER_CONF%"
+    %_WRAPPER_EXE% -a "%_WRAPPER_CONF%"
 ) else if [%_COMMAND%]==[resume] (
-    "%_WRAPPER_EXE%" -e "%_WRAPPER_CONF%"
+    %_WRAPPER_EXE% -e "%_WRAPPER_CONF%"
 ) else if [%_COMMAND%]==[status] (
-    "%_WRAPPER_EXE%" -q "%_WRAPPER_CONF%"
+    %_WRAPPER_EXE% -q "%_WRAPPER_CONF%"
 ) else if [%_COMMAND%]==[remove] (
-    "%_WRAPPER_EXE%" -r "%_WRAPPER_CONF%"
+    %_WRAPPER_EXE% -r "%_WRAPPER_CONF%"
 ) else if [%_COMMAND%]==[restart] (
    call :stop
    call :start
@@ -172,8 +171,8 @@ goto :eof
 
 
 :start
-    "%_WRAPPER_EXE%" -t "%_WRAPPER_CONF%"
+    %_WRAPPER_EXE% -t "%_WRAPPER_CONF%"
     goto :eof
 :stop
-    "%_WRAPPER_EXE%" -p "%_WRAPPER_CONF%"
+    %_WRAPPER_EXE% -p "%_WRAPPER_CONF%"
     goto :eof

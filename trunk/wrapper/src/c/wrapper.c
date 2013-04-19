@@ -619,18 +619,8 @@ void wrapperLoadLoggingProperties(int preload) {
     /* Load console format */
     setConsoleLogFormat(getStringProperty(properties, TEXT("wrapper.console.format"), LOG_FORMAT_CONSOLE_DEFAULT));
 
-    /* Load console log level */
-    /* Try to optimize the use of console log output so it is only done if a console exists and is visible. */
-    if (wrapperData->isConsole
- #ifdef WIN32
-        || (wrapperData->ntAllocConsole && (!wrapperData->ntHideWrapperConsole))
- #endif
-        ) {
-        setConsoleLogLevel(getStringProperty(properties, TEXT("wrapper.console.loglevel"), TEXT("INFO")));
-    } else {
-        /* The console is not visible, so we shouldn't waste time logging to it. */
-        setConsoleLogLevelInt(LEVEL_NONE);
-    }
+    setConsoleLogLevel(getStringProperty(properties, TEXT("wrapper.console.loglevel"), TEXT("INFO")));
+
 
     /* Load the console flush flag. */
     setConsoleFlush(getBooleanProperty(properties, TEXT("wrapper.console.flush"), FALSE, !preload));
@@ -7531,6 +7521,15 @@ int loadConfiguration() {
             wrapperData->ntAllocConsole = TRUE;
             wrapperData->ntHideWrapperConsole = TRUE;
         }
+    }
+ #ifdef WIN32
+    if ((!strcmpIgnoreCase(wrapperData->argCommand, TEXT("s")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-service")))
+        && (!wrapperData->ntAllocConsole || wrapperData->ntHideWrapperConsole)) {
+ #else
+    if (!wrapperData->isConsole) {
+ #endif
+        /* The console is not visible, so we shouldn't waste time logging to it. */
+        setConsoleLogLevelInt(LEVEL_NONE);
     }
 
 #else /* UNIX */

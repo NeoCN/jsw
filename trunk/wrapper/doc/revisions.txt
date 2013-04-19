@@ -1,5 +1,11 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+3.5.19
+* Fix a problem in the batch file, where a space in the path to the Wrapper.exe 
+  file would cause the script to locate the Wrapper.exe file. Introduced in 3.5.18.
+* When running as Windows service with hiding the console of the Wrapper will 
+  cause the Wrapper to disable unnecessary logging to the console in order 
+  to enhance performance. 
 
 3.5.18
 * Fix a problem, where an unclosed percentage character '%' was opening the chance
