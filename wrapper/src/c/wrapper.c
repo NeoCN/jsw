@@ -823,7 +823,7 @@ int wrapperLoadConfigurationProperties(int preload) {
          *  an error here.  It will be handled by the caller. */
         /* Debug is not yet available as the config file is not yet loaded. */
         if ((!preload) && (!wrapperData->argConfFileDefault)) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Failed to load configuration."));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Failed to load configuration: %s"), wrapperData->configFile);
         }
         return TRUE;
     }
@@ -4555,7 +4555,7 @@ int checkIfBinary(const TCHAR *filename) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Magic number for file %s: 0x%02x%02x%02x%02x"), filename, head[0], head[1], head[2], head[3]);
         }
 
-#if defined(LINUX) || defined(FREEBSD) || defined(SOLARIS)
+#if defined(LINUX) || defined(FREEBSD) || defined(SOLARIS) 
         if (head[1] == 'E' && head[2] == 'L' && head[3] == 'F') {
             return 1; /*ELF */
 #elif defined(AIX)
@@ -4578,6 +4578,8 @@ int checkIfBinary(const TCHAR *filename) {
             return 1; /*HP UX PA RISC 32*/
         } else if (head[0] == 0x02 && head[1] == 0x14 && head[2] == 0x01 && head[3] == 0x07) { /* 0x02140107 PA-RISC 2.0 */
             return 1; /*HP UX PA RISC 32*/
+        } else if (head[1] == 'E' && head[2] == 'L' && head[3] == 'F') {
+            return 1; /*ELF */
 #elif defined(WIN32)
         if (head[0] == 'M' && head[1] == 'Z') {
             return 1; /* MS */
@@ -5519,7 +5521,9 @@ int wrapperBuildJavaClasspath(TCHAR **classpath) {
                             outOfMemory(TEXT("WBJCP"), 2);
                             return -1;
                         }
-                        _sntprintf(*classpath, cpLenAlloc, TEXT("%s"), tmpString);
+                        if (j > 0) {
+                            _sntprintf(*classpath, cpLenAlloc, TEXT("%s"), tmpString);
+                        }
                         free(tmpString);
                         tmpString = NULL;
                     }
@@ -5587,7 +5591,9 @@ int wrapperBuildJavaClasspath(TCHAR **classpath) {
                         freeStringProperties(propertyNames, propertyValues, propertyIndices);
                         return -1;
                     }
-                    _sntprintf(*classpath, cpLenAlloc, TEXT("%s"), tmpString);
+                    if (j > 0) {
+                        _sntprintf(*classpath, cpLenAlloc, TEXT("%s"), tmpString);
+                    }
                     free(tmpString);
                     tmpString = NULL;
                 }
@@ -5595,7 +5601,7 @@ int wrapperBuildJavaClasspath(TCHAR **classpath) {
                 if (j > 0) {
                     (*classpath)[cpLen++] = wrapperClasspathSeparator; /* separator */
                 }
-                _sntprintf(&((*classpath)[cpLen]), cpLenAlloc, TEXT("%s"), propStripped);
+                _sntprintf(&((*classpath)[cpLen]), cpLenAlloc - cpLen, TEXT("%s"), propStripped);
                 cpLen += len2;
                 j++;
             }
