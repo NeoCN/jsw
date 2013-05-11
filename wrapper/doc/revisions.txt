@@ -13,15 +13,16 @@ Java Service Wrapper Revision History.
 
 3.5.19
 * Fix a problem in the batch file, where a space in the path to the Wrapper.exe
-  file would cause the script to locate the Wrapper.exe file. Introduced in 3.5.18.
+  file would cause the script to locate the Wrapper.exe file. Introduced in
+  3.5.18.
 * When running as Windows service with hiding the console of the Wrapper will
   cause the Wrapper to disable unnecessary logging to the console in order
   to enhance performance.
 
 3.5.18
-* Fix a problem, where an unclosed percentage character '%' was opening the chance
-  of a dangling pointer in the additional java parameters. The '%' character
-  is a special character, specifying an environment variable.
+* Fix a problem, where an unclosed percentage character '%' was opening the
+  chance of a dangling pointer in the additional java parameters. The '%'
+  character is a special character, specifying an environment variable.
 * Added variable _WRAPPER_DIR the batch files to make it possible to specify
   any other directory where the Wrapper binary file is located. Until now the
   batch file and exe file had to be in the same location. Thanks and credits
