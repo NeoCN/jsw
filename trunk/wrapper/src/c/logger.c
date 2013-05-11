@@ -1221,6 +1221,8 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
     TCHAR     *pos;
     int       currentColumn;
     int       handledFormat;
+    int       temp;
+    int       len;
 
     /* Decide the number of columns and come up with a required length for the printBuffer. */
     reqSize = 0;
@@ -1304,7 +1306,7 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
     pos = threadPrintBuffer;
 
     /* We now have a buffer large enough to store the entire formatted message. */
-    for( i = 0, currentColumn = 0; i < (int)_tcslen( format ); i++ ) {
+    for( i = 0, currentColumn = 0, len = 0, temp = 0; i < (int)_tcslen( format ); i++ ) {
         handledFormat = 1;
 
         switch( format[i] ) {
@@ -1312,15 +1314,15 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
         case TEXT('p'):
             switch ( source_id ) {
             case WRAPPER_SOURCE_WRAPPER:
-                pos += _sntprintf( pos, reqSize, TEXT("wrapper ") );
+                temp = _sntprintf( pos, reqSize - len, TEXT("wrapper ") );
                 break;
 
             case WRAPPER_SOURCE_PROTOCOL:
-                pos += _sntprintf( pos, reqSize, TEXT("wrapperp") );
+                temp = _sntprintf( pos, reqSize - len, TEXT("wrapperp") );
                 break;
 
             default:
-                pos += _sntprintf( pos, reqSize, TEXT("jvm %-4d"), source_id );
+                temp = _sntprintf( pos, reqSize - len, TEXT("jvm %-4d"), source_id );
                 break;
             }
             currentColumn++;
@@ -1328,7 +1330,7 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
 
         case TEXT('L'):
         case TEXT('l'):
-            pos += _sntprintf( pos, reqSize, TEXT("%s"), logLevelNames[ level ] );
+            temp = _sntprintf( pos, reqSize - len, TEXT("%s"), logLevelNames[ level ] );
             currentColumn++;
             break;
 
@@ -1337,31 +1339,31 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
             switch ( threadId )
             {
             case WRAPPER_THREAD_SIGNAL:
-                pos += _sntprintf( pos, reqSize, TEXT("signal ") );
+                temp = _sntprintf( pos, reqSize - len, TEXT("signal ") );
                 break;
 
             case WRAPPER_THREAD_MAIN:
-                pos += _sntprintf( pos, reqSize, TEXT("main   ") );
+                temp = _sntprintf( pos, reqSize - len, TEXT("main   ") );
                 break;
 
             case WRAPPER_THREAD_SRVMAIN:
-                pos += _sntprintf( pos, reqSize, TEXT("srvmain") );
+                temp = _sntprintf( pos, reqSize - len, TEXT("srvmain") );
                 break;
 
             case WRAPPER_THREAD_TIMER:
-                pos += _sntprintf( pos, reqSize, TEXT("timer  ") );
+                temp = _sntprintf( pos, reqSize - len, TEXT("timer  ") );
                 break;
 
             case WRAPPER_THREAD_JAVAIO:
-                pos += _sntprintf( pos, reqSize, TEXT("javaio ") );
+                temp = _sntprintf( pos, reqSize - len, TEXT("javaio ") );
                 break;
 
             case WRAPPER_THREAD_STARTUP:
-                pos += _sntprintf( pos, reqSize, TEXT("startup") );
+                temp = _sntprintf( pos, reqSize - len, TEXT("startup") );
                 break;
 
             default:
-                pos += _sntprintf( pos, reqSize, TEXT("unknown") );
+                temp = _sntprintf( pos, reqSize - len, TEXT("unknown") );
                 break;
             }
             currentColumn++;
@@ -1369,13 +1371,13 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
 
         case TEXT('Q'):
         case TEXT('q'):
-            pos += _sntprintf( pos, reqSize, TEXT("%c"), ( queued ? TEXT('Q') : TEXT(' ')));
+            temp = _sntprintf( pos, reqSize - len, TEXT("%c"), ( queued ? TEXT('Q') : TEXT(' ')));
             currentColumn++;
             break;
 
         case TEXT('T'):
         case TEXT('t'):
-            pos += _sntprintf( pos, reqSize, TEXT("%04d/%02d/%02d %02d:%02d:%02d"),
+            temp = _sntprintf( pos, reqSize - len, TEXT("%04d/%02d/%02d %02d:%02d:%02d"),
                 nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday,
                 nowTM->tm_hour, nowTM->tm_min, nowTM->tm_sec );
             currentColumn++;
@@ -1383,7 +1385,7 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
 
         case TEXT('Z'):
         case TEXT('z'):
-            pos += _sntprintf( pos, reqSize, TEXT("%04d/%02d/%02d %02d:%02d:%02d.%03d"),
+            temp = _sntprintf( pos, reqSize - len, TEXT("%04d/%02d/%02d %02d:%02d:%02d.%03d"),
                 nowTM->tm_year + 1900, nowTM->tm_mon + 1, nowTM->tm_mday,
                 nowTM->tm_hour, nowTM->tm_min, nowTM->tm_sec, nowMillis );
             currentColumn++;
@@ -1392,32 +1394,38 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
         case TEXT('U'):
         case TEXT('u'):
             if (uptimeFlipped) {
-                pos += _sntprintf( pos, reqSize, TEXT("--------") );
+                temp = _sntprintf( pos, reqSize - len, TEXT("--------") );
             } else {
-                pos += _sntprintf( pos, reqSize, TEXT("%8d"), uptimeSeconds);
+                temp = _sntprintf( pos, reqSize - len, TEXT("%8d"), uptimeSeconds);
             }
             currentColumn++;
             break;
             
         case TEXT('G'):
         case TEXT('g'):
-            pos += _sntprintf( pos, reqSize, TEXT("%8d"), __min(previousLogLag, 99999999));
+            temp = _sntprintf( pos, reqSize - len, TEXT("%8d"), __min(previousLogLag, 99999999));
             currentColumn++;
             break;
 
         case TEXT('M'):
         case TEXT('m'):
-            pos += _sntprintf( pos, reqSize, TEXT("%s"), message );
+            temp = _sntprintf( pos, reqSize - len, TEXT("%s"), message );
             currentColumn++;
             break;
 
         default:
             handledFormat = 0;
         }
+        if (handledFormat != 0) {
+            pos += temp;
+            len += temp;
+        }
 
         /* Add separator chars */
         if ( handledFormat && ( currentColumn != numColumns ) ) {
-            pos += _sntprintf( pos, reqSize, TEXT(" | ") );
+            temp = _sntprintf( pos, reqSize - len, TEXT(" | ") );
+            pos += temp;
+            len += temp;
         }
     }
 

@@ -1,5 +1,14 @@
 Java Service Wrapper Revision History.
 --------------------------------------
+
+3.5.20
+* Further improvments on memory footprint of the Wrapper to limit the memory to
+  a minimum when logging huge amount of data.
+* Fix a minor potential buffer overflow, which could occur if the path of the
+  first classpath element is larger than 1024 characters. This overflow was
+  detected during a code review and we have no reports that it actually caused
+  ever any problems.
+
 3.5.19
 * Fix a problem in the batch file, where a space in the path to the Wrapper.exe
   file would cause the script to locate the Wrapper.exe file. Introduced in 3.5.18.
