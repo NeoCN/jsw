@@ -1,33 +1,33 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 3.5.19
-* Fix a problem in the batch file, where a space in the path to the Wrapper.exe 
+* Fix a problem in the batch file, where a space in the path to the Wrapper.exe
   file would cause the script to locate the Wrapper.exe file. Introduced in 3.5.18.
-* When running as Windows service with hiding the console of the Wrapper will 
-  cause the Wrapper to disable unnecessary logging to the console in order 
-  to enhance performance. 
+* When running as Windows service with hiding the console of the Wrapper will
+  cause the Wrapper to disable unnecessary logging to the console in order
+  to enhance performance.
 
 3.5.18
 * Fix a problem, where an unclosed percentage character '%' was opening the chance
-  of a dangling pointer in the additional java parameters. The '%' character 
+  of a dangling pointer in the additional java parameters. The '%' character
   is a special character, specifying an environment variable.
 * Added variable _WRAPPER_DIR the batch files to make it possible to specify
-  any other directory where the Wrapper binary file is located. Until now the 
+  any other directory where the Wrapper binary file is located. Until now the
   batch file and exe file had to be in the same location. Thanks and credits
   go to Geoff.
-* Added property wrapper.port.address, which makes it possible to specify a 
+* Added property wrapper.port.address, which makes it possible to specify a
   different address to bind the socket to when using the socket backend
   connection between the Wrapper and the JVM. Until now, the socket was
-  always bound to the localhost loopback interface. 
+  always bound to the localhost loopback interface.
 * The script will from now on also use the update-rc.d tool for installing
   an application as daemon on Debian. Thanks and credits go to Haifeng.
-* Whenever the Wrapper is causing the JVM to be forcibly terminated, the 
-  Wrapper will make sure the JVM has actually been terminated. If it wasn't 
-  after wrapper.jvm_terminate.timeout seconds, a pending restart will be 
-  canceled and the Wrapper exit. 
+* Whenever the Wrapper is causing the JVM to be forcibly terminated, the
+  Wrapper will make sure the JVM has actually been terminated. If it wasn't
+  after wrapper.jvm_terminate.timeout seconds, a pending restart will be
+  canceled and the Wrapper exit.
 * Reworked the way the Wrapper is processing output from the JVM, in order
   to increase performance on huge output on a single line and also reduce
-  memory usage. 
+  memory usage.
 
 3.5.17
 * Add a new wrapper.java.additional.default.stripquotes property to make it
@@ -44,17 +44,17 @@ Java Service Wrapper Revision History.
   log files.
 * Fix a problem where the dynamic library on MacOSX was not able to load it's
   functions.
-* Added wrapper.app.parameter_file property, which works similar to the 
+* Added wrapper.app.parameter_file property, which works similar to the
   wrapper.java.additional_file property
 * Reduce CPU-consuption of WrapperProcess.waitFor() function
 
 3.5.16
 * (Standard, Professional) Retry failed share mappings if the target host or
   network is unreachable as that may be a temporary problem.
-* (Professional) There was a problem where the IO-redirection of a child 
+* (Professional) There was a problem where the IO-redirection of a child
   process which got created with the WrapperManager.exec API and used the
-  feature to run the child process in the logged on users desktop was 
-  only allowing to create a process once per second.   
+  feature to run the child process in the logged on users desktop was
+  only allowing to create a process once per second.
 * Include information about the base configuration file in the debug output
   when debugging of cacading configuration files has been enabled.
 * Add a check in the UNIX script to output a more descriptive error message,
