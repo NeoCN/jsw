@@ -4885,6 +4885,22 @@ public final class WrapperManager
             // Clear the connected flag first so other threads will recognize that we
             //  are closing correctly.
             m_backendConnected = false;
+            
+            // On HP platforms, an attempt to close a socket while a read is blocking will
+            //  cause the close to block until the read completes.  To avoid this, send an
+            //  interrupt to the communications runner to abort any existing reads.
+            Thread commRunner = m_commRunner;
+            if ( commRunner != null )
+            {
+                try
+                {
+                    commRunner.interrupt();
+                }
+                catch ( SecurityException e )
+                {
+                    m_outError.println( getRes().getString( "Failed to interrupt communications thread: " + e.getMessage() ) );
+                }
+            }
         }
         
         if ( m_backendOS != null )
