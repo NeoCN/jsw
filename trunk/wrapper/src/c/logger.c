@@ -1947,7 +1947,6 @@ void pauseThread(int pauseTime) {
     }
 }
 
-
 /* General log functions */
 void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
     va_list     vargs;
@@ -1969,6 +1968,17 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
     int         startNowMillis;
     time_t      endNow;
     int         endNowMillis;
+    size_t      reqLength;
+#if defined(VSNTPRINTF_PRECALC_BUFFER_SIZE)
+    size_t      pos;
+    size_t      len;
+    size_t      nextPos;
+    TCHAR       *pNext;
+    TCHAR       c;
+    int         argIndex;
+    TCHAR       *subStr;
+    size_t      subLen;
+#endif
     
     /* If we are checking on the log time then store the start time. */
     if (logPrintfWarnThreshold > 0) {
@@ -2029,10 +2039,106 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
          *  print into it. Once the buffer has grown to the largest message size,
          *  smaller messages will pass through this code without looping. */
         do {
-            if ( threadMessageBufferSize == 0 )
+#if defined(VSNTPRINTF_PRECALC_BUFFER_SIZE)
+            /*_tprintf(TEXT("Calculate length for: %s\n"), lpszFmt);*/
+            va_start(vargs, lpszFmt);
+            
+            reqLength = 0;
+            pos = 0;
+            len = _tcslen(lpszFmt);
+            argIndex = 0;
+            while (pos < len)
             {
+                /*_tprintf(TEXT("  pos=%d len=%d\n"), pos, len);*/
+                pNext = _tcschr(&(lpszFmt[pos]), TEXT('%'));
+                if (pNext != NULL) {
+                    /* Found a token */
+                    nextPos = pNext - lpszFmt;
+                    
+                    /* Add everything before it. */
+                    reqLength += nextPos - pos;
+                    pos = nextPos + 1;
+                    /*_tprintf(TEXT("  nextPos=%d reqLength=%d pos=%d\n"), nextPos, reqLength, pos);*/
+                    
+                    /* Find the token type. */
+                    c = lpszFmt[pos];
+                    if (c == TEXT('%')) {
+                        /* Escaped '%' character. */
+                        reqLength++;
+                        pos += 2;
+                    } else {
+                        /* This should be a format. */
+                        /* Find the first character not in (-+# .*0123456789) */
+                        while ((c == TEXT('-')) || (c == TEXT('+')) || (c == TEXT('#')) || (c == TEXT(' ')) || (c == TEXT('.')) || (c == TEXT('*')) || ((c >= TEXT('0')) && (c <= TEXT('9')))) {
+                            pos++;
+                            c = lpszFmt[pos];
+                        }
+                        if (c == 0) {
+                            _tprintf(TEXT("Encountered illegal string format: %s\n"), lpszFmt);
+                            break;
+                        } else {
+                            /*_tprintf(TEXT("Format code [%d]: %c\n"), argIndex, c);*/
+                            if ((c == TEXT('s')) || (c == TEXT('S'))) {
+                                subStr = va_arg(vargs, TCHAR *);
+                                if (subStr) {
+                                    subLen = _tcslen(subStr);
+                                    /*_tprintf(TEXT("  Sub len=%d : %s\n"), subLen, subStr);*/
+                                    reqLength += subLen;
+                                } else {
+                                    reqLength += 4;
+                                }
+                                /* Always add 32 more chars to be safe in case there is a length format. */
+                                reqLength += 32;
+                            } else if (c == TEXT('c')) {
+                                va_arg(vargs, TCHAR);
+                                reqLength += 32;
+                            } else if ((c == TEXT('d')) || (c == TEXT('x'))) {
+                                va_arg(vargs, int);
+                                reqLength += 32;
+                            } else if ((c == TEXT('I')) && (lpszFmt[pos + 1] == TEXT('6')) && (lpszFmt[pos + 2] == TEXT('4')) && (lpszFmt[pos + 3] != 0)) {
+ #ifdef JSW64
+                                va_arg(vargs, unsigned int);
+ #else
+                                va_arg(vargs, unsigned long);
+ #endif
+                                reqLength += 48;
+                                pos += 3;
+                            } else if (c == TEXT('l')) {
+                                va_arg(vargs, long int);
+                                reqLength += 32;
+                                pos += 1;
+                            } else {
+                                /* For all other formats assume a length of 32, this is most likely way too large, but should always be big enough. */
+                                _tprintf(TEXT("Unsupported format: %c\n"), c);
+                                reqLength += 32;
+                            }
+                            
+                            /* Advance to after the format code. */
+                            pos++;
+                        }
+                        argIndex++;
+                    }
+                } else {
+                    /* No more tokens. */
+                    reqLength += len - pos;
+                    pos = len;
+                }
+            }
+            
+            /* Account for trailing null. */
+            reqLength++;
+            
+            va_end(vargs);
+            /*_tprintf(TEXT("Calculated that we need a buffer %d chars in length for: %s\n"), reqLength, lpszFmt);*/
+#else
+            /* Default to a minimum required length of 100 and let _vsntprintf figure it out. */
+            reqLength = 100;
+#endif
+            
+            /* Make sure our buffer is large enough to store the expanded string. */
+            if ( threadMessageBufferSize == 0 ) {
                 /* No buffer yet. Allocate one to get started. */
-                threadMessageBufferSize = 100;
+                threadMessageBufferSize = reqLength;
                 threadMessageBuffer = malloc(sizeof(TCHAR) * threadMessageBufferSize);
                 if (!threadMessageBuffer) {
                     _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P1"));
@@ -2044,7 +2150,26 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
 #endif
                     return;
                 }
+            } else if (threadMessageBufferSize < reqLength) {
+                /* Free the old buffer for starters. */
+                free( threadMessageBuffer );
+                
+                /* Create the new buffer based on the required length. */
+                threadMessageBufferSize = reqLength;
+                
+                threadMessageBuffer = malloc(sizeof(TCHAR) * threadMessageBufferSize);
+                if (!threadMessageBuffer) {
+                    _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P2"));
+                    threadMessageBufferSize = 0;
+#if defined(UNICODE) && !defined(WIN32)
+                    if (flag == TRUE) {
+                        free(msg);
+                    }
+#endif
+                    return;
+                }
             }
+            
             /* Try writing to the buffer. */
             va_start( vargs, lpszFmt );
 #if defined(UNICODE) && !defined(WIN32)
@@ -2056,7 +2181,15 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
             /*
             _tprintf(TEXT(" vsnprintf->%d, size=%d\n"), count, threadMessageBufferSize );
             */
+            
             if ( ( count < 0 ) || ( count >= (int)threadMessageBufferSize ) ) {
+#if defined(VSNTPRINTF_PRECALC_BUFFER_SIZE)
+ #if defined(UNICODE) && !defined(WIN32)
+                _tprintf(TEXT("Expanded string failed to fit into thread message buffer of length %d: %S\n"), threadMessageBufferSize, msg);
+ #else
+                _tprintf(TEXT("Expanded string failed to fit into thread message buffer of length %d: %s\n"), threadMessageBufferSize, lpszFmt);
+ #endif
+#endif				
                 /* If the count is exactly equal to the buffer size then a null TCHAR was not written.
                  *  It must be larger.
                  * Windows will return -1 if the buffer is too small. If the number is
@@ -2078,7 +2211,7 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
 
                 threadMessageBuffer = malloc(sizeof(TCHAR) * threadMessageBufferSize);
                 if (!threadMessageBuffer) {
-                    _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P2"));
+                    _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P3"));
                     threadMessageBufferSize = 0;
 #if defined(UNICODE) && !defined(WIN32)
                     if (flag == TRUE) {

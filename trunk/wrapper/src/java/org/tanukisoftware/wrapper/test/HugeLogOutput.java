@@ -46,20 +46,25 @@ public class HugeLogOutput {
         }
         
         // This next test is to check for a speed problem which used to exist with VERY large log lines.
+        // Loop printing out 10 lines of increasing length.
         System.out.println( "Print out 10 very long lines of output." );
-        // Create a string that is 1,000,060 chars long (16130 copies)
         sb = new StringBuffer();
-        for ( int i = 0; i < 16130; i++ )
+        for ( int j = 0; j < 10; j++ )
         {
-            sb.append( subStr );
-        }
-        String hugeStr = sb.toString();
-        // Now loop and print this to the console 3 times.  Log the time before each line.
-        for ( int i = 0; i < 3; i++ )
-        {
+            // Increase the size of the buffer by 100,006 chars each cyle (62*1613 copies)
+            // After the 10th loop, it will be 1,000,060 chars long.
+            for ( int i = 0; i < 1613; i++ )
+            {
+                sb.append( subStr );
+            }
+            String hugeStr = sb.toString();
+            
+            System.out.println();
+            System.out.println( "Loop #" + j + " Size: " + hugeStr.length() );
             System.out.println( df.format( new Date() ) );
             System.out.println( hugeStr );
         }
+        
         System.out.println( "All done." );
     }
 }

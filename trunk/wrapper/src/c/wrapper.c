@@ -1986,7 +1986,7 @@ int wrapperProtocolRead() {
 
         /* If we have an open client backend, then use it. */
         if (((wrapperData->backendType == WRAPPER_BACKEND_TYPE_SOCKET) && (protocolActiveBackendSD == INVALID_SOCKET)) ||
-            ((wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) && (protocolActiveServerPipeConnected == FALSE))) {			
+            ((wrapperData->backendType == WRAPPER_BACKEND_TYPE_PIPE) && (protocolActiveServerPipeConnected == FALSE))) {
             /* A Client backend is not open */
             /* Is the server backend open? */
             if (!wrapperCheckServerBackend(FALSE)) {
@@ -5507,10 +5507,10 @@ int wrapperBuildJavaClasspath(TCHAR **classpath) {
                     len2 = _tcslen(files[cnt]);
 
                     /* Is there room for the entry? */
-                    while (cpLen + len2 + 3 > cpLenAlloc) {
+                    if (cpLen + len2 + 3 > cpLenAlloc) {
                         /* Resize the buffer */
                         tmpString = *classpath;
-                        cpLenAlloc += 1024;
+                        cpLenAlloc += len2 + 3;
                         *classpath = malloc(sizeof(TCHAR) * cpLenAlloc);
                         if (!*classpath) {
                             if (propStripped != prop) {
@@ -5578,10 +5578,10 @@ int wrapperBuildJavaClasspath(TCHAR **classpath) {
                 propBaseDir = NULL;
 
                 /* Is there room for the entry? */
-                while (cpLen + len2 + 3 > cpLenAlloc) {
+                if (cpLen + len2 + 3 > cpLenAlloc) {
                     /* Resize the buffer */
                     tmpString = *classpath;
-                    cpLenAlloc += 1024;
+                    cpLenAlloc += len2 + 3;
                     *classpath = malloc(sizeof(TCHAR) * cpLenAlloc);
                     if (!*classpath) {
                         outOfMemory(TEXT("WBJCP"), 4);
