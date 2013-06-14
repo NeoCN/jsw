@@ -617,6 +617,10 @@ void throwThrowable(JNIEnv *env, char *throwableClassName, const TCHAR *lpszFmt,
         if (messageBufferSize == 0) {
             /* No buffer yet. Allocate one to get started. */
             messageBufferSize = 100;
+#if defined(HPUX)
+            /* Due to a bug in the HPUX libc (version < 1403), the length of the buffer passed to _vsntprintf must have a length of 1 + N, where N is a multiple of 8.  Adjust it as necessary. */
+            messageBufferSize = messageBufferSize + (((messageBufferSize - 1) % 8) == 0 ? 0 : 8 - ((messageBufferSize - 1) % 8)); 
+#endif
             messageBuffer = (TCHAR*)malloc( messageBufferSize * sizeof(TCHAR));
             if (!messageBuffer) {
                 throwOutOfMemoryError(env, TEXT("TT1"));
@@ -648,6 +652,10 @@ void throwThrowable(JNIEnv *env, char *throwableClassName, const TCHAR *lpszFmt,
             } else {
                 messageBufferSize = count + 1;
             }
+#if defined(HPUX)
+            /* Due to a bug in the HPUX libc (version < 1403), the length of the buffer passed to _vsntprintf must have a length of 1 + N, where N is a multiple of 8.  Adjust it as necessary. */
+            messageBufferSize = messageBufferSize + (((messageBufferSize - 1) % 8) == 0 ? 0 : 8 - ((messageBufferSize - 1) % 8)); 
+#endif
 
             messageBuffer = (TCHAR*)malloc(messageBufferSize * sizeof(TCHAR));
             if (!messageBuffer) {

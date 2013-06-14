@@ -2,7 +2,7 @@ Java Service Wrapper Revision History.
 --------------------------------------
 
 3.5.20
-* Further improvments to the memory footprint of the Wrapper to minimize the
+* Further improvements to the memory footprint of the Wrapper to minimize the
   memory required when logging JVM output consisting of very long lines.
 * Fix a minor potential buffer overflow, which could occur if the path of the
   first classpath element is larger than 1024 characters. This overflow was
@@ -10,16 +10,20 @@ Java Service Wrapper Revision History.
   caused any problems.
 * Improve the error message displayed when the Wrapper's configuration file
   could not be loaded so that it now includes the name of the file.
-* Work around a system library bug on some parisc HPUX platforms in which calls
+* Work around a libc system library bug on some HPUX platforms in which calls
   to vswprintf can cause a crash if the expanded string does not fit into the
-  buffer.  We worked around the problem by precalculating the required buffer
-  size manually.
+  buffer.  Worked around the problem with the help of HP support by making sure
+  the buffer length followed a rule so that its length was 1+N where N is a
+  multiple of 8.
 * Fix a problem on HPUX platforms where the JVM would sometimes get stuck on
   shutdown, when the shutdown was initiated within the JVM, leading to the
   Wrapper having to forcibly kill it.  This was caused by the Wrapper
   attempting to close the backend socket when another read was blocking
-  attempting to read from the same socket.  This was intruduced in version
-  3.5.8. 
+  attempting to read from the same socket.  This was introduced in version
+  3.5.8.
+* Fix a potential log corruption when queued log messages were larger than the
+  internal buffer size.  Found during a code review and is not known to have
+  actually caused any problems.
 
 3.5.19
 * Fix a problem in the batch file, where a space in the path to the Wrapper.exe
