@@ -7,7 +7,7 @@
 # license agreement you entered into with Tanuki Software.
 # http://wrapper.tanukisoftware.com/doc/english/licenseOverview.html
 
-COMPILE = cc +z +DD64 -D_INCLUDE__STDC_A1_SOURCE -O3 -Wall -DHPUX -DJSW64 -DUNICODE -D_UNICODE -DVSNTPRINTF_PRECALC_BUFFER_SIZE
+COMPILE = cc +z +DD64 -D_INCLUDE__STDC_A1_SOURCE -O3 -Wall -DHPUX -DJSW64 -DUNICODE -D_UNICODE
 
 INCLUDE=$(JAVA_HOME)/include
 
