@@ -1051,7 +1051,7 @@ installdaemon() {
         APP_NAME_LOWER=`echo "$APP_NAME" | $TREXE "[A-Z]" "[a-z]"`
         if [ "$DIST_OS" = "solaris" ] ; then
             eval echo `gettext 'Detected Solaris:'`
-            if [ -f "/etc/init.d/$APP_NAME" -o -L "/etc/init.d/$APP_NAME"] ; then
+            if [ -f "/etc/init.d/$APP_NAME" -o -L "/etc/init.d/$APP_NAME" ] ; then
                 eval echo `gettext ' The $APP_LONG_NAME daemon is already installed.'`
                 exit 1
             else
