@@ -24,6 +24,8 @@ Java Service Wrapper Revision History.
 * Fix a potential log corruption when queued log messages were larger than the
   internal buffer size.  Found during a code review and is not known to have
   actually caused any problems.
+* Fix a typo in the shell script which was breaking the 'install' command on
+  Solaris platforms.
 
 3.5.19
 * Fix a problem in the batch file, where a space in the path to the Wrapper.exe
