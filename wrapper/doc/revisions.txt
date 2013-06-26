@@ -26,6 +26,8 @@ Java Service Wrapper Revision History.
   actually caused any problems.
 * Fix a typo in the shell script which was breaking the 'install' command on
   Solaris platforms.
+* Fix a potential crash on HPUX platforms if the value of the
+  wrapper.port.address property had an encoding problem.
 
 3.5.19
 * Fix a problem in the batch file, where a space in the path to the Wrapper.exe
