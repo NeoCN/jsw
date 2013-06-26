@@ -1156,7 +1156,7 @@ void protocolStartServerSocket() {
 #else
         len = wcstombs(NULL, wrapperData->portAddress, 0) + 1;
         _tprintf(TEXT("%d  hanth %s\n"), len, wrapperData->portAddress);
-        if (len < 0) {
+        if (len == (size_t)-1) {
             log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN,
                 TEXT("Invalid multibyte sequence in port address \"%s\" : %s"), wrapperData->portAddress, getLastErrorText());
             return;
