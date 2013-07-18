@@ -1,6 +1,12 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 
+3.5.21
+* When the ACCESS_VIOLATION testing command of the wrapper.commandfile was used
+  to kill the Wrapper some log output was not making it into the wrapper.log
+  file.  Add a forced flush just before crashing the Wrapper to make sure
+  everything makes it into the log file.
+
 3.5.20
 * Further improvements to the memory footprint of the Wrapper to minimize the
   memory required when logging JVM output consisting of very long lines.

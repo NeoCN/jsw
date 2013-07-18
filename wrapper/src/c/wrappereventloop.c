@@ -716,6 +716,10 @@ void commandPoll(TICKS nowTicks) {
                     }
                     
                     if (accessViolation) {
+                        /* Make sure that everything is logged before the crash. */
+                        flushLogfile();
+                        
+                        /* Actually cause the access violation. */
                         c = NULL;
                         c[0] = TEXT('\0');
                         /* Should never get here. */
