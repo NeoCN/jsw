@@ -106,6 +106,9 @@ int logPrintfWarnThreshold = 0;
 /* Number of millisecoonds which the previous log message took to process. */
 time_t previousLogLag;
 
+/* Keep track of when the last log entry was made so we can show the information in the log. */
+time_t previousNow;
+int    previousNowMillis;
 
 /* Initialize all log levels to unknown until they are set */
 int currentConsoleLevel = LEVEL_UNKNOWN;
@@ -1185,6 +1188,29 @@ void setSyslogEventSourceName( const TCHAR *event_source_name ) {
     }
 }
 
+void resetDuration() {
+#ifdef WIN32
+    struct _timeb timebNow;
+#else
+    struct timeval timevalNow;
+#endif
+    time_t      now;
+    int         nowMillis;
+
+#ifdef WIN32
+    _ftime(&timebNow);
+    now = (time_t)timebNow.time;
+    nowMillis = timebNow.millitm;
+#else
+    gettimeofday(&timevalNow, NULL);
+    now = (time_t)timevalNow.tv_sec;
+    nowMillis = timevalNow.tv_usec / 1000;
+#endif
+    
+    previousNow = now;
+    previousNowMillis = nowMillis;
+}
+    
 int getLowLogLevel() {
     int lowLogLevel = (currentLogfileLevel < currentConsoleLevel ? currentLogfileLevel : currentConsoleLevel);
     lowLogLevel =  (currentLoginfoLevel < lowLogLevel ? currentLoginfoLevel : lowLogLevel);
@@ -1216,7 +1242,7 @@ TCHAR* preparePrintBuffer(size_t reqSize) {
 
 /* Writes to and then returns a buffer that is reused by the current thread.
  *  It should not be released. */
-TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, struct tm *nowTM, int nowMillis, const TCHAR *format, const TCHAR *defaultFormat, const TCHAR *message ) {
+TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, struct tm *nowTM, int nowMillis, time_t durationMillis, const TCHAR *format, const TCHAR *defaultFormat, const TCHAR *message) {
     int       i;
     size_t    reqSize;
     int       numColumns;
@@ -1272,6 +1298,12 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
             numColumns++;
             break;
 
+        case TEXT('R'):
+        case TEXT('r'):
+            reqSize += 8 + 3;
+            numColumns++;
+            break;
+
         case TEXT('G'):
         case TEXT('g'):
             reqSize += 10 + 3;
@@ -1290,7 +1322,7 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
         /* This means that the specified format was completely invalid.
          *  Recurse using the defaultFormat instead.
          *  The alternative would be to log an empty line, which is useless to everyone. */
-        return buildPrintBuffer( source_id, level, threadId, queued, nowTM, nowMillis, defaultFormat, NULL /* No default. Prevent further recursion. */, message );
+        return buildPrintBuffer( source_id, level, threadId, queued, nowTM, nowMillis, durationMillis, defaultFormat, NULL /* No default. Prevent further recursion. */, message );
     }
 
     /* Always add room for the null. */
@@ -1399,6 +1431,18 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
                 temp = _sntprintf( pos, reqSize - len, TEXT("--------") );
             } else {
                 temp = _sntprintf( pos, reqSize - len, TEXT("%8d"), uptimeSeconds);
+            }
+            currentColumn++;
+            break;
+            
+        case TEXT('R'):
+        case TEXT('r'):
+            if (durationMillis == (time_t)-1) {
+                temp = _sntprintf( pos, reqSize - len, TEXT("        ") );
+            } else if (durationMillis > 99999999) {
+                temp = _sntprintf( pos, reqSize - len, TEXT("99999999") );
+            } else {
+                temp = _sntprintf( pos, reqSize - len, TEXT("%8d"), durationMillis);
             }
             currentColumn++;
             break;
@@ -1535,7 +1579,7 @@ void log_printf_message_sysLog(int source_id, int level, TCHAR *message, struct 
  *
  * @return True if the logfile name changed.
  */
-int log_printf_message_logFileInner(int source_id, int level, int threadId, int queued, TCHAR *message, struct tm *nowTM, int nowMillis) {
+int log_printf_message_logFileInner(int source_id, int level, int threadId, int queued, TCHAR *message, struct tm *nowTM, int nowMillis, time_t durationMillis) {
     int logFileChanged = FALSE;
     TCHAR nowDate[9];
     TCHAR *printBuffer;
@@ -1644,7 +1688,7 @@ int log_printf_message_logFileInner(int source_id, int level, int threadId, int 
             _tcsncpy(logFileLastNowDate, nowDate, 9);
 
             /* Build up the printBuffer. */
-            printBuffer = buildPrintBuffer(source_id, level, threadId, queued, nowTM, nowMillis, logfileFormat, LOG_FORMAT_LOGFILE_DEFAULT, message);
+            printBuffer = buildPrintBuffer(source_id, level, threadId, queued, nowTM, nowMillis, durationMillis, logfileFormat, LOG_FORMAT_LOGFILE_DEFAULT, message);
             if (printBuffer) {
                 _ftprintf(logfileFP, TEXT("%s\n"), printBuffer);
                 logFileAccessed = TRUE;
@@ -1671,11 +1715,11 @@ int log_printf_message_logFileInner(int source_id, int level, int threadId, int 
     
     return logFileChanged;
 }
-int log_printf_message_logFile(int source_id, int level, int threadId, int queued, TCHAR *message, struct tm *nowTM, int nowMillis) {
+int log_printf_message_logFile(int source_id, int level, int threadId, int queued, TCHAR *message, struct tm *nowTM, int nowMillis, time_t durationMillis) {
     int logFileChanged = FALSE;
     
     if (level >= currentLogfileLevel) {
-        logFileChanged = log_printf_message_logFileInner(source_id, level, threadId, queued, message, nowTM, nowMillis);
+        logFileChanged = log_printf_message_logFileInner(source_id, level, threadId, queued, message, nowTM, nowMillis, durationMillis);
     }
     
     return logFileChanged;
@@ -1687,12 +1731,12 @@ int log_printf_message_logFile(int source_id, int level, int threadId, int queue
  *
  * Must be called while locked.
  */
-void log_printf_message_consoleInner(int source_id, int level, int threadId, int queued, TCHAR *message, struct tm *nowTM, int nowMillis) {
+void log_printf_message_consoleInner(int source_id, int level, int threadId, int queued, TCHAR *message, struct tm *nowTM, int nowMillis, time_t durationMillis) {
     TCHAR *printBuffer;
     FILE *target;
     
     /* Build up the printBuffer. */
-    printBuffer = buildPrintBuffer(source_id, level, threadId, queued, nowTM, nowMillis, consoleFormat, LOG_FORMAT_CONSOLE_DEFAULT, message);
+    printBuffer = buildPrintBuffer(source_id, level, threadId, queued, nowTM, nowMillis, durationMillis, consoleFormat, LOG_FORMAT_CONSOLE_DEFAULT, message);
     if (printBuffer) {
         /* Decide where to send the output. */
         switch (level) {
@@ -1746,9 +1790,9 @@ void log_printf_message_consoleInner(int source_id, int level, int threadId, int
 #endif
     }
 }
-void log_printf_message_console(int source_id, int level, int threadId, int queued, TCHAR *message, struct tm *nowTM, int nowMillis) {
+void log_printf_message_console(int source_id, int level, int threadId, int queued, TCHAR *message, struct tm *nowTM, int nowMillis, time_t durationMillis) {
     if (level >= currentConsoleLevel) {
-        log_printf_message_consoleInner(source_id, level, threadId, queued, message, nowTM, nowMillis);
+        log_printf_message_consoleInner(source_id, level, threadId, queued, message, nowTM, nowMillis, durationMillis);
     }
 }
 
@@ -1784,6 +1828,7 @@ int log_printf_message(int source_id, int level, int threadId, int queued, TCHAR
     time_t      now;
     int         nowMillis;
     struct tm   *nowTM;
+    time_t      durationMillis;
     
 #ifndef WIN32
     if ((_tcsstr(message, LOG_SPECIAL_MARKER) == message) && (_tcslen(message) >= _tcslen(LOG_SPECIAL_MARKER) + 10)) {
@@ -1828,6 +1873,29 @@ int log_printf_message(int source_id, int level, int threadId, int queued, TCHAR
 #endif
     nowTM = localtime( &now );
     
+    /* Calculate the number of milliseconds which have passed since the previous log entry.
+     * We only need to display up to 8 digits, so if the result is going to be larger than
+     *  that, set it to 100000000.
+     * We only want to do this for output coming from the JVM.  Any other log output should
+     *  be set to (time_t)-1. */
+    switch(source_id) {
+    case WRAPPER_SOURCE_WRAPPER:
+    case WRAPPER_SOURCE_PROTOCOL:
+        durationMillis = (time_t)-1;
+        break;
+        
+    default:
+        if (now - previousNow > 100000) {
+            /* Without looking at the millis, we know it is already too long. */
+            durationMillis = 100000000;
+        } else {
+            durationMillis = (now - previousNow) * 1000 + nowMillis - previousNowMillis;
+        }
+        previousNow = now;
+        previousNowMillis = nowMillis;
+        break;
+    }
+        
     /* Syslog messages are printed first so we can print them including line feeds as is.
      *  This must be done before we break up multi-line messages into individual lines. */
 #ifdef WIN32
@@ -1921,10 +1989,10 @@ int log_printf_message(int source_id, int level, int threadId, int queued, TCHAR
     }
 
     /* Console output by format */
-    log_printf_message_console(source_id, level, threadId, queued, message, nowTM, nowMillis);
+    log_printf_message_console(source_id, level, threadId, queued, message, nowTM, nowMillis, durationMillis);
 
     /* Logfile output by format */
-    logFileChanged = log_printf_message_logFile(source_id, level, threadId, queued, message, nowTM, nowMillis);
+    logFileChanged = log_printf_message_logFile(source_id, level, threadId, queued, message, nowTM, nowMillis, durationMillis);
 
     return logFileChanged;
 }
