@@ -271,6 +271,8 @@ extern int registerSyslogMessageFile();
 extern int unregisterSyslogMessageFile();
 
 
+extern void resetDuration();
+
 extern int getLowLogLevel();
 
 /* * General log functions * */

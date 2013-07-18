@@ -1154,6 +1154,10 @@ void wrapperExecute() {
      *  threads do not reopen the log file as the new process is being created. */
     setLogfileAutoClose(TRUE);
     closeLogfile();
+        
+    /* Reset the log duration so we get new counts from the time the JVM is launched. */
+    resetDuration();
+    
     /* Fork off the child. */
     proc = fork();
 
