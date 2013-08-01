@@ -266,6 +266,21 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
 wrapper.debug=TRUE]]></replacevalue>
         </replace>
         
+        <!-- Timed Log Output Test -->
+        <delete file="${test.dir}/timedlogoutput.conf"/>
+        <filter token="app.name"          value="timedlogoutput"/>
+        <filter token="app.long.name"     value="Timed Log Output Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/timedlogoutput.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/timedlogoutput.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.TimedLogOutput" />
+        <replace file="${test.dir}/timedlogoutput.conf">
+            <replacetoken>wrapper.console.format=PM</replacetoken>
+            <replacevalue><![CDATA[wrapper.console.format=PZRM]]></replacevalue>
+        </replace>
+        
         <!-- Log StdOutStdErr Test -->
         <delete file="${test.dir}/logstdoutstderr.conf"/>
         <filter token="app.name"          value="logstdoutstderr"/>
@@ -950,6 +965,18 @@ set ENV_VAR_4=d]]></replacevalue>
                  token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
                  value='set _WRAPPER_CONF_DEFAULT=../test/loadedlogoutput.conf' />
         
+        <!-- Timed Log Output Test -->
+        <delete file="${test.dir}/TestTimedLogOutput.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestTimedLogOutput.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestTimedLogOutput.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestTimedLogOutput.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/timedlogoutput.conf' />
+        
         <!-- Log StdOutStdErr Test -->
         <delete file="${test.dir}/TestLogStdoutStderr.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
@@ -1470,6 +1497,14 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/loadedlogoutput"
               filtering="on"/>
         <chmod file="${test.dir}/loadedlogoutput" perm="+x"/>
+        
+        <!-- Timed Log Output Test -->
+        <filter token="app.name"          value="timedlogoutput"/>
+        <filter token="app.long.name"     value="Timed Log Output Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/timedlogoutput"
+              filtering="on"/>
+        <chmod file="${test.dir}/timedlogoutput" perm="+x"/>
         
         <!-- Log StdOutStdErr Test -->
         <filter token="app.name"          value="logstdoutstderr"/>

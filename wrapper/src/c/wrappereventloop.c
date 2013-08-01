@@ -1907,7 +1907,8 @@ void wrapperEventLoop() {
             if (wrapperData->isLoopOutputEnabled) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    Loop: process JVM output"));
             }
-            if (wrapperReadChildOutput()) {
+            /* Request that the processing of child output not take more than 250ms. */
+            if (wrapperReadChildOutput(250)) {
                 if (wrapperData->isDebugging) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                         TEXT("Pause reading child process output to share cycles."));

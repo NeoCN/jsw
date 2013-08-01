@@ -3233,14 +3233,20 @@ void safeMemCpy(char *buffer, size_t target, size_t src, size_t nbyte) {
 
 /**
  * Read and process any output from the child JVM Process.
- * Most output should be logged to the wrapper log file.
  *
- * This function will only be allowed to run for 250ms before returning.  This is to
- *  make sure that the main loop gets CPU.  If there is more data in the pipe, then
- *  the function returns TRUE, otherwise FALSE.  This is a hint to the mail loop not to
- *  sleep.
+ * When maxTimeMS is non-zero this function will only be allowed to run for that maximum
+ *  amount of time.  This is done to make sure the calling function is allowed CPU for
+ *  other activities.   When timing out for this reason when there is more data in the
+ *  pipe, this function will return TRUE to let the calling code know that it should
+ *  not to any unnecessary sleeps.  Otherwise FALSE will be returned.
+ *
+ * @param maxTimeMS The maximum number of milliseconds that this function will be allowed
+ *                  to run without returning.  In reality no new reads will happen after
+ *                  this time, but actual processing may take longer.
+ *
+ * @return TRUE if the calling code should call this function again as soon as possible.
  */
-int wrapperReadChildOutput() {
+int wrapperReadChildOutput(int maxTimeMS) {
     struct timeb timeBuffer;
     time_t startTime;
     int startTimeMillis;
@@ -3250,6 +3256,7 @@ int wrapperReadChildOutput() {
     char *tempBuffer;
     char *cLF;
     int currentBlockRead;
+    size_t loggedOffset;
     int defer = FALSE;
     int readThisPass = FALSE;
     size_t removeLen = 0;
@@ -3277,7 +3284,7 @@ int wrapperReadChildOutput() {
     /* Loop and read in CHILD_BLOCK_SIZE characters at a time.
      *
      * To keep a JVM outputting lots of content from freezing the Wrapper, we force a return every 250ms. */
-    while ((durr = (now - startTime) * 1000 + (nowMillis - startTimeMillis)) < 250) {
+    while ((maxTimeMS <= 0) || ((durr = (now - startTime) * 1000 + (nowMillis - startTimeMillis)) < maxTimeMS)) {
 #ifdef DEBUG_CHILD_OUTPUT
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("durr=%ld"), durr);
 #endif
@@ -3308,7 +3315,7 @@ int wrapperReadChildOutput() {
         }
 
 #ifdef DEBUG_CHILD_OUTPUT
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Read from pipe.  buffLen=%d, buffSize=%d"), wrapperChildWorkBufferLen, wrapperChildWorkBufferSize);
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Try reading from pipe.  totalBuffLen=%d, buffSize=%d"), wrapperChildWorkBufferLen, wrapperChildWorkBufferSize);
 #endif
         if (wrapperReadChildOutputBlock(wrapperChildWorkBuffer + (wrapperChildWorkBufferLen), (int)(wrapperChildWorkBufferSize - wrapperChildWorkBufferLen), &currentBlockRead)) {
             /* Error already reported. */
@@ -3321,20 +3328,29 @@ int wrapperReadChildOutput() {
             wrapperChildWorkLastDataTime = now;
             wrapperChildWorkLastDataTimeMillis = nowMillis;
             readThisPass = TRUE;
+#ifdef DEBUG_CHILD_OUTPUT
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("  Read %d bytes of new output.  totalBuffLen=%d, buffSize=%d"), currentBlockRead, wrapperChildWorkBufferLen, wrapperChildWorkBufferSize);
+#endif
         }
 
         /* Terminate the string just to avoid errors.  The buffer has an extra character to handle this. */
         wrapperChildWorkBuffer[wrapperChildWorkBufferLen] = '\0';
+        
+        /* Loop over the contents of the buffer and try and extract as many lines as possible.
+         *  Keep track of where we are to avoid unnecessary memory copies.
+         *  At this point, the entire buffer will always be unlogged. */
+        loggedOffset = 0;
         defer = FALSE;
-        while ((wrapperChildWorkBufferLen > 0) && (!defer)) {
+        while ((wrapperChildWorkBufferLen > loggedOffset) && (!defer)) {
 #ifdef DEBUG_CHILD_OUTPUT
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Inner loop.  buffLen=%d, buffSize=%d"), wrapperChildWorkBufferLen, wrapperChildWorkBufferSize);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Inner loop.  totalBuffLen=%d, loggedOffset=%d, unloggedBuffLen=%d, buffSize=%d"), wrapperChildWorkBufferLen, loggedOffset, wrapperChildWorkBufferLen - loggedOffset, wrapperChildWorkBufferSize);
 #endif
             /* We have something in the buffer.  Loop and see if we have a complete line to log.
              * We will always find a LF at the end of the line.  On Windows there may be a CR immediately before it. */
-            cLF = strchr(wrapperChildWorkBuffer, (char)CHAR_LF);
+            cLF = strchr(wrapperChildWorkBuffer + loggedOffset, (char)CHAR_LF);
 
             if (cLF != NULL) {
+                /* We found a valid LF so we know that a full line is ready to be logged. */
 #ifdef WIN32
                 if ((cLF > wrapperChildWorkBuffer) && ((cLF - sizeof(char))[0] == 0x0d)) {
  #ifdef DEBUG_CHILD_OUTPUT
@@ -3357,29 +3373,24 @@ int wrapperReadChildOutput() {
 #ifdef DEBUG_CHILD_OUTPUT
  #ifdef UNICODE
                 /* It is not easy to log the string as is because they are not wide chars. Send it only to stdout. */
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Log: (see stdout)"), wrapperChildWorkBuffer);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Log: (see stdout)"));
   #ifdef WIN32
-                wprintf(TEXT("Log: [%S]\n"), wrapperChildWorkBuffer);
+                wprintf(TEXT("Log: [%S]\n"), wrapperChildWorkBuffer + loggedOffset);
   #else
-                wprintf(TEXT("Log: [%s]\n"), wrapperChildWorkBuffer);
+                wprintf(TEXT("Log: [%s]\n"), wrapperChildWorkBuffer + loggedOffset);
   #endif
  #else
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Log: [%s]"), wrapperChildWorkBuffer);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Log: [%s]"), wrapperChildWorkBuffer + loggedOffset);
  #endif
 #endif
-                logChildOutput(wrapperChildWorkBuffer);
-                /* Remove the line we just logged from the buffer by moving the rest up. */
-
-                removeLen = cLF - wrapperChildWorkBuffer + 1;
+                /* Actually log the individual line of output. */
+                logChildOutput(wrapperChildWorkBuffer + loggedOffset);
+                
+                /* Update the offset so we know how far we've logged. */
+                loggedOffset = cLF - wrapperChildWorkBuffer + 1;
 #ifdef DEBUG_CHILD_OUTPUT
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("removeLen: %d"), removeLen);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("loggedOffset: %d"), loggedOffset);
 #endif
-
-                /* NOTE - This line intentionally does the copy within the same memory space.  It is safe the way it is working however. */
-                wrapperChildWorkBufferLen = wrapperChildWorkBufferLen - removeLen;
-                safeMemCpy(wrapperChildWorkBuffer, 0, removeLen, wrapperChildWorkBufferLen);
-                /* just to make sure the buffer has been ended properly */
-                wrapperChildWorkBuffer[wrapperChildWorkBufferLen] = 0;
             } else {
                 /* If we read this pass or if the last character is a CR on Windows then we always want to defer. */
                 if (readThisPass
@@ -3397,9 +3408,9 @@ int wrapperReadChildOutput() {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Incomplete line.  Defer: (see stdout)  Age: %d"),
                         (now - wrapperChildWorkLastDataTime) * 1000 + (nowMillis - wrapperChildWorkLastDataTimeMillis));
   #ifdef WIN32
-                    wprintf(TEXT("Defer Log: [%S]\n"), wrapperChildWorkBuffer);
+                    wprintf(TEXT("Defer Log: [%S]\n"), wrapperChildWorkBuffer + loggedOffset);
   #else
-                    wprintf(TEXT("Defer Log: [%s]\n"), wrapperChildWorkBuffer);
+                    wprintf(TEXT("Defer Log: [%s]\n"), wrapperChildWorkBuffer + loggedOffset);
   #endif
  #else
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Incomplete line.  Defer: [%s]  Age: %d"), wrapperChildWorkBuffer,
@@ -3408,7 +3419,7 @@ int wrapperReadChildOutput() {
 #endif
                     defer = TRUE;
                 } else {
-                    /* We have an incomplete line, but it was from a previous pass, so we want to log it as it may be a prompt.
+                    /* We have an incomplete line, but it was from a previous pass and is old enough, so we want to log it as it may be a prompt.
                      *  This will always be the complete buffer. */
 #ifdef DEBUG_CHILD_OUTPUT
  #ifdef UNICODE
@@ -3416,20 +3427,51 @@ int wrapperReadChildOutput() {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Incomplete line, but log now: (see stdout)  Age: %d"),
                         (now - wrapperChildWorkLastDataTime) * 1000 + (nowMillis - wrapperChildWorkLastDataTimeMillis));
   #ifdef WIN32
-                    wprintf(TEXT("Log: [%S]\n"), wrapperChildWorkBuffer);
+                    wprintf(TEXT("Log: [%S]\n"), wrapperChildWorkBuffer + loggedOffset);
   #else
-                    wprintf(TEXT("Log: [%s]\n"), wrapperChildWorkBuffer);
+                    wprintf(TEXT("Log: [%s]\n"), wrapperChildWorkBuffer + loggedOffset);
   #endif
  #else
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Incomplete line, but log now: [%s]  Age: %d"), wrapperChildWorkBuffer,
                         (now - wrapperChildWorkLastDataTime) * 1000 + (nowMillis - wrapperChildWorkLastDataTimeMillis));
  #endif
 #endif
-                    logChildOutput(wrapperChildWorkBuffer);
+                    logChildOutput(wrapperChildWorkBuffer + loggedOffset);
+                    /* We know we read everything. */
+                    loggedOffset = wrapperChildWorkBufferLen;
+                    
+                    /* So we can safely reset the loggedOffset and clear the buffer. */
                     wrapperChildWorkBuffer[0] = '\0';
                     wrapperChildWorkBufferLen = 0;
+                    loggedOffset = 0;
                 }
             }
+        }
+        
+        /* We have read as many lines from the buffered output as possible.
+         *  If we still have any partial lines, then we need to make sure they are moved to the beginning of the buffer so we can read in another block. */
+        if (loggedOffset > 0) {
+            if (loggedOffset >= wrapperChildWorkBufferLen) {
+                /* We know we have read everything in.  So we can efficiently clear the buffer. */
+#ifdef DEBUG_CHILD_OUTPUT
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Cleared Buffer as everything was logged."));
+#endif
+                wrapperChildWorkBuffer[0] = '\0';
+                wrapperChildWorkBufferLen = 0;
+                /* loggedOffset = 0; Not needed. */
+            } else {
+                /* We have logged one or more lines from the buffer, but unlogged content still exists.  It needs to be moved to the head of the buffer. */
+#ifdef DEBUG_CHILD_OUTPUT
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Moving %d bytes in buffer for next cycle."), wrapperChildWorkBufferLen - loggedOffset);
+#endif
+                /* NOTE - This line intentionally does the copy within the same memory space.  It is safe the way it is working however. */
+                wrapperChildWorkBufferLen = wrapperChildWorkBufferLen - loggedOffset;
+                safeMemCpy(wrapperChildWorkBuffer, 0, loggedOffset, wrapperChildWorkBufferLen);
+                /* Shouldn't be needed, but just to make sure the buffer has been ended properly */
+                wrapperChildWorkBuffer[wrapperChildWorkBufferLen] = 0;
+                /* loggedOffset = 0; Not needed. */
+            }
+        } else {
         }
 
         if (currentBlockRead <= 0) {
@@ -3440,7 +3482,8 @@ int wrapperReadChildOutput() {
 #endif
             } else {
 #ifdef DEBUG_CHILD_OUTPUT
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("wrapperReadChildOutput() END"));
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, 
+                TEXT("wrapperReadChildOutput() END"));
 #endif
             }
             return FALSE;
@@ -7261,14 +7304,35 @@ int loadConfiguration() {
     if (!wrapperData->configured) {
         wrapperData->useSystemTime = getBooleanProperty(properties, TEXT("wrapper.use_system_time"), FALSE, TRUE);
     }
+    
+#ifdef WIN32
+    /* Get the use javaio buffer size. */
+    if (!wrapperData->configured) {
+        wrapperData->javaIOBufferSize = getIntProperty(properties, TEXT("wrapper.javaio.buffer_size"), WRAPPER_JAVAIO_BUFFER_SIZE_DEFAULT, TRUE);
+        if (wrapperData->javaIOBufferSize == WRAPPER_JAVAIO_BUFFER_SIZE_SYSTEM_DEFAULT) {
+            /* Ok. System default buffer size. */
+        } else if (wrapperData->javaIOBufferSize < WRAPPER_JAVAIO_BUFFER_SIZE_MIN) {
+            wrapperData->javaIOBufferSize = WRAPPER_JAVAIO_BUFFER_SIZE_MIN;
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                TEXT("%s must be in the range %d to %d or %d.  Changing to %d."), TEXT("wrapper.javaio.buffer_size"), WRAPPER_JAVAIO_BUFFER_SIZE_MIN, WRAPPER_JAVAIO_BUFFER_SIZE_MAX, WRAPPER_JAVAIO_BUFFER_SIZE_SYSTEM_DEFAULT, wrapperData->javaIOBufferSize);
+        } else if (wrapperData->javaIOBufferSize > WRAPPER_JAVAIO_BUFFER_SIZE_MAX) {
+            wrapperData->javaIOBufferSize = WRAPPER_JAVAIO_BUFFER_SIZE_MAX;
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
+                TEXT("%s must be in the range %d to %d or %d.  Changing to %d."), TEXT("wrapper.javaio.buffer_size"), WRAPPER_JAVAIO_BUFFER_SIZE_MIN, WRAPPER_JAVAIO_BUFFER_SIZE_MAX, WRAPPER_JAVAIO_BUFFER_SIZE_SYSTEM_DEFAULT, wrapperData->javaIOBufferSize);
+        }
+    }
+#endif
+    
     /* Get the use javaio thread flag. */
     if (!wrapperData->configured) {
-        wrapperData->useJavaIOThread = getBooleanProperty(properties, TEXT("wrapper.use_javaio_thread"), FALSE, TRUE);
+        wrapperData->useJavaIOThread = getBooleanProperty(properties, TEXT("wrapper.javaio.use_thread"), getBooleanProperty(properties, TEXT("wrapper.use_javaio_thread"), FALSE, TRUE), TRUE);
     }
+    
     /* Decide whether or not a mutex should be used to protect the tick timer. */
     if (!wrapperData->configured) {
         wrapperData->useTickMutex = getBooleanProperty(properties, TEXT("wrapper.use_tick_mutex"), FALSE, TRUE);
     }
+    
     /* Get the timer thresholds. Properties are in seconds, but internally we use ticks. */
     wrapperData->timerFastThreshold = getIntProperty(properties, TEXT("wrapper.timer_fast_threshold"), WRAPPER_TIMER_FAST_THRESHOLD * WRAPPER_TICK_MS / 1000, TRUE) * 1000 / WRAPPER_TICK_MS;
     wrapperData->timerSlowThreshold = getIntProperty(properties, TEXT("wrapper.timer_slow_threshold"), WRAPPER_TIMER_SLOW_THRESHOLD * WRAPPER_TICK_MS / 1000, TRUE) * 1000 / WRAPPER_TICK_MS;

@@ -1479,10 +1479,6 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
     return threadPrintBuffer;
 }
 
-void forceFlush(FILE *fp) {
-    fflush(fp);
-}
-
 /**
  * Generates a log file name given.
  *

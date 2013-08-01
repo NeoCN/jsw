@@ -10,6 +10,11 @@ Java Service Wrapper Revision History.
   to kill the Wrapper some log output was not making it into the wrapper.log
   file.  Add a forced flush just before crashing the Wrapper to make sure
   everything makes it into the log file.
+* Add a new wrapper.javaio.buffer_size property which makes it possible to
+  control the size of the internal buffer used to process console output from
+  the JVM.  Also increased the default from the system default to 65536 bytes.
+* Renamed the wrapper.use_javaio_thread property to wrapper.javaio.use_thread.
+  The old property still exists as a deprecated alias.
 
 3.5.20
 * Further improvements to the memory footprint of the Wrapper to minimize the
