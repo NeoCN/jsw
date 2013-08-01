@@ -449,7 +449,7 @@ int wrapperInitChildPipe() {
     saAttr.bInheritHandle = TRUE;
 
     /* Create a pipe for the child process's STDOUT. */
-    if (!CreatePipe(&childStdoutRd, &wrapperChildStdoutWr, &saAttr, 0)) {
+    if (!CreatePipe(&childStdoutRd, &wrapperChildStdoutWr, &saAttr, wrapperData->javaIOBufferSize)) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Stdout pipe creation failed  Err(%ld : %s)"),
             GetLastError(), getLastErrorText());
         return -1;
@@ -877,8 +877,8 @@ DWORD WINAPI javaIORunner(LPVOID parameter) {
         /* Loop until we are shutting down, but continue as long as there is more output from the JVM. */
         while ((!stopJavaIOThread) || (!nextSleep)) {
             if (nextSleep) {
-                /* Sleep for a hundredth of a second. */
-                wrapperSleep(10);
+                /* Sleep as little as possible. */
+                wrapperSleep(1);
             }
             nextSleep = TRUE;
             
@@ -887,7 +887,7 @@ DWORD WINAPI javaIORunner(LPVOID parameter) {
                 wrapperData->pauseThreadJavaIO = 0;
             }
             
-            if (wrapperReadChildOutput()) {
+            if (wrapperReadChildOutput(0)) {
                 if (wrapperData->isDebugging) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                         TEXT("Pause reading child process output to share cycles."));
@@ -3296,7 +3296,7 @@ int checkDomain() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("checkDomain: OpenPolicy returned %d\n"), status);
         if (!status) {
 #ifdef _DEBUG
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("checkDomain: LsaQueryInformationPolicy call ahead"));fflush(NULL);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("checkDomain: LsaQueryInformationPolicy call ahead"));
 #endif
             status = LsaQueryInformationPolicy(PolicyHandle, PolicyPrimaryDomainInformation, &ppdiDomainInfo);
 #ifdef _DEBUG

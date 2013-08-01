@@ -700,8 +700,8 @@ void *javaIORunner(void *arg) {
     /* Loop until we are shutting down, but continue as long as there is more output from the JVM. */
     while ((!stopJavaIOThread) || (!nextSleep)) {
         if (nextSleep) {
-            /* Sleep for a hundredth of a second. */
-            wrapperSleep(10);
+            /* Sleep as little as possible. */
+            wrapperSleep(1);
         }
         nextSleep = TRUE;
         
@@ -710,7 +710,7 @@ void *javaIORunner(void *arg) {
             wrapperData->pauseThreadJavaIO = 0;
         }
         
-        if (wrapperReadChildOutput()) {
+        if (wrapperReadChildOutput(0)) {
             if (wrapperData->isDebugging) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
                     TEXT("Pause reading child process output to share cycles."));

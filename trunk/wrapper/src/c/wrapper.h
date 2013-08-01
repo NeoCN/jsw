@@ -197,6 +197,11 @@ typedef unsigned long TICKS;
 #define CTRL_CODE_QUEUE_SIZE 26 /* Can enqueue one less than this count at any time. */
 #endif
 
+#define WRAPPER_JAVAIO_BUFFER_SIZE_SYSTEM_DEFAULT 0
+#define WRAPPER_JAVAIO_BUFFER_SIZE_MIN 1024
+#define WRAPPER_JAVAIO_BUFFER_SIZE_MAX (10 * 1024 * 1024)
+#define WRAPPER_JAVAIO_BUFFER_SIZE_DEFAULT (64 * 1024)
+
 /* Type definitions */
 typedef struct WrapperConfig WrapperConfig;
 struct WrapperConfig {
@@ -262,6 +267,9 @@ struct WrapperConfig {
     int     jvmExitTimeout;         /* Number of seconds the wrapper will wait for a JVM to process to terminate */
     int     jvmCleanupTimeout;      /* Number of seconds the wrapper will allow for its post JVM shudown cleanup. */
     int     jvmTerminateTimeout;      /* Number of seconds the wrapper will allow for the JVM to respond to TerminateProcess request. */
+#ifdef WIN32
+    int     javaIOBufferSize;       /* Size of the pipe buffer to use for java I/O. */
+#endif
     int     useJavaIOThread;        /* If TRUE then a dedicated thread will be used to process console output form the JVM. */
     int     pauseThreadMain;        /* Number of seconds to pause the main thread on its next loop.  Only used for testing. */
     int     pauseThreadTimer;       /* Number of seconds to pause the timer thread on its next loop.  Only used for testing. */
@@ -655,14 +663,20 @@ extern void wrapperJVMProcessExited(TICKS nowTicks, int exitCode);
 
 /**
  * Read and process any output from the child JVM Process.
- * Most output should be logged to the wrapper log file.
  *
- * This function will only be allowed to run for 250ms before returning.  This is to
- *  make sure that the main loop gets CPU.  If there is more data in the pipe, then
- *  the function returns TRUE, otherwise FALSE.  This is a hint to the mail loop not to
- *  sleep.
+ * When maxTimeMS is non-zero this function will only be allowed to run for that maximum
+ *  amount of time.  This is done to make sure the calling function is allowed CPU for
+ *  other activities.   When timing out for this reason when there is more data in the
+ *  pipe, this function will return TRUE to let the calling code know that it should
+ *  not to any unnecessary sleeps.  Otherwise FALSE will be returned.
+ *
+ * @param maxTimeMS The maximum number of milliseconds that this function will be allowed
+ *                  to run without returning.  In reality no new reads will happen after
+ *                  this time, but actual processing may take longer.
+ *
+ * @return TRUE if the calling code should call this function again as soon as possible.
  */
-extern int wrapperReadChildOutput();
+extern int wrapperReadChildOutput(int maxTimeMS);
 
 /**
  * Changes the current Wrapper state.
