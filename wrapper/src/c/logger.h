@@ -262,6 +262,9 @@ extern void setConsoleLogLevelInt(int console_log_level);
 extern int getConsoleLogLevelInt();
 extern void setConsoleLogLevel( const TCHAR *console_log_level );
 extern void setConsoleFlush(int flush);
+#ifdef WIN32
+extern void setConsoleDirect(int direct);
+#endif
 extern void setConsoleFatalToStdErr(int toStdErr);
 extern void setConsoleErrorToStdErr(int toStdErr);
 extern void setConsoleWarnToStdErr(int toStdErr);
