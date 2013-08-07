@@ -152,6 +152,11 @@ TCHAR logfileFormat[32];
 /* Flag to keep track of whether the console output should be flushed or not. */
 int consoleFlush = FALSE;
 
+#ifdef WIN32
+/* Flag to keep track of whether we should write directly to the console or not. */
+int consoleDirect = FALSE;
+#endif
+
 /* Flags to contol where error log level output goes to the console. */
 int consoleFatalToStdErr = TRUE;
 int consoleErrorToStdErr = TRUE;
@@ -1134,6 +1139,12 @@ void setConsoleLogLevel( const TCHAR *console_log_level ) {
 void setConsoleFlush( int flush ) {
     consoleFlush = flush;
 }
+    
+#ifdef WIN32
+void setConsoleDirect( int direct ) {
+    consoleDirect = direct;
+}
+#endif
 
 void setConsoleFatalToStdErr(int toStdErr) {
     consoleFatalToStdErr = toStdErr;
@@ -1754,6 +1765,9 @@ int log_printf_message_logFile(int source_id, int level, int threadId, int queue
 void log_printf_message_consoleInner(int source_id, int level, int threadId, int queued, TCHAR *message, struct tm *nowTM, int nowMillis, time_t durationMillis) {
     TCHAR *printBuffer;
     FILE *target;
+#ifdef WIN32
+    HANDLE targetH;
+#endif
     
     /* Build up the printBuffer. */
     printBuffer = buildPrintBuffer(source_id, level, threadId, queued, nowTM, nowMillis, durationMillis, consoleFormat, LOG_FORMAT_CONSOLE_DEFAULT, message);
@@ -1791,16 +1805,24 @@ void log_printf_message_consoleInner(int source_id, int level, int threadId, int
 
         /* Write the print buffer to the console. */
 #ifdef WIN32
-        /* Using the WinAPI function WriteConsole would make it impossible to pipe the console output */		    
-        /*
-        if ((target == stdout) && (GetStdHandle(STD_OUTPUT_HANDLE) != NULL)) {
-            writeToConsole(GetStdHandle(STD_OUTPUT_HANDLE), TEXT("%s\n"), printBuffer);
-        } else if ((target == stderr) && (GetStdHandle(STD_ERROR_HANDLE) != NULL)) {
-            writeToConsole(GetStdHandle(STD_ERROR_HANDLE), TEXT("%s\n"), printBuffer);
-        } else
-        */
-        if (TRUE) {
-#endif                
+        /* Using the WinAPI function WriteConsole would make it impossible to pipe the console output */
+        if (consoleDirect) {
+            if (target == stderr) {
+                targetH = GetStdHandle(STD_ERROR_HANDLE);
+            } else {
+                targetH = GetStdHandle(STD_OUTPUT_HANDLE);
+            }
+            if (targetH != NULL) {
+                writeToConsole(targetH, TEXT("%s\n"), printBuffer);
+            } else {
+                /* Should not happen.  But just in case. */
+                _ftprintf(target, TEXT("Failed to find standard handle: %s\n"), printBuffer);
+                if (consoleFlush) {
+                    fflush(target);
+                }
+            }
+        } else {
+#endif
             _ftprintf(target, TEXT("%s\n"), printBuffer);
             if (consoleFlush) {
                 fflush(target);

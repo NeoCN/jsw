@@ -621,9 +621,13 @@ void wrapperLoadLoggingProperties(int preload) {
 
     setConsoleLogLevel(getStringProperty(properties, TEXT("wrapper.console.loglevel"), TEXT("INFO")));
 
-
     /* Load the console flush flag. */
     setConsoleFlush(getBooleanProperty(properties, TEXT("wrapper.console.flush"), FALSE, !preload));
+
+#ifdef WIN32
+    /* Load the console direct flag. */
+    setConsoleDirect(getBooleanProperty(properties, TEXT("wrapper.console.direct"), TRUE, !preload));
+#endif
 
     /* Load the console loglevel targets. */
     setConsoleFatalToStdErr(getBooleanProperty(properties, TEXT("wrapper.console.fatal_to_stderr"), TRUE, !preload));

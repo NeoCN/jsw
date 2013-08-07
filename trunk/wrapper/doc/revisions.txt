@@ -15,6 +15,14 @@ Java Service Wrapper Revision History.
   the JVM.  Also increased the default from the system default to 65536 bytes.
 * Renamed the wrapper.use_javaio_thread property to wrapper.javaio.use_thread.
   The old property still exists as a deprecated alias.
+* Added a new wrapper.console.direct property on Windows which tells the
+  Wrapper to use Windows APIs to render log output to the console rather than
+  writing to stdout and stderr.  This results in a major speed improvement.
+  The drawback is that this removes the ability to pipe the output to another
+  program on the command line.  We chose to enable this by default so the
+  majority of users can take advantage of the speed improvement.  If your
+  application takes advantage of piping on Windows, you will need to disable
+  this property to regain the old behavior.
 * Add a new "wrapperm" logging source on Windows to help differentiate which
   log entries are coming from Wrapper invocations used to control the Wrapper
   as a service such as starting, stopping, installing, etc.  Previously the
