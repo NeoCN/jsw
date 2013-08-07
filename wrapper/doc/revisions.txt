@@ -15,6 +15,23 @@ Java Service Wrapper Revision History.
   the JVM.  Also increased the default from the system default to 65536 bytes.
 * Renamed the wrapper.use_javaio_thread property to wrapper.javaio.use_thread.
   The old property still exists as a deprecated alias.
+* Add a new "wrapperm" logging source on Windows to help differentiate which
+  log entries are coming from Wrapper invocations used to control the Wrapper
+  as a service such as starting, stopping, installing, etc.  Previously the
+  log entries from the Wrapper service process and launching process both
+  used a "wrapper" logging source, which could be confusing.
+* On UNIX, modify the way we keep track of whether the process is daemonized or
+  not.  This was done to clean up a bit, but should not effect how the Wrapper
+  works.
+* On Windows, change the timing of when PID files are created when running as
+  a service so any failures creating them will correctly be reported as a
+  service error.  If the Wrapper was unable to write to a PID file because it
+  was read-only then the user was presented with a confusing message about
+  the service timing out on startup.  This was in addition to the correct
+  error being logged.
+* Fix a potential problem where internally queued log entries could fail to be
+  logged on shutdown.  The log queue is now always processed as part of the
+  shutdown process.
 
 3.5.20
 * Further improvements to the memory footprint of the Wrapper to minimize the

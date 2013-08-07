@@ -2759,6 +2759,48 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
         ssStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
         ssStatus.dwServiceSpecificExitCode = 0;
 
+        /* Do setup now that the service is initialized. */
+        
+        /* Initialize the invocation mutex as necessary, exit if it already exists. */
+        if (initInvocationMutex()) {
+            appExit(1);
+            return; /* For clarity. */
+        }
+
+        /* Get the current process. */
+        wrapperData->wrapperProcess = GetCurrentProcess();
+        wrapperData->wrapperPID = GetCurrentProcessId();
+
+        /* See if the logs should be rolled on Wrapper startup. */
+        if ((getLogfileRollMode() & ROLL_MODE_WRAPPER) ||
+            (getLogfileRollMode() & ROLL_MODE_JVM)) {
+            rollLogs();
+        }
+
+        /* Write pid and anchor files as requested.  If they are the same file the file is
+         *  simply overwritten. */
+        cleanUpPIDFilesOnExit = TRUE;
+        if (wrapperData->pidFilename) {
+            if (writePidFile(wrapperData->pidFilename, wrapperData->wrapperPID, wrapperData->pidFileUmask, TRUE)) {
+                log_printf
+                    (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                     TEXT("ERROR: Could not write pid file %s: %s"),
+                     wrapperData->pidFilename, getLastErrorText());
+                appExit(1);
+                return; /* For clarity. */
+            }
+        }
+
+        if (wrapperData->anchorFilename) {
+            if (writePidFile(wrapperData->anchorFilename, wrapperData->wrapperPID, wrapperData->anchorFileUmask, FALSE)) {
+                log_printf
+                    (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                     TEXT("ERROR: Could not write anchor file %s: %s"),
+                     wrapperData->anchorFilename, getLastErrorText());
+                appExit(1);
+                return; /* For clarity. */
+            }
+        }
 
         /* If we could guarantee that all initialization would occur in less than one */
         /* second, we would not have to report our status to the service control manager. */
@@ -6116,6 +6158,7 @@ void _tmain(int argc, TCHAR **argv) {
         /* Perform the specified command */
         if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("i")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-install"))) {
             /* Install an NT service */
+            setLauncherSource();
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             wrapperCheckForMappedDrives();
@@ -6133,6 +6176,7 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("it")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-installstart"))) {
             /* Install and Start an NT service */
+            setLauncherSource();
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             wrapperCheckForMappedDrives();
@@ -6153,6 +6197,7 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("r")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-remove"))) {
             /* Remove an NT service */
+            setLauncherSource();
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             if (!isElevated()) {
@@ -6168,6 +6213,7 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("t")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-start"))) {
             /* Start an NT service */
+            setLauncherSource();
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             wrapperCheckForMappedDrives();
@@ -6184,6 +6230,7 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("a")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-pause"))) {
             /* Pause a started NT service */
+            setLauncherSource();
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             if (!isElevated()) {
@@ -6199,6 +6246,7 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("e")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-resume"))) {
             /* Resume a paused NT service */
+            setLauncherSource();
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             if (!isElevated()) {
@@ -6214,6 +6262,7 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("p")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-stop"))) {
             /* Stop an NT service */
+            setLauncherSource();
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             if (!isElevated()) {
@@ -6229,6 +6278,7 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("l")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-controlcode"))) {
             /* Send a control code to an NT service */
+            setLauncherSource();
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             if (!isElevated()) {
@@ -6244,6 +6294,7 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("d")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-dump"))) {
             /* Request a thread dump */
+            setLauncherSource();
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             if (!isElevated()) {
@@ -6259,6 +6310,7 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("q")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-query"))) {
             /* Return service status with console output. */
+            setLauncherSource();
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             if (!isElevated()) {
@@ -6274,6 +6326,7 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("qs")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-querysilent"))) {
             /* Return service status without console output. */
+            setLauncherSource();
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             if (!isElevated()) {
@@ -6343,51 +6396,11 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("s")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-service"))) {
             /* Run as a service */
+            wrapperData->isConsole = FALSE;
+            
             wrapperCheckForMappedDrives();
             /* Load any dynamic functions. */
             loadDLLProcs();
-
-            /* Initialize the invocation mutex as necessary, exit if it already exists. */
-            if (initInvocationMutex()) {
-                appExit(1);
-                return; /* For clarity. */
-            }
-
-            /* Get the current process. */
-            wrapperData->wrapperProcess = GetCurrentProcess();
-            wrapperData->wrapperPID = GetCurrentProcessId();
-
-            /* See if the logs should be rolled on Wrapper startup. */
-            if ((getLogfileRollMode() & ROLL_MODE_WRAPPER) ||
-                (getLogfileRollMode() & ROLL_MODE_JVM)) {
-                rollLogs();
-            }
-
-            /* Write pid and anchor files as requested.  If they are the same file the file is
-             *  simply overwritten. */
-            cleanUpPIDFilesOnExit = TRUE;
-            if (wrapperData->pidFilename) {
-                if (writePidFile(wrapperData->pidFilename, wrapperData->wrapperPID, wrapperData->pidFileUmask, TRUE)) {
-                    log_printf
-                        (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                         TEXT("ERROR: Could not write pid file %s: %s"),
-                         wrapperData->pidFilename, getLastErrorText());
-                    appExit(1);
-                    return; /* For clarity. */
-                }
-            }
-
-            if (wrapperData->anchorFilename) {
-                if (writePidFile(wrapperData->anchorFilename, wrapperData->wrapperPID, wrapperData->anchorFileUmask, FALSE)) {
-                    log_printf
-                        (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-                         TEXT("ERROR: Could not write anchor file %s: %s"),
-                         wrapperData->anchorFilename, getLastErrorText());
-                    appExit(1);
-                    return; /* For clarity. */
-                }
-            }
-
 
             /* Prepare the service table */
             serviceTable[0].lpServiceName = wrapperData->serviceName;

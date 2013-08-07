@@ -4114,30 +4114,20 @@ int wrapperRunCommon(const TCHAR *runMode) {
  * Launch the wrapper as a console application.
  */
 int wrapperRunConsole() {
-    const TCHAR *runMode;
-    
-#ifdef WIN32
-    runMode = TEXT("Console");
-#else
-    if (wrapperData->daemonize) {
-        runMode = TEXT("Daemon");
-    } else {
-        runMode = TEXT("Console");
-    }
-#endif
-    
-    wrapperData->isConsole = TRUE;
-    
-    return wrapperRunCommon(runMode);
+    return wrapperRunCommon(TEXT("Console"));
 }
 
 /**
  * Launch the wrapper as a service application.
  */
 int wrapperRunService() {
-    wrapperData->isConsole = FALSE;
-    
-    return wrapperRunCommon(TEXT("Service"));
+    return wrapperRunCommon(
+#ifdef WIN32
+        TEXT("Service")
+#else
+        TEXT("Daemon")
+#endif
+        );
 }
 
 /**
@@ -6233,11 +6223,7 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     }
 
     /* If this is being run as a service, add a service flag. */
-#ifdef WIN32
     if (!wrapperData->isConsole) {
-#else
-    if (wrapperData->daemonize) {
-#endif
         if (strings) {
             strings[index] = malloc(sizeof(TCHAR) * (24 + 1));
             if (!strings[index]) {

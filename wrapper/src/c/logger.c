@@ -211,6 +211,10 @@ size_t threadMessageBufferSize = 0;
 TCHAR *threadPrintBuffer = NULL;
 size_t threadPrintBufferSize = 0;
 
+#ifdef WIN32
+int launcherSource = FALSE;
+#endif
+
 /* Flag which gets set when a log entry is written to the log file. */
 int logFileAccessed = FALSE;
 
@@ -400,6 +404,9 @@ int disposeLogging() {
     int i;
  #endif
     
+    /* Always call maintain logger once to make sure that all queued messages are logged before we exit. */
+    maintainLogger();
+    
     if (log_printfMutexHandle) {
         if (!CloseHandle(log_printfMutexHandle)) {
             _tprintf(TEXT("Unable to close Logging Mutex handle. %s\n"), getLastErrorText());
@@ -439,7 +446,7 @@ int disposeLogging() {
         free(workLogFileName);
         workLogFileName = NULL;
     }
-    if (loginfoSourceName != defaultLoginfoSourceName && loginfoSourceName != NULL) {
+    if ((loginfoSourceName != defaultLoginfoSourceName) && (loginfoSourceName != NULL)) {
         free(loginfoSourceName);
         loginfoSourceName = NULL;
     }
@@ -604,6 +611,15 @@ void setSimpleLogLevels() {
     setLogfileLevelInt(LEVEL_NONE);
     setSyslogLevelInt(LEVEL_NONE);
 }
+
+#ifdef WIN32
+/**
+ * This sets a flag which tells the logger that alternate source labels should be used to indicate that the current process is a launcher.
+ */
+void setLauncherSource() {
+    launcherSource = TRUE;
+}
+#endif
 
 /* Logfile functions */
 int isLogfileAccessed() {
@@ -1348,7 +1364,15 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
         case TEXT('p'):
             switch ( source_id ) {
             case WRAPPER_SOURCE_WRAPPER:
+#ifdef WIN32
+                if (launcherSource) {
+                    temp = _sntprintf( pos, reqSize - len, TEXT("wrapperm") );
+                } else {
+                    temp = _sntprintf( pos, reqSize - len, TEXT("wrapper ") );
+                }
+#else
                 temp = _sntprintf( pos, reqSize - len, TEXT("wrapper ") );
+#endif
                 break;
 
             case WRAPPER_SOURCE_PROTOCOL:
@@ -2395,7 +2419,15 @@ void sendEventlogMessage( int source_id, int level, const TCHAR *szBuff ) {
     /* Build the source header */
     switch(source_id) {
     case WRAPPER_SOURCE_WRAPPER:
+#ifdef WIN32
+        if (launcherSource) {
+            _sntprintf( header, 16, TEXT("wrapperm") );
+        } else {
+            _sntprintf( header, 16, TEXT("wrapper") );
+        }
+#else
         _sntprintf( header, 16, TEXT("wrapper") );
+#endif
         break;
 
     case WRAPPER_SOURCE_PROTOCOL:
