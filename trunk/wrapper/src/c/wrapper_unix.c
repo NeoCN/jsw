@@ -1812,6 +1812,9 @@ int main(int argc, char **argv) {
         /* fork to a Daemonized process if configured to do so. */
         if (wrapperData->daemonize) {
             daemonize(argc, argv);
+            
+            /* We are now daemonized, so mark this as being a service. */
+            wrapperData->isConsole = FALSE;
 
             /* When we daemonize the Wrapper, its PID changes. Because of the
              *  WRAPPER_PID environment variable, we need to set it again here
@@ -1903,7 +1906,11 @@ int main(int argc, char **argv) {
             }
         }
 
-        appExit(wrapperRunConsole(), argc, argv);
+        if (wrapperData->isConsole) {
+            appExit(wrapperRunConsole(), argc, argv);
+        } else {
+            appExit(wrapperRunService(), argc, argv);
+        }
         return 0; /* For compiler. */
     } else {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT(""));

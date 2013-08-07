@@ -177,6 +177,13 @@ extern void setSilentLogLevels();
  */
 extern void setSimpleLogLevels();
 
+#ifdef WIN32
+/**
+ * This sets a flag which tells the logger that alternate source labels should be used to indicate that the current process is a launcher.
+ */
+extern void setLauncherSource();
+#endif
+
 /**
  * Used for testing to set a pause into the next log entry made.
  *
