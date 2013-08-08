@@ -124,7 +124,8 @@ void (*logFileChangedCallback)(const TCHAR *logFile);
 /* Stores a carefully malloced filename of the most recent log file change.   This value is only set in log_printf(), and only cleared in maintainLogger(). */
 TCHAR *pendingLogFileChange = NULL;
 
-int logPauseTime;
+int logPauseTime = -1;
+int logBufferGrowth = FALSE;
 
 TCHAR *logFilePath;
 TCHAR *currentLogFileName;
@@ -884,6 +885,15 @@ void logSleep(int ms) {
 void setPauseTime(int pauseTime)
 {
     logPauseTime = pauseTime;
+}
+    
+/**
+ * Set to true to cause changes in internal buffer sizes to be logged.  Useful for debugging.
+ *
+ * @param log TRUE if changes should be logged.
+ */
+void setLogBufferGrowth(int log) {
+    logBufferGrowth = log;
 }
 
 
@@ -2605,25 +2615,50 @@ void sendLoginfoMessage( int source_id, int level, const TCHAR *szBuff ) {
 #endif
 
 #ifdef WIN32
-int vWriteToConsoleBufferSize = 100;
+ #define CONSOLE_BLOCK_SIZE 1024
+/* The following is an initial (max) size in characters to try and write at once to the console.
+ *  The buffer is less than 64KB, so 32K chars is a good max.  The actual buffer size will be
+ *  smaller than this so this massages the size reduction code whenever strings around this size
+ *  are encountered. */
+size_t vWriteToConsoleMaxHeapBufferSize = 32000;
+size_t vWriteToConsoleBufferSize = 0;
 TCHAR *vWriteToConsoleBuffer = NULL;
-void vWriteToConsole( HANDLE hdl, TCHAR *lpszFmt, va_list vargs ) {
+void writeToConsole(HANDLE hdl, TCHAR *lpszFmt, ...) {
+    va_list        vargs;
     int cnt;
+    size_t fullLen;
+    size_t remainLen;
+    size_t offset;
+    size_t thisLen;
     DWORD wrote;
 
+ #ifdef DEBUG_CONSOLE_OUTPUT
+        _tprintf(TEXT("writeToConsole BEGIN\n"));
+ #endif
+    
     /* This should only be called if consoleStdoutHandle is set. */
-    if ( consoleStdoutHandle == NULL && hdl == NULL) {
+    if ((consoleStdoutHandle == NULL) && (hdl == NULL)) {
         return;
     }
 
-    if ( vWriteToConsoleBuffer == NULL ) {
+    if (vWriteToConsoleBuffer == NULL) {
+        vWriteToConsoleBufferSize = CONSOLE_BLOCK_SIZE * 2;
         vWriteToConsoleBuffer = malloc(sizeof(TCHAR) * vWriteToConsoleBufferSize);
         if (!vWriteToConsoleBuffer) {
             _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("WTC1"));
             return;
         }
+ #ifdef DEBUG_CONSOLE_OUTPUT
+        _tprintf(TEXT("Console Buffer Size = %d (Initial Size)\n"), vWriteToConsoleBufferSize);
+ #endif
+        if (logBufferGrowth) {
+            /* This is queued as we can't use direct logging here. */
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Console Buffer Size initially set to %d characters."), vWriteToConsoleBufferSize);
+        }
     }
 
+    va_start(vargs, lpszFmt);
+    
     /* The only way I could figure out how to write to the console
      *  returned by AllocConsole when running as a service was to
      *  do all of this special casing and use the handle to the new
@@ -2636,31 +2671,112 @@ void vWriteToConsole( HANDLE hdl, TCHAR *lpszFmt, va_list vargs ) {
      *  following loop will expand the global buffer to hold the current
      *  message.  It will grow as needed to handle any arbitrarily large
      *  user message.  The buffer needs to be able to hold all available
-     *  characters + a null TCHAR. */
-    while ( ( cnt = _vsntprintf( vWriteToConsoleBuffer, vWriteToConsoleBufferSize - 1, lpszFmt, vargs ) ) < 0 ) {
+     *  characters + a null TCHAR.
+     * The _vsntprintf function will fill all available space and only
+     *  terminate the string if there is room.  Because of this we need
+     *  to make sure and reserve room for the null terminator and add it
+     *  if needed below. */
+    while ((cnt = _vsntprintf(vWriteToConsoleBuffer, vWriteToConsoleBufferSize - 1, lpszFmt, vargs)) < 0) {
+ #ifdef DEBUG_CONSOLE_OUTPUT
+        _tprintf(TEXT("writeToConsole ProcessCount=%d\n"), cnt);
+ #endif
         /* Expand the size of the buffer */
-        free( vWriteToConsoleBuffer );
-        vWriteToConsoleBufferSize += 100;
+        free(vWriteToConsoleBuffer);
+        
+        /* Increase the buffer by the CONSOLE_BLOCK_SIZE or an additional 10%, which ever is larger.
+         *  The goal here is to grow the buffer size quickly, but not waste too much memory. */
+        vWriteToConsoleBufferSize = __max(vWriteToConsoleBufferSize + CONSOLE_BLOCK_SIZE, vWriteToConsoleBufferSize + vWriteToConsoleBufferSize / 10);
         vWriteToConsoleBuffer = malloc(sizeof(TCHAR) * vWriteToConsoleBufferSize);
         if (!vWriteToConsoleBuffer) {
             _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("WTC2"));
+            va_end( vargs );
             return;
+        }
+ #ifdef DEBUG_CONSOLE_OUTPUT
+        _tprintf(TEXT("Console Buffer Size = %d (Increased Size) ****************************************\n"), vWriteToConsoleBufferSize);
+ #endif
+        if (logBufferGrowth) {
+            /* This is queued as we can't use direct logging here. */
+            log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Console Buffer Size increased from to %d characters."), vWriteToConsoleBufferSize);
+        }
+    }
+ #ifdef DEBUG_CONSOLE_OUTPUT
+    _tprintf(TEXT("writeToConsole ProcessCount=%d\n"), cnt);
+ #endif
+    if (cnt == (vWriteToConsoleBufferSize - 1)) {
+        /* The maximum number of characters were read.  All of the characters fit in the available space, but because of the way the API works, the string was not null terminated. */
+        vWriteToConsoleBuffer[vWriteToConsoleBufferSize - 1] = '\0';
+    }
+    
+    va_end(vargs);
+    
+ #ifdef DEBUG_CONSOLE_OUTPUT
+    _tprintf(TEXT("writeToConsole BufferSize=%d, MessageLen=%d, Message=[%s]\n"), vWriteToConsoleBufferSize, _tcslen(vWriteToConsoleBuffer), vWriteToConsoleBuffer);
+ #endif
+    
+    if (hdl == NULL) {
+        hdl = consoleStdoutHandle;
+    }
+    
+    /* The WriteConsole API is a nasty little beast.
+     *  It can accept a buffer that is up to 64KB in size, but they can't tell us exactly how much before hand.
+     *  The size on tests on a 64-bit XP system appear to be around 25000 characters.
+     *  The problem is that this is highly dependent on the current system state.
+     *  Start with a large size for efficiency, but then reduce it automatically in a sticky way in 5% increments to get to a size that works. */
+    fullLen = _tcslen(vWriteToConsoleBuffer);
+    remainLen = fullLen;
+    offset = 0;
+    while (remainLen > 0) {
+        thisLen = __min(remainLen, vWriteToConsoleMaxHeapBufferSize);
+ #ifdef DEBUG_CONSOLE_OUTPUT
+        _tprintf(TEXT("writeToConsole write %d of %d characters\n"), thisLen, fullLen);
+ #endif
+        if (WriteConsole(hdl, &(vWriteToConsoleBuffer[offset]), (DWORD)thisLen, &wrote, NULL)) {
+            /* Success. */
+            offset += thisLen;
+            remainLen -= thisLen;
+ #ifdef DEBUG_CONSOLE_OUTPUT
+            if (remainLen > 0) {
+                /* We have not written out the whole line which means there was no line feed.  Add one or the debug output will be hard to read. */
+                _tprintf(TEXT("\nwriteToConsole (Previous line was incomplete)\n"));
+            }
+ #endif
+        } else {
+            /* Failed. */
+            if (getLastError() == ERROR_NOT_ENOUGH_MEMORY) {
+                /* This means that the max heap buffer size is too large and needs to be reduced. */
+                if (vWriteToConsoleMaxHeapBufferSize < 100) {
+                    _tprintf(TEXT("Not enough available HEAP to write to console.\n"));
+                    return;
+                }
+                vWriteToConsoleMaxHeapBufferSize = vWriteToConsoleMaxHeapBufferSize - vWriteToConsoleMaxHeapBufferSize / 20;
+ #ifdef DEBUG_CONSOLE_OUTPUT
+                _tprintf(TEXT("Usable Console HEAP Buffer Size reduced to = %d ****************************************\n"), vWriteToConsoleMaxHeapBufferSize);
+ #endif
+                if (logBufferGrowth) {
+                    /* This is queued as we can't use direct logging here. */
+                    log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Usable Console HEAP Buffer Size decreased to %d characters."), vWriteToConsoleMaxHeapBufferSize);
+                }
+            } else {
+                _tprintf(TEXT("Failed to write to console: %s\n"), getLastErrorText());
+                return;
+            }
         }
     }
 
     /* We can now write the message. */
-    if (hdl == NULL) {
-        WriteConsole(consoleStdoutHandle, vWriteToConsoleBuffer, (DWORD)_tcslen( vWriteToConsoleBuffer ), &wrote, NULL);
-    } else {
-        WriteConsole(hdl, vWriteToConsoleBuffer, (DWORD)_tcslen( vWriteToConsoleBuffer ), &wrote, NULL);
+    /*
+    if (!WriteConsole(hdl, vWriteToConsoleBuffer, (DWORD)_tcslen(vWriteToConsoleBuffer), &wrote, NULL)) {
+        _tprintf(TEXT("Failed to write output to console using direct API: %s\n"), getLastErrorText());
+        _tprintf(TEXT("%s"), vWriteToConsoleBuffer);
     }
-}
-void writeToConsole( HANDLE hdl, TCHAR *lpszFmt, ... ) {
-    va_list        vargs;
-
-    va_start( vargs, lpszFmt );
-    vWriteToConsole( hdl, lpszFmt, vargs );
-    va_end( vargs );
+ #ifdef DEBUG_CONSOLE_OUTPUT
+    _tprintf(TEXT("writeToConsole wrote=%d\n"), wrote);
+ #endif
+    */
+ #ifdef DEBUG_CONSOLE_OUTPUT
+        _tprintf(TEXT("writeToConsole END\n"));
+ #endif
 }
 #endif
 

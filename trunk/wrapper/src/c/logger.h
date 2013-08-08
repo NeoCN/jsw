@@ -36,6 +36,9 @@
 #ifndef _LOGGER_H
 #define _LOGGER_H
 
+/* If defined, output debug information about console output. */
+/*#define DEBUG_CONSOLE_OUTPUT*/
+
 #ifdef MACOSX
  #ifndef wcscasecmp
 extern inline int wcscasecmp(const wchar_t* s1, const wchar_t* s2);
@@ -190,6 +193,13 @@ extern void setLauncherSource();
  * @param pauseTime Number of seconds to pause, 0 pauses indefinitely.
  */
 extern void setPauseTime(int pauseTime);
+
+/**
+ * Set to true to cause changes in internal buffer sizes to be logged.  Useful for debugging.
+ *
+ * @param log TRUE if changes should be logged.
+ */
+void setLogBufferGrowth(int log);
 
 /* * Logfile functions * */
 extern int isLogfileAccessed();

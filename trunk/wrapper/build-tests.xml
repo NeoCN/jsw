@@ -266,6 +266,25 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
 wrapper.debug=TRUE]]></replacevalue>
         </replace>
         
+        <!-- Growing Log Output Test -->
+        <delete file="${test.dir}/growinglogoutput.conf"/>
+        <filter token="app.name"          value="growinglogoutput"/>
+        <filter token="app.long.name"     value="Growing Log Output Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/growinglogoutput.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/growinglogoutput.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.GrowingLogOutput" />
+        <replace file="${test.dir}/growinglogoutput.conf">
+            <replacetoken>wrapper.console.format=PM</replacetoken>
+            <replacevalue><![CDATA[wrapper.console.format=PZRM
+wrapper.console.direct=TRUE
+wrapper.javaio.buffer_size=655360
+wrapper.javaio.use_thread=TRUE
+wrapper.log_buffer_growth=TRUE]]></replacevalue>
+        </replace>
+        
         <!-- Timed Log Output Test -->
         <delete file="${test.dir}/timedlogoutput.conf"/>
         <filter token="app.name"          value="timedlogoutput"/>
@@ -278,7 +297,11 @@ wrapper.debug=TRUE]]></replacevalue>
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.TimedLogOutput" />
         <replace file="${test.dir}/timedlogoutput.conf">
             <replacetoken>wrapper.console.format=PM</replacetoken>
-            <replacevalue><![CDATA[wrapper.console.format=PZRM]]></replacevalue>
+            <replacevalue><![CDATA[wrapper.console.format=PZRM
+wrapper.console.direct=TRUE
+wrapper.javaio.buffer_size=655360
+wrapper.javaio.use_thread=TRUE
+wrapper.log_buffer_growth=TRUE]]></replacevalue>
         </replace>
         
         <!-- Log StdOutStdErr Test -->
@@ -965,6 +988,18 @@ set ENV_VAR_4=d]]></replacevalue>
                  token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
                  value='set _WRAPPER_CONF_DEFAULT=../test/loadedlogoutput.conf' />
         
+        <!-- Growing Log Output Test -->
+        <delete file="${test.dir}/TestGrowingLogOutput.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestGrowingLogOutput.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestGrowingLogOutput.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestGrowingLogOutput.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/growinglogoutput.conf' />
+        
         <!-- Timed Log Output Test -->
         <delete file="${test.dir}/TestTimedLogOutput.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
@@ -1497,6 +1532,14 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/loadedlogoutput"
               filtering="on"/>
         <chmod file="${test.dir}/loadedlogoutput" perm="+x"/>
+        
+        <!-- Growing Log Output Test -->
+        <filter token="app.name"          value="growinglogoutput"/>
+        <filter token="app.long.name"     value="Growing Log Output Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/growinglogoutput"
+              filtering="on"/>
+        <chmod file="${test.dir}/growinglogoutput" perm="+x"/>
         
         <!-- Timed Log Output Test -->
         <filter token="app.name"          value="timedlogoutput"/>

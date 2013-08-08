@@ -7294,6 +7294,11 @@ int loadConfiguration() {
         wrapperData->useSystemTime = getBooleanProperty(properties, TEXT("wrapper.use_system_time"), FALSE, TRUE);
     }
     
+    if (!wrapperData->configured) {
+        wrapperData->logBufferGrowth = getBooleanProperty(properties, TEXT("wrapper.log_buffer_growth"), FALSE, TRUE);
+        setLogBufferGrowth(wrapperData->logBufferGrowth);
+    }
+    
 #ifdef WIN32
     /* Get the use javaio buffer size. */
     if (!wrapperData->configured) {

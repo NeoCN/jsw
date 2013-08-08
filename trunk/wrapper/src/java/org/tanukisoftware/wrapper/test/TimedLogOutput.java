@@ -22,7 +22,7 @@ public class TimedLogOutput {
     /*---------------------------------------------------------------
      * Methods
      *-------------------------------------------------------------*/
-    private static String rPad( int n, int len, String padding )
+    private static String lPad( int n, int len, String padding )
     {
         String s = Integer.toString( n );
         int len2 = s.length();
@@ -63,7 +63,7 @@ public class TimedLogOutput {
             int subMessageLen = (int)( rand.nextFloat() * (messageLen - 1) );
             String subMessage = message.substring( 0, subMessageLen );
             
-            String line = "#" + rPad( i, 6, "0000000000" ) + " : " + rPad( (int)prevTime, 6, "          " ) + "ms:" + rPad( subMessageLen, 6, "          " ) + ":" + subMessage;
+            String line = "#" + lPad( i, 6, "0000000000" ) + ":" + lPad( (int)prevTime, 6, "          " ) + "ms:" + lPad( subMessageLen, 6, "          " ) + ":" + subMessage;
         
             long lineStart = System.currentTimeMillis();
             System.out.println( line );
