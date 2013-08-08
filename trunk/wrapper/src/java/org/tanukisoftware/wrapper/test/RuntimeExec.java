@@ -45,6 +45,20 @@ public class RuntimeExec
             simplewaiter = "../test/simplewaiter";
         }
         
+        // In order to read the output from some processes correctly we need to get the correct encoding.
+        //  On some systems, the underlying system encoding is different than the file encoding.
+        String encoding = System.getProperty( "sun.jnu.encoding" );
+        if ( encoding == null )
+        {
+            encoding = System.getProperty( "file.encoding" );
+            if ( encoding == null )
+            {
+                // Default to Latin1
+                encoding = "Cp1252";
+            }
+        }
+        System.out.println( "Communicate with child processes using encoding: " + encoding );
+        
         Random rand = new Random();
         System.out.println( Main.getRes().getString( "Is DYNAMIC supported? A:" ) + WrapperProcessConfig.isSupported( WrapperProcessConfig.DYNAMIC ) );
         System.out.println( Main.getRes().getString( "Is FORK_EXEC supported? A:" ) + WrapperProcessConfig.isSupported( WrapperProcessConfig.FORK_EXEC ) );
@@ -55,18 +69,19 @@ public class RuntimeExec
         {
             System.out.println( "Verifying correct parsing of the command:" );
             System.out.println( "First a single command line: " + simplewaiter  + " -v \"test 123\" test 123 \"\\\"test\\\"\"" );
+            
             String s = simplewaiter + " -v \"test 123\" test 123 \"\\\"test\\\"";
             WrapperProcess wp = WrapperManager.exec( s );
             Process p = Runtime.getRuntime().exec( s );
             System.out.println( "Runtime.exec:" );
-            BufferedReader br = new BufferedReader( new InputStreamReader( p.getInputStream() ) );
+            BufferedReader br = new BufferedReader( new InputStreamReader( p.getInputStream(), encoding ) );
             String l = "";
             while ( ( l = br.readLine() ) != null )
             {
                 System.out.println( "stdout: " + l );
             }
             br.close();
-            br = new BufferedReader( new InputStreamReader( p.getErrorStream() ) );
+            br = new BufferedReader( new InputStreamReader( p.getErrorStream(), encoding ) );
             l = "";
             while ( ( l = br.readLine() ) != null )
             {
@@ -74,14 +89,14 @@ public class RuntimeExec
             }
             br.close();
             System.out.println( "Now WrapperManager.exec:" );
-            br = new BufferedReader( new InputStreamReader( wp.getInputStream() ) );
+            br = new BufferedReader( new InputStreamReader( wp.getInputStream(), encoding ) );
             l = "";
             while ( ( l = br.readLine() ) != null )
             {
                 System.out.println( "stdout: " + l );
             }
             br.close();
-            br = new BufferedReader( new InputStreamReader( wp.getErrorStream() ) );
+            br = new BufferedReader( new InputStreamReader( wp.getErrorStream(), encoding ) );
             l = "";
             while ( ( l = br.readLine() ) != null )
             {
@@ -94,14 +109,14 @@ public class RuntimeExec
             wp = WrapperManager.exec( s2 );
             p = Runtime.getRuntime().exec( s2 );
             System.out.println( "Runtime.exec:" );
-            br = new BufferedReader( new InputStreamReader( p.getInputStream() ) );
+            br = new BufferedReader( new InputStreamReader( p.getInputStream(), encoding ) );
             l = "";
             while ( ( l = br.readLine() ) != null )
             {
                 System.out.println( "stdout: " + l );
             }
             br.close();
-            br = new BufferedReader( new InputStreamReader( p.getErrorStream() ) );
+            br = new BufferedReader( new InputStreamReader( p.getErrorStream(), encoding ) );
             l = "";
             while ( ( l = br.readLine() ) != null )
             {
@@ -109,14 +124,14 @@ public class RuntimeExec
             }
             br.close();
             System.out.println( "Now WrapperManager.exec:" );
-            br = new BufferedReader( new InputStreamReader( wp.getInputStream() ) );
+            br = new BufferedReader( new InputStreamReader( wp.getInputStream(), encoding ) );
             l = "";
             while ( ( l = br.readLine() ) != null )
             {
                 System.out.println( "stdout: " + l );
             }
             br.close();
-            br = new BufferedReader( new InputStreamReader( wp.getErrorStream() ) );
+            br = new BufferedReader( new InputStreamReader( wp.getErrorStream(), encoding ) );
             l = "";
             while ( ( l = br.readLine() ) != null )
             {
@@ -190,7 +205,7 @@ public class RuntimeExec
                     if ( WrapperProcessConfig.isSupported( WrapperProcessConfig.POSIX_SPAWN ) )
                     {
                         System.out.println( i + Main.getRes().getString( " posix_spawn is supported." ) );
-                        p = WrapperManager.exec( simplewaiter + " 0 15", new WrapperProcessConfig().setStartType(WrapperProcessConfig.POSIX_SPAWN) );
+                        p = WrapperManager.exec( simplewaiter + " 0 15", new WrapperProcessConfig().setStartType( WrapperProcessConfig.POSIX_SPAWN) );
                     }
                     else
                     {
@@ -198,7 +213,7 @@ public class RuntimeExec
                         p = WrapperManager.exec( simplewaiter + " 0 15" );
                     }
                     // System.out.println(i + " " + p.toString() + " exit " + p.waitFor());
-                    BufferedReader br = new BufferedReader( new InputStreamReader( p.getInputStream() ) );
+                    BufferedReader br = new BufferedReader( new InputStreamReader( p.getInputStream(), encoding ) );
                     try
                     {
                         String line = "";
@@ -233,7 +248,7 @@ public class RuntimeExec
                     proc.getOutputStream().close();
 
                     System.out.println( i + Main.getRes().getString( " small child process {0} is alive {1}" , new Object[]{ new Integer( proc.getPID() ), new Boolean( proc.isAlive() ) } ) );
-                    BufferedReader br = new BufferedReader( new InputStreamReader( proc.getInputStream() ) );
+                    BufferedReader br = new BufferedReader( new InputStreamReader( proc.getInputStream(), encoding ) );
                     try
                     {
                         String line = "";
@@ -247,7 +262,7 @@ public class RuntimeExec
                         br.close();
                     }
 
-                    br = new BufferedReader( new InputStreamReader( proc.getErrorStream() ) );
+                    br = new BufferedReader( new InputStreamReader( proc.getErrorStream(), encoding ) );
                     try
                     {
                         String line = "";
@@ -298,7 +313,7 @@ public class RuntimeExec
                     System.out.println( i + Main.getRes().getString( " child process (PID= {0}) finished with code " , new Integer( proc.getPID() ) ) +  proc.waitFor() );
 
                     System.out.println( i + Main.getRes().getString( " now read the output" ) );
-                    BufferedReader br = new BufferedReader( new InputStreamReader( proc.getInputStream() ) );
+                    BufferedReader br = new BufferedReader( new InputStreamReader( proc.getInputStream(), encoding ) );
                     try
                     {
                         String line = "";
@@ -332,7 +347,7 @@ public class RuntimeExec
                     proc.getOutputStream().close();
                     System.out.println( i + Main.getRes().getString( " small child process {0} is alive {1}" , new Object[]{ new Integer( proc.getPID() ), new Boolean( proc.isAlive() ) } ) );
                     // System.out.println(i + " Main.getRes (PID= " + proc.getPID() + " ) finished with code " + proc.waitFor() );
-                    BufferedReader br = new BufferedReader( new InputStreamReader( proc.getInputStream() ) );
+                    BufferedReader br = new BufferedReader( new InputStreamReader( proc.getInputStream(), encoding ) );
                     try
                     {
                         String line = "";
