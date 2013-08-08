@@ -3263,7 +3263,6 @@ int wrapperReadChildOutput(int maxTimeMS) {
     size_t loggedOffset;
     int defer = FALSE;
     int readThisPass = FALSE;
-    size_t removeLen = 0;
 
     if (!wrapperChildWorkBuffer) {
         /* Initialize the wrapperChildWorkBuffer.  Set its initial size to the block size + 1.
