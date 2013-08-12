@@ -1378,7 +1378,7 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
 
     /* We now have a buffer large enough to store the entire formatted message. */
     for( i = 0, currentColumn = 0, len = 0, temp = 0; i < (int)_tcslen( format ); i++ ) {
-        handledFormat = 1;
+        handledFormat = TRUE;
 
         switch( format[i] ) {
         case TEXT('P'):
@@ -1505,18 +1505,19 @@ TCHAR* buildPrintBuffer( int source_id, int level, int threadId, int queued, str
             break;
 
         default:
-            handledFormat = 0;
+            handledFormat = FALSE;
         }
-        if (handledFormat != 0) {
+        
+        if (handledFormat) {
             pos += temp;
             len += temp;
-        }
-
-        /* Add separator chars */
-        if ( handledFormat && ( currentColumn != numColumns ) ) {
-            temp = _sntprintf( pos, reqSize - len, TEXT(" | ") );
-            pos += temp;
-            len += temp;
+            
+            /* Add separator chars */
+            if (currentColumn != numColumns) {
+                temp = _sntprintf(pos, reqSize - len, TEXT(" | "));
+                pos += temp;
+                len += temp;
+            }
         }
     }
 
@@ -2764,16 +2765,6 @@ void writeToConsole(HANDLE hdl, TCHAR *lpszFmt, ...) {
         }
     }
 
-    /* We can now write the message. */
-    /*
-    if (!WriteConsole(hdl, vWriteToConsoleBuffer, (DWORD)_tcslen(vWriteToConsoleBuffer), &wrote, NULL)) {
-        _tprintf(TEXT("Failed to write output to console using direct API: %s\n"), getLastErrorText());
-        _tprintf(TEXT("%s"), vWriteToConsoleBuffer);
-    }
- #ifdef DEBUG_CONSOLE_OUTPUT
-    _tprintf(TEXT("writeToConsole wrote=%d\n"), wrote);
- #endif
-    */
  #ifdef DEBUG_CONSOLE_OUTPUT
         _tprintf(TEXT("writeToConsole END\n"));
  #endif
