@@ -1818,7 +1818,7 @@ void log_printf_message_consoleInner(int source_id, int level, int threadId, int
 #ifdef WIN32
         /* Using the WinAPI function WriteConsole would make it impossible to pipe the console output.
          *  We never want to allow direct console writing if this is a launcher instance.*/
-        if (consoleDirect && (!launcherSource)) {
+        if (consoleDirect) {
             if (target == stderr) {
                 targetH = GetStdHandle(STD_ERROR_HANDLE);
             } else {
