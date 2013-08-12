@@ -6036,6 +6036,17 @@ BOOL verifyEmbeddedSignature() {
     return TRUE;
 }
 
+/**
+ * Does some special setup for when we are running as a launcher.
+ */
+void enterLauncherMode() {
+    /* We never want to do direct console writing as that would break the pipes needed to run elevated. */
+    setConsoleDirect(TRUE);
+    
+    /* Tell the logger to use the launcher source in place of the actual one so it is clear those entries are coming from the launcher and not the actual service. */
+    setLauncherSource();
+}
+
 #ifndef CUNIT
 void _tmain(int argc, TCHAR **argv) {
     int result;
@@ -6158,7 +6169,8 @@ void _tmain(int argc, TCHAR **argv) {
         /* Perform the specified command */
         if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("i")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-install"))) {
             /* Install an NT service */
-            setLauncherSource();
+            enterLauncherMode();
+            
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             wrapperCheckForMappedDrives();
@@ -6176,7 +6188,8 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("it")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-installstart"))) {
             /* Install and Start an NT service */
-            setLauncherSource();
+            enterLauncherMode();
+            
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             wrapperCheckForMappedDrives();
@@ -6197,7 +6210,8 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if (!strcmpIgnoreCase(wrapperData->argCommand, TEXT("r")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-remove"))) {
             /* Remove an NT service */
-            setLauncherSource();
+            enterLauncherMode();
+            
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             if (!isElevated()) {
@@ -6213,7 +6227,8 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("t")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-start"))) {
             /* Start an NT service */
-            setLauncherSource();
+            enterLauncherMode();
+            
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             wrapperCheckForMappedDrives();
@@ -6230,7 +6245,8 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("a")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-pause"))) {
             /* Pause a started NT service */
-            setLauncherSource();
+            enterLauncherMode();
+            
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             if (!isElevated()) {
@@ -6246,7 +6262,8 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("e")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-resume"))) {
             /* Resume a paused NT service */
-            setLauncherSource();
+            enterLauncherMode();
+            
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             if (!isElevated()) {
@@ -6262,7 +6279,8 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("p")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-stop"))) {
             /* Stop an NT service */
-            setLauncherSource();
+            enterLauncherMode();
+            
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             if (!isElevated()) {
@@ -6278,7 +6296,8 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("l")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-controlcode"))) {
             /* Send a control code to an NT service */
-            setLauncherSource();
+            enterLauncherMode();
+            
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             if (!isElevated()) {
@@ -6294,7 +6313,8 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("d")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-dump"))) {
             /* Request a thread dump */
-            setLauncherSource();
+            enterLauncherMode();
+            
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             if (!isElevated()) {
@@ -6310,7 +6330,8 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("q")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-query"))) {
             /* Return service status with console output. */
-            setLauncherSource();
+            enterLauncherMode();
+            
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             if (!isElevated()) {
@@ -6326,7 +6347,8 @@ void _tmain(int argc, TCHAR **argv) {
             return; /* For clarity. */
         } else if(!strcmpIgnoreCase(wrapperData->argCommand, TEXT("qs")) || !strcmpIgnoreCase(wrapperData->argCommand, TEXT("-querysilent"))) {
             /* Return service status without console output. */
-            setLauncherSource();
+            enterLauncherMode();
+            
             /* Always auto close the log file to keep the output in synch. */
             setLogfileAutoClose(TRUE);
             if (!isElevated()) {

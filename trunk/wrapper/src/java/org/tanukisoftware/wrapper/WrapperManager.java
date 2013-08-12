@@ -4898,7 +4898,7 @@ public final class WrapperManager
                 }
                 catch ( SecurityException e )
                 {
-                    m_outError.println( getRes().getString( "Failed to interrupt communications thread: " + e.getMessage() ) );
+                    m_outError.println( getRes().getString( "Failed to interrupt communications thread: {0}", e.getMessage() ) );
                 }
             }
         }

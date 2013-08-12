@@ -3485,8 +3485,7 @@ int wrapperReadChildOutput(int maxTimeMS) {
 #endif
             } else {
 #ifdef DEBUG_CHILD_OUTPUT
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, 
-                TEXT("wrapperReadChildOutput() END"));
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("wrapperReadChildOutput() END"));
 #endif
             }
             return FALSE;
