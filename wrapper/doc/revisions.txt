@@ -40,6 +40,11 @@ Java Service Wrapper Revision History.
 * Fix a potential problem where internally queued log entries could fail to be
   logged on shutdown.  The log queue is now always processed as part of the
   shutdown process.
+* Modify UNIX shell script to remove all existing run level rc files for the
+  application on both install and remove, rather than only the ones for the
+  currently configured run level to avoid unexpected behavior due to old rc
+  files being left around.  This only affects platforms which make use of
+  rc files.
 * Add a new RUN_LEVEL variable to the UNIX shell script to make it easy to
   configure the run levels when installing as a daemon on various platforms.
 

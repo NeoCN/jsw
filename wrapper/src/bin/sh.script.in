@@ -532,28 +532,30 @@ fi
 
 # Decide on run levels.
 RUN_LEVEL_S_DIST_OS=$(eval "echo \$$(echo RUN_LEVEL_S_${DIST_OS})")
-if [ "X${RUN_LEVEL_S_DIST_OS}" != "X" ]
-then
+if [ "X${RUN_LEVEL_S_DIST_OS}" != "X" ] ; then
     APP_RUN_LEVEL_S=${RUN_LEVEL_S_DIST_OS}
+elif [ "X$RUN_LEVEL_S" != "X" ] ; then
+    APP_RUN_LEVEL_S=$RUN_LEVEL_S
 else
-    if [ "X$RUN_LEVEL_S" != "X" ]
-    then
-        APP_RUN_LEVEL_S=$RUN_LEVEL_S
-    else
-        APP_RUN_LEVEL_S=$RUN_LEVEL
-    fi
+    APP_RUN_LEVEL_S=$RUN_LEVEL
+fi
+APP_RUN_LEVEL_S_CHECK=`echo "$APP_RUN_LEVEL_S" | $TREXE "[0-9]" "0"`
+if [ "X${APP_RUN_LEVEL_S_CHECK}" != "X00" ] ; then
+    eval echo `gettext 'Run level "${APP_RUN_LEVEL_S}" must be numeric and have a length of two (00-99).'`
+    exit 1;
 fi
 RUN_LEVEL_K_DIST_OS=$(eval "echo \$$(echo RUN_LEVEL_K_${DIST_OS})")
-if [ "X${RUN_LEVEL_K_DIST_OS}" != "X" ]
-then
+if [ "X${RUN_LEVEL_K_DIST_OS}" != "X" ] ; then
     APP_RUN_LEVEL_K=${RUN_LEVEL_K_DIST_OS}
+elif [ "X$RUN_LEVEL_K" != "X" ] ; then
+    APP_RUN_LEVEL_K=$RUN_LEVEL_K
 else
-    if [ "X$RUN_LEVEL_K" != "X" ]
-    then
-        APP_RUN_LEVEL_K=$RUN_LEVEL_K
-    else
-        APP_RUN_LEVEL_K=$RUN_LEVEL
-    fi
+    APP_RUN_LEVEL_K=$RUN_LEVEL
+fi
+APP_RUN_LEVEL_K_CHECK=`echo "$APP_RUN_LEVEL_K" | $TREXE "[0-9]" "0"`
+if [ "X${APP_RUN_LEVEL_K_CHECK}" != "X00" -o  ] ; then
+    eval echo `gettext 'Run level "${APP_RUN_LEVEL_K}" must be numeric and have a length of two (00-99).'`
+    exit 1;
 fi
 
 prepAdditionalParams() {
@@ -1098,8 +1100,12 @@ installdaemon() {
             else
                 eval echo `gettext ' Installing the $APP_LONG_NAME daemon..'`
                 ln -s "$REALPATH" "/etc/init.d/$APP_NAME"
-                ln -s "/etc/init.d/$APP_NAME" "/etc/rc3.d/${APP_RUN_LEVEL_K}$APP_NAME_LOWER"
-                ln -s "/etc/init.d/$APP_NAME" "/etc/rc3.d/${APP_RUN_LEVEL_S}$APP_NAME_LOWER"
+                for i in `ls "/etc/rc3.d/K"??"$APP_NAME_LOWER" "/etc/rc3.d/S"??"$APP_NAME_LOWER" 2>/dev/null` ; do
+                    eval echo `gettext ' Removing unexpected file before proceeding: $i'`
+                    rm -f $i
+                done
+                ln -s "/etc/init.d/$APP_NAME" "/etc/rc3.d/K${APP_RUN_LEVEL_K}$APP_NAME_LOWER"
+                ln -s "/etc/init.d/$APP_NAME" "/etc/rc3.d/S${APP_RUN_LEVEL_S}$APP_NAME_LOWER"
             fi
         elif [ "$DIST_OS" = "linux" ] ; then
             if [ -f /etc/redhat-release -o -f /etc/redhat_version -o -f /etc/fedora-release ]  ; then
@@ -1149,10 +1155,14 @@ installdaemon() {
                 else
                     eval echo `gettext ' Installing the $APP_LONG_NAME daemon..'`
                     ln -s "$REALPATH" /etc/init.d/$APP_NAME
-                    ln -s "/etc/init.d/$APP_NAME" "/etc/rc3.d/${APP_RUN_LEVEL_K}$APP_NAME_LOWER"
-                    ln -s "/etc/init.d/$APP_NAME" "/etc/rc3.d/${APP_RUN_LEVEL_S}$APP_NAME_LOWER"
-                    ln -s "/etc/init.d/$APP_NAME" "/etc/rc5.d/${APP_RUN_LEVEL_S}$APP_NAME_LOWER"
-                    ln -s "/etc/init.d/$APP_NAME" "/etc/rc5.d/${APP_RUN_LEVEL_K}$APP_NAME_LOWER"
+                    for i in `ls "/etc/rc3.d/K"??"$APP_NAME_LOWER" "/etc/rc5.d/K"??"$APP_NAME_LOWER" "/etc/rc3.d/S"??"$APP_NAME_LOWER" "/etc/rc5.d/S"??"$APP_NAME_LOWER" 2>/dev/null` ; do
+                        eval echo `gettext ' Removing unexpected file before proceeding: $i'`
+                        rm -f $i
+                    done
+                    ln -s "/etc/init.d/$APP_NAME" "/etc/rc3.d/K${APP_RUN_LEVEL_K}$APP_NAME_LOWER"
+                    ln -s "/etc/init.d/$APP_NAME" "/etc/rc3.d/S${APP_RUN_LEVEL_S}$APP_NAME_LOWER"
+                    ln -s "/etc/init.d/$APP_NAME" "/etc/rc5.d/S${APP_RUN_LEVEL_S}$APP_NAME_LOWER"
+                    ln -s "/etc/init.d/$APP_NAME" "/etc/rc5.d/K${APP_RUN_LEVEL_K}$APP_NAME_LOWER"
                 fi
             fi
         elif [ "$DIST_OS" = "hpux" ] ; then     
@@ -1163,8 +1173,12 @@ installdaemon() {
             else
                 eval echo `gettext ' Installing the $APP_LONG_NAME daemon..'`
                 ln -s "$REALPATH" "/sbin/init.d/$APP_NAME"
-                ln -s "/sbin/init.d/$APP_NAME" "/sbin/rc3.d/${APP_RUN_LEVEL_K}$APP_NAME_LOWER"
-                ln -s "/sbin/init.d/$APP_NAME" "/sbin/rc3.d/${APP_RUN_LEVEL_S}$APP_NAME_LOWER"
+                for i in `ls "/etc/rc3.d/K"??"$APP_NAME_LOWER" "/etc/rc3.d/S"??"$APP_NAME_LOWER" 2>/dev/null` ; do
+                    eval echo `gettext ' Removing unexpected file before proceeding: $i'`
+                    rm -f $i
+                done
+                ln -s "/sbin/init.d/$APP_NAME" "/sbin/rc3.d/K${APP_RUN_LEVEL_K}$APP_NAME_LOWER"
+                ln -s "/sbin/init.d/$APP_NAME" "/sbin/rc3.d/S${APP_RUN_LEVEL_S}$APP_NAME_LOWER"
             fi
         elif [ "$DIST_OS" = "aix" ] ; then
             eval echo `gettext 'Detected AIX:'`
@@ -1179,9 +1193,12 @@ installdaemon() {
                 if [ -n "`/usr/sbin/lsitab install_assist`" ] ; then 
                     eval echo `gettext ' The task /usr/sbin/install_assist was found in the inittab, this might cause problems for all subsequent tasks to launch at this process is known to block the init task. Please make sure this task is not needed anymore and remove/deactivate it.'`
                 fi
+                for i in `ls "/etc/rc.d/rc2.d/K"??"$APP_NAME_LOWER" "/etc/rc.d/rc2.d/S"??"$APP_NAME_LOWER" 2>/dev/null` ; do
+                    eval echo `gettext ' Removing unexpected file before proceeding: $i'`
+                    rm -f $i
+                done
                 /usr/bin/mkssys -s "$APP_NAME" -p "$REALPATH" -a "launchdinternal" -u 0 -f 9 -n 15 -S
                 /usr/sbin/mkitab "$APP_NAME":2:once:"/usr/bin/startsrc -s \"${APP_NAME}\" >/dev/console 2>&1"
-                
             fi
         elif [ "$DIST_OS" = "freebsd" ] ; then
             eval echo `gettext 'Detected FreeBSD:'`                
@@ -1286,8 +1303,7 @@ removedaemon() {
             if [ -f "/etc/init.d/$APP_NAME" -o -L "/etc/init.d/$APP_NAME" ] ; then
                 stopit "0"
                 eval echo `gettext ' Removing $APP_LONG_NAME daemon...'`
-                for i in "/etc/rc3.d/${APP_RUN_LEVEL_S}$APP_NAME_LOWER" "/etc/rc3.d/${APP_RUN_LEVEL_K}$APP_NAME_LOWER" "/etc/init.d/$APP_NAME"
-                do
+                for i in `ls "/etc/rc3.d/K"??"$APP_NAME_LOWER" "/etc/rc3.d/S"??"$APP_NAME_LOWER" "/etc/init.d/$APP_NAME" 2>/dev/null` ; do
                     rm -f $i
                 done
             else
@@ -1342,8 +1358,7 @@ removedaemon() {
                 if [ -f "/etc/init.d/$APP_NAME" -o -L "/etc/init.d/$APP_NAME" ] ; then
                     stopit "0"
                     eval echo `gettext ' Removing $APP_LONG_NAME daemon...'`
-                    for i in "/etc/rc3.d/${APP_RUN_LEVEL_K}$APP_NAME_LOWER" "/etc/rc5.d/${APP_RUN_LEVEL_K}$APP_NAME_LOWER" "/etc/rc3.d/${APP_RUN_LEVEL_S}$APP_NAME_LOWER" "/etc/init.d/$APP_NAME" "/etc/rc5.d/${APP_RUN_LEVEL_S}$APP_NAME_LOWER"
-                    do
+                    for i in `ls "/etc/rc3.d/K"??"$APP_NAME_LOWER" "/etc/rc5.d/K"??"$APP_NAME_LOWER" "/etc/rc3.d/S"??"$APP_NAME_LOWER" "/etc/rc5.d/S"??"$APP_NAME_LOWER" "/etc/init.d/$APP_NAME" 2>/dev/null` ; do
                         rm -f $i
                     done
                 else
@@ -1356,8 +1371,7 @@ removedaemon() {
             if [ -f "/sbin/init.d/$APP_NAME" -o -L "/sbin/init.d/$APP_NAME" ] ; then
                 stopit "0"
                 eval echo `gettext ' Removing $APP_LONG_NAME daemon...'`
-                for i in "/sbin/rc3.d/${APP_RUN_LEVEL_K}$APP_NAME_LOWER" "/sbin/rc3.d/${APP_RUN_LEVEL_S}$APP_NAME_LOWER" "/sbin/init.d/$APP_NAME"
-                do
+                for i in `ls "/etc/rc3.d/K"??"$APP_NAME_LOWER" "/etc/rc3.d/S"??"$APP_NAME_LOWER" "/etc/init.d/$APP_NAME" 2>/dev/null` ; do
                     rm -f $i
                 done
             else
@@ -1370,8 +1384,7 @@ removedaemon() {
                 stopit "0"
                 eval echo `gettext ' Removing $APP_LONG_NAME daemon...'`
                 if [ -f "/etc/rc.d/init.d/$APP_NAME" -o -L "/etc/rc.d/init.d/$APP_NAME" ] ; then
-                    for i in "/etc/rc.d/rc2.d/${APP_RUN_LEVEL_S}$APP_NAME_LOWER" "/etc/rc.d/rc2.d/${APP_RUN_LEVEL_K}$APP_NAME_LOWER" "/etc/rc.d/init.d/$APP_NAME"
-                    do
+                    for i in `ls "/etc/rc.d/rc2.d/K"??"$APP_NAME_LOWER" "/etc/rc.d/rc2.d/S"??"$APP_NAME_LOWER" "/etc/rc.d/init.d/$APP_NAME" 2>/dev/null` ; do
                         rm -f $i
                     done
                 fi
