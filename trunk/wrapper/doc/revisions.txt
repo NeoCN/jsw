@@ -40,6 +40,8 @@ Java Service Wrapper Revision History.
 * Fix a potential problem where internally queued log entries could fail to be
   logged on shutdown.  The log queue is now always processed as part of the
   shutdown process.
+* Add a new RUN_LEVEL variable to the UNIX shell script to make it easy to
+  configure the run levels when installing as a daemon on various platforms.
 
 3.5.20
 * Further improvements to the memory footprint of the Wrapper to minimize the
