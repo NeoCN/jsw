@@ -48,8 +48,11 @@
     <target name="init-windows-7" if="is.Windows 7">
         <property name="is.Windows" value="true"/>
     </target>
+	<target name="init-windows-8" if="is.Windows 8">
+        <property name="is.Windows" value="true"/>
+    </target>
     <target name="init-windows"
-        depends="init-windows-nt, init-windows-2000, init-windows-xp, init-windows-2003, init-windows-vista, init-windows-7"
+        depends="init-windows-nt, init-windows-2000, init-windows-xp, init-windows-2003, init-windows-vista, init-windows-7, init-windows-8"
         if="is.Windows">
         <property name="is.shell.bat" value="true"/>
     </target>
