@@ -1165,7 +1165,7 @@ void wrapperExecute() {
         /* Fork failed. */
 
         /* Restore the auto close flag. */
-        setLogfileAutoClose(wrapperData->logfileInactivityTimeout <= 0);
+        setLogfileAutoClose(wrapperData->logfileCloseTimeout == 0);
 
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                    TEXT("Could not spawn JVM process: %s"), getLastErrorText());
@@ -1264,7 +1264,7 @@ void wrapperExecute() {
             pipedes[PIPE_WRITE_END] = -1;
 
             /* Restore the auto close flag. */
-            setLogfileAutoClose(wrapperData->logfileInactivityTimeout <= 0);
+            setLogfileAutoClose(wrapperData->logfileCloseTimeout == 0);			
 
             /* The pipedes array is global so do not close the pipes. */
 
@@ -1628,7 +1628,7 @@ void daemonize(int argc, TCHAR** argv) {
     }
 
     /* Restore the auto close flag in the daemonized process. */
-    setLogfileAutoClose(wrapperData->logfileInactivityTimeout <= 0);
+    setLogfileAutoClose(wrapperData->logfileCloseTimeout == 0);
 }
 
 

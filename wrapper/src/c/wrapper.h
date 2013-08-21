@@ -313,8 +313,12 @@ struct WrapperConfig {
     int     isPageFaultOutputEnabled;/* TRUE if detailed PageFault output should be included in status output. */
     int     pageFaultOutputInterval;/* Interval in seconds at which PageFault usage is logged. */
     TICKS   pageFaultOutputTimeoutTicks; /* Tick count at which PageFault will next be logged. */
-    int     logfileInactivityTimeout; /* The number of seconds of inactivity before the logfile will be closed. */
-    TICKS   logfileInactivityTimeoutTicks; /* Tick count at which the logfile will be considered inactive and closed. */
+    int     logfileFlushTimeout;    /* The number of seconds before the logfile will be flushed. */
+    TICKS   logfileFlushTimeoutTicks; /* Tick count at which the logfile will be flushed. */
+    int     logfileFlushTimeoutTicksSet; /* TRUE if logfileFlushTimeoutTicks is set. */
+    int     logfileCloseTimeout;    /* The number of seconds of inactivity before the logfile will be closed. */
+    TICKS   logfileCloseTimeoutTicks; /* Tick count at which the logfile will be considered inactive and closed. */
+    int     logfileCloseTimeoutTicksSet; /* TRUE if logfileCloseTimeoutTicks is set. */
     int     isTestsDisabled;        /* TRUE if the use of tests in the WrapperManager class should be disabled. */
     int     isShutdownHookDisabled; /* TRUE if the use of a shutdown hook by the WrapperManager class should be disabled. */
     int     isForcedShutdownDisabled; /* TRUE if forced shutdowns are disabled. */
