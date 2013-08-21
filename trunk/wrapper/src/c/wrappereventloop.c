@@ -1829,20 +1829,21 @@ void logTickTimerStats() {
 /**
  * The main event loop for the wrapper.  Handles all state changes and events.
  */
-DWORD lastLogfileActivity = 0;
 void wrapperEventLoop() {
     TICKS nowTicks;
     int uptimeSeconds;
     TICKS lastCycleTicks = wrapperGetTicks();
     int nextSleep;
-    DWORD activity;
     /* Initialize the tick timeouts. */
     wrapperData->anchorTimeoutTicks = lastCycleTicks;
     wrapperData->commandTimeoutTicks = lastCycleTicks;
     wrapperData->memoryOutputTimeoutTicks = lastCycleTicks;
     wrapperData->cpuOutputTimeoutTicks = lastCycleTicks;
     wrapperData->pageFaultOutputTimeoutTicks = lastCycleTicks;
-    wrapperData->logfileInactivityTimeoutTicks = lastCycleTicks;
+    wrapperData->logfileCloseTimeoutTicks = lastCycleTicks;
+    wrapperData->logfileCloseTimeoutTicksSet = FALSE;
+    wrapperData->logfileFlushTimeoutTicks = lastCycleTicks;
+    wrapperData->logfileFlushTimeoutTicksSet = FALSE;
 
     if (wrapperData->isDebugging) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Use tick timer mutex=%s"), wrapperData->useTickMutex ? TEXT("TRUE") : TEXT("FALSE"));
@@ -1983,15 +1984,38 @@ void wrapperEventLoop() {
 #endif
 
         /* Test the activity of the logfile. */
-        activity = getLogfileActivity();
-        if (activity != lastLogfileActivity) {
-            /* There has been recent output.  update the timeout. */
-            wrapperData->logfileInactivityTimeoutTicks = wrapperAddToTicks(nowTicks, wrapperData->logfileInactivityTimeout);
-        }
-        if (wrapperTickExpired(nowTicks, wrapperData->logfileInactivityTimeoutTicks)) {
+        if (getLogfileActivity() != 0) {
+            /* There was log output since the last pass. */
+            
+            /* Set the close timeout if enabled.  This is based on inactivity, so we always want to extend it from the current time when there was output. */
+            if (wrapperData->logfileCloseTimeout > 0) {
+                wrapperData->logfileCloseTimeoutTicks = wrapperAddToTicks(nowTicks, wrapperData->logfileCloseTimeout);
+                wrapperData->logfileCloseTimeoutTicksSet = TRUE;
+            }
+            
+            /* Set the flush timeout if enabled, and it is not already set. */
+            if (wrapperData->logfileFlushTimeout > 0) {
+                if (!wrapperData->logfileFlushTimeoutTicksSet) {
+                    wrapperData->logfileFlushTimeoutTicks = wrapperAddToTicks(nowTicks, wrapperData->logfileFlushTimeout);
+                    wrapperData->logfileFlushTimeoutTicksSet = TRUE;
+                }
+            }
+        } else if (wrapperData->logfileCloseTimeoutTicksSet && (wrapperTickExpired(nowTicks, wrapperData->logfileCloseTimeoutTicks))) {
+            /* If the inactivity timeout has expired then we want to close the logfile, otherwise simply flush it. */
             closeLogfile();
-        } else {
+            
+            /* Reset the timeout ticks so we don't start another timeout until something has been logged. */
+            wrapperData->logfileCloseTimeoutTicksSet = FALSE;
+            /* If we close the file, it is automatically flushed. */
+            wrapperData->logfileFlushTimeoutTicksSet = FALSE;
+        }
+        
+        /* Is it is time to flush the logfile? */
+        if (wrapperData->logfileFlushTimeoutTicksSet && (wrapperTickExpired(nowTicks, wrapperData->logfileFlushTimeoutTicks))) {
+            /* Time to flush the output. */
             flushLogfile();
+            /* Reset the timeout until more output is logged. */
+            wrapperData->logfileFlushTimeoutTicksSet = FALSE;
         }
 
         /* Has the process been getting CPU? This check will only detect a lag

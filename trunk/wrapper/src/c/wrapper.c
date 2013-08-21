@@ -394,6 +394,9 @@ int loadEnvironment() {
     int i;
 #endif
 
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Loading Environment..."));
+#endif
 #ifdef WIN32
     lpvEnv = GetEnvironmentStrings();
     if (!lpvEnv)
@@ -463,6 +466,9 @@ int loadEnvironment() {
 #endif
     }
 
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Loading Environment complete."));
+#endif
     return FALSE;
 }
 
@@ -612,9 +618,13 @@ void wrapperLoadLoggingProperties(int preload) {
     /* Load log file purge sort */
     setLogfilePurgeSortMode(wrapperFileGetSortMode(getStringProperty(properties, TEXT("wrapper.logfile.purge.sort"), TEXT("TIMES"))));
 
-    /* Get the memory output status. */
-    wrapperData->logfileInactivityTimeout = __max(getIntProperty(properties, TEXT("wrapper.logfile.inactivity.timeout"), 1, !preload), 0);
-    setLogfileAutoClose(wrapperData->logfileInactivityTimeout <= 0);
+    /* Get the close timeout. */
+    wrapperData->logfileCloseTimeout = __max(__min(getIntProperty(properties, TEXT("wrapper.logfile.close.timeout"), getIntProperty(properties, TEXT("wrapper.logfile.inactivity.timeout"), 1, !preload), !preload), 3600), -1);
+    setLogfileAutoClose(wrapperData->logfileCloseTimeout == 0);
+    
+    /* Get the flush timeout. */
+    wrapperData->logfileFlushTimeout = __max(__min(getIntProperty(properties, TEXT("wrapper.logfile.flush.timeout"), 1, !preload), 3600), 0);
+    setLogfileAutoFlush(wrapperData->logfileFlushTimeout == 0);
 
     /* Load console format */
     setConsoleLogFormat(getStringProperty(properties, TEXT("wrapper.console.format"), LOG_FORMAT_CONSOLE_DEFAULT));
@@ -2321,6 +2331,10 @@ int wrapperInitialize() {
     setConsoleFlush(TRUE);  /* Always flush immediately until the logfile is configured to make sure that problems are in a consistent location. */
     setSyslogLevelInt(LEVEL_NONE);
 
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Wrapper Initializing...  Minimum logging configured."));
+#endif
+
     /** Remember what the initial user directory was when the Wrapper was launched. */
     wrapperData->initialPath = (TCHAR *)malloc((maxPathLen + 1) * sizeof(TCHAR));
     if (!wrapperData->initialPath) {
@@ -2372,6 +2386,9 @@ int wrapperInitialize() {
         return 1;
     }
 
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Wrapper Initialization complete."));
+#endif
     return 0;
 }
 

@@ -227,11 +227,14 @@ int logFileAccessed = FALSE;
 /* Logger file pointer.  It is kept open under high log loads but closed whenever it has been idle. */
 FILE *logfileFP = NULL;
 
+/** Flag which controls whether or not the logfile is auto flushed after each line. */
+int autoFlushLogfile = 0;
+
 /** Flag which controls whether or not the logfile is auto closed after each line. */
 int autoCloseLogfile = 0;
 
 /* The number of lines sent to the log file since the getLogfileActivity method was last called. */
-DWORD logfileActivityCount;
+DWORD logfileActivityCount = 0;
 
 
 /* Mutex for syncronization of the log_printf function. */
@@ -1069,6 +1072,16 @@ int releaseLoggingMutex() {
     return 0;
 }
 
+/** Sets the auto flush log file flag. */
+void setLogfileAutoFlush(int autoFlush) {
+    autoFlushLogfile = autoFlush;
+}
+
+/** Sets the auto close log file flag. */
+void setLogfileAutoClose(int autoClose) {
+    autoCloseLogfile = autoClose;
+}
+
 /** Closes the logfile if it is open. */
 void closeLogfile() {
     /* We need to be very careful that only one thread is allowed in here
@@ -1092,11 +1105,6 @@ void closeLogfile() {
     if (releaseLoggingMutex()) {
         return;
     }
-}
-
-/** Sets the auto close log file flag. */
-void setLogfileAutoClose(int autoClose) {
-    autoCloseLogfile = autoClose;
 }
 
 /** Flushes any buffered logfile output to the disk. */
@@ -1738,9 +1746,10 @@ int log_printf_message_logFileInner(int source_id, int level, int threadId, int 
                 /* Increment the activity counter. */
                 logfileActivityCount++;
 
-                /* Only close the file if autoClose is set.  Otherwise it will be closed later
-                 *  after an appropriate period of inactivity. */
+                /* Decide whether we want to close or flush the log file immediately after each line.
+                 *  If not then flushing and closing will be handled externally by calling flushLogfile() or closeLogfile(). */
                 if (autoCloseLogfile) {
+                    /* Close the log file immediately. */
 #ifdef _DEBUG
                     _tprintf(TEXT("Closing logfile immediately...\n"));
 #endif
@@ -1748,6 +1757,13 @@ int log_printf_message_logFileInner(int source_id, int level, int threadId, int 
                     fclose(logfileFP);
                     logfileFP = NULL;
                     /* Do not clear the currentLogFileName here as we are not changing its name. */
+                } else if (autoFlushLogfile) {
+                    /* Flush the log file immediately. */
+#ifdef _DEBUG
+                    _tprintf(TEXT("Flushing logfile immediately...\n"));
+#endif
+                    
+                    fflush(logfileFP);
                 }
 
                 /* Leave the file open.  It will be closed later after a period of inactivity. */

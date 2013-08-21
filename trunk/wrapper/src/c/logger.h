@@ -262,8 +262,17 @@ extern void setLogfileMaxLogFiles(int max_log_files);
 extern void setLogfilePurgePattern(const TCHAR *pattern);
 extern void setLogfilePurgeSortMode(int sortMode);
 extern DWORD getLogfileActivity();
-extern void closeLogfile();
+
+/** Sets the auto flush log file flag. */
+extern void setLogfileAutoFlush(int autoFlush);
+
+/** Sets the auto close log file flag. */
 extern void setLogfileAutoClose(int autoClose);
+
+/** Closes the logfile if it is open. */
+extern void closeLogfile();
+
+/** Flushes any buffered logfile output to the disk. */
 extern void flushLogfile();
 
 /* * Console functions * */

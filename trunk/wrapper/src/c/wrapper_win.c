@@ -1797,7 +1797,7 @@ void wrapperExecute() {
     _umask(old_umask);
 
     /* As soon as the new process is created, restore the auto close flag. */
-    setLogfileAutoClose(wrapperData->logfileInactivityTimeout <= 0);
+    setLogfileAutoClose(wrapperData->logfileCloseTimeout == 0);
 
     /* Check if virtual machine started */
     if (ret==FALSE) {

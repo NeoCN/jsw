@@ -47,6 +47,9 @@ Java Service Wrapper Revision History.
   rc files.
 * Add a new RUN_LEVEL variable to the UNIX shell script to make it easy to
   configure the run levels when installing as a daemon on various platforms.
+* Add new wrapper.logfile.close.timeout and wrapper.logfile.flush.timeout
+  properties, and deprecate the wrapper.logfile.inactivity.timeout property,
+  to increase control over when and how the logfile is flushed and closed.
 
 3.5.20
 * Further improvements to the memory footprint of the Wrapper to minimize the
