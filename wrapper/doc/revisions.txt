@@ -50,6 +50,11 @@ Java Service Wrapper Revision History.
 * Add new wrapper.logfile.close.timeout and wrapper.logfile.flush.timeout
   properties, and deprecate the wrapper.logfile.inactivity.timeout property,
   to increase control over when and how the logfile is flushed and closed.
+* Add a new PIDFILE_CHECK_PID setting in the UNIX shell script which makes it
+  possible to control whether or not the script double checks that the pid in
+  an existing pidfile is actually the pid of the application's Wrapper.  This
+  property makes it possible to disable this check so multiple applications
+  can be tied to the same pid file.
 
 3.5.20
 * Further improvements to the memory footprint of the Wrapper to minimize the

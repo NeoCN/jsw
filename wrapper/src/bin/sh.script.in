@@ -37,6 +37,12 @@ PRIORITY=
 # Location of the pid file.
 PIDDIR="."
 
+# PIDFILE_CHECK_PID tells the script to double check whether the pid in the pid
+#  file actually exists and belongs to this application.  When not set, only
+#  check the pid, but not what it is.  This is only needed when multiple
+#  applications need to share the same pid file.
+PIDFILE_CHECK_PID=true
+
 # FIXED_COMMAND tells the script to use a hard coded action rather than
 # expecting the first parameter of the command line to be the command.
 # By default the command will will be expected to be the first parameter.
@@ -669,61 +675,67 @@ getpid() {
             pid=`cat "$PIDFILE"`
             if [ "X$pid" != "X" ]
             then
-                # It is possible that 'a' process with the pid exists but that it is not the
-                #  correct process.  This can happen in a number of cases, but the most
-                #  common is during system startup after an unclean shutdown.
-                # The ps statement below looks for the specific wrapper command running as
-                #  the pid.  If it is not found then the pid file is considered to be stale.
-                case "$DIST_OS" in
-                    'freebsd')
-                        pidtest=`$PSEXE -p $pid -o args | tail -1`
-                        if [ "X$pidtest" = "XCOMMAND" ]
-                        then 
-                            pidtest=""
-                        fi
-                        ;;
-                    'macosx')
-                        pidtest=`$PSEXE -ww -p $pid -o command | grep -F "$WRAPPER_CMD" | tail -1`
-                        ;;
-                    'solaris')
-                        if [ -f "/usr/bin/pargs" ]
-                        then
-                            pidtest=`pargs $pid | fgrep "$WRAPPER_CMD" | tail -1`
-                        else
-                            case "$PSEXE" in
-                            '/usr/ucb/ps')
-                                pidtest=`$PSEXE -auxww  $pid | fgrep "$WRAPPER_CMD" | tail -1`
-                                ;;
-                            '/usr/bin/ps')
-                                TRUNCATED_CMD=`$PSEXE -o comm -p $pid | tail -1`
-                                COUNT=`echo $TRUNCATED_CMD | wc -m`
-                                COUNT=`echo ${COUNT}`
-                                COUNT=`expr $COUNT - 1`
-                                TRUNCATED_CMD=`echo $WRAPPER_CMD | cut -c1-$COUNT`
-                                pidtest=`$PSEXE -o comm -p $pid | fgrep "$TRUNCATED_CMD" | tail -1`
-                                ;;
-                            '/bin/ps')
-                                TRUNCATED_CMD=`$PSEXE -o comm -p $pid | tail -1`
-                                COUNT=`echo $TRUNCATED_CMD | wc -m`
-                                COUNT=`echo ${COUNT}`
-                                COUNT=`expr $COUNT - 1`
-                                TRUNCATED_CMD=`echo $WRAPPER_CMD | cut -c1-$COUNT`
-                                pidtest=`$PSEXE -o comm -p $pid | fgrep "$TRUNCATED_CMD" | tail -1`
-                                ;;
-                            *)
-                                echo "Unsupported ps command $PSEXE"
-                                exit 1
-                                ;;
-                            esac
-                        fi
-                        ;;
-                    'hpux')
-                        pidtest=`$PSEXE -p $pid -x -o args | grep -F "$WRAPPER_CMD" | tail -1`
-                        ;;
-                    *)
-                        pidtest=`$PSEXE -p $pid -o args | grep -F "$WRAPPER_CMD" | tail -1`
-                        ;;
-                esac
+                if [ "X$PIDFILE_CHECK_PID" != "X" ]
+                then
+                    # It is possible that 'a' process with the pid exists but that it is not the
+                    #  correct process.  This can happen in a number of cases, but the most
+                    #  common is during system startup after an unclean shutdown.
+                    # The ps statement below looks for the specific wrapper command running as
+                    #  the pid.  If it is not found then the pid file is considered to be stale.
+                    case "$DIST_OS" in
+                        'freebsd')
+                            pidtest=`$PSEXE -p $pid -o args | tail -1`
+                            if [ "X$pidtest" = "XCOMMAND" ]
+                            then 
+                                pidtest=""
+                            fi
+                            ;;
+                        'macosx')
+                            pidtest=`$PSEXE -ww -p $pid -o command | grep -F "$WRAPPER_CMD" | tail -1`
+                            ;;
+                        'solaris')
+                            if [ -f "/usr/bin/pargs" ]
+                            then
+                                pidtest=`pargs $pid | fgrep "$WRAPPER_CMD" | tail -1`
+                            else
+                                case "$PSEXE" in
+                                '/usr/ucb/ps')
+                                    pidtest=`$PSEXE -auxww  $pid | fgrep "$WRAPPER_CMD" | tail -1`
+                                    ;;
+                                '/usr/bin/ps')
+                                    TRUNCATED_CMD=`$PSEXE -o comm -p $pid | tail -1`
+                                    COUNT=`echo $TRUNCATED_CMD | wc -m`
+                                    COUNT=`echo ${COUNT}`
+                                    COUNT=`expr $COUNT - 1`
+                                    TRUNCATED_CMD=`echo $WRAPPER_CMD | cut -c1-$COUNT`
+                                    pidtest=`$PSEXE -o comm -p $pid | fgrep "$TRUNCATED_CMD" | tail -1`
+                                    ;;
+                                '/bin/ps')
+                                    TRUNCATED_CMD=`$PSEXE -o comm -p $pid | tail -1`
+                                    COUNT=`echo $TRUNCATED_CMD | wc -m`
+                                    COUNT=`echo ${COUNT}`
+                                    COUNT=`expr $COUNT - 1`
+                                    TRUNCATED_CMD=`echo $WRAPPER_CMD | cut -c1-$COUNT`
+                                    pidtest=`$PSEXE -o comm -p $pid | fgrep "$TRUNCATED_CMD" | tail -1`
+                                    ;;
+                                *)
+                                    echo "Unsupported ps command $PSEXE"
+                                    exit 1
+                                    ;;
+                                esac
+                            fi
+                            ;;
+                        'hpux')
+                            pidtest=`$PSEXE -p $pid -x -o args | grep -F "$WRAPPER_CMD" | tail -1`
+                            ;;
+                        *)
+                            pidtest=`$PSEXE -p $pid -o args | grep -F "$WRAPPER_CMD" | tail -1`
+                            ;;
+                    esac
+                else
+                    # Check to see whether the pid exists as a running process, but in this mode, don't check what that pid is.
+                    pidtest=`$PSEXE -p $pid -o pid | grep "$pid" | tail -1`
+                fi
 
                 if [ "X$pidtest" = "X" ]
                 then
