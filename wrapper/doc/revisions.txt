@@ -55,6 +55,13 @@ Java Service Wrapper Revision History.
   an existing pidfile is actually the pid of the application's Wrapper.  This
   property makes it possible to disable this check so multiple applications
   can be tied to the same pid file.
+* Go through and make sure that none of the Wrapper native JNI methods are
+  called after the WrapperManager shutdown has completed.  Doing so was causing
+  a JVM crash on some Linux JVMs.  This was happening when a WrapperResources
+  instance was finalized by the garbage collector on shutdown.
+* Modify the internal WrapperManager tick thread so it is allowed to complete
+  once the WrapperManager has fully shutdown.  This was the only remaining
+  reference to the WrapperManager class.
 
 3.5.20
 * Further improvements to the memory footprint of the Wrapper to minimize the

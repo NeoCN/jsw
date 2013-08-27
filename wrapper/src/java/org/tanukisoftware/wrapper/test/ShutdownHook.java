@@ -63,6 +63,20 @@ public class ShutdownHook {
                     }
                 }
                 System.out.println( Main.getRes().getString( "Shutdown hook complete. Should exit now." ) );
+                
+                // Run GC to invoke finalize on unsed objects to test the shutdown process.
+                System.out.println( "GC BEGIN" );
+                System.gc();
+                System.out.println( "GC END" );
+                try
+                {
+                    Thread.sleep( 2000 );
+                }
+                catch ( InterruptedException e )
+                {
+                    // Ignore
+                }
+                System.out.println( "DONE" );
             }
         } );
         

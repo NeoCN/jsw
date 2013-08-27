@@ -62,7 +62,10 @@ public class WrapperProcessInputStream
         {
             if ( !m_closed )
             {
-                nativeClose();
+                if ( WrapperManager.isNativeLibraryOk() )
+                {
+                    nativeClose();
+                }
                 m_closed = true;
             }
         }
@@ -86,7 +89,9 @@ public class WrapperProcessInputStream
 
     /**
      * Read a character from the Stream and moves the position in the stream
-     * @return single sign from the stream
+     *
+     * @return A single character from the stream, or -1 when the end of stream is reached.
+     *
      * @throws IOException in case the stream has been already closed or any other file error
      * @throws WrapperLicenseError If the function is called other than in
      *                             the Professional Edition or from a Standalone JVM.
@@ -94,31 +99,27 @@ public class WrapperProcessInputStream
     public int read()
         throws IOException
     {
-        
-            if ( !m_closed )
+        if ( ( !m_closed ) && WrapperManager.isNativeLibraryOk() )
+        {
+            return nativeRead( true );
+        }
+        else
+        {
+            if ( m_bais != null )
             {
-                return nativeRead( true );
+                return m_bais.read();
             }
             else
             {
-                if ( m_bais != null )
-                {
-                    return m_bais.read();
-                }
-                else
-                {
-                    throw new IOException(WrapperManager.getRes().getString( "Stream is closed." ) );
-                }
+                throw new IOException(WrapperManager.getRes().getString( "Stream is closed." ) );
             }
-        
+        }
     }
 
     public int read( byte b[ ]) throws IOException 
     {
         return read( b, 0, b.length );
     }
-
-    
     
     public int read( byte b[], int off, int len ) throws IOException
     {
@@ -140,7 +141,7 @@ public class WrapperProcessInputStream
             {
                 return -1;
             }
-            if (!m_closed)
+            if ( ( !m_closed ) && WrapperManager.isNativeLibraryOk() )
             {
                 c = nativeRead2( b, off, len, false );
                 if ( c == -1 ) /* a process can terminate only once */
@@ -171,7 +172,7 @@ public class WrapperProcessInputStream
         {
             int i;
             int msg;
-            if ( m_closed ) 
+            if ( m_closed || ( !WrapperManager.isNativeLibraryOk() ) )
             {
                 return;
             }
