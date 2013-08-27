@@ -62,7 +62,7 @@ public class WrapperProcessOutputStream
     {
         synchronized( this )
         {
-            if ( !m_closed )
+            if ( ( !m_closed ) && WrapperManager.isNativeLibraryOk() )
             {
                 nativeWrite( b );
             }
@@ -85,7 +85,10 @@ public class WrapperProcessOutputStream
      {
         if ( !m_closed )
         {
-            nativeClose();
+            if ( WrapperManager.isNativeLibraryOk() )
+            {
+                nativeClose();
+            }
             m_closed = true;
         }
     }

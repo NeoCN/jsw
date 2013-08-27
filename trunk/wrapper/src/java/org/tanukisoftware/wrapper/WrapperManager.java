@@ -395,6 +395,7 @@ public final class WrapperManager
     
     private static boolean m_service = false;
     private static boolean m_debug = false;
+    private static boolean m_logFinalizer = false;
     private static int m_jvmId = 0;
     /** Flag set when any thread initiates a stop or restart. */
     private static boolean m_stoppingInit = false;
@@ -402,6 +403,8 @@ public final class WrapperManager
     private static boolean m_stopping = false;
     /** Thread that is in charge of stopping. */
     private static Thread m_stoppingThread;
+    /** Flag set when the the thread which is charge of stopping has completed.  The Wrapper JNI code could then become invalid at any time and should no longer be trusted. */
+    private static boolean m_stopped = false;
     /** If set then this message will be sent as a STOP message as soon as we connect to the Wrapper. */
     private static String m_pendingStopMessage = null;
     private static int m_exitCode;
@@ -593,6 +596,9 @@ public final class WrapperManager
         //  WrapperManager class is being initialized.
         m_outInfo.println( getRes().getString( "Initializing..." ) );
         
+        // Store the log finalizer flag.
+        m_logFinalizer = WrapperSystemPropertyUtil.getBooleanProperty( "wrapper.logFinalizers", false );
+        
         // Check for the jvmID
         m_jvmId = WrapperSystemPropertyUtil.getIntProperty( "wrapper.jvmid", 1 );
         if ( m_debug )
@@ -684,6 +690,13 @@ public final class WrapperManager
                     {
                         m_outDebug.println( getRes().getString( "ShutdownHook complete" ) );
                     }
+                    
+                    // Really all done.
+                    if ( m_debug )
+                    {
+                        m_outDebug.println( getRes().getString( "WrapperManger stopped due to {0}", getRes().getString( "Shutdown Hook" ) ) );
+                    }
+                    m_stopped = true;
                 }
             };
             
@@ -816,7 +829,7 @@ public final class WrapperManager
         // Initialize the native code to trap system signals
         initializeNativeLibrary();
         
-        if ( m_libraryOK )
+        if ( isNativeLibraryOk() )
         {
             // Make sure that the native library's version is correct.
             verifyNativeLibraryVersion();
@@ -857,9 +870,8 @@ public final class WrapperManager
                     boolean first = true;
                     boolean stoppingLogged = false;
                     
-                    // This loop should never exit because the tick counting is required
-                    //  for the life of the JVM.
-                    while ( true )
+                    // This loop should not exit until the WrapperManager is completely stopped.
+                    while ( !m_stopped )
                     {
                         int offsetDiff;
                         if ( !m_useSystemTime )
@@ -944,7 +956,7 @@ public final class WrapperManager
                             fireWrapperEvent( tickEvent );
                         }
                         
-                        if ( m_libraryOK )
+                        if ( isNativeLibraryOk() )
                         {
                             // To avoid the JVM shutting down while we are in the middle of a JNI call, 
                             if ( !isShuttingDown() )
@@ -1066,6 +1078,26 @@ public final class WrapperManager
         // Create the singleton
         m_instance = new WrapperManager();
     }
+    
+    /*---------------------------------------------------------------
+     * Finalizers
+     *-------------------------------------------------------------*/
+    protected void finalize()
+        throws Throwable
+    {
+        try
+        {
+            // This should only happen if the class gets unloaded.
+            if ( isLoggingFinalizers() )
+            {
+                System.out.println( "WrapperManager.finalize" );
+            }
+        }
+        finally
+        {
+            super.finalize();
+        }
+    }
 
     /*---------------------------------------------------------------
      * Native Methods
@@ -1078,7 +1110,7 @@ public final class WrapperManager
     private static native int nativeGetControlEvent();
     private static native int nativeRedirectPipes();
     private static native void nativeRequestThreadDump();
-    private static native void accessViolationInner();
+    private static native void accessViolationInner(); // Should start with native, but need to preserve for compatibility.
     private static native void nativeSetConsoleTitle( String titleBytes );
     private static native WrapperUser nativeGetUser( boolean groups );
     private static native WrapperUser nativeGetInteractiveUser( boolean groups );
@@ -1474,7 +1506,7 @@ public final class WrapperManager
             {
                 // No library path
                 m_outInfo.println( getRes().getString( 
-                    "WARNING - Unable to load the Wrapper's native library because the" ) );
+                    "WARNING - Unable to load the Wrapper's native library because the\n" ) );
                 m_outInfo.println( getRes().getString( 
                     "          java.library.path was set to ''.  Please see the" ) );
                 m_outInfo.println( getRes().getString( 
@@ -1768,11 +1800,11 @@ public final class WrapperManager
      */
     private static WrapperResources loadWrapperResourcesInner( String domain, String folder, boolean makeActive )
     {
-        try 
+        if ( isNativeLibraryOk() )
         {
             return nativeLoadWrapperResources( domain, folder, makeActive );
         }
-        catch ( UnsatisfiedLinkError e )
+        else
         {
             return new WrapperResources();
         }
@@ -2133,7 +2165,7 @@ public final class WrapperManager
             sm.checkExec( cmdArray[0] );
         }
         
-        if ( m_libraryOK )
+        if ( isNativeLibraryOk() )
         {
             for ( int i = 0; i < cmdArray.length; i++ )
             {
@@ -2191,13 +2223,14 @@ public final class WrapperManager
     
     /**
      * Returns true if the native library has been loaded successfully, false
-     *  otherwise.
+     *  otherwise.  This value can switch to false on shutdown when the native
+     *  library can no longer be reliably referenced.
      *
-     * @return True if the native library is loaded.
+     * @return True if the native library is loaded and available.
      */
     public static boolean isNativeLibraryOk()
     {
-        return m_libraryOK;
+        return m_libraryOK && ( !m_stopped );
     }
     
     /**
@@ -2232,8 +2265,8 @@ public final class WrapperManager
      */
     public static boolean isProfessionalEdition()
     {
-        // Be careful as this will not exist in older versions
-        if ( m_libraryOK )
+        // Be careful as this will not exist in older versions of the library.
+        if ( isNativeLibraryOk() )
         {
             try
             {
@@ -2263,8 +2296,8 @@ public final class WrapperManager
      */
     public static boolean isStandardEdition()
     {
-        // Be careful as this will not exist in older versions
-        if ( m_libraryOK )
+        // Be careful as this will not exist in older versions of the library.
+        if ( isNativeLibraryOk() )
         {
             try
             {
@@ -2340,7 +2373,7 @@ public final class WrapperManager
             sm.checkPermission( new WrapperPermission( "setConsoleTitle" ) );
         }
         
-        if ( m_libraryOK )
+        if ( isNativeLibraryOk() )
         {
             nativeSetConsoleTitle( title );
         }
@@ -2373,7 +2406,7 @@ public final class WrapperManager
         }
         
         WrapperUser user = null;
-        if ( m_libraryOK )
+        if ( isNativeLibraryOk() )
         {
             user = nativeGetUser( groups );
         }
@@ -2430,7 +2463,7 @@ public final class WrapperManager
         }
         
         WrapperUser user = null;
-        if ( m_libraryOK )
+        if ( isNativeLibraryOk() )
         {
             user = nativeGetInteractiveUser( groups );
         }
@@ -2538,7 +2571,7 @@ public final class WrapperManager
             sm.checkPermission( new WrapperPermission( "requestThreadDump" ) );
         }
         
-        if ( m_libraryOK )
+        if ( isNativeLibraryOk() )
         {
             nativeRequestThreadDump();
         }
@@ -2718,7 +2751,7 @@ public final class WrapperManager
         
         m_outInfo.println( getRes().getString(
                 "WARNING: Attempting to cause an access violation..." ) );
-        if ( m_libraryOK )
+        if ( isNativeLibraryOk() )
         {
             accessViolationInner();
         
@@ -2779,6 +2812,14 @@ public final class WrapperManager
     public static boolean isDebugEnabled()
     {
         return m_debug;
+    }
+    
+    /**
+     * Internal method to let Wrapper classes decide whether or not to write finalizer log output.
+     */
+    static boolean isLoggingFinalizers()
+    {
+        return m_logFinalizer;
     }
     
     /**
@@ -3325,6 +3366,13 @@ public final class WrapperManager
         
         signalStopped( exitCode );
         
+        // Really all done.
+        if ( m_debug )
+        {
+            m_outDebug.println( getRes().getString( "WrapperManger stopped due to {0}", getRes().getString( "Halt" ) ) );
+        }
+        m_stopped = true;
+        
         Runtime.getRuntime().halt( exitCode );
     }
     
@@ -3518,7 +3566,7 @@ public final class WrapperManager
             sm.checkPermission( new WrapperPermission( "listServices" ) );
         }
         
-        if ( m_libraryOK )
+        if ( isNativeLibraryOk() )
         {
             return nativeListServices();
         }
@@ -3610,7 +3658,7 @@ public final class WrapperManager
         }
         
         WrapperWin32Service service = null;
-        if ( m_libraryOK )
+        if ( isNativeLibraryOk() )
         {
             service = nativeSendServiceControlCode( serviceName, controlCode );
         }
@@ -3933,7 +3981,7 @@ public final class WrapperManager
     
     /**
      * Dispose of all resources used by the WrapperManager.  Closes the server
-     *  socket which is used to listen for events from the 
+     *  socket which is used to listen for events from the Wrapper process.
      */
     private static void dispose()
     {
@@ -4172,6 +4220,13 @@ public final class WrapperManager
      */
     private static void safeSystemExit( int exitCode )
     {
+        // Really all done.
+        if ( m_debug )
+        {
+            m_outDebug.println( getRes().getString( "WrapperManger stopped due to {0}", getRes().getString( "System Exit" ) ) );
+        }
+        m_stopped = true;
+        
         try
         {
             System.exit( exitCode );
@@ -4199,7 +4254,7 @@ public final class WrapperManager
         boolean block;
         synchronized( WrapperManager.class )
         {
-            // Always set the stopping flag.
+            // Always set the stopping flag.  (Depending on how the shutdown was initiated, it may already be set.)
             m_stopping = true;
             
             // Only one thread can be allowed to continue.
@@ -5519,6 +5574,10 @@ public final class WrapperManager
     /*---------------------------------------------------------------
      * Runnable Methods
      *-------------------------------------------------------------*/
+    /**
+     * The main comm runner thread.
+     *  This will only be called when the Wrapper is controlling the JVM.
+     */
     public void run()
     {
         // Make sure that no other threads call this method.
@@ -5608,11 +5667,11 @@ public final class WrapperManager
                     // This and all further output will not be visible anywhere as the Wrapper is now gone.
                     m_outInfo.println( getRes().getString( "The backend was closed as expected." ) );
                     
-                    try
+                    if ( isNativeLibraryOk() )
                     {
                         nativeRedirectPipes();
                     }
-                    catch ( UnsatisfiedLinkError t )
+                    else
                     {
                         m_outError.println( getRes().getString( "Failed to redirect stdout and stderr before the Wrapper exits.\nOutput from the JVM may block.\nPlease make sure the native library has been properly initialized."));
                     }
@@ -5741,15 +5800,15 @@ public final class WrapperManager
         if ( isStandardEdition() )
         {
             boolean result = false;
-            try
+            if ( isNativeLibraryOk() )
             {
                 result = nativeCheckDeadLocks();
             }
-            catch ( UnsatisfiedLinkError e )
+            else
             {
                 if ( m_debug )
                 {
-                    m_outDebug.println( getRes().getString( "Deadlock check skipped.  Native call failed." ) ); 
+                    m_outDebug.println( getRes().getString( "Deadlock check skipped.  Native call unavailable." ) ); 
                 }
                 result = false;
             }

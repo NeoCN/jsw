@@ -100,7 +100,14 @@ public final class WrapperProcessConfig
             throw new WrapperLicenseError(  WrapperManager.getRes().getString( "Requires the Professional Edition." ) );
         }
         verifyStartType( startType );
-        return isSupportedNative( startType );
+        if ( WrapperManager.isNativeLibraryOk() )
+        {
+            return isSupportedNative( startType );
+        }
+        else
+        {
+            return false;
+        }
     }
     
     /**
@@ -363,13 +370,16 @@ public final class WrapperProcessConfig
     private Map getDefaultEnvironment()
     {
         Map environment = new HashMap();
-        String[] nativeEnv = nativeGetEnv();
-        for ( int i = 0; i < nativeEnv.length; i++ )
+        if ( WrapperManager.isNativeLibraryOk() )
         {
-            int pos = nativeEnv[i].indexOf( '=' );
-            String name = nativeEnv[i].substring( 0, pos );
-            String value = nativeEnv[i].substring( pos + 1 );
-            environment.put( name, value );
+            String[] nativeEnv = nativeGetEnv();
+            for ( int i = 0; i < nativeEnv.length; i++ )
+            {
+                int pos = nativeEnv[i].indexOf( '=' );
+                String name = nativeEnv[i].substring( 0, pos );
+                String value = nativeEnv[i].substring( pos + 1 );
+                environment.put( name, value );
+            }
         }
 
         return environment;
@@ -382,7 +392,14 @@ public final class WrapperProcessConfig
     {
         if ( m_environment == null )
         {
-            return nativeGetEnv();
+            if ( WrapperManager.isNativeLibraryOk() )
+            {
+                return nativeGetEnv();
+            }
+            else
+            {
+                return new String[0];
+            }
         }
         else
         {

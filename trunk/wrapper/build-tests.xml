@@ -48,7 +48,7 @@
     <target name="init-windows-7" if="is.Windows 7">
         <property name="is.Windows" value="true"/>
     </target>
-	<target name="init-windows-8" if="is.Windows 8">
+    <target name="init-windows-8" if="is.Windows 8">
         <property name="is.Windows" value="true"/>
     </target>
     <target name="init-windows"
@@ -440,6 +440,22 @@ wrapper.listener.force_stop=TRUE]]></replacevalue>
         <replace file="${test.dir}/shutdownhook.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.ShutdownHook" />
+        
+        <!-- Post Shutdown GC Test -->
+        <delete file="${test.dir}/postshutdowngc.conf"/>
+        <filter token="app.name"          value="postshutdowngc"/>
+        <filter token="app.long.name"     value="Post Shutdown GC Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/postshutdowngc.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/postshutdowngc.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.PostShutdownGC" />
+        <replace file="${test.dir}/postshutdowngc.conf">
+            <replacetoken>wrapper.java.additional.1=</replacetoken>
+            <replacevalue><![CDATA[wrapper.java.additional.1=-verbose:gc
+wrapper.java.additional.2=-Dwrapper.logFinalizers=TRUE]]></replacevalue>
+        </replace>
         
         <!-- Shutdown Lock Test -->
         <delete file="${test.dir}/shutdownlock.conf"/>
@@ -1124,6 +1140,18 @@ set ENV_VAR_4=d]]></replacevalue>
                  token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
                  value='set _WRAPPER_CONF_DEFAULT=../test/shutdownhook.conf' />
         
+        <!-- Post Shutdown GC Test -->
+        <delete file="${test.dir}/TestPostShutdownGC.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestPostShutdownGC.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestPostShutdownGC.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestPostShutdownGC.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/postshutdowngc.conf' />
+        
         <!-- Shutdown Lock Test -->
         <delete file="${test.dir}/TestShutdownLock.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
@@ -1623,6 +1651,14 @@ export ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/shutdownhook"
               filtering="on"/>
         <chmod file="${test.dir}/shutdownhook" perm="+x"/>
+        
+        <!-- Post Shutdown GC Test -->
+        <filter token="app.name"          value="postshutdowngc"/>
+        <filter token="app.long.name"     value="Post Shutdown GC Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/postshutdowngc"
+              filtering="on"/>
+        <chmod file="${test.dir}/postshutdowngc" perm="+x"/>
         
         <!-- Shutdown Lock Test -->
         <filter token="app.name"          value="shutdownlock"/>
