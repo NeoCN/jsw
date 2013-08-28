@@ -1800,7 +1800,7 @@ public final class WrapperManager
      */
     private static WrapperResources loadWrapperResourcesInner( String domain, String folder, boolean makeActive )
     {
-        if ( isNativeLibraryOk() )
+        if ( WrapperManager.isStandardEdition() && isNativeLibraryOk() )
         {
             return nativeLoadWrapperResources( domain, folder, makeActive );
         }
