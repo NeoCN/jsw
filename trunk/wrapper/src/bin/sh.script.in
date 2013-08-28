@@ -537,7 +537,8 @@ then
 fi
 
 # Decide on run levels.
-RUN_LEVEL_S_DIST_OS=$(eval "echo \$$(echo RUN_LEVEL_S_${DIST_OS})")
+RUN_LEVEL_S_DIST_OS_TMP=`eval "echo \$\{RUN_LEVEL_S_${DIST_OS}\}"`
+RUN_LEVEL_S_DIST_OS=`eval "echo ${RUN_LEVEL_S_DIST_OS_TMP}"`
 if [ "X${RUN_LEVEL_S_DIST_OS}" != "X" ] ; then
     APP_RUN_LEVEL_S=${RUN_LEVEL_S_DIST_OS}
 elif [ "X$RUN_LEVEL_S" != "X" ] ; then
@@ -545,12 +546,13 @@ elif [ "X$RUN_LEVEL_S" != "X" ] ; then
 else
     APP_RUN_LEVEL_S=$RUN_LEVEL
 fi
-APP_RUN_LEVEL_S_CHECK=`echo "$APP_RUN_LEVEL_S" | $TREXE "[0-9]" "0"`
+APP_RUN_LEVEL_S_CHECK=`echo "$APP_RUN_LEVEL_S" | sed "s/[(0-9)*]/0/g"`
 if [ "X${APP_RUN_LEVEL_S_CHECK}" != "X00" ] ; then
-    eval echo `gettext 'Run level "${APP_RUN_LEVEL_S}" must be numeric and have a length of two (00-99).'`
+    eval echo `gettext 'Run level \"${APP_RUN_LEVEL_S}\" must be numeric and have a length of two \(00-99\).'`
     exit 1;
 fi
-RUN_LEVEL_K_DIST_OS=$(eval "echo \$$(echo RUN_LEVEL_K_${DIST_OS})")
+RUN_LEVEL_K_DIST_OS_TMP=`eval "echo \$\{RUN_LEVEL_K_${DIST_OS}\}"`
+RUN_LEVEL_K_DIST_OS=`eval "echo ${RUN_LEVEL_K_DIST_OS_TMP}"`
 if [ "X${RUN_LEVEL_K_DIST_OS}" != "X" ] ; then
     APP_RUN_LEVEL_K=${RUN_LEVEL_K_DIST_OS}
 elif [ "X$RUN_LEVEL_K" != "X" ] ; then
@@ -558,9 +560,9 @@ elif [ "X$RUN_LEVEL_K" != "X" ] ; then
 else
     APP_RUN_LEVEL_K=$RUN_LEVEL
 fi
-APP_RUN_LEVEL_K_CHECK=`echo "$APP_RUN_LEVEL_K" | $TREXE "[0-9]" "0"`
-if [ "X${APP_RUN_LEVEL_K_CHECK}" != "X00" -o  ] ; then
-    eval echo `gettext 'Run level "${APP_RUN_LEVEL_K}" must be numeric and have a length of two (00-99).'`
+APP_RUN_LEVEL_K_CHECK=`echo "$APP_RUN_LEVEL_K" | sed "s/[(0-9)*]/0/g"`
+if [ "X${APP_RUN_LEVEL_K_CHECK}" != "X00" ] ; then
+    eval echo `gettext 'Run level \"${APP_RUN_LEVEL_K}\" must be numeric and have a length of two \(00-99\).'`
     exit 1;
 fi
 
@@ -699,29 +701,29 @@ getpid() {
                                 pidtest=`pargs $pid | fgrep "$WRAPPER_CMD" | tail -1`
                             else
                                 case "$PSEXE" in
-                                '/usr/ucb/ps')
-                                    pidtest=`$PSEXE -auxww  $pid | fgrep "$WRAPPER_CMD" | tail -1`
-                                    ;;
-                                '/usr/bin/ps')
-                                    TRUNCATED_CMD=`$PSEXE -o comm -p $pid | tail -1`
-                                    COUNT=`echo $TRUNCATED_CMD | wc -m`
-                                    COUNT=`echo ${COUNT}`
-                                    COUNT=`expr $COUNT - 1`
-                                    TRUNCATED_CMD=`echo $WRAPPER_CMD | cut -c1-$COUNT`
-                                    pidtest=`$PSEXE -o comm -p $pid | fgrep "$TRUNCATED_CMD" | tail -1`
-                                    ;;
-                                '/bin/ps')
-                                    TRUNCATED_CMD=`$PSEXE -o comm -p $pid | tail -1`
-                                    COUNT=`echo $TRUNCATED_CMD | wc -m`
-                                    COUNT=`echo ${COUNT}`
-                                    COUNT=`expr $COUNT - 1`
-                                    TRUNCATED_CMD=`echo $WRAPPER_CMD | cut -c1-$COUNT`
-                                    pidtest=`$PSEXE -o comm -p $pid | fgrep "$TRUNCATED_CMD" | tail -1`
-                                    ;;
-                                *)
-                                    echo "Unsupported ps command $PSEXE"
-                                    exit 1
-                                    ;;
+                                    '/usr/ucb/ps')
+                                        pidtest=`$PSEXE -auxww $pid | fgrep "$WRAPPER_CMD" | tail -1`
+                                        ;;
+                                    '/usr/bin/ps')
+                                        TRUNCATED_CMD=`$PSEXE -o comm -p $pid | tail -1`
+                                        COUNT=`echo $TRUNCATED_CMD | wc -m`
+                                        COUNT=`echo ${COUNT}`
+                                        COUNT=`expr $COUNT - 1`
+                                        TRUNCATED_CMD=`echo $WRAPPER_CMD | cut -c1-$COUNT`
+                                        pidtest=`$PSEXE -o comm -p $pid | fgrep "$TRUNCATED_CMD" | tail -1`
+                                        ;;
+                                    '/bin/ps')
+                                        TRUNCATED_CMD=`$PSEXE -o comm -p $pid | tail -1`
+                                        COUNT=`echo $TRUNCATED_CMD | wc -m`
+                                        COUNT=`echo ${COUNT}`
+                                        COUNT=`expr $COUNT - 1`
+                                        TRUNCATED_CMD=`echo $WRAPPER_CMD | cut -c1-$COUNT`
+                                        pidtest=`$PSEXE -o comm -p $pid | fgrep "$TRUNCATED_CMD" | tail -1`
+                                        ;;
+                                    *)
+                                        echo "Unsupported ps command $PSEXE"
+                                        exit 1
+                                        ;;
                                 esac
                             fi
                             ;;
@@ -734,7 +736,28 @@ getpid() {
                     esac
                 else
                     # Check to see whether the pid exists as a running process, but in this mode, don't check what that pid is.
-                    pidtest=`$PSEXE -p $pid -o pid | grep "$pid" | tail -1`
+                    case "$DIST_OS" in
+                        'solaris')
+                            case "$PSEXE" in
+                                '/usr/ucb/ps')
+                                    pidtest=`$PSEXE $pid | grep "$pid" | awk '{print $1}' | tail -1`
+                                    ;;
+                                '/usr/bin/ps')
+                                    pidtest=`$PSEXE -p $pid -o pid | grep "$pid" | tail -1`
+                                    ;;
+                                '/bin/ps')
+                                    pidtest=`$PSEXE -p $pid -o pid | grep "$pid" | tail -1`
+                                    ;;
+                                *)
+                                    echo "Unsupported ps command $PSEXE"
+                                    exit 1
+                                    ;;
+                            esac
+                            ;;
+                        *)
+                            pidtest=`$PSEXE -p $pid -o pid | grep "$pid" | tail -1`
+                            ;;
+                    esac
                 fi
 
                 if [ "X$pidtest" = "X" ]
