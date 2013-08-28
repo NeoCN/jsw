@@ -57,10 +57,13 @@ public final class WrapperResources
                 System.out.println( "WrapperResources.finalize Id=" + m_Id );
             }
             
-            if ( WrapperManager.isNativeLibraryOk() )
+            if ( m_Id != 0 )
             {
-                // clean up after the resource.
-                nativeDestroyResource();
+                if ( WrapperManager.isNativeLibraryOk() )
+                {
+                    // clean up after the resource.
+                    nativeDestroyResource();
+                }
             }
         }
         finally
@@ -87,7 +90,7 @@ public final class WrapperResources
      */
     public String getString( String key )
     {
-        if ( WrapperManager.isNativeLibraryOk() )
+        if ( ( m_Id != 0 ) && WrapperManager.isNativeLibraryOk() )
         {
             return nativeGetLocalizedString( key );
         }
