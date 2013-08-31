@@ -415,7 +415,7 @@ int writePidFile(const TCHAR *filename, DWORD pid, int newUmask, int exclusive) 
     FILE *pid_fp = NULL;
     int old_umask;
 
-    if ((getBooleanProperty(properties, TEXT("wrapper.pidfile.strict"), FALSE, FALSE) == TRUE) && 
+    if ((getBooleanProperty(properties, TEXT("wrapper.pidfile.strict"), FALSE, PROP_SUPPRESS_WARNINGS) == TRUE) && 
         (exclusive == TRUE) && wrapperFileExists(filename)) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
             TEXT("%d pid file, %s, already exists."), pid, filename);
@@ -809,7 +809,7 @@ int initializeStartup() {
     }
     
     /* Wait until the startup thread completes or the timeout expires. */
-    startupThreadTimeout = __min(__max(getIntProperty(properties, TEXT("wrapper.startup_thread.timeout"), 2, TRUE), 0), 3600);
+    startupThreadTimeout = __min(__max(getIntProperty(properties, TEXT("wrapper.startup_thread.timeout"), 2, PROP_SHOW_WARNINGS), 0), 3600);
     nowTicks = wrapperGetTicks();
     timeoutTicks = wrapperAddToTicks(nowTicks, startupThreadTimeout);
     while ((!startupThreadStopped) && (wrapperGetTickAgeSeconds(timeoutTicks, nowTicks) < 0)) {
