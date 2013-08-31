@@ -38,6 +38,8 @@
 #define FALSE 0
 #endif
 
+typedef enum {PROP_SUPPRESS_WARNINGS=FALSE, PROP_SHOW_WARNINGS=TRUE} PropShowWarningsEnum;
+
 /* This defines the largest environment variable that we are able
  *  to work with.  It can be expanded if needed. */
 #define MAX_PROPERTY_NAME_LENGTH 512
@@ -220,9 +222,9 @@ extern int getStringProperties(Properties *properties, const TCHAR *propertyName
  */
 extern void freeStringProperties(TCHAR **propertyNames, TCHAR **propertyValues, long unsigned int *propertyIndices);
 
-extern int getIntProperty(Properties *properties, const TCHAR *propertyName, int defaultValue, int showWarnings);
+extern int getIntProperty(Properties *properties, const TCHAR *propertyName, int defaultValue, PropShowWarningsEnum showWarnings);
 
-extern int getBooleanProperty(Properties *properties, const TCHAR *propertyName, int defaultValue, int showWarnings);
+extern int getBooleanProperty(Properties *properties, const TCHAR *propertyName, int defaultValue, PropShowWarningsEnum showWarnings);
 
 extern int isQuotableProperty(Properties *properties, const TCHAR *propertyName);
 

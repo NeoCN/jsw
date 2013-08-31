@@ -1798,7 +1798,7 @@ int checkPropertyEqual(Properties *properties, const TCHAR *propertyName, const 
     return strcmpIgnoreCase(propertyValue, value) == 0;
 }
 
-int getIntProperty(Properties *properties, const TCHAR *propertyName, int defaultValue, int showWarnings) {
+int getIntProperty(Properties *properties, const TCHAR *propertyName, int defaultValue, PropShowWarningsEnum showWarnings) {
     TCHAR buffer[16];
     Property *property;
     int i;
@@ -1828,7 +1828,7 @@ int getIntProperty(Properties *properties, const TCHAR *propertyName, int defaul
                     value = defaultValue;
                 }
                 
-                if (showWarnings) {
+                if (showWarnings == PROP_SHOW_WARNINGS) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Encountered an invalid numerical value for configuration property %s=%s.  Resolving to %d."),
                         propertyName, property->value, value);
                 }
@@ -1842,7 +1842,7 @@ int getIntProperty(Properties *properties, const TCHAR *propertyName, int defaul
     }
 }
 
-int getBooleanProperty(Properties *properties, const TCHAR *propertyName, int defaultValue, int showWarnings) {
+int getBooleanProperty(Properties *properties, const TCHAR *propertyName, int defaultValue, PropShowWarningsEnum showWarnings) {
     const TCHAR *defaultValueS;
     Property *property;
     const TCHAR *propertyValue;
@@ -1865,7 +1865,7 @@ int getBooleanProperty(Properties *properties, const TCHAR *propertyName, int de
     } else if (strcmpIgnoreCase(propertyValue, TEXT("false")) == 0) {
         return FALSE;
     } else {
-        if (showWarnings) {
+        if (showWarnings == PROP_SHOW_WARNINGS) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Encountered an invalid boolean value for configuration property %s=%s.  Resolving to %s."),
                 propertyName, propertyValue, TEXT("FALSE"));
         }
