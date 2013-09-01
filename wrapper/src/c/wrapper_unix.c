@@ -167,15 +167,17 @@ int wrapperGetLastError() {
  *
  * filename: File to write to.
  * pid: pid to write in the file.
+ * strict: If true then an error will be reported and the call will fail if the
+ *         file already exists.
+ *
+ * return 1 if there was an error, 0 if Ok.
  */
-int writePidFile(const TCHAR *filename, DWORD pid, int newUmask, int exclusive) {
+int writePidFile(const TCHAR *filename, DWORD pid, int newUmask, int strict) {
     FILE *pid_fp = NULL;
     int old_umask;
 
-    if ((getBooleanProperty(properties, TEXT("wrapper.pidfile.strict"), FALSE, PROP_SUPPRESS_WARNINGS) == TRUE) && 
-        (exclusive == TRUE) && wrapperFileExists(filename)) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-            TEXT("%d pid file, %s, already exists."), pid, filename);
+    if (strict && wrapperFileExists(filename)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("%d pid file, %s, already exists."), pid, filename);
         return 1;
     }
 
@@ -1289,7 +1291,7 @@ void wrapperExecute() {
                 }
             }
 
-            /* If a java id filename is specified then write the pid of the java process. */
+            /* If a java id filename is specified then write the Id of the java process. */
             if (wrapperData->javaIdFilename) {
                 if (writePidFile(wrapperData->javaIdFilename, wrapperData->jvmRestarts, wrapperData->javaIdFileUmask, FALSE)) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
@@ -1861,7 +1863,7 @@ int main(int argc, char **argv) {
         }
 
         if (wrapperData->pidFilename) {
-            if (writePidFile(wrapperData->pidFilename, wrapperData->wrapperPID, wrapperData->pidFileUmask, TRUE)) {
+            if (writePidFile(wrapperData->pidFilename, wrapperData->wrapperPID, wrapperData->pidFileUmask, wrapperData->pidFileStrict)) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                      TEXT("ERROR: Could not write pid file %s: %s"),
                 wrapperData->pidFilename, getLastErrorText());
