@@ -30,6 +30,8 @@
 #ifndef _PROPERTY_H
 #define _PROPERTY_H
 
+#include "wrapper_hashmap.h"
+
 #ifndef TRUE
 #define TRUE -1
 #endif
@@ -37,8 +39,6 @@
 #ifndef FALSE
 #define FALSE 0
 #endif
-
-typedef enum {PROP_SUPPRESS_WARNINGS=FALSE, PROP_SHOW_WARNINGS=TRUE} PropShowWarningsEnum;
 
 /* This defines the largest environment variable that we are able
  *  to work with.  It can be expanded if needed. */
@@ -76,8 +76,11 @@ struct Property {
 typedef struct Properties Properties;
 struct Properties {
     int debugProperties;     /* TRUE if debug information on Properties should be shown. */
+    int logWarnings;         /* Flag that controls whether or not warnings will be logged. */
+    int logWarningLogLevel;  /* Log level at which any log warnings will be logged. */
     Property *first;         /* Pointer to the first property. */
     Property *last;          /* Pointer to the last property.  */
+    PHashMap warnedVarMap;   /* Map of undefined environment variables for which the user was warned. */
 };
 
 /**
@@ -222,13 +225,33 @@ extern int getStringProperties(Properties *properties, const TCHAR *propertyName
  */
 extern void freeStringProperties(TCHAR **propertyNames, TCHAR **propertyValues, long unsigned int *propertyIndices);
 
-extern int getIntProperty(Properties *properties, const TCHAR *propertyName, int defaultValue, PropShowWarningsEnum showWarnings);
+extern int getIntProperty(Properties *properties, const TCHAR *propertyName, int defaultValue);
 
-extern int getBooleanProperty(Properties *properties, const TCHAR *propertyName, int defaultValue, PropShowWarningsEnum showWarnings);
+extern int getBooleanProperty(Properties *properties, const TCHAR *propertyName, int defaultValue);
 
 extern int isQuotableProperty(Properties *properties, const TCHAR *propertyName);
 
 extern void dumpProperties(Properties *properties);
+
+/**
+ * Set to TRUE if warnings about property values should be logged.
+ */
+extern void setLogPropertyWarnings(Properties *properties, int logWarnings);
+
+/**
+ * Level at which any property warnings are logged.
+ */
+extern void setLogPropertyWarningLogLevel(Properties *properties, int logLevel);
+
+/**
+ * Returns the minimum value. This is used in place of the __min macro when the parameters should not be called more than once.
+ */
+extern int propIntMin(int value1, int value2);
+
+/**
+ * Returns the maximum value. This is used in place of the __max macro when the parameters should not be called more than once.
+ */
+extern int propIntMax(int value1, int value2);
 
 /** Creates a linearized representation of all of the properties.
  *  The returned buffer must be freed by the calling code. */

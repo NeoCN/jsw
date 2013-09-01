@@ -670,7 +670,7 @@ void wrapperFileTests() {
 /**
  * Call functions in property.c temporarily.
  */
-extern void evaluateEnvironmentVariables(const TCHAR *propertyValue, TCHAR *buffer, int bufferLength);
+extern void evaluateEnvironmentVariables(const TCHAR *propertyValue, TCHAR *buffer, int bufferLength, int warnUndefinedVars, void *warnedUndefVarMap, int warnLogLevel);
 #ifdef WIN32
 #define strIgnoreCaseCmp _stricmp
 extern int getEncodingByName(char* encodingMB, int *encoding);
@@ -683,9 +683,9 @@ extern int getEncodingByName(char* encodingMB, char** encoding);
  * Initialize `reader'
  */
 void configFileReader_Initialize(ConfigFileReader *reader,
-				 ConfigFileReader_Callback callback,
-				 void *callbackParam,
-				 int enableIncludes)
+                 ConfigFileReader_Callback callback,
+                 void *callbackParam,
+                 int enableIncludes)
 {
     reader->callback = callback;
     reader->callbackParam = callbackParam;
@@ -699,11 +699,11 @@ void configFileReader_Initialize(ConfigFileReader *reader,
  * Read configuration file.
  */
 int configFileReader_Read(ConfigFileReader *reader,
-			  const TCHAR *filename,
-			  int fileRequired,
-			  int depth,
-			  const TCHAR *parentFilename,
-			  int parentLineNumber)
+                          const TCHAR *filename,
+                          int fileRequired,
+                          int depth,
+                          const TCHAR *parentFilename,
+                          int parentLineNumber)
 {
     FILE *stream;
     char bufferMB[MAX_PROPERTY_NAME_VALUE_LENGTH];
@@ -966,7 +966,7 @@ int configFileReader_Read(ConfigFileReader *reader,
                         reader->debugIncludes = FALSE;
                     }
                 } else if (reader->enableIncludes
-			   && ((_tcsstr(trimmedBuffer, TEXT("#include ")) == trimmedBuffer) || (_tcsstr(trimmedBuffer, TEXT("#include.required ")) == trimmedBuffer))) {
+               && ((_tcsstr(trimmedBuffer, TEXT("#include ")) == trimmedBuffer) || (_tcsstr(trimmedBuffer, TEXT("#include.required ")) == trimmedBuffer))) {
                     if (_tcsstr(trimmedBuffer, TEXT("#include.required ")) == trimmedBuffer) {
                         /* The include file is required. */
                         includeRequired = TRUE;
@@ -987,7 +987,7 @@ int configFileReader_Read(ConfigFileReader *reader,
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                             TEXT("Found #include file in %s: %s"), filename, c);
                     }
-                    evaluateEnvironmentVariables(c, expBuffer, MAX_PROPERTY_NAME_VALUE_LENGTH);
+                    evaluateEnvironmentVariables(c, expBuffer, MAX_PROPERTY_NAME_VALUE_LENGTH, FALSE, NULL, LEVEL_WARN);
 
                     if (reader->debugIncludes && (_tcscmp(c, expBuffer) != 0)) {
                         /* Only show this log if there were any environment variables. */

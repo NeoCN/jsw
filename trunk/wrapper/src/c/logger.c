@@ -2109,6 +2109,11 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
     time_t      endNow;
     int         endNowMillis;
     
+    if (level == LEVEL_NONE) {
+        /* Some APIs allow the user to potentially configure the NONE log level. Skip it as it means no logging in this case. */
+        return;
+    }
+    
     /* If we are checking on the log time then store the start time. */
     if (logPrintfWarnThreshold > 0) {
 #ifdef WIN32

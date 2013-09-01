@@ -62,6 +62,14 @@ Java Service Wrapper Revision History.
 * Modify the internal WrapperManager tick thread so it is allowed to complete
   once the WrapperManager has fully shutdown.  This was the only remaining
   reference to the WrapperManager class.
+* Add a new wrapper.property_warning.loglevel property which controls the log
+  level at which the Wrapper will log warnings about undefined but referenced
+  environment variables, as well as invalid boolean or integer values.
+* Update the way environment variables withing property values are parsed to
+  make it possible to report those are not defined.  Each pair of '%'s is now
+  expected to be part of a variable reference.  For example "%AAA%BBB%CCC%",
+  previosly if "AAA" was not defined, "BBB" would be located, but now only
+  "AAA" and "CCC" will be recognized as variables.
 
 3.5.20
 * Further improvements to the memory footprint of the Wrapper to minimize the

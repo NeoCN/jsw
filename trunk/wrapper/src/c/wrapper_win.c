@@ -406,19 +406,21 @@ int wrapperGetLastError() {
 
 
 /**
- * Writes a PID to disk.
+ * Writes the specified Id or PID to disk.
  *
  * filename: File to write to.
  * pid: pid to write in the file.
+ * strict: If true then an error will be reported and the call will fail if the
+ *         file already exists.
+ *
+ * return 1 if there was an error, 0 if Ok.
  */
-int writePidFile(const TCHAR *filename, DWORD pid, int newUmask, int exclusive) {
+int writePidFile(const TCHAR *filename, DWORD pid, int newUmask, int strict) {
     FILE *pid_fp = NULL;
     int old_umask;
 
-    if ((getBooleanProperty(properties, TEXT("wrapper.pidfile.strict"), FALSE, PROP_SUPPRESS_WARNINGS) == TRUE) && 
-        (exclusive == TRUE) && wrapperFileExists(filename)) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-            TEXT("%d pid file, %s, already exists."), pid, filename);
+    if (strict && wrapperFileExists(filename)) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("%d pid file, %s, already exists."), pid, filename);
         cleanUpPIDFilesOnExit = FALSE;
         return 1;
     }
@@ -809,7 +811,7 @@ int initializeStartup() {
     }
     
     /* Wait until the startup thread completes or the timeout expires. */
-    startupThreadTimeout = __min(__max(getIntProperty(properties, TEXT("wrapper.startup_thread.timeout"), 2, PROP_SHOW_WARNINGS), 0), 3600);
+    startupThreadTimeout = propIntMin(propIntMax(getIntProperty(properties, TEXT("wrapper.startup_thread.timeout"), 2), 0), 3600);
     nowTicks = wrapperGetTicks();
     timeoutTicks = wrapperAddToTicks(nowTicks, startupThreadTimeout);
     while ((!startupThreadStopped) && (wrapperGetTickAgeSeconds(timeoutTicks, nowTicks) < 0)) {
@@ -2781,7 +2783,7 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
          *  simply overwritten. */
         cleanUpPIDFilesOnExit = TRUE;
         if (wrapperData->pidFilename) {
-            if (writePidFile(wrapperData->pidFilename, wrapperData->wrapperPID, wrapperData->pidFileUmask, TRUE)) {
+            if (writePidFile(wrapperData->pidFilename, wrapperData->wrapperPID, wrapperData->pidFileUmask, wrapperData->pidFileStrict)) {
                 log_printf
                     (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                      TEXT("ERROR: Could not write pid file %s: %s"),
@@ -6381,7 +6383,7 @@ void _tmain(int argc, TCHAR **argv) {
 
             cleanUpPIDFilesOnExit = TRUE;
             if (wrapperData->pidFilename) {
-                if (writePidFile(wrapperData->pidFilename, wrapperData->wrapperPID, wrapperData->pidFileUmask, TRUE)) {
+                if (writePidFile(wrapperData->pidFilename, wrapperData->wrapperPID, wrapperData->pidFileUmask, wrapperData->pidFileStrict)) {
                     log_printf
                         (WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                          TEXT("ERROR: Could not write pid file %s: %s"),

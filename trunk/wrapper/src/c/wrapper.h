@@ -347,6 +347,7 @@ struct WrapperConfig {
     int     *outputFilterAllowWildFlags; /* Array of output filter flags that say whether or not wild cards in the filter can be processed. */
     size_t  *outputFilterMinLens;   /* Array of the minimum text lengths that could possibly match the specified filter.  Only used if it contains wildcards. */
     TCHAR   *pidFilename;           /* Name of file to store wrapper pid in */
+    int     pidFileStrict;          /* TRUE if a preexisting pid file should cause an error. */
     TCHAR   *lockFilename;          /* Name of file to store wrapper lock in */
     TCHAR   *javaPidFilename;       /* Name of file to store jvm pid in */
     TCHAR   *javaIdFilename;        /* Name of file to store jvm id in */
