@@ -2818,7 +2818,7 @@ void WINAPI wrapperServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
         /* Now actually start the service */
         wrapperRunService();
 
- finally:
+finally:
 
         /* Report that the service has stopped and set the correct exit code. */
         wrapperReportStatus(FALSE, WRAPPER_WSTATE_STOPPED, wrapperData->exitCode, 1000);
