@@ -305,7 +305,7 @@ extern void resetDuration();
 extern int getLowLogLevel();
 
 /* * General log functions * */
-extern int initLogging();
+extern int initLogging(void (*logFileChanged)(const TCHAR *logFile));
 extern int disposeLogging();
 extern void setUptime(int uptime, int flipped);
 extern void rollLogs();

@@ -983,8 +983,11 @@ extern TICKS wrapperAddToTicks(TICKS start, int seconds);
  * Sets the working directory of the Wrapper to the specified directory.
  *  The directory can be relative or absolute.
  * If there are any problems then a non-zero value will be returned.
+ *
+ * @param dir Directory to change to.
+ * @param logErrors TRUE if errors should be logged.
  */
-extern int wrapperSetWorkingDir(const TCHAR* dir);
+extern int wrapperSetWorkingDir(const TCHAR* dir, int logErrors);
 
 /******************************************************************************
  * Protocol callback functions

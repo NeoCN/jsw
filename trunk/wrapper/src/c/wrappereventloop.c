@@ -1204,7 +1204,7 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
                      *  the configuration can be reloaded.  This is needed to support relative
                      *  references to include files. */
                     if (wrapperData->workingDir && wrapperData->originalWorkingDir) {
-                        if (wrapperSetWorkingDir(wrapperData->originalWorkingDir)) {
+                        if (wrapperSetWorkingDir(wrapperData->originalWorkingDir, TRUE)) {
                             /* Failed to restore the working dir.  Shutdown the Wrapper */
                             wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
                             wrapperData->exitCode = 1;
@@ -1221,7 +1221,7 @@ void jStateLaunchDelay(TICKS nowTicks, int nextSleep) {
                     }
 
                     /* Change the working directory if configured to do so. */
-                    if (wrapperData->workingDir && wrapperSetWorkingDir(wrapperData->workingDir)) {
+                    if (wrapperData->workingDir && wrapperSetWorkingDir(wrapperData->workingDir, TRUE)) {
                         /* Failed to set the working dir.  Shutdown the Wrapper */
                         wrapperSetWrapperState(WRAPPER_WSTATE_STOPPING);
                         wrapperData->exitCode = 1;
