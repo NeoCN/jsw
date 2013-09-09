@@ -811,7 +811,7 @@ int wrapperLoadConfigurationProperties(int preload) {
     if (!properties) {
         return TRUE;
     }
-
+    
     setLogPropertyWarnings(properties, !preload);
     
     wrapperAddDefaultProperties();
@@ -850,7 +850,7 @@ int wrapperLoadConfigurationProperties(int preload) {
 
     /* Config file found. */
     wrapperData->argConfFileFound = TRUE;
-
+    
     if (firstCall) {
         /* If the working dir was configured, we need to extract it and preserve its value.
          *  This must be done after the configuration has been completely loaded. */
@@ -903,9 +903,10 @@ int wrapperLoadConfigurationProperties(int preload) {
     /* Now that the configuration is loaded, we need to update the working directory if the user specified one.
      *  This must be done now so that anything that references the working directory, including the log file
      *  and language pack locations will work correctly. */
-    if (wrapperData->workingDir && wrapperSetWorkingDir(wrapperData->workingDir)) {
+    if (wrapperData->workingDir && wrapperSetWorkingDir(wrapperData->workingDir, !preload)) {
         return TRUE;
     }
+    
         if (wrapperData->umask == -1) {
         /** Get the umask value for the various files. */
 #ifdef WIN32
@@ -7930,13 +7931,19 @@ int wrapperTickAssertions() {
  * Sets the working directory of the Wrapper to the specified directory.
  *  The directory can be relative or absolute.
  * If there are any problems then a non-zero value will be returned.
+ *
+ * @param dir Directory to change to.
+ * @param logErrors TRUE if errors should be logged.
  */
-int wrapperSetWorkingDir(const TCHAR* dir) {
+int wrapperSetWorkingDir(const TCHAR* dir, int logErrors) {
     int showOutput = wrapperData->configured;
 
     if (_tchdir(dir)) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
-            TEXT("Unable to set working directory to: %s (%s)"), dir, getLastErrorText());
+        if ( logErrors )
+        {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
+                TEXT("Unable to set working directory to: %s (%s)"), dir, getLastErrorText());
+        }
         return TRUE;
     }
 

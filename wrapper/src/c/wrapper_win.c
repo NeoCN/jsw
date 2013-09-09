@@ -5187,7 +5187,7 @@ int setWorkingDir() {
     }
     /* Set a variable to the location of the binary. */
     setEnv(TEXT("WRAPPER_BIN_DIR"), szPath, ENV_SOURCE_WRAPPER);
-    result = wrapperSetWorkingDir(szPath);
+    result = wrapperSetWorkingDir(szPath, TRUE);
     free(szPath);
     return result;
 }

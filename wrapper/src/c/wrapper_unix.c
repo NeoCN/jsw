@@ -1667,7 +1667,7 @@ int setWorkingDir(TCHAR *app) {
     /* Set a variable to the location of the binary. */
     setEnv(TEXT("WRAPPER_BIN_DIR"), szPath, ENV_SOURCE_WRAPPER);
 
-    if (wrapperSetWorkingDir(szPath)) {
+    if (wrapperSetWorkingDir(szPath, TRUE)) {
         free(szPath);
         return 1;
     }
@@ -1834,7 +1834,7 @@ int main(int argc, char **argv) {
              *  the configuration can be reloaded.  This is needed to support relative
              *  references to include files. */
             if (wrapperData->workingDir && wrapperData->originalWorkingDir) {
-                if (wrapperSetWorkingDir(wrapperData->originalWorkingDir)) {
+                if (wrapperSetWorkingDir(wrapperData->originalWorkingDir, TRUE)) {
                     /* Failed to restore the working dir.  Shutdown the Wrapper */
                     appExit(1, argc, argv);
                     return 1; /* For compiler. */
