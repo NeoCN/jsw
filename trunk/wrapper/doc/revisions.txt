@@ -70,6 +70,13 @@ Java Service Wrapper Revision History.
   expected to be part of a variable reference.  For example "%AAA%BBB%CCC%",
   previosly if "AAA" was not defined, "BBB" would be located, but now only
   "AAA" and "CCC" will be recognized as variables.
+* Fix a problem on Windows where a non-existent wrapper.working.dir directory
+  was causing multiple error messages in the log file.
+* Modify the way the wrapper.environment.dump property works so it will now
+  log at the INFO level with the rest of Wrapper output when set to true.
+  When false however, the output will be logged as DEBUG output if enabled.
+  Previous versions always logged the output to the INFO log level in either
+  case.
 
 3.5.20
 * Further improvements to the memory footprint of the Wrapper to minimize the
