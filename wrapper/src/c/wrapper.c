@@ -536,19 +536,21 @@ int wrapperBuildUnixDaemonInfo() {
 
 /**
  * Dumps the table of environment variables, and their sources.
+ *
+ * @param logLevel Level at which to log the output.
  */
-void dumpEnvironment() {
+void dumpEnvironment(int logLevel) {
     EnvSrc *envSrc;
     TCHAR *envVal;
 
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT(""));
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Environment variables (Source | Name=Value) BEGIN:"));
+    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT(""));
+    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("Environment variables (Source | Name=Value) BEGIN:"));
 
     envSrc = baseEnvSrc;
     while (envSrc) {
         envVal = _tgetenv(envSrc->name);
 
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("  %c%c%c%c%c | %s=%s"),
+        log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("  %c%c%c%c%c | %s=%s"),
             (envSrc->source & ENV_SOURCE_PARENT ? TEXT('P') : TEXT('-')),
 #ifdef WIN32
             (envSrc->source & ENV_SOURCE_REG_SYSTEM ? TEXT('S') : TEXT('-')),
@@ -571,8 +573,8 @@ void dumpEnvironment() {
 
         envSrc = envSrc->next;
     }
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("Environment variables END:"));
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT(""));
+    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT("Environment variables END:"));
+    log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT(""));
 }
 
 void wrapperLoadLoggingProperties(int preload) {
@@ -4080,9 +4082,12 @@ int wrapperRunCommonInner() {
     }
 #endif
 
-    /* Should we dump the environment variables? */
-    if (getBooleanProperty(properties, TEXT("wrapper.environment.dump"), getBooleanProperty(properties, TEXT("wrapper.debug"), FALSE))) {
-        dumpEnvironment();
+    /* Should we dump the environment variables?
+     * If the the user specifically wants the environment, show it as the status log level, otherwise include it in debug output if enabled. */
+    if (getBooleanProperty(properties, TEXT("wrapper.environment.dump"), FALSE)) {
+        dumpEnvironment(LEVEL_INFO);
+    } else if (getBooleanProperty(properties, TEXT("wrapper.debug"), FALSE)) {
+        dumpEnvironment(LEVEL_DEBUG);
     }
 
 #ifdef _DEBUG
