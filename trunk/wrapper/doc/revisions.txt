@@ -77,6 +77,9 @@ Java Service Wrapper Revision History.
   When false however, the output will be logged as DEBUG output if enabled.
   Previous versions always logged the output to the INFO log level in either
   case.
+* Fix a problem on Linux IA64 where the WrapperActionServer was throwing an
+  IOException when the JVM was shutdown by calling System.exit.  It did not
+  cause any problems other than the message in the log.
 
 3.5.20
 * Further improvements to the memory footprint of the Wrapper to minimize the

@@ -207,8 +207,11 @@ public class WrapperActionServer
                     //  when the compiler gives an error saying that it can't.
                     if ( m_runnerStop
                         && ( ( t instanceof InterruptedException )
-                        || ( t instanceof SocketException )
-                        || ( t instanceof InterruptedIOException ) ) )
+                            || ( t instanceof SocketException )
+                            || ( t instanceof InterruptedIOException )
+                            || ( ( t instanceof IOException ) && ( t.getMessage() != null ) && ( t.getMessage().indexOf( "Bad file descriptor" ) >= 0 ) )  // Happens on shutdown on IA64 Linux.
+                            )
+                        )
                     {
                         // This is expected, the service is being stopped.
                     }
