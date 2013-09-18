@@ -429,6 +429,18 @@ public final class WrapperManager
     // message resources: eventually these will be split up
     private static WrapperResources m_res;
     
+    /** Set on startup to show whether or not a Professional edition library is being used.
+     *   Overriding this makes no difference as the underlying library also contains these checks.
+     *   Caching this value makes it possible to reduce the number of JNI calls and avoid confusing
+     *   errors on shutdown. */
+    private static boolean m_professionalEdition;
+    
+    /** Set on startup to show whether or not a Standard edition library is being used.
+     *   Overriding this makes no difference as the underlying library also contains these checks.
+     *   Caching this value makes it possible to reduce the number of JNI calls and avoid confusing
+     *   errors on shutdown. */
+    private static boolean m_standardEdition;
+    
     /**
      * Returns the WrapperResources object which is used to manage all resources for
      *  the Java Service Wrapper.
@@ -847,6 +859,35 @@ public final class WrapperManager
                     m_outDebug.println( getRes().getString( "Call to nativeGetJavaPID() failed: {0}", e ) );
                 }
             }
+            
+            // Cache the values of the professional and standard edition flags.
+            try
+            {
+                m_professionalEdition = nativeIsProfessionalEdition();
+            }
+            catch ( Throwable e )
+            {
+                if ( m_debug )
+                {
+                    m_outDebug.println( getRes().getString( 
+                            "Call to nativeIsProfessionalEdition() failed: {0}" , e  ) );
+                }
+                m_professionalEdition = false;
+            }
+            try
+            {
+                m_standardEdition = nativeIsStandardEdition();
+            }
+            catch ( Throwable e )
+            {
+                if ( m_debug )
+                {
+                    m_outDebug.println( getRes().getString( 
+                            "Call to nativeIsStandardEdition() failed: {0}" , e  ) );
+                }
+                m_standardEdition = false;
+            }
+            
         }
         
         // Start a thread which looks for control events sent to the
@@ -2270,27 +2311,8 @@ public final class WrapperManager
      */
     public static boolean isProfessionalEdition()
     {
-        // Be careful as this will not exist in older versions of the library.
-        if ( isNativeLibraryOk() )
-        {
-            try
-            {
-                return nativeIsProfessionalEdition();
-            }
-            catch ( Throwable e )
-            {
-                if ( m_debug )
-                {
-                    m_outDebug.println( getRes().getString( 
-                            "Call to nativeIsProfessionalEdition() failed: {0}" , e  ) );
-                }
-                return false;
-            }
-        }
-        else
-        {
-            return false;
-        }
+        // Use a cached value rather than calling the JNI call here to avoid confusing errors on shutdown.
+        return m_professionalEdition;
     }
     
     /**
@@ -2301,27 +2323,8 @@ public final class WrapperManager
      */
     public static boolean isStandardEdition()
     {
-        // Be careful as this will not exist in older versions of the library.
-        if ( isNativeLibraryOk() )
-        {
-            try
-            {
-                return nativeIsStandardEdition();
-            }
-            catch ( Throwable e )
-            {
-                if ( m_debug )
-                {
-                    m_outDebug.println( getRes().getString(
-                    "Call to nativeIsStandardEdition() failed: " , e ) );
-                }
-                return false;
-            }
-        }
-        else
-        {
-            return false;
-        }
+        // Use a cached value rather than calling the JNI call here to avoid confusing errors on shutdown.
+        return m_standardEdition;
     }
     
     /**

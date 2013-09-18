@@ -59,6 +59,11 @@ Java Service Wrapper Revision History.
   called after the WrapperManager shutdown has completed.  Doing so was causing
   a JVM crash on some Linux JVMs.  This was happening when a WrapperResources
   instance was finalized by the garbage collector on shutdown.
+* (Professional) Fix a problem where processes created by calling the
+  WrapperManager.exec functions could fail to be registered with the Wrapper
+  for cleanup if the call was made as the JVM was shutting down.  This was
+  resolved by making sure that JNI calls can not be called after the
+  WrapperManager shutdown has completed.
 * Modify the internal WrapperManager tick thread so it is allowed to complete
   once the WrapperManager has fully shutdown.  This was the only remaining
   reference to the WrapperManager class.
