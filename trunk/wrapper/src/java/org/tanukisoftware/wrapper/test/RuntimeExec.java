@@ -35,7 +35,7 @@ public class RuntimeExec
      *-------------------------------------------------------------*/
     public static void main( String[] args )
     {
-        String simplewaiter;
+        final String simplewaiter;
         if ( WrapperManager.isWindows() )
         {
             simplewaiter = "../test/simplewaiter.exe";
@@ -409,6 +409,62 @@ public class RuntimeExec
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        System.out.println( Main.getRes().getString( "All Done." ) );
+        
+        if ( WrapperManager.getJVMId() == 1 )
+        {
+            // First invocation.
+            System.out.println( Main.getRes().getString( "All Done. Restarting..." ) );
+            WrapperManager.restart();
+        }
+        else
+        {
+            // Second invocation.
+            //  Register a long shutdownhook which will cause the Wrapper to timeout and kill the JVM.
+            System.out.println( Main.getRes().getString( "All Done. Registering long shutdown hook and stopping.\nWrapper should timeout and kill the JVM, cleaning up all processes in the process." ) );
+            
+            Runtime.getRuntime().addShutdownHook( new Thread()
+            {
+                public void run() {
+                    System.out.println( Main.getRes().getString( "Starting shutdown hook. Loop for 25 seconds.") );
+                    System.out.println( Main.getRes().getString( "Should timeout unless this property is set: wrapper.jvm_exit.timeout=30" ) );
+    
+                    long start = System.currentTimeMillis();
+                    boolean failed = false;
+                    while ( System.currentTimeMillis() - start < 25000 )
+                    {
+                        if ( !failed )
+                        {
+                            try
+                            {
+                                WrapperProcess proc = WrapperManager.exec( simplewaiter + " 0 25" );
+                                System.out.println( Main.getRes().getString( "Launched child...") );
+                            }
+                            catch ( WrapperJNIError e )
+                            {
+                                System.out.println( Main.getRes().getString( "Unable to launch child process because JNI library unavailable. Normal on shutdown.") );
+                                failed = true;
+                            }
+                            catch ( IOException e )
+                            {
+                                System.out.println( Main.getRes().getString( "Unexpected problem launching child process: {0}", e.toString() ) );
+                                failed = true;
+                            }
+                        }
+                        
+                        try
+                        {
+                            Thread.sleep( 250 );
+                        }
+                        catch ( InterruptedException e )
+                        {
+                            // Ignore
+                        }
+                    }
+                    System.out.println( Main.getRes().getString( "Shutdown hook complete. Should exit now." ) );
+                }
+            } );
+            
+            System.exit( 0 );
+        }
     }
 }

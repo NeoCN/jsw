@@ -51,7 +51,7 @@ public class ShutdownHook {
                 System.out.println( Main.getRes().getString( "Should timeout unless this property is set: wrapper.jvm_exit.timeout=30" ) );
 
                 long start = System.currentTimeMillis();
-                while(System.currentTimeMillis() - start < 25000)
+                while ( System.currentTimeMillis() - start < 25000 )
                 {
                     try
                     {
