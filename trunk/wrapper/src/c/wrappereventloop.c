@@ -1493,12 +1493,24 @@ void jStateStarting(TICKS nowTicks, int nextSleep) {
 #define JSTATESTARTED_MESSAGE_MAXLEN (7 + 8 + 1) /* "silent ffffffff\0" */
 void jStateStarted(TICKS nowTicks, int nextSleep) {
     int ret;
-    TCHAR protocolMessage[JSTATESTARTED_MESSAGE_MAXLEN]; 
+    TCHAR protocolMessage[JSTATESTARTED_MESSAGE_MAXLEN];
+    PPendingPing pendingPing;
 
     /* Make sure that the JVM process is still up and running */
     if (nextSleep && (wrapperGetProcessStatus(nowTicks, FALSE) == WRAPPER_PROCESS_DOWN)) {
         /* The process is gone.  Restart it. (Handled and logged) */
     } else {
+        /* Look for any PendingPings which are slow but that we have not yet made a note of.
+         *  Don't worry about the posibility of finding more than one in a single pass as that should only happen if the Wrapper process was without CPU for a while.  We will quickly catchup on the following cycles. */
+        if (wrapperData->firstUnwarnedPendingPing != NULL) {
+            if ((wrapperData->pingAlertThreshold > 0) && (wrapperGetTickAgeSeconds(wrapperData->firstUnwarnedPendingPing->slowTicks, nowTicks) >= 0)) {
+                wrapperPingSlow();
+                
+                /* Remove the PendingPing so it won't be warned again.  It still exists in the main list, so it should not be cleaned up here. */
+                wrapperData->firstUnwarnedPendingPing = wrapperData->firstUnwarnedPendingPing->nextPendingPing;
+            }
+        }
+        
         if (wrapperData->jStateTimeoutTicksSet && (wrapperGetTickAgeSeconds(wrapperData->jStateTimeoutTicks, nowTicks) >= 0)) {
             /* Have we waited too long already.  The jStateTimeoutTicks is reset each time a ping
              *  response is received from the JVM. */
@@ -1534,6 +1546,53 @@ void jStateStarted(TICKS nowTicks, int nextSleep) {
                 }
             } else {
                 /* Ping sent successfully. */
+                if (wrapperData->pendingPingQueueOverflow && (!wrapperData->pendingPingQueueOverflowEmptied)) {
+                    /* We don't want to create any more PendingPing objects until the JVM has caught up. */
+                } else if (wrapperData->pendingPingCount >= WRAPPER_MAX_PENDING_PINGS) {
+                    if (wrapperData->isDebugging) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Too many Pending Pings.  Disabling some ping checks until the JVM has caught up."));
+                    }
+                    wrapperData->pendingPingQueueOverflow = TRUE;
+                    wrapperData->pendingPingQueueOverflowEmptied = FALSE;
+#ifdef DEBUG_PING_QUEUE
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    PING QUEUE Set Overflow"));
+#endif
+                } else {
+                    pendingPing = malloc(sizeof(PendingPing));
+                    if (!pendingPing) {
+                        outOfMemory(TEXT("JSS"), 1);
+                    } else {
+                        memset(pendingPing, 0, sizeof(PendingPing));
+                        
+                        pendingPing->sentTicks = nowTicks;
+                        pendingPing->timeoutTicks = wrapperAddToTicks(nowTicks, wrapperData->pingTimeout);
+                        pendingPing->slowTicks = wrapperAddToTicks(nowTicks, wrapperData->pingAlertThreshold);
+                        
+                        /*  Add it to the PendingPing queue. */
+                        if (wrapperData->firstPendingPing == NULL) {
+                            /* The queue was empty. */
+                            wrapperData->pendingPingCount = 1;
+                            wrapperData->firstUnwarnedPendingPing = pendingPing;
+                            wrapperData->firstPendingPing = pendingPing;
+                            wrapperData->lastPendingPing = pendingPing;
+                        } else {
+                            /* Add to the end of an existing queue. */
+                            wrapperData->pendingPingCount++;
+                            if (wrapperData->firstUnwarnedPendingPing == NULL) {
+                                wrapperData->firstUnwarnedPendingPing = pendingPing;
+                            }
+                            wrapperData->lastPendingPing->nextPendingPing = pendingPing;
+                            wrapperData->lastPendingPing = pendingPing;
+                        }
+#ifdef DEBUG_PING_QUEUE
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("+++ PING QUEUE Size: %d"), wrapperData->pendingPingCount);
+#endif
+                        
+                        if ((wrapperData->pendingPingCount > 1) && wrapperData->isDebugging) {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Pending Pings %d"), wrapperData->pendingPingCount);
+                        }
+                    }
+                }
             }
             
             if (wrapperData->isLoopOutputEnabled) {
@@ -1765,6 +1824,8 @@ void jStateDownCheck(TICKS nowTicks, int nextSleep) {
  *            function will be called again immediately.
  */
 void jStateDownFlush(TICKS nowTicks, int nextSleep) {
+    PPendingPing pendingPing;
+    
     /* Always proceed after a single cycle. */
     /* TODO - Look into ways of reliably detecting when the backend and stdout piles are closed. */
     
@@ -1773,6 +1834,50 @@ void jStateDownFlush(TICKS nowTicks, int nextSleep) {
      *  crashed or the Wrapper thread was delayed, then it is possible that it is
      *  still open at this point. */
     wrapperProtocolClose();
+    
+    /* Make sure that the PendingPing pool is empty so they don't cause strange behavior with the next JVM invocation. */
+    if (wrapperData->firstPendingPing != NULL) {
+        if (wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%d pings were not replied to when the JVM process exited."), wrapperData->pendingPingCount);
+        }
+        while (wrapperData->firstPendingPing != NULL) {
+            pendingPing = wrapperData->firstPendingPing;
+            if (pendingPing->nextPendingPing != NULL) {
+                /* This was the first PendingPing of several in the queue. */
+                wrapperData->pendingPingCount--;
+                if (wrapperData->firstUnwarnedPendingPing == wrapperData->firstPendingPing) {
+                    wrapperData->firstUnwarnedPendingPing = pendingPing->nextPendingPing;
+                }
+                wrapperData->firstPendingPing = pendingPing->nextPendingPing;
+                pendingPing->nextPendingPing = NULL;
+#ifdef DEBUG_PING_QUEUE
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("--- PING QUEUE Size: %d"), wrapperData->pendingPingCount);
+#endif
+            } else {
+                /* This was the only PendingPing in the queue. */
+                wrapperData->pendingPingCount = 0;
+                wrapperData->firstUnwarnedPendingPing = NULL;
+                wrapperData->firstPendingPing = NULL;
+                wrapperData->lastPendingPing = NULL;
+#ifdef DEBUG_PING_QUEUE
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("--- PING QUEUE Empty.") );
+#endif
+            }
+            
+            /* Free up the pendingPing object. */
+            if (pendingPing != NULL) {
+                free(pendingPing);
+                pendingPing = NULL;
+            }
+        }
+    }
+    if (wrapperData->pendingPingQueueOverflow) {
+        wrapperData->pendingPingQueueOverflow = FALSE;
+        wrapperData->pendingPingQueueOverflowEmptied = FALSE;
+#ifdef DEBUG_PING_QUEUE
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("--- PING QUEUE Reset Overflow.") );
+#endif
+    }
     
     /* We are now down and clean. */
     wrapperSetJavaState(WRAPPER_JSTATE_DOWN_CLEAN, nowTicks, -1);

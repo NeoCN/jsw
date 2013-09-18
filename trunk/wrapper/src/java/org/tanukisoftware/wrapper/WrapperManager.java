@@ -1802,6 +1802,11 @@ public final class WrapperManager
     {
         if ( WrapperManager.isStandardEdition() && isNativeLibraryOk() )
         {
+            if ( folder == null )
+            {
+                folder = WrapperSystemPropertyUtil.getStringProperty( "wrapper.lang.folder", "../lang" );
+            }
+            
             return nativeLoadWrapperResources( domain, folder, makeActive );
         }
         else
