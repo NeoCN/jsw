@@ -94,6 +94,9 @@ Java Service Wrapper Revision History.
   but not impossible if a large number of filter events were triggered in a
   very short time.  Corrected the problem so it now recovers correctly, but
   also increased the queue size to make the overflow even more unlikely.
+* (Standard, Professional) Fix a problem where console output of a wrapperw.exe
+  processes launched when the wrapper.ntservice.console property was TRUE was
+  not being shown correctly. This issue was introduced in 3.5.19.
 
 3.5.20
 * Further improvements to the memory footprint of the Wrapper to minimize the
