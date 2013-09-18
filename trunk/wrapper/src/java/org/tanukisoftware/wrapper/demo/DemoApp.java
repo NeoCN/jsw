@@ -425,7 +425,7 @@ public class DemoApp implements WrapperListener
                 {
                     wrapperBin = "../bin/wrapper";
                 }
-                String arg = wrapperBin + " -c " + m_confFile + " wrapper.console.flush=TRUE wrapper.console.format=LPM  wrapper.app.parameter.1=start " + md.getEvents()
+                String arg = wrapperBin + " -c " + m_confFile + " wrapper.console.flush=TRUE wrapper.console.format=LPM wrapper.console.direct=FALSE wrapper.app.parameter.1=start " + md.getEvents()
                         + " wrapper.event.default.email.debug=TRUE wrapper.event.default.email.smtp.host=" + md.getServer() + " wrapper.event.default.email.smtp.port="
                         + md.getPort() + " wrapper.event.default.email.sender=" + md.getSender() + " wrapper.event.default.email.recipient=" + md.getRecipients();
                 // System.out.println( "execing: " + arg );
@@ -553,7 +553,7 @@ public class DemoApp implements WrapperListener
             {
                 wrapperBin = "../bin/wrapper";
             }
-            String arg = wrapperBin + " -c " + m_confFile + " wrapper.console.flush=TRUE wrapper.console.format=LPM wrapper.app.parameter.1=" + action;
+            String arg = wrapperBin + " -c " + m_confFile + " wrapper.console.flush=TRUE wrapper.console.format=LPM wrapper.console.direct=FALSE wrapper.app.parameter.1=" + action;
             // System.out.println( "calling: " + arg );
 
             if ( !m_isTestCaseRunning )
@@ -612,7 +612,7 @@ public class DemoApp implements WrapperListener
                 {
                     wrapperBin = "../bin/wrapper";
                 }
-                String arg = wrapperBin + " -c " + m_confFile + " wrapper.console.flush=TRUE wrapper.console.format=LPM wrapper.app.parameter.1=start";
+                String arg = wrapperBin + " -c " + m_confFile + " wrapper.console.flush=TRUE wrapper.console.format=LPM wrapper.console.direct=FALSE wrapper.app.parameter.1=start";
                 //System.out.println( "calling: " + arg );
                 if ( !m_isTestCaseRunning )
                 {
@@ -650,7 +650,7 @@ public class DemoApp implements WrapperListener
             {
                 wrapperBin = "../bin/wrapper";
             }
-            String arg = wrapperBin + " -c " + m_confFile + " wrapper.console.flush=TRUE wrapper.console.format=LPM wrapper.app.parameter.1=start";
+            String arg = wrapperBin + " -c " + m_confFile + " wrapper.console.flush=TRUE wrapper.console.format=LPM wrapper.console.direct=FALSE wrapper.app.parameter.1=start";
             //System.out.println( "calling: " + arg );
             if ( !m_isTestCaseRunning )
             {
