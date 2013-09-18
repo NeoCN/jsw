@@ -80,6 +80,15 @@ Java Service Wrapper Revision History.
 * Fix a problem on Linux IA64 where the WrapperActionServer was throwing an
   IOException when the JVM was shutdown by calling System.exit.  It did not
   cause any problems other than the message in the log.
+* (Professional) Added new "jvm_ping_timeout", "jvm_ping_slow", and
+  "jvm_ping_response_slow" events to help respond to ping related issues.
+* Fix a problem where a value of 0 for wrapper.ping.alert.threshold was not
+  correctly disabling ping threshold alerts.
+* (Professional) Fix a problem where the thread that handles events would
+  permanently get stuck if the event queue filled up.  This was very unlikely
+  but not impossible if a large number of filter events were triggered in a
+  very short time.  Corrected the problem so it now recovers correctly, but
+  also increased the queue size to make the overflow even more unlikely.
 
 3.5.20
 * Further improvements to the memory footprint of the Wrapper to minimize the

@@ -202,6 +202,16 @@ typedef unsigned long TICKS;
 #define WRAPPER_JAVAIO_BUFFER_SIZE_MAX (10 * 1024 * 1024)
 #define WRAPPER_JAVAIO_BUFFER_SIZE_DEFAULT (64 * 1024)
 
+/*#define DEBUG_PING_QUEUE*/
+#define WRAPPER_MAX_PENDING_PINGS 10
+typedef struct PendingPing PendingPing, *PPendingPing;
+struct PendingPing {
+    TICKS sentTicks;
+    TICKS timeoutTicks;
+    TICKS slowTicks;
+    PPendingPing nextPendingPing;
+};
+
 /* Type definitions */
 typedef struct WrapperConfig WrapperConfig;
 struct WrapperConfig {
@@ -412,6 +422,13 @@ struct WrapperConfig {
     int     signalUSR2Mode;         /* Controls what happens when the Wrapper receives a USR2 signal. */
     int     jvmStopped;             /* Flag which remembers the the stopped state of the JVM process. */
 #endif
+    
+    int pendingPingQueueOverflow;   /* Flag which is set to true if the PendingPingQueue overflows the limit of WRAPPER_MAX_PENDING_PINGS. */
+    int pendingPingQueueOverflowEmptied; /* Flag which is set when the queue size is reduced to 0 after having overflowed. */
+    int pendingPingCount;           /* Number of PendingPing events in the list. */
+    PPendingPing firstPendingPing;  /* Pointer to the first PendingPing in the list. */
+    PPendingPing firstUnwarnedPendingPing; /* Pointer to the first PendingPing in the list for which a slow warning has not been logged. */
+    PPendingPing lastPendingPing;   /* Pointer to the last PendingPing in the list. */
 
 #ifdef WIN32
     int     ctrlEventCTRLCTrapped;  /* CTRL_C_EVENT trapped. */
@@ -996,11 +1013,26 @@ extern void wrapperLogSignaled(int logLevel, TCHAR *msg);
 extern void wrapperKeyRegistered(TCHAR *key);
 
 /**
+ * Called when a ping is first determined to be slower than the wrapper.ping.alert.threshold.
+ *  This will happen before it has actually been responded to.
+ */
+extern void wrapperPingSlow();
+
+/**
+ * Called when a ping is responded to, but was slower than the wrapper.ping.alert.threshold.
+ *
+ * @param tickAge The number of seconds it took to respond.
+ */
+extern void wrapperPingRespondedSlow(int tickAge);
+
+/**
  * Called when a ping response is received.
  *
  * @param pingSendTicks Time in ticks when the ping was originally sent.
+ * @param queueWarnings TRUE if warnings about the queue should be logged, FALSE if the ping response did not contain a time.
  */
-extern void wrapperPingResponded(TICKS pingSendTicks);
+extern void wrapperPingResponded(TICKS pingSendTicks, int queueWarnings);
+
 extern void wrapperPingTimeoutResponded();
 extern void wrapperStopRequested(int exitCode);
 extern void wrapperRestartRequested();

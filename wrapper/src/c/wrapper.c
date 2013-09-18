@@ -2169,10 +2169,10 @@ int wrapperProtocolRead() {
             tc = _tcschr(packetBuffer, TEXT(' '));
             if (tc) {
                 /* A pingSendTicks should exist. Parse the id following the space. It will be in the format 0xffffffff. */
-                wrapperPingResponded(hexToTICKS(&tc[1]));
+                wrapperPingResponded(hexToTICKS(&tc[1]), TRUE);
             } else {
                 /* Should not happen, but just in case use the current ticks. */
-                wrapperPingResponded(wrapperGetTicks());
+                wrapperPingResponded(wrapperGetTicks(), FALSE);
             }
             break;
 
@@ -8041,13 +8041,139 @@ void wrapperKeyRegistered(TCHAR *key) {
 }
 
 /**
+ * Called when a ping is first determined to be slower than the wrapper.ping.alert.threshold.
+ *  This will happen before it has actually been responded to.
+ */
+void wrapperPingSlow() {
+}
+
+/**
+ * Called when a ping is responded to, but was slower than the wrapper.ping.alert.threshold.
+ *
+ * @param tickAge The number of seconds it took to respond.
+ */
+void wrapperPingRespondedSlow(int tickAge) {
+    log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->pingAlertLogLevel, TEXT("Pinging the JVM took %d seconds to respond."), tickAge);
+}
+
+/**
  * Called when a ping response is received.
  *
  * @param pingSendTicks Time in ticks when the ping was originally sent.
+ * @param queueWarnings TRUE if warnings about the queue should be logged, FALSE if the ping response did not contain a time.
  */
-void wrapperPingResponded(TICKS pingSendTicks) {
+void wrapperPingResponded(TICKS pingSendTicks, int queueWarnings) {
     TICKS nowTicks;
     int tickAge;
+    PPendingPing pendingPing;
+    int pingSearchDone;
+    
+#ifdef DEBUG_PING_QUEUE
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    PING QUEUE Ping Response (tick %08x)"), pingSendTicks);
+#endif
+    /* We want to purge the ping from the PendingPing list. */
+    do {
+        pendingPing = wrapperData->firstPendingPing;
+        if (pendingPing != NULL) {
+            tickAge = wrapperGetTickAgeTicks(pingSendTicks, pendingPing->sentTicks);
+#ifdef DEBUG_PING_QUEUE
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    PING QUEUE First Queued Ping (tick %08x, age %d)"), pendingPing->sentTicks, tickAge);
+#endif
+            if (tickAge > 0) { /* pendingPing->sentTicks > pingSendTicks */
+                /* We received a ping response that is earlier than the one we were expecting.
+                 *  If the pendingPingQueue has overflown then we will stop writing to it.  Don't long warning messages when in this state as they would be confusing and are expected.
+                 *  Leave this one in the queue for later. */
+                if (queueWarnings) {
+                    if ((!wrapperData->pendingPingQueueOverflow) && (!wrapperData->pendingPingQueueOverflowEmptied)) {
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Received an unexpected ping response, sent at tick %08x.  First expected ping was sent at tick %08x."), pingSendTicks, pendingPing->sentTicks);
+                    } else {
+#ifdef DEBUG_PING_QUEUE
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    PING QUEUE Silently skipping unexpected ping response. (tick %08x) (First tick %08x)"), pingSendTicks, pendingPing->sentTicks);
+#endif
+                    }
+                }
+                pendingPing = NULL;
+                pingSearchDone = TRUE;
+            } else {
+                if (tickAge < 0) {
+                    /* This PendingPing object was sent before the PING that we received.  This means that we somehow lost a ping. */
+                    if (queueWarnings) {
+                        if ((!wrapperData->pendingPingQueueOverflow) && (!wrapperData->pendingPingQueueOverflowEmptied)) {
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Lost a ping response, sent at tick %08x."), pendingPing->sentTicks);
+                        } else {
+#ifdef DEBUG_PING_QUEUE
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    PING QUEUE Silently skipping lost ping response. (tick %08x)"), pendingPing->sentTicks);
+#endif
+                        }
+                    }
+                    pingSearchDone = FALSE;
+                } else {
+                    /* This PendingPing object is for this PING event. */
+                    pingSearchDone = TRUE;
+#ifdef DEBUG_PING_QUEUE
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    PING QUEUE Expected Ping Response. (tick %08x)"), pendingPing->sentTicks);
+#endif
+                    
+                    /* When the emptied flag is set, we know that we are recovering from an overflow.
+                     *  That flag is reset on the first expected PendingPing found in the queue. */
+                    if (wrapperData->pendingPingQueueOverflowEmptied) {
+                        wrapperData->pendingPingQueueOverflowEmptied = FALSE;
+#ifdef DEBUG_PING_QUEUE
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    PING QUEUE Emptied Set flag reset."));
+#endif
+                    }
+                }
+                
+                /* Detach the PendingPing from the queue. */
+                if (pendingPing->nextPendingPing != NULL) {
+                    /* This was the first PendingPing of several in the queue. */
+                    wrapperData->pendingPingCount--;
+                    if (wrapperData->firstUnwarnedPendingPing == wrapperData->firstPendingPing) {
+                        wrapperData->firstUnwarnedPendingPing = pendingPing->nextPendingPing;
+                    }
+                    wrapperData->firstPendingPing = pendingPing->nextPendingPing;
+                    pendingPing->nextPendingPing = NULL;
+#ifdef DEBUG_PING_QUEUE
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("--- PING QUEUE Size: %d"), wrapperData->pendingPingCount);
+#endif
+                } else {
+                    /* This was the only PendingPing in the queue. */
+                    wrapperData->pendingPingCount = 0;
+                    wrapperData->firstUnwarnedPendingPing = NULL;
+                    wrapperData->firstPendingPing = NULL;
+                    wrapperData->lastPendingPing = NULL;
+#ifdef DEBUG_PING_QUEUE
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("--- PING QUEUE Empty.") );
+#endif
+                    if (wrapperData->pendingPingQueueOverflow) {
+                        wrapperData->pendingPingQueueOverflowEmptied = TRUE;
+                        wrapperData->pendingPingQueueOverflow = FALSE;
+#ifdef DEBUG_PING_QUEUE
+                        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    PING QUEUE Reset Overflow, Emptied Set.") );
+#endif
+                    }
+                }
+                
+                /* Free up the pendingPing object. */
+                if (pendingPing != NULL) {
+                    free(pendingPing);
+                    pendingPing = NULL;
+                }
+            }
+        } else {
+            /* Got a ping response when the queue was empty. */
+            if (queueWarnings) {
+                if ((!wrapperData->pendingPingQueueOverflow) && (!wrapperData->pendingPingQueueOverflowEmptied)) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Received an unexpected ping response, sent at tick %08x."), pingSendTicks);
+                } else {
+#ifdef DEBUG_PING_QUEUE
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("    PING QUEUE Silently skipping unexpected ping response. (tick %08x) (Empty)"), pingSendTicks);
+#endif
+                }
+            }
+            pingSearchDone = TRUE;
+        }
+    } while (!pingSearchDone);
     
     /* Depending on the current JVM state, do something. */
     switch (wrapperData->jState) {
@@ -8059,8 +8185,8 @@ void wrapperPingResponded(TICKS pingSendTicks) {
         tickAge = wrapperGetTickAgeSeconds(pingSendTicks, nowTicks);
         
         /* If we took longer than the threshold then we want to log a message. */
-        if (tickAge >= wrapperData->pingAlertThreshold) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->pingAlertLogLevel, TEXT("Pinging the JVM took %d seconds to respond."), tickAge);
+        if ((wrapperData->pingAlertThreshold > 0) && (tickAge >= wrapperData->pingAlertThreshold)) {
+            wrapperPingRespondedSlow(tickAge);
         }
         
         /* Allow 5 + <pingTimeout> more seconds before the JVM is considered to be dead. */
