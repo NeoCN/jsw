@@ -1094,10 +1094,6 @@ Java Service Wrapper Revision History.
 * Fix a problem in code to check whether a drive was a mapped network drive or
   not was failing.  This would sometimes lead to a false warning that the drive
   could not be identified.  Introduced in 3.5.0.
-* Add a new ACCESS_VIOLATION command to the wrapper.commandfile property to
-  test how the Wrapper and external systems behave if the Wrapper were to
-  crash.  Only enabled when the wrapper.commandfile.enable_tests property is
-  enabled.
 
 3.5.1
 * Start using a system function to determine whether or not a character in the
