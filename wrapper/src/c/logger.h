@@ -135,10 +135,6 @@ extern inline int wcscasecmp(const wchar_t* s1, const wchar_t* s2);
 #define ROLL_MODE_DATE_TOKEN      TEXT("YYYYMMDD")
 
 
-#ifdef WIN32
-extern void setConsoleStdoutHandle(HANDLE stdoutHandle);
-#endif
-
 /* * * Function predeclaration * * */
 #define strcmpIgnoreCase(str1, str2) _tcsicmp(str1, str2)
 
