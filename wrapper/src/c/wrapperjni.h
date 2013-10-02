@@ -32,6 +32,8 @@
 
 #include "org_tanukisoftware_wrapper_WrapperManager.h"
 
+/*#define DEBUG_CHILD*/
+
 #ifndef TRUE
 #define TRUE -1
 #endif

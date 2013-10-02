@@ -137,6 +137,17 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.LongRunningBackgroundThreads" />
         
+        <!-- Child Wrapper Test -->
+        <delete file="${test.dir}/childwrapper.conf"/>
+        <filter token="app.name"          value="childwrapper"/>
+        <filter token="app.long.name"     value="Child Wrapper Case" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/childwrapper.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/childwrapper.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.ChildWrapper" />
+        
         <!-- Daemon Threads Test -->
         <delete file="${test.dir}/daemonthreads.conf"/>
         <filter token="app.name"          value="daemonthreads"/>
@@ -863,6 +874,18 @@ wrapper.java.additional.3.stripquotes=FALSE]]></replacevalue>
                  token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
                  value='set _WRAPPER_CONF_DEFAULT=../test/longrunningbackgroundthreads.conf' />
         
+        <!-- Child Wrapper Test -->
+        <delete file="${test.dir}/TestChildWrapper.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestChildWrapper.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestChildWrapper.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestChildWrapper.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/childwrapper.conf' />
+        
         <!-- Daemon Threads Test -->
         <delete file="${test.dir}/TestDaemonThreads.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
@@ -1464,6 +1487,14 @@ set ENV_VAR_4=d]]></replacevalue>
               tofile="${test.dir}/longrunningbackgroundthreads"
               filtering="on"/>
         <chmod file="${test.dir}/longrunningbackgroundthreads" perm="+x"/>
+        
+        <!-- Child Wrapper Test -->
+        <filter token="app.name"          value="childwrapper"/>
+        <filter token="app.long.name"     value="Child Wrapper Case" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/childwrapper"
+              filtering="on"/>
+        <chmod file="${test.dir}/childwrapper" perm="+x"/>
         
         <!-- Daemon Threads Test -->
         <filter token="app.name"          value="daemonthreads"/>
