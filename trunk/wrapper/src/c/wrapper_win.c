@@ -6042,9 +6042,6 @@ BOOL verifyEmbeddedSignature() {
  * Does some special setup for when we are running as a launcher.
  */
 void enterLauncherMode() {
-    /* We never want to do direct console writing as that would break the pipes needed to run elevated. */
-    setConsoleDirect(TRUE);
-    
     /* Tell the logger to use the launcher source in place of the actual one so it is clear those entries are coming from the launcher and not the actual service. */
     setLauncherSource();
 }

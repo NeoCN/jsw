@@ -155,7 +155,7 @@ int consoleFlush = FALSE;
 
 #ifdef WIN32
 /* Flag to keep track of whether we should write directly to the console or not. */
-int consoleDirect = FALSE;
+int consoleDirect = TRUE;
 #endif
 
 /* Flags to contol where error log level output goes to the console. */
@@ -175,7 +175,7 @@ void sendEventlogMessage( int source_id, int level, const TCHAR *szBuff );
 void sendLoginfoMessage( int source_id, int level, const TCHAR *szBuff );
 #endif
 #ifdef WIN32
-void writeToConsole( HANDLE hdl, TCHAR *lpszFmt, ...);
+int writeToConsole( HANDLE hdl, TCHAR *lpszFmt, ...);
 #endif
 void checkAndRollLogs(const TCHAR *nowDate);
 int lockLoggingMutex();
@@ -1794,6 +1794,7 @@ void log_printf_message_consoleInner(int source_id, int level, int threadId, int
     FILE *target;
 #ifdef WIN32
     HANDLE targetH;
+    int complete = FALSE;
 #endif
     
     /* Build up the printBuffer. */
@@ -1841,15 +1842,15 @@ void log_printf_message_consoleInner(int source_id, int level, int threadId, int
                 targetH = GetStdHandle(STD_OUTPUT_HANDLE);
             }
             if (targetH != NULL) {
-                writeToConsole(targetH, TEXT("%s\n"), printBuffer);
+                complete = writeToConsole(targetH, TEXT("%s\n"), printBuffer);
             } else {
                 /* Should not happen.  But just in case. */
-                _ftprintf(target, TEXT("Failed to find standard handle: %s\n"), printBuffer);
-                if (consoleFlush) {
-                    fflush(target);
-                }
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Failed to find standard handle.  Disabled direct console output."));
+                consoleDirect = FALSE;
             }
-        } else {
+        }
+        
+        if (!complete) {
 #endif
             _ftprintf(target, TEXT("%s\n"), printBuffer);
             if (consoleFlush) {
@@ -2645,7 +2646,14 @@ void sendLoginfoMessage( int source_id, int level, const TCHAR *szBuff ) {
 size_t vWriteToConsoleMaxHeapBufferSize = 32000;
 size_t vWriteToConsoleBufferSize = 0;
 TCHAR *vWriteToConsoleBuffer = NULL;
-void writeToConsole(HANDLE hdl, TCHAR *lpszFmt, ...) {
+/**
+ * Write a line of output to the console.
+ *
+ * @param hdl The handle to write to.  Must be a valid handle.
+ *
+ * @return TRUE if successful, FALSE if the line was not written.
+ */
+int writeToConsole(HANDLE hdl, TCHAR *lpszFmt, ...) {
     va_list        vargs;
     int cnt;
     size_t fullLen;
@@ -2660,7 +2668,7 @@ void writeToConsole(HANDLE hdl, TCHAR *lpszFmt, ...) {
     
     /* This should only be called if consoleStdoutHandle is set. */
     if ((consoleStdoutHandle == NULL) && (hdl == NULL)) {
-        return;
+        return TRUE;
     }
 
     if (vWriteToConsoleBuffer == NULL) {
@@ -2668,7 +2676,7 @@ void writeToConsole(HANDLE hdl, TCHAR *lpszFmt, ...) {
         vWriteToConsoleBuffer = malloc(sizeof(TCHAR) * vWriteToConsoleBufferSize);
         if (!vWriteToConsoleBuffer) {
             _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("WTC1"));
-            return;
+            return FALSE;
         }
  #ifdef DEBUG_CONSOLE_OUTPUT
         _tprintf(TEXT("Console Buffer Size = %d (Initial Size)\n"), vWriteToConsoleBufferSize);
@@ -2712,7 +2720,7 @@ void writeToConsole(HANDLE hdl, TCHAR *lpszFmt, ...) {
         if (!vWriteToConsoleBuffer) {
             _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("WTC2"));
             va_end( vargs );
-            return;
+            return FALSE;
         }
  #ifdef DEBUG_CONSOLE_OUTPUT
         _tprintf(TEXT("Console Buffer Size = %d (Increased Size) ****************************************\n"), vWriteToConsoleBufferSize);
@@ -2765,11 +2773,12 @@ void writeToConsole(HANDLE hdl, TCHAR *lpszFmt, ...) {
  #endif
         } else {
             /* Failed. */
-            if (getLastError() == ERROR_NOT_ENOUGH_MEMORY) {
+            switch (getLastError()) {
+            case ERROR_NOT_ENOUGH_MEMORY:
                 /* This means that the max heap buffer size is too large and needs to be reduced. */
                 if (vWriteToConsoleMaxHeapBufferSize < 100) {
                     _tprintf(TEXT("Not enough available HEAP to write to console.\n"));
-                    return;
+                    return FALSE;
                 }
                 vWriteToConsoleMaxHeapBufferSize = vWriteToConsoleMaxHeapBufferSize - vWriteToConsoleMaxHeapBufferSize / 20;
  #ifdef DEBUG_CONSOLE_OUTPUT
@@ -2779,16 +2788,29 @@ void writeToConsole(HANDLE hdl, TCHAR *lpszFmt, ...) {
                     /* This is queued as we can't use direct logging here. */
                     log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Usable Console HEAP Buffer Size decreased to %d characters."), vWriteToConsoleMaxHeapBufferSize);
                 }
-            } else {
+                break;
+                
+            case ERROR_INVALID_FUNCTION:
+            case ERROR_INVALID_HANDLE:
+                /* This is a fairly normal thing to happen if the Wrapper is run without an actual console.
+                 * ERROR_INVALID_FUNCTION happens when we launch a forked elevated Wrapper.
+                 * ERROR_INVALID_HANDLE happens when the Wrapper is launched without its own console.
+                 *  Log to debug so there is a note, but it is fine if this does not show up in commands where debug output can't be enabled. */
+                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Failed to write directly to the console.  Disabled direct console output."));
+                consoleDirect = FALSE;
+                return FALSE;
+                
+            default:
                 _tprintf(TEXT("Failed to write to console: %s\n"), getLastErrorText());
-                return;
+                return FALSE;
             }
         }
     }
 
  #ifdef DEBUG_CONSOLE_OUTPUT
-        _tprintf(TEXT("writeToConsole END\n"));
+    _tprintf(TEXT("writeToConsole END\n"));
  #endif
+    return TRUE;
 }
 #endif
 

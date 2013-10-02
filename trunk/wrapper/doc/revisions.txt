@@ -1,6 +1,28 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 
+3.5.22
+* (Standard, Professional) Fix a crash in native code behind WrapperResources
+  instances which could happen if the system was very low on memory. Since
+  version 3.5.7.
+* (Professional) Fix a couple slow memory leaks in the native code involved
+  with launching and checking on the status of child processes.
+* (Professional) Fix a problem where an attempt to throw a WrapperJNIError
+  within native code on Z/OS would result in a ClassNotFoundException being
+  thrown.
+* Reviewed the native JNI code and fixed a few potential crashes and memory
+  leaks which could occur under low memory conditions.
+* Modify the way the wrapper.console.direct property works so the Wrapper will
+  now always downgrade itself to using piped console writing as soon as it has
+  determined that a physical console does not exist.  In 3.5.21 we tried to
+  predict when the console would not exist and disabling it in advance.  There
+  were cases where this was not correct, resulting in error messages in the
+  console output.
+* Fix a problem where operations like installing a service on Windows 7 and
+  above which need to be elevated were resulting in an error that the Wrapper
+  could not write to the console.  The actual operation was working correctly
+  but the console output was incorrect.  Since 3.5.21.
+
 3.5.21
 * Add a new 'R' log format which will track the number of milliseconds since
   the previous JVM log output.  Useful for simple performance checks.  See

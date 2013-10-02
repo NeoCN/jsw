@@ -205,6 +205,7 @@ public class WrapperProcess
     /**
      * Kills the subprocess. The subprocess represented by this Process object
      *  is forcibly terminated if it is still running.
+     *
      * @throws WrapperLicenseError If the function is called other than in
      *                             the Professional Edition or from a Standalone JVM.
      */
