@@ -1277,8 +1277,6 @@ int wrapperInitializeRun() {
         *stderr = *pfile;
         setvbuf( stderr, NULL, _IONBF, 0 );
 
-        setConsoleStdoutHandle(hStdout);
-
         if (wrapperData->ntHideWrapperConsole) {
             /* A console needed to be allocated for the process but it should be hidden. */
 
@@ -1304,6 +1302,10 @@ int wrapperInitializeRun() {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, TEXT("Failed to locate the console window so it can be hidden."));
             }
         }
+        
+        /* If we get here then we created a new console for the Wrapper.  If direct console was enabled then we need
+         *  to reenable it here as any previous attempted log entries will have reset the direct mode. */
+        setConsoleDirect(getBooleanProperty(properties, TEXT("wrapper.console.direct"), TRUE));
     }
 
     /* Attempt to set the console title if it exists and is accessable. */

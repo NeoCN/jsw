@@ -244,13 +244,6 @@ HANDLE log_printfMutexHandle = NULL;
 pthread_mutex_t log_printfMutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
-#ifdef WIN32
-HANDLE consoleStdoutHandle = NULL;
-void setConsoleStdoutHandle( HANDLE stdoutHandle ) {
-    consoleStdoutHandle = stdoutHandle;
-}
-#endif
-
 void outOfMemory(const TCHAR *context, int id) {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Out of memory (%s%02d). %s"),
         context, id, getLastErrorText());
@@ -1845,7 +1838,7 @@ void log_printf_message_consoleInner(int source_id, int level, int threadId, int
                 complete = writeToConsole(targetH, TEXT("%s\n"), printBuffer);
             } else {
                 /* Should not happen.  But just in case. */
-                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR, TEXT("Failed to find standard handle.  Disabled direct console output."));
+                _tprintf(TEXT("Failed to find standard handle.  Disabled direct console output.\n"));
                 consoleDirect = FALSE;
             }
         }
@@ -2666,11 +2659,6 @@ int writeToConsole(HANDLE hdl, TCHAR *lpszFmt, ...) {
         _tprintf(TEXT("writeToConsole BEGIN\n"));
  #endif
     
-    /* This should only be called if consoleStdoutHandle is set. */
-    if ((consoleStdoutHandle == NULL) && (hdl == NULL)) {
-        return TRUE;
-    }
-
     if (vWriteToConsoleBuffer == NULL) {
         vWriteToConsoleBufferSize = CONSOLE_BLOCK_SIZE * 2;
         vWriteToConsoleBuffer = malloc(sizeof(TCHAR) * vWriteToConsoleBufferSize);
@@ -2744,10 +2732,6 @@ int writeToConsole(HANDLE hdl, TCHAR *lpszFmt, ...) {
     _tprintf(TEXT("writeToConsole BufferSize=%d, MessageLen=%d, Message=[%s]\n"), vWriteToConsoleBufferSize, _tcslen(vWriteToConsoleBuffer), vWriteToConsoleBuffer);
  #endif
     
-    if (hdl == NULL) {
-        hdl = consoleStdoutHandle;
-    }
-    
     /* The WriteConsole API is a nasty little beast.
      *  It can accept a buffer that is up to 64KB in size, but they can't tell us exactly how much before hand.
      *  The size on tests on a 64-bit XP system appear to be around 25000 characters.
@@ -2796,7 +2780,9 @@ int writeToConsole(HANDLE hdl, TCHAR *lpszFmt, ...) {
                  * ERROR_INVALID_FUNCTION happens when we launch a forked elevated Wrapper.
                  * ERROR_INVALID_HANDLE happens when the Wrapper is launched without its own console.
                  *  Log to debug so there is a note, but it is fine if this does not show up in commands where debug output can't be enabled. */
-                log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Failed to write directly to the console.  Disabled direct console output."));
+                if (currentConsoleLevel <= LEVEL_DEBUG) {
+                    _tprintf(TEXT("A console does not exist.  Disabling direct console output and falling back to using pipes.\n"));
+                }
                 consoleDirect = FALSE;
                 return FALSE;
                 
