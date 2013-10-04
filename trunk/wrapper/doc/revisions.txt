@@ -22,6 +22,10 @@ Java Service Wrapper Revision History.
   above which need to be elevated were resulting in an error that the Wrapper
   could not write to the console.  The actual operation was working correctly
   but the console output was incorrect.  Since 3.5.21.
+* Move the check that the jar and wrapper versions match earlier in the startup
+  process so we guarantee that a warning will always be displayed.  There were
+  some errors which could abort the startup process before this warning was
+  logged.
 
 3.5.21
 * Add a new 'R' log format which will track the number of milliseconds since
