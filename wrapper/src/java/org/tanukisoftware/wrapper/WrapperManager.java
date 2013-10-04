@@ -608,6 +608,12 @@ public final class WrapperManager
         //  WrapperManager class is being initialized.
         m_outInfo.println( getRes().getString( "Initializing..." ) );
         
+        // We need to get the key before the version can be verified.
+        m_key = System.getProperty( "wrapper.key" );
+        
+        // Make sure that the version of the Wrapper is correct.
+        verifyWrapperVersion();
+        
         // Store the log finalizer flag.
         m_logFinalizer = WrapperSystemPropertyUtil.getBooleanProperty( "wrapper.logFinalizers", false );
         
@@ -726,7 +732,7 @@ public final class WrapperManager
         // A key is required for the wrapper to work correctly.  If it is not
         //  present, then assume that we are not being controlled by the native
         //  wrapper.
-        if ( ( m_key = System.getProperty( "wrapper.key" ) ) == null )
+        if ( m_key == null )
         {
             if ( m_debug )
             {
@@ -820,9 +826,6 @@ public final class WrapperManager
                 }
             }
         }
-        
-        // Make sure that the version of the Wrapper is correct.
-        verifyWrapperVersion();
 
         // Register the MBeans if configured to do so.
         if ( WrapperSystemPropertyUtil.getBooleanProperty(
