@@ -1765,20 +1765,24 @@ void wrapperExecute() {
     /* Set the umask of the JVM */
     old_umask = _umask(wrapperData->javaUmask);
 
+    /* If set, this will launch a second JVM before the actual one to quickly print out the JVM version information.
+     *  This will appear to come from the same JVM instance in the logs. */
     if (wrapperData->printJVMVersion) {
         TCHAR versionCmd[MAX_PATH + 9];
         _sntprintf(versionCmd, MAX_PATH + 9, TEXT("%s -version"), getStringProperty(properties, TEXT("wrapper.java.command"), TEXT("java")));
         if (CreateProcess(NULL,
-                      versionCmd,    /* the command line to start */
-                      NULL,           /* process security attributes */
-                      NULL,           /* primary thread security attributes */
-                      TRUE,           /* handles are inherited */
-                      processflags,   /* we specify new process group */
-                      environment,    /* use parent's environment */
-                      NULL,           /* use the Wrapper's current working directory */
-                      &startup_info,  /* STARTUPINFO pointer */
-                      &process_info /* PROCESS_INFORMATION pointer */
-                      ) != 0) {
+                          versionCmd,    /* the command line to start */
+                          NULL,          /* process security attributes */
+                          NULL,          /* primary thread security attributes */
+                          TRUE,          /* handles are inherited */
+                          processflags,  /* we specify new process group */
+                          environment,   /* use parent's environment */
+                          NULL,          /* use the Wrapper's current working directory */
+                          &startup_info, /* STARTUPINFO pointer */
+                          &process_info  /* PROCESS_INFORMATION pointer */
+                         ) != 0) {
+
+            /* Always wait for the process to complate.  We don't currently do anything fancy here as the -version request will always exit immediately. */
             WaitForSingleObject(process_info.hProcess, INFINITE);
             CloseHandle(process_info.hProcess);
             CloseHandle(process_info.hThread);

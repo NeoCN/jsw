@@ -14,10 +14,6 @@
     
     <property name="test.dir"      value="${basedir}/test"/>
     <property name="src.dir"       value="${basedir}/src"/>
-
-    <!-- Additional Parameter File Test -->
-    <property name="ParamFileTest" value="AdditionalParameterFile" />
-    <property name="paramfiletest" value="additionalparameterfile" />
     
     <!-- =================================================================== -->
     <!-- Help on usage                                                       -->
@@ -690,95 +686,123 @@ wrapper.app.parameter.5=0]]></replacevalue>
         </replace>
 
         <!-- AdditionalParameterFile Test -->
-        <delete file="${test.dir}/${paramfiletest}-01-empty.conf"/>
-        <filter token="app.name"          value="${paramfiletest}-01-empty"/>
-        <filter token="app.long.name"     value="${ParamFileTest} Case 01 (Empty)" />
+        <delete file="${test.dir}/additionalparameterfile-01-empty.conf"/>
+        <filter token="app.name"          value="additionalparameterfile-01-empty"/>
+        <filter token="app.long.name"     value="AdditionalParameterFile Case 01 (Empty)" />
         <copy file="${test.dir}/template.conf"
-              tofile="${test.dir}/${paramfiletest}-01-empty.conf"
+              tofile="${test.dir}/additionalparameterfile-01-empty.conf"
               filtering="on"/>
-        <replace file="${test.dir}/${paramfiletest}-01-empty.conf"
-                 token="wrapper.java.additional_file="
-                 value="wrapper.java.additional_file=../test/${paramfiletest}-01-empty.param" />
-        <replace file="${test.dir}/${paramfiletest}-01-empty.conf"
+        <replace file="${test.dir}/additionalparameterfile-01-empty.conf"
+                 token="#wrapper.java.command.loglevel=INFO"
+                 value="wrapper.java.command.loglevel=INFO" />
+        <replace file="${test.dir}/additionalparameterfile-01-empty.conf">
+             <replacetoken><![CDATA[wrapper.java.additional.1=]]></replacetoken>
+             <replacevalue><![CDATA[wrapper.java.additional.1=
+wrapper.java.additional_file=../test/additionalparameterfile-01-empty.param]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/additionalparameterfile-01-empty.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
-        <delete file="${test.dir}/${paramfiletest}-01-empty.param"/>
-        <touch file="${test.dir}/${paramfiletest}-01-empty.param"/>
+        <delete file="${test.dir}/additionalparameterfile-01-empty.param"/>
+        <touch file="${test.dir}/additionalparameterfile-01-empty.param"/>
 
-        <delete file="${test.dir}/${paramfiletest}-02-1line.conf"/>
-        <filter token="app.name"          value="${paramfiletest}-02-1line"/>
-        <filter token="app.long.name"     value="${ParamFileTest} Case 02 (1 Line)" />
+        <delete file="${test.dir}/additionalparameterfile-02-1line.conf"/>
+        <filter token="app.name"          value="additionalparameterfile-02-1line"/>
+        <filter token="app.long.name"     value="AdditionalParameterFile Case 02 (1 Line)" />
         <copy file="${test.dir}/template.conf"
-              tofile="${test.dir}/${paramfiletest}-02-1line.conf"
+              tofile="${test.dir}/additionalparameterfile-02-1line.conf"
               filtering="on"/>
-        <replace file="${test.dir}/${paramfiletest}-02-1line.conf"
-                 token="wrapper.java.additional_file="
-                 value="wrapper.java.additional_file=../test/${paramfiletest}-02-1line.param" />
-        <replace file="${test.dir}/${paramfiletest}-02-1line.conf"
+        <replace file="${test.dir}/additionalparameterfile-02-1line.conf"
+                 token="#wrapper.java.command.loglevel=INFO"
+                 value="wrapper.java.command.loglevel=INFO" />
+        <replace file="${test.dir}/additionalparameterfile-02-1line.conf">
+             <replacetoken><![CDATA[wrapper.java.additional.1=]]></replacetoken>
+             <replacevalue><![CDATA[wrapper.java.additional.1=
+wrapper.java.additional_file=../test/additionalparameterfile-02-1line.param]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/additionalparameterfile-02-1line.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
-        <echo file="${test.dir}/${paramfiletest}-02-1line.param">-Dparam=param</echo>
+        <echo file="${test.dir}/additionalparameterfile-02-1line.param">-Dparam=param</echo>
 
-        <delete file="${test.dir}/${paramfiletest}-03-stripq-false.conf"/>
-        <filter token="app.name"          value="${paramfiletest}-03-stripq-false"/>
-        <filter token="app.long.name"     value="${ParamFileTest} Case 03 (stripQuote=false)" />
+        <delete file="${test.dir}/additionalparameterfile-03-stripq-false.conf"/>
+        <filter token="app.name"          value="additionalparameterfile-03-stripq-false"/>
+        <filter token="app.long.name"     value="AdditionalParameterFile Case 03 (stripQuote=false)" />
         <copy file="${test.dir}/template.conf"
-              tofile="${test.dir}/${paramfiletest}-03-stripq-false.conf"
+              tofile="${test.dir}/additionalparameterfile-03-stripq-false.conf"
               filtering="on"/>
-        <replace file="${test.dir}/${paramfiletest}-03-stripq-false.conf">
-             <replacetoken><![CDATA[wrapper.java.additional_file=]]></replacetoken>
-             <replacevalue><![CDATA[wrapper.java.additional_file=../test/additionalparameterfile-03-stripq-false.param
+        <replace file="${test.dir}/additionalparameterfile-03-stripq-false.conf"
+                 token="#wrapper.java.command.loglevel=INFO"
+                 value="wrapper.java.command.loglevel=INFO" />
+        <replace file="${test.dir}/additionalparameterfile-03-stripq-false.conf">
+             <replacetoken><![CDATA[wrapper.java.additional.1=]]></replacetoken>
+             <replacevalue><![CDATA[wrapper.java.additional.1=
+wrapper.java.additional_file=../test/additionalparameterfile-03-stripq-false.param
 wrapper.java.additional_file.stripquotes=FALSE]]></replacevalue>
         </replace>
-        <replace file="${test.dir}/${paramfiletest}-03-stripq-false.conf"
+        <replace file="${test.dir}/additionalparameterfile-03-stripq-false.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
-        <echo file="${test.dir}/${paramfiletest}-03-stripq-false.param">-Dparam="Hello World."</echo>
+        <echo file="${test.dir}/additionalparameterfile-03-stripq-false.param">-Dparam="Hello World."</echo>
 
-        <delete file="${test.dir}/${paramfiletest}-04-stripq-true.conf"/>
-        <filter token="app.name"          value="${paramfiletest}-04-stripq-true"/>
-        <filter token="app.long.name"     value="${ParamFileTest} Case 04 (stripQuote=true)" />
+        <delete file="${test.dir}/additionalparameterfile-04-stripq-true.conf"/>
+        <filter token="app.name"          value="additionalparameterfile-04-stripq-true"/>
+        <filter token="app.long.name"     value="AdditionalParameterFile Case 04 (stripQuote=true)" />
         <copy file="${test.dir}/template.conf"
-              tofile="${test.dir}/${paramfiletest}-04-stripq-true.conf"
+              tofile="${test.dir}/additionalparameterfile-04-stripq-true.conf"
               filtering="on"/>
-        <replace file="${test.dir}/${paramfiletest}-04-stripq-true.conf">
-             <replacetoken><![CDATA[wrapper.java.additional_file=]]></replacetoken>
-             <replacevalue><![CDATA[wrapper.java.additional_file=../test/additionalparameterfile-04-stripq-true.param
+        <replace file="${test.dir}/additionalparameterfile-04-stripq-true.conf"
+                 token="#wrapper.java.command.loglevel=INFO"
+                 value="wrapper.java.command.loglevel=INFO" />
+        <replace file="${test.dir}/additionalparameterfile-04-stripq-true.conf">
+             <replacetoken><![CDATA[wrapper.java.additional.1=]]></replacetoken>
+             <replacevalue><![CDATA[wrapper.java.additional.1=
+wrapper.java.additional_file=../test/additionalparameterfile-04-stripq-true.param
 wrapper.java.additional_file.stripquotes=TRUE]]></replacevalue>
         </replace>
-        <replace file="${test.dir}/${paramfiletest}-04-stripq-true.conf"
+        <replace file="${test.dir}/additionalparameterfile-04-stripq-true.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
-        <echo file="${test.dir}/${paramfiletest}-04-stripq-true.param">-Dparam="Hello World."</echo>
+        <echo file="${test.dir}/additionalparameterfile-04-stripq-true.param">-Dparam="Hello World."</echo>
 
-        <delete file="${test.dir}/${paramfiletest}-05-encoding.conf"/>
-        <filter token="app.name"          value="${paramfiletest}-05-encoding"/>
-        <filter token="app.long.name"     value="${ParamFileTest} Case 05 (Encoding)" />
+        <delete file="${test.dir}/additionalparameterfile-05-encoding.conf"/>
+        <filter token="app.name"          value="additionalparameterfile-05-encoding"/>
+        <filter token="app.long.name"     value="AdditionalParameterFile Case 05 (Encoding)" />
         <copy file="${test.dir}/template.conf"
-              tofile="${test.dir}/${paramfiletest}-05-encoding.conf"
+              tofile="${test.dir}/additionalparameterfile-05-encoding.conf"
               filtering="on"/>
-        <replace file="${test.dir}/${paramfiletest}-05-encoding.conf"
-                 token="wrapper.java.additional_file="
-                 value="wrapper.java.additional_file=../test/${paramfiletest}-05-encoding.param" />
-        <replace file="${test.dir}/${paramfiletest}-05-encoding.conf"
+        <replace file="${test.dir}/additionalparameterfile-05-encoding.conf"
+                 token="#wrapper.java.command.loglevel=INFO"
+                 value="wrapper.java.command.loglevel=INFO" />
+        <replace file="${test.dir}/additionalparameterfile-05-encoding.conf">
+             <replacetoken><![CDATA[wrapper.java.additional.1=]]></replacetoken>
+             <replacevalue><![CDATA[wrapper.java.additional.1=
+wrapper.java.additional_file=../test/additionalparameterfile-05-encoding.param]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/additionalparameterfile-05-encoding.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
-        <echo file="${test.dir}/${paramfiletest}-05-encoding.param">#encoding=UTF-8
+        <echo file="${test.dir}/additionalparameterfile-05-encoding.param">#encoding=UTF-8
 -Dparam=param</echo>
 
-        <delete file="${test.dir}/${paramfiletest}-06-multilines.conf"/>
-        <filter token="app.name"          value="${paramfiletest}-06-multilines"/>
-        <filter token="app.long.name"     value="${ParamFileTest} Case 06 (Multi-Lines)" />
+        <delete file="${test.dir}/additionalparameterfile-06-multilines.conf"/>
+        <filter token="app.name"          value="additionalparameterfile-06-multilines"/>
+        <filter token="app.long.name"     value="AdditionalParameterFile Case 06 (Multi-Lines)" />
         <copy file="${test.dir}/template.conf"
-              tofile="${test.dir}/${paramfiletest}-06-multilines.conf"
+              tofile="${test.dir}/additionalparameterfile-06-multilines.conf"
               filtering="on"/>
-        <replace file="${test.dir}/${paramfiletest}-06-multilines.conf"
-                 token="wrapper.java.additional_file="
-                 value="wrapper.java.additional_file=../test/${paramfiletest}-06-multilines.param" />
-        <replace file="${test.dir}/${paramfiletest}-06-multilines.conf"
+        <replace file="${test.dir}/additionalparameterfile-06-multilines.conf"
+                 token="#wrapper.java.command.loglevel=INFO"
+                 value="wrapper.java.command.loglevel=INFO" />
+        <replace file="${test.dir}/additionalparameterfile-06-multilines.conf">
+             <replacetoken><![CDATA[wrapper.java.additional.1=]]></replacetoken>
+             <replacevalue><![CDATA[wrapper.java.additional.1=
+wrapper.java.additional_file=../test/additionalparameterfile-06-multilines.param]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/additionalparameterfile-06-multilines.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
-        <echo file="${test.dir}/${paramfiletest}-06-multilines.param"># This is a comment.
+        <echo file="${test.dir}/additionalparameterfile-06-multilines.param"># This is a comment.
 -Dparam1=param1 # This is another comment.
 -Dparam2=##param2
 -Dparam3="#param3"</echo>
@@ -790,6 +814,9 @@ wrapper.java.additional_file.stripquotes=TRUE]]></replacevalue>
         <copy file="${test.dir}/template.conf"
               tofile="${test.dir}/defaultstripquotes-01-none.conf"
               filtering="on"/>
+        <replace file="${test.dir}/defaultstripquotes-01-none.conf"
+                 token="#wrapper.java.command.loglevel=INFO"
+                 value="wrapper.java.command.loglevel=INFO" />
         <replace file="${test.dir}/defaultstripquotes-01-none.conf">
             <replacetoken>wrapper.java.additional.1=</replacetoken>
             <replacevalue><![CDATA[wrapper.java.additional.1=-Dparam1="No stripquotes"
@@ -808,6 +835,9 @@ wrapper.java.additional.3.stripquotes=FALSE]]></replacevalue>
         <copy file="${test.dir}/template.conf"
               tofile="${test.dir}/defaultstripquotes-02-true.conf"
               filtering="on"/>
+        <replace file="${test.dir}/defaultstripquotes-02-true.conf"
+                 token="#wrapper.java.command.loglevel=INFO"
+                 value="wrapper.java.command.loglevel=INFO" />
         <replace file="${test.dir}/defaultstripquotes-02-true.conf">
             <replacetoken>wrapper.java.additional.1=</replacetoken>
             <replacevalue><![CDATA[wrapper.java.additional.default.stripquotes=TRUE
@@ -827,6 +857,9 @@ wrapper.java.additional.3.stripquotes=FALSE]]></replacevalue>
         <copy file="${test.dir}/template.conf"
               tofile="${test.dir}/defaultstripquotes-03-false.conf"
               filtering="on"/>
+        <replace file="${test.dir}/defaultstripquotes-03-false.conf"
+                 token="#wrapper.java.command.loglevel=INFO"
+                 value="wrapper.java.command.loglevel=INFO" />
         <replace file="${test.dir}/defaultstripquotes-03-false.conf">
             <replacetoken>wrapper.java.additional.1=</replacetoken>
             <replacevalue><![CDATA[wrapper.java.additional.default.stripquotes=FALSE
@@ -1329,71 +1362,71 @@ set ENV_VAR_4=d]]></replacevalue>
                  value='set _WRAPPER_CONF_DEFAULT=../test/performancestartstop.conf' />
 
         <!-- AdditionalParameterFile Test -->
-        <delete file="${test.dir}/Test${ParamFileTest}-01-empty.bat"/>
+        <delete file="${test.dir}/TestAdditionalParameterFile-01-empty.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
-              tofile="${test.dir}/Test${ParamFileTest}-01-empty.bat"
+              tofile="${test.dir}/TestAdditionalParameterFile-01-empty.bat"
               filtering="on"/>
-        <replace file="${test.dir}/Test${ParamFileTest}-01-empty.bat"
+        <replace file="${test.dir}/TestAdditionalParameterFile-01-empty.bat"
                  token='set _WRAPPER_BASE=wrapper'
                  value='set _WRAPPER_BASE=..\bin\wrapper' />
-        <replace file="${test.dir}/Test${ParamFileTest}-01-empty.bat"
+        <replace file="${test.dir}/TestAdditionalParameterFile-01-empty.bat"
                  token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
-                 value='set _WRAPPER_CONF_DEFAULT=../test/${paramfiletest}-01-empty.conf' />
+                 value='set _WRAPPER_CONF_DEFAULT=../test/additionalparameterfile-01-empty.conf' />
 
-        <delete file="${test.dir}/Test${ParamFileTest}-02-1line.bat"/>
+        <delete file="${test.dir}/TestAdditionalParameterFile-02-1line.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
-              tofile="${test.dir}/Test${ParamFileTest}-02-1line.bat"
+              tofile="${test.dir}/TestAdditionalParameterFile-02-1line.bat"
               filtering="on"/>
-        <replace file="${test.dir}/Test${ParamFileTest}-02-1line.bat"
+        <replace file="${test.dir}/TestAdditionalParameterFile-02-1line.bat"
                  token='set _WRAPPER_BASE=wrapper'
                  value='set _WRAPPER_BASE=..\bin\wrapper' />
-        <replace file="${test.dir}/Test${ParamFileTest}-02-1line.bat"
+        <replace file="${test.dir}/TestAdditionalParameterFile-02-1line.bat"
                  token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
-                 value='set _WRAPPER_CONF_DEFAULT=../test/${paramfiletest}-02-1line.conf' />
+                 value='set _WRAPPER_CONF_DEFAULT=../test/additionalparameterfile-02-1line.conf' />
 
-        <delete file="${test.dir}/Test${ParamFileTest}-03-stripq-false.bat"/>
+        <delete file="${test.dir}/TestAdditionalParameterFile-03-stripq-false.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
-              tofile="${test.dir}/Test${ParamFileTest}-03-stripq-false.bat"
+              tofile="${test.dir}/TestAdditionalParameterFile-03-stripq-false.bat"
               filtering="on"/>
-        <replace file="${test.dir}/Test${ParamFileTest}-03-stripq-false.bat"
+        <replace file="${test.dir}/TestAdditionalParameterFile-03-stripq-false.bat"
                  token='set _WRAPPER_BASE=wrapper'
                  value='set _WRAPPER_BASE=..\bin\wrapper' />
-        <replace file="${test.dir}/Test${ParamFileTest}-03-stripq-false.bat"
+        <replace file="${test.dir}/TestAdditionalParameterFile-03-stripq-false.bat"
                  token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
-                 value='set _WRAPPER_CONF_DEFAULT=../test/${paramfiletest}-03-stripq-false.conf' />
+                 value='set _WRAPPER_CONF_DEFAULT=../test/additionalparameterfile-03-stripq-false.conf' />
 
-        <delete file="${test.dir}/Test${ParamFileTest}-04-stripq-true.bat"/>
+        <delete file="${test.dir}/TestAdditionalParameterFile-04-stripq-true.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
-              tofile="${test.dir}/Test${ParamFileTest}-04-stripq-true.bat"
+              tofile="${test.dir}/TestAdditionalParameterFile-04-stripq-true.bat"
               filtering="on"/>
-        <replace file="${test.dir}/Test${ParamFileTest}-04-stripq-true.bat"
+        <replace file="${test.dir}/TestAdditionalParameterFile-04-stripq-true.bat"
                  token='set _WRAPPER_BASE=wrapper'
                  value='set _WRAPPER_BASE=..\bin\wrapper' />
-        <replace file="${test.dir}/Test${ParamFileTest}-04-stripq-true.bat"
+        <replace file="${test.dir}/TestAdditionalParameterFile-04-stripq-true.bat"
                  token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
-                 value='set _WRAPPER_CONF_DEFAULT=../test/${paramfiletest}-04-stripq-true.conf' />
+                 value='set _WRAPPER_CONF_DEFAULT=../test/additionalparameterfile-04-stripq-true.conf' />
 
-        <delete file="${test.dir}/Test${ParamFileTest}-05-encoding.bat"/>
+        <delete file="${test.dir}/TestAdditionalParameterFile-05-encoding.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
-              tofile="${test.dir}/Test${ParamFileTest}-05-encoding.bat"
+              tofile="${test.dir}/TestAdditionalParameterFile-05-encoding.bat"
               filtering="on"/>
-        <replace file="${test.dir}/Test${ParamFileTest}-05-encoding.bat"
+        <replace file="${test.dir}/TestAdditionalParameterFile-05-encoding.bat"
                  token='set _WRAPPER_BASE=wrapper'
                  value='set _WRAPPER_BASE=..\bin\wrapper' />
-        <replace file="${test.dir}/Test${ParamFileTest}-05-encoding.bat"
+        <replace file="${test.dir}/TestAdditionalParameterFile-05-encoding.bat"
                  token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
-                 value='set _WRAPPER_CONF_DEFAULT=../test/${paramfiletest}-05-encoding.conf' />
+                 value='set _WRAPPER_CONF_DEFAULT=../test/additionalparameterfile-05-encoding.conf' />
 
-        <delete file="${test.dir}/Test${ParamFileTest}-06-multilines.bat"/>
+        <delete file="${test.dir}/TestAdditionalParameterFile-06-multilines.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
-              tofile="${test.dir}/Test${ParamFileTest}-06-multilines.bat"
+              tofile="${test.dir}/TestAdditionalParameterFile-06-multilines.bat"
               filtering="on"/>
-        <replace file="${test.dir}/Test${ParamFileTest}-06-multilines.bat"
+        <replace file="${test.dir}/TestAdditionalParameterFile-06-multilines.bat"
                  token='set _WRAPPER_BASE=wrapper'
                  value='set _WRAPPER_BASE=..\bin\wrapper' />
-        <replace file="${test.dir}/Test${ParamFileTest}-06-multilines.bat"
+        <replace file="${test.dir}/TestAdditionalParameterFile-06-multilines.bat"
                  token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
-                 value='set _WRAPPER_CONF_DEFAULT=../test/${paramfiletest}-06-multilines.conf' />
+                 value='set _WRAPPER_CONF_DEFAULT=../test/additionalparameterfile-06-multilines.conf' />
 
         <!-- DefaultStripquotes Test -->
         <delete file="${test.dir}/TestDefaultStripquotes-01-none.bat"/>
@@ -1788,47 +1821,47 @@ export ENV_VAR_4=d]]></replacevalue>
         <chmod file="${test.dir}/performancestartstop" perm="+x"/>
         
         <!-- AdditionalParameterFile Test -->
-        <filter token="app.name"          value="${paramfiletest}-01-empty"/>
-        <filter token="app.long.name"     value="${ParamFileTest} Case 01 (Empty)" />
+        <filter token="app.name"          value="additionalparameterfile-01-empty"/>
+        <filter token="app.long.name"     value="AdditionalParameterFile Case 01 (Empty)" />
         <copy file="${test.dir}/temp.script.in"
-              tofile="${test.dir}/${paramfiletest}-01-empty"
+              tofile="${test.dir}/additionalparameterfile-01-empty"
               filtering="on"/>
-        <chmod file="${test.dir}/${paramfiletest}-01-empty" perm="+x"/>
+        <chmod file="${test.dir}/additionalparameterfile-01-empty" perm="+x"/>
 
-        <filter token="app.name"          value="${paramfiletest}-02-1line"/>
-        <filter token="app.long.name"     value="${ParamFileTest} Case 02 (1 Line)" />
+        <filter token="app.name"          value="additionalparameterfile-02-1line"/>
+        <filter token="app.long.name"     value="AdditionalParameterFile Case 02 (1 Line)" />
         <copy file="${test.dir}/temp.script.in"
-              tofile="${test.dir}/${paramfiletest}-02-1line"
+              tofile="${test.dir}/additionalparameterfile-02-1line"
               filtering="on"/>
-        <chmod file="${test.dir}/${paramfiletest}-02-1line" perm="+x"/>
+        <chmod file="${test.dir}/additionalparameterfile-02-1line" perm="+x"/>
 
-        <filter token="app.name"          value="${paramfiletest}-03-stripq-false"/>
-        <filter token="app.long.name"     value="${ParamFileTest} Case 03 (stripQuote=false)" />
+        <filter token="app.name"          value="additionalparameterfile-03-stripq-false"/>
+        <filter token="app.long.name"     value="AdditionalParameterFile Case 03 (stripQuote=false)" />
         <copy file="${test.dir}/temp.script.in"
-              tofile="${test.dir}/${paramfiletest}-03-stripq-false"
+              tofile="${test.dir}/additionalparameterfile-03-stripq-false"
               filtering="on"/>
-        <chmod file="${test.dir}/${paramfiletest}-03-stripq-false" perm="+x"/>
+        <chmod file="${test.dir}/additionalparameterfile-03-stripq-false" perm="+x"/>
 
-        <filter token="app.name"          value="${paramfiletest}-04-stripq-true"/>
-        <filter token="app.long.name"     value="${ParamFileTest} Case 04 (stripQuote=true)" />
+        <filter token="app.name"          value="additionalparameterfile-04-stripq-true"/>
+        <filter token="app.long.name"     value="AdditionalParameterFile Case 04 (stripQuote=true)" />
         <copy file="${test.dir}/temp.script.in"
-              tofile="${test.dir}/${paramfiletest}-04-stripq-true"
+              tofile="${test.dir}/additionalparameterfile-04-stripq-true"
               filtering="on"/>
-        <chmod file="${test.dir}/${paramfiletest}-04-stripq-true" perm="+x"/>
+        <chmod file="${test.dir}/additionalparameterfile-04-stripq-true" perm="+x"/>
 
-        <filter token="app.name"          value="${paramfiletest}-05-encoding"/>
-        <filter token="app.long.name"     value="${ParamFileTest} Case 05 (Encoding)" />
+        <filter token="app.name"          value="additionalparameterfile-05-encoding"/>
+        <filter token="app.long.name"     value="AdditionalParameterFile Case 05 (Encoding)" />
         <copy file="${test.dir}/temp.script.in"
-              tofile="${test.dir}/${paramfiletest}-05-encoding"
+              tofile="${test.dir}/additionalparameterfile-05-encoding"
               filtering="on"/>
-        <chmod file="${test.dir}/${paramfiletest}-05-encoding" perm="+x"/>
+        <chmod file="${test.dir}/additionalparameterfile-05-encoding" perm="+x"/>
 
-        <filter token="app.name"          value="${paramfiletest}-06-multilines"/>
-        <filter token="app.long.name"     value="${ParamFileTest} Case 06 (Multi-Lines)" />
+        <filter token="app.name"          value="additionalparameterfile-06-multilines"/>
+        <filter token="app.long.name"     value="AdditionalParameterFile Case 06 (Multi-Lines)" />
         <copy file="${test.dir}/temp.script.in"
-              tofile="${test.dir}/${paramfiletest}-06-multilines"
+              tofile="${test.dir}/additionalparameterfile-06-multilines"
               filtering="on"/>
-        <chmod file="${test.dir}/${paramfiletest}-06-multilines" perm="+x"/>
+        <chmod file="${test.dir}/additionalparameterfile-06-multilines" perm="+x"/>
 
         <!-- DefaultStripquotes Test -->
         <filter token="app.name"          value="defaultstripquotes-01-none"/>

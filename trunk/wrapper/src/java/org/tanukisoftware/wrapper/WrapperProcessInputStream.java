@@ -116,12 +116,76 @@ public class WrapperProcessInputStream
         }
     }
 
-    public int read( byte b[ ]) throws IOException 
+    /**
+     * Reads some number of bytes from the input stream and stores them into the buffer array b.
+     *  The number of bytes actually read is returned as an integer.  This method blocks until input
+     *  data is available, end of file is detected, or an exception is thrown.
+     *
+     * If the length of b is zero, then no bytes are read and 0 is returned; otherwise, there is an
+     *  attempt to read at least one byte. If no byte is available because the stream is at the end
+     *  of the file, the value -1 is returned; otherwise, at least one byte is read and stored into b.
+     *
+     * The first byte read is stored into element b[0], the next one into b[1], and so on. The number
+     *  of bytes read is, at most, equal to the length of b. Let k be the number of bytes actually
+     *  read; these bytes will be stored in elements b[0] through b[k-1], leaving elements b[k]
+     *  through b[b.length-1] unaffected.
+     *
+     * The read(b) method for class InputStream has the same effect as:
+     *
+     *  read(b, 0, b.length)
+     *
+     * @param b The buffer into which the data is read.
+     *
+     * @return The total number of bytes read into the buffer, or -1 is there is no more data because
+     *         the end of the stream has been reached.
+     *
+     * @throws IOException If the first byte cannot be read for any reason other than the end of the
+     *                     file, if the input stream has been closed, or if some other I/O error
+     *                     occurs.
+     * @throws WrapperLicenseError If the function is called other than in
+     *                             the Professional Edition or from a Standalone JVM.
+     */
+    public int read( byte b[ ] )
+        throws IOException
     {
         return read( b, 0, b.length );
     }
     
-    public int read( byte b[], int off, int len ) throws IOException
+    /**
+     * Reads up to len bytes of data from the input stream into an array of bytes. An attempt is made
+     *  to read as many as len bytes, but a smaller number may be read. The number of bytes actually
+     *  read is returned as an integer.
+     *
+     * This method blocks until input data is available, end of file is detected, or an exception is
+     *  thrown.
+     *
+     * If len is zero, then no bytes are read and 0 is returned; otherwise, there is an attempt to
+     *  read at least one byte. If no byte is available because the stream is at end of file, the
+     *  value -1 is returned; otherwise, at least one byte is read and stored into b.
+     *
+     * The first byte read is stored into element b[off], the next one into b[off+1], and so on. The
+     *  number of bytes read is, at most, equal to len. Let k be the number of bytes actually read;
+     *  these bytes will be stored in elements b[off] through b[off+k-1], leaving elements b[off+k]
+     *  through b[off+len-1] unaffected.
+     *
+     * In every case, elements b[0] through b[off] and elements b[off+len] through b[b.length-1] are
+     *  unaffected.
+     *
+     * @param b The buffer into which the data is read.
+     * @param off The start offset in array b from which the data is read.
+     * @param leb The maximum number of bytes to read.
+     *
+     * @return The total number of bytes read into the buffer, or -1 is there is no more data because
+     *         the end of the stream has been reached.
+     *
+     * @throws IOException If the first byte cannot be read for any reason other than the end of the
+     *                     file, if the input stream has been closed, or if some other I/O error
+     *                     occurs.
+     * @throws WrapperLicenseError If the function is called other than in
+     *                             the Professional Edition or from a Standalone JVM.
+     */
+    public int read( byte b[], int off, int len )
+        throws IOException
     {
         int c;
         synchronized (this) {
@@ -129,7 +193,7 @@ public class WrapperProcessInputStream
             {
                 throw new NullPointerException();
             }
-            else if ( off < 0 || len < 0 || len > b.length - off )
+            else if ( ( off < 0 ) || ( len < 0 ) || ( len > b.length - off ) )
             {
                 throw new IndexOutOfBoundsException();
             }
@@ -143,10 +207,12 @@ public class WrapperProcessInputStream
             }
             if ( ( !m_closed ) && WrapperManager.isNativeLibraryOk() )
             {
-                c = nativeRead2( b, off, len, false );
-                if ( c == -1 ) /* a process can terminate only once */
+                // Attempt to read output in blocking mode.
+                c = nativeRead2( b, off, len, true );
+                if ( c == -1 ) // a process can terminate only once
                 {
-                    c = nativeRead2( b, off, len, true );
+                    // And end of file was encountered.  This can happen 
+                    c = nativeRead2( b, off, len, false );
                 }
             }
             else

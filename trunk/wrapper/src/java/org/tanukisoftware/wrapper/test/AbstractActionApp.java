@@ -352,10 +352,14 @@ public abstract class AbstractActionApp
                                         {
                                             if ( !line.equals( "help" ) )
                                             {
-                                            System.out.println( Main.getRes().getString( "Unknown action: {0}", line ) );
+                                                System.out.println( Main.getRes().getString( "Unknown action: {0}", line ) );
                                             }
                                             printActions();
                                         }
+                                    }
+                                    else
+                                    {
+                                        System.out.println(Main.getRes().getString( "Read action: <EMPTY>" ) );
                                     }
                                 } while (true);
                             }

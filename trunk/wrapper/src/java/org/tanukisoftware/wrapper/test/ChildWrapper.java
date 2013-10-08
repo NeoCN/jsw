@@ -158,7 +158,7 @@ public class ChildWrapper
             else
             {
                 wrapperCmdVersion = "../bin/wrapper -v";
-                wrapperCmdTestWrapper = "../bin/wrapper -c ..\\conf\\wrapper.conf -- exit0";
+                wrapperCmdTestWrapper = "../bin/wrapper -c ../conf/wrapper.conf -- exit0";
             }
             String batCmd = "cmd /c ..\\bin\\TestWrapper.bat exit0";
             String batDirect = "..\\bin\\TestWrapper.bat exit0";

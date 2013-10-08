@@ -312,7 +312,7 @@ void wrapperAddDefaultProperties() {
         return;
     }
     langTemp = _tgetenv(TEXT("LANG"));
-    if (langTemp == NULL || _tcslen(langTemp) == 0) {
+    if ((langTemp == NULL) || (_tcslen(langTemp) == 0)) {
         _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_LANG=en"));
     } else {
 #ifdef WIN32
@@ -320,12 +320,12 @@ void wrapperAddDefaultProperties() {
 #else
         _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_LANG=%.2S"), langTemp);
 #endif
-#if !defined(WIN32) && defined(UNICODE)
-        if (langTemp) {
-            free(langTemp);
-        }
-#endif
     }
+#if !defined(WIN32) && defined(UNICODE)
+    if (langTemp) {
+        free(langTemp);
+    }
+#endif
     addPropertyPair(properties, NULL, 0, buffer, TRUE, FALSE, TRUE);
 
     _sntprintf(buffer, bufferLen, TEXT("set.WRAPPER_PID=%d"), wrapperData->wrapperPID);
@@ -5882,7 +5882,8 @@ int wrapperBuildJavaCommandArrayInner(TCHAR **strings, int addQuotes, const TCHA
     int index;
     int detectDebugJVM;
     const TCHAR *prop;
-    int initMemory = 0, maxMemory;
+    int initMemory = 0;
+    int maxMemory;
     int thisIsTestWrapper;
 
     setLogPropertyWarnings(properties, strings != NULL);
