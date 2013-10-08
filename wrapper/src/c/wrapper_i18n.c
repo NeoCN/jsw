@@ -571,6 +571,9 @@ void _tsyslog(int priority, const TCHAR *message) {
 /**
  * This Wrapper function internally does a malloc to generate the
  *  Wide-char version of the return string.  This must be freed by the caller.
+ *  Only needed inside the following:
+ *  #if !defined(WIN32) && defined(UNICODE)
+ *  #endif
  */
 TCHAR * _tgetenv( const TCHAR * name ) {
     char* cName;

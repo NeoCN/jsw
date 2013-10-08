@@ -21,6 +21,8 @@ public class WrapperPrintParam
 {
     public static void main( String[] args )
     {
+        System.out.println( "Dump all JVM parameters using RuntimeMXBean:" );
+        System.out.println( "  (There is a bug in Java that was fixed in 1.7 which causes all parameters being displayed below to be split into different arguments when spaces are encountered.)" );
         try
         {
             Class cRuntimeMXBean = Class.forName( "java.lang.management.RuntimeMXBean" );
@@ -33,35 +35,37 @@ public class WrapperPrintParam
                                                              ( Object[] ) null );
             List jvm_args = ( List ) mGetInputArguments.invoke( runtimemxBean,
                                                                 ( Object[] ) null );
-            if ( jvm_args.size() < 2 )
-            {
-                System.out.println( jvm_args.size() + " JVM Parameter:" );
-            }
-            else
-            {
-                System.out.println( jvm_args.size() + " JVM Parameters:" );
-            }
+            System.out.println( jvm_args.size() + " JVM Parameter(s):" );
             for ( ListIterator i = jvm_args.listIterator(); i.hasNext(); )
             {
-                String arg = ( String ) i.next();
-                System.out.println( "  > " + arg );
+                String arg = (String)i.next();
+                System.out.println( "  " + arg );
             }
 
             List app_args = Arrays.asList( args );
-            if ( app_args.size() < 2 )
-            {
-                System.out.println( app_args.size() + " Application Parameter:" );
-            }
-            else
-            {
-                System.out.println( app_args.size()
-                        + " Application Parameters:" );
-            }
+            System.out.println( app_args.size() + " Application Parameter(s):" );
             for ( ListIterator i = app_args.listIterator(); i.hasNext(); )
             {
                 String arg = ( String ) i.next();
-                System.out.println( "  > " + arg );
+                System.out.println( "  " + arg );
             }
+            
+            System.out.println();
+            System.out.println( "Resulting System Properties:" );
+            for ( ListIterator i = jvm_args.listIterator(); i.hasNext(); )
+            {
+                String arg = (String)i.next();
+                if ( arg.startsWith( "-D" ) )
+                {
+                    int pos = arg.indexOf( '=' );
+                    if ( pos >= 0 )
+                    {
+                        String name = arg.substring( 2, pos );
+                        System.out.println( "  " + name + "=" + System.getProperty( name ) );
+                    }
+                }
+            }
+            
         }
         catch ( ClassNotFoundException e )
         {

@@ -910,8 +910,8 @@ void wStateResuming(TICKS nowTicks) {
 void wStateStopping(TICKS nowTicks) {
     int timeout;
 
-    /* The wrapper is stopping, we need to ping the service manager */
-    /*  to reasure it that we are still alive. */
+    /* The wrapper is stopping, we need to ping the service manager
+     *  to reasure it that we are still alive. */
 
     /* Tell the service manager that we are stopping */
     if ((wrapperData->shutdownTimeout <= 0) || (wrapperData->jvmExitTimeout <= 0)) {
@@ -921,13 +921,13 @@ void wStateStopping(TICKS nowTicks) {
     }
     wrapperReportStatus(FALSE, WRAPPER_WSTATE_STOPPING, wrapperData->exitCode, timeout);
 
-    /* If the JVM state is now DOWN_CLEAN, then change the wrapper state */
-    /*  to be STOPPED as well. */
-    if (wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN || wrapperData->jState == WRAPPER_JSTATE_KILLED) {
+    /* If the JVM state is now DOWN_CLEAN, then change the wrapper state
+     *  to be STOPPED as well. */
+    if (wrapperData->jState == WRAPPER_JSTATE_DOWN_CLEAN) {
         wrapperSetWrapperState(WRAPPER_WSTATE_STOPPED);
 
-        /* Don't tell the service manager that we stopped here.  That */
-        /*    will be done when the application actually quits. */
+        /* Don't tell the service manager that we stopped here.  That
+         *  will be done when the application actually quits. */
     }
 }
 
@@ -2334,6 +2334,11 @@ void wrapperEventLoop() {
             break;
         }
     } while (wrapperData->wState != WRAPPER_WSTATE_STOPPED);
+
+    /* Assertion check of Java State. */
+    if (wrapperData->jState != WRAPPER_JSTATE_DOWN_CLEAN) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Wrapper shutting down while java state still %s."), wrapperGetJState(wrapperData->jState));
+    }
 
     if (wrapperData->isLoopOutputEnabled) {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, TEXT("Event loop stopped."));

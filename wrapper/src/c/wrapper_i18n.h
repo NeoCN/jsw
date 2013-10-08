@@ -176,6 +176,13 @@ extern FILE * _tfopen(const wchar_t* file, const wchar_t* mode) ;
 #define _ftscanf      fwscanf
 #define _gettc        getwc
 #define _gettchar     getwchar
+/**
+ * This Wrapper function internally does a malloc to generate the
+ *  Wide-char version of the return string.  This must be freed by the caller.
+ *  Only needed inside the following:
+ *  #if !defined(WIN32) && defined(UNICODE)
+ *  #endif
+ */
 extern TCHAR * _tgetenv ( const TCHAR * name );
 #define _getts        getws
 #define _istalnum     iswalnum
