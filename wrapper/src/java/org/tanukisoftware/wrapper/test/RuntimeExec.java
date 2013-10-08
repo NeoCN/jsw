@@ -502,8 +502,9 @@ public class RuntimeExec
             e.printStackTrace();
         }
         
+        System.out.println();
+        System.out.println( Main.getRes().getString( "finally start a long-running child process attached to the wrapper, the wrapper will shut down soon, so the child process should get killed by the wrapper..." ) );
         try {
-            System.out.println( Main.getRes().getString( "finally start a long-running child process attached to the wrapper, the wrapper will shut down soon, so the child process should get killed by the wrapper..." ) );
             WrapperProcess p = WrapperManager.exec( simplewaiter + " 2 1000" , new WrapperProcessConfig().setDetached(false));
         } catch (SecurityException e) {
             // TODO Auto-generated catch block
@@ -525,6 +526,7 @@ public class RuntimeExec
             e.printStackTrace();
         }
         
+        System.out.println();
         if ( WrapperManager.getJVMId() == 1 )
         {
             // First invocation.
