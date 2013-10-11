@@ -1,6 +1,8 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 
+3.5.23
+
 3.5.22
 * (Standard, Professional) Fix a crash in native code behind WrapperResources
   instances which could happen if the system was very low on memory. Since
@@ -110,11 +112,11 @@ Java Service Wrapper Revision History.
 * Add a new wrapper.property_warning.loglevel property which controls the log
   level at which the Wrapper will log warnings about undefined but referenced
   environment variables, as well as invalid boolean or integer values.
-* Update the way environment variables withing property values are parsed to
-  make it possible to report those are not defined.  Each pair of '%'s is now
-  expected to be part of a variable reference.  For example "%AAA%BBB%CCC%",
-  previosly if "AAA" was not defined, "BBB" would be located, but now only
-  "AAA" and "CCC" will be recognized as variables.
+* Update the way environment variable references within property values are
+  parsed to make it possible to report those which are not defined.  Each pair
+  of '%'s is now expected to be part of a variable reference.  For example
+  "%AAA%BBB%CCC%", previosly if "AAA" was not defined, "BBB" would be located,
+  but now only "AAA" and "CCC" will be recognized as variables.
 * Fix a problem on Windows where a non-existent wrapper.working.dir directory
   was causing multiple error messages in the log file.
 * Modify the way the wrapper.environment.dump property works so it will now
