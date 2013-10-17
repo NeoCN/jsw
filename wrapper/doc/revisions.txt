@@ -2,6 +2,8 @@ Java Service Wrapper Revision History.
 --------------------------------------
 
 3.5.23
+* Clean up the error messages logged when the Wrapper failed to elevate itself
+  on Windows platforms.  They are now more informative.
 
 3.5.22
 * (Standard, Professional) Fix a crash in native code behind WrapperResources
