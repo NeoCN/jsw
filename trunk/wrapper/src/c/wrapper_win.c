@@ -6832,20 +6832,19 @@ BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParamet
                         returnValue = WaitForSingleObject(shex.hProcess, 1000);
                         if (returnValue == WAIT_OBJECT_0) {
                             if (!GetExitCodeProcess(shex.hProcess, &ret)) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("WaitThread for Backend-Process: %s failed!\n"), TEXT("GetExitCodeProcess"));
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("WaitThread for Backend-Process: %s failed! (%d): %s"), TEXT("GetExitCodeProcess"), GetLastError(), getLastErrorText());
                                 ret = TRUE;
                             }
                         } else {
-                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The elevated process is still alive. Trying to kill it."), GetLastError(), getLastErrorText());
+                            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("The elevated Wrapper process is still alive. Trying to kill it. (%d): %s"), GetLastError(), getLastErrorText());
                             if (TerminateProcess(shex.hProcess, 1) == 0) {
-                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Couldn't kill it."), GetLastError(), getLastErrorText());
+                                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Failed to kill the elevated Wrapper process. (%d): %s"), GetLastError(), getLastErrorText());
                             }
                             ret = TRUE;
                         }
                     }
-
                 } else {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Elevation failed. Wrapper will exit."), GetLastError(), getLastErrorText());
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Failed to elevate the Wrapper process. Wrapper will exit.  (%d): %s"), GetLastError(), getLastErrorText());
                     ret = TRUE;
                 }
                 CloseHandle(hNamedPipeErr);
