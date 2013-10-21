@@ -83,13 +83,16 @@ public class WrapperProcessOutputStream
      public void close()
         throws IOException
      {
-        if ( !m_closed )
+        synchronized( this )
         {
-            if ( WrapperManager.isNativeLibraryOk() )
+            if ( !m_closed )
             {
-                nativeClose();
+                if ( WrapperManager.isNativeLibraryOk() )
+                {
+                    nativeClose();
+                }
+                m_closed = true;
             }
-            m_closed = true;
         }
     }
 }

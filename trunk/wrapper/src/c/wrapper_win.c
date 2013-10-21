@@ -6844,7 +6844,7 @@ BOOL myShellExec(HWND hwnd, LPCTSTR pszVerb, LPCTSTR pszPath, LPCTSTR pszParamet
                         }
                     }
                 } else {
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Failed to elevate the Wrapper process. Wrapper will exit.  (%d): %s"), GetLastError(), getLastErrorText());
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Failed to obtain elevated status. (%d): %s"), GetLastError(), getLastErrorText());
                     ret = TRUE;
                 }
                 CloseHandle(hNamedPipeErr);
