@@ -28,6 +28,7 @@ public class WrapperProcessInputStream
     private long m_ptr;
     private boolean m_closed;
     private ByteArrayInputStream m_bais;
+    private volatile boolean m_read;
 
     /*---------------------------------------------------------------
      * Constructors
@@ -70,20 +71,34 @@ public class WrapperProcessInputStream
             }
         }
     }
+
+    /**
+     * Tests if this input stream supports the mark and reset methods.
+     *
+     * The markSupported method of InputStream returns false.
+     *
+     * @return false.
+     */
     public boolean markSupported()
     {
         return false;
     }
 
+    /**
+     *
+     */
     public boolean ready()
     {
-        if ( !m_closed || (m_bais != null && m_bais.available() > 0 ))
+        synchronized( this )
         {
-            return true;
-        } 
-        else 
-        {
-            return false;
+            if ( !m_closed || ( ( m_bais != null ) && ( m_bais.available() > 0 ) ) )
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
     }
 
@@ -99,19 +114,23 @@ public class WrapperProcessInputStream
     public int read()
         throws IOException
     {
-        if ( ( !m_closed ) && WrapperManager.isNativeLibraryOk() )
+        synchronized( this )
         {
-            return nativeRead( true );
-        }
-        else
-        {
-            if ( m_bais != null )
+            m_read = true;
+            if ( ( !m_closed ) && WrapperManager.isNativeLibraryOk() )
             {
-                return m_bais.read();
+                return nativeRead( true );
             }
             else
             {
-                throw new IOException(WrapperManager.getRes().getString( "Stream is closed." ) );
+                if ( m_bais != null )
+                {
+                    return m_bais.read();
+                }
+                else
+                {
+                    throw new IOException( WrapperManager.getRes().getString( "Stream is closed." ) );
+                }
             }
         }
     }
@@ -150,7 +169,7 @@ public class WrapperProcessInputStream
     {
         return read( b, 0, b.length );
     }
-    
+
     /**
      * Reads up to len bytes of data from the input stream into an array of bytes. An attempt is made
      *  to read as many as len bytes, but a smaller number may be read. The number of bytes actually
@@ -205,19 +224,27 @@ public class WrapperProcessInputStream
             {
                 return -1;
             }
+            m_read = true;
             if ( ( !m_closed ) && WrapperManager.isNativeLibraryOk() )
             {
                 // Attempt to read output in blocking mode.
                 c = nativeRead2( b, off, len, true );
                 if ( c == -1 ) // a process can terminate only once
                 {
-                    // And end of file was encountered.  This can happen 
+                    // And end of file was encountered.  This can happen
                     c = nativeRead2( b, off, len, false );
                 }
             }
             else
             {
-                c = m_bais.read( b, off, len );
+                if ( m_bais != null )
+                {
+                    c = m_bais.read( b, off, len );
+                }
+                else
+                {
+                    throw new IOException(WrapperManager.getRes().getString( "Stream is closed." ) );
+                }
             }
             return c == 0 ? -1 : c;
         }
@@ -227,16 +254,22 @@ public class WrapperProcessInputStream
      * Private Methods
      *-------------------------------------------------------------*/
     /**
-     * This method gets called when a spawned Process has terminated 
+     * This method gets called when a spawned Process has terminated
      *  and the pipe buffer gets read and stored in an byte array.
-     *  This way we can close the Filedescriptor and keep the number 
+     *  This way we can close the Filedescriptor and keep the number
      *  of open FDs as small as possible.
      */
     private void readAndCloseOpenFDs()
     {
+        if ( m_read )
+        {
+            // Another thread is reading from the stream so we can trust that thread to complete the reads and close on its own.
+            return;
+        }
+
         synchronized( this )
         {
-            int i;
+            int count;
             int msg;
             if ( m_closed || ( !WrapperManager.isNativeLibraryOk() ) )
             {
@@ -244,18 +277,20 @@ public class WrapperProcessInputStream
             }
             try
             {
-                byte[] buffer = new byte[0];
-                i = 0;
+                byte[] buffer = new byte[1024];
+                count = 0;
                 while ( ( msg = nativeRead( false ) ) != -1 )
                 {
-                    int newSize = buffer.length + 1;
-                    byte[] temp = new byte[newSize];
-                    System.arraycopy( buffer, 0, temp, 0, buffer.length );
-                    buffer = temp;
-                    buffer[i++] = (byte) msg;
+                    if ( count >= buffer.length )
+                    {
+                        byte[] temp = new byte[buffer.length + 1024];
+                        System.arraycopy( buffer, 0, temp, 0, buffer.length );
+                        buffer = temp;
+                    }
+                    buffer[count++] = (byte)msg;
                 }
-                m_bais = new ByteArrayInputStream( buffer );
-                close(); 
+                m_bais = new ByteArrayInputStream( buffer, 0, count );
+                close();
             }
             catch( IOException ioe )
             {
@@ -266,4 +301,3 @@ public class WrapperProcessInputStream
     }
 }
 
-  

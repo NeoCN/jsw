@@ -2265,7 +2265,11 @@ public final class WrapperManager
             }
             return nativeExec( cmdArray, cmdLine, config.setEnvironment( config.getEnvironment() ), WrapperSystemPropertyUtil.getBooleanProperty( "wrapper.child.allowCWDOnSpawn", false ) );
         } else {
-            throw new WrapperJNIError( getRes().getString( "Wrapper native library not loaded." ) );
+            if ( m_stopped ) {
+                throw new WrapperJNIError( getRes().getString( "Wrapper native library shutting down." ) );
+            } else {
+                throw new WrapperJNIError( getRes().getString( "Wrapper native library not loaded." ) );
+            }
         }
         
     }

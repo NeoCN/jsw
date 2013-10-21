@@ -545,9 +545,8 @@ jobject createWrapperUserForProcess(JNIEnv *env, DWORD processId, jboolean group
     return wrapperUser;
 }
 
+HMODULE kernel32Mod;
 void loadDLLProcs() {
-    HMODULE kernel32Mod;
-
     if ((kernel32Mod = GetModuleHandle(TEXT("KERNEL32.DLL"))) == NULL) {
         _tprintf(TEXT("WrapperJNI Error: Unable to load KERNEL32.DLL: %s\n"), getLastErrorText());
         flushall();

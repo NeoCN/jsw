@@ -174,19 +174,7 @@ public class RuntimeExec
             simplewaiter = "../test/simplewaiter";
         }
         
-        // In order to read the output from some processes correctly we need to get the correct encoding.
-        //  On some systems, the underlying system encoding is different than the file encoding.
-        String encoding = System.getProperty( "sun.jnu.encoding" );
-        if ( encoding == null )
-        {
-            encoding = System.getProperty( "file.encoding" );
-            if ( encoding == null )
-            {
-                // Default to Latin1
-                encoding = "Cp1252";
-            }
-        }
-        System.out.println( "Communicate with child processes using encoding: " + encoding );
+        System.out.println( "Communicate with child processes using encoding: " + c_encoding );
         
         Random rand = new Random();
         System.out.println( Main.getRes().getString( "Is DYNAMIC supported? A:" ) + WrapperProcessConfig.isSupported( WrapperProcessConfig.DYNAMIC ) );
@@ -295,7 +283,7 @@ public class RuntimeExec
                 p = WrapperManager.exec( simplewaiter + " 0 15" );
             }
             // System.out.println(i + " " + p.toString() + " exit " + p.waitFor());
-            BufferedReader br = new BufferedReader( new InputStreamReader( p.getInputStream(), encoding ) );
+            BufferedReader br = new BufferedReader( new InputStreamReader( p.getInputStream(), c_encoding ) );
             try
             {
                 String line = "";
@@ -330,7 +318,7 @@ public class RuntimeExec
             proc.getOutputStream().close();
 
             System.out.println( i + Main.getRes().getString( " small child process {0} is alive {1}" , new Object[]{ Integer.toString( proc.getPID() ), Boolean.toString( proc.isAlive() ) } ) );
-            BufferedReader br = new BufferedReader( new InputStreamReader( proc.getInputStream(), encoding ) );
+            BufferedReader br = new BufferedReader( new InputStreamReader( proc.getInputStream(), c_encoding ) );
             try
             {
                 String line = "";
@@ -344,7 +332,7 @@ public class RuntimeExec
                 br.close();
             }
 
-            br = new BufferedReader( new InputStreamReader( proc.getErrorStream(), encoding ) );
+            br = new BufferedReader( new InputStreamReader( proc.getErrorStream(), c_encoding ) );
             try
             {
                 String line = "";
@@ -396,7 +384,7 @@ public class RuntimeExec
             System.out.println( i + Main.getRes().getString( " child process (PID= {0}) finished with code " , Integer.toString( proc.getPID() ) ) +  proc.waitFor() );
 
             System.out.println( i + Main.getRes().getString( " now read the output" ) );
-            BufferedReader br = new BufferedReader( new InputStreamReader( proc.getInputStream(), encoding ) );
+            BufferedReader br = new BufferedReader( new InputStreamReader( proc.getInputStream(), c_encoding ) );
             try
             {
                 String line = "";
@@ -430,7 +418,7 @@ public class RuntimeExec
             proc.getOutputStream().close();
             System.out.println( i + Main.getRes().getString( " small child process {0} is alive {1}" , new Object[]{ Integer.toString( proc.getPID() ), Boolean.toString( proc.isAlive() ) } ) );
             // System.out.println(i + " Main.getRes (PID= " + proc.getPID() + " ) finished with code " + proc.waitFor() );
-            BufferedReader br = new BufferedReader( new InputStreamReader( proc.getInputStream(), encoding ) );
+            BufferedReader br = new BufferedReader( new InputStreamReader( proc.getInputStream(), c_encoding ) );
             try
             {
                 String line = "";

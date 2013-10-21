@@ -4,6 +4,23 @@ Java Service Wrapper Revision History.
 3.5.23
 * Clean up the error messages logged when the Wrapper failed to elevate itself
   on Windows platforms.  They are now more informative.
+* (Professional) Fix a handle leak on Windows in WrapperProcess.isAlive().
+* (Professional) Modify the exception thrown when WrapperManager.exec is called
+  while the Wrapper is shutdown so it now says that rather than saying that the
+  native library is not loaded.
+* (Professional) Fix a potential NPE that could be thrown while reading stdout
+  or stderr output from a child process while the Wrapper was shutting down and
+  after the child process exited.
+* (Professional) Fix a problem on UNIX platforms where we were getting stuck
+  trying to cleanup after a process which was currently blocking on a read from
+  stdout or stderr.
+* (Professional) Fix a problem on UNIX platforms where a timeout attempting to
+  obtain an internal lock of the child process list was causing an internal
+  counter to get out of sync, leading to a other terminated child processes
+  being left as defunct zombies until the Java process terminated.
+* (Professional) Fix a problem on UNIX platforms where pipe file descriptiors
+  used to communicate with child processes were being incorrectly passed to all
+  child processes.  They were not growing over time.
 
 3.5.22
 * (Standard, Professional) Fix a crash in native code behind WrapperResources
