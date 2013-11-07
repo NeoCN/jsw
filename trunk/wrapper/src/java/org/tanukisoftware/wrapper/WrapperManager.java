@@ -315,6 +315,9 @@ public final class WrapperManager
     /** Tracks the total number of outstanding shutdown locks. */
     private static int m_shutdownLocks = 0;
     
+    /** Tracks the number of threads which are attempting to launch child processes. */
+    private static int m_runningExecs = 0;
+    
     private static String[] m_args;
     private static int m_backendType = BACKEND_TYPE_UNKNOWN;
     private static boolean m_backendConnected = false;
@@ -2170,7 +2173,7 @@ public final class WrapperManager
     public static WrapperProcess exec( String[] cmdArray, WrapperProcessConfig config )
         throws SecurityException, IOException, NullPointerException, IndexOutOfBoundsException, IllegalArgumentException, WrapperJNIError, WrapperLicenseError, UnsatisfiedLinkError
     {
-            return exec( cmdArray, null, config );
+        return exec( cmdArray, null, config );
     }
 
     /**
@@ -2214,64 +2217,83 @@ public final class WrapperManager
             sm.checkExec( cmdArray[0] );
         }
         
-        if ( isNativeLibraryOk() )
+        // Keep track of how many threads are trying to execute child processes.
+        //  This is critical to avoid notification failures on shutdown.
+        synchronized( WrapperManager.class )
         {
-            for ( int i = 0; i < cmdArray.length; i++ )
+            m_runningExecs++;
+        }
+        try
+        {
+            if ( isNativeLibraryOk() )
             {
-                if ( cmdArray[i] == null )
+                for ( int i = 0; i < cmdArray.length; i++ )
                 {
-                    throw new NullPointerException( getRes().getString( "cmdarray[{0}]: Invalid element (isNull).",
-                            new Integer( i)  ) );
-                }
-            }
-            
-            // On UNIX platforms, we want to try and make sure the command is
-            //  valid before we run it to avoid problems later.  Not necessary
-            //  on Windows.
-            if ( !m_windows )
-            {
-                if ( !new File( cmdArray[0] ).exists() )
-                {
-                    boolean found = false;
-                    String path = nativeWrapperGetEnv( "PATH" );
-                    if ( path != null )
+                    if ( cmdArray[i] == null )
                     {
-                        String[] paths = path.split( File.pathSeparator );
-                        
-                        for ( int i = 0; i < paths.length; i++ )
+                        throw new NullPointerException( getRes().getString( "cmdarray[{0}]: Invalid element (isNull).",
+                                new Integer( i)  ) );
+                    }
+                }
+                
+                // On UNIX platforms, we want to try and make sure the command is
+                //  valid before we run it to avoid problems later.  Not necessary
+                //  on Windows.
+                if ( !m_windows )
+                {
+                    if ( !new File( cmdArray[0] ).exists() )
+                    {
+                        boolean found = false;
+                        String path = nativeWrapperGetEnv( "PATH" );
+                        if ( path != null )
                         {
-                            File file = new File( paths[i] + File.separator + cmdArray[0] );
-                            // m_outInfo.println( blu.getPath() );
-                            if ( file.exists() ) 
+                            String[] paths = path.split( File.pathSeparator );
+                            
+                            for ( int i = 0; i < paths.length; i++ )
                             {
-                                cmdArray[0] = file.getPath();
-                                found = true;
-                                break;
+                                File file = new File( paths[i] + File.separator + cmdArray[0] );
+                                // m_outInfo.println( blu.getPath() );
+                                if ( file.exists() ) 
+                                {
+                                    cmdArray[0] = file.getPath();
+                                    found = true;
+                                    break;
+                                }
                             }
                         }
-                    }
-                    if ( !found )
-                    {
-                        throw new IOException(getRes().getString( "''{0}'' not found." , cmdArray[0]  ) ); 
+                        if ( !found )
+                        {
+                            throw new IOException(getRes().getString( "''{0}'' not found." , cmdArray[0]  ) ); 
+                        }
                     }
                 }
-            }
-            if ( m_debug ) 
-            {
-                for ( int j = 0; j < cmdArray.length; j++ )
+                if ( m_debug ) 
                 {
-                    m_outDebug.println( "args[" + j+ "] = " + cmdArray[j] );
+                    for ( int j = 0; j < cmdArray.length; j++ )
+                    {
+                        m_outDebug.println( "args[" + j + "] = " + cmdArray[j] );
+                    }
                 }
-            }
-            return nativeExec( cmdArray, cmdLine, config.setEnvironment( config.getEnvironment() ), WrapperSystemPropertyUtil.getBooleanProperty( "wrapper.child.allowCWDOnSpawn", false ) );
-        } else {
-            if ( m_stopped ) {
-                throw new WrapperJNIError( getRes().getString( "Wrapper native library shutting down." ) );
+                return nativeExec( cmdArray, cmdLine, config.setEnvironment( config.getEnvironment() ), WrapperSystemPropertyUtil.getBooleanProperty( "wrapper.child.allowCWDOnSpawn", false ) );
             } else {
-                throw new WrapperJNIError( getRes().getString( "Wrapper native library not loaded." ) );
+                if ( m_stopped ) {
+                    throw new WrapperJNIError( getRes().getString( "Wrapper native library shutting down." ) );
+                } else {
+                    throw new WrapperJNIError( getRes().getString( "Wrapper native library not loaded." ) );
+                }
             }
         }
-        
+        finally
+        {
+            synchronized( WrapperManager.class )
+            {
+                m_runningExecs--;
+                if ( m_runningExecs <= 0 )
+                {
+                    WrapperManager.class.notifyAll();
+                }
+            }
+        }
     }
     
     /**
@@ -4952,6 +4974,30 @@ public final class WrapperManager
             {
                 m_outDebug.println( getRes().getString( "Closing backend connection." ) );
             }
+            
+            // To avoid the case where a child process is launched by we fail to notify the Wrapper,
+            //  we need to wait until there are no longer any child processes in the process of being launched.
+            long start = System.currentTimeMillis();
+            while ( m_runningExecs > 0 )
+            {
+                if ( m_debug )
+                {
+                    m_outDebug.println( getRes().getString( "Waiting for {0} threads to fininish launching child processes...", new Integer( m_runningExecs ) ) );
+                }
+                try
+                {
+                    WrapperManager.class.wait( 1000 );
+                }
+                catch ( InterruptedException e )
+                {
+                }
+                if ( System.currentTimeMillis() - start > 30000 )
+                {
+                    m_outError.println( getRes().getString( "Timed out waiting for {0} threads to fininish launching child processes.", new Integer( m_runningExecs ) ) );
+                    break;
+                }
+            }
+            
             // Clear the connected flag first so other threads will recognize that we
             //  are closing correctly.
             m_backendConnected = false;
@@ -5153,6 +5199,12 @@ public final class WrapperManager
         return name;
     }
     
+    /**
+     * Send a command to the Wrapper.
+     *
+     * @param code Command to send.
+     * @param message Message to send with the command.
+     */
     private static synchronized void sendCommand( byte code, String message )
     {
         if ( m_debug )
@@ -5181,6 +5233,7 @@ public final class WrapperManager
             }
         }
         
+        boolean sentCommand = false;
         if ( m_appearHung )
         {
             // The WrapperManager is attempting to make the JVM appear hung, so do nothing
@@ -5218,6 +5271,8 @@ public final class WrapperManager
 
                     m_backendOS.write( m_commandBuffer, 0, len );
                     m_backendOS.flush();
+                    
+                    sentCommand = true;
                 }
                 catch ( IOException e )
                 {
@@ -5225,6 +5280,27 @@ public final class WrapperManager
                     e.printStackTrace( m_outError );
                     closeBackend();
                 }
+            }
+        }
+        
+        if ( !sentCommand )
+        {
+            // We failed to send a command.  Some commands require that we log it as it could cause later problems.
+            switch ( code )
+            {
+            case WRAPPER_MSG_CHILD_LAUNCH:
+                m_outError.println( getRes().getString( "Failed to notify the Wrapper process that child with PID={0} was launched.  The Wrapper will not be able to make sure it is terminated when the Java process exits.", message ) );
+                break;
+                
+            case WRAPPER_MSG_CHILD_TERM:
+                if ( m_debug )
+                {
+                    m_outDebug.println( getRes().getString( "Failed to notify the Wrapper process that child with PID={0} completed.  The Wrapper will recover on its own.", message ) );
+                }
+                break;
+                
+            default:
+                break;
             }
         }
     }

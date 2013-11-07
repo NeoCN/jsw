@@ -192,7 +192,7 @@ public class WrapperProcessInputStream
      *
      * @param b The buffer into which the data is read.
      * @param off The start offset in array b from which the data is read.
-     * @param leb The maximum number of bytes to read.
+     * @param len The maximum number of bytes to read.
      *
      * @return The total number of bytes read into the buffer, or -1 is there is no more data because
      *         the end of the stream has been reached.

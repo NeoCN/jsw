@@ -277,7 +277,7 @@ struct WrapperConfig {
     int     shutdownTimeout;        /* Number of seconds the wrapper will wait for a JVM to shutdown */
     int     jvmExitTimeout;         /* Number of seconds the wrapper will wait for a JVM to process to terminate */
     int     jvmCleanupTimeout;      /* Number of seconds the wrapper will allow for its post JVM shudown cleanup. */
-    int     jvmTerminateTimeout;      /* Number of seconds the wrapper will allow for the JVM to respond to TerminateProcess request. */
+    int     jvmTerminateTimeout;    /* Number of seconds the wrapper will allow for the JVM to respond to TerminateProcess request. */
 #ifdef WIN32
     int     javaIOBufferSize;       /* Size of the pipe buffer to use for java I/O. */
 #endif
