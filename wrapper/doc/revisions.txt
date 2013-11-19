@@ -32,6 +32,10 @@ Java Service Wrapper Revision History.
   with debugging user issues.
 * Fix a problem where the shell script was not correctly detecting the OS
   version with Mac OSX Maverick.
+* Add warnings about undefined environment variables in include file references
+  in the configuration file.
+* Add support for environment variable expansion in files specified with the
+  wrapper.java.additional_file and wrapper.app.parameter_file properties.
 
 3.5.22
 * (Standard, Professional) Fix a crash in native code behind WrapperResources

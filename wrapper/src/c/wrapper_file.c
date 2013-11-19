@@ -37,6 +37,7 @@
 #include "logger.h"
 #include "wrapper_i18n.h"
 #include "wrapper.h"
+#include "property.h"
 
 #define FILES_CHUNK 5
 
@@ -681,18 +682,6 @@ void wrapperFileTests() {
 
 
 /**
- * Call functions in property.c temporarily.
- */
-extern void evaluateEnvironmentVariables(const TCHAR *propertyValue, TCHAR *buffer, int bufferLength, int warnUndefinedVars, void *warnedUndefVarMap, int warnLogLevel);
-#ifdef WIN32
-#define strIgnoreCaseCmp _stricmp
-extern int getEncodingByName(char* encodingMB, int *encoding);
-#else
-#define strIgnoreCaseCmp strcasecmp
-extern int getEncodingByName(char* encodingMB, char** encoding);
-#endif
-
-/**
  * Read configuration file.
  */
 int configFileReader_Read(ConfigFileReader *reader,
@@ -984,7 +973,7 @@ int configFileReader_Read(ConfigFileReader *reader,
                         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                             TEXT("Found #include file in %s: %s"), filename, c);
                     }
-                    evaluateEnvironmentVariables(c, expBuffer, MAX_PROPERTY_NAME_VALUE_LENGTH, FALSE, NULL, LEVEL_WARN);
+                    evaluateEnvironmentVariables(c, expBuffer, MAX_PROPERTY_NAME_VALUE_LENGTH, properties->logWarnings, properties->warnedVarMap, properties->logWarningLogLevel);
 
                     if (reader->debugIncludes && (_tcscmp(c, expBuffer) != 0)) {
                         /* Only show this log if there were any environment variables. */
