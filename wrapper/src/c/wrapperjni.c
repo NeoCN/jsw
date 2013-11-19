@@ -557,10 +557,16 @@ int getSystemProperty(JNIEnv *env, const TCHAR *propertyName, TCHAR **propertyVa
 
 /**
  * Do common initializaion.
+ *
+ * @return TRUE if there were any problems.
  */
-void initCommon(JNIEnv *env, jclass jClassWrapperManager) {
-    TCHAR* outfile, *errfile;
-    int outfd, errfd, mode, options;
+int initCommon(JNIEnv *env, jclass jClassWrapperManager) {
+    TCHAR* outfile;
+    TCHAR* errfile;
+    int outfd;
+    int errfd;
+    int mode;
+    int options;
 
 #ifdef WIN32
     mode = _S_IWRITE;
@@ -573,30 +579,32 @@ void initCommon(JNIEnv *env, jclass jClassWrapperManager) {
 
     if (getSystemProperty(env, TEXT("wrapper.java.errfile"), &errfile, FALSE)) {
         /* Failed */
-        return;
+        return TRUE;
     }
     if (errfile) {
         _ftprintf(stderr, TEXT("WrapperJNI: Redirecting %s to file %s...\n"), TEXT("StdErr"), errfile); fflush(NULL);
         if (((errfd = _topen(errfile, options, mode)) == -1) || (dup2(errfd, STDERR_FILENO) == -1)) {
-            _ftprintf(stderr, TEXT("WrapperJNI: Failed to redirect %s to file %s  (Err: %s)\n"), TEXT("StdErr"), errfile, getLastErrorText()); fflush(NULL);
-            return;
+            throwThrowable(env, utf8javaIOIOException, TEXT("Failed to redirect %s to file %s  (Err: %s)"), TEXT("StdErr"), errfile, getLastErrorText());
+            return TRUE;
         } else {
             redirectedStdErr = TRUE;
         }
     }
     if (getSystemProperty(env, TEXT("wrapper.java.outfile"), &outfile, FALSE)) {
         /* Failed */
-        return;
+        return TRUE;
     }
     if (outfile) {
         _tprintf(TEXT("WrapperJNI: Redirecting %s to file %s...\n"), TEXT("StdOut"), outfile); fflush(NULL);
         if (((outfd = _topen(outfile, options, mode)) == -1) || (dup2(outfd, STDOUT_FILENO) == -1)) {
-            _tprintf(TEXT("WrapperJNI: Failed to redirect %s to file %s  (Err: %s)\n"), TEXT("StdOut"), errfile, getLastErrorText()); fflush(NULL);
-            return;
+            throwThrowable(env, utf8javaIOIOException, TEXT("Failed to redirect %s to file %s  (Err: %s)"), TEXT("StdOut"), outfile, getLastErrorText());
+            return TRUE;
         } else {
             redirectedStdOut = TRUE;
         }
     }
+    
+    return FALSE;
 }
 
 void throwThrowable(JNIEnv *env, char *throwableClassName, const TCHAR *lpszFmt, ...) {

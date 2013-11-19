@@ -98,7 +98,7 @@ extern char *utf8SigIStringrV;
 extern jstring JNU_NewStringFromNativeChar(JNIEnv *env, const char *str);
 #endif
 
-extern void initCommon();
+extern int initCommon();
 
 extern int getLastError();
 extern void throwOutOfMemoryError(JNIEnv *env, const TCHAR* locationCode);

@@ -68,11 +68,6 @@
   #define _INTPTR_T_DEFINED
  #endif
 
- #define EADDRINUSE  WSAEADDRINUSE
- #define EWOULDBLOCK WSAEWOULDBLOCK
- #define ENOTSOCK    WSAENOTSOCK
- #define ECONNRESET  WSAECONNRESET
-
 #else /* UNIX */
  #include <ctype.h>
  #include <string.h>
@@ -115,6 +110,17 @@
 
 extern char** environ;
 #endif /* WIN32 */
+
+/* Define some common defines to make cross platform code a bit cleaner. */
+#ifdef WIN32
+ #define WRAPPER_EADDRINUSE  WSAEADDRINUSE
+ #define WRAPPER_EWOULDBLOCK WSAEWOULDBLOCK
+ #define WRAPPER_EACCES      WSAEACCES
+#else
+ #define WRAPPER_EADDRINUSE  EADDRINUSE
+ #define WRAPPER_EWOULDBLOCK EWOULDBLOCK
+ #define WRAPPER_EACCES      EACCES
+#endif
 
 WrapperConfig *wrapperData;
 TCHAR         packetBuffer[MAX_LOG_SIZE + 1];
@@ -1209,12 +1215,8 @@ void protocolStartServerSocket() {
         rc = wrapperGetLastError();
 
         /* The specified port could bot be bound. */
-        if (rc == EADDRINUSE ||
-#ifdef WIN32
-            rc == WSAEACCES) {
-#else 
-            rc == EACCES) {
-#endif
+        if ((rc == WRAPPER_EADDRINUSE) || (rc == WRAPPER_EACCES)) {
+
             /* Address in use, try looking at the next one. */
             if (fixedPort) {
                 /* The last port checked was the defined fixed port, switch to the dynamic range. */
@@ -1352,7 +1354,7 @@ void protocolOpenSocket() {
     if (newBackendSD == INVALID_SOCKET) {
         rc = wrapperGetLastError();
         /* EWOULDBLOCK != EAGAIN on some platforms. */
-        if ((rc == EWOULDBLOCK) || (rc == EAGAIN)) {
+        if ((rc == WRAPPER_EWOULDBLOCK) || (rc == EAGAIN)) {
             /* There are no incomming sockets right now. */
             return;
         } else {
@@ -1866,9 +1868,9 @@ int wrapperProtocolFunction(char function, const TCHAR *messageW) {
                     rc = send(protocolActiveBackendSD, protocolSendBuffer, sizeof(char) * (int)len, 0);
 
                     cnt++;
-                } while ((rc == SOCKET_ERROR) && (wrapperGetLastError() == EWOULDBLOCK) && (cnt < 200));
+                } while ((rc == SOCKET_ERROR) && (wrapperGetLastError() == WRAPPER_EWOULDBLOCK) && (cnt < 200));
                 if (rc == SOCKET_ERROR) {
-                    if (wrapperGetLastError() == EWOULDBLOCK) {
+                    if (wrapperGetLastError() == WRAPPER_EWOULDBLOCK) {
                         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_WARN, TEXT(
                             "socket send failed.  Blocked for 2 seconds.  %s"),
                             getLastErrorText());
@@ -2029,7 +2031,7 @@ int wrapperProtocolRead() {
             len = recv(protocolActiveBackendSD, (void*) &c, 1, 0);
             if (len == SOCKET_ERROR) {
                 err = wrapperGetLastError();
-                if ((err != EWOULDBLOCK) &&  /* Windows - Would block. */
+                if ((err != WRAPPER_EWOULDBLOCK) &&  /* Windows - Would block. */
                     (err != EAGAIN)) {       /* UNIX - Would block. */
                     if (wrapperData->isDebugging) {
                         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("socket read failed. (%s)"), getLastErrorText());
@@ -2106,7 +2108,7 @@ int wrapperProtocolRead() {
             len = read(protocolActiveServerPipeIn, (void*) &c, 1);
             if (len == SOCKET_ERROR) {
                 err = wrapperGetLastError();
-                if ((err != EWOULDBLOCK) &&  /* Windows - Would block. */
+                if ((err != WRAPPER_EWOULDBLOCK) &&  /* Windows - Would block. */
                     (err != EAGAIN)) {       /* UNIX - Would block. */
                     if (wrapperData->isDebugging) {
                         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("pipe read failed. (%s)"), getLastErrorText());
@@ -5225,7 +5227,6 @@ static int loadParameterFileCallback(void *callbackParam, const TCHAR *fileName,
 int wrapperLoadParameterFile(TCHAR **strings, int addQuotes, int detectDebugJVM, int index, TCHAR *parameterName, int isJVMParameter) {
     const TCHAR *parameterFilePath;
     LoadParameterFileCallbackParam callbackParam;
-    ConfigFileReader reader;
     int readResult;
     TCHAR prop[256];
 
@@ -5248,8 +5249,7 @@ int wrapperLoadParameterFile(TCHAR **strings, int addQuotes, int detectDebugJVM,
     callbackParam.index = index;
     callbackParam.isJVMParam = isJVMParameter;
 
-    configFileReader_Initialize(&reader, loadParameterFileCallback, &callbackParam, FALSE);
-    readResult = configFileReader_Read(&reader, parameterFilePath, TRUE, 0, NULL, 0);
+    readResult = configFileReader(parameterFilePath, TRUE, loadParameterFileCallback, &callbackParam, FALSE, FALSE);
     switch (readResult) {
     case CONFIG_FILE_READER_SUCCESS:
         return callbackParam.index;

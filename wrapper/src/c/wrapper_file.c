@@ -50,6 +50,19 @@
 
 #define MAX_INCLUDE_DEPTH 10
 
+/* Structure used by configFileReader to read files. */
+typedef struct ConfigFileReader ConfigFileReader;
+struct ConfigFileReader {
+    ConfigFileReader_Callback callback;
+    void *callbackParam;
+    int enableIncludes;
+    int preload;
+    /* debugIncludes controls whether or not debug output is logged.  It is set using directives in the file being read. */
+    int debugIncludes;
+    /* debugProperties controls whether or not debug output is logged.  It is set using directives in the file being read. */
+    int debugProperties;
+};
+
 /**
  * Returns a valid sort mode given a name: "TIMES", "NAMES_ASC", "NAMES_DEC".
  *  In the event of an invalid value, TIMES will be returned.
@@ -680,22 +693,6 @@ extern int getEncodingByName(char* encodingMB, char** encoding);
 #endif
 
 /**
- * Initialize `reader'
- */
-void configFileReader_Initialize(ConfigFileReader *reader,
-                 ConfigFileReader_Callback callback,
-                 void *callbackParam,
-                 int enableIncludes)
-{
-    reader->callback = callback;
-    reader->callbackParam = callbackParam;
-    reader->enableIncludes = enableIncludes;
-    reader->debugIncludes = FALSE;
-    reader->debugProperties = FALSE;
-    reader->preload = FALSE;
-}
-
-/**
  * Read configuration file.
  */
 int configFileReader_Read(ConfigFileReader *reader,
@@ -1110,6 +1107,42 @@ int configFileReader_Read(ConfigFileReader *reader,
     fclose(stream);
 
     return readResult;
+}
+
+/**
+ * Reads configuration lines from the file `filename' and calls `callback' with the line and
+ *  `callbackParam' specified to its arguments.
+ *
+ * @param filename Name of configuration file to read.
+ * @param fileRequired TRUE if the file specified by filename is required, FALSE if a missing
+ *                     file will silently fail.
+ * @param callback Pointer to a callback funtion which will be called for each line read.
+ * @param callbackParam Pointer to additional user data which will be passed to the callback.
+ * @param enableIncludes If TRUE then includes will be supported.
+ * @param preload TRUE if this is being called in the preload step meaning that all errors
+ *                should be suppressed.
+ *
+ * @return CONFIG_FILE_READER_SUCCESS if the file was read successfully,
+ *         CONFIG_FILE_READER_FAIL if there were any problems at all, or
+ *         CONFIG_FILE_READER_HARD_FAIL if the problem should cascaded all the way up.
+ */
+int configFileReader(const TCHAR *filename,
+                     int fileRequired,
+                     ConfigFileReader_Callback callback,
+                     void *callbackParam,
+                     int enableIncludes,
+                     int preload) {
+    ConfigFileReader reader;
+    
+    /* Initialize the reader. */
+    reader.callback = callback;
+    reader.callbackParam = callbackParam;
+    reader.enableIncludes = enableIncludes;
+    reader.preload = FALSE;
+    reader.debugIncludes = FALSE;
+    reader.debugProperties = FALSE;
+    
+    return configFileReader_Read(&reader, filename, fileRequired, 0, NULL, 0);
 }
 
 

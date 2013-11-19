@@ -162,7 +162,10 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jC
     signal(SIGUSR2, handleUsr2);
     */
 
-    initCommon(env, jClassWrapperManager);
+    if (initCommon(env, jClassWrapperManager)) {
+        /* Failed.  An exception will have been thrown. */
+        return;
+    }
 
     /* Store the current process Id */
     wrapperProcessId = getpid();

@@ -161,14 +161,12 @@ public class WrapperProcess
     public int waitFor()
         throws InterruptedException
     {
-        synchronized( this )
+        if ( m_exitcode == Integer.MIN_VALUE )
         {
-            if ( m_exitcode == Integer.MIN_VALUE )
-            {
-                nativeWaitFor();
-            }
-            return m_exitcode;
+            nativeWaitFor();
         }
+        
+        return m_exitcode;
     }
 
     /**
