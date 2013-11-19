@@ -64,54 +64,37 @@ extern void wrapperFileTests();
 #endif
 
 /**
- * Read configuration file.
+ * Callback declaration which can be passed to calls to configFileReader.
  */
 typedef int (*ConfigFileReader_Callback)(void *param, const TCHAR *fileName, int lineNumber, TCHAR *config, int debugProperties);
 
-typedef struct ConfigFileReader ConfigFileReader;
-struct ConfigFileReader {
-    ConfigFileReader_Callback callback;
-    void *callbackParam;
-    int enableIncludes;
-    int debugIncludes;
-    int debugProperties;
-    int preload;
-};
+#define CONFIG_FILE_READER_SUCCESS   101
+#define CONFIG_FILE_READER_FAIL      102
+#define CONFIG_FILE_READER_HARD_FAIL 103
 
 /**
- * Initialize `reader'
- */
-extern void configFileReader_Initialize(ConfigFileReader *reader,
-					ConfigFileReader_Callback callback,
-					void *callbackParam,
-					int enableIncludes);
-
-/**
- * Reads configuration lines from the file `filename' and calls
- * `reader->callback' with the line and `reader->callbackParam'
- * specified to its arguments.
+ * Reads configuration lines from the file `filename' and calls `callback' with the line and
+ *  `callbackParam' specified to its arguments.
  *
- * @param reader ConfigFileReader instance
- * @param filename Name of configuration file to read
- * @param fileRequired Requires the existence of `filename'
- * @param depth Inclusion depth
- * @param parentFilename Name of the file which includes `filename'
- * @param parentLineNumber 
+ * @param filename Name of configuration file to read.
+ * @param fileRequired TRUE if the file specified by filename is required, FALSE if a missing
+ *                     file will silently fail.
+ * @param callback Pointer to a callback funtion which will be called for each line read.
+ * @param callbackParam Pointer to additional user data which will be passed to the callback.
+ * @param enableIncludes If TRUE then includes will be supported.
+ * @param preload TRUE if this is being called in the preload step meaning that all errors
+ *                should be suppressed.
  *
  * @return CONFIG_FILE_READER_SUCCESS if the file was read successfully,
  *         CONFIG_FILE_READER_FAIL if there were any problems at all, or
  *         CONFIG_FILE_READER_HARD_FAIL if the problem should cascaded all the way up.
  */
-#define CONFIG_FILE_READER_SUCCESS   101
-#define CONFIG_FILE_READER_FAIL      102
-#define CONFIG_FILE_READER_HARD_FAIL 103
-
-extern int configFileReader_Read(ConfigFileReader *reader,
-				const TCHAR *filename,
-				int fileRequired,
-				int depth,
-				const TCHAR *parentFilename,
-				int parentLineNumber);
+extern int configFileReader(const TCHAR *filename,
+                            int fileRequired,
+                            ConfigFileReader_Callback callback,
+                            void *callbackParam,
+                            int enableIncludes,
+                            int preload);
 
 #endif
 

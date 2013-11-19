@@ -637,7 +637,10 @@ Java_org_tanukisoftware_wrapper_WrapperManager_nativeInit(JNIEnv *env, jclass jC
             flushall();
         }
     }
-    initCommon(env, jClassWrapperManager);
+    if (initCommon(env, jClassWrapperManager)) {
+        /* Failed.  An exception will have been thrown. */
+        return;
+    }
 
     osVer.dwOSVersionInfoSize = sizeof(osVer);
     if (GetVersionEx(&osVer)) {

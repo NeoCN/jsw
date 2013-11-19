@@ -711,7 +711,6 @@ int loadProperties(Properties *properties, const TCHAR* filename, int preload) {
     #endif
     time_t      now;
     struct tm   *nowTM;
-    ConfigFileReader reader;
     int loadResult;
     
 #ifdef WIN32
@@ -724,12 +723,7 @@ int loadProperties(Properties *properties, const TCHAR* filename, int preload) {
     nowTM = localtime(&now);
     memcpy(&loadPropertiesTM, nowTM, sizeof(struct tm));
 
-    configFileReader_Initialize(&reader, loadPropertiesCallback, properties, TRUE);
-
-    /* Store the preload flag for this loading of properties. */
-    reader.preload = preload;
-
-    loadResult = configFileReader_Read(&reader, filename, 0, 0, NULL, 0);
+    loadResult = configFileReader(filename, FALSE, loadPropertiesCallback, properties, TRUE, preload);
 
     /* Any failure is a failure in the root. */
     switch (loadResult) {

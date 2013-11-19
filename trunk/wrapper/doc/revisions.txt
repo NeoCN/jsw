@@ -26,6 +26,8 @@ Java Service Wrapper Revision History.
 * (Professional) Fix a problem on UNIX platforms where pipe file descriptions
   used to communicate with child processes were being incorrectly passed to all
   child processes.  They were not growing over time.
+* (Professional) Fix a potential synchronization problem calling
+  WrapperProcess.waitFor() or WrapperProcess.exitValue().
 * Add additional debug log output showing the various timeout values to help
   with debugging user issues.
 * Fix a problem where the shell script was not correctly detecting the OS
