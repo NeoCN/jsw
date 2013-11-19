@@ -110,6 +110,13 @@ wrapper.java.classpath.2=../lib/wrapper.jar]]></replacevalue>
                  value="wrapper.logfile=../test/testwrapper.log" />
 
        
+        <!-- Delete old files to help with version upgrade. -->
+        <delete>
+            <fileset dir="${test.dir}">
+                <include name="additionalparameterfile-0?-*.*"/>
+                <include name="TestAdditionalParameterFile-0?-*.*"/>
+            </fileset>
+        </delete>
         
         <!-- Background Threads Test -->
         <delete file="${test.dir}/backgroundthreads.conf"/>
@@ -685,127 +692,270 @@ wrapper.app.parameter.4=TRUE
 wrapper.app.parameter.5=0]]></replacevalue>
         </replace>
 
-        <!-- AdditionalParameterFile Test -->
-        <delete file="${test.dir}/additionalparameterfile-01-empty.conf"/>
-        <filter token="app.name"          value="additionalparameterfile-01-empty"/>
-        <filter token="app.long.name"     value="AdditionalParameterFile Case 01 (Empty)" />
+        <!-- AppParameterFile Test -->
+        <delete file="${test.dir}/appparameterfile-01-empty.conf"/>
+        <filter token="app.name"          value="appparameterfile-01-empty"/>
+        <filter token="app.long.name"     value="AppParameterFile Case 01 (Empty)" />
         <copy file="${test.dir}/template.conf"
-              tofile="${test.dir}/additionalparameterfile-01-empty.conf"
+              tofile="${test.dir}/appparameterfile-01-empty.conf"
               filtering="on"/>
-        <replace file="${test.dir}/additionalparameterfile-01-empty.conf"
+        <replace file="${test.dir}/appparameterfile-01-empty.conf"
                  token="#wrapper.java.command.loglevel=INFO"
                  value="wrapper.java.command.loglevel=INFO" />
-        <replace file="${test.dir}/additionalparameterfile-01-empty.conf">
+        <replace file="${test.dir}/appparameterfile-01-empty.conf">
+             <replacetoken><![CDATA[wrapper.app.parameter.1=<YourMainClass>]]></replacetoken>
+             <replacevalue><![CDATA[wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintArgs
+wrapper.app.parameter_file=../test/appparameterfile-01-empty.param]]></replacevalue>
+        </replace>
+        <delete file="${test.dir}/appparameterfile-01-empty.param"/>
+        <touch file="${test.dir}/appparameterfile-01-empty.param"/>
+
+        <delete file="${test.dir}/appparameterfile-02-1line.conf"/>
+        <filter token="app.name"          value="appparameterfile-02-1line"/>
+        <filter token="app.long.name"     value="AppParameterFile Case 02 (1 Line)" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/appparameterfile-02-1line.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/appparameterfile-02-1line.conf"
+                 token="#wrapper.java.command.loglevel=INFO"
+                 value="wrapper.java.command.loglevel=INFO" />
+        <replace file="${test.dir}/appparameterfile-02-1line.conf">
+             <replacetoken><![CDATA[wrapper.app.parameter.1=<YourMainClass>]]></replacetoken>
+             <replacevalue><![CDATA[wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintArgs
+wrapper.app.parameter_file=../test/appparameterfile-02-1line.param]]></replacevalue>
+        </replace>
+        <echo file="${test.dir}/appparameterfile-02-1line.param">ABC DEF GHI</echo>
+
+        <delete file="${test.dir}/appparameterfile-03-stripq-false.conf"/>
+        <filter token="app.name"          value="appparameterfile-03-stripq-false"/>
+        <filter token="app.long.name"     value="AppParameterFile Case 03 (stripQuote=false)" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/appparameterfile-03-stripq-false.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/appparameterfile-03-stripq-false.conf"
+                 token="#wrapper.java.command.loglevel=INFO"
+                 value="wrapper.java.command.loglevel=INFO" />
+        <replace file="${test.dir}/appparameterfile-03-stripq-false.conf">
+             <replacetoken><![CDATA[wrapper.app.parameter.1=<YourMainClass>]]></replacetoken>
+             <replacevalue><![CDATA[wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintArgs
+wrapper.app.parameter_file=../test/appparameterfile-03-stripq-false.param
+wrapper.app.parameter_file.stripquotes=FALSE]]></replacevalue>
+        </replace>
+        <echo file="${test.dir}/appparameterfile-03-stripq-false.param">"Hello World."</echo>
+
+        <delete file="${test.dir}/appparameterfile-04-stripq-true.conf"/>
+        <filter token="app.name"          value="appparameterfile-04-stripq-true"/>
+        <filter token="app.long.name"     value="AppParameterFile Case 04 (stripQuote=true)" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/appparameterfile-04-stripq-true.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/appparameterfile-04-stripq-true.conf"
+                 token="#wrapper.java.command.loglevel=INFO"
+                 value="wrapper.java.command.loglevel=INFO" />
+        <replace file="${test.dir}/appparameterfile-04-stripq-true.conf">
+             <replacetoken><![CDATA[wrapper.app.parameter.1=<YourMainClass>]]></replacetoken>
+             <replacevalue><![CDATA[wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintArgs
+wrapper.app.parameter_file=../test/appparameterfile-04-stripq-true.param
+wrapper.app.parameter_file.stripquotes=TRUE]]></replacevalue>
+        </replace>
+        <echo file="${test.dir}/appparameterfile-04-stripq-true.param">"Hello World."</echo>
+
+        <delete file="${test.dir}/appparameterfile-05-encoding.conf"/>
+        <filter token="app.name"          value="appparameterfile-05-encoding"/>
+        <filter token="app.long.name"     value="AppParameterFile Case 05 (Encoding)" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/appparameterfile-05-encoding.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/appparameterfile-05-encoding.conf"
+                 token="#wrapper.java.command.loglevel=INFO"
+                 value="wrapper.java.command.loglevel=INFO" />
+        <replace file="${test.dir}/appparameterfile-05-encoding.conf">
+             <replacetoken><![CDATA[wrapper.app.parameter.1=<YourMainClass>]]></replacetoken>
+             <replacevalue><![CDATA[wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintArgs
+wrapper.app.parameter_file=../test/appparameterfile-05-encoding.param]]></replacevalue>
+        </replace>
+        <echo file="${test.dir}/appparameterfile-05-encoding.param">#encoding=UTF-8
+ABC</echo>
+
+        <delete file="${test.dir}/appparameterfile-06-multilines.conf"/>
+        <filter token="app.name"          value="appparameterfile-06-multilines"/>
+        <filter token="app.long.name"     value="AppParameterFile Case 06 (Multi-Lines)" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/appparameterfile-06-multilines.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/appparameterfile-06-multilines.conf"
+                 token="#wrapper.java.command.loglevel=INFO"
+                 value="wrapper.java.command.loglevel=INFO" />
+        <replace file="${test.dir}/appparameterfile-06-multilines.conf">
+             <replacetoken><![CDATA[wrapper.app.parameter.1=<YourMainClass>]]></replacetoken>
+             <replacevalue><![CDATA[wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintArgs
+wrapper.app.parameter_file=../test/appparameterfile-06-multilines.param]]></replacevalue>
+        </replace>
+        <echo file="${test.dir}/appparameterfile-06-multilines.param"># This is a comment.
+ABC # This is another comment.
+DEF##param2
+"#GHI"</echo>
+
+        <delete file="${test.dir}/appparameterfile-07-envvars.conf"/>
+        <filter token="app.name"          value="appparameterfile-07-envvars"/>
+        <filter token="app.long.name"     value="AppParameterFile Case 07 (Env Vars)" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/appparameterfile-07-envvars.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/appparameterfile-07-envvars.conf"
+                 token="#wrapper.java.command.loglevel=INFO"
+                 value="wrapper.java.command.loglevel=INFO" />
+        <replace file="${test.dir}/appparameterfile-07-envvars.conf">
+             <replacetoken><![CDATA[wrapper.app.parameter.1=<YourMainClass>]]></replacetoken>
+             <replacevalue><![CDATA[wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintArgs
+wrapper.app.parameter_file=../test/appparameterfile-07-envvars.param]]></replacevalue>
+        </replace>
+        <echo file="${test.dir}/appparameterfile-07-envvars.param">%WRAPPER_LANG%
+"%WRAPPER_BIN_DIR%"
+%WRAPPER_BITS%</echo>
+
+        <!-- JavaAdditionalFile Test -->
+        <delete file="${test.dir}/javaadditionalfile-01-empty.conf"/>
+        <filter token="app.name"          value="javaadditionalfile-01-empty"/>
+        <filter token="app.long.name"     value="JavaAdditionalFile Case 01 (Empty)" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/javaadditionalfile-01-empty.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/javaadditionalfile-01-empty.conf"
+                 token="#wrapper.java.command.loglevel=INFO"
+                 value="wrapper.java.command.loglevel=INFO" />
+        <replace file="${test.dir}/javaadditionalfile-01-empty.conf">
              <replacetoken><![CDATA[wrapper.java.additional.1=]]></replacetoken>
              <replacevalue><![CDATA[wrapper.java.additional.1=
-wrapper.java.additional_file=../test/additionalparameterfile-01-empty.param]]></replacevalue>
+wrapper.java.additional_file=../test/javaadditionalfile-01-empty.param]]></replacevalue>
         </replace>
-        <replace file="${test.dir}/additionalparameterfile-01-empty.conf"
+        <replace file="${test.dir}/javaadditionalfile-01-empty.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
-        <delete file="${test.dir}/additionalparameterfile-01-empty.param"/>
-        <touch file="${test.dir}/additionalparameterfile-01-empty.param"/>
+        <delete file="${test.dir}/javaadditionalfile-01-empty.param"/>
+        <touch file="${test.dir}/javaadditionalfile-01-empty.param"/>
 
-        <delete file="${test.dir}/additionalparameterfile-02-1line.conf"/>
-        <filter token="app.name"          value="additionalparameterfile-02-1line"/>
-        <filter token="app.long.name"     value="AdditionalParameterFile Case 02 (1 Line)" />
+        <delete file="${test.dir}/javaadditionalfile-02-1line.conf"/>
+        <filter token="app.name"          value="javaadditionalfile-02-1line"/>
+        <filter token="app.long.name"     value="JavaAdditionalFile Case 02 (1 Line)" />
         <copy file="${test.dir}/template.conf"
-              tofile="${test.dir}/additionalparameterfile-02-1line.conf"
+              tofile="${test.dir}/javaadditionalfile-02-1line.conf"
               filtering="on"/>
-        <replace file="${test.dir}/additionalparameterfile-02-1line.conf"
+        <replace file="${test.dir}/javaadditionalfile-02-1line.conf"
                  token="#wrapper.java.command.loglevel=INFO"
                  value="wrapper.java.command.loglevel=INFO" />
-        <replace file="${test.dir}/additionalparameterfile-02-1line.conf">
+        <replace file="${test.dir}/javaadditionalfile-02-1line.conf">
              <replacetoken><![CDATA[wrapper.java.additional.1=]]></replacetoken>
              <replacevalue><![CDATA[wrapper.java.additional.1=
-wrapper.java.additional_file=../test/additionalparameterfile-02-1line.param]]></replacevalue>
+wrapper.java.additional_file=../test/javaadditionalfile-02-1line.param]]></replacevalue>
         </replace>
-        <replace file="${test.dir}/additionalparameterfile-02-1line.conf"
+        <replace file="${test.dir}/javaadditionalfile-02-1line.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
-        <echo file="${test.dir}/additionalparameterfile-02-1line.param">-Dparam=param</echo>
+        <echo file="${test.dir}/javaadditionalfile-02-1line.param">-Dparam1=param1 -Dparam2=param2 -Dparam3=param3</echo>
 
-        <delete file="${test.dir}/additionalparameterfile-03-stripq-false.conf"/>
-        <filter token="app.name"          value="additionalparameterfile-03-stripq-false"/>
-        <filter token="app.long.name"     value="AdditionalParameterFile Case 03 (stripQuote=false)" />
+        <delete file="${test.dir}/javaadditionalfile-03-stripq-false.conf"/>
+        <filter token="app.name"          value="javaadditionalfile-03-stripq-false"/>
+        <filter token="app.long.name"     value="JavaAdditionalFile Case 03 (stripQuote=false)" />
         <copy file="${test.dir}/template.conf"
-              tofile="${test.dir}/additionalparameterfile-03-stripq-false.conf"
+              tofile="${test.dir}/javaadditionalfile-03-stripq-false.conf"
               filtering="on"/>
-        <replace file="${test.dir}/additionalparameterfile-03-stripq-false.conf"
+        <replace file="${test.dir}/javaadditionalfile-03-stripq-false.conf"
                  token="#wrapper.java.command.loglevel=INFO"
                  value="wrapper.java.command.loglevel=INFO" />
-        <replace file="${test.dir}/additionalparameterfile-03-stripq-false.conf">
+        <replace file="${test.dir}/javaadditionalfile-03-stripq-false.conf">
              <replacetoken><![CDATA[wrapper.java.additional.1=]]></replacetoken>
              <replacevalue><![CDATA[wrapper.java.additional.1=
-wrapper.java.additional_file=../test/additionalparameterfile-03-stripq-false.param
+wrapper.java.additional_file=../test/javaadditionalfile-03-stripq-false.param
 wrapper.java.additional_file.stripquotes=FALSE]]></replacevalue>
         </replace>
-        <replace file="${test.dir}/additionalparameterfile-03-stripq-false.conf"
+        <replace file="${test.dir}/javaadditionalfile-03-stripq-false.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
-        <echo file="${test.dir}/additionalparameterfile-03-stripq-false.param">-Dparam="Hello World."</echo>
+        <echo file="${test.dir}/javaadditionalfile-03-stripq-false.param">-Dparam="Hello World."</echo>
 
-        <delete file="${test.dir}/additionalparameterfile-04-stripq-true.conf"/>
-        <filter token="app.name"          value="additionalparameterfile-04-stripq-true"/>
-        <filter token="app.long.name"     value="AdditionalParameterFile Case 04 (stripQuote=true)" />
+        <delete file="${test.dir}/javaadditionalfile-04-stripq-true.conf"/>
+        <filter token="app.name"          value="javaadditionalfile-04-stripq-true"/>
+        <filter token="app.long.name"     value="JavaAdditionalFile Case 04 (stripQuote=true)" />
         <copy file="${test.dir}/template.conf"
-              tofile="${test.dir}/additionalparameterfile-04-stripq-true.conf"
+              tofile="${test.dir}/javaadditionalfile-04-stripq-true.conf"
               filtering="on"/>
-        <replace file="${test.dir}/additionalparameterfile-04-stripq-true.conf"
+        <replace file="${test.dir}/javaadditionalfile-04-stripq-true.conf"
                  token="#wrapper.java.command.loglevel=INFO"
                  value="wrapper.java.command.loglevel=INFO" />
-        <replace file="${test.dir}/additionalparameterfile-04-stripq-true.conf">
+        <replace file="${test.dir}/javaadditionalfile-04-stripq-true.conf">
              <replacetoken><![CDATA[wrapper.java.additional.1=]]></replacetoken>
              <replacevalue><![CDATA[wrapper.java.additional.1=
-wrapper.java.additional_file=../test/additionalparameterfile-04-stripq-true.param
+wrapper.java.additional_file=../test/javaadditionalfile-04-stripq-true.param
 wrapper.java.additional_file.stripquotes=TRUE]]></replacevalue>
         </replace>
-        <replace file="${test.dir}/additionalparameterfile-04-stripq-true.conf"
+        <replace file="${test.dir}/javaadditionalfile-04-stripq-true.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
-        <echo file="${test.dir}/additionalparameterfile-04-stripq-true.param">-Dparam="Hello World."</echo>
+        <echo file="${test.dir}/javaadditionalfile-04-stripq-true.param">-Dparam="Hello World."</echo>
 
-        <delete file="${test.dir}/additionalparameterfile-05-encoding.conf"/>
-        <filter token="app.name"          value="additionalparameterfile-05-encoding"/>
-        <filter token="app.long.name"     value="AdditionalParameterFile Case 05 (Encoding)" />
+        <delete file="${test.dir}/javaadditionalfile-05-encoding.conf"/>
+        <filter token="app.name"          value="javaadditionalfile-05-encoding"/>
+        <filter token="app.long.name"     value="JavaAdditionalFile Case 05 (Encoding)" />
         <copy file="${test.dir}/template.conf"
-              tofile="${test.dir}/additionalparameterfile-05-encoding.conf"
+              tofile="${test.dir}/javaadditionalfile-05-encoding.conf"
               filtering="on"/>
-        <replace file="${test.dir}/additionalparameterfile-05-encoding.conf"
+        <replace file="${test.dir}/javaadditionalfile-05-encoding.conf"
                  token="#wrapper.java.command.loglevel=INFO"
                  value="wrapper.java.command.loglevel=INFO" />
-        <replace file="${test.dir}/additionalparameterfile-05-encoding.conf">
+        <replace file="${test.dir}/javaadditionalfile-05-encoding.conf">
              <replacetoken><![CDATA[wrapper.java.additional.1=]]></replacetoken>
              <replacevalue><![CDATA[wrapper.java.additional.1=
-wrapper.java.additional_file=../test/additionalparameterfile-05-encoding.param]]></replacevalue>
+wrapper.java.additional_file=../test/javaadditionalfile-05-encoding.param]]></replacevalue>
         </replace>
-        <replace file="${test.dir}/additionalparameterfile-05-encoding.conf"
+        <replace file="${test.dir}/javaadditionalfile-05-encoding.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
-        <echo file="${test.dir}/additionalparameterfile-05-encoding.param">#encoding=UTF-8
+        <echo file="${test.dir}/javaadditionalfile-05-encoding.param">#encoding=UTF-8
 -Dparam=param</echo>
 
-        <delete file="${test.dir}/additionalparameterfile-06-multilines.conf"/>
-        <filter token="app.name"          value="additionalparameterfile-06-multilines"/>
-        <filter token="app.long.name"     value="AdditionalParameterFile Case 06 (Multi-Lines)" />
+        <delete file="${test.dir}/javaadditionalfile-06-multilines.conf"/>
+        <filter token="app.name"          value="javaadditionalfile-06-multilines"/>
+        <filter token="app.long.name"     value="JavaAdditionalFile Case 06 (Multi-Lines)" />
         <copy file="${test.dir}/template.conf"
-              tofile="${test.dir}/additionalparameterfile-06-multilines.conf"
+              tofile="${test.dir}/javaadditionalfile-06-multilines.conf"
               filtering="on"/>
-        <replace file="${test.dir}/additionalparameterfile-06-multilines.conf"
+        <replace file="${test.dir}/javaadditionalfile-06-multilines.conf"
                  token="#wrapper.java.command.loglevel=INFO"
                  value="wrapper.java.command.loglevel=INFO" />
-        <replace file="${test.dir}/additionalparameterfile-06-multilines.conf">
+        <replace file="${test.dir}/javaadditionalfile-06-multilines.conf">
              <replacetoken><![CDATA[wrapper.java.additional.1=]]></replacetoken>
              <replacevalue><![CDATA[wrapper.java.additional.1=
-wrapper.java.additional_file=../test/additionalparameterfile-06-multilines.param]]></replacevalue>
+wrapper.java.additional_file=../test/javaadditionalfile-06-multilines.param]]></replacevalue>
         </replace>
-        <replace file="${test.dir}/additionalparameterfile-06-multilines.conf"
+        <replace file="${test.dir}/javaadditionalfile-06-multilines.conf"
                  token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
                  value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
-        <echo file="${test.dir}/additionalparameterfile-06-multilines.param"># This is a comment.
+        <echo file="${test.dir}/javaadditionalfile-06-multilines.param"># This is a comment.
 -Dparam1=param1 # This is another comment.
 -Dparam2=##param2
 -Dparam3="#param3"</echo>
+
+        <delete file="${test.dir}/javaadditionalfile-07-envvars.conf"/>
+        <filter token="app.name"          value="javaadditionalfile-07-envvars"/>
+        <filter token="app.long.name"     value="JavaAdditionalFile Case 07 (Env Vars)" />
+        <copy file="${test.dir}/template.conf"
+              tofile="${test.dir}/javaadditionalfile-07-envvars.conf"
+              filtering="on"/>
+        <replace file="${test.dir}/javaadditionalfile-07-envvars.conf"
+                 token="#wrapper.java.command.loglevel=INFO"
+                 value="wrapper.java.command.loglevel=INFO" />
+        <replace file="${test.dir}/javaadditionalfile-07-envvars.conf">
+             <replacetoken><![CDATA[wrapper.java.additional.1=]]></replacetoken>
+             <replacevalue><![CDATA[wrapper.java.additional.1=
+wrapper.java.additional_file=../test/javaadditionalfile-07-envvars.param]]></replacevalue>
+        </replace>
+        <replace file="${test.dir}/javaadditionalfile-07-envvars.conf"
+                 token="wrapper.app.parameter.1=&lt;YourMainClass&gt;"
+                 value="wrapper.app.parameter.1=org.tanukisoftware.wrapper.test.WrapperPrintParam" />
+        <echo file="${test.dir}/javaadditionalfile-07-envvars.param">-Dparam1=%WRAPPER_LANG%
+-Dparam2="%WRAPPER_BIN_DIR%"
+-Dparam3=%WRAPPER_BITS%</echo>
 
         <!-- DefaultStripquotes Test -->
         <delete file="${test.dir}/defaultstripquotes-01-none.conf"/>
@@ -1361,72 +1511,161 @@ set ENV_VAR_4=d]]></replacevalue>
                  token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
                  value='set _WRAPPER_CONF_DEFAULT=../test/performancestartstop.conf' />
 
-        <!-- AdditionalParameterFile Test -->
-        <delete file="${test.dir}/TestAdditionalParameterFile-01-empty.bat"/>
+        <!-- AppParameterFile Test -->
+        <delete file="${test.dir}/TestAppParameterFile-01-empty.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
-              tofile="${test.dir}/TestAdditionalParameterFile-01-empty.bat"
+              tofile="${test.dir}/TestAppParameterFile-01-empty.bat"
               filtering="on"/>
-        <replace file="${test.dir}/TestAdditionalParameterFile-01-empty.bat"
+        <replace file="${test.dir}/TestAppParameterFile-01-empty.bat"
                  token='set _WRAPPER_BASE=wrapper'
                  value='set _WRAPPER_BASE=..\bin\wrapper' />
-        <replace file="${test.dir}/TestAdditionalParameterFile-01-empty.bat"
+        <replace file="${test.dir}/TestAppParameterFile-01-empty.bat"
                  token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
-                 value='set _WRAPPER_CONF_DEFAULT=../test/additionalparameterfile-01-empty.conf' />
+                 value='set _WRAPPER_CONF_DEFAULT=../test/appparameterfile-01-empty.conf' />
 
-        <delete file="${test.dir}/TestAdditionalParameterFile-02-1line.bat"/>
+        <delete file="${test.dir}/TestAppParameterFile-02-1line.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
-              tofile="${test.dir}/TestAdditionalParameterFile-02-1line.bat"
+              tofile="${test.dir}/TestAppParameterFile-02-1line.bat"
               filtering="on"/>
-        <replace file="${test.dir}/TestAdditionalParameterFile-02-1line.bat"
+        <replace file="${test.dir}/TestAppParameterFile-02-1line.bat"
                  token='set _WRAPPER_BASE=wrapper'
                  value='set _WRAPPER_BASE=..\bin\wrapper' />
-        <replace file="${test.dir}/TestAdditionalParameterFile-02-1line.bat"
+        <replace file="${test.dir}/TestAppParameterFile-02-1line.bat"
                  token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
-                 value='set _WRAPPER_CONF_DEFAULT=../test/additionalparameterfile-02-1line.conf' />
+                 value='set _WRAPPER_CONF_DEFAULT=../test/appparameterfile-02-1line.conf' />
 
-        <delete file="${test.dir}/TestAdditionalParameterFile-03-stripq-false.bat"/>
+        <delete file="${test.dir}/TestAppParameterFile-03-stripq-false.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
-              tofile="${test.dir}/TestAdditionalParameterFile-03-stripq-false.bat"
+              tofile="${test.dir}/TestAppParameterFile-03-stripq-false.bat"
               filtering="on"/>
-        <replace file="${test.dir}/TestAdditionalParameterFile-03-stripq-false.bat"
+        <replace file="${test.dir}/TestAppParameterFile-03-stripq-false.bat"
                  token='set _WRAPPER_BASE=wrapper'
                  value='set _WRAPPER_BASE=..\bin\wrapper' />
-        <replace file="${test.dir}/TestAdditionalParameterFile-03-stripq-false.bat"
+        <replace file="${test.dir}/TestAppParameterFile-03-stripq-false.bat"
                  token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
-                 value='set _WRAPPER_CONF_DEFAULT=../test/additionalparameterfile-03-stripq-false.conf' />
+                 value='set _WRAPPER_CONF_DEFAULT=../test/appparameterfile-03-stripq-false.conf' />
 
-        <delete file="${test.dir}/TestAdditionalParameterFile-04-stripq-true.bat"/>
+        <delete file="${test.dir}/TestAppParameterFile-04-stripq-true.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
-              tofile="${test.dir}/TestAdditionalParameterFile-04-stripq-true.bat"
+              tofile="${test.dir}/TestAppParameterFile-04-stripq-true.bat"
               filtering="on"/>
-        <replace file="${test.dir}/TestAdditionalParameterFile-04-stripq-true.bat"
+        <replace file="${test.dir}/TestAppParameterFile-04-stripq-true.bat"
                  token='set _WRAPPER_BASE=wrapper'
                  value='set _WRAPPER_BASE=..\bin\wrapper' />
-        <replace file="${test.dir}/TestAdditionalParameterFile-04-stripq-true.bat"
+        <replace file="${test.dir}/TestAppParameterFile-04-stripq-true.bat"
                  token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
-                 value='set _WRAPPER_CONF_DEFAULT=../test/additionalparameterfile-04-stripq-true.conf' />
+                 value='set _WRAPPER_CONF_DEFAULT=../test/appparameterfile-04-stripq-true.conf' />
 
-        <delete file="${test.dir}/TestAdditionalParameterFile-05-encoding.bat"/>
+        <delete file="${test.dir}/TestAppParameterFile-05-encoding.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
-              tofile="${test.dir}/TestAdditionalParameterFile-05-encoding.bat"
+              tofile="${test.dir}/TestAppParameterFile-05-encoding.bat"
               filtering="on"/>
-        <replace file="${test.dir}/TestAdditionalParameterFile-05-encoding.bat"
+        <replace file="${test.dir}/TestAppParameterFile-05-encoding.bat"
                  token='set _WRAPPER_BASE=wrapper'
                  value='set _WRAPPER_BASE=..\bin\wrapper' />
-        <replace file="${test.dir}/TestAdditionalParameterFile-05-encoding.bat"
+        <replace file="${test.dir}/TestAppParameterFile-05-encoding.bat"
                  token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
-                 value='set _WRAPPER_CONF_DEFAULT=../test/additionalparameterfile-05-encoding.conf' />
+                 value='set _WRAPPER_CONF_DEFAULT=../test/appparameterfile-05-encoding.conf' />
 
-        <delete file="${test.dir}/TestAdditionalParameterFile-06-multilines.bat"/>
+        <delete file="${test.dir}/TestAppParameterFile-06-multilines.bat"/>
         <copy file="${src.dir}/bin/App.bat.in"
-              tofile="${test.dir}/TestAdditionalParameterFile-06-multilines.bat"
+              tofile="${test.dir}/TestAppParameterFile-06-multilines.bat"
               filtering="on"/>
-        <replace file="${test.dir}/TestAdditionalParameterFile-06-multilines.bat"
+        <replace file="${test.dir}/TestAppParameterFile-06-multilines.bat"
                  token='set _WRAPPER_BASE=wrapper'
                  value='set _WRAPPER_BASE=..\bin\wrapper' />
-        <replace file="${test.dir}/TestAdditionalParameterFile-06-multilines.bat"
+        <replace file="${test.dir}/TestAppParameterFile-06-multilines.bat"
                  token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
-                 value='set _WRAPPER_CONF_DEFAULT=../test/additionalparameterfile-06-multilines.conf' />
+                 value='set _WRAPPER_CONF_DEFAULT=../test/appparameterfile-06-multilines.conf' />
+
+        <delete file="${test.dir}/TestAppParameterFile-07-envvars.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestAppParameterFile-07-envvars.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestAppParameterFile-07-envvars.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestAppParameterFile-07-envvars.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/appparameterfile-07-envvars.conf' />
+
+        <!-- JavaAdditionalFile Test -->
+        <delete file="${test.dir}/TestJavaAdditionalFile-01-empty.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestJavaAdditionalFile-01-empty.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestJavaAdditionalFile-01-empty.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestJavaAdditionalFile-01-empty.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/javaadditionalfile-01-empty.conf' />
+
+        <delete file="${test.dir}/TestJavaAdditionalFile-02-1line.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestJavaAdditionalFile-02-1line.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestJavaAdditionalFile-02-1line.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestJavaAdditionalFile-02-1line.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/javaadditionalfile-02-1line.conf' />
+
+        <delete file="${test.dir}/TestJavaAdditionalFile-03-stripq-false.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestJavaAdditionalFile-03-stripq-false.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestJavaAdditionalFile-03-stripq-false.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestJavaAdditionalFile-03-stripq-false.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/javaadditionalfile-03-stripq-false.conf' />
+
+        <delete file="${test.dir}/TestJavaAdditionalFile-04-stripq-true.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestJavaAdditionalFile-04-stripq-true.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestJavaAdditionalFile-04-stripq-true.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestJavaAdditionalFile-04-stripq-true.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/javaadditionalfile-04-stripq-true.conf' />
+
+        <delete file="${test.dir}/TestJavaAdditionalFile-05-encoding.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestJavaAdditionalFile-05-encoding.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestJavaAdditionalFile-05-encoding.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestJavaAdditionalFile-05-encoding.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/javaadditionalfile-05-encoding.conf' />
+
+        <delete file="${test.dir}/TestJavaAdditionalFile-06-multilines.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestJavaAdditionalFile-06-multilines.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestJavaAdditionalFile-06-multilines.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestJavaAdditionalFile-06-multilines.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/javaadditionalfile-06-multilines.conf' />
+
+        <delete file="${test.dir}/TestJavaAdditionalFile-07-envvars.bat"/>
+        <copy file="${src.dir}/bin/App.bat.in"
+              tofile="${test.dir}/TestJavaAdditionalFile-07-envvars.bat"
+              filtering="on"/>
+        <replace file="${test.dir}/TestJavaAdditionalFile-07-envvars.bat"
+                 token='set _WRAPPER_BASE=wrapper'
+                 value='set _WRAPPER_BASE=..\bin\wrapper' />
+        <replace file="${test.dir}/TestJavaAdditionalFile-07-envvars.bat"
+                 token='set _WRAPPER_CONF_DEFAULT="../conf/%_WRAPPER_BASE%.conf"'
+                 value='set _WRAPPER_CONF_DEFAULT=../test/javaadditionalfile-07-envvars.conf' />
 
         <!-- DefaultStripquotes Test -->
         <delete file="${test.dir}/TestDefaultStripquotes-01-none.bat"/>
@@ -1820,48 +2059,105 @@ export ENV_VAR_4=d]]></replacevalue>
               filtering="on"/>
         <chmod file="${test.dir}/performancestartstop" perm="+x"/>
         
-        <!-- AdditionalParameterFile Test -->
-        <filter token="app.name"          value="additionalparameterfile-01-empty"/>
-        <filter token="app.long.name"     value="AdditionalParameterFile Case 01 (Empty)" />
+        <!-- AppParameterFile Test -->
+        <filter token="app.name"          value="appparameterfile-01-empty"/>
+        <filter token="app.long.name"     value="AppParameterFile Case 01 (Empty)" />
         <copy file="${test.dir}/temp.script.in"
-              tofile="${test.dir}/additionalparameterfile-01-empty"
+              tofile="${test.dir}/appparameterfile-01-empty"
               filtering="on"/>
-        <chmod file="${test.dir}/additionalparameterfile-01-empty" perm="+x"/>
+        <chmod file="${test.dir}/appparameterfile-01-empty" perm="+x"/>
 
-        <filter token="app.name"          value="additionalparameterfile-02-1line"/>
-        <filter token="app.long.name"     value="AdditionalParameterFile Case 02 (1 Line)" />
+        <filter token="app.name"          value="appparameterfile-02-1line"/>
+        <filter token="app.long.name"     value="AppParameterFile Case 02 (1 Line)" />
         <copy file="${test.dir}/temp.script.in"
-              tofile="${test.dir}/additionalparameterfile-02-1line"
+              tofile="${test.dir}/appparameterfile-02-1line"
               filtering="on"/>
-        <chmod file="${test.dir}/additionalparameterfile-02-1line" perm="+x"/>
+        <chmod file="${test.dir}/appparameterfile-02-1line" perm="+x"/>
 
-        <filter token="app.name"          value="additionalparameterfile-03-stripq-false"/>
-        <filter token="app.long.name"     value="AdditionalParameterFile Case 03 (stripQuote=false)" />
+        <filter token="app.name"          value="appparameterfile-03-stripq-false"/>
+        <filter token="app.long.name"     value="AppParameterFile Case 03 (stripQuote=false)" />
         <copy file="${test.dir}/temp.script.in"
-              tofile="${test.dir}/additionalparameterfile-03-stripq-false"
+              tofile="${test.dir}/appparameterfile-03-stripq-false"
               filtering="on"/>
-        <chmod file="${test.dir}/additionalparameterfile-03-stripq-false" perm="+x"/>
+        <chmod file="${test.dir}/appparameterfile-03-stripq-false" perm="+x"/>
 
-        <filter token="app.name"          value="additionalparameterfile-04-stripq-true"/>
-        <filter token="app.long.name"     value="AdditionalParameterFile Case 04 (stripQuote=true)" />
+        <filter token="app.name"          value="appparameterfile-04-stripq-true"/>
+        <filter token="app.long.name"     value="AppParameterFile Case 04 (stripQuote=true)" />
         <copy file="${test.dir}/temp.script.in"
-              tofile="${test.dir}/additionalparameterfile-04-stripq-true"
+              tofile="${test.dir}/appparameterfile-04-stripq-true"
               filtering="on"/>
-        <chmod file="${test.dir}/additionalparameterfile-04-stripq-true" perm="+x"/>
+        <chmod file="${test.dir}/appparameterfile-04-stripq-true" perm="+x"/>
 
-        <filter token="app.name"          value="additionalparameterfile-05-encoding"/>
-        <filter token="app.long.name"     value="AdditionalParameterFile Case 05 (Encoding)" />
+        <filter token="app.name"          value="appparameterfile-05-encoding"/>
+        <filter token="app.long.name"     value="AppParameterFile Case 05 (Encoding)" />
         <copy file="${test.dir}/temp.script.in"
-              tofile="${test.dir}/additionalparameterfile-05-encoding"
+              tofile="${test.dir}/appparameterfile-05-encoding"
               filtering="on"/>
-        <chmod file="${test.dir}/additionalparameterfile-05-encoding" perm="+x"/>
+        <chmod file="${test.dir}/appparameterfile-05-encoding" perm="+x"/>
 
-        <filter token="app.name"          value="additionalparameterfile-06-multilines"/>
-        <filter token="app.long.name"     value="AdditionalParameterFile Case 06 (Multi-Lines)" />
+        <filter token="app.name"          value="appparameterfile-06-multilines"/>
+        <filter token="app.long.name"     value="AppParameterFile Case 06 (Multi-Lines)" />
         <copy file="${test.dir}/temp.script.in"
-              tofile="${test.dir}/additionalparameterfile-06-multilines"
+              tofile="${test.dir}/appparameterfile-06-multilines"
               filtering="on"/>
-        <chmod file="${test.dir}/additionalparameterfile-06-multilines" perm="+x"/>
+        <chmod file="${test.dir}/appparameterfile-06-multilines" perm="+x"/>
+
+        <filter token="app.name"          value="appparameterfile-07-envvars"/>
+        <filter token="app.long.name"     value="AppParameterFile Case 07 (Env Vars)" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/appparameterfile-07-envvars"
+              filtering="on"/>
+        <chmod file="${test.dir}/appparameterfile-07-envvars" perm="+x"/>
+        
+        <!-- JavaAdditionalFile Test -->
+        <filter token="app.name"          value="javaadditionalfile-01-empty"/>
+        <filter token="app.long.name"     value="JavaAdditionalFile Case 01 (Empty)" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/javaadditionalfile-01-empty"
+              filtering="on"/>
+        <chmod file="${test.dir}/javaadditionalfile-01-empty" perm="+x"/>
+
+        <filter token="app.name"          value="javaadditionalfile-02-1line"/>
+        <filter token="app.long.name"     value="JavaAdditionalFile Case 02 (1 Line)" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/javaadditionalfile-02-1line"
+              filtering="on"/>
+        <chmod file="${test.dir}/javaadditionalfile-02-1line" perm="+x"/>
+
+        <filter token="app.name"          value="javaadditionalfile-03-stripq-false"/>
+        <filter token="app.long.name"     value="JavaAdditionalFile Case 03 (stripQuote=false)" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/javaadditionalfile-03-stripq-false"
+              filtering="on"/>
+        <chmod file="${test.dir}/javaadditionalfile-03-stripq-false" perm="+x"/>
+
+        <filter token="app.name"          value="javaadditionalfile-04-stripq-true"/>
+        <filter token="app.long.name"     value="JavaAdditionalFile Case 04 (stripQuote=true)" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/javaadditionalfile-04-stripq-true"
+              filtering="on"/>
+        <chmod file="${test.dir}/javaadditionalfile-04-stripq-true" perm="+x"/>
+
+        <filter token="app.name"          value="javaadditionalfile-05-encoding"/>
+        <filter token="app.long.name"     value="JavaAdditionalFile Case 05 (Encoding)" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/javaadditionalfile-05-encoding"
+              filtering="on"/>
+        <chmod file="${test.dir}/javaadditionalfile-05-encoding" perm="+x"/>
+
+        <filter token="app.name"          value="javaadditionalfile-06-multilines"/>
+        <filter token="app.long.name"     value="JavaAdditionalFile Case 06 (Multi-Lines)" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/javaadditionalfile-06-multilines"
+              filtering="on"/>
+        <chmod file="${test.dir}/javaadditionalfile-06-multilines" perm="+x"/>
+
+        <filter token="app.name"          value="javaadditionalfile-07-envvars"/>
+        <filter token="app.long.name"     value="JavaAdditionalFile Case 07 (Env Vars)" />
+        <copy file="${test.dir}/temp.script.in"
+              tofile="${test.dir}/javaadditionalfile-07-envvars"
+              filtering="on"/>
+        <chmod file="${test.dir}/javaadditionalfile-07-envvars" perm="+x"/>
 
         <!-- DefaultStripquotes Test -->
         <filter token="app.name"          value="defaultstripquotes-01-none"/>

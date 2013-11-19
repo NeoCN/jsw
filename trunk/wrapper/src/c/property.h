@@ -99,6 +99,34 @@ struct Properties {
 extern int setEnv(const TCHAR *name, const TCHAR *value, int source);
 
 /**
+ * Parses a property value and populates any environment variables.  If the expanded
+ *  environment variable would result in a string that is longer than bufferLength
+ *  the value is truncated.
+ *
+ * @param warnUndefinedVars Log warnings about missing environment variables.
+ * @param warnedUndefVarMap Map of variables which have previously been logged, may be NULL if warnUndefinedVars false.
+ * @param warnLogLevel Log level at which any warnings will be logged.
+ */
+extern void evaluateEnvironmentVariables(const TCHAR *propertyValue, TCHAR *buffer, int bufferLength, int warnUndefinedVars, PHashMap warnedUndefVarMap, int warnLogLevel);
+
+/**
+ * Function to get the system encoding name/number for the encoding
+ * of the conf file
+ *
+ * @para String holding the encoding from the conf file
+ *
+ * @return TRUE if not found, FALSE otherwise
+ *
+ */
+#ifdef WIN32
+#define strIgnoreCaseCmp _stricmp
+extern int getEncodingByName(char* encodingMB, int *encoding);
+#else
+#define strIgnoreCaseCmp strcasecmp
+extern int getEncodingByName(char* encodingMB, char** encoding);
+#endif
+
+/**
  * Create a Properties structure loaded in from the specified file.
  *  Must call disposeProperties to free up allocated memory.
  *

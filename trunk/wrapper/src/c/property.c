@@ -472,10 +472,8 @@ void setInnerProperty(Properties *properties, Property *property, const TCHAR *p
  *
  */
 #ifdef WIN32
-#define strIgnoreCaseCmp stricmp
 int getEncodingByName(char* encodingMB, int *encoding) {
 #else
-#define strIgnoreCaseCmp strcasecmp
 int getEncodingByName(char* encodingMB, char** encoding) {
 #endif
     if (strIgnoreCaseCmp(encodingMB, "Shift_JIS") == 0) {

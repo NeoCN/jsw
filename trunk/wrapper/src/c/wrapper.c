@@ -4432,6 +4432,11 @@ static size_t wrapperStripQuotesInner(const TCHAR *prop, size_t propLen, TCHAR *
     return j;
 }
 
+/**
+ * Stripped quotes out of the prop argument.
+ * The resulting value in propStripped will always be equal or shorter in length
+ *  so the propStripped buffer should always be equal to the prop buffer in length.
+ */
 void wrapperStripQuotes(const TCHAR *prop, TCHAR *propStripped) {
     size_t len;
 
@@ -5105,11 +5110,13 @@ int wrapperBuildJavaCommandArrayJavaAdditional(TCHAR **strings, int addQuotes, i
 
 /**
  * Java command line callback.
+ *
+ * @return FALSE if there were any problems.
  */
-static int loadParameterFileCallbackParam_AddArg(LoadParameterFileCallbackParam *param, TCHAR *arg, size_t argLen)
-{
-    TCHAR str[MAX_PROPERTY_VALUE_LENGTH];
-    TCHAR *s;
+static int loadParameterFileCallbackParam_AddArg(LoadParameterFileCallbackParam *param, TCHAR *arg, size_t argLen) {
+    TCHAR *argTerm;
+    TCHAR *argStripped;
+    TCHAR argExpanded[MAX_PROPERTY_VALUE_LENGTH];
     size_t len;
 
 #ifdef _DEBUG
@@ -5117,42 +5124,70 @@ static int loadParameterFileCallbackParam_AddArg(LoadParameterFileCallbackParam 
     str[argLen] = TEXT('\0');
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_NOTICE, TEXT("    :> %s"), str);
 #endif
+    
+    /* The incoming arg can not be considered to be null terminated so we need a local copy. */
+    if (!(argTerm = malloc(sizeof(TCHAR) * (argLen + 1)))) {
+        outOfMemory(TEXT("LPFCPAA"), 1);
+        return FALSE;
+    }
+    memcpy(argTerm, arg, sizeof(TCHAR) * argLen);
+    argTerm[argLen] = TEXT('\0');
 
     if (param->isJVMParam == TRUE) {
         /* As in wrapperBuildJavaCommandArrayJavaAdditional(), skip an
            argument which does not begin with '-'. */
-        if ((arg[0] != TEXT('-')) && !((arg[0] == TEXT('"')) && (arg[1] == TEXT('-')))) {
+        if ((argTerm[0] != TEXT('-')) && !((argTerm[0] == TEXT('"')) && (argTerm[1] == TEXT('-')))) {
             if (param->strings) {
-                memcpy(str, arg, sizeof(TCHAR) * argLen);
-                str[argLen] = TEXT('\0');
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN,
-                           TEXT("The value '%s' is not a valid argument to the JVM.  Skipping."), str);
+                           TEXT("The value '%s' is not a valid argument to the JVM.  Skipping."), argTerm);
             }
+            free(argTerm);
             return TRUE;
         }
     }
 
     if (param->strings) {
-        if (!param->stripQuote) {
-            s = arg;
-            len = argLen;
-        } else {
-            len = wrapperStripQuotesInner(arg, argLen, str);
-            s = str;
+        /* Create a buffer to hold the stripped copy of argTerm. */
+        len = _tcslen(argTerm);
+        if (!(argStripped = malloc(sizeof(TCHAR) * (len + 1)))) {
+            outOfMemory(TEXT("LPFCPAA"), 2);
+            free(argTerm);
+            return FALSE;
         }
+        
+        if (!param->stripQuote) {
+            /* Nothing to strip, simply copy the string. */
+            _tcsncpy(argStripped, argTerm, len + 1);
+        } else {
+            /* Strip the quotes. */
+            wrapperStripQuotes(argTerm, argStripped);
+        }
+        
+        /* No longer needed. */
+        free(argTerm);
+        
+        /* Just in case the string contains and environment variable references, make sure they are all evaluated.
+         *  argExpanded needs to be static because there is no way to know how long it will be in advance. */
+        evaluateEnvironmentVariables(argStripped, argExpanded, MAX_PROPERTY_VALUE_LENGTH, properties->logWarnings, properties->warnedVarMap, properties->logWarningLogLevel);
+        
+        /* No longer needed. */
+        free(argStripped);
+        
+        len = _tcslen(argExpanded);
         param->strings[param->index] = malloc(sizeof(TCHAR) * (len + 1));
         if (!param->strings[param->index]) {
             return FALSE;
         }
-        memcpy(param->strings[param->index], s, sizeof(TCHAR) * len);
-        param->strings[param->index][len] = TEXT('\0');
+        _tcsncpy(param->strings[param->index], argExpanded, len + 1);
+    } else {
+        free(argTerm);
     }
+    
     param->index++;
     return TRUE;
 }
 
-static int loadParameterFileCallback(void *callbackParam, const TCHAR *fileName, int lineNumber, TCHAR *config, int debugProperties)
-{
+static int loadParameterFileCallback(void *callbackParam, const TCHAR *fileName, int lineNumber, TCHAR *config, int debugProperties) {
     LoadParameterFileCallbackParam *param = (LoadParameterFileCallbackParam *)callbackParam;
     TCHAR *tail_bound;
     TCHAR *arg;
