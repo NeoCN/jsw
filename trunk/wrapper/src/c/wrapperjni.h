@@ -64,7 +64,6 @@ extern int redirectedStdOut;
 /** Flag to keep track of whether StdErr has been redirected. */
 extern int redirectedStdErr;
 
-extern TCHAR* getLastErrorText();
 extern void throwJNIError(JNIEnv *env, const TCHAR *message);
 
 /* Special symbols that need to be defined manually as part of the bootstrap process. */
@@ -100,7 +99,6 @@ extern jstring JNU_NewStringFromNativeChar(JNIEnv *env, const char *str);
 
 extern int initCommon();
 
-extern int getLastError();
 extern void throwOutOfMemoryError(JNIEnv *env, const TCHAR* locationCode);
 
 extern int wrapperSleep(int ms);

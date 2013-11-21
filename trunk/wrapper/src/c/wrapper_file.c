@@ -18,19 +18,19 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #ifdef WIN32
-#include <errno.h>
-#include <tchar.h>
-#include <io.h>
+ #include <errno.h>
+ #include <tchar.h>
+ #include <io.h>
 #else
-#include <stdlib.h>
-#include <string.h>
-#include <glob.h>
-#include <unistd.h>
-#include <limits.h>
-#include <langinfo.h>
-#if defined(IRIX)
-#define PATH_MAX FILENAME_MAX
-#endif
+ #include <stdlib.h>
+ #include <string.h>
+ #include <glob.h>
+ #include <unistd.h>
+ #include <limits.h>
+ #include <langinfo.h>
+ #if defined(IRIX)
+  #define PATH_MAX FILENAME_MAX
+ #endif
 #endif
 
 #include "wrapper_file.h"

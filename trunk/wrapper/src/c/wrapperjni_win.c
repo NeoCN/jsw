@@ -42,7 +42,7 @@ barf
 #include <tlhelp32.h>
 #include <winnt.h>
 #include <Sddl.h>
-#include "wrapper_i18n.h"
+#include "loggerjni.h"
 #include "wrapperjni.h"
 
 /* MS Visual Studio 8 went and deprecated the POXIX names for functions.

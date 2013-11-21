@@ -13,42 +13,41 @@
  #define _LOCALIZE
  #include <stdio.h>
 
-
  #ifndef WIN32
 
   #ifdef UNICODE
    #include <wchar.h>
-  #ifdef _sntprintf
-   #undef _sntprintf
-  #endif
-
-  #include <stdarg.h>
-  #include <stdlib.h>
-  #include <unistd.h>
-  #include <sys/types.h>
-  #include <sys/stat.h>
-  #include <locale.h>
-  #include <syslog.h>
-  #include <time.h>
-  #include <wctype.h>
-  
-  #define __max(x,y) (((x) > (y)) ? (x) : (y))
-  #define __min(x,y) (((x) < (y)) ? (x) : (y))
-
-  #if defined(SOLARIS) || defined(HPUX)
-   #define WRAPPER_USE_PUTENV
-  #endif
-
-
-  #if defined(MACOSX) || defined(HPUX) || defined(FREEBSD) || defined(SOLARIS)
-   #ifndef wcscasecmp
-extern int wcscasecmp(const wchar_t* s1, const wchar_t* s2);
-    #define ECSCASECMP
+   #ifdef _sntprintf
+    #undef _sntprintf
    #endif
-  #endif
+
+   #include <stdarg.h>
+   #include <stdlib.h>
+   #include <unistd.h>
+   #include <sys/types.h>
+   #include <sys/stat.h>
+   #include <locale.h>
+   #include <syslog.h>
+   #include <time.h>
+   #include <wctype.h>
+  
+   #define __max(x,y) (((x) > (y)) ? (x) : (y))
+   #define __min(x,y) (((x) < (y)) ? (x) : (y))
+
+   #if defined(SOLARIS) || defined(HPUX)
+    #define WRAPPER_USE_PUTENV
+   #endif
 
 
-  #define TEXT(x) L##x
+   #if defined(MACOSX) || defined(HPUX) || defined(FREEBSD) || defined(SOLARIS)
+    #ifndef wcscasecmp
+extern int wcscasecmp(const wchar_t* s1, const wchar_t* s2);
+     #define ECSCASECMP
+    #endif
+   #endif
+
+
+   #define TEXT(x) L##x
 typedef wchar_t TCHAR;
 typedef wchar_t _TUCHAR;
 
@@ -443,4 +442,41 @@ typedef unsigned char _TUCHAR;
 #include <sys/stat.h>
 extern int multiByteToWideChar(const char *multiByteChars, int encoding, TCHAR **outputBufferW, int localizeErrorMessage);
 #endif
+
+/**
+ * Define a cross platform way to compare strings while ignoring case.
+ */
+#ifdef WIN32
+#define strIgnoreCaseCmp _stricmp
+#else
+#define strIgnoreCaseCmp strcasecmp
+#endif
+
+/**
+ * Function to get the system encoding name/number for the encoding
+ * of the conf file
+ *
+ * @para String holding the encoding from the conf file
+ *
+ * @return TRUE if not found, FALSE otherwise
+ *
+ */
+#ifdef WIN32
+extern int getEncodingByName(char* encodingMB, int *encoding);
+#else
+extern int getEncodingByName(char* encodingMB, char** encoding);
+#endif
+
+/**
+ * Gets the error code for the last operation that failed.
+ */
+extern int wrapperGetLastError();
+
+/*
+ * Corrects a path in place by replacing all '/' characters with '\'
+ *  on Windows platforms.  Does nothing on NIX platforms.
+ *
+ * filename - Filename to be modified.  Could be null.
+ */
+extern void wrapperCorrectWindowsPath(TCHAR *filename);
 #endif

@@ -156,13 +156,6 @@ void appExit(int exitCode, int argc, TCHAR** argv) {
 }
 
 /**
- * Gets the error code for the last operation that failed.
- */
-int wrapperGetLastError() {
-    return errno;
-}
-
-/**
  * Writes a PID to disk.
  *
  * filename: File to write to.

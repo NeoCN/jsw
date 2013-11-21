@@ -4444,25 +4444,6 @@ void wrapperStripQuotes(const TCHAR *prop, TCHAR *propStripped) {
     propStripped[len] = TEXT('\0');
 }
 
-/*
- * Corrects a windows path in place by replacing all '/' characters with '\'
- *  on Windows versions.
- *
- * filename - Filename to be modified.  Could be null.
- */
-void correctWindowsPath(TCHAR *filename) {
-#ifdef WIN32
-    TCHAR *c;
-
-    if (filename) {
-        c = (TCHAR *)filename;
-        while((c = _tcschr(c, TEXT('/'))) != NULL) {
-            c[0] = TEXT('\\');
-        }
-    }
-#endif
-}
-
 /**
  * Adds quotes around the specified string in such a way that everything is
  *  escaped correctly.  If the bufferSize is not large enough then the
@@ -4901,7 +4882,7 @@ int wrapperBuildJavaCommandArrayJavaCommand(TCHAR **strings, int addQuotes, int 
              *  be replaced by '\' characters in the specified path.
              * prop is supposed to be constant, but allow this change as it is
              *  the actual value that we want. */
-            correctWindowsPath((TCHAR *)prop);
+            wrapperCorrectWindowsPath((TCHAR *)prop);
 
             /* If the full path to the java command was not specified, then we
              *  need to try and resolve it here to avoid problems later when
@@ -7558,34 +7539,34 @@ int loadConfiguration() {
     /** Get the pid files if any.  May be NULL */
     if (!wrapperData->configured) {
         updateStringValue(&wrapperData->pidFilename, getFileSafeStringProperty(properties, TEXT("wrapper.pidfile"), NULL));
-        correctWindowsPath(wrapperData->pidFilename);
+        wrapperCorrectWindowsPath(wrapperData->pidFilename);
     }
     wrapperData->pidFileStrict = getBooleanProperty(properties, TEXT("wrapper.pidfile.strict"), FALSE);
     
     updateStringValue(&wrapperData->javaPidFilename, getFileSafeStringProperty(properties, TEXT("wrapper.java.pidfile"), NULL));
-    correctWindowsPath(wrapperData->javaPidFilename);
+    wrapperCorrectWindowsPath(wrapperData->javaPidFilename);
 
     /** Get the lock file if any.  May be NULL */
     if (!wrapperData->configured) {
         updateStringValue(&wrapperData->lockFilename, getFileSafeStringProperty(properties, TEXT("wrapper.lockfile"), NULL));
-        correctWindowsPath(wrapperData->lockFilename);
+        wrapperCorrectWindowsPath(wrapperData->lockFilename);
     }
 
     /** Get the java id file.  May be NULL */
     updateStringValue(&wrapperData->javaIdFilename, getFileSafeStringProperty(properties, TEXT("wrapper.java.idfile"), NULL));
-    correctWindowsPath(wrapperData->javaIdFilename);
+    wrapperCorrectWindowsPath(wrapperData->javaIdFilename);
 
     /** Get the status files if any.  May be NULL */
     if (!wrapperData->configured) {
         updateStringValue(&wrapperData->statusFilename, getFileSafeStringProperty(properties, TEXT("wrapper.statusfile"), NULL));
-        correctWindowsPath(wrapperData->statusFilename);
+        wrapperCorrectWindowsPath(wrapperData->statusFilename);
     }
     updateStringValue(&wrapperData->javaStatusFilename, getFileSafeStringProperty(properties, TEXT("wrapper.java.statusfile"), NULL));
-    correctWindowsPath(wrapperData->javaStatusFilename);
+    wrapperCorrectWindowsPath(wrapperData->javaStatusFilename);
 
     /** Get the command file if any. May be NULL */
     updateStringValue(&wrapperData->commandFilename, getFileSafeStringProperty(properties, TEXT("wrapper.commandfile"), NULL));
-    correctWindowsPath(wrapperData->commandFilename);
+    wrapperCorrectWindowsPath(wrapperData->commandFilename);
     wrapperData->commandFileTests = getBooleanProperty(properties, TEXT("wrapper.commandfile.enable_tests"), FALSE);
 
     /** Get the interval at which the command file will be polled. */
@@ -7594,7 +7575,7 @@ int loadConfiguration() {
     /** Get the anchor file if any.  May be NULL */
     if (!wrapperData->configured) {
         updateStringValue(&wrapperData->anchorFilename, getFileSafeStringProperty(properties, TEXT("wrapper.anchorfile"), NULL));
-        correctWindowsPath(wrapperData->anchorFilename);
+        wrapperCorrectWindowsPath(wrapperData->anchorFilename);
     }
 
     /** Get the interval at which the anchor file will be polled. */
