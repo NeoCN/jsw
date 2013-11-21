@@ -754,11 +754,6 @@ extern TCHAR* findPathOf(const TCHAR *exe, const TCHAR* name);
 #endif
 
 /**
- * Gets the error code for the last operation that failed.
- */
-extern int wrapperGetLastError();
-
-/**
  * Execute initialization code to get the wrapper set up.
  */
 extern int wrapperInitializeRun();

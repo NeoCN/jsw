@@ -15,7 +15,7 @@ DEFS = -I$(INCLUDE) -I$(INCLUDE)/aix
 
 wrapper_SOURCE = wrapper.c wrapperinfo.c wrappereventloop.c wrapper_unix.c property.c logger.c wrapper_file.c wrapper_i18n.c wrapper_hashmap.c
 
-libwrapper_a_SOURCE = wrapper_i18n.c wrapperjni_unix.c wrapperinfo.c wrapperjni.c
+libwrapper_a_SOURCE = wrapper_i18n.c wrapperjni_unix.c wrapperinfo.c wrapperjni.c loggerjni.c
 
 BIN = ../../bin
 LIB = ../../lib

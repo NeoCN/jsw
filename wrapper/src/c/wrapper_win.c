@@ -397,13 +397,6 @@ void appExit(int exitCode) {
     exit(exitCode);
 }
 
-/**
- * Gets the error code for the last operation that failed.
- */
-int wrapperGetLastError() {
-    return WSAGetLastError();
-}
-
 
 /**
  * Writes the specified Id or PID to disk.

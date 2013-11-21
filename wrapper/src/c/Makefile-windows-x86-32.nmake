@@ -22,8 +22,8 @@ EXE_LINK_OPTS = /INCREMENTAL:NO /SUBSYSTEM:CONSOLE /MANIFESTFILE:"$(EXE_OUTDIR)\
 
 # DLL Definitions
 DLL_OUTDIR = $(PROJ)JNI32_VC8__Win32_Release
-DLL_OBJS = $(DLL_OUTDIR)\wrapper_i18n.obj $(DLL_OUTDIR)\wrapperjni.obj $(DLL_OUTDIR)\wrapperjni_win.obj $(DLL_OUTDIR)\wrapperinfo.obj
-DLL_LIBS = shell32.lib advapi32.lib user32.lib
+DLL_OBJS = $(DLL_OUTDIR)\wrapper_i18n.obj $(DLL_OUTDIR)\wrapperjni_win.obj $(DLL_OUTDIR)\wrapperinfo.obj $(DLL_OUTDIR)\wrapperjni.obj $(DLL_OUTDIR)\loggerjni.obj
+DLL_LIBS = shell32.lib wsock32.lib advapi32.lib user32.lib
 DLL_COMPILE_OPTS = /Od  /I "..\" /I ".\" /I "$(JAVA_HOME)\include" /I "$(JAVA_HOME)\include\win32" /D "_WINDOWS" /D "_USRDLL" /D "DECODERJNI_VC8_EXPORTS" /D "_WINDLL"
 DLL_LINK_OPTS = /INCREMENTAL /DLL /SUBSYSTEM:WINDOWS /MANIFESTFILE:"$(DLL_OUTDIR)\$(PROJ).dll.intermediate.manifest" /PDB:"$(DLL_OUTDIR)\$(PROJ).pdb"
 

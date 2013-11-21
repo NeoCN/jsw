@@ -40,7 +40,7 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include "wrapper_i18n.h"
+#include "loggerjni.h"
 #include "wrapperjni.h"
 
 static pid_t wrapperProcessId = -1;

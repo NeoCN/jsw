@@ -110,23 +110,6 @@ extern int setEnv(const TCHAR *name, const TCHAR *value, int source);
 extern void evaluateEnvironmentVariables(const TCHAR *propertyValue, TCHAR *buffer, int bufferLength, int warnUndefinedVars, PHashMap warnedUndefVarMap, int warnLogLevel);
 
 /**
- * Function to get the system encoding name/number for the encoding
- * of the conf file
- *
- * @para String holding the encoding from the conf file
- *
- * @return TRUE if not found, FALSE otherwise
- *
- */
-#ifdef WIN32
-#define strIgnoreCaseCmp _stricmp
-extern int getEncodingByName(char* encodingMB, int *encoding);
-#else
-#define strIgnoreCaseCmp strcasecmp
-extern int getEncodingByName(char* encodingMB, char** encoding);
-#endif
-
-/**
  * Create a Properties structure loaded in from the specified file.
  *  Must call disposeProperties to free up allocated memory.
  *

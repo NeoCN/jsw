@@ -17,7 +17,7 @@ DEFS = -I$(INCLUDE) -I$(INCLUDE)/irix
 
 wrapper_OBJECTS = wrapper.o wrapperinfo.o wrappereventloop.o wrapper_unix.o property.o logger.o wrapper_file.o wrapper_i18n.o wrapper_hashmap.c
 
-libwrapper_so_OBJECTS = wrapperjni_unix.o wrapperinfo.o wrapperjni.o wrapper_i18n.o
+libwrapper_so_OBJECTS = wrapper_i18n.o wrapperjni_unix.o wrapperinfo.o wrapperjni.o loggerjni.o
 
 BIN = ../../bin
 LIB = ../../lib
