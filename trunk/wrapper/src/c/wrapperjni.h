@@ -81,6 +81,7 @@ extern char *utf8MethodGetProperties;
 extern char *utf8SigVrLjavaUtilProperties;
 extern char *utf8MethodGetProperty;
 extern char *utf8SigLjavaLangStringrLjavaLangString;
+extern char *utf8javaIOIOException; /* "java/io/IOException" */
 
 #ifdef WIN32
 #else
