@@ -30,6 +30,7 @@ package org.tanukisoftware.wrapper.test;
  */
 
 import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.util.Enumeration;
@@ -50,6 +51,8 @@ import org.tanukisoftware.wrapper.event.WrapperEventListener;
 public abstract class AbstractActionApp
     implements WrapperEventListener
 {
+    private static String c_encoding;
+    
     private DeadlockPrintStream m_out;
     private DeadlockPrintStream m_err;
     
@@ -68,6 +71,25 @@ public abstract class AbstractActionApp
     private String m_consoleTitle = "Java Service Wrapper";
     private String m_childCommand = "ls";
     private boolean m_childDetached = true;
+    
+    /*---------------------------------------------------------------
+     * Static Methods
+     *-------------------------------------------------------------*/
+    static
+    {
+        // In order to read the output from some processes correctly we need to get the correct encoding.
+        //  On some systems, the underlying system encoding is different than the file encoding.
+        c_encoding = System.getProperty( "sun.jnu.encoding" );
+        if ( c_encoding == null )
+        {
+            c_encoding = System.getProperty( "file.encoding" );
+            if ( c_encoding == null )
+            {
+                // Default to Latin1
+                c_encoding = "Cp1252";
+            }
+        }
+    }
     
     /*---------------------------------------------------------------
      * Constructors
@@ -515,78 +537,8 @@ public abstract class AbstractActionApp
         }
         else if ( action.equals( "child_exec" ) )
         {
-            Thread childRunner = new Thread()
-            {
-                public void run()
-                {
-                    try
-                    {
-                        WrapperProcessConfig wpConfig = new WrapperProcessConfig();
-                        wpConfig.setDetached( m_childDetached );
-                        final WrapperProcess wProcess = WrapperManager.exec( m_childCommand, wpConfig );
-                        System.out.println( Main.getRes().getString( "Launched child process with PID={0} : {1}", new Integer( wProcess.getPID() ), m_childCommand ) );
-                        
-                        Thread outRunner = new Thread()
-                        {
-                            public void run()
-                            {
-                                try
-                                {
-                                    BufferedReader br = new BufferedReader( new InputStreamReader( wProcess.getInputStream() ) );
-                                    String line;
-                                    while( ( line = br.readLine( ) ) != null )
-                                    {
-                                        System.out.println( wProcess.getPID() + " out: " + line );
-                                    }
-                                    br.close();
-                                    System.out.println( wProcess.getPID() + Main.getRes().getString( " out EOF" ) );
-                                }
-                                catch ( IOException e )
-                                {
-                                    System.out.println( wProcess.getPID() + Main.getRes().getString( " read stdout failed:" ) );
-                                    e.printStackTrace();
-                                }
-                            }
-                        };
-                        Thread errRunner = new Thread()
-                        {
-                            public void run()
-                            {
-                                try
-                                {
-                                    BufferedReader br = new BufferedReader( new InputStreamReader( wProcess.getErrorStream() ) );
-                                    String line;
-                                    while( ( line = br.readLine( ) ) != null )
-                                    {
-                                        System.out.println( wProcess.getPID() + " err: " + line );
-                                    }
-                                    br.close();
-                                    System.out.println( wProcess.getPID() + Main.getRes().getString( " err EOF" ) );
-                                }
-                                catch ( IOException e )
-                                {
-                                    System.out.println( wProcess.getPID() + Main.getRes().getString( " read stderr failed:" ) );
-                                    e.printStackTrace();
-                                }
-                            }
-                        };
-                        
-                        outRunner.start();
-                        errRunner.start();
-                        
-                        // Wait for the stdout and stderr reader threads to complete before we say the process completed to avoid confusion.
-                        outRunner.join();
-                        errRunner.join();
-                        
-                        System.out.println( Main.getRes().getString( "Child with PID={0} terminated with exitCode={1} : {2} ", new Integer( wProcess.getPID() ), new Integer( wProcess.waitFor() ), m_childCommand ) );
-                    }
-                    catch ( Throwable t )
-                    {
-                        t.printStackTrace();
-                    }
-                }
-            };
-            childRunner.start();
+            // This command is really meant only to be used by the GUI but can also be called from the console if known.
+            doExec( m_childCommand, m_childDetached );
         }
         else if ( action.equals( "gc" ) )
         {
@@ -602,6 +554,16 @@ public abstract class AbstractActionApp
         {
             System.out.println( Main.getRes().getString( "Standard Edition: " ) + WrapperManager.isStandardEdition() );
         }
+        else if ( action.startsWith( "exec " ) && ( action.length() > 5 )  )
+        {
+            String command = action.substring( 5 );
+            doExec( command, false );
+        }
+        else if ( action.startsWith( "exec_detached " ) && ( action.length() > 14 )  )
+        {
+            String command = action.substring( 14 );
+            doExec( command, true );
+        }
         else
         {
             // Unknown action
@@ -610,6 +572,125 @@ public abstract class AbstractActionApp
         }
         
         return true;
+    }
+    
+    
+    private static Thread handleInputStream( final InputStream is, final String encoding, String pid, String pipeName )
+    {
+        final String label = Main.getRes().getString( "  Process #{0} {1}", pid, pipeName );
+        
+        Thread runner = new Thread( "exec_runner_" + pipeName + "_" + pid )
+        {
+            public void run()
+            {
+                BufferedReader br;
+                String line;
+                
+                try
+                {
+                    br = new BufferedReader( new InputStreamReader( is, encoding ) );
+                    try
+                    {
+                        while ( ( line = br.readLine() ) != null )
+                        {
+                            System.out.println( label + ": " + line );
+                        }
+                    }
+                    finally
+                    {
+                        br.close();
+                    }
+                }
+                catch ( IOException e )
+                {
+                    e.printStackTrace();
+                }
+            }
+        };
+        runner.start();
+        
+        return runner;
+    }
+    
+    private void doExec( String command, boolean detached )
+    {
+        try
+        {
+            WrapperProcessConfig processConfig = new WrapperProcessConfig();
+            processConfig.setDetached( detached );
+            
+            String type;
+            if ( command.startsWith( "FORK_EXEC " ) )
+            {
+                processConfig.setStartType( WrapperProcessConfig.FORK_EXEC );
+                type = "FORK_EXEC";
+                command.substring( 10 );
+            }
+            else if ( command.startsWith( "POSIX_SPAWN " ) )
+            {
+                processConfig.setStartType( WrapperProcessConfig.POSIX_SPAWN );
+                type = "POSIX_SPAWN";
+                command.substring( 12 );
+            }
+            else if ( command.startsWith( "VFORK_EXEC " ) )
+            {
+                processConfig.setStartType( WrapperProcessConfig.VFORK_EXEC );
+                type = "VFORK_EXEC";
+                command.substring( 11 );
+            }
+            else if ( command.startsWith( "DYNAMIC " ) )
+            {
+                processConfig.setStartType( WrapperProcessConfig.DYNAMIC );
+                type = "DYNAMIC";
+                command.substring( 8 );
+            }
+            else
+            {
+                type = "DYNAMIC";
+            }
+            
+            if ( detached )
+            {
+                System.out.println( Main.getRes().getString( "Execute Detached Child Process with type {0}: {1}", type, command ) );
+            }
+            else
+            {
+                System.out.println( Main.getRes().getString( "Execute Managed Child Process: with type {0}: {1}", type, command ) );
+            }
+            
+            final WrapperProcess process = WrapperManager.exec( command, processConfig );
+            final String pid = Integer.toString( process.getPID() );
+            System.out.println( Main.getRes().getString( "  Process #{0} launched.", pid ) );
+            
+            final Thread outRunner = handleInputStream( process.getInputStream(), c_encoding, pid, "stdout" );
+            final Thread errRunner = handleInputStream( process.getErrorStream(), c_encoding, pid, "stderr" );
+            
+            Thread runner = new Thread( "exec_runner_process_" + pid )
+            {
+                public void run()
+                {
+                    try
+                    {
+                        // Wait for the stdout and stderr reader threads to complete before we say the process completed to avoid confusion.
+                        outRunner.join();
+                        errRunner.join();
+                        
+                        System.out.println( Main.getRes().getString( "  Process #{0} terminated with exitCode={1}", pid, Integer.toString( process.waitFor() ) ) );
+                    }
+                    catch ( Throwable t )
+                    {
+                        System.out.println( Main.getRes().getString( "  Process #{0} unexpected error: {1} ", pid, t.getMessage() ) );
+                        t.printStackTrace();
+                    }
+                }
+            };
+            runner.start();
+        }
+        catch ( Throwable t )
+        {
+            System.out.println( Main.getRes().getString( "Failed to launch child process: {0}", t.getMessage() ) );
+            t.printStackTrace();
+        }
     }
     
     /*---------------------------------------------------------------
@@ -648,6 +729,13 @@ public abstract class AbstractActionApp
         System.err.println( Main.getRes().getString( "   properties               : Dump all System Properties to the console." ) );
         System.err.println( Main.getRes().getString( "   configuration            : Dump all Wrapper Configuration Properties to the console." ) );
         System.err.println( Main.getRes().getString( "   gc                       : Perform a GC sweep." ) );
+        System.err.println( Main.getRes().getString( "   is_professional          : Displays whether or not this is a Professional Edition Wrapper." ) );
+        System.err.println( Main.getRes().getString( "   is_standard              : Displays whether or not this is at least a Standard Edition Wrapper." ) );
+        if ( WrapperManager.isProfessionalEdition() )
+        {
+            System.err.println( Main.getRes().getString( "   exec <cmd>               : Executes a managed child process." ) );
+            System.err.println( Main.getRes().getString( "   exec_detached <cmd>      : Executes a detached child process." ) );
+        }
         System.err.println( "" );
     }
 }

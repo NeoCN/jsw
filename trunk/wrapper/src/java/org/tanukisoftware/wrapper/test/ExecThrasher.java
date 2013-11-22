@@ -178,19 +178,6 @@ public class ExecThrasher
      *-------------------------------------------------------------*/
     public static void main( String[] args )
     {
-        
-        // In order to read the output from some processes correctly we need to get the correct encoding.
-        //  On some systems, the underlying system encoding is different than the file encoding.
-        c_encoding = System.getProperty( "sun.jnu.encoding" );
-        if ( c_encoding == null )
-        {
-            c_encoding = System.getProperty( "file.encoding" );
-            if ( c_encoding == null )
-            {
-                // Default to Latin1
-                c_encoding = "Cp1252";
-            }
-        }
         System.out.println( "Communicate with child processes using encoding: " + c_encoding );
         
         for ( int i = 0; i < 100; i++ )
