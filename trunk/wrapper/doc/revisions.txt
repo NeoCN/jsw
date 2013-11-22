@@ -36,6 +36,8 @@ Java Service Wrapper Revision History.
   in the configuration file.
 * Add support for environment variable expansion in files specified with the
   wrapper.java.additional_file and wrapper.app.parameter_file properties.
+* Correct the integer formatting in the WrapperUNIXGroup.toString() method so
+  it is consistent with the rest of the Wrapper.
 
 3.5.22
 * (Standard, Professional) Fix a crash in native code behind WrapperResources
