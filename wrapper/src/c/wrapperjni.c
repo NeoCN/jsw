@@ -84,6 +84,7 @@ char *utf8MethodGetProperties;
 char *utf8SigVrLjavaUtilProperties;
 char *utf8MethodGetProperty;
 char *utf8SigLjavaLangStringrLjavaLangString;
+char *utf8javaIOIOException; /* "java/io/IOException" */
 
 #ifdef WIN32
 #else
@@ -400,6 +401,7 @@ void initUTF8Strings(JNIEnv *env) {
     utf8SigVrLjavaUtilProperties = getUTF8Chars(env, "()Ljava/util/Properties;");
     utf8MethodGetProperty = getUTF8Chars(env, "getProperty");
     utf8SigLjavaLangStringrLjavaLangString = getUTF8Chars(env, "(Ljava/lang/String;)Ljava/lang/String;");
+    utf8javaIOIOException = getUTF8Chars(env, "java/io/IOException");
     
 #ifdef WIN32
 #else
