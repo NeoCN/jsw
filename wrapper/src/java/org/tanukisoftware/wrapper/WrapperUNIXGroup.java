@@ -48,7 +48,12 @@ public class WrapperUNIXGroup
     
     public String toString()
     {
-        return WrapperManager.getRes().getString( "WrapperUNIXGroup[{0}, {1}]", new Integer( getGID() ), getGroup() );
+        StringBuffer sb = new StringBuffer();
+        sb.append( "WrapperUNIXGroup[" );
+        sb.append( getGID() );
+        sb.append( getGroup() );
+        sb.append( "]" );
+        return sb.toString();
     }
 }
 
