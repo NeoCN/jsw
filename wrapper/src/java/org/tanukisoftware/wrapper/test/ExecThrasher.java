@@ -16,6 +16,7 @@ import org.tanukisoftware.wrapper.WrapperLicenseError;
 import org.tanukisoftware.wrapper.WrapperManager;
 import org.tanukisoftware.wrapper.WrapperProcess;
 import org.tanukisoftware.wrapper.WrapperProcessConfig;
+import org.tanukisoftware.wrapper.WrapperSystemPropertyUtil;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -90,6 +91,7 @@ public class ExecThrasher
                 {
                     e.printStackTrace();
                 }
+                System.out.println( label + " EOF" );
             }
         };
         runner.start();
@@ -180,7 +182,8 @@ public class ExecThrasher
     {
         System.out.println( "Communicate with child processes using encoding: " + c_encoding );
         
-        for ( int i = 0; i < 100; i++ )
+        int threadCount = WrapperSystemPropertyUtil.getIntProperty( ExecThrasher.class.getName() + ".threadCount", 100 );
+        for ( int i = 0; i < threadCount; i++ )
         {
             final int threadId = i;
             Thread thread = new Thread( "ExecThrasher-" + i )
