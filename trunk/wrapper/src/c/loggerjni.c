@@ -24,6 +24,10 @@ void outOfMemory(const TCHAR *context, int id) {
     _tprintf(TEXT("WrapperJNI Error: Out of memory (%s%02d). %s\n"), context, id, getLastErrorText());fflush(NULL);
 }
 
+void invalidMultiByteSequence(const TCHAR *context, int id) {
+    _tprintf(TEXT("WrapperJNI Error: Invalid multibyte Sequence found in (%s%02d). %s"), context, id, getLastErrorText());fflush(NULL);
+}
+
 /**
  * Create an error message from GetLastError() using the
  *  FormatMessage API Call...
