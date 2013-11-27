@@ -34,6 +34,9 @@ public class ExecThrasher
 {
     private static String c_simplewaiter;
     private static String c_encoding;
+    private static String c_startTypeS;
+    private static int c_startType;
+    private static int c_threadCount;
     
     /*---------------------------------------------------------------
      * Static Methods
@@ -61,6 +64,29 @@ public class ExecThrasher
                 c_encoding = "Cp1252";
             }
         }
+        
+        // Resolve the start type.
+        c_startTypeS = WrapperSystemPropertyUtil.getStringProperty( ExecThrasher.class.getName() + ".startType", "" );
+        if ( c_startTypeS.equals( "POSIX_SPAWN" ) )
+        {
+            c_startType = WrapperProcessConfig.POSIX_SPAWN;
+        }
+        else if ( c_startTypeS.equals( "FORK_EXEC" ) )
+        {
+            c_startType = WrapperProcessConfig.FORK_EXEC;
+        }
+        else if ( c_startTypeS.equals( "VFORK_EXEC" ) )
+        {
+            c_startType = WrapperProcessConfig.VFORK_EXEC;
+        }
+        else
+        {
+            c_startType = WrapperProcessConfig.DYNAMIC;
+            c_startTypeS = "DYNAMIC";
+        }
+        
+        // Resolve the thread count.
+        c_threadCount = WrapperSystemPropertyUtil.getIntProperty( ExecThrasher.class.getName() + ".threadCount", 100 );
     }
     
     private static void handleInputStream( final InputStream is, final String encoding, final String label )
@@ -142,7 +168,12 @@ public class ExecThrasher
     private static void handleWrapperProcess( String command, long timeoutMS, int threadId, int processId )
         throws IOException
     {
-        handleWrapperProcessInner( WrapperManager.exec( command ), timeoutMS, threadId, processId );
+        WrapperProcessConfig processConfig = new WrapperProcessConfig();
+        processConfig.setStartType( c_startType );
+        
+        WrapperProcess process = WrapperManager.exec( command, processConfig );
+        
+        handleWrapperProcessInner( process, timeoutMS, threadId, processId );
     }
     
     private static void thrasher( int threadId )
@@ -181,9 +212,11 @@ public class ExecThrasher
     public static void main( String[] args )
     {
         System.out.println( "Communicate with child processes using encoding: " + c_encoding );
+
+        System.out.println( "Using start type '" + c_startTypeS + "'." );
         
-        int threadCount = WrapperSystemPropertyUtil.getIntProperty( ExecThrasher.class.getName() + ".threadCount", 100 );
-        for ( int i = 0; i < threadCount; i++ )
+        System.out.println( "Launching " + c_threadCount + " threads..." );
+        for ( int i = 0; i < c_threadCount; i++ )
         {
             final int threadId = i;
             Thread thread = new Thread( "ExecThrasher-" + i )
