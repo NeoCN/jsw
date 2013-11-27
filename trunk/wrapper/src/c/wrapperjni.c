@@ -410,7 +410,7 @@ void initUTF8Strings(JNIEnv *env) {
     utf8MethodAddGroup = getUTF8Chars(env, "addGroup");
     utf8SigIIStringStringStringStringrV = getUTF8Chars(env, "(IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
     utf8SigIStringrV = getUTF8Chars(env, "(ILjava/lang/String;)V");
-#endif	
+#endif
 }
 
 /**
