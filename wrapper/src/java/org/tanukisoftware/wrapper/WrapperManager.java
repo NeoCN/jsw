@@ -2001,7 +2001,8 @@ public final class WrapperManager
      * @throws SecurityException If a SecurityManager is present and its
      *                           checkExec method doesn't allow creation of a
      *                           subprocess.    
-     * @throws WrapperJNIError If the native library has not been loaded.
+     * @throws WrapperJNIError If the native library has not been loaded or is in the
+     *                         process of shutting down.
      * @throws WrapperLicenseError If the function is called other than in
      *                             the Professional Edition or from a Standalone JVM.
      * @throws UnsatisfiedLinkError If the posix_spawn function couldn't be found
@@ -2054,7 +2055,8 @@ public final class WrapperManager
      * @throws SecurityException If a SecurityManager is present and its
      *                           checkExec method doesn't allow creation of a
      *                           subprocess.
-     * @throws WrapperJNIError If the native library has not been loaded.
+     * @throws WrapperJNIError If the native library has not been loaded or is in the
+     *                         process of shutting down.
      * @throws WrapperLicenseError If the function is called other than in
      *                             the Professional Edition or from a Standalone JVM.
      * @throws UnsatisfiedLinkError If the posix_spawn function couldn't be found
@@ -2105,7 +2107,8 @@ public final class WrapperManager
      *                           subprocess.    
      * @throws IllegalArgumentException If there are any problems with the
      *                                  WrapperProcessConfig object.
-     * @throws WrapperJNIError If the native library has not been loaded.
+     * @throws WrapperJNIError If the native library has not been loaded or is in the
+     *                         process of shutting down.
      * @throws WrapperLicenseError If the function is called other than in
      *                             the Professional Edition or from a Standalone JVM.
      * @throws UnsatisfiedLinkError If the posix_spawn function couldn't be found
@@ -2162,7 +2165,8 @@ public final class WrapperManager
      *                           subprocess.
      * @throws IllegalArgumentException If there are any problems with the
      *                                  WrapperProcessConfig object.
-     * @throws WrapperJNIError If the native library has not been loaded.
+     * @throws WrapperJNIError If the native library has not been loaded or is in the
+     *                         process of shutting down.
      * @throws WrapperLicenseError If the function is called other than in
      *                             the Professional Edition or from a Standalone JVM.
      * @throws UnsatisfiedLinkError If the posix_spawn function couldn't be found
