@@ -1684,6 +1684,15 @@ int main(int argc, char **argv) {
 #ifdef UNICODE
     size_t req;
     TCHAR **argv;
+
+#ifdef FREEBSD
+    /* In the case of FreeBSD, we need to dynamically load and initialize the iconv library to work with all versions of FreeBSD. */
+    if (loadIconvLibrary()) {
+        /* Already reported. */
+        /* Don't call appExit here as we are not far enough along. */
+        return 1;
+    }
+#endif    
     
     /* Create UNICODE versions of the argv array for internal use. */
     argv = malloc(argc * sizeof *argv );

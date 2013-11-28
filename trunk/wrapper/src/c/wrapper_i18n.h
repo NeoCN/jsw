@@ -38,6 +38,10 @@
     #define WRAPPER_USE_PUTENV
    #endif
 
+   #ifdef FREEBSD
+    #include <dlfcn.h>
+   #endif
+
 
    #if defined(MACOSX) || defined(HPUX) || defined(FREEBSD) || defined(SOLARIS)
     #ifndef wcscasecmp
@@ -441,6 +445,17 @@ typedef unsigned char _TUCHAR;
 #include <sys/types.h>
 #include <sys/stat.h>
 extern int multiByteToWideChar(const char *multiByteChars, int encoding, TCHAR **outputBufferW, int localizeErrorMessage);
+#endif
+
+#ifdef FREEBSD
+/*
+ * Tries to load libiconv and then fallback in FreeBSD.
+ * Unfortunately we can not do any pretty logging here as iconv is
+ *  required for all of that to work.
+ *
+ * @return TRUE if there were any problems, FALSE otherwise.
+ */
+extern int loadIconvLibrary();
 #endif
 
 /**

@@ -13,7 +13,9 @@
 #include <windows.h>
 #include <tchar.h>
 #else
+#ifndef FREEBSD
 #include <iconv.h>
+#endif
 #include <langinfo.h>
 #include <errno.h>
 #include <limits.h>
@@ -31,6 +33,20 @@
 
 #ifndef FALSE
 #define FALSE 0
+#endif
+
+/**
+ * Dynamically load the symbols for the iconv library
+ */
+#ifdef FREEBSD
+typedef void *iconv_t;
+static iconv_t (*wrapper_iconv_open)(const char *, const char *);  
+static size_t (*wrapper_iconv)(iconv_t, const char **, size_t *, char **, size_t *);  
+static int (*wrapper_iconv_close)(iconv_t);
+#else
+#define wrapper_iconv_open iconv_open
+#define wrapper_iconv iconv
+#define wrapper_iconv_close iconv_close
 #endif
 
 #if defined(UNICODE) && defined(WIN32)
@@ -139,7 +155,7 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
     /* First we need to convert from the multi-byte string to native. */
     /* If the multiByteEncoding and interumEncoding encodings are equal then there is nothing to do. */
     if (strcmp(multiByteEncoding, interumEncoding) != 0 && strcmp(interumEncoding, "646") != 0) {
-        conv_desc = iconv_open(interumEncoding, multiByteEncoding); /* convert multiByte encoding to interum-encoding*/
+        conv_desc = wrapper_iconv_open(interumEncoding, multiByteEncoding); /* convert multiByte encoding to interum-encoding*/
         if (conv_desc == (iconv_t)(-1)) {
             /* Initialization failure. */
             if (errno == EINVAL) {
@@ -200,7 +216,7 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
             /* Make a copy of the nativeCharLen as this call will replace it with the number of chars used. */
             nativeCharLenCopy = nativeCharLen;
             nativeCharStartCopy = nativeCharStart;
-            iconv_value = iconv(conv_desc, &multiByteCharsStart, &multiByteCharsLenStart, &nativeCharStartCopy, &nativeCharLenCopy);
+            iconv_value = wrapper_iconv(conv_desc, &multiByteCharsStart, &multiByteCharsLenStart, &nativeCharStartCopy, &nativeCharLenCopy);
              /* Handle failures. */
             if (iconv_value == (size_t)-1) {
                 /* See "man 3 iconv" for an explanation. */
@@ -251,7 +267,7 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
         } while (redoIConv);
         
         /* finish iconv */
-        if (iconv_close(conv_desc)) {
+        if (wrapper_iconv_close(conv_desc)) {
             free(nativeCharStart);
             errorTemplate = (localizeErrorMessage ? TEXT("Cleanup failure in iconv: %d") : TEXT("Cleanup failure in iconv: %d"));
             errorTemplateLen = _tcslen(errorTemplate) + 10 + 1;
@@ -1204,4 +1220,68 @@ void wrapperCorrectWindowsPath(TCHAR *filename) {
     }
 #endif
 }
+
+#ifdef FREEBSD
+/*
+ * Tries to load libiconv and then fallback in FreeBSD.
+ * Unfortunately we can not do any pretty logging here as iconv is
+ *  required for all of that to work.
+ *
+ * @return TRUE if there were any problems, FALSE otherwise.
+ */
+int loadIconvLibrary() {
+    void *libHandle;
+    const char *error;
+    
+    /* iconv library name present from FreeBSD 7 to 9 */
+    libHandle = dlopen("/usr/local/lib/libiconv.so", RTLD_NOW);
+
+    /* Falling back to libbiconv library in FreeBSD 10 */
+    if (libHandle == NULL) {
+        libHandle = dlopen("/usr/local/lib/libbiconv.so", RTLD_NOW);
+    }
+
+    /* Falling back to libkiconv.4 in FreeBSD 10 */
+    if (libHandle == NULL) {
+        libHandle = dlopen("/lib/libkiconv.so.4", RTLD_NOW);
+    }
+
+    /* No library found, we cannot continue as we need iconv support */
+    if (!libHandle) {
+        /* The string that dlerror is in a static buffer and should not be freed. It must be immediately used or copied. */
+        error = dlerror();
+        printf("Failed to locate the iconv library: %s\n", (error ? error : "<null>"));
+        printf("Unable to continue.\n");
+        return TRUE;
+    }
+    
+    /* Look up the required functions. */
+    *(void **)(&wrapper_iconv_open) = dlsym(libHandle, "iconv_open");
+    if (!wrapper_iconv_open) {
+        /* The string that dlerror is in a static buffer and should not be freed. It must be immediately used or copied. */
+        error = dlerror();
+        printf("Failed to locate the %s function from the iconv library: %s\n", "iconv_open", (error ? error : "<null>"));
+        printf("Unable to continue.\n");
+        return TRUE;
+    }
+    *(void **)(&wrapper_iconv) = dlsym(libHandle, "iconv");
+    if (!wrapper_iconv) {
+        /* The string that dlerror is in a static buffer and should not be freed. It must be immediately used or copied. */
+        error = dlerror();
+        printf("Failed to locate the %s function from the iconv library: %s\n", "iconv", (error ? error : "<null>"));
+        printf("Unable to continue.\n");
+        return TRUE;
+    }
+    *(void **)(&wrapper_iconv_close) = dlsym(libHandle,"iconv_close");
+    if (!wrapper_iconv_close) {
+        /* The string that dlerror is in a static buffer and should not be freed. It must be immediately used or copied. */
+        error = dlerror();
+        printf("Failed to locate the %s function from the iconv library: %s\n", "iconv_close", (error ? error : "<null>"));
+        printf("Unable to continue.\n");
+        return TRUE;
+    }
+
+    return FALSE;
+}
+#endif
 
