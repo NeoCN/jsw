@@ -33,10 +33,10 @@ init:
 	if test ! -d .deps; then mkdir .deps; fi
 
 wrapper: $(wrapper_SOURCE)
-	$(CC) $(wrapper_SOURCE) -lm -lcompat -liconv -pthread -o $(BIN)/wrapper
+	$(CC) $(wrapper_SOURCE) -lm -lcompat -rdynamic -lc -pthread -o $(BIN)/wrapper
 
 libwrapper.so: $(libwrapper_so_OBJECTS)
-	$(CC) -shared -liconv $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
+	$(CC) -shared -rdynamic -lc $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so
 
 #%.o: %.c
 #	$(COMPILE) -c $(DEFS) $<
