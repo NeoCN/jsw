@@ -2576,16 +2576,16 @@ void wrapperDataDispose() {
 void wrapperDispose() {
     /* Make sure not to dispose twice.  This should not happen, but check for safety. */
     if (disposed) {
-       _tprintf(TEXT("wrapperDispose was called more than once."));
-       return;
+        /* Don't use log_printf here as the second call may have already disposed logging. */
+        _tprintf(TEXT("wrapperDispose was called more than once.\n"));
+        return;
     }
     disposed = TRUE;
 
 #ifdef WIN32
     if (protocolMutexHandle) {
         if (!CloseHandle(protocolMutexHandle)) {
-            _tprintf(TEXT("Unable to close protocol mutex handle. %s\n"), getLastErrorText());
-            fflush(NULL);
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL, TEXT("Unable to close protocol mutex handle. %s"), getLastErrorText());
         }
     }
     
