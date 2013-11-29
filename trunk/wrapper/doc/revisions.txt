@@ -42,6 +42,8 @@ Java Service Wrapper Revision History.
   FreeBSD 10.  We now locate the library dynamically by looking for
   /usr/local/lib/libiconv.so, /usr/local/lib/libbiconv.so, or
   /lib/libkiconv.so.4 in that order.
+* Fix a the WrapperPrintStream.println method so strings containing linefeeds
+  will correctly have each line prepended with the configured header.
 
 3.5.22
 * (Standard, Professional) Fix a crash in native code behind WrapperResources
