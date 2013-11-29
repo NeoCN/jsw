@@ -48,7 +48,25 @@ final class WrapperPrintStream
      */
     public void println( String x )
     {
-        super.println( m_header + x );
+        if ( x.indexOf( "\n" ) >= 0 )
+        {
+            String[] lines = x.split( "[\n]", -1 );
+            StringBuffer sb = new StringBuffer();
+            for ( int i = 0; i < lines.length; i++ )
+            {
+                if ( i > 0 )
+                {
+                    sb.append( "\n" );
+                }
+                sb.append( m_header );
+                sb.append( lines[i] );
+            }
+            super.println( sb.toString() );
+        }
+        else
+        {
+            super.println( m_header + x );
+        }
     }
     
     /**
@@ -60,6 +78,13 @@ final class WrapperPrintStream
      */
     public void println( Object x )
     {
-        super.println( m_header + x );
+        if ( x == null )
+        {
+            println( "null" );
+        }
+        else
+        {
+            println( x.toString() );
+        }
     }
 }
