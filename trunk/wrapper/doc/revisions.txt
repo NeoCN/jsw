@@ -44,6 +44,8 @@ Java Service Wrapper Revision History.
   /lib/libkiconv.so.4 in that order.
 * Fix a the WrapperPrintStream.println method so strings containing linefeeds
   will correctly have each line prepended with the configured header.
+* (Standard, Professional) When an unknown license type is encountered, include
+  the unknown type in the error message to help with debugging.
 
 3.5.22
 * (Standard, Professional) Fix a crash in native code behind WrapperResources
