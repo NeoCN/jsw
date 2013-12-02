@@ -301,7 +301,7 @@ void wrapperAddDefaultProperties() {
             free(confDirTemp);
             return;
         }
-        if (_trealpath(confDirTemp, wrapperData->confDir) == NULL) {
+        if (_trealpathN(confDirTemp, wrapperData->confDir, PATH_MAX + 1) == NULL) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 TEXT("Unable to resolve the original working directory: %s"), getLastErrorText());
             free(confDirTemp);
@@ -416,7 +416,7 @@ int loadEnvironment() {
 #else
     i = 0;
     while (environment[i]) {
-        len = mbstowcs(NULL, environment[i], 0);
+        len = mbstowcs(NULL, environment[i], MBSTOWCS_QUERY_LENGTH);
         if (len == (size_t)-1) {
             /* Invalid string.  Skip. */
         } else {
@@ -427,6 +427,7 @@ int loadEnvironment() {
                 return TRUE;
             }
             mbstowcs(sourcePair, environment[i], len + 1);
+            sourcePair[len] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
 #endif
 
             len = _tcslen(sourcePair);
@@ -745,7 +746,7 @@ int wrapperLoadConfigurationProperties(int preload) {
             outOfMemory(TEXT("WLCP"), 4);
             return TRUE;
         }
-        if (_trealpath(TEXT("."), wrapperData->originalWorkingDir) == NULL) {
+        if (_trealpathN(TEXT("."), wrapperData->originalWorkingDir, PATH_MAX + 1) == NULL) {
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                 TEXT("Unable to resolve the original working directory: %s"), getLastErrorText());
             return TRUE;
@@ -788,7 +789,7 @@ int wrapperLoadConfigurationProperties(int preload) {
             outOfMemory(TEXT("WLCP"), 2);
             return TRUE;
         }
-        if (_trealpath(wrapperData->argConfFile, wrapperData->configFile) == NULL) {
+        if (_trealpathN(wrapperData->argConfFile, wrapperData->configFile, PATH_MAX + 1) == NULL) {
             /* Most likely the file does not exist.  The wrapperData->configFile has the first
              *  file that could not be found.  May not be the config file directly if symbolic
              *  links are involved. */
@@ -893,7 +894,7 @@ int wrapperLoadConfigurationProperties(int preload) {
                 outOfMemory(TEXT("WLCP"), 6);
                 return TRUE;
             }
-            if (_trealpath(prop, wrapperData->workingDir) == NULL) {
+            if (_trealpathN(prop, wrapperData->workingDir, PATH_MAX + 1) == NULL) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_FATAL,
                     TEXT("Unable to resolve the working directory %s: %s"), prop, getLastErrorText());
                 return TRUE;
@@ -1400,13 +1401,17 @@ void protocolOpenSocket() {
         MultiByteToWideChar(CP_OEMCP, 0, inet_ntoa(addr_srv.sin_addr), -1, socketSource, req + 1);
 #else
 
-        req = mbstowcs(NULL, inet_ntoa(addr_srv.sin_addr), 0);
+        req = mbstowcs(NULL, inet_ntoa(addr_srv.sin_addr), MBSTOWCS_QUERY_LENGTH);
+        if (req == (size_t)-1) {
+            return;
+        }
         socketSource = malloc(sizeof(TCHAR) * (req + 1));
         if (!socketSource) {
             outOfMemory(TEXT("PO"), 2);
             return;
         }
         mbstowcs(socketSource, inet_ntoa(addr_srv.sin_addr), req + 1);
+        socketSource[req] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
 #endif
         log_printf(WRAPPER_SOURCE_PROTOCOL, LEVEL_DEBUG, TEXT("accepted a socket from %s on port %d"),
                  socketSource, ntohs(addr_srv.sin_port));
@@ -3229,13 +3234,17 @@ void logChildOutput(const char* log) {
     }
     MultiByteToWideChar(cp, 0, log, -1, (TCHAR*)tlog, size);
  #else
-    size = mbstowcs(NULL, log, 0) + 1;
-    tlog = malloc(size * sizeof(TCHAR));
+    size = mbstowcs(NULL, log, MBSTOWCS_QUERY_LENGTH);
+    if (size == (size_t)-1) {
+        return;
+    }
+    tlog = malloc(sizeof(TCHAR) * (size + 1));
     if (!tlog) {
         outOfMemory(TEXT("WLCO"), 1);
         return;
     }
-    mbstowcs(tlog, log, size);
+    mbstowcs(tlog, log, size + 1);
+    tlog[size] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
  #endif
 #else
     tlog = (TCHAR*)log;
@@ -4018,19 +4027,29 @@ int wrapperRunCommonInner() {
         tzset();
 #if defined(UNICODE)
  #if !defined(WIN32)
-        req = mbstowcs(NULL, tzname[0], 0) + 1;
-        tz1 = malloc(req * sizeof(TCHAR));
+        req = mbstowcs(NULL, tzname[0], MBSTOWCS_QUERY_LENGTH);
+        if (req == (size_t)-1) {
+            return 1;
+        }
+        tz1 = malloc(sizeof(TCHAR) * (req + 1));
         if (!tz1) {
             outOfMemory(TEXT("LHN"), 1);
         } else {
-            mbstowcs(tz1, tzname[0], req);
-            req = mbstowcs(NULL, tzname[1], 0) + 1;
-            tz2 = malloc(req * sizeof(TCHAR));
+            mbstowcs(tz1, tzname[0], req + 1);
+            tz1[req] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
+            
+            req = mbstowcs(NULL, tzname[1], MBSTOWCS_QUERY_LENGTH);
+            if (req == (size_t)-1) {
+                free(tz1);
+                return 1;
+            }
+            tz2 = malloc(sizeof(TCHAR) * (req + 1));
             if (!tz2) {
                 outOfMemory(TEXT("LHN"), 2);
                 free(tz1);
             } else {
-                mbstowcs(tz2, tzname[1], req);
+                mbstowcs(tz2, tzname[1], req + 1);
+                tz2[req] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
  #else
         req = MultiByteToWideChar(CP_OEMCP, 0, tzname[0], -1, NULL, 0);
         tz1 = malloc(req * sizeof(TCHAR));
@@ -4052,17 +4071,17 @@ int wrapperRunCommonInner() {
         tz2 = tzname[1];
 #endif
 #ifndef FREEBSD
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Timezone:     %s (%s) Offset: %ld, hasDaylight: %d"),
-                tz1, tz2, timezone, daylight);
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Timezone:     %s (%s) Offset: %ld, hasDaylight: %d"),
+                        tz1, tz2, timezone, daylight);
 #else
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Timezone:     %s (%s) Offset: %ld"),
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Timezone:     %s (%s) Offset: %ld"),
                         tz1, tz2, timezone);
 #endif
-        if (wrapperData->useSystemTime) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Using system timer."));
-        } else {
-            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Using tick timer."));
-        }
+                if (wrapperData->useSystemTime) {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Using system timer."));
+                } else {
+                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Using tick timer."));
+                }
 #ifdef UNICODE
                 free(tz1);
                 free(tz2);
@@ -4657,7 +4676,7 @@ TCHAR* findPathOf(const TCHAR *exe, const TCHAR *name) {
 
     if (exe[0] == TEXT('/')) {
         /* This is an absolute reference. */
-        if (_trealpath(exe, resolvedPath)) {
+        if (_trealpathN(exe, resolvedPath, PATH_MAX + 1)) {
             _tcsncpy(pth, resolvedPath, PATH_MAX + 1);
             if (checkIfExecutable(pth)) {
                 ret = malloc((_tcslen(pth) + 1) * sizeof(TCHAR));
@@ -4681,7 +4700,7 @@ TCHAR* findPathOf(const TCHAR *exe, const TCHAR *name) {
     }
 
     /* This is a non-absolute reference.  See if it is a relative reference. */
-    if (_trealpath(exe, resolvedPath)) {
+    if (_trealpathN(exe, resolvedPath, PATH_MAX + 1)) {
         /* Resolved.  See if the file exists. */
         _tcsncpy(pth, resolvedPath, PATH_MAX + 1);
         if (checkIfExecutable(pth)) {
@@ -4743,7 +4762,7 @@ TCHAR* findPathOf(const TCHAR *exe, const TCHAR *name) {
                     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  Check PATH entry: %s"), pth);
                 }
 #endif
-                if (_trealpath(pth, resolvedPath) != NULL) {
+                if (_trealpathN(pth, resolvedPath, PATH_MAX + 1) != NULL) {
                     /* Copy over the result. */
                     _tcsncpy(pth, resolvedPath, PATH_MAX + 1);
                     found = checkIfExecutable(pth);
@@ -5100,12 +5119,6 @@ static int loadParameterFileCallbackParam_AddArg(LoadParameterFileCallbackParam 
     TCHAR argExpanded[MAX_PROPERTY_VALUE_LENGTH];
     size_t len;
 
-#ifdef _DEBUG
-    memcpy(str, arg, sizeof(TCHAR) * argLen);
-    str[argLen] = TEXT('\0');
-    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_NOTICE, TEXT("    :> %s"), str);
-#endif
-    
     /* The incoming arg can not be considered to be null terminated so we need a local copy. */
     if (!(argTerm = malloc(sizeof(TCHAR) * (argLen + 1)))) {
         outOfMemory(TEXT("LPFCPAA"), 1);
@@ -5113,6 +5126,9 @@ static int loadParameterFileCallbackParam_AddArg(LoadParameterFileCallbackParam 
     }
     memcpy(argTerm, arg, sizeof(TCHAR) * argLen);
     argTerm[argLen] = TEXT('\0');
+#ifdef _DEBUG
+    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_NOTICE, TEXT("    :> %s"), argTerm);
+#endif
 
     if (param->isJVMParam == TRUE) {
         /* As in wrapperBuildJavaCommandArrayJavaAdditional(), skip an
@@ -6858,37 +6874,41 @@ void wrapperLoadHostName() {
             getLastErrorText());
     } else {
 #ifdef UNICODE
-#ifdef WIN32
+ #ifdef WIN32
         len = MultiByteToWideChar(CP_OEMCP, 0, hostName, -1, NULL, 0);
-        hostName2 = malloc((len + 1) * sizeof(LPWSTR));
+        hostName2 = malloc(sizeof(LPWSTR) * (len + 1));
         if (!hostName2) {
             outOfMemory(TEXT("LHN"), 1);
             return;
         }
         MultiByteToWideChar(CP_OEMCP,0, hostName, -1, hostName2, len + 1);
-#else
-        len = mbstowcs(NULL, hostName, 0) + 1;
-        hostName2 = malloc(len * sizeof(TCHAR));
+ #else
+        len = mbstowcs(NULL, hostName, MBSTOWCS_QUERY_LENGTH);
+        if (len == (size_t)-1) {
+            return;
+        }
+        hostName2 = malloc(sizeof(TCHAR) * (len + 1));
         if (!hostName2) {
             outOfMemory(TEXT("LHN"), 2);
             return;
         }
-        mbstowcs(hostName2, hostName, len);
-#endif
+        mbstowcs(hostName2, hostName, len + 1);
+        hostName2[len] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
+ #endif
 #else
         /* No conversion needed.  Do an extra malloc here to keep the code simple below. */
-        len = _tcslen(hostName) + 1;
-        hostName2 = malloc(len * sizeof(TCHAR));
+        len = _tcslen(hostName);
+        hostName2 = malloc(sizeof(TCHAR) * (len + 1));
         if (!hostName2) {
             outOfMemory(TEXT("LHN"), 3);
             return;
         }
-        _tcsncpy(hostName2, hostName, len);
+        _tcsncpy(hostName2, hostName, len + 1);
 #endif
 
         wrapperData->hostName = malloc(sizeof(TCHAR) * (_tcslen(hostName2) + 1));
         if (!wrapperData->hostName) {
-            outOfMemory(TEXT("LHN"), 2);
+            outOfMemory(TEXT("LHN"), 4);
             free(hostName2);
             return;
         }

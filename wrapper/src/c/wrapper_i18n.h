@@ -14,6 +14,8 @@
  #include <stdio.h>
 
  #ifndef WIN32
+    
+   #define MBSTOWCS_QUERY_LENGTH 0
 
   #ifdef UNICODE
    #include <wchar.h>
@@ -127,7 +129,10 @@ extern int _tstat(const wchar_t* filename, struct stat *buf);
 #define _tcsdec       _wcsdec
 #define _tcsdup       _wcsdup
 #define _tcsicmp      wcscasecmp
-extern wchar_t* _trealpath(const wchar_t* file_name, wchar_t *resolved_name) ;
+/* Intentionally do not allow use of _trealpath because it does not specify a buffer length.
+ * #define _trealpath
+ * Define our own _trealpathN below. */
+extern wchar_t* _trealpathN(const wchar_t* fileName, wchar_t *resolvedName, size_t resolvedNameSize);
 #define _tcsicoll     _wcsicoll
 #define _tcsinc       _wcsinc
 #define _tcslwr       _wcslwr
@@ -328,7 +333,10 @@ typedef unsigned char _TUCHAR;
 #define _tcsicmp      strcasecmp
 #define _tcsicoll     _stricoll
 #define _tcsinc       _strinc
-#define _trealpath    realpath
+/* Intentionally do not allow use of _trealpath because it does not specify a buffer length.
+ * #define _trealpath    realpath
+ * Define our own _trealpathN below. */
+#define _trealpathN(fileName, resolvedName, resolvedNameSize)    realpath(fileName, resolvedName)
 #define _tcslwr       _strlwr
 #define _tcsnbcnt     _strncnt
 #define _tcsnccnt     _strncnt
@@ -495,3 +503,26 @@ extern int wrapperGetLastError();
  */
 extern void wrapperCorrectWindowsPath(TCHAR *filename);
 #endif
+
+
+/* Helper defines used to help trace where certain calls are being made. */
+/*#define DEBUG_MBSTOWCS*/
+#ifdef DEBUG_MBSTOWCS
+ #ifdef WIN32
+  #define mbstowcs(x,y,z) mbstowcs(x,y,z); wprintf(L"%S:%d:%S mbstowcs(%S, %S, %S) -> mbstowcs(%p, \"%S\", %d)\n", __FILE__, __LINE__, __FUNCTION__, #x, #y, #z, (void *)x, y, (int)z)
+ #else
+  #define mbstowcs(x,y,z) mbstowcs(x,y,z); wprintf(L"%s:%d:%s mbstowcs(%s, %s, %s) -> mbstowcs(%p, \"%s\", %d)\n", __FILE__, __LINE__, __FUNCTION__, #x, #y, #z, (void *)x, y, (int)z)
+ #endif
+#endif
+
+/*#define DEBUG_MALLOC*/
+#ifdef DEBUG_MALLOC
+ extern void *malloc2(size_t size, const char *file, int line, const char *func, const char *sizeVar);
+ #define malloc(x) malloc2(x, __FILE__, __LINE__, __FUNCTION__, #x)
+ #ifdef WIN32
+  #define free(x) wprintf(L"%S:%d:%S free(%S) -> free(%p)\n", __FILE__, __LINE__, __FUNCTION__, #x, (void *)x); free(x)
+ #else
+  #define free(x) wprintf(L"%s:%d:%s free(%s) -> free(%p)\n", __FILE__, __LINE__, __FUNCTION__, #x, (void *)x); free(x)
+ #endif
+#endif
+

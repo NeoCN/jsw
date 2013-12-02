@@ -469,13 +469,17 @@ void descSignal(siginfo_t *sigInfo) {
  #ifndef UNICODE
                 uName = pw->pw_name;
  #else
-                req = mbstowcs(NULL, pw->pw_name, 0) + 1;
-                uName = malloc(req * sizeof(TCHAR));
+                req = mbstowcs(NULL, pw->pw_name, MBSTOWCS_QUERY_LENGTH);
+                if (req == (size_t)-1) {
+                    return;
+                }
+                uName = malloc(sizeof(TCHAR) * (req + 1));
                 if (!uName) {
                     outOfMemory(TEXT("DSCS"), 1);
                     return;
                 }
                 mbstowcs(uName, pw->pw_name, req + 1);
+                uName[req] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
  #endif
             }
 
@@ -1702,8 +1706,12 @@ int main(int argc, char **argv) {
         return 1;
     }
     for (i = 0; i < argc; i++) {
-        req = mbstowcs(NULL, cargv[i], 0);
-        argv[i] = malloc((int)(req + 1) * sizeof(TCHAR));
+        req = mbstowcs(NULL, cargv[i], MBSTOWCS_QUERY_LENGTH);
+        if (req == (size_t)-1) {
+            _tprintf(TEXT("Encoding problem with arguments in Main\n"));
+            return 1;
+        }
+        argv[i] = malloc(sizeof(TCHAR) * (req + 1));
         if (!argv[i]) {
             _tprintf(TEXT("Out of Memory in Main\n"));
             while(--i > 0) {
@@ -1713,7 +1721,8 @@ int main(int argc, char **argv) {
             appExit(1, 0, argv);
             return 1;
         }
-        mbstowcs(argv[i], cargv[i], (req + 1) * sizeof(TCHAR));
+        mbstowcs(argv[i], cargv[i], req + 1);
+        argv[i][req] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
     }
 
 #endif
