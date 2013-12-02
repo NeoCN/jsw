@@ -71,17 +71,19 @@ TCHAR* getLastErrorText() {
     TCHAR* t;
     size_t req;
     c = strerror(errno);
-    req = mbstowcs(NULL, c, 0);
-    if (req < 0) {
+    req = mbstowcs(NULL, c, MBSTOWCS_QUERY_LENGTH);
+    if (req == (size_t)-1) {
         invalidMultiByteSequence(TEXT("GLET"), 1);
         return NULL;
     }
     t = malloc(sizeof(TCHAR) * (req + 1));
+    
     if (!t) {
         _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("GLET1"));
         return NULL;
     }
     mbstowcs(t, c, req + 1);
+    t[req] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
     return t;
 
 #else

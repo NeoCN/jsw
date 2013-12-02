@@ -52,9 +52,9 @@
 #include <unistd.h>
 #include <stdlib.h>
 #endif
-#include "wrapper_i18n.h"
 #include "wrapper.h"
 #include "logger.h"
+#include "wrapper_i18n.h"
 
 #ifndef MAX
 #define MAX(a, b)  (((a) > (b)) ? (a) : (b))

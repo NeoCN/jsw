@@ -11,11 +11,13 @@
 
 
 
-#include "wrapper_i18n.h"
 #ifdef WIN32
 #include <tchar.h>
 #include <windows.h>
 #endif
+
+#include "wrapper_i18n.h"
+
 /**
  * wrapperinfo.c is built as part of the build process.  Ant creates this
  *  file by making a copy of wrapperinfo.c.in, replacing tokens as it does
@@ -28,7 +30,7 @@ TCHAR *wrapperVersion = TEXT("@version@");
 TCHAR *wrapperBits = TEXT("@bits@");
 TCHAR *wrapperArch = TEXT("@dist.arch@");
 TCHAR *wrapperOS = TEXT("@dist.os@");
-TCHAR *wrapperReleaseDate = TEXT("20131202");
+TCHAR *wrapperReleaseDate = TEXT("20131203");
 TCHAR *wrapperReleaseTime = TEXT("0000");
 TCHAR *wrapperBuildDate = TEXT("@build.date@");
 TCHAR *wrapperBuildTime = TEXT("@build.time@");

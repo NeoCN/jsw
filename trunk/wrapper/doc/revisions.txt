@@ -49,6 +49,10 @@ Java Service Wrapper Revision History.
 * (Standard, Professional) Fix a problem on FreeBSD systems where the
   wrapper.lang.encoding was not resolving to UTF-8 correctly when the LANG
   environment variable was not set.
+* (Professional) Fix a memory corruption problem on z/OS when the language was
+  set to a double byte locale like Japanese.
+* Go through and make the Wrapper much more durable when badly encoded double
+  byte characters are encountered.
 
 3.5.22
 * (Standard, Professional) Fix a crash in native code behind WrapperResources

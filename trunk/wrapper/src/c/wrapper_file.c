@@ -1013,7 +1013,7 @@ int configFileReader_Read(ConfigFileReader *reader,
                     if (!absoluteBuffer) {
                         outOfMemory(TEXT("RCF"), 2);
                     } else {
-                        if (_trealpath(expBuffer, absoluteBuffer) == NULL) {
+                        if (_trealpathN(expBuffer, absoluteBuffer, PATH_MAX + 1) == NULL) {
                             if (reader->debugIncludes || includeRequired) {
                                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                                     TEXT("Unable to resolve the full path of included configuration file: %s (%s)\n  Referenced from: %s (line %d)\n  Current working directory: %s"),

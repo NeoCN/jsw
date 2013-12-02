@@ -286,7 +286,7 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
     }
 
     /* now store the result into a wchar_t */
-    wideCharLen = mbstowcs(NULL, nativeCharStart, 0);
+    wideCharLen = mbstowcs(NULL, nativeCharStart, MBSTOWCS_QUERY_LENGTH);
     if (wideCharLen == (size_t)-1) {
         if (didIConv) {
             free(nativeCharStart);
@@ -315,9 +315,7 @@ int multiByteToWideChar(const char *multiByteChars, const char *multiByteEncodin
         return TRUE;
     }
     mbstowcs(*outputBufferW, nativeCharStart, wideCharLen + 1);
-    
-    /* for sanity */
-    (*outputBufferW)[wideCharLen] = TEXT('\0');
+    (*outputBufferW)[wideCharLen] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
     
     /* free the native char */
     if (didIConv) {
@@ -341,7 +339,14 @@ size_t _treadlink(TCHAR* exe, TCHAR* fullPath, size_t size) {
         cFullPath = malloc (size);
         if (cFullPath) {
             req = readlink(cExe, cFullPath, size);
-            mbstowcs(fullPath, cFullPath, size);
+            req = mbstowcs(fullPath, cFullPath, size);
+            if (req == (size_t)-1) {
+                free(cFullPath);
+                free(cExe);
+                return (size_t)-1;
+            }
+            fullPath[size - 1] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
+            
             free(cFullPath);
             free(cExe);
             return req * sizeof(TCHAR);
@@ -358,11 +363,19 @@ size_t _treadlink(TCHAR* exe, TCHAR* fullPath, size_t size) {
  */
 TCHAR* _tgetcwd(TCHAR *buf, size_t size) {
     char* cBuf;
+    size_t len;
+    
     if (buf) {
         cBuf = malloc(size);
         if (cBuf) {
             if (getcwd(cBuf, size) != NULL) {
-                mbstowcs(buf, cBuf, size * sizeof(TCHAR));
+                len = mbstowcs(buf, cBuf, size);
+                if (len == (size_t)-1) {
+                    /* Failed. */
+                    free(cBuf);
+                    return NULL;
+                }
+                buf[size - 1] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
                 free(cBuf);
                 return buf;
             }
@@ -419,11 +432,12 @@ TCHAR *_tsetlocale(int category, const TCHAR *locale) {
         free(cLocale);
         
         if (cReturn) {
-            req = mbstowcs(NULL, cReturn, 0);
+            req = mbstowcs(NULL, cReturn, MBSTOWCS_QUERY_LENGTH);
             if (req != (size_t)-1) {
                 tReturn = malloc(sizeof(TCHAR) * (req + 1));
                 if (tReturn) {
                     mbstowcs(tReturn, cReturn, req + 1);
+                    tReturn[req] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
                     return tReturn;
                 }
             }
@@ -597,20 +611,28 @@ TCHAR * _tgetenv( const TCHAR * name ) {
     size_t req;
     char *cVal;
 
-    req = wcstombs(NULL, name, 0) + 1;
-    cName = malloc(req);
+    req = wcstombs(NULL, name, 0);
+    if (req == (size_t)-1) {
+        return NULL;
+    }
+    cName = malloc(sizeof(char) * (req + 1));
     if (cName) {
-        wcstombs(cName, name, req);
+        wcstombs(cName, name, req + 1);
         cVal = getenv(cName);
         free(cName);
         if (cVal == NULL) {
             return NULL;
         }
-        req = mbstowcs(NULL, cVal, 0) + 1;
-        req *= sizeof(TCHAR);
-        val = malloc(req);
+        
+        req = mbstowcs(NULL, cVal, MBSTOWCS_QUERY_LENGTH);
+        if (req == (size_t)-1) {
+            /* Failed. */
+            return NULL;
+        }
+        val = malloc(sizeof(TCHAR) * (req + 1));
         if (val) {
-            mbstowcs(val, cVal, req);
+            mbstowcs(val, cVal, req + 1);
+            val[req] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
             return val;
         }
     }
@@ -891,17 +913,17 @@ int _tsetenv(const TCHAR *name, const TCHAR *value, int overwrite) {
     cName = malloc(size);
     if (cName) {
         wcstombs(cName, name, size);
-        
+
         size = wcstombs(NULL, (wchar_t*)value, 0) + 1;
         cValue = malloc(size);
         if (cValue) {
             wcstombs(cValue, value, size);
-            
+
             r = setenv(cName, cValue, overwrite);
-            
+
             free(cValue);
         }
-        
+
         free(cName);
     }
     return r;
@@ -915,9 +937,9 @@ void _tunsetenv(const TCHAR *name) {
     cName = malloc(size);
     if (cName) {
         wcstombs(cName, name, size);
-        
+
         unsetenv(cName);
-        
+
         free(cName);
     }
 }
@@ -939,11 +961,12 @@ int _tstat(const wchar_t* filename, struct stat *buf) {
 
 /**
  * @param file_name The file name to be resolved.
- * @param resolved_name A buffer large enough to hold MAX_PATH characters (plus a '\0')
+ * @param resolvedName A buffer large enough to hold the expanded path.
+ * @param resolvedNameLen The size of the resolvedName buffer, should usually be PATH_MAX + 1.
  *
- * @return resolved_name of success, otherwise NULL.
+ * @return resolved_name if successful, otherwise NULL.
  */
-wchar_t* _trealpath(const wchar_t* fileName, wchar_t *resolvedName) {
+wchar_t* _trealpathN(const wchar_t* fileName, wchar_t *resolvedName, size_t resolvedNameSize) {
     char *cFile;
 #if defined(IRIX)
     char resolved[FILENAME_MAX + 1];
@@ -951,33 +974,41 @@ wchar_t* _trealpath(const wchar_t* fileName, wchar_t *resolvedName) {
     char resolved[PATH_MAX + 1];
 #endif
     int sizeFile;
-    int sizeReturn;
+    int req;
     char* returnVal;
-    
+
     /* Initialize the return value. */
     resolvedName[0] = TEXT('\0');
 
-    sizeFile = wcstombs(NULL, fileName, 0) + 1;
-    cFile = malloc(sizeFile);
+    sizeFile = wcstombs(NULL, fileName, 0);
+    cFile = malloc(sizeof(char) * (sizeFile + 1));
     if (cFile) {
-        wcstombs(cFile, fileName, sizeFile);
+        wcstombs(cFile, fileName, sizeFile + 1);
         returnVal = realpath(cFile, resolved);
         if (returnVal == NULL) {
             free(cFile);
-            
+
             /* The resolved var contains an error path.  Convert it. */
-            sizeReturn = mbstowcs(NULL, resolved, 0) + 1;
-            sizeReturn *= sizeof(TCHAR);
-            mbstowcs(resolvedName, resolved, sizeReturn);
-            
+            req = mbstowcs(NULL, resolved, MBSTOWCS_QUERY_LENGTH);
+            if (req == (size_t)-1) {
+                resolvedName[0] = TEXT('\0'); /* Terminate the output buffer as it does not contain a path. */
+                return NULL;
+            }
+            mbstowcs(resolvedName, resolved, resolvedNameSize);
+            resolvedName[resolvedNameSize - 1] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
+
             return NULL;
         }
         free(cFile);
-        
-        sizeReturn = mbstowcs(NULL, resolved, 0) + 1;
-        sizeReturn *= sizeof(TCHAR);
-        mbstowcs(resolvedName, resolved, sizeReturn);
-    
+
+        req = mbstowcs(NULL, resolved, MBSTOWCS_QUERY_LENGTH);
+        if (req == (size_t)-1) {
+            resolvedName[0] = TEXT('\0'); /* Terminate the output buffer as it does not contain a path. */
+            return NULL;
+        }
+        mbstowcs(resolvedName, resolved, resolvedNameSize);
+        resolvedName[resolvedNameSize - 1] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
+
         return resolvedName;
     }
     return NULL;
@@ -1282,6 +1313,22 @@ int loadIconvLibrary() {
     }
 
     return FALSE;
+}
+#endif
+
+#ifdef DEBUG_MALLOC
+ /* There can't be any more malloc calls after the malloc2 function in this file. */
+ #undef malloc
+void *malloc2(size_t size, const char *file, int line, const char *func, const char *sizeVar) {
+    void *ptr;
+ #ifdef WIN32
+    wprintf(L"%S:%d:%S malloc(%S) -> malloc(%d)", file, line, func, sizeVar, size);
+ #else	
+    wprintf(L"%s:%d:%s malloc(%s) -> malloc(%d)", file, line, func, sizeVar, size);
+ #endif
+    ptr = malloc(size);
+    wprintf(L" -> %p\n", ptr);
+    return ptr;
 }
 #endif
 

@@ -309,14 +309,20 @@ TCHAR *JNU_GetStringNativeChars(JNIEnv *env, jstring jstr) {
     free(result);
     return tresult;
 #else
-    size = (mbstowcs(NULL, result, 0) + 1) * sizeof(TCHAR);
-    tresult = malloc(size);
+    size = mbstowcs(NULL, result, MBSTOWCS_QUERY_LENGTH);
+    if (size == (size_t)-1) {
+        throwJNIError(env, TEXT("Encoding error."));
+        return NULL;
+    }
+    tresult = malloc(sizeof(TCHAR) * (size + 1));
     if (!tresult) {
         free(result);
         throwOutOfMemoryError(env, TEXT("GSNC3"));
         return NULL;
     }
-    mbstowcs(tresult, result, size);
+    mbstowcs(tresult, result, size + 1);
+    tresult[size] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
+    
     free(result);
     return tresult;
 #endif

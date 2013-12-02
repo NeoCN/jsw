@@ -75,7 +75,6 @@ typedef long intptr_t;
   #include <sys/fcntl.h>
  #elif defined(AIX) || defined(HPUX) || defined(MACOSX) || defined(OSF1)
  #elif defined(IRIX)
-  #define PATH_MAX FILENAME_MAX
  #elif defined(FREEBSD)
   #include <sys/param.h>
   #include <errno.h>
@@ -732,7 +731,7 @@ TCHAR *getCurrentLogfilePath() {
      *  If that is false then we will return an empty length, but valid, string. */
     logFileCopy = malloc(sizeof(TCHAR) * (_tcslen(currentLogFileName) + 1));
     if (!logFileCopy) {
-        _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P3"));
+        _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("CLFP1"));
     } else {
         _tcsncpy(logFileCopy, currentLogFileName, _tcslen(currentLogFileName) + 1);
     }
@@ -2152,7 +2151,7 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
             }
             msg[wcslen(lpszFmt)] = TEXT('\0');
         } else {
-            _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P0"));
+            _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P1"));
             return;
         }
         flag = TRUE;
@@ -2177,7 +2176,7 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
 #endif
                 threadMessageBuffer = malloc(sizeof(TCHAR) * threadMessageBufferSize);
                 if (!threadMessageBuffer) {
-                    _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P1"));
+                    _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P2"));
                     threadMessageBufferSize = 0;
 #if defined(UNICODE) && !defined(WIN32)
                     if (flag == TRUE) {
@@ -2260,7 +2259,7 @@ void log_printf( int source_id, int level, const TCHAR *lpszFmt, ... ) {
          *  depending on where exactly this function was called from. (See Wrapper protocol mutex.) */
         logFileCopy = malloc(sizeof(TCHAR) * (_tcslen(currentLogFileName) + 1));
         if (!logFileCopy) {
-            _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P3"));
+            _tprintf(TEXT("Out of memory in logging code (%s)\n"), TEXT("P4"));
         } else {
             _tcsncpy(logFileCopy, currentLogFileName, _tcslen(currentLogFileName) + 1);
             /* Now after we have 100% prepared the log file name.  Put into the queue variable
@@ -2349,7 +2348,7 @@ TCHAR* getLastErrorText() {
     TCHAR* t;
     size_t req;
     c = strerror(errno);
-    req = mbstowcs(NULL, c, 0);
+    req = mbstowcs(NULL, c, MBSTOWCS_QUERY_LENGTH);
     if (req == (size_t)-1) {
         invalidMultiByteSequence(TEXT("GLET"), 1);
         return NULL;
@@ -2360,6 +2359,7 @@ TCHAR* getLastErrorText() {
         return NULL;
     }
     mbstowcs(t, c, req + 1);
+    t[req] = TEXT('\0'); /* Avoid bufferflows caused by badly encoded characters. */
     return t;
 
 #else

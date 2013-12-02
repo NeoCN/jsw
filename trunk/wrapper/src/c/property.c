@@ -29,7 +29,7 @@
 
 #if defined(MACOSX) || defined(FREEBSD)
 #else
-#include <malloc.h>
+ #include <malloc.h>
 #endif
 
 #include <stdio.h>
@@ -38,20 +38,17 @@
 #include <time.h>
 
 #ifdef WIN32
-#include <errno.h>
+ #include <errno.h>
 
 /* MS Visual Studio 8 went and deprecated the POXIX names for functions.
  *  Fixing them all would be a big headache for UNIX versions. */
-#pragma warning(disable : 4996)
+ #pragma warning(disable : 4996)
 
 #else
-#include <strings.h>
-#include <limits.h>
-#include <sys/time.h>
-#include <langinfo.h>
-#if defined(IRIX)
-#define PATH_MAX FILENAME_MAX
-#endif
+ #include <strings.h>
+ #include <limits.h>
+ #include <sys/time.h>
+ #include <langinfo.h>
 #endif
 #include "wrapper_i18n.h"
 #include "logger.h"
