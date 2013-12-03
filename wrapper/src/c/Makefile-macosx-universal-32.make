@@ -27,7 +27,8 @@ BIN = ../../bin
 LIB = ../../lib
 TEST = ../../test
 
-all: init testsuite wrapper libwrapper.jnilib
+#all: init testsuite wrapper libwrapper.jnilib
+all: init wrapper libwrapper.jnilib
 
 clean:
 	rm -f *.o
