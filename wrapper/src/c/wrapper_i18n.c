@@ -27,6 +27,10 @@
 #include <string.h>
 #include "logger_base.h"
 
+#if defined(IRIX)
+ #define PATH_MAX FILENAME_MAX
+#endif
+
 #ifndef TRUE
 #define TRUE -1
 #endif
