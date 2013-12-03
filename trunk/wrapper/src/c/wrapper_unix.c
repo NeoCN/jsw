@@ -63,11 +63,11 @@
 #include <sys/time.h>
 
 #if defined(IRIX)
-#define PATH_MAX FILENAME_MAX
+ #define PATH_MAX FILENAME_MAX
 #endif
 
 #ifndef USE_USLEEP
-#include <time.h>
+ #include <time.h>
 #endif
 
 #ifndef getsid
