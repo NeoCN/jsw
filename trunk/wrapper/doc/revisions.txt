@@ -2,6 +2,8 @@ Java Service Wrapper Revision History.
 --------------------------------------
 
 3.5.24
+* Fix a problem where the message source of remote syslog messages from the JVM
+  were being logged as "jvm %d" rather than "jvm 1".
 
 3.5.23
 * Clean up the error messages logged when the Wrapper failed to elevate itself

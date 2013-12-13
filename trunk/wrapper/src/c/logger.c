@@ -44,31 +44,30 @@
 #include "wrapper_file.h"
 
 #ifdef WIN32
-#include <io.h>
-#include <Fcntl.h>
-#include <windows.h>
-#include <tchar.h>
-#include <conio.h>
-#include <sys/timeb.h>
-#include "messages.h"
+ #include <io.h>
+ #include <Fcntl.h>
+ #include <windows.h>
+ #include <tchar.h>
+ #include <conio.h>
+ #include <sys/timeb.h>
+ #include "messages.h"
 
 /* MS Visual Studio 8 went and deprecated the POXIX names for functions.
  *  Fixing them all would be a big headache for UNIX versions. */
-#pragma warning(disable : 4996)
+ #pragma warning(disable : 4996)
 
 /* Defines for MS Visual Studio 6 */
-#ifndef _INTPTR_T_DEFINED
+ #ifndef _INTPTR_T_DEFINED
 typedef long intptr_t;
-#define _INTPTR_T_DEFINED
-#endif
+  #define _INTPTR_T_DEFINED
+ #endif
 
 #else
-#include <syslog.h>
-#include <strings.h>
-#include <pthread.h>
-#include <sys/time.h>
-#include <limits.h>
-
+ #include <syslog.h>
+ #include <strings.h>
+ #include <pthread.h>
+ #include <sys/time.h>
+ #include <limits.h>
 
  #if defined(SOLARIS)
   #include <sys/errno.h>
@@ -88,11 +87,11 @@ typedef long intptr_t;
 #include "logger.h"
 
 #ifndef TRUE
-#define TRUE -1
+ #define TRUE -1
 #endif
 
 #ifndef FALSE
-#define FALSE 0
+ #define FALSE 0
 #endif
 
 const TCHAR* defaultLogFile = TEXT("wrapper.log");
@@ -2485,6 +2484,7 @@ void sendEventlogMessage( int source_id, int level, const TCHAR *szBuff ) {
 
     default:
         _sntprintf( header, 16, TEXT("jvm %d"), source_id );
+        header[15] = TEXT('\0'); /* Just in case we get lots of restarts. */
         break;
     }
 
