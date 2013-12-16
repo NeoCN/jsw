@@ -112,6 +112,7 @@ int    previousNowMillis;
 int currentConsoleLevel = LEVEL_UNKNOWN;
 int currentLogfileLevel = LEVEL_UNKNOWN;
 int currentLoginfoLevel = LEVEL_UNKNOWN;
+int currentLogSplitMessages = FALSE;
 
 /* Default syslog facility is LOG_USER */
 int currentLogfacilityLevel = LOG_USER;
@@ -1180,6 +1181,10 @@ void setSyslogLevel( const TCHAR *loginfo_level ) {
     setSyslogLevelInt(getLogLevelForName(loginfo_level));
 }
 
+void setSyslogSplitMessages(int splitMessages) {
+    currentLogSplitMessages = splitMessages;
+}
+
 #ifndef WIN32
 void setSyslogFacilityInt( int logfacility_level ) {
     currentLogfacilityLevel = logfacility_level;
@@ -1957,19 +1962,21 @@ int log_printf_message(int source_id, int level, int threadId, int queued, TCHAR
         previousNowMillis = nowMillis;
         break;
     }
-        
-    /* Syslog messages are printed first so we can print them including line feeds as is.
-     *  This must be done before we break up multi-line messages into individual lines. */
+    
+    if (!currentLogSplitMessages) {
+        /* Syslog messages are printed first so we can print them including line feeds as is.
+         *  This must be done before we break up multi-line messages into individual lines. */
 #ifdef WIN32
-    if (sysLogEnabled) {
+        if (sysLogEnabled) {
 #else
-    /* On UNIX we never want to log to the syslog here if this is in a forked thread.
-     *  In this case, any lines will be broken up into individual lines and then logged
-     *  as usual by the main process.  But this can't be helped and is very rare anyway. */
-    if (sysLogEnabled && (_tcsstr(message, LOG_FORK_MARKER) != message)) {
+        /* On UNIX we never want to log to the syslog here if this is in a forked thread.
+         *  In this case, any lines will be broken up into individual lines and then logged
+         *  as usual by the main process.  But this can't be helped and is very rare anyway. */
+        if (sysLogEnabled && (_tcsstr(message, LOG_FORK_MARKER) != message)) {
 #endif
-        /* syslog/Eventlog. */
-        log_printf_message_sysLog(source_id, level, message, nowTM, FALSE);
+            /* syslog/Eventlog. */
+            log_printf_message_sysLog(source_id, level, message, nowTM, FALSE);
+        }
     }
 
     /* If the message contains line feeds then break up the line into substrings and recurse. */
@@ -2048,6 +2055,11 @@ int log_printf_message(int source_id, int level, int threadId, int queued, TCHAR
     {
         /* The current thread was specified.  Resolve what thread this actually is. */
         threadId = getThreadId();
+    }
+    
+    /* Syslog outbut by format (If messages splitting is enabled.  Otherwise done above.) */
+    if (currentLogSplitMessages) {
+        log_printf_message_sysLog(source_id, level, message, nowTM, FALSE);
     }
 
     /* Console output by format */

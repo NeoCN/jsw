@@ -660,6 +660,9 @@ void wrapperLoadLoggingProperties(int preload) {
 
     /* Load syslog log level */
     setSyslogLevel(getStringProperty(properties, TEXT("wrapper.syslog.loglevel"), TEXT("NONE")));
+    
+    /* Load syslog split messages flag. */
+    setSyslogSplitMessages(getBooleanProperty(properties, TEXT("wrapper.syslog.split_messages"), FALSE));
 
 #ifndef WIN32
     /* Load syslog facility */
