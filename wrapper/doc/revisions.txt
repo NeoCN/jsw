@@ -7,6 +7,9 @@ Java Service Wrapper Revision History.
 * Add a new wrapper.syslog.split_messages property which controls whether or
   not multi-line messages will be logged as is or first split into individual
   lines.
+* Fix a problem on Windows Vista and above where the wrapper.single_invocation
+  property was not correctly identifying Wrapper instances running in different
+  sessions under some circumstances.
 
 3.5.23
 * Clean up the error messages logged when the Wrapper failed to elevate itself
