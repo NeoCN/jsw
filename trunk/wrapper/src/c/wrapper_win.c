@@ -307,12 +307,12 @@ HANDLE invocationMutexHandle = NULL;
 int initInvocationMutex() {
     TCHAR *mutexName;
     if (wrapperData->isSingleInvocation) {
-        mutexName = malloc(sizeof(TCHAR) * (23 + _tcslen(wrapperData->serviceName) + 1));
+        mutexName = malloc(sizeof(TCHAR) * (30 + _tcslen(wrapperData->serviceName) + 1));
         if (!mutexName) {
             outOfMemory(TEXT("IIM"), 1);
             return 1;
         }
-        _sntprintf(mutexName, 23 + _tcslen(wrapperData->serviceName) + 1, TEXT("Java Service Wrapper - %s"), wrapperData->serviceName);
+        _sntprintf(mutexName, 30 + _tcslen(wrapperData->serviceName) + 1, TEXT("Global\\Java Service Wrapper - %s"), wrapperData->serviceName);
 
         if (!(invocationMutexHandle = CreateMutex(NULL, FALSE, mutexName))) {
             free(mutexName);
