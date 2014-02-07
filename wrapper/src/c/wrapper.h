@@ -1053,6 +1053,6 @@ struct LoadParameterFileCallbackParam {
 };
 
 #ifdef CUNIT
-extern void testJavaAdditionalParamSuite(void);
+extern void tsJAP_testJavaAdditionalParamSuite(void);
 #endif /* CUNIT */
 #endif

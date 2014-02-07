@@ -1,6 +1,21 @@
 Java Service Wrapper Revision History.
 --------------------------------------
 
+3.5.25
+* (Professional) Improve the wrapper.timer.<n>.interval property so it is now
+  possible to specify ranges and lists of values as well as offsets for
+  interval values to more precisely control when timers are fired.
+* (Professional) Fix a problem with the wrapper.timer.<n>.interval property
+  where timers would not fire during an interval the system time was set back.
+  Also fixed a problem where timers would stop firing permanently if the system
+  time was set forward by more than the value of the wrapper.timer.max_catchup
+  property and a timer had been scheduled to be fired during that interval.
+  Both of these issues were most likely during daylight savings time.
+* Fix a problem where signals received by the JVM were not being logged in
+  debug output correctly if the wrapper.ignore_signals property is set to true.
+  We now also log debug output even if a user event listener consumes the
+  signal event.
+
 3.5.24
 * Fix a problem where the message source of remote syslog messages from the JVM
   were being logged as "jvm %d" rather than "jvm 1".
