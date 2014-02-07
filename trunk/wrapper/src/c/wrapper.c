@@ -8406,7 +8406,7 @@ void wrapperStartedSignaled() {
 }
 
 #ifdef CUNIT
-static void subTestJavaAdditionalParamSuite(int stripQuote, TCHAR *config, TCHAR **strings, int strings_len, int isJVMParam) {
+static void tsJAP_subTestJavaAdditionalParamSuite(int stripQuote, TCHAR *config, TCHAR **strings, int strings_len, int isJVMParam) {
     LoadParameterFileCallbackParam param;
     int ret;
     int i;
@@ -8434,9 +8434,9 @@ static void subTestJavaAdditionalParamSuite(int stripQuote, TCHAR *config, TCHAR
     }
 }
 
-#define ARRAY_LENGTH(a) (sizeof(a) / sizeof(a[0]))
+#define TSJAP_ARRAY_LENGTH(a) (sizeof(a) / sizeof(a[0]))
 
-void testJavaAdditionalParamSuite(void) {
+void tsJAP_testJavaAdditionalParamSuite(void) {
     int stripQuote;
     int i = 0;
     int isJVM = TRUE;
@@ -8451,7 +8451,7 @@ void testJavaAdditionalParamSuite(void) {
             TCHAR *config = TEXT("-Dsomething=something");
             TCHAR *strings[1];
             strings[0] = TEXT("-Dsomething=something");
-            subTestJavaAdditionalParamSuite(FALSE, config, strings, ARRAY_LENGTH(strings), isJVM);
+            tsJAP_subTestJavaAdditionalParamSuite(FALSE, config, strings, TSJAP_ARRAY_LENGTH(strings), isJVM);
         }
         {
             /* Multiple parameters in 1 line. */
@@ -8459,7 +8459,7 @@ void testJavaAdditionalParamSuite(void) {
             TCHAR *strings[2];
             strings[0] = TEXT("-Dsomething=something");
             strings[1] = TEXT("-Dxxx=xxx");
-            subTestJavaAdditionalParamSuite(FALSE, config, strings, ARRAY_LENGTH(strings), isJVM);
+            tsJAP_subTestJavaAdditionalParamSuite(FALSE, config, strings, TSJAP_ARRAY_LENGTH(strings), isJVM);
         }
         {
             /* Horizontal Tab is not a delimiter. */
@@ -8467,7 +8467,7 @@ void testJavaAdditionalParamSuite(void) {
             TCHAR *strings[2];
             strings[0] = TEXT("-Dsomething1=something1\t-Dsomething2=something2");
             strings[1] = TEXT("-Dxxx=xxx");
-            subTestJavaAdditionalParamSuite(FALSE, config, strings, ARRAY_LENGTH(strings), isJVM);
+            tsJAP_subTestJavaAdditionalParamSuite(FALSE, config, strings, TSJAP_ARRAY_LENGTH(strings), isJVM);
         }
         {
             /* Horizontal Tab is not a delimiter. */
@@ -8475,7 +8475,7 @@ void testJavaAdditionalParamSuite(void) {
             TCHAR *strings[2];
             strings[0] = TEXT("-Dsomething1=something1\t-Dsomething2=something2");
             strings[1] = TEXT("-Dxxx=xxx");
-            subTestJavaAdditionalParamSuite(FALSE, config, strings, ARRAY_LENGTH(strings), isJVM);
+            tsJAP_subTestJavaAdditionalParamSuite(FALSE, config, strings, TSJAP_ARRAY_LENGTH(strings), isJVM);
         }
         if (isJVM == TRUE) {
             {
@@ -8483,7 +8483,7 @@ void testJavaAdditionalParamSuite(void) {
                 TCHAR *config = TEXT("something=something -Dxxx=xxx");
                 TCHAR *strings[1];
                 strings[0] = TEXT("-Dxxx=xxx");
-                subTestJavaAdditionalParamSuite(FALSE, config, strings, ARRAY_LENGTH(strings), isJVM);
+                tsJAP_subTestJavaAdditionalParamSuite(FALSE, config, strings, TSJAP_ARRAY_LENGTH(strings), isJVM);
             }
         } else {
             {
@@ -8492,7 +8492,7 @@ void testJavaAdditionalParamSuite(void) {
             TCHAR *strings[2];
             strings[0] = TEXT("something=something");
             strings[1] = TEXT("-Dxxx=xxx");
-            subTestJavaAdditionalParamSuite(FALSE, config, strings, ARRAY_LENGTH(strings), isJVM);
+            tsJAP_subTestJavaAdditionalParamSuite(FALSE, config, strings, TSJAP_ARRAY_LENGTH(strings), isJVM);
             }
         }
 
@@ -8504,7 +8504,7 @@ void testJavaAdditionalParamSuite(void) {
             TCHAR *strings[2];
             strings[0] = TEXT("-DmyApp.x1=\"Hello World.\"");
             strings[1] = TEXT("-DmyApp.x2=x2");
-            subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings), isJVM);
+            tsJAP_subTestJavaAdditionalParamSuite(stripQuote, config, strings, TSJAP_ARRAY_LENGTH(strings), isJVM);
         }
         {
             /* Quotations #2 */
@@ -8512,7 +8512,7 @@ void testJavaAdditionalParamSuite(void) {
             TCHAR *strings[2];
             strings[0] = TEXT("\"-DmyApp.x1=Hello World.\"");
             strings[1] = TEXT("-DmyApp.x2=x2");
-            subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings), isJVM);
+            tsJAP_subTestJavaAdditionalParamSuite(stripQuote, config, strings, TSJAP_ARRAY_LENGTH(strings), isJVM);
         }
         {
             /* Escaped quotation */
@@ -8520,7 +8520,7 @@ void testJavaAdditionalParamSuite(void) {
             TCHAR *strings[2];
             strings[0] = TEXT("-DmyApp.x1=\"Hello \\\"World.\"");
             strings[1] = TEXT("-DmyApp.x2=x2");
-            subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings), isJVM);
+            tsJAP_subTestJavaAdditionalParamSuite(stripQuote, config, strings, TSJAP_ARRAY_LENGTH(strings), isJVM);
         }
         {
             /* Escaped backslash */
@@ -8528,7 +8528,7 @@ void testJavaAdditionalParamSuite(void) {
             TCHAR *strings[2];
             strings[0] = TEXT("-DmyApp.x1=\"Hello World.\\\\\"");
             strings[1] = TEXT("-DmyApp.x2=x2");
-            subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings), isJVM);
+            tsJAP_subTestJavaAdditionalParamSuite(stripQuote, config, strings, TSJAP_ARRAY_LENGTH(strings), isJVM);
         }
         /* Test set #3 : with stripping double quotations */
         stripQuote = TRUE;
@@ -8538,7 +8538,7 @@ void testJavaAdditionalParamSuite(void) {
             TCHAR *strings[2];
             strings[0] = TEXT("-DmyApp.x1=Hello World.");
             strings[1] = TEXT("-DmyApp.x2=x2");
-            subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings), isJVM);
+            tsJAP_subTestJavaAdditionalParamSuite(stripQuote, config, strings, TSJAP_ARRAY_LENGTH(strings), isJVM);
         }
         {
             /* Quotations #2 */
@@ -8546,7 +8546,7 @@ void testJavaAdditionalParamSuite(void) {
             TCHAR *strings[2];
             strings[0] = TEXT("-DmyApp.x1=Hello World.");
             strings[1] = TEXT("-DmyApp.x2=x2");
-            subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings), isJVM);
+            tsJAP_subTestJavaAdditionalParamSuite(stripQuote, config, strings, TSJAP_ARRAY_LENGTH(strings), isJVM);
         }
         {
             /* Escaped quotation */
@@ -8554,7 +8554,7 @@ void testJavaAdditionalParamSuite(void) {
             TCHAR *strings[2];
             strings[0] = TEXT("-DmyApp.x1=Hello \"World.");
             strings[1] = TEXT("-DmyApp.x2=x2");  
-            subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings), isJVM);
+            tsJAP_subTestJavaAdditionalParamSuite(stripQuote, config, strings, TSJAP_ARRAY_LENGTH(strings), isJVM);
         }
         {
             /* Escaped backslash */
@@ -8562,7 +8562,7 @@ void testJavaAdditionalParamSuite(void) {
             TCHAR *strings[2];
             strings[0] = TEXT("-DmyApp.x1=Hello World.\\");
             strings[1] = TEXT("-DmyApp.x2=x2");
-            subTestJavaAdditionalParamSuite(stripQuote, config, strings, ARRAY_LENGTH(strings), isJVM);
+            tsJAP_subTestJavaAdditionalParamSuite(stripQuote, config, strings, TSJAP_ARRAY_LENGTH(strings), isJVM);
         }
     }
 }

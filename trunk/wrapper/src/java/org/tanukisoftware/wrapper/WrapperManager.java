@@ -4589,13 +4589,21 @@ public final class WrapperManager
         }
         fireWrapperEvent( controlEvent );
         
-        if ( !controlEvent.isConsumed() )
+        if ( ignore )
         {
-            if ( ignore )
+            // Event will always be consumed.
+            if ( m_debug )
+            {
+                m_outDebug.println( getRes().getString( "Ignoring control event({0})", eventName ) );
+            }
+        }
+        else
+        {
+            if ( controlEvent.isConsumed() )
             {
                 if ( m_debug )
                 {
-                    m_outDebug.println( getRes().getString( "Ignoring control event({0})", eventName ) );
+                    m_outDebug.println(getRes().getString( "Control event({0}) was consumed by user listener.", eventName ) );
                 }
             }
             else

@@ -1699,7 +1699,7 @@ int main(int argc, char **argv) {
 #endif    
     
     /* Create UNICODE versions of the argv array for internal use. */
-    argv = malloc(argc * sizeof *argv );
+    argv = malloc(argc * sizeof * argv);
     if(!argv) {
         _tprintf(TEXT("Out of Memory in Main\n"));
         appExit(1, 0, NULL);
@@ -1709,12 +1709,13 @@ int main(int argc, char **argv) {
         req = mbstowcs(NULL, cargv[i], MBSTOWCS_QUERY_LENGTH);
         if (req == (size_t)-1) {
             _tprintf(TEXT("Encoding problem with arguments in Main\n"));
+            appExit(1, 0, NULL);
             return 1;
         }
         argv[i] = malloc(sizeof(TCHAR) * (req + 1));
         if (!argv[i]) {
             _tprintf(TEXT("Out of Memory in Main\n"));
-            while(--i > 0) {
+            while (--i > 0) {
                 free(argv[i]);
             }
             free(argv);
