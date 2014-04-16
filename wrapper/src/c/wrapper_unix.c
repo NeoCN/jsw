@@ -1063,6 +1063,17 @@ int wrapperBuildJavaCommand() {
     int length, i;
 
     /* If this is not the first time through, then dispose the old command array */
+    if (wrapperData->jvmVersionCommand) {
+        i = 0;
+        while(wrapperData->jvmVersionCommand[i] != NULL) {
+            free(wrapperData->jvmVersionCommand[i]);
+            wrapperData->jvmVersionCommand[i] = NULL;
+            i++;
+        }
+
+        free(wrapperData->jvmVersionCommand);
+        wrapperData->jvmVersionCommand = NULL;
+    }
     if (wrapperData->jvmCommand) {
         i = 0;
         while(wrapperData->jvmCommand[i] != NULL) {
@@ -1091,28 +1102,37 @@ int wrapperBuildJavaCommand() {
         return TRUE;
     }
 
-    if (wrapperData->commandLogLevel != LEVEL_NONE) {
-        for (i = 0; i < length; i++) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel,
-                TEXT("Command[%d] : %s"), i, strings[i]);
-        }
-
-        if (wrapperData->environmentClasspath) {
-            log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel, TEXT(
-                "Classpath in Environment : %s"), wrapperData->classpath);
-        }
+    /* Allocate memory to hold array of version command strings.  The array is itself NULL terminated */
+    wrapperData->jvmVersionCommand = malloc(sizeof(TCHAR *) * (2 + 1));
+    if (!wrapperData->jvmVersionCommand) {
+        outOfMemory(TEXT("WBJC"), 1);
+        return TRUE;
     }
-
-    if (wrapperData->environmentClasspath) {
-        setEnv(TEXT("CLASSPATH"), wrapperData->classpath, ENV_SOURCE_WRAPPER);
+    memset(wrapperData->jvmVersionCommand, 0, sizeof(TCHAR *) * (2 + 1));
+    /* Java Command */
+    wrapperData->jvmVersionCommand[0] = malloc(sizeof(TCHAR) * (_tcslen(strings[0]) + 1));
+    if (!wrapperData->jvmVersionCommand[0]) {
+        outOfMemory(TEXT("WBJC"), 2);
+        return TRUE;
     }
-
+    _tcsncpy(wrapperData->jvmVersionCommand[0], strings[0], _tcslen(strings[0]) + 1);
+    /* -version */
+    wrapperData->jvmVersionCommand[1] = malloc(sizeof(TCHAR) * (8 + 1));
+    if (!wrapperData->jvmVersionCommand[1]) {
+        outOfMemory(TEXT("WBJC"), 3);
+        return TRUE;
+    }
+    _tcsncpy(wrapperData->jvmVersionCommand[1], TEXT("-version"), 8 + 1);
+    /* NULL */
+    wrapperData->jvmVersionCommand[2] = NULL;
+    
     /* Allocate memory to hold array of command strings.  The array is itself NULL terminated */
     wrapperData->jvmCommand = malloc(sizeof(TCHAR *) * (length + 1));
     if (!wrapperData->jvmCommand) {
         outOfMemory(TEXT("WBJC"), 1);
         return TRUE;
     }
+    memset(wrapperData->jvmCommand, 0, sizeof(TCHAR *) * (length + 1));
     /* number of arguments + 1 for a NULL pointer at the end */
     for (i = 0; i <= length; i++) {
         if (i < length) {
@@ -1137,6 +1157,7 @@ int wrapperBuildJavaCommand() {
  * Launches a JVM process and stores it internally.
  */
 void wrapperExecute() {
+    int i;
     pid_t proc;
 
     /* Create the pipe. */
@@ -1144,6 +1165,38 @@ void wrapperExecute() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
                    TEXT("Could not init pipe: %s"), getLastErrorText());
         return;
+    }
+    
+    /* Log the Java commands. */
+    
+    /* If the JVM version printout is requested then log its command line first. */
+    if (wrapperData->printJVMVersion) {
+        if (wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Java Command Line (Query Java Version):"));
+            for (i = 0; wrapperData->jvmVersionCommand[i] != NULL; i++) {
+                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG,
+                    TEXT("  Command[%d] : %s"), i, wrapperData->jvmVersionCommand[i]);
+            }
+        }
+    }
+    
+    /* Log ghe application java command line */
+    if (wrapperData->commandLogLevel != LEVEL_NONE) {
+        log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel, TEXT("Java Command Line:"));
+        for (i = 0; wrapperData->jvmCommand[i] != NULL; i++) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel,
+                TEXT("  Command[%d] : %s"), i, wrapperData->jvmCommand[i]);
+        }
+
+        if (wrapperData->environmentClasspath) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel,
+                TEXT("  Classpath in Environment : %s"), wrapperData->classpath);
+        }
+    }
+
+    /* Update the CLASSPATH in the environment if requested so the JVM can access it. */ 
+    if (wrapperData->environmentClasspath) {
+        setEnv(TEXT("CLASSPATH"), wrapperData->classpath, ENV_SOURCE_WRAPPER);
     }
 
     /* Make sure the log file is closed before the Java process is created.  Failure to do

@@ -15,6 +15,32 @@ Java Service Wrapper Revision History.
   debug output correctly if the wrapper.ignore_signals property is set to true.
   We now also log debug output even if a user event listener consumes the
   signal event.
+* Fix a problem on Gentoo Linux where the shell script was not correctly
+  detecting the system architecture.  This may also be a problem on other
+  distributions whose 'uname -p' returns a detailed architecture.
+* In the shell script, when the flag to use systemd (USE_SYSTEMD) is set,
+  the shell script generates a ".service" file in /etc/systemd/system/
+  when installing the Wrapper as a daemon.
+* In the shell script, add a function to validate the size of APP_NAME when
+  installing or removing the daemon on AIX.
+* It was possible to disable the logging of the Java command line even when
+  debug output was enabled by setting the wrapper.java.command.loglevel
+  property to NONE.  This made it difficult to debug problems and is no longer
+  possible.
+* When the wrapper.java.version.output property is set to true, add debug log
+  output to show the actual command line used.
+* Fix a problem on Windows when the wrapper.java.version.output property is
+  true where it was possible that java executable being run to get the version
+  could be different than that used to run the application if the java
+  executable was being located on the default system PATH as well as the PATH
+  defined in the environment.  The Wrapper now looks once and uses the same
+  fully resolved path in both places. For clarity, both java command lines are
+  now included in debug log output when the version is requested. (Bug #288)
+* Change the timing of the logging of the Java command line on UNIX so it is
+  consistent with Windows.
+* Improve the error message text thrown when a native feature is not available
+  from Java to be more clear about whether the problem is that the native
+  library could not be loaded versus the wrong edition being used.
 
 3.5.24
 * Fix a problem where the message source of remote syslog messages from the JVM
