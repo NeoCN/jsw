@@ -1982,7 +1982,8 @@ public final class WrapperManager
      * @throws WrapperJNIError If the native library has not been loaded or is in the
      *                         process of shutting down.
      * @throws WrapperLicenseError If the function is called other than in
-     *                             the Professional Edition or from a Standalone JVM.
+     *                             the Professional Edition or if the native
+     *                             library has not been loaded.
      * @throws UnsatisfiedLinkError If the posix_spawn function couldn't be found
      *
      * @see #isProfessionalEdition()
@@ -2036,7 +2037,8 @@ public final class WrapperManager
      * @throws WrapperJNIError If the native library has not been loaded or is in the
      *                         process of shutting down.
      * @throws WrapperLicenseError If the function is called other than in
-     *                             the Professional Edition or from a Standalone JVM.
+     *                             the Professional Edition or if the native
+     *                             library has not been loaded.
      * @throws UnsatisfiedLinkError If the posix_spawn function couldn't be found
      *
      * @see #isProfessionalEdition()
@@ -2088,7 +2090,8 @@ public final class WrapperManager
      * @throws WrapperJNIError If the native library has not been loaded or is in the
      *                         process of shutting down.
      * @throws WrapperLicenseError If the function is called other than in
-     *                             the Professional Edition or from a Standalone JVM.
+     *                             the Professional Edition or if the native
+     *                             library has not been loaded.
      * @throws UnsatisfiedLinkError If the posix_spawn function couldn't be found
      *
      * @see #isProfessionalEdition()
@@ -2146,7 +2149,8 @@ public final class WrapperManager
      * @throws WrapperJNIError If the native library has not been loaded or is in the
      *                         process of shutting down.
      * @throws WrapperLicenseError If the function is called other than in
-     *                             the Professional Edition or from a Standalone JVM.
+     *                             the Professional Edition or if the native
+     *                             library has not been loaded.
      * @throws UnsatisfiedLinkError If the posix_spawn function couldn't be found
      *
      * @see #isProfessionalEdition()
@@ -2168,10 +2172,7 @@ public final class WrapperManager
         //  Then both the cmdArray and cmdLine will be passed off to the native code.
         //  The cmdLine may be null.
         
-        if ( !isProfessionalEdition() )
-        {
-            throw new WrapperLicenseError( getRes().getString( "Requires the Professional Edition." ) );
-        }
+        assertProfessionalEdition();
         
         if ( ( cmdArray == null ) && ( cmdLine == null ) )
         {
@@ -2293,6 +2294,31 @@ public final class WrapperManager
     }
     
     /**
+     * Asserts that the Professional Edition of the Wrapper is being used and
+     *  that the native library is available.
+     *
+     * @throws WrapperLicenseError If the function is called other than in
+     *                             the Professional Edition or if the native
+     *                             library has not been loaded.
+     */
+    static void assertProfessionalEdition()
+        throws WrapperLicenseError
+    {
+        if ( !m_libraryOK )
+        {
+            throw new WrapperLicenseError( getRes().getString( "Requires that the Professional Edition native library be loaded.  Please check for errors earlier in the log." ) );
+        }
+        else if ( m_stopped )
+        {
+            throw new WrapperLicenseError( getRes().getString( "Requires that the Professional Edition native library be loaded, but it has already been unloaded as part of the shutdown process." ) );
+        }
+        else if ( !isProfessionalEdition() )
+        {
+            throw new WrapperLicenseError( getRes().getString( "Requires the Professional Edition." ) );
+        }
+    }
+    
+    /**
      * Returns true if the current JVM is Windows.
      *
      * @return True if this is Windows.
@@ -2320,6 +2346,8 @@ public final class WrapperManager
      * Returns true if the current Wrapper edition has support for Professional
      *  Edition features.
      *
+     * False will also be returned if the native library has not been initialized correctly.
+     *
      * @return True if professional features are supported.
      */
     public static boolean isProfessionalEdition()
@@ -2332,6 +2360,8 @@ public final class WrapperManager
      * Returns true if the current Wrapper edition has support for Standard
      *  Edition features.
      *
+     * False will also be returned if the native library has not been initialized correctly.
+     *
      * @return True if standard features are supported.
      */
     public static boolean isStandardEdition()
@@ -2341,14 +2371,15 @@ public final class WrapperManager
     }
     
     /**
-     *  Fires a user event user_n specified in the conf file
+     * Fires a user event user_n specified in the conf file
      *
-     *  @throws SecurityException If a SecurityManager is present and the
+     * @throws SecurityException If a SecurityManager is present and the
      *                           calling thread does not have the
      *                           WrapperPermission("fireUserEvent")
      *                           permission.
-     *  @throws WrapperLicenseError If the function is called other than in
-     *                             the Professional Edition or from a Standalone JVM.
+     * @throws WrapperLicenseError If the function is called other than in
+     *                             the Professional Edition or if the native
+     *                             library has not been loaded.
      */
     public static void fireUserEvent( int eventNr )
     {
@@ -2360,10 +2391,8 @@ public final class WrapperManager
         if ( eventNr <= 0 || eventNr > 32767 ) {
             throw new java.lang.IllegalArgumentException( getRes().getString( "The user-event number must be in the range of 1-32767." ) );
         }
-        if ( !isProfessionalEdition() )
-        {
-            throw new WrapperLicenseError( getRes().getString( "Requires the Professional Edition." ) );
-        }
+        assertProfessionalEdition();
+        
         sendCommand( WRAPPER_MSG_FIRE_USER_EVENT, String.valueOf( eventNr ) );
     }
 

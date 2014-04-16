@@ -2297,6 +2297,7 @@ int wrapperInitialize() {
     wrapperSetJavaState(WRAPPER_JSTATE_DOWN_CLEAN, 0, -1);
     wrapperData->lastPingTicks = wrapperGetTicks();
     wrapperData->lastLoggedPingTicks = wrapperGetTicks();
+    wrapperData->jvmVersionCommand = NULL;
     wrapperData->jvmCommand = NULL;
     wrapperData->exitRequested = FALSE;
     wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_INITIAL; /* The first JVM needs to be started. */
@@ -2439,6 +2440,10 @@ void wrapperDataDispose() {
         wrapperData->portAddress = NULL;
     }
 #ifdef WIN32
+    if (wrapperData->jvmVersionCommand) {
+        free(wrapperData->jvmVersionCommand);
+        wrapperData->jvmVersionCommand = NULL;
+    }
     if (wrapperData->jvmCommand) {
         free(wrapperData->jvmCommand);
         wrapperData->jvmCommand = NULL;
@@ -2472,6 +2477,14 @@ void wrapperDataDispose() {
         wrapperData->ctrlCodeQueue = NULL;
     }
 #else
+    if(wrapperData->jvmVersionCommand) {
+        for (i = 0; wrapperData->jvmVersionCommand[i] != NULL; i++) {
+            free(wrapperData->jvmVersionCommand[i]);
+            wrapperData->jvmVersionCommand[i] = NULL;
+        }
+        free(wrapperData->jvmVersionCommand);
+        wrapperData->jvmVersionCommand = NULL;
+    }
     if(wrapperData->jvmCommand) {
         for (i = 0; wrapperData->jvmCommand[i] != NULL; i++) {
             free(wrapperData->jvmCommand[i]);
@@ -7341,6 +7354,10 @@ int loadConfiguration() {
     /* Get the wrapper command log level. */
     wrapperData->commandLogLevel = getLogLevelForName(
         getStringProperty(properties, TEXT("wrapper.java.command.loglevel"), TEXT("DEBUG")));
+    if (wrapperData->commandLogLevel >= LEVEL_NONE) {
+        /* Should never be possible to completely disable the java command as this would make it very difficult to support. */
+        wrapperData->commandLogLevel = LEVEL_DEBUG;
+    }
     
     /* Should we detach the JVM on startup. */
     if (wrapperData->isConsole) {

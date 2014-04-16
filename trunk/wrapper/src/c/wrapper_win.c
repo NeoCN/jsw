@@ -602,6 +602,21 @@ int wrapperBuildJavaCommand() {
         log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("%d : %s"), i, strings[i]);
     }
 #endif
+    
+    /* Build a single string from the array that will be used to request the Java version.
+     *  The first element of the command array will always be the java binary. */
+    /* Calculate the length */
+    commandLen = _tcslen(strings[0]);
+    commandLen += 1; /* Space */
+    commandLen += _tcslen(TEXT("-version"));
+    commandLen++; /* '\0' */
+    /* Build the actual command */
+    wrapperData->jvmVersionCommand = malloc(sizeof(TCHAR) * commandLen);
+    if (!wrapperData->jvmVersionCommand) {
+        outOfMemory(TEXT("WBJC"), 1);
+        return TRUE;
+    }
+    _sntprintf(wrapperData->jvmVersionCommand, commandLen, TEXT("%s -version"), strings[0]);
 
     /* Build a single string from the array */
     /* Calculate the length */
@@ -615,9 +630,9 @@ int wrapperBuildJavaCommand() {
     commandLen++; /* '\0' */
     commandLen2 = commandLen;
     /* Build the actual command */
-    wrapperData->jvmCommand = malloc(sizeof(TCHAR) * commandLen);
+    wrapperData->jvmCommand = malloc(sizeof(TCHAR) * commandLen2);
     if (!wrapperData->jvmCommand) {
-        outOfMemory(TEXT("WBJC"), 1);
+        outOfMemory(TEXT("WBJC"), 2);
         return TRUE;
     }
     commandLen = 0;
@@ -1627,18 +1642,29 @@ void wrapperExecute() {
     /* Add the priority class of the new process to the processflags */
     processflags = processflags | wrapperData->ntServicePriorityClass;
 
-    /* Setup the command line */
+    /* Log the Java commands. */
+    
+    /* If the JVM version printout is requested then log its command line first. */
+    if (wrapperData->printJVMVersion) {
+        if (wrapperData->isDebugging) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Java Command Line (Query Java Version):"));
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("  Command: %s"), wrapperData->jvmVersionCommand);
+        }
+    }
+    
+    /* Log ghe application java command line */
     commandline = wrapperData->jvmCommand;
     if (wrapperData->commandLogLevel != LEVEL_NONE) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel,
-            TEXT("Command: %s"), commandline);
+        log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel, TEXT("Java Command Line:"));
+        log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel, TEXT("  Command: %s"), commandline);
 
         if (wrapperData->environmentClasspath) {
             log_printf(WRAPPER_SOURCE_WRAPPER, wrapperData->commandLogLevel,
-                TEXT("Classpath in Environment : %s"), wrapperData->classpath);
+                TEXT("  Classpath in Environment : %s"), wrapperData->classpath);
         }
     }
 
+    /* Update the CLASSPATH in the environment if requested so the JVM can access it. */ 
     if (wrapperData->environmentClasspath) {
         setEnv(TEXT("CLASSPATH"), wrapperData->classpath, ENV_SOURCE_WRAPPER);
     }
@@ -1761,10 +1787,8 @@ void wrapperExecute() {
     /* If set, this will launch a second JVM before the actual one to quickly print out the JVM version information.
      *  This will appear to come from the same JVM instance in the logs. */
     if (wrapperData->printJVMVersion) {
-        TCHAR versionCmd[MAX_PATH + 9];
-        _sntprintf(versionCmd, MAX_PATH + 9, TEXT("%s -version"), getStringProperty(properties, TEXT("wrapper.java.command"), TEXT("java")));
         if (CreateProcess(NULL,
-                          versionCmd,    /* the command line to start */
+                          wrapperData->jvmVersionCommand, /* the command line to start */
                           NULL,          /* process security attributes */
                           NULL,          /* primary thread security attributes */
                           TRUE,          /* handles are inherited */

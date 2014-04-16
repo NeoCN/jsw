@@ -58,15 +58,13 @@ public final class WrapperProcessConfig
     /**
      * Creates a default configuration.
      *
-     * @throws WrapperLicenseError If the Professional Edition of the Wrapper
-     *                              is not being used.
+     * @throws WrapperLicenseError If the function is called other than in
+     *                             the Professional Edition or if the native
+     *                             library has not been loaded.
      */
     public WrapperProcessConfig()
     {
-        if ( !WrapperManager.isProfessionalEdition() )
-        {
-            throw new WrapperLicenseError( "Requires the Professional Edition." );
-        }
+        WrapperManager.assertProfessionalEdition();
 
         m_isDetached = false;
         m_defdir = null;
@@ -89,16 +87,15 @@ public final class WrapperProcessConfig
      *              true.
      *
      * @throws WrapperLicenseError If the function is called other than in
-     *                             the Professional Edition or from a Standalone JVM.
+     *                             the Professional Edition or if the native
+     *                             library has not been loaded.
      * @throws IllegalArgumentException If the startType is invalid.
      */
     public static boolean isSupported( int startType )
         throws WrapperLicenseError, IllegalArgumentException
     {
-        if ( !WrapperManager.isProfessionalEdition() )
-        {
-            throw new WrapperLicenseError(  WrapperManager.getRes().getString( "Requires the Professional Edition." ) );
-        }
+        WrapperManager.assertProfessionalEdition();
+        
         verifyStartType( startType );
         if ( WrapperManager.isNativeLibraryOk() )
         {

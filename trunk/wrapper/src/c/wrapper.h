@@ -254,8 +254,10 @@ struct WrapperConfig {
     int     commandLogLevel;        /* The log level to use when logging the java command. */
     int     printJVMVersion;        /* tells the Wrapper to create a temp JVM to query the version, before starting the java application */
 #ifdef WIN32
+    TCHAR   *jvmVersionCommand;     /* Command used to launch the JVM and request its version */
     TCHAR   *jvmCommand;            /* Command used to launch the JVM */
 #else /* UNIX */
+    TCHAR   **jvmVersionCommand;    /* Command used to launch the JVM and request its version */
     TCHAR   **jvmCommand;           /* Command used to launch the JVM */
 #endif
     int     detachStarted;          /* TRUE if the JVM process should be detached once it has started. */
