@@ -110,6 +110,18 @@ extern int setEnv(const TCHAR *name, const TCHAR *value, int source);
 extern void evaluateEnvironmentVariables(const TCHAR *propertyValue, TCHAR *buffer, int bufferLength, int warnUndefinedVars, PHashMap warnedUndefVarMap, int warnLogLevel);
 
 /**
+ * This function returns a reference to a static buffer and is NOT thread safe.
+ *  Check implementation notes before using.
+ */
+extern TCHAR* generateTimeValue(const TCHAR* format, struct tm *timeTM);
+
+/**
+ * This function returns a reference to a static buffer and is NOT thread safe.
+ *  Check implementation notes before using.
+ */
+extern TCHAR* generateRandValue(const TCHAR* format);
+
+/**
  * Create a Properties structure loaded in from the specified file.
  *  Must call disposeProperties to free up allocated memory.
  *

@@ -196,27 +196,30 @@ TCHAR generateValueBuffer[256];
 
 /**
  * This function returns a reference to a static buffer and is NOT thread safe.
+ *  It is currently called only when loading a property file and when firing an event.
+ *  Both happen in the main thread.
+ * The largest return value can be 15+1 characters.
  */
-TCHAR* generateTimeValue(const TCHAR* format) {
+TCHAR* generateTimeValue(const TCHAR* format, struct tm *timeTM) {
     if (strcmpIgnoreCase(format, TEXT("YYYYMMDDHHIISS")) == 0) {
         _sntprintf(generateValueBuffer, 256, TEXT("%04d%02d%02d%02d%02d%02d"),
-        loadPropertiesTM.tm_year + 1900, loadPropertiesTM.tm_mon + 1, loadPropertiesTM.tm_mday,
-        loadPropertiesTM.tm_hour, loadPropertiesTM.tm_min, loadPropertiesTM.tm_sec );
+        timeTM->tm_year + 1900, timeTM->tm_mon + 1, timeTM->tm_mday,
+        timeTM->tm_hour, timeTM->tm_min, timeTM->tm_sec );
     } else if (strcmpIgnoreCase(format, TEXT("YYYYMMDD_HHIISS")) == 0) {
         _sntprintf(generateValueBuffer, 256, TEXT("%04d%02d%02d_%02d%02d%02d"),
-        loadPropertiesTM.tm_year + 1900, loadPropertiesTM.tm_mon + 1, loadPropertiesTM.tm_mday,
-        loadPropertiesTM.tm_hour, loadPropertiesTM.tm_min, loadPropertiesTM.tm_sec );
+        timeTM->tm_year + 1900, timeTM->tm_mon + 1, timeTM->tm_mday,
+        timeTM->tm_hour, timeTM->tm_min, timeTM->tm_sec );
     } else if (strcmpIgnoreCase(format, TEXT("YYYYMMDDHHII")) == 0) {
         _sntprintf(generateValueBuffer, 256, TEXT("%04d%02d%02d%02d%02d"),
-        loadPropertiesTM.tm_year + 1900, loadPropertiesTM.tm_mon + 1, loadPropertiesTM.tm_mday,
-        loadPropertiesTM.tm_hour, loadPropertiesTM.tm_min );
+        timeTM->tm_year + 1900, timeTM->tm_mon + 1, timeTM->tm_mday,
+        timeTM->tm_hour, timeTM->tm_min );
     } else if (strcmpIgnoreCase(format, TEXT("YYYYMMDDHH")) == 0) {
         _sntprintf(generateValueBuffer, 256, TEXT("%04d%02d%02d%02d"),
-        loadPropertiesTM.tm_year + 1900, loadPropertiesTM.tm_mon + 1, loadPropertiesTM.tm_mday,
-        loadPropertiesTM.tm_hour );
+        timeTM->tm_year + 1900, timeTM->tm_mon + 1, timeTM->tm_mday,
+        timeTM->tm_hour );
     } else if (strcmpIgnoreCase(format, TEXT("YYYYMMDD")) == 0) {
         _sntprintf(generateValueBuffer, 256, TEXT("%04d%02d%02d"),
-        loadPropertiesTM.tm_year + 1900, loadPropertiesTM.tm_mon + 1, loadPropertiesTM.tm_mday);
+        timeTM->tm_year + 1900, timeTM->tm_mon + 1, timeTM->tm_mday);
     } else {
         _sntprintf(generateValueBuffer, 256, TEXT("{INVALID}"));
     }
@@ -225,6 +228,9 @@ TCHAR* generateTimeValue(const TCHAR* format) {
 
 /**
  * This function returns a reference to a static buffer and is NOT thread safe.
+ *  It is currently called only when loading a property file and when firing an event.
+ *  Both happen in the main thread.
+ * The largest return value can be 9+1 characters.
  */
 TCHAR* generateRandValue(const TCHAR* format) {
     if (strcmpIgnoreCase(format, TEXT("N")) == 0) {
@@ -300,7 +306,7 @@ void evaluateEnvironmentVariables(const TCHAR *propertyValue, TCHAR *buffer, int
                 envValueNeedFree = FALSE;
                 if (_tcsstr(envName, TEXT("WRAPPER_TIME_")) == envName) {
                     /* Found a time value. */
-                    envValue = generateTimeValue(envName + 13);
+                    envValue = generateTimeValue(envName + 13, &loadPropertiesTM);
                 } else if (_tcsstr(envName, TEXT("WRAPPER_RAND_")) == envName) {
                     /* Found a time value. */
                     envValue = generateRandValue(envName + 13);
@@ -499,12 +505,12 @@ int loadProperties(Properties *properties, const TCHAR* filename, int preload) {
     #else
     struct timeval timevalNow;
     #endif
-    time_t      now;
-    struct tm   *nowTM;
+    time_t now;
+    struct tm *nowTM;
     int loadResult;
     
 #ifdef WIN32
-    _ftime( &timebNow );
+    _ftime(&timebNow);
     now = (time_t)timebNow.time;
 #else
     gettimeofday(&timevalNow, NULL);

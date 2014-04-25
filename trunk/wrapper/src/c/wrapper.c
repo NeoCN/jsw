@@ -584,9 +584,31 @@ void dumpEnvironment(int logLevel) {
     log_printf(WRAPPER_SOURCE_WRAPPER, logLevel, TEXT(""));
 }
 
+#ifdef WIN32
+/**
+ * Check if the Wrapper is running under cygwin terminal.
+ * I'm looking for the environment variable TERM to be equal to "xterm".
+ * I tried with OSTYPE and MACHTYPE, but _tgetenv always returns NULL.
+ * @return TRUE if under cygwin, otherwise returns FALSE
+ */
+int isCygwin() {
+    TCHAR *osType;
+    int retVal = FALSE;
+    
+    osType = _tgetenv(TEXT("TERM"));
+    
+    if ((osType != NULL) && (_tcscmp(osType, TEXT("xterm")) == 0)) {
+        retVal = TRUE;
+    } 
+
+    return retVal;
+}
+#endif
+
 void wrapperLoadLoggingProperties(int preload) {
     const TCHAR *logfilePath;
     int logfileRollMode;
+    int underCygwin = FALSE;
     
     setLogPropertyWarnings(properties, !preload);
     
@@ -644,8 +666,13 @@ void wrapperLoadLoggingProperties(int preload) {
 
     setConsoleLogLevel(getStringProperty(properties, TEXT("wrapper.console.loglevel"), TEXT("INFO")));
 
+#ifdef WIN32
+    /* check if the current instance of the Wrapper is running under Cygwin */
+    underCygwin = isCygwin();
+#endif
+
     /* Load the console flush flag. */
-    setConsoleFlush(getBooleanProperty(properties, TEXT("wrapper.console.flush"), FALSE));
+    setConsoleFlush(getBooleanProperty(properties, TEXT("wrapper.console.flush"), FALSE || underCygwin));
 
 #ifdef WIN32
     /* Load the console direct flag. */
@@ -4115,6 +4142,10 @@ int wrapperRunCommonInner() {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_DEBUG, TEXT("Operating System ID: %s"), szOS);
             }
             free(szOS);
+        }
+        
+        if (isCygwin()) {
+            log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_INFO, TEXT("CYGWIN detected"));
         }
     }
 #endif
