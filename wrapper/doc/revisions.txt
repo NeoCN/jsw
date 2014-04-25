@@ -41,6 +41,10 @@ Java Service Wrapper Revision History.
 * Improve the error message text thrown when a native feature is not available
   from Java to be more clear about whether the problem is that the native
   library could not be loaded versus the wrong edition being used.
+* Detect when the Wrapper is running under CYGWIN.  In that case, the default 
+  value for wrapper.console.flush is TRUE.
+* (Professional) Add support for WRAPPER_EVENT_TIME_* and WRAPPER_EVENT_RAND_*
+  variable references so event times can be used when events are fired.
 
 3.5.24
 * Fix a problem where the message source of remote syslog messages from the JVM
